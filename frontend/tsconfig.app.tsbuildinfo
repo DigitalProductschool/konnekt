@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/team-members.ts","./src/pages/teammembers/teammemberscontext.tsx","./src/pages/teammembers/index.tsx","./src/pages/teammembers/components/teammemberform.tsx","./src/pages/teammembers/components/teammemberitem.tsx","./src/types/api.ts"],"version":"6.0.3"}

@@ -1,0 +1,62 @@
+# Dependencies
+/frontend/node_modules/
+
+# Build outputs
+dist/
+build/
+/frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+/backend/.venv/
+
+# uv
+.uv/
+
+# NOTE: backend/uv.lock and backend/.python-version are deliberately NOT ignored.
+# Both must be committed: the Dockerfiles install with `uv sync --frozen`, which
+# fails without the lockfile, and .python-version pins the interpreter version so
+# every clone resolves the same one.
+
+# Environment files
+.env
+.env.local
+.env.*.local
+/backend/.env
+/frontend/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker volumes (local)
+postgres-data/
+
+# Database
+*.db
+
+#claude settings
+.claude
+
+# Ignore spec-kit runtime files, but keep the project constitution
+.specify/*
+!.specify/memory/
+.specify/memory/*
+!.specify/memory/constitution.md

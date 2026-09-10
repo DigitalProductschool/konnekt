@@ -1,0 +1,77 @@
+# Production compose file for Coolify (single resource + preview deployments).
+#
+# No host port mappings: Coolify's Traefik proxy routes the public domain to the
+# frontend service; backend and postgres are reachable only on the internal
+# network. SERVICE_PASSWORD_POSTGRES and SERVICE_FQDN_FRONTEND are Coolify
+# "magic" variables, generated per environment (including per preview).
+#
+# Local dev uses docker-compose.yml instead.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_DB: template_db
+    volumes:
+      # postgres:18+ stores data in a major-version subdirectory and refuses to
+      # start if the volume is mounted at the old /var/lib/postgresql/data path.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      # SERVICE_NAME_POSTGRES resolves to the actual service name per
+      # environment: 'postgres' in production, 'postgres-pr-<id>' in previews,
+      # where Coolify suffixes every service name
+      DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES}@${SERVICE_NAME_POSTGRES:-postgres}:5432/template_db
+      PORT: 3000
+      APP_ENV: production
+      API_KEY: ${API_KEY}
+    healthcheck:
+      # python:3.13-slim ships neither curl nor wget
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:3000/api/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      # Bare declaration: tells Coolify this service owns the public domain
+      # (nginx on :80) and makes it generate the Traefik routing + TLS labels
+      - SERVICE_FQDN_FRONTEND
+      # Backend hostname for the nginx /api proxy; suffixed per preview
+      - BACKEND_HOST=${SERVICE_NAME_BACKEND:-backend}
+    healthcheck:
+      # 127.0.0.1, not localhost: busybox wget doesn't fall back from ::1,
+      # where nginx isn't listening
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/ > /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
