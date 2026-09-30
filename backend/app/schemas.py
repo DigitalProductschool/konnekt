@@ -44,6 +44,18 @@ def to_iso_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
+class AskIdResponse(BaseModel):
+    link: str
+    token: str
+
+
+class PersonIdResponse(BaseModel):
+    name: str
+    surname: str
+    birthdate: str
+    nationality: str
+
+
 # Add our Pydantic schemas here
 # Example:
 # class UserResponse(BaseModel):

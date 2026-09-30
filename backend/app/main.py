@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .errors import register_exception_handlers
+from .routers.id_verification import router as id_verification_router
 from .routers.team_members import router as team_members_router
 
 # Import our routers here
@@ -47,3 +48,4 @@ def health_check() -> dict[str, str]:
 # Include our routers here
 # app.include_router(example_router)
 app.include_router(team_members_router)
+app.include_router(id_verification_router)
