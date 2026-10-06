@@ -2,6 +2,8 @@
 
 This file provides context for AI coding agents (Claude Code, GitHub Copilot, OpenAI Codex/ChatGPT, Cursor, etc.).
 
+Also read all the files in `./docs` for more specific context (like ARCHITECTURE and KERN). Load them into the context only if they are relevant.
+
 ## Project Overview
 
 Full-stack application with separate frontend and backend:
