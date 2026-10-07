@@ -60,3 +60,5 @@ postgres-data/
 !.specify/memory/
 .specify/memory/*
 !.specify/memory/constitution.md
+
+resume.sh
