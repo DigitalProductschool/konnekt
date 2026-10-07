@@ -51,3 +51,15 @@
     SC-001 to SC-008 are numbered without gaps, and every cross-reference resolves.
 - All items pass. The spec is ready for `/speckit-plan`, or for `/speckit-clarify` if open points
   need revisiting.
+- Iteration 5 (2026-10-07, during `/speckit-plan`): Three answers were recorded under
+  Clarifications.
+  - FR-007: team members sign in with personal accounts that are set up outside the UI.
+  - FR-017: access to the connection URLs is restricted by the network, not by credentials.
+  - FR-016: proof of sender for webhook updates is out of scope. US3's sender-confirmation
+    scenario was removed, and the new "Restricted network" assumption covers both directions.
+  - Re-check: still no clarification markers. Scenarios per story are now 5, 8, 4 and 5, and every
+    cross-reference still resolves. All items still pass.
+- Iteration 6 (2026-10-07, during `/speckit-plan` review): FR-018 now says what "delivered only
+  once" means for webhooks, following the user's answer recorded under Clarifications: documents
+  can't be obtained again after a confirmed delivery, and an update whose confirmation was lost
+  may be repeated. All items still pass.

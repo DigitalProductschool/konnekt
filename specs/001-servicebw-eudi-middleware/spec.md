@@ -29,6 +29,10 @@ When these URLs are used, the middleware will establish a connection to the wall
 - Q: Are the ID and the driving licence mandatory? → A: Not in general. The middleware user specifies which documents each form connection needs; the ID and the driving licence are only the user-story example. Within a form connection, the citizen must provide every document. The wallet enforces this, so it returns either all the requested documents or none.
 - Q: Where is the webhook address set? → A: The DO.IT team enters it in the middleware UI, as part of the form connection.
 - Q: What do webhook updates contain? → A: Both the status and, once the citizen has shared, the documents.
+- Q: How do DO.IT team members sign in to the middleware? → A: Each team member has a personal account with a username and password. Accounts are set up outside the management interface, which has no account management in this iteration.
+- Q: How is access to the trigger and pull URLs restricted to serviceBW? → A: By the network. The middleware and serviceBW operate in a restricted, controlled network in which only serviceBW can reach those URLs. Calls to the URLs carry no credentials.
+- Q: How does serviceBW confirm that a webhook update came from the middleware? → A: That kind of security is out of scope for now. The restricted network is relied on, so webhook updates carry no authentication.
+- Q: serviceBW may accept a "completed" webhook update without its answer ever reaching the middleware. Should the middleware retry? → A: Yes. It retries as usual. In that rare case serviceBW receives the same documents twice and drops the repeat. Once a delivery is confirmed, the documents are deleted and can't be obtained again.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -138,8 +142,6 @@ change, and that the "completed" update carries exactly the configured fields.
    configured fields of each requested document.
 4. **Given** the webhook address cannot be reached, **When** an update is due, **Then** the
    middleware retries delivery until the retention limit in FR-020 is reached.
-5. **Given** an update arrives at the webhook address, **When** serviceBW checks it, **Then**
-   serviceBW can confirm that the middleware sent it.
 
 ---
 
@@ -224,7 +226,8 @@ reactivate one, then delete one.
   NOT start new requests and MUST answer with the status "unavailable". Requests already in
   progress MUST be cancelled.
 - **FR-007**: Only authorized DO.IT team members MUST be able to access the middleware's management
-  interface.
+  interface. Each team member MUST sign in with a personal account, which is set up outside the
+  management interface.
 
 #### Document requests
 
@@ -261,15 +264,18 @@ reactivate one, then delete one.
   request's status changes. The "completed" update MUST also carry the configured fields of each
   requested document, identified as in FR-013. In webhook mode, documents MUST be delivered only to
   the webhook address.
-- **FR-016**: serviceBW MUST be able to confirm that an update was sent by the middleware. If an
-  update cannot be delivered, the system MUST retry until the retention limit in FR-020 is reached.
+- **FR-016**: If an update cannot be delivered to the webhook address, the system MUST retry until
+  the retention limit in FR-020 is reached. Updates carry no proof of sender; the restricted
+  network is relied on instead (see Assumptions).
 
 #### Security and data protection
 
-- **FR-017**: Only the serviceBW integration authorized for a form connection MUST be able to call
-  its trigger URL and pull URL.
+- **FR-017**: Only serviceBW MUST be able to call the trigger URLs and pull URLs. This is ensured by
+  the restricted network the middleware operates in (see Assumptions), not by credentials sent
+  with the calls.
 - **FR-018**: Request references MUST NOT be guessable, and the documents of a request MUST be
-  delivered only once.
+  delivered only once: after the first confirmed delivery they can't be obtained again. A webhook
+  update whose confirmation never reached the middleware may be repeated (see Clarifications).
 - **FR-019**: Documents MUST reach serviceBW in a way that no third party can read or alter them.
   Documents from one request MUST never be delivered for another request or form connection.
 - **FR-020**: The system MUST delete a request's documents as soon as they have been delivered to
@@ -290,7 +296,8 @@ reactivate one, then delete one.
   through the trigger URL. It holds an unguessable reference, the configuration in force when it
   was triggered, its status and timestamps, and the shared documents, but only until they are
   delivered.
-- **DO.IT Team Member**: An authorized member of staff who manages form connections.
+- **DO.IT Team Member**: An authorized member of staff who manages form connections and signs in
+  with a personal account.
 
 ## Success Criteria *(mandatory)*
 
@@ -333,6 +340,12 @@ reactivate one, then delete one.
 - **Time limits**: The 10-minute expiry for requests and the 30-minute maximum retention of
   documents are defaults that balance usability and data minimization. They may be adjusted after
   testing.
+- **Restricted network**: The middleware and serviceBW operate in a restricted, controlled
+  network. Only serviceBW can reach the connection URLs, and the middleware's updates to the
+  webhook address travel only inside that network. Neither direction is authenticated by the
+  middleware in this iteration.
 - **Out of scope**: Custom logic on document fields, which is planned for a later iteration.
   Also out of scope: issuing documents into wallets, qualified electronic signatures, payments,
-  archiving documents in the case file, and any changes to serviceBW itself.
+  archiving documents in the case file, and any changes to serviceBW itself. Authenticating calls
+  to the connection URLs and updates to the webhook address beyond the restricted network, and
+  managing team member accounts in the management interface, are out of scope for now.
