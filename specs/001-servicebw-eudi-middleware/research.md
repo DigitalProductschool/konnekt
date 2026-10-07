@@ -14,10 +14,18 @@ Some points must be confirmed against the OpenAPI of the hosted EUDIPLO instance
 is written; each one is marked **Verify at implementation**.
 
 Decisions marked **(user)** were made by the user on 2026-10-07. Those that change what the
-feature does are also recorded in the spec's Clarifications section: personal accounts, network
-restriction, no authentication for webhook updates, and repeated webhook updates. The technical
-ones are recorded only here: the hosted EUDIPLO, the nginx allow-list, the shared EUDIPLO tenant,
-and the open questions about serviceBW.
+feature does are also recorded in the spec's Clarifications section:
+- personal accounts;
+- network restriction;
+- no authentication for webhook updates, and repeated webhook updates;
+- serviceBW waits for a final status;
+- a 60-second repeat window for pulls;
+- the accepted risk of a forwarded link, with serviceBW checking the applicant;
+- WCAG 2.1 AA for the management UI;
+- 7-day retention of request records.
+
+The technical ones are recorded only here: the hosted EUDIPLO, the nginx allow-list, the shared
+EUDIPLO tenant, and the open questions about serviceBW.
 
 ## Technical Context: open points and how they were resolved
 
@@ -29,13 +37,14 @@ and the open questions about serviceBW.
 | How documents and fields become a wallet request | R3, R4 |
 | How EUDIPLO results become the spec's request statuses | R5 |
 | How the middleware learns that a citizen has shared | R6, R7 |
-| How the 30-minute limit on personal data is met | R8 |
+| How the 30-minute limit on documents and the 7-day limit on request records are met | R8 (user: 7 days) |
 | Pull-mode and webhook-mode delivery, including "delivered only once" | R9, R10 (user) |
 | Wallet link and QR code | R11 |
 | Connection URLs and the "unavailable" answer | R12 |
 | Restricting serviceBW access (FR-017) | R13 (user) |
 | DO.IT sign-in (FR-007) | R14 (user) |
 | HTTP client, frontend libraries, tests, settings | R15–R18 |
+| Accessibility of the management UI (SC-009) | R16 (user: WCAG 2.1 AA) |
 | What serviceBW can actually do | R20 (user: to be confirmed by DO.IT) |
 
 No open point blocks the plan. R19 lists the points that still need a decision from someone else
@@ -356,8 +365,11 @@ when `WORKER_ENABLED` is true, and stops it on shutdown.
   4. **Send** due webhook updates (R10).
   5. **Delete** EUDIPLO sessions that are due for deletion (R8).
   6. **Re-sync** configurations (R2). This step runs until it has succeeded once after each start.
-  7. **Delete** EUDIPLO configurations that no open request uses any more.
+  7. **Delete** the EUDIPLO configurations of revisions that are no longer current, once no request
+     on them still has an EUDIPLO session.
   8. **Delete** expired sign-in sessions.
+  9. **Delete** request records, with their webhook updates, `REQUEST_RECORD_RETENTION_SECONDS`
+     (7 days) after the request ended (FR-021, R8).
 - **Status changes**: every status change, whether from sync, expiry, cancel, pull or a webhook
   acknowledgement, locks the request row with `SELECT … FOR UPDATE`. It then checks the current
   status again before changing it. Of two competing changes, only the first one takes effect.
@@ -381,7 +393,7 @@ switch the thread off and call each step directly.
 - APScheduler: a dependency that adds nothing over a simple loop.
 - Celery or RQ: these need Redis, which is a change to the stack.
 
-## R8. Personal data: none stored by the middleware (FR-020, SC-006)
+## R8. Personal data: no documents stored by the middleware, records kept 7 days (FR-020, FR-021, SC-006) **(user: 7 days)**
 
 **Decision**: The middleware never writes a citizen's documents to its own database, logs or
 files.
@@ -393,50 +405,70 @@ files.
 - **Status reads**: a status read that has to fall back to `GET /api/session/{id}` (R6) also
   receives `credentials`, and drops them right away.
 - **When the EUDIPLO session is deleted**: the worker deletes it with `DELETE /api/session/{id}`:
-  - in the cycle after a successful delivery;
+  - pull mode: when the repeat window of `PULL_REPEAT_WINDOW_SECONDS` (60 s) after the first
+    delivery ends (FR-018, R9);
+  - webhook mode: in the cycle after the first 2xx for the `completed` update;
   - in the cycle after the request becomes `declined`, `verification_failed`, `expired` or
     `unavailable`;
   - for completed requests that were never delivered, at `completed_at` +
     `DOCUMENT_RETENTION_SECONDS` − 60 seconds. The 60-second margin keeps the deletion inside the
     30 minutes despite the 2-second cycle.
   
-  Each request records the time its EUDIPLO session was deleted, and a failed delete is retried.
+  The 30-minute limit also caps the pull repeat window: a window that would run past it ends at
+  the limit. Each request records the time its EUDIPLO session was deleted, and a failed delete is
+  retried.
 - **Where `completed_at` comes from**: EUDIPLO's `consumedAt`, the time the citizen's answer was
   accepted. If the worker was not running, deletion happens as soon as it runs again.
+- **Request records (user, FR-021)**: a request **ends** when it has a final status and its
+  documents have been delivered or deleted. The row, together with its webhook updates, is deleted
+  `REQUEST_RECORD_RETENTION_SECONDS` (7 days) after that. A pull with its reference then answers
+  `404`, like an unknown one.
 - **Logs**: never claims, tokens or secrets. Request references are removed even from access
   logs (R13). A request is identified by its internal id.
 
 **Rationale**: This follows the EUDIPLO.md rule "Store only the session ID and reference until
 results are needed". It also makes SC-006 hold for the middleware's own storage by construction.
-EUDIPLO would keep sessions for 24 hours by default (`SESSION_TTL`), and its cleanup job runs only
-every hour. That is why the middleware deletes sessions explicitly instead of relying on EUDIPLO's
-retention.
+SC-006 also covers "the service the middleware uses to communicate with wallets", which is
+EUDIPLO. EUDIPLO would keep sessions for 24 hours by default (`SESSION_TTL`), and its cleanup job
+runs only every hour. That is why the middleware deletes sessions explicitly instead of relying on
+EUDIPLO's retention.
+
+The 7-day retention of request records is the user's choice. It leaves time to look into a failed
+request even across a weekend, while records that are pseudonymous personal data don't live
+longer than needed.
 
 **Alternatives considered**:
 - Copying documents into Postgres, encrypted, until delivery: this needs a key, a new dependency
   and a second copy of the data, for no gain.
 
-## R9. Pull mode: delivering documents once (FR-013, FR-018)
+## R9. Pull mode: delivering documents once, with a 60-second repeat window (FR-013, FR-018) **(user: repeat window)**
 
 **Open requests**: a request is **open** while it is `pending`, or while it is `completed` and its
 documents are neither delivered nor deleted (`documents_delivered_at` and
 `eudiplo_session_deleted_at` both empty). Every artifact uses this one definition.
 
-**Decision**: A pull for a `completed` pull-mode request with documents to hand over runs these
-steps:
+**Decision**: A pull for a `completed` pull-mode request runs these steps:
 
 1. The request row is locked with `SELECT … FOR UPDATE`.
-2. The middleware reads the EUDIPLO session and extracts the configured fields.
-3. It sets `documents_delivered_at` and commits.
-4. It returns the documents. Deleting the EUDIPLO session is left to the worker, so no slow call
-   sits between the commit and the response.
+2. If the documents can no longer be handed out, the answer is `completed` with
+   `documents: null`. That is the case once the repeat window after the first delivery has ended,
+   or once the EUDIPLO session has been deleted.
+3. Otherwise the middleware reads the EUDIPLO session and extracts the configured fields.
+4. On the first delivery it sets `documents_delivered_at` and commits.
+5. It returns the documents. Deleting the EUDIPLO session is left to the worker (R8), so no slow
+   call sits between the commit and the response.
+
+**Repeat window (user, FR-018)**: for `PULL_REPEAT_WINDOW_SECONDS` (60 s) after
+`documents_delivered_at`, further pulls return the same documents. They are read from EUDIPLO
+again and extracted the same way. A serviceBW whose first answer got lost therefore just pulls
+again. Two pulls at the same moment both receive the documents, which the window allows.
 
 **Other cases**:
 - **EUDIPLO can't be reached in step 2**: nothing changes, and serviceBW receives `502` and can
   retry.
 - **EUDIPLO answers `404` for the session**, because the documents are already gone: the request
   records `eudiplo_session_deleted_at`, and the answer is `completed` with `documents: null`.
-- **Later pulls** return `completed` with `documents: null`.
+- **Pulls after the repeat window** return `completed` with `documents: null`.
 - **Requests in webhook mode**: the pull URL only ever returns their status (FR-015).
 - **A request that passed its expiry time** while still `pending`: the pull itself makes the last
   check (R7, step 2) before answering.
@@ -462,17 +494,23 @@ key and label; nothing else is copied.
 - **A missing value** can't happen when verification succeeds, because EUDIPLO rejects responses
   with missing claims. If it happens anyway, it is logged by field key and returned as `null`.
 
-**Rationale**: Locking the row makes "delivered only once" hold even for two simultaneous pulls.
-Extracting from an allow-list enforces "exactly the configured fields" (SC-005), whatever the
-wallet or EUDIPLO adds. If serviceBW's connection drops after the commit, the documents of that
-pull are lost. This is inherent in delivering only once, and the window is kept as short as
-possible.
+**Rationale**:
+- **Row lock**: it makes the first delivery a single, well-defined moment, even when two pulls
+  arrive together.
+- **Allow-list extraction**: it enforces "exactly the configured fields" (SC-005), whatever the
+  wallet or EUDIPLO adds.
+- **Repeat window**: the user chose it so that a lost answer doesn't lose the documents. It
+  mirrors the decision for webhooks (R10), where a rare repeat is accepted for the same reason,
+  and it needs no extra call from serviceBW.
 
 **Alternatives considered**:
 - Deleting the EUDIPLO session inside the pull before responding: a slow delete could make
   serviceBW time out after the commit, and the documents would be lost.
 - Marking a request delivered only after the HTTP response has been sent: the server cannot observe
   that.
+- No repeat at all, so a lost answer loses the documents: declined by the user.
+- An explicit receipt confirmation from serviceBW: declined by the user. It would add a third call,
+  and it isn't confirmed that serviceBW can make it (R20).
 
 ## R10. Webhook mode: updates to serviceBW (FR-014 to FR-016) **(user: no authentication; retries may repeat)**
 
@@ -533,7 +571,8 @@ The backend generates the QR code with `segno`. Neither link has a `redirectUri`
 - **Two different links**: EUDIPLO returns two `openid4vp://` links. `uri` is the same-device
   variant, and `crossDeviceUri` is "QR code for a wallet on another device … never redirects".
   Showing `uri` as the QR code would be wrong, so the QR code encodes `crossDeviceUri`. It is the
-  same request, which satisfies the intent of FR-008 ("the same link as a QR code").
+  same request, which is exactly what FR-008 asks for: a link for the device that holds the
+  wallet, and a QR code that opens the same request from another device.
 - **Why a data URI**: it can be embedded anywhere (`<img src>`, a PDF) without a second call to the
   middleware. serviceBW can still render its own QR code from `qr_code_link`.
 - **Why `segno`**: it is pure Python with no dependencies and writes PNG without Pillow.
@@ -565,8 +604,8 @@ The backend generates the QR code with `segno`. Neither link has a `redirectUri`
 - **The "unavailable" answer** comes at two levels.
   - **Form connection level**: while a form connection is deactivated or deleted, every call to
     its URLs answers HTTP `409` with `{"error": "unavailable", "message": …}`, whatever the request
-    reference and whatever status the request had reached. This is the spec's rule that the URLs
-    "answer with the status unavailable" (FR-006).
+    reference and whatever status the request had reached. This is FR-006's rule that the URLs
+    answer every call with "unavailable", whatever status a request has reached.
   - **Request level**: a request that was open when its form connection was deactivated keeps the
     status `unavailable`. After a reactivation, a pull for it therefore answers `200` with
     `status: "unavailable"`.
@@ -729,17 +768,31 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - **Design**: layout, wording, language and component choice come from the Figma design, which the
   user will share when the UI tasks start. This plan fixes only the screens and their behavior
   ([contracts/ui-screens.md](contracts/ui-screens.md)).
+- **Accessibility (user, SC-009)**: the management UI meets WCAG 2.1 level AA.
+  - The requirements for each screen are in
+    [contracts/ui-screens.md](contracts/ui-screens.md#accessibility-sc-009).
+  - The Figma review checks colour contrast and visible focus states before implementation starts.
+  - Before release, a review checks every screen:
+    - an automated scan in the browser, with axe DevTools or Lighthouse (reviewers' tools, not
+      project dependencies);
+    - a walk through the main flows using only the keyboard;
+    - a pass with a screen reader (NVDA or VoiceOver);
+    - 200% zoom and reflow at a width of 320 px.
 
 **Rationale**:
 - **A router**: the SPA needs deep links to a form connection, and `nginx.conf` already falls back
   to the SPA for client-side routes.
 - **KERN**: it is the design system documented for this repository and used by German public
-  administration.
+  administration. Its components are built for WCAG 2.1 AA, so most of the work is using them
+  correctly and checking the result.
 - **snake_case**: it removes the camelCase/snake_case mix in the template.
 
 **Alternatives considered**:
 - View switching held in state: no deep links, and the browser's back button breaks.
 - TanStack Router: there is no need for type-safe search params.
+- No formal accessibility target, or accessibility out of scope: declined by the user.
+- An automated accessibility test suite in the frontend: it would need a test runner, which the
+  frontend doesn't have (R17). The review before release covers SC-009.
 
 ## R17. Tests
 
@@ -755,10 +808,12 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
   - unit tests for the DCQL builder and configuration hash, field extraction (filtering to the
     allow-list), status mapping (including the last check before expiry) and catalog integrity;
   - API tests for sign-in and CSRF (`415`), form connection CRUD and validation messages, trigger,
-    pull (delivered once, expiry, unavailable, check order, EUDIPLO `404`), webhook delivery with
-    leases and retries, the cancel sweep, and re-sync.
+    pull (first delivery, 60-second repeat window, expiry, unavailable, check order, EUDIPLO
+    `404`), webhook delivery with leases and retries, the cancel sweep, re-sync, and deleting
+    request records after the retention period.
 - **Frontend**: `npm run lint` and `npm run build`, which are the constitution's gates. There is no
-  test runner.
+  test runner. Accessibility (SC-009) is checked by the review before release (R16, quickstart
+  V9).
 - **End to end**: a manual run with Paradym against the hosted EUDIPLO, following
   [quickstart.md](quickstart.md). It covers verification failures that only a real issuer can
   produce: untrusted, expired, and revoked credentials.
@@ -791,6 +846,8 @@ documented in `backend/.env.example`, `README.md` and `docs/ARCHITECTURE.md` (Co
 | `EUDIPLO_TRUST_LIST_ID` | Trust list used for issuer trust in every credential query | empty (saving answers `503` while it is empty) |
 | `REQUEST_LIFETIME_SECONDS` | Expiry of a document request (FR-012) | `600` |
 | `DOCUMENT_RETENTION_SECONDS` | Maximum time documents are kept after sharing, and the webhook retry limit (FR-016, FR-020) | `1800` |
+| `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery (FR-018) | `60` |
+| `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended (FR-021) | `604800` (7 days) |
 | `ALLOW_PLAIN_HTTP` | Allow `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development, inside a closed network | `false` |
 | `WORKER_ENABLED` | Run the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
@@ -847,30 +904,29 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
      - the session sync ignores sessions it doesn't know;
      - configurations left behind by reset development databases must be removed in the EUDIPLO
        console.
-7. **Request metadata**: references, statuses and timestamps contain no documents. They are still
-   pseudonymous personal data, because a reference is linked to one serviceBW application. The spec
-   sets no retention period for them, so they are kept until one is decided. **Decision needed
-   from data protection.**
-8. **Sign-in hardening**: there is no rate limit or lockout for failed sign-ins, and no password
+7. **Sign-in hardening**: there is no rate limit or lockout for failed sign-ins, and no password
    policy beyond the 12-character minimum. Both are acceptable for a small internal team, and
    worth adding before wider use.
 
 ## R20. What serviceBW is expected to do **(user: not sure yet, to be confirmed by DO.IT)**
 
-The design relies on serviceBW being able to do the following. The user could not confirm it yet.
-DO.IT confirms these points with serviceBW before the integration, and the URL design is adjusted
-if one of them doesn't hold.
+The design relies on serviceBW doing the following.
+- **Items 1–5 and 7** are expectations the user could not confirm yet. DO.IT confirms them with
+  serviceBW before the integration, and the URL design is adjusted if one of them doesn't hold.
+- **Item 6** is decided, and is now the spec assumption "serviceBW waits for a final status".
 
 1. **Trigger**: call the trigger URL with an HTTP `POST` that has no body, from its server and not
    from the citizen's browser.
-2. **Pull URL**: put the request reference into the pull URL (`GET …/requests/{reference}`).
+2. **Pull URL**: put the request reference into the pull URL (`GET …/requests/{reference}`). If an
+   answer gets lost, pull again within 60 seconds to receive the same documents (FR-018).
 3. **Responses**: read JSON responses in the `{"data": …}` / `{"error": …, "message": …}`
    envelopes, and act on `404` and `409`.
 4. **QR code**: show a PNG given as a data URI, or render its own QR code from `qr_code_link`.
 5. **Webhook mode**: accept JSON `POST`s at a webhook address that the middleware can reach, and
    answer within 10 seconds.
-6. **Polling until a final status**. In pull mode serviceBW keeps pulling, every 2 seconds, until
-   the status is no longer `pending`. It reacts at once to `declined`, `verification_failed` and
+6. **Waiting until a final status (decided by the user; spec assumption)**. In pull mode serviceBW
+   keeps pulling, every 2 seconds, until the status is no longer `pending`. In webhook mode it
+   keeps waiting for the update. It reacts at once to `declined`, `verification_failed` and
    `expired`.
    - It does **not** apply a timeout of its own that is shorter than `expires_at`, which is
      10 minutes.
@@ -878,6 +934,11 @@ if one of them doesn't hold.
      the test form gave up after 3 minutes. Against this middleware, a 3-minute timeout would
      abandon citizens who approve between minutes 3 and 10. Their documents would never be
      collected, and they would be deleted after 30 minutes.
+7. **Checking the applicant**: serviceBW checks that the documents it receives belong to the
+   applicant, for example against the signed-in serviceBW account (spec assumption "Documents
+   match the applicant"). The middleware can't do this, because it never learns who filled in the
+   form. Until serviceBW confirms it, the risk of a link or QR code forwarded to someone else is
+   accepted for this iteration (user).
 
 ## R21. Smaller decisions
 

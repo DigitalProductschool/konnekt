@@ -63,3 +63,22 @@
   once" means for webhooks, following the user's answer recorded under Clarifications: documents
   can't be obtained again after a confirmed delivery, and an update whose confirmation was lost
   may be repeated. All items still pass.
+- Iteration 7 (2026-10-07, `/speckit-clarify` and follow-up): Five answers were recorded under
+  Clarifications:
+  - serviceBW waits for a final status;
+  - pulls may repeat for 60 seconds (FR-018, FR-020, US2 scenarios 8–9);
+  - the risk of a forwarded link is accepted, and serviceBW checks the applicant;
+  - WCAG 2.1 AA for the management UI (SC-009);
+  - request records are deleted after 7 days (FR-021).
+
+  Afterwards, with the user's approval, wording was aligned with the plan:
+  - FR-008: two entry points, a link and a QR code for another device;
+  - FR-005: what "configuration" includes;
+  - FR-006: what "in progress" means, and "unavailable" for every call;
+  - FR-011: what "unavailable" means;
+  - FR-016: retry limits for each kind of update;
+  - FR-020 and SC-006: they also cover the service used to talk to wallets;
+  - the edge case about a cancel that the wallet doesn't report.
+
+  Re-check: no markers. FR-001–FR-021 and SC-001–SC-009 are numbered without gaps. All items
+  still pass.

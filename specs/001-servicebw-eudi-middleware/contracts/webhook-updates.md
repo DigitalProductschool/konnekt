@@ -77,7 +77,7 @@ the configured fields, with each document identified by `document_type` and each
   - The `completed` update is retried until its documents are deleted: 30 minutes after the
     citizen shared, less a 60-second safety margin (FR-020). After that it is abandoned and never
     sent again.
-  - Other updates are retried until 30 minutes after the status change.
+  - Other updates are retried until 30 minutes after the status change they report (FR-016).
 
 ## Delivery guarantees
 

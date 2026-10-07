@@ -20,6 +20,7 @@ reopened:
 
 - [ ] CHK001 Does the spec define what serviceBW receives when it pulls a completed request whose documents were deleted unpicked after 30 minutes, and whether that answer must differ from "already delivered"? [Gap, Spec §FR-018, §FR-020, Edge Cases]
 - [ ] CHK002 Is a retention period defined for request metadata (references, statuses, timestamps)? It holds no documents but is linked to a citizen's serviceBW application. [Gap, Spec §FR-020, Plan research R19]
+  - Note (2026-10-07): FR-021 now deletes request records 7 days after the request ends.
 - [ ] CHK003 Are responsibilities defined for creating, changing and removing team member accounts, including how people who leave DO.IT lose access? [Gap, Spec §FR-007, Clarifications]
 - [ ] CHK004 Are validation rules specified for every field of a form connection (name, serviceBW form, webhook address format and scheme), not only for missing documents and fields? [Completeness, Spec §FR-001, §FR-003, §FR-014]
 - [ ] CHK005 Are empty, loading and error states specified for the overview and the form connection screens? [Gap, Spec US4-1, Plan contracts/ui-screens.md]
@@ -32,15 +33,22 @@ reopened:
 - [ ] CHK009 Are FR-010's "trusted issuer" and "currently valid" defined? This includes who maintains the trusted issuers in each environment, and what happens when revocation status can't be determined. [Clarity, Spec §FR-010, Assumptions "Wallets and trust"]
 - [ ] CHK010 Is the precision of the 10-minute expiry specified (an exact cut-off, or a tolerance), given that a citizen's answer can arrive right at the deadline? [Clarity, Spec §FR-012, Plan research R7]
 - [ ] CHK011 Does FR-005's "the configuration they started with" explicitly include the connection mode and webhook address? If it does, changing or removing the webhook address mid-request has a defined outcome. [Ambiguity, Spec §FR-005, §FR-014]
+  - Note (2026-10-07): FR-005 now lists the requested documents and fields, and the connection mode with its webhook address.
 - [ ] CHK012 Is "requests already in progress" in FR-006 defined (only pending requests, or also completed requests with undelivered documents), and is the time within which they are cancelled specified? [Ambiguity, Spec §FR-006, Plan data-model "Open requests"]
+  - Note (2026-10-07): FR-006 now defines "in progress". The time within which requests are cancelled is still not in the spec (the plan says about 2 seconds).
 - [ ] CHK013 Is a "confirmed delivery" in FR-018 defined for pull mode, where serviceBW sends no confirmation after receiving the documents? [Ambiguity, Spec §FR-018]
+  - Note (2026-10-07): FR-018 now counts the first pull that returns the documents as the delivery, followed by a 60-second repeat window.
 
 ## Requirement Consistency
 
 - [ ] CHK014 Is FR-008's "the same link as a QR code" consistent with the plan, where the QR code encodes a cross-device link that differs from the same-device link? [Conflict, Spec §FR-008, Plan research R11]
+  - Note (2026-10-07): FR-008 now describes a link for the device that holds the wallet, and a QR code for another device.
 - [ ] CHK015 Are the two meanings of "unavailable" distinguished consistently: the answer of a deactivated or deleted form connection's URLs, and a request status? Do the spec and the contracts use the same status names, for example "verification failed"? [Consistency, Spec §FR-006, §FR-011, Plan research R12]
+  - Note (2026-10-07): FR-006 (the URLs' answer) and FR-011 (the request status) now describe the two meanings separately. The status names are still mapped only in the plan (research R5).
 - [ ] CHK016 Is FR-016's retry limit defined for updates that carry no documents (declined, expired, unavailable)? For these, no sharing starts FR-020's 30-minute clock. [Consistency, Spec §FR-016, §FR-020]
+  - Note (2026-10-07): FR-016 now sets a retry limit for each kind of update.
 - [ ] CHK017 Do FR-020 ("the system") and SC-006 ("the middleware") consistently cover the external verification component that holds shared documents until they are deleted? [Consistency, Spec §FR-020, §SC-006, Plan research R8]
+  - Note (2026-10-07): FR-020 and SC-006 now include the service the middleware uses to communicate with wallets.
 - [ ] CHK018 Is the plan's option to allow plain HTTP inside a closed network reflected as an explicit exception in FR-019, or does FR-019 rule it out? [Conflict, Spec §FR-019, Plan research R18]
 
 ## Acceptance Criteria Quality
@@ -55,8 +63,10 @@ reopened:
 
 - [ ] CHK024 Are exception and recovery requirements defined for outages of the middleware or of the wallet-verification service? This covers failed triggers, open requests, queued webhook updates, and deletion deadlines that fall inside the outage. [Gap, Recovery, Spec §FR-008, §FR-016, §FR-020]
 - [ ] CHK025 Are requirements defined for a wallet that closes without reporting the citizen's cancellation? The edge cases currently say that cancelling always ends as "declined". [Coverage, Spec Edge Cases, §FR-011, Plan research R5]
+  - Note (2026-10-07): The edge case and US2 scenario 5 now cover a wallet that doesn't report the cancellation.
 - [ ] CHK026 Are requirements defined for how changes to the trusted issuers or to the document catalog affect existing form connections and requests in progress? [Gap, Spec §FR-002, §FR-005, §FR-010]
 - [ ] CHK027 Is there a requirement, or an explicit acceptance of the risk, for a request link or QR code that is passed to someone other than the citizen filling in the form (cross-device phishing)? [Gap, Spec §FR-008, §FR-019]
+  - Note (2026-10-07): The risk is accepted for this iteration. A new assumption and edge case say that serviceBW checks the documents belong to the applicant.
 
 ## Edge Case Coverage
 
@@ -70,13 +80,17 @@ reopened:
 - [ ] CHK032 Are sign-in requirements specified beyond "personal account": password strength, session duration, sign-out, and protection against repeated failed attempts? [Completeness, Spec §FR-007, Plan research R19]
 - [ ] CHK033 Is an availability target specified for the middleware, which sits on the citizen's path through the serviceBW form? [Gap, Non-Functional]
 - [ ] CHK034 Are the management UI's language, and its accessibility obligations as an internal tool of a public body (for example BITV 2.0), specified, delegated to the design, or explicitly excluded? [Gap, Non-Functional, Plan research R16]
+  - Note (2026-10-07): SC-009 now requires WCAG 2.1 AA. The UI language is still left to the Figma design.
 
 ## Dependencies & Assumptions
 
 - [ ] CHK035 Are the assumptions about serviceBW's capabilities recorded in the spec, with an owner and a point at which they are confirmed before integration? They are: calling the trigger URL without a body, filling the reference into the pull URL, reading JSON, showing a data-URI image, receiving JSON webhooks within 10 seconds, and keeping the reference secret. [Assumption, Spec Assumptions "serviceBW's role", Plan research R20]
+  - Note (2026-10-07): The waiting behavior and the applicant check are now spec assumptions. The other capabilities are still listed only in research R20.
 - [ ] CHK036 Is serviceBW's expected waiting behavior captured as a requirement or an assumption: the polling interval, the stop conditions, and no timeout of its own shorter than the 10-minute expiry? A shorter timeout would leave approved documents uncollected. [Gap, Spec Assumptions "serviceBW's role", §FR-012, Plan research R20]
+  - Note (2026-10-07): The spec assumption "serviceBW waits for a final status" now covers this.
 - [ ] CHK037 Are the external dependencies stated as assumptions, in technology-agnostic terms? These are a wallet-verification service and the city's registration as a relying party. The assumption should also say that the registration certificate may limit which fields can be requested. [Dependency, Spec Assumptions "Wallets and trust", Plan research R19]
 - [ ] CHK038 Is each accepted risk and open decision recorded with an owner and an exit condition or deadline? These are the shared tenant, declaring retention to the wallet, and the retention of request metadata. [Assumption, Plan research R2, R19]
+  - Note (2026-10-07): The retention of request metadata is decided (FR-021). The shared tenant and declaring retention to the wallet still have no named owner or deadline.
 
 ## Ambiguities & Conflicts (settled decisions: wording only)
 
@@ -96,4 +110,5 @@ reopened:
   - `Plan research Rn` points to [research.md](../research.md).
   - `Plan data-model`, `Plan contracts/…` and `Plan quickstart` point to the matching plan
     artifacts.
+- Sub-bullets marked "Note (2026-10-07)" record spec changes made after this checklist was generated. They do not mark items as passed; the reviewer decides.
 - Items are numbered sequentially for easy reference

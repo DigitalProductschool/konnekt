@@ -1,6 +1,7 @@
 # Contract: serviceBW integration API (trigger URL and pull URL)
 
-**Consumers**: serviceBW. **Requirements**: FR-004, FR-005, FR-008 to FR-013, FR-017, FR-018.
+**Consumers**: serviceBW. **Requirements**: FR-004, FR-005, FR-008 to FR-013, FR-017, FR-018,
+FR-021.
 **Decisions**: research R5, R9, R11, R12, R13, R20.
 
 ## Common rules
@@ -139,28 +140,31 @@ connection's current revision, all in one interaction (FR-009).
     are for display.
   - Values keep their JSON type. Binary values, such as `picture` or `portrait`, are base64
     strings, and dates are ISO 8601 strings.
-- **Delivered once** (FR-018): only the first successful pull of a `completed` request returns
-  `documents`. Later pulls return `"status": "completed"` with `"documents": null`. So does a pull
-  after the documents were deleted, which happens 30 minutes after the citizen shared at the
-  latest (FR-020).
+- **Delivered once, with a repeat window** (FR-018): the first pull that returns `documents`
+  counts as the delivery. Pulls within **60 seconds** of it return the same documents, so serviceBW
+  can simply pull again if an answer got lost. After that, pulls return `"status": "completed"`
+  with `"documents": null`. So does a pull after the documents were deleted, which happens
+  30 minutes after the citizen shared at the latest (FR-020).
 - **Webhook mode**: for requests in webhook mode, `documents` is always `null`. Their documents go
   only to the webhook address (FR-015).
 - **Expiry**: a `pending` request pulled after `expires_at` is checked with EUDIPLO one last time.
   The answer is `completed`, `declined` or `verification_failed` if the citizen finished in time,
   and `expired` otherwise.
 
-**How serviceBW should poll** (research R20):
+**How serviceBW should poll** (spec assumption "serviceBW waits for a final status"; research R20):
 - Pull every 2 seconds while the status is `pending`, and stop as soon as it is final.
 - `declined` and `verification_failed` arrive within about 2 seconds of the wallet's answer, so the
   form can show the error right away.
 - Don't stop waiting before `expires_at`: the middleware reports `expired` itself.
 - A decline is reported only if the wallet sends one. If the citizen simply closes the wallet, the
   request stays `pending` until `expired`.
+- When the documents arrive, serviceBW checks that they belong to the applicant. The middleware
+  can't do this check (spec assumption "Documents match the applicant").
 
 ### Errors
 
 | Status | Body | When |
 |---|---|---|
-| `404` | `{"error": "Not found", "message": "Request not found"}` | Unknown form connection or reference, or a reference that belongs to another form connection (FR-019). Stop polling |
+| `404` | `{"error": "Not found", "message": "Request not found"}` | Unknown form connection or reference; a reference that belongs to another form connection (FR-019); or a request whose record was deleted 7 days after it ended (FR-021). Stop polling |
 | `409` | `{"error": "unavailable", "message": "This form connection is deactivated or deleted"}` | The form connection is deactivated or deleted, whatever status the request reached (FR-006). Stop polling |
 | `502` | `{"error": "Upstream error", "message": "The documents could not be fetched. Try again."}` | EUDIPLO couldn't be reached while reading the documents. Nothing was consumed, so the next pull can still receive them |

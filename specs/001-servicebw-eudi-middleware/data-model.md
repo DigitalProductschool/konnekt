@@ -24,7 +24,7 @@ middleware delivers them, and then the worker deletes that session (research R8)
 | Document Type | The catalog in code (`app/catalog.py`), not in the database |
 | Requested Document | One entry in `form_connection_revisions.documents` |
 | Connection URL | Not stored. Built from `CONNECTION_BASE_URL` and the form connection's `id` |
-| Document Request | `document_requests`, plus `webhook_deliveries` for webhook mode. The documents themselves stay in EUDIPLO until delivered |
+| Document Request | `document_requests`, plus `webhook_deliveries` for webhook mode. The documents themselves stay in EUDIPLO until delivered. The rows are deleted 7 days after the request ended (FR-021) |
 | DO.IT Team Member | `user_accounts`, plus `login_sessions` |
 
 ## Relationships
@@ -43,9 +43,15 @@ A document request is **open** while it is:
 - `completed` with documents that are neither delivered nor deleted: both
   `documents_delivered_at` and `eudiplo_session_deleted_at` are empty.
 
-Deactivating or deleting a form connection cancels its open requests (FR-006). A revision's
-EUDIPLO configuration is deleted only once no open request uses it. Every artifact uses this one
-definition.
+This is what FR-006 calls "in progress": deactivating or deleting a form connection cancels its
+open requests. Every artifact uses this one definition.
+
+## Ended requests
+
+A document request **ends** when it has a final status and its documents have been delivered or
+deleted (FR-021). `ended_at` records that moment. The worker deletes the row, with its webhook
+updates, `REQUEST_RECORD_RETENTION_SECONDS` (7 days) later. A pull with that reference then
+answers `404`, like an unknown one.
 
 ---
 
@@ -159,9 +165,10 @@ fails after step 3, the configuration is deleted again (best effort, logged).
 
 **Deleting the EUDIPLO configuration**: the worker deletes it once both of these hold:
 - the revision is no longer current, or its form connection was deleted;
-- no [open request](#open-requests) uses the revision.
+- no request on the revision still has an EUDIPLO session (`eudiplo_session_deleted_at` empty).
+  This includes requests inside the pull repeat window.
 
-## `document_requests`: Document Request (FR-008 to FR-013, FR-018 to FR-020)
+## `document_requests`: Document Request (FR-008 to FR-013, FR-018 to FR-021)
 
 | Column | Type | Rules |
 |---|---|---|
@@ -177,25 +184,33 @@ fails after step 3, the configuration is deleted again (best effort, logged).
 | `expires_at` | `DateTime(timezone=True)`, indexed | Trigger time + the revision's `lifetime_seconds` (FR-012) |
 | `status_changed_at` | `DateTime(timezone=True)` | When `status` last changed. Webhook retry deadlines start from here |
 | `completed_at` | `DateTime(timezone=True)`, nullable | When the citizen shared: EUDIPLO's `consumedAt`. The 30-minute limit (FR-020) starts here |
-| `documents_delivered_at` | `DateTime(timezone=True)`, nullable | Set on the first confirmed delivery. The documents can't be obtained again after that (FR-018) |
+| `documents_delivered_at` | `DateTime(timezone=True)`, nullable | Set on the first delivery: the first pull that returns the documents, or the first 2xx for the `completed` webhook update. In pull mode, pulls within `PULL_REPEAT_WINDOW_SECONDS` (60 s) after it return the same documents. After that the documents can't be obtained again (FR-018) |
 | `eudiplo_session_deleted_at` | `DateTime(timezone=True)`, nullable | Set once the EUDIPLO session, with any shared documents, has been deleted, or EUDIPLO reported it gone (FR-020) |
+| `ended_at` | `DateTime(timezone=True)`, nullable, indexed | When the request [ended](#ended-requests). For `declined`, `verification_failed`, `expired` and `unavailable` this is the status change; for `completed`, the first delivery, or the deletion of the undelivered documents. The row is deleted `REQUEST_RECORD_RETENTION_SECONDS` (7 days) later (FR-021) |
 | `created_at`, `updated_at` | `DateTime(timezone=True)` | |
 
 ### Request status transitions
 
 ```text
-                 ┌── EUDIPLO completed ─────────▶ completed ──┬── delivered (pull, or webhook 2xx) ─▶ documents_delivered_at set;
-                 │                                            │                                      the worker deletes the EUDIPLO session
-                 │                                            ├── completed_at + 30 min − 60 s,
-                 │                                            │   still undelivered ───────────────▶ EUDIPLO session deleted
-                 │                                            │                                      (status stays completed, no documents)
-                 │                                            └── form connection deactivated
- trigger ─▶ pending ── wallet error code ──────▶ declined         or deleted while open ───────────▶ unavailable
-                 ├──── verification failure ───▶ verification_failed
-                 ├──── last check after expires_at + 10 s grace: R5 table applied;
-                 │     still active or fetched ─▶ expired
-                 └──── form connection deactivated
-                       or deleted ─────────────▶ unavailable
+ trigger ─▶ pending ──┬── EUDIPLO completed ──────────────▶ completed
+                      ├── wallet error code ──────────────▶ declined
+                      ├── verification failure ───────────▶ verification_failed
+                      ├── last check after expires_at
+                      │   + 10 s grace: R5 table applied;
+                      │   still active or fetched ────────▶ expired
+                      └── form connection deactivated
+                          or deleted ─────────────────────▶ unavailable
+
+ completed ──┬── first delivery (first pull that returns ─▶ documents_delivered_at and ended_at set;
+             │   the documents, or first webhook 2xx)      EUDIPLO session deleted when the 60 s
+             │                                             pull repeat window ends, or at once (webhook)
+             ├── completed_at + 30 min − 60 s,
+             │   still undelivered ────────────────────────▶ EUDIPLO session deleted, ended_at set
+             │                                             (status stays completed, no documents)
+             └── form connection deactivated or
+                 deleted while open ───────────────────────▶ unavailable
+
+ every ended request ── ended_at + 7 days ─────────────────▶ row deleted, with its webhook updates
 ```
 
 - **Mapping**: the mapping from EUDIPLO session states and failure codes is in research R5. The
@@ -206,15 +221,18 @@ fails after step 3, the configuration is deleted again (best effort, logged).
   current status again first (research R7).
 - **Every status change** sets `status_changed_at`. In webhook mode, it also queues one
   `webhook_deliveries` row.
-- **Deleting the EUDIPLO session**: the worker deletes it after delivery and for every final
-  status. Each deletion sets `eudiplo_session_deleted_at`.
+- **Deleting the EUDIPLO session**: the worker deletes it when the pull repeat window ends, right
+  after a webhook delivery, and for every final status. Each deletion sets
+  `eudiplo_session_deleted_at`.
+- **Deleting the record**: `ended_at` is set when the request [ends](#ended-requests). Seven days
+  later the worker deletes the row, together with its webhook updates (FR-021).
 
 ## `webhook_deliveries`: outbox of updates to serviceBW (FR-015, FR-016)
 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `String(36)` PK | UUID4 |
-| `document_request_id` | FK → `document_requests.id`, indexed | |
+| `document_request_id` | FK → `document_requests.id`, indexed, `ON DELETE CASCADE` | Deleted together with its request record (FR-021) |
 | `status` | `String(32)` | The request status this update reports |
 | `occurred_at` | `DateTime(timezone=True)` | When that status was reached; sent in the update |
 | `attempts` | `Integer`, default `0` | |
@@ -241,7 +259,8 @@ scans use these indexes:
 | Table | Index | Used by |
 |---|---|---|
 | `document_requests` | `(status, expires_at)` | The expiry scan for `pending` requests |
-| `document_requests` | Partial on `(completed_at)`, `WHERE eudiplo_session_deleted_at IS NULL` | The EUDIPLO session deletion scan, and finding open requests |
+| `document_requests` | Partial on `(status)`, `WHERE eudiplo_session_deleted_at IS NULL` | The EUDIPLO session deletion scan, the configuration cleanup, and finding open requests. It covers only the few requests whose session still exists |
+| `document_requests` | `(ended_at)` | Deleting request records after `REQUEST_RECORD_RETENTION_SECONDS` (FR-021) |
 | `webhook_deliveries` | Partial on `(next_attempt_at)`, `WHERE delivered_at IS NULL AND abandoned_at IS NULL` | The webhook delivery scan |
 | `form_connection_revisions` | Partial on `(form_connection_id)`, `WHERE eudiplo_config_deleted_at IS NULL` | The configuration cleanup scan |
 | `form_connections` | `(deleted_at)` | The overview, and the cancel sweep |

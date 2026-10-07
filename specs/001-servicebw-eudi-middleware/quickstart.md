@@ -63,12 +63,12 @@ npm run lint && npm run build
 **Expected**: everything passes. The pytest suite fakes EUDIPLO, so it needs neither EUDIPLO
 credentials nor a wallet. It covers among others:
 - the allow-list extraction of fields;
-- delivered once, including two simultaneous pulls;
+- the first delivery and the 60-second repeat window for pulls;
 - the R5 status mapping, including the last check before expiry;
 - the order of the URL checks;
 - the CSRF check (`415`);
 - webhook leases and retries;
-- the cancel sweep and the re-sync.
+- the cancel sweep, the re-sync, and deleting request records after the retention period.
 
 ## 4. Validation scenarios
 
@@ -109,9 +109,12 @@ curl -s "http://localhost:3000/api/connect/$FC/requests/$REF" | jq   # expected:
      each with its `document_type` and `label`. Together they carry exactly the 7 configured
      fields, each with `key`, `label` and `value`. There is no `iss`, `vct` or any other field
      (SC-005).
-3. Pull again.
+3. Pull again within 60 seconds.
+   - **Expected**: the same documents again (FR-018).
+4. Wait until more than 60 seconds have passed since the first pull that returned the documents,
+   then pull again.
    - **Expected**: `"status": "completed"` and `"documents": null` (FR-018).
-4. Same-device variant: open `.data.wallet_link` in the phone's browser.
+5. Same-device variant: open `.data.wallet_link` in the phone's browser.
    - **Expected**: Paradym opens with the same request.
 
 ### V3: Pull mode, the failure paths (US2 scenarios 5–7, FR-010, edge cases, SC-005)
@@ -178,9 +181,10 @@ the status mapping is covered by the pytest suite.
    - **Expected**: the form connection disappears from the overview, and both URLs answer `409`
      permanently.
 
-### V6: Data minimization (FR-020, SC-006)
+### V6: Data minimization (FR-020, FR-021, SC-006)
 
-1. After a successful delivery (V2 or V4), wait a few seconds. Then get a token with the
+1. After a successful delivery, wait until the documents should be gone: a little over 60 seconds
+   after a pull (V2), or a few seconds after a webhook delivery (V4). Then get a token with the
    middleware's EUDIPLO client and call `GET $EUDIPLO_URL/api/session/<eudiplo_session_id>`.
    - **Expected**: `404`.
    - The EUDIPLO session id is in `document_requests.eudiplo_session_id`.
@@ -193,6 +197,10 @@ the status mapping is covered by the pytest suite.
    - **Expected**: no claim values anywhere.
 4. Search the backend and nginx logs for the test person's family name and for `$REF`.
    - **Expected**: no matches (research R13).
+5. Record retention (FR-021): in a test environment, set `REQUEST_RECORD_RETENTION_SECONDS=120`
+   and restart the backend. Complete a request, then wait two minutes after it ended.
+   - **Expected**: its row is gone from `document_requests`, together with its
+     `webhook_deliveries`, and a pull with its reference answers `404`.
 
 ### V7: Load (SC-007, SC-004, optional)
 
@@ -224,6 +232,24 @@ These are measured in moderated test sessions, not by scripts.
   - Note every failure caused by a selected field missing from the participant's credential
     (research R19). On the same device there is no automatic return to the form (research R11),
     so note how participants find their way back as well.
+
+### V9: Accessibility review (SC-009)
+
+Before release, a reviewer checks every screen of the management UI against WCAG 2.1 AA
+(research R16, [contracts/ui-screens.md](contracts/ui-screens.md#accessibility-sc-009)):
+
+1. Run an automated scan on each route, with axe DevTools or Lighthouse in the browser.
+   - **Expected**: no violations at level A or AA.
+2. Go through V1 and V5 using only the keyboard.
+   - **Expected**: every action is reachable and the focus is always visible. Dialogs keep the
+     focus while open and return it when closed.
+3. Go through V1 with a screen reader (NVDA or VoiceOver).
+   - **Expected**: labels, validation messages, and status messages such as "copied" are
+     announced.
+4. Zoom to 200%, then narrow the window to 320 px.
+   - **Expected**: nothing is cut off, and no screen needs horizontal scrolling.
+
+**Overall expected**: no unresolved WCAG 2.1 AA failures (SC-009).
 
 ## 5. Troubleshooting
 

@@ -1,6 +1,7 @@
 # Contract: management UI screens
 
-**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-014; US1, US4.
+**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-014, SC-009;
+US1, US4.
 **Decisions**: research R16.
 
 This contract fixes **which screens exist and what they let a team member do**. Layout, wording,
@@ -80,3 +81,23 @@ user's name and a sign-out action.
   - **Reactivate**: for a deactivated form connection.
   - **Delete**: asks for confirmation, and states that the URLs will stop working permanently
     (US4, scenario 5). After deleting, the app returns to the overview.
+
+## Accessibility (SC-009)
+
+Every screen meets WCAG 2.1 level AA, as the user decided. For these screens that means in
+particular:
+
+- **Keyboard**: every action works with the keyboard alone, in a logical order, with a visible
+  focus. Dialogs keep the focus inside while they are open, and return it to the button that
+  opened them.
+- **Forms**: every field has a visible label. Validation messages appear next to their field and
+  are linked to it for screen readers. After a refused save, the focus moves to the first field
+  with a problem.
+- **Status messages**: results that appear without a page change, such as "copied", "saved" or an
+  error from the API, are announced to screen readers.
+- **Structure**: each route has its own page title and one main heading. The page language is set
+  to the language of the UI.
+- **Contrast and resizing**: text and controls meet the AA contrast ratios. The screens still work
+  at 200% zoom and at a width of 320 px.
+- **Checking it**: the Figma review and the review before release are described in research R16;
+  the walkthrough is quickstart V9.

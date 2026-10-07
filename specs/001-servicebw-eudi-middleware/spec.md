@@ -33,6 +33,11 @@ When these URLs are used, the middleware will establish a connection to the wall
 - Q: How is access to the trigger and pull URLs restricted to serviceBW? → A: By the network. The middleware and serviceBW operate in a restricted, controlled network in which only serviceBW can reach those URLs. Calls to the URLs carry no credentials.
 - Q: How does serviceBW confirm that a webhook update came from the middleware? → A: That kind of security is out of scope for now. The restricted network is relied on, so webhook updates carry no authentication.
 - Q: serviceBW may accept a "completed" webhook update without its answer ever reaching the middleware. Should the middleware retry? → A: Yes. It retries as usual. In that rare case serviceBW receives the same documents twice and drops the repeat. Once a delivery is confirmed, the documents are deleted and can't be obtained again.
+- Q: How long should a document request stay open, given that the serviceBW test form currently stops waiting after 3 minutes? → A: 10 minutes. serviceBW keeps checking until it gets a final status, and has no timeout of its own that is shorter than the request's expiry.
+- Q: If serviceBW's pull call fails after the middleware has handed out the documents, should those documents be lost, or may serviceBW fetch them again? → A: serviceBW may fetch them again for 60 seconds. Pulls within 60 seconds of the first pull that returned the documents return the same documents, and after that they are deleted.
+- Q: Should the spec deal with the risk that someone forwards their request's QR code or link to another person, whose documents then end up in the forwarder's serviceBW application? → A: The risk is accepted for this iteration. serviceBW is assumed to check that the shared documents belong to the applicant, and DO.IT confirms this with serviceBW.
+- Q: Must the DO.IT management UI meet a formal accessibility standard, namely WCAG 2.1 level AA? → A: Yes. WCAG 2.1 AA is an acceptance criterion for the management UI.
+- Q: How long should the middleware keep the record of a request (its reference, status and timestamps, but no documents) after the request has ended? → A: 7 days. A request ends when it has a final status and its documents have been delivered or deleted. Its record is deleted 7 days later, and a pull with its reference then answers as for an unknown request.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -93,7 +98,8 @@ Confirm that serviceBW receives exactly the configured fields and nothing else.
 
 1. **Given** a form connection that requests the ID and the driving licence, **When** serviceBW
    calls its trigger URL, **Then** it receives a link that opens the citizen's EUDI Wallet with
-   this request, the same link as a QR code, and a reference to the request.
+   this request, a QR code that opens the same request from another device, and a reference to
+   the request.
 2. **Given** a triggered request, **When** the citizen opens it in their wallet, **Then** the
    wallet asks for exactly the documents and fields configured in the form connection, and
    nothing else.
@@ -103,15 +109,19 @@ Confirm that serviceBW receives exactly the configured fields and nothing else.
 4. **Given** the citizen has approved the request in their wallet, **When** serviceBW calls the
    pull URL, **Then** it receives the status "completed" and exactly the configured fields of each
    requested document.
-5. **Given** the citizen declines the request in their wallet, **When** serviceBW calls the pull
-   URL, **Then** it receives the status "declined" and no personal data.
+5. **Given** the citizen declines the request in their wallet and the wallet reports it, **When**
+   serviceBW calls the pull URL, **Then** it receives the status "declined" and no personal data.
 6. **Given** the citizen presents a document that is expired, revoked, altered, or not from a
    trusted issuer, **When** the middleware checks it, **Then** the document is not accepted and
    serviceBW receives the status "verification failed" without any personal data.
 7. **Given** the citizen has not answered within 10 minutes of the trigger, **When** serviceBW
    calls the pull URL, **Then** it receives the status "expired".
-8. **Given** serviceBW has already pulled the documents of a completed request, **When** anyone
-   calls the pull URL for that request again, **Then** no personal data is returned.
+8. **Given** serviceBW pulled the documents of a completed request more than 60 seconds ago,
+   **When** anyone calls the pull URL for that request again, **Then** no personal data is
+   returned.
+9. **Given** serviceBW pulled the documents of a completed request less than 60 seconds ago,
+   **When** it calls the pull URL again, for example because the first answer never arrived,
+   **Then** it receives the same documents.
 
 ---
 
@@ -141,7 +151,7 @@ change, and that the "completed" update carries exactly the configured fields.
    wallet, **Then** the "completed" update sent to the webhook address carries exactly the
    configured fields of each requested document.
 4. **Given** the webhook address cannot be reached, **When** an update is due, **Then** the
-   middleware retries delivery until the retention limit in FR-020 is reached.
+   middleware retries delivery until the limit in FR-016 is reached.
 
 ---
 
@@ -166,20 +176,21 @@ reactivate one, then delete one.
    adds a field and saves, **Then** the connection URLs stay the same and new requests ask for the
    added field. Requests already in progress finish with the configuration they started with.
 3. **Given** a team member has deactivated a form connection, **When** serviceBW calls its
-   trigger URL, **Then** no request is started and serviceBW receives the status "unavailable".
+   trigger URL, **Then** no request is started and serviceBW receives the answer "unavailable".
 4. **Given** a deactivated form connection, **When** a team member reactivates it, **Then** it
    works normally again with the same URLs.
 5. **Given** a form connection that is no longer needed, **When** a team member deletes it and
    confirms the deletion, **Then** its connection URLs permanently stop starting requests and
-   answer with the status "unavailable".
+   answer every call with "unavailable".
 
 ---
 
 ### Edge Cases
 
 - **Citizen without a wallet, or whose wallet lacks a requested document**: The wallet returns no
-  documents (see Assumptions). The request ends as "declined" if the citizen cancels in their
-  wallet, or as "expired" after 10 minutes.
+  documents (see Assumptions). The request ends as "declined" if the wallet reports that the
+  citizen cancelled. A wallet that closes without reporting it leaves the request "pending" until
+  it ends as "expired" after 10 minutes.
 - **Pulling too early**: Until the citizen has shared, the pull URL returns "pending" and no
   documents.
 - **Configuration edited during a request**: The request finishes with the configuration that was
@@ -190,10 +201,17 @@ reactivate one, then delete one.
   Documents from one request are never delivered for another.
 - **Documents never collected**: Documents that serviceBW has not collected are deleted 30 minutes
   after the citizen shared them.
-- **Webhook address unreachable**: Delivery is retried until the 30-minute retention limit, after
-  which the documents are deleted.
-- **Guessed or reused references**: Request references cannot be guessed, and the documents of a
-  request are delivered only once.
+- **Webhook address unreachable**: Delivery is retried until the limit in FR-016. The documents
+  are deleted no later than 30 minutes after the citizen shared them (FR-020).
+- **Guessed or reused references**: Request references cannot be guessed. Once delivered, the
+  documents of a request can't be obtained again, apart from the repeats FR-018 allows.
+- **Answer to a pull lost in transit**: serviceBW pulls again within 60 seconds and receives the
+  same documents (FR-018).
+- **Link or QR code forwarded to someone else**: The middleware can't tell who filled in the form.
+  If another person approves the request, their documents reach that serviceBW application.
+  serviceBW checks that the documents belong to the applicant (see Assumptions).
+- **Old references**: A pull for a request that ended more than 7 days ago answers as for an
+  unknown request, because its record has been deleted (FR-021).
 
 ## Requirements *(mandatory)*
 
@@ -220,11 +238,14 @@ reactivate one, then delete one.
   for the webhook address used in webhook mode (FR-014).
 - **FR-005**: Connection URLs MUST stay the same when a form connection is edited. Changes MUST
   apply to requests triggered after the change. Requests already in progress MUST finish with the
-  configuration they started with.
+  configuration they started with: the requested documents and fields, and the connection mode
+  with its webhook address.
 - **FR-006**: The system MUST let team members list, view, edit, deactivate, reactivate and delete
   form connections. While a form connection is deactivated, and after it is deleted, its URLs MUST
-  NOT start new requests and MUST answer with the status "unavailable". Requests already in
-  progress MUST be cancelled.
+  NOT start new requests and MUST answer every call with "unavailable", whatever status a request
+  has reached. Its requests still in progress MUST be cancelled and get the status "unavailable".
+  A request is in progress while it waits for the citizen, or while its shared documents wait to
+  be delivered.
 - **FR-007**: Only authorized DO.IT team members MUST be able to access the middleware's management
   interface. Each team member MUST sign in with a personal account, which is set up outside the
   management interface.
@@ -233,8 +254,8 @@ reactivate one, then delete one.
 
 - **FR-008**: Calling a form connection's trigger URL MUST start a new document request and
   return:
-  - a link that opens the citizen's EUDI Wallet with this request
-  - the same link as a QR code
+  - a link that opens this request in the citizen's EUDI Wallet on the device that holds it
+  - a QR code that opens the same request in a wallet on another device
   - a reference to the request
 - **FR-009**: Each document request MUST ask the citizen's wallet for exactly the documents and
   fields configured in the form connection, all in one wallet interaction, and nothing else.
@@ -244,7 +265,8 @@ reactivate one, then delete one.
   - is currently valid, meaning not expired, suspended or revoked
   - is presented by the wallet it was issued to
 - **FR-011**: Each document request MUST have one of these statuses: "pending" (waiting for the
-  citizen), "completed", "declined", "verification failed", "expired" or "unavailable".
+  citizen), "completed", "declined", "verification failed", "expired" or "unavailable" (cancelled
+  because its form connection was deactivated or deleted, FR-006).
 - **FR-012**: A request that the citizen has not completed MUST expire 10 minutes after it was
   triggered.
 
@@ -264,22 +286,33 @@ reactivate one, then delete one.
   request's status changes. The "completed" update MUST also carry the configured fields of each
   requested document, identified as in FR-013. In webhook mode, documents MUST be delivered only to
   the webhook address.
-- **FR-016**: If an update cannot be delivered to the webhook address, the system MUST retry until
-  the retention limit in FR-020 is reached. Updates carry no proof of sender; the restricted
-  network is relied on instead (see Assumptions).
+- **FR-016**: If an update cannot be delivered to the webhook address, the system MUST retry it.
+  It retries the "completed" update until the documents are deleted under FR-020, and any other
+  update until 30 minutes after the status change it reports. Updates carry no proof of sender;
+  the restricted network is relied on instead (see Assumptions).
 
 #### Security and data protection
 
 - **FR-017**: Only serviceBW MUST be able to call the trigger URLs and pull URLs. This is ensured by
   the restricted network the middleware operates in (see Assumptions), not by credentials sent
   with the calls.
-- **FR-018**: Request references MUST NOT be guessable, and the documents of a request MUST be
-  delivered only once: after the first confirmed delivery they can't be obtained again. A webhook
-  update whose confirmation never reached the middleware may be repeated (see Clarifications).
+- **FR-018**: Request references MUST NOT be guessable. Once a request's documents have been
+  delivered, they MUST NOT be obtainable again, with two narrow exceptions that protect against
+  lost answers (see Clarifications):
+  - in pull mode, the pull URL returns them again for 60 seconds after the first pull that
+    returned them;
+  - in webhook mode, an update whose confirmation never reached the middleware may be repeated.
 - **FR-019**: Documents MUST reach serviceBW in a way that no third party can read or alter them.
   Documents from one request MUST never be delivered for another request or form connection.
 - **FR-020**: The system MUST delete a request's documents as soon as they have been delivered to
-  serviceBW, and no later than 30 minutes after the citizen shared them.
+  serviceBW, and no later than 30 minutes after the citizen shared them. In pull mode, "as soon as
+  delivered" means when the 60-second repeat window of FR-018 ends. The 30-minute limit applies in
+  every case, including to any copy held by the service the middleware uses to communicate with
+  wallets.
+- **FR-021**: The system MUST delete the record of a document request, meaning its reference,
+  status and timestamps, 7 days after the request ends. A request ends when it has a final status
+  (any status except "pending") and its documents have been delivered or deleted. After that, the
+  pull URL answers for its reference as for an unknown request.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -294,8 +327,8 @@ reactivate one, then delete one.
   used in both modes, and the pull URL in pull mode.
 - **Document Request**: One attempt to obtain a citizen's documents for a form connection, started
   through the trigger URL. It holds an unguessable reference, the configuration in force when it
-  was triggered, its status and timestamps, and the shared documents, but only until they are
-  delivered.
+  was triggered, its status and timestamps, and the shared documents, but only as long as FR-018
+  and FR-020 allow. The record itself is deleted 7 days after the request ends (FR-021).
 - **DO.IT Team Member**: An authorized member of staff who manages form connections and signs in
   with a personal account.
 
@@ -316,12 +349,15 @@ reactivate one, then delete one.
 - **SC-005**: In acceptance testing, 100% of the documents delivered to serviceBW contain only the
   fields configured for that form connection. 100% of altered, expired, revoked or untrusted test
   documents are rejected.
-- **SC-006**: The middleware holds no citizen personal data more than 30 minutes after the citizen
-  shared it.
+- **SC-006**: Neither the middleware nor the service it uses to communicate with wallets holds a
+  citizen's document data more than 30 minutes after the citizen shared it. The middleware holds
+  no request record more than 7 days after the request ended.
 - **SC-007**: The middleware supports at least 100 simultaneous document requests while still
   meeting SC-004.
 - **SC-008**: In usability testing, at least 4 of 5 DO.IT participants set up a correct form
   connection on their first attempt without assistance.
+- **SC-009**: The management interface meets WCAG 2.1 level AA. An accessibility review against
+  WCAG 2.1 AA before release finds no unresolved failures.
 
 ## Assumptions
 
@@ -331,15 +367,24 @@ reactivate one, then delete one.
   the citizen, and in webhook mode can receive updates at a webhook address. serviceBW decides what
   to do with the documents it receives. Citizens without an EUDI Wallet provide their documents
   through serviceBW's existing process.
+- **serviceBW waits for a final status**: Every status except "pending" is final. In pull mode,
+  serviceBW keeps calling the pull URL until it gets a final status; in webhook mode it keeps
+  waiting for the update. It doesn't stop waiting before the request expires (FR-012), so it can
+  show a decline or failure as soon as it is reported and never abandons a citizen who approves in
+  time.
+- **Documents match the applicant**: serviceBW checks that the documents it receives belong to the
+  applicant, for example against the signed-in serviceBW account. The middleware can't check this,
+  because it never learns who filled in the form. DO.IT confirms this with serviceBW, and until
+  then the risk of a forwarded link or QR code is accepted for this iteration.
 - **All-or-nothing responses**: The citizen must provide every document in a form connection. The
   wallet enforces this: it returns either all the documents a request asks for or none, so the
   middleware never receives a partial set.
 - **Wallets and trust**: The City of Stuttgart is, or will be, registered as a relying party that
   may request the configured documents from EUDI Wallets. A test or simulated wallet with sample
   documents is acceptable for validating the prototype.
-- **Time limits**: The 10-minute expiry for requests and the 30-minute maximum retention of
-  documents are defaults that balance usability and data minimization. They may be adjusted after
-  testing.
+- **Time limits**: The 10-minute expiry for requests, the 30-minute maximum retention of
+  documents, the 60-second repeat window for pulls, and the 7-day retention of request records are
+  defaults that balance usability and data minimization. They may be adjusted after testing.
 - **Restricted network**: The middleware and serviceBW operate in a restricted, controlled
   network. Only serviceBW can reach the connection URLs, and the middleware's updates to the
   webhook address travel only inside that network. Neither direction is authenticated by the

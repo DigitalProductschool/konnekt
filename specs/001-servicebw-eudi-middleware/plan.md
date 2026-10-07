@@ -26,11 +26,12 @@ picked from a catalog.
   `verification_failed`), expires requests after 10 minutes, and cancels requests of deactivated
   form connections.
 - **Delivery**: the documents are delivered **once**, reduced to exactly the configured fields.
-  In pull mode they go out through the **pull URL**. In webhook mode they go to the webhook address
-  entered in the UI, with retries and a rare repeat accepted. After delivery the EUDIPLO session is
-  deleted, and an undelivered one is deleted within 30 minutes of the citizen sharing.
-- **No stored personal data**: the middleware never writes a citizen's documents to its own
-  storage.
+  In pull mode they go out through the **pull URL**, and repeated pulls return them for 60 seconds
+  in case an answer gets lost. In webhook mode they go to the webhook address entered in the UI,
+  with retries and a rare repeat accepted. After delivery the EUDIPLO session is deleted, and an
+  undelivered one is deleted within 30 minutes of the citizen sharing.
+- **No stored documents**: the middleware never writes a citizen's documents to its own storage,
+  and it deletes each request record 7 days after the request ends.
 
 The work starts by **removing the template's test project**: the team-members example and the
 mock ID-verification API. The stack, tooling and deployment setup stay (research R1).
@@ -41,7 +42,12 @@ mock ID-verification API. The stack, tooling and deployment setup stay (research
   - network restriction, not credentials, controls access to the connection URLs;
   - webhook updates carry no authentication;
   - a webhook update may be repeated in the rare case that serviceBW's confirmation was lost
-    (FR-018).
+    (FR-018);
+  - serviceBW waits for a final status, and never times out before a request expires;
+  - repeated pulls return the documents for 60 seconds (FR-018);
+  - the risk of a forwarded link or QR code is accepted, and serviceBW checks the applicant;
+  - the management UI meets WCAG 2.1 AA (SC-009);
+  - request records are deleted 7 days after the request ends (FR-021).
 - **Recorded in [research.md](research.md)**:
   - the hosted EUDIPLO instance (R2);
   - the network restriction is enforced by an allow-list in the repository's nginx (R13);
@@ -80,7 +86,8 @@ versions already in the repository.
   directly.
 - **Frontend**: `npm run lint` and `npm run build`, which are the constitution's gates.
 - **End to end**: a manual run with the Paradym wallet against the hosted EUDIPLO
-  ([quickstart.md](quickstart.md)), plus usability sessions for SC-001, SC-003 and SC-008.
+  ([quickstart.md](quickstart.md)). It is followed by usability sessions for SC-001, SC-003 and
+  SC-008, and an accessibility review against WCAG 2.1 AA for SC-009.
 
 **Target Platform**:
 - Linux containers: Docker Compose locally, Coolify in production.
@@ -96,10 +103,13 @@ runs the background worker thread, and PostgreSQL.
 - At least 100 simultaneous document requests (SC-007).
 
 **Constraints**:
-- **Personal data**: none in the middleware's storage or logs, and none left in EUDIPLO more than
-  30 minutes after sharing (FR-020, SC-006).
+- **Personal data**: no documents in the middleware's storage or logs, and none left in EUDIPLO
+  more than 30 minutes after sharing (FR-020, SC-006). Request records are deleted 7 days after
+  the request ends (FR-021).
 - **Expiry**: requests expire after 10 minutes (FR-012).
-- **Delivery**: exactly the configured fields, once (FR-013, FR-018, SC-005).
+- **Delivery**: exactly the configured fields, once, with a 60-second repeat window for pulls
+  (FR-013, FR-018, SC-005).
+- **Accessibility**: the management UI meets WCAG 2.1 AA (SC-009).
 - **Access**: `/api/connect/` is reachable only from the allow-listed serviceBW network (FR-017),
   and request references never appear in logs.
 - **EUDIPLO**: the management token never reaches the browser, and the API is strict (unknown keys
@@ -114,12 +124,13 @@ runs the background worker thread, and PostgreSQL.
 **Open points**: none block the plan. Every unknown was resolved in [research.md](research.md),
 where the user's decisions are marked. [Research R19](research.md#r19-points-that-dont-block-the-plan-but-need-attention-later)
 lists the points that still need someone else's decision or a check at implementation time:
-- `intent_to_retain` and the retention of request metadata, for data protection;
+- `intent_to_retain`, for data protection;
 - the tenant's session TTL, and a separate production tenant, for the EUDIPLO operators;
 - the EUDIPLO API details marked **Verify at implementation**.
 
 [Research R20](research.md#r20-what-servicebw-is-expected-to-do-user-not-sure-yet-to-be-confirmed-by-doit)
-lists what DO.IT has to confirm with serviceBW.
+lists what DO.IT has to confirm with serviceBW, including that serviceBW checks the documents
+belong to the applicant.
 
 ## Constitution Check
 
@@ -152,7 +163,7 @@ specs/001-servicebw-eudi-middleware/
 ├── plan.md              # This file
 ├── research.md          # Phase 0: decisions R1–R21
 ├── data-model.md        # Phase 1: tables, open requests, state transitions, indexes, catalog
-├── quickstart.md        # Phase 1: setup, validation scenarios V1–V8, deployment checks
+├── quickstart.md        # Phase 1: setup, validation scenarios V1–V9, deployment checks
 ├── contracts/           # Phase 1
 │   ├── integration-api.md   # serviceBW → middleware: trigger URL and pull URL
 │   ├── webhook-updates.md   # middleware → serviceBW webhook address
@@ -196,7 +207,7 @@ backend/
 │       ├── qr.py                 # QR PNG data URI (segno)
 │       ├── webhooks.py           # outbox delivery with leases and back-off
 │       └── worker.py             # loop: sync, expire, cancel, deliver, delete sessions, re-sync,
-│                                 # clean configs, end sign-ins
+│                                 # clean configs, end sign-ins, delete old request records
 ├── alembic/versions/
 │   ├── v0_add_team_members.py    # kept (committed history)
 │   └── <rev>_form_connections.py # new: drops team_members, creates the six tables and the indexes
