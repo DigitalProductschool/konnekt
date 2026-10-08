@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.16.5",      # Linter + formatter
     "mypy>=2.3.1",       # Type checking
     "pre-commit>=4.6.2",
+    "pytest>=9.1.1",     # Test runner
 ]
 
 [build-system]
@@ -52,6 +53,5 @@ ignore_missing_imports = true
 # Keep pytest config here only. A backend/pytest.ini would take precedence and
 # silently shadow this whole block.
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]

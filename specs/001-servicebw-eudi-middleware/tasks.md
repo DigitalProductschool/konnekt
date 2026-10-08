@@ -47,25 +47,25 @@ tested as an increment.
 (research R1, plan "Cleanup of the template code"). Every other new dependency is added by the task
 that first imports it, so that no merge declares a dependency nothing imports (constitution IV).
 
-- [ ] T001 Remove the template's example and mock code from the backend:
+- [X] T001 Remove the template's example and mock code from the backend:
   - delete `backend/app/routers/team_members.py` and `backend/app/routers/id_verification.py`;
   - remove the `TeamMember` model from `backend/app/models.py`;
   - remove `TeamMemberResponse`, `CreateTeamMemberRequest`, `UpdateTeamMemberRequest`, `AskIdResponse` and `PersonIdResponse` from `backend/app/schemas.py`, keeping `ApiResponse`, `ApiErrorResponse` and `to_iso_utc`;
   - in `backend/app/main.py`, remove both router registrations and `GET /`, set the API title to "serviceBW ↔ EUDI Wallet Middleware", and make `GET /api/health` return `{"data": {"status": "ok", "timestamp": …}}` without `api_key`;
   - remove the `api_key` field from `backend/app/config.py`.
-- [ ] T002 [P] Remove `API_KEY` from `backend/.env.example` and from the `backend` environment in `docker-compose.prod.yml`.
-- [ ] T003 [P] Remove the template's frontend example:
+- [X] T002 [P] Remove `API_KEY` from `backend/.env.example` and from the `backend` environment in `docker-compose.prod.yml`.
+- [X] T003 [P] Remove the template's frontend example:
   - delete `frontend/src/pages/TeamMembers/` and `frontend/src/api/team-members.ts`;
   - reduce `frontend/src/types/api.ts` to `ApiResponse<T>` and `ApiErrorResponse`;
   - move the `VITE_API_URL` normalization, `ApiError`, `isApiErrorResponse` and `handleResponse` into a new `frontend/src/api/client.ts`;
   - make `frontend/src/App.tsx` render an empty shell;
   - delete the tracked `frontend/tsconfig.app.tsbuildinfo`, and add `*.tsbuildinfo` to `.gitignore`.
-- [ ] T004 [P] Prepare the backend tests in `backend/pyproject.toml`, then run `uv lock` and `uv sync` in `backend/` so `backend/uv.lock` is refreshed (research R17):
+- [X] T004 [P] Prepare the backend tests in `backend/pyproject.toml`, then run `uv lock` and `uv sync` in `backend/` so `backend/uv.lock` is refreshed (research R17):
   - add `pytest` to the `dev` group;
   - delete `asyncio_mode = "auto"` from `[tool.pytest.ini_options]`.
   
   The runtime dependencies are added by the tasks that first import them: `argon2-cffi` in T015, `httpx2` in T019 and `segno` in T046.
-- [ ] T005 [P] Add the KERN packages in `frontend/` with `npm install --save-exact @kern-ux/native @kern-ux-annex/kern-react-kit @digitalservicebund/kern-ux-tailwind-theme`. Then add the four CSS imports to `frontend/src/index.css` in the order of `docs/KERN-DESIGN-SYSTEM.md` §2; they use all three packages. Keep the existing `@theme` block until T025. `react-router` is added by T028.
+- [X] T005 [P] Add the KERN packages in `frontend/` with `npm install --save-exact @kern-ux/native @kern-ux-annex/kern-react-kit @digitalservicebund/kern-ux-tailwind-theme`. Then add the four CSS imports to `frontend/src/index.css` in the order of `docs/KERN-DESIGN-SYSTEM.md` §2; they use all three packages. Keep the existing `@theme` block until T025. `react-router` is added by T028.
 - [ ] T006 Check that the cleaned-up project still builds and starts: `uv run ruff check . && uv run mypy app/` in `backend/`, `npm run lint && npm run build` in `frontend/`, and `docker compose up --build`. Fix any remaining reference to the removed code in `backend/app/` or `frontend/src/`.
 
 ---

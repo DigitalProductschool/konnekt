@@ -16,27 +16,6 @@ class ApiErrorResponse(BaseModel):
     message: str
 
 
-class TeamMemberResponse(BaseModel):
-    id: str
-    name: str
-    description: str | None
-    gitHandle: str
-    createdAt: str
-    updatedAt: str
-
-
-class CreateTeamMemberRequest(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    gitHandle: str | None = None
-
-
-class UpdateTeamMemberRequest(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    gitHandle: str | None = None
-
-
 def to_iso_utc(value: datetime) -> str:
     """Convert datetime to ISO 8601 format with UTC timezone."""
     if value.tzinfo is None:
@@ -44,26 +23,4 @@ def to_iso_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
-class AskIdResponse(BaseModel):
-    link: str
-    token: str
-
-
-class PersonIdResponse(BaseModel):
-    name: str
-    surname: str
-    birthdate: str
-    nationality: str
-
-
 # Add our Pydantic schemas here
-# Example:
-# class UserResponse(BaseModel):
-#   id: str
-#   email: str
-#   createdAt: str
-#   updatedAt: str
-#
-# class CreateUserRequest(BaseModel):
-#   email: str
-#   password: str

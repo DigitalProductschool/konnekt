@@ -34,7 +34,6 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES}@${SERVICE_NAME_POSTGRES:-postgres}:5432/template_db
       PORT: 3000
       APP_ENV: production
-      API_KEY: ${API_KEY}
     healthcheck:
       # python:3.13-slim ships neither curl nor wget
       test:

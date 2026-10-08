@@ -13,6 +13,9 @@
     "prepare": "cd ../backend && uv run pre-commit install || exit 0"
   },
   "dependencies": {
+    "@digitalservicebund/kern-ux-tailwind-theme": "4.0.0",
+    "@kern-ux-annex/kern-react-kit": "2.40.0",
+    "@kern-ux/native": "2.8.2",
     "@tailwindcss/vite": "^4.3.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

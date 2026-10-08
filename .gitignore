@@ -5,6 +5,7 @@
 dist/
 build/
 /frontend/dist/
+*.tsbuildinfo
 
 # Python
 __pycache__/

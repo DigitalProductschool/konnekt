@@ -1,4 +1,8 @@
+/* KERN must come after Tailwind and before its theme mapping (docs/KERN-DESIGN-SYSTEM.md §2) */
 @import 'tailwindcss';
+@import '@kern-ux/native/dist/kern.css';
+@import '@kern-ux-annex/kern-react-kit/kern-react-kit.css';
+@import '@digitalservicebund/kern-ux-tailwind-theme/theme.css';
 
 @font-face {
   font-family: 'Plus Jakarta Sans';

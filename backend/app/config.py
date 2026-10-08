@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     port: int = 3000
     cors_origin: str = 'http://localhost:5173'
     app_env: str = 'development'
-    api_key: str = '12345'  # or `str` with no default to make it required
 
 
 settings = Settings()

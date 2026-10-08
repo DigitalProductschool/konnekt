@@ -1,7 +1,9 @@
-import TeamMembers from './pages/TeamMembers';
-
 function App() {
-  return <TeamMembers />;
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-semibold">serviceBW ↔ EUDI Wallet Middleware</h1>
+    </main>
+  );
 }
 
 export default App;
