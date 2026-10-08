@@ -8,7 +8,7 @@ Also read all the files in `./docs` for more specific context (like ARCHITECTURE
 
 Full-stack application with separate frontend and backend:
 
-- `/frontend` - React 19 + Vite 7 + TypeScript + Tailwind CSS 4
+- `/frontend` - React 19 + Vite 7 + TypeScript + Tailwind CSS 4 + KERN design system
 - `/backend` - FastAPI (Python 3.13+) + SQLAlchemy 2 + Alembic + psycopg 3 + PostgreSQL
 
 The backend uses a **synchronous** SQLAlchemy `Session`, not `AsyncSession`.
@@ -163,49 +163,39 @@ Key points:
 
 Location: `/frontend/src/api/`
 
+Shared helpers live in `src/api/client.ts`: `API_BASE_URL`, the normalized base URL
+ending in `/api` (`VITE_API_URL` in local dev, the relative `/api` path in production,
+which nginx proxies to the backend container), `handleResponse` and `ApiError`. Each
+resource gets its own module next to it.
+
 ```typescript
-// VITE_API_URL is set in local dev only; in production the bundle calls the
-// relative /api path, which nginx proxies to the backend container.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-export interface Item {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ItemCreate {
-  name: string;
-  description?: string;
-}
+import type { ApiResponse } from '../types/api';
+import type { Item, ItemCreate } from '../types/items';
+import { API_BASE_URL, handleResponse } from './client';
 
 export async function getItems(): Promise<Item[]> {
-  const response = await fetch(`${API_URL}/api/items`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch items: ${response.statusText}`);
-  }
-  return response.json();
+  const response = await fetch(`${API_BASE_URL}/items`);
+  const result = await handleResponse<ApiResponse<Item[]>>(response);
+  return result.data;
 }
 
 export async function createItem(data: ItemCreate): Promise<Item> {
-  const response = await fetch(`${API_URL}/api/items`, {
+  const response = await fetch(`${API_BASE_URL}/items`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to create item: ${response.statusText}`);
-  }
-  return response.json();
+  const result = await handleResponse<ApiResponse<Item>>(response);
+  return result.data;
 }
 ```
 
 Key points:
-- Use native `fetch` API
-- Define TypeScript interfaces matching backend Pydantic schemas
-- Check `response.ok` and throw errors
+- Use native `fetch` API, with URLs built from `API_BASE_URL`
+- Pass every response through `handleResponse`; it throws an `ApiError` carrying the
+  `{error, message}` body when the request failed
+- Unwrap the `{data, message?}` envelope and return `data`
+- Define TypeScript interfaces in `src/types/`, matching the backend Pydantic schemas
 - Use proper HTTP methods (GET, POST, PUT, DELETE)
 - Include `Content-Type` header for JSON requests
 
@@ -316,7 +306,7 @@ Key points:
 
 ### Frontend
 
-6. **Types**: Define TypeScript interfaces in API file or separate types file
+6. **Types**: Define TypeScript interfaces in `/frontend/src/types/`
 7. **API client**: Create functions in `/frontend/src/api/`
 8. **UI**: Build React components using the API functions
 
@@ -328,15 +318,15 @@ cd backend
 # 1. Add model to app/models.py
 # 2. Add schemas to app/schemas.py
 # 3. Generate migration
-uv run alembic revision --autogenerate -m "add team_members"
+uv run alembic revision --autogenerate -m "add items"
 uv run alembic upgrade head
-# 4. Add router to app/routers/team_members.py
+# 4. Add router to app/routers/items.py
 # 5. Register in app/main.py
 
 # Frontend
 cd frontend
-# 6. Add types and API functions to src/api/team-members.ts
-# 7. Create components in src/components/team/
+# 6. Add types to src/types/items.ts and API functions to src/api/items.ts
+# 7. Create components in src/components/items/
 ```
 
 ## Frontend Development Guidelines
@@ -344,6 +334,9 @@ cd frontend
 - Use Tailwind CSS utility classes
 - Font: Plus Jakarta Sans (via `font-sans` class)
 - Custom theme values are defined in `index.css` using the `@theme` directive
+- The KERN design system is imported in `index.css`: KERN's CSS after Tailwind, then the KERN
+  Tailwind theme, which turns KERN's design tokens into Tailwind classes. Keep that order, and
+  see `docs/KERN-DESIGN-SYSTEM.md` for the components and tokens
 - Maintain components that you create small, extract new functionality to new components.
 - When you are declaring types needed in the component, extract them to separate types.ts file in the directory next to the component itself
 - When you are declaring constants needed in the component, extract them to separate constants.ts file in the directory next to the component itself.
@@ -391,9 +384,8 @@ backend/
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic schemas
 │   ├── errors.py         # Exception handlers
-│   └── routers/          # API routers
-│       ├── __init__.py
-│       └── team_members.py
+│   └── routers/          # API routers, one module per resource
+│       └── __init__.py
 ├── alembic/              # Database migrations
 ├── tests/                # Tests
 ├── .python-version       # Interpreter uv provisions (3.13)

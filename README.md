@@ -1,13 +1,32 @@
-# React + FastAPI + PostgreSQL Template
+# serviceBW ↔ EUDI Wallet Middleware
 
-A full-stack template for Digital Product School teams.
+Middleware that lets the DO.IT team of the City of Stuttgart connect serviceBW forms to the EUDI
+Wallet. For each form, DO.IT creates a form connection that names the documents and fields the
+form needs. serviceBW then uses the form connection's URLs to request those documents from the
+citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
+
+The middleware is built in phases. The specification, the plan and the task list are in
+[specs/001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/). The code base
+started from the Digital Product School React + FastAPI + PostgreSQL template.
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4
+- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4, KERN design system
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
-- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pre-commit, uv (Python), Docker
+- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
+
+### Dependencies added to the template
+
+| Package | Where | Why |
+|---|---|---|
+| `pytest` | backend, `dev` group | Runs the backend tests |
+| `@kern-ux/native` | frontend | KERN's CSS and design tokens. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
+| `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet |
+| `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
+
+The three KERN packages are pinned to exact versions, because a version mismatch between them
+is the most likely cause of visual breakage.
 
 ## Project Structure
 

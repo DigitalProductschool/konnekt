@@ -19,6 +19,11 @@ Types are **not** shared at build time. `frontend/src/types/api.ts` declares
 TypeScript interfaces that mirror the Pydantic schemas in
 `backend/app/schemas.py` by hand — when you change one, change the other.
 
+This repository is being turned into the serviceBW ↔ EUDI Wallet middleware. Its
+target architecture, with EUDIPLO, a background worker and an nginx allow-list, is
+in [the plan](../specs/001-servicebw-eudi-middleware/plan.md). This document
+describes what is implemented so far.
+
 ### Data Flow
 
 1. User interacts with the React frontend
@@ -64,12 +69,12 @@ section of `README.md` for the full command list and editor format-on-save setup
 
 ### frontend
 
-**Tech Stack**: React 19, Vite 7, Tailwind CSS 4, TypeScript
+**Tech Stack**: React 19, Vite 7, Tailwind CSS 4, TypeScript, KERN design system
 
 ```
 frontend/
 ├── src/
-│   ├── api/              # API client functions (fetch + ApiError)
+│   ├── api/              # client.ts (base URL, ApiError, handleResponse), one module per resource
 │   ├── pages/            # Page components
 │   ├── types/            # TypeScript interfaces mirroring backend schemas
 │   ├── fonts/            # Self-hosted fonts (Plus Jakarta Sans)
@@ -85,7 +90,12 @@ frontend/
 - Vite for fast HMR and optimized builds
 - Tailwind 4 with `@theme` directive for design tokens
 - Self-hosted fonts for GDPR compliance
-- Native fetch for API calls (no axios dependency)
+- Native fetch for API calls (no axios dependency). Shared helpers live in
+  `src/api/client.ts`: `API_BASE_URL`, `handleResponse`, and the `ApiError` it
+  throws for `{error, message}` bodies
+- KERN design system: `index.css` imports KERN's CSS after Tailwind, followed by
+  the KERN Tailwind theme, which maps KERN's design tokens to Tailwind classes.
+  The order matters (`docs/KERN-DESIGN-SYSTEM.md`)
 
 ### backend
 
@@ -159,14 +169,15 @@ handlers on the app:
 # Route handler pattern — raise, don't catch
 raise HTTPException(
     status_code=404,
-    detail={"error": "Not found", "message": "Team member not found"},
+    detail={"error": "Not found", "message": "Form connection not found"},
 )
 ```
 
 Because the catch-all handler leaks exception text in development, **`APP_ENV`
 must be set to something other than `development` in production**.
 
-**Frontend**: `ApiError` class wraps HTTP errors with status and response data.
+**Frontend**: the `ApiError` class in `src/api/client.ts` wraps HTTP errors with
+status and response data.
 
 ```typescript
 class ApiError extends Error {
@@ -181,7 +192,7 @@ class ApiError extends Error {
 
 - Primary keys: UUID4 as a `String(36)`, generated in Python via `default=lambda: str(uuid.uuid4())`
 - Timestamps: `created_at` / `updated_at`, both `DateTime(timezone=True)` with `server_default=func.now()`
-- Column and table names: `snake_case` (`git_handle`, `team_members`)
+- Column and table names: `snake_case` (`servicebw_form`, `form_connections`)
 - Unique constraints: `unique=True` on `mapped_column`
 - Optional fields: `Mapped[str | None]` with `nullable=True`
 - Migrations are generated with `alembic revision --autogenerate` and must be

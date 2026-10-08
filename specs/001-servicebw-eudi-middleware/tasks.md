@@ -63,10 +63,10 @@ that first imports it, so that no merge declares a dependency nothing imports (c
 - [X] T004 [P] Prepare the backend tests in `backend/pyproject.toml`, then run `uv lock` and `uv sync` in `backend/` so `backend/uv.lock` is refreshed (research R17):
   - add `pytest` to the `dev` group;
   - delete `asyncio_mode = "auto"` from `[tool.pytest.ini_options]`.
-  
+
   The runtime dependencies are added by the tasks that first import them: `argon2-cffi` in T015, `httpx2` in T019 and `segno` in T046.
 - [X] T005 [P] Add the KERN packages in `frontend/` with `npm install --save-exact @kern-ux/native @kern-ux-annex/kern-react-kit @digitalservicebund/kern-ux-tailwind-theme`. Then add the four CSS imports to `frontend/src/index.css` in the order of `docs/KERN-DESIGN-SYSTEM.md` §2; they use all three packages. Keep the existing `@theme` block until T025. `react-router` is added by T028.
-- [ ] T006 Check that the cleaned-up project still builds and starts: `uv run ruff check . && uv run mypy app/` in `backend/`, `npm run lint && npm run build` in `frontend/`, and `docker compose up --build`. Fix any remaining reference to the removed code in `backend/app/` or `frontend/src/`.
+- [X] T006 Check that the cleaned-up project still builds and starts: `uv run ruff check . && uv run mypy app/` in `backend/`, `npm run lint && npm run build` in `frontend/`, and `docker compose up --build`. Fix any remaining reference to the removed code in `backend/app/` or `frontend/src/`.
 
 ---
 
@@ -143,11 +143,11 @@ framework, the test harness and the frontend shell.
   - `delivered_at` and `abandoned_at`: nullable;
   - `last_error`: "`String(255)`, nullable";
   - the partial index on `(next_attempt_at)`, `WHERE delivered_at IS NULL AND abandoned_at IS NULL`.
-- [ ] T014 Generate the migration in `backend/` with `uv run alembic revision --autogenerate -m "form connections"`, then review the new file in `backend/alembic/versions/`:
+- [ ] T014 First add `import app.models  # noqa: F401` to `backend/alembic/env.py`: autogenerate only sees models whose module is imported, and `env.py` imports only `Base` from `app.db`. Then generate the migration in `backend/` with `uv run alembic revision --autogenerate -m "form connections"`, and review the new file in `backend/alembic/versions/`:
   - it drops `team_members` and `ix_team_members_git_handle`;
   - it creates the six tables, with the `ON DELETE CASCADE` foreign keys, the `JSONB` column and the partial indexes;
   - `v0_add_team_members.py` stays untouched.
-  
+
   Then run `uv run alembic upgrade head`.
 
 ### Sign-in (FR-007)
@@ -413,7 +413,7 @@ These are quickstart V2, V3 and V6.
   - when a pull-mode delivery's repeat window has ended;
   - when a request has a final status other than `completed`;
   - for undelivered `completed` requests, at `completed_at` + `DOCUMENT_RETENTION_SECONDS` − 60 s, also setting `ended_at`.
-  
+
   The 30-minute limit also ends a repeat window early.
 - [ ] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021).
 - [ ] T056 [P] [US2] Restrict `/api/connect/` in the production nginx (research R13):
@@ -584,7 +584,7 @@ This is quickstart V5.
 - [ ] T080 Run the quality gates and fix every finding:
   - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy app/`;
   - in `frontend/`: `npm run lint` and `npm run build`.
-  
+
   Once `backend/tests/` exists, also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
 - [ ] T081 Run quickstart.md V1–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
   - the remaining "Verify at implementation" answers;

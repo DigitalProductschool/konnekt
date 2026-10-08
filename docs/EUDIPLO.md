@@ -78,7 +78,7 @@ curl -X POST "$EUDIPLO_URL/api/oauth2/token" \
 | `tenants:manage` | Tenant CRUD (root) |
 | `registrar:manage` | Registrar config, access-certificate enrollment, schema metadata |
 
-**Our middleware's client:** `issuance:offer` + `presentation:request`, restricted with the two allow-lists. Since 9.0, clients see only sessions of their side (issuance vs presentation), so a client that reads both needs a role from each.
+**Our middleware's client:** `presentation:request` + `presentation:manage`, with no `allowedPresentationConfigs` allow-list. The middleware creates a presentation configuration for every form connection revision, and an allow-list would reject each new one. It needs no issuance role, because issuing documents is out of scope (plan research R2). Since 9.0, clients see only sessions of their side (issuance vs presentation), so a client that reads both needs a role from each.
 
 ## 5. Management API map (all paths are prefixed with `/api`)
 
@@ -276,7 +276,7 @@ The schema is strict, so unknown keys are rejected.
 | Tenant | `dps` |
 | Test wallets | Paradym (lenient); EU Reference Implementation (requires wallet attestation) |
 | Access cert / WRPRC | From the EU RI RP-registration sandbox (`registry.serviceproviders.eudiw.dev`); leaf only, issuer `PID Issuer CA 02` |
-| Middleware client | `<client-id>` with `issuance:offer` + `presentation:request` |
+| Middleware client | `<client-id>` with `presentation:request` + `presentation:manage`, and no allow-list |
 
 ## 12. Documentation index
 
