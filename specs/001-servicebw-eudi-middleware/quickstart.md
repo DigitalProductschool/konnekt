@@ -91,6 +91,8 @@ trigger URL, and `$REF` is a request reference.
    - **Expected**: the same URLs.
 5. Time the whole setup (target: under 10 minutes, SC-001).
    - Nothing in this scenario needs a code change or a deployment, which is what SC-002 asks for.
+   - SC-002's working day runs from DO.IT agreeing on the documents to the first test request
+     through the serviceBW form that returns them, so it is timed once serviceBW is connected.
 
 ### V2: Pull mode, the happy path (US2, FR-008 to FR-013, FR-018, SC-004, SC-005)
 
@@ -226,9 +228,10 @@ These are measured in moderated test sessions, not by scripts.
   V1, without help.
   - **Expected**: at least 4 of 5 succeed on their first attempt (SC-008), each in under
     10 minutes (SC-001).
-- **Citizen participants**: each holds the requested documents in a wallet and goes through a
-  serviceBW test form that uses the trigger and pull URLs. Measure the time from seeing the link or
-  QR code to approving.
+- **Citizen participants** (at least 10): each uses a test wallet with sample documents, because
+  real wallets aren't allowed on the shared tenant yet, and goes through a serviceBW test form that
+  uses the trigger and pull URLs. Half start from the QR code and half from the same-device link.
+  Measure the time from seeing the link or QR code to approving.
   - **Expected**: a median under 2 minutes, and at least 90% succeed on the first attempt (SC-003).
   - Note every failure caused by a selected field missing from the participant's credential
     (research R19). On the same device there is no automatic return to the form (research R11),

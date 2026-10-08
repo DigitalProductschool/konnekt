@@ -43,6 +43,16 @@ When these URLs are used, the middleware will establish a connection to the wall
 
 - Q: Should the middleware wait a few seconds after the 10 minutes before reporting "expired", in case an answer the citizen sent just before the deadline is still being verified? → A: No, not for now. A request expires exactly 10 minutes after it was triggered. A short wait can be added later if it turns out to be needed.
 - Q: How is it tested that altered documents, and documents presented by someone other than their holder, are rejected, given that a test wallet can't produce them? → A: Acceptance testing covers only what a test wallet can produce (SC-005). For these two checks the middleware relies on the service it uses to communicate with wallets (see Assumptions).
+- Q: May documents travel between serviceBW and the middleware unencrypted inside the restricted network? → A: Only as an explicit exception that the operators switch on. Encrypted connections are the default (FR-019).
+- Q: Must sign-in limit repeated failed attempts? → A: Not for now. The risk is accepted until before real citizens use the service.
+- Q: How is the 30-minute deletion handled while the middleware or the service it uses to communicate with wallets is down? → A: The delay is accepted. Deletion can be late by the length of the outage, and everything catches up once both run again.
+- Q: Who owns the open points of a separate production setup of the wallet-communication service and of telling wallets that serviceBW keeps the documents? → A: DO.IT, before real citizens use the service.
+- Q: Who manages team member accounts, and how do people who leave DO.IT lose access? → A: The operators of the middleware, on DO.IT's request. A leaver's account is deleted as soon as DO.IT reports the departure, which ends their access at once.
+- Q: What happens when two team members edit the same form connection at the same time? → A: The later save wins.
+- Q: Should DO.IT learn which selected fields some citizens' documents lack? → A: Not in this iteration. It is recorded as a known limitation.
+- Q: Is there an availability target for the middleware? → A: No, not for the prototype. While it is unavailable, citizens provide their documents through serviceBW's existing process.
+- Q: Under which conditions is SC-003 measured? → A: With at least 10 participants using test wallets with sample documents, half starting from the QR code and half from the same-device link.
+- Q: When does SC-002's working day start and end? → A: It starts when DO.IT has agreed which documents the form needs, and ends when a test request through the serviceBW form returns the documents.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -205,7 +215,8 @@ reactivate one, then delete one.
 - **Repeated or parallel requests**: Each call to the trigger URL starts an independent request.
   Documents from one request are never delivered for another.
 - **Documents never collected**: Documents that serviceBW has not collected are deleted 30 minutes
-  after the citizen shared them.
+  after the citizen shared them. A later pull returns the status "completed" without documents,
+  the same answer as after a delivery.
 - **Webhook address unreachable**: Delivery is retried until the limit in FR-016. The documents
   are deleted no later than 30 minutes after the citizen shared them (FR-020).
 - **Guessed or reused references**: Request references cannot be guessed. Once delivered, the
@@ -217,6 +228,16 @@ reactivate one, then delete one.
   serviceBW checks that the documents belong to the applicant (see Assumptions).
 - **Old references**: A pull for a request that ended more than 7 days ago answers as for an
   unknown request, because its record has been deleted (FR-021).
+- **Link or QR code opened more than once**: A request accepts one answer. The first wallet to
+  answer decides the result, and opening the link or QR code again afterwards, on any device,
+  can't change it.
+- **Outages**: While the middleware or the service it uses to communicate with wallets is down, no
+  request can be started. Once both run again, answers given in the meantime are picked up,
+  pending webhook updates are sent, and overdue documents are deleted at once. Deletion under
+  FR-020 can therefore be late by the length of the outage, which is accepted (see
+  Clarifications).
+- **Two team members editing at once**: When two team members edit the same form connection at
+  the same time, the later save wins for anything both of them changed, without a warning.
 
 ## Requirements *(mandatory)*
 
@@ -237,14 +258,17 @@ reactivate one, then delete one.
   connection with no documents, or with a document that has no selected field.
 - **FR-004**: When a form connection is saved, the system MUST provide its connection URLs:
   - a **trigger URL**, used in both modes, which starts a document request
-  - a **pull URL**, used in pull mode, which returns a request's status and documents
+  - a **pull URL**, used in pull mode, which returns a request's status and documents; serviceBW
+    inserts the request reference into a placeholder in it
 
   Each URL MUST be copyable in a single action. Alongside the URLs, the system MUST offer the field
   for the webhook address used in webhook mode (FR-014).
 - **FR-005**: Connection URLs MUST stay the same when a form connection is edited. Changes MUST
   apply to requests triggered after the change. Requests already in progress MUST finish with the
   configuration they started with: the requested documents and fields, and the connection mode
-  with its webhook address.
+  with its webhook address. Changes to the document catalog or to the trusted issuers MUST likewise
+  reach existing form connections without anyone editing them: new requests use the change, and
+  requests already in progress keep the configuration they started with.
 - **FR-006**: The system MUST let team members list, view, edit, deactivate, reactivate and delete
   form connections. While a form connection is deactivated, and after it is deleted, its URLs MUST
   NOT start new requests and MUST answer every call with "unavailable", whatever status a request
@@ -253,7 +277,7 @@ reactivate one, then delete one.
   be delivered.
 - **FR-007**: Only authorized DO.IT team members MUST be able to access the middleware's management
   interface. Each team member MUST sign in with a personal account, which is set up outside the
-  management interface.
+  management interface. Deleting a team member's account MUST end their access at once.
 
 #### Document requests
 
@@ -269,6 +293,9 @@ reactivate one, then delete one.
   - comes from a trusted issuer
   - is currently valid, meaning not expired, suspended or revoked
   - is presented by the wallet it was issued to
+
+  A document whose suspension or revocation can't be checked MUST NOT be accepted. The trusted
+  issuers are described under Assumptions ("Wallets and trust").
 - **FR-011**: Each document request MUST have one of these statuses: "pending" (waiting for the
   citizen), "completed", "declined", "verification failed", "expired" or "unavailable" (cancelled
   because its form connection was deactivated or deleted, FR-006).
@@ -300,7 +327,8 @@ reactivate one, then delete one.
 
 - **FR-017**: Only serviceBW MUST be able to call the trigger URLs and pull URLs. This is ensured by
   the restricted network the middleware operates in (see Assumptions), not by credentials sent
-  with the calls.
+  with the calls. This applies to every environment the middleware is deployed to, test
+  environments included; only a developer's own machine is exempt.
 - **FR-018**: Request references MUST NOT be guessable. Once a request's documents have been
   delivered, they MUST NOT be obtainable again, with two narrow exceptions that protect against
   lost answers (see Clarifications):
@@ -308,12 +336,16 @@ reactivate one, then delete one.
     returned them;
   - in webhook mode, an update whose confirmation never reached the middleware may be repeated.
 - **FR-019**: Documents MUST reach serviceBW in a way that no third party can read or alter them.
-  Documents from one request MUST never be delivered for another request or form connection.
+  The connections between serviceBW and the middleware MUST therefore be encrypted, unless the
+  operators explicitly allow unencrypted connections inside the restricted network (see
+  Assumptions). Documents from one request MUST never be delivered for another request or form
+  connection. Document data and request references MUST NOT be written to any log.
 - **FR-020**: The system MUST delete a request's documents as soon as they have been delivered to
   serviceBW, and no later than 30 minutes after the citizen shared them. In pull mode, "as soon as
   delivered" means when the 60-second repeat window of FR-018 ends. The 30-minute limit applies in
   every case, including to any copy held by the service the middleware uses to communicate with
-  wallets.
+  wallets. Only an outage of the middleware or of that service can delay the deletion, by the
+  length of the outage (see Edge Cases).
 - **FR-021**: The system MUST delete the record of a document request, meaning its reference,
   status and timestamps, 7 days after the request ends. A request ends when it has a final status
   (any status except "pending") and its documents have been delivered or deleted. After that, the
@@ -324,6 +356,8 @@ reactivate one, then delete one.
 - **Form Connection**: The configuration that connects one serviceBW form to the EUDI Wallet. It
   holds a name, the linked serviceBW form, the requested documents with their selected fields, a
   status (active or deactivated), its connection URLs, and, for webhook mode, a webhook address.
+  The serviceBW form is recorded as free text, such as the form's name or ID, and several form
+  connections may name the same form.
 - **Document Type**: A catalog entry for a kind of document an EUDI Wallet can hold, such as the ID
   (PID) or the mobile driving licence, together with the fields it offers.
 - **Requested Document**: A document type as used in one form connection, together with the
@@ -344,11 +378,13 @@ reactivate one, then delete one.
 - **SC-001**: A DO.IT team member can set up a form connection with two documents and their fields,
   and copy its connection URLs, in under 10 minutes without help from a developer.
 - **SC-002**: Connecting a new serviceBW form to the EUDI Wallet takes less than one working day,
-  from deciding which documents it needs to a working connection, with no software development or
-  release involved.
+  with no software development or release involved. The time runs from when DO.IT has agreed which
+  documents the form needs until a test request through the serviceBW form returns the documents.
 - **SC-003**: Citizens whose wallet holds the requested documents take a median of under 2 minutes
   from seeing the link or QR code in serviceBW to having approved the request. At least 90% of them
-  succeed on their first attempt.
+  succeed on their first attempt. This is measured in usability testing with at least 10
+  participants using test wallets with sample documents, half of them starting from the QR code
+  and half from the same-device link.
 - **SC-004**: In 95% of requests, the documents are ready for serviceBW within 5 seconds of the
   citizen approving the request in their wallet. In pull mode, a pull 5 seconds after the approval
   returns them; in webhook mode, the update carrying them has reached the webhook address by then.
@@ -358,8 +394,9 @@ reactivate one, then delete one.
   than their holder, is left to the service the middleware uses to communicate with wallets,
   because a test wallet can't produce them (see Assumptions).
 - **SC-006**: Neither the middleware nor the service it uses to communicate with wallets holds a
-  citizen's document data more than 30 minutes after the citizen shared it. The middleware holds
-  no request record more than 7 days after the request ended.
+  citizen's document data more than 30 minutes after the citizen shared it, apart from the delay an
+  outage causes (FR-020). The middleware holds no request record more than 7 days after the request
+  ended.
 - **SC-007**: When 100 document requests are triggered within one minute and are all in progress
   at the same time (FR-006), every one starts successfully and SC-004 is still met.
 - **SC-008**: In usability testing, at least 4 of 5 DO.IT participants set up a correct form
@@ -375,6 +412,11 @@ reactivate one, then delete one.
   the citizen, and in webhook mode can receive updates at a webhook address. serviceBW decides what
   to do with the documents it receives. Citizens without an EUDI Wallet provide their documents
   through serviceBW's existing process.
+- **serviceBW's capabilities**: serviceBW can call the trigger URL from its own server, insert the
+  request reference into the pull URL, process the middleware's answers, show the QR code image
+  the trigger returns, accept updates at its webhook address and confirm each one within 10
+  seconds, and keep request references confidential. DO.IT confirms these with serviceBW before
+  the integration starts.
 - **serviceBW waits for a final status**: Every status except "pending" is final. In pull mode,
   serviceBW keeps calling the pull URL until it gets a final status; in webhook mode it keeps
   waiting for the update. It doesn't stop waiting before the request expires (FR-012), so it can
@@ -386,10 +428,16 @@ reactivate one, then delete one.
   then the risk of a forwarded link or QR code is accepted for this iteration.
 - **All-or-nothing responses**: The citizen must provide every document in a form connection. The
   wallet enforces this: it returns either all the documents a request asks for or none, so the
-  middleware never receives a partial set.
+  middleware never receives a partial set. A citizen whose document lacks one of the selected
+  fields therefore can't share anything; German PIDs, for example, have no date of expiry. In this
+  iteration DO.IT isn't told which fields some documents lack, which is a known limitation.
 - **Wallets and trust**: The City of Stuttgart is, or will be, registered as a relying party that
-  may request the configured documents from EUDI Wallets. A test or simulated wallet with sample
-  documents is acceptable for validating the prototype.
+  may request the configured documents from EUDI Wallets. Once its registration certificate is in
+  use, it may limit which fields a form connection can request. The middleware relies on a
+  separate service to communicate with wallets and to verify documents. That service's operators
+  maintain the trusted issuers: test issuers for now, and production issuers before real citizens
+  use the service. A test or simulated wallet with sample documents is acceptable for validating
+  the prototype.
 - **Checks a test wallet can't trigger**: A test wallet can't present an altered document, or a
   document issued to another wallet. The service the middleware uses to communicate with wallets
   checks that each document is unaltered and presented by the wallet it was issued to (FR-010),
@@ -402,8 +450,15 @@ reactivate one, then delete one.
   network. Only serviceBW can reach the connection URLs, and the middleware's updates to the
   webhook address travel only inside that network. Neither direction is authenticated by the
   middleware in this iteration.
+- **Team member accounts**: The operators of the middleware create, change and delete accounts on
+  DO.IT's request. DO.IT tells them when someone joins or leaves, and a leaver's account is
+  deleted as soon as DO.IT reports the departure.
+- **Availability**: The prototype has no availability target. While the middleware is
+  unavailable, citizens provide their documents through serviceBW's existing process.
 - **Out of scope**: Custom logic on document fields, which is planned for a later iteration.
   Also out of scope: issuing documents into wallets, qualified electronic signatures, payments,
   archiving documents in the case file, and any changes to serviceBW itself. Authenticating calls
   to the connection URLs and updates to the webhook address beyond the restricted network, and
-  managing team member accounts in the management interface, are out of scope for now.
+  managing team member accounts in the management interface, are out of scope for now. So is
+  limiting repeated failed sign-in attempts, which is to be added before real citizens use the
+  service.

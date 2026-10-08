@@ -13,8 +13,8 @@ alternatives that were weighed.
 Some points must be confirmed against the OpenAPI of the hosted EUDIPLO instance before the code
 is written; each one is marked **Verify at implementation**.
 
-Decisions marked **(user)** were made by the user on 2026-10-07. Those that change what the
-feature does are also recorded in the spec's Clarifications section:
+Decisions marked **(user)** were made by the user on 2026-10-07 and 2026-10-08. Those that change
+what the feature does are also recorded in the spec's Clarifications section:
 - personal accounts;
 - network restriction;
 - no authentication for webhook updates, and repeated webhook updates;
@@ -22,7 +22,10 @@ feature does are also recorded in the spec's Clarifications section:
 - a 60-second repeat window for pulls;
 - the accepted risk of a forwarded link, with serviceBW checking the applicant;
 - WCAG 2.1 AA for the management UI;
-- 7-day retention of request records.
+- 7-day retention of request records;
+- on 2026-10-08: no extra wait at the expiry, plain HTTP only as an explicit exception, the
+  accepted delay of deletions during outages, who manages accounts, the later save winning, no
+  availability target, and DO.IT owning the open points before real citizens use the service.
 
 The technical ones are recorded only here: the hosted EUDIPLO, the nginx allow-list, the shared
 EUDIPLO tenant, and the open questions about serviceBW.
@@ -170,7 +173,7 @@ means a rename never creates a revision.
      secret, which includes every developer's `.env`, can therefore read and delete the sessions
      of every environment, including the documents shared in production.
    - Before real citizens use the service, production should get its own tenant or instance
-     (R19).
+     (R19). DO.IT owns this (user).
 
 **Alternatives considered**:
 - One mutable configuration per form connection: this breaks FR-005.
@@ -420,7 +423,8 @@ files.
   the limit. Each request records the time its EUDIPLO session was deleted, and a failed delete is
   retried.
 - **Where `completed_at` comes from**: EUDIPLO's `consumedAt`, the time the citizen's answer was
-  accepted. If the worker was not running, deletion happens as soon as it runs again.
+  accepted. If the worker was not running, deletion happens as soon as it runs again. The delay an
+  outage causes is accepted (user; spec edge case "Outages").
 - **Request records (user, FR-021)**: a request **ends** when it has a final status and its
   documents have been delivered or deleted. The row, together with its webhook updates, is deleted
   `REQUEST_RECORD_RETENTION_SECONDS` (7 days) after that. A pull with its reference then answers
@@ -686,6 +690,9 @@ forwards that path **only to clients whose address is on an allow-list**.
       at least 12 characters;
     - `set-password <username>` changes a password and ends the account's sign-in sessions;
     - `delete-user <username>` removes the account together with its sign-in sessions.
+  - **Who manages accounts (user)**: the operators of the deployment, on DO.IT's request. DO.IT
+    reports joiners and leavers, and a leaver's account is deleted as soon as DO.IT reports the
+    departure (spec assumption "Team member accounts").
 - **Sign-in sessions**:
   - `POST /api/auth/login` creates a server-side session row in `login_sessions`. The row stores
     the SHA-256 hash of a random token, and the token goes to the browser in the `session` cookie.
@@ -850,7 +857,7 @@ documented in `backend/.env.example`, `README.md` and `docs/ARCHITECTURE.md` (Co
 | `DOCUMENT_RETENTION_SECONDS` | Maximum time documents are kept after sharing, and the webhook retry limit (FR-016, FR-020) | `1800` |
 | `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery (FR-018) | `60` |
 | `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended (FR-021) | `604800` (7 days) |
-| `ALLOW_PLAIN_HTTP` | Allow `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development, inside a closed network | `false` |
+| `ALLOW_PLAIN_HTTP` | Allow `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development, inside a closed network. This is FR-019's explicit exception (user) | `false` |
 | `WORKER_ENABLED` | Run the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
 
@@ -879,13 +886,14 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
      in the certificate exactly. DO.IT could then request only field sets that the certificate
      registers.
 2. **`intent_to_retain`** (mdoc only) is not set. serviceBW keeps the documents in the
-   application, so the city may want to declare retention. **Decision needed from data
-   protection.**
+   application, so the city may want to declare retention. **Owner: DO.IT, which decides with data
+   protection before real citizens use the service (user).**
 3. **Differences in the German PID**: `urn:eudi:pid:de:1` has no `date_of_expiry`, and it uses the
    German extension `birth_name`. A field the citizen's PID lacks makes the wallet decline
    (all-or-nothing).
    - This also affects SC-003's first-attempt success. DO.IT should know which fields the targeted
-     PIDs contain, and a later iteration could mark such fields in the UI.
+     PIDs contain, and a later iteration could mark such fields in the UI. Not in this iteration
+     (user); the spec records it as a known limitation.
 4. **Verify at implementation**, against the OpenAPI of the hosted instance
    (`$EUDIPLO_URL/api/docs-json`, `.info.version` 9.x):
    - what `DELETE /api/session/{id}` does: whether it removes `credentials` at once, whether a
@@ -901,20 +909,22 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
    for its operators. EUDIPLO's hourly cleanup job means the TTL alone can't guarantee 30 minutes.
 6. **One tenant for every environment (accepted for now, R2)**. Before real citizens use the
    service, production should get its own tenant or instance, with its own client and trust list.
+   DO.IT owns this (user).
    - Until then:
      - configuration ids contain a UUID, so they never collide;
      - the session sync ignores sessions it doesn't know;
      - configurations left behind by reset development databases must be removed in the EUDIPLO
        console.
 7. **Sign-in hardening**: there is no rate limit or lockout for failed sign-ins, and no password
-   policy beyond the 12-character minimum. Both are acceptable for a small internal team, and
-   worth adding before wider use.
+   policy beyond the 12-character minimum. The user accepted both for now. A limit on failed
+   sign-ins is to be added before real citizens use the service (spec, "Out of scope").
 
 ## R20. What serviceBW is expected to do **(user: not sure yet, to be confirmed by DO.IT)**
 
 The design relies on serviceBW doing the following.
 - **Items 1–5 and 7** are expectations the user could not confirm yet. DO.IT confirms them with
   serviceBW before the integration, and the URL design is adjusted if one of them doesn't hold.
+  The spec records them in the assumption "serviceBW's capabilities".
 - **Item 6** is decided, and is now the spec assumption "serviceBW waits for a final status".
 
 1. **Trigger**: call the trigger URL with an HTTP `POST` that has no body, from its server and not
@@ -946,7 +956,8 @@ The design relies on serviceBW doing the following.
 
 | Decision | Reason |
 |---|---|
-| The serviceBW form is a free-text field of 1–500 characters | The spec doesn't say what identifies a serviceBW form, and there is no integration with serviceBW's admin side |
+| The serviceBW form is a free-text field of 1–500 characters, and several form connections may name the same form | There is no integration with serviceBW's admin side (spec, Key Entities) |
+| When two team members edit the same form connection at once, the later save wins (user) | There is no version check; that is fine for a small team (spec edge case "Two team members editing at once") |
 | Form connection names don't have to be unique | No requirement asks for it, and the id identifies a form connection |
 | Each document type appears at most once per form connection | DCQL credential query ids must be unique, and a second copy of the same document adds nothing |
 | The overview lists the most recently updated form connections first | No order is specified, and this one is consistent with the template |

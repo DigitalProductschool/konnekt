@@ -55,6 +55,8 @@ user's name and a sign-out action.
     `message`.
 - **After saving**: the details screen opens. When editing, a note explains that requests already
   in progress keep their previous configuration (FR-005).
+- **States**: loading the catalog (and, when editing, the form connection), and an error if
+  either can't be loaded.
 - **Implementation rules**: the screen has several related pieces of state, so per the
   constitution it uses `useReducer`. Lists such as documents and fields are rendered by
   sub-components.
@@ -81,6 +83,8 @@ user's name and a sign-out action.
   - **Reactivate**: for a deactivated form connection.
   - **Delete**: asks for confirmation, and states that the URLs will stop working permanently
     (US4, scenario 5). After deleting, the app returns to the overview.
+- **States**: loading, and an error if the form connection can't be loaded, for example because it
+  was deleted, with a way back to the overview.
 
 ## Accessibility (SC-009)
 

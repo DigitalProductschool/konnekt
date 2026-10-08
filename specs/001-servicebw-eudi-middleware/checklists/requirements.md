@@ -91,3 +91,19 @@
   SC-004 now names its measurement point, and SC-007 says what "simultaneous" means.
 
   Re-check: no markers, and the numbering is unchanged. All items still pass.
+- Iteration 9 (2026-10-08, review gate): Ten answers were recorded under Clarifications, Session
+  2026-10-08. Together with wording that states existing plan decisions, the spec changed in these
+  places:
+  - FR-004: the reference placeholder in the pull URL;
+  - FR-005: catalog and trusted-issuer changes;
+  - FR-007: deleting an account ends access at once;
+  - FR-010: documents whose revocation can't be checked are rejected;
+  - FR-017: which environments enforce the restriction;
+  - FR-019: encrypted connections with an explicit exception, and nothing personal in logs;
+  - FR-020 and SC-006: the accepted delay during outages;
+  - SC-002 and SC-003: their measurement conditions;
+  - three new edge cases, and an addition to "Documents never collected";
+  - three new assumptions, and additions to three existing ones.
+
+  Re-check: no markers, no implementation terms, and the numbering is unchanged. All items still
+  pass.

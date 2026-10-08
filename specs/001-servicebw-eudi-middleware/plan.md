@@ -104,8 +104,8 @@ runs the background worker thread, and PostgreSQL.
 
 **Constraints**:
 - **Personal data**: no documents in the middleware's storage or logs, and none left in EUDIPLO
-  more than 30 minutes after sharing (FR-020, SC-006). Request records are deleted 7 days after
-  the request ends (FR-021).
+  more than 30 minutes after sharing, apart from the delay an outage causes (FR-020, SC-006).
+  Request records are deleted 7 days after the request ends (FR-021).
 - **Expiry**: requests expire after 10 minutes (FR-012).
 - **Delivery**: exactly the configured fields, once, with a 60-second repeat window for pulls
   (FR-013, FR-018, SC-005).
