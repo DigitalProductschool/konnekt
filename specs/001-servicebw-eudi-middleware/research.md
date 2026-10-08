@@ -127,8 +127,9 @@ never silently left behind.
 
 **Keeping configurations in step with settings and the catalog**: each revision stores
 `lifetime_seconds` and a `config_hash`. The hash is the SHA-256 of the canonical configuration body
-without its `id`, and the body depends on the catalog, `EUDIPLO_TRUST_LIST_ID` and
-`REQUEST_LIFETIME_SECONDS`.
+without its `id` and `description`, and the body depends on the catalog, `EUDIPLO_TRUST_LIST_ID`
+and `REQUEST_LIFETIME_SECONDS`. Leaving out `description`, which holds the form connection's name,
+means a rename never creates a revision.
 
 - **When the check runs**: after every start. The worker rebuilds the configuration body for the
   current revision of every form connection that isn't deleted.

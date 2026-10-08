@@ -84,7 +84,7 @@ connection is held while a call is waiting (research R15).
   `trusted_authorities`, EUDIPLO would skip the issuer check (FR-010), and Paradym needs the
   references to be identical across queries.
 - **Change detection**: `lifeTime` is the revision's `lifetime_seconds`. The SHA-256 of this body,
-  without `id`, is stored as the revision's `config_hash`.
+  without `id` and `description`, is stored as the revision's `config_hash`.
 - **Not set**: `registration_cert`, `webhookEndpointId`, `redirectUri`, `transaction_data` and
   `intent_to_retain` (see research R6, R11 and R19).
 

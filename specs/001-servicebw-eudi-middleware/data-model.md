@@ -132,7 +132,7 @@ service layer, where the message can name the problem.
 | `revision` | `Integer` | Starts at 1. Unique together with `form_connection_id` |
 | `documents` | `JSONB` | Ordered list of Requested Documents (see below). Never changed after insert |
 | `lifetime_seconds` | `Integer` | `REQUEST_LIFETIME_SECONDS` when the revision was created. It equals the configuration's `lifeTime`, and the expiry of every request on this revision derives from it |
-| `config_hash` | `String(64)` | SHA-256 of the canonical EUDIPLO configuration body, without its `id`. Used to detect changes to the catalog, trust list or lifetime (research R2) |
+| `config_hash` | `String(64)` | SHA-256 of the canonical EUDIPLO configuration body, without its `id` and `description`, so that renaming a form connection creates no revision. Used to detect changes to the catalog, trust list or lifetime (research R2) |
 | `eudiplo_config_id` | `String(255)`, unique | `fc-{form_connection_id}-r{revision}`: the EUDIPLO presentation configuration for this revision |
 | `eudiplo_config_deleted_at` | `DateTime(timezone=True)`, nullable | Set once the EUDIPLO configuration has been deleted |
 | `created_at`, `updated_at` | `DateTime(timezone=True)` | |
