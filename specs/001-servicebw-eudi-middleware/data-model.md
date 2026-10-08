@@ -195,8 +195,8 @@ fails after step 3, the configuration is deleted again (best effort, logged).
  trigger ─▶ pending ──┬── EUDIPLO completed ──────────────▶ completed
                       ├── wallet error code ──────────────▶ declined
                       ├── verification failure ───────────▶ verification_failed
-                      ├── last check after expires_at
-                      │   + 10 s grace: R5 table applied;
+                      ├── last check after expires_at:
+                      │   R5 table applied;
                       │   still active or fetched ────────▶ expired
                       └── form connection deactivated
                           or deleted ─────────────────────▶ unavailable

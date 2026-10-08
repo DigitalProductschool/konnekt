@@ -82,3 +82,12 @@
 
   Re-check: no markers. FR-001–FR-021 and SC-001–SC-009 are numbered without gaps. All items
   still pass.
+- Iteration 8 (2026-10-08, `/speckit-analyze` follow-up): Two answers were recorded under
+  Clarifications, Session 2026-10-08:
+  - requests expire exactly 10 minutes after the trigger, with no extra wait (FR-012 unchanged);
+  - SC-005 covers what a test wallet can produce, and the new assumption "Checks a test wallet
+    can't trigger" records what the middleware relies on.
+
+  SC-004 now names its measurement point, and SC-007 says what "simultaneous" means.
+
+  Re-check: no markers, and the numbering is unchanged. All items still pass.

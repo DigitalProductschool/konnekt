@@ -43,8 +43,9 @@ tested as an increment.
 
 ## Phase 1: Setup (cleanup and dependencies)
 
-**Purpose**: Remove the template's test project and add the stack's new dependencies (research
-R1, plan "Cleanup of the template code").
+**Purpose**: Remove the template's test project, and add the test tooling and the KERN packages
+(research R1, plan "Cleanup of the template code"). Every other new dependency is added by the task
+that first imports it, so that no merge declares a dependency nothing imports (constitution IV).
 
 - [ ] T001 Remove the template's example and mock code from the backend:
   - delete `backend/app/routers/team_members.py` and `backend/app/routers/id_verification.py`;
@@ -59,12 +60,12 @@ R1, plan "Cleanup of the template code").
   - move the `VITE_API_URL` normalization, `ApiError`, `isApiErrorResponse` and `handleResponse` into a new `frontend/src/api/client.ts`;
   - make `frontend/src/App.tsx` render an empty shell;
   - delete the tracked `frontend/tsconfig.app.tsbuildinfo`, and add `*.tsbuildinfo` to `.gitignore`.
-- [ ] T004 [P] Update the backend dependencies in `backend/pyproject.toml`, then run `uv lock` and `uv sync` in `backend/` so `backend/uv.lock` is refreshed (research R15, R17):
-  - move `httpx2>=2.12.0` from the `dev` group to `dependencies`;
-  - add `segno` and `argon2-cffi` to `dependencies`, with their current releases as version floors;
+- [ ] T004 [P] Prepare the backend tests in `backend/pyproject.toml`, then run `uv lock` and `uv sync` in `backend/` so `backend/uv.lock` is refreshed (research R17):
   - add `pytest` to the `dev` group;
   - delete `asyncio_mode = "auto"` from `[tool.pytest.ini_options]`.
-- [ ] T005 [P] Add the frontend dependencies in `frontend/` with `npm install --save-exact react-router@7 @kern-ux/native @kern-ux-annex/kern-react-kit @digitalservicebund/kern-ux-tailwind-theme`. Then add the four CSS imports to `frontend/src/index.css` in the order of `docs/KERN-DESIGN-SYSTEM.md` §2. Keep the existing `@theme` block until T025.
+  
+  The runtime dependencies are added by the tasks that first import them: `argon2-cffi` in T015, `httpx2` in T019 and `segno` in T046.
+- [ ] T005 [P] Add the KERN packages in `frontend/` with `npm install --save-exact @kern-ux/native @kern-ux-annex/kern-react-kit @digitalservicebund/kern-ux-tailwind-theme`. Then add the four CSS imports to `frontend/src/index.css` in the order of `docs/KERN-DESIGN-SYSTEM.md` §2; they use all three packages. Keep the existing `@theme` block until T025. `react-router` is added by T028.
 - [ ] T006 Check that the cleaned-up project still builds and starts: `uv run ruff check . && uv run mypy app/` in `backend/`, `npm run lint && npm run build` in `frontend/`, and `docker compose up --build`. Fix any remaining reference to the removed code in `backend/app/` or `frontend/src/`.
 
 ---
@@ -152,6 +153,7 @@ framework, the test harness and the frontend shell.
 ### Sign-in (FR-007)
 
 - [ ] T015 Implement `backend/app/services/auth.py` (research R14):
+  - add `argon2-cffi` to `dependencies` in `backend/pyproject.toml`, with its current release as the version floor, and run `uv lock` and `uv sync` in `backend/`;
   - Argon2id hashing with `argon2.PasswordHasher`;
   - `create_login_session(db, user)`, which stores the SHA-256 hex of a `secrets.token_urlsafe(32)` token with `expires_at` = now + `LOGIN_SESSION_HOURS`;
   - `set_session_cookie()` and `clear_session_cookie()`: cookie `session`, `HttpOnly`, `SameSite=Strict`, `Path=/api`, `Secure` unless `APP_ENV=development`, `Max-Age` = the session lifetime;
@@ -170,6 +172,7 @@ framework, the test harness and the frontend shell.
 
 - [ ] T018 Check the EUDIPLO API before writing the client. Ask the user for `EUDIPLO_URL` and the API client's credentials, and fetch `$EUDIPLO_URL/api/docs-json` (`.info.version` must be 9.x). Compare it with the seven calls in `specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md`. Answer the research R19 item 4 points that the OpenAPI settles, and record any difference in `specs/001-servicebw-eudi-middleware/research.md`.
 - [ ] T019 Implement `backend/app/services/eudiplo.py` as in contracts/eudiplo-usage.md:
+  - move `httpx2>=2.12.0` from the `dev` group to `dependencies` in `backend/pyproject.toml`, and run `uv lock` and `uv sync` in `backend/` (research R15);
   - a synchronous `httpx2.Client` with a 5 s connect and 10 s read timeout;
   - a token from `POST /api/oauth2/token`, cached in memory behind a lock, renewed 5 minutes before `expires_in` ends, and fetched again once after a 401;
   - methods `create_config`, `delete_config`, `create_offer`, `list_sessions`, `get_session` and `delete_session`;
@@ -228,6 +231,7 @@ framework, the test harness and the frontend shell.
 - [ ] T026 Add `frontend/src/types/auth.ts` (`UserView`, `LoginRequest`, mirroring `backend/app/schemas.py`) and `frontend/src/api/auth.ts` (`login`, `logout`, `getMe`, using `apiFetch`).
 - [ ] T027 Implement sign-in state in `frontend/src/hooks/useCurrentUser.ts`, with a context provider if the design needs one. It loads `GET /api/auth/me` once, treats a 401 as signed out, and exposes `user`, `signIn` and `signOut`.
 - [ ] T028 Set up routing:
+  - add `react-router` in `frontend/` with `npm install --save-exact react-router@7`;
   - `frontend/src/main.tsx` wraps the app in react-router's `BrowserRouter`;
   - `frontend/src/App.tsx` declares `/login`, `/`, `/form-connections/new`, `/form-connections/:id` and `/form-connections/:id/edit`, with placeholders for screens not built yet;
   - a guard sends signed-out users to `/login`, and back to the requested route after sign-in;
@@ -354,7 +358,7 @@ These are quickstart V2, V3 and V6.
 ### Implementation for User Story 2
 
 - [ ] T045 [P] [US2] Add `TriggerResponse`, `DeliveredField`, `DeliveredDocument` and `PullResponse` to `backend/app/schemas.py`, exactly as in contracts/integration-api.md: snake_case, `expires_at` as ISO 8601 UTC with `Z`, and nullable `documents`.
-- [ ] T046 [P] [US2] Create `backend/app/services/qr.py`: render a link as a PNG data URI (`data:image/png;base64,…`) with `segno`, using error correction M, a scale that gives a scannable image, and a quiet zone of 4 (research R11).
+- [ ] T046 [P] [US2] Add `segno` to `dependencies` in `backend/pyproject.toml`, with its current release as the version floor, and run `uv lock` and `uv sync` in `backend/`. Then create `backend/app/services/qr.py`: render a link as a PNG data URI (`data:image/png;base64,…`) with `segno`, using error correction M, a scale that gives a scannable image, and a quiet zone of 4 (research R11).
 - [ ] T047 [P] [US2] Create `backend/app/services/documents.py` (research R9). It turns an EUDIPLO session's `credentials` (`[{"id": <document type key>, "values": [{…}]}]`) into `DeliveredDocument`s for a revision:
   - take the first `values` entry of each document;
   - SD-JWT VC values are found by walking the claim path, and mdoc values by element name, because EUDIPLO merges mdoc claims into one flat object;
@@ -383,7 +387,7 @@ These are quickstart V2, V3 and V6.
 - [ ] T050 [US2] Implement `pull` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Pull URL" and research R9:
   - use the same check order as the trigger, then 404 "Request not found" for an unknown reference or one that belongs to another form connection;
   - lock the row;
-  - a `pending` request past `expires_at` + 10 s gets the last check: `get_session` plus the mapping, otherwise `expired`;
+  - a `pending` request past `expires_at` gets the last check: `get_session` plus the mapping, otherwise `expired`;
   - for a `completed` pull-mode request:
     - the first pull reads and extracts the documents (T047), sets `documents_delivered_at` and `ended_at`, commits, then answers;
     - pulls within `PULL_REPEAT_WINDOW_SECONDS` after that return the same documents;
@@ -404,7 +408,7 @@ These are quickstart V2, V3 and V6.
     - call `list_sessions(type=presentation, updatedFrom=cursor)`. The cursor is the latest EUDIPLO `updatedAt` seen minus 5 s, starting at the creation time of the oldest open request;
     - apply the mapping through `apply_status` to known `pending` requests only;
     - for items without `failureCode` or `consumedAt`, fall back to `get_session` and discard `credentials` right away.
-  - **Expiry**: `pending` requests whose `expires_at` + 10 s has passed get the last check, dispatched to the pool.
+  - **Expiry**: `pending` requests whose `expires_at` has passed get the last check, dispatched to the pool.
 - [ ] T054 [US2] Add the EUDIPLO session deletion step to `backend/app/services/worker.py` (research R8). Calls are dispatched to the pool, a 404 counts as success, and each deletion sets `eudiplo_session_deleted_at`. A session is deleted:
   - when a pull-mode delivery's repeat window has ended;
   - when a request has a final status other than `completed`;
@@ -439,7 +443,7 @@ These are quickstart V2, V3 and V6.
     - two simultaneous pulls inside the window both get the documents.
 - [ ] T059 [US2] Write `backend/tests/api/test_worker_requests.py`:
   - sync applies statuses and ignores unknown sessions, and the cursor works;
-  - expiry waits for the 10-second grace;
+  - expiry runs the last check as soon as `expires_at` has passed;
   - EUDIPLO sessions are deleted at the right time: at the end of the window, for final statuses, and at 30 minutes − 60 s;
   - request records are deleted after the retention period, together with their webhook deliveries.
 
@@ -556,8 +560,13 @@ This is quickstart V5.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-**Purpose**: Documentation from the constitution's checklist, the quality gates, and validation
-with real wallets and real users.
+**Purpose**:
+- **Merge gate (T076–T080)**: these tasks run before each change is proposed for merge, from the
+  first merge on, because the constitution requires the documentation checklist and the quality
+  gates before every merge ("Development Workflow"). Each run covers what exists at that point.
+  Tick them after the last run.
+- **Validation (T081–T083)**: the finished feature, with real wallets, real users and the
+  deployment.
 
 - [ ] T076 [P] Update `README.md`:
   - the middleware's purpose;
@@ -566,15 +575,17 @@ with real wallets and real users.
   - the EUDIPLO prerequisites from contracts/eudiplo-usage.md;
   - each new dependency and why it was added: `httpx2`, `segno`, `argon2-cffi`, `pytest`, `react-router` and the three KERN packages.
 - [ ] T077 [P] Update `docs/ARCHITECTURE.md`:
-  - the system overview, with EUDIPLO, the worker thread and the nginx allow-list;
+  - the system overview, with EUDIPLO, the worker thread and its steps, webhook delivery and the nginx allow-list, as far as they exist;
   - the environment variable tables for the backend and the frontend container;
   - the new repository structure;
   - replace the team-member examples.
 - [ ] T078 [P] Update `CLAUDE.md`: the services-layer and worker patterns, the backend structure listing and the "Full Stack Example". Keep the generic examples in the naming-convention tables.
 - [ ] T079 [P] Update `docs/EUDIPLO.md`: §4 ("Our middleware's client") and the §11 "Middleware client" row become `presentation:request` + `presentation:manage`, with no allow-list.
 - [ ] T080 Run the quality gates and fix every finding:
-  - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy app/`, and `uv run pytest` against a `_test` database;
+  - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy app/`;
   - in `frontend/`: `npm run lint` and `npm run build`.
+  
+  Once `backend/tests/` exists, also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
 - [ ] T081 Run quickstart.md V1–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
   - the remaining "Verify at implementation" answers;
   - whether an expired credential fails verification (V3);
@@ -597,9 +608,10 @@ with real wallets and real users.
   - T018 needs the user's EUDIPLO access.
   - T023 needs the user's Figma URL.
 - **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
-- **Polish (Phase 7)**: depends on the stories that are to be delivered.
-  - T081 needs a test wallet.
-  - T083 needs a Coolify deployment.
+- **Polish (Phase 7)**:
+  - T076–T080 are the merge gate: they run before every merge, from the first one on.
+  - T081–T083 depend on the stories that are to be delivered. T081 needs a test wallet, and T083
+    needs a Coolify deployment.
 
 ### User Story Dependencies
 
@@ -676,20 +688,23 @@ Task: "Add the edit mode to frontend/src/pages/FormConnectionEditor/ (T073)"
 2. Complete Phase 2: Foundational. Ask the user for EUDIPLO access (T018) and the Figma URL (T023).
 3. Complete Phase 3: US1. **Validate** with quickstart V1.
 4. Complete Phase 4: US2. **Validate** with quickstart V2, V3 and V6, using Paradym.
-5. Deploy or demo: a serviceBW form can now retrieve verified documents in pull mode.
+5. Run the merge gate (T076–T080) and merge.
+6. Deploy or demo: a serviceBW form can now retrieve verified documents in pull mode.
 
 US1 on its own produces configurations and URLs but retrieves no documents, so the useful MVP is
 US1 and US2 together.
 
 ### Incremental Delivery
 
+Merge often, at least at the end of each step below, to keep the history light. Run the merge gate
+(T076–T080) before each merge.
+
 1. Setup + Foundational: sign-in and the empty shell.
 2. + US1: form connections and URLs.
 3. + US2: pull mode end to end. **This is the MVP.**
 4. + US3: webhook mode.
 5. + US4: overview states, editing, deactivation and deletion.
-6. Polish: documentation, gates, validation with real wallets, the accessibility review, and the
-   deployment checks.
+6. Polish: validation with real wallets, the accessibility review, and the deployment checks.
 
 ### Parallel Team Strategy
 

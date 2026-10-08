@@ -104,7 +104,7 @@ curl -s "http://localhost:3000/api/connect/$FC/requests/$REF" | jq   # expected:
 1. Scan `qr.png` with Paradym.
    - **Expected**: the wallet asks for exactly the 7 configured fields from the two documents, in
      one interaction (FR-009).
-2. Approve, then pull within 5 seconds (SC-004).
+2. Approve, wait 5 seconds, then pull (SC-004).
    - **Expected**: `"status": "completed"`, and `documents` holds two entries, one per document,
      each with its `document_type` and `label`. Together they carry exactly the 7 configured
      fields, each with `key`, `label` and `value`. There is no `iss`, `vct` or any other field
@@ -129,8 +129,9 @@ curl -s "http://localhost:3000/api/connect/$FC/requests/$REF" | jq   # expected:
 | Pull with a made-up reference, or with `$REF` under another form connection's id | `404` |
 
 Altered credentials and credentials presented by someone other than their holder can't be produced
-with a real wallet. They rely on EUDIPLO's signature and holder-binding checks (research R3), and
-the status mapping is covered by the pytest suite.
+with a real wallet. As SC-005 and the spec assumption "Checks a test wallet can't trigger" state,
+they rely on EUDIPLO's signature and holder-binding checks (research R3). The pytest suite covers
+how the middleware reports them (`verification_failed`).
 
 ### V4: Webhook mode (US3, FR-014 to FR-016)
 
@@ -202,7 +203,7 @@ the status mapping is covered by the pytest suite.
    - **Expected**: its row is gone from `document_requests`, together with its
      `webhook_deliveries`, and a pull with its reference answers `404`.
 
-### V7: Load (SC-007, SC-004, optional)
+### V7: Load (SC-007, SC-004)
 
 1. Start 100 triggers in parallel, keeping every response:
 
@@ -215,7 +216,7 @@ the status mapping is covered by the pytest suite.
    - **Expected**: 100 × `201`.
 2. Render the QR code of a few of them, as in V2, from `load/<n>.json`. Approve them with the wallet
    while the rest stay pending, and pull each one.
-   - **Expected**: `completed` within 5 seconds of approval (SC-004), and no database pool errors
+   - **Expected**: a pull 5 seconds after each approval answers `completed` (SC-004), and no database pool errors
      in the backend log (research R15).
 
 ### V8: Usability measurements (SC-001, SC-003, SC-008)

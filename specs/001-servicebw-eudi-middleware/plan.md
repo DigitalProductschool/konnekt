@@ -100,7 +100,7 @@ runs the background worker thread, and PostgreSQL.
 **Performance Goals**:
 - Documents are available to serviceBW within 5 seconds of approval for 95% of requests (SC-004).
   The 2-second polling cycle is sized for this, and outbound calls never block it.
-- At least 100 simultaneous document requests (SC-007).
+- 100 document requests triggered within one minute and in progress at the same time (SC-007).
 
 **Constraints**:
 - **Personal data**: no documents in the middleware's storage or logs, and none left in EUDIPLO

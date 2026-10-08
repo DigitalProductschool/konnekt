@@ -357,9 +357,10 @@ when `WORKER_ENABLED` is true, and stops it on shutdown.
 
 - **Steps**: each cycle runs these steps, every 2 seconds and in this order:
   1. **Sync** EUDIPLO sessions (R6) and apply R5 to `pending` requests.
-  2. **Expire**: for each `pending` request whose `expires_at` plus a 10-second grace period has
-     passed, the worker reads the session one last time, then applies R5. A session that is still
-     `active` or `fetched` becomes `expired`.
+  2. **Expire**: for each `pending` request whose `expires_at` has passed, the worker reads the
+     session one last time, then applies R5. A session that is still `active` or `fetched` becomes
+     `expired`. There is no extra wait, so an answer that EUDIPLO is still verifying at the
+     deadline is lost (spec Clarifications, Session 2026-10-08).
   3. **Cancel**: every open request of a deactivated or deleted form connection becomes
      `unavailable` (R9). Requests whose `completed` update is being sent at that moment are
      skipped.

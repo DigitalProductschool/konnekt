@@ -39,6 +39,11 @@ When these URLs are used, the middleware will establish a connection to the wall
 - Q: Must the DO.IT management UI meet a formal accessibility standard, namely WCAG 2.1 level AA? → A: Yes. WCAG 2.1 AA is an acceptance criterion for the management UI.
 - Q: How long should the middleware keep the record of a request (its reference, status and timestamps, but no documents) after the request has ended? → A: 7 days. A request ends when it has a final status and its documents have been delivered or deleted. Its record is deleted 7 days later, and a pull with its reference then answers as for an unknown request.
 
+### Session 2026-10-08
+
+- Q: Should the middleware wait a few seconds after the 10 minutes before reporting "expired", in case an answer the citizen sent just before the deadline is still being verified? → A: No, not for now. A request expires exactly 10 minutes after it was triggered. A short wait can be added later if it turns out to be needed.
+- Q: How is it tested that altered documents, and documents presented by someone other than their holder, are rejected, given that a test wallet can't produce them? → A: Acceptance testing covers only what a test wallet can produce (SC-005). For these two checks the middleware relies on the service it uses to communicate with wallets (see Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Set up a form connection and obtain its connection URLs (Priority: P1)
@@ -344,16 +349,19 @@ reactivate one, then delete one.
 - **SC-003**: Citizens whose wallet holds the requested documents take a median of under 2 minutes
   from seeing the link or QR code in serviceBW to having approved the request. At least 90% of them
   succeed on their first attempt.
-- **SC-004**: In 95% of requests, serviceBW can obtain the documents, through the pull URL or the
-  webhook, within 5 seconds of the citizen approving the request in their wallet.
+- **SC-004**: In 95% of requests, the documents are ready for serviceBW within 5 seconds of the
+  citizen approving the request in their wallet. In pull mode, a pull 5 seconds after the approval
+  returns them; in webhook mode, the update carrying them has reached the webhook address by then.
 - **SC-005**: In acceptance testing, 100% of the documents delivered to serviceBW contain only the
-  fields configured for that form connection. 100% of altered, expired, revoked or untrusted test
-  documents are rejected.
+  fields configured for that form connection, and 100% of expired, revoked or untrusted test
+  documents are rejected. Rejecting altered documents, and documents presented by someone other
+  than their holder, is left to the service the middleware uses to communicate with wallets,
+  because a test wallet can't produce them (see Assumptions).
 - **SC-006**: Neither the middleware nor the service it uses to communicate with wallets holds a
   citizen's document data more than 30 minutes after the citizen shared it. The middleware holds
   no request record more than 7 days after the request ended.
-- **SC-007**: The middleware supports at least 100 simultaneous document requests while still
-  meeting SC-004.
+- **SC-007**: When 100 document requests are triggered within one minute and are all in progress
+  at the same time (FR-006), every one starts successfully and SC-004 is still met.
 - **SC-008**: In usability testing, at least 4 of 5 DO.IT participants set up a correct form
   connection on their first attempt without assistance.
 - **SC-009**: The management interface meets WCAG 2.1 level AA. An accessibility review against
@@ -382,6 +390,11 @@ reactivate one, then delete one.
 - **Wallets and trust**: The City of Stuttgart is, or will be, registered as a relying party that
   may request the configured documents from EUDI Wallets. A test or simulated wallet with sample
   documents is acceptable for validating the prototype.
+- **Checks a test wallet can't trigger**: A test wallet can't present an altered document, or a
+  document issued to another wallet. The service the middleware uses to communicate with wallets
+  checks that each document is unaltered and presented by the wallet it was issued to (FR-010),
+  and the middleware relies on it. Acceptance testing covers only how the middleware reports such
+  a rejection.
 - **Time limits**: The 10-minute expiry for requests, the 30-minute maximum retention of
   documents, the 60-second repeat window for pulls, and the 7-day retention of request records are
   defaults that balance usability and data minimization. They may be adjusted after testing.

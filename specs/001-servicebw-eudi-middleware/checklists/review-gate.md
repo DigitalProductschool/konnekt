@@ -32,6 +32,7 @@ reopened:
 - [ ] CHK008 Is the representation of field values that aren't plain text (dates, images, structured values such as place of birth or driving privileges) specified for delivered documents? [Clarity, Spec §FR-013, Plan research R9]
 - [ ] CHK009 Are FR-010's "trusted issuer" and "currently valid" defined? This includes who maintains the trusted issuers in each environment, and what happens when revocation status can't be determined. [Clarity, Spec §FR-010, Assumptions "Wallets and trust"]
 - [ ] CHK010 Is the precision of the 10-minute expiry specified (an exact cut-off, or a tolerance), given that a citizen's answer can arrive right at the deadline? [Clarity, Spec §FR-012, Plan research R7]
+  - Note (2026-10-08): The expiry is an exact cut-off, recorded under Clarifications, Session 2026-10-08. The 10-second grace was removed from research R7, the data model and the tasks.
 - [ ] CHK011 Does FR-005's "the configuration they started with" explicitly include the connection mode and webhook address? If it does, changing or removing the webhook address mid-request has a defined outcome. [Ambiguity, Spec §FR-005, §FR-014]
   - Note (2026-10-07): FR-005 now lists the requested documents and fields, and the connection mode with its webhook address.
 - [ ] CHK012 Is "requests already in progress" in FR-006 defined (only pending requests, or also completed requests with undelivered documents), and is the time within which they are cancelled specified? [Ambiguity, Spec §FR-006, Plan data-model "Open requests"]
@@ -54,8 +55,11 @@ reopened:
 ## Acceptance Criteria Quality
 
 - [ ] CHK019 Does SC-004 define its measurement point for pull mode, where serviceBW's own polling interval decides when it obtains the documents? [Measurability, Spec §SC-004]
+  - Note (2026-10-08): SC-004 now measures a pull made 5 seconds after the approval, or the webhook update reaching the address by then.
 - [ ] CHK020 Is "100 simultaneous document requests" in SC-007 defined: requests open at the same time, or trigger calls arriving at the same time, and for how long? [Clarity, Spec §SC-007]
+  - Note (2026-10-08): SC-007 now means 100 requests triggered within one minute and in progress at the same time.
 - [ ] CHK021 Does SC-005 say how the altered, expired, revoked and untrusted test documents are obtained, given that a real wallet can't present an altered document? [Measurability, Spec §SC-005, Plan quickstart V3]
+  - Note (2026-10-08): SC-005 now covers what a test wallet can produce. The new assumption "Checks a test wallet can't trigger" records that rejecting altered documents, and documents presented by someone other than their holder, is left to the service the middleware uses to communicate with wallets.
 - [ ] CHK022 Are the participants and conditions of the SC-003 measurement defined (sample size, test or real documents, QR code or same-device link)? [Measurability, Spec §SC-003]
 - [ ] CHK023 Does SC-002 name observable start and end events for "less than one working day", given that part of the work happens in serviceBW? [Measurability, Spec §SC-002]
 
