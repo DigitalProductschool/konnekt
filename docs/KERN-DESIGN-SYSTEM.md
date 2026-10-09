@@ -34,7 +34,7 @@ integration work below doesn't need to be re-discovered from scratch.
 | Package | Version (at research time) | What it is | License |
 |---|---|---|---|
 | `@kern-ux/native` | `^2.8.2` | Core: compiled CSS (`kern.css`/`kern.min.css`), a CSS grid (`kern-grid.css`), utility classes (`kern-utilities.css`), fonts (Fira Sans, Noto Sans, Fira Mono), SCSS sources, and **every design token as CSS custom properties** (colors in OKLCH, spacing/metrics, typography, radii). Ships exactly **one** native Web Component, `<kern-kopfzeile>` (header strip). Everything else is plain BEM-style CSS classes (`.kern-button`, `.kern-input`, `.kern-accordion`, `.kern-summary-group`, …) meant to be applied to plain HTML — **framework-agnostic, no React bindings of its own.** | EUPL-1.2 |
-| `@kern-ux-annex/kern-react-kit` | `^2.40.0` | **The actual React component library.** Community-maintained (not published under the main `@kern-ux` npm scope, but under a "KERN annex/community" GitLab namespace; contributors include official KERN strategic partners such as OneBitAhead GmbH). 46 components (33 core + 13 addons) as typed TSX, compiled ESM+CJS with full `.d.ts` types, plus a bundled stylesheet. React 18 **and** 19 supported via peerDependencies. Treat it as "community, but close to official" — there is **no first-party `@kern-ux/react` package**; dead-end package names seen in older docs/search indexes: `@kern-ux/react`, `@kern-ux/components` (do not install either). | EUPL-1.2 |
+| `@kern-ux-annex/kern-react-kit` | `^2.40.0` | **The actual React component library.** Community-maintained (not published under the main `@kern-ux` npm scope, but under a "KERN annex/community" GitLab namespace; contributors include official KERN strategic partners such as OneBitAhead GmbH). 46 components (33 core + 13 addons) as typed TSX, compiled ESM+CJS with full `.d.ts` types, plus a bundled stylesheet (an older copy of the native CSS with inlined fonts — leave it out, see "Global CSS" below). React 18 **and** 19 supported via peerDependencies. Treat it as "community, but close to official" — there is **no first-party `@kern-ux/react` package**; dead-end package names seen in older docs/search indexes: `@kern-ux/react`, `@kern-ux/components` (do not install either). | EUPL-1.2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | `^4.0.0` | A single `theme.css` that uses **Tailwind v4's `@theme inline`** directive to remap every `@kern-ux/native` CSS-variable token into Tailwind's own theme namespace (see §5). CSS-only, not React-specific — works with any Tailwind v4 project, even non-React ones. Peer-depends on `@kern-ux/native@^2.8.0` and `tailwindcss@^4.1.12`. Maintained by DigitalService Bund engineers, published via GitHub Actions on a rolling basis, kept in sync with `@kern-ux/native` token renames. | MIT |
 
 **⚠️ Fast-moving project.** This is actively developed (native had a release the week of this
@@ -69,23 +69,33 @@ Tailwind's `@theme` machinery sees the KERN CSS variables before the theme-mappi
 
 ```css
 @import "tailwindcss";
+@import "@kern-ux/native/dist/fonts/fira-sans.css";
 @import "@kern-ux/native/dist/kern.css";
-@import "@kern-ux-annex/kern-react-kit/kern-react-kit.css";
 @import "@digitalservicebund/kern-ux-tailwind-theme/theme.css";
 ```
 
-Note: importing anything from `@kern-ux-annex/kern-react-kit` in JS **also** side-effect-imports
-`@kern-ux/native/dist/kern.min.css` and `fira-sans.css` on its own (see its `index.d.ts`:
-`import '@kern-ux/native/dist/kern.min.css'; import '@kern-ux/native/dist/fonts/fira-sans.css';`).
-This is harmless redundancy with the explicit import above (just a little extra CSS weight), not a
-conflict — keep the explicit import anyway since it's what makes the Tailwind token mapping work.
+**Don't import the React kit's stylesheet** (`@kern-ux-annex/kern-react-kit/kern-react-kit.css`)
+together with `@kern-ux/native` 2.8. Verified with kit 2.40.0 and native 2.8.2:
 
-**Known cost:** the combined compiled CSS (kern.css + kern-react-kit.css + theme.css + whatever
-Tailwind utilities you use) is large — expect roughly **~2.3 MB unminified / ~1.4 MB gzip** in a
-production build before any further optimization. This is a known/expected characteristic of
-importing a full government design-system CSS framework wholesale (comparable to GOV.UK Frontend or
-USWDS), not a bug in your setup. Not addressed further here; revisit only if real-world bundle size
-becomes a concern (e.g. a stricter CSS purge step).
+- The kit's stylesheet bundles its own, **older copy of the native CSS**, with other token values and
+  component rules. Whichever of the two loads later overrides the other's tokens. Loaded after
+  `kern.css`, it gave text `#171a2b` instead of 2.8's `#131525`, labels at weight 500 instead of
+  600 and 48px instead of 40px small buttons. Loaded before, its old rules still apply wherever 2.8
+  sets nothing or uses a less specific selector: alerts got a 2px `border` on top of 2.8's 2px
+  `outline`, and alert titles 8px instead of 5/3px padding.
+- It **inlines 10 Fira Sans files** as data URIs (~1.8 MB). `fonts/fira-sans.css` above loads
+  separate woff2 files instead, and browsers fetch only the weights a page uses.
+- The kit's components render native KERN classes, so they work without it. The exceptions ship
+  CSS-module styles only in that stylesheet: `KernMenubar`/`KernMenu`/`KernSubMenu`/`KernMenuitem`,
+  the tabs, `KernInputDate`'s numeric inputs and `KernRadio`'s error state. Before using one of
+  them, add its rules (they are the `._<name>_<hash>` selectors in the kit's CSS).
+
+The kit does **not** load any CSS by itself: its `index.d.ts` contains
+`import '@kern-ux/native/dist/kern.min.css'` and `import '@kern-ux/native/dist/fonts/fira-sans.css'`,
+but type declarations never run, and the JS builds (`kern-react-kit.es.js`/`.cjs.js`) import no CSS.
+
+**Size:** with the imports above, the production CSS is about **360 kB (40 kB gzip)** plus the woff2
+files a page uses. Adding the kit's stylesheet makes it about 2.3 MB (1.4 MB gzip).
 
 ### Import components
 
@@ -374,9 +384,37 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
 - Font family in the compiled CSS resolves to **"Fira Sans"**, not "BundesSans" (which some KERN
   marketing/docs materials reference) — if pixel-perfect typeface fidelity matters for your project,
   confirm which is actually intended before assuming Fira Sans is final/production-correct.
-- Expect a **large compiled CSS bundle** (~2.3 MB unminified / ~1.4 MB gzip) purely from importing the
-  three packages' stylesheets wholesale — this is normal for a full gov design-system import, not a
-  misconfiguration.
+- The React kit's stylesheet bundles an older native KERN and inlines its fonts; see §2 for why it is
+  left out and what that costs.
+- **KERN's CSS is not in a cascade layer, Tailwind's utilities are.** An unlayered rule beats a layered
+  one whatever its specificity, so `className="pr-56"` on a KERN input loses to KERN's own padding.
+  Wrap the KERN element and style the wrapper, or use Tailwind's `!` suffix (`pr-56!`) sparingly.
+- **Adaptive type changes at 768px.** From that width `kern.css` raises the `*-adaptive` font sizes and
+  line heights (e.g. 2x-large 48/56 → 72/80, medium 21/24 → 24/32) and the heading and title baseline
+  paddings that go with them (title 5/3 → 8/8). A Figma file built with KERN's variables can show the
+  small-screen values on desktop frames. If the design is meant that way, pin those tokens in `:root`
+  after the imports.
+- **`--kern-metric-border-radius-circle` is `50%`**, which turns a non-square element into an ellipse.
+  For pills, use a fixed radius.
+- **`KernButton` always renders a padded `.kern-label`**, so an icon-only `KernButton` is wider than
+  KERN's icon-only size. For the exact size (40px with `kern-btn--small`), write the native markup:
+  `<button class="kern-btn kern-btn--tertiary kern-btn--small">` with the icon span and
+  `<span class="kern-label kern-sr-only">Text</span>`.
+- **`KernLink` and `KernButton` with `href` render a plain `<a href>`**, which reloads a single-page
+  app. For links between the app's routes, give the router's link component KERN's classes:
+  `kern-link` (plus `kern-link--small` for 16px text), or `kern-btn kern-btn--primary` (plus
+  `kern-btn--block` for full width) with the text in `<span class="kern-label">`, as `KernButton`
+  writes it. `a.kern-btn` has no underline.
+- **Visited links turn purple**: `.kern-link:visited` uses `--kern-color-action-visited` (#75009E),
+  also for links between the app's own routes.
+- **`kern.css` sets `scrollbar-gutter: stable` on `html`.** With classic (non-overlay) scrollbars the
+  page is narrower than the window by the scrollbar's width (15px in Chromium on Linux), even when
+  nothing scrolls. To compare a page with a design frame, make the window that much wider than the
+  frame.
+- **The kit's built-in texts are German** (`loading: "Wird geladen..."`, `closeDialog: "Schließen"`, …).
+  For another UI language, wrap the app in `KernContextProvider` with `translations` for all seven keys.
+- `KernInput` adds "- Optional" to the label unless `required` is set, and its hint and error elements
+  have fixed ids, so two inputs with hints on one page share an id.
 - All three packages move fast and are versioned independently — **always re-verify exact prop names
   against the currently-installed `node_modules/@kern-ux-annex/kern-react-kit/COMPONENTS.md` and
   `components/kern/*.d.ts`** rather than trusting any cached knowledge (including this document) to

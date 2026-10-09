@@ -1,33 +1,59 @@
-# React + FastAPI + PostgreSQL Template
+# serviceBW ↔ EUDI Wallet Middleware
 
-A full-stack template for Digital Product School teams.
+Middleware that lets the DO.IT team of the City of Stuttgart connect serviceBW forms to the EUDI
+Wallet. For each form, DO.IT creates a form connection that names the documents and fields the
+form needs. serviceBW then uses the form connection's URLs to request those documents from the
+citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
+
+The middleware is built in phases. The specification, the plan and the task list are in
+[specs/001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/). The code base
+started from the Digital Product School React + FastAPI + PostgreSQL template.
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4
+- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
-- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pre-commit, uv (Python), Docker
+- **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
+- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
+
+### Dependencies added to the template
+
+| Package | Where | Why |
+|---|---|---|
+| `argon2-cffi` | backend | Argon2id hashes for the DO.IT team members' passwords |
+| `httpx2` | backend (moved from the `dev` group) | Synchronous HTTP client for the EUDIPLO management API. FastAPI's `TestClient` needs it too, and its `MockTransport` provides the fake EUDIPLO in the tests |
+| `pytest` | backend, `dev` group | Runs the backend tests |
+| `react-router` | frontend | Routes of the management UI, so that a form connection has its own URL |
+| `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
+| `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
+| `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
+
+The three KERN packages and `react-router` are pinned to exact versions; for KERN, a version
+mismatch between the packages is the most likely cause of visual breakage.
 
 ## Project Structure
 
 ```
-├── frontend/              # React SPA (Vite + TypeScript)
+├── frontend/              # React SPA (Vite + TypeScript): the DO.IT management UI
 ├── backend/               # FastAPI API (Python + SQLAlchemy)
 │   ├── app/              # Application source code
-│   │   ├── routers/      # API route handlers
+│   │   ├── routers/      # API route handlers, one module per resource
+│   │   ├── services/     # Domain logic shared by the routers and the worker
+│   │   ├── cli.py        # Account management (create-user, set-password, delete-user)
 │   │   ├── config.py     # Settings management
 │   │   ├── db.py         # Database connection
 │   │   ├── models.py     # SQLAlchemy models
 │   │   ├── schemas.py    # Pydantic schemas
 │   │   ├── errors.py     # Error handlers
-│   │   └── main.py       # FastAPI app entry point
+│   │   └── main.py       # FastAPI app entry point, starts the background worker
 │   ├── alembic/          # Database migrations
-│   ├── tests/            # pytest suite
+│   ├── tests/            # pytest suite, with a fake EUDIPLO
 │   ├── pyproject.toml    # Python dependencies + ruff/mypy/pytest config
 │   ├── .python-version   # Pins the interpreter uv provisions (3.13)
 │   └── uv.lock          # Lock file for dependencies
-├── docs/                  # Architecture docs
+├── docs/                  # Architecture, EUDIPLO and KERN docs
+├── specs/                 # Specification, plan and tasks (Spec Kit)
 ├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint)
 └── docker-compose.yml     # Local development
 ```
@@ -58,14 +84,24 @@ pip install uv
 #### Option 1: Run with Docker Compose (Recommended)
 
 ```bash
+# Settings for the backend, such as the EUDIPLO credentials (optional for a first start)
+cp backend/.env.example backend/.env
+
 # Start all services (PostgreSQL, backend, frontend)
 docker compose up
+
+# In another terminal: create your sign-in account (see Accounts below)
+docker compose exec backend uv run python -m app.cli create-user <username>
 ```
 
 This starts everything with hot reload:
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:5173. Use `localhost`, not `127.0.0.1`: the sign-in cookie and
+  the CORS setting depend on the host name
 - Backend API: http://localhost:3000
 - API Docs: http://localhost:3000/docs
+
+The backend container reads `backend/.env` if it exists; the values set in
+`docker-compose.yml` take precedence.
 
 #### Option 2: Run Locally with Docker Database
 
@@ -80,9 +116,10 @@ cp .env.example .env  # Create if needed
 uv sync                # Install Python dependencies
 ```
 
-3. Run database migrations (when you have them)
+3. Run database migrations and create your account
 ```bash
 uv run alembic upgrade head
+uv run python -m app.cli create-user <username>
 ```
 
 4. Start backend server
@@ -105,6 +142,23 @@ DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/dbname
 ```
 
 Then follow Option 2 steps for backend and frontend.
+
+### Accounts
+
+DO.IT team members sign in with personal accounts. The management UI has no account
+management: the operators manage accounts with the command-line tool, run from `backend/`
+(prefix it with `docker compose exec backend` when the backend runs in Docker):
+
+```bash
+uv run python -m app.cli create-user <username>   # asks for the password twice
+uv run python -m app.cli set-password <username>  # also ends the account's sign-ins
+uv run python -m app.cli delete-user <username>   # also deletes its sign-ins
+```
+
+Usernames are stored in lowercase and have 3 to 100 characters from `a–z 0–9 . _ -`.
+Passwords need at least 12 characters. A sign-in lasts `LOGIN_SESSION_HOURS` (8 hours).
+The sign-in screen's "Forgot password?" page asks team members to contact an administrator,
+who sets a new password with `set-password`.
 
 ## Common Commands
 
@@ -130,10 +184,17 @@ uv run ruff format .         # Format code
 # Type checking
 uv run mypy app/ tests/
 
-# Database migrations (once set up)
+# Tests. They empty their database, so they only run against one whose name ends in _test
+docker compose exec postgres createdb -U postgres template_db_test   # once
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+
+# Database migrations
 uv run alembic revision --autogenerate -m "description"
 uv run alembic upgrade head
 ```
+
+The tests replace EUDIPLO with a fake and switch the background worker off, so they need
+neither EUDIPLO credentials nor a wallet.
 
 ### Frontend (React + Vite)
 
@@ -310,6 +371,22 @@ APP_ENV=development
 
 The driver must be `postgresql+psycopg` (psycopg 3).
 
+The middleware's own settings:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `CONNECTION_BASE_URL` | Base URL that serviceBW uses to reach the middleware; the connection URLs are built from it | `http://localhost:3000` in development. **Required** in any other environment, where it must use `https://` unless `ALLOW_PLAIN_HTTP=true`: otherwise the backend refuses to start |
+| `EUDIPLO_URL` | Base URL of the EUDIPLO instance, without `/api` | empty: every EUDIPLO call answers `503 Not configured` |
+| `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | The middleware's EUDIPLO API client (see [EUDIPLO](#eudiplo)) | empty: `503` likewise |
+| `EUDIPLO_TRUST_LIST_ID` | Trust list that every credential query uses to check the issuers | empty: saving a form connection answers `503` |
+| `REQUEST_LIFETIME_SECONDS` | Expiry of a document request | `600` |
+| `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO, and the webhook retry limit | `1800` |
+| `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery | `60` |
+| `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended | `604800` (7 days) |
+| `ALLOW_PLAIN_HTTP` | Allows `http://` for webhook addresses, and for `CONNECTION_BASE_URL` outside development. Only for a closed network | `false` |
+| `WORKER_ENABLED` | Runs the background worker thread (the tests switch it off) | `true` |
+| `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+
 See `backend/.env.example` for the authoritative list. Settings are loaded by
 `app/config.py` via pydantic-settings; add a field there before adding a new
 variable, or it will be ignored.
@@ -319,6 +396,26 @@ variable, or it will be ignored.
 ```bash
 VITE_API_URL=http://localhost:3000
 ```
+
+## EUDIPLO
+
+The middleware uses the team's hosted EUDIPLO (tenant `dps`) through its management API, and
+never exposes the management token to the browser. The tenant needs, set up by its operators
+([contracts/eudiplo-usage.md](specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md)):
+
+- an **API client** with the roles `presentation:request` and `presentation:manage` and an
+  empty `allowedPresentationConfigs`: the middleware creates a presentation configuration for
+  every form connection revision, and an allow-list would reject each new one. Its id and
+  secret go into `EUDIPLO_CLIENT_ID` and `EUDIPLO_CLIENT_SECRET`;
+- an active **access key chain**, which EUDIPLO uses to sign every request to a wallet;
+- a **trust list** whose entities carry the PID and EAA issuance services and the revocation
+  certificates of the accepted issuers. Its id goes into `EUDIPLO_TRUST_LIST_ID`;
+- session logs (`LOG_SESSION_STORE`) that don't keep claims.
+
+All environments share tenant `dps` for now, an accepted risk: production should get its own
+tenant before real citizens use the service. The API details are in
+[docs/EUDIPLO.md](docs/EUDIPLO.md).
+
 ## Spec-Driven Development with Spec Kit
 
 This template supports [GitHub Spec Kit](https://github.com/github/spec-kit). Spec Kit is **not pre-installed in this repo**. Basic constitution is included, update it regularly after changing README.md and CLAUDE.md.
@@ -354,12 +451,21 @@ there is no CORS configuration and no API URL baked into the frontend build.
    (e.g., `https://my-team.dpschool.app`); leave backend and postgres without a
    domain — they stay internal
 4. Coolify auto-generates `SERVICE_PASSWORD_POSTGRES` (the database password)
-   and `SERVICE_FQDN_FRONTEND` — no manual environment variables are required
+   and `SERVICE_FQDN_FRONTEND`. Set the middleware's variables in the Coolify
+   environment: `CONNECTION_BASE_URL` (the `https://` address serviceBW uses;
+   the backend refuses to start without it) and the four `EUDIPLO_*` variables.
+   The others have defaults (see [Environment Variables](#environment-variables))
 5. Deploy
+6. Create the first account in the backend container (Coolify: the backend
+   service's terminal): `uv run python -m app.cli create-user <username>`
 
 The backend container runs `alembic upgrade head` on start, so the database
 schema is migrated automatically. `APP_ENV` is set to `production` in the
 compose file (anything else exposes exception details in error responses).
+
+The UI must be served over HTTPS, which Coolify's Traefik provides: outside
+development the sign-in cookie is `Secure`, and the browser only allows copying
+to the clipboard on secure pages.
 
 #### 2. Enable preview deployments (optional)
 
@@ -378,8 +484,11 @@ isolated, empty database — that is created on PR open and removed on close.
    `https://123.my-team.dpschool.app`
 3. Mind server capacity: every open PR runs three extra containers, including
    its own PostgreSQL
+4. Previews run with `APP_ENV=production` too, so set `CONNECTION_BASE_URL` in
+   the preview environment variables as well, or the preview backend won't start
 
-Preview databases start empty (schema only, via migrations on startup).
+Preview databases start empty (schema only, via migrations on startup), so a
+preview needs its own account, created as in step 6 above.
 
 #### Tradeoffs of the single-resource setup
 

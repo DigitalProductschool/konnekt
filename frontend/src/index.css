@@ -1,15 +1,59 @@
+/*
+ * KERN must come after Tailwind and before its theme mapping (docs/KERN-DESIGN-SYSTEM.md §2).
+ * The React kit's own stylesheet is not imported: it bundles an older KERN version whose rules
+ * conflict with KERN 2.8, which the Figma design uses, and inlines its fonts (1.8 MB). The fonts
+ * come from KERN's own files instead. Kit components with styles of their own (Menubar, Menu,
+ * Tabs, InputDate, Radio error state) need those styles added before they are used.
+ */
 @import 'tailwindcss';
-
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('./fonts/plus-jakarta-sans-v12-latin-regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@import '@kern-ux/native/dist/fonts/fira-sans.css';
+@import '@kern-ux/native/dist/kern.css';
+@import '@digitalservicebund/kern-ux-tailwind-theme/theme.css';
 
 @theme {
-  --color-dps-blue-500: #0066cc;
-  --color-dps-blue-600: #0052a3;
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  /* KERN's typeface (Fira Sans) for all text, also outside KERN components */
+  --default-font-family: var(--kern-typography-font-family-default);
+
+  /* Figma effects "Elevation/Card" and "Elevation/Menu". KERN defines no shadows */
+  --shadow-card: 0 1px 2px 0 rgb(19 21 37 / 0.05), 0 6px 20px 0 rgb(19 21 37 / 0.05);
+  --shadow-menu: 0 10px 28px 0 rgb(19 21 37 / 0.16);
+  /* The shadow of the check chips in the sign-in illustration, which has no Figma effect style */
+  --shadow-chip: 0 6px 16px 0 rgb(0 113 85 / 0.1);
+}
+
+/*
+ * The Figma design uses KERN's adaptive type at its small-screen values on every screen
+ * width. kern.css switches it to larger values from 768px, so the sizes, line heights and
+ * the baseline paddings that belong to them stay at their small-screen values here.
+ */
+:root {
+  --kern-typography-font-size-medium-adaptive: var(--kern-font-size-21);
+  --kern-typography-line-height-medium-adaptive: var(--kern-font-size-24);
+  --kern-typography-font-size-large-adaptive: var(--kern-font-size-26);
+  --kern-typography-line-height-large-adaptive: var(--kern-font-size-32);
+  --kern-typography-font-size-x-large-adaptive: var(--kern-font-size-32);
+  --kern-typography-line-height-x-large-adaptive: var(--kern-font-size-40);
+  --kern-typography-font-size-2x-large-adaptive: var(--kern-font-size-48);
+  --kern-typography-line-height-2x-large-adaptive: var(--kern-font-size-56);
+  --kern-metric-baseline-heading-display-padding-top: var(--kern-12);
+  --kern-metric-baseline-heading-display-padding-bottom: var(--kern-12);
+  --kern-metric-baseline-heading-x-large-padding-top: var(--kern-9);
+  --kern-metric-baseline-heading-x-large-padding-bottom: var(--kern-7);
+  --kern-metric-baseline-heading-large-padding-top: var(--kern-7);
+  --kern-metric-baseline-heading-large-padding-bottom: var(--kern-9);
+  --kern-metric-baseline-heading-medium-padding-top: var(--kern-5);
+  --kern-metric-baseline-heading-medium-padding-bottom: var(--kern-3);
+  --kern-metric-baseline-title-large-padding-top: var(--kern-7);
+  --kern-metric-baseline-title-large-padding-bottom: var(--kern-9);
+  --kern-metric-baseline-title-default-padding-top: var(--kern-5);
+  --kern-metric-baseline-title-default-padding-bottom: var(--kern-3);
+  --kern-component-alert-icon-size: var(--kern-32);
+}
+
+@layer base {
+  html {
+    color: var(--kern-color-layout-text-default);
+    /* As in the Figma text styles and KERN's own type classes */
+    font-variant-numeric: lining-nums tabular-nums slashed-zero;
+  }
 }

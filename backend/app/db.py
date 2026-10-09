@@ -10,7 +10,10 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+# Sized for request handlers plus the worker's thread pool (research R15)
+engine = create_engine(
+    settings.database_url, pool_pre_ping=True, pool_size=10, max_overflow=20
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

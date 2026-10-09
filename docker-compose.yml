@@ -23,6 +23,11 @@ services:
       dockerfile: backend/Dockerfile.dev
     ports:
       - '3000:3000'
+    # EUDIPLO credentials and the other settings from backend/.env (not committed).
+    # The values under `environment` below take precedence over the file.
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/template_db
       PORT: 3000
