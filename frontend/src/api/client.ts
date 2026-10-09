@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from '../types/api';
+import type { ApiErrorResponse, ApiResponse } from '../types/api';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.
@@ -10,6 +10,9 @@ function normalizeApiBaseUrl(value: string): string {
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(API_URL);
+
+// These need a JSON body, which also protects the session cookie against CSRF
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'DELETE']);
 
 export class ApiError extends Error {
   status: number;
@@ -50,4 +53,29 @@ export async function handleResponse<T>(response: Response): Promise<T> {
   }
 
   return payload as T;
+}
+
+interface ApiFetchOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  body?: unknown;
+}
+
+/**
+ * Call the backend with the session cookie and return the `data` of its answer.
+ *
+ * POST, PUT and DELETE always send JSON, `{}` when there is no body. An error answer
+ * throws an `ApiError`.
+ */
+export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const method = options.method ?? 'GET';
+  const init: RequestInit = { method, credentials: 'include' };
+
+  if (STATE_CHANGING_METHODS.has(method)) {
+    init.headers = { 'Content-Type': 'application/json' };
+    init.body = JSON.stringify(options.body ?? {});
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const result = await handleResponse<ApiResponse<T>>(response);
+  return result.data;
 }

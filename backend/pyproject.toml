@@ -17,11 +17,16 @@ dependencies = [
     # Config & Environment (pydantic-settings reads .env itself, no python-dotenv needed)
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
+
+    # Sign-in: Argon2id password hashes
+    "argon2-cffi>=25.1.0",
+
+    # Sync HTTP client for EUDIPLO and webhook updates; TestClient needs it too
+    "httpx2>=2.12.0",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.12.0",    # required by fastapi.testclient.TestClient (starlette 1.x wants httpx2, not httpx)
     "ruff>=0.16.5",      # Linter + formatter
     "mypy>=2.3.1",       # Type checking
     "pre-commit>=4.6.2",

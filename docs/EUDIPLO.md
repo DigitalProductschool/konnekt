@@ -244,6 +244,8 @@ The schema is strict, so unknown keys are rejected.
 - **Retention:** sessions older than `SESSION_TTL` (default 24 h from creation) are deleted (`SESSION_CLEANUP_MODE=full`) or anonymized. A tenant can override this via `/api/session-config`. **Persist what we need.**
 - **`GET /api/session` filters:** `createdFrom`, `createdTo`, `updatedFrom`, `updatedTo`, `status` (repeatable), `type` (`issuance`/`presentation`), `credentialConfigurationId`, `requestId`, `failureCode`, `id` (prefix), `sortBy`, `sortOrder`.
   - `q` searches by session ID, `walletNonce`, `reference`, or a pasted offer or request link.
+  - **Paged** (checked against the hosted 9.0.0 OpenAPI, 2026-10-09): `page` (from 1) and `pageSize` (default 25, at most 100); the answer is `{items, total, page, pageSize, totalPages}`, not a plain array. Items have the full session schema, so they may include `credentials`.
+  - The time filters are inclusive and need UTC with seconds, e.g. `2026-10-09T10:00:00.000Z`.
 - **Session logs:** `GET /api/session/{id}/logs` requires `LOG_SESSION_STORE=errors|all|verbose`.
 
 ## 10. Known pitfalls (verified)

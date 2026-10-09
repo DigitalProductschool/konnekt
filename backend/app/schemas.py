@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar('T')
 
@@ -23,4 +23,16 @@ def to_iso_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
-# Add our Pydantic schemas here
+class UserView(BaseModel):
+    """The signed-in DO.IT team member."""
+
+    username: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoginRequest(BaseModel):
+    """Credentials for signing in."""
+
+    username: str
+    password: str

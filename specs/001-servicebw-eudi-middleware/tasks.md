@@ -79,7 +79,7 @@ framework, the test harness and the frontend shell.
 
 ### Configuration and database
 
-- [ ] T007 Add the settings from research R18 to `Settings` in `backend/app/config.py`, and add every variable with a short comment to `backend/.env.example`:
+- [X] T007 Add the settings from research R18 to `Settings` in `backend/app/config.py`, and add every variable with a short comment to `backend/.env.example`:
   - fields:
     - `connection_base_url: str | None = None`;
     - `eudiplo_url`, `eudiplo_client_id`, `eudiplo_client_secret` and `eudiplo_trust_list_id`, each `str = ''`;
@@ -91,18 +91,18 @@ framework, the test harness and the frontend shell.
     - `worker_enabled: bool = True`;
     - `login_session_hours: int = 8`.
   - a validator: in development an unset `connection_base_url` becomes `http://localhost:3000`. In any other environment, startup fails if it is unset, or if it isn't `https://` while `allow_plain_http` is false.
-- [ ] T008 [P] Raise the connection pool in `backend/app/db.py` to `pool_size=10, max_overflow=20`, keeping `pool_pre_ping=True` (research R15).
-- [ ] T009 Pass the backend settings through compose:
+- [X] T008 [P] Raise the connection pool in `backend/app/db.py` to `pool_size=10, max_overflow=20`, keeping `pool_pre_ping=True` (research R15).
+- [X] T009 Pass the backend settings through compose:
   - `docker-compose.yml`: add `env_file: [{path: ./backend/.env, required: false}]` to `backend`.
   - `docker-compose.prod.yml`: add these variables to `backend` as `${VAR}`, or as `${VAR:-default}` with the research R18 defaults: `CONNECTION_BASE_URL`, `EUDIPLO_URL`, `EUDIPLO_CLIENT_ID`, `EUDIPLO_CLIENT_SECRET`, `EUDIPLO_TRUST_LIST_ID`, `REQUEST_LIFETIME_SECONDS`, `DOCUMENT_RETENTION_SECONDS`, `PULL_REPEAT_WINDOW_SECONDS`, `REQUEST_RECORD_RETENTION_SECONDS`, `ALLOW_PLAIN_HTTP`, `WORKER_ENABLED` and `LOGIN_SESSION_HOURS`.
-- [ ] T010 Add `UserAccount` (`user_accounts`) and `LoginSession` (`login_sessions`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T010 Add `UserAccount` (`user_accounts`) and `LoginSession` (`login_sessions`) to `backend/app/models.py`, exactly as in data-model.md:
   - `username`: "`String(100)`, unique, indexed", "Stored in lowercase. 3–100 characters from `a–z 0–9 . _ -`";
   - `password_hash`: "`String(255)`";
   - `user_account_id`: "FK → `user_accounts.id`, indexed, `ON DELETE CASCADE`";
   - `token_hash`: "`String(64)`, unique, indexed";
   - `expires_at`: "`DateTime(timezone=True)`, indexed";
   - `String(36)` UUID4 ids, and `created_at`/`updated_at` as `DateTime(timezone=True)` with `server_default=func.now()`.
-- [ ] T011 Add `FormConnection` (`form_connections`) and `FormConnectionRevision` (`form_connection_revisions`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T011 Add `FormConnection` (`form_connections`) and `FormConnectionRevision` (`form_connection_revisions`) to `backend/app/models.py`, exactly as in data-model.md:
   - form connection:
     - `name`: "`String(200)`", "1–200 characters after trimming";
     - `servicebw_form`: "`String(500)`", "1–500 characters after trimming";
@@ -119,7 +119,7 @@ framework, the test harness and the frontend shell.
     - `eudiplo_config_id`: "`String(255)`, unique";
     - `eudiplo_config_deleted_at`: nullable;
   - the partial index on `(form_connection_id)`, `WHERE eudiplo_config_deleted_at IS NULL`.
-- [ ] T012 Add `DocumentRequest` (`document_requests`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T012 Add `DocumentRequest` (`document_requests`) to `backend/app/models.py`, exactly as in data-model.md:
   - `reference`: "`String(64)`, unique, indexed";
   - `form_connection_id` and `revision_id`: FKs, indexed;
   - `mode`: "`String(16)`" (`pull` or `webhook`);
@@ -132,7 +132,7 @@ framework, the test harness and the frontend shell.
   - nullable timestamps: `completed_at`, `documents_delivered_at`, `eudiplo_session_deleted_at`, and `ended_at` (indexed);
   - the composite index `(status, expires_at)`;
   - the partial index on `(status)`, `WHERE eudiplo_session_deleted_at IS NULL`.
-- [ ] T013 Add `WebhookDelivery` (`webhook_deliveries`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T013 Add `WebhookDelivery` (`webhook_deliveries`) to `backend/app/models.py`, exactly as in data-model.md:
   - `document_request_id`: "FK → `document_requests.id`, indexed, `ON DELETE CASCADE`";
   - `status`: "`String(32)`";
   - `occurred_at`;
@@ -143,7 +143,7 @@ framework, the test harness and the frontend shell.
   - `delivered_at` and `abandoned_at`: nullable;
   - `last_error`: "`String(255)`, nullable";
   - the partial index on `(next_attempt_at)`, `WHERE delivered_at IS NULL AND abandoned_at IS NULL`.
-- [ ] T014 First add `import app.models  # noqa: F401` to `backend/alembic/env.py`: autogenerate only sees models whose module is imported, and `env.py` imports only `Base` from `app.db`. Then generate the migration in `backend/` with `uv run alembic revision --autogenerate -m "form connections"`, and review the new file in `backend/alembic/versions/`:
+- [X] T014 First add `import app.models  # noqa: F401` to `backend/alembic/env.py`: autogenerate only sees models whose module is imported, and `env.py` imports only `Base` from `app.db`. Then generate the migration in `backend/` with `uv run alembic revision --autogenerate -m "form connections"`, and review the new file in `backend/alembic/versions/`:
   - it drops `team_members` and `ix_team_members_git_handle`;
   - it creates the six tables, with the `ON DELETE CASCADE` foreign keys, the `JSONB` column and the partial indexes;
   - `v0_add_team_members.py` stays untouched.
@@ -152,26 +152,26 @@ framework, the test harness and the frontend shell.
 
 ### Sign-in (FR-007)
 
-- [ ] T015 Implement `backend/app/services/auth.py` (research R14):
+- [X] T015 Implement `backend/app/services/auth.py` (research R14):
   - add `argon2-cffi` to `dependencies` in `backend/pyproject.toml`, with its current release as the version floor, and run `uv lock` and `uv sync` in `backend/`;
   - Argon2id hashing with `argon2.PasswordHasher`;
   - `create_login_session(db, user)`, which stores the SHA-256 hex of a `secrets.token_urlsafe(32)` token with `expires_at` = now + `LOGIN_SESSION_HOURS`;
   - `set_session_cookie()` and `clear_session_cookie()`: cookie `session`, `HttpOnly`, `SameSite=Strict`, `Path=/api`, `Secure` unless `APP_ENV=development`, `Max-Age` = the session lifetime;
   - dependency `get_current_user`: a missing, unknown or expired session gets 401 `{"error": "Unauthorized", "message": "Sign in to continue"}`;
   - dependency `require_json`: a `POST`, `PUT` or `DELETE` whose `Content-Type` isn't `application/json` gets 415 `{"error": "Unsupported media type", "message": "Send the request body as JSON."}`.
-- [ ] T016 Add `UserView` and `LoginRequest` to `backend/app/schemas.py`, and implement `backend/app/routers/auth.py` as in contracts/management-api.md "Authentication". Register the router in `backend/app/main.py`.
+- [X] T016 Add `UserView` and `LoginRequest` to `backend/app/schemas.py`, and implement `backend/app/routers/auth.py` as in contracts/management-api.md "Authentication". Register the router in `backend/app/main.py`.
   - `POST /api/auth/login` returns 200 `{"data": UserView}` and sets the cookie. A wrong username and a wrong password both get the same 401 `{"error": "Unauthorized", "message": "Invalid username or password"}`.
   - `POST /api/auth/logout` deletes the session row, clears the cookie, and returns 200 `{"data": null, "message": "Signed out"}`.
   - `GET /api/auth/me` returns the signed-in user.
-- [ ] T017 [P] Implement `backend/app/cli.py` with `argparse`, run as `uv run python -m app.cli …` (research R14). Write short confirmations to standard output, never the password.
+- [X] T017 [P] Implement `backend/app/cli.py` with `argparse`, run as `uv run python -m app.cli …` (research R14). Write short confirmations to standard output, never the password.
   - `create-user <username>` lowercases the name, checks "3–100 characters from `a–z 0–9 . _ -`", prompts twice with `getpass`, and requires "at least 12 characters".
   - `set-password <username>` also deletes the account's `login_sessions`.
   - `delete-user <username>` removes the account; the cascade deletes its sessions.
 
 ### EUDIPLO client
 
-- [ ] T018 Check the EUDIPLO API before writing the client. Ask the user for `EUDIPLO_URL` and the API client's credentials, and fetch `$EUDIPLO_URL/api/docs-json` (`.info.version` must be 9.x). Compare it with the seven calls in `specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md`. Answer the research R19 item 4 points that the OpenAPI settles, and record any difference in `specs/001-servicebw-eudi-middleware/research.md`.
-- [ ] T019 Implement `backend/app/services/eudiplo.py` as in contracts/eudiplo-usage.md:
+- [X] T018 Check the EUDIPLO API before writing the client. Ask the user for `EUDIPLO_URL` and the API client's credentials, and fetch `$EUDIPLO_URL/api/docs-json` (`.info.version` must be 9.x). Compare it with the seven calls in `specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md`. Answer the research R19 item 4 points that the OpenAPI settles, and record any difference in `specs/001-servicebw-eudi-middleware/research.md`.
+- [X] T019 Implement `backend/app/services/eudiplo.py` as in contracts/eudiplo-usage.md:
   - move `httpx2>=2.12.0` from the `dev` group to `dependencies` in `backend/pyproject.toml`, and run `uv lock` and `uv sync` in `backend/` (research R15);
   - a synchronous `httpx2.Client` with a 5 s connect and 10 s read timeout;
   - a token from `POST /api/oauth2/token`, cached in memory behind a lock, renewed 5 minutes before `expires_in` ends, and fetched again once after a 401;
@@ -187,7 +187,7 @@ framework, the test harness and the frontend shell.
 
 ### Worker framework
 
-- [ ] T020 Implement the worker framework in `backend/app/services/worker.py`, and start and stop it from a FastAPI lifespan in `backend/app/main.py` when `WORKER_ENABLED` is true (research R7).
+- [X] T020 Implement the worker framework in `backend/app/services/worker.py`, and start and stop it from a FastAPI lifespan in `backend/app/main.py` when `WORKER_ENABLED` is true (research R7).
   - A daemon thread runs the registered steps every 2 seconds.
   - Each step uses its own `SessionLocal()` session and short transactions, and is a plain function that tests can call directly.
   - An exception is logged without personal data, and the loop continues.
@@ -196,14 +196,14 @@ framework, the test harness and the frontend shell.
 
 ### Test harness
 
-- [ ] T021 Create the test harness:
+- [X] T021 Create the test harness:
   - `backend/tests/conftest.py`:
     - before importing `app`, set `WORKER_ENABLED=false` and fake EUDIPLO settings in `os.environ`;
     - refuse to run unless the database name in `DATABASE_URL` ends in `_test`;
     - create the schema with Alembic `upgrade head` once per session, and empty every table between tests;
     - fixtures `client` (FastAPI `TestClient`), `signed_in_client` (a user with a session cookie) and `fake_eudiplo`.
   - `backend/tests/fake_eudiplo.py`: an `httpx2.MockTransport` double of the seven calls in contracts/eudiplo-usage.md. Session state can be set to `active`, `fetched`, `completed`, `failed` with a `failureCode`, or `expired`, with `consumedAt`, `updatedAt` and `credentials`, and any call can be forced to answer `404`, `409` or `5xx`.
-- [ ] T022 [P] Write `backend/tests/api/test_auth.py` and `backend/tests/unit/test_cli.py`:
+- [X] T022 [P] Write `backend/tests/api/test_auth.py` and `backend/tests/unit/test_cli.py`:
   - sign-in sets the cookie with the required flags;
   - a wrong username and a wrong password get the same 401;
   - `/api/auth/me` with and without a session;
@@ -214,30 +214,30 @@ framework, the test harness and the frontend shell.
 
 ### Frontend shell
 
-- [ ] T023 Get the design. Ask the user for the Figma URL, load the `figma:figma-design-to-code` skill, and pull the design context and screenshots for the sign-in, overview, create/edit and details screens. Write `specs/001-servicebw-eudi-middleware/design-notes.md` recording:
+- [X] T023 Get the design. Ask the user for the Figma URL, load the `figma:figma-design-to-code` skill, and pull the design context and screenshots for the sign-in, overview, create/edit and details screens. Write `specs/001-servicebw-eudi-middleware/design-notes.md` recording:
   - the UI language and copy, including the catalog's field labels;
   - the KERN components and tokens;
   - fonts and colours;
   - any difference from contracts/ui-screens.md, whose behavior stays authoritative.
-- [ ] T024 [P] Update `frontend/src/api/client.ts` (research R14, R16):
+- [X] T024 [P] Update `frontend/src/api/client.ts` (research R14, R16):
   - add `apiFetch`, which uses `credentials: 'include'`;
   - every `POST`, `PUT` and `DELETE` sends `Content-Type: application/json`, with a `{}` body when it has none;
   - `{data, message}` envelopes are unwrapped, and `{error, message}` envelopes become an `ApiError`;
   - keep the `VITE_API_URL` normalization.
-- [ ] T025 [P] Apply the design basics from `specs/001-servicebw-eudi-middleware/design-notes.md`:
+- [X] T025 [P] Apply the design basics from `specs/001-servicebw-eudi-middleware/design-notes.md`:
   - `<title>` and `lang` in `frontend/index.html`;
   - in `frontend/src/index.css`, keep or replace the template's `@theme` block, its font and `frontend/src/fonts/`;
   - tokens stay in `@theme` or the KERN theme, and there are no inline styles.
-- [ ] T026 Add `frontend/src/types/auth.ts` (`UserView`, `LoginRequest`, mirroring `backend/app/schemas.py`) and `frontend/src/api/auth.ts` (`login`, `logout`, `getMe`, using `apiFetch`).
-- [ ] T027 Implement sign-in state in `frontend/src/hooks/useCurrentUser.ts`, with a context provider if the design needs one. It loads `GET /api/auth/me` once, treats a 401 as signed out, and exposes `user`, `signIn` and `signOut`.
-- [ ] T028 Set up routing:
+- [X] T026 Add `frontend/src/types/auth.ts` (`UserView`, `LoginRequest`, mirroring `backend/app/schemas.py`) and `frontend/src/api/auth.ts` (`login`, `logout`, `getMe`, using `apiFetch`).
+- [X] T027 Implement sign-in state in `frontend/src/hooks/useCurrentUser.ts`, with a context provider if the design needs one. It loads `GET /api/auth/me` once, treats a 401 as signed out, and exposes `user`, `signIn` and `signOut`.
+- [X] T028 Set up routing:
   - add `react-router` in `frontend/` with `npm install --save-exact react-router@7`;
   - `frontend/src/main.tsx` wraps the app in react-router's `BrowserRouter`;
   - `frontend/src/App.tsx` declares `/login`, `/`, `/form-connections/new`, `/form-connections/:id` and `/form-connections/:id/edit`, with placeholders for screens not built yet;
   - a guard sends signed-out users to `/login`, and back to the requested route after sign-in;
   - every route sets its own document title.
-- [ ] T029 Build `frontend/src/components/AppLayout/` (with `types.ts`) from the design. It shows the signed-in user's name and a sign-out action, and provides a `<main>` landmark with one main heading per page (contracts/ui-screens.md).
-- [ ] T030 Build `frontend/src/pages/Login/` as in contracts/ui-screens.md "Sign in" and design-notes.md:
+- [X] T029 Build `frontend/src/components/AppLayout/` (with `types.ts`) from the design. It shows the signed-in user's name and a sign-out action, and provides a `<main>` landmark with one main heading per page (contracts/ui-screens.md).
+- [X] T030 Build `frontend/src/pages/Login/` as in contracts/ui-screens.md "Sign in" and design-notes.md:
   - KERN username and password fields with visible labels, and a submit action;
   - after a failed sign-in, one generic "Invalid username or password" message, announced to screen readers;
   - after success, a redirect to the requested route.

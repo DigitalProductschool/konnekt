@@ -322,12 +322,14 @@ statuses; `verification_failed` stands for "verification failed".
     sessions it doesn't know.
   - **Verify at implementation**: whether the list items carry `failureCode` and `consumedAt`. If
     they don't, the worker reads each changed session with `GET /api/session/{id}`, and discards its
-    `credentials` immediately without storing or logging them (R8).
+    `credentials` immediately without storing or logging them (R8). **Checked (T018, R19 item 4)**:
+    per the OpenAPI they carry both, when set.
 - **Cursor**: the latest `updatedAt` value seen from EUDIPLO, minus a 5-second overlap. It is never
   taken from the middleware's own clock, so a clock difference between the two servers can't hide
   an update. After a restart the cursor begins at the creation time of the oldest open request.
   Processing is idempotent per session, so repeated items do no harm.
-- **Verify at implementation**: whether `GET /api/session` pages its results.
+- **Verify at implementation**: whether `GET /api/session` pages its results. **Checked (T018, R19
+  item 4)**: it does, with at most 100 items per page.
 
 **Rationale**:
 - **Reachability**: an EUDIPLO webhook would have to call the middleware.
@@ -418,7 +420,7 @@ files.
   - for completed requests that were never delivered, at `completed_at` +
     `DOCUMENT_RETENTION_SECONDS` − 60 seconds. The 60-second margin keeps the deletion inside the
     30 minutes despite the 2-second cycle.
-  
+
   The 30-minute limit also caps the pull repeat window: a window that would run past it ends at
   the limit. Each request records the time its EUDIPLO session was deleted, and a failed delete is
   retried.
@@ -905,6 +907,43 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
    - the exact id and description limits for presentation configurations;
    - the representation of mdoc binary and date values;
    - that an expired credential fails verification.
+
+   **Checked on 2026-10-09 (T018)** against `https://eudiplo.faro.dpschool.app/api/docs-json`, which
+   reports `.info.version` 9.0.0. The request bodies of all seven calls match
+   [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md), and both example bodies there validate
+   against the OpenAPI schemas. Only the OpenAPI was checked, because no API client credentials
+   were used.
+
+   | Point | Answer |
+   |---|---|
+   | `DELETE /api/session/{id}` | **Not settled**. The OpenAPI only says "Deletes a session by its ID" (`204`). Whether `credentials` go at once, whether a wallet can still answer, and what happens to the session log are checked live in T081 |
+   | `POST /api/verifier/config` with an existing id | **Settled**: "If it already exists, it will be updated." It answers `201`, never `409`. Whether an update replaces or merges isn't stated; the middleware always sends a complete body, so either works |
+   | List response of `GET /api/session` | **Settled**. It pages: `page` (from 1) and `pageSize` (default 25, at most 100), answered as `{items, total, page, pageSize, totalPages}`. Each item has the full `Session` schema, with `failureCode` and `consumedAt` when they are set, so the sync needs no `GET /api/session/{id}` per item |
+   | Id and description limits | **Partly settled**. The configuration `id` needs at least one character and has no maximum, and `description` has no limit. A DCQL credential query `id` must match `^[A-Za-z0-9_-]+$`, which the catalog keys `pid` and `mdl` do |
+   | mdoc binary and date values | **Not settled**: the items of `credentials` are untyped in the OpenAPI. Checked in T081 |
+   | An expired credential fails verification | **Not settled**: the failure codes aren't enumerated. Quickstart V3 |
+
+   **Differences from the contract**, and how the code handles them:
+   - **Error answers aren't documented**. Of the codes the contract relies on, the OpenAPI lists
+     only the token's `401`. The `404` of `GET` and `DELETE /api/session/{id}` and the `409` of
+     `POST /api/verifier/offer` come from `docs/EUDIPLO.md`. The client maps them as the contract
+     says, and T081 confirms them live.
+   - **`crossDeviceUri` is optional** in the offer response, while the contract turns it into
+     `qr_code_link` and `qr_code` unconditionally. The client reads it as optional. **To decide
+     before T049**: fall back to `uri`, or answer `502`.
+   - **The offer can also answer with a PNG** (`image/png`), so every call sends
+     `Accept: application/json`.
+   - **List items may contain `credentials`**, because they use the full `Session` schema. The
+     client's list model leaves `credentials` out, and no response body is ever logged.
+   - **Paging and the cursor** (R6): `updatedFrom` is inclusive and must be UTC with seconds, so the
+     client sends it as `…000Z`, sorted by `updatedAt` ascending, 100 items per page. The sync
+     (T053) reads every page of a cycle: more than 100 updates inside the 5-second overlap would
+     otherwise keep the cursor from moving.
+   - **Strict bodies**: unknown keys, and `null` for optional arrays such as `claim_sets`, are
+     rejected. The configuration body (T033) leaves unused keys out instead of sending `null`, and
+     `lifeTime` must be an integer of at least 1.
+   - **Token response**: `expires_in` is a number, and `state` and `token_type` are marked required.
+     The client reads only `access_token` and `expires_in`.
 5. **Tenant settings**: lowering the session TTL of tenant `dps` as a backstop to R8 is a decision
    for its operators. EUDIPLO's hourly cleanup job means the TTL alone can't guarantee 30 minutes.
 6. **One tenant for every environment (accepted for now, R2)**. Before real citizens use the
