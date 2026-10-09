@@ -72,3 +72,4 @@ postgres-data/
 .specify/workflows/runs/
 
 resume.sh
+.mcp.json
