@@ -53,13 +53,22 @@ postgres-data/
 # Database
 *.db
 
-#claude settings
-.claude
+# Claude Code: commit .claude/ (skills, agents, shared settings), but keep
+# personal settings, local agent memory and Claude-made worktrees out.
+# The **/ also covers Claude sessions started in frontend/ or backend/.
+**/.claude/settings.local.json
+**/.claude/agent-memory-local/
+**/.claude/worktrees/
 
-# Ignore spec-kit runtime files, but keep the project constitution
-.specify/*
-!.specify/memory/
-.specify/memory/*
-!.specify/memory/constitution.md
+# spec-kit: commit .specify/ (constitution, scripts, templates), since the
+# /speckit-* skills need it in every branch and worktree. Keep the per-checkout
+# feature pointer and the specify CLI's local config, caches, backups, locks
+# and workflow runs out.
+.specify/feature.json
+.specify/extensions/*/local-config.yml
+.specify/extensions/.backup/
+.specify/**/.cache/
+.specify/.workflow-install.lock
+.specify/workflows/runs/
 
 resume.sh
