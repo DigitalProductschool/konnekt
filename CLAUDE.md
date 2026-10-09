@@ -387,6 +387,12 @@ cd frontend
   kit's own stylesheet (`kern-react-kit.css`): it bundles an older KERN that overrides KERN 2.8.
   Before using a kit component that ships styles of its own (Menubar, Menu, Tabs, InputDate,
   the Radio error state), add those styles
+- The app is light-only, as the Figma design is: `data-kern-theme="light"` on `<html>` in
+  `index.html` pins KERN's light theme, and `color-scheme: only light` in `index.css` keeps the
+  browser's own parts (scrollbars, form controls) light. Keep both. Without the attribute,
+  `kern.css` follows the browser's dark mode and switches its semantic tokens, while primitives
+  like `neutral-025`, the SVGs and the shadows stay light. Don't use Tailwind's `dark:` variant,
+  which still follows the browser's preference
 - `index.css` keeps KERN's adaptive type tokens at their small-screen values on every width,
   as the Figma design uses them, so `text-kern-adaptive-*` matches Figma
 - With the KERN Tailwind theme, numeric utilities are pixels (`p-16` is 16px). KERN's CSS is not
