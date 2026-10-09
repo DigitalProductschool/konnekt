@@ -52,6 +52,12 @@
 
 @layer base {
   html {
+    /*
+     * The app is light-only, like its Figma design: index.html pins KERN's light theme, and
+     * this keeps the browser's own parts (scrollbars, form controls, autofill) light and stops
+     * Chromium's auto dark theme from darkening the page.
+     */
+    color-scheme: only light;
     color: var(--kern-color-layout-text-default);
     /* As in the Figma text styles and KERN's own type classes */
     font-variant-numeric: lining-nums tabular-nums slashed-zero;

@@ -389,6 +389,17 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
 - **KERN's CSS is not in a cascade layer, Tailwind's utilities are.** An unlayered rule beats a layered
   one whatever its specificity, so `className="pr-56"` on a KERN input loses to KERN's own padding.
   Wrap the KERN element and style the wrapper, or use Tailwind's `!` suffix (`pr-56!`) sparingly.
+- **`kern.css` follows the browser's dark mode** unless the page pins a theme. Its
+  `@media (prefers-color-scheme: dark)` rule switches the semantic colour tokens
+  (`--kern-color-layout-*`, `-action-*`, `-feedback-*`, `-form-input-*`, …), and with them the
+  Tailwind theme's semantic utilities. Primitives (`--kern-color-neutral-025`, …), colours fixed
+  in SVG files and shadows stay light, so a light-only design that mixes them renders half dark.
+  To pin light, put `data-kern-theme="light"` (or the `kern-light` class) on `<html>`: it has the
+  same specificity as the `:root` rule and comes later in `kern.css`, so it wins and sets the
+  light values again. `KernToggleDarkMode` sets the same attribute. `kern.css` declares no
+  `color-scheme`, so also set `color-scheme: only light` for the browser's own controls; `only`
+  also opts the page out of Chromium's auto dark theme. The switch was renamed once
+  (`data-theme` → `data-kern-theme`, 2.1.0): recheck it after upgrades.
 - **Adaptive type changes at 768px.** From that width `kern.css` raises the `*-adaptive` font sizes and
   line heights (e.g. 2x-large 48/56 → 72/80, medium 21/24 → 24/32) and the heading and title baseline
   paddings that go with them (title 5/3 → 8/8). A Figma file built with KERN's variables can show the

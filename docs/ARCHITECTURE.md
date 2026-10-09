@@ -128,6 +128,11 @@ frontend/
   because it bundles an older KERN whose rules override KERN 2.8 (`docs/KERN-DESIGN-SYSTEM.md`
   §2). `index.css` also keeps KERN's adaptive type at its small-screen values on every
   width, as the Figma design uses it, and adds the shadow tokens KERN lacks
+- Light only, as the Figma design has no dark variant: `index.html` pins KERN's light
+  theme with `data-kern-theme="light"` on `<html>`, which `kern.css` would otherwise
+  switch to dark with the browser's preference, and `index.css` sets
+  `color-scheme: only light` for the browser's own controls and against Chromium's auto
+  dark theme (`docs/KERN-DESIGN-SYSTEM.md` §7)
 - The visual design comes from Figma; `specs/001-servicebw-eudi-middleware/design-notes.md`
   records the screens, tokens and decisions
 
