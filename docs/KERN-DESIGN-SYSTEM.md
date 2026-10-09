@@ -400,6 +400,17 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
   KERN's icon-only size. For the exact size (40px with `kern-btn--small`), write the native markup:
   `<button class="kern-btn kern-btn--tertiary kern-btn--small">` with the icon span and
   `<span class="kern-label kern-sr-only">Text</span>`.
+- **`KernLink` and `KernButton` with `href` render a plain `<a href>`**, which reloads a single-page
+  app. For links between the app's routes, give the router's link component KERN's classes:
+  `kern-link` (plus `kern-link--small` for 16px text), or `kern-btn kern-btn--primary` (plus
+  `kern-btn--block` for full width) with the text in `<span class="kern-label">`, as `KernButton`
+  writes it. `a.kern-btn` has no underline.
+- **Visited links turn purple**: `.kern-link:visited` uses `--kern-color-action-visited` (#75009E),
+  also for links between the app's own routes.
+- **`kern.css` sets `scrollbar-gutter: stable` on `html`.** With classic (non-overlay) scrollbars the
+  page is narrower than the window by the scrollbar's width (15px in Chromium on Linux), even when
+  nothing scrolls. To compare a page with a design frame, make the window that much wider than the
+  frame.
 - **The kit's built-in texts are German** (`loading: "Wird geladen..."`, `closeDialog: "Schließen"`, …).
   For another UI language, wrap the app in `KernContextProvider` with `translations` for all seven keys.
 - `KernInput` adds "- Optional" to the label unless `required` is set, and its hint and error elements

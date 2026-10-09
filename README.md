@@ -157,6 +157,8 @@ uv run python -m app.cli delete-user <username>   # also deletes its sign-ins
 
 Usernames are stored in lowercase and have 3 to 100 characters from `a–z 0–9 . _ -`.
 Passwords need at least 12 characters. A sign-in lasts `LOGIN_SESSION_HOURS` (8 hours).
+The sign-in screen's "Forgot password?" page asks team members to contact an administrator,
+who sets a new password with `set-password`.
 
 ## Common Commands
 

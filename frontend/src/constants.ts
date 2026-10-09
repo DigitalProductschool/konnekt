@@ -1,7 +1,9 @@
-export const APP_NAME = 'BridgeID';
+// As in the Figma design, which doesn't name the product yet
+export const APP_NAME = 'Product name';
 
 export const ROUTES = {
   login: '/login',
+  forgotPassword: '/forgot-password',
   overview: '/',
   newFormConnection: '/form-connections/new',
   formConnection: '/form-connections/:id',

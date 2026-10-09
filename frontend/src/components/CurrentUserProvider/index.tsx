@@ -38,7 +38,7 @@ export default function CurrentUserProvider({ children }: CurrentUserProviderPro
       // An expired session is gone anyway; the app signs out regardless
     }
     // The route guard then sends the user to the sign-in screen
-    dispatch({ type: 'loggedOut' });
+    dispatch({ type: 'signedOut' });
   }, []);
 
   const value = useMemo(() => ({ ...state, signIn, signOut }), [state, signIn, signOut]);

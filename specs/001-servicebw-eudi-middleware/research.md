@@ -768,7 +768,8 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - **Libraries**: React 19.2, Vite 8.2, TypeScript 6.0 and Tailwind 4.3, as installed. Two
   additions:
   - `react-router` (v7) for the routes `/login`, `/`, `/form-connections/new`,
-    `/form-connections/:id` and `/form-connections/:id/edit`;
+    `/form-connections/:id` and `/form-connections/:id/edit`, and `/forgot-password`, which the
+    Figma design added later;
   - the three KERN packages from `docs/KERN-DESIGN-SYSTEM.md`: `@kern-ux/native`,
     `@kern-ux-annex/kern-react-kit` and `@digitalservicebund/kern-ux-tailwind-theme`, with exact
     versions pinned.

@@ -13,20 +13,29 @@ contract wins on behavior. Every screen gets its data only through
 | Route | Screen | Requirements |
 |---|---|---|
 | `/login` | Sign in | FR-007 |
+| `/forgot-password` | Forgot password | FR-007 |
 | `/` | Form connections overview | FR-006; US4, scenario 1 |
 | `/form-connections/new` | Create form connection | FR-001 to FR-003; US1, scenarios 1–3 |
 | `/form-connections/:id` | Form connection details | FR-004 to FR-006, FR-014; US1, scenarios 1, 4 and 5; US4, scenarios 3–5 |
 | `/form-connections/:id/edit` | Edit form connection | FR-003, FR-005; US4, scenario 2 |
 
-Every route except `/login` needs a session. When `GET /api/auth/me` answers `401`, the app goes
-to `/login` and returns to the requested route after sign-in. Every signed-in screen shows the
-user's name and a sign-out action.
+Every route except `/login` and `/forgot-password` needs a session. When `GET /api/auth/me`
+answers `401`, the app goes to `/login` and returns to the requested route after sign-in. A
+signed-in user who opens `/login` or `/forgot-password` goes on to the app. Every signed-in screen
+shows the user's name and a sign-out action, which leads to the sign-in screen.
 
 ## Sign in (`/login`)
 
 - **Fields**: username and password, with a submit action.
 - **When sign-in fails**: one generic message ("Invalid username or password"). It never says
   which of the two was wrong.
+- **Forgot password**: a link to `/forgot-password`.
+
+## Forgot password (`/forgot-password`)
+
+- The UI can't reset passwords: the operators reset them with the account CLI (research R14). The
+  screen tells the team member to ask an administrator, and leads back to sign in.
+- Going back to sign in keeps the route that asked for the sign-in.
 
 ## Overview (`/`)
 

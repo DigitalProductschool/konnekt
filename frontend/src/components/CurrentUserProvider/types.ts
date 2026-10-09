@@ -10,8 +10,6 @@ export interface CurrentUserProviderProps {
 export interface CurrentUserState {
   status: SignInStatus;
   user: UserView | null;
-  loggedOut: boolean;
 }
 
-export type CurrentUserAction =
-  { type: 'signedIn'; user: UserView } | { type: 'signedOut' } | { type: 'loggedOut' };
+export type CurrentUserAction = { type: 'signedIn'; user: UserView } | { type: 'signedOut' };

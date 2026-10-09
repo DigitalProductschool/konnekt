@@ -1,14 +1,5 @@
 import type { ChangeEvent } from 'react';
 
-export interface Benefit {
-  icon: string;
-  title: string;
-}
-
-export interface BenefitItemProps {
-  benefit: Benefit;
-}
-
 export interface PasswordFieldProps {
   id: string;
   label: string;

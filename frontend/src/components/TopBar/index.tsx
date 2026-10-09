@@ -8,7 +8,7 @@ export default function TopBar({ children }: TopBarProps) {
       <div className="gap-kern-space-small flex items-center">
         <span
           aria-hidden="true"
-          className="rounded-kern-default bg-kern-layout-text-default size-20"
+          className="rounded-kern-small bg-kern-layout-text-default size-16"
         />
         <span className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold">
           {APP_NAME}

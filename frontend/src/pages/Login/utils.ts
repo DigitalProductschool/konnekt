@@ -1,5 +1,4 @@
 import { ApiError } from '../../api/client';
-import { ROUTES } from '../../constants';
 import { LOGIN_COPY } from './constants';
 import type { LoginFormAction, LoginFormState } from './types';
 
@@ -29,18 +28,4 @@ export function signInErrorMessage(error: unknown): string {
     return LOGIN_COPY.invalidCredentials;
   }
   return LOGIN_COPY.signInFailed;
-}
-
-/** Where to go after signing in: the route that sent the user here, or the overview. */
-export function redirectTarget(locationState: unknown): string {
-  if (typeof locationState !== 'object' || locationState === null) {
-    return ROUTES.overview;
-  }
-  const { from } = locationState as { from?: Partial<Record<string, unknown>> };
-  if (typeof from?.pathname !== 'string' || from.pathname === ROUTES.login) {
-    return ROUTES.overview;
-  }
-  const search = typeof from.search === 'string' ? from.search : '';
-  const hash = typeof from.hash === 'string' ? from.hash : '';
-  return `${from.pathname}${search}${hash}`;
 }

@@ -1,10 +1,16 @@
-# Design notes: BridgeID management UI
+# Design notes: management UI
 
-**Task**: T023 | **Date**: 2026-10-09 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T023, T084 | **Date**: 2026-10-09 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
-**Source**: Figma file "Middleware – V1" (`hsxN4JO9iGWVxMHHehpOwC`), page "Final Screens" (`33:3`).
-The file was edited during this session: the section "Account · log out" (`238:8717`) and the
-user menu components (`238:*`) are new. Node ids can change with further edits.
+**Sources**:
+- **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`): the
+  signed-out screens "01 Log in" (`153:7661`) and "01b Forgot password" (`2041:7569`), with the
+  top bar they use. Sections 1–4 follow V2, except the user menu in section 3.
+- **Figma "Middleware – V1"** (`hsxN4JO9iGWVxMHHehpOwC`), page "Final Screens" (`33:3`): the
+  user menu and every signed-in screen. The user menu and sections 5–8 still describe V1 and have
+  not been checked against V2.
+
+Node ids can change when the files are edited.
 
 The design decides presentation (layout, wording, language, components). The contract decides
 behavior. Where they differ, section 9 lists the difference and what was decided or is still
@@ -13,10 +19,12 @@ open.
 ## 1. Language and naming
 
 - **Language**: English (`<html lang="en">`).
-- **Product name**: "BridgeID". Tab titles read "{page} – BridgeID".
+- **Product name**: **Decision (2026-10-09, V2)**: "Product name", as in V2, which doesn't name
+  the product yet (V1 called it "BridgeID"). Tab titles read "{page} – Product name".
+  `APP_NAME` in `frontend/src/constants.ts` holds it, and `frontend/index.html` repeats it.
 - **"Use case"** is the UI's word for a form connection. The API, the code and the spec keep
   "form connection".
-- **Tone**: short sentences in the second person ("Use your work account.", "Your sign-in is
+- **Tone**: short sentences in the second person ("Ask your admin to reset it.", "Your sign-in is
   encrypted"), typographic apostrophes (’).
 
 ## 2. Foundations
@@ -41,19 +49,20 @@ The design uses KERN 2.8 tokens; every colour has a token. Values in light mode:
 | `neutral-050` | `--kern-color-neutral-050` | #e8e9ef | avatar, menu item hover |
 | `neutral-100` | `--kern-color-neutral-100` | #dfe1ea | card borders, dividers |
 | `neutral-300` | `--kern-color-neutral-300` | #a9aec6 | "todo" step circle, dashed empty state |
+| `decorative-border` | `--kern-color-decorative-border-default` | #c0c3d5 | "Personal ID" card in the sign-in illustration |
 | `darkblue-050` | `--kern-color-darkblue-050` | #e5ebf7 | icon tiles, open user menu |
 | `action-default` | `--kern-color-action-default` | #2044aa | buttons, links, blue glyphs |
 | `form-input-border` | `--kern-color-form-input-border` | #1d2034 | input bottom border |
 | `feedback-danger` | `--kern-color-feedback-danger` | #c31c13 | error messages |
 | `feedback-info` / `-background` | `--kern-color-feedback-info(-background)` | #006b8c / #c0f3ff | info alert, "Draft" badge |
-| `feedback-success` / `-background` | `--kern-color-feedback-success(-background)` | #007155 / #cdf2e4 | "Live"/"Published" badge and alert |
+| `feedback-success` / `-background` | `--kern-color-feedback-success(-background)` | #007155 / #cdf2e4 | "Live"/"Published" badge and alert; the sign-in illustration, also at 40% (border) and 8% over white (background) |
 
 ### Type styles
 
 | Figma style | Size / line height | Weight | Used for |
 |---|---|---|---|
 | `heading/display` | 48/56 (`2x-large-adaptive`) | 500 | sign-in headline |
-| `heading/large` | 26/32 (`large-adaptive`) | 600 | page title |
+| `heading/large` | 26/32 (`large-adaptive`) | 600 | page title, forgot-password title |
 | `heading/medium`, `title/default` | 21/24 (`medium-adaptive`) | 600 | card, section and alert titles |
 | `title/small`, `label/default`, `body/default/bold` | 18/24 | 600 | labels, names, buttons |
 | `body/default/regular` | 18/24 | 400 | body text, inputs |
@@ -68,12 +77,16 @@ at the small-screen values on every width.
 ### Spacing, radii and effects
 
 - **Spacing**: KERN's `metric/space` scale (4, 8, 16, 24, 32) plus raw 2, 6, 12, 14, 20 and 40.
-- **Radii**: 2 (inputs), 4 (buttons, badges, alerts, logo mark), 8 (cards, menus, icon tiles),
-  20 (pills: user menu, steps).
+- **Radii**: 2 (inputs, logo mark), 4 (buttons, badges, alerts, the illustration's lines), 8
+  (cards, menus, icon tiles), 20 (pills: user menu, steps, the illustration's chips), circle (the
+  illustration's seal).
 - **Effects**: KERN has no shadow tokens. "Elevation/Card" (#1315250D, 0 1 2 and 0 6 20) and
   "Elevation/Menu" (#13152529, 0 10 28) are the project tokens `--shadow-card` and
   `--shadow-menu` (decided 2026-10-09). "Elevation/Footer" (#1315250A, 0 −6 20) belongs to the
-  wizard footer and has no token yet.
+  wizard footer and has no token yet. In V2 the sign-in cards have no shadow, so nothing uses
+  `--shadow-card` for now. **Decision (2026-10-09, V2)**: the chips of the sign-in illustration
+  have a shadow without an effect style (#0071551A, 0 6 16); it is the project token
+  `--shadow-chip`.
 
 ### KERN in code
 
@@ -84,15 +97,25 @@ KERN whose rules override KERN 2.8 (text #171a2b instead of #131525, weight 500 
 ship styles of their own (Menubar, Menu, Tabs, InputDate, Radio error state) need those styles
 added before they are used. `docs/KERN-DESIGN-SYSTEM.md` §2 and `CLAUDE.md` describe this setup.
 
+Links between the app's routes are React Router `Link`s with KERN's classes, because `KernLink`
+and `KernButton` with `href` reload the page: `kern-link kern-link--small` for "Forgot
+password?", and `kern-btn kern-btn--primary kern-btn--block` with a `kern-label` span for "Back
+to log in". `kern.css` reserves the scrollbar's width on `html` (`scrollbar-gutter: stable`), so
+the page is 15 px narrower than the window in Chromium on Linux: compare with a 1440 px frame in
+a 1455 px window.
+
 ## 3. App shell
 
-- **Frame**: 1440 wide. The content column is 1040 px, centred (x = 200), 40 px below the
-  64 px top bar, 48 px above the bottom on the overview, with 24 px between blocks.
-- **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border, padding
-  0 32, gap 16. Logo: a 20 px text-default square with radius 4, then "BridgeID" (16/24, 600).
-  Inside a use case the design uses "App/Header" (`37:15`) instead, with the form name, a status
-  badge, the version and a 5-step stepper (section 6).
-- **User menu ("App/User menu", `238:7965`; trigger in `37:15`)**:
+- **Frame**: 1440 wide. On the signed-in screens (V1) the content column is 1040 px, centred
+  (x = 200), 40 px below the 64 px top bar, 48 px above the bottom on the overview, with 24 px
+  between blocks. The signed-out screens are in section 4.
+- **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border (inside
+  the 64 px), padding 0 32, gap 16. Logo (V2): a 16 px text-default square with radius 2 (V1:
+  20 px, radius 4), 8 px gap, then the product name (16/24, 600); the logo sits at y = 19.5, the
+  square at 23.5. On the signed-out screens the user block is hidden. Inside a use case the
+  design uses "App/Header" (`37:15`) instead, with the form name, a status badge, the version and
+  a 5-step stepper (section 6).
+- **User menu (V1: "App/User menu", `238:7965`; trigger in `37:15`)**:
   - Trigger: a pill (radius 20, padding 2/6/2/2, gap 4) with the 32 px avatar (neutral-050,
     initials 16/24 600) and a 20 px chevron (muted). Open: darkblue-050 background and a 1 px
     action-default border.
@@ -104,44 +127,83 @@ added before they are used. `docs/KERN-DESIGN-SYSTEM.md` §2 and `CLAUDE.md` des
     only a username, so the panel shows the username and no email line.
 - **Page title ("App/Page title", `37:56`)**: the page's `h1` (26/32, 600), with an optional hint
   under it (21/32, muted), gap 8.
-- **Legal footer ("App/Legal footer", `151:995`, sign-in only)**: 56 px, 1 px neutral-100 top
-  border, "© 2026 BridgeID" (16/24 muted). **Decision**: the Imprint, Privacy and Accessibility
-  links are left out until those pages exist.
+- **Legal footer**: removed. V2's sign-in screens have no footer, and V2 moves "App/Legal footer"
+  (`151:995`) to "Deprecated (unused)". In Phase 2 it showed "© 2026 BridgeID" under the sign-in
+  screen.
 
-## 4. Sign in (`/login`, frames "01 Log in" `153:7661` and "U2 Logged out" `238:8784`)
+## 4. Sign in and forgot password (V2)
 
-**Layout**: content 1040×500, centred in the area between top bar and footer: intro 560 px on the
-left, card 440 px on the right, 40 px apart, vertically centred. Narrow screens stack them.
+Frames "01 Log in" (`153:7661`, `/login`) and "01b Forgot password" (`2041:7569`,
+`/forgot-password`), both 1440×900. Code: `components/AuthLayout/`, `pages/Login/`,
+`pages/ForgotPassword/`.
 
-**Intro ("Auth/Intro", `151:967`)**:
-- "Connect your forms to the EUDI Wallet" (`h1`, 48/56, 500).
-- "Applicants share verified data from their wallet instead of uploading documents." (21/32
-  muted, 16 px below).
-- Benefits, 24 px further down, 16 px apart ("Auth/Benefit"): a 40 px darkblue-050 tile with a
-  24 px blue Material glyph, and a title (18/24, 600). "Verified data, no uploads"; "Only the
-  data each form needs" (**decision**: replaces "Eligibility checked before the form opens",
-  which the middleware doesn't do); "Live in minutes".
+**Layout (both frames)**: the top bar, then content 1120×508, centred in the 836 px below it
+(x = 160, y = 228): the intro (600 px) on the left and the card (440 px) on the right, 80 px
+apart. There is no footer. In code the two columns start at 1152 px, where 600 + 80 + 440 and
+the 16 px page padding fit; narrower screens stack intro and card.
 
-**Card ("Auth/Login card", `141:1172`)**: white, 1 px neutral-100 border, radius 8,
-Elevation/Card, padding 32, gap 20.
-- "Log in" (`h2`, 21/24 600) over "Use your work account." (18/24 muted), gap 6.
-- KERN text inputs: label 18/24 600 with 6/2 baseline padding, 8 px gap, field 48 px high
-  (layer surface, 2 px form-input-border bottom border, radius 2, padding 0 16, 18 px text).
-  **Decision**: the first field is "Username", not "Email", because accounts have usernames.
+**Intro ("Auth/Intro", `151:967`)**: a column with 16 px gaps.
+- "Connect your forms to the EUDI Wallet" (`h1`, 48/56, 500). At 600 px it breaks after "the".
+- "Sharing verified data made easy." (21/32, muted).
+- The "wallet scene", 600×300, 48 px below the lead (a 16 px spacer between two gaps). Figma
+  calls it decorative and says to hide it from screen readers, so it is `aria-hidden`. Its
+  parts are absolutely positioned and don't scale, so code shows it only where the intro is at
+  least 600 px wide (a container query); narrow screens leave it out.
+  - Frame: radius 8, 1 px feedback-success border at 40%, white background with an 8%
+    feedback-success tint, and a 578×290 dot grid at 8/8 (`assets/illustrations/dot-grid.svg`).
+  - Two document cards, 260×164, radius 8, padding 24, gap 8: a title (16/24 600, success) and
+    two 8 px placeholder lines (radius 4). Behind: "Driving licence" (success-background, success
+    border and lines of 130 and 88 px, rotated 5° clockwise, bounding box at 152.71/29 inside the
+    border). In front: "Personal ID" (white, decorative-border border and lines of 160 and 100
+    px, rotated 3° counter-clockwise, bounding box at 35/93.39).
+  - A seal over the back card's corner: a 48 px success circle with a 4 px white border and a
+    24 px white check, at 271/83.
+  - Three chips at 399/76, right-aligned, 10 px apart: white, 1 px success-background border,
+    radius 20, padding 8/14/8/10, gap 8, `--shadow-chip`, a 20 px success check-circle and a
+    label (16/24 600): "Identity verified", "Age checked", "Eligible to apply". **Decision
+    (2026-10-09)**: kept as designed, although the middleware checks neither age nor
+    eligibility, because Figma presents the scene as generic and decorative.
+- V1's benefit rows ("Auth/Benefit") are gone; V2 moves the component to "Deprecated (unused)".
+
+**Sign-in card ("Auth/Login card", `141:1172`)**: 440×470, white, 1 px neutral-100 border,
+radius 8, padding 32, gap 20, no shadow (V1: Elevation/Card). It is centred against the intro
+(y = 19 within the content).
+- "Log in" (`h2`, 21/24 600). V1's "Use your work account." is gone.
+- KERN text inputs "Username" and "Password": label 18/24 600 with 6/2 baseline padding, 8 px
+  gap, field 48 px high (layer surface, 2 px form-input-border bottom border, radius 2, padding
+  0 16, 18 px text). "Username", not "Email", because accounts have usernames (Phase 2 decision;
+  V2 has it too).
 - Password with a "show password" toggle: KERN tertiary small button, icon only (40 px visible,
   48 px target), 4 px from the field's right end.
-- **Decision**: instead of the "Forgot password?" link (operators reset passwords with the CLI),
-  muted text in its place: "Forgot your password?" / "Ask an administrator to reset it." It
-  takes two lines, so the card is 524 px high instead of 500.
-- "Log in": KERN primary button, full width, 48 px.
+- "Forgot password?": KERN small link (16/24, action-default, underlined, 7/1 baseline padding),
+  right-aligned on its own 32 px row. It opens `/forgot-password`, and replaces the Phase 2 text
+  "Forgot your password? / Ask an administrator to reset it." Its icon slot is collapsed in
+  Figma and not shown.
+- "Log in": KERN primary button, full width, 48 px. Its arrow icon is collapsed in Figma and not
+  shown.
 - "Your sign-in is encrypted" with an 18 px muted lock glyph, centred, gap 8.
-- **Failed sign-in** (no frame): "Form/Error message" (`87:837`): 20 px danger icon and
-  "Invalid username or password" (16/24 600, danger), announced as an alert, above the fields.
+- **Failed sign-in** (no frame in V1 or V2): "Form/Error message" (`87:837`, still in V2's
+  Components › Shared): 20 px danger icon and "Invalid username or password" (16/24 600,
+  danger), announced as an alert, above the fields. The card grows by 44 px. **Decision
+  (2026-10-09, V2)**: kept from Phase 2.
 
-**After logging out ("Logged out alert", `238:8885`, hidden in U2)**: KERN info alert, 440×120:
-"You’re logged out" / "Log in again to continue setting up your forms." **Decision**: shown
-after logging out with the user menu. U2 lays it over the area above the card; with the taller
-card it would overlap the top bar at 900 px, so it sits in the flow 16 px above the card.
+**Forgot-password card ("Forgot password card", `2041:7845`)**: 440×300, white, 1 px
+neutral-100 border, radius 8, padding 32, no shadow. It is as tall as the wallet scene and lines
+up with it (y = 208 within the content, so its bottom meets the intro's). Its three parts are
+spread over the height (space-between, 38 px apart at this size); code keeps at least 20 px
+between them where the text wraps.
+- "Icon/Tile": 48 px, darkblue-050, radius 8, with the 24 px blue lock glyph.
+- "Forgot your password?" (`h2`, 26/32 600) over "Ask your admin to reset it." (18/24, muted),
+  gap 6. Passwords are reset by the operators with the account CLI (research R14).
+- "Back to log in": KERN primary button, full width, 48 px, a link to `/login`. Its arrow icon is
+  collapsed in Figma and not shown.
+
+Both links pass the router state on, so that a sign-in after the detour still returns to the
+route that asked for it. On both screens the `h1` is the intro's headline and the card's title is
+an `h2`; the tab titles are "Log in" and "Forgot password".
+
+**After logging out**: **Decision (2026-10-09, V2)**: the plain sign-in screen. V2 has no
+logged-out frame, so the Phase 2 "You’re logged out" alert ("U2 Logged out" in V1) is gone.
 
 ## 5. Overview (`/`, frame "R1 Your use cases" `142:7687`)
 
@@ -230,11 +292,22 @@ driving licence").
 
 ## 9. Differences from the contract
 
-**Decided in Phase 2** (2026-10-09): the "Username" field, the forgot-password text, the footer
-without links, the benefit wording, the user menu with the username only, the logged-out alert,
+**Decided in Phase 2** (2026-10-09): the "Username" field, the user menu with the username only,
 Figma's type sizes on every width, the KERN import setup, and the shadow tokens (sections 2–4).
+The V2 sign-in replaced four more Phase 2 decisions: the forgot-password text, the footer without
+links, the benefit wording and the logged-out alert.
 
-**Open, to decide before Phase 3** (the contract keeps the behavior until then):
+**Decided with the V2 sign-in** (2026-10-09, sections 1–4):
+- the product name "Product name", as in the design;
+- a separate forgot-password screen at `/forgot-password`, which the contract now lists;
+- the plain sign-in screen after logging out, with no alert;
+- the illustration's chips as designed;
+- the Phase 2 message for a failed sign-in, which V2 has no frame for;
+- the `--shadow-chip` token, with the illustration's tints written as the success token with an
+  opacity.
+
+**Open, to decide before Phase 3** (the contract keeps the behavior until then). These were
+raised against V1; check them against V2 first, since V2 may have changed those screens:
 1. **Field catalog**: cut the catalog to the design's subset and labels, or show every catalog
    field. Three design fields have no data source (section 8), and "Address" needs a mapping.
 2. **Wizard**: the 5-step stepper. Rules, Test and Publish have no API. Which steps to show, and
@@ -261,10 +334,13 @@ Figma's type sizes on every width, the KERN import setup, and the shadow tokens 
 ## 10. Assets and implementation notes
 
 - Glyphs used so far are in `frontend/src/assets/icons/` (Material Symbols from the design, not
-  changed): `verified-user`, `task-alt`, `schedule`, `lock`, `emergency-home` (error), `logout`,
-  `expand-more` (chevron). KERN's own icons are used where the design uses KERN's icon
-  components (visibility, info, danger in alerts). The document glyphs (personal-id,
-  driving-licence, document), `save` and `remove` are still to be exported from Figma.
+  changed): `lock` (grey), `lock-blue`, `check` (white, the seal), `check-circle` (success, the
+  chips), `emergency-home` (error), `logout`, `expand-more` (chevron). The dot grid of the
+  sign-in illustration is `frontend/src/assets/illustrations/dot-grid.svg`. The V1 benefit
+  glyphs (`verified-user`, `task-alt`, `schedule`) were removed with the benefits. KERN's own
+  icons are used where the design uses KERN's icon components (visibility, info, danger in
+  alerts). The document glyphs (personal-id, driving-licence, document), `save` and `remove` are
+  still to be exported from Figma.
 - KERN kit notes for Phase 3: `KernInput` passes `placeholder` and other input attributes
   through, but its hint and error ids are fixed, so two inputs with hints share an id.
   `KernCheckbox` has no indeterminate state (it needs a ref). Buttons and badges have no size

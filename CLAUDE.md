@@ -380,7 +380,7 @@ cd frontend
 - Font: Fira Sans, KERN's typeface, loaded from `@kern-ux/native` and set as the default font in
   `index.css`
 - Custom theme values are defined in `index.css` using the `@theme` directive (for example the
-  `shadow-card` and `shadow-menu` tokens, which KERN lacks)
+  `shadow-card`, `shadow-menu` and `shadow-chip` tokens, which KERN lacks)
 - The KERN design system is imported in `index.css`: Tailwind, KERN's fonts, KERN's CSS, then the
   KERN Tailwind theme, which turns KERN's design tokens into Tailwind classes. Keep that order,
   and see `docs/KERN-DESIGN-SYSTEM.md` for the components and tokens. Don't import the React
@@ -395,11 +395,16 @@ cd frontend
 - The visual design comes from Figma (see "Figma implementation workflow" below);
   `specs/001-servicebw-eudi-middleware/design-notes.md` records its copy, tokens and the decisions
   taken. The UI calls form connections "use cases". SVG glyphs from the design live in
-  `src/assets/icons/`; KERN's own icons use the `kern-icon` classes
+  `src/assets/icons/`, decorative SVGs in `src/assets/illustrations/`; KERN's own icons use the
+  `kern-icon` classes
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
-  `AppLayout`. Every page sets its tab title with `useDocumentTitle()` and has one `h1`
-  (`PageTitle`)
+  `AppLayout`, the signed-out ones (`/login`, `/forgot-password`) inside `RequireSignedOut` and
+  `AuthLayout`. Every page sets its tab title with `useDocumentTitle()` and has one `h1`:
+  `PageTitle` on signed-in screens, the intro's headline in `AuthLayout` on signed-out ones
+- Links between the app's routes are React Router `Link`s with KERN's classes (`kern-link`, or
+  `kern-btn kern-btn--primary` with a `kern-label` span): `KernLink` and `KernButton` with `href`
+  render a plain `<a>`, which reloads the page
 - Maintain components that you create small, extract new functionality to new components.
 - When you are declaring types needed in the component, extract them to separate types.ts file in the directory next to the component itself
 - When you are declaring constants needed in the component, extract them to separate constants.ts file in the directory next to the component itself.
@@ -519,8 +524,8 @@ it; `tests/fake_eudiplo.py` stands in for EUDIPLO.
 frontend/
 ├── src/
 │   ├── api/              # client.ts (apiFetch, ApiError) and one module per resource
-│   ├── assets/icons/     # SVG glyphs exported from the Figma design
-│   ├── components/       # Shared components: AppLayout, TopBar, UserMenu, PageTitle, ...
+│   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
+│   ├── components/       # Shared components: AppLayout, AuthLayout, TopBar, UserMenu, ...
 │   ├── pages/            # One folder per screen
 │   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle)
 │   ├── utils/            # Utility functions

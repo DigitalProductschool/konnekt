@@ -1,8 +1,10 @@
 import { KernButton, KernInput } from '@kern-ux-annex/kern-react-kit';
 import { type FormEvent, useReducer } from 'react';
+import { Link, useLocation } from 'react-router';
 
 import lockIcon from '../../assets/icons/lock.svg';
 import FormErrorMessage from '../../components/FormErrorMessage';
+import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { INITIAL_LOGIN_FORM, LOGIN_COPY } from './constants';
 import PasswordField from './PasswordField';
@@ -14,6 +16,7 @@ import { loginFormReducer, signInErrorMessage } from './utils';
  */
 export default function LoginCard() {
   const { signIn } = useCurrentUser();
+  const location = useLocation();
   const [state, dispatch] = useReducer(loginFormReducer, INITIAL_LOGIN_FORM);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -32,19 +35,14 @@ export default function LoginCard() {
   return (
     <section
       aria-labelledby="login-title"
-      className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default shadow-card flex w-full flex-col gap-20 border p-32"
+      className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex w-full flex-col gap-20 border p-32"
     >
-      <div className="flex flex-col gap-6">
-        <h2
-          id="login-title"
-          className="text-kern-adaptive-medium text-kern-layout-text-default font-semibold"
-        >
-          {LOGIN_COPY.cardTitle}
-        </h2>
-        <p className="text-kern-static-medium text-kern-layout-text-muted">
-          {LOGIN_COPY.cardSubtitle}
-        </p>
-      </div>
+      <h2
+        id="login-title"
+        className="text-kern-adaptive-medium text-kern-layout-text-default font-semibold"
+      >
+        {LOGIN_COPY.cardTitle}
+      </h2>
 
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-20">
         {state.error && (
@@ -68,10 +66,16 @@ export default function LoginCard() {
           onChange={(event) => dispatch({ type: 'changePassword', value: event.target.value })}
           onToggleVisible={() => dispatch({ type: 'toggleShowPassword' })}
         />
-        <p className="text-kern-static-small text-kern-layout-text-muted pt-7 pb-1 text-right leading-(--kern-typography-line-height-medium-static)">
-          <span className="block">{LOGIN_COPY.forgotPassword}</span>
-          <span className="block">{LOGIN_COPY.forgotPasswordHelp}</span>
-        </p>
+        <div className="flex justify-end">
+          {/* Passes on the route to return to after signing in */}
+          <Link
+            to={ROUTES.forgotPassword}
+            state={location.state}
+            className="kern-link kern-link--small"
+          >
+            {LOGIN_COPY.forgotPassword}
+          </Link>
+        </div>
         <KernButton type="submit" variant="primary" block label={LOGIN_COPY.submit} />
       </form>
 

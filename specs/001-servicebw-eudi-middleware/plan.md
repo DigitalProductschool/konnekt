@@ -119,7 +119,7 @@ runs the background worker thread, and PostgreSQL.
 - One team, the DO.IT staff of the City of Stuttgart.
 - Tens of form connections.
 - Up to 100 requests at the same time.
-- 5 UI routes; two document types at launch.
+- 6 UI routes (the Figma design added `/forgot-password`); two document types at launch.
 
 **Open points**: none block the plan. Every unknown was resolved in [research.md](research.md),
 where the user's decisions are marked. [Research R19](research.md#r19-points-that-dont-block-the-plan-but-need-attention-later)
@@ -234,9 +234,11 @@ frontend/
     │                             # document-types.ts, form-connections.ts
     ├── types/                    # api.ts (envelopes), auth.ts, document-types.ts, form-connections.ts
     ├── hooks/                    # current-user / sign-in state
-    ├── components/               # app layout and header, copyable URL field, confirm dialog
+    ├── components/               # app layout and header, sign-in layout, route guards,
+    │                             # copyable URL field, confirm dialog
     ├── pages/
     │   ├── Login/
+    │   ├── ForgotPassword/       # says whom to ask; passwords are reset with the account CLI
     │   ├── FormConnectionList/
     │   ├── FormConnectionEditor/ # create and edit; components/ for document and field pickers
     │   └── FormConnectionDetail/ # URLs, webhook address, activate/deactivate, delete
@@ -280,7 +282,7 @@ This list comes from research R1. Each step leaves the app building and starting
    - in `CLAUDE.md`: the backend structure listing, which shows `routers/team_members.py`, and the
      "Full Stack Example";
    - in `docs/ARCHITECTURE.md`: the error and naming examples.
-   
+
    The generic `TeamMember` names in `CLAUDE.md`'s naming-convention tables stay, because they only
    illustrate conventions.
 

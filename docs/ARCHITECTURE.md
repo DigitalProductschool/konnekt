@@ -91,11 +91,13 @@ section of `README.md` for the full command list and editor format-on-save setup
 frontend/
 ├── src/
 │   ├── api/              # client.ts (apiFetch, ApiError), one module per resource (auth.ts)
-│   ├── assets/icons/     # SVG glyphs exported from the Figma design
-│   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), route guard,
-│   │                     # sign-in state provider, shared form pieces
+│   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
+│   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the signed-out
+│   │                     # screens' frame (AuthLayout), route guards, sign-in state provider,
+│   │                     # shared form pieces
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle
-│   ├── pages/            # One folder per screen (Login, and placeholders for later screens)
+│   ├── pages/            # One folder per screen (Login, ForgotPassword, and placeholders for
+│   │                     # later screens)
 │   ├── types/            # TypeScript interfaces mirroring backend schemas
 │   ├── constants.ts      # App name, routes, the KERN kit's English texts
 │   ├── App.tsx           # Routes
@@ -115,8 +117,10 @@ frontend/
   `DELETE` as JSON (`{}` without a body), unwraps the `data` of the `{data, message?}`
   envelope and throws an `ApiError` for `{error, message}` bodies
 - Routing with React Router 7 (`BrowserRouter`). `RequireSignIn` sends signed-out
-  users to `/login` and back to the requested route afterwards; nginx already falls
-  back to `index.html` for client-side routes
+  users to `/login` and back to the requested route afterwards, and `RequireSignedOut`
+  sends signed-in users on from `/login` and `/forgot-password`; nginx already falls
+  back to `index.html` for client-side routes. Passwords are reset with the account
+  CLI, so `/forgot-password` only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
   components read it with `useCurrentUser()`
 - KERN design system: `index.css` imports Tailwind, KERN's fonts, `kern.css` and the

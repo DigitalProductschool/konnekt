@@ -242,6 +242,22 @@ framework, the test harness and the frontend shell.
   - after a failed sign-in, one generic "Invalid username or password" message, announced to screen readers;
   - after success, a redirect to the requested route.
 
+The design changed after Phase 2: the user shared Figma "Middleware – V2" (`BZUNank5VjCzqr2BcyhifB`)
+for the sign-in, with a separate forgot-password screen. T084 and T085 redo T023's sign-in part
+and T030 against it; the backend and the database stay as they are.
+
+- [X] T084 Update `specs/001-servicebw-eudi-middleware/design-notes.md` to the V2 frames "01 Log in" (`153:7661`) and "01b Forgot password" (`2041:7569`):
+  - record the user's decisions: the product name "Product name", the illustration's chips as designed, the Phase 2 message for a failed sign-in, and the `--shadow-chip` token;
+  - add the `/forgot-password` screen to `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md`;
+  - mark the sections that still describe V1.
+- [X] T085 Rebuild the signed-out screens from V2, as in design-notes.md §3–4:
+  - `frontend/src/components/AuthLayout/`: the top bar, the intro with the decorative wallet scene, and the card;
+  - `frontend/src/components/RequireSignedOut/`: signed-in users go on to the app;
+  - `frontend/src/pages/Login/`: the card without subtitle and shadow, and a "Forgot password?" link;
+  - `frontend/src/pages/ForgotPassword/` at `/forgot-password`, with "Back to log in";
+  - remove the logged-out alert (`loggedOut` in `frontend/src/components/CurrentUserProvider/`), the benefit rows and `frontend/src/components/LegalFooter/`;
+  - `APP_NAME` in `frontend/src/constants.ts`, the `<title>` in `frontend/index.html`, the 16 px logo mark in `frontend/src/components/TopBar/`, and `--shadow-chip` in `frontend/src/index.css`.
+
 **Checkpoint**: The foundation is ready. A team member created with the CLI can sign in and out of
 an empty app shell.
 
@@ -607,6 +623,7 @@ This is quickstart V5.
 - **Foundational (Phase 2)**: depends on Setup, and blocks every user story.
   - T018 needs the user's EUDIPLO access.
   - T023 needs the user's Figma URL.
+  - T084 and T085 follow T023 and T030, after the design changed to V2.
 - **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
 - **Polish (Phase 7)**:
   - T076–T080 are the merge gate: they run before every merge, from the first one on.

@@ -6,10 +6,8 @@ export function currentUserReducer(
 ): CurrentUserState {
   switch (action.type) {
     case 'signedIn':
-      return { status: 'signedIn', user: action.user, loggedOut: false };
+      return { status: 'signedIn', user: action.user };
     case 'signedOut':
-      return { status: 'signedOut', user: null, loggedOut: false };
-    case 'loggedOut':
-      return { status: 'signedOut', user: null, loggedOut: true };
+      return { status: 'signedOut', user: null };
   }
 }
