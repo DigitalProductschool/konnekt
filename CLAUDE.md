@@ -436,6 +436,10 @@ If a value has no matching token, list it and ask. Do not invent tokens.
 ### 4. Visual verification (per node)
 Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the background if not running.
 1. `browser_resize` to the ROOT frame size (w×h from figma-node-finder), then `browser_navigate`.
+   KERN reserves the scrollbar's width on `html` (`scrollbar-gutter: stable`), so the page can be
+   narrower than the window even when nothing scrolls, and every centred element is then off by
+   half the gutter. Check `document.body.getBoundingClientRect().width`, and widen the window by
+   the difference from the frame width (1455 for a 1440 frame in Chromium on Linux).
 2. Font check: `browser_evaluate` with `document.fonts.check('<weight> <size>px "<Figma font>"')`.
    If it returns false, fix font loading before anything else.
 3. Numeric check (primary): `browser_evaluate` with getBoundingClientRect + getComputedStyle on the
