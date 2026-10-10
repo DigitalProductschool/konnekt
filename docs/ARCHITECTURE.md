@@ -127,7 +127,9 @@ frontend/
   KERN Tailwind theme, in that order. The React kit's own stylesheet is not imported,
   because it bundles an older KERN whose rules override KERN 2.8 (`docs/KERN-DESIGN-SYSTEM.md`
   §2). `index.css` also keeps KERN's adaptive type at its small-screen values on every
-  width, as the Figma design uses it, and adds the shadow tokens KERN lacks
+  width, as the Figma design uses it, adds the shadow tokens KERN lacks, and shows the
+  focus ring of KERN's buttons for keyboard focus only (`kern.css` draws it on any
+  `:focus`, so also after a click; `docs/KERN-DESIGN-SYSTEM.md` §7)
 - Light only, as the Figma design has no dark variant: `index.html` pins KERN's light
   theme with `data-kern-theme="light"` on `<html>`, which `kern.css` would otherwise
   switch to dark with the browser's preference, and `index.css` sets

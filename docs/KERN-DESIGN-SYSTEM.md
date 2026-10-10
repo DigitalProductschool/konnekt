@@ -411,6 +411,17 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
   KERN's icon-only size. For the exact size (40px with `kern-btn--small`), write the native markup:
   `<button class="kern-btn kern-btn--tertiary kern-btn--small">` with the icon span and
   `<span class="kern-label kern-sr-only">Text</span>`.
+- **KERN draws the focus ring of buttons on `:focus`, not `:focus-visible`.** Browsers that focus a
+  button on click (Chromium, Firefox on Windows and Linux, Android) then show the 4px ring from the
+  moment the mouse goes down until focus moves on, which looks like a border on the button. To keep
+  it for keyboard focus only, add this after the imports (KERN's selector has specificity 0,4,0,
+  hence `!important`): `.kern-btn:focus:not(:focus-visible) { outline: none !important; }`.
+  Keyboard focus and forced colors (`outline: auto` on `:focus-visible`) keep KERN's ring, and
+  links already use `:focus-visible`. Checkboxes and radios draw their ring on `:focus` as well.
+- **Tertiary buttons tint their background on hover (8%) and press (16%).** To show only the icon
+  of an icon-only tertiary button, override both with `[&:is(:hover,:active)]:bg-transparent!`.
+  Not `hover:`: Tailwind 4 wraps it in `@media (hover: hover)`, while KERN's rule also matches the
+  `:hover` that sticks after a tap on touch screens.
 - **`KernLink` and `KernButton` with `href` render a plain `<a href>`**, which reloads a single-page
   app. For links between the app's routes, give the router's link component KERN's classes:
   `kern-link` (plus `kern-link--small` for 16px text), or `kern-btn kern-btn--primary` (plus

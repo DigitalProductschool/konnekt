@@ -393,6 +393,11 @@ cd frontend
   `kern.css` follows the browser's dark mode and switches its semantic tokens, while primitives
   like `neutral-025`, the SVGs and the shadows stay light. Don't use Tailwind's `dark:` variant,
   which still follows the browser's preference
+- Focus rings show for keyboard focus only. `kern.css` draws the ring of its buttons on any
+  `:focus`, so a click or a tap would leave it on the button; the
+  `.kern-btn:focus:not(:focus-visible)` rule in `index.css` turns that off for every KERN button.
+  Keep it, and give your own interactive elements `focus-visible:` rings (as `UserMenu` does),
+  never `focus:` ones
 - `index.css` keeps KERN's adaptive type tokens at their small-screen values on every width,
   as the Figma design uses them, so `text-kern-adaptive-*` matches Figma
 - With the KERN Tailwind theme, numeric utilities are pixels (`p-16` is 16px). KERN's CSS is not

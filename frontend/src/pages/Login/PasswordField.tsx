@@ -30,7 +30,9 @@ export default function PasswordField({
           type="button"
           aria-pressed={visible}
           onClick={onToggleVisible}
-          className="kern-btn kern-btn--tertiary kern-btn--small"
+          // Only the icon changes: no KERN tint on hover or press. Not `hover:`, which Tailwind
+          // limits to devices that can hover, while a tap leaves :hover on touch screens
+          className="kern-btn kern-btn--tertiary kern-btn--small [&:is(:hover,:active)]:bg-transparent!"
         >
           <span
             aria-hidden="true"
