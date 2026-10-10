@@ -174,7 +174,9 @@ radius 8, padding 32, gap 20, no shadow (V1: Elevation/Card). It is centred agai
   0 16, 18 px text). "Username", not "Email", because accounts have usernames (Phase 2 decision;
   V2 has it too).
 - Password with a "show password" toggle: KERN tertiary small button, icon only (40 px visible,
-  48 px target), 4 px from the field's right end.
+  48 px target), 4 px from the field's right end. **Decision (2026-10-10)**: only the icon
+  changes (open ↔ crossed-out eye). KERN's background tint on hover and press is turned off,
+  and its focus ring shows for keyboard focus only, as on every KERN button (section 10).
 - "Forgot password?": KERN small link (16/24, action-default, underlined, 7/1 baseline padding),
   right-aligned on its own 32 px row. It opens `/forgot-password`, and replaces the Phase 2 text
   "Forgot your password? / Ask an administrator to reset it." Its icon slot is collapsed in
@@ -346,4 +348,6 @@ raised against V1; check them against V2 first, since V2 may have changed those 
   `KernCheckbox` has no indeterminate state (it needs a ref). Buttons and badges have no size
   prop (use the `kern-btn--small` class).
 - Icon-only buttons (remove ×, toast close, dialog close) need accessible names; the design
-  has no focus states, so KERN's focus outline is used.
+  has no focus states, so KERN's focus outline is used. **Decision (2026-10-10)**: for
+  keyboard focus only (`:focus-visible`). `kern.css` draws it on any `:focus`, so it stayed on
+  buttons after a click; `index.css` turns that off for every KERN button.

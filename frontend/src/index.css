@@ -50,6 +50,15 @@
   --kern-component-alert-icon-size: var(--kern-32);
 }
 
+/*
+ * KERN draws its button focus ring on any :focus, so a click or a tap leaves the ring on the
+ * button until focus moves on. Like the browser's own ring, show it for keyboard focus only.
+ * !important, because KERN's selector is more specific than this one.
+ */
+.kern-btn:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
 @layer base {
   html {
     /*
