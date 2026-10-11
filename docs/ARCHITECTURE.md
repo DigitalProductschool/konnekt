@@ -208,7 +208,9 @@ read timeout) for the seven management API calls the middleware uses
 OAuth token in memory, renews it 5 minutes before it expires, and fetches a new one
 once after a `401`. Responses are read into hand-written Pydantic models that ignore
 unknown fields. `http_error_for()` turns its errors into the API's answers: `503
-Not configured` naming the missing setting, or `502 Upstream error`. It never logs
+Not configured` or `502 Upstream error`, each with a generic message and an
+`error_id`. The missing setting or the failed call is named only in the log, under
+that ID (see Error Handling). It never logs
 tokens, secrets, response bodies or session credentials; a validation error, which
 would quote the body, is replaced by a terse one. Tests swap in a client with an
 `httpx2.MockTransport` (`tests/fake_eudiplo.py`).
@@ -245,9 +247,15 @@ correct if that changes.
 ```json
 {
   "error": "Error type",
-  "message": "Human-readable error description"
+  "message": "Human-readable error description",
+  "error_id": "UUID, on 5xx answers only"
 }
 ```
+
+A `5xx` answer never describes its cause: no setting, component or exception text
+reaches the client. Its message is generic, and `error_id` names the log line that
+holds the details. The UI shows the ID, so that a user can pass it on to an
+administrator, who finds the line with `docker compose logs backend | grep <id>`.
 
 ### Error Handling
 
@@ -256,9 +264,9 @@ handlers on the app:
 
 | Exception | Status | Behaviour |
 |-----------|--------|-----------|
-| `HTTPException` | as raised | Passes a `{error, message}` dict detail through unchanged; otherwise wraps it |
+| `HTTPException` | as raised | Passes a `{error, message}` dict detail (and its `error_id`) through unchanged; otherwise wraps it |
 | `RequestValidationError` | **400** | Returns a generic message (FastAPI's default would be 422 with field details) |
-| `Exception` | 500 | Generic message; includes `exception.args[0]` only when `APP_ENV=development` |
+| `Exception` | 500 | Generic message and an `error_id`, in every environment; the log line under that ID has the method, the route's template and the error's type and code location |
 
 ```python
 # Route handler pattern — raise, don't catch
@@ -268,11 +276,23 @@ raise HTTPException(
 )
 ```
 
-Because the catch-all handler leaks exception text in development, **`APP_ENV`
-must be set to something other than `development` in production**.
+`log_server_error(error, description)` in the same module creates the `error_id`
+of a `5xx` answer: it logs one ERROR line, `Error <id>: <description> (<type> in
+<function> (<file>:<line>))`, and returns the ID. `http_error_for()` and the
+catch-all handler use it, and so should any other `5xx` answer. The line never
+holds an exception's message, a setting's value, a request reference or the URL:
+it uses `describe_error()` and the route's template. The app configures no logging
+of its own, so these lines reach stderr through Python's last-resort handler,
+without a time or level prefix.
+
+**`APP_ENV` must be set to something other than `development` in production**:
+development drops the session cookie's `Secure` flag and fills in a default
+`CONNECTION_BASE_URL`.
 
 **Frontend**: the `ApiError` class in `src/api/client.ts` wraps HTTP errors with
-status and response data.
+status and response data. `errorNoticeOf(error, fallback)` turns a failure into
+what a page shows, the API's message and `error_id` (an `ErrorNotice`), and the
+shared `ErrorNoticeText` renders it, the error ID on a line of its own.
 
 ```typescript
 class ApiError extends Error {

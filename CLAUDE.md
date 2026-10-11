@@ -91,6 +91,10 @@ Key points:
 - Use `Depends()` for dependency injection
 - Raise `HTTPException` with a `{'error': ..., 'message': ...}` detail dict so
   the handler in `app/errors.py` passes it through unchanged
+- A `5xx` answer never says what went wrong: its message stays generic, and it adds
+  `'error_id': log_server_error(error, '<what failed>')` from `app/errors.py`, which
+  logs the cause under that ID. Unexpected exceptions get this from the catch-all
+  handler
 - Include docstrings for endpoints
 
 ### Services and the Background Worker
@@ -103,7 +107,8 @@ Location: `/backend/app/services/`
 - **EUDIPLO**: get the client with `get_eudiplo_client()` from
   `services/eudiplo.py`, and turn its `EudiploError`s into the API's answer with
   `http_error_for(error, '<message for the UI>')`: `503` when a setting is
-  missing, `502` otherwise. End the read transaction before calling EUDIPLO and
+  missing, `502` otherwise, both with an `error_id`, and only the log names the
+  setting or the failed call. End the read transaction before calling EUDIPLO and
   open a new one afterwards, so that no connection is held while waiting.
 - **Worker steps** live in `services/worker.py`. A step is a plain function
   without arguments that opens its own `SessionLocal()` session and keeps its
@@ -229,7 +234,9 @@ Key points:
   (`credentials: 'include'`), sends every `POST`, `PUT` and `DELETE` as JSON (`{}`
   without a body, which the backend's CSRF check requires), returns the `data` of
   the `{data, message?}` envelope, and throws an `ApiError` carrying the
-  `{error, message}` body when the request failed
+  `{error, message, error_id?}` body when the request failed
+- A page shows a failed call with `errorNoticeOf(error, '<fallback>')` and the shared
+  `ErrorNoticeText`, so the `error_id` of a `5xx` answer appears with its message
 - A page that calls the API passes failures through `useSignOutOnUnauthorized()` first: a
   `401` means the session expired, so the app signs out and the route guard asks for a sign-in
   that returns to the page
@@ -487,6 +494,8 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Use `print()` for logging (use FastAPI's logger or `logging` module)
 - Log claims, tokens, secrets, request references, response bodies or exception
   messages (use `describe_error()` from `app/services/worker.py`)
+- Put a setting's name, a component's internals or an exception's text into an
+  error answer — log them with `log_server_error()` and answer with its `error_id`
 - Hold a database transaction open while waiting for EUDIPLO or a webhook address
 - Ignore type hints (mypy should pass)
 - Declare a dependency in `pyproject.toml` that the code does not import
@@ -518,7 +527,7 @@ backend/
 │   ├── db.py             # Base, engine, sessionmaker, get_db dependency
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic schemas
-│   ├── errors.py         # Exception handlers
+│   ├── errors.py         # Exception handlers, log_server_error (5xx error ids)
 │   ├── cli.py            # Account management, run as `python -m app.cli`
 │   ├── routers/          # API routers, one module per resource
 │   │   ├── __init__.py

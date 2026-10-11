@@ -15,8 +15,8 @@ from ..services.eudiplo import EudiploError, http_error_for
 
 # The answer when EUDIPLO can't store a revision's request configuration
 CONFIG_FAILED = (
-    'EUDIPLO could not create the request configuration, so nothing was saved. '
-    'Try again in a moment.'
+    'The wallet service could not create the request configuration, so nothing was '
+    'saved. Try again in a moment.'
 )
 
 router = APIRouter(

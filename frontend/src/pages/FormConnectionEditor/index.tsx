@@ -23,7 +23,7 @@ import {
   editorReducer,
   firstInvalidElementId,
   hasErrors,
-  publishErrorMessage,
+  publishErrorNotice,
   publishSummary,
   validateConnection,
   validateDocuments,
@@ -91,7 +91,7 @@ export default function FormConnectionEditorPage() {
       navigate(generatePath(ROUTES.formConnection, { id: created.id }), { state: locationState });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatch({ type: 'publishFailed', message: publishErrorMessage(error) });
+        dispatch({ type: 'publishFailed', error: publishErrorNotice(error) });
       }
     }
   }

@@ -1,6 +1,7 @@
 import type { Ref } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
+import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { RequestedDocument } from '../../types/form-connections';
 
@@ -23,8 +24,8 @@ export interface EditorState {
   /** The documents added so far, in catalog order, with the keys of their selected fields */
   documents: RequestedDocument[];
   errors: EditorErrors;
-  /** The API's message after publishing failed */
-  publishError: string | null;
+  /** The API's message after publishing failed, with the error ID of a 5xx answer */
+  publishError: ErrorNotice | null;
   dialogOpen: boolean;
   publishing: boolean;
   /** The last removed document, with its selection, which Undo brings back */
@@ -46,7 +47,7 @@ export type EditorAction =
   | { type: 'openDialog' }
   | { type: 'closeDialog' }
   | { type: 'publish' }
-  | { type: 'publishFailed'; message: string };
+  | { type: 'publishFailed'; error: ErrorNotice };
 
 export interface ConnectionStepProps {
   name: string;
@@ -63,7 +64,7 @@ export interface DocumentsStepProps {
   documentTypes: DocumentType[];
   documents: RequestedDocument[];
   errors: EditorErrors;
-  publishError: string | null;
+  publishError: ErrorNotice | null;
   titleRef: Ref<HTMLHeadingElement>;
   onRetryCatalog: () => void;
   onAdd: (documentType: DocumentType) => void;

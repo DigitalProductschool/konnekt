@@ -1,11 +1,13 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 
 import httpx2
 import pytest
 
 from app.config import settings
 from app.services.eudiplo import (
+    NOT_CONFIGURED_MESSAGE,
     EudiploClient,
     EudiploConflict,
     EudiploError,
@@ -15,7 +17,7 @@ from app.services.eudiplo import (
     get_eudiplo_client,
     http_error_for,
 )
-from tests.fake_eudiplo import FakeEudiplo
+from tests.fake_eudiplo import FAKE_CLIENT_SECRET, FakeEudiplo
 
 CONFIG_ID = 'fc-7b1f0a9e-3c2d-4e5f-8a6b-9c0d1e2f3a4b-r1'
 CONFIG: dict[str, Any] = {
@@ -40,6 +42,7 @@ CREDENTIALS = [{'id': 'pid', 'values': [{'family_name': 'Mustermann'}]}]
 def test_saving_a_configuration_needs_every_setting(
     fake_eudiplo: FakeEudiplo,
     monkeypatch: pytest.MonkeyPatch,
+    error_log: Callable[[str], str],
     setting: str,
     name: str,
 ) -> None:
@@ -50,7 +53,18 @@ def test_saving_a_configuration_needs_every_setting(
 
     error = http_error_for(raised.value, 'unused')
     assert error.status_code == 503
-    assert error.detail == {'error': 'Not configured', 'message': f'{name} is not set'}
+    detail = cast(dict[str, str], error.detail)
+    error_id = detail['error_id']
+    assert detail == {
+        'error': 'Not configured',
+        'message': NOT_CONFIGURED_MESSAGE,
+        'error_id': error_id,
+    }
+    # Only the log names the setting, under the id the answer carries, and no value
+    assert name not in str(detail)
+    line = error_log(error_id)
+    assert f'{name} is not set' in line
+    assert FAKE_CLIENT_SECRET not in line
     assert fake_eudiplo.calls == []
 
 
@@ -154,6 +168,7 @@ def test_listing_sessions(fake_eudiplo: FakeEudiplo) -> None:
 )
 def test_error_answers(
     fake_eudiplo: FakeEudiplo,
+    error_log: Callable[[str], str],
     status_code: int,
     error_class: type[EudiploError],
 ) -> None:
@@ -165,12 +180,16 @@ def test_error_answers(
         client.create_offer(CONFIG_ID, reference='r')
 
     assert isinstance(raised.value, EudiploError)
-    error = http_error_for(raised.value, 'EUDIPLO could not start the request')
+    error = http_error_for(raised.value, 'The wallet service could not start it')
     assert error.status_code == 502
-    assert error.detail == {
+    detail = cast(dict[str, str], error.detail)
+    error_id = detail['error_id']
+    assert detail == {
         'error': 'Upstream error',
-        'message': 'EUDIPLO could not start the request',
+        'message': 'The wallet service could not start it',
+        'error_id': error_id,
     }
+    assert error_class.__name__ in error_log(error_id)
 
 
 def test_timeouts_and_unexpected_answers_are_unavailable() -> None:

@@ -290,6 +290,12 @@ draft." are left out.
   form ID.", "Add at least one document.", "Select at least one field for 'Personal ID'.") and
   moves the focus there. A refused `POST` shows the API's message in a danger alert "Couldn’t
   publish".
+- **Server errors** (no frame; decided 2026-10-11, bug `config-error-leak`): after a `5xx` answer
+  the API's message is generic, "Something went wrong on our side, so nothing was saved. Contact an
+  administrator and give them the error ID." (a `500` leaves out "so nothing was saved"). A second
+  line, "Error ID: " and the answer's `error_id`, follows it in the same text style; one click
+  selects the ID (`select-all`). The shared `ErrorNoticeText` renders both, in the alert and under
+  the webhook address alike.
 
 ## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
@@ -307,8 +313,9 @@ for an existing connection, the webhook address or the summary.
   above the link.
 - **Updates by webhook** (no frame): the card pattern of "UseCase/Create card": the mode ("Mode:
   Pull – serviceBW calls the result link." or "Mode: Webhook – …"), the field "Webhook address"
-  and "Save address" / "Remove address"; the API's message shows next to the field, and "Webhook
-  address saved/removed. New requests use … mode." is announced.
+  and "Save address" / "Remove address"; the API's message (with its error ID after a `5xx`)
+  shows next to the field, and "Webhook address saved/removed. New requests use … mode." is
+  announced.
 - **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
   items") and its fields in the data card's columns.
 - **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your

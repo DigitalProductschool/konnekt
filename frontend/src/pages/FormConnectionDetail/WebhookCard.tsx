@@ -3,11 +3,13 @@ import { flushSync } from 'react-dom';
 
 import { updateFormConnection } from '../../api/form-connections';
 import checkCircleIcon from '../../assets/icons/check-circle.svg';
+import ErrorNoticeText from '../../components/ErrorNoticeText';
 import TextField from '../../components/TextField';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import type { ErrorNotice } from '../../types/api';
 import { DETAIL_COPY } from './constants';
 import type { WebhookCardProps } from './types';
-import { saveErrorMessage, webhookReducer } from './utils';
+import { saveErrorNotice, webhookReducer } from './utils';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
 
@@ -27,7 +29,7 @@ export default function WebhookCard({ formConnection, onSaved }: WebhookCardProp
   const inputRef = useRef<HTMLInputElement>(null);
 
   /** Shows the message next to the field and moves the focus there. */
-  function refuse(error: string) {
+  function refuse(error: ErrorNotice) {
     flushSync(() => dispatch({ type: 'failed', error }));
     inputRef.current?.focus();
   }
@@ -44,7 +46,7 @@ export default function WebhookCard({ formConnection, onSaved }: WebhookCardProp
       });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        refuse(saveErrorMessage(error));
+        refuse(saveErrorNotice(error));
       }
     }
   }
@@ -56,7 +58,7 @@ export default function WebhookCard({ formConnection, onSaved }: WebhookCardProp
     }
     const value = state.value.trim();
     if (!value) {
-      refuse(DETAIL_COPY.webhookRequired);
+      refuse({ message: DETAIL_COPY.webhookRequired });
       return;
     }
     void save(value);
@@ -95,7 +97,7 @@ export default function WebhookCard({ formConnection, onSaved }: WebhookCardProp
           placeholder={DETAIL_COPY.webhookPlaceholder}
           value={state.value}
           maxLength={2000}
-          error={state.error}
+          error={state.error && <ErrorNoticeText notice={state.error} />}
           onChange={(event) => dispatch({ type: 'change', value: event.target.value })}
         />
         <div className="flex flex-wrap items-center gap-16">

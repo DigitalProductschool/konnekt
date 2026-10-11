@@ -258,9 +258,9 @@ Before release, a reviewer checks every screen of the management UI against WCAG
 
 | Symptom | Likely cause |
 |---|---|
-| Saving a form connection answers `503 Not configured` | An EUDIPLO setting is empty. The message names which one; `EUDIPLO_TRUST_LIST_ID` is the usual one |
+| Saving a form connection answers `503 Not configured` | An EUDIPLO setting is empty. The backend's log names which one, in the line that starts with the answer's `error_id` (the UI's "Error ID"); `EUDIPLO_TRUST_LIST_ID` is the usual one |
 | Saving a form connection answers `502` | Wrong EUDIPLO URL or credentials, or a missing `presentation:manage` role |
-| A trigger answers `502`, and the backend logs EUDIPLO `404` | No active access key chain in the tenant |
+| A trigger answers `502`, and the backend's line for its `error_id` names `EudiploNotFound` (EUDIPLO answered `404`) | No active access key chain in the tenant |
 | A trigger answers `502`, and the backend logs EUDIPLO `403` | The API client has a `allowedPresentationConfigs` allow-list. Remove it |
 | Management actions answer `415` | The request wasn't sent as JSON. The frontend client always sends JSON, so check any manual `curl` calls |
 | Sign-in works but the next call answers `401` in development | The UI was opened via `127.0.0.1` or a LAN address instead of `localhost` |

@@ -1,4 +1,4 @@
-import type { ApiErrorResponse, ApiResponse } from '../types/api';
+import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '../types/api';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.
@@ -32,7 +32,21 @@ export function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
   }
 
   const record = value as Record<string, unknown>;
-  return typeof record.error === 'string' && typeof record.message === 'string';
+  return (
+    typeof record.error === 'string' &&
+    typeof record.message === 'string' &&
+    (record.error_id === undefined || typeof record.error_id === 'string')
+  );
+}
+
+/**
+ * What to show for a failed call: the API's message and, after a 5xx answer, the error ID that
+ * the backend logged the details under. Any other failure gets the fallback message.
+ */
+export function errorNoticeOf(error: unknown, fallback: string): ErrorNotice {
+  return error instanceof ApiError
+    ? { message: error.data.message, error_id: error.data.error_id }
+    : { message: fallback };
 }
 
 async function parseJson(response: Response): Promise<unknown> {

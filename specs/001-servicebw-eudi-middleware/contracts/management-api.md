@@ -9,6 +9,9 @@
 - **Response format**: every success body is `{"data": …, "message"?: …}`, where `data` is `null`
   when nothing is returned. Errors are `{"error": …, "message": …}`, raised as `HTTPException`
   (Constitution I).
+- **Server errors**: a `5xx` error also carries `error_id`, a UUID under which the backend logged
+  what went wrong. Its message stays generic: no setting, component or exception text reaches the
+  client. The UI shows the ID, so that it can be passed on to an administrator.
 - **Schemas**: the Pydantic schemas in `backend/app/schemas.py` are the source of truth. The
   TypeScript interfaces in `frontend/src/types/` mirror them in the same change.
 - **Signing in** (FR-007):
@@ -30,8 +33,9 @@
   | `401` | `Unauthorized` | Not signed in, or the session expired |
   | `404` | `Not found` | Unknown or deleted form connection |
   | `415` | `Unsupported media type` | A state-changing request without `Content-Type: application/json` |
-  | `502` | `Upstream error` | EUDIPLO could not create the request configuration for a new revision. Nothing was saved |
-  | `503` | `Not configured` | The middleware's EUDIPLO settings are incomplete: `EUDIPLO_URL`, the client credentials or `EUDIPLO_TRUST_LIST_ID` is empty. Nothing was saved, and the message names the missing setting (research R3) |
+  | `500` | `Internal server error` | An unexpected error. The log has the details under the `error_id` |
+  | `502` | `Upstream error` | EUDIPLO could not create the request configuration for a new revision. Nothing was saved. The log has the details under the `error_id` |
+  | `503` | `Not configured` | The middleware's EUDIPLO settings are incomplete: `EUDIPLO_URL`, the client credentials or `EUDIPLO_TRUST_LIST_ID` is empty. Nothing was saved. Only the log names the missing setting, under the `error_id` (research R3) |
 
 ## Schemas
 

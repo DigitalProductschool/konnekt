@@ -214,8 +214,10 @@ revision's documents and the catalog (R4).
   - One shared trust list matters because Paradym, the first test wallet, "cannot handle differing
     `trusted_authorities` in DCQL queries".
   - While `EUDIPLO_TRUST_LIST_ID` is empty, the middleware refuses to create a configuration and
-    answers `503 Not configured` with a message that names the setting. FR-010 therefore can't be
-    bypassed without anyone noticing.
+    answers `503 Not configured`. FR-010 therefore can't be bypassed without anyone noticing.
+    **(user, 2026-10-11)** The answer's message is generic and carries an `error_id`, and only the
+    backend's log names the missing setting, under that ID. Naming it in the message, as first
+    planned, showed backend configuration in the UI (bug `config-error-leak`).
 - **Formats**: the mDL rulebook allows only the ISO 18013-5 encoding for mDLs. The PID is offered
   in both formats. SD-JWT VC is chosen because both test wallets support it, and so do the EU and
   German PID providers.

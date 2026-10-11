@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,6 +13,7 @@ from app.db import SessionLocal
 from app.models import FormConnection, FormConnectionRevision
 from app.routers.form_connections import CONFIG_FAILED
 from app.services.dcql import config_hash
+from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
 from tests.fake_eudiplo import FAKE_TRUST_LIST_ID, FakeEudiplo
 
 BASE_URL = 'https://middleware.test'
@@ -355,6 +357,7 @@ def test_creating_answers_503_while_a_eudiplo_setting_is_empty(
     signed_in_client: TestClient,
     fake_eudiplo: FakeEudiplo,
     monkeypatch: pytest.MonkeyPatch,
+    error_log: Callable[[str], str],
     setting: str,
     name: str,
 ) -> None:
@@ -363,24 +366,53 @@ def test_creating_answers_503_while_a_eudiplo_setting_is_empty(
     response = signed_in_client.post('/api/form-connections', json=NEW_FORM_CONNECTION)
 
     assert response.status_code == 503
+    error_id = response.json()['error_id']
     assert response.json() == {
         'error': 'Not configured',
-        'message': f'{name} is not set',
+        'message': NOT_CONFIGURED_MESSAGE,
+        'error_id': error_id,
     }
+    # Only the log names the setting, under the id that the answer carries
+    assert 'EUDIPLO' not in response.text
+    assert f'{name} is not set' in error_log(error_id)
     assert fake_eudiplo.calls == []
     assert _count(FormConnection) == 0
 
 
-@pytest.mark.parametrize('status_code', [400, 500, 503])
+@pytest.mark.parametrize(
+    ('status_code', 'error_name'),
+    [
+        (400, 'EudiploUnavailable'),
+        # The client leaves 404 and 409 to its callers without logging them
+        (404, 'EudiploNotFound'),
+        (409, 'EudiploConflict'),
+        (500, 'EudiploUnavailable'),
+        (503, 'EudiploUnavailable'),
+    ],
+)
 def test_creating_answers_502_and_saves_nothing_when_eudiplo_fails(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, status_code: int
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    error_log: Callable[[str], str],
+    status_code: int,
+    error_name: str,
 ) -> None:
     fake_eudiplo.fail('create_config', status_code)
 
     response = signed_in_client.post('/api/form-connections', json=NEW_FORM_CONNECTION)
 
     assert response.status_code == 502
-    assert response.json() == {'error': 'Upstream error', 'message': CONFIG_FAILED}
+    error_id = response.json()['error_id']
+    assert response.json() == {
+        'error': 'Upstream error',
+        'message': CONFIG_FAILED,
+        'error_id': error_id,
+    }
+    assert 'EUDIPLO' not in response.text
+    # The log says what went wrong, but not what EUDIPLO answered
+    line = error_log(error_id)
+    assert error_name in line
+    assert 'Forced failure' not in line
     assert _count(FormConnection) == 0
     assert _count(FormConnectionRevision) == 0
 

@@ -24,7 +24,9 @@ os.environ['EUDIPLO_CLIENT_ID'] = FAKE_CLIENT_ID
 os.environ['EUDIPLO_CLIENT_SECRET'] = FAKE_CLIENT_SECRET
 os.environ['EUDIPLO_TRUST_LIST_ID'] = FAKE_TRUST_LIST_ID
 
-from collections.abc import Iterator
+import logging
+import uuid
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -104,6 +106,26 @@ def signed_in_client(client: TestClient) -> TestClient:
     )
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def error_log(caplog: pytest.LogCaptureFixture) -> Callable[[str], str]:
+    """Look up the log line of the error id that a 5xx answer carries.
+
+    The lookup checks that the id is a UUID and that exactly one ERROR line names it.
+    """
+
+    def line_of(error_id: str) -> str:
+        assert uuid.UUID(error_id).version == 4
+        lines = [
+            record.getMessage()
+            for record in caplog.records
+            if record.levelno == logging.ERROR and error_id in record.getMessage()
+        ]
+        assert len(lines) == 1, lines
+        return lines[0]
+
+    return line_of
 
 
 @pytest.fixture
