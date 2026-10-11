@@ -113,11 +113,11 @@ with `{"error": "Validation error", "message": …}`, and the message names the 
 |---|---|
 | At least one document | "Add at least one document." |
 | Document type exists in the catalog | "Unknown document type 'xyz'." |
-| Each document type at most once | "'ID (PID)' is added more than once." |
-| At least one field per document | "Select at least one field for 'ID (PID)'." |
-| Every field exists for its document type, and none twice | "Unknown field 'abc' for 'ID (PID)'." |
+| Each document type at most once | "'Personal ID' is added more than once." |
+| At least one field per document | "Select at least one field for 'Personal ID'." |
+| Every field exists for its document type, and none twice | "Unknown field 'abc' for 'Personal ID'." |
 | Webhook address is a valid absolute URL with an allowed scheme | "The webhook address must be an https:// URL." |
-| Name and serviceBW form present and within limits | "Enter a name." |
+| Name and serviceBW form present and within limits | "Enter a name.", "Enter the form ID." (the UI calls the serviceBW form "Form ID") |
 
 The request schemas accept empty lists on purpose. The template's generic handler for
 `RequestValidationError` only answers "Invalid request payload", so these checks happen in the
@@ -142,7 +142,7 @@ service layer, where the message can name the problem.
 ```json
 [
   { "document_type": "pid", "fields": ["family_name", "given_name", "birthdate", "address_locality"] },
-  { "document_type": "mdl", "fields": ["document_number", "driving_privileges", "expiry_date"] }
+  { "document_type": "mdl", "fields": ["expiry_date", "document_number", "driving_privileges"] }
 ]
 ```
 
@@ -275,10 +275,11 @@ has a `key`, a `label`, a credential format, the format's identifiers, and an or
 fields. Each field has a `key`, a `label` and a claim path.
 
 - **Field keys** are stable: they appear in the API and in the documents delivered to serviceBW.
-- **Labels** are placeholders. The final wording and language follow the Figma design.
+- **Labels** are UI copy. They use the Figma design's wording where the design names a field
+  (decided 2026-10-10, [design-notes.md](design-notes.md) §8), and this list's wording elsewhere.
 - **Requests**: every field selected for a request is required (research R3).
 
-### `pid`: ID (PID)
+### `pid`: Personal ID
 
 The format is `dc+sd-jwt`, and `vct_values` is `urn:eudi:pid:1` (EU base type) and
 `urn:eudi:pid:de:1` (German PID). The source is PID rulebook v1.7, in its SD-JWT VC encoding.
@@ -286,10 +287,10 @@ The format is `dc+sd-jwt`, and `vct_values` is `urn:eudi:pid:1` (EU base type) a
 | Key | Claim path | Label |
 |---|---|---|
 | `family_name` | `family_name` | Family name |
-| `given_name` | `given_name` | Given names |
+| `given_name` | `given_name` | Given name |
 | `birthdate` | `birthdate` | Date of birth |
 | `place_of_birth` | `place_of_birth` | Place of birth (an object with `locality`, `region` and/or `country`) |
-| `nationalities` | `nationalities` | Nationalities |
+| `nationalities` | `nationalities` | Nationality |
 | `address_formatted` | `address` → `formatted` | Address (full) |
 | `address_street_address` | `address` → `street_address` | Street (may include the house number) |
 | `address_house_number` | `address` → `house_number` | House number |
@@ -298,20 +299,20 @@ The format is `dc+sd-jwt`, and `vct_values` is `urn:eudi:pid:1` (EU base type) a
 | `address_region` | `address` → `region` | State or region |
 | `address_country` | `address` → `country` | Country of residence |
 | `personal_administrative_number` | `personal_administrative_number` | Personal administrative number |
-| `picture` | `picture` | Facial image |
+| `picture` | `picture` | Photo |
 | `birth_family_name` | `birth_family_name` | Family name at birth |
-| `birth_given_name` | `birth_given_name` | Given names at birth |
+| `birth_given_name` | `birth_given_name` | Given name at birth |
 | `sex` | `sex` | Sex |
 | `email` | `email` | Email address |
 | `phone_number` | `phone_number` | Mobile phone number |
 | `document_number` | `document_number` | Document number |
-| `date_of_issuance` | `date_of_issuance` | Date of issue |
-| `date_of_expiry` | `date_of_expiry` | Date of expiry |
+| `date_of_issuance` | `date_of_issuance` | Issue date |
+| `date_of_expiry` | `date_of_expiry` | Expiry date |
 | `issuing_authority` | `issuing_authority` | Issuing authority |
 | `issuing_country` | `issuing_country` | Issuing country |
 | `issuing_jurisdiction` | `issuing_jurisdiction` | Issuing jurisdiction |
 
-### `mdl`: Mobile driving licence
+### `mdl`: Driving licence
 
 The format is `mso_mdoc`, the `doctype_value` is `org.iso.18013.5.1.mDL`, and every claim path is
 `["org.iso.18013.5.1", <key>]`. The source is ISO/IEC 18013-5. The mDL rulebook allows only this
@@ -320,20 +321,20 @@ encoding.
 | Key | Label | Key | Label |
 |---|---|---|---|
 | `family_name` | Family name | `height` | Height (cm) |
-| `given_name` | Given names | `weight` | Weight (kg) |
+| `given_name` | Given name | `weight` | Weight (kg) |
 | `birth_date` | Date of birth | `eye_colour` | Eye colour |
-| `issue_date` | Date of issue | `hair_colour` | Hair colour |
-| `expiry_date` | Date of expiry | `birth_place` | Place of birth |
+| `issue_date` | Issue date | `hair_colour` | Hair colour |
+| `expiry_date` | Expiry date | `birth_place` | Place of birth |
 | `issuing_country` | Issuing country | `resident_address` | Resident address |
 | `issuing_authority` | Issuing authority | `portrait_capture_date` | Portrait capture date |
 | `document_number` | Licence number | `age_in_years` | Age in years |
 | `portrait` | Portrait | `age_birth_year` | Year of birth |
-| `driving_privileges` | Driving privileges | `issuing_jurisdiction` | Issuing jurisdiction |
+| `driving_privileges` | Licence classes | `issuing_jurisdiction` | Issuing jurisdiction |
 | `un_distinguishing_sign` | UN distinguishing sign | `nationality` | Nationality |
 | `administrative_number` | Administrative number | `resident_city` | Resident city |
 | `sex` | Sex | `resident_state` | Resident state |
 | `family_name_national_character` | Family name (national characters) | `resident_postal_code` | Resident postal code |
-| `given_name_national_character` | Given names (national characters) | `resident_country` | Resident country |
+| `given_name_national_character` | Given name (national characters) | `resident_country` | Resident country |
 | `signature_usual_mark` | Signature or usual mark | | |
 
 The catalog leaves out mDL elements whose names vary by issuer (`age_over_NN`,

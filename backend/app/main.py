@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .errors import register_exception_handlers
 from .routers.auth import router as auth_router
+from .routers.document_types import router as document_types_router
+from .routers.form_connections import router as form_connections_router
 from .schemas import to_iso_utc
 from .services.worker import Worker
 
@@ -59,3 +61,5 @@ def health_check() -> dict[str, dict[str, str]]:
 
 
 app.include_router(auth_router)
+app.include_router(document_types_router)
+app.include_router(form_connections_router)

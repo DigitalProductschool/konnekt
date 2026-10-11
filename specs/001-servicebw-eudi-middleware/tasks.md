@@ -281,15 +281,15 @@ This is quickstart V1.
 
 ### Implementation for User Story 1
 
-- [ ] T031 [P] [US1] Create `backend/app/catalog.py` with the two document types exactly as listed in data-model.md "Document type catalog". Use immutable dataclasses and lookup helpers by key. Use the labels from design-notes.md where T023 changed them.
+- [X] T031 [P] [US1] Create `backend/app/catalog.py` with the two document types exactly as listed in data-model.md "Document type catalog". Use immutable dataclasses and lookup helpers by key. Use the labels from design-notes.md where T023 changed them.
   - `pid`: format `dc+sd-jwt`, `vct_values` `urn:eudi:pid:1` and `urn:eudi:pid:de:1`, and the 25 fields with their keys, claim paths and labels;
   - `mdl`: format `mso_mdoc`, doctype `org.iso.18013.5.1.mDL`, namespace `org.iso.18013.5.1`, and the 31 fields.
-- [ ] T032 [P] [US1] Add `DocumentField`, `DocumentType`, `RequestedDocument`, `RequestedDocumentView`, `FormConnectionSummary`, `FormConnection`, `FormConnectionCreate` and `FormConnectionUpdate` to `backend/app/schemas.py`, exactly as in contracts/management-api.md "Schemas":
+- [X] T032 [P] [US1] Add `DocumentField`, `DocumentType`, `RequestedDocument`, `RequestedDocumentView`, `FormConnectionSummary`, `FormConnection`, `FormConnectionCreate` and `FormConnectionUpdate` to `backend/app/schemas.py`, exactly as in contracts/management-api.md "Schemas":
   - field names are snake_case;
   - timestamps are converted with `to_iso_utc`;
   - request schemas accept empty lists;
   - `FormConnectionUpdate` tells an absent `webhook_url` from `null` through `model_fields_set`.
-- [ ] T033 [US1] Create `backend/app/services/dcql.py` (depends on T031). It builds the EUDIPLO presentation configuration body of a revision exactly as in contracts/eudiplo-usage.md "Presentation configuration (call 2)".
+- [X] T033 [US1] Create `backend/app/services/dcql.py` (depends on T031). It builds the EUDIPLO presentation configuration body of a revision exactly as in contracts/eudiplo-usage.md "Presentation configuration (call 2)".
   - One credential query per document:
     - `id` is the document type key, with `format` and `meta` (`vct_values` or `doctype_value`);
     - every query carries the same `trusted_authorities` `[{"type": "etsi_tl", "values": [{"trustListId": EUDIPLO_TRUST_LIST_ID}]}]`;
@@ -297,31 +297,31 @@ This is quickstart V1.
     - there are no `credential_sets` and no `claim_sets`.
   - The body also has `id` `fc-{form_connection_id}-r{revision}`, `description` (the form connection's name), `lifeTime` and `statusCheckMode: "strict"`.
   - `config_hash` is the SHA-256 hex of the canonical JSON (sorted keys, compact separators) of the body without `id` and `description`.
-- [ ] T034 [US1] Implement `backend/app/routers/document_types.py`: `GET /api/document-types`, for signed-in users only, returning `200 {"data": DocumentType[]}` in catalog order. Register it in `backend/app/main.py`.
-- [ ] T035 [US1] Implement creating, reading and listing in `backend/app/services/form_connections.py`:
+- [X] T034 [US1] Implement `backend/app/routers/document_types.py`: `GET /api/document-types`, for signed-in users only, returning `200 {"data": DocumentType[]}` in catalog order. Register it in `backend/app/main.py`.
+- [X] T035 [US1] Implement creating, reading and listing in `backend/app/services/form_connections.py`:
   - **Validation**: the rules and messages of data-model.md "Validation (FR-003)", for example "Add at least one document.", "Select at least one field for 'ID (PID)'." and "The webhook address must be an https:// URL." `http://` is allowed only with `ALLOW_PLAIN_HTTP`. Documents are stored in catalog order.
   - **Create**: create the EUDIPLO configuration with `create_config`, then insert the form connection and revision 1 (`lifetime_seconds` = `REQUEST_LIFETIME_SECONDS`, plus `config_hash`). If the commit fails, delete the configuration again (best effort, logged).
   - **Get**: 404 for unknown or deleted form connections.
   - **List**: form connections that aren't deleted, most recently updated first.
   - **Derived values**: `mode`, `trigger_url` = `{CONNECTION_BASE_URL}/api/connect/{id}/requests`, and `pull_url` = `…/requests/{reference}` with the literal placeholder.
-- [ ] T036 [US1] Implement updating `name`, `servicebw_form` and `webhook_url` in `backend/app/services/form_connections.py`:
+- [X] T036 [US1] Implement updating `name`, `servicebw_form` and `webhook_url` in `backend/app/services/form_connections.py`:
   - an absent field is unchanged, and `webhook_url: null` removes the address;
   - the same validation applies as on creation;
   - no revision is created ("never because the name, the serviceBW form or the webhook address changed", data-model.md).
-- [ ] T037 [US1] Implement `backend/app/routers/form_connections.py`, and register it in `backend/app/main.py`:
+- [X] T037 [US1] Implement `backend/app/routers/form_connections.py`, and register it in `backend/app/main.py`:
   - `GET /api/form-connections`;
   - `POST /api/form-connections` (201, message "Form connection created");
   - `GET /api/form-connections/{id}`;
   - `PUT /api/form-connections/{id}` (message "Form connection updated");
   - every endpoint depends on `get_current_user`, and the state-changing ones also on `require_json`;
   - EUDIPLO exceptions are mapped with `http_error_for`.
-- [ ] T038 [P] [US1] Add `frontend/src/types/document-types.ts` and `frontend/src/types/form-connections.ts`, mirroring the T032 schemas. Add `frontend/src/api/document-types.ts` (`getDocumentTypes`) and `frontend/src/api/form-connections.ts` (`listFormConnections`, `createFormConnection`, `getFormConnection`, `updateFormConnection`).
-- [ ] T039 [P] [US1] Build `frontend/src/components/CopyableUrl/` (with `types.ts`): a read-only URL with a one-action copy button using `navigator.clipboard`. A visually hidden live region announces "copied" (contracts/ui-screens.md "Accessibility").
-- [ ] T040 [US1] Build the overview `frontend/src/pages/FormConnectionList/` as in contracts/ui-screens.md "Overview". US4 adds the active/deactivated state.
+- [X] T038 [P] [US1] Add `frontend/src/types/document-types.ts` and `frontend/src/types/form-connections.ts`, mirroring the T032 schemas. Add `frontend/src/api/document-types.ts` (`getDocumentTypes`) and `frontend/src/api/form-connections.ts` (`listFormConnections`, `createFormConnection`, `getFormConnection`, `updateFormConnection`).
+- [X] T039 [P] [US1] Build `frontend/src/components/CopyableUrl/` (with `types.ts`): a read-only URL with a one-action copy button using `navigator.clipboard`. A visually hidden live region announces "copied" (contracts/ui-screens.md "Accessibility").
+- [X] T040 [US1] Build the overview `frontend/src/pages/FormConnectionList/` as in contracts/ui-screens.md "Overview". US4 adds the active/deactivated state.
   - each row is a `FormConnectionRow` sub-component showing the name and serviceBW form, and opens `/form-connections/:id`;
   - a "Create form connection" action;
   - loading, empty (with a prompt to create the first one) and error states.
-- [ ] T041 [US1] Build the create screen `frontend/src/pages/FormConnectionEditor/` as in contracts/ui-screens.md "Create and edit":
+- [X] T041 [US1] Build the create screen `frontend/src/pages/FormConnectionEditor/` as in contracts/ui-screens.md "Create and edit":
   - `useReducer` state, with the actions defined in `types.ts`;
   - name and serviceBW form fields;
   - a `DocumentPicker` sub-component that adds catalog types, each once, and removes them again;
@@ -329,7 +329,7 @@ This is quickstart V1.
   - client-side checks with the same messages as the API, shown next to their field, moving the focus to the first invalid field;
   - `POST`, then navigate to the details screen, and show the API's 400 `message` if it refuses;
   - constants and helpers in `constants.ts` and `utils.ts`.
-- [ ] T042 [US1] Build the details screen `frontend/src/pages/FormConnectionDetail/` as in contracts/ui-screens.md "Details":
+- [X] T042 [US1] Build the details screen `frontend/src/pages/FormConnectionDetail/` as in contracts/ui-screens.md "Details":
   - the trigger URL and pull URL, each in a `CopyableUrl`, with a hint that serviceBW fills in `{reference}`;
   - the current mode, pull or webhook;
   - the webhook address field, with save and remove (`PUT` with `webhook_url`, or with `null`), its validation message, and an announced "saved" status;
@@ -337,17 +337,29 @@ This is quickstart V1.
 
 ### Tests for User Story 1
 
-- [ ] T043 [P] [US1] Write `backend/tests/unit/test_catalog.py` and `backend/tests/unit/test_dcql.py`:
+- [X] T043 [P] [US1] Write `backend/tests/unit/test_catalog.py` and `backend/tests/unit/test_dcql.py`:
   - catalog: unique keys, 25 PID and 31 mDL fields, and the claim paths and formats of data-model.md;
   - DCQL: the body for the PID + mDL example equals contracts/eudiplo-usage.md, claims follow catalog order, and every query has the same trust list;
   - hash: it ignores `id` and `description`, and changes with the trust list or the lifetime.
-- [ ] T044 [US1] Write `backend/tests/api/test_form_connections.py`:
+- [X] T044 [US1] Write `backend/tests/api/test_form_connections.py`:
   - creating with two documents returns stable URLs and `mode: "pull"`;
   - every validation message of data-model.md;
   - 503 when a EUDIPLO setting is empty, and 502 with nothing stored when the fake EUDIPLO fails;
   - get and list, with deleted form connections hidden;
   - `PUT` with a webhook address switches `mode` to `webhook`, `null` removes it, and `http://` is refused unless `ALLOW_PLAIN_HTTP`;
   - 401 without a session.
+
+The UI follows Figma "Middleware – V2"'s signed-in screens, with the user's decisions of
+2026-10-10 in design-notes.md §5–9:
+- creating is a three-step wizard whose first two steps stay in the browser; "Publish" sends the
+  one `POST` (no drafts, no "Save and exit");
+- the full catalog with the design's labels, and adding a document selects no field;
+- the details screen is an overview-style page with the link cards, a webhook card and a
+  documents card;
+- the overview opens the wizard with "New connection".
+
+Until T065, `PUT /api/form-connections/{id}` answers `400` "Changing the documents is not
+supported yet." when the body has `documents`.
 
 **Checkpoint**: User Story 1 works on its own (quickstart V1).
 

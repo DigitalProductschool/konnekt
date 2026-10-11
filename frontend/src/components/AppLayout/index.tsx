@@ -1,3 +1,4 @@
+import { ROUTES } from '../../constants';
 import TopBar from '../TopBar';
 import UserMenu from '../UserMenu';
 import type { AppLayoutProps } from './types';
@@ -6,11 +7,12 @@ import type { AppLayoutProps } from './types';
 export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="bg-kern-neutral-025 flex min-h-screen flex-col">
-      <TopBar>
+      <TopBar logoTo={ROUTES.overview}>
         <UserMenu />
       </TopBar>
-      <main className="flex-1 px-16 pt-40 pb-48">
-        <div className="mx-auto flex w-full max-w-1040 flex-col gap-24">{children}</div>
+      {/* The column fills the height, so that a page can centre a state in it */}
+      <main className="flex flex-1 flex-col px-16 pt-40 pb-48">
+        <div className="mx-auto flex w-full max-w-1040 flex-1 flex-col gap-24">{children}</div>
       </main>
     </div>
   );

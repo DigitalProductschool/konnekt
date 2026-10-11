@@ -107,25 +107,25 @@ connection's current revision, all in one interaction (FR-009).
     "documents": [
       {
         "document_type": "pid",
-        "label": "ID (PID)",
+        "label": "Personal ID",
         "fields": [
           { "key": "family_name", "label": "Family name", "value": "Mustermann" },
-          { "key": "given_name", "label": "Given names", "value": "Erika" },
+          { "key": "given_name", "label": "Given name", "value": "Erika" },
           { "key": "birthdate", "label": "Date of birth", "value": "1984-01-26" },
           { "key": "address_locality", "label": "City or town", "value": "Stuttgart" }
         ]
       },
       {
         "document_type": "mdl",
-        "label": "Mobile driving licence",
+        "label": "Driving licence",
         "fields": [
+          { "key": "expiry_date", "label": "Expiry date", "value": "2034-03-01" },
           { "key": "document_number", "label": "Licence number", "value": "B072RRE2I55" },
           {
             "key": "driving_privileges",
-            "label": "Driving privileges",
+            "label": "Licence classes",
             "value": [{ "vehicle_category_code": "B", "issue_date": "2019-03-01" }]
-          },
-          { "key": "expiry_date", "label": "Date of expiry", "value": "2034-03-01" }
+          }
         ]
       }
     ]

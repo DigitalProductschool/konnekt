@@ -78,9 +78,8 @@ trigger URL, and `$REF` is a request reference.
 ### V1: Set up a form connection (US1, FR-001 to FR-005, SC-001, SC-002)
 
 1. Create a form connection called "Führerscheinantrag Test", with any serviceBW form text.
-   - Add **ID (PID)** with *Family name*, *Given names*, *Date of birth* and *City or town*.
-   - Add **Mobile driving licence** with *Licence number*, *Driving privileges* and *Date of
-     expiry*.
+   - Add **Personal ID** with *Family name*, *Given name*, *Date of birth* and *City or town*.
+   - Add **Driving licence** with *Licence number*, *Licence classes* and *Expiry date*.
 2. Remove every field from one document and try to save.
    - **Expected**: saving is refused, with a message that names the document.
 3. Select the fields again and save.
@@ -164,7 +163,7 @@ how the middleware reports them (`verification_failed`).
 
 ### V5: Maintaining form connections (US4, FR-005, FR-006)
 
-1. Trigger a request and leave it pending. Then edit the form connection to add *Nationalities* to
+1. Trigger a request and leave it pending. Then edit the form connection to add *Nationality* to
    the PID, and save.
    - **Expected**: the URLs are unchanged.
 2. Complete the pending request.

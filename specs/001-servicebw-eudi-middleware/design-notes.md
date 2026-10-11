@@ -1,14 +1,20 @@
 # Design notes: management UI
 
-**Tasks**: T023, T084 | **Date**: 2026-10-09 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T023, T084, T039–T042 | **Date**: 2026-10-10 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
-- **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`): the
-  signed-out screens "01 Log in" (`153:7661`) and "01b Forgot password" (`2041:7569`), with the
-  top bar they use. Sections 1–4 follow V2, except the user menu in section 3.
+- **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`):
+  - the signed-out screens "01 Log in" (`153:7661`) and "01b Forgot password" (`2041:7569`);
+  - the signed-in screens of Phase 3 (sections 5–7): "S3 Your connections" (`2066:12985`) and
+    "S4 New connection" (`2077:18315`), the wizard "02–02d Create connection" (`2080:6059`,
+    `2080:6160`, `2080:6261`, `2080:6367`, `2080:6473`), "03–06d Documents" (`2080:6574`,
+    `2080:6700`, `2080:7208`, `2080:7480`, `2080:8064`, `2080:6904`, `2080:7753`), "22/23
+    Published" (`2080:8271`, `2080:8406`), "L1 Loading" (`2073:5601`) and "E1 Page not found"
+    (`2073:5728`).
+  - The page "🤖 Flow for AI" (`2081:4013`) maps the actions to their screens. It says to ignore
+    S3, 02d and R1–R3; S3 and 02d are used all the same, as decided in section 9.
 - **Figma "Middleware – V1"** (`hsxN4JO9iGWVxMHHehpOwC`), page "Final Screens" (`33:3`): the
-  user menu and every signed-in screen. The user menu and sections 5–8 still describe V1 and have
-  not been checked against V2.
+  user menu (section 3), which V2 hasn't changed.
 
 Node ids can change when the files are edited.
 
@@ -22,8 +28,8 @@ open.
 - **Product name**: **Decision (2026-10-09, V2)**: "Product name", as in V2, which doesn't name
   the product yet (V1 called it "BridgeID"). Tab titles read "{page} – Product name".
   `APP_NAME` in `frontend/src/constants.ts` holds it, and `frontend/index.html` repeats it.
-- **"Use case"** is the UI's word for a form connection. The API, the code and the spec keep
-  "form connection".
+- **"Connection"** is the UI's word for a form connection ("Your connections", "New
+  connection"; V1 said "use case"). The API, the code and the spec keep "form connection".
 - **Tone**: short sentences in the second person ("Ask your admin to reset it.", "Your sign-in is
   encrypted"), typographic apostrophes (’).
 
@@ -61,13 +67,14 @@ The design uses KERN 2.8 tokens; every colour has a token. Values in light mode:
 
 | Figma style | Size / line height | Weight | Used for |
 |---|---|---|---|
-| `heading/display` | 48/56 (`2x-large-adaptive`) | 500 | sign-in headline |
-| `heading/large` | 26/32 (`large-adaptive`) | 600 | page title, forgot-password title |
+| `heading/display` | 48/56 (`2x-large-adaptive`) | 500 | sign-in headline, page titles (V2) |
+| `heading/large`, `title/large` | 26/32 (`large-adaptive`) | 600 | forgot-password title, "Your connection is live", dialog title |
 | `heading/medium`, `title/default` | 21/24 (`medium-adaptive`) | 600 | card, section and alert titles |
 | `title/small`, `label/default`, `body/default/bold` | 18/24 | 600 | labels, names, buttons |
 | `body/default/regular` | 18/24 | 400 | body text, inputs |
 | `body/large/regular` | 21/32 | 400 | page hints, sign-in lead |
 | `body/small/regular`, `label/small` | 16/24 | 400 / 600 | metadata, small buttons, menu |
+| step number of "App/Progress" | 13/16 | 600 | the project token `--text-step` (2026-10-10) |
 
 **Decision (2026-10-09)**: the frames use KERN's adaptive type at its small-screen values (48/56,
 26/32, 21/24) on 1440 px. `kern.css` makes these larger from 768 px (72/80, 32/40, 24/32), so
@@ -87,6 +94,13 @@ at the small-screen values on every width.
   `--shadow-card` for now. **Decision (2026-10-09, V2)**: the chips of the sign-in illustration
   have a shadow without an effect style (#0071551A, 0 6 16); it is the project token
   `--shadow-chip`.
+- **Decision (2026-10-10)**: the values of the V2 signed-in screens that have no token are taken
+  exactly. "Feedback/Toast"'s drop shadow (#12142633, 0 8 12) is the project token
+  `--shadow-toast`, and the step number (13/16) is `--text-step`. The "todo" step circle's 1.5px
+  border and the toast's 6px radius stay raw values in their one component each. Chromium draws
+  the 1.5px border 1px wide at a device pixel ratio of 1.
+- The dialog's border is `layout-border` (#6e7597), and its scrim is `layout-text-default` at 50%
+  (kern.css: black at 72%).
 
 ### KERN in code
 
@@ -106,9 +120,11 @@ a 1455 px window.
 
 ## 3. App shell
 
-- **Frame**: 1440 wide. On the signed-in screens (V1) the content column is 1040 px, centred
-  (x = 200), 40 px below the 64 px top bar, 48 px above the bottom on the overview, with 24 px
-  between blocks. The signed-out screens are in section 4.
+- **Frame**: 1440 wide. On the signed-in screens (V1 and V2) the content column is 1040 px,
+  centred (x = 200), 40 px below the 64 px top bar, 48 px above the bottom on the overview, with
+  24 px between blocks. The wizard (section 6) has a 1120 px column (x = 160), 40 px below its
+  header, with 32 px between blocks, above an 80 px footer bar. The signed-out screens are in
+  section 4.
 - **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border (inside
   the 64 px), padding 0 32, gap 16. Logo (V2): a 16 px text-default square with radius 2 (V1:
   20 px, radius 4), 8 px gap, then the product name (16/24, 600); the logo sits at y = 19.5, the
@@ -125,8 +141,15 @@ a 1455 px window.
     48 px, padding 0 16, gap 12, 20 px icon, 16/24 600; hover neutral-050.
   - **Decision (2026-10-09)**: the signed-in top bar uses this trigger and panel. Accounts have
     only a username, so the panel shows the username and no email line.
-- **Page title ("App/Page title", `37:56`)**: the page's `h1` (26/32, 600), with an optional hint
-  under it (21/32, muted), gap 8.
+- **Page title ("App/Page title", `37:56`)**: the page's `h1`, with an optional hint under it,
+  gap 8. V2 made it 48/56, 500 (`heading/display`), with an 18/24 muted hint (V1: 26/32 and
+  21/32).
+- **Logo**: on the signed-in screens it links to the overview, as V2's flow says ("logo → S4").
+- **Wizard header ("App/Header", `37:15` in V2)**: the logo, a 1px × 24px neutral-100 separator
+  and the step's title (16/24, 600), lined up with the wizard's 1120 px column (x = 160).
+  `TopBar` draws it with `title` and `width="column"`; `WizardLayout` adds the column and the
+  footer bar. The title is "New connection", and from the documents step the form name. V2's
+  status badge and meta are left out, since there are no drafts.
 - **Legal footer**: removed. V2's sign-in screens have no footer, and V2 moves "App/Legal footer"
   (`151:995`) to "Deprecated (unused)". In Phase 2 it showed "© 2026 BridgeID" under the sign-in
   screen.
@@ -207,90 +230,112 @@ an `h2`; the tab titles are "Log in" and "Forgot password".
 **After logging out**: **Decision (2026-10-09, V2)**: the plain sign-in screen. V2 has no
 logged-out frame, so the Phase 2 "You’re logged out" alert ("U2 Logged out" in V1) is gone.
 
-## 5. Overview (`/`, frame "R1 Your use cases" `142:7687`)
+## 5. Overview (`/`, frames "S3 Your connections" `2066:12985` and "S4" `2077:18315`)
 
-The R frames sit in a section named "Later · returning users (not in this test)".
-- Page title "Use cases", hint "3 use cases"; primary button "Create new use case" (add icon);
-  caption "Use cases (3)" (16/24 muted, "Text/Caption"); list gap 8.
-- Row ("UseCase/Row", `141:1595`), 1040×76: white card, padding 12/12/12/16, gap 16; name
-  column 260 px (name 18/24 600, meta "Form ID FS-20417 · 2 rules" 16/24 muted); status column
-  130 px with a small KERN badge ("Live · v1" success, "Draft · v2" info); "Edited 12 Sep
-  2026" (16/24 muted); spacer; "View" (tertiary small, underlined) and "Edit" (secondary small,
-  edit icon).
-- No loading, empty or error frames.
+**Decision (2026-10-10)**: S3's layout with a "New connection" button, not S4's inline form,
+which has no submit button. The overview stays at `/`, also right after signing in.
+- Page title "Your connections" with the hint "Open a connection to copy its links, or connect
+  another form." (S3: "Pick up your draft or connect another form."; there are no drafts).
+- "New connection" (primary, add icon, 203×48), 24 px below the title; then "Connections (n)"
+  ("Text/Caption", 16/24 muted) and the rows, gap 8.
+- Row ("UseCase/Row", `141:1595`), 1040×76: white card, padding 12/12/12/16, gap 16; the name
+  column (260 px: name 18/24 600, "Form ID …" 16/24 muted), "Edited 5 Oct 2026" (16/24 muted),
+  a spacer and "View" (KERN tertiary small, underlined). The status badge (130 px column) and
+  "Edit" come with US4 (T072, T074), and "· n documents" would need a count in the API's summary.
+- **States** (no frames): loading is "Feedback/Loader" from L1 ("Loading your connections…");
+  the empty list is the "Doc/Empty setup" pattern ("No connections yet" / "Create your first
+  connection. …") under the button; an error is a KERN danger alert with "Try again".
 
-## 6. Create and edit
+## 6. Create (`/form-connections/new`, frames 02–06d)
 
-**Wizard header ("App/Header", `37:15`)**: logo, a separator, the form name (16/24 600), a status
-badge, the version ("v1 · saved 09:41", muted), and the stepper ("App/Step", `37:14`: pills with
-a 28 px number circle; current, done and todo states): "Use case", "Documents", "Rules", "Test",
-"Publish". **Wizard footer ("App/Footer", `37:64`)**: 80 px white bar: "Back", "Save and exit"
-(tertiary) on the left; "Continue" (primary) on the right.
+**Decision (2026-10-10)**: a wizard whose first two steps stay in the browser. "Publish" creates
+the connection with the one `POST` the API has, after the dialog "Is this all the data you
+need?". The API has no drafts, so "Save and exit" (S1/S2), the "Draft" badge and "Starts as a
+draft." are left out.
+- **Progress ("App/Progress" style B, `2006:8022`)**: "Connection", "Documents", "Publish";
+  current = blue circle and 16/24 600 name, done = darkblue-050 circle with a 16 px tick and a
+  blue name that leads back, todo = 1.5 px decorative-border circle and a muted name; 4 px bars,
+  gap 10 below the names. The steps are a `nav` with an ordered list.
+- **Step 1 (02, 02a; the title of 02d)**: "Create a connection" (02d, as the wizard is opened
+  from the overview) / "Connect any form to the EUDI Wallet for applicants to share verified
+  information." The card "UseCase/Create card": "Which form are you connecting?" / "You can
+  change these details later.", "Form name" (`name`) and "Form ID" (`servicebw_form`, 320 px),
+  each with an (i) toggletip ("Tooltip/Info": 320 px, darkblue-050, darkblue-500 border,
+  `--shadow-menu`, arrow on the left or right, 2 px below the icon). The footer note says only
+  "Nothing goes live until you publish." The footer's button says **"Continue"**, not "Create
+  connection", because nothing is created yet.
+- **Step 2 (03–06)**: "Add documents" / "Choose which wallet documents applicants share, and which
+  data from each." The panel "Doc/Panel" (296 px: "Available in the wallet", a row per catalog
+  document with "+ Add", or "✓ Added", which turns into a red "Remove" on hover and keyboard
+  focus as in 06a; then "Coming to the wallet (6)", closed by default) and, 24 px to the right,
+  "Doc/Empty setup" or one "Doc/Data card" per document (800 px, 12 px apart): tile, name, "n of
+  m shared", "All data" and the fields as KERN checkboxes, 236 px each (three per row on
+  desktop, fewer on narrow screens).
+  - **Decision (2026-10-10)**: adding a document selects **no** field (V2: all of them). With the
+    full catalog that would request 25 or 31 fields, and a field missing from a citizen's PID
+    makes the wallet decline. "All data" is mixed (a dash) while only some fields are selected.
+  - Removing a document shows the toast "Driving licence removed · Undo" (04a: centred 24 px
+    above the footer bar, 6 s). Its time stops while the pointer or the focus is on it; Undo
+    brings the document back with its selection and focuses its row.
+- **Footer ("App/Footer")**: "Back" (KERN tertiary) and "Publish" (primary); a sticky bar, so
+  that "Publish" stays in reach on long field lists.
+- **Dialog 06d**: KERN's dialog on a native modal `<dialog>`: "Is this all the data you need?" /
+  "Applicants will be asked to share Personal ID (4 items) and Driving licence (3 items). Once you
+  publish, the form goes live with this data." / "Check again", "Confirm and publish". It matches
+  the KERN Figma dialog, whose strokes are inside: the outline is an inset ring, the footer's top
+  padding 23 px, the title 8 px lower than kern.css puts it, and the two buttons equally wide.
+  Below 576 px it is KERN's bottom sheet.
+- **Validation (contract over design)**: the buttons stay enabled (V2 disables them). A click
+  with missing input shows the API's message next to its field ("Enter a name.", "Enter the
+  form ID.", "Add at least one document.", "Select at least one field for 'Personal ID'.") and
+  moves the focus there. A refused `POST` shows the API's message in a danger alert "Couldn’t
+  publish".
 
-**02/02a "Create use case" (`153:7903`, `153:8066`)**: page title "Create your first use case",
-hint "A use case connects one form to the EUDI Wallet. Applicants share verified data instead
-of uploading documents." Card "Which form are you connecting?" / "You can change these details
-later." with "Form name" ("As applicants see it.", placeholder "e.g. Passenger transport
-licence") and "Form ID" ("From your form management system.", placeholder "e.g. FG-48213",
-320 px). Footer: badge "Draft · v1", "Nothing goes live until you publish.", primary "Create
-use case" (disabled until both fields are filled).
+## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
-**03–06 "Documents" (`52:409`, `65:3868`, `65:4299`, `52:824`)**: page title "Add documents",
-hint "Choose which wallet documents applicants share, and which data from each."
-- Left, 408 px: catalogue card with "Search documents"; group "Available in the wallet" (2):
-  "Personal ID" ("Name, birth date, address") and "Driving licence" ("Classes, issue dates"),
-  each with "Add" (secondary small) or "Added" (primary small); group "Upcoming documents in the
-  wallet" (6, greyed, no action, "You can add these once the wallet supports them."):
-  "Certificate of good conduct", "Proof of expertise", "Eye test certificate", "Medical fitness
-  certificate", "Residence permit", "Vehicle registration".
-- Right, 608 px: "In this setup" with "Nothing added yet" / "1 document · choose the data it
-  shares" / "2 documents · choose the data each one shares"; empty state "No documents yet" /
-  "Add Personal ID or Driving licence from the list." (dashed neutral-300 border).
-- Data card ("Doc/Data card", `41:887`): tile, document name, "{n} of {total} shared", an
-  icon-only remove (×) button, an "All data" checkbox (indeterminate when partial) and the
-  fields as KERN checkboxes (32 px box, label 18/24 400) in two 260 px columns. Adding a
-  document selects all its fields.
-
-**R2 "New use case" (`142:7841`)**: an inline editor on the overview ("Form name", "Form ID",
-"Version": "Draft", "Version 1"; "Cancel", "Create use case").
-**R3 "Edit a live version" (`142:8035`)**: KERN dialog over a scrim: "Create version 2 of
-Fishing licence?" / "You’ll edit a copy. Version 1 stays live until you publish version 2." /
-"Cancel", "Create version 2".
-
-## 7. Details ("22 Published" `59:3630`, "23 Published – link copied" `65:6676`)
-
-- Success alert "Published" / "Add both links to your form. Each goes in its own field."
-- Two link cards ("Publish/Link", `50:888`): number circle; "Wallet check link" (chip "For
-  applicants", "Paste into Settings › Wallet sign-in › Start link.") and "Result link" (chip
-  "For your form", "Paste into Settings › Wallet sign-in › Result address."); a read-only URL
-  box and "Copy link" (secondary, copy icon; "Copied" after copying).
-- Toast "Link copied" ("Feedback/Toast", `87:844`, announced politely, closes by itself).
-- Footer: "Edit rules" (secondary) and "Create new use case" (primary).
-- Error pattern from "F4" (`88:8938`): KERN danger alert "Couldn’t publish" / "Nothing went live.
-  Check your connection and try again."
+**Decision (2026-10-10)**: an overview-style page (top bar, 1040 px column), as V2 has no frame
+for an existing connection, the webhook address or the summary.
+- Page title: the connection's name, with "Form ID …" as hint.
+- **Links ("Publish/Success card", `2017:6932`)**: padding 40, gap 16. Right after publishing it
+  shows the 72 px ring tick, the "Published" badge and "Your connection is live" (26/32 600),
+  which takes the focus; otherwise the title is "Links for your form". Then "Add both links to
+  your form. Each one goes in its own field." and the two "Publish/Link card"s (number, title,
+  (i), URL box and "Copy link"; 12 px apart): "Request link" = trigger URL, "Result link" = pull
+  URL, with "serviceBW puts the request’s reference in place of {reference}." under it. The (i)
+  toggletips have no frame; their text explains what serviceBW does with each link. "Copy link"
+  turns into "Copied" with a tick for 3 s (23); V2 has no toast. Below 576 px the number goes
+  above the link.
+- **Updates by webhook** (no frame): the card pattern of "UseCase/Create card": the mode ("Mode:
+  Pull – serviceBW calls the result link." or "Mode: Webhook – …"), the field "Webhook address"
+  and "Save address" / "Remove address"; the API's message shows next to the field, and "Webhook
+  address saved/removed. New requests use … mode." is announced.
+- **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
+  items") and its fields in the data card's columns.
+- **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your
+  connections") for an unknown or deleted connection; otherwise a title with "Try again".
 
 ## 8. Field labels: design versus catalog
 
-The design offers 7 Personal ID fields and 5 Driving licence fields; the catalog in
-[data-model.md](data-model.md#document-type-catalog) has 25 and 31.
+**Decision (2026-10-10)**: the full catalog of [data-model.md](data-model.md#document-type-catalog)
+(25 and 31 fields), with the design's wording where the design names a field, and the same
+wording for the same words elsewhere (Given name, Issue date, Expiry date):
 
-| Design label | Catalog key | Catalog label |
+| Design label | Catalog key | Label in code (was) |
 |---|---|---|
-| Given name | `pid.given_name` | Given names |
-| Family name | `pid.family_name` | Family name |
-| Date of birth | `pid.birthdate` | Date of birth |
-| Address | none (`address_formatted` or the `address_*` group) | — |
-| Nationality | `pid.nationalities` | Nationalities |
-| Place of birth | `pid.place_of_birth` | Place of birth |
-| Photo | `pid.picture` | Facial image |
-| Licence classes | `mdl.driving_privileges` | Driving privileges |
-| Class B issue date | none (inside `driving_privileges`) | — |
-| Card format | none (no ISO 18013-5 element) | — |
-| Expiry date | `mdl.expiry_date` | Date of expiry |
-| Restrictions | none (codes inside `driving_privileges`) | — |
+| Personal ID | `pid` | Personal ID (ID (PID)) |
+| Driving licence | `mdl` | Driving licence (Mobile driving licence) |
+| Given name | `pid.given_name`, `mdl.given_name` | Given name (Given names) |
+| Family name, Date of birth, Place of birth | `pid.family_name`, `pid.birthdate`, `pid.place_of_birth` | unchanged |
+| Nationality | `pid.nationalities` | Nationality (Nationalities) |
+| Photo | `pid.picture` | Photo (Facial image) |
+| Licence classes | `mdl.driving_privileges` | Licence classes (Driving privileges) |
+| Issue date | `mdl.issue_date`, `pid.date_of_issuance` | Issue date (Date of issue) |
+| Expiry date | `mdl.expiry_date`, `pid.date_of_expiry` | Expiry date (Date of expiry) |
+| Address | none (`address_formatted` or the `address_*` fields) | catalog labels |
+| Card format, Restrictions, Class B issue date | none in the credentials | not offered |
 
-Document names: "Personal ID" (catalog "ID (PID)") and "Driving licence" (catalog "Mobile
-driving licence").
+Also changed with them: "Given name at birth" and "Given name (national characters)". The labels
+appear in the API and in the documents delivered to serviceBW.
 
 ## 9. Differences from the contract
 
@@ -308,41 +353,32 @@ links, the benefit wording and the logged-out alert.
 - the `--shadow-chip` token, with the illustration's tints written as the success token with an
   opacity.
 
-**Open, to decide before Phase 3** (the contract keeps the behavior until then). These were
-raised against V1; check them against V2 first, since V2 may have changed those screens:
-1. **Field catalog**: cut the catalog to the design's subset and labels, or show every catalog
-   field. Three design fields have no data source (section 8), and "Address" needs a mapping.
-2. **Wizard**: the 5-step stepper. Rules, Test and Publish have no API. Which steps to show, and
-   what "Save and exit" and "Continue" do, given that the API saves name, form and documents in
-   one call.
-3. **Drafts, versions and publishing**: the API has no drafts; a saved form connection works at
-   once, and editing keeps the URLs (FR-005). The "Draft"/"Live"/"Published" badges, "v1",
-   "Nothing goes live until you publish." and R3's new-version dialog need replacement wording
-   (active/deactivated, and the FR-005 note that requests in progress keep their configuration).
-4. **Create layout**: the 02 card on `/form-connections/new` or the R2 inline editor on `/`.
-5. **Details screen**: there is no frame. Proposed: the frame of 22 with the two link cards for
-   `trigger_url` ("Wallet check link"?) and `pull_url` ("Result link"?), plus the `{reference}`
-   hint, the mode, the webhook address field, the configuration summary, "Edit", and
-   deactivate/reactivate/delete with KERN dialogs (R3 pattern). Also whether the chip "For
-   applicants" fits, since serviceBW, not the applicant, calls the trigger URL.
-6. **Overview row**: "· n rules" and the version have no data; the meta line would show the
-   serviceBW form. "Live"/"Draft" become active/deactivated (wording and badge style), and the
-   order is most recently updated first.
-7. **Missing states**: loading, empty and error states of the overview, validation errors on the
-   create and documents screens (the design disables buttons instead; SC-009 needs messages and
-   focus on the first problem), and the details screen's loading and error states.
-8. **Upcoming documents and search**: not in the API; hard-code them or leave them out.
+**Decided with the V2 signed-in screens** (2026-10-10, sections 5–8; the eight points that were
+open before Phase 3):
+1. **Field catalog**: the full catalog with the design's wording; adding selects no field.
+2. **Wizard**: three steps; the first two stay in the browser, and "Publish" saves (no drafts,
+   no "Save and exit").
+3. **Drafts, versions, publishing**: none in the API. "Published"/"live" stand for a saved
+   connection; the active/deactivated badge comes with US4.
+4. **Create layout**: the wizard at `/form-connections/new`, opened by S3's "New connection".
+5. **Details**: an overview-style page with 22's link cards, a webhook card and a documents card.
+6. **Overview row**: name, "Form ID …", "Edited …", "View"; status and "Edit" come with US4.
+7. **Missing states**: from L1, E1 and "Doc/Empty setup"; validation messages instead of
+   disabled buttons.
+8. **Upcoming documents**: shown as designed, from a fixed list in the frontend; search is gone
+   in V2.
 
 ## 10. Assets and implementation notes
 
 - Glyphs used so far are in `frontend/src/assets/icons/` (Material Symbols from the design, not
   changed): `lock` (grey), `lock-blue`, `check` (white, the seal), `check-circle` (success, the
-  chips), `emergency-home` (error), `logout`, `expand-more` (chevron). The dot grid of the
-  sign-in illustration is `frontend/src/assets/illustrations/dot-grid.svg`. The V1 benefit
-  glyphs (`verified-user`, `task-alt`, `schedule`) were removed with the benefits. KERN's own
-  icons are used where the design uses KERN's icon components (visibility, info, danger in
-  alerts). The document glyphs (personal-id, driving-licence, document), `save` and `remove` are
-  still to be exported from Figma.
+  chips and the webhook confirmation), `emergency-home` (error), `logout`, `expand-more` and
+  `expand-less` (chevrons), `personal-id` and `driving-licence` (muted and `-blue`), `document`,
+  `document-blue` and `document-small` (16.8 px), `check-blue-small` (the stepper's tick),
+  `tooltip-arrow` and `loader` (56 px). The illustrations are `dot-grid.svg` and
+  `success-tick.svg` (72 px). `utils/documentGlyphs.ts` picks a document type's glyph. KERN's own
+  icons are used where the design uses KERN's icon components: visibility, info (in the muted
+  colour), danger, add, arrows, close, check, content-copy and draft.
 - KERN kit notes for Phase 3: `KernInput` passes `placeholder` and other input attributes
   through, but its hint and error ids are fixed, so two inputs with hints share an id.
   `KernCheckbox` has no indeterminate state (it needs a ref). Buttons and badges have no size
@@ -350,4 +386,11 @@ raised against V1; check them against V2 first, since V2 may have changed those 
 - Icon-only buttons (remove ×, toast close, dialog close) need accessible names; the design
   has no focus states, so KERN's focus outline is used. **Decision (2026-10-10)**: for
   keyboard focus only (`:focus-visible`). `kern.css` draws it on any `:focus`, so it stayed on
-  buttons after a click; `index.css` turns that off for every KERN button.
+  buttons after a click; `index.css` turns that off for every KERN button, and for KERN's
+  checkboxes too.
+- Phase 3 notes: `.kern-btn:has(.kern-sr-only)` is 48 px wide in kern.css, so visually hidden
+  text inside a labelled KERN button uses Tailwind's `sr-only`. KERN checkbox labels get the
+  design's 6/2 baseline padding (kern.css: 4/2). Because kern.css isn't in a cascade layer, a
+  Tailwind state variant on a KERN-classed element needs `!` too (`group-hover:hidden!`).
+  KERN's own Fira Sans files give the slash wide sidebearings, so URLs show "https:/ /" more
+  spaced than in Figma; that is the font file, not the CSS.

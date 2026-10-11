@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="tick">
+<rect x="2.5" y="2.5" width="67" height="67" rx="33.5" stroke="#007155" stroke-width="5"/>
+<circle id="fill" cx="36" cy="36" r="22" fill="#CDF2E4"/>
+<g id="check">
+<path id="Vector" d="M33.55 42L27.85 36.3L29.275 34.875L33.55 39.15L42.725 29.975L44.15 31.4L33.55 42Z" fill="#007155"/>
+</g>
+</g>
+</svg>
