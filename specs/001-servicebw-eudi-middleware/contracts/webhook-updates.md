@@ -42,10 +42,10 @@ network" assumption). The webhook address must use `https://`, unless the operat
   "documents": [
     {
       "document_type": "pid",
-      "label": "ID (PID)",
+      "label": "Personal ID",
       "fields": [
         { "key": "family_name", "label": "Family name", "value": "Mustermann" },
-        { "key": "given_name", "label": "Given names", "value": "Erika" }
+        { "key": "given_name", "label": "Given name", "value": "Erika" }
       ]
     }
   ]

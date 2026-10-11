@@ -230,6 +230,9 @@ Key points:
   without a body, which the backend's CSRF check requires), returns the `data` of
   the `{data, message?}` envelope, and throws an `ApiError` carrying the
   `{error, message}` body when the request failed
+- A page that calls the API passes failures through `useSignOutOnUnauthorized()` first: a
+  `401` means the session expired, so the app signs out and the route guard asks for a sign-in
+  that returns to the page
 - Define TypeScript interfaces in `src/types/`, matching the backend Pydantic
   schemas field for field (snake_case)
 - Use proper HTTP methods (GET, POST, PUT, DELETE)
@@ -395,23 +398,27 @@ cd frontend
   which still follows the browser's preference
 - Focus rings show for keyboard focus only. `kern.css` draws the ring of its buttons on any
   `:focus`, so a click or a tap would leave it on the button; the
-  `.kern-btn:focus:not(:focus-visible)` rule in `index.css` turns that off for every KERN button.
-  Keep it, and give your own interactive elements `focus-visible:` rings (as `UserMenu` does),
-  never `focus:` ones
+  `.kern-btn:focus:not(:focus-visible)` rule in `index.css` turns that off for every KERN button,
+  and a second rule for KERN's checkboxes. Keep them, and give your own interactive elements
+  `focus-visible:` rings (as `UserMenu` does), never `focus:` ones
 - `index.css` keeps KERN's adaptive type tokens at their small-screen values on every width,
   as the Figma design uses them, so `text-kern-adaptive-*` matches Figma
 - With the KERN Tailwind theme, numeric utilities are pixels (`p-16` is 16px). KERN's CSS is not
-  in a cascade layer, so it beats Tailwind utilities on the same property: wrap the KERN element
-  instead, or use the `!` suffix sparingly (`pr-56!`)
+  in a cascade layer, so it beats Tailwind utilities on the same property, state variants
+  included: wrap the KERN element instead, or use the `!` suffix sparingly (`pr-56!`,
+  `group-hover:hidden!`). Inside a labelled `kern-btn`, hide text with Tailwind's `sr-only`, not
+  `kern-sr-only`: `kern.css` makes any `.kern-btn` that contains `.kern-sr-only` icon-sized
 - The visual design comes from Figma (see "Figma implementation workflow" below);
   `specs/001-servicebw-eudi-middleware/design-notes.md` records its copy, tokens and the decisions
-  taken. The UI calls form connections "use cases". SVG glyphs from the design live in
-  `src/assets/icons/`, decorative SVGs in `src/assets/illustrations/`; KERN's own icons use the
-  `kern-icon` classes
+  taken. The UI calls form connections "connections" (V1 said "use cases"). SVG glyphs from the
+  design live in `src/assets/icons/`, decorative SVGs in `src/assets/illustrations/`; KERN's own
+  icons use the `kern-icon` classes
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
-  `AppLayout`, the signed-out ones (`/login`, `/forgot-password`) inside `RequireSignedOut` and
-  `AuthLayout`. Every page sets its tab title with `useDocumentTitle()` and has one `h1`:
+  `AppLayout`, except the create wizard (`/form-connections/new`), which renders its own
+  `WizardLayout` (header with a title, 1120 px column, sticky action bar); the signed-out ones
+  (`/login`, `/forgot-password`) render inside `RequireSignedOut` and `AuthLayout`. Every page
+  sets its tab title with `useDocumentTitle()` and has one `h1`:
   `PageTitle` on signed-in screens, the intro's headline in `AuthLayout` on signed-out ones
 - Links between the app's routes are React Router `Link`s with KERN's classes (`kern-link`, or
   `kern-btn kern-btn--primary` with a `kern-label` span): `KernLink` and `KernButton` with `href`

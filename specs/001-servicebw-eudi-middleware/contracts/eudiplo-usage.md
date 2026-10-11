@@ -68,9 +68,9 @@ connection is held while a call is waiting (research R15).
           { "type": "etsi_tl", "values": [{ "trustListId": "<EUDIPLO_TRUST_LIST_ID>" }] }
         ],
         "claims": [
+          { "path": ["org.iso.18013.5.1", "expiry_date"] },
           { "path": ["org.iso.18013.5.1", "document_number"] },
-          { "path": ["org.iso.18013.5.1", "driving_privileges"] },
-          { "path": ["org.iso.18013.5.1", "expiry_date"] }
+          { "path": ["org.iso.18013.5.1", "driving_privileges"] }
         ]
       }
     ]

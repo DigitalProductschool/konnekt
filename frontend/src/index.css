@@ -19,6 +19,12 @@
   --shadow-menu: 0 10px 28px 0 rgb(19 21 37 / 0.16);
   /* The shadow of the check chips in the sign-in illustration, which has no Figma effect style */
   --shadow-chip: 0 6px 16px 0 rgb(0 113 85 / 0.1);
+  /* Figma "Feedback/Toast", whose drop shadow has no effect style */
+  --shadow-toast: 0 8px 12px 0 rgb(18 20 38 / 0.2);
+
+  /* The number in a step circle of Figma "App/Progress", smaller than any KERN text style */
+  --text-step: 13px;
+  --text-step--line-height: 16px;
 }
 
 /*
@@ -57,6 +63,23 @@
  */
 .kern-btn:focus:not(:focus-visible) {
   outline: none !important;
+}
+
+/* The same for KERN's checkboxes, which also draw their ring on any :focus */
+.kern-form-check__checkbox:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/*
+ * KERN has no indeterminate checkbox, which "All data" needs when only some fields are
+ * selected: a dash in the colour and stroke width of KERN's own check mark.
+ */
+.kern-form-check__checkbox:indeterminate::before {
+  display: block;
+  width: var(--kern-metric-space-default);
+  height: var(--kern-metric-border-width-default);
+  margin: 13px auto 0;
+  background-color: var(--kern-color-form-input-border-contextual);
 }
 
 @layer base {

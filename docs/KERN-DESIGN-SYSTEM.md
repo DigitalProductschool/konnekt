@@ -418,6 +418,21 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
   hence `!important`): `.kern-btn:focus:not(:focus-visible) { outline: none !important; }`.
   Keyboard focus and forced colors (`outline: auto` on `:focus-visible`) keep KERN's ring, and
   links already use `:focus-visible`. Checkboxes and radios draw their ring on `:focus` as well.
+- **The reverse also holds: `.kern-btn:has(.kern-sr-only)` is 48px wide.** Any `.kern-sr-only`
+  inside a KERN button makes it icon-sized, so text that only screen readers should hear in a
+  labelled button ("View <name>") uses another visually-hidden class, such as Tailwind's `sr-only`.
+- **Checkboxes**: `.kern-form-check .kern-label` has a 4px top padding, while the KERN Figma
+  checkbox uses the label baseline padding of 6px/2px; there is no indeterminate style (this
+  project draws a dash in `index.css`), and the focus ring shows on any `:focus` (turned off for
+  pointer focus like the buttons').
+- **Dialogs**: `<dialog class="kern-dialog">` opened with `showModal()` sits in the top left
+  corner under Tailwind, whose preflight sets `margin: 0` on every element and so cancels the
+  browser's `margin: auto` for modal dialogs; add `m-auto`. The KERN Figma dialog draws its border
+  and the footer's top border inside its frame and puts the title in a container with an 8px top
+  padding, so kern.css's dialog is 3px taller and its title 8px higher than the Figma one.
+  `.kern-dialog__footer .kern-btn` only sets `flex-grow`, so two buttons of different borders
+  end up 2px apart in width; give them explicit widths. Below 576px kern.css turns the dialog into
+  a bottom sheet.
 - **Tertiary buttons tint their background on hover (8%) and press (16%).** To show only the icon
   of an icon-only tertiary button, override both with `[&:is(:hover,:active)]:bg-transparent!`.
   Not `hover:`: Tailwind 4 wraps it in `@media (hover: hover)`, while KERN's rule also matches the
