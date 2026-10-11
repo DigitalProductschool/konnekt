@@ -15,6 +15,7 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
  * card". The footer's "Continue" submits this form.
  */
 export default function ConnectionStep({
+  title,
   name,
   servicebwForm,
   errors,
@@ -30,11 +31,7 @@ export default function ConnectionStep({
 
   return (
     <>
-      <PageTitle
-        ref={titleRef}
-        title={EDITOR_COPY.connectionTitle}
-        hint={EDITOR_COPY.connectionHint}
-      />
+      <PageTitle ref={titleRef} title={title} hint={EDITOR_COPY.connectionHint} />
       <form id={ELEMENT_IDS.form} noValidate onSubmit={handleSubmit}>
         <section
           aria-labelledby="form-details-title"

@@ -10,6 +10,8 @@ export const EDITOR_COPY = {
   headerTitle: 'New connection',
   // Step 1, Figma "02d Create a connection"
   connectionTitle: 'Create a connection',
+  // Step 1 at /get-started, Figma "02 Create connection"
+  firstConnectionTitle: 'Create your first connection',
   connectionHint:
     'Connect any form to the EUDI Wallet for applicants to share verified information.',
   formCardTitle: 'Which form are you connecting?',

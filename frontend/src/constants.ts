@@ -5,6 +5,8 @@ export const ROUTES = {
   login: '/login',
   forgotPassword: '/forgot-password',
   overview: '/',
+  // Where a sign-in without a requested route lands: the wizard until a connection exists
+  firstConnection: '/get-started',
   newFormConnection: '/form-connections/new',
   formConnection: '/form-connections/:id',
   editFormConnection: '/form-connections/:id/edit',

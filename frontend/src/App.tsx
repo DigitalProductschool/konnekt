@@ -4,6 +4,7 @@ import AppLayout from './components/AppLayout';
 import RequireSignedOut from './components/RequireSignedOut';
 import RequireSignIn from './components/RequireSignIn';
 import { ROUTES } from './constants';
+import FirstConnectionPage from './pages/FirstConnection';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import FormConnectionDetailPage from './pages/FormConnectionDetail';
 import FormConnectionEditorPage from './pages/FormConnectionEditor';
@@ -54,6 +55,7 @@ function App() {
         />
       </Route>
       <Route element={<SignedInWizards />}>
+        <Route path={ROUTES.firstConnection} element={<FirstConnectionPage />} />
         <Route path={ROUTES.newFormConnection} element={<FormConnectionEditorPage />} />
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.overview} replace />} />

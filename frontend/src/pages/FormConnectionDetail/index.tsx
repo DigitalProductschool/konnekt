@@ -13,12 +13,11 @@ import ConnectionLinks from './ConnectionLinks';
 import { DETAIL_COPY, INITIAL_DETAIL_STATE } from './constants';
 import DocumentsSummary from './DocumentsSummary';
 import { detailReducer, documentTitleOf, isPublishedState } from './utils';
-import WebhookCard from './WebhookCard';
 
 /**
- * The details at /form-connections/:id: the connection URLs to copy into serviceBW, the
- * webhook address and the requested documents. Right after publishing it confirms that
- * the connection is live (Figma "22 Published").
+ * The details at /form-connections/:id: the connection URLs to copy into serviceBW and the
+ * requested documents. Right after publishing it confirms that the connection is live
+ * (Figma "22 Published").
  */
 export default function FormConnectionDetailPage() {
   const { id = '' } = useParams();
@@ -103,10 +102,6 @@ export default function FormConnectionDetailPage() {
         formConnection={formConnection}
         published={published}
         headingRef={headingRef}
-      />
-      <WebhookCard
-        formConnection={formConnection}
-        onSaved={(updated) => dispatch({ type: 'loaded', formConnection: updated })}
       />
       <DocumentsSummary documents={formConnection.documents} />
     </>
