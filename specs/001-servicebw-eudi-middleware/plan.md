@@ -1,6 +1,6 @@
 # Implementation Plan: serviceBW ↔ EUDI Wallet Form Connections
 
-**Branch**: `sk-proto-1` | **Date**: 2026-10-07 | **Spec**: [spec.md](spec.md)
+**Branch**: `sk-proto-1` | **Date**: 2026-10-07, amended 2026-10-11 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/001-servicebw-eudi-middleware/spec.md`
 
@@ -53,6 +53,14 @@ mock ID-verification API. The stack, tooling and deployment setup stay (research
   - the network restriction is enforced by an allow-list in the repository's nginx (R13);
   - one shared EUDIPLO tenant, accepted until real citizens use the service (R2, R19);
   - what serviceBW can do is still to be confirmed by DO.IT (R20).
+
+**The user's decisions on 2026-10-11** (spec Clarifications, research R16), frontend only:
+- **Webhook address with US3**: the details screen shows the webhook card only once webhook
+  updates are delivered. The backend keeps accepting `webhook_url`, as built in US1.
+- **First-connection screen**: without a requested route, sign-in opens `/get-started`. While no
+  form connection exists, it is the create wizard headed "Create your first connection" (Figma
+  "02 Create connection"); otherwise it gives way to the overview. The logo leads to the
+  overview. No API, schema or setting changes.
 
 ## Technical Context
 
@@ -119,7 +127,8 @@ runs the background worker thread, and PostgreSQL.
 - One team, the DO.IT staff of the City of Stuttgart.
 - Tens of form connections.
 - Up to 100 requests at the same time.
-- 6 UI routes (the Figma design added `/forgot-password`); two document types at launch.
+- 7 UI routes (the Figma design added `/forgot-password` and `/get-started`); two document types
+  at launch.
 
 **Open points**: none block the plan. Every unknown was resolved in [research.md](research.md),
 where the user's decisions are marked. [Research R19](research.md#r19-points-that-dont-block-the-plan-but-need-attention-later)
@@ -239,9 +248,11 @@ frontend/
     ├── pages/
     │   ├── Login/
     │   ├── ForgotPassword/       # says whom to ask; passwords are reset with the account CLI
+    │   ├── FirstConnection/      # /get-started: the create wizard headed "Create your first
+    │   │                         # connection" while no form connection exists, else the overview
     │   ├── FormConnectionList/
     │   ├── FormConnectionEditor/ # create and edit; components/ for document and field pickers
-    │   └── FormConnectionDetail/ # URLs, webhook address, activate/deactivate, delete
+    │   └── FormConnectionDetail/ # URLs, webhook address (shown from US3), activate/deactivate, delete
     └── utils/
 ```
 
@@ -304,6 +315,11 @@ The design artifacts were checked against the constitution once more:
   that the middleware sends, not responses, so the response envelope rule doesn't apply to them.
   Their `reference`, `status` and `documents` have exactly the same shape as in the pull response,
   so serviceBW parses one document format.
+- The 2026-10-11 amendment changes only the frontend. There is no new schema, migration,
+  dependency or setting (I, IV, V), because `/get-started` reuses `GET /api/form-connections`.
+  `pages/FirstConnection/` follows the component rules: sibling `constants.ts` and `types.ts`,
+  no inline styles. The routing change goes into `CLAUDE.md` and `docs/ARCHITECTURE.md`
+  (documentation checklist).
 
 **Gate result (after design)**: PASS, with no violations.
 

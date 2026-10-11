@@ -1,7 +1,7 @@
 # Contract: management UI screens
 
-**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-014, SC-009;
-US1, US4.
+**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-014, FR-022,
+SC-009; US1, US3 (the webhook address), US4.
 **Decisions**: research R16.
 
 This contract fixes **which screens exist and what they let a team member do**. Layout, wording,
@@ -14,15 +14,20 @@ contract wins on behavior. Every screen gets its data only through
 |---|---|---|
 | `/login` | Sign in | FR-007 |
 | `/forgot-password` | Forgot password | FR-007 |
-| `/` | Form connections overview | FR-006; US4, scenario 1 |
+| `/` | Form connections overview | FR-006, FR-022; US1, scenarios 6–7; US4, scenario 1 |
+| `/get-started` | First connection | FR-001 to FR-003, FR-022; US1, scenario 5 |
 | `/form-connections/new` | Create form connection | FR-001 to FR-003; US1, scenarios 1–3 |
-| `/form-connections/:id` | Form connection details | FR-004 to FR-006, FR-014; US1, scenarios 1, 4 and 5; US4, scenarios 3–5 |
+| `/form-connections/:id` | Form connection details | FR-004 to FR-006, FR-014; US1, scenarios 1 and 4; US3, scenario 1; US4, scenarios 3–5 |
 | `/form-connections/:id/edit` | Edit form connection | FR-003, FR-005; US4, scenario 2 |
 
 Every route except `/login` and `/forgot-password` needs a session. When `GET /api/auth/me`
-answers `401`, the app goes to `/login` and returns to the requested route after sign-in. A
-signed-in user who opens `/login` or `/forgot-password` goes on to the app. Every signed-in screen
-shows the user's name and a sign-out action, which leads to the sign-in screen.
+answers `401`, the app goes to `/login` and returns to the requested route after sign-in. Without
+a requested route, sign-in opens `/get-started`, which shows the first-connection screen while no
+form connection exists and the overview otherwise (FR-022). `/` doesn't count as a requested
+route: it is the app's own address, which the sign-in guard also records when someone simply
+opens the app. A signed-in user who opens `/login` or `/forgot-password` goes on to the app in the
+same way. Every signed-in screen shows the user's name, a sign-out action that leads to the
+sign-in screen, and the product name, which leads to the overview.
 
 ## Sign in (`/login`)
 
@@ -43,10 +48,32 @@ shows the user's name and a sign-out action, which leads to the sign-in screen.
   and whether it is active or deactivated. The mode (pull or webhook) may be shown as well.
   Selecting a row opens its details.
 - **Actions**: "Create form connection" opens `/form-connections/new`.
+- **Reached**: through the product name on every signed-in screen, even when no form connection
+  exists (US1, scenario 7), and after sign-in when one does (US1, scenario 6).
 - **States**: loading, an empty list (with a prompt to create the first form connection), and an
   error.
 
+## First connection (`/get-started`)
+
+- **When it opens**: after a sign-in without a requested route, where `/` counts as none (FR-022).
+  It checks once whether any form connection exists, with `GET /api/form-connections`:
+  - **None**: it shows the create screen's steps (below), with "Create your first connection" as
+    the first step's heading and the page title. Everything else, including the validation and
+    what happens after saving, is as on `/form-connections/new` (US1, scenario 5).
+  - **Some, or the check fails**: it replaces itself with the overview, which shows its list or
+    its error state. The same happens when the address is opened later, for example from a
+    bookmark or the browser history (spec Edge Cases).
+  - **While it checks**: a loading state ("Loading your connections…") without the overview's
+    title and actions (Figma L1, design-notes.md §6).
+- **Leaving it**: the product name leads to the overview, which shows its empty state while no
+  form connection exists (US1, scenario 7).
+- Nothing is stored per account: the screen opens at each sign-in until a form connection exists
+  (spec Clarifications, 2026-10-11).
+
 ## Create and edit (`/form-connections/new`, `/form-connections/:id/edit`)
+
+The same create screen also serves `/get-started` for the first form connection, with only the
+first step's heading and page title changed.
 
 - **Name** (required) and **serviceBW form** (required, free text).
 - **Documents**:
@@ -79,11 +106,13 @@ shows the user's name and a sign-out action, which leads to the sign-in screen.
   - The pull URL shows `{reference}` literally, with a short hint that serviceBW substitutes the
     request reference.
   - The URLs never change, and reopening the screen shows the same ones (US1, scenario 4).
-- **Webhook address** (FR-004, FR-014):
+- **Webhook address** (FR-004, FR-014; US3, scenario 1), shown **only once webhook updates are
+  delivered** (US3). Until then the details screen shows neither the field nor the mode, and every
+  form connection created in the UI uses pull mode.
   - A field next to the URLs, with save and remove actions (`PUT` with `webhook_url`, or with
     `webhook_url: null`).
   - It shows the current mode: pull without an address, webhook with one. A change applies to
-    requests triggered after it (US1, scenario 5).
+    requests triggered after it (US3, scenario 1).
 - **Configuration summary**: the name, the serviceBW form, and the requested documents with their
   selected fields. An "Edit" action opens the edit screen.
 - **Status and actions**:

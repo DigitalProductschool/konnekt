@@ -39,7 +39,8 @@ Here, `curl` plays the part of serviceBW.
 
 3. Open <http://localhost:5173>. Use `localhost`, not `127.0.0.1`: the CORS origin and the cookie
    both depend on the host name. Without a session the app redirects to the sign-in screen; sign in
-   as `alice`.
+   as `alice`. While there is no form connection yet, sign-in opens the first-connection screen
+   (V1).
 
 Locally the backend's port 3000 is reachable directly, so `/api/connect/` is **not** restricted on
 a developer machine. The nginx allow-list (R13) applies only to the production image; see
@@ -75,20 +76,39 @@ credentials nor a wallet. It covers among others:
 In the commands below, `$FC` is a form connection's id, taken from its details screen or its
 trigger URL, and `$REF` is a request reference.
 
-### V1: Set up a form connection (US1, FR-001 to FR-005, SC-001, SC-002)
+### V1: Set up a form connection (US1, FR-001 to FR-005, FR-022, SC-001, SC-002)
 
-1. Create a form connection called "Führerscheinantrag Test", with any serviceBW form text.
+Start with no form connection. On a local stack whose database already has some, hide them as a
+deletion would (US4 adds deleting to the UI):
+
+```bash
+docker compose exec postgres psql -U postgres -d template_db \
+  -c "UPDATE form_connections SET deleted_at = now() WHERE deleted_at IS NULL;"
+```
+
+1. Signed out, open the app's own address, <http://localhost:5173/>, and sign in.
+   - **Expected**: `/get-started` opens with the heading "Create your first connection" and the
+     create screen's steps. The app's address doesn't count as a requested screen.
+2. Select the product name in the top bar.
+   - **Expected**: the overview says that there are no connections yet and offers "New
+     connection". Sign out and in again: `/get-started` opens again.
+3. On `/get-started`, create a form connection called "Führerscheinantrag Test", with any
+   serviceBW form text.
    - Add **Personal ID** with *Family name*, *Given name*, *Date of birth* and *City or town*.
    - Add **Driving licence** with *Licence number*, *Licence classes* and *Expiry date*.
-2. Remove every field from one document and try to save.
+4. Remove every field from one document and try to save.
    - **Expected**: saving is refused, with a message that names the document.
-3. Select the fields again and save.
+5. Select the fields again and save.
    - **Expected**: the details screen shows a trigger URL ending in `/api/connect/$FC/requests` and
-     a pull URL ending in `/requests/{reference}`. Each copies with one click, and the mode is
-     **pull**.
-4. Reload the page, or reopen the form connection from the overview.
+     a pull URL ending in `/requests/{reference}`. Each copies with one click. There is no webhook
+     address yet; it comes with US3 (V4).
+6. Reload the page, or reopen the form connection from the overview.
    - **Expected**: the same URLs.
-5. Time the whole setup (target: under 10 minutes, SC-001).
+7. Sign out and in again, then open `/get-started` by its address.
+   - **Expected**: both times the overview opens and lists the form connection.
+8. Sign out, open the form connection's details address, and sign in there.
+   - **Expected**: the details screen opens, not `/get-started` (the requested route wins).
+9. Time the whole setup (target: under 10 minutes, SC-001).
    - Nothing in this scenario needs a code change or a deployment, which is what SC-002 asks for.
    - SC-002's working day runs from DO.IT agreeing on the documents to the first test request
      through the serviceBW form that returns them, so it is timed once serviceBW is connected.
@@ -160,6 +180,9 @@ how the middleware reports them (`verification_failed`).
 6. Start the receiver again within 29 minutes.
    - **Expected**: the `completed` update arrives at the next retry.
    - If the receiver stays down longer, the update is abandoned and the documents are deleted.
+7. On the details screen, remove the webhook address, then trigger, scan and approve.
+   - **Expected**: the mode shows **pull**, the receiver logs nothing, and a pull for this `$REF`
+     returns the documents (US3, scenario 1).
 
 ### V5: Maintaining form connections (US4, FR-005, FR-006)
 
