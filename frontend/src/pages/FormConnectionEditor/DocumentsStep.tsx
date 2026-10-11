@@ -1,5 +1,6 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 
+import ErrorNoticeText from '../../components/ErrorNoticeText';
 import FeedbackLoader from '../../components/FeedbackLoader';
 import FormErrorMessage from '../../components/FormErrorMessage';
 import PageTitle from '../../components/PageTitle';
@@ -36,7 +37,7 @@ export default function DocumentsStep({
 
       {publishError && (
         <KernAlert variant="danger" title={EDITOR_COPY.publishErrorTitle}>
-          {publishError}
+          <ErrorNoticeText notice={publishError} />
         </KernAlert>
       )}
 

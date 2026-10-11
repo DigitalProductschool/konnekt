@@ -54,32 +54,41 @@ When these URLs are used, the middleware will establish a connection to the wall
 - Q: Under which conditions is SC-003 measured? → A: With at least 10 participants using test wallets with sample documents, half starting from the QR code and half from the same-device link.
 - Q: When does SC-002's working day start and end? → A: It starts when DO.IT has agreed which documents the form needs, and ends when a test request through the serviceBW form returns the documents.
 
+### Session 2026-10-11
+
+- Q: Should the management UI let team members enter a webhook address before the middleware delivers webhook updates? → A: No. The webhook address appears in the UI only together with working webhook delivery, so it belongs to User Story 3 instead of User Story 1. The middleware may support storing the address earlier, as long as the UI doesn't offer it.
+- Q: Where does a team member start when no form connection exists yet? → A: On a separate first-connection screen with its own address ("Create your first connection" in the design), instead of the overview. The product name in the top bar still leads to the overview, which then shows that there are no form connections yet.
+- Q: When should the app open the first-connection screen after a team member signs in? → A: When no form connection exists yet. Form connections are shared by the whole team, so the screen opens at every sign-in until the team's first form connection is saved, and never once one exists. No account remembers whether it has signed in before.
+- Q: Should the first-connection screen be the existing create flow, opened at its own address with the heading "Create your first connection"? → A: Yes. It is the same step-by-step create flow as for any other form connection (name and serviceBW form, then documents and fields, then saving), with only its heading and page title changed, and it ends on the new form connection's details like any other.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Set up a form connection and obtain its connection URLs (Priority: P1)
 
 A member of the DO.IT team has built a new form in serviceBW and has identified which documents
 it needs from citizens, for example the ID and the driving licence. In the middleware they create
-a new form connection for that form. They give it a name, note which serviceBW form it belongs to,
-choose the needed documents from the catalog, and select exactly the fields the form needs from
-each document. After saving, the middleware shows the connection URLs for the two connection
-modes, pull and webhook, and a field for serviceBW's webhook address. The team member copies the
-URLs into serviceBW and, to use webhook mode, enters the webhook address.
+a new form connection for that form. While the team has no form connection yet, signing in opens
+straight onto a screen for creating the first one, instead of an empty overview. They give it a
+name, note which serviceBW form it belongs to, choose the needed documents from the catalog, and
+select exactly the fields the form needs from each document. After saving, the middleware shows
+the form connection's connection URLs, and the team member copies them into serviceBW. Entering a
+webhook address, for webhook mode, belongs to User Story 3.
 
 **Why this priority**: Nothing can be requested from a wallet until a form connection exists. It
 lets DO.IT connect a serviceBW form to the EUDI Wallet through configuration instead of a
 development project.
 
-**Independent Test**: Create a form connection with two documents and selected fields, then save
-it. Verify that the connection URLs appear and can be copied, that a webhook address can be
-entered, and that the same URLs are shown when the form connection is reopened.
+**Independent Test**: Starting with no form connection, sign in and check that the
+first-connection screen opens. Create a form connection with two documents and selected fields,
+then save it. Verify that the connection URLs appear and can be copied, and that the same URLs are
+shown when the form connection is reopened.
 
 **Acceptance Scenarios**:
 
 1. **Given** a signed-in DO.IT team member, **When** they create a form connection, link it to a
    serviceBW form, add the ID and the driving licence with selected fields, and save, **Then** the
-   form connection is stored. Its trigger URL and pull URL are shown, each copyable in a single
-   action, together with the field for a webhook address.
+   form connection is stored, and its trigger URL and pull URL are shown, each copyable in a single
+   action.
 2. **Given** a team member is choosing documents, **When** they open a document type in the
    catalog, **Then** they see the fields that document type offers and can select any of them.
 3. **Given** a form connection with no document, or with a document that has no selected field,
@@ -87,8 +96,14 @@ entered, and that the same URLs are shown when the form connection is reopened.
    the problem.
 4. **Given** a saved form connection, **When** the team member reopens it later, **Then** the same
    connection URLs are shown.
-5. **Given** a saved form connection, **When** the team member enters serviceBW's webhook address
-   and saves it, **Then** requests triggered from then on use webhook mode.
+5. **Given** no form connection exists, **When** a team member signs in, **Then** the
+   first-connection screen opens, at its own address, instead of the overview, and they create
+   the form connection there in the same steps as on the create screen.
+6. **Given** at least one form connection exists, **When** a team member signs in, **Then** the
+   overview of form connections opens.
+7. **Given** the first-connection screen is open, **When** the team member selects the product
+   name in the top bar, **Then** the overview opens, shows that there are no form connections yet,
+   and offers to create one.
 
 ---
 
@@ -143,29 +158,34 @@ Confirm that serviceBW receives exactly the configured fields and nothing else.
 ### User Story 3 - Receive request updates through a webhook (Priority: P2)
 
 Instead of calling the pull URL repeatedly, serviceBW can receive updates about a request at a
-webhook address that the DO.IT team entered for the form connection in the middleware UI.
-serviceBW calls the same trigger URL as in pull mode and shows the returned link and QR code to
-the citizen. The middleware then sends each status change to the webhook address as it happens.
-Once the citizen has shared, the update also carries the documents.
+webhook address. The DO.IT team enters it for the form connection in the middleware UI, next to
+the connection URLs. The UI offers this field only once the middleware delivers the updates, so
+that nobody can choose a mode that doesn't work yet. serviceBW calls the same trigger URL as in
+pull mode and shows the returned link and QR code to the citizen. The middleware then sends each
+status change to the webhook address as it happens. Once the citizen has shared, the update also
+carries the documents.
 
 **Why this priority**: Pull mode already covers the full flow. Webhook mode spares serviceBW from
 checking repeatedly whether the citizen has shared yet.
 
-**Independent Test**: Enter a webhook address for a form connection, trigger a request, and
-complete it in a test wallet. Confirm that the webhook address receives an update for each status
-change, and that the "completed" update carries exactly the configured fields.
+**Independent Test**: Enter a webhook address for a form connection in the middleware UI, trigger
+a request, and complete it in a test wallet. Confirm that the webhook address receives an update
+for each status change, and that the "completed" update carries exactly the configured fields.
 
 **Acceptance Scenarios**:
 
-1. **Given** a form connection with a webhook address, **When** serviceBW calls the trigger URL,
+1. **Given** a saved form connection, **When** the team member enters serviceBW's webhook address
+   in the middleware UI and saves it, **Then** requests triggered from then on use webhook mode.
+   When they remove the address again, requests triggered from then on use pull mode.
+2. **Given** a form connection with a webhook address, **When** serviceBW calls the trigger URL,
    **Then** it receives the same link, QR code and request reference as in pull mode.
-2. **Given** a triggered request in webhook mode, **When** its status changes, **Then** the
+3. **Given** a triggered request in webhook mode, **When** its status changes, **Then** the
    middleware sends an update with the request reference and the new status to the webhook
    address.
-3. **Given** a triggered request in webhook mode, **When** the citizen approves it in their
+4. **Given** a triggered request in webhook mode, **When** the citizen approves it in their
    wallet, **Then** the "completed" update sent to the webhook address carries exactly the
    configured fields of each requested document.
-4. **Given** the webhook address cannot be reached, **When** an update is due, **Then** the
+5. **Given** the webhook address cannot be reached, **When** an update is due, **Then** the
    middleware retries delivery until the limit in FR-016 is reached.
 
 ---
@@ -238,6 +258,18 @@ reactivate one, then delete one.
   Clarifications).
 - **Two team members editing at once**: When two team members edit the same form connection at
   the same time, the later save wins for anything both of them changed, without a warning.
+- **Signing in through a link to a specific screen**: A team member who opened a specific screen
+  before signing in, such as a form connection's details, returns to that screen after signing
+  in, whether or not form connections exist (FR-022). The middleware's main address doesn't count
+  as such a screen, although the overview lives there: opening it leads to the first-connection
+  screen while no form connection exists.
+- **First-connection screen when form connections exist**: The check happens each time the
+  first-connection screen's address is opened. If form connections exist by then, for example
+  because a teammate saved one or the address comes from a bookmark, the overview opens instead. A
+  team member already working on the screen can still finish and save their form connection.
+- **Existence of form connections unknown at sign-in**: If the middleware can't tell at sign-in
+  whether form connections exist, it opens the overview, which reports the problem and offers to
+  try again.
 
 ## Requirements *(mandatory)*
 
@@ -262,7 +294,8 @@ reactivate one, then delete one.
     inserts the request reference into a placeholder in it
 
   Each URL MUST be copyable in a single action. Alongside the URLs, the system MUST offer the field
-  for the webhook address used in webhook mode (FR-014).
+  for the webhook address used in webhook mode, once the middleware delivers webhook updates
+  (FR-014).
 - **FR-005**: Connection URLs MUST stay the same when a form connection is edited. Changes MUST
   apply to requests triggered after the change. Requests already in progress MUST finish with the
   configuration they started with: the requested documents and fields, and the connection mode
@@ -278,6 +311,13 @@ reactivate one, then delete one.
 - **FR-007**: Only authorized DO.IT team members MUST be able to access the middleware's management
   interface. Each team member MUST sign in with a personal account, which is set up outside the
   management interface. Deleting a team member's account MUST end their access at once.
+- **FR-022**: When a team member signs in while no form connection exists, the system MUST open
+  a first-connection screen at its own address, on which they create a form connection in the
+  same steps as on the create screen. When at least one form connection exists, signing in MUST
+  open the overview of form connections. In both cases, a screen the team member asked for before
+  signing in opens instead. Opening the middleware's main address, which is also the overview's,
+  doesn't count as asking for a screen. On every signed-in screen, the product name MUST lead to
+  the overview, which says when no form connection exists yet and offers to create one.
 
 #### Document requests
 
@@ -313,7 +353,9 @@ reactivate one, then delete one.
 - **FR-014**: The system MUST support a webhook mode, in which serviceBW receives updates about a
   request at a webhook address instead of pulling. DO.IT team members MUST be able to enter,
   change or remove a form connection's webhook address in the middleware UI. A form connection with
-  a webhook address uses webhook mode, and one without uses pull mode.
+  a webhook address uses webhook mode, and one without uses pull mode. The middleware UI MUST NOT
+  offer the webhook address before the middleware delivers webhook updates as FR-015 and FR-016
+  require, so that a team member can't choose a mode that doesn't work yet.
 - **FR-015**: In webhook mode, the system MUST send an update to the webhook address each time a
   request's status changes. The "completed" update MUST also carry the configured fields of each
   requested document, identified as in FR-013. In webhook mode, documents MUST be delivered only to

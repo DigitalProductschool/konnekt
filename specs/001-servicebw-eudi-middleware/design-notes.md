@@ -1,6 +1,6 @@
 # Design notes: management UI
 
-**Tasks**: T023, T084, T039–T042 | **Date**: 2026-10-10 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T023, T084, T039–T042, T086–T089, T091 | **Date**: 2026-10-11 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
 - **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`):
@@ -12,7 +12,9 @@
     Published" (`2080:8271`, `2080:8406`), "L1 Loading" (`2073:5601`) and "E1 Page not found"
     (`2073:5728`).
   - The page "🤖 Flow for AI" (`2081:4013`) maps the actions to their screens. It says to ignore
-    S3, 02d and R1–R3; S3 and 02d are used all the same, as decided in section 9.
+    S3, 02d and R1–R3; S3 and 02d are used all the same, as decided in section 9. Its sign-in
+    path ("Log in" → L1 → 02) is followed only while no connection exists (section 6, decided
+    2026-10-11).
 - **Figma "Middleware – V1"** (`hsxN4JO9iGWVxMHHehpOwC`), page "Final Screens" (`33:3`): the
   user menu (section 3), which V2 hasn't changed.
 
@@ -144,7 +146,8 @@ a 1455 px window.
 - **Page title ("App/Page title", `37:56`)**: the page's `h1`, with an optional hint under it,
   gap 8. V2 made it 48/56, 500 (`heading/display`), with an 18/24 muted hint (V1: 26/32 and
   21/32).
-- **Logo**: on the signed-in screens it links to the overview, as V2's flow says ("logo → S4").
+- **Logo**: on the signed-in screens it links to the overview, as V2's flow says ("logo → S4"),
+  also from the first-connection screen, where the overview then shows its empty state.
 - **Wizard header ("App/Header", `37:15` in V2)**: the logo, a 1px × 24px neutral-100 separator
   and the step's title (16/24, 600), lined up with the wizard's 1120 px column (x = 160).
   `TopBar` draws it with `title` and `width="column"`; `WizardLayout` adds the column and the
@@ -233,7 +236,9 @@ logged-out frame, so the Phase 2 "You’re logged out" alert ("U2 Logged out" in
 ## 5. Overview (`/`, frames "S3 Your connections" `2066:12985` and "S4" `2077:18315`)
 
 **Decision (2026-10-10)**: S3's layout with a "New connection" button, not S4's inline form,
-which has no submit button. The overview stays at `/`, also right after signing in.
+which has no submit button. The overview stays at `/`. **Decision (2026-10-11)**: right after
+signing in, it opens only when a connection exists; otherwise sign-in opens the first-connection
+screen (section 6). The logo always leads here.
 - Page title "Your connections" with the hint "Open a connection to copy its links, or connect
   another form." (S3: "Pick up your draft or connect another form."; there are no drafts).
 - "New connection" (primary, add icon, 203×48), 24 px below the title; then "Connections (n)"
@@ -264,6 +269,18 @@ draft." are left out.
   `--shadow-menu`, arrow on the left or right, 2 px below the icon). The footer note says only
   "Nothing goes live until you publish." The footer's button says **"Continue"**, not "Create
   connection", because nothing is created yet.
+- **First connection (`/get-started`; 02 `2080:6059`, 02a `2080:6160`, tooltips 02b `2080:6261`
+  and 02c `2080:6367`)**: **Decision (2026-10-11)**: the same wizard, with 02's heading "Create
+  your first connection" as step 1's `h1` and tab title. 02 differs from 02d only in that
+  heading. The hint, the header title "New connection", the progress, the card and the footer
+  are the same, and so are the decisions above:
+  - "Continue" instead of 02's "Create connection";
+  - the button stays enabled (02 disables it until both fields are filled);
+  - the note leaves out "Starts as a draft."
+
+  While `/get-started` checks whether a connection exists, it shows L1's "Feedback/Loader"
+  ("Loading your connections…", `2073:5601`) in the app frame, since V2's flow puts L1 between
+  "Log in" and 02.
 - **Step 2 (03–06)**: "Add documents" / "Choose which wallet documents applicants share, and which
   data from each." The panel "Doc/Panel" (296 px: "Available in the wallet", a row per catalog
   document with "+ Add", or "✓ Added", which turns into a red "Remove" on hover and keyboard
@@ -290,6 +307,12 @@ draft." are left out.
   form ID.", "Add at least one document.", "Select at least one field for 'Personal ID'.") and
   moves the focus there. A refused `POST` shows the API's message in a danger alert "Couldn’t
   publish".
+- **Server errors** (no frame; decided 2026-10-11, bug `config-error-leak`): after a `5xx` answer
+  the API's message is generic, "Something went wrong on our side, so nothing was saved. Contact an
+  administrator and give them the error ID." (a `500` leaves out "so nothing was saved"). A second
+  line, "Error ID: " and the answer's `error_id`, follows it in the same text style; one click
+  selects the ID (`select-all`). The shared `ErrorNoticeText` renders both, in the alert and under
+  the webhook address alike.
 
 ## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
@@ -305,10 +328,13 @@ for an existing connection, the webhook address or the summary.
   toggletips have no frame; their text explains what serviceBW does with each link. "Copy link"
   turns into "Copied" with a tick for 3 s (23); V2 has no toast. Below 576 px the number goes
   above the link.
-- **Updates by webhook** (no frame): the card pattern of "UseCase/Create card": the mode ("Mode:
+- **Updates by webhook** (no frame): **Decision (2026-10-11)**: not on the page until webhook
+  updates are delivered (US3). T086 takes the card off the page, and T091 brings it back
+  unchanged. The card: the card pattern of "UseCase/Create card": the mode ("Mode:
   Pull – serviceBW calls the result link." or "Mode: Webhook – …"), the field "Webhook address"
-  and "Save address" / "Remove address"; the API's message shows next to the field, and "Webhook
-  address saved/removed. New requests use … mode." is announced.
+  and "Save address" / "Remove address"; the API's message (with its error ID after a `5xx`)
+  shows next to the field, and "Webhook address saved/removed. New requests use … mode." is
+  announced.
 - **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
   items") and its fields in the data card's columns.
 - **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your
@@ -367,6 +393,14 @@ open before Phase 3):
    disabled buttons.
 8. **Upcoming documents**: shown as designed, from a fixed list in the frontend; search is gone
    in V2.
+
+**Decided on 2026-10-11** (sections 5–7):
+1. **Sign-in**: it opens the first-connection screen (02) only while no connection exists; V2's
+   flow sends every sign-in there. With connections, sign-in opens the overview.
+2. **First-connection screen**: the wizard at `/get-started` with 02's heading. The wizard's
+   2026-10-10 decisions apply to it.
+3. **Logo**: still the overview in S3's layout, also from the first-connection screen.
+4. **Webhook card**: hidden until webhook updates are delivered (US3).
 
 ## 10. Assets and implementation notes
 

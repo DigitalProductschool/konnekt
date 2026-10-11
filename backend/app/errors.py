@@ -1,8 +1,40 @@
+import logging
+import uuid
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from .config import settings
+from .services.worker import describe_error
+
+logger = logging.getLogger(__name__)
+
+# The message of a 500. What went wrong is only in the log, under the error id
+INTERNAL_ERROR_MESSAGE = (
+    'Something went wrong on our side. Contact an administrator and give them the '
+    'error ID.'
+)
+
+
+def log_server_error(error: BaseException, description: str) -> str:
+    """Log a failure on the server's side under a new error id, and return the id.
+
+    The 5xx answer carries the id as `error_id`, so an administrator can find this
+    line, while the answer says nothing about the cause. The line holds the
+    description and the error's type and code location, never its message, which can
+    quote data (see `describe_error`).
+    """
+    error_id = str(uuid.uuid4())
+    logger.error('Error %s: %s (%s)', error_id, description, describe_error(error))
+    return error_id
+
+
+def _route_of(request: Request) -> str:
+    """The matched route's template.
+
+    Unlike the URL, it never holds a request reference, which mustn't be logged.
+    """
+    return getattr(request.scope.get('route'), 'path', '(no route)')
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -34,17 +66,16 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(
-        _request: Request, exception: Exception
+        request: Request, exception: Exception
     ) -> JSONResponse:
-        message = (
-            exception.args[0]
-            if settings.app_env == 'development' and exception.args
-            else None
+        error_id = log_server_error(
+            exception, f'Unexpected error in {request.method} {_route_of(request)}'
         )
         return JSONResponse(
             status_code=500,
             content={
                 'error': 'Internal server error',
-                'message': message or 'Something went wrong',
+                'message': INTERNAL_ERROR_MESSAGE,
+                'error_id': error_id,
             },
         )

@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.alias_generators import to_camel
 
 from ..config import Settings, settings
+from ..errors import log_server_error
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,11 @@ TOKEN_RENEWAL_MARGIN_SECONDS = 300.0
 SESSION_PAGE_SIZE = 100
 # Settings every call needs, in the order a missing one is reported
 _CONNECTION_SETTINGS = ('eudiplo_url', 'eudiplo_client_id', 'eudiplo_client_secret')
+# The message of the 503 while a setting is empty. Only the log names the setting
+NOT_CONFIGURED_MESSAGE = (
+    'Something went wrong on our side, so nothing was saved. Contact an '
+    'administrator and give them the error ID.'
+)
 
 
 class EudiploError(Exception):
@@ -357,13 +363,29 @@ def get_eudiplo_client() -> EudiploClient:
 
 
 def http_error_for(error: EudiploError, upstream_message: str) -> HTTPException:
-    """Turn a client error into the API's answer: 503 when not configured, else 502."""
+    """Turn a client error into the API's answer: 503 when not configured, else 502.
+
+    What went wrong, such as which setting is empty, goes to the log only, under the
+    error id that the answer carries.
+    """
     if isinstance(error, EudiploNotConfigured):
+        error_id = log_server_error(
+            error, f'EUDIPLO is not configured: {error.setting} is not set'
+        )
         return HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={'error': 'Not configured', 'message': str(error)},
+            detail={
+                'error': 'Not configured',
+                'message': NOT_CONFIGURED_MESSAGE,
+                'error_id': error_id,
+            },
         )
+    error_id = log_server_error(error, 'EUDIPLO call failed')
     return HTTPException(
         status_code=status.HTTP_502_BAD_GATEWAY,
-        detail={'error': 'Upstream error', 'message': upstream_message},
+        detail={
+            'error': 'Upstream error',
+            'message': upstream_message,
+            'error_id': error_id,
+        },
     )

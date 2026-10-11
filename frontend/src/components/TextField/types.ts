@@ -8,7 +8,7 @@ export interface TextFieldProps extends Omit<
   label: string;
   /** Shown next to the label, such as an InfoToggletip */
   labelAddon?: ReactNode;
-  /** The validation message, shown under the field and linked to it */
-  error?: string | null;
+  /** The error message, shown under the field and linked to it */
+  error?: ReactNode;
   ref?: Ref<HTMLInputElement>;
 }

@@ -1,7 +1,8 @@
-import type { AriaRole } from 'react';
+import type { AriaRole, ReactNode } from 'react';
 
 export interface FormErrorMessageProps {
-  message: string;
+  /** Text, or inline content such as an ErrorNoticeText */
+  message: ReactNode;
   id?: string;
   /** "alert" to announce a message that appears without a page change */
   role?: AriaRole;

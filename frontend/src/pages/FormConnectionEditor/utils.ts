@@ -1,4 +1,5 @@
-import { ApiError } from '../../api/client';
+import { errorNoticeOf } from '../../api/client';
+import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { FormConnectionCreate, RequestedDocument } from '../../types/form-connections';
 import {
@@ -123,7 +124,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'publish':
       return { ...state, publishing: true };
     case 'publishFailed':
-      return { ...state, publishing: false, dialogOpen: false, publishError: action.message };
+      return { ...state, publishing: false, dialogOpen: false, publishError: action.error };
   }
 }
 
@@ -217,7 +218,10 @@ export function createPayload(state: EditorState): FormConnectionCreate {
   };
 }
 
-/** The API's message, which says what went wrong, or a general one without it. */
-export function publishErrorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.data.message : EDITOR_COPY.publishErrorText;
+/**
+ * The API's message, which says what went wrong, with the error ID of a 5xx answer, or a general
+ * message without them.
+ */
+export function publishErrorNotice(error: unknown): ErrorNotice {
+  return errorNoticeOf(error, EDITOR_COPY.publishErrorText);
 }

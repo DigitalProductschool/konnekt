@@ -17,6 +17,8 @@ class ApiResponse(BaseModel, Generic[T]):
 class ApiErrorResponse(BaseModel):
     error: str
     message: str
+    # Only on 5xx answers: the id under which the backend logged what went wrong
+    error_id: str | None = None
 
 
 def to_iso_utc(value: datetime) -> str:

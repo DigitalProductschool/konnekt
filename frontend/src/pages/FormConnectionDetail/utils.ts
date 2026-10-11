@@ -1,5 +1,6 @@
-import { ApiError } from '../../api/client';
+import { errorNoticeOf } from '../../api/client';
 import { NOT_FOUND_COPY } from '../../components/NotFound/constants';
+import type { ErrorNotice } from '../../types/api';
 import type { DetailLocationState } from '../../types/routing';
 import { DETAIL_COPY } from './constants';
 import type { DetailAction, DetailState, WebhookAction, WebhookState } from './types';
@@ -34,9 +35,12 @@ export function isPublishedState(state: unknown): boolean {
   return Boolean((state as DetailLocationState | null)?.published);
 }
 
-/** The API's message, such as "The webhook address must be an https:// URL.". */
-export function saveErrorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.data.message : DETAIL_COPY.saveFailed;
+/**
+ * The API's message, such as "The webhook address must be an https:// URL.", with the error ID
+ * of a 5xx answer.
+ */
+export function saveErrorNotice(error: unknown): ErrorNotice {
+  return errorNoticeOf(error, DETAIL_COPY.saveFailed);
 }
 
 /** The tab title: the connection's name once it is loaded. */

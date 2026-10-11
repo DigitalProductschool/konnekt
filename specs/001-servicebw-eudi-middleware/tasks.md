@@ -266,18 +266,19 @@ an empty app shell.
 ## Phase 3: User Story 1 - Set up a form connection and obtain its connection URLs (Priority: P1) 🎯 MVP
 
 **Goal**: A signed-in DO.IT team member creates a form connection: name, serviceBW form, and
-documents with selected fields from the catalog. They then see its trigger URL and pull URL, can
-copy each in one action, and can enter or remove a webhook address.
+documents with selected fields from the catalog. They then see its trigger URL and pull URL, and
+can copy each in one action. The API also stores a webhook address (T036, T044), but the UI
+offers it only from US3 on (T086, T091).
 
 **Independent Test**:
 1. Create a form connection with the PID and the mDL and some fields, then save.
-2. The details screen shows both URLs, and each copies in one click.
+2. The details screen shows both URLs, and each copies in one click. It offers no webhook address.
 3. Reopening the form connection shows the same URLs.
 4. Saving without a document, or with a document that has no fields, is refused with a message
    that names the problem.
-5. Entering a webhook address switches the mode to webhook.
+5. `PUT /api/form-connections/{id}` with a webhook address switches `mode` to `webhook` (T044).
 
-This is quickstart V1.
+This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (steps 1–2 and 7–8).
 
 ### Implementation for User Story 1
 
@@ -361,11 +362,70 @@ The UI follows Figma "Middleware – V2"'s signed-in screens, with the user's de
 Until T065, `PUT /api/form-connections/{id}` answers `400` "Changing the documents is not
 supported yet." when the body has `documents`.
 
-**Checkpoint**: User Story 1 works on its own (quickstart V1).
+On 2026-10-11 the user moved the webhook address to US3 on the frontend (spec FR-014 and
+Clarifications, Session 2026-10-11): the UI offers it only once webhook updates are delivered. The
+backend keeps it as built (T036, T044). T086 takes the card off the details screen, and T091
+(Phase 6) renders it again.
+
+- [ ] T086 [US1] Take the webhook card off the details screen in `frontend/src/pages/FormConnectionDetail/index.tsx` (contracts/ui-screens.md "Details", design-notes.md §7):
+  - remove the `<WebhookCard … />` element and its import, and drop the webhook address from the component's doc comment;
+  - keep `WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY` unchanged, so that T091 only has to render the card again. `npm run build` still type-checks them, and ESLint has no rule against an unused module;
+  - keep `updateFormConnection` in `frontend/src/api/form-connections.ts`;
+  - a form connection that got a webhook address while the card was shown keeps webhook mode, and its requests deliver nothing through the pull URL. Before Phase 5 tests pull mode, find such form connections with `GET /api/form-connections` (`mode: "webhook"`) and clear the address with `PUT /api/form-connections/{id}` and `{"webhook_url": null}`.
+
+**Checkpoint**: User Story 1 works on its own, without a webhook address in the UI (quickstart V1,
+steps 3–6).
 
 ---
 
-## Phase 4: User Story 2 - Retrieve a citizen's documents in pull mode (Priority: P1) 🎯 MVP
+## Phase 4: User Story 1 (continued) - First connection screen (Priority: P1)
+
+**Goal**: While no form connection exists, signing in opens the first-connection screen at
+`/get-started`: the create wizard with the step-1 heading "Create your first connection" (Figma
+"02 Create connection"). With form connections, sign-in opens the overview, and a route requested
+before signing in still wins. The product name leads to the overview (spec FR-022 and US1,
+scenarios 5–7; research R16; contracts/ui-screens.md "First connection"; design-notes.md §6).
+
+**Independent Test**:
+1. With no form connection, sign in. `/get-started` opens with "Create your first connection", and
+   publishing from it opens the new form connection's details.
+2. Before publishing, select "Product name". The overview shows its empty state, and signing out
+   and in again opens `/get-started` again.
+3. With a form connection, sign in, then open `/get-started` by its address. Both show the
+   overview.
+4. Signed out, open a form connection's details address and sign in. The details open.
+
+This is quickstart V1, steps 1–2 and 7–8. The backend doesn't change, and the frontend has no test
+runner (research R17), so the phase is checked with the quickstart and the gates of T080.
+
+### Implementation for the first connection screen
+
+- [ ] T087 [US1] Let the wizard in `frontend/src/pages/FormConnectionEditor/` open as the first-connection screen (design-notes.md §6, "First connection"):
+  - add `firstConnectionTitle: 'Create your first connection'` to `EDITOR_COPY` in `constants.ts`;
+  - `FormConnectionEditorPage` in `index.tsx` takes an optional `firstConnection` prop, declared in `types.ts`. With it, the tab title (`useDocumentTitle`) and step 1's `PageTitle` use `firstConnectionTitle` instead of `connectionTitle`; `ConnectionStep.tsx` gets the heading through a new `title` prop;
+  - nothing else changes: the header title "New connection", the progress, the card, the "Continue" footer, the validation, the documents step, the publish dialog and the move to the details screen;
+  - check the screen against Figma 02 (`2080:6059`) and 02a (`2080:6160`) as the "Figma implementation workflow" in `CLAUDE.md` describes. Only the heading differs from the built 02d.
+- [ ] T088 [US1] Build `frontend/src/pages/FirstConnection/` for `/get-started` (contracts/ui-screens.md "First connection"), with its texts in `constants.ts` and its state type in `types.ts`, and register it (depends on T087):
+  - add `firstConnection: '/get-started'` to `ROUTES` in `frontend/src/constants.ts`, and the route to the `SignedInWizards` group in `frontend/src/App.tsx`;
+  - call `listFormConnections()` once when the page opens, passing failures through `useSignOutOnUnauthorized()` first, and ignore an answer that arrives after the page has closed, as the other pages do;
+  - while the call runs, render `AppLayout` with `FeedbackLoader` and "Loading your connections…" (Figma L1, `2073:5601`), from a small loading sub-component that also sets that text as the tab title with `useDocumentTitle()`. Keeping the hook in the sub-component lets the wizard's own tab title take over once it renders;
+  - an empty list renders `<FormConnectionEditorPage firstConnection />`;
+  - a non-empty list, or a failure other than `401`, renders `<Navigate to={ROUTES.overview} replace />`. The overview then shows its list, or its own error state with "Try again".
+- [ ] T089 [US1] Send a sign-in without a requested route to `/get-started` (FR-022), in `frontend/src/components/RequireSignedOut/utils.ts` (depends on T088):
+  - `redirectTarget()` returns `ROUTES.firstConnection` where it returns `ROUTES.overview` today: without router state, without a usable `from`, and for `from` = `/login`. It also does so for `from` = `/`, because opening the app's address isn't a request for the overview;
+  - any other requested route comes back unchanged, with its search and hash;
+  - update the doc comments in `utils.ts` and in `frontend/src/components/RequireSignedOut/index.tsx`;
+  - the logo links of `frontend/src/components/AppLayout/index.tsx` and `frontend/src/components/WizardLayout/index.tsx` keep `ROUTES.overview`.
+- [ ] T090 [P] [US1] Document the routing change in `CLAUDE.md` and `docs/ARCHITECTURE.md`, as the documentation checklist asks:
+  - `CLAUDE.md`, "Frontend Development Guidelines": the create wizard also renders at `/get-started` (`pages/FirstConnection/`), with its own `WizardLayout`, and a sign-in without a requested route lands there;
+  - `docs/ARCHITECTURE.md`, the frontend's routing paragraph: `RequireSignedOut` sends a sign-in without a requested route to `/get-started`, which opens the wizard while no form connection exists and the overview otherwise.
+
+**Checkpoint**: Until a form connection exists, signing in starts with "Create your first
+connection" (quickstart V1, steps 1–2 and 7–8). User Story 1 is complete.
+
+---
+
+## Phase 5: User Story 2 - Retrieve a citizen's documents in pull mode (Priority: P1) 🎯 MVP
 
 **Goal**:
 - serviceBW calls the trigger URL and receives a wallet link, a QR code and a reference.
@@ -480,16 +540,18 @@ in pull mode (quickstart V1–V3, V6).
 
 ---
 
-## Phase 5: User Story 3 - Receive request updates through a webhook (Priority: P2)
+## Phase 6: User Story 3 - Receive request updates through a webhook (Priority: P2)
 
 **Goal**:
 - A request triggered while its form connection has a webhook address sends every status change after `pending` to that address.
 - The `completed` update carries exactly the configured fields.
 - Failed updates are retried with back-off until their deadline, and claimed with a lease.
+- The details screen offers the webhook address again (T091), now that the updates are delivered (spec FR-014).
 
-**Independent Test**: Enter a webhook address that points at a test receiver, then trigger a request
-and approve it. The receiver gets one `completed` update with exactly the configured fields, and a
-pull for the same request returns `documents: null`. A decline sends `declined`. This is
+**Independent Test**: On the details screen, enter a webhook address that points at a test
+receiver, then trigger a request and approve it. The receiver gets one `completed` update with
+exactly the configured fields, and a pull for the same request returns `documents: null`. A
+decline sends `declined`. Removing the address switches new requests back to pull mode. This is
 quickstart V4.
 
 ### Implementation for User Story 3
@@ -507,6 +569,10 @@ quickstart V4.
   - **Deadline**: once `deadline_at` has passed, set `abandoned_at`.
   - The lease is always released.
 - [ ] T063 [US3] Register the webhook delivery step in `backend/app/services/worker.py`. Sends run in the pool, and the loop never waits for them.
+- [ ] T091 [US3] Render the webhook card on the details screen again, in `frontend/src/pages/FormConnectionDetail/index.tsx` (spec FR-014; depends on T060–T063, so that the address it saves is used):
+  - put `<WebhookCard formConnection={formConnection} onSaved={(updated) => dispatch({ type: 'loaded', formConnection: updated })} />` back between `ConnectionLinks` and `DocumentsSummary`, as before T086, and name the webhook address in the component's doc comment again;
+  - check the card against contracts/ui-screens.md "Details" and design-notes.md §7: the mode, saving and removing, the API's message with its error ID, and the announced result;
+  - walk through quickstart V4, steps 2 and 7, in the browser.
 
 ### Tests for User Story 3
 
@@ -519,11 +585,11 @@ quickstart V4.
   - one request's updates go out in order;
   - a pull in webhook mode returns `documents: null`.
 
-**Checkpoint**: Webhook mode works on top of the MVP (quickstart V4).
+**Checkpoint**: Webhook mode works on top of the MVP, and the UI offers it (quickstart V4).
 
 ---
 
-## Phase 6: User Story 4 - Maintain form connections (Priority: P3)
+## Phase 7: User Story 4 - Maintain form connections (Priority: P3)
 
 **Goal**:
 - The overview shows whether each form connection is active.
@@ -586,7 +652,7 @@ This is quickstart V5.
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 8: Polish & Cross-Cutting Concerns
 
 **Purpose**:
 - **Merge gate (T076–T080)**: these tasks run before each change is proposed for merge, from the
@@ -636,8 +702,8 @@ This is quickstart V5.
   - T018 needs the user's EUDIPLO access.
   - T023 needs the user's Figma URL.
   - T084 and T085 follow T023 and T030, after the design changed to V2.
-- **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
-- **Polish (Phase 7)**:
+- **User stories (Phases 3–7)**: depend on Foundational, and on each other as described below.
+- **Polish (Phase 8)**:
   - T076–T080 are the merge gate: they run before every merge, from the first one on.
   - T081–T083 depend on the stories that are to be delivered. T081 needs a test wallet, and T083
     needs a Coolify deployment.
@@ -645,10 +711,13 @@ This is quickstart V5.
 ### User Story Dependencies
 
 - **US1 (P1)**: starts after Foundational and depends on no other story.
+  - T086 can run at any time after T042.
+  - Phase 4 (T087–T090, the first-connection screen) follows Phase 3 and changes only the frontend.
 - **US2 (P1)**: starts after the US1 backend (T031–T037), because a request needs a saved form
   connection and its EUDIPLO configuration. It has no frontend: serviceBW calls the URLs.
 - **US3 (P2)**: starts after US2. It extends `apply_status` and reuses the trigger, the document
-  extraction and the deletion step.
+  extraction and the deletion step. T091 renders the webhook card again once T060–T063 deliver
+  updates.
 - **US4 (P3)**: starts after US1. Its worker steps (T067–T069) act on US2's requests and use the
   US2 deletion step. T067 queues webhook updates only once US3 is in place.
 
@@ -660,7 +729,11 @@ This is quickstart V5.
   - `backend/app/services/worker.py`: T020, T053–T055, T063, T067–T069;
   - `backend/app/services/document_requests.py`: T048–T050, T061;
   - `backend/app/schemas.py`: T016, T032, T045, T060;
-  - `backend/app/models.py`: T010–T013.
+  - `backend/app/models.py`: T010–T013;
+  - `frontend/src/pages/FormConnectionDetail/index.tsx`: T042, T086, then T091 and T074 in either order;
+  - `frontend/src/pages/FormConnectionEditor/`: T041, T087, T073;
+  - `frontend/src/App.tsx`: T088, T073;
+  - `CLAUDE.md` and `docs/ARCHITECTURE.md`: T090, then the merge-gate runs of T077 and T078.
 
 ### Parallel Opportunities
 
@@ -672,7 +745,9 @@ This is quickstart V5.
   - T024 and T025 run alongside each other once T023 is done;
   - the frontend shell (T023–T030) runs alongside the backend tasks T015–T022.
 - **US1**: T031 and T032 together; T038 and T039 together, and alongside the backend tasks; T043 after T033.
+- **US1, first connection (Phase 4)**: T090 alongside T087–T089. The phase changes only the frontend, so it can also run alongside US2's backend tasks.
 - **US2**: T045, T046 and T047 together; T056 (nginx) alongside all backend tasks; T057 alongside T058.
+- **US3**: T091 alongside T064, once T063 is done.
 - **US4**: T070–T073 together, and alongside the backend tasks T065–T069.
 
 ---
@@ -687,6 +762,13 @@ Task: "Add the form connection schemas to backend/app/schemas.py (T032)"
 # Frontend building blocks, alongside the backend:
 Task: "Add frontend/src/types/form-connections.ts and frontend/src/api/form-connections.ts (T038)"
 Task: "Build frontend/src/components/CopyableUrl/ (T039)"
+```
+
+## Parallel Example: First connection screen (Phase 4)
+
+```bash
+Task: "Add the first-connection heading to the wizard in frontend/src/pages/FormConnectionEditor/ (T087)"
+Task: "Document the /get-started routing in CLAUDE.md and docs/ARCHITECTURE.md (T090)"
 ```
 
 ## Parallel Example: User Story 2
@@ -715,10 +797,12 @@ Task: "Add the edit mode to frontend/src/pages/FormConnectionEditor/ (T073)"
 
 1. Complete Phase 1: Setup.
 2. Complete Phase 2: Foundational. Ask the user for EUDIPLO access (T018) and the Figma URL (T023).
-3. Complete Phase 3: US1. **Validate** with quickstart V1.
-4. Complete Phase 4: US2. **Validate** with quickstart V2, V3 and V6, using Paradym.
-5. Run the merge gate (T076–T080) and merge.
-6. Deploy or demo: a serviceBW form can now retrieve verified documents in pull mode.
+3. Complete Phase 3: US1, including T086. **Validate** with quickstart V1, steps 3–6.
+4. Complete Phase 4: the first-connection screen. **Validate** with quickstart V1, steps 1–2 and
+   7–8.
+5. Complete Phase 5: US2. **Validate** with quickstart V2, V3 and V6, using Paradym.
+6. Run the merge gate (T076–T080) and merge.
+7. Deploy or demo: a serviceBW form can now retrieve verified documents in pull mode.
 
 US1 on its own produces configurations and URLs but retrieves no documents, so the useful MVP is
 US1 and US2 together.
@@ -729,17 +813,19 @@ Merge often, at least at the end of each step below, to keep the history light. 
 (T076–T080) before each merge.
 
 1. Setup + Foundational: sign-in and the empty shell.
-2. + US1: form connections and URLs.
-3. + US2: pull mode end to end. **This is the MVP.**
-4. + US3: webhook mode.
-5. + US4: overview states, editing, deactivation and deletion.
-6. Polish: validation with real wallets, the accessibility review, and the deployment checks.
+2. + US1: form connections and URLs, without the webhook address in the UI.
+3. + First connection: until a form connection exists, sign-in starts with "Create your first
+   connection".
+4. + US2: pull mode end to end. **This is the MVP.**
+5. + US3: webhook mode, with the webhook address back on the details screen.
+6. + US4: overview states, editing, deactivation and deletion.
+7. Polish: validation with real wallets, the accessibility review, and the deployment checks.
 
 ### Parallel Team Strategy
 
 - After Foundational, developer A takes US1's backend and then US2, while developer B takes US1's
-  frontend and then US4's frontend.
-- US3 follows US2. US4's backend follows US1.
+  frontend, the first-connection screen (Phase 4) and then US4's frontend.
+- US3 follows US2, and T091 waits for its delivery (T060–T063). US4's backend follows US1.
 
 ---
 

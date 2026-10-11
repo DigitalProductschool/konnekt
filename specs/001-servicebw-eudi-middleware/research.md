@@ -25,7 +25,9 @@ what the feature does are also recorded in the spec's Clarifications section:
 - 7-day retention of request records;
 - on 2026-10-08: no extra wait at the expiry, plain HTTP only as an explicit exception, the
   accepted delay of deletions during outages, who manages accounts, the later save winning, no
-  availability target, and DO.IT owning the open points before real citizens use the service.
+  availability target, and DO.IT owning the open points before real citizens use the service;
+- on 2026-10-11: the UI offers the webhook address only once webhook updates are delivered, and
+  signing in opens a first-connection screen while no form connection exists (R16).
 
 The technical ones are recorded only here: the hosted EUDIPLO, the nginx allow-list, the shared
 EUDIPLO tenant, and the open questions about serviceBW.
@@ -48,6 +50,7 @@ EUDIPLO tenant, and the open questions about serviceBW.
 | DO.IT sign-in (FR-007) | R14 (user) |
 | HTTP client, frontend libraries, tests, settings | R15–R18 |
 | Accessibility of the management UI (SC-009) | R16 (user: WCAG 2.1 AA) |
+| Where sign-in leads while no form connection exists (FR-022), and when the UI offers the webhook address (FR-014) | R16 (user, 2026-10-11) |
 | What serviceBW can actually do | R20 (user: to be confirmed by DO.IT) |
 
 No open point blocks the plan. R19 lists the points that still need a decision from someone else
@@ -214,8 +217,10 @@ revision's documents and the catalog (R4).
   - One shared trust list matters because Paradym, the first test wallet, "cannot handle differing
     `trusted_authorities` in DCQL queries".
   - While `EUDIPLO_TRUST_LIST_ID` is empty, the middleware refuses to create a configuration and
-    answers `503 Not configured` with a message that names the setting. FR-010 therefore can't be
-    bypassed without anyone noticing.
+    answers `503 Not configured`. FR-010 therefore can't be bypassed without anyone noticing.
+    **(user, 2026-10-11)** The answer's message is generic and carries an `error_id`, and only the
+    backend's log names the missing setting, under that ID. Naming it in the message, as first
+    planned, showed backend configuration in the UI (bug `config-error-leak`).
 - **Formats**: the mDL rulebook allows only the ISO 18013-5 encoding for mDLs. The PID is offered
   in both formats. SD-JWT VC is chosen because both test wallets support it, and so do the EU and
   German PID providers.
@@ -768,8 +773,8 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - **Libraries**: React 19.2, Vite 8.2, TypeScript 6.0 and Tailwind 4.3, as installed. Two
   additions:
   - `react-router` (v7) for the routes `/login`, `/`, `/form-connections/new`,
-    `/form-connections/:id` and `/form-connections/:id/edit`, and `/forgot-password`, which the
-    Figma design added later;
+    `/form-connections/:id` and `/form-connections/:id/edit`, plus `/forgot-password` and
+    `/get-started`, which the Figma design added later;
   - the three KERN packages from `docs/KERN-DESIGN-SYSTEM.md`: `@kern-ux/native`,
     `@kern-ux-annex/kern-react-kit` and `@digitalservicebund/kern-ux-tailwind-theme`, with exact
     versions pinned.
@@ -780,6 +785,20 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - **Design**: layout, wording, language and component choice come from the Figma design, which the
   user will share when the UI tasks start. This plan fixes only the screens and their behavior
   ([contracts/ui-screens.md](contracts/ui-screens.md)).
+- **Where sign-in leads (user, 2026-10-11; spec FR-022)**: without a requested route, sign-in
+  goes to `/get-started` instead of `/`.
+  - `/get-started` calls `GET /api/form-connections` once. An empty list opens the create wizard
+    with the step-1 heading "Create your first connection" (Figma "02 Create connection"). A
+    non-empty list, or a failed call, replaces the route with `/`, whose own loading and error
+    states take over.
+  - A requested route (a deep link remembered by the sign-in guard) still wins. `/` doesn't count
+    as one: the guard records it as well when someone simply opens the app, so treating it as a
+    request would skip the first-connection screen for the most common way in.
+  - The logo keeps linking to `/`, so the overview, with its empty state, stays one click away.
+  - No backend change: the list endpoint already answers the question.
+- **Webhook card (user, 2026-10-11; spec FR-014)**: the details screen shows the webhook card only
+  once webhook updates are delivered (US3). Until then the card isn't rendered.
+  `PUT /api/form-connections/{id}` keeps accepting `webhook_url`, as the backend tasks built it.
 - **Accessibility (user, SC-009)**: the management UI meets WCAG 2.1 level AA.
   - The requirements for each screen are in
     [contracts/ui-screens.md](contracts/ui-screens.md#accessibility-sc-009).
@@ -798,6 +817,17 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
   administration. Its components are built for WCAG 2.1 AA, so most of the work is using them
   correctly and checking the result.
 - **snake_case**: it removes the camelCase/snake_case mix in the template.
+- **One check, at `/get-started`**: the screen needs the check anyway, because it opens the
+  overview when form connections exist (spec Edge Cases, for bookmarks and teammates). Sending the
+  landing through it means the overview gets no landing logic and nothing is fetched twice.
+- **The wizard, not a new screen**: Figma's frame 02 is the wizard's step 1 (02d) with another
+  heading, and its flow sends sign-in to 02 and on to the documents step. Reusing the wizard keeps
+  both ways in alike, with the 2026-10-10 decisions ("Continue", validation messages, no drafts).
+- **No per-account flag**: the user chose "no form connection exists" over "the account's first
+  sign-in", so there is no migration, and a new teammate of a team with form connections lands on
+  the overview.
+- **Hiding the webhook card**: a field for a mode that delivers nothing would let a team member
+  switch a form connection to a mode in which serviceBW never receives the documents.
 
 **Alternatives considered**:
 - View switching held in state: no deep links, and the browser's back button breaks.
@@ -805,6 +835,14 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - No formal accessibility target, or accessibility out of scope: declined by the user.
 - An automated accessibility test suite in the frontend: it would need a test runner, which the
   frontend doesn't have (R17). The review before release covers SC-009.
+- Deciding the landing on the overview (`/` with a flag in the router state that redirects from
+  there): the overview would show its title before redirecting, and `/get-started` would still
+  need its own check.
+- A "first sign-in" flag per account: declined by the user (spec Clarifications, 2026-10-11).
+- S4's inline form as the first screen: Figma's flow sends sign-in to 02, and S4 is "Your
+  connections" with drafts, which the API doesn't have (design-notes.md §5).
+- Removing the webhook card's code until US3: it is built and reviewed, and type-checking keeps it
+  in step with the API while it isn't rendered. US3 renders it again.
 
 ## R17. Tests
 

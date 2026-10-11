@@ -15,6 +15,8 @@ FR-021.
 - **Response format**:
   - Success bodies are `{"data": …, "message"?: …}`, and error bodies are
     `{"error": …, "message": …}` (Constitution I).
+  - A `5xx` error body also carries `error_id`, a UUID under which the middleware logged what went
+    wrong. Its message is generic. Quote the `error_id` when reporting the problem to DO.IT.
   - Field names are snake_case.
   - Timestamps are ISO 8601 in UTC with a `Z` suffix.
 - **Order of the checks** for both URLs:
@@ -74,8 +76,8 @@ connection's current revision, all in one interaction (FR-009).
 |---|---|---|
 | `404` | `{"error": "Not found", "message": "Form connection not found"}` | Unknown `form_connection_id` |
 | `409` | `{"error": "unavailable", "message": "This form connection is deactivated or deleted"}` | Deactivated or deleted form connection. No request is started (FR-006) |
-| `502` | `{"error": "Upstream error", "message": "The wallet service could not start the request. Try again."}` | EUDIPLO couldn't create the request. Nothing is stored |
-| `503` | `{"error": "Not configured", "message": "…"}` | The middleware's EUDIPLO settings are incomplete. This is an operator error; nothing is stored |
+| `502` | `{"error": "Upstream error", "message": "The wallet service could not start the request. Try again.", "error_id": "…"}` | EUDIPLO couldn't create the request. Nothing is stored |
+| `503` | `{"error": "Not configured", "message": "Something went wrong on our side, so nothing was saved. Contact an administrator and give them the error ID.", "error_id": "…"}` | The middleware's EUDIPLO settings are incomplete. This is an operator error; nothing is stored. Only the middleware's log names the missing setting |
 
 ---
 
@@ -167,4 +169,4 @@ connection's current revision, all in one interaction (FR-009).
 |---|---|---|
 | `404` | `{"error": "Not found", "message": "Request not found"}` | Unknown form connection or reference; a reference that belongs to another form connection (FR-019); or a request whose record was deleted 7 days after it ended (FR-021). Stop polling |
 | `409` | `{"error": "unavailable", "message": "This form connection is deactivated or deleted"}` | The form connection is deactivated or deleted, whatever status the request reached (FR-006). Stop polling |
-| `502` | `{"error": "Upstream error", "message": "The documents could not be fetched. Try again."}` | EUDIPLO couldn't be reached while reading the documents. Nothing was consumed, so the next pull can still receive them |
+| `502` | `{"error": "Upstream error", "message": "The documents could not be fetched. Try again.", "error_id": "…"}` | EUDIPLO couldn't be reached while reading the documents. Nothing was consumed, so the next pull can still receive them |

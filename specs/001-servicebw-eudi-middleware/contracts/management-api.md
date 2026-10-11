@@ -1,6 +1,7 @@
 # Contract: management API (DO.IT UI ↔ backend)
 
-**Consumer**: the middleware's own React frontend. **Requirements**: FR-001 to FR-007, FR-014.
+**Consumer**: the middleware's own React frontend. **Requirements**: FR-001 to FR-007, FR-014,
+FR-022.
 **Decisions**: research R9, R12, R14, R16, R21.
 
 ## Common rules
@@ -9,6 +10,9 @@
 - **Response format**: every success body is `{"data": …, "message"?: …}`, where `data` is `null`
   when nothing is returned. Errors are `{"error": …, "message": …}`, raised as `HTTPException`
   (Constitution I).
+- **Server errors**: a `5xx` error also carries `error_id`, a UUID under which the backend logged
+  what went wrong. Its message stays generic: no setting, component or exception text reaches the
+  client. The UI shows the ID, so that it can be passed on to an administrator.
 - **Schemas**: the Pydantic schemas in `backend/app/schemas.py` are the source of truth. The
   TypeScript interfaces in `frontend/src/types/` mirror them in the same change.
 - **Signing in** (FR-007):
@@ -30,8 +34,9 @@
   | `401` | `Unauthorized` | Not signed in, or the session expired |
   | `404` | `Not found` | Unknown or deleted form connection |
   | `415` | `Unsupported media type` | A state-changing request without `Content-Type: application/json` |
-  | `502` | `Upstream error` | EUDIPLO could not create the request configuration for a new revision. Nothing was saved |
-  | `503` | `Not configured` | The middleware's EUDIPLO settings are incomplete: `EUDIPLO_URL`, the client credentials or `EUDIPLO_TRUST_LIST_ID` is empty. Nothing was saved, and the message names the missing setting (research R3) |
+  | `500` | `Internal server error` | An unexpected error. The log has the details under the `error_id` |
+  | `502` | `Upstream error` | EUDIPLO could not create the request configuration for a new revision. Nothing was saved. The log has the details under the `error_id` |
+  | `503` | `Not configured` | The middleware's EUDIPLO settings are incomplete: `EUDIPLO_URL`, the client credentials or `EUDIPLO_TRUST_LIST_ID` is empty. Nothing was saved. Only the log names the missing setting, under the `error_id` (research R3) |
 
 ## Schemas
 
@@ -87,10 +92,10 @@ this (research R14).
 
 | Method and path | Body | Success | Effects |
 |---|---|---|---|
-| `GET /api/form-connections` | none | `200 {"data": FormConnectionSummary[]}` | Form connections that aren't deleted, most recently updated first (US4, scenario 1) |
+| `GET /api/form-connections` | none | `200 {"data": FormConnectionSummary[]}` | Form connections that aren't deleted, most recently updated first (US4, scenario 1). After sign-in, `/get-started` uses it to tell whether any exist (FR-022) |
 | `POST /api/form-connections` | `FormConnectionCreate` | `201 {"data": FormConnection, "message": "Form connection created"}` | Creates revision 1 and its EUDIPLO request configuration. If EUDIPLO fails, nothing is saved (`502`) |
 | `GET /api/form-connections/{id}` | none | `200 {"data": FormConnection}` | Always the same `trigger_url` and `pull_url` (US1, scenario 4) |
-| `PUT /api/form-connections/{id}` | `FormConnectionUpdate` | `200 {"data": FormConnection, "message": "Form connection updated"}` | Changing `documents` creates a new revision and EUDIPLO configuration, and only requests triggered afterwards use them (FR-005). `webhook_url` switches the mode for new requests (US1, scenario 5). The URLs never change. Also allowed while deactivated |
+| `PUT /api/form-connections/{id}` | `FormConnectionUpdate` | `200 {"data": FormConnection, "message": "Form connection updated"}` | Changing `documents` creates a new revision and EUDIPLO configuration, and only requests triggered afterwards use them (FR-005). `webhook_url` switches the mode for new requests (US3, scenario 1); the UI sends it only once webhook updates are delivered (FR-014). The URLs never change. Also allowed while deactivated |
 | `POST /api/form-connections/{id}/deactivate` | `{}` | `200 {"data": FormConnection, "message": "Form connection deactivated"}` | Sets `is_active=false`, and the URLs answer `409 unavailable` from the next call on. Within about 2 seconds the worker turns the [open requests](../data-model.md#open-requests) into `unavailable` and deletes their EUDIPLO sessions. In webhook mode it also sends an `unavailable` update (FR-006). EUDIPLO is not called during this request |
 | `POST /api/form-connections/{id}/activate` | `{}` | `200 {"data": FormConnection, "message": "Form connection activated"}` | Sets `is_active=true`. The URLs work again unchanged (US4, scenario 4) |
 | `DELETE /api/form-connections/{id}` | `{}` | `200 {"data": null, "message": "Form connection deleted"}` | Sets `deleted_at`, so the URLs answer `409 unavailable` permanently. Open requests are cancelled as for deactivation. The worker deletes the EUDIPLO configurations once no request on them still has an EUDIPLO session. EUDIPLO is not called during this request |
