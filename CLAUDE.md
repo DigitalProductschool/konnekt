@@ -422,11 +422,14 @@ cd frontend
   icons use the `kern-icon` classes
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
-  `AppLayout`, except the create wizard (`/form-connections/new`), which renders its own
-  `WizardLayout` (header with a title, 1120 px column, sticky action bar); the signed-out ones
-  (`/login`, `/forgot-password`) render inside `RequireSignedOut` and `AuthLayout`. Every page
-  sets its tab title with `useDocumentTitle()` and has one `h1`:
-  `PageTitle` on signed-in screens, the intro's headline in `AuthLayout` on signed-out ones
+  `AppLayout`, except the create wizard (`/form-connections/new`, and `/get-started` through
+  `pages/FirstConnection/`), which renders its own `WizardLayout` (header with a title, 1120 px
+  column, sticky action bar); the signed-out ones (`/login`, `/forgot-password`) render inside
+  `RequireSignedOut` and `AuthLayout`. A sign-in without a requested route (`/` counts as none)
+  lands on `/get-started`: the wizard headed "Create your first connection" while no form
+  connection exists, the overview otherwise. Every page sets its tab title with
+  `useDocumentTitle()` and has one `h1`: `PageTitle` on signed-in screens, the intro's headline
+  in `AuthLayout` on signed-out ones
 - Links between the app's routes are React Router `Link`s with KERN's classes (`kern-link`, or
   `kern-btn kern-btn--primary` with a `kern-label` span): `KernLink` and `KernButton` with `href`
   render a plain `<a>`, which reloads the page

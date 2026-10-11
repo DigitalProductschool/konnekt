@@ -17,7 +17,7 @@ import { EDITOR_COPY, ELEMENT_IDS, INITIAL_EDITOR_STATE, STEPS } from './constan
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
 import PublishDialog from './PublishDialog';
-import type { EditorErrors } from './types';
+import type { EditorErrors, FormConnectionEditorPageProps } from './types';
 import {
   createPayload,
   editorReducer,
@@ -32,9 +32,12 @@ import {
 /**
  * The create screen at /form-connections/new: a wizard with the form's details and the
  * documents. Everything stays in the browser until "Publish", which creates the connection
- * with one call (the API has no drafts) and opens its details.
+ * with one call (the API has no drafts) and opens its details. The first-connection screen
+ * at /get-started is the same wizard, with its own heading for step 1.
  */
-export default function FormConnectionEditorPage() {
+export default function FormConnectionEditorPage({
+  firstConnection = false,
+}: FormConnectionEditorPageProps) {
   const [state, dispatch] = useReducer(editorReducer, INITIAL_EDITOR_STATE);
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -43,8 +46,11 @@ export default function FormConnectionEditorPage() {
   const shownStep = useRef(state.step);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
   const onDocuments = state.step === 'documents';
+  const connectionTitle = firstConnection
+    ? EDITOR_COPY.firstConnectionTitle
+    : EDITOR_COPY.connectionTitle;
 
-  useDocumentTitle(onDocuments ? EDITOR_COPY.documentsTitle : EDITOR_COPY.connectionTitle);
+  useDocumentTitle(onDocuments ? EDITOR_COPY.documentsTitle : connectionTitle);
 
   // A new step replaces the content, so the focus moves to its heading
   useEffect(() => {
@@ -148,6 +154,7 @@ export default function FormConnectionEditorPage() {
         />
       ) : (
         <ConnectionStep
+          title={connectionTitle}
           name={state.name}
           servicebwForm={state.servicebwForm}
           errors={state.errors}

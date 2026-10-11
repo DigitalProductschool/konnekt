@@ -367,7 +367,7 @@ Clarifications, Session 2026-10-11): the UI offers it only once webhook updates 
 backend keeps it as built (T036, T044). T086 takes the card off the details screen, and T091
 (Phase 6) renders it again.
 
-- [ ] T086 [US1] Take the webhook card off the details screen in `frontend/src/pages/FormConnectionDetail/index.tsx` (contracts/ui-screens.md "Details", design-notes.md §7):
+- [X] T086 [US1] Take the webhook card off the details screen in `frontend/src/pages/FormConnectionDetail/index.tsx` (contracts/ui-screens.md "Details", design-notes.md §7):
   - remove the `<WebhookCard … />` element and its import, and drop the webhook address from the component's doc comment;
   - keep `WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY` unchanged, so that T091 only has to render the card again. `npm run build` still type-checks them, and ESLint has no rule against an unused module;
   - keep `updateFormConnection` in `frontend/src/api/form-connections.ts`;
@@ -400,23 +400,23 @@ runner (research R17), so the phase is checked with the quickstart and the gates
 
 ### Implementation for the first connection screen
 
-- [ ] T087 [US1] Let the wizard in `frontend/src/pages/FormConnectionEditor/` open as the first-connection screen (design-notes.md §6, "First connection"):
+- [X] T087 [US1] Let the wizard in `frontend/src/pages/FormConnectionEditor/` open as the first-connection screen (design-notes.md §6, "First connection"):
   - add `firstConnectionTitle: 'Create your first connection'` to `EDITOR_COPY` in `constants.ts`;
   - `FormConnectionEditorPage` in `index.tsx` takes an optional `firstConnection` prop, declared in `types.ts`. With it, the tab title (`useDocumentTitle`) and step 1's `PageTitle` use `firstConnectionTitle` instead of `connectionTitle`; `ConnectionStep.tsx` gets the heading through a new `title` prop;
   - nothing else changes: the header title "New connection", the progress, the card, the "Continue" footer, the validation, the documents step, the publish dialog and the move to the details screen;
   - check the screen against Figma 02 (`2080:6059`) and 02a (`2080:6160`) as the "Figma implementation workflow" in `CLAUDE.md` describes. Only the heading differs from the built 02d.
-- [ ] T088 [US1] Build `frontend/src/pages/FirstConnection/` for `/get-started` (contracts/ui-screens.md "First connection"), with its texts in `constants.ts` and its state type in `types.ts`, and register it (depends on T087):
+- [X] T088 [US1] Build `frontend/src/pages/FirstConnection/` for `/get-started` (contracts/ui-screens.md "First connection"), with its texts in `constants.ts` and its state type in `types.ts`, and register it (depends on T087):
   - add `firstConnection: '/get-started'` to `ROUTES` in `frontend/src/constants.ts`, and the route to the `SignedInWizards` group in `frontend/src/App.tsx`;
   - call `listFormConnections()` once when the page opens, passing failures through `useSignOutOnUnauthorized()` first, and ignore an answer that arrives after the page has closed, as the other pages do;
   - while the call runs, render `AppLayout` with `FeedbackLoader` and "Loading your connections…" (Figma L1, `2073:5601`), from a small loading sub-component that also sets that text as the tab title with `useDocumentTitle()`. Keeping the hook in the sub-component lets the wizard's own tab title take over once it renders;
   - an empty list renders `<FormConnectionEditorPage firstConnection />`;
   - a non-empty list, or a failure other than `401`, renders `<Navigate to={ROUTES.overview} replace />`. The overview then shows its list, or its own error state with "Try again".
-- [ ] T089 [US1] Send a sign-in without a requested route to `/get-started` (FR-022), in `frontend/src/components/RequireSignedOut/utils.ts` (depends on T088):
+- [X] T089 [US1] Send a sign-in without a requested route to `/get-started` (FR-022), in `frontend/src/components/RequireSignedOut/utils.ts` (depends on T088):
   - `redirectTarget()` returns `ROUTES.firstConnection` where it returns `ROUTES.overview` today: without router state, without a usable `from`, and for `from` = `/login`. It also does so for `from` = `/`, because opening the app's address isn't a request for the overview;
   - any other requested route comes back unchanged, with its search and hash;
   - update the doc comments in `utils.ts` and in `frontend/src/components/RequireSignedOut/index.tsx`;
   - the logo links of `frontend/src/components/AppLayout/index.tsx` and `frontend/src/components/WizardLayout/index.tsx` keep `ROUTES.overview`.
-- [ ] T090 [P] [US1] Document the routing change in `CLAUDE.md` and `docs/ARCHITECTURE.md`, as the documentation checklist asks:
+- [X] T090 [P] [US1] Document the routing change in `CLAUDE.md` and `docs/ARCHITECTURE.md`, as the documentation checklist asks:
   - `CLAUDE.md`, "Frontend Development Guidelines": the create wizard also renders at `/get-started` (`pages/FirstConnection/`), with its own `WizardLayout`, and a sign-in without a requested route lands there;
   - `docs/ARCHITECTURE.md`, the frontend's routing paragraph: `RequireSignedOut` sends a sign-in without a requested route to `/get-started`, which opens the wizard while no form connection exists and the overview otherwise.
 

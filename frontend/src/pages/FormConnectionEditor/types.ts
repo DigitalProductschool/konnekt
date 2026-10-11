@@ -5,6 +5,11 @@ import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { RequestedDocument } from '../../types/form-connections';
 
+export interface FormConnectionEditorPageProps {
+  /** Opened at /get-started while no connection exists: step 1 is the first connection's */
+  firstConnection?: boolean;
+}
+
 export type EditorStep = 'connection' | 'documents';
 
 /** Validation messages, each shown next to what it is about */
@@ -50,6 +55,8 @@ export type EditorAction =
   | { type: 'publishFailed'; error: ErrorNotice };
 
 export interface ConnectionStepProps {
+  /** The page's heading, which depends on how the wizard was opened */
+  title: string;
   name: string;
   servicebwForm: string;
   errors: EditorErrors;

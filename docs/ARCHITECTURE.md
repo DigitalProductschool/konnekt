@@ -118,9 +118,12 @@ frontend/
   envelope and throws an `ApiError` for `{error, message}` bodies
 - Routing with React Router 7 (`BrowserRouter`). `RequireSignIn` sends signed-out
   users to `/login` and back to the requested route afterwards, and `RequireSignedOut`
-  sends signed-in users on from `/login` and `/forgot-password`; nginx already falls
-  back to `index.html` for client-side routes. Passwords are reset with the account
-  CLI, so `/forgot-password` only says whom to ask
+  sends signed-in users on from `/login` and `/forgot-password`. A sign-in without a
+  requested route, where `/` counts as none, goes to `/get-started`, which opens the
+  create wizard while no form connection exists and the overview otherwise (FR-022);
+  the logo still leads to the overview. nginx already falls back to `index.html` for
+  client-side routes. Passwords are reset with the account CLI, so `/forgot-password`
+  only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
   components read it with `useCurrentUser()`
 - KERN design system: `index.css` imports Tailwind, KERN's fonts, `kern.css` and the
