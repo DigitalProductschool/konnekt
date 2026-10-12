@@ -471,6 +471,13 @@ documents are neither delivered nor deleted (`documents_delivered_at` and
 5. It returns the documents. Deleting the EUDIPLO session is left to the worker (R8), so no slow
    call sits between the commit and the response.
 
+**As implemented (T050)**: no transaction may stay open while EUDIPLO answers (R15), so the
+pull checks step 2 without the lock and reads the session in step 3 first. Then it takes the row
+lock and checks step 2 again before step 4. If the window ended, or the worker deleted the
+session, while EUDIPLO answered, the pull answers `documents: null` and drops what it read. The
+first delivery is still the one commit that sets `documents_delivered_at`. The documents also
+count as gone from their deletion time on (R8), even before the worker has deleted the session.
+
 **Repeat window (user, FR-018)**: for `PULL_REPEAT_WINDOW_SECONDS` (60 s) after
 `documents_delivered_at`, further pulls return the same documents. They are read from EUDIPLO
 again and extracted the same way. A serviceBW whose first answer got lost therefore just pulls
@@ -968,8 +975,10 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
      `POST /api/verifier/offer` come from `docs/EUDIPLO.md`. The client maps them as the contract
      says, and T081 confirms them live.
    - **`crossDeviceUri` is optional** in the offer response, while the contract turns it into
-     `qr_code_link` and `qr_code` unconditionally. The client reads it as optional. **To decide
-     before T049**: fall back to `uri`, or answer `502`.
+     `qr_code_link` and `qr_code` unconditionally. The client reads it as optional. **Decided
+     (user, 2026-10-11)**: an offer without it answers `502`, like any other failed offer. The
+     trigger (T049) deletes the new EUDIPLO session again, stores nothing, and logs the
+     request's internal id. It doesn't fall back to `uri`, the same-device link (R11).
    - **The offer can also answer with a PNG** (`image/png`), so every call sends
      `Accept: application/json`.
    - **List items may contain `credentials`**, because they use the full `Session` schema. The
@@ -977,7 +986,11 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
    - **Paging and the cursor** (R6): `updatedFrom` is inclusive and must be UTC with seconds, so the
      client sends it as `…000Z`, sorted by `updatedAt` ascending, 100 items per page. The sync
      (T053) reads every page of a cycle: more than 100 updates inside the 5-second overlap would
-     otherwise keep the cursor from moving.
+     otherwise keep the cursor from moving. Each page after the first starts at the last
+     `updatedAt` of the page before, rather than at the next page number. A session that changes
+     while the pages are read moves to the end of the list, so with page numbers it would push an
+     unread session onto a page already read. Only a page whose items all share one `updatedAt`
+     is followed by the next page number.
    - **Strict bodies**: unknown keys, and `null` for optional arrays such as `claim_sets`, are
      rejected. The configuration body (T033) leaves unused keys out instead of sending `null`, and
      `lifeTime` must be an integer of at least 1.

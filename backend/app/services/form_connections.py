@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from ..catalog import DOCUMENT_TYPES, get_document_type
 from ..config import settings
+from ..errors import describe_error
 from ..models import FormConnection, FormConnectionRevision
 from ..schemas import (
     DocumentField,
@@ -32,7 +33,6 @@ from ..schemas import (
 from ..schemas import FormConnection as FormConnectionView
 from . import dcql
 from .eudiplo import EudiploError, get_eudiplo_client
-from .worker import describe_error
 
 logger = logging.getLogger(__name__)
 

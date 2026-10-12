@@ -23,6 +23,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 |---|---|---|
 | `argon2-cffi` | backend | Argon2id hashes for the DO.IT team members' passwords |
 | `httpx2` | backend (moved from the `dev` group) | Synchronous HTTP client for the EUDIPLO management API. FastAPI's `TestClient` needs it too, and its `MockTransport` provides the fake EUDIPLO in the tests |
+| `segno` | backend | Renders the QR code that serviceBW shows the citizen, a PNG data URI of the wallet link for another device. Pure Python, and writes PNG without Pillow |
 | `pytest` | backend, `dev` group | Runs the backend tests |
 | `react-router` | frontend | Routes of the management UI, so that a form connection has its own URL |
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
@@ -397,6 +398,22 @@ variable, or it will be ignored.
 VITE_API_URL=http://localhost:3000
 ```
 
+### Frontend container (production nginx)
+
+Set on the `frontend` service of `docker-compose.prod.yml`, for example in Coolify. They don't
+apply to local development, where the backend's port 3000 is reachable directly.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `BACKEND_HOST` | Host name of the backend container, which nginx forwards `/api/` to | `backend` (`${SERVICE_NAME_BACKEND}` in Coolify) |
+| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx | empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Coolify's Traefik). Only requests from there may give the client's address in `X-Forwarded-For`, which the allow-list then checks | empty: the connecting address counts |
+
+At container start, `frontend/nginx/40-servicebw-access.sh` turns the two lists into nginx
+`allow` and `set_real_ip_from` rules. An entry that isn't an address or a range stops the
+container. Request references never reach nginx's logs: the access log shows
+`/requests/<reference>` instead.
+
 ## EUDIPLO
 
 The middleware uses the team's hosted EUDIPLO (tenant `dps`) through its management API, and
@@ -454,7 +471,10 @@ there is no CORS configuration and no API URL baked into the frontend build.
    and `SERVICE_FQDN_FRONTEND`. Set the middleware's variables in the Coolify
    environment: `CONNECTION_BASE_URL` (the `https://` address serviceBW uses;
    the backend refuses to start without it) and the four `EUDIPLO_*` variables.
-   The others have defaults (see [Environment Variables](#environment-variables))
+   For the frontend, set `SERVICEBW_ALLOWED_CIDRS` (serviceBW's address ranges)
+   and `TRUSTED_PROXY_CIDRS` (Traefik's network): until then, the connection
+   URLs answer `403` to everyone. The others have defaults (see
+   [Environment Variables](#environment-variables))
 5. Deploy
 6. Create the first account in the backend container (Coolify: the backend
    service's terminal): `uv run python -m app.cli create-user <username>`
@@ -485,7 +505,9 @@ isolated, empty database — that is created on PR open and removed on close.
 3. Mind server capacity: every open PR runs three extra containers, including
    its own PostgreSQL
 4. Previews run with `APP_ENV=production` too, so set `CONNECTION_BASE_URL` in
-   the preview environment variables as well, or the preview backend won't start
+   the preview environment variables as well, or the preview backend won't start.
+   Their connection URLs stay closed (`403`) unless `SERVICEBW_ALLOWED_CIDRS` is
+   set for them too
 
 Preview databases start empty (schema only, via migrations on startup), so a
 preview needs its own account, created as in step 6 above.

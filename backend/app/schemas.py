@@ -1,12 +1,22 @@
 from datetime import datetime, timezone
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 T = TypeVar('T')
 
 # Pull mode without a webhook address, webhook mode with one (FR-014)
 FormConnectionMode = Literal['pull', 'webhook']
+
+# The statuses of a document request (FR-011, research R5)
+RequestStatus = Literal[
+    'pending',
+    'completed',
+    'declined',
+    'verification_failed',
+    'expired',
+    'unavailable',
+]
 
 
 class ApiResponse(BaseModel, Generic[T]):
@@ -128,3 +138,55 @@ class FormConnectionUpdate(BaseModel):
     servicebw_form: str | None = None
     documents: list[RequestedDocument] | None = None
     webhook_url: str | None = None
+
+
+# The trigger URL and the pull URL, which serviceBW calls
+# (contracts/integration-api.md). No frontend code consumes them.
+
+
+class TriggerResponse(BaseModel):
+    """A started document request: how the citizen opens it, and its reference."""
+
+    # Unguessable, and the key to the request's documents: never logged
+    reference: str
+    status: RequestStatus
+    # Opens the wallet on the phone that holds it (same-device flow)
+    wallet_link: str
+    # The link for a wallet on another device, which the QR code encodes
+    qr_code_link: str
+    # qr_code_link as a PNG data URI
+    qr_code: str
+    expires_at: str
+
+
+class DeliveredField(BaseModel):
+    """A configured field of a shared document, with its value.
+
+    The value keeps its JSON type; binary values are base64 strings, and dates ISO
+    8601 strings.
+    """
+
+    key: str
+    label: str
+    value: JsonValue
+
+
+class DeliveredDocument(BaseModel):
+    """A shared document, reduced to the configured fields in configuration order."""
+
+    document_type: str
+    label: str
+    fields: list[DeliveredField]
+
+
+class PullResponse(BaseModel):
+    """A request's status and, while they can be handed out, its documents.
+
+    `documents` is null until the documents are delivered in pull mode, after the
+    repeat window, and in webhook mode.
+    """
+
+    reference: str
+    status: RequestStatus
+    expires_at: str
+    documents: list[DeliveredDocument] | None

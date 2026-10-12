@@ -445,15 +445,15 @@ These are quickstart V2, V3 and V6.
 
 ### Implementation for User Story 2
 
-- [ ] T045 [P] [US2] Add `TriggerResponse`, `DeliveredField`, `DeliveredDocument` and `PullResponse` to `backend/app/schemas.py`, exactly as in contracts/integration-api.md: snake_case, `expires_at` as ISO 8601 UTC with `Z`, and nullable `documents`.
-- [ ] T046 [P] [US2] Add `segno` to `dependencies` in `backend/pyproject.toml`, with its current release as the version floor, and run `uv lock` and `uv sync` in `backend/`. Then create `backend/app/services/qr.py`: render a link as a PNG data URI (`data:image/png;base64,…`) with `segno`, using error correction M, a scale that gives a scannable image, and a quiet zone of 4 (research R11).
-- [ ] T047 [P] [US2] Create `backend/app/services/documents.py` (research R9). It turns an EUDIPLO session's `credentials` (`[{"id": <document type key>, "values": [{…}]}]`) into `DeliveredDocument`s for a revision:
+- [X] T045 [P] [US2] Add `TriggerResponse`, `DeliveredField`, `DeliveredDocument` and `PullResponse` to `backend/app/schemas.py`, exactly as in contracts/integration-api.md: snake_case, `expires_at` as ISO 8601 UTC with `Z`, and nullable `documents`.
+- [X] T046 [P] [US2] Add `segno` to `dependencies` in `backend/pyproject.toml`, with its current release as the version floor, and run `uv lock` and `uv sync` in `backend/`. Then create `backend/app/services/qr.py`: render a link as a PNG data URI (`data:image/png;base64,…`) with `segno`, using error correction M, a scale that gives a scannable image, and a quiet zone of 4 (research R11).
+- [X] T047 [P] [US2] Create `backend/app/services/documents.py` (research R9). It turns an EUDIPLO session's `credentials` (`[{"id": <document type key>, "values": [{…}]}]`) into `DeliveredDocument`s for a revision:
   - take the first `values` entry of each document;
   - SD-JWT VC values are found by walking the claim path, and mdoc values by element name, because EUDIPLO merges mdoc claims into one flat object;
   - copy only the selected fields, in configuration order, with their catalog labels;
   - bytes become base64 strings, and dates become ISO 8601 strings;
   - a missing value becomes `null` and is logged by field key only. Values are never logged.
-- [ ] T048 [US2] Create `backend/app/services/document_requests.py` with:
+- [X] T048 [US2] Create `backend/app/services/document_requests.py` with:
   - the status mapping of research R5:
     - wallet error codes → `declined`;
     - verification codes, unknown codes and no code → `verification_failed`;
@@ -462,7 +462,7 @@ These are quickstart V2, V3 and V6.
     - locks the row with `SELECT … FOR UPDATE` and checks the current status again;
     - sets `status`, `status_changed_at`, `failure_code` and `completed_at` (EUDIPLO's `consumedAt`);
     - sets `ended_at` for `declined`, `verification_failed`, `expired` and `unavailable`.
-- [ ] T049 [US2] Implement `trigger` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Trigger URL":
+- [X] T049 [US2] Implement `trigger` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Trigger URL":
   - check in this order: 404 for an unknown form connection, 409 for a deactivated or deleted one, 503 when not configured;
   - read the current revision, and end the read transaction before calling EUDIPLO;
   - call `create_offer` with `requestId` = `eudiplo_config_id` and `reference` = the new request's id. On a 409, re-create the configuration from the revision with T033 and retry once;
@@ -472,7 +472,7 @@ These are quickstart V2, V3 and V6.
     - `mode` and `webhook_url` copied from the form connection;
   - if the insert fails, delete the EUDIPLO session again;
   - return `wallet_link` (`uri`), `qr_code_link` (`crossDeviceUri`) and `qr_code` (T046).
-- [ ] T050 [US2] Implement `pull` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Pull URL" and research R9:
+- [X] T050 [US2] Implement `pull` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Pull URL" and research R9:
   - use the same check order as the trigger, then 404 "Request not found" for an unknown reference or one that belongs to another form connection;
   - lock the row;
   - a `pending` request past `expires_at` gets the last check: `get_session` plus the mapping, otherwise `expired`;
@@ -483,28 +483,28 @@ These are quickstart V2, V3 and V6.
     - EUDIPLO 404 sets `eudiplo_session_deleted_at` (and `ended_at`) and answers `null`;
     - other EUDIPLO errors answer 502, and nothing is consumed;
   - webhook-mode requests always answer `documents: null`.
-- [ ] T051 [US2] Implement `backend/app/routers/connect.py`, with no sign-in and no `require_json`, and register it in `backend/app/main.py`:
+- [X] T051 [US2] Implement `backend/app/routers/connect.py`, with no sign-in and no `require_json`, and register it in `backend/app/main.py`:
   - `POST /api/connect/{form_connection_id}/requests` (201, message "Document request started");
   - `GET /api/connect/{form_connection_id}/requests/{reference}`;
   - error bodies exactly as in contracts/integration-api.md:
     - 404 "Form connection not found" / "Request not found";
     - 409 `{"error": "unavailable", "message": "This form connection is deactivated or deleted"}`;
     - the 502 messages and 503.
-- [ ] T052 [US2] Add a `logging.Filter` on the `uvicorn.access` logger in `backend/app/main.py`. It replaces the reference segment of `/api/connect/<id>/requests/<reference>` with the text `<reference>`, so references never reach the logs (research R13).
-- [ ] T053 [US2] Add the sync and expiry steps to `backend/app/services/worker.py` (research R6, R7):
+- [X] T052 [US2] Add a `logging.Filter` on the `uvicorn.access` logger in `backend/app/main.py`. It replaces the reference segment of `/api/connect/<id>/requests/<reference>` with the text `<reference>`, so references never reach the logs (research R13).
+- [X] T053 [US2] Add the sync and expiry steps to `backend/app/services/worker.py` (research R6, R7):
   - **Sync**:
     - call `list_sessions(type=presentation, updatedFrom=cursor)`. The cursor is the latest EUDIPLO `updatedAt` seen minus 5 s, starting at the creation time of the oldest open request;
     - apply the mapping through `apply_status` to known `pending` requests only;
     - for items without `failureCode` or `consumedAt`, fall back to `get_session` and discard `credentials` right away.
   - **Expiry**: `pending` requests whose `expires_at` has passed get the last check, dispatched to the pool.
-- [ ] T054 [US2] Add the EUDIPLO session deletion step to `backend/app/services/worker.py` (research R8). Calls are dispatched to the pool, a 404 counts as success, and each deletion sets `eudiplo_session_deleted_at`. A session is deleted:
+- [X] T054 [US2] Add the EUDIPLO session deletion step to `backend/app/services/worker.py` (research R8). Calls are dispatched to the pool, a 404 counts as success, and each deletion sets `eudiplo_session_deleted_at`. A session is deleted:
   - when a pull-mode delivery's repeat window has ended;
   - when a request has a final status other than `completed`;
   - for undelivered `completed` requests, at `completed_at` + `DOCUMENT_RETENTION_SECONDS` − 60 s, also setting `ended_at`.
 
   The 30-minute limit also ends a repeat window early.
-- [ ] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021).
-- [ ] T056 [P] [US2] Restrict `/api/connect/` in the production nginx (research R13):
+- [X] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021).
+- [X] T056 [P] [US2] Restrict `/api/connect/` in the production nginx (research R13):
   - `frontend/nginx/40-servicebw-access.sh` writes two files:
     - `/etc/nginx/servicebw-allow.conf`: one `allow <cidr>;` per entry of `SERVICEBW_ALLOWED_CIDRS`, then `deny all;`. If the variable is empty, only `deny all;`.
     - `/etc/nginx/real-ip.conf`: `set_real_ip_from <cidr>;` per entry of `TRUSTED_PROXY_CIDRS`, then `real_ip_header X-Forwarded-For;` and `real_ip_recursive on;`. If the variable is unset, the file is empty.
@@ -517,10 +517,10 @@ These are quickstart V2, V3 and V6.
 
 ### Tests for User Story 2
 
-- [ ] T057 [P] [US2] Write `backend/tests/unit/test_status_mapping.py` and `backend/tests/unit/test_documents.py`:
+- [X] T057 [P] [US2] Write `backend/tests/unit/test_status_mapping.py` and `backend/tests/unit/test_documents.py`:
   - status mapping: every code of research R5, unknown codes, and no code;
   - extraction: the SD-JWT claim path walk, flat mdoc claims, only the selected fields in order, technical claims dropped, bytes and dates converted, and a missing value.
-- [ ] T058 [US2] Write `backend/tests/api/test_connect.py`:
+- [X] T058 [US2] Write `backend/tests/api/test_connect.py`:
   - **Trigger**: 201 with every field and a stored `pending` request; the check order 404/409/404; 503 and 502; a 409 from the offer re-creates the configuration once.
   - **Pull**:
     - `pending`, then the first pull returns exactly the configured fields;
@@ -529,7 +529,7 @@ These are quickstart V2, V3 and V6.
     - EUDIPLO 404 gives `null`, and a 502 consumes nothing;
     - the last check before expiry gives `completed`, `declined` or `expired`;
     - two simultaneous pulls inside the window both get the documents.
-- [ ] T059 [US2] Write `backend/tests/api/test_worker_requests.py`:
+- [X] T059 [US2] Write `backend/tests/api/test_worker_requests.py`:
   - sync applies statuses and ignores unknown sessions, and the cursor works;
   - expiry runs the last check as soon as `expires_at` has passed;
   - EUDIPLO sessions are deleted at the right time: at the end of the window, for final statuses, and at 30 minutes − 60 s;

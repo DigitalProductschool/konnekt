@@ -22,6 +22,10 @@ FROM nginx:alpine AS runner
 # a suffixed backend service name); defaults to the compose service name.
 ENV BACKEND_HOST=backend
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+# Writes the /api/connect/ allow-list and the trusted proxies at container start,
+# from SERVICEBW_ALLOWED_CIDRS and TRUSTED_PROXY_CIDRS (research R13)
+COPY frontend/nginx/40-servicebw-access.sh /docker-entrypoint.d/40-servicebw-access.sh
+RUN chmod 755 /docker-entrypoint.d/40-servicebw-access.sh
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 
 EXPOSE 80

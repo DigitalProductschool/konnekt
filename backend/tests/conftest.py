@@ -40,7 +40,7 @@ from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.main import app
 from app.models import UserAccount
-from app.services import eudiplo
+from app.services import eudiplo, worker
 from app.services.auth import hash_password
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -78,6 +78,12 @@ def empty_tables(database_schema: None) -> None:
     tables = ', '.join(table.name for table in Base.metadata.sorted_tables)
     with engine.begin() as connection:
         connection.execute(text(f'TRUNCATE {tables} CASCADE'))
+
+
+@pytest.fixture(autouse=True)
+def fresh_sync_cursor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start every test without a sync cursor, like the worker after a start."""
+    monkeypatch.setattr(worker, '_sync_cursor', None)
 
 
 def create_user(username: str = TEST_USERNAME, password: str = TEST_PASSWORD) -> str:

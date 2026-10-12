@@ -109,7 +109,11 @@ Location: `/backend/app/services/`
   `http_error_for(error, '<message for the UI>')`: `503` when a setting is
   missing, `502` otherwise, both with an `error_id`, and only the log names the
   setting or the failed call. End the read transaction before calling EUDIPLO and
-  open a new one afterwards, so that no connection is held while waiting.
+  open a new one afterwards, so that no connection is held while waiting. If what
+  happens next depends on a row, lock it then (`db.refresh(row,
+  with_for_update=True)`) and check its state again, because the worker or another
+  request may have changed it meanwhile: `apply_status()` in
+  `services/document_requests.py` and the pull do this.
 - **Worker steps** live in `services/worker.py`. A step is a plain function
   without arguments that opens its own `SessionLocal()` session and keeps its
   transactions short; add it to `STEPS` in the order of research R7. Send
@@ -117,8 +121,10 @@ Location: `/backend/app/services/`
   the key is a name plus an internal id, never a request reference. Tests set
   `WORKER_ENABLED=false` and call the steps directly.
 - **Logging**: never log claims, tokens, secrets, request references or response
-  bodies. Log an exception with `describe_error(error)` (its type and code
-  location), not its message, which can quote personal data.
+  bodies. Log an exception with `describe_error(error)` from `app/errors.py` (its
+  type and code location), not its message, which can quote personal data. It lives
+  there, not in `services/worker.py`, because `errors.py` imports nothing from the
+  app: the services and the worker can all import it without an import cycle.
 
 ### Pydantic Schemas
 
@@ -496,7 +502,7 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Commit `.env` files (create `.env.example` instead)
 - Use `print()` for logging (use FastAPI's logger or `logging` module)
 - Log claims, tokens, secrets, request references, response bodies or exception
-  messages (use `describe_error()` from `app/services/worker.py`)
+  messages (use `describe_error()` from `app/errors.py`)
 - Put a setting's name, a component's internals or an exception's text into an
   error answer — log them with `log_server_error()` and answer with its `error_id`
 - Hold a database transaction open while waiting for EUDIPLO or a webhook address
@@ -525,22 +531,31 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 backend/
 ├── app/
 │   ├── __init__.py       # Minimum Python version guard
-│   ├── main.py           # FastAPI app, routers registration, worker lifespan
+│   ├── main.py           # FastAPI app, routers, worker lifespan, access-log redaction
 │   ├── config.py         # Settings with pydantic-settings
 │   ├── db.py             # Base, engine, sessionmaker, get_db dependency
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic schemas
-│   ├── errors.py         # Exception handlers, log_server_error (5xx error ids)
+│   ├── errors.py         # Exception handlers, log_server_error (5xx error ids), describe_error
+│   ├── catalog.py        # Document types and their fields (PID, mDL)
 │   ├── cli.py            # Account management, run as `python -m app.cli`
 │   ├── routers/          # API routers, one module per resource
 │   │   ├── __init__.py
-│   │   └── auth.py       # /api/auth/login, /logout, /me
+│   │   ├── auth.py       # /api/auth/login, /logout, /me
+│   │   ├── document_types.py   # /api/document-types
+│   │   ├── form_connections.py # /api/form-connections
+│   │   └── connect.py    # /api/connect/: serviceBW's trigger and pull URLs, no sign-in
 │   └── services/         # Domain logic shared by the routers and the worker
 │       ├── auth.py       # Password hashes, sign-in sessions, get_current_user, require_json
 │       ├── eudiplo.py    # EUDIPLO client, get_eudiplo_client, http_error_for
+│       ├── dcql.py       # A revision's EUDIPLO configuration body and config_hash
+│       ├── form_connections.py  # Validation, create, read, update
+│       ├── document_requests.py # Trigger, pull, status mapping, apply_status
+│       ├── documents.py  # EUDIPLO credentials → exactly the configured fields
+│       ├── qr.py         # QR code of the cross-device link (segno)
 │       └── worker.py     # Background worker: loop, steps, dispatch
 ├── alembic/              # Database migrations
-├── tests/                # conftest.py, fake_eudiplo.py, api/, unit/
+├── tests/                # conftest.py, fake_eudiplo.py, helpers.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
 └── uv.lock              # Lock file
