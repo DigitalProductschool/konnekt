@@ -23,6 +23,9 @@ dependencies = [
 
     # Sync HTTP client for EUDIPLO and webhook updates; TestClient needs it too
     "httpx2>=2.12.0",
+
+    # QR codes of the wallet links, as PNG without Pillow
+    "segno>=1.6.6",
 ]
 
 [dependency-groups]
@@ -31,6 +34,7 @@ dev = [
     "mypy>=2.3.1",       # Type checking
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",     # Test runner
+    "faker>=40.39.0",    # Random test people for scripts/issue_test_credentials
 ]
 
 [build-system]

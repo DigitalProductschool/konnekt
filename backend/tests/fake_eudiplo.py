@@ -95,6 +95,11 @@ class FakeEudiplo:
         self.sessions: dict[str, FakeSession] = {}
         self.calls: list[ReceivedCall] = []
         self.valid_tokens: set[str] = set()
+        # crossDeviceUri is optional in the offer response of the OpenAPI
+        self.omit_cross_device_uri = False
+        # Lists sessions without failureCode and consumedAt, which the sync then
+        # has to read from the session itself
+        self.list_without_outcome = False
         self._failures: dict[CallName, list[int]] = {}
         self.transport = httpx2.MockTransport(self._handle)
 
@@ -240,14 +245,15 @@ class FakeEudiplo:
         )
         self.sessions[session.id] = session
         request_uri = f'{FAKE_EUDIPLO_URL}/presentations/{session.id}/oid4vp/request'
-        return httpx2.Response(
-            201,
-            json={
-                'uri': f'openid4vp://?request_uri={request_uri}',
-                'crossDeviceUri': f'openid4vp://?request_uri={request_uri}&cross=1',
-                'session': session.id,
-            },
-        )
+        offer = {
+            'uri': f'openid4vp://?request_uri={request_uri}',
+            'session': session.id,
+        }
+        if not self.omit_cross_device_uri:
+            offer['crossDeviceUri'] = (
+                f'openid4vp://?request_uri={request_uri}%2Fno-redirect'
+            )
+        return httpx2.Response(201, json=offer)
 
     def _list_sessions(self, request: httpx2.Request) -> httpx2.Response:
         params = request.url.params
@@ -264,11 +270,16 @@ class FakeEudiplo:
         )
         start = (page - 1) * page_size
         total_pages = max(1, -(-len(matching) // page_size))
+        # Like the full Session schema, list items may carry credentials
+        items = [s.to_json() for s in matching[start : start + page_size]]
+        if self.list_without_outcome:
+            for item in items:
+                item.pop('failureCode', None)
+                item.pop('consumedAt', None)
         return httpx2.Response(
             200,
             json={
-                # Like the full Session schema, list items may carry credentials
-                'items': [s.to_json() for s in matching[start : start + page_size]],
+                'items': items,
                 'total': len(matching),
                 'page': page,
                 'pageSize': page_size,

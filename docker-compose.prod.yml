@@ -75,6 +75,12 @@ services:
       - SERVICE_FQDN_FRONTEND
       # Backend hostname for the nginx /api proxy; suffixed per preview
       - BACKEND_HOST=${SERVICE_NAME_BACKEND:-backend}
+      # Comma-separated address ranges that may call /api/connect/ (serviceBW).
+      # Empty closes it: nginx answers 403 to everyone (research R13)
+      - SERVICEBW_ALLOWED_CIDRS=${SERVICEBW_ALLOWED_CIDRS:-}
+      # Comma-separated ranges of the proxy in front of nginx (Coolify's Traefik)
+      # whose X-Forwarded-For is trusted. Empty: the connecting address counts
+      - TRUSTED_PROXY_CIDRS=${TRUSTED_PROXY_CIDRS:-}
     healthcheck:
       # 127.0.0.1, not localhost: busybox wget doesn't fall back from ::1,
       # where nginx isn't listening

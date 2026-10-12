@@ -29,9 +29,12 @@ This repository is being turned into the serviceBW ↔ EUDI Wallet middleware. I
 target architecture, with form connections, document requests, webhook updates
 and an nginx allow-list, is in
 [the plan](../specs/001-servicebw-eudi-middleware/plan.md). This document
-describes what is implemented so far: the data model, DO.IT sign-in, the
-EUDIPLO client (not called by an endpoint yet), the worker with its first step,
-and the management UI's sign-in screen and app shell.
+describes what is implemented so far: the data model, DO.IT sign-in, form
+connections with their EUDIPLO configurations, serviceBW's trigger and pull URLs
+(pull mode), the worker steps for document requests, the nginx allow-list for
+the connection URLs, and the management UI. Webhook mode and maintaining form
+connections (deactivate, delete, edit the documents) follow with later user
+stories.
 
 ### Data Flow
 
@@ -148,17 +151,25 @@ frontend/
 ```
 backend/
 ├── app/
-│   ├── routers/          # APIRouter modules (one per resource): auth.py
+│   ├── routers/          # APIRouter modules (one per resource): auth.py,
+│   │                     # document_types.py, form_connections.py, connect.py
 │   ├── services/         # Domain logic shared by routers and worker:
-│   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), worker.py
+│   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), dcql.py,
+│   │                     # form_connections.py, document_requests.py (trigger,
+│   │                     # pull, statuses), documents.py (field extraction),
+│   │                     # qr.py, worker.py
+│   ├── catalog.py        # Document types and their fields
 │   ├── cli.py            # Account management: create-user, set-password, delete-user
 │   ├── config.py         # Settings via pydantic-settings, with the startup check
 │   ├── db.py             # Engine, sessionmaker, get_db dependency
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic request/response schemas
-│   ├── errors.py         # Exception handlers
-│   └── main.py           # FastAPI app entry point; its lifespan runs the worker
+│   ├── errors.py         # Exception handlers, log_server_error, describe_error
+│   └── main.py           # FastAPI app entry point; its lifespan runs the worker,
+│                         # and it redacts references in uvicorn's access log
 ├── alembic/              # Database migrations
+├── scripts/              # Developer scripts, not in the production image:
+│                         # issue_test_credentials/ issues test documents to a wallet
 ├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
@@ -228,11 +239,58 @@ location only, never its message, and the next step still runs. Outbound calls g
 to a pool of 8 threads through `dispatch(key, call)`, so the loop never waits for
 them, and a key that is still in flight isn't dispatched twice.
 
-Implemented steps: deleting expired sign-in sessions. The steps for document
-requests, webhooks and EUDIPLO clean-up follow with later user stories (research
-R7 in the spec folder lists them in order). The production image runs one uvicorn
-process, so there is one worker thread; row locks and leases keep later steps
-correct if that changes.
+Implemented steps, in the order of research R7 in the spec folder:
+
+1. **Sync**: one `GET /api/session` per page of sessions updated since the cursor,
+   which is the latest `updatedAt` seen less 5 seconds. It applies each outcome to
+   its pending request and ignores sessions it doesn't know, such as those of other
+   environments in the shared tenant. The cursor lives in memory; after a start it
+   begins at the oldest pending request. Without a pending request, EUDIPLO isn't
+   called.
+2. **Expire**: the last check of each pending request past its `expires_at`, in
+   the pool. An answer given in time still counts; otherwise the request becomes
+   `expired`.
+3. **Delete EUDIPLO sessions**, with any documents in them: after any final status
+   other than `completed`, when a pull's 60-second repeat window ends, and for
+   documents never delivered 30 minutes less a minute after the citizen shared. A
+   `404` counts as deleted; another failure is tried again in the next cycle.
+4. **Delete expired sign-in sessions.**
+5. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
+   ended, with their webhook updates.
+
+Cancelling the requests of deactivated form connections, sending webhook updates
+and maintaining EUDIPLO configurations follow with later user stories. The
+production image runs one uvicorn process, so there is one worker thread; row
+locks and leases keep the steps correct if that changes.
+
+### serviceBW's connection URLs
+
+`app/routers/connect.py` serves the two URLs that serviceBW calls
+(`specs/001-servicebw-eudi-middleware/contracts/integration-api.md`), and
+`app/services/document_requests.py` holds their logic:
+
+- **Trigger**, `POST /api/connect/{id}/requests`: creates a EUDIPLO request
+  (`POST /api/verifier/offer`) on the form connection's current revision, and
+  answers with the same-device wallet link, a QR code of the link for another
+  device (`segno`, PNG data URI), an unguessable reference and the expiry time.
+  EUDIPLO knows the request only by its internal id.
+- **Pull**, `GET /api/connect/{id}/requests/{reference}`: the status and, in pull
+  mode, the documents, reduced to exactly the configured fields
+  (`services/documents.py`). They are read from EUDIPLO at the time of the pull and
+  never stored. The first pull that returns them counts as the delivery, and pulls
+  within the next 60 seconds get them again. A pending request past its expiry gets
+  its last check from the pull itself.
+- **No sign-in**: the network restricts these URLs instead. The production nginx
+  forwards `/api/connect/` only from `SERVICEBW_ALLOWED_CIDRS` and answers `403` to
+  everyone else (see [Production Deployment](#production-deployment-coolify)).
+- **References stay out of the logs**: a filter on uvicorn's access logger and
+  nginx's access log format show `/requests/<reference>` instead, nginx logs only
+  critical errors for `/api/connect/`, and the engine hides the parameters of SQL
+  errors (`hide_parameters=True`).
+- **Status changes** lock the request row and check the status again
+  (`apply_status`), so that of a pull and the worker, only the first change takes
+  effect. No transaction is held while EUDIPLO answers: a pull reads the documents
+  first and then re-checks under the lock before it counts the delivery.
 
 ## Patterns
 
@@ -351,6 +409,12 @@ declared there is ignored (`extra='ignore'`).
 | `WORKER_ENABLED` | Runs the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
 
+The developer script `scripts/issue_test_credentials` reads `EUDIPLO_URL`,
+`EUDIPLO_TRUST_LIST_ID` and its own issuer client, `EUDIPLO_ISSUER_CLIENT_ID` and
+`EUDIPLO_ISSUER_CLIENT_SECRET` (roles `issuance:manage` + `issuance:offer`), from the same
+`.env` with a settings class of its own. `Settings` doesn't declare the issuer client: the
+middleware has no issuance role (research R2).
+
 ### Frontend
 
 | Variable | Description | Default |
@@ -361,6 +425,22 @@ declared there is ignored (`extra='ignore'`).
 set it, so the bundle calls its own origin and nginx forwards the request — the
 same image works for any domain, which is what makes preview deployments
 possible.
+
+### Frontend container (production nginx)
+
+Read at container start, not at build time, so one image serves every environment.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BACKEND_HOST` | Host name of the backend, which nginx forwards `/api/` to; rendered into `nginx.conf` by the image's envsubst templating | `backend` |
+| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call `/api/connect/` | empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Traefik), whose `X-Forwarded-For` gives the client's address | empty: the connecting address counts |
+
+`frontend/nginx/40-servicebw-access.sh`, which the nginx image runs from
+`/docker-entrypoint.d/`, writes the two lists into `/etc/nginx/servicebw-allow.conf`
+(`allow` rules, then `deny all`) and `/etc/nginx/real-ip.conf` (`set_real_ip_from`,
+`real_ip_header X-Forwarded-For`, `real_ip_recursive on`). An entry with anything
+but an address or a range stops the container.
 
 ## Docker Development
 
@@ -388,13 +468,15 @@ gateway.
                  https://my-team.dpschool.app
                             │
                             ▼
-                 ┌─────────────────────┐
-                 │  frontend (nginx)   │
-                 │  /      → SPA files │
-                 │  /api/* → proxy ────┼───▶ backend:3000 ───▶ postgres:5432
-                 └─────────────────────┘      (internal)        (internal)
-                                                  │
-                                                  └──▶ EUDIPLO (outbound HTTPS)
+                 ┌──────────────────────────┐
+                 │  frontend (nginx)        │
+                 │  /      → SPA files      │
+                 │  /api/connect/* → proxy, │
+                 │    allow-listed only     │
+                 │  /api/* → proxy ─────────┼───▶ backend:3000 ───▶ postgres:5432
+                 └──────────────────────────┘      (internal)        (internal)
+                                                       │
+                                                       └──▶ EUDIPLO (outbound HTTPS)
 ```
 
 Consequences of this design:
@@ -405,6 +487,12 @@ Consequences of this design:
   `APP_ENV=production`
 - The UI must be served over HTTPS (Coolify's Traefik): the session cookie is
   `Secure` outside development
+- This nginx is the only public entry point, so it also restricts serviceBW's
+  connection URLs: `/api/connect/` is forwarded only from `SERVICEBW_ALLOWED_CIDRS`,
+  with the client's address taken from `X-Forwarded-For` when the request comes from
+  `TRUSTED_PROXY_CIDRS` (Traefik). Every deployment of the image, previews
+  included, is closed until the list is set. Its access log shows
+  `/requests/<reference>` instead of the reference
 
 - The production frontend bundle is built **without** `VITE_API_URL`; it calls
   the relative `/api` path on its own origin

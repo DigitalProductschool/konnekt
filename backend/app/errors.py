@@ -1,11 +1,11 @@
 import logging
+import traceback
 import uuid
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-
-from .services.worker import describe_error
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +14,23 @@ INTERNAL_ERROR_MESSAGE = (
     'Something went wrong on our side. Contact an administrator and give them the '
     'error ID.'
 )
+
+
+def describe_error(error: BaseException) -> str:
+    """Name an error and the code that raised it, leaving out its message.
+
+    Messages can quote data (a failed validation quotes its input), so logging them
+    could put personal data into the log.
+    """
+    frames = traceback.extract_tb(error.__traceback__)
+    if not frames:
+        return type(error).__name__
+    own_frames = [frame for frame in frames if 'site-packages' not in frame.filename]
+    frame = (own_frames or frames)[-1]
+    return (
+        f'{type(error).__name__} in {frame.name} '
+        f'({Path(frame.filename).name}:{frame.lineno})'
+    )
 
 
 def log_server_error(error: BaseException, description: str) -> str:

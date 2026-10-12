@@ -23,7 +23,9 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 |---|---|---|
 | `argon2-cffi` | backend | Argon2id hashes for the DO.IT team members' passwords |
 | `httpx2` | backend (moved from the `dev` group) | Synchronous HTTP client for the EUDIPLO management API. FastAPI's `TestClient` needs it too, and its `MockTransport` provides the fake EUDIPLO in the tests |
+| `segno` | backend | Renders the QR code that serviceBW shows the citizen, a PNG data URI of the wallet link for another device. Pure Python, and writes PNG without Pillow |
 | `pytest` | backend, `dev` group | Runs the backend tests |
+| `faker` | backend, `dev` group | Makes up realistic German test people for `scripts/issue_test_credentials`, which issues test documents to a test wallet ([Test credentials](#test-credentials-for-a-test-wallet)). The script isn't part of the production image |
 | `react-router` | frontend | Routes of the management UI, so that a form connection has its own URL |
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
 | `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
@@ -48,6 +50,7 @@ mismatch between the packages is the most likely cause of visual breakage.
 │   │   ├── errors.py     # Error handlers
 │   │   └── main.py       # FastAPI app entry point, starts the background worker
 │   ├── alembic/          # Database migrations
+│   ├── scripts/          # Developer scripts, not in the production image: test credentials
 │   ├── tests/            # pytest suite, with a fake EUDIPLO
 │   ├── pyproject.toml    # Python dependencies + ruff/mypy/pytest config
 │   ├── .python-version   # Pins the interpreter uv provisions (3.13)
@@ -182,7 +185,7 @@ uv run ruff check --fix .    # Fix lint issues
 uv run ruff format .         # Format code
 
 # Type checking
-uv run mypy app/ tests/
+uv run mypy app/ scripts/ tests/
 
 # Tests. They empty their database, so they only run against one whose name ends in _test
 docker compose exec postgres createdb -U postgres template_db_test   # once
@@ -191,6 +194,9 @@ DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_t
 # Database migrations
 uv run alembic revision --autogenerate -m "description"
 uv run alembic upgrade head
+
+# Issue a test PID and driving licence to a test wallet (see Test credentials below)
+uv run python -m scripts.issue_test_credentials
 ```
 
 The tests replace EUDIPLO with a fake and switch the background worker off, so they need
@@ -391,11 +397,31 @@ See `backend/.env.example` for the authoritative list. Settings are loaded by
 `app/config.py` via pydantic-settings; add a field there before adding a new
 variable, or it will be ignored.
 
+`EUDIPLO_ISSUER_CLIENT_ID` and `EUDIPLO_ISSUER_CLIENT_SECRET` are read only by the
+developer script that issues test documents ([Test credentials](#test-credentials-for-a-test-wallet));
+the backend ignores them.
+
 ### Frontend (`frontend/.env`)
 
 ```bash
 VITE_API_URL=http://localhost:3000
 ```
+
+### Frontend container (production nginx)
+
+Set on the `frontend` service of `docker-compose.prod.yml`, for example in Coolify. They don't
+apply to local development, where the backend's port 3000 is reachable directly.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `BACKEND_HOST` | Host name of the backend container, which nginx forwards `/api/` to | `backend` (`${SERVICE_NAME_BACKEND}` in Coolify) |
+| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx | empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Coolify's Traefik). Only requests from there may give the client's address in `X-Forwarded-For`, which the allow-list then checks | empty: the connecting address counts |
+
+At container start, `frontend/nginx/40-servicebw-access.sh` turns the two lists into nginx
+`allow` and `set_real_ip_from` rules. An entry that isn't an address or a range stops the
+container. Request references never reach nginx's logs: the access log shows
+`/requests/<reference>` instead.
 
 ## EUDIPLO
 
@@ -415,6 +441,66 @@ never exposes the management token to the browser. The tenant needs, set up by i
 All environments share tenant `dps` for now, an accepted risk: production should get its own
 tenant before real citizens use the service. The API details are in
 [docs/EUDIPLO.md](docs/EUDIPLO.md).
+
+### Test credentials for a test wallet
+
+Testing the middleware needs a wallet that holds a PID and a mobile driving licence from an
+issuer the trust list trusts. The developer script `scripts/issue_test_credentials` issues
+both from the tenant itself, with the data of a made-up person:
+
+1. It checks that the tenant has a key chain that signs credentials (usage `attestation`) and,
+   with `EUDIPLO_TRUST_LIST_ID` set, that this trust list trusts it.
+2. It creates or updates the credential configurations `test-pid` (SD-JWT VC, `vct`
+   `urn:eudi:pid:1`) and `test-mdl` (mdoc, `org.iso.18013.5.1.mDL`). They hold every field of
+   the catalog, so the wallet can answer any request the middleware builds.
+3. It makes up a German person with [Faker](https://faker.readthedocs.io) and creates a
+   pre-authorized-code offer with their data, which works once within 15 minutes.
+4. It shows the offer as a QR code and a link, and waits until the wallet has fetched it.
+
+**Once per tenant**, in the EUDIPLO console or API:
+
+- an API client with the roles `issuance:manage` and `issuance:offer`, separate from the
+  middleware's client, which has no issuance role. Its id and secret go into
+  `EUDIPLO_ISSUER_CLIENT_ID` and `EUDIPLO_ISSUER_CLIENT_SECRET` in `backend/.env`, next to
+  `EUDIPLO_URL`;
+- a key chain with the usage `attestation`, which signs the credentials;
+- an entity for that key chain in the trust list `EUDIPLO_TRUST_LIST_ID`: an `internal` entity
+  whose `issuerKeyChainId` is the key chain (its `revocationKeyChainId` can be the same one),
+  or an `external` entity with the key chain's **root** certificate. A trust list with only the
+  leaf certificate rejects the documents (`trust_chain_not_trusted`). The script warns when the
+  entity is missing.
+
+**Then**, from `backend/`:
+
+```bash
+uv run python -m scripts.issue_test_credentials                 # PID and driving licence
+uv run python -m scripts.issue_test_credentials --document pid  # only the PID
+uv run python -m scripts.issue_test_credentials --seed 4711     # the same person again, same day
+uv run python -m scripts.issue_test_credentials --show-claims   # also print every claim
+```
+
+Scan the QR code with the wallet, or open the link on the phone. On a terminal with a light
+background, save the code with `--qr-png FILE` and scan the image instead. `--no-wait` ends
+without waiting for the wallet.
+
+Good to know:
+
+- The documents have no status list. With one, EUDIPLO 9.0 fails every strict check of an
+  mDL ("Atleast one certificate is required to check the status of the mdoc"), so revocation
+  can't be tested with them.
+- The driving licence has no `issuing_jurisdiction`. ISO/IEC 18013-5 requires it to match the
+  `stateOrProvinceName` of the issuer certificate, which EUDIPLO's certificates don't have, and
+  wallets reject an mDL where the two differ. A form connection that asks for this field gets
+  no answer from these test documents.
+- EUDIPLO 9 issues an mdoc's claims with their JSON types: dates are text, not the CBOR dates of
+  ISO/IEC 18013-5, and the portrait and signature are base64 text, not bytes.
+- EUDIPLO 9.0 loses the content of nested mdoc maps in presentation results: the middleware
+  receives `driving_privileges` as `[{}, {}, …]`, one empty object per category. This affects
+  real driving licences as well.
+- The script prints the made-up person's data. The middleware itself never logs claims.
+- All environments share tenant `dps`, so with the tenant's own issuer on the trust list every
+  environment accepts these test documents. Take the entity off the trust list before real
+  citizens use the service.
 
 ## Spec-Driven Development with Spec Kit
 
@@ -454,7 +540,10 @@ there is no CORS configuration and no API URL baked into the frontend build.
    and `SERVICE_FQDN_FRONTEND`. Set the middleware's variables in the Coolify
    environment: `CONNECTION_BASE_URL` (the `https://` address serviceBW uses;
    the backend refuses to start without it) and the four `EUDIPLO_*` variables.
-   The others have defaults (see [Environment Variables](#environment-variables))
+   For the frontend, set `SERVICEBW_ALLOWED_CIDRS` (serviceBW's address ranges)
+   and `TRUSTED_PROXY_CIDRS` (Traefik's network): until then, the connection
+   URLs answer `403` to everyone. The others have defaults (see
+   [Environment Variables](#environment-variables))
 5. Deploy
 6. Create the first account in the backend container (Coolify: the backend
    service's terminal): `uv run python -m app.cli create-user <username>`
@@ -485,7 +574,9 @@ isolated, empty database — that is created on PR open and removed on close.
 3. Mind server capacity: every open PR runs three extra containers, including
    its own PostgreSQL
 4. Previews run with `APP_ENV=production` too, so set `CONNECTION_BASE_URL` in
-   the preview environment variables as well, or the preview backend won't start
+   the preview environment variables as well, or the preview backend won't start.
+   Their connection URLs stay closed (`403`) unless `SERVICEBW_ALLOWED_CIDRS` is
+   set for them too
 
 Preview databases start empty (schema only, via migrations on startup), so a
 preview needs its own account, created as in step 6 above.
