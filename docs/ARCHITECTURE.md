@@ -168,6 +168,8 @@ backend/
 │   └── main.py           # FastAPI app entry point; its lifespan runs the worker,
 │                         # and it redacts references in uvicorn's access log
 ├── alembic/              # Database migrations
+├── scripts/              # Developer scripts, not in the production image:
+│                         # issue_test_credentials/ issues test documents to a wallet
 ├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
@@ -406,6 +408,12 @@ declared there is ignored (`extra='ignore'`).
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+
+The developer script `scripts/issue_test_credentials` reads `EUDIPLO_URL`,
+`EUDIPLO_TRUST_LIST_ID` and its own issuer client, `EUDIPLO_ISSUER_CLIENT_ID` and
+`EUDIPLO_ISSUER_CLIENT_SECRET` (roles `issuance:manage` + `issuance:offer`), from the same
+`.env` with a settings class of its own. `Settings` doesn't declare the issuer client: the
+middleware has no issuance role (research R2).
 
 ### Frontend
 

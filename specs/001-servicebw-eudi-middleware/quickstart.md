@@ -12,7 +12,7 @@ Here, `curl` plays the part of serviceBW.
 |---|---|
 | Tools | Docker with Compose v2.24 or later (for `env_file` with `required: false`), `uv`, Node 22, `curl`, `jq`, `base64` |
 | EUDIPLO access | The team's hosted EUDIPLO, tenant `dps`, and from it: its base URL; an API client with **`presentation:request` + `presentation:manage`** and no presentation allow-list; the id of a **trust list** that contains the test issuers; and an active access key chain. See [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md#prerequisites-in-the-tenant-set-up-by-the-operators-not-by-the-middleware) |
-| Test wallet | A phone with **Paradym** holding a test PID (SD-JWT VC, `vct` `urn:eudi:pid:1` or `urn:eudi:pid:de:1`) and a test mobile driving licence (mdoc, `org.iso.18013.5.1.mDL`). Both must come from issuers on that trust list. Try the EU reference wallet only after Paradym works (`docs/EUDIPLO.md` §13) |
+| Test wallet | A phone with **Paradym** holding a test PID (SD-JWT VC, `vct` `urn:eudi:pid:1` or `urn:eudi:pid:de:1`) and a test mobile driving licence (mdoc, `org.iso.18013.5.1.mDL`). Both must come from issuers on that trust list: `backend/scripts/issue_test_credentials` issues both from the tenant itself, with a made-up person's data (README, "Test credentials for a test wallet"). Try the EU reference wallet only after Paradym works (`docs/EUDIPLO.md` §13) |
 | Extra test credentials (V3) | If the test issuer allows it: one credential that has **expired**, one that has been **revoked**, and one from an issuer **not** on the trust list |
 | Network | Outbound HTTPS from the middleware to EUDIPLO. The phone reaches EUDIPLO directly; it never contacts the middleware |
 

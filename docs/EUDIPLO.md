@@ -80,6 +80,8 @@ curl -X POST "$EUDIPLO_URL/api/oauth2/token" \
 
 **Our middleware's client:** `presentation:request` + `presentation:manage`, with no `allowedPresentationConfigs` allow-list. The middleware creates a presentation configuration for every form connection revision, and an allow-list would reject each new one. It needs no issuance role, because issuing documents is out of scope (plan research R2). Since 9.0, clients see only sessions of their side (issuance vs presentation), so a client that reads both needs a role from each.
 
+**The test-credential script's client:** `issuance:manage` + `issuance:offer`, used only by the developer script `backend/scripts/issue_test_credentials`, which issues test PIDs and mDLs to a test wallet (README, "Test credentials for a test wallet"). The middleware never gets these credentials.
+
 ## 5. Management API map (all paths are prefixed with `/api`)
 
 | Area | Endpoints | Roles |
@@ -279,6 +281,7 @@ The schema is strict, so unknown keys are rejected.
 | Test wallets | Paradym (lenient); EU Reference Implementation (requires wallet attestation) |
 | Access cert / WRPRC | From the EU RI RP-registration sandbox (`registry.serviceproviders.eudiw.dev`); leaf only, issuer `PID Issuer CA 02` |
 | Middleware client | `<client-id>` with `presentation:request` + `presentation:manage`, and no allow-list |
+| Test credentials | Issued by the tenant itself with `backend/scripts/issue_test_credentials` (configurations `test-pid`, `test-mdl`), through a client with `issuance:manage` + `issuance:offer` |
 
 ## 12. Documentation index
 

@@ -125,6 +125,13 @@ Location: `/backend/app/services/`
   type and code location), not its message, which can quote personal data. It lives
   there, not in `services/worker.py`, because `errors.py` imports nothing from the
   app: the services and the worker can all import it without an import cycle.
+- **Developer scripts** live in `backend/scripts/` and run with
+  `uv run python -m scripts.<name>`. They aren't in the production image, so they may use
+  `dev` dependencies such as Faker; `app/` never imports them. They may import `app.catalog`
+  and other modules without side effects, but not `app.config`, which checks the
+  middleware's settings at import. `scripts/issue_test_credentials` issues test documents
+  with its own EUDIPLO client (roles `issuance:manage` + `issuance:offer`): the middleware
+  has no issuance role. It prints the fake person's data, which the app never does.
 
 ### Pydantic Schemas
 
@@ -314,9 +321,10 @@ Key points:
 | `uv run ruff check .` | Lint code |
 | `uv run ruff check --fix .` | Fix lint issues |
 | `uv run ruff format .` | Format code |
-| `uv run mypy app/ tests/` | Type check |
+| `uv run mypy app/ scripts/ tests/` | Type check |
 | `uv run pytest` | Run the tests; `DATABASE_URL` must name a database ending in `_test`, which they empty |
 | `uv run python -m app.cli create-user <name>` | Create a sign-in account (also `set-password`, `delete-user`) |
+| `uv run python -m scripts.issue_test_credentials` | Issue a test PID and driving licence with random data to a test wallet (README, "Test credentials for a test wallet") |
 | `uv run pre-commit install` | Install the repo's git hooks |
 | `uv run pre-commit run --all-files` | Run every hook against the whole repo |
 | `uv lock --upgrade` | Refresh `uv.lock` to the newest allowed versions |
@@ -555,6 +563,7 @@ backend/
 │       ├── qr.py         # QR code of the cross-device link (segno)
 │       └── worker.py     # Background worker: loop, steps, dispatch
 ├── alembic/              # Database migrations
+├── scripts/              # Developer scripts, not in the image: issue_test_credentials/
 ├── tests/                # conftest.py, fake_eudiplo.py, helpers.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
