@@ -96,6 +96,8 @@ connection is held while a call is waiting (research R15).
   with `cnf` and `status` removed:
   - SD-JWT VC claims keep their nesting (`address.locality`), and technical claims such as `iss`,
     `vct` and `iat` may be present;
-  - mdoc claims of all namespaces are merged into one flat object.
+  - mdoc claims of all namespaces are merged into one flat object. Up to EUDIPLO 9.1.0, a nested
+    map inside a claim arrives as `{}`, so `driving_privileges` is `[{}, …]`: the content is lost
+    in EUDIPLO, and the middleware passes it on and logs a warning by field key.
 - **What the middleware keeps**: it copies only the configured fields, under their catalog keys,
   and drops everything else (research R9). Nothing from `credentials` is persisted or logged.

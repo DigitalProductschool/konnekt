@@ -79,6 +79,78 @@ def test_mdoc_values_are_found_by_element_name() -> None:
     }
 
 
+def test_driving_privileges_are_delivered_with_their_full_entries() -> None:
+    # The ISO/IEC 18013-5 shape, as a fixed EUDIPLO hands it out
+    privileges = [
+        {'vehicle_category_code': 'AM', 'issue_date': '2003-05-12'},
+        {
+            'vehicle_category_code': 'B',
+            'issue_date': '2003-05-12',
+            'expiry_date': '2033-05-11',
+            'codes': [{'code': '96', 'sign': '<=', 'value': '4250'}],
+        },
+        {'vehicle_category_code': 'L', 'issue_date': '2003-05-12'},
+    ]
+
+    (mdl,) = _extract(
+        _credentials(('mdl', {'driving_privileges': privileges})),
+        ('mdl', ['driving_privileges']),
+    )
+
+    assert _values(mdl) == {
+        'driving_privileges': [
+            {'vehicle_category_code': 'AM', 'issue_date': '2003-05-12'},
+            {
+                'vehicle_category_code': 'B',
+                'issue_date': '2003-05-12',
+                'expiry_date': '2033-05-11',
+                'codes': [{'code': '96', 'sign': '<=', 'value': '4250'}],
+            },
+            {'vehicle_category_code': 'L', 'issue_date': '2003-05-12'},
+        ]
+    }
+
+
+def test_driving_privileges_emptied_by_eudiplo_are_logged_by_key_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # EUDIPLO up to 9.1.0 writes each nested mdoc map as {}
+    claims = {'document_number': 'B072RRE2I55', 'driving_privileges': [{}, {}, {}]}
+
+    with caplog.at_level(logging.WARNING):
+        (mdl,) = _extract(
+            _credentials(('mdl', claims)),
+            ('mdl', ['document_number', 'driving_privileges']),
+        )
+
+    assert _values(mdl) == {
+        'document_number': 'B072RRE2I55',
+        'driving_privileges': [{}, {}, {}],
+    }
+    (line,) = [record.getMessage() for record in caplog.records]
+    assert REQUEST_ID in line
+    assert 'mdl' in line
+    assert 'driving_privileges' in line
+    assert '{}' not in line
+    assert 'B072RRE2I55' not in line
+
+
+@pytest.mark.parametrize(
+    'value',
+    [[], [{'vehicle_category_code': 'B'}, {}], ['B'], {}],
+)
+def test_other_mdoc_values_log_no_warning(
+    value: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        _extract(
+            _credentials(('mdl', {'driving_privileges': value})),
+            ('mdl', ['driving_privileges']),
+        )
+
+    assert caplog.records == []
+
+
 def test_mdoc_values_kept_apart_by_namespace_are_found_too() -> None:
     claims = {'org.iso.18013.5.1': {'document_number': 'B072RRE2I55'}}
 

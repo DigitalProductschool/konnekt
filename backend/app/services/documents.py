@@ -71,6 +71,14 @@ def extract_documents(
                     key,
                 )
                 value = None
+            elif document_type.format == MDOC_FORMAT and _emptied(value):
+                logger.warning(
+                    'Document request %s: the %s entries of the shared %s arrived '
+                    'without content',
+                    request_id,
+                    key,
+                    document_type.key,
+                )
             fields.append(
                 DeliveredField(key=key, label=field.label, value=json_value(value))
             )
@@ -142,6 +150,20 @@ def _claim_value(
             return _MISSING
         value = value[segment]
     return value
+
+
+def _emptied(value: object) -> bool:
+    """Whether a value is a non-empty list of empty objects.
+
+    EUDIPLO up to 9.1.0 decodes an mdoc's nested CBOR maps into JS Maps and stores
+    them with JSON.stringify, which writes each as `{}`: `driving_privileges` arrives
+    as `[{}, {}, …]`, its content lost before the middleware reads it.
+    """
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(isinstance(item, Mapping) and not item for item in value)
+    )
 
 
 def _binary(value: Mapping[object, object]) -> bytes | None:

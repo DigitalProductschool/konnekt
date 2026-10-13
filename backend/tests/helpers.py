@@ -29,7 +29,8 @@ FORM_CONNECTION: dict[str, Any] = {
 
 # What the wallet shares for FORM_CONNECTION, as EUDIPLO hands it out: the SD-JWT VC
 # keeps its nesting and technical claims, and the mdoc's namespaces are merged.
-# Both hold more than was asked for
+# Both hold more than was asked for. The mdoc's driving_privileges shows a fixed
+# EUDIPLO: up to 9.1.0, EUDIPLO empties each entry to {} (test_documents.py)
 SHARED_CREDENTIALS: list[dict[str, Any]] = [
     {
         'id': 'pid',
