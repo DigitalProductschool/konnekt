@@ -1,5 +1,5 @@
-// As in the Figma design, which doesn't name the product yet
-export const APP_NAME = 'Product name';
+// The middleware's temporary name, as in the Figma design (2026-10-13)
+export const APP_NAME = 'Connection Portal';
 
 export const ROUTES = {
   login: '/login',

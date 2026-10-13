@@ -4,8 +4,8 @@ import UserMenu from '../UserMenu';
 import type { WizardLayoutProps } from './types';
 
 // A scrollbar narrows the scrolling area, which would move the centred column off the
-// header's and footer's by half its width. Where the column is centred, the area keeps the
-// same gutter on its left too. Narrower windows left-align it, where this isn't needed.
+// footer's by half its width. Where the column is centred, the area keeps the same gutter on
+// its left too. Narrower windows left-align it, where this isn't needed.
 const CENTRED_GUTTERS = 'min-[1197px]:[scrollbar-gutter:stable_both-edges]';
 
 /**
@@ -35,7 +35,6 @@ export default function WizardLayout({
         titleAsHeading={titleAsHeading}
         badge={badge}
         meta={meta}
-        width="column"
         logoTo={ROUTES.overview}
       >
         <UserMenu />

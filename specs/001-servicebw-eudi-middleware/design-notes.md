@@ -27,8 +27,10 @@ open.
 ## 1. Language and naming
 
 - **Language**: English (`<html lang="en">`).
-- **Product name**: **Decision (2026-10-09, V2)**: "Product name", as in V2, which doesn't name
-  the product yet (V1 called it "BridgeID"). Tab titles read "{page} – Product name".
+- **Product name**: **Decision (2026-10-13, bug `product-name-header`)**: "Connection Portal",
+  the middleware's temporary name, as in the fixed Figma. Tab titles read "{page} – Connection
+  Portal". It replaces "Product name" (decision 2026-10-09, V2, which didn't name the product
+  yet; V1 called it "BridgeID").
   `APP_NAME` in `frontend/src/constants.ts` holds it, and `frontend/index.html` repeats it.
 - **"Connection"** is the UI's word for a form connection ("Your connections", "New
   connection"; V1 said "use case"). The API, the code and the spec keep "form connection".
@@ -134,7 +136,7 @@ a 1455 px window.
     and 640 px tall (the `split:` variant) the head (progress and page title) stays put too, and
     only the area below it scrolls; shorter or narrower windows scroll the head with the step.
     Where the column is centred (windows from 1197 px), the scrolling area keeps a scrollbar
-    gutter on both sides, so that its column stays lined up with the header's.
+    gutter on both sides, so that its column stays lined up with the footer bar's.
 - **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border (inside
   the 64 px), padding 0 32, gap 16. Logo (V2): a 16 px text-default square with radius 2 (V1:
   20 px, radius 4), 8 px gap, then the product name (16/24, 600); the logo sits at y = 19.5, the
@@ -157,8 +159,11 @@ a 1455 px window.
 - **Logo**: on the signed-in screens it links to the overview, as V2's flow says ("logo → S4"),
   also from the first-connection screen, where the overview then shows its empty state.
 - **Wizard header ("App/Header", `37:15` in V2)**: the logo, a 1px × 24px neutral-100 separator
-  and the step's title (16/24, 600), lined up with the wizard's 1120 px column (x = 160).
-  `TopBar` draws it with `title` and `width="column"`; `WizardLayout` adds the column and the
+  and the step's title (16/24, 600). **Decision (2026-10-13, bug `product-name-header`)**: like
+  every header, it spans the full width with padding 0 32, so the logo sits at x = 32 on every
+  screen, the separator at 203, the title at 220 and the user menu at 1344 (fixed Figma `33:3`,
+  e.g. `2131:4385`). It replaces V2's header on the wizard's 1120 px column (logo at x = 160).
+  `TopBar` draws it with `title`; `WizardLayout` adds the 1120 px column below it and the
   footer bar. The title is "New connection", and from the documents step the form name. V2's
   status badge and meta are left out of the wizard, since there are no drafts. The details
   screen shows them (§7): `TopBar`'s `badge` and `meta`, both hidden below `sm` so the name
@@ -342,10 +347,11 @@ draft." are left out.
 **Decision (2026-10-13, bug `detail-page-layout`)**: the page renders in the wizard's frame,
 as frame 22 does, for every connection and every visit. It supersedes the overview-style page
 of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the links down.
-- **Header ("App/Header", `2080:8272`)**: logo | the connection's name (16/24 600, the page's
-  `h1`, truncated), then KERN's small success badge "Live" while `is_active` (US4 adds the
-  deactivated state). Before the user menu, the meta (16/24 muted) shows "Form ID …" in the
-  place of 22's "Live since 5 Oct 2026, 09:41"; badge and meta are hidden below `sm`.
+- **Header ("App/Header", `2080:8272`; full width since 2026-10-13, `2131:4628`)**: logo |
+  the connection's name (16/24 600, the page's `h1`, truncated), then KERN's small success
+  badge "Live" while `is_active` (US4 adds the deactivated state). Before the user menu, the
+  meta (16/24 muted) shows "Form ID …" in the place of 22's "Live since 5 Oct 2026, 09:41";
+  badge and meta are hidden below `sm`.
 - **Progress ("App/Progress", `2080:8275`)**: the three steps, all done, none a link until
   editing exists (T073); each is read with ", done".
 - **Body**: a 900 px column, centred in the 1120 px one: the links card (22's
@@ -412,7 +418,7 @@ The V2 sign-in replaced four more Phase 2 decisions: the forgot-password text, t
 links, the benefit wording and the logged-out alert.
 
 **Decided with the V2 sign-in** (2026-10-09, sections 1–4):
-- the product name "Product name", as in the design;
+- the product name "Product name", as in the design (now "Connection Portal", §1);
 - a separate forgot-password screen at `/forgot-password`, which the contract now lists;
 - the plain sign-in screen after logging out, with no alert;
 - the illustration's chips as designed;

@@ -8,17 +8,17 @@ const SMALL_TEXT =
   'text-kern-static-small leading-(--kern-typography-line-height-medium-static) min-w-0 truncate';
 
 /**
- * Figma "App/Top bar": the product logo, and on signed-in screens the user. With a title
- * and the column width it is "App/Header", which the wizard and the details screen use; the
- * details add the status badge after the title and the form ID before the user. Below `sm`
- * the badge and the meta are hidden, so that the name keeps some room.
+ * Figma "App/Top bar": the product logo, and on signed-in screens the user. With a title it
+ * is "App/Header", which the wizard and the details screen use; the details add the status
+ * badge after the title and the form ID before the user. Below `sm` the badge and the meta
+ * are hidden, so that the name keeps some room. The logo leads at the left edge on every
+ * screen (Figma 2026-10-13).
  */
 export default function TopBar({
   title,
   titleAsHeading = false,
   badge,
   meta,
-  width = 'full',
   logoTo,
   children,
 }: TopBarProps) {
@@ -33,12 +33,8 @@ export default function TopBar({
   );
 
   return (
-    <header
-      className={`border-kern-neutral-100 bg-kern-layout-background-default flex h-64 border-b px-16 ${width === 'full' ? 'sm:px-32' : ''}`}
-    >
-      <div
-        className={`flex w-full min-w-0 items-center gap-16 ${width === 'column' ? 'mx-auto max-w-1120' : ''}`}
-      >
+    <header className="border-kern-neutral-100 bg-kern-layout-background-default flex h-64 border-b px-16 sm:px-32">
+      <div className="flex w-full min-w-0 items-center gap-16">
         {logoTo ? (
           <Link
             to={logoTo}

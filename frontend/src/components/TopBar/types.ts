@@ -9,8 +9,6 @@ export interface TopBarProps {
   badge?: ReactNode;
   /** Shown before the user's menu in muted text, such as the form ID; hidden on phones */
   meta?: ReactNode;
-  /** "column" lines the content up with the wizard's 1120 px column ("App/Header") */
-  width?: 'full' | 'column';
   /** Makes the logo a link to this route, as on the signed-in screens */
   logoTo?: string;
   /** Shown at the right end, such as the signed-in user's menu */
