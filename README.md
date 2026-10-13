@@ -42,7 +42,7 @@ mismatch between the packages is the most likely cause of visual breakage.
 │   ├── app/              # Application source code
 │   │   ├── routers/      # API route handlers, one module per resource
 │   │   ├── services/     # Domain logic shared by the routers and the worker
-│   │   ├── cli.py        # Account management (create-user, set-password, delete-user)
+│   │   ├── cli.py        # Accounts (create-user, set-password, delete-user), clear-connections
 │   │   ├── config.py     # Settings management
 │   │   ├── db.py         # Database connection
 │   │   ├── models.py     # SQLAlchemy models
@@ -162,6 +162,17 @@ Usernames are stored in lowercase and have 3 to 100 characters from `a–z 0–9
 Passwords need at least 12 characters. A sign-in lasts `LOGIN_SESSION_HOURS` (8 hours).
 The sign-in screen's "Forgot password?" page asks team members to contact an administrator,
 who sets a new password with `set-password`.
+
+To start over without losing the accounts, `clear-connections` deletes every form connection
+with its revisions, requests and webhook updates. It shows the row counts and asks before
+deleting (`--yes` skips the question):
+
+```bash
+docker compose exec backend uv run python -m app.cli clear-connections
+```
+
+It clears only the database: the EUDIPLO configurations and sessions of the deleted
+connections stay in EUDIPLO.
 
 ## Common Commands
 

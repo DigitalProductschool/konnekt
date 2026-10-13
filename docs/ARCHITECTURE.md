@@ -159,7 +159,7 @@ backend/
 │   │                     # pull, statuses), documents.py (field extraction),
 │   │                     # qr.py, worker.py
 │   ├── catalog.py        # Document types and their fields
-│   ├── cli.py            # Account management: create-user, set-password, delete-user
+│   ├── cli.py            # Accounts: create-user, set-password, delete-user; clear-connections
 │   ├── config.py         # Settings via pydantic-settings, with the startup check
 │   ├── db.py             # Engine, sessionmaker, get_db dependency
 │   ├── models.py         # SQLAlchemy models
