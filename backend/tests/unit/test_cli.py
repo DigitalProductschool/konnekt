@@ -1,14 +1,19 @@
+import builtins
 import getpass
 from collections.abc import Callable
+from datetime import timedelta
 
 import pytest
-from sqlalchemy import select
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
-from app.cli import main
+from app.cli import CONNECTION_MODELS, main
 from app.db import SessionLocal
-from app.models import LoginSession, UserAccount
+from app.models import DocumentRequest, LoginSession, UserAccount, WebhookDelivery
 from app.services.auth import authenticate, create_login_session
-from tests.conftest import TEST_PASSWORD, create_user
+from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
+from tests.fake_eudiplo import FakeEudiplo
+from tests.helpers import create_form_connection, now, stored_request, trigger
 
 NEW_PASSWORD = 'another long passphrase'
 
@@ -131,3 +136,84 @@ def test_delete_user_removes_the_account_and_its_sessions() -> None:
     assert _usernames() == []
     with SessionLocal() as db:
         assert db.scalars(select(LoginSession)).first() is None
+
+
+def _row_counts() -> dict[str, int]:
+    with SessionLocal() as db:
+        return {
+            model.__tablename__: db.scalar(select(func.count()).select_from(model)) or 0
+            for model in CONNECTION_MODELS
+        }
+
+
+def _add_connection_rows(client: TestClient) -> None:
+    """A form connection with a request and a webhook update for it."""
+    form_connection_id = create_form_connection(client)
+    request_id = stored_request(trigger(client, form_connection_id)['reference']).id
+    with SessionLocal() as db:
+        db.add(
+            WebhookDelivery(
+                document_request_id=request_id,
+                status='expired',
+                occurred_at=now(),
+                next_attempt_at=now(),
+                deadline_at=now() + timedelta(minutes=30),
+            )
+        )
+        db.commit()
+
+
+def test_clear_connections_keeps_the_accounts(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _add_connection_rows(signed_in_client)
+    _add_connection_rows(signed_in_client)
+    assert all(_row_counts().values())
+
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert not any(_row_counts().values())
+    assert _usernames() == [TEST_USERNAME]
+    with SessionLocal() as db:
+        assert db.scalars(select(LoginSession)).first() is not None
+    assert 'Deleted 2 form connection(s)' in capsys.readouterr().out
+
+
+def test_clear_connections_asks_first(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _add_connection_rows(signed_in_client)
+    monkeypatch.setattr(builtins, 'input', lambda prompt='': 'yes')
+
+    assert main(['clear-connections']) == 0
+
+    assert not any(_row_counts().values())
+
+
+def test_clear_connections_without_confirmation_deletes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _add_connection_rows(signed_in_client)
+    monkeypatch.setattr(builtins, 'input', lambda prompt='': 'no')
+
+    assert main(['clear-connections']) == 1
+
+    assert all(_row_counts().values())
+    with SessionLocal() as db:
+        assert db.scalars(select(DocumentRequest)).first() is not None
+    assert 'Nothing deleted.' in capsys.readouterr().err
+
+
+def test_clear_connections_without_connections(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert 'There are no form connections to delete.' in capsys.readouterr().out
