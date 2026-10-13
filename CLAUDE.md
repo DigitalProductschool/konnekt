@@ -438,7 +438,11 @@ cd frontend
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
   `AppLayout`, except the create wizard (`/form-connections/new`, and `/get-started` through
   `pages/FirstConnection/`), which renders its own `WizardLayout` (header with a title, 1120 px
-  column, sticky action bar); the signed-out ones (`/login`, `/forgot-password`) render inside
+  column, action bar). Headers and action bars never scroll: `AppLayout`'s top bar is sticky,
+  and `WizardLayout` fills the window and scrolls only the step between them. From the `split:`
+  variant (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays
+  put too, so only the area below it scrolls. Render modal dialogs and toasts in its `overlay`,
+  outside that area. The signed-out ones (`/login`, `/forgot-password`) render inside
   `RequireSignedOut` and `AuthLayout`. A sign-in without a requested route (`/` counts as none)
   lands on `/get-started`: the wizard headed "Create your first connection" while no form
   connection exists, the overview otherwise. Every page sets its tab title with

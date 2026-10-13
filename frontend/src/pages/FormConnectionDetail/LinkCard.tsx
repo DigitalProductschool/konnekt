@@ -1,14 +1,14 @@
 import { useId } from 'react';
 
 import CopyableUrl from '../../components/CopyableUrl';
-import InfoToggletip from '../../components/InfoToggletip';
+import InfoTooltip from '../../components/InfoTooltip';
 import type { LinkCardProps } from './types';
 
 /**
  * Figma "Publish/Link card": a numbered connection URL with its copy button. On narrow
  * screens the number goes above the link, which then has the card's full width.
  */
-export default function LinkCard({ number, title, url, infoLabel, info, hint }: LinkCardProps) {
+export default function LinkCard({ number, title, url, infoLabel, info }: LinkCardProps) {
   const titleId = useId();
   return (
     <li className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex flex-col items-start gap-16 border p-16 sm:flex-row sm:items-center sm:p-24">
@@ -27,14 +27,9 @@ export default function LinkCard({ number, title, url, infoLabel, info, hint }: 
           >
             {title}
           </h3>
-          <InfoToggletip label={infoLabel} text={info} iconSize="small" />
+          <InfoTooltip label={infoLabel} text={info} iconSize="small" />
         </div>
         <CopyableUrl url={url} describedBy={titleId} />
-        {hint && (
-          <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {hint}
-          </p>
-        )}
       </div>
     </li>
   );

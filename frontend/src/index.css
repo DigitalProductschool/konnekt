@@ -28,6 +28,13 @@
 }
 
 /*
+ * Windows where the wizard keeps its head (progress and page title) still and scrolls only
+ * the step below it (decision 2026-10-12). In narrower or shorter ones the head scrolls too,
+ * so that the fixed parts leave room for the step.
+ */
+@custom-variant split (@media (width >= 64rem) and (height >= 40rem));
+
+/*
  * The Figma design uses KERN's adaptive type at its small-screen values on every screen
  * width. kern.css switches it to larger values from 768px, so the sizes, line heights and
  * the baseline paddings that belong to them stay at their small-screen values here.
@@ -90,6 +97,9 @@
      * Chromium's auto dark theme from darkening the page.
      */
     color-scheme: only light;
+    /* The signed-in top bar stays at the top (AppLayout): what scrolls into view, such as the
+       focused element, stops below it */
+    scroll-padding-top: 64px;
     color: var(--kern-color-layout-text-default);
     /* As in the Figma text styles and KERN's own type classes */
     font-variant-numeric: lining-nums tabular-nums slashed-zero;

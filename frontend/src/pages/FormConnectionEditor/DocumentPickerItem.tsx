@@ -5,10 +5,14 @@ import type { DocumentPickerItemProps } from './types';
 
 const LABEL_CLASSES =
   'text-kern-static-small px-8 py-4 leading-(--kern-typography-line-height-medium-static) font-semibold';
+// The width of the widest state, "✓ Added", which all three states share
+const BUTTON_WIDTH = 'w-99';
 
 /**
  * Figma "Nav/Doc row": a wallet document with "Add", or once added "Added", which turns
- * into a red "Remove" on hover and keyboard focus (frame 06a).
+ * into a red "Remove" on hover and keyboard focus (frame 06a). Unlike the design, the
+ * button keeps one width in every state (decision 2026-10-12): it doesn't jump, and
+ * "Remove" doesn't slip out from under the pointer, which made it flicker.
  */
 export default function DocumentPickerItem({
   documentType,
@@ -37,7 +41,9 @@ export default function DocumentPickerItem({
           aria-describedby={describedBy}
           className="group rounded-kern-default focus-visible:outline-kern-action-focus-default flex min-h-48 shrink-0 cursor-pointer items-center focus-visible:outline-4 focus-visible:outline-offset-2"
         >
-          <span className="rounded-kern-default bg-kern-action-default text-kern-action-on-default group-hover:bg-kern-feedback-danger-background group-hover:text-kern-feedback-danger group-hover:ring-kern-feedback-danger group-focus-visible:bg-kern-feedback-danger-background group-focus-visible:text-kern-feedback-danger group-focus-visible:ring-kern-feedback-danger relative flex h-40 items-center px-8 group-hover:ring-1 group-hover:ring-inset group-focus-visible:ring-1 group-focus-visible:ring-inset">
+          <span
+            className={`${BUTTON_WIDTH} rounded-kern-default bg-kern-action-default text-kern-action-on-default group-hover:bg-kern-feedback-danger-background group-hover:text-kern-feedback-danger group-hover:ring-kern-feedback-danger group-focus-visible:bg-kern-feedback-danger-background group-focus-visible:text-kern-feedback-danger group-focus-visible:ring-kern-feedback-danger relative flex h-40 items-center justify-center px-8 group-hover:ring-1 group-hover:ring-inset group-focus-visible:ring-1 group-focus-visible:ring-inset`}
+          >
             <span
               aria-hidden="true"
               className="kern-icon kern-icon--check kern-icon--small bg-kern-action-on-default! group-hover:hidden! group-focus-visible:hidden!"
@@ -68,7 +74,7 @@ export default function DocumentPickerItem({
           type="button"
           onClick={onAdd}
           aria-describedby={describedBy}
-          className="kern-btn kern-btn--secondary kern-btn--small shrink-0"
+          className={`${BUTTON_WIDTH} kern-btn kern-btn--secondary kern-btn--small shrink-0`}
         >
           <span aria-hidden="true" className="kern-icon kern-icon--add" />
           <span className="kern-label">
