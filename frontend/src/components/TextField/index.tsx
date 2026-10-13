@@ -2,7 +2,7 @@ import FormErrorMessage from '../FormErrorMessage';
 import type { TextFieldProps } from './types';
 
 /**
- * A KERN text input whose label can carry an extra element, such as an (i) toggletip.
+ * A KERN text input whose label can carry an extra element, such as an (i) tooltip.
  * KernInput can't do that, and its error message has a fixed id that isn't linked to the
  * input; here the message is linked with aria-describedby and marks the input invalid.
  */

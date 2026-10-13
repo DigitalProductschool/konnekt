@@ -6,7 +6,7 @@ export interface TextFieldProps extends Omit<
 > {
   id: string;
   label: string;
-  /** Shown next to the label, such as an InfoToggletip */
+  /** Shown next to the label, such as an InfoTooltip */
   labelAddon?: ReactNode;
   /** The error message, shown under the field and linked to it */
   error?: ReactNode;

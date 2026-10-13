@@ -15,20 +15,19 @@ export const DETAIL_COPY = {
   requestLink: 'Request link',
   requestLinkInfoLabel: 'About the request link',
   requestLinkInfo:
-    'serviceBW calls this link to start a request. It answers with the wallet link, the QR code and a reference.',
+    'Your form management system calls this link to start a request. It answers with the wallet link, the QR code and a reference.',
   resultLink: 'Result link',
   resultLinkInfoLabel: 'About the result link',
   resultLinkInfo:
-    'serviceBW calls this link with the request’s reference. It answers with the status and, once the applicant has shared it, the data.',
-  resultLinkHint: 'serviceBW puts the request’s reference in place of {reference}.',
+    'Your form management system calls this link with the request’s reference. It answers with the status and, once the applicant has shared it, the data.',
   // Webhook address, which the design has no frame for
   webhookTitle: 'Updates by webhook',
   webhookHint:
-    'Optional. With an address, serviceBW gets every update of a request there, including the data, and the result link answers without data.',
+    'Optional. With an address, your form management system gets every update of a request there, including the data, and the result link answers without data.',
   mode: 'Mode:',
   modes: { pull: 'Pull', webhook: 'Webhook' },
   modeHints: {
-    pull: 'serviceBW calls the result link.',
+    pull: 'Your form management system calls the result link.',
     webhook: 'Updates go to the webhook address.',
   },
   webhookLabel: 'Webhook address',

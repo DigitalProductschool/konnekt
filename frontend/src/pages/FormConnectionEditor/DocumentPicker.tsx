@@ -5,7 +5,8 @@ import UpcomingDocuments from './UpcomingDocuments';
 
 /**
  * Figma "Doc/Panel": the catalog's documents, each of which can be added once and removed
- * again, and the documents still to come to the wallet.
+ * again, and the documents still to come to the wallet. From 1024 px it sticks to the top of
+ * the wizard's scrolling area, and scrolls itself when it is taller than that area.
  */
 export default function DocumentPicker({
   documentTypes,
@@ -17,7 +18,7 @@ export default function DocumentPicker({
   return (
     <section
       aria-labelledby="document-picker-title"
-      className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex w-full shrink-0 flex-col gap-4 border p-8 lg:w-296"
+      className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex w-full shrink-0 flex-col gap-4 border p-8 lg:sticky lg:top-0 lg:max-h-[calc(100cqh-40px)] lg:w-296 lg:overflow-y-auto"
     >
       <h2
         id="document-picker-title"

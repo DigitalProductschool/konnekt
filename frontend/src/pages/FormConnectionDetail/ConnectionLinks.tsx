@@ -55,7 +55,6 @@ export default function ConnectionLinks({
           url={formConnection.pull_url}
           infoLabel={DETAIL_COPY.resultLinkInfoLabel}
           info={DETAIL_COPY.resultLinkInfo}
-          hint={DETAIL_COPY.resultLinkHint}
         />
       </ol>
     </section>

@@ -29,8 +29,6 @@ export interface LinkCardProps {
   url: string;
   infoLabel: string;
   info: string;
-  /** A short line under the link */
-  hint?: string;
 }
 
 export interface WebhookCardProps {

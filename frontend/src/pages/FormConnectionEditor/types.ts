@@ -1,5 +1,3 @@
-import type { Ref } from 'react';
-
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
@@ -55,12 +53,9 @@ export type EditorAction =
   | { type: 'publishFailed'; error: ErrorNotice };
 
 export interface ConnectionStepProps {
-  /** The page's heading, which depends on how the wizard was opened */
-  title: string;
   name: string;
   servicebwForm: string;
   errors: EditorErrors;
-  titleRef: Ref<HTMLHeadingElement>;
   onChangeName: (value: string) => void;
   onChangeServicebwForm: (value: string) => void;
   onSubmit: () => void;
@@ -72,7 +67,6 @@ export interface DocumentsStepProps {
   documents: RequestedDocument[];
   errors: EditorErrors;
   publishError: ErrorNotice | null;
-  titleRef: Ref<HTMLHeadingElement>;
   onRetryCatalog: () => void;
   onAdd: (documentType: DocumentType) => void;
   onRemove: (documentType: DocumentType) => void;

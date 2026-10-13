@@ -127,6 +127,14 @@ a 1455 px window.
   24 px between blocks. The wizard (section 6) has a 1120 px column (x = 160), 40 px below its
   header, with 32 px between blocks, above an 80 px footer bar. The signed-out screens are in
   section 4.
+  - **Decision (2026-10-12)**: the header and the footer bar don't scroll. On the signed-in
+    screens (`AppLayout`) the top bar sticks to the top, and `scroll-padding-top: 64px` keeps
+    what scrolls into view below it. The wizard (`WizardLayout`) fills the window, which doesn't
+    scroll: the header and the bar stay put and the step scrolls between them. From 1024 px wide
+    and 640 px tall (the `split:` variant) the head (progress and page title) stays put too, and
+    only the area below it scrolls; shorter or narrower windows scroll the head with the step.
+    Where the column is centred (windows from 1197 px), the scrolling area keeps a scrollbar
+    gutter on both sides, so that its column stays lined up with the header's.
 - **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border (inside
   the 64 px), padding 0 32, gap 16. Logo (V2): a 16 px text-default square with radius 2 (V1:
   20 px, radius 4), 8 px gap, then the product name (16/24, 600); the logo sits at y = 19.5, the
@@ -265,8 +273,11 @@ draft." are left out.
   from the overview) / "Connect any form to the EUDI Wallet for applicants to share verified
   information." The card "UseCase/Create card": "Which form are you connecting?" / "You can
   change these details later.", "Form name" (`name`) and "Form ID" (`servicebw_form`, 320 px),
-  each with an (i) toggletip ("Tooltip/Info": 320 px, darkblue-050, darkblue-500 border,
-  `--shadow-menu`, arrow on the left or right, 2 px below the icon). The footer note says only
+  each with an (i) tooltip ("Tooltip/Info": 320 px, darkblue-050, darkblue-500 border,
+  `--shadow-menu`, arrow on the left or right, 2 px below the icon). **Decision (2026-10-12)**:
+  it shows while the mouse is over the (i) or the bubble and goes as soon as it leaves (it was a
+  toggletip that a click opened). Keyboard focus shows it too, Escape closes it, and on touch
+  screens a tap opens and closes it; its text is the button's description (`role="tooltip"`). The footer note says only
   "Nothing goes live until you publish." The footer's button says **"Continue"**, not "Create
   connection", because nothing is created yet.
 - **First connection (`/get-started`; 02 `2080:6059`, 02a `2080:6160`, tooltips 02b `2080:6261`
@@ -288,13 +299,18 @@ draft." are left out.
   "Doc/Empty setup" or one "Doc/Data card" per document (800 px, 12 px apart): tile, name, "n of
   m shared", "All data" and the fields as KERN checkboxes, 236 px each (three per row on
   desktop, fewer on narrow screens).
+  - **Decision (2026-10-12)**: "+ Add", "✓ Added" and "Remove" share one width, that of the
+    widest, "✓ Added" (99 px; Figma sizes each to its content: 82.5, 98.9 and 89.8 px). The
+    button no longer jumps, and "Remove" no longer slips out from under the pointer.
+  - **Decision (2026-10-12)**: from 1024 px the panel stays put while the data cards scroll past
+    it (section 3, "Frame"). It scrolls itself when it is taller than the scrolling area.
   - **Decision (2026-10-10)**: adding a document selects **no** field (V2: all of them). With the
     full catalog that would request 25 or 31 fields, and a field missing from a citizen's PID
     makes the wallet decline. "All data" is mixed (a dash) while only some fields are selected.
   - Removing a document shows the toast "Driving licence removed · Undo" (04a: centred 24 px
     above the footer bar, 6 s). Its time stops while the pointer or the focus is on it; Undo
     brings the document back with its selection and focuses its row.
-- **Footer ("App/Footer")**: "Back" (KERN tertiary) and "Publish" (primary); a sticky bar, so
+- **Footer ("App/Footer")**: "Back" (KERN tertiary) and "Publish" (primary); a fixed bar, so
   that "Publish" stays in reach on long field lists.
 - **Dialog 06d**: KERN's dialog on a native modal `<dialog>`: "Is this all the data you need?" /
   "Applicants will be asked to share Personal ID (4 items) and Driving licence (3 items). Once you
@@ -324,14 +340,18 @@ for an existing connection, the webhook address or the summary.
   which takes the focus; otherwise the title is "Links for your form". Then "Add both links to
   your form. Each one goes in its own field." and the two "Publish/Link card"s (number, title,
   (i), URL box and "Copy link"; 12 px apart): "Request link" = trigger URL, "Result link" = pull
-  URL, with "serviceBW puts the request’s reference in place of {reference}." under it. The (i)
-  toggletips have no frame; their text explains what serviceBW does with each link. "Copy link"
+  URL. The (i) tooltips have no frame; their text explains what the form management system
+  does with each link. **Decision (2026-10-12)**: the UI doesn't name serviceBW. The line
+  "serviceBW puts the request’s reference in place of {reference}." under the result link is
+  gone, and the tooltips say "Your form management system calls this link…", the term of the
+  Form ID's tooltip. Code, specs and docs keep the name. "Copy link"
   turns into "Copied" with a tick for 3 s (23); V2 has no toast. Below 576 px the number goes
   above the link.
 - **Updates by webhook** (no frame): **Decision (2026-10-11)**: not on the page until webhook
   updates are delivered (US3). T086 takes the card off the page, and T091 brings it back
   unchanged. The card: the card pattern of "UseCase/Create card": the mode ("Mode:
-  Pull – serviceBW calls the result link." or "Mode: Webhook – …"), the field "Webhook address"
+  Pull – Your form management system calls the result link." or "Mode: Webhook – …"; reworded
+  on 2026-10-12 like the tooltips), the field "Webhook address"
   and "Save address" / "Remove address"; the API's message (with its error ID after a `5xx`)
   shows next to the field, and "Webhook address saved/removed. New requests use … mode." is
   announced.

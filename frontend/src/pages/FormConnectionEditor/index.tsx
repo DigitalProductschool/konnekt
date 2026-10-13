@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { generatePath, useNavigate } from 'react-router';
 
 import { createFormConnection } from '../../api/form-connections';
+import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
 import WizardProgress from '../../components/WizardProgress';
@@ -46,11 +47,13 @@ export default function FormConnectionEditorPage({
   const shownStep = useRef(state.step);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
   const onDocuments = state.step === 'documents';
-  const connectionTitle = firstConnection
-    ? EDITOR_COPY.firstConnectionTitle
-    : EDITOR_COPY.connectionTitle;
+  const pageTitle = onDocuments
+    ? EDITOR_COPY.documentsTitle
+    : firstConnection
+      ? EDITOR_COPY.firstConnectionTitle
+      : EDITOR_COPY.connectionTitle;
 
-  useDocumentTitle(onDocuments ? EDITOR_COPY.documentsTitle : connectionTitle);
+  useDocumentTitle(pageTitle);
 
   // A new step replaces the content, so the focus moves to its heading
   useEffect(() => {
@@ -118,6 +121,20 @@ export default function FormConnectionEditorPage({
   return (
     <WizardLayout
       title={onDocuments && state.name.trim() ? state.name.trim() : EDITOR_COPY.headerTitle}
+      head={
+        <>
+          <WizardProgress
+            steps={STEPS}
+            current={onDocuments ? 1 : 0}
+            onSelect={() => dispatch({ type: 'goToStep', step: 'connection' })}
+          />
+          <PageTitle
+            ref={titleRef}
+            title={pageTitle}
+            hint={onDocuments ? EDITOR_COPY.documentsHint : EDITOR_COPY.connectionHint}
+          />
+        </>
+      }
       footer={
         <EditorFooter
           step={state.step}
@@ -126,12 +143,19 @@ export default function FormConnectionEditorPage({
           onPublish={handlePublish}
         />
       }
+      overlay={
+        <>
+          <PublishDialog
+            open={state.dialogOpen}
+            summary={publishSummary(state.documents, documentTypes)}
+            publishing={state.publishing}
+            onCancel={() => dispatch({ type: 'closeDialog' })}
+            onConfirm={handleConfirm}
+          />
+          <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
+        </>
+      }
     >
-      <WizardProgress
-        steps={STEPS}
-        current={onDocuments ? 1 : 0}
-        onSelect={() => dispatch({ type: 'goToStep', step: 'connection' })}
-      />
       {onDocuments ? (
         <DocumentsStep
           catalogStatus={catalogStatus}
@@ -139,7 +163,6 @@ export default function FormConnectionEditorPage({
           documents={state.documents}
           errors={state.errors}
           publishError={state.publishError}
-          titleRef={titleRef}
           onRetryCatalog={retry}
           onAdd={(documentType) =>
             dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder })
@@ -154,24 +177,14 @@ export default function FormConnectionEditorPage({
         />
       ) : (
         <ConnectionStep
-          title={connectionTitle}
           name={state.name}
           servicebwForm={state.servicebwForm}
           errors={state.errors}
-          titleRef={titleRef}
           onChangeName={(value) => dispatch({ type: 'changeName', value })}
           onChangeServicebwForm={(value) => dispatch({ type: 'changeServicebwForm', value })}
           onSubmit={handleContinue}
         />
       )}
-      <PublishDialog
-        open={state.dialogOpen}
-        summary={publishSummary(state.documents, documentTypes)}
-        publishing={state.publishing}
-        onCancel={() => dispatch({ type: 'closeDialog' })}
-        onConfirm={handleConfirm}
-      />
-      <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
     </WizardLayout>
   );
 }

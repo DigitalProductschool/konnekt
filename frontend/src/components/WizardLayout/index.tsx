@@ -3,24 +3,48 @@ import TopBar from '../TopBar';
 import UserMenu from '../UserMenu';
 import type { WizardLayoutProps } from './types';
 
+// A scrollbar narrows the scrolling area, which would move the centred column off the
+// header's and footer's by half its width. Where the column is centred, the area keeps the
+// same gutter on its left too. Narrower windows left-align it, where this isn't needed.
+const CENTRED_GUTTERS = 'min-[1197px]:[scrollbar-gutter:stable_both-edges]';
+
 /**
  * The frame of the wizard: Figma "App/Header", the 1120 px content column and the
- * "App/Footer" action bar. The bar sticks to the bottom of the window, so that its
- * actions stay in reach on long steps; it is part of <main>, where the step's content is.
+ * "App/Footer" action bar. The frame fills the window, which never scrolls: the header and
+ * the bar stay put, and the step scrolls between them (decision 2026-10-12). From 1024 px
+ * wide and 640 px tall (`split:`, index.css) the head stays put too, and only the body
+ * scrolls; its scrollbar is outside the column, at the area's right edge. A step sizes
+ * things to the visible height with `cqh` units: the scrolling area is their container.
  */
-export default function WizardLayout({ title, footer, children }: WizardLayoutProps) {
+export default function WizardLayout({
+  title,
+  head,
+  footer,
+  overlay,
+  children,
+}: WizardLayoutProps) {
   return (
-    <div className="bg-kern-neutral-025 flex min-h-screen flex-col">
+    <div className="bg-kern-neutral-025 flex h-dvh flex-col">
       <TopBar title={title} width="column" logoTo={ROUTES.overview}>
         <UserMenu />
       </TopBar>
-      <main className="flex flex-1 flex-col">
-        <div className="flex-1 px-16 pt-40 pb-40">
-          <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{children}</div>
+      <main className="flex min-h-0 flex-1 flex-col">
+        <div
+          className={`flex min-h-0 flex-1 flex-col overflow-y-auto lg:[container-type:size] ${CENTRED_GUTTERS} split:overflow-hidden split:[scrollbar-gutter:auto]`}
+        >
+          <div className="px-16 pt-40 pb-32">
+            <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{head}</div>
+          </div>
+          <div
+            className={`px-16 pb-40 ${CENTRED_GUTTERS} split:min-h-0 split:flex-1 split:overflow-y-auto split:[container-type:size]`}
+          >
+            <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{children}</div>
+          </div>
         </div>
-        <div className="border-kern-neutral-100 bg-kern-layout-background-default sticky bottom-0 flex h-80 border-t px-16">
+        <div className="border-kern-neutral-100 bg-kern-layout-background-default flex h-80 shrink-0 border-t px-16">
           <div className="mx-auto flex w-full max-w-1120 items-center gap-16">{footer}</div>
         </div>
+        {overlay}
       </main>
     </div>
   );

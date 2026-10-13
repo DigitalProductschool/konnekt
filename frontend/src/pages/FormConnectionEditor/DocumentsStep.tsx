@@ -3,7 +3,6 @@ import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
 import FeedbackLoader from '../../components/FeedbackLoader';
 import FormErrorMessage from '../../components/FormErrorMessage';
-import PageTitle from '../../components/PageTitle';
 import { EDITOR_COPY, ELEMENT_IDS } from './constants';
 import DocumentCard from './DocumentCard';
 import DocumentPicker from './DocumentPicker';
@@ -11,8 +10,9 @@ import EmptySetup from './EmptySetup';
 import type { DocumentsStepProps } from './types';
 
 /**
- * Step 2 (Figma "03–06 Documents"): the wallet documents on the left, and on the right the
- * added ones with the fields to request.
+ * Step 2 (Figma "03–06 Documents"), under the page title in the wizard's head: the wallet
+ * documents on the left, and on the right the added ones with the fields to request. From
+ * 1024 px the list stays put while the field cards scroll past it (decision 2026-10-12).
  */
 export default function DocumentsStep({
   catalogStatus,
@@ -20,7 +20,6 @@ export default function DocumentsStep({
   documents,
   errors,
   publishError,
-  titleRef,
   onRetryCatalog,
   onAdd,
   onRemove,
@@ -29,12 +28,6 @@ export default function DocumentsStep({
 }: DocumentsStepProps) {
   return (
     <>
-      <PageTitle
-        ref={titleRef}
-        title={EDITOR_COPY.documentsTitle}
-        hint={EDITOR_COPY.documentsHint}
-      />
-
       {publishError && (
         <KernAlert variant="danger" title={EDITOR_COPY.publishErrorTitle}>
           <ErrorNoticeText notice={publishError} />
