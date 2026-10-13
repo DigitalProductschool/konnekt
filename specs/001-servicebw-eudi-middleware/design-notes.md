@@ -325,6 +325,11 @@ draft." are left out.
   form ID.", "Add at least one document.", "Select at least one field for 'Personal ID'.") and
   moves the focus there. A refused `POST` shows the API's message in a danger alert "Couldn’t
   publish".
+  - **Decision (2026-10-13, bug `publish-error-offscreen`; no frame)**: the alert is in dialog
+    06d, above the summary, and the dialog stays open; "Confirm and publish" turns into "Try
+    again". At the top of the step it was above the cards once they were scrolled, so a failed
+    publish looked like nothing had happened. "Check again", Escape and the next attempt take the
+    message away; the page itself shows none.
 - **Server errors** (no frame; decided 2026-10-11, bug `config-error-leak`): after a `5xx` answer
   the API's message is generic, "Something went wrong on our side, so nothing was saved. Contact an
   administrator and give them the error ID." (a `500` leaves out "so nothing was saved"). A second

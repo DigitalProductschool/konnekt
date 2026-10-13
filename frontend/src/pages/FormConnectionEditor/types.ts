@@ -66,7 +66,6 @@ export interface DocumentsStepProps {
   documentTypes: DocumentType[];
   documents: RequestedDocument[];
   errors: EditorErrors;
-  publishError: ErrorNotice | null;
   onRetryCatalog: () => void;
   onAdd: (documentType: DocumentType) => void;
   onRemove: (documentType: DocumentType) => void;
@@ -124,6 +123,8 @@ export interface PublishDialogProps {
   /** Which documents and how many items applicants will share */
   summary: string;
   publishing: boolean;
+  /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
+  error: ErrorNotice | null;
   onCancel: () => void;
   onConfirm: () => void;
 }

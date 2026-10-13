@@ -1,17 +1,22 @@
+import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { type SyntheticEvent, useEffect, useRef } from 'react';
 
+import ErrorNoticeText from '../../components/ErrorNoticeText';
 import { EDITOR_COPY } from './constants';
 import type { PublishDialogProps } from './types';
 
 /**
  * Figma "Dialog: Ready to publish?" (06d), a KERN dialog. It is a native modal dialog: the
  * page behind it is inert, Escape closes it, and closing it returns the focus to the
- * "Publish" button. While the connection is being created it can't be closed.
+ * "Publish" button. While the connection is being created it can't be closed. If that
+ * fails, it stays open with the API's message above the summary and offers "Try again" (no
+ * frame; bug publish-error-offscreen): wherever the page is scrolled, the dialog is in view.
  */
 export default function PublishDialog({
   open,
   summary,
   publishing,
+  error,
   onCancel,
   onConfirm,
 }: PublishDialogProps) {
@@ -39,7 +44,9 @@ export default function PublishDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby="publish-dialog-title"
-      aria-describedby="publish-dialog-summary"
+      aria-describedby={
+        error ? 'publish-dialog-error publish-dialog-summary' : 'publish-dialog-summary'
+      }
       onCancel={handleCancel}
       // As in the KERN Figma dialog: centred (Tailwind's preflight drops the browser's
       // margin: auto), with its outline drawn inside like Figma's stroke, and the design's
@@ -65,6 +72,16 @@ export default function PublishDialog({
         </button>
       </header>
       <div className="kern-dialog__body">
+        {error && (
+          <KernAlert
+            id="publish-dialog-error"
+            variant="danger"
+            title={EDITOR_COPY.publishErrorTitle}
+            className="w-full"
+          >
+            <ErrorNoticeText notice={error} />
+          </KernAlert>
+        )}
         <p id="publish-dialog-summary" className="kern-body kern-body--large">
           {summary}
         </p>
@@ -86,7 +103,7 @@ export default function PublishDialog({
           className="kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)]"
         >
           <span className="kern-label">
-            {publishing ? EDITOR_COPY.publishing : EDITOR_COPY.confirm}
+            {publishing ? EDITOR_COPY.publishing : error ? EDITOR_COPY.retry : EDITOR_COPY.confirm}
           </span>
         </button>
       </footer>
