@@ -1,6 +1,5 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 
-import ErrorNoticeText from '../../components/ErrorNoticeText';
 import FeedbackLoader from '../../components/FeedbackLoader';
 import FormErrorMessage from '../../components/FormErrorMessage';
 import { EDITOR_COPY, ELEMENT_IDS } from './constants';
@@ -19,7 +18,6 @@ export default function DocumentsStep({
   documentTypes,
   documents,
   errors,
-  publishError,
   onRetryCatalog,
   onAdd,
   onRemove,
@@ -28,12 +26,6 @@ export default function DocumentsStep({
 }: DocumentsStepProps) {
   return (
     <>
-      {publishError && (
-        <KernAlert variant="danger" title={EDITOR_COPY.publishErrorTitle}>
-          <ErrorNoticeText notice={publishError} />
-        </KernAlert>
-      )}
-
       {catalogStatus === 'loading' && <FeedbackLoader label={EDITOR_COPY.loadingCatalog} />}
 
       {catalogStatus === 'failed' && (

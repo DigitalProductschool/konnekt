@@ -120,11 +120,14 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null };
     case 'closeDialog':
-      return state.publishing ? state : { ...state, dialogOpen: false };
+      return state.publishing ? state : { ...state, dialogOpen: false, publishError: null };
     case 'publish':
-      return { ...state, publishing: true };
+      // A retry takes the old message away, so that a new failure is announced again
+      return { ...state, publishing: true, publishError: null };
     case 'publishFailed':
-      return { ...state, publishing: false, dialogOpen: false, publishError: action.error };
+      // The dialog stays open and shows the message where the user is looking: on the page,
+      // it would be above the scrolled-to cards (bug publish-error-offscreen)
+      return { ...state, publishing: false, publishError: action.error };
   }
 }
 

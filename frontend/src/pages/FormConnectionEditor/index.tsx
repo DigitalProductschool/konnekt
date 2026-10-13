@@ -149,6 +149,7 @@ export default function FormConnectionEditorPage({
             open={state.dialogOpen}
             summary={publishSummary(state.documents, documentTypes)}
             publishing={state.publishing}
+            error={state.publishError}
             onCancel={() => dispatch({ type: 'closeDialog' })}
             onConfirm={handleConfirm}
           />
@@ -162,7 +163,6 @@ export default function FormConnectionEditorPage({
           documentTypes={documentTypes}
           documents={state.documents}
           errors={state.errors}
-          publishError={state.publishError}
           onRetryCatalog={retry}
           onAdd={(documentType) =>
             dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder })
