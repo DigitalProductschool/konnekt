@@ -511,6 +511,8 @@ key and label; nothing else is copied.
 - **Value types**: binary values are converted to base64 strings and dates to ISO 8601 strings.
   **Verify at implementation** what EUDIPLO's `getPrettyClaims` returns for mdoc binary and date
   values, using a real presentation.
+  Nested maps, such as the entries of `driving_privileges`, are emptied to `{}` by EUDIPLO
+  ≤ 9.1.0 (R19 item 4).
 - **A missing value** can't happen when verification succeeds, because EUDIPLO rejects responses
   with missing claims. If it happens anyway, it is logged by field key and returned as `null`.
 
@@ -966,7 +968,7 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
    | `POST /api/verifier/config` with an existing id | **Settled**: "If it already exists, it will be updated." It answers `201`, never `409`. Whether an update replaces or merges isn't stated; the middleware always sends a complete body, so either works |
    | List response of `GET /api/session` | **Settled**. It pages: `page` (from 1) and `pageSize` (default 25, at most 100), answered as `{items, total, page, pageSize, totalPages}`. Each item has the full `Session` schema, with `failureCode` and `consumedAt` when they are set, so the sync needs no `GET /api/session/{id}` per item |
    | Id and description limits | **Partly settled**. The configuration `id` needs at least one character and has no maximum, and `description` has no limit. A DCQL credential query `id` must match `^[A-Za-z0-9_-]+$`, which the catalog keys `pid` and `mdl` do |
-   | mdoc binary and date values | **Not settled**: the items of `credentials` are untyped in the OpenAPI. Checked in T081 |
+   | mdoc binary and date values | **Partly settled** (bug `mdl-driving-privileges-empty`, from EUDIPLO v9.0.0's source and `@owf/cose@0.4.0`): a top-level `full-date` arrives as `"YYYY-MM-DD"`, a `bstr` as `{"0": …}` (turned into base64), but nested CBOR maps arrive as `{}`: `getPrettyClaims` leaves them JS `Map`s and the session column is written with `JSON.stringify`. `driving_privileges` is therefore `[{}, …]` in EUDIPLO ≤ 9.1.0; the middleware logs a warning by field key. Live shapes still checked in T081 |
    | An expired credential fails verification | **Not settled**: the failure codes aren't enumerated. Quickstart V3 |
 
    **Differences from the contract**, and how the code handles them:

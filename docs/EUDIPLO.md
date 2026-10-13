@@ -265,6 +265,7 @@ The schema is strict, so unknown keys are rejected.
 | No webhook retry; expired sessions send no webhook | Polling reconciliation and our own timeouts |
 | Deferred `transaction_id` isn't exposed to the backend | Avoid deferred issuance, or design around it |
 | Config-as-code (file-managed) resources reject API edits with `409` | Detach the resource first, or change the files |
+| mdoc nested maps are lost in the session's `credentials` (≤ 9.1.0): the verifier leaves them JS `Map`s and `JSON.stringify` writes `{}`, so `driving_privileges` arrives as `[{}, …]` | Fix upstream (normalise `Map`s recursively in `MdocverifierService.verify`); the middleware logs a warning by field key |
 | Token valid for 24 h; secret shown once | Cache and renew the token; store the secret in a secret manager |
 | Management token must never reach the browser | Proxy SSE and results through our backend |
 | Unknown credential config in an offer answers `409`, not `404` | |
