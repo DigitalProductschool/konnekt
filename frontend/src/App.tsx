@@ -30,7 +30,7 @@ function SignedInScreens() {
   );
 }
 
-/** Signed-in screens with a layout of their own, such as the wizard (WizardLayout) */
+/** Signed-in screens with a layout of their own: the wizard and the details (WizardLayout) */
 function SignedInWizards() {
   return (
     <RequireSignIn>
@@ -48,7 +48,6 @@ function App() {
       </Route>
       <Route element={<SignedInScreens />}>
         <Route path={ROUTES.overview} element={<FormConnectionListPage />} />
-        <Route path={ROUTES.formConnection} element={<FormConnectionDetailPage />} />
         <Route
           path={ROUTES.editFormConnection}
           element={<PlaceholderPage title="Edit connection" />}
@@ -57,6 +56,7 @@ function App() {
       <Route element={<SignedInWizards />}>
         <Route path={ROUTES.firstConnection} element={<FirstConnectionPage />} />
         <Route path={ROUTES.newFormConnection} element={<FormConnectionEditorPage />} />
+        <Route path={ROUTES.formConnection} element={<FormConnectionDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to={ROUTES.overview} replace />} />
     </Routes>

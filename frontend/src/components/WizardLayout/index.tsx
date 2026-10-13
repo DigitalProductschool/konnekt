@@ -15,9 +15,14 @@ const CENTRED_GUTTERS = 'min-[1197px]:[scrollbar-gutter:stable_both-edges]';
  * wide and 640 px tall (`split:`, index.css) the head stays put too, and only the body
  * scrolls; its scrollbar is outside the column, at the area's right edge. A step sizes
  * things to the visible height with `cqh` units: the scrolling area is their container.
+ * The details screen uses the same frame, with the header's badge and meta; its loading and
+ * error states leave out the title and the head.
  */
 export default function WizardLayout({
   title,
+  titleAsHeading,
+  badge,
+  meta,
   head,
   footer,
   overlay,
@@ -25,20 +30,29 @@ export default function WizardLayout({
 }: WizardLayoutProps) {
   return (
     <div className="bg-kern-neutral-025 flex h-dvh flex-col">
-      <TopBar title={title} width="column" logoTo={ROUTES.overview}>
+      <TopBar
+        title={title}
+        titleAsHeading={titleAsHeading}
+        badge={badge}
+        meta={meta}
+        width="column"
+        logoTo={ROUTES.overview}
+      >
         <UserMenu />
       </TopBar>
       <main className="flex min-h-0 flex-1 flex-col">
         <div
           className={`flex min-h-0 flex-1 flex-col overflow-y-auto lg:[container-type:size] ${CENTRED_GUTTERS} split:overflow-hidden split:[scrollbar-gutter:auto]`}
         >
-          <div className="px-16 pt-40 pb-32">
-            <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{head}</div>
-          </div>
+          {head && (
+            <div className="px-16 pt-40 pb-32">
+              <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{head}</div>
+            </div>
+          )}
           <div
-            className={`px-16 pb-40 ${CENTRED_GUTTERS} split:min-h-0 split:flex-1 split:overflow-y-auto split:[container-type:size]`}
+            className={`flex flex-1 flex-col px-16 pb-40 ${head ? '' : 'pt-40'} ${CENTRED_GUTTERS} split:min-h-0 split:overflow-y-auto split:[container-type:size]`}
           >
-            <div className="mx-auto flex w-full max-w-1120 flex-col gap-32">{children}</div>
+            <div className="mx-auto flex w-full max-w-1120 flex-1 flex-col gap-32">{children}</div>
           </div>
         </div>
         <div className="border-kern-neutral-100 bg-kern-layout-background-default flex h-80 shrink-0 border-t px-16">

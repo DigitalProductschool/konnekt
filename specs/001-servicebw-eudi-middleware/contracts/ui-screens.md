@@ -99,6 +99,9 @@ first step's heading and page title changed.
 
 ## Details (`/form-connections/:id`)
 
+- **Frame**: the create wizard's last screen (Figma "22 Published"). The header names the form
+  connection (the screen's main heading), shows its status, and its serviceBW form; the wizard's
+  steps are all done; an action bar leads to the overview and to a new form connection.
 - **Connection URLs** (FR-004):
   - The **trigger URL** and the **pull URL**, each with a one-action copy button that uses
     `navigator.clipboard`. That needs HTTPS or `localhost`, which is one reason the UI is served
@@ -113,8 +116,8 @@ first step's heading and page title changed.
     `webhook_url: null`).
   - It shows the current mode: pull without an address, webhook with one. A change applies to
     requests triggered after it (US3, scenario 1).
-- **Configuration summary**: the name, the serviceBW form, and the requested documents with their
-  selected fields. An "Edit" action opens the edit screen.
+- **Configuration summary**: the name and the serviceBW form (in the header), and the requested
+  documents with their selected fields. An "Edit" action opens the edit screen.
 - **Status and actions**:
   - **Deactivate**: asks for confirmation, and says that the URLs stop working at once and that
     requests in progress will be cancelled within a few seconds.

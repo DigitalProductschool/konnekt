@@ -3,6 +3,12 @@ import type { ReactNode } from 'react';
 export interface TopBarProps {
   /** Shown after the logo, behind a separator, as in Figma "App/Header" */
   title?: string;
+  /** Renders the title as the page's h1, on a screen whose header names it */
+  titleAsHeading?: boolean;
+  /** Shown after the title, such as the connection's status badge */
+  badge?: ReactNode;
+  /** Shown before the user's menu in muted text, such as the form ID; hidden on phones */
+  meta?: ReactNode;
   /** "column" lines the content up with the wizard's 1120 px column ("App/Header") */
   width?: 'full' | 'column';
   /** Makes the logo a link to this route, as on the signed-in screens */

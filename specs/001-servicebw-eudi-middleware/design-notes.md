@@ -160,7 +160,9 @@ a 1455 px window.
   and the step's title (16/24, 600), lined up with the wizard's 1120 px column (x = 160).
   `TopBar` draws it with `title` and `width="column"`; `WizardLayout` adds the column and the
   footer bar. The title is "New connection", and from the documents step the form name. V2's
-  status badge and meta are left out, since there are no drafts.
+  status badge and meta are left out of the wizard, since there are no drafts. The details
+  screen shows them (§7): `TopBar`'s `badge` and `meta`, both hidden below `sm` so the name
+  keeps some room, and there the title is the page's `h1` (`titleAsHeading`).
 - **Legal footer**: removed. V2's sign-in screens have no footer, and V2 moves "App/Legal footer"
   (`151:995`) to "Deprecated (unused)". In Phase 2 it showed "© 2026 BridgeID" under the sign-in
   screen.
@@ -332,9 +334,21 @@ draft." are left out.
 
 ## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
-**Decision (2026-10-10)**: an overview-style page (top bar, 1040 px column), as V2 has no frame
-for an existing connection, the webhook address or the summary.
-- Page title: the connection's name, with "Form ID …" as hint.
+**Decision (2026-10-13, bug `detail-page-layout`)**: the page renders in the wizard's frame,
+as frame 22 does, for every connection and every visit. It supersedes the overview-style page
+of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the links down.
+- **Header ("App/Header", `2080:8272`)**: logo | the connection's name (16/24 600, the page's
+  `h1`, truncated), then KERN's small success badge "Live" while `is_active` (US4 adds the
+  deactivated state). Before the user menu, the meta (16/24 muted) shows "Form ID …" in the
+  place of 22's "Live since 5 Oct 2026, 09:41"; badge and meta are hidden below `sm`.
+- **Progress ("App/Progress", `2080:8275`)**: the three steps, all done, none a link until
+  editing exists (T073); each is read with ", done".
+- **Body**: a 900 px column, centred in the 1120 px one: the links card (22's
+  "Publish/Success card", `2080:8277`), then the documents, 32 px apart.
+- **Footer ("App/Footer", `2080:8278`)**: "Home" (`kern-btn--tertiary`, home icon; only the
+  icon below `sm`) in the place of "Edit documents" until T074 adds editing, and "Create new
+  connection" (`kern-btn--secondary`, add icon) at the right. Header, footer and, from `split:`,
+  the progress stay put while the body scrolls.
 - **Links ("Publish/Success card", `2017:6932`)**: padding 40, gap 16. Right after publishing it
   shows the 72 px ring tick, the "Published" badge and "Your connection is live" (26/32 600),
   which takes the focus; otherwise the title is "Links for your form". Then "Add both links to
@@ -358,7 +372,9 @@ for an existing connection, the webhook address or the summary.
 - **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
   items") and its fields in the data card's columns.
 - **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your
-  connections") for an unknown or deleted connection; otherwise a title with "Try again".
+  connections") for an unknown or deleted connection; otherwise a title with "Try again". They
+  keep the frame and its footer, without the header's title, badge and meta or the progress,
+  so the header doesn't jump when the connection arrives.
 
 ## 8. Field labels: design versus catalog
 
@@ -407,7 +423,9 @@ open before Phase 3):
 3. **Drafts, versions, publishing**: none in the API. "Published"/"live" stand for a saved
    connection; the active/deactivated badge comes with US4.
 4. **Create layout**: the wizard at `/form-connections/new`, opened by S3's "New connection".
-5. **Details**: an overview-style page with 22's link cards, a webhook card and a documents card.
+5. **Details**: 22's frame (header with name, badge and form ID; all steps done; footer) with
+   its link card and a documents card; the webhook card returns with T091. Until 2026-10-13
+   it was an overview-style page.
 6. **Overview row**: name, "Form ID …", "Edited …", "View"; status and "Edit" come with US4.
 7. **Missing states**: from L1, E1 and "Doc/Empty setup"; validation messages instead of
    disabled buttons.

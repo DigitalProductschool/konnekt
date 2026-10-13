@@ -43,6 +43,7 @@ export default function WizardStep({ label, number, state, onSelect }: WizardSte
             className={`${LABEL_CLASSES} ${state === 'current' ? 'text-kern-layout-text-default font-semibold' : ''} ${state === 'todo' ? 'text-kern-layout-text-muted' : ''} ${state === 'done' ? 'text-kern-action-default' : ''}`}
           >
             {label}
+            {state === 'done' && <span className="kern-sr-only">{DONE_SUFFIX}</span>}
           </span>
         )}
       </div>
