@@ -547,3 +547,41 @@ def test_a_request_from_trigger_to_deleted_documents(
     assert first['documents'] == repeat['documents'] == DELIVERED_DOCUMENTS
     assert after == {**first, 'documents': None}
     assert _session_gone(fake_eudiplo, reference)
+
+
+@pytest.mark.parametrize(
+    ('failure_code', 'status'),
+    [('access_denied', 'declined'), ('signature_invalid', 'verification_failed')],
+)
+def test_a_wallet_error_reaches_the_pull_within_one_sync(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    failure_code: str,
+    status: str,
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client)
+    reference = trigger(signed_in_client, form_connection_id)['reference']
+    url = pull_url(form_connection_id, reference)
+    # Triggered two minutes ago, and the wallet fetched the request at once
+    created_at = now() - timedelta(minutes=2)
+    update_request(reference, created_at=created_at)
+    fetched_at = created_at + timedelta(seconds=1)
+    fake_eudiplo.set_session(_session_id(reference), 'fetched', updated_at=fetched_at)
+    worker.sync_sessions()
+    # Meanwhile, later updates in the shared tenant moved the cursor past the fetch
+    stranger = _unknown_session(now() - timedelta(seconds=30))
+    fake_eudiplo.sessions[stranger.id] = stranger
+    worker.sync_sessions()
+    assert signed_in_client.get(url).json()['data']['status'] == 'pending'
+
+    # The wallet's error response: EUDIPLO fails the session, and updatedAt moves on
+    fail_in_wallet(fake_eudiplo, reference, failure_code)
+    worker.sync_sessions()
+    data = signed_in_client.get(url).json()['data']
+
+    assert (data['status'], data['documents']) == (status, None)
+    assert stored_request(reference).failure_code == failure_code
+    # The sync found the session only through its new updatedAt
+    assert _list_calls(fake_eudiplo)[-1] > fetched_at
+    # The list carried the outcome, and the pull only read the stored status
+    assert 'get_session' not in fake_eudiplo.call_names()

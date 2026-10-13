@@ -157,9 +157,12 @@ connection's current revision, all in one interaction (FR-009).
 - Pull every 2 seconds while the status is `pending`, and stop as soon as it is final.
 - `declined` and `verification_failed` arrive within about 2 seconds of the wallet's answer, so the
   form can show the error right away.
-- Don't stop waiting before `expires_at`: the middleware reports `expired` itself.
-- A decline is reported only if the wallet sends one. If the citizen simply closes the wallet, the
-  request stays `pending` until `expired`.
+- Don't stop waiting before `expires_at`, 10 minutes after the trigger: the middleware reports
+  `expired` itself. A form that stops earlier never sees `expired`, so it shouldn't tell the
+  citizen that the sharing was declined.
+- A decline is reported only if the wallet sends one. Paradym (1.20.2, checked on 2026-10-13) and
+  the EU reference wallet for Android send none: after a decline in either, the request stays
+  `pending` until `expired`. So does a request whose citizen simply closes the wallet.
 - When the documents arrive, serviceBW checks that they belong to the applicant. The middleware
   can't do this check (spec assumption "Documents match the applicant").
 

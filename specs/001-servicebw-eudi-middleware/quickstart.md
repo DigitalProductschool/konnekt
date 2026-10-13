@@ -142,7 +142,7 @@ curl -s "http://localhost:3000/api/connect/$FC/requests/$REF" | jq   # expected:
 
 | Step | Expected pull result |
 |---|---|
-| Trigger, scan, and **decline** in the wallet | `declined` within about 2 seconds, `documents` null. If it stays `pending` until `expired` instead, Paradym doesn't report declines; record that (research R5) |
+| Trigger, scan, and **decline** in the wallet | With Paradym or the EU reference wallet (Android): `pending` until `expired`, 10 minutes after the trigger. They send no error response on a decline (research R5). A wallet that sends one gets `declined` within about 2 seconds, `documents` null; the wallet-free check below covers that path |
 | Trigger and wait **10 minutes** without scanning, then pull | `expired` |
 | Present a credential from an issuer **not** on the trust list | `verification_failed`, `documents` null |
 | Present an **expired** test credential | `verification_failed`. If it is accepted, EUDIPLO doesn't check validity periods, so stop and raise it (research R3) |
@@ -153,6 +153,26 @@ Altered credentials and credentials presented by someone other than their holder
 with a real wallet. As SC-005 and the spec assumption "Checks a test wallet can't trigger" state,
 they rely on EUDIPLO's signature and holder-binding checks (research R3). The pytest suite covers
 how the middleware reports them (`verification_failed`).
+
+**Wallet-free check of `declined`**: this sends EUDIPLO what a declining wallet would send, as
+EUDIPLO's own e2e test does (`presentation-direct-post-security.e2e-spec.ts`). It creates a real
+session in the tenant and leaves it `failed`, which the worker deletes at once, so run it with the
+operators' knowledge.
+
+```bash
+T=$(curl -s -X POST "http://localhost:3000/api/connect/$FC/requests")
+REF=$(jq -r .data.reference <<<"$T")
+NONCE=$(jq -r .data.qr_code_link <<<"$T" | sed -E 's#.*presentations(/|%2F)([^/%]+).*#\2#')
+curl -s -X POST "$EUDIPLO_URL/presentations/$NONCE/oid4vp" \
+  --data-urlencode error=access_denied \
+  --data-urlencode 'error_description=User declined' \
+  --data-urlencode "state=$NONCE"                       # expected: 200 {}
+while sleep 2; do
+  curl -s "http://localhost:3000/api/connect/$FC/requests/$REF" | jq -c '.data | {status, documents}'
+done
+```
+
+- **Expected**: `"status": "declined"` and `"documents": null` within one or two pulls.
 
 ### V4: Webhook mode (US3, FR-014 to FR-016)
 
@@ -170,7 +190,9 @@ how the middleware reports them (`verification_failed`).
      configured fields ([contracts/webhook-updates.md](contracts/webhook-updates.md)).
    - A pull for this `$REF` returns `completed` with `documents: null` (FR-015).
 4. Trigger and decline.
-   - **Expected**: the receiver logs `"status": "declined"`, `documents: null`.
+   - **Expected**: the receiver logs `"status": "declined"`, `documents: null`. With Paradym or the
+     EU reference wallet (Android) it logs `"status": "expired"` 10 minutes later instead (V3), or
+     use V3's wallet-free check.
 5. Stop the receiver, then trigger and approve.
    - **Expected**: the backend logs retries for that request (by internal id, with no personal
      data).

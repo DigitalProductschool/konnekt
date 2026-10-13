@@ -298,7 +298,23 @@ statuses; `verification_failed` stands for "verification failed".
 - **A decline only reaches the middleware if the wallet reports it**. When the citizen cancels, an
   OID4VP wallet should send an `access_denied` error response, and that response makes the status
   `declined` within about 2 seconds. A wallet that simply closes without answering leaves the
-  request `pending` until it becomes `expired`. Quickstart V3 checks how Paradym behaves.
+  request `pending` until it becomes `expired`, 10 minutes after the trigger. **Checked on
+  2026-10-13** (bug report `wallet-decline-pending`):
+  - **EUDIPLO 9.0.0 records a wallet error response** (source at tag `v9.0.0`). It accepts one as
+    form parameters or inside the encrypted `direct_post.jwt` response, and stores it as `failed`
+    with the wallet's code as `failureCode` (`oid4vp.service.ts`, `fail-presentation-response.ts`).
+    The update moves `updatedAt` forward, so the sync (R6) picks the session up.
+  - **The test wallets send none** (source). Paradym 1.20.2 (`0bfd4e1`) and `main` (`226083d`,
+    1.21.0) only log a decline in the wallet's own activity list. The EU reference app for Android
+    (`main` @ `7f40440`) stops the flow and never calls wallet-core's `rejectRemotePresentation()`.
+    The EU reference app for iOS wasn't checked.
+  - **Live, with Paradym 1.20.2 (build 94)**: after a decline on the consent screen, EUDIPLO's
+    session stayed `fetched` without a `failureCode`, and the request became `expired`. Leaving
+    Paradym's "no matching card" screen ends the same way.
+  - The middleware's side is covered by `test_a_wallet_error_reaches_the_pull_within_one_sync`.
+    Quickstart V3 has a wallet-free check of it on a deployment.
+  - Treating a session that stays `fetched` as declined was rejected: a citizen who is still
+    choosing or entering a PIN would lose an approval that comes later.
 
 **Rationale**:
 - **Wallet errors**: when the wallet answers with an OAuth or OID4VP error, that code becomes
@@ -998,6 +1014,10 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
      `lifeTime` must be an integer of at least 1.
    - **Token response**: `expires_in` is a number, and `state` and `token_type` are marked required.
      The client reads only `access_token` and `expires_in`.
+
+   **Whether Paradym reports a decline (T081, V3)**: it doesn't. Paradym 1.20.2 sends no error
+   response, so a declined request stays `pending` until `expired`. This comes from its source
+   and one live run on 2026-10-13 (R5). The other T081 points are still open.
 5. **Tenant settings**: lowering the session TTL of tenant `dps` as a backstop to R8 is a decision
    for its operators. EUDIPLO's hourly cleanup job means the TTL alone can't guarantee 30 minutes.
 6. **One tenant for every environment (accepted for now, R2)**. Before real citizens use the
