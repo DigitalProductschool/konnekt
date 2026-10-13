@@ -437,8 +437,9 @@ cd frontend
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
   `AppLayout`, except the create wizard (`/form-connections/new`, and `/get-started` through
-  `pages/FirstConnection/`), which renders its own `WizardLayout` (header with a title, 1120 px
-  column, action bar). Headers and action bars never scroll: `AppLayout`'s top bar is sticky,
+  `pages/FirstConnection/`) and the details (`/form-connections/:id`, the wizard's last screen
+  in Figma), which render their own `WizardLayout` (header with a title, 1120 px column, action
+  bar) in every state, loading and errors included. Headers and action bars never scroll: `AppLayout`'s top bar is sticky,
   and `WizardLayout` fills the window and scrolls only the step between them. From the `split:`
   variant (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays
   put too, so only the area below it scrolls. Render modal dialogs and toasts in its `overlay`,
@@ -446,8 +447,9 @@ cd frontend
   `RequireSignedOut` and `AuthLayout`. A sign-in without a requested route (`/` counts as none)
   lands on `/get-started`: the wizard headed "Create your first connection" while no form
   connection exists, the overview otherwise. Every page sets its tab title with
-  `useDocumentTitle()` and has one `h1`: `PageTitle` on signed-in screens, the intro's headline
-  in `AuthLayout` on signed-out ones
+  `useDocumentTitle()` and has one `h1`: `PageTitle` on signed-in screens, except the loaded
+  details, whose header title is the `h1` (`titleAsHeading`); the intro's headline in
+  `AuthLayout` on signed-out ones
 - Links between the app's routes are React Router `Link`s with KERN's classes (`kern-link`, or
   `kern-btn kern-btn--primary` with a `kern-label` span): `KernLink` and `KernButton` with `href`
   render a plain `<a>`, which reloads the page

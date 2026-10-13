@@ -1,8 +1,5 @@
 import type { EditorState } from './types';
 
-// The wizard's steps (Figma "App/Progress"). After "Publish" the details screen opens
-export const STEPS = ['Connection', 'Documents', 'Publish'] as const;
-
 export const NAME_MAX_LENGTH = 200;
 export const SERVICEBW_FORM_MAX_LENGTH = 500;
 

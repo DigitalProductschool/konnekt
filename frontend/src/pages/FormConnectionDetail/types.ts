@@ -15,6 +15,10 @@ export type DetailAction =
   | { type: 'failed' }
   | { type: 'retry' };
 
+export interface DetailFailedProps {
+  onRetry: () => void;
+}
+
 export interface ConnectionLinksProps {
   formConnection: FormConnection;
   /** Right after publishing: the card confirms that the connection is live */

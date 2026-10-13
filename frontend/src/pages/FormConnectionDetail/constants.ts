@@ -1,7 +1,12 @@
 import type { DetailState } from './types';
 
 export const DETAIL_COPY = {
+  // Figma "App/Header" on "22 Published": the status after the name, the form before the user
+  live: 'Live',
   formId: (form: string) => `Form ID ${form}`,
+  // Figma "App/Footer" on "22 Published"; "Home" stands in for "Edit documents" until T074
+  home: 'Home',
+  newConnection: 'Create new connection',
   loading: 'Loading the connection…',
   errorTitle: 'Couldn’t load the connection',
   errorText: 'Check your connection and try again.',

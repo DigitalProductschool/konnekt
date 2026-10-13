@@ -7,14 +7,14 @@ import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
 import WizardProgress from '../../components/WizardProgress';
-import { ROUTES } from '../../constants';
+import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import type { DocumentType } from '../../types/document-types';
 import type { DetailLocationState } from '../../types/routing';
 import ConnectionStep from './ConnectionStep';
-import { EDITOR_COPY, ELEMENT_IDS, INITIAL_EDITOR_STATE, STEPS } from './constants';
+import { EDITOR_COPY, ELEMENT_IDS, INITIAL_EDITOR_STATE } from './constants';
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
 import PublishDialog from './PublishDialog';
@@ -124,7 +124,7 @@ export default function FormConnectionEditorPage({
       head={
         <>
           <WizardProgress
-            steps={STEPS}
+            steps={CONNECTION_STEPS}
             current={onDocuments ? 1 : 0}
             onSelect={() => dispatch({ type: 'goToStep', step: 'connection' })}
           />

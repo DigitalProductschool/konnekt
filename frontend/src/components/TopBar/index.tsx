@@ -4,12 +4,25 @@ import { APP_NAME } from '../../constants';
 import type { TopBarProps } from './types';
 
 const LOGO_CLASSES = 'gap-kern-space-small flex shrink-0 items-center';
+const SMALL_TEXT =
+  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) min-w-0 truncate';
 
 /**
  * Figma "App/Top bar": the product logo, and on signed-in screens the user. With a title
- * and the column width it is "App/Header", which the wizard uses.
+ * and the column width it is "App/Header", which the wizard and the details screen use; the
+ * details add the status badge after the title and the form ID before the user. Below `sm`
+ * the badge and the meta are hidden, so that the name keeps some room.
  */
-export default function TopBar({ title, width = 'full', logoTo, children }: TopBarProps) {
+export default function TopBar({
+  title,
+  titleAsHeading = false,
+  badge,
+  meta,
+  width = 'full',
+  logoTo,
+  children,
+}: TopBarProps) {
+  const TitleTag = titleAsHeading ? 'h1' : 'span';
   const logo = (
     <>
       <span aria-hidden="true" className="rounded-kern-small bg-kern-layout-text-default size-16" />
@@ -39,12 +52,16 @@ export default function TopBar({ title, width = 'full', logoTo, children }: TopB
         {title && (
           <>
             <span aria-hidden="true" className="bg-kern-neutral-100 h-24 w-1 shrink-0" />
-            <span className="text-kern-static-small text-kern-layout-text-default min-w-0 truncate leading-(--kern-typography-line-height-medium-static) font-semibold">
+            <TitleTag className={`${SMALL_TEXT} text-kern-layout-text-default font-semibold`}>
               {title}
-            </span>
+            </TitleTag>
           </>
         )}
+        {badge && <div className="hidden shrink-0 sm:flex">{badge}</div>}
         <div className="flex-1" />
+        {meta && (
+          <p className={`${SMALL_TEXT} text-kern-layout-text-muted hidden sm:block`}>{meta}</p>
+        )}
         {children}
       </div>
     </header>
