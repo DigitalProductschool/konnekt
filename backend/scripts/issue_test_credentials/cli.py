@@ -7,8 +7,9 @@ Run from backend/: `uv run python -m scripts.issue_test_credentials`. The script
 2. creates or updates the credential configurations `test-pid` and `test-mdl`, which
    offer every field of the catalog (app/catalog.py), so that the wallet can answer any
    request the middleware builds;
-3. makes up a person and creates a pre-authorized-code offer with their data, shown as
-   a QR code and as a link for the wallet;
+3. makes up a person living in Stuttgart (with --any-town, in one of a few German
+   towns) and creates a pre-authorized-code offer with their data, shown as a QR
+   code and as a link for the wallet;
 4. waits until the wallet has fetched the documents.
 
 The person is fake, so the script prints their data; the middleware never logs claims.
@@ -102,7 +103,7 @@ def main(
     ]
     seed = args.seed if args.seed is not None else secrets.randbelow(1_000_000)
     today = date.today()
-    person = random_person(seed, today)
+    person = random_person(seed, today, stuttgart=not args.any_town)
 
     try:
         with EudiploIssuer(
@@ -162,6 +163,11 @@ def _parse_arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         help='make up the same person as a run with this seed on the same day',
     )
     parser.add_argument(
+        '--any-town',
+        action='store_true',
+        help='let the person live in any of a few German towns, not only Stuttgart',
+    )
+    parser.add_argument(
         '--show-claims', action='store_true', help='print every claim of the offer'
     )
     parser.add_argument(
@@ -184,7 +190,7 @@ def _print_person(
     )
     print(
         f'Address: {person.street} {person.house_number}, '
-        f'{person.home.postal_code} {person.home.city}'
+        f'{person.postal_code} {person.home.city}'
     )
     if any(document_type.key == 'mdl' for document_type in document_types):
         categories = ', '.join(

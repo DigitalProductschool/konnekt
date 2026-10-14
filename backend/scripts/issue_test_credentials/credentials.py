@@ -102,11 +102,11 @@ def pid_values(person: Person, today: date) -> dict[str, object]:
         'nationalities': [COUNTRY],
         'address_formatted': (
             f'{person.street} {person.house_number}, '
-            f'{home.postal_code} {home.city}, {COUNTRY_NAME}'
+            f'{person.postal_code} {home.city}, {COUNTRY_NAME}'
         ),
         'address_street_address': person.street,
         'address_house_number': person.house_number,
-        'address_postal_code': home.postal_code,
+        'address_postal_code': person.postal_code,
         'address_locality': home.city,
         'address_region': home.state,
         'address_country': COUNTRY,
@@ -164,7 +164,7 @@ def mdl_values(person: Person, today: date) -> dict[str, object]:
         'nationality': COUNTRY,
         'resident_city': home.city,
         'resident_state': home.state,
-        'resident_postal_code': home.postal_code,
+        'resident_postal_code': person.postal_code,
         'resident_country': COUNTRY,
         'family_name_national_character': person.family_name,
         'given_name_national_character': person.given_name,
