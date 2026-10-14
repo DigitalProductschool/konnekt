@@ -21,7 +21,13 @@ from scripts.issue_test_credentials.credentials import (
     credential_config,
     offer_body,
 )
-from scripts.issue_test_credentials.person import random_person, years_after
+from scripts.issue_test_credentials.person import (
+    PLACES,
+    STUTTGART,
+    STUTTGART_STREETS,
+    random_person,
+    years_after,
+)
 
 TODAY = date(2026, 10, 12)
 # The properties of CredentialConfigCreate in EUDIPLO 9.0's OpenAPI
@@ -207,6 +213,52 @@ def test_both_documents_describe_the_same_person() -> None:
     assert pid['address']['locality'] == mdl['resident_city']
     assert pid['address']['postal_code'] == mdl['resident_postal_code']
     assert pid['place_of_birth']['locality'] == mdl['birth_place']
+
+
+@pytest.mark.parametrize('seed', SEEDS)
+def test_the_person_lives_at_a_real_stuttgart_street(seed: int) -> None:
+    # Forms of the City of Stuttgart need a Stuttgart address that fits together
+    person = random_person(seed, TODAY)
+    pid = credential_claims(PID, person, TODAY)
+    mdl = credential_claims(MDL, person, TODAY)
+
+    street = next(s for s in STUTTGART_STREETS if s.name == person.street)
+    assert person.postal_code == street.postal_code
+    assert 1 <= int(person.house_number) <= street.last_house_number
+    assert pid['address'] == {
+        'formatted': f'{street.name} {person.house_number}, '
+        f'{street.postal_code} Stuttgart, Deutschland',
+        'street_address': street.name,
+        'house_number': person.house_number,
+        'postal_code': street.postal_code,
+        'locality': 'Stuttgart',
+        'region': 'Baden-Württemberg',
+        'country': 'DE',
+    }
+    assert pid['issuing_authority'] == 'Landeshauptstadt Stuttgart'
+    assert (mdl['resident_city'], mdl['resident_postal_code']) == (
+        'Stuttgart',
+        street.postal_code,
+    )
+    assert mdl['resident_address'] == f'{street.name} {person.house_number}'
+    assert mdl['issuing_authority'] == 'Landeshauptstadt Stuttgart'
+
+
+def test_every_stuttgart_street_has_a_stuttgart_postcode() -> None:
+    assert len({street.name for street in STUTTGART_STREETS}) == len(STUTTGART_STREETS)
+    for street in STUTTGART_STREETS:
+        assert street.postal_code.startswith('70'), street.name
+        assert len(street.postal_code) == 5, street.name
+        assert street.last_house_number >= 1, street.name
+
+
+def test_without_stuttgart_the_person_lives_in_any_town() -> None:
+    people = [random_person(seed, TODAY, stuttgart=False) for seed in SEEDS]
+
+    assert {person.home for person in people} == set(PLACES)
+    for person in people:
+        if person.home != STUTTGART:
+            assert person.postal_code == person.home.postal_code
 
 
 @pytest.mark.parametrize('seed', SEEDS)
@@ -428,6 +480,23 @@ def test_unchanged_configurations_arent_written_again(
     assert issuance.calls.count('POST /api/issuer/credentials') == 1
     assert issuance.configs['test-mdl'] == credential_config(MDL, 'issuer-key')
     assert 'test-pid (unchanged), test-mdl (updated)' in capsys.readouterr().out
+
+
+def test_the_person_lives_in_stuttgart_unless_any_town_is_given(
+    issuance: FakeIssuance,
+) -> None:
+    def resident_cities(argv: list[str]) -> set[str]:
+        issuance.offers.clear()
+        for seed in range(20):
+            argv_seed = [*argv, '--seed', str(seed), '--no-wait']
+            assert cli.main(argv_seed, transport=issuance.transport) == 0
+        return {
+            offer['credentialClaims']['test-mdl']['claims']['resident_city']
+            for offer in issuance.offers
+        }
+
+    assert resident_cities([]) == {'Stuttgart'}
+    assert len(resident_cities(['--any-town'])) > 1
 
 
 def test_one_document_can_be_offered_alone(issuance: FakeIssuance) -> None:

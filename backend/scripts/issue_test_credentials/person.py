@@ -1,9 +1,11 @@
 """A random German test person: the holder that both test documents describe.
 
-Faker's German locale makes up the names, the street and the numbers. The towns come
-from a short list of real ones, so that postcode, state and issuing authorities fit
-together. Every date counts from today, so that the documents are valid whenever the
-script runs: the same seed gives the same person on the same day.
+Faker's German locale makes up the names and the numbers. The person lives in
+Stuttgart, at a real street with its real postcode, so that a form of the City of
+Stuttgart accepts the address; or, with `stuttgart=False`, in a town from a short list
+of real ones, on a street Faker makes up. Postcode, state and issuing authorities fit
+the town either way. Every date counts from today, so that the documents are valid
+whenever the script runs: the same seed gives the same person on the same day.
 """
 
 import string
@@ -51,15 +53,52 @@ class Place:
     licence_authority: str
 
 
+@dataclass(frozen=True)
+class Street:
+    """A real street of Stuttgart and its postcode."""
+
+    name: str
+    postal_code: str
+    # The highest house number to use: up to it, the street has this postcode
+    last_house_number: int
+
+
+STUTTGART = Place(
+    'Stuttgart',
+    # The centre's; a Stuttgart address takes its street's postcode instead
+    '70173',
+    'Baden-Württemberg',
+    'DE-BW',
+    'Landeshauptstadt Stuttgart',
+    'Landeshauptstadt Stuttgart',
+)
+# Streets in several districts, each with one postcode up to its last house number
+STUTTGART_STREETS: tuple[Street, ...] = (
+    # Mitte
+    Street('Königstraße', '70173', 50),
+    Street('Calwer Straße', '70173', 40),
+    Street('Kronprinzstraße', '70173', 30),
+    Street('Hirschstraße', '70173', 20),
+    Street('Lautenschlagerstraße', '70173', 20),
+    Street('Theodor-Heuss-Straße', '70174', 30),
+    # Süd
+    Street('Tübinger Straße', '70178', 90),
+    Street('Marienstraße', '70178', 40),
+    # Bad Cannstatt
+    Street('König-Karl-Straße', '70372', 90),
+    Street('Marktstraße', '70372', 50),
+    # Feuerbach
+    Street('Stuttgarter Straße', '70469', 120),
+    # Zuffenhausen
+    Street('Unterländer Straße', '70435', 80),
+    # Degerloch; Epplestraße's far end, in Möhringen, is in 70567
+    Street('Epplestraße', '70597', 40),
+    # Vaihingen
+    Street('Hauptstraße', '70563', 70),
+)
+
 PLACES: tuple[Place, ...] = (
-    Place(
-        'Stuttgart',
-        '70173',
-        'Baden-Württemberg',
-        'DE-BW',
-        'Landeshauptstadt Stuttgart',
-        'Landeshauptstadt Stuttgart',
-    ),
+    STUTTGART,
     Place(
         'Esslingen am Neckar',
         '73728',
@@ -194,6 +233,7 @@ class Person:
     home: Place
     street: str
     house_number: str
+    postal_code: str
     email: str
     phone_number: str
     height_cm: int
@@ -221,8 +261,13 @@ def years_after(day: date, years: int) -> date:
         return day.replace(year=day.year + years, day=28)
 
 
-def random_person(seed: int, today: date | None = None) -> Person:
-    """Make up a person. The same seed gives the same person on the same day."""
+def random_person(
+    seed: int, today: date | None = None, *, stuttgart: bool = True
+) -> Person:
+    """Make up a person. The same seed gives the same person on the same day.
+
+    The person lives in Stuttgart, or with `stuttgart=False` in any town of PLACES.
+    """
     today = today or date.today()
     fake = Faker('de_DE')
     fake.seed_instance(seed)
@@ -241,6 +286,9 @@ def random_person(seed: int, today: date | None = None) -> Person:
     body_mass_index = fake.random_int(19, 29)
     later_in_life = today.year - birth_date.year >= 55
     hair_colours = HAIR_COLOURS + (HAIR_COLOURS_LATER_IN_LIFE if later_in_life else ())
+    birth_place = fake.random_element(PLACES)
+    home = STUTTGART if stuttgart else fake.random_element(PLACES)
+    street, house_number, postal_code = _address(fake, home)
 
     return Person(
         given_name=given_name,
@@ -248,10 +296,11 @@ def random_person(seed: int, today: date | None = None) -> Person:
         birth_family_name=birth_family_name,
         sex=sex,
         birth_date=birth_date,
-        birth_place=fake.random_element(PLACES),
-        home=fake.random_element(PLACES),
-        street=fake.street_name(),
-        house_number=str(fake.random_int(1, 120)),
+        birth_place=birth_place,
+        home=home,
+        street=street,
+        house_number=house_number,
+        postal_code=postal_code,
         email=f'{_ascii(given_name)}.{_ascii(family_name)}@{fake.safe_domain_name()}',
         phone_number='+49'
         + fake.random_element(MOBILE_PREFIXES)
@@ -264,6 +313,15 @@ def random_person(seed: int, today: date | None = None) -> Person:
         id_card=_identity_card(fake, birth_date, today),
         licence=_driving_licence(fake, birth_date, today),
     )
+
+
+def _address(fake: Faker, home: Place) -> tuple[str, str, str]:
+    """Street, house number and postcode of a home in the town."""
+    if home == STUTTGART:
+        street = fake.random_element(STUTTGART_STREETS)
+        house_number = str(fake.random_int(1, street.last_house_number))
+        return street.name, house_number, street.postal_code
+    return fake.street_name(), str(fake.random_int(1, 120)), home.postal_code
 
 
 def _identity_card(fake: Faker, birth_date: date, today: date) -> IdentityCard:

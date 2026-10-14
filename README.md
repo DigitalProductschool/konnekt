@@ -465,7 +465,10 @@ both from the tenant itself, with the data of a made-up person:
    `urn:eudi:pid:1`) and `test-mdl` (mdoc, `org.iso.18013.5.1.mDL`). They hold every field of
    the catalog, so the wallet can answer any request the middleware builds.
 3. It makes up a German person with [Faker](https://faker.readthedocs.io) and creates a
-   pre-authorized-code offer with their data, which works once within 15 minutes.
+   pre-authorized-code offer with their data, which works once within 15 minutes. The person
+   lives in Stuttgart, at a real street with its real postcode, so that Stuttgart's forms accept
+   the address; with `--any-town` they live in one of a few German towns instead, on a street
+   Faker makes up.
 4. It shows the offer as a QR code and a link, and waits until the wallet has fetched it.
 
 **Once per tenant**, in the EUDIPLO console or API:
@@ -488,6 +491,7 @@ uv run python -m scripts.issue_test_credentials                 # PID and drivin
 uv run python -m scripts.issue_test_credentials --document pid  # only the PID
 uv run python -m scripts.issue_test_credentials --seed 4711     # the same person again, same day
 uv run python -m scripts.issue_test_credentials --show-claims   # also print every claim
+uv run python -m scripts.issue_test_credentials --any-town      # someone living outside Stuttgart
 ```
 
 Scan the QR code with the wallet, or open the link on the phone. On a terminal with a light
