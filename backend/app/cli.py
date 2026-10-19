@@ -6,16 +6,19 @@ remove an account. The confirmations are written for the operator's terminal, an
 password is never printed.
 
 `clear-connections` deletes every form connection, with its revisions and requests,
-and keeps the accounts. It empties only the database: the EUDIPLO configurations and
-sessions of the deleted rows stay in EUDIPLO.
+and keeps the accounts. It first deletes the EUDIPLO session of every request that
+still has one, so that no shared document outlives its request (FR-020, research
+R8), and deletes no row unless all of them are gone. The EUDIPLO configurations hold
+no personal data and stay in EUDIPLO.
 """
 
 import argparse
 import getpass
 import sys
 from collections.abc import Callable
+from datetime import datetime, timezone
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from .db import Base, SessionLocal
@@ -32,6 +35,8 @@ from .services.auth import (
     is_valid_username,
     normalize_username,
 )
+from .services.document_requests import mark_session_deleted
+from .services.eudiplo import EudiploError, EudiploNotConfigured, get_eudiplo_client
 
 
 class CliError(Exception):
@@ -94,11 +99,61 @@ CONNECTION_MODELS: tuple[type[Base], ...] = (
 )
 
 
+# Requests whose EUDIPLO session, with any documents in it, may still exist
+OPEN_SESSIONS = DocumentRequest.eudiplo_session_deleted_at.is_(None)
+
+
+def _count_open_sessions(db: Session) -> int:
+    return (
+        db.scalar(
+            select(func.count()).select_from(DocumentRequest).where(OPEN_SESSIONS)
+        )
+        or 0
+    )
+
+
+def _delete_eudiplo_sessions(db: Session) -> int:
+    """Delete the EUDIPLO session of every request that still has one (research R8).
+
+    Returns their number. A 404 counts as success. Each deletion is recorded at once,
+    as the worker records it, so a second run after a failure skips the sessions
+    already gone. No transaction stays open while EUDIPLO answers.
+    """
+    sessions = db.execute(
+        select(DocumentRequest.id, DocumentRequest.eudiplo_session_id).where(
+            OPEN_SESSIONS
+        )
+    ).all()
+    db.rollback()
+    client = get_eudiplo_client()
+    for deleted, (request_id, session_id) in enumerate(sessions):
+        try:
+            client.delete_session(session_id)
+        except EudiploError as error:
+            left = len(sessions) - deleted
+            reason = (
+                f"EUDIPLO isn't configured ({error.setting} is not set)"
+                if isinstance(error, EudiploNotConfigured)
+                else 'EUDIPLO could not delete a session'
+            )
+            raise CliError(
+                f'{reason}, so nothing was deleted. {left} EUDIPLO session(s) '
+                'are left; run the command again.'
+            ) from None
+        request = db.get(DocumentRequest, request_id, with_for_update=True)
+        if request is not None:
+            mark_session_deleted(request, datetime.now(tz=timezone.utc))
+        db.commit()
+    return len(sessions)
+
+
 def clear_connections(db: Session, confirmed: bool) -> str:
     """Delete every form connection with its revisions and requests.
 
-    The accounts and their sign-in sessions stay. Without `confirmed`, the operator
-    sees the row counts and has to type "yes".
+    The EUDIPLO sessions of the requests go first, and the rows only once they are
+    all gone. The accounts and their sign-in sessions stay, and so do the EUDIPLO
+    configurations. Without `confirmed`, the operator sees the row counts and has to
+    type "yes".
     """
     counts = {
         model.__tablename__: db.scalar(select(func.count()).select_from(model)) or 0
@@ -109,15 +164,30 @@ def clear_connections(db: Session, confirmed: bool) -> str:
     if not confirmed:
         for table, count in counts.items():
             print(f'  {table}: {count}')
-        answer = input('Delete these rows? Type "yes" to confirm: ')
+        print(
+            f'  EUDIPLO sessions, deleted first: {_count_open_sessions(db)}\n'
+            'The EUDIPLO configurations hold no personal data and stay.'
+        )
+        answer = input('Delete these sessions and rows? Type "yes" to confirm: ')
         if answer.strip().lower() != 'yes':
             raise CliError('Nothing deleted.')
+    sessions = _delete_eudiplo_sessions(db)
+    # No request can start until the rows are gone. One that started meanwhile
+    # has a session, so nothing is deleted then
+    db.execute(text('LOCK TABLE document_requests IN EXCLUSIVE MODE'))
+    started = _count_open_sessions(db)
+    if started:
+        db.rollback()
+        raise CliError(
+            f'{started} document request(s) started meanwhile, so nothing was '
+            'deleted. Run the command again.'
+        )
     for model in CONNECTION_MODELS:
         db.execute(delete(model))
     db.commit()
     return (
-        f'Deleted {counts[FormConnection.__tablename__]} form connection(s); '
-        'the accounts are unchanged.'
+        f'Deleted {counts[FormConnection.__tablename__]} form connection(s) and '
+        f'{sessions} EUDIPLO session(s); the accounts are unchanged.'
     )
 
 

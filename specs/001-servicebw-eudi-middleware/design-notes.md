@@ -166,8 +166,14 @@ a 1455 px window.
   `TopBar` draws it with `title`; `WizardLayout` adds the 1120 px column below it and the
   footer bar. The title is "New connection", and from the documents step the form name. V2's
   status badge and meta are left out of the wizard, since there are no drafts. The details
-  screen shows them (§7): `TopBar`'s `badge` and `meta`, both hidden below `sm` so the name
-  keeps some room, and there the title is the page's `h1` (`titleAsHeading`).
+  screen shows them (§7): `TopBar`'s `badge` and `meta`, and there the title is the page's `h1`
+  (`titleAsHeading`).
+  - **Decision (2026-10-19, accessibility review; narrow screens)**: below `lg` (992 px), which
+    the design has no frame for, the title, the badge and the meta move to a second row under
+    the logo and the user menu, and wrap instead of being truncated. Before, the title shrank to
+    one letter at 320 px, and the badge and the form ID were hidden below `sm`, which loses
+    content at 320 px and at 200% zoom (WCAG 1.4.10). From `lg` the header is Figma's single
+    64 px row, unchanged.
 - **Legal footer**: removed. V2's sign-in screens have no footer, and V2 moves "App/Legal footer"
   (`151:995`) to "Deprecated (unused)". In Phase 2 it showed "© 2026 BridgeID" under the sign-in
   screen.
@@ -281,6 +287,9 @@ draft." are left out.
   current = blue circle and 16/24 600 name, done = darkblue-050 circle with a 16 px tick and a
   blue name that leads back, todo = 1.5 px decorative-border circle and a muted name; 4 px bars,
   gap 10 below the names. The steps are a `nav` with an ordered list.
+  - **Decision (2026-10-19, accessibility review; narrow screens)**: below `sm` (576 px), which
+    the design has no frame for, each name goes under its circle and uses the step's full
+    width, so that "Connection" and "Documents" aren't cut off at 320 px (WCAG 1.4.10).
 - **Step 1 (02, 02a; the title of 02d)**: "Create a connection" (02d, as the wizard is opened
   from the overview) / "Connect any form to the EUDI Wallet for applicants to share verified
   information." The card "UseCase/Create card": "Which form are you connecting?" / "You can
@@ -314,6 +323,9 @@ draft." are left out.
   - **Decision (2026-10-12)**: "+ Add", "✓ Added" and "Remove" share one width, that of the
     widest, "✓ Added" (99 px; Figma sizes each to its content: 82.5, 98.9 and 89.8 px). The
     button no longer jumps, and "Remove" no longer slips out from under the pointer.
+  - **Decision (2026-10-19, accessibility review)**: the accessible name of "✓ Added" is "Added,
+    remove Personal ID". It starts with the visible label, so that speech input finds it (WCAG
+    2.5.3), and says what the button does, which "Remove" shows only on hover and focus.
   - **Decision (2026-10-12)**: from 1024 px the panel stays put while the data cards scroll past
     it (section 3, "Frame"). It scrolls itself when it is taller than the scrolling area.
   - **Decision (2026-10-10)**: adding a document selects **no** field (V2: all of them). With the
@@ -372,8 +384,8 @@ of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the lin
   the connection's name (16/24 600, the page's `h1`, truncated), then KERN's small success
   badge "Live" while `is_active`, otherwise the warning badge "Deactivated" (2026-10-19, as on
   the overview). Before the user menu, the
-  meta (16/24 muted) shows "Form ID …" in the place of 22's "Live since 5 Oct 2026, 09:41";
-  badge and meta are hidden below `sm`.
+  meta (16/24 muted) shows "Form ID …" in the place of 22's "Live since 5 Oct 2026, 09:41".
+  Below `lg`, name, badge and meta take a second row (§3, wizard header).
 - **Progress ("App/Progress", `2080:8275`)**: the three steps, all done; each is read with ",
   done". Since 2026-10-19 (T074) they lead to editing: "Connection" to step 1, "Documents" and
   "Publish" to step 2.

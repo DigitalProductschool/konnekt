@@ -80,7 +80,7 @@ install frontend dependencies; on such a machine the hooks are silently absent a
 be installed manually later.
 
 mypy is intentionally not a hook — it is too slow for a commit, so run
-`uv run mypy app/` yourself before pushing backend changes. See the `Code Quality`
+`uv run mypy app/ scripts/ tests/` yourself before pushing backend changes. See the `Code Quality`
 section of `README.md` for the full command list and editor format-on-save setup.
 
 ## Application Details
@@ -92,17 +92,19 @@ section of `README.md` for the full command list and editor format-on-save setup
 ```
 frontend/
 ├── src/
-│   ├── api/              # client.ts (apiFetch, ApiError), one module per resource (auth.ts)
+│   ├── api/              # client.ts (apiFetch, ApiError), one module per resource: auth.ts,
+│   │                     # document-types.ts, form-connections.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the wizard's
 │   │                     # frame (WizardLayout), the signed-out screens' frame (AuthLayout),
 │   │                     # route guards, sign-in state provider, dialogs, shared form pieces
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
-│   │                     # useFormConnection
+│   │                     # useFormConnection, useSignOutOnUnauthorized
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard),
 │   │                     # FormConnectionEdit, FormConnectionDetail
 │   ├── types/            # TypeScript interfaces mirroring backend schemas
+│   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon)
 │   ├── constants.ts      # App name, routes, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
@@ -251,6 +253,11 @@ would quote the body, is replaced by a terse one. Tests swap in a client with an
   and call no EUDIPLO: the worker deletes the sessions and, once no request needs
   them, the configurations. A deleted form connection keeps its row, so its URLs
   keep answering `409 unavailable`; the management API answers `404` for it.
+- **Clearing everything** (`python -m app.cli clear-connections`) deletes the rows of
+  every form connection. It first deletes the EUDIPLO session of every request that
+  still has one, and deletes no row unless all of them are gone; a request that
+  starts meanwhile stops it too. The configurations stay, as they hold no personal
+  data.
 
 ### Background worker
 

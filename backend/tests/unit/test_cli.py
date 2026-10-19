@@ -1,18 +1,30 @@
 import builtins
 import getpass
+import secrets
+import uuid
 from collections.abc import Callable
+from datetime import timedelta
 
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 from app.cli import CONNECTION_MODELS, main
+from app.config import settings
 from app.db import SessionLocal
 from app.models import DocumentRequest, LoginSession, UserAccount
 from app.services.auth import authenticate, create_login_session
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
-from tests.helpers import create_form_connection, trigger
+from tests.helpers import (
+    create_form_connection,
+    now,
+    share,
+    stored_request,
+    trigger,
+    update_request,
+)
 
 NEW_PASSWORD = 'another long passphrase'
 
@@ -145,9 +157,30 @@ def _row_counts() -> dict[str, int]:
         }
 
 
-def _add_connection_rows(client: TestClient) -> None:
-    """A form connection with a request for it."""
-    trigger(client, create_form_connection(client))
+def _add_connection_rows(client: TestClient) -> str:
+    """A form connection with a request for it; returns the request's reference."""
+    reference: str = trigger(client, create_form_connection(client))['reference']
+    return reference
+
+
+def _session_of(reference: str) -> str:
+    return stored_request(reference).eudiplo_session_id
+
+
+def _on_session_deletion(
+    fake: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    after: Callable[[], None],
+) -> None:
+    """Call `after` each time the fake has deleted a session."""
+    delete_session = fake._delete_session
+
+    def delete_then(request: httpx2.Request) -> httpx2.Response:
+        response = delete_session(request)
+        after()
+        return response
+
+    monkeypatch.setattr(fake, '_delete_session', delete_then)
 
 
 def test_clear_connections_keeps_the_accounts(
@@ -165,7 +198,155 @@ def test_clear_connections_keeps_the_accounts(
     assert _usernames() == [TEST_USERNAME]
     with SessionLocal() as db:
         assert db.scalars(select(LoginSession)).first() is not None
-    assert 'Deleted 2 form connection(s)' in capsys.readouterr().out
+    assert (
+        'Deleted 2 form connection(s) and 2 EUDIPLO session(s)'
+        in capsys.readouterr().out
+    )
+
+
+def test_clear_connections_deletes_the_eudiplo_sessions_first(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shared = _add_connection_rows(signed_in_client)
+    share(fake_eudiplo, shared)
+    pending = _add_connection_rows(signed_in_client)
+    # The worker deleted this one's session; the fake keeps it to show it isn't asked
+    gone = _add_connection_rows(signed_in_client)
+    update_request(gone, eudiplo_session_deleted_at=now())
+    row_counts_at_deletion: list[dict[str, int]] = []
+    _on_session_deletion(
+        fake_eudiplo,
+        monkeypatch,
+        lambda: row_counts_at_deletion.append(_row_counts()),
+    )
+    full = _row_counts()
+    sessions = {ref: _session_of(ref) for ref in (shared, pending, gone)}
+
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert row_counts_at_deletion == [full, full]
+    assert set(fake_eudiplo.sessions) == {sessions[gone]}
+    assert not any(_row_counts().values())
+
+
+def test_clear_connections_accepts_a_session_eudiplo_no_longer_has(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    # EUDIPLO's session TTL ended, for example
+    del fake_eudiplo.sessions[_session_of(_add_connection_rows(signed_in_client))]
+    _add_connection_rows(signed_in_client)
+
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert fake_eudiplo.call_names().count('delete_session') == 2
+    assert fake_eudiplo.sessions == {}
+    assert not any(_row_counts().values())
+
+
+def test_clear_connections_keeps_every_row_when_a_session_deletion_fails(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    references = [_add_connection_rows(signed_in_client) for _ in range(2)]
+
+    def fail_the_next_deletion() -> None:
+        # Of the two, the first deletion succeeds and the second answers 503
+        if fake_eudiplo.sessions:
+            fake_eudiplo.fail('delete_session', 503)
+
+    _on_session_deletion(fake_eudiplo, monkeypatch, fail_the_next_deletion)
+    full = _row_counts()
+
+    assert main(['clear-connections', '--yes']) == 1
+
+    assert _row_counts() == full
+    assert len(fake_eudiplo.sessions) == 1
+    deleted = [stored_request(r).eudiplo_session_deleted_at for r in references]
+    assert deleted[0] is not None and deleted[1] is None
+    output = capsys.readouterr()
+    assert 'nothing was deleted. 1 EUDIPLO session(s) are left' in output.err
+    for reference in references:
+        assert reference not in output.out + output.err
+
+    # A second run deletes only the session left
+    calls_before = len(fake_eudiplo.calls)
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert fake_eudiplo.call_names()[calls_before:].count('delete_session') == 1
+    assert fake_eudiplo.sessions == {}
+    assert not any(_row_counts().values())
+
+
+def test_clear_connections_without_eudiplo_deletes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _add_connection_rows(signed_in_client)
+    full = _row_counts()
+    monkeypatch.setattr(settings, 'eudiplo_url', '')
+
+    assert main(['clear-connections', '--yes']) == 1
+
+    assert _row_counts() == full
+    assert len(fake_eudiplo.sessions) == 1
+    error = capsys.readouterr().err
+    assert "EUDIPLO isn't configured (EUDIPLO_URL is not set)" in error
+    assert '1 EUDIPLO session(s) are left' in error
+
+
+def test_clear_connections_without_sessions_needs_no_eudiplo(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    create_form_connection(signed_in_client)
+    monkeypatch.setattr(settings, 'eudiplo_url', '')
+
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert not any(_row_counts().values())
+    assert 'delete_session' not in fake_eudiplo.call_names()
+
+
+def test_clear_connections_deletes_nothing_when_a_request_starts_meanwhile(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    existing = stored_request(_add_connection_rows(signed_in_client))
+
+    def start_request() -> None:
+        # serviceBW calls the trigger URL while the sessions are being deleted
+        with SessionLocal() as db:
+            db.add(
+                DocumentRequest(
+                    reference=secrets.token_urlsafe(32),
+                    form_connection_id=existing.form_connection_id,
+                    revision_id=existing.revision_id,
+                    status='pending',
+                    status_changed_at=now(),
+                    expires_at=now() + timedelta(minutes=15),
+                    eudiplo_session_id=str(uuid.uuid4()),
+                )
+            )
+            db.commit()
+
+    _on_session_deletion(fake_eudiplo, monkeypatch, start_request)
+
+    assert main(['clear-connections', '--yes']) == 1
+
+    assert all(_row_counts().values())
+    assert (
+        '1 document request(s) started meanwhile, so nothing was deleted'
+        in capsys.readouterr().err
+    )
 
 
 def test_clear_connections_asks_first(

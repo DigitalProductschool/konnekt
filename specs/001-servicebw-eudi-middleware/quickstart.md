@@ -280,6 +280,7 @@ Before release, a reviewer checks every screen of the management UI against WCAG
 | Wallet results always `verification_failed`, and the logs show `no_trust_chain_to_root` or `trust_chain_not_trusted` | The test issuer isn't on the trust list, or it lacks the PID or EAA issuance service type |
 | `verification_failed` only when status checking is on | The issuer's status list isn't signed by the revocation certificate in the trust list. For Paradym it must also be signed with the same certificate as the credential |
 | The wallet says it can't fulfil the request | The test credential lacks one of the selected fields: every field is required, and German PIDs have no `date_of_expiry`. Select only fields the credential holds |
+| The wallet says it has no matching card, for every field selection | `EUDIPLO_TRUST_LIST_ID` names a trust list that doesn't exist. EUDIPLO saves such a configuration without an error, and the wallet then finds no credential from a trusted issuer. Compare it with the ids of `GET /api/trust-list`, and restart the backend after fixing it: the worker's re-sync gives every form connection a new revision with the right list |
 
 ## 6. Deployment checks
 

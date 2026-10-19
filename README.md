@@ -171,8 +171,10 @@ skips the question):
 docker compose exec backend uv run python -m app.cli clear-connections
 ```
 
-It clears only the database: the EUDIPLO configurations and sessions of the deleted
-connections stay in EUDIPLO.
+It first deletes the EUDIPLO session of every request that still has one, so that no shared
+document stays in EUDIPLO after its request is gone (FR-020). If EUDIPLO isn't configured or a
+deletion fails, it deletes no row and says how many sessions are left; run it again once EUDIPLO
+answers. The EUDIPLO configurations hold no personal data and stay in EUDIPLO.
 
 ## Common Commands
 
@@ -511,7 +513,8 @@ Good to know:
   ISO/IEC 18013-5, and the portrait and signature are base64 text, not bytes.
 - EUDIPLO 9.0 loses the content of nested mdoc maps in presentation results: the middleware
   receives `driving_privileges` as `[{}, {}, …]`, one empty object per category. This affects
-  real driving licences as well.
+  real driving licences as well. The hosted instance runs `9.0.0-mdocfix.1`, which has the fix:
+  there `driving_privileges` arrives in full (checked on 2026-10-19).
 - The script prints the made-up person's data. The middleware itself never logs claims.
 - All environments share tenant `dps`, so with the tenant's own issuer on the trust list every
   environment accepts these test documents. Take the entity off the trust list before real

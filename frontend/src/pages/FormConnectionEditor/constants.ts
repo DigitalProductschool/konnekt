@@ -33,7 +33,8 @@ export const EDITOR_COPY = {
   add: 'Add',
   added: 'Added',
   remove: 'Remove',
-  removeLabel: (document: string) => `Remove ${document}`,
+  // Starts with the visible "Added", for speech input (WCAG 2.5.3); "Remove" shows on focus
+  removeLabel: (document: string) => `Added, remove ${document}`,
   upcoming: (count: number) => `Coming to the wallet (${count})`,
   upcomingNote: 'You can add these once the wallet supports them.',
   emptyTitle: 'No documents yet',

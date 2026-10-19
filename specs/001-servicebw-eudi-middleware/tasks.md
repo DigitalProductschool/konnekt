@@ -629,32 +629,32 @@ This is quickstart V5.
   - **Tests**: the webhook cases in `backend/tests/api/test_form_connections.py`, `backend/tests/api/test_connect.py`, `backend/tests/api/test_worker_requests.py` and `backend/tests/unit/test_cli.py`;
   - **Docs**: `README.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md` and `backend/.env.example`. `DOCUMENT_RETENTION_SECONDS` is no longer a retry limit, and `ALLOW_PLAIN_HTTP` covers only `CONNECTION_BASE_URL`. Mentions of EUDIPLO's own webhooks stay;
   - run the gates of T080, including `uv run pytest` against a `_test` database.
-- [ ] T093 Make `clear-connections` in `backend/app/cli.py` keep FR-020's 30-minute limit (SC-006). The command was added outside this task list (pull requests #76 and #77). It deletes the database rows and leaves the EUDIPLO sessions, so documents that a citizen shared and serviceBW never collected stay in EUDIPLO until its session TTL ends, 24 hours by default (research R8, R19):
+- [X] T093 Make `clear-connections` in `backend/app/cli.py` keep FR-020's 30-minute limit (SC-006). The command was added outside this task list (pull requests #76 and #77). It deletes the database rows and leaves the EUDIPLO sessions, so documents that a citizen shared and serviceBW never collected stay in EUDIPLO until its session TTL ends, 24 hours by default (research R8, R19):
   - before deleting any row, delete the EUDIPLO session of every request whose `eudiplo_session_deleted_at` is empty, with `delete_session` from `get_eudiplo_client()`. A `404` counts as success;
   - if a deletion fails, or EUDIPLO isn't configured, delete nothing and exit with an error that gives the number of sessions left, never a reference;
   - the EUDIPLO configurations hold no personal data and may stay, as today. Say so in the module docstring and before the confirmation prompt;
   - extend `backend/tests/unit/test_cli.py` with the fake EUDIPLO: the sessions are deleted before the rows, a `404` is accepted, and a `5xx` leaves every row in place;
   - update the `clear-connections` text in `CLAUDE.md` (Commands) and `README.md`.
-- [ ] T076 [P] Update `README.md`:
+- [X] T076 [P] Update `README.md`:
   - the middleware's purpose;
   - local setup with `backend/.env` and the account CLI;
   - the backend settings of research R18 and the two nginx variables;
   - the EUDIPLO prerequisites from contracts/eudiplo-usage.md;
   - each new dependency and why it was added: `httpx2`, `segno`, `argon2-cffi`, `pytest`, `react-router` and the three KERN packages.
-- [ ] T077 [P] Update `docs/ARCHITECTURE.md`:
+- [X] T077 [P] Update `docs/ARCHITECTURE.md`:
   - the system overview, with EUDIPLO, the worker thread and its steps, and the nginx allow-list, as far as they exist;
   - the environment variable tables for the backend and the frontend container;
   - the new repository structure;
   - replace the team-member examples.
-- [ ] T078 [P] Update `CLAUDE.md`: the services-layer and worker patterns, the backend structure listing and the "Full Stack Example". Keep the generic examples in the naming-convention tables.
-- [ ] T079 [P] Update `docs/EUDIPLO.md`: §4 ("Our middleware's client") and the §11 "Middleware client" row become `presentation:request` + `presentation:manage`, with no allow-list.
-- [ ] T080 Run the quality gates and fix every finding:
+- [X] T078 [P] Update `CLAUDE.md`: the services-layer and worker patterns, the backend structure listing and the "Full Stack Example". Keep the generic examples in the naming-convention tables.
+- [X] T079 [P] Update `docs/EUDIPLO.md`: §4 ("Our middleware's client") and the §11 "Middleware client" row become `presentation:request` + `presentation:manage`, with no allow-list.
+- [X] T080 Run the quality gates and fix every finding:
   - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy app/ scripts/ tests/`. The constitution requires `app/`, and `CLAUDE.md` also checks the scripts and the tests;
   - in `frontend/`: `npm run lint` and `npm run build`;
   - exercise what these gates can't check against a running stack (`docker compose up`), with the quickstart.md scenarios that the change touches, and describe that verification in the pull request (constitution, "Development Workflow and Quality Gates").
 
   Also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
-- [ ] T081 Run quickstart.md V1–V3 and V5–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
+- [X] T081 Run quickstart.md V1–V3 and V5–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
   - the remaining "Verify at implementation" answers;
   - whether an expired credential fails verification (V3);
   - whether Paradym reports a decline (V3).

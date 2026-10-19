@@ -16,7 +16,7 @@ function stateOf(index: number, current: number): WizardStepState {
 export default function WizardProgress({ steps, current, onSelect }: WizardProgressProps) {
   return (
     <nav aria-label={PROGRESS_LABEL}>
-      <ol className="flex h-40 items-start gap-8">
+      <ol className="flex items-start gap-8 sm:h-40">
         {steps.map((label, index) => (
           <WizardStep
             key={label}
