@@ -3,10 +3,16 @@ import type { EditorFooterProps } from './types';
 
 /**
  * The actions of Figma "App/Footer". Step 1 continues to the documents; nothing is saved
- * until "Publish", so the design's "Save and exit" is left out. The buttons stay enabled:
- * a click with missing input says what is missing.
+ * until "Publish" ("Save" when editing), so the design's "Save and exit" is left out. The
+ * buttons stay enabled: a click with missing input says what is missing.
  */
-export default function EditorFooter({ step, publishing, onBack, onPublish }: EditorFooterProps) {
+export default function EditorFooter({
+  step,
+  editing,
+  publishing,
+  onBack,
+  onPublish,
+}: EditorFooterProps) {
   if (step === 'connection') {
     return (
       <>
@@ -31,7 +37,7 @@ export default function EditorFooter({ step, publishing, onBack, onPublish }: Ed
         aria-disabled={publishing}
         className="kern-btn kern-btn--primary"
       >
-        <span className="kern-label">{EDITOR_COPY.publish}</span>
+        <span className="kern-label">{editing ? EDITOR_COPY.save : EDITOR_COPY.publish}</span>
         <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
       </button>
     </>

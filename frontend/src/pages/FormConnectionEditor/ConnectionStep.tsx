@@ -15,6 +15,7 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
  */
 export default function ConnectionStep({
   name,
+  note,
   servicebwForm,
   errors,
   onChangeName,
@@ -89,7 +90,7 @@ export default function ConnectionStep({
               would cut off the tooltips */}
         <div className="border-kern-neutral-100 flex items-center gap-10 rounded-b-[7px] border-t bg-(--kern-color-layout-layer-surface-contextual) px-24 py-16">
           <span aria-hidden="true" className="kern-icon kern-icon--draft" />
-          <p className={`${SMALL_TEXT} text-kern-layout-text-muted`}>{EDITOR_COPY.formCardNote}</p>
+          <p className={`${SMALL_TEXT} text-kern-layout-text-muted`}>{note}</p>
         </div>
       </section>
     </form>

@@ -64,11 +64,52 @@ def update_form_connection(
     data: FormConnectionUpdate,
     db: Session = Depends(get_db),
 ) -> ApiResponse[FormConnection]:
-    """Change a form connection's name or serviceBW form.
+    """Change a form connection's name, serviceBW form or documents.
 
-    The connection URLs never change.
+    Changed documents become a new revision with its own EUDIPLO configuration;
+    requests in progress keep theirs. The connection URLs never change.
+    """
+    try:
+        form_connection = form_connections.update_form_connection(
+            db, form_connection_id, data
+        )
+    except EudiploError as error:
+        raise http_error_for(error, CONFIG_FAILED) from None
+    return ApiResponse(data=form_connection, message='Form connection updated')
+
+
+@router.post('/{form_connection_id}/deactivate', dependencies=[Depends(require_json)])
+def deactivate_form_connection(
+    form_connection_id: str, db: Session = Depends(get_db)
+) -> ApiResponse[FormConnection]:
+    """Deactivate a form connection and cancel its open requests.
+
+    Its URLs answer 409 "unavailable" until it is activated again.
     """
     return ApiResponse(
-        data=form_connections.update_form_connection(db, form_connection_id, data),
-        message='Form connection updated',
+        data=form_connections.deactivate_form_connection(db, form_connection_id),
+        message='Form connection deactivated',
     )
+
+
+@router.post('/{form_connection_id}/activate', dependencies=[Depends(require_json)])
+def activate_form_connection(
+    form_connection_id: str, db: Session = Depends(get_db)
+) -> ApiResponse[FormConnection]:
+    """Activate a form connection again; its URLs work again unchanged."""
+    return ApiResponse(
+        data=form_connections.activate_form_connection(db, form_connection_id),
+        message='Form connection activated',
+    )
+
+
+@router.delete('/{form_connection_id}', dependencies=[Depends(require_json)])
+def delete_form_connection(
+    form_connection_id: str, db: Session = Depends(get_db)
+) -> ApiResponse[None]:
+    """Delete a form connection and cancel its open requests.
+
+    Its URLs answer 409 "unavailable" for good.
+    """
+    form_connections.delete_form_connection(db, form_connection_id)
+    return ApiResponse(data=None, message='Form connection deleted')

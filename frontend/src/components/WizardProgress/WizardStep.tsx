@@ -2,17 +2,22 @@ import checkIcon from '../../assets/icons/check-blue-small.svg';
 import { DONE_SUFFIX } from './constants';
 import type { WizardStepProps } from './types';
 
+// Truncated from `sm` only: below, the name sits under the circle with the step's full width
 const LABEL_CLASSES =
-  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) truncate';
+  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) max-w-full text-left wrap-break-word sm:truncate';
 
-/** One step of Figma "App/Progress" (style B): circle, name and bar. */
+/**
+ * One step of Figma "App/Progress" (style B): circle, name and bar. Below `sm`, which the
+ * design has no frame for, the name goes under the circle, so that it isn't cut off at 320 px
+ * (WCAG 1.4.10, decision 2026-10-19).
+ */
 export default function WizardStep({ label, number, state, onSelect }: WizardStepProps) {
   return (
     <li
       aria-current={state === 'current' ? 'step' : undefined}
       className="flex min-w-0 flex-1 flex-col gap-10"
     >
-      <div className="flex min-w-0 items-center gap-8">
+      <div className="flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8">
         {state === 'done' && (
           <span className="rounded-kern-circle bg-kern-darkblue-050 flex size-24 shrink-0 items-center justify-center">
             <img src={checkIcon} alt="" className="size-16" />

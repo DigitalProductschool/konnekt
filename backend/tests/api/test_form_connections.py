@@ -516,24 +516,6 @@ def test_updating_applies_the_same_validation(
     assert unchanged.json()['data'] == created
 
 
-def test_changing_the_documents_is_refused_for_now(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    created = _create(signed_in_client)
-
-    response = signed_in_client.put(
-        f'/api/form-connections/{created["id"]}',
-        json={'documents': [{'document_type': 'pid', 'fields': ['family_name']}]},
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {
-        'error': 'Validation error',
-        'message': 'Changing the documents is not supported yet.',
-    }
-    assert len(_revisions(created['id'])) == 1
-
-
 def test_a_deactivated_form_connection_can_be_updated(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
@@ -582,6 +564,9 @@ def test_deleted_and_unknown_form_connections_cannot_be_updated(
         ('POST', '/api/form-connections'),
         ('GET', '/api/form-connections/some-id'),
         ('PUT', '/api/form-connections/some-id'),
+        ('POST', '/api/form-connections/some-id/deactivate'),
+        ('POST', '/api/form-connections/some-id/activate'),
+        ('DELETE', '/api/form-connections/some-id'),
     ],
 )
 def test_every_endpoint_needs_a_session(
@@ -596,7 +581,13 @@ def test_every_endpoint_needs_a_session(
 
 @pytest.mark.parametrize(
     ('method', 'path'),
-    [('POST', '/api/form-connections'), ('PUT', '/api/form-connections/some-id')],
+    [
+        ('POST', '/api/form-connections'),
+        ('PUT', '/api/form-connections/some-id'),
+        ('POST', '/api/form-connections/some-id/deactivate'),
+        ('POST', '/api/form-connections/some-id/activate'),
+        ('DELETE', '/api/form-connections/some-id'),
+    ],
 )
 def test_state_changes_need_a_json_body(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, method: str, path: str

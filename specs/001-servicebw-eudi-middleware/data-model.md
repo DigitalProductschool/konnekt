@@ -157,18 +157,23 @@ service layer, where the message can name the problem.
   `REQUEST_LIFETIME_SECONDS`) no longer matches `config_hash` (research R2);
 - never because the name or the serviceBW form changed.
 
-**Creating a revision**:
-1. Lock the `form_connections` row (`SELECT … FOR UPDATE`).
-2. Take the next revision number.
-3. Create the EUDIPLO configuration, with the DCQL from research R3 and `lifeTime =
+**Creating a revision**: no transaction is held while EUDIPLO answers (research R15), so the
+number is reserved first (decided at implementation, T065):
+1. Lock the `form_connections` row (`SELECT … FOR UPDATE`), take the next revision number,
+   insert the revision and commit. It isn't current yet, so no request uses it, and an edit at
+   the same time takes the number after it.
+2. Create the EUDIPLO configuration, with the DCQL from research R3 and `lifeTime =
    lifetime_seconds`.
-4. Insert the revision, update `current_revision`, and commit.
+3. Lock the row again, set `current_revision` unless a later revision has become current
+   meanwhile, and commit.
 
-If EUDIPLO fails in step 3, nothing is saved, and the UI receives a `502` error. If the commit
-fails after step 3, the configuration is deleted again (best effort, logged).
+If EUDIPLO fails in step 2, the revision is removed again, nothing is saved, and the UI receives
+a `502` error. If the commit fails after step 2, the configuration is deleted again (best effort,
+logged).
 
 **Deleting the EUDIPLO configuration**: the worker deletes it once both of these hold:
-- the revision is no longer current, or its form connection was deleted;
+- a later revision is current, or its form connection was deleted. A revision that is still
+  being created has a number above the current one, so it keeps its configuration;
 - no request on the revision still has an EUDIPLO session (`eudiplo_session_deleted_at` empty).
   This includes requests inside the pull repeat window.
 

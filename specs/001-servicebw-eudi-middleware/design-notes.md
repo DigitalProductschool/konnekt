@@ -1,6 +1,6 @@
 # Design notes: management UI
 
-**Tasks**: T023, T084, T039–T042, T086–T089 | **Date**: 2026-10-11 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T023, T084, T039–T042, T086–T089, T072–T074 | **Date**: 2026-10-11 (US4: 2026-10-19) | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
 - **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`):
@@ -166,8 +166,14 @@ a 1455 px window.
   `TopBar` draws it with `title`; `WizardLayout` adds the 1120 px column below it and the
   footer bar. The title is "New connection", and from the documents step the form name. V2's
   status badge and meta are left out of the wizard, since there are no drafts. The details
-  screen shows them (§7): `TopBar`'s `badge` and `meta`, both hidden below `sm` so the name
-  keeps some room, and there the title is the page's `h1` (`titleAsHeading`).
+  screen shows them (§7): `TopBar`'s `badge` and `meta`, and there the title is the page's `h1`
+  (`titleAsHeading`).
+  - **Decision (2026-10-19, accessibility review; narrow screens)**: below `lg` (992 px), which
+    the design has no frame for, the title, the badge and the meta move to a second row under
+    the logo and the user menu, and wrap instead of being truncated. Before, the title shrank to
+    one letter at 320 px, and the badge and the form ID were hidden below `sm`, which loses
+    content at 320 px and at 200% zoom (WCAG 1.4.10). From `lg` the header is Figma's single
+    64 px row, unchanged.
 - **Legal footer**: removed. V2's sign-in screens have no footer, and V2 moves "App/Legal footer"
   (`151:995`) to "Deprecated (unused)". In Phase 2 it showed "© 2026 BridgeID" under the sign-in
   screen.
@@ -260,8 +266,13 @@ screen (section 6). The logo always leads here.
   ("Text/Caption", 16/24 muted) and the rows, gap 8.
 - Row ("UseCase/Row", `141:1595`), 1040×76: white card, padding 12/12/12/16, gap 16; the name
   column (260 px: name 18/24 600, "Form ID …" 16/24 muted), "Edited 5 Oct 2026" (16/24 muted),
-  a spacer and "View" (KERN tertiary small, underlined). The status badge (130 px column) and
-  "Edit" come with US4 (T072, T074), and "· n documents" would need a count in the API's summary.
+  a spacer and "View" (KERN tertiary small, underlined). "· n documents" would need a count in
+  the API's summary.
+- **Decision (2026-10-19, T072; no frame for the states, to check against Figma)**: the status
+  badge sits in a 130 px column after the name: KERN's small badge "Live" (success, as in the
+  details' header) or "Deactivated" (warning, because the links don't work), text and icon
+  rather than colour alone. "Edit" (KERN tertiary small, underlined) opens the edit wizard,
+  before "View"; both carry the connection's name for screen readers.
 - **States** (no frames): loading is "Feedback/Loader" from L1 ("Loading your connections…");
   the empty list is the "Doc/Empty setup" pattern ("No connections yet" / "Create your first
   connection. …") under the button; an error is a KERN danger alert with "Try again".
@@ -276,6 +287,9 @@ draft." are left out.
   current = blue circle and 16/24 600 name, done = darkblue-050 circle with a 16 px tick and a
   blue name that leads back, todo = 1.5 px decorative-border circle and a muted name; 4 px bars,
   gap 10 below the names. The steps are a `nav` with an ordered list.
+  - **Decision (2026-10-19, accessibility review; narrow screens)**: below `sm` (576 px), which
+    the design has no frame for, each name goes under its circle and uses the step's full
+    width, so that "Connection" and "Documents" aren't cut off at 320 px (WCAG 1.4.10).
 - **Step 1 (02, 02a; the title of 02d)**: "Create a connection" (02d, as the wizard is opened
   from the overview) / "Connect any form to the EUDI Wallet for applicants to share verified
   information." The card "UseCase/Create card": "Which form are you connecting?" / "You can
@@ -309,6 +323,9 @@ draft." are left out.
   - **Decision (2026-10-12)**: "+ Add", "✓ Added" and "Remove" share one width, that of the
     widest, "✓ Added" (99 px; Figma sizes each to its content: 82.5, 98.9 and 89.8 px). The
     button no longer jumps, and "Remove" no longer slips out from under the pointer.
+  - **Decision (2026-10-19, accessibility review)**: the accessible name of "✓ Added" is "Added,
+    remove Personal ID". It starts with the visible label, so that speech input finds it (WCAG
+    2.5.3), and says what the button does, which "Remove" shows only on hover and focus.
   - **Decision (2026-10-12)**: from 1024 px the panel stays put while the data cards scroll past
     it (section 3, "Frame"). It scrolls itself when it is taller than the scrolling area.
   - **Decision (2026-10-10)**: adding a document selects **no** field (V2: all of them). With the
@@ -341,6 +358,23 @@ draft." are left out.
   line, "Error ID: " and the answer's `error_id`, follows it in the same text style; one click
   selects the ID (`select-all`). The shared `ErrorNoticeText` renders both.
 
+### Editing (`/form-connections/:id/edit`; no frames)
+
+**Decision (2026-10-19, T073)**: the create wizard, filled in with the connection, in the same
+frame. Until the connection is loaded, the frame shows the details' loading and error states,
+with "Home" in the footer.
+- The header names the connection (the name as typed, or the saved one); step 1 is "Edit the
+  connection" / "Change the form’s name or ID, or go on to the documents.", step 2 "Edit
+  documents" with the create hint. The card's note says "Requests already in progress keep
+  their previous data." (FR-005) instead of "Nothing goes live until you publish."
+- The details' "Edit documents" opens step 2; the overview's "Edit" and the details' first step
+  open step 1.
+- The footer's last button is "Save"; dialog 06d keeps its title, ends its summary with "New
+  requests use this data. Requests already in progress keep their previous data.", and confirms
+  with "Confirm and save" ("Saving…", "Couldn’t save" after a failure).
+- Saving sends every field. Unchanged documents create no new revision, so saving only a new
+  name keeps the configuration. The details then open with the toast "Changes saved".
+
 ## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
 **Decision (2026-10-13, bug `detail-page-layout`)**: the page renders in the wizard's frame,
@@ -348,16 +382,19 @@ as frame 22 does, for every connection and every visit. It supersedes the overvi
 of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the links down.
 - **Header ("App/Header", `2080:8272`; full width since 2026-10-13, `2131:4628`)**: logo |
   the connection's name (16/24 600, the page's `h1`, truncated), then KERN's small success
-  badge "Live" while `is_active` (US4 adds the deactivated state). Before the user menu, the
-  meta (16/24 muted) shows "Form ID …" in the place of 22's "Live since 5 Oct 2026, 09:41";
-  badge and meta are hidden below `sm`.
-- **Progress ("App/Progress", `2080:8275`)**: the three steps, all done, none a link until
-  editing exists (T073); each is read with ", done".
+  badge "Live" while `is_active`, otherwise the warning badge "Deactivated" (2026-10-19, as on
+  the overview). Before the user menu, the
+  meta (16/24 muted) shows "Form ID …" in the place of 22's "Live since 5 Oct 2026, 09:41".
+  Below `lg`, name, badge and meta take a second row (§3, wizard header).
+- **Progress ("App/Progress", `2080:8275`)**: the three steps, all done; each is read with ",
+  done". Since 2026-10-19 (T074) they lead to editing: "Connection" to step 1, "Documents" and
+  "Publish" to step 2.
 - **Body**: a 900 px column, centred in the 1120 px one: the links card (22's
   "Publish/Success card", `2080:8277`), then the documents, 32 px apart.
-- **Footer ("App/Footer", `2080:8278`)**: "Home" (`kern-btn--tertiary`, home icon; only the
-  icon below `sm`) in the place of "Edit documents" until T074 adds editing, and "Create new
-  connection" (`kern-btn--secondary`, add icon) at the right. Header, footer and, from `split:`,
+- **Footer ("App/Footer", `2080:8278`)**: "Edit documents" (`kern-btn--tertiary`, edit icon;
+  only the icon below `sm`; since T074, 2026-10-19), and "Create new connection"
+  (`kern-btn--secondary`, add icon) at the right. While the connection isn't there, "Home"
+  (home icon) takes the place of "Edit documents". Header, footer and, from `split:`,
   the progress stay put while the body scrolls.
 - **Links ("Publish/Success card", `2017:6932`)**: padding 40, gap 16. Right after publishing it
   shows the 72 px ring tick, the "Published" badge and "Your connection is live" (26/32 600),
@@ -377,6 +414,21 @@ of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the lin
   2026-10-19).
 - **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
   items") and its fields in the data card's columns.
+- **Status** (no frame; decided 2026-10-19, T074, to check against Figma): a card after the
+  documents, in the documents card's style: "Status", a line saying what the state means
+  ("Live: your form can start requests with both links." / "Deactivated: both links answer that
+  the connection is unavailable until you reactivate it."), then "Deactivate" (secondary) or
+  "Reactivate" (primary), and "Delete connection" (tertiary, delete icon).
+  - One button deactivates and reactivates, so the focus stays on it when its label changes.
+  - "Deactivate" and "Delete connection" ask first, in dialog 06d's KERN dialog
+    (`ConfirmDialog`): "Deactivate this connection?" / "Both links stop working at once, and
+    requests in progress are cancelled. You can reactivate the connection later." and "Delete
+    this connection?" / "Both links stop working for good, and requests in progress are
+    cancelled. You can’t undo this.", with "Cancel" and the action. A failure stays in the
+    dialog, as for publishing. KERN has no danger button, so the action is primary.
+  - "Reactivate" asks nothing (contract); a failure shows as a danger alert in the card.
+  - The toasts "Connection deactivated" and "Connection reactivated" (no action) confirm the
+    change; deleting returns to the overview.
 - **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your
   connections") for an unknown or deleted connection; otherwise a title with "Try again". They
   keep the frame and its footer, without the header's title, badge and meta or the progress,
@@ -445,6 +497,16 @@ open before Phase 3):
 3. **Logo**: still the overview in S3's layout, also from the first-connection screen.
 4. **Webhook card**: hidden until webhook updates are delivered (US3). Superseded on 2026-10-19:
    webhook mode and the card are removed.
+
+**Decided at implementation, US4** (2026-10-19, sections 5–7; there are no frames for them,
+and the Figma MCP wasn't available, so they await a check against the design):
+1. **Status badge**: "Live" (success) and "Deactivated" (warning), on the overview and in the
+   details' header.
+2. **Editing**: the create wizard at `/form-connections/:id/edit`, with "Save" instead of
+   "Publish" and the FR-005 note in the card and the dialog.
+3. **Status actions**: a "Status" card on the details, with KERN dialogs for deactivating and
+   deleting, and toasts for the results.
+4. **Footer**: "Edit documents" replaces "Home", as in frame 22.
 
 ## 10. Assets and implementation notes
 

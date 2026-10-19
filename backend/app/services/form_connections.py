@@ -1,16 +1,21 @@
-"""Form connections: validation, creation, reading and changes (FR-001 to FR-005).
+"""Form connections: validation, creation, reading and changes (FR-001 to FR-006).
 
 Creating a form connection stores revision 1 and creates its EUDIPLO presentation
-configuration (data-model.md, "Creating a revision"). Changing the name or the
-serviceBW form creates no revision. EUDIPLO errors reach the caller as
-`EudiploError`; nothing is saved then.
+configuration; changing its documents stores the next revision with a configuration of
+its own (data-model.md, "Creating a revision"). Changing the name or the serviceBW
+form creates no revision. EUDIPLO errors reach the caller as `EudiploError`; nothing
+is saved then. Deactivating and deleting cancel the open requests and call no EUDIPLO:
+the worker deletes the sessions and, once no request needs them, the configurations.
 """
 
 import logging
 import uuid
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -29,6 +34,7 @@ from ..schemas import (
 )
 from ..schemas import FormConnection as FormConnectionView
 from . import dcql
+from .document_requests import FORM_CONNECTION_NOT_FOUND, cancel_open_requests
 from .eudiplo import EudiploError, get_eudiplo_client
 
 logger = logging.getLogger(__name__)
@@ -36,7 +42,7 @@ logger = logging.getLogger(__name__)
 NAME_MAX_LENGTH = 200
 SERVICEBW_FORM_MAX_LENGTH = 500
 
-NOT_FOUND = {'error': 'Not found', 'message': 'Form connection not found'}
+NOT_FOUND = FORM_CONNECTION_NOT_FOUND
 
 
 def _validation_error(message: str) -> HTTPException:
@@ -185,16 +191,39 @@ def find_form_connection(db: Session, form_connection_id: str) -> FormConnection
     return form_connection
 
 
-def _current_documents(
+def _lock_form_connection(db: Session, form_connection_id: str) -> FormConnection:
+    """Lock a form connection's row and read it again, or answer 404 once deleted."""
+    form_connection = db.scalars(
+        select(FormConnection)
+        .where(FormConnection.id == form_connection_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    if form_connection is None or form_connection.deleted_at is not None:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=NOT_FOUND)
+    return form_connection
+
+
+def _current_revision(
     db: Session, form_connection: FormConnection
-) -> list[RequestedDocument]:
-    revision = db.scalars(
+) -> FormConnectionRevision:
+    return db.scalars(
         select(FormConnectionRevision).where(
             FormConnectionRevision.form_connection_id == form_connection.id,
             FormConnectionRevision.revision == form_connection.current_revision,
         )
     ).one()
+
+
+def _documents_of(revision: FormConnectionRevision) -> list[RequestedDocument]:
     return [RequestedDocument.model_validate(entry) for entry in revision.documents]
+
+
+def _current_documents(
+    db: Session, form_connection: FormConnection
+) -> list[RequestedDocument]:
+    return _documents_of(_current_revision(db, form_connection))
 
 
 def list_form_connections(db: Session) -> list[FormConnectionSummary]:
@@ -291,26 +320,271 @@ def create_form_connection(
     return _view(form_connection, documents)
 
 
+def _build_config(
+    form_connection_id: str,
+    revision: int,
+    name: str,
+    documents: list[RequestedDocument],
+) -> dict[str, Any]:
+    """A revision's configuration body with the current settings (research R2)."""
+    return dcql.build_config(
+        form_connection_id=form_connection_id,
+        revision=revision,
+        name=name,
+        documents=documents,
+        lifetime_seconds=settings.request_lifetime_seconds,
+        trust_list_id=settings.eudiplo_trust_list_id,
+    )
+
+
+def _remove_unused_revision(db: Session, revision_id: str) -> None:
+    """Best effort: remove a revision that never became current.
+
+    Its EUDIPLO configuration couldn't be created, so no request can use it.
+    """
+    try:
+        db.rollback()
+        db.execute(
+            delete(FormConnectionRevision).where(
+                FormConnectionRevision.id == revision_id
+            )
+        )
+        db.commit()
+    except SQLAlchemyError as error:
+        db.rollback()
+        logger.error(
+            'Could not remove unused revision %s: %s',
+            revision_id,
+            describe_error(error),
+        )
+
+
+def create_revision(
+    db: Session,
+    form_connection_id: str,
+    documents: list[RequestedDocument],
+    changes: Mapping[str, str] | None = None,
+) -> FormConnection:
+    """Store `documents` as the next revision and make it current (FR-005).
+
+    data-model.md, "Creating a revision". No transaction is held while EUDIPLO
+    answers, so the number is reserved first:
+    1. Under the form connection's row lock, take the next number and insert the
+       revision. It isn't current yet, so no request uses it, and a second edit at
+       the same time takes the number after it.
+    2. Create the EUDIPLO configuration.
+    3. Lock the row again, make the revision current, unless a later one became
+       current meanwhile, and apply `changes` (the name or the serviceBW form).
+
+    Requests already in progress keep their revision, and the URLs never change. If
+    EUDIPLO fails, the revision is removed again and the `EudiploError` reaches the
+    caller. If the last commit fails, the configuration is deleted again. A form
+    connection that is or gets deleted answers 404. The new configuration uses the
+    current settings, and the revision stores the current REQUEST_LIFETIME_SECONDS.
+    """
+    changes = changes or {}
+    form_connection = _lock_form_connection(db, form_connection_id)
+    latest = db.scalar(
+        select(func.max(FormConnectionRevision.revision)).where(
+            FormConnectionRevision.form_connection_id == form_connection_id
+        )
+    )
+    number = (latest or 0) + 1
+    body = _build_config(
+        form_connection_id,
+        number,
+        changes.get('name', form_connection.name),
+        documents,
+    )
+    revision_id = str(uuid.uuid4())
+    db.add(
+        FormConnectionRevision(
+            id=revision_id,
+            form_connection_id=form_connection_id,
+            revision=number,
+            documents=[document.model_dump() for document in documents],
+            lifetime_seconds=settings.request_lifetime_seconds,
+            config_hash=dcql.config_hash(body),
+            eudiplo_config_id=body['id'],
+        )
+    )
+    db.commit()
+
+    try:
+        get_eudiplo_client().create_config(body)
+    except EudiploError:
+        _remove_unused_revision(db, revision_id)
+        raise
+
+    try:
+        form_connection = _lock_form_connection(db, form_connection_id)
+    except HTTPException:
+        # Deleted meanwhile; the worker cleans up the revision's configuration too
+        _delete_unsaved_config(body['id'])
+        raise
+    try:
+        if number > form_connection.current_revision:
+            form_connection.current_revision = number
+        for attribute, value in changes.items():
+            setattr(form_connection, attribute, value)
+        db.commit()
+    except SQLAlchemyError as error:
+        db.rollback()
+        logger.error(
+            'Saving revision %s of form connection %s failed: %s',
+            number,
+            form_connection_id,
+            describe_error(error),
+        )
+        _delete_unsaved_config(body['id'])
+        raise
+    logger.info('Form connection %s: revision %s created', form_connection_id, number)
+    return form_connection
+
+
 def update_form_connection(
     db: Session, form_connection_id: str, data: FormConnectionUpdate
 ) -> FormConnectionView:
-    """Change the name or the serviceBW form.
+    """Change the name, the serviceBW form or the documents.
 
-    An absent field stays unchanged. Neither change creates a revision. Deactivated
-    form connections can be changed too.
+    An absent field stays unchanged. Changed documents become a new revision with a
+    configuration of its own (`create_revision`): requests in progress keep theirs,
+    and the URLs stay the same (FR-005). Documents equal to the current ones create
+    no revision, and neither do the name and the serviceBW form. Deactivated form
+    connections can be changed too.
     """
     form_connection = find_form_connection(db, form_connection_id)
     changed = data.model_fields_set
-    if 'documents' in changed:
-        # New revisions for changed documents come with User Story 4 (T065)
-        raise _validation_error('Changing the documents is not supported yet.')
-
-    values: dict[str, str] = {}
+    changes: dict[str, str] = {}
     if 'name' in changed:
-        values['name'] = clean_name(data.name)
+        changes['name'] = clean_name(data.name)
     if 'servicebw_form' in changed:
-        values['servicebw_form'] = clean_servicebw_form(data.servicebw_form)
-    for attribute, value in values.items():
-        setattr(form_connection, attribute, value)
-    db.commit()
+        changes['servicebw_form'] = clean_servicebw_form(data.servicebw_form)
+    documents: list[RequestedDocument] | None = None
+    if 'documents' in changed:
+        documents = clean_documents(data.documents or [])
+        if documents == _current_documents(db, form_connection):
+            documents = None
+
+    if documents is None:
+        for attribute, value in changes.items():
+            setattr(form_connection, attribute, value)
+        db.commit()
+    else:
+        # End the read transaction: the revision path locks the row itself
+        db.rollback()
+        form_connection = create_revision(db, form_connection_id, documents, changes)
     return _view(form_connection, _current_documents(db, form_connection))
+
+
+# Deactivating, activating and deleting (FR-006)
+
+
+def deactivate_form_connection(
+    db: Session, form_connection_id: str
+) -> FormConnectionView:
+    """Deactivate a form connection: its URLs answer 409 from the next call on.
+
+    Its open requests become unavailable in the same transaction. EUDIPLO isn't
+    called: the worker deletes their sessions in its next cycle.
+    """
+    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection.is_active = False
+    cancelled = cancel_open_requests(db, form_connection_id)
+    db.commit()
+    logger.info(
+        'Form connection %s deactivated; %s open requests cancelled',
+        form_connection_id,
+        cancelled,
+    )
+    return _view(form_connection, _current_documents(db, form_connection))
+
+
+def activate_form_connection(
+    db: Session, form_connection_id: str
+) -> FormConnectionView:
+    """Activate a form connection again: its URLs work again, unchanged."""
+    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection.is_active = True
+    db.commit()
+    logger.info('Form connection %s activated', form_connection_id)
+    return _view(form_connection, _current_documents(db, form_connection))
+
+
+def delete_form_connection(db: Session, form_connection_id: str) -> None:
+    """Delete a form connection: its URLs answer 409 for good.
+
+    The row stays, marked deleted, so that the URLs can still say "unavailable".
+    Open requests are cancelled as for deactivating, and EUDIPLO isn't called.
+    """
+    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection.deleted_at = datetime.now(tz=timezone.utc)
+    cancelled = cancel_open_requests(db, form_connection_id)
+    db.commit()
+    logger.info(
+        'Form connection %s deleted; %s open requests cancelled',
+        form_connection_id,
+        cancelled,
+    )
+
+
+# The worker's upkeep of configurations (research R2, R7)
+
+
+def resync_config(db: Session, form_connection_id: str) -> bool:
+    """Renew a form connection's configuration if the settings changed (research R2).
+
+    Builds the current revision's configuration again with the current catalog,
+    EUDIPLO_TRUST_LIST_ID and REQUEST_LIFETIME_SECONDS, not the revision's stored
+    lifetime. When its hash differs from the stored one, the same documents become a
+    new revision (`create_revision`), which new requests use at once. Returns whether
+    it created one. A deleted form connection is left alone.
+    """
+    form_connection = db.get(FormConnection, form_connection_id)
+    if form_connection is None or form_connection.deleted_at is not None:
+        return False
+    revision = _current_revision(db, form_connection)
+    documents = _documents_of(revision)
+    body = _build_config(
+        form_connection_id, revision.revision, form_connection.name, documents
+    )
+    if dcql.config_hash(body) == revision.config_hash:
+        db.rollback()
+        return False
+    # End the read transaction: the revision path locks the row itself
+    db.rollback()
+    try:
+        create_revision(db, form_connection_id, documents)
+    except HTTPException:
+        # Deleted meanwhile
+        return False
+    logger.info(
+        'Form connection %s: configuration renewed for changed settings',
+        form_connection_id,
+    )
+    return True
+
+
+def delete_unused_config(db: Session, revision_id: str) -> None:
+    """Delete the EUDIPLO configuration of a revision that no request needs any more.
+
+    The worker decides when (research R7, step 7). A 404 counts as success. The read
+    transaction ends before EUDIPLO is called. Other EUDIPLO errors reach the caller,
+    and the configuration stays recorded as not deleted, so the worker tries again.
+    """
+    revision = db.get(FormConnectionRevision, revision_id)
+    if revision is None or revision.eudiplo_config_deleted_at is not None:
+        return
+    config_id = revision.eudiplo_config_id
+    db.rollback()
+    get_eudiplo_client().delete_config(config_id)
+    db.execute(
+        update(FormConnectionRevision)
+        .where(
+            FormConnectionRevision.id == revision_id,
+            FormConnectionRevision.eudiplo_config_deleted_at.is_(None),
+        )
+        .values(eudiplo_config_deleted_at=datetime.now(tz=timezone.utc))
+    )
+    db.commit()
+    logger.info('Deleted unused EUDIPLO configuration %s', config_id)

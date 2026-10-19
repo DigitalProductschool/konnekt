@@ -485,7 +485,10 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
     assert worker.STEPS == (
         worker.sync_sessions,
         worker.expire_requests,
+        worker.cancel_requests,
         worker.delete_eudiplo_sessions,
+        worker.resync_configs,
+        worker.delete_unused_configs,
         worker.delete_expired_login_sessions,
         worker.delete_old_request_records,
     )

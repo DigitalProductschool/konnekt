@@ -3,16 +3,18 @@ import { Link } from 'react-router';
 import { APP_NAME } from '../../constants';
 import type { TopBarProps } from './types';
 
-const LOGO_CLASSES = 'gap-kern-space-small flex shrink-0 items-center';
+const LOGO_CLASSES = 'gap-kern-space-small order-1 flex shrink-0 items-center';
+// Truncated from `lg` only: below, the text has a row of its own and wraps
 const SMALL_TEXT =
-  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) min-w-0 truncate';
+  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) min-w-0 wrap-break-word lg:truncate';
 
 /**
  * Figma "App/Top bar": the product logo, and on signed-in screens the user. With a title it
  * is "App/Header", which the wizard and the details screen use; the details add the status
- * badge after the title and the form ID before the user. Below `sm` the badge and the meta
- * are hidden, so that the name keeps some room. The logo leads at the left edge on every
- * screen (Figma 2026-10-13).
+ * badge after the title and the form ID before the user. The logo leads at the left edge on
+ * every screen (Figma 2026-10-13). Below `lg`, which the design has no frame for, the title,
+ * the badge and the meta move to a second row and wrap, so that nothing is cut off at 320 px
+ * or at 200% zoom (WCAG 1.4.10, decision 2026-10-19).
  */
 export default function TopBar({
   title,
@@ -33,8 +35,10 @@ export default function TopBar({
   );
 
   return (
-    <header className="border-kern-neutral-100 bg-kern-layout-background-default flex h-64 border-b px-16 sm:px-32">
-      <div className="flex w-full min-w-0 items-center gap-16">
+    <header
+      className={`border-kern-neutral-100 bg-kern-layout-background-default flex border-b px-16 sm:px-32 lg:h-64 lg:pb-0 ${title ? 'pb-12' : 'h-64'}`}
+    >
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-x-16 gap-y-4 lg:flex-nowrap">
         {logoTo ? (
           <Link
             to={logoTo}
@@ -47,18 +51,26 @@ export default function TopBar({
         )}
         {title && (
           <>
-            <span aria-hidden="true" className="bg-kern-neutral-100 h-24 w-1 shrink-0" />
-            <TitleTag className={`${SMALL_TEXT} text-kern-layout-text-default font-semibold`}>
+            <span
+              aria-hidden="true"
+              className="bg-kern-neutral-100 hidden h-24 w-1 shrink-0 lg:order-2 lg:block"
+            />
+            {/* Below lg, a line break: what follows starts the second row */}
+            <span aria-hidden="true" className="order-4 basis-full lg:hidden" />
+            <TitleTag
+              className={`${SMALL_TEXT} text-kern-layout-text-default order-5 font-semibold lg:order-3`}
+            >
               {title}
             </TitleTag>
           </>
         )}
-        {badge && <div className="hidden shrink-0 sm:flex">{badge}</div>}
-        <div className="flex-1" />
+        {badge && <div className="order-6 flex shrink-0 lg:order-4">{badge}</div>}
+        {/* The first row's height below lg */}
+        <div className="order-2 h-64 flex-1 lg:order-5 lg:h-auto" />
         {meta && (
-          <p className={`${SMALL_TEXT} text-kern-layout-text-muted hidden sm:block`}>{meta}</p>
+          <p className={`${SMALL_TEXT} text-kern-layout-text-muted order-7 lg:order-6`}>{meta}</p>
         )}
-        {children}
+        <div className="order-3 flex shrink-0 lg:order-7">{children}</div>
       </div>
     </header>
   );

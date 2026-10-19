@@ -1,5 +1,6 @@
 import type { LoginRequest, UserView } from '../types/auth';
 import type { DocumentType } from '../types/document-types';
+import type { FormConnection } from '../types/form-connections';
 
 export interface DocumentTypesState {
   status: 'loading' | 'loaded' | 'failed';
@@ -21,3 +22,16 @@ export interface CurrentUserContextValue {
   /** Log out; the app is signed out afterwards even if the call failed. */
   signOut: () => Promise<void>;
 }
+
+/** One form connection from GET /api/form-connections/:id, as a page loads it */
+export type FormConnectionState =
+  | { status: 'loading'; attempt: number }
+  | { status: 'notFound'; attempt: number }
+  | { status: 'failed'; attempt: number }
+  | { status: 'loaded'; attempt: number; formConnection: FormConnection };
+
+export type FormConnectionAction =
+  | { type: 'loaded'; formConnection: FormConnection }
+  | { type: 'notFound' }
+  | { type: 'failed' }
+  | { type: 'retry' };

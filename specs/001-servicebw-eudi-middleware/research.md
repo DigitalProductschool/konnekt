@@ -124,14 +124,19 @@ database: Alembic could not find the revision recorded in `alembic_version`.
   allow-list. It needs no issuance role.
 
 **Creating a revision safely**:
-1. The middleware locks the `form_connections` row (`SELECT … FOR UPDATE`) before it takes the
-   next revision number. This way two simultaneous edits can't create the same configuration id.
-2. It creates the EUDIPLO configuration.
-3. It inserts the revision.
+1. The middleware locks the `form_connections` row (`SELECT … FOR UPDATE`), takes the next
+   revision number and inserts the revision, which isn't current yet. This way two simultaneous
+   edits can't create the same configuration id.
+2. It commits, which reserves the number, and creates the EUDIPLO configuration without holding
+   a transaction (R15).
+3. It locks the row again and makes the revision current, unless a later one became current
+   meanwhile.
 
-If the database commit fails after step 2, the middleware tries to delete the configuration it
-just created and logs the outcome. That way an orphaned configuration is at most logged, and
-never silently left behind.
+If EUDIPLO fails in step 2, the reserved revision is removed again. If the database commit fails
+after step 2, the middleware tries to delete the configuration it just created and logs the
+outcome. That way an orphaned configuration is at most logged, and never silently left behind.
+(Implementation, T065: the plan first held the lock while EUDIPLO answered, which R15 and
+`CLAUDE.md` rule out.)
 
 **Keeping configurations in step with settings and the catalog**: each revision stores
 `lifetime_seconds` and a `config_hash`. The hash is the SHA-256 of the canonical configuration body
@@ -792,6 +797,34 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
     - a walk through the main flows using only the keyboard;
     - a pass with a screen reader (NVDA or VoiceOver);
     - 200% zoom and reflow at a width of 320 px.
+- **Review before release, 2026-10-19 (T082, quickstart V9)**: run with headless Chromium against
+  `docker compose up`, over 25 states of every route: signed out, the wizard with and without
+  validation errors, the publish dialog, the details after publishing and copying, the overview,
+  the user menu, editing, deactivating, deleting, and an unknown connection.
+  - **Automated scan** (step 1): axe-core 4.12, the engine of axe DevTools, with the WCAG 2.0 and
+    2.1 A and AA rules. No violations, at 1455, 992, 960, 768, 640 and 320 px. Each route has
+    its own title, one `h1`, and `lang="en"`. axe left two items for a person; both pass:
+    `aria-controls` of the user menu names the open menu, and the hovered "Remove", whose
+    background axe can't compute under KERN's tint, measures 4.80:1 in the rendered pixels
+    (focused, 4.97:1).
+  - **Keyboard** (step 2): V1 and V5 by keyboard alone, at 1455 and 320 px. Every tab stop shows
+    its focus ring (screenshots focused and blurred differ), and the order follows the layout. A
+    refused step focuses the first problem, a new step focuses its heading, the user menu and
+    the three dialogs take the focus, keep it while open, and return it to their button on
+    Escape, and deactivating or reactivating leaves the focus on the status card's button.
+  - **Zoom and reflow** (step 4): nothing scrolls sideways at 320 px. Two failures were fixed
+    (WCAG 1.4.10; design-notes.md §3 and §6, decisions of 2026-10-19): the header title, which on the details is
+    the `h1`, shrank to one letter below 640 px, and the badge and the form ID were hidden there;
+    the progress cut its step names off ("Conn…").
+  - **Label in name** (WCAG 2.5.3, level A), checked for every control against Chromium's
+    accessible names: "✓ Added" was named "Remove Personal ID", which speech input can't find
+    by its visible label. It is now "Added, remove Personal ID". The user menu's initials are a
+    symbol, not a label.
+  - **Screen reader** (step 3): still open, because it needs a person with NVDA or VoiceOver. The
+    markup it relies on is in place: every validation message is linked to its field
+    (`aria-invalid`, `aria-describedby`), the sign-in error is `role="alert"`, and "Link copied"
+    and the toasts are `role="status"`. Worth listening for: after "Delete connection", the
+    overview opens without a confirmation, and the focus starts at the top of the page.
 
 **Rationale**:
 - **A router**: the SPA needs deep links to a form connection, and `nginx.conf` already falls back
@@ -934,12 +967,12 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
 
    | Point | Answer |
    |---|---|
-   | `DELETE /api/session/{id}` | **Not settled**. The OpenAPI only says "Deletes a session by its ID" (`204`). Whether `credentials` go at once, whether a wallet can still answer, and what happens to the session log are checked live in T081 |
+   | `DELETE /api/session/{id}` | **Settled live (T081, 2026-10-19)**. Afterwards `GET /api/session/{id}`, its `/logs` and its `/events` answer `404`, so the documents and the session log are gone from the API at once, and a wallet that scans the request gets an error (quickstart V5 step 4). Whether the instance keeps copies elsewhere, such as backups, can't be seen through the API: a question for the operators |
    | `POST /api/verifier/config` with an existing id | **Settled**: "If it already exists, it will be updated." It answers `201`, never `409`. Whether an update replaces or merges isn't stated; the middleware always sends a complete body, so either works |
    | List response of `GET /api/session` | **Settled**. It pages: `page` (from 1) and `pageSize` (default 25, at most 100), answered as `{items, total, page, pageSize, totalPages}`. Each item has the full `Session` schema, with `failureCode` and `consumedAt` when they are set, so the sync needs no `GET /api/session/{id}` per item |
    | Id and description limits | **Partly settled**. The configuration `id` needs at least one character and has no maximum, and `description` has no limit. A DCQL credential query `id` must match `^[A-Za-z0-9_-]+$`, which the catalog keys `pid` and `mdl` do |
-   | mdoc binary and date values | **Partly settled** (bug `mdl-driving-privileges-empty`, from EUDIPLO v9.0.0's source and `@owf/cose@0.4.0`): a top-level `full-date` arrives as `"YYYY-MM-DD"`, a `bstr` as `{"0": …}` (turned into base64), but nested CBOR maps arrive as `{}`: `getPrettyClaims` leaves them JS `Map`s and the session column is written with `JSON.stringify`. `driving_privileges` is therefore `[{}, …]` in EUDIPLO ≤ 9.1.0; the middleware logs a warning by field key. Live shapes still checked in T081 |
-   | An expired credential fails verification | **Not settled**: the failure codes aren't enumerated. Quickstart V3 |
+   | mdoc binary and date values | **Partly settled** (bug `mdl-driving-privileges-empty`, from EUDIPLO v9.0.0's source and `@owf/cose@0.4.0`): a top-level `full-date` arrives as `"YYYY-MM-DD"`, a `bstr` as `{"0": …}` (turned into base64), but nested CBOR maps arrive as `{}`: `getPrettyClaims` leaves them JS `Map`s and the session column is written with `JSON.stringify`. `driving_privileges` is therefore `[{}, …]` in EUDIPLO ≤ 9.1.0; the middleware logs a warning by field key. **Live (T081)**: the hosted instance reports `9.0.0-mdocfix.1` and delivers `driving_privileges` in full (`[{"vehicle_category_code": "B", "issue_date": "1990-05-04"}, …]`), and `expiry_date` as `"2031-06-20"` |
+   | An expired credential fails verification | **Not settled**: skipped by the user on 2026-10-19 (T081). Paradym shares a PID of its own choosing when it holds several, so the valid test PID was sent instead of the expired one; the test needs a wallet holding only the expired PID. A PID from an untrusted issuer was skipped for the same reason, and revocation can't be tested, because the test documents have no status list |
 
    **Differences from the contract**, and how the code handles them:
    - **Error answers aren't documented**. Of the codes the contract relies on, the OpenAPI lists
@@ -971,7 +1004,33 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
 
    **Whether Paradym reports a decline (T081, V3)**: it doesn't. Paradym 1.20.2 sends no error
    response, so a declined request stays `pending` until `expired`. This comes from its source
-   and one live run on 2026-10-13 (R5). The other T081 points are still open.
+   and one live run on 2026-10-13 (R5). The other T081 points follow.
+
+   **T081, 2026-10-19**: quickstart V1–V3 and V5–V7 on `docker compose up` against the hosted
+   EUDIPLO (`9.0.0-mdocfix.1`, tenant `dps`) and Paradym, with the user.
+
+   | Scenario | Result |
+   |---|---|
+   | V1, setup | Every step as expected (user). Steps 3–5 took under 10 minutes (SC-001) |
+   | V2, pull | `completed` 1.69 s after the citizen shared (SC-004), with exactly the 7 configured fields and no technical claims (SC-005). The same documents 11 s after the first pull, `documents: null` after 60 s. The same-device link opens Paradym with the same request |
+   | V3, failures | A request left unanswered is `expired` 1 s after its expiry. The wallet-free decline is `declined` (`failure_code` `access_denied`) at the first pull, about 1 s later. A made-up reference, or a real one under another form connection, answers `404`. The expired credential, the untrusted issuer and revocation: not checked (see the table above) |
+   | V5, maintenance | Editing created a revision without changing the URLs. A request started before the edit delivered the old 7 fields, one started after it 8 (with `nationalities`). Deactivating answered `409` on both URLs at once and cancelled the pending request in the same transaction; its QR code then failed in the wallet. After reactivating, triggering worked on the same URL and the cancelled request pulled as `unavailable`. After deleting, `409` on both URLs and `404` in the management API |
+   | V6, data minimization | The worker deleted a delivered request's EUDIPLO session 1 s after the 60-second window, and an unpulled one's 29 min 2 s after sharing (FR-020); both answered `404`, and the unpulled one then pulled as `completed` with `documents: null`. No claim value in a dump of the database, and none, nor any reference, in the backend log (the nginx log is checked in T083). With `REQUEST_RECORD_RETENTION_SECONDS=120`, the row was gone 2 minutes after the request ended, and its pull answered `404` (FR-021) |
+   | V7, load | 100 parallel triggers: 100 × `201` within 10.2 s (SC-007). Three approved while 97 stayed pending reached the middleware 0.32, 1.53 and 1.41 s after sharing (SC-004). No pool errors; the 97 expired within 4 s of their expiry, sessions deleted |
+
+   Found on the way:
+   - **An unknown trust list id is accepted.** The local `.env` had `EUDIPLO_TRUST_LIST_ID=trust-list-id`
+     while the tenant's list is `trust-list-test`. EUDIPLO saved every configuration without an
+     error, and Paradym then said it held no matching card. Fixing the setting and restarting
+     let the worker's re-sync give the form connection a new revision within seconds (R2), and
+     the old configuration was deleted 2 s after its last session. The middleware could check
+     at startup that the trust list exists (`GET /api/trust-list/{id}`); not built, for the user
+     to decide. quickstart §5 lists the symptom.
+   - **Paradym chooses the credential itself** when several match, without asking.
+   - **Triggers are slow under load**: with 100 at once, a trigger took 7.5 s at the median and
+     9.9 s at most (the fastest 0.9 s); where the time goes wasn't measured. No success
+     criterion covers it, but serviceBW's timeout for the trigger URL should allow at least 15 s
+     (R20).
 5. **Tenant settings**: lowering the session TTL of tenant `dps` as a backstop to R8 is a decision
    for its operators. EUDIPLO's hourly cleanup job means the TTL alone can't guarantee 30 minutes.
 6. **One tenant for every environment (accepted for now, R2)**. Before real citizens use the

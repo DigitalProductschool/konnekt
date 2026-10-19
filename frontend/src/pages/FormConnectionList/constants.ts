@@ -15,6 +15,7 @@ export const LIST_COPY = {
   retry: 'Try again',
   formId: (form: string) => `Form ID ${form}`,
   edited: (date: string) => `Edited ${date}`,
+  edit: 'Edit',
   view: 'View',
 };
 

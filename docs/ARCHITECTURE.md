@@ -30,11 +30,10 @@ target architecture, with form connections, document requests and an nginx
 allow-list, is in
 [the plan](../specs/001-servicebw-eudi-middleware/plan.md). This document
 describes what is implemented so far: the data model, DO.IT sign-in, form
-connections with their EUDIPLO configurations, serviceBW's trigger and pull URLs,
-the worker steps for document requests, the nginx allow-list for the connection
-URLs, and the management UI. Maintaining form connections (deactivate, delete,
-edit the documents) follows with a later user story. serviceBW gets results only
-by pulling: webhook mode was dropped from the scope on 2026-10-19.
+connections with their EUDIPLO configurations, editing, deactivating and deleting
+them, serviceBW's trigger and pull URLs, the worker steps, the nginx allow-list for
+the connection URLs, and the management UI. serviceBW gets results only by pulling:
+webhook mode was dropped from the scope on 2026-10-19.
 
 ### Data Flow
 
@@ -81,7 +80,7 @@ install frontend dependencies; on such a machine the hooks are silently absent a
 be installed manually later.
 
 mypy is intentionally not a hook — it is too slow for a commit, so run
-`uv run mypy app/` yourself before pushing backend changes. See the `Code Quality`
+`uv run mypy app/ scripts/ tests/` yourself before pushing backend changes. See the `Code Quality`
 section of `README.md` for the full command list and editor format-on-save setup.
 
 ## Application Details
@@ -93,15 +92,19 @@ section of `README.md` for the full command list and editor format-on-save setup
 ```
 frontend/
 ├── src/
-│   ├── api/              # client.ts (apiFetch, ApiError), one module per resource (auth.ts)
+│   ├── api/              # client.ts (apiFetch, ApiError), one module per resource: auth.ts,
+│   │                     # document-types.ts, form-connections.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
-│   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the signed-out
-│   │                     # screens' frame (AuthLayout), route guards, sign-in state provider,
-│   │                     # shared form pieces
-│   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle
-│   ├── pages/            # One folder per screen (Login, ForgotPassword, and placeholders for
-│   │                     # later screens)
+│   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the wizard's
+│   │                     # frame (WizardLayout), the signed-out screens' frame (AuthLayout),
+│   │                     # route guards, sign-in state provider, dialogs, shared form pieces
+│   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
+│   │                     # useFormConnection, useSignOutOnUnauthorized
+│   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
+│   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard),
+│   │                     # FormConnectionEdit, FormConnectionDetail
 │   ├── types/            # TypeScript interfaces mirroring backend schemas
+│   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon)
 │   ├── constants.ts      # App name, routes, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
@@ -124,7 +127,8 @@ frontend/
   sends signed-in users on from `/login` and `/forgot-password`. A sign-in without a
   requested route, where `/` counts as none, goes to `/get-started`, which opens the
   create wizard while no form connection exists and the overview otherwise (FR-022);
-  the logo still leads to the overview. nginx already falls back to `index.html` for
+  the logo still leads to the overview. `/form-connections/:id/edit` opens the same
+  wizard, filled in with the connection. nginx already falls back to `index.html` for
   client-side routes. Passwords are reset with the account CLI, so `/forgot-password`
   only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
@@ -229,6 +233,32 @@ tokens, secrets, response bodies or session credentials; a validation error, whi
 would quote the body, is replaced by a terse one. Tests swap in a client with an
 `httpx2.MockTransport` (`tests/fake_eudiplo.py`).
 
+### Form connections
+
+`app/routers/form_connections.py` is the management API
+(`specs/001-servicebw-eudi-middleware/contracts/management-api.md`), and
+`app/services/form_connections.py` holds its logic:
+
+- **Revisions**: each set of documents is an immutable revision with its own EUDIPLO
+  presentation configuration, `fc-<id>-r<n>`. Creating a form connection stores
+  revision 1; changing its documents stores the next one, which only requests
+  triggered afterwards use. The name and the serviceBW form create no revision, and
+  the connection URLs never change.
+- **Creating a revision** (`create_revision`) holds no transaction while EUDIPLO
+  answers. Under the form connection's row lock it takes the next number and inserts
+  the revision, not yet current; then it creates the configuration; then it locks the
+  row again and makes the revision current. Two edits at the same time therefore get
+  distinct numbers, and if EUDIPLO fails, the revision is removed again.
+- **Deactivating and deleting** cancel the open requests in the same transaction,
+  and call no EUDIPLO: the worker deletes the sessions and, once no request needs
+  them, the configurations. A deleted form connection keeps its row, so its URLs
+  keep answering `409 unavailable`; the management API answers `404` for it.
+- **Clearing everything** (`python -m app.cli clear-connections`) deletes the rows of
+  every form connection. It first deletes the EUDIPLO session of every request that
+  still has one, and deletes no row unless all of them are gone; a request that
+  starts meanwhile stops it too. The configurations stay, as they hold no personal
+  data.
+
 ### Background worker
 
 `app/services/worker.py` runs a daemon thread, started and stopped by the FastAPI
@@ -250,18 +280,26 @@ Implemented steps, in the order of research R7 in the spec folder:
 2. **Expire**: the last check of each pending request past its `expires_at`, in
    the pool. An answer given in time still counts; otherwise the request becomes
    `expired`.
-3. **Delete EUDIPLO sessions**, with any documents in them: after any final status
+3. **Cancel**: the open requests of deactivated or deleted form connections become
+   `unavailable`. Deactivating and deleting already do this; the step catches a
+   request that a trigger inserted afterwards.
+4. **Delete EUDIPLO sessions**, with any documents in them: after any final status
    other than `completed`, when a pull's 60-second repeat window ends, and for
    documents never delivered 30 minutes less a minute after the citizen shared. A
    `404` counts as deleted; another failure is tried again in the next cycle.
-4. **Delete expired sign-in sessions.**
-5. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
+5. **Re-sync configurations**, once after each start: a form connection whose
+   current configuration, built again with the current trust list, request lifetime
+   and catalog, has a different hash gets a new revision with the same documents.
+   The checks run in the pool, and a failed one is tried again in the next cycle.
+6. **Delete unused EUDIPLO configurations**: those of revisions that a later one
+   replaced, or whose form connection was deleted, once no request on them still
+   has an EUDIPLO session. A `404` counts as deleted.
+7. **Delete expired sign-in sessions.**
+8. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
    ended.
 
-Cancelling the requests of deactivated form connections and maintaining EUDIPLO
-configurations follow with a later user story. The production image runs one
-uvicorn process, so there is one worker thread; row locks keep the steps correct
-if that changes.
+The production image runs one uvicorn process, so there is one worker thread; row
+locks keep the steps correct if that changes.
 
 ### serviceBW's connection URLs
 

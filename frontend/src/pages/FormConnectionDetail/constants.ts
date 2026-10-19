@@ -1,17 +1,12 @@
-import type { DetailState } from './types';
+import type { ActionsState } from './types';
 
 export const DETAIL_COPY = {
-  // Figma "App/Header" on "22 Published": the status after the name, the form before the user
-  live: 'Live',
+  // Figma "App/Header" on "22 Published": the form before the user
   formId: (form: string) => `Form ID ${form}`,
-  // Figma "App/Footer" on "22 Published"; "Home" stands in for "Edit documents" until T074
+  // Figma "App/Footer" on "22 Published"; "Home" while the connection isn't there
   home: 'Home',
+  editDocuments: 'Edit documents',
   newConnection: 'Create new connection',
-  loading: 'Loading the connection…',
-  errorTitle: 'Couldn’t load the connection',
-  errorText: 'Check your connection and try again.',
-  retry: 'Try again',
-  backToList: 'Go to your connections',
   // Figma "Publish/Success card" (22 Published), shown right after publishing
   published: 'Published',
   liveTitle: 'Your connection is live',
@@ -29,6 +24,38 @@ export const DETAIL_COPY = {
   documentsTitle: 'Documents',
   documentsHint: 'Applicants share this data from their EUDI Wallet.',
   items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
+  // The status card and its dialogs, which the design has no frames for (FR-006)
+  statusTitle: 'Status',
+  statusLive: 'Live: your form can start requests with both links.',
+  statusDeactivated:
+    'Deactivated: both links answer that the connection is unavailable until you reactivate it.',
+  deactivate: 'Deactivate',
+  reactivate: 'Reactivate',
+  delete: 'Delete connection',
+  cancel: 'Cancel',
+  deactivateTitle: 'Deactivate this connection?',
+  deactivateText:
+    'Both links stop working at once, and requests in progress are cancelled. You can reactivate the connection later.',
+  deactivating: 'Deactivating…',
+  deleteTitle: 'Delete this connection?',
+  deleteText:
+    'Both links stop working for good, and requests in progress are cancelled. You can’t undo this.',
+  deleting: 'Deleting…',
+  retry: 'Try again',
+  deactivateError: 'Couldn’t deactivate',
+  activateError: 'Couldn’t reactivate',
+  deleteError: 'Couldn’t delete',
+  actionErrorText: 'Nothing changed. Check your connection and try again.',
+  // Toasts after an action, and after saving an edit
+  deactivated: 'Connection deactivated',
+  activated: 'Connection reactivated',
+  saved: 'Changes saved',
 };
 
-export const INITIAL_DETAIL_STATE: DetailState = { status: 'loading', attempt: 0 };
+export const INITIAL_ACTIONS_STATE: ActionsState = {
+  dialog: 'deactivate',
+  dialogOpen: false,
+  running: null,
+  error: null,
+  toast: null,
+};

@@ -113,7 +113,10 @@ Location: `/backend/app/services/`
   happens next depends on a row, lock it then (`db.refresh(row,
   with_for_update=True)`) and check its state again, because the worker or another
   request may have changed it meanwhile: `apply_status()` in
-  `services/document_requests.py` and the pull do this.
+  `services/document_requests.py` and the pull do this. Where the EUDIPLO call needs a
+  number that must stay unique, reserve it first: `create_revision()` in
+  `services/form_connections.py` inserts the next revision under the row lock and
+  commits, calls EUDIPLO, then locks again to make it current.
 - **Worker steps** live in `services/worker.py`. A step is a plain function
   without arguments that opens its own `SessionLocal()` session and keeps its
   transactions short; add it to `STEPS` in the order of research R7. Send
@@ -325,7 +328,7 @@ Key points:
 | `uv run pytest` | Run the tests; `DATABASE_URL` must name a database ending in `_test`, which they empty |
 | `uv run python -m app.cli create-user <name>` | Create a sign-in account (also `set-password`, `delete-user`) |
 | `uv run python -m scripts.issue_test_credentials` | Issue a test PID and driving licence with random data to a test wallet (README, "Test credentials for a test wallet") |
-| `uv run python -m app.cli clear-connections` | Delete every form connection with its revisions and requests; the sign-in accounts stay (`--yes` skips the prompt) |
+| `uv run python -m app.cli clear-connections` | Delete the requests' EUDIPLO sessions, then every form connection with its revisions and requests; nothing is deleted if a session can't be. The sign-in accounts and the EUDIPLO configurations stay (`--yes` skips the prompt) |
 | `uv run pre-commit install` | Install the repo's git hooks |
 | `uv run pre-commit run --all-files` | Run every hook against the whole repo |
 | `uv lock --upgrade` | Refresh `uv.lock` to the newest allowed versions |
@@ -437,10 +440,11 @@ cd frontend
   icons use the `kern-icon` classes
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
   in `ROUTES` (`src/constants.ts`); signed-in screens render inside `RequireSignIn` and
-  `AppLayout`, except the create wizard (`/form-connections/new`, and `/get-started` through
-  `pages/FirstConnection/`) and the details (`/form-connections/:id`, the wizard's last screen
-  in Figma), which render their own `WizardLayout` (header with a title, 1120 px column, action
-  bar) in every state, loading and errors included. Headers and action bars never scroll: `AppLayout`'s top bar is sticky,
+  `AppLayout`, except the create wizard (`/form-connections/new`, `/get-started` through
+  `pages/FirstConnection/`, and editing at `/form-connections/:id/edit` through
+  `pages/FormConnectionEdit/`) and the details (`/form-connections/:id`, the wizard's last
+  screen in Figma), which render their own `WizardLayout` (header with a title, 1120 px column,
+  action bar) in every state, loading and errors included. Headers and action bars never scroll: `AppLayout`'s top bar is sticky,
   and `WizardLayout` fills the window and scrolls only the step between them. From the `split:`
   variant (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays
   put too, so only the area below it scrolls. Render modal dialogs and toasts in its `overlay`,
@@ -564,7 +568,8 @@ backend/
 │       ├── auth.py       # Password hashes, sign-in sessions, get_current_user, require_json
 │       ├── eudiplo.py    # EUDIPLO client, get_eudiplo_client, http_error_for
 │       ├── dcql.py       # A revision's EUDIPLO configuration body and config_hash
-│       ├── form_connections.py  # Validation, create, read, update
+│       ├── form_connections.py  # Validation, create, read, edit (revisions), deactivate,
+│       │                        # activate, delete, re-sync, unused configurations
 │       ├── document_requests.py # Trigger, pull, status mapping, apply_status
 │       ├── documents.py  # EUDIPLO credentials → exactly the configured fields
 │       ├── qr.py         # QR code of the cross-device link (segno)
@@ -592,7 +597,7 @@ frontend/
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # Shared components: AppLayout, AuthLayout, TopBar, UserMenu, ...
 │   ├── pages/            # One folder per screen
-│   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle)
+│   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle, useSignOutOnUnauthorized, ...)
 │   ├── utils/            # Utility functions
 │   ├── types/            # TypeScript types
 │   ├── constants.ts      # App name, routes, the KERN kit's English texts

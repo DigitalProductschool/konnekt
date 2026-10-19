@@ -81,9 +81,11 @@ def empty_tables(database_schema: None) -> None:
 
 
 @pytest.fixture(autouse=True)
-def fresh_sync_cursor(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Start every test without a sync cursor, like the worker after a start."""
+def fresh_worker_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start every test like the worker after a start: no sync cursor, no re-sync."""
     monkeypatch.setattr(worker, '_sync_cursor', None)
+    monkeypatch.setattr(worker, '_resynced', set())
+    monkeypatch.setattr(worker, '_resync_done', False)
 
 
 def create_user(username: str = TEST_USERNAME, password: str = TEST_PASSWORD) -> str:
