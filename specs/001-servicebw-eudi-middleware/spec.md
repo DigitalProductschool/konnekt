@@ -61,6 +61,10 @@ When these URLs are used, the middleware will establish a connection to the wall
 - Q: When should the app open the first-connection screen after a team member signs in? → A: When no form connection exists yet. Form connections are shared by the whole team, so the screen opens at every sign-in until the team's first form connection is saved, and never once one exists. No account remembers whether it has signed in before.
 - Q: Should the first-connection screen be the existing create flow, opened at its own address with the heading "Create your first connection"? → A: Yes. It is the same step-by-step create flow as for any other form connection (name and serviceBW form, then documents and fields, then saving), with only its heading and page title changed, and it ends on the new form connection's details like any other.
 
+### Session 2026-10-19
+
+- Q: Should the middleware keep webhook mode (User Story 3, FR-014 to FR-016)? → A: No. Webhook mode is out of scope, and is removed from the code built so far: the webhook address, the outbox of updates and the connection mode. Pull mode is the only way serviceBW obtains a request's status and documents. This supersedes the answers about webhooks in the sessions above.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Set up a form connection and obtain its connection URLs (Priority: P1)
@@ -71,8 +75,7 @@ a new form connection for that form. While the team has no form connection yet, 
 straight onto a screen for creating the first one, instead of an empty overview. They give it a
 name, note which serviceBW form it belongs to, choose the needed documents from the catalog, and
 select exactly the fields the form needs from each document. After saving, the middleware shows
-the form connection's connection URLs, and the team member copies them into serviceBW. Entering a
-webhook address, for webhook mode, belongs to User Story 3.
+the form connection's connection URLs, and the team member copies them into serviceBW.
 
 **Why this priority**: Nothing can be requested from a wallet until a form connection exists. It
 lets DO.IT connect a serviceBW form to the EUDI Wallet through configuration instead of a
@@ -110,8 +113,7 @@ shown when the form connection is reopened.
 ### User Story 2 - Retrieve a citizen's documents in pull mode (Priority: P1)
 
 A citizen filling in the serviceBW form chooses to provide the needed documents with their EUDI
-Wallet. The form connection has no webhook address, so it uses pull mode. serviceBW calls the form
-connection's trigger URL and receives a link and a QR code for
+Wallet. serviceBW calls the form connection's trigger URL and receives a link and a QR code for
 the citizen's wallet, which it shows to the citizen. The citizen scans the QR code with the phone
 that holds their wallet, or opens the link on that phone, and approves the request in the wallet.
 serviceBW uses the pull URL to check on the request and, once the citizen has shared, receives
@@ -120,8 +122,8 @@ the requested fields of each document.
 **Why this priority**: This is the end-to-end flow the feature exists for. Verified documents
 travel from the citizen's wallet into the serviceBW application without uploads or manual checks.
 
-**Independent Test**: With a saved form connection that has no webhook address, and a test wallet
-that holds the requested documents, call the trigger URL, approve the request in the wallet, and call the pull URL.
+**Independent Test**: With a saved form connection, and a test wallet that holds the requested
+documents, call the trigger URL, approve the request in the wallet, and call the pull URL.
 Confirm that serviceBW receives exactly the configured fields and nothing else.
 
 **Acceptance Scenarios**:
@@ -155,38 +157,9 @@ Confirm that serviceBW receives exactly the configured fields and nothing else.
 
 ---
 
-### User Story 3 - Receive request updates through a webhook (Priority: P2)
+### User Story 3 - Receive request updates through a webhook (removed)
 
-Instead of calling the pull URL repeatedly, serviceBW can receive updates about a request at a
-webhook address. The DO.IT team enters it for the form connection in the middleware UI, next to
-the connection URLs. The UI offers this field only once the middleware delivers the updates, so
-that nobody can choose a mode that doesn't work yet. serviceBW calls the same trigger URL as in
-pull mode and shows the returned link and QR code to the citizen. The middleware then sends each
-status change to the webhook address as it happens. Once the citizen has shared, the update also
-carries the documents.
-
-**Why this priority**: Pull mode already covers the full flow. Webhook mode spares serviceBW from
-checking repeatedly whether the citizen has shared yet.
-
-**Independent Test**: Enter a webhook address for a form connection in the middleware UI, trigger
-a request, and complete it in a test wallet. Confirm that the webhook address receives an update
-for each status change, and that the "completed" update carries exactly the configured fields.
-
-**Acceptance Scenarios**:
-
-1. **Given** a saved form connection, **When** the team member enters serviceBW's webhook address
-   in the middleware UI and saves it, **Then** requests triggered from then on use webhook mode.
-   When they remove the address again, requests triggered from then on use pull mode.
-2. **Given** a form connection with a webhook address, **When** serviceBW calls the trigger URL,
-   **Then** it receives the same link, QR code and request reference as in pull mode.
-3. **Given** a triggered request in webhook mode, **When** its status changes, **Then** the
-   middleware sends an update with the request reference and the new status to the webhook
-   address.
-4. **Given** a triggered request in webhook mode, **When** the citizen approves it in their
-   wallet, **Then** the "completed" update sent to the webhook address carries exactly the
-   configured fields of each requested document.
-5. **Given** the webhook address cannot be reached, **When** an update is due, **Then** the
-   middleware retries delivery until the limit in FR-016 is reached.
+Removed on 2026-10-19: webhook mode is out of scope (see Clarifications, Session 2026-10-19).
 
 ---
 
@@ -237,8 +210,6 @@ reactivate one, then delete one.
 - **Documents never collected**: Documents that serviceBW has not collected are deleted 30 minutes
   after the citizen shared them. A later pull returns the status "completed" without documents,
   the same answer as after a delivery.
-- **Webhook address unreachable**: Delivery is retried until the limit in FR-016. The documents
-  are deleted no later than 30 minutes after the citizen shared them (FR-020).
 - **Guessed or reused references**: Request references cannot be guessed. Once delivered, the
   documents of a request can't be obtained again, apart from the repeats FR-018 allows.
 - **Answer to a pull lost in transit**: serviceBW pulls again within 60 seconds and receives the
@@ -252,8 +223,8 @@ reactivate one, then delete one.
   answer decides the result, and opening the link or QR code again afterwards, on any device,
   can't change it.
 - **Outages**: While the middleware or the service it uses to communicate with wallets is down, no
-  request can be started. Once both run again, answers given in the meantime are picked up,
-  pending webhook updates are sent, and overdue documents are deleted at once. Deletion under
+  request can be started. Once both run again, answers given in the meantime are picked up, and
+  overdue documents are deleted at once. Deletion under
   FR-020 can therefore be late by the length of the outage, which is accepted (see
   Clarifications).
 - **Two team members editing at once**: When two team members edit the same form connection at
@@ -279,8 +250,7 @@ reactivate one, then delete one.
 
 - **FR-001**: The system MUST allow authorized DO.IT team members to create a form connection
   consisting of a name, the serviceBW form it belongs to, and one or more documents together with
-  the fields to request from each. For webhook mode, a form connection also holds a webhook address
-  (FR-014).
+  the fields to request from each.
 - **FR-002**: The system MUST offer a catalog of the document types that EUDI Wallets can hold,
   listing the fields each type offers with a readable label. The catalog MUST contain at least the
   two documents from the user story: the ID (called PID, person identification data, in the EUDI
@@ -289,17 +259,14 @@ reactivate one, then delete one.
   and select exactly which fields to request from each one. It MUST refuse to save a form
   connection with no documents, or with a document that has no selected field.
 - **FR-004**: When a form connection is saved, the system MUST provide its connection URLs:
-  - a **trigger URL**, used in both modes, which starts a document request
-  - a **pull URL**, used in pull mode, which returns a request's status and documents; serviceBW
-    inserts the request reference into a placeholder in it
+  - a **trigger URL**, which starts a document request
+  - a **pull URL**, which returns a request's status and documents; serviceBW inserts the request
+    reference into a placeholder in it
 
-  Each URL MUST be copyable in a single action. Alongside the URLs, the system MUST offer the field
-  for the webhook address used in webhook mode, once the middleware delivers webhook updates
-  (FR-014).
+  Each URL MUST be copyable in a single action.
 - **FR-005**: Connection URLs MUST stay the same when a form connection is edited. Changes MUST
   apply to requests triggered after the change. Requests already in progress MUST finish with the
-  configuration they started with: the requested documents and fields, and the connection mode
-  with its webhook address. Changes to the document catalog or to the trusted issuers MUST likewise
+  configuration they started with: the requested documents and fields. Changes to the document catalog or to the trusted issuers MUST likewise
   reach existing form connections without anyone editing them: new requests use the change, and
   requests already in progress keep the configuration they started with.
 - **FR-006**: The system MUST let team members list, view, edit, deactivate, reactivate and delete
@@ -344,26 +311,14 @@ reactivate one, then delete one.
 
 #### Pull mode
 
-- **FR-013**: In pull mode, calling the pull URL with a request reference MUST return the
-  request's current status. For a completed request, it MUST also return the configured fields of
-  each requested document, each identified so that serviceBW can tell which value is which.
+- **FR-013**: Calling the pull URL with a request reference MUST return the request's current
+  status. For a completed request, it MUST also return the configured fields of each requested
+  document, each identified so that serviceBW can tell which value is which.
 
-#### Webhook mode
+#### Webhook mode (removed)
 
-- **FR-014**: The system MUST support a webhook mode, in which serviceBW receives updates about a
-  request at a webhook address instead of pulling. DO.IT team members MUST be able to enter,
-  change or remove a form connection's webhook address in the middleware UI. A form connection with
-  a webhook address uses webhook mode, and one without uses pull mode. The middleware UI MUST NOT
-  offer the webhook address before the middleware delivers webhook updates as FR-015 and FR-016
-  require, so that a team member can't choose a mode that doesn't work yet.
-- **FR-015**: In webhook mode, the system MUST send an update to the webhook address each time a
-  request's status changes. The "completed" update MUST also carry the configured fields of each
-  requested document, identified as in FR-013. In webhook mode, documents MUST be delivered only to
-  the webhook address.
-- **FR-016**: If an update cannot be delivered to the webhook address, the system MUST retry it.
-  It retries the "completed" update until the documents are deleted under FR-020, and any other
-  update until 30 minutes after the status change it reports. Updates carry no proof of sender;
-  the restricted network is relied on instead (see Assumptions).
+- **FR-014**, **FR-015**, **FR-016**: Removed on 2026-10-19: webhook mode is out of scope (see
+  Clarifications, Session 2026-10-19).
 
 #### Security and data protection
 
@@ -372,19 +327,17 @@ reactivate one, then delete one.
   with the calls. This applies to every environment the middleware is deployed to, test
   environments included; only a developer's own machine is exempt.
 - **FR-018**: Request references MUST NOT be guessable. Once a request's documents have been
-  delivered, they MUST NOT be obtainable again, with two narrow exceptions that protect against
-  lost answers (see Clarifications):
-  - in pull mode, the pull URL returns them again for 60 seconds after the first pull that
-    returned them;
-  - in webhook mode, an update whose confirmation never reached the middleware may be repeated.
+  delivered, they MUST NOT be obtainable again, with one narrow exception that protects against a
+  lost answer (see Clarifications): the pull URL returns them again for 60 seconds after the first
+  pull that returned them.
 - **FR-019**: Documents MUST reach serviceBW in a way that no third party can read or alter them.
   The connections between serviceBW and the middleware MUST therefore be encrypted, unless the
   operators explicitly allow unencrypted connections inside the restricted network (see
   Assumptions). Documents from one request MUST never be delivered for another request or form
   connection. Document data and request references MUST NOT be written to any log.
 - **FR-020**: The system MUST delete a request's documents as soon as they have been delivered to
-  serviceBW, and no later than 30 minutes after the citizen shared them. In pull mode, "as soon as
-  delivered" means when the 60-second repeat window of FR-018 ends. The 30-minute limit applies in
+  serviceBW, and no later than 30 minutes after the citizen shared them. "As soon as delivered"
+  means when the 60-second repeat window of FR-018 ends. The 30-minute limit applies in
   every case, including to any copy held by the service the middleware uses to communicate with
   wallets. Only an outage of the middleware or of that service can delay the deletion, by the
   length of the outage (see Edge Cases).
@@ -397,15 +350,15 @@ reactivate one, then delete one.
 
 - **Form Connection**: The configuration that connects one serviceBW form to the EUDI Wallet. It
   holds a name, the linked serviceBW form, the requested documents with their selected fields, a
-  status (active or deactivated), its connection URLs, and, for webhook mode, a webhook address.
+  status (active or deactivated) and its connection URLs.
   The serviceBW form is recorded as free text, such as the form's name or ID, and several form
   connections may name the same form.
 - **Document Type**: A catalog entry for a kind of document an EUDI Wallet can hold, such as the ID
   (PID) or the mobile driving licence, together with the fields it offers.
 - **Requested Document**: A document type as used in one form connection, together with the
   fields selected for it.
-- **Connection URL**: An address serviceBW uses to work with a form connection. The trigger URL is
-  used in both modes, and the pull URL in pull mode.
+- **Connection URL**: An address serviceBW uses to work with a form connection. The trigger URL
+  starts a request, and the pull URL returns its status and documents.
 - **Document Request**: One attempt to obtain a citizen's documents for a form connection, started
   through the trigger URL. It holds an unguessable reference, the configuration in force when it
   was triggered, its status and timestamps, and the shared documents, but only as long as FR-018
@@ -428,8 +381,7 @@ reactivate one, then delete one.
   participants using test wallets with sample documents, half of them starting from the QR code
   and half from the same-device link.
 - **SC-004**: In 95% of requests, the documents are ready for serviceBW within 5 seconds of the
-  citizen approving the request in their wallet. In pull mode, a pull 5 seconds after the approval
-  returns them; in webhook mode, the update carrying them has reached the webhook address by then.
+  citizen approving the request in their wallet: a pull 5 seconds after the approval returns them.
 - **SC-005**: In acceptance testing, 100% of the documents delivered to serviceBW contain only the
   fields configured for that form connection, and 100% of expired, revoked or untrusted test
   documents are rejected. Rejecting altered documents, and documents presented by someone other
@@ -451,17 +403,14 @@ reactivate one, then delete one.
 - **Users and organization**: The middleware is used by the DO.IT team of the City of Stuttgart.
   Serving other municipalities is out of scope.
 - **serviceBW's role**: serviceBW calls the connection URLs, shows the returned link and QR code to
-  the citizen, and in webhook mode can receive updates at a webhook address. serviceBW decides what
-  to do with the documents it receives. Citizens without an EUDI Wallet provide their documents
+  the citizen. serviceBW decides what to do with the documents it receives. Citizens without an EUDI Wallet provide their documents
   through serviceBW's existing process.
 - **serviceBW's capabilities**: serviceBW can call the trigger URL from its own server, insert the
   request reference into the pull URL, process the middleware's answers, show the QR code image
-  the trigger returns, accept updates at its webhook address and confirm each one within 10
-  seconds, and keep request references confidential. DO.IT confirms these with serviceBW before
+  the trigger returns, and keep request references confidential. DO.IT confirms these with serviceBW before
   the integration starts.
-- **serviceBW waits for a final status**: Every status except "pending" is final. In pull mode,
-  serviceBW keeps calling the pull URL until it gets a final status; in webhook mode it keeps
-  waiting for the update. It doesn't stop waiting before the request expires (FR-012), so it can
+- **serviceBW waits for a final status**: Every status except "pending" is final. serviceBW keeps
+  calling the pull URL until it gets a final status. It doesn't stop waiting before the request expires (FR-012), so it can
   show a decline or failure as soon as it is reported and never abandons a citizen who approves in
   time.
 - **Documents match the applicant**: serviceBW checks that the documents it receives belong to the
@@ -489,18 +438,19 @@ reactivate one, then delete one.
   documents, the 60-second repeat window for pulls, and the 7-day retention of request records are
   defaults that balance usability and data minimization. They may be adjusted after testing.
 - **Restricted network**: The middleware and serviceBW operate in a restricted, controlled
-  network. Only serviceBW can reach the connection URLs, and the middleware's updates to the
-  webhook address travel only inside that network. Neither direction is authenticated by the
-  middleware in this iteration.
+  network. Only serviceBW can reach the connection URLs, and calls to them are not authenticated in
+  this iteration.
 - **Team member accounts**: The operators of the middleware create, change and delete accounts on
   DO.IT's request. DO.IT tells them when someone joins or leaves, and a leaver's account is
   deleted as soon as DO.IT reports the departure.
 - **Availability**: The prototype has no availability target. While the middleware is
   unavailable, citizens provide their documents through serviceBW's existing process.
 - **Out of scope**: Custom logic on document fields, which is planned for a later iteration.
-  Also out of scope: issuing documents into wallets, qualified electronic signatures, payments,
-  archiving documents in the case file, and any changes to serviceBW itself. Authenticating calls
-  to the connection URLs and updates to the webhook address beyond the restricted network, and
+  Also out of scope: webhook mode, in which the middleware would send request updates to a
+  serviceBW webhook address (removed on 2026-10-19, see Clarifications), issuing documents into
+  wallets, qualified electronic signatures, payments, archiving documents in the case file, and
+  any changes to serviceBW itself. Authenticating calls to the connection URLs beyond the
+  restricted network, and
   managing team member accounts in the management interface, are out of scope for now. So is
   limiting repeated failed sign-in attempts, which is to be added before real citizens use the
   service.

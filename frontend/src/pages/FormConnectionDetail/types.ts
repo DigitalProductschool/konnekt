@@ -1,6 +1,5 @@
 import type { Ref } from 'react';
 
-import type { ErrorNotice } from '../../types/api';
 import type { FormConnection, RequestedDocumentView } from '../../types/form-connections';
 
 export type DetailState =
@@ -34,27 +33,6 @@ export interface LinkCardProps {
   infoLabel: string;
   info: string;
 }
-
-export interface WebhookCardProps {
-  formConnection: FormConnection;
-  /** The connection after a saved change */
-  onSaved: (formConnection: FormConnection) => void;
-}
-
-export interface WebhookState {
-  value: string;
-  saving: boolean;
-  /** Shown under the field, with the error ID of a 5xx answer */
-  error: ErrorNotice | null;
-  /** What the status region last announced */
-  announcement: string;
-}
-
-export type WebhookAction =
-  | { type: 'change'; value: string }
-  | { type: 'save' }
-  | { type: 'saved'; value: string; announcement: string }
-  | { type: 'failed'; error: ErrorNotice };
 
 export interface DocumentsSummaryProps {
   documents: RequestedDocumentView[];

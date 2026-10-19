@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import DocumentRequest, WebhookDelivery
+from app.models import DocumentRequest
 from app.services import worker
 from tests.fake_eudiplo import FakeEudiplo, FakeSession
 from tests.helpers import (
@@ -291,7 +291,7 @@ def test_an_answer_found_by_the_last_check_counts(
     request = stored_request(reference)
     assert request.status == status
     assert request.failure_code == failure_code
-    # The worker drops the documents: only a pull or a webhook update delivers them
+    # The worker drops the documents: only a pull delivers them
     assert request.documents_delivered_at is None
 
 
@@ -451,25 +451,6 @@ def test_a_failed_deletion_is_tried_again_in_the_next_cycle(
     assert _session_gone(fake_eudiplo, reference)
 
 
-def test_a_webhook_mode_session_is_deleted_right_after_the_delivery(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    form_connection_id = create_form_connection(
-        signed_in_client, webhook_url='https://servicebw.test/hooks/fc-1'
-    )
-    reference = trigger(signed_in_client, form_connection_id)['reference']
-    share(fake_eudiplo, reference)
-    worker.sync_sessions()
-    worker.delete_eudiplo_sessions()
-    assert not _session_gone(fake_eudiplo, reference)
-    # As the first 2xx for the completed update records it
-    update_request(reference, documents_delivered_at=now(), ended_at=now())
-
-    worker.delete_eudiplo_sessions()
-
-    assert _session_gone(fake_eudiplo, reference)
-
-
 # Deleting request records (FR-021)
 
 
@@ -485,28 +466,12 @@ def test_request_records_are_deleted_after_the_retention_period(
     update_request(
         recent, status='expired', ended_at=now() - retention + timedelta(minutes=1)
     )
-    old_id = stored_request(old).id
-    with SessionLocal() as db:
-        db.add(
-            WebhookDelivery(
-                document_request_id=old_id,
-                status='expired',
-                occurred_at=now() - retention,
-                next_attempt_at=now() - retention,
-                deadline_at=now() - retention + timedelta(minutes=30),
-                delivered_at=now() - retention,
-            )
-        )
-        db.commit()
 
     worker.delete_old_request_records()
 
     with SessionLocal() as db:
         references = set(db.scalars(select(DocumentRequest.reference)))
-        deliveries = db.scalar(select(func.count()).select_from(WebhookDelivery))
     assert references == {recent, open_}
-    # Its webhook updates went with it
-    assert deliveries == 0
     # A pull with its reference answers like one with an unknown reference
     response = signed_in_client.get(pull_url(form_connection_id, old))
     assert response.status_code == 404

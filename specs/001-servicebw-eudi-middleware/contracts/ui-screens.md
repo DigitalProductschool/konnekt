@@ -1,7 +1,7 @@
 # Contract: management UI screens
 
-**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-014, FR-022,
-SC-009; US1, US3 (the webhook address), US4.
+**Users**: signed-in DO.IT team members. **Requirements**: FR-001 to FR-007, FR-022, SC-009;
+US1, US4.
 **Decisions**: research R16.
 
 This contract fixes **which screens exist and what they let a team member do**. Layout, wording,
@@ -17,7 +17,7 @@ contract wins on behavior. Every screen gets its data only through
 | `/` | Form connections overview | FR-006, FR-022; US1, scenarios 6–7; US4, scenario 1 |
 | `/get-started` | First connection | FR-001 to FR-003, FR-022; US1, scenario 5 |
 | `/form-connections/new` | Create form connection | FR-001 to FR-003; US1, scenarios 1–3 |
-| `/form-connections/:id` | Form connection details | FR-004 to FR-006, FR-014; US1, scenarios 1 and 4; US3, scenario 1; US4, scenarios 3–5 |
+| `/form-connections/:id` | Form connection details | FR-004 to FR-006; US1, scenarios 1 and 4; US4, scenarios 3–5 |
 | `/form-connections/:id/edit` | Edit form connection | FR-003, FR-005; US4, scenario 2 |
 
 Every route except `/login` and `/forgot-password` needs a session. When `GET /api/auth/me`
@@ -45,8 +45,7 @@ sign-in screen, and the product name, which leads to the overview.
 ## Overview (`/`)
 
 - **List**: one row per form connection that isn't deleted, showing its name, serviceBW form,
-  and whether it is active or deactivated. The mode (pull or webhook) may be shown as well.
-  Selecting a row opens its details.
+  and whether it is active or deactivated. Selecting a row opens its details.
 - **Actions**: "Create form connection" opens `/form-connections/new`.
 - **Reached**: through the product name on every signed-in screen, even when no form connection
   exists (US1, scenario 7), and after sign-in when one does (US1, scenario 6).
@@ -81,9 +80,6 @@ first step's heading and page title changed.
     be added once.
   - Each added document lists the fields of its type to select from (US1, scenario 2).
   - A document can be removed again.
-- **Webhook address**: not on this screen. The spec's flow sets it on the details screen, next to
-  the URLs, after the first save (US1, FR-004). If the Figma design also puts it here, the
-  API's optional `webhook_url` on create supports that.
 - **Validation**:
   - Saving is refused while there is no document, while a document has no selected field, or while
     a required text is empty. The message names the problem (US1, scenario 3).
@@ -109,13 +105,6 @@ first step's heading and page title changed.
   - The pull URL shows `{reference}` literally, with a short hint that serviceBW substitutes the
     request reference.
   - The URLs never change, and reopening the screen shows the same ones (US1, scenario 4).
-- **Webhook address** (FR-004, FR-014; US3, scenario 1), shown **only once webhook updates are
-  delivered** (US3). Until then the details screen shows neither the field nor the mode, and every
-  form connection created in the UI uses pull mode.
-  - A field next to the URLs, with save and remove actions (`PUT` with `webhook_url`, or with
-    `webhook_url: null`).
-  - It shows the current mode: pull without an address, webhook with one. A change applies to
-    requests triggered after it (US3, scenario 1).
 - **Configuration summary**: the name and the serviceBW form (in the header), and the requested
   documents with their selected fields. An "Edit" action opens the edit screen.
 - **Status and actions**:

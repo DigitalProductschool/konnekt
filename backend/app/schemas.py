@@ -5,9 +5,6 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 
 T = TypeVar('T')
 
-# Pull mode without a webhook address, webhook mode with one (FR-014)
-FormConnectionMode = Literal['pull', 'webhook']
-
 # The statuses of a document request (FR-011, research R5)
 RequestStatus = Literal[
     'pending',
@@ -95,7 +92,6 @@ class FormConnectionSummary(BaseModel):
     name: str
     servicebw_form: str
     is_active: bool
-    mode: FormConnectionMode
     updated_at: str
 
 
@@ -109,8 +105,6 @@ class FormConnection(BaseModel):
     name: str
     servicebw_form: str
     is_active: bool
-    mode: FormConnectionMode
-    webhook_url: str | None
     documents: list[RequestedDocumentView]
     trigger_url: str
     pull_url: str
@@ -119,25 +113,19 @@ class FormConnection(BaseModel):
 
 
 class FormConnectionCreate(BaseModel):
-    """A new form connection. Without a webhook address it uses pull mode."""
+    """A new form connection."""
 
     name: str
     servicebw_form: str
     documents: list[RequestedDocument]
-    webhook_url: str | None = None
 
 
 class FormConnectionUpdate(BaseModel):
-    """Changes to a form connection.
-
-    An absent field stays unchanged, and `webhook_url: null` removes the address:
-    `model_fields_set` tells the two apart.
-    """
+    """Changes to a form connection. An absent field stays unchanged."""
 
     name: str | None = None
     servicebw_form: str | None = None
     documents: list[RequestedDocument] | None = None
-    webhook_url: str | None = None
 
 
 # The trigger URL and the pull URL, which serviceBW calls
@@ -182,8 +170,8 @@ class DeliveredDocument(BaseModel):
 class PullResponse(BaseModel):
     """A request's status and, while they can be handed out, its documents.
 
-    `documents` is null until the documents are delivered in pull mode, after the
-    repeat window, and in webhook mode.
+    `documents` is null until the documents are delivered, and after the repeat
+    window.
     """
 
     reference: str

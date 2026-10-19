@@ -21,7 +21,8 @@ tested as an increment.
 
 - **[P]**: Can run in parallel, because it touches different files and depends on no unfinished
   task in the same phase.
-- **[Story]**: Which user story the task belongs to (US1–US4).
+- **[Story]**: Which user story the task belongs to (US1, US2 and US4; US3, webhook mode, was
+  removed on 2026-10-19).
 - Every description names the exact files.
 
 ## Path Conventions
@@ -102,7 +103,7 @@ framework, the test harness and the frontend shell.
   - `token_hash`: "`String(64)`, unique, indexed";
   - `expires_at`: "`DateTime(timezone=True)`, indexed";
   - `String(36)` UUID4 ids, and `created_at`/`updated_at` as `DateTime(timezone=True)` with `server_default=func.now()`.
-- [X] T011 Add `FormConnection` (`form_connections`) and `FormConnectionRevision` (`form_connection_revisions`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T011 Add `FormConnection` (`form_connections`) and `FormConnectionRevision` (`form_connection_revisions`) to `backend/app/models.py`, exactly as in data-model.md (webhook parts removed by T092):
   - form connection:
     - `name`: "`String(200)`", "1–200 characters after trimming";
     - `servicebw_form`: "`String(500)`", "1–500 characters after trimming";
@@ -119,7 +120,7 @@ framework, the test harness and the frontend shell.
     - `eudiplo_config_id`: "`String(255)`, unique";
     - `eudiplo_config_deleted_at`: nullable;
   - the partial index on `(form_connection_id)`, `WHERE eudiplo_config_deleted_at IS NULL`.
-- [X] T012 Add `DocumentRequest` (`document_requests`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T012 Add `DocumentRequest` (`document_requests`) to `backend/app/models.py`, exactly as in data-model.md (webhook parts removed by T092):
   - `reference`: "`String(64)`, unique, indexed";
   - `form_connection_id` and `revision_id`: FKs, indexed;
   - `mode`: "`String(16)`" (`pull` or `webhook`);
@@ -132,7 +133,7 @@ framework, the test harness and the frontend shell.
   - nullable timestamps: `completed_at`, `documents_delivered_at`, `eudiplo_session_deleted_at`, and `ended_at` (indexed);
   - the composite index `(status, expires_at)`;
   - the partial index on `(status)`, `WHERE eudiplo_session_deleted_at IS NULL`.
-- [X] T013 Add `WebhookDelivery` (`webhook_deliveries`) to `backend/app/models.py`, exactly as in data-model.md:
+- [X] T013 Add `WebhookDelivery` (`webhook_deliveries`) to `backend/app/models.py`, exactly as in data-model.md (webhook parts removed by T092):
   - `document_request_id`: "FK → `document_requests.id`, indexed, `ON DELETE CASCADE`";
   - `status`: "`String(32)`";
   - `occurred_at`;
@@ -267,8 +268,8 @@ an empty app shell.
 
 **Goal**: A signed-in DO.IT team member creates a form connection: name, serviceBW form, and
 documents with selected fields from the catalog. They then see its trigger URL and pull URL, and
-can copy each in one action. The API also stores a webhook address (T036, T044), but the UI
-offers it only from US3 on (T086, T091).
+can copy each in one action. Until T092 removed webhook mode, the API also stored a webhook
+address (T036, T044), which the UI stopped offering with T086.
 
 **Independent Test**:
 1. Create a form connection with the PID and the mDL and some fields, then save.
@@ -276,7 +277,6 @@ offers it only from US3 on (T086, T091).
 3. Reopening the form connection shows the same URLs.
 4. Saving without a document, or with a document that has no fields, is refused with a message
    that names the problem.
-5. `PUT /api/form-connections/{id}` with a webhook address switches `mode` to `webhook` (T044).
 
 This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (steps 1–2 and 7–8).
 
@@ -285,7 +285,7 @@ This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (st
 - [X] T031 [P] [US1] Create `backend/app/catalog.py` with the two document types exactly as listed in data-model.md "Document type catalog". Use immutable dataclasses and lookup helpers by key. Use the labels from design-notes.md where T023 changed them.
   - `pid`: format `dc+sd-jwt`, `vct_values` `urn:eudi:pid:1` and `urn:eudi:pid:de:1`, and the 25 fields with their keys, claim paths and labels;
   - `mdl`: format `mso_mdoc`, doctype `org.iso.18013.5.1.mDL`, namespace `org.iso.18013.5.1`, and the 31 fields.
-- [X] T032 [P] [US1] Add `DocumentField`, `DocumentType`, `RequestedDocument`, `RequestedDocumentView`, `FormConnectionSummary`, `FormConnection`, `FormConnectionCreate` and `FormConnectionUpdate` to `backend/app/schemas.py`, exactly as in contracts/management-api.md "Schemas":
+- [X] T032 [P] [US1] Add `DocumentField`, `DocumentType`, `RequestedDocument`, `RequestedDocumentView`, `FormConnectionSummary`, `FormConnection`, `FormConnectionCreate` and `FormConnectionUpdate` to `backend/app/schemas.py`, exactly as in contracts/management-api.md "Schemas" (webhook parts removed by T092):
   - field names are snake_case;
   - timestamps are converted with `to_iso_utc`;
   - request schemas accept empty lists;
@@ -299,13 +299,13 @@ This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (st
   - The body also has `id` `fc-{form_connection_id}-r{revision}`, `description` (the form connection's name), `lifeTime` and `statusCheckMode: "strict"`.
   - `config_hash` is the SHA-256 hex of the canonical JSON (sorted keys, compact separators) of the body without `id` and `description`.
 - [X] T034 [US1] Implement `backend/app/routers/document_types.py`: `GET /api/document-types`, for signed-in users only, returning `200 {"data": DocumentType[]}` in catalog order. Register it in `backend/app/main.py`.
-- [X] T035 [US1] Implement creating, reading and listing in `backend/app/services/form_connections.py`:
+- [X] T035 [US1] Implement creating, reading and listing in `backend/app/services/form_connections.py` (webhook parts removed by T092):
   - **Validation**: the rules and messages of data-model.md "Validation (FR-003)", for example "Add at least one document.", "Select at least one field for 'ID (PID)'." and "The webhook address must be an https:// URL." `http://` is allowed only with `ALLOW_PLAIN_HTTP`. Documents are stored in catalog order.
   - **Create**: create the EUDIPLO configuration with `create_config`, then insert the form connection and revision 1 (`lifetime_seconds` = `REQUEST_LIFETIME_SECONDS`, plus `config_hash`). If the commit fails, delete the configuration again (best effort, logged).
   - **Get**: 404 for unknown or deleted form connections.
   - **List**: form connections that aren't deleted, most recently updated first.
   - **Derived values**: `mode`, `trigger_url` = `{CONNECTION_BASE_URL}/api/connect/{id}/requests`, and `pull_url` = `…/requests/{reference}` with the literal placeholder.
-- [X] T036 [US1] Implement updating `name`, `servicebw_form` and `webhook_url` in `backend/app/services/form_connections.py`:
+- [X] T036 [US1] Implement updating `name`, `servicebw_form` and `webhook_url` in `backend/app/services/form_connections.py` (webhook parts removed by T092):
   - an absent field is unchanged, and `webhook_url: null` removes the address;
   - the same validation applies as on creation;
   - no revision is created ("never because the name, the serviceBW form or the webhook address changed", data-model.md).
@@ -330,7 +330,7 @@ This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (st
   - client-side checks with the same messages as the API, shown next to their field, moving the focus to the first invalid field;
   - `POST`, then navigate to the details screen, and show the API's 400 `message` if it refuses;
   - constants and helpers in `constants.ts` and `utils.ts`.
-- [X] T042 [US1] Build the details screen `frontend/src/pages/FormConnectionDetail/` as in contracts/ui-screens.md "Details":
+- [X] T042 [US1] Build the details screen `frontend/src/pages/FormConnectionDetail/` as in contracts/ui-screens.md "Details" (webhook parts removed by T092):
   - the trigger URL and pull URL, each in a `CopyableUrl`, with a hint that serviceBW fills in `{reference}`;
   - the current mode, pull or webhook;
   - the webhook address field, with save and remove (`PUT` with `webhook_url`, or with `null`), its validation message, and an announced "saved" status;
@@ -342,7 +342,7 @@ This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (st
   - catalog: unique keys, 25 PID and 31 mDL fields, and the claim paths and formats of data-model.md;
   - DCQL: the body for the PID + mDL example equals contracts/eudiplo-usage.md, claims follow catalog order, and every query has the same trust list;
   - hash: it ignores `id` and `description`, and changes with the trust list or the lifetime.
-- [X] T044 [US1] Write `backend/tests/api/test_form_connections.py`:
+- [X] T044 [US1] Write `backend/tests/api/test_form_connections.py` (webhook parts removed by T092):
   - creating with two documents returns stable URLs and `mode: "pull"`;
   - every validation message of data-model.md;
   - 503 when a EUDIPLO setting is empty, and 502 with nothing stored when the fake EUDIPLO fails;
@@ -355,21 +355,22 @@ The UI follows Figma "Middleware – V2"'s signed-in screens, with the user's de
 - creating is a three-step wizard whose first two steps stay in the browser; "Publish" sends the
   one `POST` (no drafts, no "Save and exit");
 - the full catalog with the design's labels, and adding a document selects no field;
-- the details screen is an overview-style page with the link cards, a webhook card and a
-  documents card;
+- the details screen is an overview-style page with the link cards, a webhook card (removed by
+  T086 and T092) and a documents card;
 - the overview opens the wizard with "New connection".
 
 Until T065, `PUT /api/form-connections/{id}` answers `400` "Changing the documents is not
 supported yet." when the body has `documents`.
 
-On 2026-10-11 the user moved the webhook address to US3 on the frontend (spec FR-014 and
-Clarifications, Session 2026-10-11): the UI offers it only once webhook updates are delivered. The
-backend keeps it as built (T036, T044). T086 takes the card off the details screen, and T091
-(Phase 6) renders it again.
+On 2026-10-11 the user moved the webhook address to US3 on the frontend (spec Clarifications,
+Session 2026-10-11): the UI was to offer it only once webhook updates were delivered, and T086
+took the card off the details screen. On 2026-10-19 the user removed webhook mode altogether (spec
+Clarifications, Session 2026-10-19): US3 and its phase are gone, and T092 removes the webhook code
+that T011–T013, T032–T044 and T049–T059 built.
 
-- [X] T086 [US1] Take the webhook card off the details screen in `frontend/src/pages/FormConnectionDetail/index.tsx` (contracts/ui-screens.md "Details", design-notes.md §7):
+- [X] T086 [US1] Take the webhook card off the details screen in `frontend/src/pages/FormConnectionDetail/index.tsx` (contracts/ui-screens.md "Details", design-notes.md §7) (webhook parts removed by T092):
   - remove the `<WebhookCard … />` element and its import, and drop the webhook address from the component's doc comment;
-  - keep `WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY` unchanged, so that T091 only has to render the card again. `npm run build` still type-checks them, and ESLint has no rule against an unused module;
+  - keep `WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY` unchanged, so that the card could be rendered again later (T092 deletes them instead). `npm run build` still type-checks them, and ESLint has no rule against an unused module;
   - keep `updateFormConnection` in `frontend/src/api/form-connections.ts`;
   - a form connection that got a webhook address while the card was shown keeps webhook mode, and its requests deliver nothing through the pull URL. Before Phase 5 tests pull mode, find such form connections with `GET /api/form-connections` (`mode: "webhook"`) and clear the address with `PUT /api/form-connections/{id}` and `{"webhook_url": null}`.
 
@@ -462,7 +463,7 @@ These are quickstart V2, V3 and V6.
     - locks the row with `SELECT … FOR UPDATE` and checks the current status again;
     - sets `status`, `status_changed_at`, `failure_code` and `completed_at` (EUDIPLO's `consumedAt`);
     - sets `ended_at` for `declined`, `verification_failed`, `expired` and `unavailable`.
-- [X] T049 [US2] Implement `trigger` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Trigger URL":
+- [X] T049 [US2] Implement `trigger` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Trigger URL" (webhook parts removed by T092):
   - check in this order: 404 for an unknown form connection, 409 for a deactivated or deleted one, 503 when not configured;
   - read the current revision, and end the read transaction before calling EUDIPLO;
   - call `create_offer` with `requestId` = `eudiplo_config_id` and `reference` = the new request's id. On a 409, re-create the configuration from the revision with T033 and retry once;
@@ -472,7 +473,7 @@ These are quickstart V2, V3 and V6.
     - `mode` and `webhook_url` copied from the form connection;
   - if the insert fails, delete the EUDIPLO session again;
   - return `wallet_link` (`uri`), `qr_code_link` (`crossDeviceUri`) and `qr_code` (T046).
-- [X] T050 [US2] Implement `pull` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Pull URL" and research R9:
+- [X] T050 [US2] Implement `pull` in `backend/app/services/document_requests.py`, as in contracts/integration-api.md "Pull URL" and research R9 (webhook parts removed by T092):
   - use the same check order as the trigger, then 404 "Request not found" for an unknown reference or one that belongs to another form connection;
   - lock the row;
   - a `pending` request past `expires_at` gets the last check: `get_session` plus the mapping, otherwise `expired`;
@@ -503,7 +504,7 @@ These are quickstart V2, V3 and V6.
   - for undelivered `completed` requests, at `completed_at` + `DOCUMENT_RETENTION_SECONDS` − 60 s, also setting `ended_at`.
 
   The 30-minute limit also ends a repeat window early.
-- [X] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021).
+- [X] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021) (webhook parts removed by T092).
 - [X] T056 [P] [US2] Restrict `/api/connect/` in the production nginx (research R13):
   - `frontend/nginx/40-servicebw-access.sh` writes two files:
     - `/etc/nginx/servicebw-allow.conf`: one `allow <cidr>;` per entry of `SERVICEBW_ALLOWED_CIDRS`, then `deny all;`. If the variable is empty, only `deny all;`.
@@ -520,7 +521,7 @@ These are quickstart V2, V3 and V6.
 - [X] T057 [P] [US2] Write `backend/tests/unit/test_status_mapping.py` and `backend/tests/unit/test_documents.py`:
   - status mapping: every code of research R5, unknown codes, and no code;
   - extraction: the SD-JWT claim path walk, flat mdoc claims, only the selected fields in order, technical claims dropped, bytes and dates converted, and a missing value.
-- [X] T058 [US2] Write `backend/tests/api/test_connect.py`:
+- [X] T058 [US2] Write `backend/tests/api/test_connect.py` (webhook parts removed by T092):
   - **Trigger**: 201 with every field and a stored `pending` request; the check order 404/409/404; 503 and 502; a 409 from the offer re-creates the configuration once.
   - **Pull**:
     - `pending`, then the first pull returns exactly the configured fields;
@@ -529,7 +530,7 @@ These are quickstart V2, V3 and V6.
     - EUDIPLO 404 gives `null`, and a 502 consumes nothing;
     - the last check before expiry gives `completed`, `declined` or `expired`;
     - two simultaneous pulls inside the window both get the documents.
-- [X] T059 [US2] Write `backend/tests/api/test_worker_requests.py`:
+- [X] T059 [US2] Write `backend/tests/api/test_worker_requests.py` (webhook parts removed by T092):
   - sync applies statuses and ignores unknown sessions, and the cursor works;
   - expiry runs the last check as soon as `expires_at` has passed;
   - EUDIPLO sessions are deleted at the right time: at the end of the window, for final statuses, and at 30 minutes − 60 s;
@@ -540,56 +541,7 @@ in pull mode (quickstart V1–V3, V6).
 
 ---
 
-## Phase 6: User Story 3 - Receive request updates through a webhook (Priority: P2)
-
-**Goal**:
-- A request triggered while its form connection has a webhook address sends every status change after `pending` to that address.
-- The `completed` update carries exactly the configured fields.
-- Failed updates are retried with back-off until their deadline, and claimed with a lease.
-- The details screen offers the webhook address again (T091), now that the updates are delivered (spec FR-014).
-
-**Independent Test**: On the details screen, enter a webhook address that points at a test
-receiver, then trigger a request and approve it. The receiver gets one `completed` update with
-exactly the configured fields, and a pull for the same request returns `documents: null`. A
-decline sends `declined`. Removing the address switches new requests back to pull mode. This is
-quickstart V4.
-
-### Implementation for User Story 3
-
-- [ ] T060 [P] [US3] Add `WebhookUpdate` to `backend/app/schemas.py`, as in contracts/webhook-updates.md: `form_connection_id`, `reference`, `status`, `occurred_at` and nullable `documents`.
-- [ ] T061 [US3] Extend `apply_status` in `backend/app/services/document_requests.py`. For every status change of a webhook-mode request, except the initial `pending`, queue a `WebhookDelivery`:
-  - `occurred_at` = the change, and `next_attempt_at` = now;
-  - `deadline_at` as in data-model.md: "For a `completed` update it is the document deletion time (`completed_at` + `DOCUMENT_RETENTION_SECONDS` − 60 s); otherwise `occurred_at` + `DOCUMENT_RETENTION_SECONDS`".
-- [ ] T062 [US3] Implement `backend/app/services/webhooks.py`, as in research R10 and contracts/webhook-updates.md:
-  - **Claim**: take the oldest due delivery of a request, only when no older one is still open, and commit `claimed_until` = now + 30 s first.
-  - **Send**: a JSON `POST` to the request's copied `webhook_url`, through its own `httpx2.Client` (10 s timeout, no authentication headers), which tests can replace through `get_webhook_client()`.
-  - **`completed` updates**: read and extract the documents when sending. Abandon the update if the EUDIPLO session is gone.
-  - **On a 2xx**: set `delivered_at`, and for `completed` also `documents_delivered_at` and `ended_at`.
-  - **Otherwise**: `attempts` += 1, `next_attempt_at` after 5, 10, 20 and 40 s, then every 60 s, and `last_error` = the HTTP status or the exception class only.
-  - **Deadline**: once `deadline_at` has passed, set `abandoned_at`.
-  - The lease is always released.
-- [ ] T063 [US3] Register the webhook delivery step in `backend/app/services/worker.py`. Sends run in the pool, and the loop never waits for them.
-- [ ] T091 [US3] Render the webhook card on the details screen again, in `frontend/src/pages/FormConnectionDetail/index.tsx` (spec FR-014; depends on T060–T063, so that the address it saves is used):
-  - put `<WebhookCard formConnection={formConnection} onSaved={(updated) => dispatch({ type: 'loaded', formConnection: updated })} />` back between `ConnectionLinks` and `DocumentsSummary`, as before T086, and name the webhook address in the component's doc comment again;
-  - check the card against contracts/ui-screens.md "Details" and design-notes.md §7: the mode, saving and removing, the API's message with its error ID, and the announced result;
-  - walk through quickstart V4, steps 2 and 7, in the browser.
-
-### Tests for User Story 3
-
-- [ ] T064 [US3] Write `backend/tests/api/test_webhooks.py`, with a test receiver on `httpx2.MockTransport`:
-  - one `completed` update carrying exactly the configured fields;
-  - status-only updates for `declined`, `verification_failed` and `expired`, with `documents: null`, and none for `pending`;
-  - back-off and `last_error`;
-  - abandonment at the deadline;
-  - a lease prevents a second send;
-  - one request's updates go out in order;
-  - a pull in webhook mode returns `documents: null`.
-
-**Checkpoint**: Webhook mode works on top of the MVP, and the UI offers it (quickstart V4).
-
----
-
-## Phase 7: User Story 4 - Maintain form connections (Priority: P3)
+## Phase 6: User Story 4 - Maintain form connections (Priority: P3)
 
 **Goal**:
 - The overview shows whether each form connection is active.
@@ -618,7 +570,6 @@ This is quickstart V5.
   - `DELETE /api/form-connections/{id}` (`{"data": null, "message": "Form connection deleted"}`).
 - [ ] T067 [US4] Add the cancel step to `backend/app/services/worker.py`:
   - every open request (data-model.md "Open requests") of a deactivated or deleted form connection becomes `unavailable` through `apply_status`;
-  - a request whose `completed` update is leased at that moment is skipped;
   - the deletion step (T054) then removes the EUDIPLO sessions.
 - [ ] T068 [US4] Add the configuration cleanup step to `backend/app/services/worker.py`. It covers revisions that are no longer current, or whose form connection is deleted, on which no request still has an EUDIPLO session. For each, call `delete_config` (a 404 counts as success) and set `eudiplo_config_deleted_at`.
 - [ ] T069 [US4] Add the re-sync step to `backend/app/services/worker.py`, which runs after each start until it has succeeded once (research R2). For every form connection that isn't deleted, it rebuilds the configuration body of the current revision. If the hash differs from `config_hash`, it creates a new revision with the same documents through the T065 revision path.
@@ -642,19 +593,22 @@ This is quickstart V5.
   - concurrent edits get distinct revision numbers;
   - deactivating:
     - the trigger and the pull answer 409;
-    - the cancel step turns `pending` and undelivered `completed` requests into `unavailable`, and queues a webhook update in webhook mode;
+    - the cancel step turns `pending` and undelivered `completed` requests into `unavailable`;
   - reactivating restores the URLs;
   - deleting: 409 on the URLs, and 404 in the management API;
   - configuration cleanup;
   - re-sync after `EUDIPLO_TRUST_LIST_ID` changes.
 
-**Checkpoint**: All four user stories work (quickstart V1–V7).
+**Checkpoint**: User Stories 1, 2 and 4 work (quickstart V1–V3 and V5–V7).
 
 ---
 
-## Phase 8: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & Cross-Cutting Concerns
 
 **Purpose**:
+- **Removing webhook mode (T092)**: the user removed webhook mode on 2026-10-19 (spec
+  Clarifications, Session 2026-10-19). T092 takes out what Phases 2, 3 and 5 built for it, before
+  Phase 6 builds on the worker and the details screen.
 - **Merge gate (T076–T080)**: these tasks run before each change is proposed for merge, from the
   first merge on, because the constitution requires the documentation checklist and the quality
   gates before every merge ("Development Workflow"). Each run covers what exists at that point.
@@ -662,6 +616,15 @@ This is quickstart V5.
 - **Validation (T081–T083)**: the finished feature, with real wallets, real users and the
   deployment.
 
+- [X] T092 Remove webhook mode from the code (spec Clarifications, Session 2026-10-19):
+  - **Migration**: generate a new one in `backend/` with `uv run alembic revision --autogenerate -m "remove webhook mode"` and review it: it drops `webhook_deliveries` with its indexes, `form_connections.webhook_url`, `document_requests.webhook_url` and `document_requests.mode`. `5a6252e936e4_form_connections.py` stays untouched. Then run `uv run alembic upgrade head`;
+  - **Models and schemas**: `WebhookDelivery`, both `webhook_url` columns and `DocumentRequest.mode` in `backend/app/models.py`; `FormConnectionMode`, `mode` and `webhook_url` in `backend/app/schemas.py`;
+  - **Services**: `clean_webhook_url`, its length limit and `mode_of` in `backend/app/services/form_connections.py`; the mode constants in `backend/app/services/document_requests.py`, where a delivered `completed` request's EUDIPLO session is now deleted when the pull repeat window ends, with no webhook branch; the webhook notes in `backend/app/services/worker.py` and `backend/app/routers/form_connections.py`;
+  - **CLI**: `WebhookDelivery` in `clear-connections` in `backend/app/cli.py`;
+  - **Frontend**: `frontend/src/pages/FormConnectionDetail/WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY`; `FormConnectionMode`, `mode` and `webhook_url` in `frontend/src/types/form-connections.ts`. Keep `updateFormConnection` in `frontend/src/api/form-connections.ts` for T073;
+  - **Tests**: the webhook cases in `backend/tests/api/test_form_connections.py`, `backend/tests/api/test_connect.py`, `backend/tests/api/test_worker_requests.py` and `backend/tests/unit/test_cli.py`;
+  - **Docs**: `README.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md` and `backend/.env.example`. `DOCUMENT_RETENTION_SECONDS` is no longer a retry limit, and `ALLOW_PLAIN_HTTP` covers only `CONNECTION_BASE_URL`. Mentions of EUDIPLO's own webhooks stay;
+  - run the gates of T080, including `uv run pytest` against a `_test` database.
 - [ ] T076 [P] Update `README.md`:
   - the middleware's purpose;
   - local setup with `backend/.env` and the account CLI;
@@ -669,7 +632,7 @@ This is quickstart V5.
   - the EUDIPLO prerequisites from contracts/eudiplo-usage.md;
   - each new dependency and why it was added: `httpx2`, `segno`, `argon2-cffi`, `pytest`, `react-router` and the three KERN packages.
 - [ ] T077 [P] Update `docs/ARCHITECTURE.md`:
-  - the system overview, with EUDIPLO, the worker thread and its steps, webhook delivery and the nginx allow-list, as far as they exist;
+  - the system overview, with EUDIPLO, the worker thread and its steps, and the nginx allow-list, as far as they exist;
   - the environment variable tables for the backend and the frontend container;
   - the new repository structure;
   - replace the team-member examples.
@@ -680,7 +643,7 @@ This is quickstart V5.
   - in `frontend/`: `npm run lint` and `npm run build`.
 
   Once `backend/tests/` exists, also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
-- [ ] T081 Run quickstart.md V1–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
+- [ ] T081 Run quickstart.md V1–V3 and V5–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
   - the remaining "Verify at implementation" answers;
   - whether an expired credential fails verification (V3);
   - whether Paradym reports a decline (V3).
@@ -702,8 +665,9 @@ This is quickstart V5.
   - T018 needs the user's EUDIPLO access.
   - T023 needs the user's Figma URL.
   - T084 and T085 follow T023 and T030, after the design changed to V2.
-- **User stories (Phases 3–7)**: depend on Foundational, and on each other as described below.
-- **Polish (Phase 8)**:
+- **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
+- **Polish (Phase 7)**:
+  - T092 follows Phase 5, and runs before Phase 6 (US4).
   - T076–T080 are the merge gate: they run before every merge, from the first one on.
   - T081–T083 depend on the stories that are to be delivered. T081 needs a test wallet, and T083
     needs a Coolify deployment.
@@ -715,25 +679,24 @@ This is quickstart V5.
   - Phase 4 (T087–T090, the first-connection screen) follows Phase 3 and changes only the frontend.
 - **US2 (P1)**: starts after the US1 backend (T031–T037), because a request needs a saved form
   connection and its EUDIPLO configuration. It has no frontend: serviceBW calls the URLs.
-- **US3 (P2)**: starts after US2. It extends `apply_status` and reuses the trigger, the document
-  extraction and the deletion step. T091 renders the webhook card again once T060–T063 deliver
-  updates.
-- **US4 (P3)**: starts after US1. Its worker steps (T067–T069) act on US2's requests and use the
-  US2 deletion step. T067 queues webhook updates only once US3 is in place.
+- **US3**: removed on 2026-10-19 with webhook mode (spec Clarifications, Session 2026-10-19).
+  T092 removes the webhook code that the other stories built.
+- **US4 (P3)**: starts after US1 and T092. Its worker steps (T067–T069) act on US2's requests and
+  use the US2 deletion step.
 
 ### Within Each User Story
 
 - Schemas and models → services → endpoints → worker steps → frontend → tests.
 - Tasks that touch the same file run in order:
   - `backend/app/main.py`: T001, T016, T020, T034, T037, T051, T052;
-  - `backend/app/services/worker.py`: T020, T053–T055, T063, T067–T069;
-  - `backend/app/services/document_requests.py`: T048–T050, T061;
-  - `backend/app/schemas.py`: T016, T032, T045, T060;
-  - `backend/app/models.py`: T010–T013;
-  - `frontend/src/pages/FormConnectionDetail/index.tsx`: T042, T086, then T091 and T074 in either order;
+  - `backend/app/services/worker.py`: T020, T053–T055, T092, T067–T069;
+  - `backend/app/services/document_requests.py`: T048–T050, T092;
+  - `backend/app/schemas.py`: T016, T032, T045, T092;
+  - `backend/app/models.py`: T010–T013, T092;
+  - `frontend/src/pages/FormConnectionDetail/`: T042, T086, T092, T074;
   - `frontend/src/pages/FormConnectionEditor/`: T041, T087, T073;
   - `frontend/src/App.tsx`: T088, T073;
-  - `CLAUDE.md` and `docs/ARCHITECTURE.md`: T090, then the merge-gate runs of T077 and T078.
+  - `CLAUDE.md` and `docs/ARCHITECTURE.md`: T090, T092, then the merge-gate runs of T077 and T078.
 
 ### Parallel Opportunities
 
@@ -747,7 +710,6 @@ This is quickstart V5.
 - **US1**: T031 and T032 together; T038 and T039 together, and alongside the backend tasks; T043 after T033.
 - **US1, first connection (Phase 4)**: T090 alongside T087–T089. The phase changes only the frontend, so it can also run alongside US2's backend tasks.
 - **US2**: T045, T046 and T047 together; T056 (nginx) alongside all backend tasks; T057 alongside T058.
-- **US3**: T091 alongside T064, once T063 is done.
 - **US4**: T070–T073 together, and alongside the backend tasks T065–T069.
 
 ---
@@ -813,11 +775,11 @@ Merge often, at least at the end of each step below, to keep the history light. 
 (T076–T080) before each merge.
 
 1. Setup + Foundational: sign-in and the empty shell.
-2. + US1: form connections and URLs, without the webhook address in the UI.
+2. + US1: form connections and URLs.
 3. + First connection: until a form connection exists, sign-in starts with "Create your first
    connection".
 4. + US2: pull mode end to end. **This is the MVP.**
-5. + US3: webhook mode, with the webhook address back on the details screen.
+5. − Webhook mode (T092): the code built for it is removed, and serviceBW uses pull mode only.
 6. + US4: overview states, editing, deactivation and deletion.
 7. Polish: validation with real wallets, the accessibility review, and the deployment checks.
 
@@ -825,7 +787,7 @@ Merge often, at least at the end of each step below, to keep the history light. 
 
 - After Foundational, developer A takes US1's backend and then US2, while developer B takes US1's
   frontend, the first-connection screen (Phase 4) and then US4's frontend.
-- US3 follows US2, and T091 waits for its delivery (T060–T063). US4's backend follows US1.
+- T092 follows US2 and comes before US4. US4's backend follows US1.
 
 ---
 

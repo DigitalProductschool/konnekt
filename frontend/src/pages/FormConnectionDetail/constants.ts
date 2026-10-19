@@ -25,25 +25,6 @@ export const DETAIL_COPY = {
   resultLinkInfoLabel: 'About the result link',
   resultLinkInfo:
     'Your form management system calls this link with the request’s reference. It answers with the status and, once the applicant has shared it, the data.',
-  // Webhook address, which the design has no frame for
-  webhookTitle: 'Updates by webhook',
-  webhookHint:
-    'Optional. With an address, your form management system gets every update of a request there, including the data, and the result link answers without data.',
-  mode: 'Mode:',
-  modes: { pull: 'Pull', webhook: 'Webhook' },
-  modeHints: {
-    pull: 'Your form management system calls the result link.',
-    webhook: 'Updates go to the webhook address.',
-  },
-  webhookLabel: 'Webhook address',
-  webhookPlaceholder: 'https://',
-  saveWebhook: 'Save address',
-  removeWebhook: 'Remove address',
-  saving: 'Saving…',
-  webhookRequired: 'Enter the webhook address.',
-  webhookSaved: 'Webhook address saved. New requests use webhook mode.',
-  webhookRemoved: 'Webhook address removed. New requests use pull mode.',
-  saveFailed: 'Saving didn’t work. Check your connection and try again.',
   // The configuration summary, which the design has no frame for
   documentsTitle: 'Documents',
   documentsHint: 'Applicants share this data from their EUDI Wallet.',

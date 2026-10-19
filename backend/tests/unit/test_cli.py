@@ -1,7 +1,6 @@
 import builtins
 import getpass
 from collections.abc import Callable
-from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,11 +8,11 @@ from sqlalchemy import func, select
 
 from app.cli import CONNECTION_MODELS, main
 from app.db import SessionLocal
-from app.models import DocumentRequest, LoginSession, UserAccount, WebhookDelivery
+from app.models import DocumentRequest, LoginSession, UserAccount
 from app.services.auth import authenticate, create_login_session
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
-from tests.helpers import create_form_connection, now, stored_request, trigger
+from tests.helpers import create_form_connection, trigger
 
 NEW_PASSWORD = 'another long passphrase'
 
@@ -147,20 +146,8 @@ def _row_counts() -> dict[str, int]:
 
 
 def _add_connection_rows(client: TestClient) -> None:
-    """A form connection with a request and a webhook update for it."""
-    form_connection_id = create_form_connection(client)
-    request_id = stored_request(trigger(client, form_connection_id)['reference']).id
-    with SessionLocal() as db:
-        db.add(
-            WebhookDelivery(
-                document_request_id=request_id,
-                status='expired',
-                occurred_at=now(),
-                next_attempt_at=now(),
-                deadline_at=now() + timedelta(minutes=30),
-            )
-        )
-        db.commit()
+    """A form connection with a request for it."""
+    trigger(client, create_form_connection(client))
 
 
 def test_clear_connections_keeps_the_accounts(

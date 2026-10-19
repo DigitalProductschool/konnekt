@@ -26,15 +26,15 @@ mirror the Pydantic schemas in `backend/app/schemas.py` by hand — when you
 change one, change the other.
 
 This repository is being turned into the serviceBW ↔ EUDI Wallet middleware. Its
-target architecture, with form connections, document requests, webhook updates
-and an nginx allow-list, is in
+target architecture, with form connections, document requests and an nginx
+allow-list, is in
 [the plan](../specs/001-servicebw-eudi-middleware/plan.md). This document
 describes what is implemented so far: the data model, DO.IT sign-in, form
-connections with their EUDIPLO configurations, serviceBW's trigger and pull URLs
-(pull mode), the worker steps for document requests, the nginx allow-list for
-the connection URLs, and the management UI. Webhook mode and maintaining form
-connections (deactivate, delete, edit the documents) follow with later user
-stories.
+connections with their EUDIPLO configurations, serviceBW's trigger and pull URLs,
+the worker steps for document requests, the nginx allow-list for the connection
+URLs, and the management UI. Maintaining form connections (deactivate, delete,
+edit the documents) follows with a later user story. serviceBW gets results only
+by pulling: webhook mode was dropped from the scope on 2026-10-19.
 
 ### Data Flow
 
@@ -256,12 +256,12 @@ Implemented steps, in the order of research R7 in the spec folder:
    `404` counts as deleted; another failure is tried again in the next cycle.
 4. **Delete expired sign-in sessions.**
 5. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
-   ended, with their webhook updates.
+   ended.
 
-Cancelling the requests of deactivated form connections, sending webhook updates
-and maintaining EUDIPLO configurations follow with later user stories. The
-production image runs one uvicorn process, so there is one worker thread; row
-locks and leases keep the steps correct if that changes.
+Cancelling the requests of deactivated form connections and maintaining EUDIPLO
+configurations follow with a later user story. The production image runs one
+uvicorn process, so there is one worker thread; row locks keep the steps correct
+if that changes.
 
 ### serviceBW's connection URLs
 
@@ -274,8 +274,8 @@ locks and leases keep the steps correct if that changes.
   answers with the same-device wallet link, a QR code of the link for another
   device (`segno`, PNG data URI), an unguessable reference and the expiry time.
   EUDIPLO knows the request only by its internal id.
-- **Pull**, `GET /api/connect/{id}/requests/{reference}`: the status and, in pull
-  mode, the documents, reduced to exactly the configured fields
+- **Pull**, `GET /api/connect/{id}/requests/{reference}`: the status and, once the
+  request is completed, the documents, reduced to exactly the configured fields
   (`services/documents.py`). They are read from EUDIPLO at the time of the pull and
   never stored. The first pull that returns them counts as the delivery, and pulls
   within the next 60 seconds get them again. A pending request past its expiry gets
@@ -402,10 +402,10 @@ declared there is ignored (`extra='ignore'`).
 | `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | API client with `presentation:request` + `presentation:manage`, no allow-list | empty (`503`) |
 | `EUDIPLO_TRUST_LIST_ID` | Trust list used for issuer trust in every credential query | empty (saving a form connection answers `503`) |
 | `REQUEST_LIFETIME_SECONDS` | Expiry of a document request | `600` |
-| `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO; webhook retry limit | `1800` |
+| `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO | `1800` |
 | `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents | `60` |
 | `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended | `604800` |
-| `ALLOW_PLAIN_HTTP` | Allows `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
+| `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
 

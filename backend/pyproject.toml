@@ -21,7 +21,7 @@ dependencies = [
     # Sign-in: Argon2id password hashes
     "argon2-cffi>=25.1.0",
 
-    # Sync HTTP client for EUDIPLO and webhook updates; TestClient needs it too
+    # Sync HTTP client for EUDIPLO; TestClient needs it too
     "httpx2>=2.12.0",
 
     # QR codes of the wallet links, as PNG without Pillow

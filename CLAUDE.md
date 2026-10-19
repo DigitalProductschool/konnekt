@@ -325,7 +325,7 @@ Key points:
 | `uv run pytest` | Run the tests; `DATABASE_URL` must name a database ending in `_test`, which they empty |
 | `uv run python -m app.cli create-user <name>` | Create a sign-in account (also `set-password`, `delete-user`) |
 | `uv run python -m scripts.issue_test_credentials` | Issue a test PID and driving licence with random data to a test wallet (README, "Test credentials for a test wallet") |
-| `uv run python -m app.cli clear-connections` | Delete every form connection with its revisions, requests and webhook updates; the sign-in accounts stay (`--yes` skips the prompt) |
+| `uv run python -m app.cli clear-connections` | Delete every form connection with its revisions and requests; the sign-in accounts stay (`--yes` skips the prompt) |
 | `uv run pre-commit install` | Install the repo's git hooks |
 | `uv run pre-commit run --all-files` | Run every hook against the whole repo |
 | `uv lock --upgrade` | Refresh `uv.lock` to the newest allowed versions |
@@ -520,7 +520,7 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
   messages (use `describe_error()` from `app/errors.py`)
 - Put a setting's name, a component's internals or an exception's text into an
   error answer — log them with `log_server_error()` and answer with its `error_id`
-- Hold a database transaction open while waiting for EUDIPLO or a webhook address
+- Hold a database transaction open while waiting for EUDIPLO
 - Ignore type hints (mypy should pass)
 - Declare a dependency in `pyproject.toml` that the code does not import
 
