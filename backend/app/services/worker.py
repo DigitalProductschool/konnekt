@@ -240,9 +240,8 @@ def delete_expired_login_sessions() -> None:
 def delete_old_request_records() -> None:
     """Delete the records of requests that ended long enough ago (R7, step 9).
 
-    A record goes REQUEST_RECORD_RETENTION_SECONDS after its request ended (FR-021),
-    and its webhook updates with it (`ON DELETE CASCADE`). A pull with its reference
-    then answers 404, like one with an unknown reference.
+    A record goes REQUEST_RECORD_RETENTION_SECONDS after its request ended (FR-021).
+    A pull with its reference then answers 404, like one with an unknown reference.
     """
     cutoff = datetime.now(tz=timezone.utc) - timedelta(
         seconds=settings.request_record_retention_seconds
@@ -252,8 +251,8 @@ def delete_old_request_records() -> None:
         db.commit()
 
 
-# The steps of one cycle, in the order of research R7. Cancelling requests, sending
-# webhook updates and maintaining configurations come with User Stories 3 and 4
+# The steps of one cycle, in the order of research R7. Cancelling requests and
+# maintaining configurations come with User Story 4
 STEPS: tuple[Step, ...] = (
     sync_sessions,
     expire_requests,

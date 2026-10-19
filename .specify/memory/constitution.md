@@ -1,27 +1,27 @@
 <!--
 Sync Impact Report
-Version change: (unversioned template scaffold) → 1.0.0
-Rationale: Initial ratification. All placeholder tokens replaced with concrete,
-project-specific governance derived from CLAUDE.md, README.md, and docs/ARCHITECTURE.md.
+Version change: 1.0.0 → 1.0.1
+Rationale: PATCH. Two statements of fact had gone out of date, and no principle
+changes: the frontend builds with Vite 8 (frontend/package.json has ^8.2.2), and
+backend/tests/ now holds a pytest suite.
 
-Modified principles:
-- [PRINCIPLE_1_NAME] → I. Contract Parity at the API Seam
-- [PRINCIPLE_2_NAME] → II. Synchronous Persistence Layer (NON-NEGOTIABLE)
-- [PRINCIPLE_3_NAME] → III. Automated Quality Gates
-- [PRINCIPLE_4_NAME] → IV. Declared, Reproducible Dependencies and Config
-- [PRINCIPLE_5_NAME] → V. Reviewed Schema Evolution
+Modified principles: none
 
-Added sections:
-- Technology and Structure Constraints (was [SECTION_2_NAME])
-- Development Workflow and Quality Gates (was [SECTION_3_NAME])
-- Governance (filled)
+Modified sections:
+- Technology and Structure Constraints: Vite 7 → Vite 8
+- Follow-up TODOs: TODO(TEST_STRATEGY) describes the existing pytest suite
 
+Added sections: none
 Removed sections: none
 
+Templates requiring updates: none. .specify/templates/ names neither the Vite version
+nor the test suite. CLAUDE.md, README.md and docs/ARCHITECTURE.md name Vite 8 in the
+same change.
+
 Follow-up TODOs:
-- TODO(TEST_STRATEGY): No automated test suite exists yet. backend/pyproject.toml
-  configures pytest with testpaths = ["tests"], but backend/tests/ is absent and the
-  frontend has no test runner. A future amendment MUST define the testing standard
+- TODO(TEST_STRATEGY): backend/tests/ holds a pytest suite (unit tests, and API tests
+  against a database whose name ends in _test), configured in backend/pyproject.toml.
+  The frontend has no test runner. A future amendment MUST define the testing standard
   (framework, coverage expectation, whether tests are a merge gate) once the team
   decides it. Until then, quality gates are lint, format, and type checks only.
 -->
@@ -126,7 +126,7 @@ already applied splits the schema between developers with no error to point at i
 
 ## Technology and Structure Constraints
 
-The stack is fixed for this template: React 19 + Vite 7 + TypeScript + Tailwind CSS 4
+The stack is fixed for this template: React 19 + Vite 8 + TypeScript + Tailwind CSS 4
 on the frontend; FastAPI on Python 3.13+ with SQLAlchemy 2, Alembic, psycopg 3, and
 Pydantic 2 on the backend; PostgreSQL 18. Node tooling is scoped to `frontend/` — a
 root `package.json` MUST NOT be introduced. Swapping any element of the stack requires
@@ -203,4 +203,4 @@ complexity, and only for principles not marked NON-NEGOTIABLE.
 contributors alike; it MUST remain consistent with this constitution, and this
 constitution is the authority when they diverge.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-09-02
+**Version**: 1.0.1 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-10-19

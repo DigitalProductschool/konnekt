@@ -1,15 +1,13 @@
 """Form connections: validation, creation, reading and changes (FR-001 to FR-005).
 
 Creating a form connection stores revision 1 and creates its EUDIPLO presentation
-configuration (data-model.md, "Creating a revision"). Changing the name, the
-serviceBW form or the webhook address creates no revision. EUDIPLO errors reach the
-caller as `EudiploError`; nothing is saved then.
+configuration (data-model.md, "Creating a revision"). Changing the name or the
+serviceBW form creates no revision. EUDIPLO errors reach the caller as
+`EudiploError`; nothing is saved then.
 """
 
 import logging
-import re
 import uuid
-from urllib.parse import urlsplit
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -23,7 +21,6 @@ from ..models import FormConnection, FormConnectionRevision
 from ..schemas import (
     DocumentField,
     FormConnectionCreate,
-    FormConnectionMode,
     FormConnectionSummary,
     FormConnectionUpdate,
     RequestedDocument,
@@ -38,8 +35,6 @@ logger = logging.getLogger(__name__)
 
 NAME_MAX_LENGTH = 200
 SERVICEBW_FORM_MAX_LENGTH = 500
-WEBHOOK_URL_MAX_LENGTH = 2000
-_WHITESPACE = re.compile(r'\s')
 
 NOT_FOUND = {'error': 'Not found', 'message': 'Form connection not found'}
 
@@ -125,41 +120,7 @@ def clean_documents(documents: list[RequestedDocument]) -> list[RequestedDocumen
     return [selected[type_.key] for type_ in DOCUMENT_TYPES if type_.key in selected]
 
 
-def clean_webhook_url(value: str | None) -> str | None:
-    """Check a webhook address; a blank one means none, so pull mode (FR-014).
-
-    It must be an absolute https:// URL, or http:// with ALLOW_PLAIN_HTTP (FR-019).
-    """
-    url = (value or '').strip()
-    if not url:
-        return None
-    if len(url) > WEBHOOK_URL_MAX_LENGTH:
-        raise _validation_error(
-            f'The webhook address can have at most {WEBHOOK_URL_MAX_LENGTH} characters.'
-        )
-    if settings.allow_plain_http:
-        schemes = {'https', 'http'}
-        message = 'The webhook address must be an https:// or http:// URL.'
-    else:
-        schemes = {'https'}
-        message = 'The webhook address must be an https:// URL.'
-    try:
-        parts = urlsplit(url)
-        # Reading the port checks it
-        parts.port
-    except ValueError:
-        raise _validation_error(message) from None
-    if parts.scheme not in schemes or not parts.hostname or _WHITESPACE.search(url):
-        raise _validation_error(message)
-    return url
-
-
 # Views
-
-
-def mode_of(form_connection: FormConnection) -> FormConnectionMode:
-    """Webhook mode with a webhook address, otherwise pull mode."""
-    return 'webhook' if form_connection.webhook_url else 'pull'
 
 
 def trigger_url_of(form_connection_id: str) -> str:
@@ -194,8 +155,6 @@ def _view(
         name=form_connection.name,
         servicebw_form=form_connection.servicebw_form,
         is_active=form_connection.is_active,
-        mode=mode_of(form_connection),
-        webhook_url=form_connection.webhook_url,
         documents=_documents_view(documents),
         trigger_url=trigger_url,
         # serviceBW puts the request reference in place of the placeholder
@@ -211,7 +170,6 @@ def _summary(form_connection: FormConnection) -> FormConnectionSummary:
         name=form_connection.name,
         servicebw_form=form_connection.servicebw_form,
         is_active=form_connection.is_active,
-        mode=mode_of(form_connection),
         updated_at=to_iso_utc(form_connection.updated_at),
     )
 
@@ -285,7 +243,6 @@ def create_form_connection(
     name = clean_name(data.name)
     servicebw_form = clean_servicebw_form(data.servicebw_form)
     documents = clean_documents(data.documents)
-    webhook_url = clean_webhook_url(data.webhook_url)
 
     form_connection_id = str(uuid.uuid4())
     lifetime_seconds = settings.request_lifetime_seconds
@@ -306,7 +263,6 @@ def create_form_connection(
         name=name,
         servicebw_form=servicebw_form,
         is_active=True,
-        webhook_url=webhook_url,
         current_revision=1,
     )
     try:
@@ -338,11 +294,10 @@ def create_form_connection(
 def update_form_connection(
     db: Session, form_connection_id: str, data: FormConnectionUpdate
 ) -> FormConnectionView:
-    """Change the name, the serviceBW form or the webhook address.
+    """Change the name or the serviceBW form.
 
-    An absent field stays unchanged, and `webhook_url: null` removes the address,
-    which switches new requests to pull mode. None of these creates a revision.
-    Deactivated form connections can be changed too.
+    An absent field stays unchanged. Neither change creates a revision. Deactivated
+    form connections can be changed too.
     """
     form_connection = find_form_connection(db, form_connection_id)
     changed = data.model_fields_set
@@ -350,13 +305,11 @@ def update_form_connection(
         # New revisions for changed documents come with User Story 4 (T065)
         raise _validation_error('Changing the documents is not supported yet.')
 
-    values: dict[str, str | None] = {}
+    values: dict[str, str] = {}
     if 'name' in changed:
         values['name'] = clean_name(data.name)
     if 'servicebw_form' in changed:
         values['servicebw_form'] = clean_servicebw_form(data.servicebw_form)
-    if 'webhook_url' in changed:
-        values['webhook_url'] = clean_webhook_url(data.webhook_url)
     for attribute, value in values.items():
         setattr(form_connection, attribute, value)
     db.commit()

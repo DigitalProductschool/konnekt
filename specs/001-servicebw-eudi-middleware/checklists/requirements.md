@@ -36,15 +36,15 @@
 - Iteration 3 (2026-10-07): The spec was restructured after the user's review, recorded under
   Clarifications, Session 2026-10-07:
   - Two connection modes, pull and webhook, sharing one trigger URL, replace the earlier
-    integration options.
+    integration options. (2026-10-19: webhook mode removed)
   - Custom logic was removed. It appears only as an out-of-scope line for a later iteration.
   - Assumptions about fields used only by rules and about mandatory documents were removed.
   - Features nobody asked for were removed.
 - Iteration 4 (2026-10-07): Both clarifications were resolved.
   - FR-014: DO.IT enters the webhook address in the middleware UI, and a form connection with a
-    webhook address uses webhook mode.
+    webhook address uses webhook mode. (2026-10-19: webhook mode removed)
   - FR-015: the "completed" update carries the documents, which are delivered only to the
-    webhook address.
+    webhook address. (2026-10-19: webhook mode removed)
   - The wallet returning all documents or none was added as an assumption.
   - Final scans: no clarification markers, template placeholders, implementation terms or vague
     wording. Every scenario has Given/When/Then (5, 8, 5 and 5 per story). FR-001 to FR-020 and
@@ -57,12 +57,13 @@
   - FR-017: access to the connection URLs is restricted by the network, not by credentials.
   - FR-016: proof of sender for webhook updates is out of scope. US3's sender-confirmation
     scenario was removed, and the new "Restricted network" assumption covers both directions.
+    (2026-10-19: webhook mode removed)
   - Re-check: still no clarification markers. Scenarios per story are now 5, 8, 4 and 5, and every
     cross-reference still resolves. All items still pass.
 - Iteration 6 (2026-10-07, during `/speckit-plan` review): FR-018 now says what "delivered only
   once" means for webhooks, following the user's answer recorded under Clarifications: documents
   can't be obtained again after a confirmed delivery, and an update whose confirmation was lost
-  may be repeated. All items still pass.
+  may be repeated. All items still pass. (2026-10-19: webhook mode removed)
 - Iteration 7 (2026-10-07, `/speckit-clarify` and follow-up): Five answers were recorded under
   Clarifications:
   - serviceBW waits for a final status;
@@ -76,7 +77,7 @@
   - FR-005: what "configuration" includes;
   - FR-006: what "in progress" means, and "unavailable" for every call;
   - FR-011: what "unavailable" means;
-  - FR-016: retry limits for each kind of update;
+  - FR-016: retry limits for each kind of update (2026-10-19: webhook mode removed);
   - FR-020 and SC-006: they also cover the service used to talk to wallets;
   - the edge case about a cancel that the wallet doesn't report.
 
@@ -107,3 +108,13 @@
 
   Re-check: no markers, no implementation terms, and the numbering is unchanged. All items still
   pass.
+- Iteration 10 (2026-10-19): Webhook mode was removed at the user's request, recorded under
+  Clarifications, Session 2026-10-19. User Story 3 and FR-014 to FR-016 are left as one-line
+  removal notes, so the numbering and the cross-references of the other requirements stay
+  unchanged. FR-001, FR-004, FR-005, FR-018, FR-020, SC-004, the edge cases, the key entities and
+  the assumptions no longer mention a webhook address or a connection mode, and webhook mode is
+  listed as out of scope. Re-check: no markers, and every cross-reference resolves. All items
+  still pass.
+- Iteration 11 (2026-10-19): FR-007 and FR-017 were reworded after `/speckit-analyze`. "Only X
+  MUST be able to…" could be read as "only X is required to…"; both now say "MUST NOT … anyone
+  but". The meaning is unchanged. All items still pass.

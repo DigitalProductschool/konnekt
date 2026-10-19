@@ -64,7 +64,7 @@ def update_form_connection(
     data: FormConnectionUpdate,
     db: Session = Depends(get_db),
 ) -> ApiResponse[FormConnection]:
-    """Change a form connection's name, serviceBW form or webhook address.
+    """Change a form connection's name or serviceBW form.
 
     The connection URLs never change.
     """

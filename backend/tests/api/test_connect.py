@@ -141,8 +141,6 @@ def test_the_request_is_stored_with_its_eudiplo_session(
     assert request.form_connection_id == form_connection_id
     assert request.revision_id == revision.id
     assert request.status == 'pending'
-    assert request.mode == 'pull'
-    assert request.webhook_url is None
     assert request.eudiplo_session_id == session.id
     assert request.expires_at == datetime.fromisoformat(data['expires_at'])
     assert request.ended_at is None
@@ -192,23 +190,6 @@ def test_the_connection_urls_need_no_sign_in(
     assert (
         _pull(client, form_connection_id, started['reference'])['status'] == 'pending'
     )
-
-
-def test_a_request_in_webhook_mode_keeps_the_address_it_was_triggered_with(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    form_connection_id = create_form_connection(
-        signed_in_client, webhook_url='https://servicebw.test/hooks/fc-1'
-    )
-
-    started = trigger(signed_in_client, form_connection_id)
-    signed_in_client.put(
-        f'/api/form-connections/{form_connection_id}', json={'webhook_url': None}
-    )
-
-    request = stored_request(started['reference'])
-    assert request.mode == 'webhook'
-    assert request.webhook_url == 'https://servicebw.test/hooks/fc-1'
 
 
 def test_an_unknown_form_connection_is_not_found(
@@ -520,23 +501,6 @@ def test_the_deletion_time_also_ends_the_repeat_window(
     data = _pull(signed_in_client, form_connection_id, started['reference'])
 
     assert data['documents'] is None
-
-
-def test_webhook_mode_never_delivers_documents_to_a_pull(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    form_connection_id = create_form_connection(
-        signed_in_client, webhook_url='https://servicebw.test/hooks/fc-1'
-    )
-    started = _completed(signed_in_client, fake_eudiplo, form_connection_id)
-
-    data = _pull(signed_in_client, form_connection_id, started['reference'])
-
-    assert data['status'] == 'completed'
-    assert data['documents'] is None
-    request = stored_request(started['reference'])
-    assert request.documents_delivered_at is None
-    assert request.ended_at is None
 
 
 def test_documents_deleted_in_eudiplo_are_gone(

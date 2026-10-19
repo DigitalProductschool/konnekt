@@ -11,7 +11,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
+- **Frontend**: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
@@ -164,8 +164,8 @@ The sign-in screen's "Forgot password?" page asks team members to contact an adm
 who sets a new password with `set-password`.
 
 To start over without losing the accounts, `clear-connections` deletes every form connection
-with its revisions, requests and webhook updates. It shows the row counts and asks before
-deleting (`--yes` skips the question):
+with its revisions and requests. It shows the row counts and asks before deleting (`--yes`
+skips the question):
 
 ```bash
 docker compose exec backend uv run python -m app.cli clear-connections
@@ -397,10 +397,10 @@ The middleware's own settings:
 | `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | The middleware's EUDIPLO API client (see [EUDIPLO](#eudiplo)) | empty: `503` likewise |
 | `EUDIPLO_TRUST_LIST_ID` | Trust list that every credential query uses to check the issuers | empty: saving a form connection answers `503` |
 | `REQUEST_LIFETIME_SECONDS` | Expiry of a document request | `600` |
-| `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO, and the webhook retry limit | `1800` |
+| `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO | `1800` |
 | `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery | `60` |
 | `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended | `604800` (7 days) |
-| `ALLOW_PLAIN_HTTP` | Allows `http://` for webhook addresses, and for `CONNECTION_BASE_URL` outside development. Only for a closed network | `false` |
+| `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development. Only for a closed network | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread (the tests switch it off) | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
 

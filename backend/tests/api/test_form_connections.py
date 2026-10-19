@@ -109,8 +109,6 @@ def test_creating_returns_the_form_connection_with_its_urls(
         'name': 'Führerscheinantrag Test',
         'servicebw_form': 'FS-20417',
         'is_active': True,
-        'mode': 'pull',
-        'webhook_url': None,
         # Fields in catalog order: expiry_date comes before document_number
         'documents': [PID_VIEW, MDL_VIEW],
         'trigger_url': trigger_url,
@@ -182,30 +180,10 @@ def test_texts_are_trimmed(
         signed_in_client,
         name='  Führerscheinantrag Test ',
         servicebw_form=' FS-20417\n',
-        webhook_url='  https://servicebw.example/hook ',
     )
 
     assert data['name'] == 'Führerscheinantrag Test'
     assert data['servicebw_form'] == 'FS-20417'
-    assert data['webhook_url'] == 'https://servicebw.example/hook'
-
-
-def test_creating_with_a_webhook_address_uses_webhook_mode(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    data = _create(signed_in_client, webhook_url='https://servicebw.example/hook')
-
-    assert data['mode'] == 'webhook'
-    assert data['webhook_url'] == 'https://servicebw.example/hook'
-
-
-def test_a_blank_webhook_address_means_pull_mode(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    data = _create(signed_in_client, webhook_url='  ')
-
-    assert data['mode'] == 'pull'
-    assert data['webhook_url'] is None
 
 
 PID = 'pid'
@@ -262,27 +240,6 @@ FAMILY_NAME = ['family_name']
             {'servicebw_form': 'x' * 501},
             'The form ID can have at most 500 characters.',
         ),
-        (
-            {'webhook_url': 'http://servicebw.example/hook'},
-            'The webhook address must be an https:// URL.',
-        ),
-        (
-            {'webhook_url': 'servicebw.example/hook'},
-            'The webhook address must be an https:// URL.',
-        ),
-        ({'webhook_url': 'https://'}, 'The webhook address must be an https:// URL.'),
-        (
-            {'webhook_url': 'https://servicebw example/hook'},
-            'The webhook address must be an https:// URL.',
-        ),
-        (
-            {'webhook_url': 'https://servicebw.example:port/hook'},
-            'The webhook address must be an https:// URL.',
-        ),
-        (
-            {'webhook_url': 'https://servicebw.example/' + 'x' * 2000},
-            'The webhook address can have at most 2000 characters.',
-        ),
     ],
 )
 def test_creating_refuses_invalid_input_with_a_message_that_names_the_problem(
@@ -311,26 +268,6 @@ def test_the_first_problem_in_form_order_is_reported(
 
     assert response.status_code == 400
     assert response.json()['message'] == 'Enter a name.'
-
-
-def test_plain_http_webhook_addresses_need_allow_plain_http(
-    signed_in_client: TestClient,
-    fake_eudiplo: FakeEudiplo,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(settings, 'allow_plain_http', True)
-
-    data = _create(signed_in_client, webhook_url='http://servicebw.internal/hook')
-    refused = signed_in_client.post(
-        '/api/form-connections',
-        json=NEW_FORM_CONNECTION | {'webhook_url': 'ftp://servicebw.internal/hook'},
-    )
-
-    assert data['webhook_url'] == 'http://servicebw.internal/hook'
-    assert refused.status_code == 400
-    assert refused.json()['message'] == (
-        'The webhook address must be an https:// or http:// URL.'
-    )
 
 
 def test_a_payload_of_the_wrong_shape_is_refused(
@@ -466,7 +403,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
     first = _create(signed_in_client, name='First')
-    second = _create(signed_in_client, name='Second', webhook_url='https://x.example')
+    second = _create(signed_in_client, name='Second')
     deleted = _create(signed_in_client, name='Deleted')
     _delete(deleted['id'])
 
@@ -479,7 +416,6 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'name': 'Second',
             'servicebw_form': 'FS-20417',
             'is_active': True,
-            'mode': 'webhook',
             'updated_at': second['updated_at'],
         },
         {
@@ -487,7 +423,6 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'name': 'First',
             'servicebw_form': 'FS-20417',
             'is_active': True,
-            'mode': 'pull',
             'updated_at': first['updated_at'],
         },
     ]
@@ -520,36 +455,11 @@ def test_an_empty_list(signed_in_client: TestClient) -> None:
 # Updating
 
 
-def test_a_webhook_address_switches_to_webhook_mode_and_null_removes_it(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
-) -> None:
-    created = _create(signed_in_client)
-    path = f'/api/form-connections/{created["id"]}'
-    calls_before = len(fake_eudiplo.calls)
-
-    entered = signed_in_client.put(
-        path, json={'webhook_url': 'https://servicebw.example/hook'}
-    )
-    removed = signed_in_client.put(path, json={'webhook_url': None})
-
-    assert entered.status_code == removed.status_code == 200
-    assert entered.json()['message'] == 'Form connection updated'
-    assert entered.json()['data']['mode'] == 'webhook'
-    assert entered.json()['data']['webhook_url'] == 'https://servicebw.example/hook'
-    assert removed.json()['data']['mode'] == 'pull'
-    assert removed.json()['data']['webhook_url'] is None
-    for response in (entered, removed):
-        assert response.json()['data']['trigger_url'] == created['trigger_url']
-        assert response.json()['data']['pull_url'] == created['pull_url']
-    # No new revision, and EUDIPLO isn't called
-    assert len(_revisions(created['id'])) == 1
-    assert len(fake_eudiplo.calls) == calls_before
-
-
 def test_renaming_changes_only_what_is_sent_and_creates_no_revision(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
-    created = _create(signed_in_client, webhook_url='https://servicebw.example/hook')
+    created = _create(signed_in_client)
+    calls_before = len(fake_eudiplo.calls)
 
     response = signed_in_client.put(
         f'/api/form-connections/{created["id"]}',
@@ -557,12 +467,16 @@ def test_renaming_changes_only_what_is_sent_and_creates_no_revision(
     )
 
     assert response.status_code == 200
+    assert response.json()['message'] == 'Form connection updated'
     data = response.json()['data']
     assert data['name'] == 'Renamed'
     assert data['servicebw_form'] == 'FS-1'
-    assert data['webhook_url'] == 'https://servicebw.example/hook'
     assert data['documents'] == created['documents']
+    assert data['trigger_url'] == created['trigger_url']
+    assert data['pull_url'] == created['pull_url']
+    # No new revision, and EUDIPLO isn't called
     assert len(_revisions(created['id'])) == 1
+    assert len(fake_eudiplo.calls) == calls_before
 
 
 def test_an_empty_update_changes_nothing(
@@ -582,10 +496,6 @@ def test_an_empty_update_changes_nothing(
         ({'name': ''}, 'Enter a name.'),
         ({'name': None}, 'Enter a name.'),
         ({'servicebw_form': '  '}, 'Enter the form ID.'),
-        (
-            {'webhook_url': 'http://servicebw.example/hook'},
-            'The webhook address must be an https:// URL.',
-        ),
     ],
 )
 def test_updating_applies_the_same_validation(
@@ -604,23 +514,6 @@ def test_updating_applies_the_same_validation(
     assert response.json() == {'error': 'Validation error', 'message': message}
     unchanged = signed_in_client.get(f'/api/form-connections/{created["id"]}')
     assert unchanged.json()['data'] == created
-
-
-def test_plain_http_webhook_addresses_can_be_saved_with_allow_plain_http(
-    signed_in_client: TestClient,
-    fake_eudiplo: FakeEudiplo,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    created = _create(signed_in_client)
-    monkeypatch.setattr(settings, 'allow_plain_http', True)
-
-    response = signed_in_client.put(
-        f'/api/form-connections/{created["id"]}',
-        json={'webhook_url': 'http://servicebw.internal/hook'},
-    )
-
-    assert response.status_code == 200
-    assert response.json()['data']['mode'] == 'webhook'
 
 
 def test_changing_the_documents_is_refused_for_now(

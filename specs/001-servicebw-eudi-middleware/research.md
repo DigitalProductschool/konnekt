@@ -17,7 +17,8 @@ Decisions marked **(user)** were made by the user on 2026-10-07 and 2026-10-08. 
 what the feature does are also recorded in the spec's Clarifications section:
 - personal accounts;
 - network restriction;
-- no authentication for webhook updates, and repeated webhook updates;
+- no authentication for webhook updates, and repeated webhook updates (moot since webhook mode
+  was removed on 2026-10-19);
 - serviceBW waits for a final status;
 - a 60-second repeat window for pulls;
 - the accepted risk of a forwarded link, with serviceBW checking the applicant;
@@ -27,7 +28,8 @@ what the feature does are also recorded in the spec's Clarifications section:
   accepted delay of deletions during outages, who manages accounts, the later save winning, no
   availability target, and DO.IT owning the open points before real citizens use the service;
 - on 2026-10-11: the UI offers the webhook address only once webhook updates are delivered, and
-  signing in opens a first-connection screen while no form connection exists (R16).
+  signing in opens a first-connection screen while no form connection exists (R16);
+- on 2026-10-19: webhook mode is removed, which supersedes the webhook decisions above (R10).
 
 The technical ones are recorded only here: the hosted EUDIPLO, the nginx allow-list, the shared
 EUDIPLO tenant, and the open questions about serviceBW.
@@ -43,14 +45,14 @@ EUDIPLO tenant, and the open questions about serviceBW.
 | How EUDIPLO results become the spec's request statuses | R5 |
 | How the middleware learns that a citizen has shared | R6, R7 |
 | How the 30-minute limit on documents and the 7-day limit on request records are met | R8 (user: 7 days) |
-| Pull-mode and webhook-mode delivery, including "delivered only once" | R9, R10 (user) |
+| Delivery through the pull URL, including "delivered only once" | R9 (user); webhook mode was removed on 2026-10-19 (R10) |
 | Wallet link and QR code | R11 |
 | Connection URLs and the "unavailable" answer | R12 |
 | Restricting serviceBW access (FR-017) | R13 (user) |
 | DO.IT sign-in (FR-007) | R14 (user) |
 | HTTP client, frontend libraries, tests, settings | R15–R18 |
 | Accessibility of the management UI (SC-009) | R16 (user: WCAG 2.1 AA) |
-| Where sign-in leads while no form connection exists (FR-022), and when the UI offers the webhook address (FR-014) | R16 (user, 2026-10-11) |
+| Where sign-in leads while no form connection exists (FR-022) | R16 (user, 2026-10-11) |
 | What serviceBW can actually do | R20 (user: to be confirmed by DO.IT) |
 
 No open point blocks the plan. R19 lists the points that still need a decision from someone else
@@ -388,31 +390,27 @@ when `WORKER_ENABLED` is true, and stops it on shutdown.
      `expired`. There is no extra wait, so an answer that EUDIPLO is still verifying at the
      deadline is lost (spec Clarifications, Session 2026-10-08).
   3. **Cancel**: every open request of a deactivated or deleted form connection becomes
-     `unavailable` (R9). Requests whose `completed` update is being sent at that moment are
-     skipped.
-  4. **Send** due webhook updates (R10).
+     `unavailable` (R9). Deactivating and deleting already do this themselves, so the step only
+     catches a request that a trigger inserted after the deactivation was committed.
+  4. *Removed on 2026-10-19*: sending webhook updates (R10). The other steps keep their numbers.
   5. **Delete** EUDIPLO sessions that are due for deletion (R8).
   6. **Re-sync** configurations (R2). This step runs until it has succeeded once after each start.
   7. **Delete** the EUDIPLO configurations of revisions that are no longer current, once no request
      on them still has an EUDIPLO session.
   8. **Delete** expired sign-in sessions.
-  9. **Delete** request records, with their webhook updates, `REQUEST_RECORD_RETENTION_SECONDS`
-     (7 days) after the request ended (FR-021, R8).
-- **Status changes**: every status change, whether from sync, expiry, cancel, pull or a webhook
-  acknowledgement, locks the request row with `SELECT … FOR UPDATE`. It then checks the current
+  9. **Delete** request records `REQUEST_RECORD_RETENTION_SECONDS` (7 days) after the request
+     ended (FR-021, R8).
+- **Status changes**: every status change, whether from sync, expiry, cancel or pull, locks the request row with `SELECT … FOR UPDATE`. It then checks the current
   status again before changing it. Of two competing changes, only the first one takes effect.
-- **Outbound calls**: calls to EUDIPLO and to webhook addresses, other than the sync list call, run
-  in a small bounded thread pool, and the loop never waits for them.
-  - **Webhook updates**: claimed with a lease. A `claimed_until` column is committed before
-    sending, and other workers skip claimed rows.
+- **Outbound calls**: calls to EUDIPLO, other than the sync list call, run in a small bounded
+  thread pool, and the loop never waits for them.
   - **EUDIPLO deletions**: idempotent, because a `404` counts as success.
-  - The effect: an unreachable webhook address or a slow EUDIPLO call can't delay the sync for
-    other requests (SC-004, SC-007).
+  - The effect: a slow EUDIPLO call can't delay the sync for other requests (SC-004, SC-007).
 - **Errors**: an exception in one step is logged without personal data, and the loop continues.
 
 **Rationale**: The production `Dockerfile` runs a single uvicorn process, so one in-process thread
 needs no new service, image or broker. It satisfies Constitution II, because the worker uses the
-same sync `Session`. Row locks and leases keep it correct if more processes are ever added. Tests
+same sync `Session`. Row locks keep it correct if more processes are ever added. Tests
 switch the thread off and call each step directly.
 
 **Alternatives considered**:
@@ -427,15 +425,14 @@ switch the thread off and call each step directly.
 files.
 
 - **Where the documents stay**: shared documents remain in the EUDIPLO session.
-- **When they are held**: the middleware holds them in memory only while delivering them, in a
-  pull response or a webhook update. At that point it reduces them to exactly the configured fields
+- **When they are held**: the middleware holds them in memory only while delivering them in a
+  pull response. At that point it reduces them to exactly the configured fields
   (R9).
 - **Status reads**: a status read that has to fall back to `GET /api/session/{id}` (R6) also
   receives `credentials`, and drops them right away.
 - **When the EUDIPLO session is deleted**: the worker deletes it with `DELETE /api/session/{id}`:
-  - pull mode: when the repeat window of `PULL_REPEAT_WINDOW_SECONDS` (60 s) after the first
-    delivery ends (FR-018, R9);
-  - webhook mode: in the cycle after the first 2xx for the `completed` update;
+  - when the repeat window of `PULL_REPEAT_WINDOW_SECONDS` (60 s) after the first delivery ends
+    (FR-018, R9);
   - in the cycle after the request becomes `declined`, `verification_failed`, `expired` or
     `unavailable`;
   - for completed requests that were never delivered, at `completed_at` +
@@ -449,9 +446,8 @@ files.
   accepted. If the worker was not running, deletion happens as soon as it runs again. The delay an
   outage causes is accepted (user; spec edge case "Outages").
 - **Request records (user, FR-021)**: a request **ends** when it has a final status and its
-  documents have been delivered or deleted. The row, together with its webhook updates, is deleted
-  `REQUEST_RECORD_RETENTION_SECONDS` (7 days) after that. A pull with its reference then answers
-  `404`, like an unknown one.
+  documents have been delivered or deleted. The row is deleted `REQUEST_RECORD_RETENTION_SECONDS`
+  (7 days) after that. A pull with its reference then answers `404`, like an unknown one.
 - **Logs**: never claims, tokens or secrets. Request references are removed even from access
   logs (R13). A request is identified by its internal id.
 
@@ -476,7 +472,7 @@ longer than needed.
 documents are neither delivered nor deleted (`documents_delivered_at` and
 `eudiplo_session_deleted_at` both empty). Every artifact uses this one definition.
 
-**Decision**: A pull for a `completed` pull-mode request runs these steps:
+**Decision**: A pull for a `completed` request runs these steps:
 
 1. The request row is locked with `SELECT … FOR UPDATE`.
 2. If the documents can no longer be handed out, the answer is `completed` with
@@ -505,13 +501,15 @@ again. Two pulls at the same moment both receive the documents, which the window
 - **EUDIPLO answers `404` for the session**, because the documents are already gone: the request
   records `eudiplo_session_deleted_at`, and the answer is `completed` with `documents: null`.
 - **Pulls after the repeat window** return `completed` with `documents: null`.
-- **Requests in webhook mode**: the pull URL only ever returns their status (FR-015).
 - **A request that passed its expiry time** while still `pending`: the pull itself makes the last
   check (R7, step 2) before answering.
-- **Deactivating or deleting a form connection**: this only changes the form connection. Its URLs
-  answer `409 unavailable` from the next call on (R12). The worker's cancel step then turns its
-  open requests into `unavailable` within about 2 seconds, and the deletion step removes their
-  EUDIPLO sessions.
+- **Deactivating or deleting a form connection**: the same transaction turns its open requests
+  into `unavailable`, so reactivating it right afterwards can't revive them (FR-006). Its URLs
+  answer `409 unavailable` from the next call on (R12), and the deletion step removes the EUDIPLO
+  sessions in its next cycle. A trigger that passed the form-connection check before the
+  deactivation was committed still inserts its request afterwards, because it doesn't check the
+  form connection again after calling EUDIPLO. The worker's cancel step (R7, step 3) turns that
+  request into `unavailable` too.
 - **Pull and deactivation at the same moment**: a pull that passed the form-connection check before
   the deactivation was committed still finishes. Its documents count as delivered before the
   deactivation took effect.
@@ -537,9 +535,8 @@ key and label; nothing else is copied.
   arrive together.
 - **Allow-list extraction**: it enforces "exactly the configured fields" (SC-005), whatever the
   wallet or EUDIPLO adds.
-- **Repeat window**: the user chose it so that a lost answer doesn't lose the documents. It
-  mirrors the decision for webhooks (R10), where a rare repeat is accepted for the same reason,
-  and it needs no extra call from serviceBW.
+- **Repeat window**: the user chose it so that a lost answer doesn't lose the documents, and it
+  needs no extra call from serviceBW.
 
 **Alternatives considered**:
 - Deleting the EUDIPLO session inside the pull before responding: a slow delete could make
@@ -550,50 +547,12 @@ key and label; nothing else is copied.
 - An explicit receipt confirmation from serviceBW: declined by the user. It would add a third call,
   and it isn't confirmed that serviceBW can make it (R20).
 
-## R10. Webhook mode: updates to serviceBW (FR-014 to FR-016) **(user: no authentication; retries may repeat)**
+## R10. Webhook mode: updates to serviceBW (removed)
 
-**Decision**: Updates go out through an outbox table, `webhook_deliveries`.
-
-- **When an update is queued**: each status change of a webhook-mode request queues one update for
-  that status. No update is sent for the initial `pending`, because the trigger response already
-  reports it.
-- **The update itself**: a JSON `POST` with `Content-Type: application/json`. It carries no
-  signature and no authentication header: the user ruled sender proof out of scope because of the
-  restricted network. The body is in [contracts/webhook-updates.md](contracts/webhook-updates.md).
-- **Documents**: the `completed` update carries them, read from EUDIPLO at send time (R8).
-- **Success and retries**:
-  - Any 2xx answer within 10 seconds counts as delivered.
-  - Otherwise the update is retried after 5, 10, 20 and 40 seconds, then every 60 seconds.
-  - For the `completed` update, retries stop at the document deletion time (R8). For other updates,
-    they stop `DOCUMENT_RETENTION_SECONDS` after the status change (FR-016, FR-020).
-- **Order**: the updates of one request go out oldest first. A newer update waits until the older
-  one is delivered or abandoned.
-- **Leases**: an update is claimed before it is sent (R7). A form connection deactivated while its
-  `completed` update is being sent waits for the attempt to finish:
-  - if the attempt succeeds, the documents count as delivered;
-  - if it fails, the request is cancelled and `unavailable` is sent.
-- **"Delivered only once" for webhooks (user)**: after the first confirmed delivery (a 2xx answer),
-  the documents are deleted and can't be obtained again.
-  - If serviceBW accepted an update but its answer never reached the middleware, the retry
-    delivers the same update again, or `unavailable` if the form connection was deactivated
-    meanwhile. serviceBW drops repeats by `reference` and `status`.
-  - The spec's FR-018 and Clarifications record this.
-- **The webhook address and its scheme**: the address must be an absolute `https://` URL unless
-  `ALLOW_PLAIN_HTTP=true` (R18). Each request keeps a copy of the address it was triggered with
-  (FR-005).
-
-**Rationale**:
-- **Outbox**: it survives restarts and makes the retries transparent.
-- **Repeats**: delivering exactly once over HTTP is impossible without serviceBW's cooperation. The
-  user chose not to lose documents, and to accept a rare repeat instead.
-- **HTTPS by default**: it keeps FR-019 ("no third party can read or alter") true even if the
-  network assumption is wrong.
-
-**Alternatives considered**:
-- HMAC signatures or a secret header: declined by the user for this iteration.
-- Never resending the documents after an unclear failure: declined by the user, because documents
-  could be lost.
-- Sending in the request thread: this can't retry and blocks serviceBW's trigger call.
+Removed on 2026-10-19: webhook mode is out of scope (see the spec's Clarifications, Session
+2026-10-19). The outbox table `webhook_deliveries`, the webhook address and the connection mode
+are removed from the code by a new migration (tasks.md T092). serviceBW gets every result through
+the pull URL (R9).
 
 ## R11. Wallet link and QR code (FR-008)
 
@@ -702,8 +661,8 @@ forwards that path **only to clients whose address is on an allow-list**.
 - **Why closing by default matters**: in the documented Coolify topology, this nginx is the only
   public entry point and forwards all of `/api/`. Without the allow-list, anyone on the internet
   could start genuine City of Stuttgart wallet requests and use them for phishing.
-- **Why redact references**: a reference is the key to a request's documents in pull mode, so it
-  must not appear in any log.
+- **Why redact references**: a reference is the key to a request's documents, so it must not
+  appear in any log.
 
 **Alternatives considered**:
 - A separate internal entry point, or enforcement outside the repository: declined by the user.
@@ -766,8 +725,7 @@ forwards that path **only to clients whose address is on an allow-list**.
 **Decision**: Use `httpx2` (`import httpx2`), already locked at 2.12.0, moved from the `dev` group
 to the runtime dependencies.
 
-- **Clients**: one synchronous `httpx2.Client` for EUDIPLO, with timeouts (connect 5 s, read 10 s),
-  and a separate one for webhook updates.
+- **Clients**: one synchronous `httpx2.Client` for EUDIPLO, with timeouts (connect 5 s, read 10 s).
 - **Token**: the EUDIPLO access token is cached in memory and renewed 5 minutes before
   `expires_in` runs out. On a `401` it is fetched once more and the call is retried. A lock makes
   this thread-safe.
@@ -821,9 +779,9 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
     request would skip the first-connection screen for the most common way in.
   - The logo keeps linking to `/`, so the overview, with its empty state, stays one click away.
   - No backend change: the list endpoint already answers the question.
-- **Webhook card (user, 2026-10-11; spec FR-014)**: the details screen shows the webhook card only
-  once webhook updates are delivered (US3). Until then the card isn't rendered.
-  `PUT /api/form-connections/{id}` keeps accepting `webhook_url`, as the backend tasks built it.
+- **Webhook card (user, 2026-10-11)**: the details screen didn't render the webhook card until
+  webhook updates were delivered. Superseded on 2026-10-19: webhook mode is removed, and the card's
+  code with it (spec Clarifications, Session 2026-10-19).
 - **Accessibility (user, SC-009)**: the management UI meets WCAG 2.1 level AA.
   - The requirements for each screen are in
     [contracts/ui-screens.md](contracts/ui-screens.md#accessibility-sc-009).
@@ -851,8 +809,6 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - **No per-account flag**: the user chose "no form connection exists" over "the account's first
   sign-in", so there is no migration, and a new teammate of a team with form connections lands on
   the overview.
-- **Hiding the webhook card**: a field for a mode that delivers nothing would let a team member
-  switch a form connection to a mode in which serviceBW never receives the documents.
 
 **Alternatives considered**:
 - View switching held in state: no deep links, and the browser's back button breaks.
@@ -866,8 +822,6 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
 - A "first sign-in" flag per account: declined by the user (spec Clarifications, 2026-10-11).
 - S4's inline form as the first screen: Figma's flow sends sign-in to 02, and S4 is "Your
   connections" with drafts, which the API doesn't have (design-notes.md §5).
-- Removing the webhook card's code until US3: it is built and reviewed, and type-checking keeps it
-  in step with the API while it isn't rendered. US3 renders it again.
 
 ## R17. Tests
 
@@ -884,7 +838,7 @@ seven, checked against the same OpenAPI, follow the intent of that rule.
     allow-list), status mapping (including the last check before expiry) and catalog integrity;
   - API tests for sign-in and CSRF (`415`), form connection CRUD and validation messages, trigger,
     pull (first delivery, 60-second repeat window, expiry, unavailable, check order, EUDIPLO
-    `404`), webhook delivery with leases and retries, the cancel sweep, re-sync, and deleting
+    `404`), the cancel sweep, re-sync, and deleting
     request records after the retention period.
 - **Frontend**: `npm run lint` and `npm run build`, which are the constitution's gates. There is no
   test runner. Accessibility (SC-009) is checked by the review before release (R16, quickstart
@@ -920,10 +874,10 @@ documented in `backend/.env.example`, `README.md` and `docs/ARCHITECTURE.md` (Co
 | `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | API client with `presentation:request` + `presentation:manage` | empty (`503` likewise) |
 | `EUDIPLO_TRUST_LIST_ID` | Trust list used for issuer trust in every credential query | empty (saving answers `503` while it is empty) |
 | `REQUEST_LIFETIME_SECONDS` | Expiry of a document request (FR-012) | `600` |
-| `DOCUMENT_RETENTION_SECONDS` | Maximum time documents are kept after sharing, and the webhook retry limit (FR-016, FR-020) | `1800` |
+| `DOCUMENT_RETENTION_SECONDS` | Maximum time documents are kept after sharing (FR-020) | `1800` |
 | `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery (FR-018) | `60` |
 | `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended (FR-021) | `604800` (7 days) |
-| `ALLOW_PLAIN_HTTP` | Allow `http://` for webhook addresses and for `CONNECTION_BASE_URL` outside development, inside a closed network. This is FR-019's explicit exception (user) | `false` |
+| `ALLOW_PLAIN_HTTP` | Allow `http://` for `CONNECTION_BASE_URL` outside development, inside a closed network. This is FR-019's explicit exception (user) | `false` |
 | `WORKER_ENABLED` | Run the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
 
@@ -940,8 +894,8 @@ In production they are set in the Coolify environment.
 
 **Rationale**: The startup check on `CONNECTION_BASE_URL` stops production from showing
 `localhost` URLs that DO.IT would copy into serviceBW. It also keeps the pull response, which
-carries documents, on HTTPS (FR-019), unless the operators deliberately allow plain HTTP. A
-single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
+carries documents, on HTTPS (FR-019), unless the operators deliberately allow plain HTTP. The flag
+also covered webhook addresses until webhook mode was removed on 2026-10-19.
 
 ## R19. Points that don't block the plan but need attention later
 
@@ -1035,7 +989,7 @@ single `ALLOW_PLAIN_HTTP` flag covers both directions of serviceBW traffic.
 ## R20. What serviceBW is expected to do **(user: not sure yet, to be confirmed by DO.IT)**
 
 The design relies on serviceBW doing the following.
-- **Items 1–5 and 7** are expectations the user could not confirm yet. DO.IT confirms them with
+- **Items 1–4 and 7** are expectations the user could not confirm yet. DO.IT confirms them with
   serviceBW before the integration, and the URL design is adjusted if one of them doesn't hold.
   The spec records them in the assumption "serviceBW's capabilities".
 - **Item 6** is decided, and is now the spec assumption "serviceBW waits for a final status".
@@ -1047,11 +1001,9 @@ The design relies on serviceBW doing the following.
 3. **Responses**: read JSON responses in the `{"data": …}` / `{"error": …, "message": …}`
    envelopes, and act on `404` and `409`.
 4. **QR code**: show a PNG given as a data URI, or render its own QR code from `qr_code_link`.
-5. **Webhook mode**: accept JSON `POST`s at a webhook address that the middleware can reach, and
-   answer within 10 seconds.
-6. **Waiting until a final status (decided by the user; spec assumption)**. In pull mode serviceBW
-   keeps pulling, every 2 seconds, until the status is no longer `pending`. In webhook mode it
-   keeps waiting for the update. It reacts at once to `declined`, `verification_failed` and
+5. *Removed on 2026-10-19*: accepting webhook updates (webhook mode is out of scope).
+6. **Waiting until a final status (decided by the user; spec assumption)**. serviceBW keeps
+   pulling, every 2 seconds, until the status is no longer `pending`. It reacts at once to `declined`, `verification_failed` and
    `expired`.
    - It does **not** apply a timeout of its own that is shorter than `expires_at`, which is
      10 minutes.

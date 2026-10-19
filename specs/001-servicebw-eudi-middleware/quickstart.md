@@ -27,7 +27,6 @@ Here, `curl` plays the part of serviceBW.
    EUDIPLO_CLIENT_SECRET=<client-secret>
    EUDIPLO_TRUST_LIST_ID=<trust-list-id>
    CONNECTION_BASE_URL=http://localhost:3000
-   ALLOW_PLAIN_HTTP=true   # local testing only: the test webhook receiver below speaks plain HTTP
    ```
 
 2. Start the stack and create a DO.IT account:
@@ -53,7 +52,7 @@ a developer machine. The nginx allow-list (R13) applies only to the production i
 docker compose exec postgres createdb -U postgres template_db_test
 cd backend
 uv run ruff check . && uv run ruff format --check .
-uv run mypy app/
+uv run mypy app/ scripts/ tests/
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
 
 # Frontend: the constitution's gates
@@ -68,7 +67,6 @@ credentials nor a wallet. It covers among others:
 - the R5 status mapping, including the last check before expiry;
 - the order of the URL checks;
 - the CSRF check (`415`);
-- webhook leases and retries;
 - the cancel sweep, the re-sync, and deleting request records after the retention period.
 
 ## 4. Validation scenarios
@@ -100,8 +98,7 @@ docker compose exec postgres psql -U postgres -d template_db \
    - **Expected**: saving is refused, with a message that names the document.
 5. Select the fields again and save.
    - **Expected**: the details screen shows a trigger URL ending in `/api/connect/$FC/requests` and
-     a pull URL ending in `/requests/{reference}`. Each copies with one click. There is no webhook
-     address yet; it comes with US3 (V4).
+     a pull URL ending in `/requests/{reference}`. Each copies with one click.
 6. Reload the page, or reopen the form connection from the overview.
    - **Expected**: the same URLs.
 7. Sign out and in again, then open `/get-started` by its address.
@@ -174,37 +171,10 @@ done
 
 - **Expected**: `"status": "declined"` and `"documents": null` within one or two pulls.
 
-### V4: Webhook mode (US3, FR-014 to FR-016)
+### V4: Webhook mode (removed)
 
-1. Start a receiver that logs request bodies, on the compose network:
-
-   ```bash
-   docker network ls | grep _default    # find the compose network, e.g. sk-proto-1_default
-   docker run --rm --name webhook-echo --network <compose-network> mendhak/http-https-echo:latest
-   ```
-
-2. On the details screen, set the webhook address to `http://webhook-echo:8080/fc-test` and save.
-   - **Expected**: the mode shows **webhook**.
-3. Trigger, scan and approve.
-   - **Expected**: the receiver logs **one** `POST` with `"status": "completed"` and exactly the
-     configured fields ([contracts/webhook-updates.md](contracts/webhook-updates.md)).
-   - A pull for this `$REF` returns `completed` with `documents: null` (FR-015).
-4. Trigger and decline.
-   - **Expected**: the receiver logs `"status": "declined"`, `documents: null`. With Paradym or the
-     EU reference wallet (Android) it logs `"status": "expired"` 10 minutes later instead (V3), or
-     use V3's wallet-free check.
-5. Stop the receiver, then trigger and approve.
-   - **Expected**: the backend logs retries for that request (by internal id, with no personal
-     data).
-   - Meanwhile, start and complete another request on a second form connection in pull mode.
-     **Expected**: it still completes within 5 seconds; a failing webhook doesn't slow down other
-     requests.
-6. Start the receiver again within 29 minutes.
-   - **Expected**: the `completed` update arrives at the next retry.
-   - If the receiver stays down longer, the update is abandoned and the documents are deleted.
-7. On the details screen, remove the webhook address, then trigger, scan and approve.
-   - **Expected**: the mode shows **pull**, the receiver logs nothing, and a pull for this `$REF`
-     returns the documents (US3, scenario 1).
+Removed on 2026-10-19: webhook mode is out of scope (see the spec's Clarifications, Session
+2026-10-19).
 
 ### V5: Maintaining form connections (US4, FR-005, FR-006)
 
@@ -217,11 +187,10 @@ done
 4. Trigger a request and leave it pending, then **deactivate** the form connection.
    - **Expected**: from the next call on, the trigger and the pull answer
      `409 {"error": "unavailable", …}`.
-   - Within a few seconds the pending request becomes `unavailable`, and in webhook mode an
-     `unavailable` update is sent.
+   - The pending request becomes `unavailable` at once, in the same step as the deactivation.
    - Scanning that request's QR code now fails in the wallet, because the worker deleted the
      EUDIPLO session.
-5. **Reactivate**.
+5. **Reactivate**, right away or later.
    - **Expected**: triggering works again with the same URLs.
    - A pull for the request from step 4 answers `200` with `status: "unavailable"`.
 6. **Delete**, confirming the prompt.
@@ -231,23 +200,22 @@ done
 ### V6: Data minimization (FR-020, FR-021, SC-006)
 
 1. After a successful delivery, wait until the documents should be gone: a little over 60 seconds
-   after a pull (V2), or a few seconds after a webhook delivery (V4). Then get a token with the
-   middleware's EUDIPLO client and call `GET $EUDIPLO_URL/api/session/<eudiplo_session_id>`.
+   after a pull (V2). Then get a token with the middleware's EUDIPLO client and call `GET $EUDIPLO_URL/api/session/<eudiplo_session_id>`.
    - **Expected**: `404`.
    - The EUDIPLO session id is in `document_requests.eudiplo_session_id`.
-2. Complete a pull-mode request and **don't pull it**. After 29 minutes, check the same way.
+2. Complete a request and **don't pull it**. After 29 minutes, check the same way.
    - **Expected**: the EUDIPLO session is gone, and a pull returns `completed` with
      `documents: null`.
 3. Inspect the middleware's database, for example
    `docker compose exec postgres psql -U postgres template_db -c '\dt'`, and the
-   `document_requests` and `webhook_deliveries` tables.
+   `document_requests` table.
    - **Expected**: no claim values anywhere.
 4. Search the backend and nginx logs for the test person's family name and for `$REF`.
    - **Expected**: no matches (research R13).
 5. Record retention (FR-021): in a test environment, set `REQUEST_RECORD_RETENTION_SECONDS=120`
    and restart the backend. Complete a request, then wait two minutes after it ended.
-   - **Expected**: its row is gone from `document_requests`, together with its
-     `webhook_deliveries`, and a pull with its reference answers `404`.
+   - **Expected**: its row is gone from `document_requests`, and a pull with its reference answers
+     `404`.
 
 ### V7: Load (SC-007, SC-004)
 

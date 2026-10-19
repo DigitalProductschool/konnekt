@@ -11,7 +11,7 @@ and failures, and the DO.IT management UI.
 **Marker Semantics**: `[x]` means the criterion has been reviewed and satisfied for requirements quality. It does not mean implementation work is complete.
 **Scope**: Settled decisions are checked only for consistent wording (CHK038–CHK041) and are not
 reopened:
-- no authentication for webhook updates;
+- no authentication for webhook updates (2026-10-19: webhook mode removed);
 - network restriction instead of credentials;
 - a shared EUDIPLO tenant for now;
 - custom logic deferred.
@@ -26,6 +26,7 @@ reopened:
   - Note (2026-10-08): The new assumption "Team member accounts" makes the operators responsible, on DO.IT's request, and FR-007 now requires that deleting an account ends its access at once (user).
 - [x] CHK004 Are validation rules specified for every field of a form connection (name, serviceBW form, webhook address format and scheme), not only for missing documents and fields? [Completeness, Spec §FR-001, §FR-003, §FR-014]
   - Note (2026-10-08): The data model's validation table covers every field: name and serviceBW form are required within their length limits, and the webhook address must be an absolute https:// URL, or http:// under FR-019's exception.
+  - Note (2026-10-19): Webhook mode was removed, so a form connection no longer has a webhook address to validate.
 - [x] CHK005 Are empty, loading and error states specified for the overview and the form connection screens? [Gap, Spec US4-1, Plan contracts/ui-screens.md]
   - Note (2026-10-08): contracts/ui-screens.md already listed the overview's states, and now lists loading and error states for the create, edit and details screens as well.
 
@@ -43,6 +44,7 @@ reopened:
   - Note (2026-10-08): The expiry is an exact cut-off, recorded under Clarifications, Session 2026-10-08. The 10-second grace was removed from research R7, the data model and the tasks.
 - [x] CHK011 Does FR-005's "the configuration they started with" explicitly include the connection mode and webhook address? If it does, changing or removing the webhook address mid-request has a defined outcome. [Ambiguity, Spec §FR-005, §FR-014]
   - Note (2026-10-07): FR-005 now lists the requested documents and fields, and the connection mode with its webhook address.
+  - Note (2026-10-19): Webhook mode was removed, so FR-005 lists only the requested documents and fields.
 - [x] CHK012 Is "requests already in progress" in FR-006 defined (only pending requests, or also completed requests with undelivered documents), and is the time within which they are cancelled specified? [Ambiguity, Spec §FR-006, Plan data-model "Open requests"]
   - Note (2026-10-07): FR-006 now defines "in progress". The time within which requests are cancelled is still not in the spec (the plan says about 2 seconds).
   - Note (2026-10-08): The plan's figure is the answer: about 2 seconds, one worker cycle (data model, research R9). The UI tells users "within a few seconds".
@@ -58,6 +60,7 @@ reopened:
   - Note (2026-10-08): Mapping the names in one place is enough: research R5 and the integration contract's status table both give the API name of each of the spec's statuses.
 - [x] CHK016 Is FR-016's retry limit defined for updates that carry no documents (declined, expired, unavailable)? For these, no sharing starts FR-020's 30-minute clock. [Consistency, Spec §FR-016, §FR-020]
   - Note (2026-10-07): FR-016 now sets a retry limit for each kind of update.
+  - Note (2026-10-19): Webhook mode was removed, together with FR-016.
 - [x] CHK017 Do FR-020 ("the system") and SC-006 ("the middleware") consistently cover the external verification component that holds shared documents until they are deleted? [Consistency, Spec §FR-020, §SC-006, Plan research R8]
   - Note (2026-10-07): FR-020 and SC-006 now include the service the middleware uses to communicate with wallets.
 - [x] CHK018 Is the plan's option to allow plain HTTP inside a closed network reflected as an explicit exception in FR-019, or does FR-019 rule it out? [Conflict, Spec §FR-019, Plan research R18]
@@ -67,6 +70,7 @@ reopened:
 
 - [x] CHK019 Does SC-004 define its measurement point for pull mode, where serviceBW's own polling interval decides when it obtains the documents? [Measurability, Spec §SC-004]
   - Note (2026-10-08): SC-004 now measures a pull made 5 seconds after the approval, or the webhook update reaching the address by then.
+  - Note (2026-10-19): Webhook mode was removed, so SC-004 measures only the pull.
 - [x] CHK020 Is "100 simultaneous document requests" in SC-007 defined: requests open at the same time, or trigger calls arriving at the same time, and for how long? [Clarity, Spec §SC-007]
   - Note (2026-10-08): SC-007 now means 100 requests triggered within one minute and in progress at the same time.
 - [x] CHK021 Does SC-005 say how the altered, expired, revoked and untrusted test documents are obtained, given that a real wallet can't present an altered document? [Measurability, Spec §SC-005, Plan quickstart V3]
@@ -80,6 +84,7 @@ reopened:
 
 - [x] CHK024 Are exception and recovery requirements defined for outages of the middleware or of the wallet-verification service? This covers failed triggers, open requests, queued webhook updates, and deletion deadlines that fall inside the outage. [Gap, Recovery, Spec §FR-008, §FR-016, §FR-020]
   - Note (2026-10-08): The new edge case "Outages" describes the recovery. FR-020 and SC-006 accept that deletion can be late by the length of an outage (user).
+  - Note (2026-10-19): Webhook mode was removed, so there are no queued webhook updates to recover.
 - [x] CHK025 Are requirements defined for a wallet that closes without reporting the citizen's cancellation? The edge cases currently say that cancelling always ends as "declined". [Coverage, Spec Edge Cases, §FR-011, Plan research R5]
   - Note (2026-10-07): The edge case and US2 scenario 5 now cover a wallet that doesn't report the cancellation.
 - [x] CHK026 Are requirements defined for how changes to the trusted issuers or to the document catalog affect existing form connections and requests in progress? [Gap, Spec §FR-002, §FR-005, §FR-010]
@@ -113,6 +118,7 @@ reopened:
 - [x] CHK035 Are the assumptions about serviceBW's capabilities recorded in the spec, with an owner and a point at which they are confirmed before integration? They are: calling the trigger URL without a body, filling the reference into the pull URL, reading JSON, showing a data-URI image, receiving JSON webhooks within 10 seconds, and keeping the reference secret. [Assumption, Spec Assumptions "serviceBW's role", Plan research R20]
   - Note (2026-10-07): The waiting behavior and the applicant check are now spec assumptions. The other capabilities are still listed only in research R20.
   - Note (2026-10-08): The new assumption "serviceBW's capabilities" lists the rest, and says DO.IT confirms them with serviceBW before the integration starts (research R20).
+  - Note (2026-10-19): Webhook mode was removed, so serviceBW no longer needs to receive JSON webhooks.
 - [x] CHK036 Is serviceBW's expected waiting behavior captured as a requirement or an assumption: the polling interval, the stop conditions, and no timeout of its own shorter than the 10-minute expiry? A shorter timeout would leave approved documents uncollected. [Gap, Spec Assumptions "serviceBW's role", §FR-012, Plan research R20]
   - Note (2026-10-07): The spec assumption "serviceBW waits for a final status" now covers this.
 - [x] CHK037 Are the external dependencies stated as assumptions, in technology-agnostic terms? These are a wallet-verification service and the city's registration as a relying party. The assumption should also say that the registration certificate may limit which fields can be requested. [Dependency, Spec Assumptions "Wallets and trust", Plan research R19]
@@ -125,6 +131,7 @@ reopened:
 
 - [x] CHK039 Is the "no authentication for webhook updates" decision worded consistently across the Clarifications, FR-016, the "Restricted network" assumption, Out of scope, and the webhook contract? [Consistency, Spec §FR-016, Assumptions]
   - Note (2026-10-08): The wording matches across the Clarifications, FR-016, the "Restricted network" assumption, "Out of scope", the webhook contract and research R10.
+  - Note (2026-10-19): Webhook mode was removed, together with FR-016, the webhook contract and research R10, so the decision no longer applies.
 - [x] CHK040 Is the network restriction in FR-017 worded consistently with the plan, including which environments must enforce it and the exemption for local development? [Consistency, Spec §FR-017, Plan research R13]
   - Note (2026-10-08): FR-017 now says the restriction applies to every deployed environment, test environments included, and that only a developer's own machine is exempt (research R13).
 - [x] CHK041 Is the deferral of custom logic stated so that no current requirement depends on it, even though the original input still describes age and licence-age checks? [Consistency, Spec Clarifications, Assumptions "Out of scope"]

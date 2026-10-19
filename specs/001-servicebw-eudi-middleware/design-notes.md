@@ -1,6 +1,6 @@
 # Design notes: management UI
 
-**Tasks**: T023, T084, T039–T042, T086–T089, T091 | **Date**: 2026-10-11 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T023, T084, T039–T042, T086–T089 | **Date**: 2026-10-11 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
 - **Figma "Middleware – V2"** (`BZUNank5VjCzqr2BcyhifB`), page "✅ Final Screens" (`33:3`):
@@ -339,8 +339,7 @@ draft." are left out.
   the API's message is generic, "Something went wrong on our side, so nothing was saved. Contact an
   administrator and give them the error ID." (a `500` leaves out "so nothing was saved"). A second
   line, "Error ID: " and the answer's `error_id`, follows it in the same text style; one click
-  selects the ID (`select-all`). The shared `ErrorNoticeText` renders both, in the alert and under
-  the webhook address alike.
+  selects the ID (`select-all`). The shared `ErrorNoticeText` renders both.
 
 ## 7. Details (`/form-connections/:id`; frames "22 Published" `2080:8271` and "23" `2080:8406`)
 
@@ -373,13 +372,9 @@ of 2026-10-10 (top bar, 1040 px column, `PageTitle`), whose title pushed the lin
   turns into "Copied" with a tick for 3 s (23); V2 has no toast. Below 576 px the number goes
   above the link.
 - **Updates by webhook** (no frame): **Decision (2026-10-11)**: not on the page until webhook
-  updates are delivered (US3). T086 takes the card off the page, and T091 brings it back
-  unchanged. The card: the card pattern of "UseCase/Create card": the mode ("Mode:
-  Pull – Your form management system calls the result link." or "Mode: Webhook – …"; reworded
-  on 2026-10-12 like the tooltips), the field "Webhook address"
-  and "Save address" / "Remove address"; the API's message (with its error ID after a `5xx`)
-  shows next to the field, and "Webhook address saved/removed. New requests use … mode." is
-  announced.
+  updates are delivered (US3); T086 took the card off the page. **Removed on 2026-10-19**: webhook
+  mode is out of scope, so the card and its code are gone (spec Clarifications, Session
+  2026-10-19).
 - **Documents** (no frame): each requested document with the header of "Doc/Data card" ("n
   items") and its fields in the data card's columns.
 - **States**: "Feedback/Loader" while loading; "E1 Page not found" (404, with "Go to your
@@ -435,8 +430,7 @@ open before Phase 3):
    connection; the active/deactivated badge comes with US4.
 4. **Create layout**: the wizard at `/form-connections/new`, opened by S3's "New connection".
 5. **Details**: 22's frame (header with name, badge and form ID; all steps done; footer) with
-   its link card and a documents card; the webhook card returns with T091. Until 2026-10-13
-   it was an overview-style page.
+   its link card and a documents card. Until 2026-10-13 it was an overview-style page.
 6. **Overview row**: name, "Form ID …", "Edited …", "View"; status and "Edit" come with US4.
 7. **Missing states**: from L1, E1 and "Doc/Empty setup"; validation messages instead of
    disabled buttons.
@@ -449,13 +443,14 @@ open before Phase 3):
 2. **First-connection screen**: the wizard at `/get-started` with 02's heading. The wizard's
    2026-10-10 decisions apply to it.
 3. **Logo**: still the overview in S3's layout, also from the first-connection screen.
-4. **Webhook card**: hidden until webhook updates are delivered (US3).
+4. **Webhook card**: hidden until webhook updates are delivered (US3). Superseded on 2026-10-19:
+   webhook mode and the card are removed.
 
 ## 10. Assets and implementation notes
 
 - Glyphs used so far are in `frontend/src/assets/icons/` (Material Symbols from the design, not
   changed): `lock` (grey), `lock-blue`, `check` (white, the seal), `check-circle` (success, the
-  chips and the webhook confirmation), `emergency-home` (error), `logout`, `expand-more` and
+  chips), `emergency-home` (error), `logout`, `expand-more` and
   `expand-less` (chevrons), `personal-id` and `driving-licence` (muted and `-blue`), `document`,
   `document-blue` and `document-small` (16.8 px), `check-blue-small` (the stepper's tick),
   `tooltip-arrow` and `loader` (56 px). The illustrations are `dot-grid.svg` and

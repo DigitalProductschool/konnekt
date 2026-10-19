@@ -1,10 +1,10 @@
-"""Document requests: starting them, their status, and pull-mode delivery.
+"""Document requests: starting them, their status, and delivering their documents.
 
 serviceBW starts a request through the trigger URL (FR-008) and follows it through
 the pull URL (FR-013). A request's status comes from its EUDIPLO session (research
 R5): the worker applies the citizen's answer (services/worker.py), and once a request
-has expired, a pull makes the last check itself. In pull mode the documents are
-delivered once, and again within the repeat window (FR-018, research R9).
+has expired, a pull makes the last check itself. The documents are delivered once,
+and again within the repeat window (FR-018, research R9).
 
 No database transaction is held while EUDIPLO answers (research R15). Every status
 change locks the request row and checks the current status again (research R7).
@@ -44,7 +44,6 @@ from .eudiplo import (
     get_eudiplo_client,
 )
 from .form_connections import NOT_FOUND as FORM_CONNECTION_NOT_FOUND
-from .form_connections import mode_of
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +57,6 @@ UNAVAILABLE: RequestStatus = 'unavailable'
 # Final statuses that end a request at once. A completed request ends when its
 # documents are delivered or deleted (data-model.md, "Ended requests")
 ENDING_STATUSES = frozenset({DECLINED, VERIFICATION_FAILED, EXPIRED, UNAVAILABLE})
-
-PULL_MODE = 'pull'
-WEBHOOK_MODE = 'webhook'
 
 # Wallet error responses (OAuth 2.0 and OpenID4VP): the wallet shared nothing, for
 # example because the citizen declined (research R5)
@@ -259,8 +255,7 @@ def session_deletion_due(request: DocumentRequest, now: datetime) -> bool:
     """Whether the worker deletes the request's EUDIPLO session now (research R8).
 
     - A final status other than `completed`: at once.
-    - `completed` and delivered: at once in webhook mode, and in pull mode when the
-      repeat window has ended.
+    - `completed` and delivered: when the repeat window has ended.
     - `completed`, delivered or not: at the deletion time, which also ends a repeat
       window early.
     """
@@ -273,7 +268,7 @@ def session_deletion_due(request: DocumentRequest, now: datetime) -> bool:
     delivered_at = request.documents_delivered_at
     if delivered_at is None:
         return False
-    return request.mode == WEBHOOK_MODE or now >= _repeat_window_end(delivered_at)
+    return now >= _repeat_window_end(delivered_at)
 
 
 def mark_session_deleted(request: DocumentRequest, now: datetime) -> None:
@@ -388,8 +383,6 @@ def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
         reference=secrets.token_urlsafe(32),
         form_connection_id=form_connection.id,
         revision_id=revision.id,
-        mode=mode_of(form_connection),
-        webhook_url=form_connection.webhook_url,
         status=PENDING,
         status_changed_at=triggered_at,
         # Whole seconds, as serviceBW sees it; never later than EUDIPLO's own expiry
@@ -453,12 +446,12 @@ def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
 
 
 def pull(db: Session, form_connection_id: str, reference: str) -> PullResponse:
-    """A request's status and, in pull mode, its documents (FR-013, FR-018).
+    """A request's status and, once it is completed, its documents (FR-013, FR-018).
 
     Answers 404 for an unknown form connection, 409 for a deactivated or deleted
     one, and then 404 for a reference that it doesn't know, or that belongs to
     another form connection. A pending request past its expiry gets the last check
-    first. A completed pull-mode request hands out its documents to the first pull,
+    first. A completed request hands out its documents to the first pull,
     and to every pull within the repeat window after it. EUDIPLO errors reach the
     caller as `EudiploError`; nothing is consumed then.
     """
@@ -476,11 +469,7 @@ def pull(db: Session, form_connection_id: str, reference: str) -> PullResponse:
         session = check_session(db, request)
 
     documents: list[DeliveredDocument] | None = None
-    if (
-        request.mode == PULL_MODE
-        and request.status == COMPLETED
-        and documents_available(request, _now())
-    ):
+    if request.status == COMPLETED and documents_available(request, _now()):
         documents = _deliver(db, request, session)
     return PullResponse(
         reference=request.reference,

@@ -83,8 +83,11 @@ connection is held while a call is waiting (research R15).
 - **Issuer trust**: every credential query references the same trust list. Without
   `trusted_authorities`, EUDIPLO would skip the issuer check (FR-010), and Paradym needs the
   references to be identical across queries.
-- **Change detection**: `lifeTime` is the revision's `lifetime_seconds`. The SHA-256 of this body,
-  without `id` and `description`, is stored as the revision's `config_hash`.
+- **Change detection**: `lifeTime` is the revision's `lifetime_seconds`, which is
+  `REQUEST_LIFETIME_SECONDS` when the revision is created. The SHA-256 of this body, without `id`
+  and `description`, is stored as the revision's `config_hash`. The re-sync (research R2) builds
+  the body with the current settings instead of the stored `lifetime_seconds`, so a changed
+  `REQUEST_LIFETIME_SECONDS` or trust list gives a different hash and a new revision.
 - **Not set**: `registration_cert`, `webhookEndpointId`, `redirectUri`, `transaction_data` and
   `intent_to_retain` (see research R6, R11 and R19).
 

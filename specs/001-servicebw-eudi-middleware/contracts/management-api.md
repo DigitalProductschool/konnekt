@@ -1,6 +1,6 @@
 # Contract: management API (DO.IT UI ↔ backend)
 
-**Consumer**: the middleware's own React frontend. **Requirements**: FR-001 to FR-007, FR-014,
+**Consumer**: the middleware's own React frontend. **Requirements**: FR-001 to FR-007,
 FR-022.
 **Decisions**: research R9, R12, R14, R16, R21.
 
@@ -30,7 +30,7 @@ FR-022.
 
   | Status | `error` | When |
   |---|---|---|
-  | `400` | `Validation error` | A rule in [data-model.md](../data-model.md#form_connections-form-connection-fr-001-fr-004-to-fr-006-fr-014) is broken. The message names the problem |
+  | `400` | `Validation error` | A rule in [data-model.md](../data-model.md#form_connections-form-connection-fr-001-fr-004-to-fr-006) is broken. The message names the problem |
   | `401` | `Unauthorized` | Not signed in, or the session expired |
   | `404` | `Not found` | Unknown or deleted form connection |
   | `415` | `Unsupported media type` | A state-changing request without `Content-Type: application/json` |
@@ -53,16 +53,13 @@ RequestedDocument      { document_type: str, fields: str[] }                    
 RequestedDocumentView  { document_type: str, label: str, fields: DocumentField[] } # output
 
 FormConnectionSummary  { id: str, name: str, servicebw_form: str, is_active: bool,
-                         mode: "pull" | "webhook", updated_at: str }
+                         updated_at: str }
 FormConnection         { id: str, name: str, servicebw_form: str, is_active: bool,
-                         mode: "pull" | "webhook", webhook_url: str | null,
                          documents: RequestedDocumentView[],
                          trigger_url: str, pull_url: str,
                          created_at: str, updated_at: str }
-FormConnectionCreate   { name: str, servicebw_form: str, documents: RequestedDocument[],
-                         webhook_url?: str | null }
-FormConnectionUpdate   { name?: str, servicebw_form?: str, documents?: RequestedDocument[],
-                         webhook_url?: str | null }   # absent = unchanged, null = remove
+FormConnectionCreate   { name: str, servicebw_form: str, documents: RequestedDocument[] }
+FormConnectionUpdate   { name?: str, servicebw_form?: str, documents?: RequestedDocument[] }  # absent = unchanged
 ```
 
 `pull_url` contains the placeholder `{reference}` literally, for example
@@ -95,8 +92,8 @@ this (research R14).
 | `GET /api/form-connections` | none | `200 {"data": FormConnectionSummary[]}` | Form connections that aren't deleted, most recently updated first (US4, scenario 1). After sign-in, `/get-started` uses it to tell whether any exist (FR-022) |
 | `POST /api/form-connections` | `FormConnectionCreate` | `201 {"data": FormConnection, "message": "Form connection created"}` | Creates revision 1 and its EUDIPLO request configuration. If EUDIPLO fails, nothing is saved (`502`) |
 | `GET /api/form-connections/{id}` | none | `200 {"data": FormConnection}` | Always the same `trigger_url` and `pull_url` (US1, scenario 4) |
-| `PUT /api/form-connections/{id}` | `FormConnectionUpdate` | `200 {"data": FormConnection, "message": "Form connection updated"}` | Changing `documents` creates a new revision and EUDIPLO configuration, and only requests triggered afterwards use them (FR-005). `webhook_url` switches the mode for new requests (US3, scenario 1); the UI sends it only once webhook updates are delivered (FR-014). The URLs never change. Also allowed while deactivated |
-| `POST /api/form-connections/{id}/deactivate` | `{}` | `200 {"data": FormConnection, "message": "Form connection deactivated"}` | Sets `is_active=false`, and the URLs answer `409 unavailable` from the next call on. Within about 2 seconds the worker turns the [open requests](../data-model.md#open-requests) into `unavailable` and deletes their EUDIPLO sessions. In webhook mode it also sends an `unavailable` update (FR-006). EUDIPLO is not called during this request |
+| `PUT /api/form-connections/{id}` | `FormConnectionUpdate` | `200 {"data": FormConnection, "message": "Form connection updated"}` | Changing `documents` creates a new revision and EUDIPLO configuration, and only requests triggered afterwards use them (FR-005). The URLs never change. Also allowed while deactivated |
+| `POST /api/form-connections/{id}/deactivate` | `{}` | `200 {"data": FormConnection, "message": "Form connection deactivated"}` | Sets `is_active=false` and, in the same transaction, turns the [open requests](../data-model.md#open-requests) into `unavailable` (FR-006). The URLs answer `409 unavailable` from the next call on. The worker deletes the EUDIPLO sessions in its next cycle. EUDIPLO is not called during this request |
 | `POST /api/form-connections/{id}/activate` | `{}` | `200 {"data": FormConnection, "message": "Form connection activated"}` | Sets `is_active=true`. The URLs work again unchanged (US4, scenario 4) |
 | `DELETE /api/form-connections/{id}` | `{}` | `200 {"data": null, "message": "Form connection deleted"}` | Sets `deleted_at`, so the URLs answer `409 unavailable` permanently. Open requests are cancelled as for deactivation. The worker deletes the EUDIPLO configurations once no request on them still has an EUDIPLO session. EUDIPLO is not called during this request |
 

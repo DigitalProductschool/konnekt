@@ -80,8 +80,6 @@ class FormConnection(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true()
     )
-    # None means pull mode, a value means webhook mode (FR-014)
-    webhook_url: Mapped[str | None] = mapped_column(String(2000))
     # The revision that new requests use
     current_revision: Mapped[int] = mapped_column(Integer)
     # Set on deletion; the row stays so its URLs keep answering "unavailable"
@@ -153,9 +151,6 @@ class DocumentRequest(Base):
     revision_id: Mapped[str] = mapped_column(
         String(36), ForeignKey('form_connection_revisions.id'), index=True
     )
-    # 'pull' or 'webhook', copied from the form connection when triggered
-    mode: Mapped[str] = mapped_column(String(16))
-    webhook_url: Mapped[str | None] = mapped_column(String(2000))
     # pending, completed, declined, verification_failed, expired or unavailable
     status: Mapped[str] = mapped_column(String(32), index=True)
     failure_code: Mapped[str | None] = mapped_column(String(100))
@@ -174,38 +169,5 @@ class DocumentRequest(Base):
     ended_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
     )
-    created_at: Mapped[CreatedAt]
-    updated_at: Mapped[UpdatedAt]
-
-
-class WebhookDelivery(Base):
-    """Outbox of request updates for serviceBW's webhook address (FR-015, FR-016)."""
-
-    __tablename__ = 'webhook_deliveries'
-    __table_args__ = (
-        # The webhook delivery scan
-        Index(
-            'ix_webhook_deliveries_next_attempt_at_open',
-            'next_attempt_at',
-            postgresql_where=text('delivered_at IS NULL AND abandoned_at IS NULL'),
-        ),
-    )
-
-    id: Mapped[UuidPk]
-    document_request_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey('document_requests.id', ondelete='CASCADE'), index=True
-    )
-    # The request status this update reports
-    status: Mapped[str] = mapped_column(String(32))
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default='0')
-    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    # Lease, committed before sending
-    claimed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    abandoned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # HTTP status code or exception class name only, never a response body
-    last_error: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]

@@ -1,6 +1,6 @@
 # Implementation Plan: serviceBW ↔ EUDI Wallet Form Connections
 
-**Branch**: `sk-proto-1` | **Date**: 2026-10-07, amended 2026-10-11 | **Spec**: [spec.md](spec.md)
+**Branch**: `sk-proto-1` | **Date**: 2026-10-07, amended 2026-10-11 and 2026-10-19 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/001-servicebw-eudi-middleware/spec.md`
 
@@ -26,9 +26,8 @@ picked from a catalog.
   `verification_failed`), expires requests after 10 minutes, and cancels requests of deactivated
   form connections.
 - **Delivery**: the documents are delivered **once**, reduced to exactly the configured fields.
-  In pull mode they go out through the **pull URL**, and repeated pulls return them for 60 seconds
-  in case an answer gets lost. In webhook mode they go to the webhook address entered in the UI,
-  with retries and a rare repeat accepted. After delivery the EUDIPLO session is deleted, and an
+  They go out through the **pull URL**, and repeated pulls return them for 60 seconds in case an
+  answer gets lost. After delivery the EUDIPLO session is deleted, and an
   undelivered one is deleted within 30 minutes of the citizen sharing.
 - **No stored documents**: the middleware never writes a citizen's documents to its own storage,
   and it deletes each request record 7 days after the request ends.
@@ -40,9 +39,8 @@ mock ID-verification API. The stack, tooling and deployment setup stay (research
 - **Recorded in the spec's Clarifications**:
   - DO.IT team members have personal accounts;
   - network restriction, not credentials, controls access to the connection URLs;
-  - webhook updates carry no authentication;
-  - a webhook update may be repeated in the rare case that serviceBW's confirmation was lost
-    (FR-018);
+  - webhook updates carry no authentication, and may be repeated in the rare case that
+    serviceBW's confirmation was lost (both moot since webhook mode was removed on 2026-10-19);
   - serviceBW waits for a final status, and never times out before a request expires;
   - repeated pulls return the documents for 60 seconds (FR-018);
   - the risk of a forwarded link or QR code is accepted, and serviceBW checks the applicant;
@@ -56,11 +54,17 @@ mock ID-verification API. The stack, tooling and deployment setup stay (research
 
 **The user's decisions on 2026-10-11** (spec Clarifications, research R16), frontend only:
 - **Webhook address with US3**: the details screen shows the webhook card only once webhook
-  updates are delivered. The backend keeps accepting `webhook_url`, as built in US1.
+  updates are delivered. The backend keeps accepting `webhook_url`, as built in US1. Superseded
+  on 2026-10-19, see below.
 - **First-connection screen**: without a requested route, sign-in opens `/get-started`. While no
   form connection exists, it is the create wizard headed "Create your first connection" (Figma
   "02 Create connection"); otherwise it gives way to the overview. The logo leads to the
   overview. No API, schema or setting changes.
+
+**The user's decision on 2026-10-19** (spec Clarifications, Session 2026-10-19): **webhook mode is
+removed**. User Story 3 and FR-014 to FR-016 are out of scope, and pull mode is the only way
+serviceBW gets results. The code built so far loses the webhook address, the `webhook_deliveries`
+outbox and the connection mode (`mode`), through a new migration (tasks.md T092).
 
 ## Technical Context
 
@@ -71,7 +75,7 @@ versions already in the repository.
 - **Backend, kept**: FastAPI 0.141, SQLAlchemy 2.0 (sync `Session`), Alembic 1.19, psycopg 3.3,
   Pydantic 2.13 and pydantic-settings 2.15.
 - **Backend, added**:
-  - `httpx2`: a sync HTTP client for EUDIPLO and webhooks. It is already locked at 2.12 and moves
+  - `httpx2`: a sync HTTP client for EUDIPLO. It is already locked at 2.12 and moves
     from `dev` to runtime;
   - `segno`: QR codes;
   - `argon2-cffi`: password hashing;
@@ -84,8 +88,9 @@ versions already in the repository.
   ([contracts/eudiplo-usage.md](contracts/eudiplo-usage.md)).
 
 **Storage**: PostgreSQL 18 through the sync SQLAlchemy `Session`.
-- New tables: `user_accounts`, `login_sessions`, `form_connections`, `form_connection_revisions`,
-  `document_requests` and `webhook_deliveries` ([data-model.md](data-model.md)).
+- New tables: `user_accounts`, `login_sessions`, `form_connections`, `form_connection_revisions`
+  and `document_requests` ([data-model.md](data-model.md)). The `webhook_deliveries` table of the
+  first migration is dropped again with webhook mode (2026-10-19).
 - No citizen documents are stored. They stay in EUDIPLO until they are delivered or deleted.
 
 **Testing**:
@@ -145,19 +150,21 @@ belong to the applicant.
 
 *GATE: Must pass before Phase 0 research. Re-checked after Phase 1 design below.*
 
-Checked against constitution v1.0.0 (`.specify/memory/constitution.md`).
+Checked against constitution v1.0.1 (`.specify/memory/constitution.md`). The plan was first
+checked against v1.0.0; the PATCH 1.0.1 of 2026-10-19 only corrects the Vite version and the
+status of the test suite.
 
 | Principle or rule | How the plan complies | Result |
 |---|---|---|
 | **I. Contract parity** | Every request and response shape is a Pydantic schema in `backend/app/schemas.py`. The shapes the frontend consumes (the management API) are mirrored in `frontend/src/types/` in the same change. The serviceBW-facing shapes are documented in [contracts/](contracts/), because no frontend code consumes them. Every response uses `{data, message?}` (with `data: null` when there is nothing to return), or `{error, message}` raised through `HTTPException`. This includes logout, delete and health. The template's `GET /` is removed | PASS |
-| **II. Sync persistence (NON-NEGOTIABLE)** | All route handlers are plain `def` and use `Depends(get_db)` with `select()`, `db.get()` and `db.scalars()`. The worker thread opens its own sync `Session` from `SessionLocal`. EUDIPLO and webhook calls use a synchronous `httpx2.Client`. There is no `AsyncSession`, no `db.query()`, and no blocking I/O in an `async def` | PASS |
+| **II. Sync persistence (NON-NEGOTIABLE)** | All route handlers are plain `def` and use `Depends(get_db)` with `select()`, `db.get()` and `db.scalars()`. The worker thread opens its own sync `Session` from `SessionLocal`. EUDIPLO calls use a synchronous `httpx2.Client`. There is no `AsyncSession`, no `db.query()`, and no blocking I/O in an `async def` | PASS |
 | **III. Quality gates** | Ruff, mypy, ESLint, Prettier and the build stay as configured, and pre-commit is not bypassed. pytest is configured in `[tool.pytest.ini_options]` only, with no `pytest.ini`; the line referring to the missing asyncio plugin is removed | PASS |
 | **IV. Dependencies and config** | Every new package is imported directly and declared, and `uv.lock` is refreshed. Every new backend environment variable is a `Settings` field and is also listed in `.env.example`, `README.md` and `docs/ARCHITECTURE.md`. The nginx variables are documented next to `BACKEND_HOST` (research R18). The unused `API_KEY` is removed. Secrets live only in `.env` or Coolify. `APP_ENV=production` stays in production | PASS |
 | **V. Schema evolution** | One autogenerated migration, reviewed before commit. The committed `v0_add_team_members.py` is kept, and the new migration drops `team_members` (research R1). All new models follow the conventions: UUID4 `String(36)` keys, `created_at` and `updated_at`, `snake_case`. Every scanned column is indexed, including partial indexes for the worker ([data-model.md](data-model.md#indexes)). No `datetime.utcnow()` | PASS |
-| **Technology and structure** | The stack is unchanged, and there is no root `package.json`. Routers stay in `app/routers/`, one per resource. The database module stays `app/db.py`. The frontend uses `src/api`, `components`, `pages`, `hooks`, `utils` and `types`. KERN design tokens enter Tailwind's theme through imports in `index.css`. No inline styles. `useReducer` is used for the editor's state. List items are sub-components. `any` is not used: claim values are typed `unknown` and JSON value types. One mismatch predates this plan, which leaves it as it is: `package.json` already has Vite 8.2, while the constitution and `CLAUDE.md` name Vite 7 | PASS |
+| **Technology and structure** | The stack is unchanged, and there is no root `package.json`. Routers stay in `app/routers/`, one per resource. The database module stays `app/db.py`. The frontend uses `src/api`, `components`, `pages`, `hooks`, `utils` and `types`. KERN design tokens enter Tailwind's theme through imports in `index.css`. No inline styles. `useReducer` is used for the editor's state. List items are sub-components. `any` is not used: claim values are typed `unknown` and JSON value types. `package.json` has Vite 8.2, which the constitution (since 1.0.1), `CLAUDE.md`, `README.md` and `docs/ARCHITECTURE.md` name as well | PASS |
 | **Extensions to the prescribed layout** (not violations) | Four additions sit inside `backend/app/` without changing the prescribed modules: `app/services/` for domain logic shared by the routers and the worker, `app/catalog.py`, `app/cli.py`, and an in-process worker thread. Their patterns are added to `CLAUDE.md` and `docs/ARCHITECTURE.md` | PASS |
 | **Logging** | The `logging` module only. Log lines never contain claims, tokens or secrets. Request references are redacted from uvicorn's and nginx's access logs (research R8, R13) | PASS |
-| **Workflow and documentation** | Backend work follows model → schema → migration → router → registration → settings, and frontend work follows types → api → components. The documentation checklist covers: `README.md` (new variables, dependencies and why they were added, the account CLI, EUDIPLO prerequisites, the nginx allow-list); `docs/ARCHITECTURE.md` (EUDIPLO, the worker, the nginx allow-list, variables, the structure listing); `CLAUDE.md` (the services layer and worker patterns, the structure listing); and `docs/EUDIPLO.md` §4 and §11 (the middleware client's roles) | PASS |
+| **Workflow and documentation** | Backend work follows model → schema → migration → router → registration, except that the settings of research R18 came first, in one task (T007), so that every later task finds its setting. Frontend work follows types → api → components. The documentation checklist covers: `README.md` (new variables, dependencies and why they were added, the account CLI, EUDIPLO prerequisites, the nginx allow-list); `docs/ARCHITECTURE.md` (EUDIPLO, the worker, the nginx allow-list, variables, the structure listing); `CLAUDE.md` (the services layer and worker patterns, the structure listing); and `docs/EUDIPLO.md` §4 and §11 (the middleware client's roles) | PASS |
 | **Tests (TODO TEST_STRATEGY)** | This plan does not amend the constitution. Backend pytest coverage is added as a practice that doesn't gate merges, and the test-strategy amendment remains a separate decision | PASS (no amendment) |
 
 **Gate result (before research)**: PASS, with no violations to justify.
@@ -173,14 +180,15 @@ specs/001-servicebw-eudi-middleware/
 ├── research.md          # Phase 0: decisions R1–R21
 ├── data-model.md        # Phase 1: tables, open requests, state transitions, indexes, catalog
 ├── quickstart.md        # Phase 1: setup, validation scenarios V1–V9, deployment checks
+├── design-notes.md      # The Figma design's copy, tokens and the decisions taken (T023, T084)
 ├── contracts/           # Phase 1
 │   ├── integration-api.md   # serviceBW → middleware: trigger URL and pull URL
-│   ├── webhook-updates.md   # middleware → serviceBW webhook address
 │   ├── management-api.md    # DO.IT UI → backend
 │   ├── eudiplo-usage.md     # middleware → EUDIPLO (the subset used)
 │   └── ui-screens.md        # Screens and behavior (visual design from Figma)
 ├── checklists/
-│   └── requirements.md  # Spec quality checklist
+│   ├── requirements.md  # Spec quality checklist
+│   └── review-gate.md   # Requirements quality review, done before /speckit-tasks
 └── tasks.md             # Phase 2 output (/speckit-tasks, not created here)
 ```
 
@@ -197,10 +205,11 @@ backend/
 │   ├── db.py                     # kept; pool raised to pool_size=10, max_overflow=20 (research R15)
 │   ├── errors.py                 # kept
 │   ├── models.py                 # UserAccount, LoginSession, FormConnection, FormConnectionRevision,
-│   │                             # DocumentRequest, WebhookDelivery
+│   │                             # DocumentRequest
 │   ├── schemas.py                # envelopes kept, plus auth, document-type, form-connection and integration schemas
 │   ├── catalog.py                # document type catalog: pid (SD-JWT VC) and mdl (mdoc)
-│   ├── cli.py                    # create-user / set-password / delete-user
+│   ├── cli.py                    # create-user / set-password / delete-user, and clear-connections,
+│   │                             # which deletes the EUDIPLO sessions before the rows (T093)
 │   ├── routers/
 │   │   ├── auth.py               # /api/auth/login, /logout, /me
 │   │   ├── document_types.py     # /api/document-types
@@ -214,18 +223,23 @@ backend/
 │       ├── form_connections.py   # create and edit (locked revision numbering), deactivate, activate, delete, re-sync
 │       ├── document_requests.py  # trigger, status mapping, last check before expiry, delivery once
 │       ├── qr.py                 # QR PNG data URI (segno)
-│       ├── webhooks.py           # outbox delivery with leases and back-off
-│       └── worker.py             # loop: sync, expire, cancel, deliver, delete sessions, re-sync,
+│       └── worker.py             # loop: sync, expire, cancel, delete sessions, re-sync,
 │                                 # clean configs, end sign-ins, delete old request records
 ├── alembic/versions/
 │   ├── v0_add_team_members.py    # kept (committed history)
-│   └── <rev>_form_connections.py # new: drops team_members, creates the six tables and the indexes
+│   ├── <rev>_form_connections.py # new: drops team_members, creates the six tables and the indexes
+│   └── <rev>_remove_webhook_mode.py # new (2026-10-19): drops webhook_deliveries, the two webhook_url
+│                                 # columns and document_requests.mode
+├── scripts/
+│   └── issue_test_credentials/   # developer script, not in the image: issues a test PID and mDL
+│                                 # with random data to a test wallet (CLAUDE.md, README.md)
 └── tests/
     ├── conftest.py               # test DB guard (name must end in _test), app client, fake EUDIPLO
     ├── fake_eudiplo.py           # httpx2.MockTransport-based EUDIPLO double
-    ├── unit/                     # dcql and config hash, documents (allow-list extraction), status mapping, catalog
-    └── api/                      # auth and CSRF, form connections, connect (pull, expiry, unavailable,
-                                  # check order), webhooks, worker steps
+    ├── unit/                     # catalog, dcql and config hash, documents (allow-list extraction),
+    │                             # status mapping, EUDIPLO client, CLI, issue_test_credentials
+    └── api/                      # auth and CSRF, errors, form connections, connect (pull, expiry,
+                                  # unavailable, check order), worker steps
 
 frontend/
 ├── index.html                    # title and lang from the Figma design
@@ -252,7 +266,7 @@ frontend/
     │   │                         # connection" while no form connection exists, else the overview
     │   ├── FormConnectionList/
     │   ├── FormConnectionEditor/ # create and edit; components/ for document and field pickers
-    │   └── FormConnectionDetail/ # URLs, webhook address (shown from US3), activate/deactivate, delete
+    │   └── FormConnectionDetail/ # URLs, activate/deactivate, delete
     └── utils/
 ```
 
@@ -260,8 +274,8 @@ frontend/
 `frontend/` (React SPA behind nginx), built and deployed separately, with no shared types.
 
 - **`app/services/`** holds the domain logic, so that the routers stay thin and the worker reuses
-  the same functions: the EUDIPLO client, DCQL building, field extraction, request lifecycle,
-  webhooks and the worker.
+  the same functions: the EUDIPLO client, DCQL building, field extraction, request lifecycle and
+  the worker.
 - **`app/catalog.py`** and **`app/cli.py`** are single-purpose modules beside `config.py`.
 - **The production nginx** gains the `/api/connect/` allow-list, because in the documented Coolify
   topology it is the only public entry point (research R13).
@@ -311,15 +325,16 @@ The design artifacts were checked against the constitution once more:
 - Every setting in research R18 is a `Settings` field and is documented. The two nginx variables
   are documented like `BACKEND_HOST` (IV).
 - The new dependencies are each imported directly (IV).
-- The webhook updates in [contracts/webhook-updates.md](contracts/webhook-updates.md) are requests
-  that the middleware sends, not responses, so the response envelope rule doesn't apply to them.
-  Their `reference`, `status` and `documents` have exactly the same shape as in the pull response,
-  so serviceBW parses one document format.
 - The 2026-10-11 amendment changes only the frontend. There is no new schema, migration,
   dependency or setting (I, IV, V), because `/get-started` reuses `GET /api/form-connections`.
   `pages/FirstConnection/` follows the component rules: sibling `constants.ts` and `types.ts`,
   no inline styles. The routing change goes into `CLAUDE.md` and `docs/ARCHITECTURE.md`
   (documentation checklist).
+- The 2026-10-19 amendment removes webhook mode. A new migration drops the `webhook_deliveries`
+  table and the `webhook_url` and `mode` columns, and the committed migrations stay as they are
+  (V). `mode` and `webhook_url` leave the management API's schemas and the frontend types in the
+  same change (I). No setting is removed: `ALLOW_PLAIN_HTTP` now covers only `CONNECTION_BASE_URL`
+  (IV).
 
 **Gate result (after design)**: PASS, with no violations.
 

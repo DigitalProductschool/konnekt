@@ -5,9 +5,9 @@ management UI has no account management, so this is the only way to add, change 
 remove an account. The confirmations are written for the operator's terminal, and a
 password is never printed.
 
-`clear-connections` deletes every form connection, with its revisions, requests and
-webhook updates, and keeps the accounts. It empties only the database: the EUDIPLO
-configurations and sessions of the deleted rows stay in EUDIPLO.
+`clear-connections` deletes every form connection, with its revisions and requests,
+and keeps the accounts. It empties only the database: the EUDIPLO configurations and
+sessions of the deleted rows stay in EUDIPLO.
 """
 
 import argparse
@@ -25,7 +25,6 @@ from .models import (
     FormConnectionRevision,
     LoginSession,
     UserAccount,
-    WebhookDelivery,
 )
 from .services.auth import (
     MIN_PASSWORD_LENGTH,
@@ -89,7 +88,6 @@ def delete_user(db: Session, username: str) -> str:
 
 # Children first, so that no foreign key blocks a deletion
 CONNECTION_MODELS: tuple[type[Base], ...] = (
-    WebhookDelivery,
     DocumentRequest,
     FormConnectionRevision,
     FormConnection,
@@ -97,7 +95,7 @@ CONNECTION_MODELS: tuple[type[Base], ...] = (
 
 
 def clear_connections(db: Session, confirmed: bool) -> str:
-    """Delete every form connection with its revisions, requests and webhook updates.
+    """Delete every form connection with its revisions and requests.
 
     The accounts and their sign-in sessions stay. Without `confirmed`, the operator
     sees the row counts and has to type "yes".

@@ -81,7 +81,7 @@ connection's current revision, all in one interaction (FR-009).
 
 ---
 
-## Pull URL: status and documents (FR-013, pull mode)
+## Pull URL: status and documents (FR-013)
 
 `GET {CONNECTION_BASE_URL}/api/connect/{form_connection_id}/requests/{reference}`
 
@@ -98,7 +98,7 @@ connection's current revision, all in one interaction (FR-009).
 }
 ```
 
-### `200 OK`: completed, first pull of a pull-mode request
+### `200 OK`: completed, first pull
 
 ```json
 {
@@ -147,8 +147,6 @@ connection's current revision, all in one interaction (FR-009).
   can simply pull again if an answer got lost. After that, pulls return `"status": "completed"`
   with `"documents": null`. So does a pull after the documents were deleted, which happens
   30 minutes after the citizen shared at the latest (FR-020).
-- **Webhook mode**: for requests in webhook mode, `documents` is always `null`. Their documents go
-  only to the webhook address (FR-015).
 - **Expiry**: a `pending` request pulled after `expires_at` is checked with EUDIPLO one last time.
   The answer is `completed`, `declined` or `verification_failed` if the citizen finished in time,
   and `expired` otherwise.
