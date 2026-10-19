@@ -1,35 +1,72 @@
-import { NOT_FOUND_COPY } from '../../components/NotFound/constants';
+import { errorNoticeOf } from '../../api/client';
 import type { DetailLocationState } from '../../types/routing';
-import { DETAIL_COPY } from './constants';
-import type { DetailAction, DetailState } from './types';
+import { DETAIL_COPY, INITIAL_ACTIONS_STATE } from './constants';
+import type { ActionsAction, ActionsState, Arrival, ConfirmedAction, StatusAction } from './types';
 
-export function detailReducer(state: DetailState, action: DetailAction): DetailState {
+export function arrivalOf(state: unknown): Arrival {
+  const locationState = state as DetailLocationState | null;
+  if (locationState?.published) return 'published';
+  if (locationState?.saved) return 'saved';
+  return null;
+}
+
+/** The first state: after saving an edit, a toast confirms it. */
+export function initialActionsState(arrival: Arrival): ActionsState {
+  return {
+    ...INITIAL_ACTIONS_STATE,
+    toast: arrival === 'saved' ? { id: 1, message: DETAIL_COPY.saved } : null,
+  };
+}
+
+export function actionsReducer(state: ActionsState, action: ActionsAction): ActionsState {
   switch (action.type) {
-    case 'loaded':
-      return { status: 'loaded', attempt: state.attempt, formConnection: action.formConnection };
-    case 'notFound':
-      return { status: 'notFound', attempt: state.attempt };
+    case 'openDialog':
+      return { ...state, dialog: action.dialog, dialogOpen: true, error: null };
+    case 'closeDialog':
+      return state.running ? state : { ...state, dialogOpen: false, error: null };
+    case 'start':
+      // A retry takes the old message away, so that a new failure is announced again
+      return { ...state, running: action.action, error: null };
+    case 'succeeded':
+      return {
+        ...state,
+        dialogOpen: false,
+        running: null,
+        toast: { id: (state.toast?.id ?? 0) + 1, message: action.message },
+      };
     case 'failed':
-      return { status: 'failed', attempt: state.attempt };
-    case 'retry':
-      return { status: 'loading', attempt: state.attempt + 1 };
+      // A dialog stays open and shows the message where the user is looking
+      return { ...state, running: null, error: action.error };
+    case 'dismissToast':
+      return { ...state, toast: null };
   }
 }
 
-export function isPublishedState(state: unknown): boolean {
-  return Boolean((state as DetailLocationState | null)?.published);
+/** The confirmation's texts for deactivating or deleting. */
+export function dialogCopyOf(action: ConfirmedAction) {
+  return action === 'delete'
+    ? {
+        title: DETAIL_COPY.deleteTitle,
+        text: DETAIL_COPY.deleteText,
+        confirmLabel: DETAIL_COPY.delete,
+        busyLabel: DETAIL_COPY.deleting,
+        errorTitle: DETAIL_COPY.deleteError,
+      }
+    : {
+        title: DETAIL_COPY.deactivateTitle,
+        text: DETAIL_COPY.deactivateText,
+        confirmLabel: DETAIL_COPY.deactivate,
+        busyLabel: DETAIL_COPY.deactivating,
+        errorTitle: DETAIL_COPY.deactivateError,
+      };
 }
 
-/** The tab title: the connection's name once it is loaded. */
-export function documentTitleOf(state: DetailState): string {
-  switch (state.status) {
-    case 'loaded':
-      return state.formConnection.name;
-    case 'notFound':
-      return NOT_FOUND_COPY.title;
-    case 'failed':
-      return DETAIL_COPY.errorTitle;
-    case 'loading':
-      return DETAIL_COPY.loading;
-  }
+/** The API's message, with the error ID of a 5xx answer, or "Nothing changed. …". */
+export function actionErrorNotice(error: unknown) {
+  return errorNoticeOf(error, DETAIL_COPY.actionErrorText);
+}
+
+/** The toast after an action that keeps the connection. */
+export function successMessageOf(action: Exclude<StatusAction, 'delete'>): string {
+  return action === 'deactivate' ? DETAIL_COPY.deactivated : DETAIL_COPY.activated;
 }

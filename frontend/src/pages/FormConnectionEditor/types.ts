@@ -1,12 +1,19 @@
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
-import type { RequestedDocument } from '../../types/form-connections';
+import type { FormConnection, RequestedDocument } from '../../types/form-connections';
 
 export interface FormConnectionEditorPageProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
+  /** The connection to edit, at /form-connections/:id/edit; without it, a new one is made */
+  formConnection?: FormConnection;
+  /** The step the wizard opens at */
+  initialStep?: EditorStep;
 }
+
+/** What the wizard does: make a connection, the first one, or edit one */
+export type EditorMode = 'create' | 'first' | 'edit';
 
 export type EditorStep = 'connection' | 'documents';
 
@@ -54,6 +61,8 @@ export type EditorAction =
 
 export interface ConnectionStepProps {
   name: string;
+  /** The card's closing note */
+  note: string;
   servicebwForm: string;
   errors: EditorErrors;
   onChangeName: (value: string) => void;
@@ -120,6 +129,8 @@ export interface FieldCheckboxProps {
 
 export interface PublishDialogProps {
   open: boolean;
+  /** Saves changes to an existing connection rather than publishing a new one */
+  editing: boolean;
   /** Which documents and how many items applicants will share */
   summary: string;
   publishing: boolean;
@@ -131,6 +142,7 @@ export interface PublishDialogProps {
 
 export interface EditorFooterProps {
   step: EditorStep;
+  editing: boolean;
   publishing: boolean;
   onBack: () => void;
   onPublish: () => void;

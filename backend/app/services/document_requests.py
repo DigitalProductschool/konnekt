@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -43,7 +43,6 @@ from .eudiplo import (
     PresentationSession,
     get_eudiplo_client,
 )
-from .form_connections import NOT_FOUND as FORM_CONNECTION_NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +80,10 @@ WALLET_ERROR_CODES = frozenset(
 # that the worker's 2-second cycle stays inside the limit (research R8)
 DELETION_MARGIN = timedelta(seconds=60)
 
+FORM_CONNECTION_NOT_FOUND = {
+    'error': 'Not found',
+    'message': 'Form connection not found',
+}
 REQUEST_NOT_FOUND = {'error': 'Not found', 'message': 'Request not found'}
 UNAVAILABLE_DETAIL = {
     'error': 'unavailable',
@@ -129,6 +132,17 @@ def is_open(request: DocumentRequest) -> bool:
     )
 
 
+# The same test as is_open(), in SQL
+OPEN_REQUEST = or_(
+    DocumentRequest.status == PENDING,
+    and_(
+        DocumentRequest.status == COMPLETED,
+        DocumentRequest.documents_delivered_at.is_(None),
+        DocumentRequest.eudiplo_session_deleted_at.is_(None),
+    ),
+)
+
+
 def apply_status(
     db: Session,
     request: DocumentRequest,
@@ -166,6 +180,21 @@ def _may_change(request: DocumentRequest, new_status: RequestStatus) -> bool:
     return (
         request.status == COMPLETED and new_status == UNAVAILABLE and is_open(request)
     )
+
+
+def cancel_open_requests(db: Session, form_connection_id: str) -> int:
+    """Make every open request of a form connection unavailable (FR-006).
+
+    Deactivating and deleting call it in their own transaction, so that reactivating
+    right afterwards can't revive the requests. Returns how many were cancelled. The
+    caller commits; the worker then deletes their EUDIPLO sessions.
+    """
+    requests = db.scalars(
+        select(DocumentRequest).where(
+            DocumentRequest.form_connection_id == form_connection_id, OPEN_REQUEST
+        )
+    ).all()
+    return sum(apply_status(db, request, UNAVAILABLE) for request in requests)
 
 
 def check_session(db: Session, request: DocumentRequest) -> PresentationSession | None:

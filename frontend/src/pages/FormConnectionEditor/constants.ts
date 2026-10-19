@@ -51,12 +51,21 @@ export const EDITOR_COPY = {
   publish: 'Publish',
   // Figma "06d Documents – ready to publish?"
   dialogTitle: 'Is this all the data you need?',
-  close: 'Close',
   checkAgain: 'Check again',
   confirm: 'Confirm and publish',
   publishing: 'Publishing…',
   publishErrorTitle: 'Couldn’t publish',
   publishErrorText: 'Nothing went live. Check your connection and try again.',
+  // Editing a connection (no frames): the same steps, saving instead of publishing (FR-005)
+  editConnectionTitle: 'Edit the connection',
+  editConnectionHint: 'Change the form’s name or ID, or go on to the documents.',
+  editDocumentsTitle: 'Edit documents',
+  editNote: 'Requests already in progress keep their previous data.',
+  save: 'Save',
+  confirmSave: 'Confirm and save',
+  saving: 'Saving…',
+  saveErrorTitle: 'Couldn’t save',
+  saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
 // Validation messages; the API answers with the same ones (data-model.md, FR-003)

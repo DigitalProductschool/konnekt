@@ -559,36 +559,36 @@ This is quickstart V5.
 
 ### Implementation for User Story 4
 
-- [ ] T065 [US4] Extend `update` in `backend/app/services/form_connections.py` to changes of `documents`, as in data-model.md "Creating a revision". Editing is also allowed while deactivated, and a deleted form connection answers 404.
+- [X] T065 [US4] Extend `update` in `backend/app/services/form_connections.py` to changes of `documents`, as in data-model.md "Creating a revision". Editing is also allowed while deactivated, and a deleted form connection answers 404.
   - lock the `form_connections` row (`SELECT … FOR UPDATE`) and validate;
   - take revision n+1 and call `create_config`;
   - insert the revision and set `current_revision`;
   - if the commit fails, delete the new configuration again.
-- [ ] T066 [US4] Add `deactivate`, `activate` and `delete` to `backend/app/services/form_connections.py`. `delete` sets `deleted_at`, and none of them calls EUDIPLO. In the same transaction, `deactivate` and `delete` turn every open request (data-model.md "Open requests") of the form connection into `unavailable` through `apply_status`, which leaves the commit to its caller (FR-006). That way, reactivating right afterwards can't revive them. Add the matching endpoints to `backend/app/routers/form_connections.py`, with the bodies and messages of contracts/management-api.md:
+- [X] T066 [US4] Add `deactivate`, `activate` and `delete` to `backend/app/services/form_connections.py`. `delete` sets `deleted_at`, and none of them calls EUDIPLO. In the same transaction, `deactivate` and `delete` turn every open request (data-model.md "Open requests") of the form connection into `unavailable` through `apply_status`, which leaves the commit to its caller (FR-006). That way, reactivating right afterwards can't revive them. Add the matching endpoints to `backend/app/routers/form_connections.py`, with the bodies and messages of contracts/management-api.md:
   - `POST /api/form-connections/{id}/deactivate` ("Form connection deactivated");
   - `POST /api/form-connections/{id}/activate` ("Form connection activated");
   - `DELETE /api/form-connections/{id}` (`{"data": null, "message": "Form connection deleted"}`).
-- [ ] T067 [US4] Add the cancel step to `backend/app/services/worker.py`, in the place research R7 gives it (step 3):
+- [X] T067 [US4] Add the cancel step to `backend/app/services/worker.py`, in the place research R7 gives it (step 3):
   - every open request (data-model.md "Open requests") of a deactivated or deleted form connection becomes `unavailable` through `apply_status`;
   - T066 already cancels the open requests when deactivating or deleting. This step catches a request that a trigger inserted after the deactivation was committed: the trigger checks the form connection, ends its transaction, calls EUDIPLO and inserts without checking again;
   - the deletion step (T054) then removes the EUDIPLO sessions.
-- [ ] T068 [US4] Add the configuration cleanup step to `backend/app/services/worker.py`. It covers revisions that are no longer current, or whose form connection is deleted, on which no request still has an EUDIPLO session. For each, call `delete_config` (a 404 counts as success) and set `eudiplo_config_deleted_at`.
-- [ ] T069 [US4] Add the re-sync step to `backend/app/services/worker.py`, which runs after each start until it has succeeded once (research R2). For every form connection that isn't deleted, it rebuilds the configuration body of the current revision's documents with the current settings: the catalog, `EUDIPLO_TRUST_LIST_ID` and `REQUEST_LIFETIME_SECONDS`, not the revision's stored `lifetime_seconds` (research R2, contracts/eudiplo-usage.md "Change detection"). If the hash differs from `config_hash`, it creates a new revision with the same documents through the T065 revision path, and the new revision stores the current `REQUEST_LIFETIME_SECONDS`.
-- [ ] T070 [P] [US4] Add `activateFormConnection`, `deactivateFormConnection` and `deleteFormConnection` to `frontend/src/api/form-connections.ts`.
-- [ ] T071 [P] [US4] Build `frontend/src/components/ConfirmDialog/` (with `types.ts`) from KERN's dialog, with a title, text, and confirm and cancel actions (contracts/ui-screens.md "Accessibility"). The focus moves into the dialog, stays there while it is open, and returns to the button that opened it.
-- [ ] T072 [P] [US4] Show in `frontend/src/pages/FormConnectionList/` whether each form connection is active or deactivated, using a KERN badge with text, not colour alone.
-- [ ] T073 [P] [US4] Add the edit mode to `frontend/src/pages/FormConnectionEditor/` for `/form-connections/:id/edit`:
+- [X] T068 [US4] Add the configuration cleanup step to `backend/app/services/worker.py`. It covers revisions that are no longer current, or whose form connection is deleted, on which no request still has an EUDIPLO session. For each, call `delete_config` (a 404 counts as success) and set `eudiplo_config_deleted_at`.
+- [X] T069 [US4] Add the re-sync step to `backend/app/services/worker.py`, which runs after each start until it has succeeded once (research R2). For every form connection that isn't deleted, it rebuilds the configuration body of the current revision's documents with the current settings: the catalog, `EUDIPLO_TRUST_LIST_ID` and `REQUEST_LIFETIME_SECONDS`, not the revision's stored `lifetime_seconds` (research R2, contracts/eudiplo-usage.md "Change detection"). If the hash differs from `config_hash`, it creates a new revision with the same documents through the T065 revision path, and the new revision stores the current `REQUEST_LIFETIME_SECONDS`.
+- [X] T070 [P] [US4] Add `activateFormConnection`, `deactivateFormConnection` and `deleteFormConnection` to `frontend/src/api/form-connections.ts`.
+- [X] T071 [P] [US4] Build `frontend/src/components/ConfirmDialog/` (with `types.ts`) from KERN's dialog, with a title, text, and confirm and cancel actions (contracts/ui-screens.md "Accessibility"). The focus moves into the dialog, stays there while it is open, and returns to the button that opened it.
+- [X] T072 [P] [US4] Show in `frontend/src/pages/FormConnectionList/` whether each form connection is active or deactivated, using a KERN badge with text, not colour alone.
+- [X] T073 [P] [US4] Add the edit mode to `frontend/src/pages/FormConnectionEditor/` for `/form-connections/:id/edit`:
   - load the form connection and prefill the reducer state;
   - `PUT` the changes;
   - show the note that requests already in progress keep their previous configuration (FR-005).
-- [ ] T074 [US4] Add the "Edit" action and the status actions to `frontend/src/pages/FormConnectionDetail/`, using `ConfirmDialog`, and show the deactivated state:
+- [X] T074 [US4] Add the "Edit" action and the status actions to `frontend/src/pages/FormConnectionDetail/`, using `ConfirmDialog`, and show the deactivated state:
   - **Deactivate**: the text says the URLs stop at once, and requests in progress are cancelled;
   - **Reactivate**;
   - **Delete**: the text says the URLs stop permanently; afterwards the app returns to the overview.
 
 ### Tests for User Story 4
 
-- [ ] T075 [US4] Write `backend/tests/api/test_form_connection_maintenance.py`:
+- [X] T075 [US4] Write `backend/tests/api/test_form_connection_maintenance.py`:
   - editing the documents creates revision 2, a pending request keeps revision 1, and the URLs stay the same;
   - renaming creates no revision;
   - concurrent edits get distinct revision numbers;

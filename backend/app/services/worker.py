@@ -14,15 +14,31 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 
 from ..config import settings
 from ..db import SessionLocal
 from ..errors import describe_error
-from ..models import DocumentRequest, LoginSession
-from . import document_requests
-from .document_requests import PENDING, apply_status, status_for_session
-from .eudiplo import EudiploClient, SessionSummary, get_eudiplo_client
+from ..models import (
+    DocumentRequest,
+    FormConnection,
+    FormConnectionRevision,
+    LoginSession,
+)
+from . import document_requests, form_connections
+from .document_requests import (
+    OPEN_REQUEST,
+    PENDING,
+    UNAVAILABLE,
+    apply_status,
+    status_for_session,
+)
+from .eudiplo import (
+    EudiploClient,
+    EudiploNotConfigured,
+    SessionSummary,
+    get_eudiplo_client,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +59,11 @@ _in_flight_lock = threading.Lock()
 # The latest EUDIPLO updatedAt the sync has seen. After a restart the sync starts at
 # the oldest pending request instead
 _sync_cursor: datetime | None = None
+# The re-sync after a start: the form connections it has checked, and whether it is
+# done (research R2)
+_resynced: set[str] = set()
+_resynced_lock = threading.Lock()
+_resync_done = False
 
 
 def dispatch(key: str, call: Callable[[], None]) -> bool:
@@ -196,6 +217,34 @@ def expire_requests() -> None:
         dispatch(f'check-session:{request_id}', partial(_check_request, request_id))
 
 
+def cancel_requests() -> None:
+    """Cancel the open requests of deactivated or deleted connections (R7, step 3).
+
+    Deactivating and deleting cancel them already. This catches a request that a
+    trigger inserted afterwards: the trigger checks the form connection, ends its
+    transaction while EUDIPLO answers, and inserts without checking again. The next
+    step then deletes the request's EUDIPLO session.
+    """
+    with SessionLocal() as db:
+        requests = db.scalars(
+            select(DocumentRequest)
+            .join(
+                FormConnection,
+                FormConnection.id == DocumentRequest.form_connection_id,
+            )
+            .where(
+                or_(
+                    FormConnection.is_active.is_(False),
+                    FormConnection.deleted_at.is_not(None),
+                ),
+                OPEN_REQUEST,
+            )
+        ).all()
+        for request in requests:
+            apply_status(db, request, UNAVAILABLE)
+            db.commit()
+
+
 def delete_eudiplo_sessions() -> None:
     """Delete the EUDIPLO sessions that are due, with any documents (R7, step 5).
 
@@ -226,6 +275,87 @@ def _delete_session(request_id: str) -> None:
             document_requests.delete_eudiplo_session(db, request)
 
 
+def resync_configs() -> None:
+    """Renew the configurations whose settings changed (R7, step 6).
+
+    After each start, every form connection that isn't deleted is checked once
+    (`form_connections.resync_config`, research R2): a changed trust list, request
+    lifetime or catalog gives its documents a new revision. The checks run in the
+    pool; a failed one is tried again in the next cycle, and the step stops once all
+    have succeeded.
+    """
+    global _resync_done
+    if _resync_done:
+        return
+    with SessionLocal() as db:
+        form_connection_ids = db.scalars(
+            select(FormConnection.id).where(FormConnection.deleted_at.is_(None))
+        ).all()
+    with _resynced_lock:
+        unchecked = [id_ for id_ in form_connection_ids if id_ not in _resynced]
+    if not unchecked:
+        _resync_done = True
+        return
+    for form_connection_id in unchecked:
+        dispatch(f'resync:{form_connection_id}', partial(_resync, form_connection_id))
+
+
+def _resync(form_connection_id: str) -> None:
+    try:
+        with SessionLocal() as db:
+            form_connections.resync_config(db, form_connection_id)
+    except EudiploNotConfigured as error:
+        # Settings only change with a restart, so trying again can't help
+        logger.warning(
+            'Configuration of form connection %s not renewed: %s',
+            form_connection_id,
+            describe_error(error),
+        )
+    with _resynced_lock:
+        _resynced.add(form_connection_id)
+
+
+def delete_unused_configs() -> None:
+    """Delete the EUDIPLO configurations no request needs any more (R7, step 7).
+
+    A revision's configuration goes once a later revision is current, or its form
+    connection was deleted, and no request on it still has an EUDIPLO session. A
+    revision that is being created has a number above the current one, so it stays.
+    The deletions run in the pool; a failed one is tried again in the next cycle.
+    """
+    in_use = (
+        select(DocumentRequest.id)
+        .where(
+            DocumentRequest.revision_id == FormConnectionRevision.id,
+            DocumentRequest.eudiplo_session_deleted_at.is_(None),
+        )
+        .exists()
+    )
+    with SessionLocal() as db:
+        revision_ids = db.scalars(
+            select(FormConnectionRevision.id)
+            .join(
+                FormConnection,
+                FormConnection.id == FormConnectionRevision.form_connection_id,
+            )
+            .where(
+                FormConnectionRevision.eudiplo_config_deleted_at.is_(None),
+                or_(
+                    FormConnectionRevision.revision < FormConnection.current_revision,
+                    FormConnection.deleted_at.is_not(None),
+                ),
+                ~in_use,
+            )
+        ).all()
+    for revision_id in revision_ids:
+        dispatch(f'delete-config:{revision_id}', partial(_delete_config, revision_id))
+
+
+def _delete_config(revision_id: str) -> None:
+    with SessionLocal() as db:
+        form_connections.delete_unused_config(db, revision_id)
+
+
 def delete_expired_login_sessions() -> None:
     """Delete sign-in sessions whose time is up (research R7, step 8)."""
     with SessionLocal() as db:
@@ -251,12 +381,15 @@ def delete_old_request_records() -> None:
         db.commit()
 
 
-# The steps of one cycle, in the order of research R7. Cancelling requests and
-# maintaining configurations come with User Story 4
+# The steps of one cycle, in the order of research R7 (step 4 was removed with
+# webhook mode)
 STEPS: tuple[Step, ...] = (
     sync_sessions,
     expire_requests,
+    cancel_requests,
     delete_eudiplo_sessions,
+    resync_configs,
+    delete_unused_configs,
     delete_expired_login_sessions,
     delete_old_request_records,
 )

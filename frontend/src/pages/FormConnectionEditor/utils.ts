@@ -1,15 +1,73 @@
 import { errorNoticeOf } from '../../api/client';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
-import type { FormConnectionCreate, RequestedDocument } from '../../types/form-connections';
+import type {
+  FormConnection,
+  FormConnectionCreate,
+  RequestedDocument,
+} from '../../types/form-connections';
 import {
   EDITOR_COPY,
   ELEMENT_IDS,
+  INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
-import type { EditorAction, EditorErrors, EditorState } from './types';
+import type { EditorAction, EditorErrors, EditorMode, EditorState, EditorStep } from './types';
+
+/** The wizard's first state: empty, or the connection to edit with its documents. */
+export function initialEditorState({
+  formConnection,
+  initialStep,
+}: {
+  formConnection?: FormConnection;
+  initialStep: EditorStep;
+}): EditorState {
+  if (!formConnection) {
+    return { ...INITIAL_EDITOR_STATE, step: initialStep };
+  }
+  return {
+    ...INITIAL_EDITOR_STATE,
+    step: initialStep,
+    name: formConnection.name,
+    servicebwForm: formConnection.servicebw_form,
+    documents: formConnection.documents.map((document) => ({
+      document_type: document.document_type,
+      fields: document.fields.map((field) => field.key),
+    })),
+  };
+}
+
+/** The page title of a step: the heading, its hint and the tab title. */
+export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
+  if (step === 'documents') {
+    return {
+      title: mode === 'edit' ? EDITOR_COPY.editDocumentsTitle : EDITOR_COPY.documentsTitle,
+      hint: EDITOR_COPY.documentsHint,
+    };
+  }
+  switch (mode) {
+    case 'edit':
+      return { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint };
+    case 'first':
+      return { title: EDITOR_COPY.firstConnectionTitle, hint: EDITOR_COPY.connectionHint };
+    case 'create':
+      return { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
+  }
+}
+
+/**
+ * The header's title: the name as typed once there is one to show, otherwise what is being
+ * made, or the edited connection's saved name.
+ */
+export function headerTitleOf(state: EditorState, formConnection?: FormConnection): string {
+  const name = state.name.trim();
+  if (formConnection) {
+    return name || formConnection.name;
+  }
+  return state.step === 'documents' && name ? name : EDITOR_COPY.headerTitle;
+}
 
 /** Keeps documents in catalog order, the order of the API and the cards. */
 function inCatalogOrder(documents: RequestedDocument[], catalogOrder: string[]) {
@@ -196,10 +254,14 @@ export function labelOf(documentType: string, documentTypes: DocumentType[]): st
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
 }
 
-/** "Applicants will be asked to share Personal ID (7 items) and Driving licence (5 items)." */
+/**
+ * "Applicants will be asked to share Personal ID (7 items) and Driving licence (5 items).",
+ * then what saving does: publishing a new connection, or changing one (FR-005).
+ */
 export function publishSummary(
   documents: RequestedDocument[],
-  documentTypes: DocumentType[]
+  documentTypes: DocumentType[],
+  editing = false
 ): string {
   if (documents.length === 0) {
     return '';
@@ -210,9 +272,13 @@ export function publishSummary(
   });
   const list =
     parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
-  return `Applicants will be asked to share ${list}. Once you publish, the form goes live with this data.`;
+  const outcome = editing
+    ? `New requests use this data. ${EDITOR_COPY.editNote}`
+    : 'Once you publish, the form goes live with this data.';
+  return `Applicants will be asked to share ${list}. ${outcome}`;
 }
 
+/** The connection to create or, when editing, every field to save; also unchanged ones. */
 export function createPayload(state: EditorState): FormConnectionCreate {
   return {
     name: state.name.trim(),
@@ -225,6 +291,6 @@ export function createPayload(state: EditorState): FormConnectionCreate {
  * The API's message, which says what went wrong, with the error ID of a 5xx answer, or a general
  * message without them.
  */
-export function publishErrorNotice(error: unknown): ErrorNotice {
-  return errorNoticeOf(error, EDITOR_COPY.publishErrorText);
+export function publishErrorNotice(error: unknown, editing = false): ErrorNotice {
+  return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
 }

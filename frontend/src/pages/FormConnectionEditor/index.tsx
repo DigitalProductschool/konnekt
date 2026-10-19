@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { generatePath, useNavigate } from 'react-router';
 
-import { createFormConnection } from '../../api/form-connections';
+import { createFormConnection, updateFormConnection } from '../../api/form-connections';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
@@ -14,7 +14,7 @@ import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import type { DocumentType } from '../../types/document-types';
 import type { DetailLocationState } from '../../types/routing';
 import ConnectionStep from './ConnectionStep';
-import { EDITOR_COPY, ELEMENT_IDS, INITIAL_EDITOR_STATE } from './constants';
+import { EDITOR_COPY, ELEMENT_IDS } from './constants';
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
 import PublishDialog from './PublishDialog';
@@ -24,6 +24,9 @@ import {
   editorReducer,
   firstInvalidElementId,
   hasErrors,
+  headerTitleOf,
+  initialEditorState,
+  pageTitleOf,
   publishErrorNotice,
   publishSummary,
   validateConnection,
@@ -34,12 +37,21 @@ import {
  * The create screen at /form-connections/new: a wizard with the form's details and the
  * documents. Everything stays in the browser until "Publish", which creates the connection
  * with one call (the API has no drafts) and opens its details. The first-connection screen
- * at /get-started is the same wizard, with its own heading for step 1.
+ * at /get-started is the same wizard, with its own heading for step 1. Given a connection,
+ * the wizard edits it (/form-connections/:id/edit): it starts with its details and documents,
+ * and "Save" changes them with one call. Changed documents apply to new requests only (FR-005).
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
+  formConnection,
+  initialStep = 'connection',
 }: FormConnectionEditorPageProps) {
-  const [state, dispatch] = useReducer(editorReducer, INITIAL_EDITOR_STATE);
+  const [state, dispatch] = useReducer(
+    editorReducer,
+    { formConnection, initialStep },
+    initialEditorState
+  );
+  const editing = formConnection !== undefined;
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const handleUnauthorized = useSignOutOnUnauthorized();
   const navigate = useNavigate();
@@ -47,13 +59,12 @@ export default function FormConnectionEditorPage({
   const shownStep = useRef(state.step);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
   const onDocuments = state.step === 'documents';
-  const pageTitle = onDocuments
-    ? EDITOR_COPY.documentsTitle
-    : firstConnection
-      ? EDITOR_COPY.firstConnectionTitle
-      : EDITOR_COPY.connectionTitle;
+  const pageTitle = pageTitleOf(
+    state.step,
+    editing ? 'edit' : firstConnection ? 'first' : 'create'
+  );
 
-  useDocumentTitle(pageTitle);
+  useDocumentTitle(pageTitle.title);
 
   // A new step replaces the content, so the focus moves to its heading
   useEffect(() => {
@@ -95,12 +106,15 @@ export default function FormConnectionEditorPage({
   async function handleConfirm() {
     dispatch({ type: 'publish' });
     try {
-      const created = await createFormConnection(createPayload(state));
-      const locationState: DetailLocationState = { published: true };
-      navigate(generatePath(ROUTES.formConnection, { id: created.id }), { state: locationState });
+      // Editing sends every field: unchanged documents create no new revision
+      const saved = formConnection
+        ? await updateFormConnection(formConnection.id, createPayload(state))
+        : await createFormConnection(createPayload(state));
+      const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
+      navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatch({ type: 'publishFailed', error: publishErrorNotice(error) });
+        dispatch({ type: 'publishFailed', error: publishErrorNotice(error, editing) });
       }
     }
   }
@@ -120,7 +134,7 @@ export default function FormConnectionEditorPage({
 
   return (
     <WizardLayout
-      title={onDocuments && state.name.trim() ? state.name.trim() : EDITOR_COPY.headerTitle}
+      title={headerTitleOf(state, formConnection)}
       head={
         <>
           <WizardProgress
@@ -128,16 +142,13 @@ export default function FormConnectionEditorPage({
             current={onDocuments ? 1 : 0}
             onSelect={() => dispatch({ type: 'goToStep', step: 'connection' })}
           />
-          <PageTitle
-            ref={titleRef}
-            title={pageTitle}
-            hint={onDocuments ? EDITOR_COPY.documentsHint : EDITOR_COPY.connectionHint}
-          />
+          <PageTitle ref={titleRef} title={pageTitle.title} hint={pageTitle.hint} />
         </>
       }
       footer={
         <EditorFooter
           step={state.step}
+          editing={editing}
           publishing={state.publishing}
           onBack={() => dispatch({ type: 'goToStep', step: 'connection' })}
           onPublish={handlePublish}
@@ -147,7 +158,8 @@ export default function FormConnectionEditorPage({
         <>
           <PublishDialog
             open={state.dialogOpen}
-            summary={publishSummary(state.documents, documentTypes)}
+            editing={editing}
+            summary={publishSummary(state.documents, documentTypes, editing)}
             publishing={state.publishing}
             error={state.publishError}
             onCancel={() => dispatch({ type: 'closeDialog' })}
@@ -178,6 +190,7 @@ export default function FormConnectionEditorPage({
       ) : (
         <ConnectionStep
           name={state.name}
+          note={editing ? EDITOR_COPY.editNote : EDITOR_COPY.formCardNote}
           servicebwForm={state.servicebwForm}
           errors={state.errors}
           onChangeName={(value) => dispatch({ type: 'changeName', value })}

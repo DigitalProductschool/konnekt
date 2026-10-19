@@ -124,14 +124,19 @@ database: Alembic could not find the revision recorded in `alembic_version`.
   allow-list. It needs no issuance role.
 
 **Creating a revision safely**:
-1. The middleware locks the `form_connections` row (`SELECT … FOR UPDATE`) before it takes the
-   next revision number. This way two simultaneous edits can't create the same configuration id.
-2. It creates the EUDIPLO configuration.
-3. It inserts the revision.
+1. The middleware locks the `form_connections` row (`SELECT … FOR UPDATE`), takes the next
+   revision number and inserts the revision, which isn't current yet. This way two simultaneous
+   edits can't create the same configuration id.
+2. It commits, which reserves the number, and creates the EUDIPLO configuration without holding
+   a transaction (R15).
+3. It locks the row again and makes the revision current, unless a later one became current
+   meanwhile.
 
-If the database commit fails after step 2, the middleware tries to delete the configuration it
-just created and logs the outcome. That way an orphaned configuration is at most logged, and
-never silently left behind.
+If EUDIPLO fails in step 2, the reserved revision is removed again. If the database commit fails
+after step 2, the middleware tries to delete the configuration it just created and logs the
+outcome. That way an orphaned configuration is at most logged, and never silently left behind.
+(Implementation, T065: the plan first held the lock while EUDIPLO answered, which R15 and
+`CLAUDE.md` rule out.)
 
 **Keeping configurations in step with settings and the catalog**: each revision stores
 `lifetime_seconds` and a `config_hash`. The hash is the SHA-256 of the canonical configuration body
