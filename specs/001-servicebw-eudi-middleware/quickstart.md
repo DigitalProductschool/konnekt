@@ -52,7 +52,7 @@ a developer machine. The nginx allow-list (R13) applies only to the production i
 docker compose exec postgres createdb -U postgres template_db_test
 cd backend
 uv run ruff check . && uv run ruff format --check .
-uv run mypy app/
+uv run mypy app/ scripts/ tests/
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
 
 # Frontend: the constitution's gates
@@ -187,10 +187,10 @@ Removed on 2026-10-19: webhook mode is out of scope (see the spec's Clarificatio
 4. Trigger a request and leave it pending, then **deactivate** the form connection.
    - **Expected**: from the next call on, the trigger and the pull answer
      `409 {"error": "unavailable", …}`.
-   - Within a few seconds the pending request becomes `unavailable`.
+   - The pending request becomes `unavailable` at once, in the same step as the deactivation.
    - Scanning that request's QR code now fails in the wallet, because the worker deleted the
      EUDIPLO session.
-5. **Reactivate**.
+5. **Reactivate**, right away or later.
    - **Expected**: triggering works again with the same URLs.
    - A pull for the request from step 4 answers `200` with `status: "unavailable"`.
 6. **Delete**, confirming the prompt.

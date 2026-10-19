@@ -102,9 +102,12 @@ Signing out deletes the row, and the worker deletes rows once they expire.
 - `pull_url`: `{CONNECTION_BASE_URL}/api/connect/{id}/requests/{reference}`.
 
 **What deactivating and deleting change**: deactivating sets `is_active=false`, and deleting sets
-`deleted_at`. Neither touches the form connection's requests directly. From the next call on, the
-URLs answer `409 unavailable`, and within about 2 seconds the worker's cancel step turns the open
-requests into `unavailable` (research R9).
+`deleted_at`. The same transaction turns every [open request](#open-requests) of the form
+connection into `unavailable` (FR-006), so reactivating it right afterwards can't revive them.
+From the next call on, the URLs answer `409 unavailable`. Neither calls EUDIPLO: the worker
+deletes the EUDIPLO sessions in its next cycle. A trigger that passed the form-connection check
+before the deactivation was committed still inserts its request afterwards, and the worker's
+cancel step turns that one into `unavailable` too (research R9).
 
 **Validation (FR-003)**: The service layer checks these rules. A failure raises `HTTPException(400)`
 with `{"error": "Validation error", "message": …}`, and the message names the problem
@@ -150,7 +153,8 @@ service layer, where the message can name the problem.
 - with the form connection, as revision 1;
 - when the documents or fields change, as revision n+1;
 - by the worker's re-sync after a start, when the configuration generated for the current
-  documents no longer matches `config_hash` (research R2);
+  documents with the current settings (the catalog, `EUDIPLO_TRUST_LIST_ID` and
+  `REQUEST_LIFETIME_SECONDS`) no longer matches `config_hash` (research R2);
 - never because the name or the serviceBW form changed.
 
 **Creating a revision**:

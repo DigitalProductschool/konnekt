@@ -31,7 +31,7 @@ tested as an increment.
   `backend/app/services/`, and tests in `backend/tests/`.
 - **Frontend**: `frontend/src/`, using `api/`, `components/`, `hooks/`, `pages/`, `types/` and
   `utils/`.
-- **Rules**: constitution v1.0.0 applies to every task.
+- **Rules**: constitution v1.0.1 applies to every task.
   - Sync SQLAlchemy `Session`, with `select()`, `db.get()` and `db.scalars()`.
   - Plain `def` handlers.
   - Errors as `HTTPException` with an `{'error', 'message'}` detail.
@@ -300,7 +300,7 @@ This is quickstart V1, steps 3–6. Phase 4 adds the first-connection screen (st
   - `config_hash` is the SHA-256 hex of the canonical JSON (sorted keys, compact separators) of the body without `id` and `description`.
 - [X] T034 [US1] Implement `backend/app/routers/document_types.py`: `GET /api/document-types`, for signed-in users only, returning `200 {"data": DocumentType[]}` in catalog order. Register it in `backend/app/main.py`.
 - [X] T035 [US1] Implement creating, reading and listing in `backend/app/services/form_connections.py` (webhook parts removed by T092):
-  - **Validation**: the rules and messages of data-model.md "Validation (FR-003)", for example "Add at least one document.", "Select at least one field for 'ID (PID)'." and "The webhook address must be an https:// URL." `http://` is allowed only with `ALLOW_PLAIN_HTTP`. Documents are stored in catalog order.
+  - **Validation**: the rules and messages of data-model.md "Validation (FR-003)", for example "Add at least one document.", "Select at least one field for 'Personal ID'." and "The webhook address must be an https:// URL." `http://` is allowed only with `ALLOW_PLAIN_HTTP`. Documents are stored in catalog order.
   - **Create**: create the EUDIPLO configuration with `create_config`, then insert the form connection and revision 1 (`lifetime_seconds` = `REQUEST_LIFETIME_SECONDS`, plus `config_hash`). If the commit fails, delete the configuration again (best effort, logged).
   - **Get**: 404 for unknown or deleted form connections.
   - **List**: form connections that aren't deleted, most recently updated first.
@@ -372,7 +372,7 @@ that T011–T013, T032–T044 and T049–T059 built.
   - remove the `<WebhookCard … />` element and its import, and drop the webhook address from the component's doc comment;
   - keep `WebhookCard.tsx`, `webhookReducer` and `saveErrorNotice` in `utils.ts`, the webhook types in `types.ts` and the webhook texts in `DETAIL_COPY` unchanged, so that the card could be rendered again later (T092 deletes them instead). `npm run build` still type-checks them, and ESLint has no rule against an unused module;
   - keep `updateFormConnection` in `frontend/src/api/form-connections.ts`;
-  - a form connection that got a webhook address while the card was shown keeps webhook mode, and its requests deliver nothing through the pull URL. Before Phase 5 tests pull mode, find such form connections with `GET /api/form-connections` (`mode: "webhook"`) and clear the address with `PUT /api/form-connections/{id}` and `{"webhook_url": null}`.
+  - a form connection that got a webhook address while the card was shown kept webhook mode until T092. T092's migration dropped the address and the mode, so every form connection now uses pull mode, and there is nothing left to clear.
 
 **Checkpoint**: User Story 1 works on its own, without a webhook address in the UI (quickstart V1,
 steps 3–6).
@@ -504,7 +504,7 @@ These are quickstart V2, V3 and V6.
   - for undelivered `completed` requests, at `completed_at` + `DOCUMENT_RETENTION_SECONDS` − 60 s, also setting `ended_at`.
 
   The 30-minute limit also ends a repeat window early.
-- [X] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS`, and the cascade deletes their `webhook_deliveries` (FR-021) (webhook parts removed by T092).
+- [X] T055 [US2] Add the record retention step to `backend/app/services/worker.py`. It deletes `document_requests` whose `ended_at` is older than `REQUEST_RECORD_RETENTION_SECONDS` (FR-021). Until T092, the cascade also deleted their `webhook_deliveries`.
 - [X] T056 [P] [US2] Restrict `/api/connect/` in the production nginx (research R13):
   - `frontend/nginx/40-servicebw-access.sh` writes two files:
     - `/etc/nginx/servicebw-allow.conf`: one `allow <cidr>;` per entry of `SERVICEBW_ALLOWED_CIDRS`, then `deny all;`. If the variable is empty, only `deny all;`.
@@ -534,7 +534,7 @@ These are quickstart V2, V3 and V6.
   - sync applies statuses and ignores unknown sessions, and the cursor works;
   - expiry runs the last check as soon as `expires_at` has passed;
   - EUDIPLO sessions are deleted at the right time: at the end of the window, for final statuses, and at 30 minutes − 60 s;
-  - request records are deleted after the retention period, together with their webhook deliveries.
+  - request records are deleted after the retention period (until T092, together with their webhook deliveries).
 
 **Checkpoint**: User Stories 1 and 2 form the MVP: a serviceBW form can retrieve verified documents
 in pull mode (quickstart V1–V3, V6).
@@ -564,15 +564,16 @@ This is quickstart V5.
   - take revision n+1 and call `create_config`;
   - insert the revision and set `current_revision`;
   - if the commit fails, delete the new configuration again.
-- [ ] T066 [US4] Add `deactivate`, `activate` and `delete` to `backend/app/services/form_connections.py`. `delete` sets `deleted_at`, and none of them calls EUDIPLO. Add the matching endpoints to `backend/app/routers/form_connections.py`, with the bodies and messages of contracts/management-api.md:
+- [ ] T066 [US4] Add `deactivate`, `activate` and `delete` to `backend/app/services/form_connections.py`. `delete` sets `deleted_at`, and none of them calls EUDIPLO. In the same transaction, `deactivate` and `delete` turn every open request (data-model.md "Open requests") of the form connection into `unavailable` through `apply_status`, which leaves the commit to its caller (FR-006). That way, reactivating right afterwards can't revive them. Add the matching endpoints to `backend/app/routers/form_connections.py`, with the bodies and messages of contracts/management-api.md:
   - `POST /api/form-connections/{id}/deactivate` ("Form connection deactivated");
   - `POST /api/form-connections/{id}/activate` ("Form connection activated");
   - `DELETE /api/form-connections/{id}` (`{"data": null, "message": "Form connection deleted"}`).
-- [ ] T067 [US4] Add the cancel step to `backend/app/services/worker.py`:
+- [ ] T067 [US4] Add the cancel step to `backend/app/services/worker.py`, in the place research R7 gives it (step 3):
   - every open request (data-model.md "Open requests") of a deactivated or deleted form connection becomes `unavailable` through `apply_status`;
+  - T066 already cancels the open requests when deactivating or deleting. This step catches a request that a trigger inserted after the deactivation was committed: the trigger checks the form connection, ends its transaction, calls EUDIPLO and inserts without checking again;
   - the deletion step (T054) then removes the EUDIPLO sessions.
 - [ ] T068 [US4] Add the configuration cleanup step to `backend/app/services/worker.py`. It covers revisions that are no longer current, or whose form connection is deleted, on which no request still has an EUDIPLO session. For each, call `delete_config` (a 404 counts as success) and set `eudiplo_config_deleted_at`.
-- [ ] T069 [US4] Add the re-sync step to `backend/app/services/worker.py`, which runs after each start until it has succeeded once (research R2). For every form connection that isn't deleted, it rebuilds the configuration body of the current revision. If the hash differs from `config_hash`, it creates a new revision with the same documents through the T065 revision path.
+- [ ] T069 [US4] Add the re-sync step to `backend/app/services/worker.py`, which runs after each start until it has succeeded once (research R2). For every form connection that isn't deleted, it rebuilds the configuration body of the current revision's documents with the current settings: the catalog, `EUDIPLO_TRUST_LIST_ID` and `REQUEST_LIFETIME_SECONDS`, not the revision's stored `lifetime_seconds` (research R2, contracts/eudiplo-usage.md "Change detection"). If the hash differs from `config_hash`, it creates a new revision with the same documents through the T065 revision path, and the new revision stores the current `REQUEST_LIFETIME_SECONDS`.
 - [ ] T070 [P] [US4] Add `activateFormConnection`, `deactivateFormConnection` and `deleteFormConnection` to `frontend/src/api/form-connections.ts`.
 - [ ] T071 [P] [US4] Build `frontend/src/components/ConfirmDialog/` (with `types.ts`) from KERN's dialog, with a title, text, and confirm and cancel actions (contracts/ui-screens.md "Accessibility"). The focus moves into the dialog, stays there while it is open, and returns to the button that opened it.
 - [ ] T072 [P] [US4] Show in `frontend/src/pages/FormConnectionList/` whether each form connection is active or deactivated, using a KERN badge with text, not colour alone.
@@ -581,7 +582,7 @@ This is quickstart V5.
   - `PUT` the changes;
   - show the note that requests already in progress keep their previous configuration (FR-005).
 - [ ] T074 [US4] Add the "Edit" action and the status actions to `frontend/src/pages/FormConnectionDetail/`, using `ConfirmDialog`, and show the deactivated state:
-  - **Deactivate**: the text says the URLs stop at once, and requests in progress are cancelled within a few seconds;
+  - **Deactivate**: the text says the URLs stop at once, and requests in progress are cancelled;
   - **Reactivate**;
   - **Delete**: the text says the URLs stop permanently; afterwards the app returns to the overview.
 
@@ -593,11 +594,12 @@ This is quickstart V5.
   - concurrent edits get distinct revision numbers;
   - deactivating:
     - the trigger and the pull answer 409;
-    - the cancel step turns `pending` and undelivered `completed` requests into `unavailable`;
+    - `pending` and undelivered `completed` requests become `unavailable` at once, and stay so after an immediate reactivation;
+    - the cancel step turns a request inserted after the deactivation into `unavailable`;
   - reactivating restores the URLs;
-  - deleting: 409 on the URLs, and 404 in the management API;
+  - deleting: 409 on the URLs, 404 in the management API, and open requests become `unavailable` at once;
   - configuration cleanup;
-  - re-sync after `EUDIPLO_TRUST_LIST_ID` changes.
+  - re-sync after `EUDIPLO_TRUST_LIST_ID` changes, and after `REQUEST_LIFETIME_SECONDS` changes, where the new revision stores the new lifetime.
 
 **Checkpoint**: User Stories 1, 2 and 4 work (quickstart V1–V3 and V5–V7).
 
@@ -609,6 +611,8 @@ This is quickstart V5.
 - **Removing webhook mode (T092)**: the user removed webhook mode on 2026-10-19 (spec
   Clarifications, Session 2026-10-19). T092 takes out what Phases 2, 3 and 5 built for it, before
   Phase 6 builds on the worker and the details screen.
+- **Deleting EUDIPLO sessions in `clear-connections` (T093)**: the command was added outside this
+  task list and left documents in EUDIPLO; `/speckit-analyze` found it on 2026-10-19.
 - **Merge gate (T076–T080)**: these tasks run before each change is proposed for merge, from the
   first merge on, because the constitution requires the documentation checklist and the quality
   gates before every merge ("Development Workflow"). Each run covers what exists at that point.
@@ -625,6 +629,12 @@ This is quickstart V5.
   - **Tests**: the webhook cases in `backend/tests/api/test_form_connections.py`, `backend/tests/api/test_connect.py`, `backend/tests/api/test_worker_requests.py` and `backend/tests/unit/test_cli.py`;
   - **Docs**: `README.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md` and `backend/.env.example`. `DOCUMENT_RETENTION_SECONDS` is no longer a retry limit, and `ALLOW_PLAIN_HTTP` covers only `CONNECTION_BASE_URL`. Mentions of EUDIPLO's own webhooks stay;
   - run the gates of T080, including `uv run pytest` against a `_test` database.
+- [ ] T093 Make `clear-connections` in `backend/app/cli.py` keep FR-020's 30-minute limit (SC-006). The command was added outside this task list (pull requests #76 and #77). It deletes the database rows and leaves the EUDIPLO sessions, so documents that a citizen shared and serviceBW never collected stay in EUDIPLO until its session TTL ends, 24 hours by default (research R8, R19):
+  - before deleting any row, delete the EUDIPLO session of every request whose `eudiplo_session_deleted_at` is empty, with `delete_session` from `get_eudiplo_client()`. A `404` counts as success;
+  - if a deletion fails, or EUDIPLO isn't configured, delete nothing and exit with an error that gives the number of sessions left, never a reference;
+  - the EUDIPLO configurations hold no personal data and may stay, as today. Say so in the module docstring and before the confirmation prompt;
+  - extend `backend/tests/unit/test_cli.py` with the fake EUDIPLO: the sessions are deleted before the rows, a `404` is accepted, and a `5xx` leaves every row in place;
+  - update the `clear-connections` text in `CLAUDE.md` (Commands) and `README.md`.
 - [ ] T076 [P] Update `README.md`:
   - the middleware's purpose;
   - local setup with `backend/.env` and the account CLI;
@@ -639,10 +649,11 @@ This is quickstart V5.
 - [ ] T078 [P] Update `CLAUDE.md`: the services-layer and worker patterns, the backend structure listing and the "Full Stack Example". Keep the generic examples in the naming-convention tables.
 - [ ] T079 [P] Update `docs/EUDIPLO.md`: §4 ("Our middleware's client") and the §11 "Middleware client" row become `presentation:request` + `presentation:manage`, with no allow-list.
 - [ ] T080 Run the quality gates and fix every finding:
-  - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy app/`;
-  - in `frontend/`: `npm run lint` and `npm run build`.
+  - in `backend/`: `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy app/ scripts/ tests/`. The constitution requires `app/`, and `CLAUDE.md` also checks the scripts and the tests;
+  - in `frontend/`: `npm run lint` and `npm run build`;
+  - exercise what these gates can't check against a running stack (`docker compose up`), with the quickstart.md scenarios that the change touches, and describe that verification in the pull request (constitution, "Development Workflow and Quality Gates").
 
-  Once `backend/tests/` exists, also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
+  Also run `uv run pytest` against a `_test` database. Tests don't gate merges yet (plan, Constitution Check, "Tests").
 - [ ] T081 Run quickstart.md V1–V3 and V5–V7 with the user against the hosted EUDIPLO and Paradym; it needs EUDIPLO access and a test wallet. Record the results in `specs/001-servicebw-eudi-middleware/research.md`, R19 item 4:
   - the remaining "Verify at implementation" answers;
   - whether an expired credential fails verification (V3);
@@ -668,6 +679,7 @@ This is quickstart V5.
 - **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
 - **Polish (Phase 7)**:
   - T092 follows Phase 5, and runs before Phase 6 (US4).
+  - T093 can run at any time. It touches only the CLI, its test and two docs.
   - T076–T080 are the merge gate: they run before every merge, from the first one on.
   - T081–T083 depend on the stories that are to be delivered. T081 needs a test wallet, and T083
     needs a Coolify deployment.
@@ -691,12 +703,17 @@ This is quickstart V5.
   - `backend/app/main.py`: T001, T016, T020, T034, T037, T051, T052;
   - `backend/app/services/worker.py`: T020, T053–T055, T092, T067–T069;
   - `backend/app/services/document_requests.py`: T048–T050, T092;
+  - `backend/app/services/form_connections.py`: T035, T036, T092, T065, T066, T069;
+  - `backend/app/routers/form_connections.py`: T037, T092, T066;
   - `backend/app/schemas.py`: T016, T032, T045, T092;
   - `backend/app/models.py`: T010–T013, T092;
+  - `backend/app/cli.py` and `backend/tests/unit/test_cli.py`: T017, T022, T092, T093;
+  - `frontend/src/types/form-connections.ts`: T038, T092;
+  - `frontend/src/api/form-connections.ts`: T038, T070;
   - `frontend/src/pages/FormConnectionDetail/`: T042, T086, T092, T074;
   - `frontend/src/pages/FormConnectionEditor/`: T041, T087, T073;
   - `frontend/src/App.tsx`: T088, T073;
-  - `CLAUDE.md` and `docs/ARCHITECTURE.md`: T090, T092, then the merge-gate runs of T077 and T078.
+  - `CLAUDE.md` and `docs/ARCHITECTURE.md`: T090, T092, T093 (`CLAUDE.md` only), then the merge-gate runs of T077 and T078.
 
 ### Parallel Opportunities
 
@@ -710,7 +727,8 @@ This is quickstart V5.
 - **US1**: T031 and T032 together; T038 and T039 together, and alongside the backend tasks; T043 after T033.
 - **US1, first connection (Phase 4)**: T090 alongside T087–T089. The phase changes only the frontend, so it can also run alongside US2's backend tasks.
 - **US2**: T045, T046 and T047 together; T056 (nginx) alongside all backend tasks; T057 alongside T058.
-- **US4**: T070–T073 together, and alongside the backend tasks T065–T069.
+- **US4**: T070–T073 together, and alongside the backend tasks T065–T069. T073's edit screen can be
+  checked end to end only after T065: until then, a `PUT` with `documents` answers `400`.
 
 ---
 

@@ -115,3 +115,6 @@
   the assumptions no longer mention a webhook address or a connection mode, and webhook mode is
   listed as out of scope. Re-check: no markers, and every cross-reference resolves. All items
   still pass.
+- Iteration 11 (2026-10-19): FR-007 and FR-017 were reworded after `/speckit-analyze`. "Only X
+  MUST be able to…" could be read as "only X is required to…"; both now say "MUST NOT … anyone
+  but". The meaning is unchanged. All items still pass.

@@ -109,7 +109,7 @@ first step's heading and page title changed.
   documents with their selected fields. An "Edit" action opens the edit screen.
 - **Status and actions**:
   - **Deactivate**: asks for confirmation, and says that the URLs stop working at once and that
-    requests in progress will be cancelled within a few seconds.
+    requests in progress are cancelled.
   - **Reactivate**: for a deactivated form connection.
   - **Delete**: asks for confirmation, and states that the URLs will stop working permanently
     (US4, scenario 5). After deleting, the app returns to the overview.

@@ -88,7 +88,7 @@ section of `README.md` for the full command list and editor format-on-save setup
 
 ### frontend
 
-**Tech Stack**: React 19, Vite 7, Tailwind CSS 4, TypeScript, React Router 7, KERN design system
+**Tech Stack**: React 19, Vite 8, Tailwind CSS 4, TypeScript, React Router 7, KERN design system
 
 ```
 frontend/

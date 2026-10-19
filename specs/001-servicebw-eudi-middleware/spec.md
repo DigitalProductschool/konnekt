@@ -275,9 +275,10 @@ reactivate one, then delete one.
   has reached. Its requests still in progress MUST be cancelled and get the status "unavailable".
   A request is in progress while it waits for the citizen, or while its shared documents wait to
   be delivered.
-- **FR-007**: Only authorized DO.IT team members MUST be able to access the middleware's management
-  interface. Each team member MUST sign in with a personal account, which is set up outside the
-  management interface. Deleting a team member's account MUST end their access at once.
+- **FR-007**: The middleware's management interface MUST NOT be accessible to anyone but
+  authorized DO.IT team members. Each team member MUST sign in with a personal account, which is
+  set up outside the management interface. Deleting a team member's account MUST end their access
+  at once.
 - **FR-022**: When a team member signs in while no form connection exists, the system MUST open
   a first-connection screen at its own address, on which they create a form connection in the
   same steps as on the create screen. When at least one form connection exists, signing in MUST
@@ -322,10 +323,10 @@ reactivate one, then delete one.
 
 #### Security and data protection
 
-- **FR-017**: Only serviceBW MUST be able to call the trigger URLs and pull URLs. This is ensured by
-  the restricted network the middleware operates in (see Assumptions), not by credentials sent
-  with the calls. This applies to every environment the middleware is deployed to, test
-  environments included; only a developer's own machine is exempt.
+- **FR-017**: The trigger URLs and pull URLs MUST NOT be callable by anyone but serviceBW. This
+  is ensured by the restricted network the middleware operates in (see Assumptions), not by
+  credentials sent with the calls. This applies to every environment the middleware is deployed
+  to, test environments included; only a developer's own machine is exempt.
 - **FR-018**: Request references MUST NOT be guessable. Once a request's documents have been
   delivered, they MUST NOT be obtainable again, with one narrow exception that protects against a
   lost answer (see Clarifications): the pull URL returns them again for 60 seconds after the first

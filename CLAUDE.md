@@ -8,7 +8,7 @@ Also read all the files in `./docs` for more specific context (like ARCHITECTURE
 
 Full-stack application with separate frontend and backend:
 
-- `/frontend` - React 19 + Vite 7 + TypeScript + Tailwind CSS 4 + React Router 7 + KERN design system
+- `/frontend` - React 19 + Vite 8 + TypeScript + Tailwind CSS 4 + React Router 7 + KERN design system
 - `/backend` - FastAPI (Python 3.13+) + SQLAlchemy 2 + Alembic + psycopg 3 + PostgreSQL, with a
   background worker thread and a client for the EUDIPLO management API
 

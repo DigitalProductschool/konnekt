@@ -11,7 +11,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
+- **Frontend**: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))

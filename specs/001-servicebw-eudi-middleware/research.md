@@ -390,7 +390,8 @@ when `WORKER_ENABLED` is true, and stops it on shutdown.
      `expired`. There is no extra wait, so an answer that EUDIPLO is still verifying at the
      deadline is lost (spec Clarifications, Session 2026-10-08).
   3. **Cancel**: every open request of a deactivated or deleted form connection becomes
-     `unavailable` (R9).
+     `unavailable` (R9). Deactivating and deleting already do this themselves, so the step only
+     catches a request that a trigger inserted after the deactivation was committed.
   4. *Removed on 2026-10-19*: sending webhook updates (R10). The other steps keep their numbers.
   5. **Delete** EUDIPLO sessions that are due for deletion (R8).
   6. **Re-sync** configurations (R2). This step runs until it has succeeded once after each start.
@@ -502,10 +503,13 @@ again. Two pulls at the same moment both receive the documents, which the window
 - **Pulls after the repeat window** return `completed` with `documents: null`.
 - **A request that passed its expiry time** while still `pending`: the pull itself makes the last
   check (R7, step 2) before answering.
-- **Deactivating or deleting a form connection**: this only changes the form connection. Its URLs
-  answer `409 unavailable` from the next call on (R12). The worker's cancel step then turns its
-  open requests into `unavailable` within about 2 seconds, and the deletion step removes their
-  EUDIPLO sessions.
+- **Deactivating or deleting a form connection**: the same transaction turns its open requests
+  into `unavailable`, so reactivating it right afterwards can't revive them (FR-006). Its URLs
+  answer `409 unavailable` from the next call on (R12), and the deletion step removes the EUDIPLO
+  sessions in its next cycle. A trigger that passed the form-connection check before the
+  deactivation was committed still inserts its request afterwards, because it doesn't check the
+  form connection again after calling EUDIPLO. The worker's cancel step (R7, step 3) turns that
+  request into `unavailable` too.
 - **Pull and deactivation at the same moment**: a pull that passed the form-connection check before
   the deactivation was committed still finishes. Its documents count as delivered before the
   deactivation took effect.
