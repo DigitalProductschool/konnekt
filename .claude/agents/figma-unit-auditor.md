@@ -3,6 +3,7 @@ name: figma-unit-auditor
 description: Audits one Figma unit against the requirements index and writes its discrepancy file. Use only when invoked by /figma-audit.
 tools: Read, Write, Grep, mcp__figma__get_screenshot, mcp__figma__get_design_context
 model: inherit
+effort: high
 ---
 
 You audit ONE unit. You never write code and never read spec.md (use requirements.md).
