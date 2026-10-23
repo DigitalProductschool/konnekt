@@ -31,6 +31,16 @@ Sometimes a form can have the possiblity of having two different (but very simil
 - Q: Does every branch need its own trigger URL, or can a form connection keep one trigger URL and let serviceBW choose the branch through the pull URL it calls? → A: One trigger URL per form connection and one pull URL per branch. The rules are evaluated when serviceBW pulls, for the branch whose pull URL it calls, with the rules as they were when the request was triggered (FR-025).
 - Q: How does the pull URL of a branch that was added after a request was triggered answer for that request? → A: With an error saying that the branch didn't exist when the request was triggered. A request uses the rules as they were when it was triggered, and those didn't include the branch (FR-025).
 
+### Session 2026-10-23
+
+- Q: Which conditions can a rule use? → A: The conditions of the field's kind of value, one of four, worded the same for every field: numbers (is greater than, is less than, is equal to, is not equal to), text (is equal to, is not equal to, contains, doesn't contain), enums (is in, is not in a set of values) and dates (is before, is after or is a given date; is more than, is less than or is exactly a number of years ago, always counted back from the day of sharing, which the rules step notes). The licence classes are an enum like any other, and no field, such as the "Date of birth", gets wording of its own (FR-003).
+- Q: Does letter case count when text is compared? → A: The team member chooses for each text condition in the rules step, and the check follows that choice (FR-013).
+- Q: Can one rule check a field against several values? → A: Only an enum rule, such as "Licence classes is in B, C". Any other combination of conditions on one field takes a rule for each (FR-002).
+- Q: Can a group or sub-group hold a single rule? → A: No. A group needs at least two rules. When one of its two rules is deleted, the group is dissolved and the other rule moves to the level that contained the group (FR-008).
+- Q: How do rules check the two fields made of parts, the driving licence's "Licence classes" and the ID's "Place of birth"? → A: Through their parts, each with one of the four kinds: the classes a licence holds as an enum, each class's issue date and expiry date as dates (such as "Licence class B – Issue date"), and the place of birth's country as an enum and its region and city or town as text (FR-003).
+- Q: Does "Date of birth is more than 21 years ago" count as met on the citizen's 21st birthday? → A: Yes, and the condition is labelled "is at least {years} ago" instead of "is more than". It is met from the date's N-th anniversary on; "is less than {years} ago" is met until the day before it, and "is exactly {years} ago" from the N-th anniversary until the day before the next one (FR-003, FR-012).
+- Q: When a branch based on the main branch removes one of the two rules of an inherited group, what happens to the group in that branch? → A: It is dissolved in that branch only: the remaining rule takes the group's place there and still follows the main branch. The group is shown as removed in the branch, and comes back when the removal is undone or the main branch adds a rule to it (FR-008, FR-023, FR-024).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Check shared documents against rules (Priority: P1)
@@ -41,10 +51,10 @@ with its "Date of birth" and the driving licence with its "Licence classes". Aft
 step, the create flow now has a rules step, before publishing. There the team member adds the rules
 the form requires:
 
-- the applicant is at least 21 years old (the ID's "Date of birth");
-- the applicant holds driving licence class B (the driving licence's "Licence classes");
-- the applicant has held class B for at least 2 years (the issue date of class B in the "Licence
-  classes").
+- the applicant is at least 21 years old: the ID's "Date of birth" is at least 21 years ago;
+- the applicant holds driving licence class B: the driving licence's "Licence classes" is in B;
+- the applicant has held class B for at least 2 years: "Licence class B – Issue date" is at least
+  2 years ago.
 
 Each rule comes with an error message for the citizen. A form that needs no rules skips the step.
 When a citizen shares their documents, serviceBW receives them as before, together with the
@@ -66,8 +76,9 @@ rules that aren't met, with their messages.
    the driving licence's "Licence classes", **When** they add the three rules in the rules step and
    publish, **Then** the rules are saved with the form connection and shown on its details.
 2. **Given** the rules step, **When** the team member chooses the field a rule checks, **Then** only
-   the fields the form connection requests are offered, and the conditions offered suit the field,
-   such as a minimum age for the "Date of birth" and a licence class for the "Licence classes".
+   the fields the form connection requests are offered, each with the conditions of its kind of
+   value (FR-003), such as date conditions for the "Date of birth" and "is in" or "is not in" for
+   the "Licence classes".
 3. **Given** the rules step without any rule, **When** the team member goes on and publishes,
    **Then** the form connection is published without rules.
 4. **Given** a published form connection with the three rules, **When** a citizen who is 25 and has
@@ -91,10 +102,10 @@ rules that aren't met, with their messages.
 Some forms accept applicants on one of several conditions, for example applicants who are at least
 21, or who are at least 19 and have held class B for at least 3 years. The rules of a form
 connection are combined with AND unless the team member switches them to OR. For conditions that
-mix both, the team member puts rules into a group, and rules of a group into a sub-group, each with
-its own AND or OR. Within one level, all rules are combined the same way, so the order of
-evaluation is never in doubt: a different combination needs a group. A group counts as a single rule
-of the level that contains it.
+mix both, the team member puts two or more rules into a group, and two or more rules of a group into
+a sub-group, each with its own AND or OR. Within one level, all rules are combined the same way, so
+the order of evaluation is never in doubt: a different combination needs a group. A group counts as
+a single rule of the level that contains it.
 
 **Why this priority**: Without OR and groups, a form connection can only require conditions that
 must all hold, which doesn't fit forms with alternative ways to qualify. Forms whose conditions must
@@ -121,8 +132,8 @@ way to qualify, and for an applicant who qualifies in neither.
    the group counts as met, and none of the messages of its other rules is reported.
 6. **Given** a sub-group, **When** the team member wants to add a group inside it, **Then** the
    system doesn't offer it: rules are grouped two levels deep at most.
-7. **Given** a group or sub-group without any rule, **When** the team member tries to publish,
-   **Then** publishing is refused with a message that names the empty group.
+7. **Given** a group of two rules, **When** the team member deletes one of them, **Then** the group
+   is dissolved, and the other rule takes the group's place in the level that contained it.
 
 ---
 
@@ -213,19 +224,33 @@ new one, and no URL has changed.
 - **No rules**: A branch without rules always counts as met, and its evaluation reports no message.
   This includes every form connection published before this feature.
 - **Birthday on the day of sharing**: A citizen who turns 21 on the day they share their documents
-  meets "at least 21 years old".
+  meets "Date of birth is at least 21 years ago" and "is exactly 21 years ago", but not "is less
+  than 21 years ago" (FR-012).
 - **Born on 29 February**: In years without 29 February, the citizen reaches the next age on 1 March
-  (FR-012). The same applies to durations that start on 29 February.
+  (FR-012). The same applies to every other date on 29 February, such as a licence class's issue
+  date.
 - **Sharing around midnight**: Dates count by the calendar date in Germany at the moment the citizen
   shared (FR-012), whatever the time zone of the wallet or of serviceBW.
-- **Values that can't be checked**: A date of birth that gives only the year, or a licence class
-  without an issue date, can't be checked against an age or a duration. The rule counts as not met,
-  and the evaluation says that it couldn't be checked (FR-014).
-- **Letter case and spaces**: "Stuttgart", "STUTTGART" and " Stuttgart " all meet the rule "City or
-  town is Stuttgart"; "Stuttgart-Vaihingen" doesn't.
-- **Several rules on one field**: Allowed, for example "at least 19 years old" and "at most 65 years
-  old" on the same date of birth.
-- **Group with a single rule**: Allowed. Its AND or OR makes no difference.
+- **Values that can't be checked**: A date of birth that gives only the year can't be checked
+  against a date condition, nor a licence class without an issue date against a condition on its
+  issue date. The rule counts as not met, and the evaluation says that it couldn't be checked
+  (FR-014).
+- **A rule on a class the licence doesn't hold**: "Licence class B – Issue date is at least 2 years
+  ago" isn't met by a licence without class B, and is reported as not met rather than as couldn't
+  be checked (FR-014).
+- **Letter case and spaces**: "STUTTGART" meets "City or town is equal to Stuttgart" only if the
+  rule ignores letter case, as a new text condition does until the team member changes it (FR-013).
+  Ignoring letter case covers German letters too: "KÖLN" meets "is equal to Köln", and
+  "HEIDESTRASSE 17" meets "contains straße". " Stuttgart " meets the rule either way, since spaces
+  at the start and end don't count. "Stuttgart-Vaihingen" doesn't meet it, but meets "City or town
+  contains Stuttgart".
+- **Several conditions on one field**: Only an enum condition takes several values, such as
+  "Licence classes is in B, C", which a licence with class B, class C or both meets. Any other
+  combination takes a rule for each condition, such as "Date of birth is at least 19 years ago"
+  and "Date of birth is less than 66 years ago" on the same field (FR-002).
+- **Group with a single rule**: Not possible. A group or sub-group is formed from at least two
+  rules, and when one of its two rules is deleted, it is dissolved and the other rule moves to the
+  level that contained it (FR-008).
 - **Documents that fail verification**: Rules are evaluated only on documents that passed
   verification (spec 001, FR-010). A request whose documents don't pass ends as "verification
   failed", without an evaluation.
@@ -239,8 +264,10 @@ new one, and no URL has changed.
 - **A branch changes an inherited group**: Switching the group between AND and OR, or changing its
   message, marks the group as changed in the branch. The rules inside it keep following the main
   branch unless they were changed themselves.
-- **A branch removes every rule of an inherited group**: The group is empty in that branch, so the
-  form connection can't be saved until the group is removed from the branch as well (FR-006).
+- **A branch removes one rule of an inherited group of two**: The group is dissolved in that branch
+  only. The other rule takes the group's place there and keeps following the main branch, and the
+  group stays visible, marked as removed (FR-008). Undoing the removal, or a rule that the main
+  branch adds to the group, brings the group back in the branch.
 - **A branch that started empty and has no rules**: Allowed. Every request pulled through it counts
   as met.
 - **Branch renamed**: Its pull URL stays the same (FR-025).
@@ -273,36 +300,43 @@ new one, and no URL has changed.
 - **FR-001**: The create and edit flow of a form connection MUST include a rules step after the
   documents step and before publishing or saving. The step MUST be optional: a team member MUST be
   able to publish or save a form connection without any rule.
-- **FR-002**: A rule MUST check one field of one document that the form connection requests, with
-  one condition. Every requested field except an image MAY be checked, by one rule or by several. A
-  rule MUST NOT check a field that the form connection doesn't request.
-- **FR-003**: The conditions offered for a field MUST suit its kind of value, and MUST include at
-  least:
-  - **Dates**: the time since or until the date is at least, or at most, a number of years, months
-    or days; or the date is before or after a given date. For the "Date of birth", this reads as a
-    minimum or maximum age.
-  - **Licence classes**: the licence includes a given class; that class has been held for at least
-    a given time, counted from its issue date; or that class is valid on the day of sharing, either
-    because its expiry date hasn't passed or because it has no expiry date of its own and is valid
-    as long as the licence is.
-  - **Text**: the value is, or isn't, one of the given values, or starts with a given text, such as
-    the first digits of a postal code.
-  - **Numbers**: the value is at least, at most, or between given numbers.
-  - **Lists of values**, such as nationalities: the list includes a given value, includes one of
-    several given values, or includes none of them.
-  - **Values with parts**, such as the place of birth: a text condition on one part, such as the
-    country.
+- **FR-002**: A rule MUST check one field of one document that the form connection requests, or one
+  part of such a field (FR-003), with one condition. Every requested field except an image MAY be
+  checked, by one rule or by several. Only an enum condition takes several values at once (FR-003);
+  checking a field against several values or limits of another kind takes a rule for each. A rule
+  MUST NOT check a field that the form connection doesn't request.
+- **FR-003**: Every field that rules can check MUST have one of four kinds of value, and MUST offer
+  the conditions of its kind, worded the same for every field of that kind. No field has conditions
+  or wording of its own: a minimum age, for example, is a date condition on the "Date of birth".
+  - **Numbers**, such as the "Height (cm)": is greater than, is less than, is equal to, or is not
+    equal to a given number.
+  - **Text**, such as the "City or town": is equal to, is not equal to, contains, or doesn't contain
+    a given text, each either respecting or ignoring letter case (FR-013).
+  - **Enums**, whose values come from a fixed set, such as the "Licence classes", the "Nationality"
+    or the "Sex": is in, or is not in, a set of one or more of those values. Where a document holds
+    several values for the field, such as several licence classes, "is in" MUST count as met when
+    at least one of them is in the set, and "is not in" when none of them is.
+  - **Dates**, such as the "Date of birth": is before, is after, or is a given date; or is at
+    least, is less than, or is exactly a given number of years ago (FR-012). The years MUST be
+    counted back from the day the citizen shares their documents, never from a fixed date, and the
+    rules step MUST say so next to these three conditions.
+
+  Fields made of parts MUST be checked through their parts, each with the conditions of its kind:
+  the driving licence's "Licence classes" through the classes it holds (an enum) and each class's
+  issue date and expiry date (dates), such as "Licence class B – Issue date"; the ID's "Place of
+  birth" through its country (an enum), and its region and its city or town (text).
 - **FR-004**: Every rule MUST have an error message for the citizen. The system MUST propose a
   message that describes the rule's condition, which the team member MAY change. Groups and
   sub-groups MAY have an error message of their own (FR-011).
 - **FR-005**: The system MUST show every rule as a readable statement that names the document, the
-  field and the condition, such as "Personal ID – Date of birth: at least 21 years old".
+  field or part of a field it checks, and the condition, and for text whether letter case counts,
+  such as "Personal ID – Date of birth is at least 21 years ago" or "Driving licence – Licence
+  class B – Issue date is at least 2 years ago".
 - **FR-006**: The system MUST refuse to publish or save a form connection while, in any of its
-  branches, a rule's condition is incomplete, a rule has no error message, a group or sub-group has
-  no rule in it (rules removed in a branch don't count), or a rule checks a field that the form
-  connection doesn't request. It MUST also refuse a branch without a name, or with the name of
-  another branch of the same form connection. The message MUST name the problem, the rule or group
-  concerned, and its branch.
+  branches, a rule's condition is incomplete, a rule has no error message, or a rule checks a field
+  that the form connection doesn't request. It MUST also refuse a branch without a name, or with
+  the name of another branch of the same form connection. The message MUST name the problem, the
+  rule concerned, if any, and its branch.
 
 #### Combining rules
 
@@ -310,8 +344,16 @@ new one, and no URL has changed.
   sub-group MUST be combined with AND by default. The team member MUST be able to switch each of
   these levels to OR and back. All rules and groups of one level MUST be combined the same way: a
   different combination needs a group.
-- **FR-008**: Team members MUST be able to create groups at a branch's top level and sub-groups
-  inside groups, and to add rules to both. A sub-group MUST NOT contain further groups.
+- **FR-008**: Team members MUST be able to put two or more rules of a branch's top level into a
+  group, and two or more rules of a group into a sub-group, and to add rules to both. A sub-group
+  MUST NOT contain further groups. A group or sub-group MUST always hold at least two rules or
+  sub-groups: when fewer remain, it MUST be dissolved, the one that remains, if any, MUST take its
+  place in the level that contained it, and the group's AND or OR and its message no longer apply.
+  In a branch based on the main branch, the rules and sub-groups removed in the branch don't count:
+  an inherited group they leave with fewer than two MUST be dissolved in that branch only, the one
+  that remains MUST keep following the main branch, and the group MUST count again in the branch
+  as soon as two or more remain, because a removal was undone (FR-024) or the main branch added to
+  it.
 - **FR-009**: A level combined with AND MUST count as met when all of its rules and groups are met,
   and a level combined with OR when at least one of them is met. A group or sub-group MUST count as
   a single rule of the level that contains it. A branch's rules MUST count as met overall when its
@@ -334,14 +376,20 @@ new one, and no URL has changed.
   every group at the top level that isn't met, the group's own message if it has one, or otherwise,
   in the same way, the messages of the rules and sub-groups inside it that aren't met.
 - **FR-012**: Conditions on dates MUST be evaluated against the calendar date in Germany at the
-  moment the citizen shared their documents. Ages and durations MUST be counted in whole calendar
-  years, months or days: a person reaches an age on their birthday, and a person born on 29 February
-  reaches it on 1 March in years without 29 February.
-- **FR-013**: Text MUST be compared without regard to letter case and to spaces at its start and
-  end.
+  moment the citizen shared their documents. Years ago MUST be counted in whole calendar years:
+  N years have passed since a date on its N-th anniversary, which for 29 February falls on 1 March
+  in years without 29 February. A date MUST count as "at least N years ago" from its N-th
+  anniversary on, as "less than N years ago" until the day before it, and as "exactly N years ago"
+  from its N-th anniversary until the day before the next one. "Date of birth is at least 21 years
+  ago" is thus met from the citizen's 21st birthday on.
+- **FR-013**: Each text condition MUST either respect or ignore letter case, as the team member
+  chooses in the rules step, and MUST be evaluated accordingly. A new text condition ignores letter
+  case until the team member changes that. Spaces at the start and end of the citizen's value and
+  of the rule's value MUST be ignored in both cases.
 - **FR-014**: A rule whose value is missing, or can't be interpreted for its condition, MUST count
   as not met and MUST be reported as couldn't be checked, so that serviceBW can tell it apart from
-  a value that breaks the rule.
+  a value that breaks the rule. A rule on a date of a licence class that the licence doesn't hold
+  is the exception: it MUST be reported as not met, since the citizen doesn't hold that class.
 - **FR-015**: The documents MUST be delivered whether or not the rules are met, and the request's
   status MUST be "completed" in both cases. serviceBW decides how to proceed, for example by showing
   the error messages to the citizen.
@@ -376,10 +424,12 @@ new one, and no URL has changed.
 - **FR-023**: In a branch based on the main branch, the system MUST mark every rule and group that
   was changed, removed or added in the branch, with a colour that sets it apart from those that
   follow the main branch and with a text or symbol that says which of the three it is, so that the
-  difference doesn't rest on colour alone. Rules and groups removed in the branch MUST stay visible
-  there, marked as removed.
+  difference doesn't rest on colour alone. Rules and groups removed in the branch, including groups
+  dissolved there (FR-008), MUST stay visible there, marked as removed.
 - **FR-024**: For a rule or group that a branch changed or removed, the team member MUST be able to
-  undo the change, so that it follows the main branch again.
+  undo the change, so that it follows the main branch again. Undoing the removal of a group,
+  including one dissolved in the branch (FR-008), MUST also undo the removals of the rules and
+  sub-groups in it.
 - **FR-025**: A form connection MUST keep one trigger URL, which starts requests for all of its
   branches, and each branch MUST have its own pull URL. For a request, the pull URL of every branch
   that existed when the request was triggered MUST answer with the same status and documents; only
@@ -412,20 +462,22 @@ new one, and no URL has changed.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Rule**: A condition on one requested field of one document, such as "Date of birth: at least 21
-  years old", with an error message for the citizen. It belongs to one branch, either at the
-  branch's top level or inside a group or sub-group.
-- **Group**: Rules, and possibly sub-groups, combined with either AND or OR, and counted as a single
-  rule of the branch's top level. It may have an error message of its own.
-- **Sub-group**: Rules inside a group, combined with either AND or OR, and counted as a single rule
-  of that group. It may have an error message of its own, and contains no further groups.
+- **Rule**: A condition on one requested field of one document, or on one part of such a field,
+  such as "Date of birth is at least 21 years ago", with an error message for the citizen. It
+  belongs to one branch, either at the branch's top level or inside a group or sub-group.
+- **Group**: Two or more rules or sub-groups, combined with either AND or OR, and counted as a
+  single rule of the branch's top level. It may have an error message of its own.
+- **Sub-group**: Two or more rules inside a group, combined with either AND or OR, and counted as a
+  single rule of that group. It may have an error message of its own, and contains no further
+  groups.
 - **Branch**: A named set of rules of one form connection, combined at its top level with AND or OR,
   with its own pull URL. Every form connection has one main branch, which uses the form
   connection's original pull URL. Every other branch is either based on the main branch or started
   empty. All branches share the form connection's documents, fields and trigger URL.
 - **Branch Change**: In a branch based on the main branch, a rule or group that was changed, removed
   or added in the branch, and therefore doesn't follow the main branch. It is marked, and a change
-  or removal can be undone.
+  or removal can be undone. A group that removals in the branch leave with fewer than two rules or
+  sub-groups counts as removed there.
 - **Rule Evaluation**: The result of applying the rules of the branch whose pull URL serviceBW
   called to the documents of one request: whether the rules are met overall, the outcome of each
   rule and group, and the error messages to show. It is delivered, repeated and deleted together
@@ -448,8 +500,9 @@ new one, and no URL has changed.
   copy its trigger URL and the pull URLs of both branches, in under 10 minutes.
 - **SC-003**: In acceptance testing with test documents on both sides of every condition, 100% of
   the evaluations match the expected outcome, including a birthday on the day of sharing, a
-  29 February birthday, an age exactly at the limit, and text that differs only in letter case.
-  Every evaluation whose rules aren't met carries at least one error message.
+  29 February birthday, an age exactly at the limit, and text that differs only in letter case,
+  under rules that respect it and rules that ignore it. Every evaluation whose rules aren't met
+  carries at least one error message.
 - **SC-004**: Rules don't delay the result: in 95% of requests, the documents and their evaluation
   are ready for serviceBW within 5 seconds of the citizen approving the request in their wallet, as
   spec 001 requires without rules (SC-004).
@@ -487,9 +540,11 @@ new one, and no URL has changed.
   middleware doesn't judge whether a rule is appropriate.
 - **Error messages**: The team member writes them in the language of the serviceBW form that shows
   them, and the proposed message is a starting point. Each rule and group has one message.
-- **Licence classes**: How long a licence class has been held is counted from that class's own issue
-  date in the "Licence classes". The driving licence's "Issue date" is the date of the current
-  document, which changes whenever the licence is renewed, so it isn't used for that.
+- **Licence classes**: How long a licence class has been held is checked on that class's own issue
+  date, such as "Licence class B – Issue date". The driving licence's "Issue date" is the date of
+  the current document, which changes whenever the licence is renewed, so it doesn't tell how long
+  a class has been held. Many classes, such as class B in Germany, have no expiry date of their
+  own, so a rule on their expiry date can't be checked for them (FR-014).
 - **Images**: Photos, portraits and signatures can't be checked by rules, since no meaningful
   condition exists for them. Every other field can.
 - **Branches differ only in rules**: All branches of a form connection request the same documents
@@ -502,7 +557,8 @@ new one, and no URL has changed.
   connection" there.
 - **Out of scope**: holding back from serviceBW the fields that rules check (see Clarifications);
   comparing two fields with each other, such as the names on the ID and on the driving licence;
-  calculations across fields; free-form expressions; trying rules out with sample data in the
-  management interface; reports or statistics on evaluation outcomes; deactivating single branches;
+  calculations across fields; free-form expressions; conditions on the restriction codes of a
+  licence class; trying rules out with sample data in the management interface; reports or
+  statistics on evaluation outcomes; deactivating single branches;
   branches with their own documents or fields; branches based on a branch other than the main
   branch; groups nested more than two levels deep; and error messages in several languages.
