@@ -72,6 +72,10 @@ Questions raised by the audit of the UI design against this spec (figma-audit/re
 - Q: Does this feature add the extras of the UI design's published page: an activity log of who changed what, a PDF export, counters and "Live since"? → A: No. They are left for later, and the activity log and the PDF export need a spec of their own. "Copied" follows spec 001.
 - Q: Does this feature cover the UI design's parts that no requirement asks for: the wizard shell's draft badge, "Save and exit" and sticky bars, the documents step's redesign, and the rule editor's aids? → A: No. They are out of scope, and the implementation builds what spec 001 and this spec require. Spec 001's decisions stay: no drafts, no "Save and exit".
 - Q: Can the driving licence's "Age over 18", "Age in years" and "Year of birth" be requested, given that rules check age through the "Date of birth"? → A: "Age in years" and "Year of birth" stay ordinary fields of spec 001's catalog, which rules can check as numbers. "Age over 18" isn't in the catalog, since its name varies by issuer, and is removed from the design.
+- Q: How does a "Date of birth" rule read, given that the UI design shows "Personal ID · Date of birth ≥ at least 21 years old", one frame still says "years ago", and the shared editor carries a hidden "old" on other dates too? → A: In the spec's words, "Personal ID – Date of birth is at least 21 years old" (FR-005). The design's ≥ and < symbols stay as decoration, which assistive technologies don't announce. The age wording ("old") belongs to the "Date of birth" only, and the design's other dates and its "years ago" frame for the "Date of birth" are corrected.
+- Q: What do the hints under a date condition in the rule editor say, given that the UI design shows only a worked example for today ("Today (23 Oct 2026) this means: born on or before 23 Oct 2005.") and "If the date of birth is missing, the rule isn't met."? → A: Both stay in the rule editor only, reworded. The first says that the count starts from the day the applicant shares, followed by the example: "Counted from the day the applicant shares. Today (…) this means: …" (FR-003). The second also covers values that can't be read and says how they are reported: "If the {field} is missing or can't be read, the rule isn't met and is reported as couldn't be checked." (FR-014). Saved rules don't repeat them.
+- Q: What does the message say when a rename gives a rule, group or sub-group a name already used in the branch, given that the UI design says "Another rule is already called Rule 01." without the branch? → A: It always names the branch, also when the clash is in the branch being edited: "Another rule in Ambulance is already called Rule 01." It shows inline where the name is entered, as in the design (FR-005).
+- Q: What happens when the team member publishes or saves while a rule editor has unsaved changes, given that the UI design asks to keep or discard them only when leaving the editor, and labels the button "Publish without rules" next to an unsaved first rule? → A: The design's dialog for leaving the editor ("Save changes to Rule 01?") also appears on Publish and Save. Keeping saves the rule, which FR-006 still refuses if it is incomplete, and publishing or saving goes on. Discarding drops the changes, and it goes on. The rule being edited counts as a rule, so the button doesn't say "without rules" while one is open (FR-006).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -369,8 +373,9 @@ new one, and no URL has changed.
     number of years or months from now (FR-012). The "Date of birth" of every document words its
     three years-ago conditions as an age instead: is at least, is less than, or is exactly a given
     number of years old. Years and months MUST be counted from the day the citizen shares their
-    documents, back or forward, never from a fixed date, and the rules step MUST say so next to
-    these conditions.
+    documents, back or forward, never from a fixed date, and the rule editor MUST say so where
+    these conditions are entered. It MAY add what the condition means for today's date as an
+    example. Saved rules don't repeat the note.
 
   Fields made of parts MUST be checked through their parts, each with the conditions of its kind:
   the driving licence's "Licence classes" through the classes it holds (an enum) and each class's
@@ -383,11 +388,15 @@ new one, and no URL has changed.
 - **FR-005**: The system MUST show every rule as a readable statement that names the document, the
   field or part of a field it checks, and the condition, and for text whether letter case counts,
   such as "Personal ID – Date of birth is at least 21 years old" or "Driving licence – Licence
-  class B – Issue date is at least 2 years ago". Every rule, group and sub-group MUST also have a
+  class B – Issue date is at least 2 years ago". The statement MUST carry the condition in the
+  words of FR-003. A symbol the interface adds for it, such as "≥", is decoration only, which
+  assistive technologies MUST NOT announce. Every rule, group and sub-group MUST also have a
   name for the team: by default "Rule", "Group" or "Sub-group" and the number of its identifier
   (FR-010), such as "Rule 07", which the team member MAY change. Names MUST be unique within each
   branch. A name that would appear twice in a branch, also through a change to the main branch
-  that a branch based on it follows, MUST be refused with a message that names that branch. The
+  that a branch based on it follows, MUST be refused where the name is entered, with a message
+  that always names that branch, also when it is the branch being edited, such as "Another rule
+  in Ambulance is already called Rule 01.". The
   name is part of the rule or group: renaming one inherited from the main branch in a branch
   based on it changes it there (FR-022). Messages in the management interface MUST name rules and
   groups by their name and branch.
@@ -398,7 +407,10 @@ new one, and no URL has changed.
   rule concerned, if any, and its branch. The rules step MAY also point out a problem in the rule
   being edited, but publishing and saving MUST stay available, and be refused when attempted.
   Publishing or saving while a rule being edited has unsaved changes MUST first ask the team
-  member to keep or discard them.
+  member to keep or discard them, with the same question as leaving the rule editor. Keeping saves
+  the rule, subject to the checks above, and discarding drops the changes; either way, publishing
+  or saving then goes on. A rule being edited counts as a rule: while one is open, the rules step
+  MUST NOT offer publishing or saving "without rules".
 
 #### Combining rules
 
@@ -462,7 +474,8 @@ new one, and no URL has changed.
 - **FR-014**: A rule whose value is missing, or can't be interpreted for its condition, MUST count
   as not met and MUST be reported as couldn't be checked, so that serviceBW can tell it apart from
   a value that breaks the rule. A rule on a date of a licence class that the licence doesn't hold
-  is the exception: it MUST be reported as not met, since the citizen doesn't hold that class.
+  is the exception: it MUST be reported as not met, since the citizen doesn't hold that class. The
+  rule editor MUST say this next to every date condition.
 - **FR-015**: The documents MUST be delivered whether or not the rules are met, and the request's
   status MUST be "completed" in both cases. serviceBW decides how to proceed, for example by showing
   the error messages to the citizen.
