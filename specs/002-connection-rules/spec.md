@@ -76,6 +76,10 @@ Questions raised by the audit of the UI design against this spec (figma-audit/re
 - Q: What do the hints under a date condition in the rule editor say, given that the UI design shows only a worked example for today ("Today (23 Oct 2026) this means: born on or before 23 Oct 2005.") and "If the date of birth is missing, the rule isn't met."? → A: Both stay in the rule editor only, reworded. The first says that the count starts from the day the applicant shares, followed by the example: "Counted from the day the applicant shares. Today (…) this means: …" (FR-003). The second also covers values that can't be read and says how they are reported: "If the {field} is missing or can't be read, the rule isn't met and is reported as couldn't be checked." (FR-014). Saved rules don't repeat them.
 - Q: What does the message say when a rename gives a rule, group or sub-group a name already used in the branch, given that the UI design says "Another rule is already called Rule 01." without the branch? → A: It always names the branch, also when the clash is in the branch being edited: "Another rule in Ambulance is already called Rule 01." It shows inline where the name is entered, as in the design (FR-005).
 - Q: What happens when the team member publishes or saves while a rule editor has unsaved changes, given that the UI design asks to keep or discard them only when leaving the editor, and labels the button "Publish without rules" next to an unsaved first rule? → A: The design's dialog for leaving the editor ("Save changes to Rule 01?") also appears on Publish and Save. Keeping saves the rule, which FR-006 still refuses if it is incomplete, and publishing or saving goes on. Discarding drops the changes, and it goes on. The rule being edited counts as a rule, so the button doesn't say "without rules" while one is open (FR-006).
+- Q: Where and how should the details show the identifier of each rule, group and sub-group, given that FR-010 requires it and the UI design shows it nowhere? → A: On the details only: each rule, group and sub-group shows its identifier read-only next to its name, in every branch's section. The rules step doesn't show identifiers. This is built without new frames (FR-010, FR-030).
+- Q: Which words do the from-now date conditions use, given that the UI design says "≥ at least 6 months left" in the rule editor and in every saved rule? → A: The spec's, in the rule editor and in saved rules alike: "Driving licence – Expiry date is at least 6 months from now" and "is less than 6 months from now" (FR-003, FR-005). "Left" isn't used, and the design's "≥" stays as decoration.
+- Q: Must the number of years or months in a date condition be at least 1, given that the UI design's rule editor rejects 0 with "Enter a number greater than 0." but FR-006 doesn't mention it? → A: Yes. It must be a whole number of at least 1. Anything else leaves the condition incomplete: the rule editor points it out as the design shows, and publishing or saving is refused (FR-003, FR-006). Number fields, such as the "Height (cm)", keep accepting any number.
+- Q: Does the spec cover the UI design's remaining conveniences: "Enter saves · Esc cancels" when renaming, "Cancel" to leave the select mode for grouping, and the toast after copying a rule with a "Show" link to the branch? → A: They are UI detail, built as designed, like the conveniences above. They change no rule, branch or identifier, so the spec adds no requirement for them.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -372,9 +376,10 @@ new one, and no URL has changed.
     less than, or is exactly a given number of years ago; or is at least, or is less than, a given
     number of years or months from now (FR-012). The "Date of birth" of every document words its
     three years-ago conditions as an age instead: is at least, is less than, or is exactly a given
-    number of years old. Years and months MUST be counted from the day the citizen shares their
-    documents, back or forward, never from a fixed date, and the rule editor MUST say so where
-    these conditions are entered. It MAY add what the condition means for today's date as an
+    number of years old. The number of years or months MUST be a whole number of at least 1; a
+    condition with any other number is incomplete (FR-006). Years and months MUST be counted from
+    the day the citizen shares their documents, back or forward, never from a fixed date, and the
+    rule editor MUST say so where these conditions are entered. It MAY add what the condition means for today's date as an
     example. Saved rules don't repeat the note.
 
   Fields made of parts MUST be checked through their parts, each with the conditions of its kind:
@@ -387,9 +392,10 @@ new one, and no URL has changed.
   which the team member MUST be able to add and remove.
 - **FR-005**: The system MUST show every rule as a readable statement that names the document, the
   field or part of a field it checks, and the condition, and for text whether letter case counts,
-  such as "Personal ID – Date of birth is at least 21 years old" or "Driving licence – Licence
-  class B – Issue date is at least 2 years ago". The statement MUST carry the condition in the
-  words of FR-003. A symbol the interface adds for it, such as "≥", is decoration only, which
+  such as "Personal ID – Date of birth is at least 21 years old", "Driving licence – Licence
+  class B – Issue date is at least 2 years ago" or "Driving licence – Expiry date is at least 6
+  months from now". The statement, and the rule editor where the condition is chosen, MUST carry
+  the condition in the words of FR-003. A symbol the interface adds for it, such as "≥", is decoration only, which
   assistive technologies MUST NOT announce. Every rule, group and sub-group MUST also have a
   name for the team: by default "Rule", "Group" or "Sub-group" and the number of its identifier
   (FR-010), such as "Rule 07", which the team member MAY change. Names MUST be unique within each
@@ -445,8 +451,9 @@ new one, and no URL has changed.
     set the identifier when the rule or group is created, MUST NOT change it when the item is
     renamed or changed, and MUST NOT reuse it within the form connection. A rule or group keeps
     the main branch's identifier in every branch based on it, whether the branch changed it or
-    not; one added in a branch gets a new identifier. The details MUST show each identifier, so
-    that DO.IT can agree its use with serviceBW;
+    not; one added in a branch gets a new identifier. The details MUST show each identifier,
+    read-only next to the item's name in every branch's section (FR-030), so that DO.IT can agree
+    its use with serviceBW. The rules step doesn't show identifiers;
   - the error messages that explain why the rules aren't met (FR-011).
 
   Everything else in the answer MUST stay as spec 001 defines it, so that serviceBW forms that
@@ -557,8 +564,8 @@ new one, and no URL has changed.
 - **FR-029**: When a team member removes a document, or deselects a field, that rules check in any
   branch, the system MUST name those rules and their branches before the change is saved.
 - **FR-030**: A form connection's details MUST show the rules of every branch, with their groups,
-  their AND and OR, and the marks of FR-023, and MUST lead to the rules step of the edit flow
-  (spec 001) to change them. That flow asks for confirmation when saving, not on entry.
+  their AND and OR, the marks of FR-023, and the identifiers of FR-010, and MUST lead to the rules
+  step of the edit flow (spec 001) to change them. That flow asks for confirmation when saving, not on entry.
 - **FR-031**: Rules and branches MUST be visible and changeable only for signed-in DO.IT team
   members (spec 001, FR-007).
 
