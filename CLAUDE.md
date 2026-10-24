@@ -479,12 +479,16 @@ Call `get_variable_defs` on the ROOT node. Map Figma variables to existing proje
 If a value has no matching token, list it and ask. Do not invent tokens.
 
 ### 3. Implementation (per node, in the returned order)
-1. `get_design_context` on the node-id.
-2. `get_screenshot` on the node-id.
-3. Implement with EXACT values (spacing, borders, radii, font size/weight, line height, colors).
+1. Check the active feature's `figma-audit/report.md`, sections "Figma must change (decided)" (F#)
+   and "Build without frames (decided)" (W#). For a node listed there, build the spec's behaviour
+   and wording with Figma's layout and styling; for a W# item, build the missing state from the
+   frame or KERN pattern it names. Cite the item number in the task.
+2. `get_design_context` on the node-id.
+3. `get_screenshot` on the node-id.
+4. Implement with EXACT values (spacing, borders, radii, font size/weight, line height, colors).
    No approximation. Treat the MCP's React/Tailwind output as a spec, not final code;
    adapt it to project conventions and reuse existing components.
-4. Use assets as returned by the MCP; do not substitute icons or images.
+5. Use assets as returned by the MCP; do not substitute icons or images.
 
 ### 4. Visual verification (per node)
 Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the background if not running.
@@ -508,6 +512,8 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 ### Rules
 - Never call get_design_context on the full page frame.
 - Never implement nodes outside the current task.
+- A difference from Figma that an F# or W# item prescribes is not a mismatch: list it with its item
+  number in the verification table instead of fixing it.
 
 ## Do Not
 
