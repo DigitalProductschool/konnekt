@@ -366,7 +366,7 @@ rules with one action, and two calls can't be atomic. Rejected.
 
 **Rationale**: the existing editor is already a reducer with a step machine; a third step and
 separate reducers keep each component small (CLAUDE.md). Pure modules make the trickiest logic
-reviewable and reusable between editing and display.
+reviewable, reusable between editing and display, and testable with Vitest in Node (R12).
 
 **Alternatives considered**: *a separate route for the rules step*: the wizard's state would have
 to survive navigation, and spec 001's editor keeps everything in one page. Rejected.
@@ -399,15 +399,45 @@ started before the upgrade, ends within 7 days with their records (FR-021).
   EUDIPLO fails (FR-028), branch pull URLs with every answer of R3, deleted and later branches,
   rules changed while a request is open, legacy requests, the repeat window across branches, and
   that no evaluation or reference reaches a log.
-- **Frontend**: the constitution's gates (`npm run lint`, `npm run build`). The frontend has no
-  test runner (constitution, TODO(TEST_STRATEGY)); the propagation rules are exercised by the
-  quickstart's scenarios, and the server's invariant checks (R4) refuse any snapshot they break.
+- **Frontend unit tests** (Vitest, constitution v1.1.0): a `*.test.ts` beside each pure module of
+  `src/utils/rules/` (R10), in the `node` environment, run by `npm test` as a gate:
+  - `branches.test.ts`: each propagation rule of data-model.md, "Propagation from the main
+    branch": content follows the main branch (1); a deleted item disappears, or stays as `added`
+    when the branch changed it (2, EC-12, EC-13); an added item appears at the matching place, and
+    not in a branch that started empty (3, EC-14, US3-AS6); moves, except into a group of the
+    branch's own (4); dissolved groups (5); the top-level AND/OR while `operator_mark` is `null`
+    (6); a rename that would clash in a following branch is refused, naming it (7). Every
+    transition of "Marks in a based branch": edit, undo, remove, restore, removing a changed
+    item, restoring a group with the members removed inside it (FR-024), switching an inherited
+    group's AND/OR (EC-15). Every result is also checked against the invariants that the server
+    enforces (data-model.md, "Validation": each main-branch item once per based branch, unmarked
+    and removed items equal to the main branch's), so a propagation bug fails here before the
+    server refuses a save.
+  - `tree.test.ts`: dissolution in the main branch, in a branch that started empty and in a
+    branch's own group, and the derived dissolution of an inherited group, including its return
+    when two members are active again (FR-008, EC-16); numbering of new items from the counters,
+    default names with two digits, new identifiers for duplicates and copies (R5, FR-010, FR-022).
+  - `statements.test.ts`, `messages.test.ts`, `conditions.test.ts`, `dates.test.ts`,
+    `validation.test.ts`: the statements in FR-005's words ("years old" only on the Date of birth,
+    FR-003), the proposed messages, when a condition is complete, the editor's date example, and
+    the pre-checks of FR-006 with the server's messages (data-model.md, "Validation").
+  - Not covered: rendering, focus and keyboard use, which would need jsdom. They stay with the
+    quickstart's scenarios (V1, V3, V4, V7).
 - **Manual**: the quickstart's scenarios with a real wallet. `scripts/issue_test_credentials`
   gains `--birth-date` and `--licence-class CODE:ISSUE_DATE`, so test documents on both sides of a
   condition can be issued on purpose (SC-003).
 
-**Rationale**: the evaluator decides what citizens are told; it gets exhaustive unit tests. Adding
-a frontend test runner is a constitution decision (TEST_STRATEGY), not this feature's.
+**Rationale**: the evaluator decides what citizens are told; it gets exhaustive unit tests.
+Propagation decides which rules each branch shows and saves, and runs only in the browser (R4):
+without tests of its own, a bug would surface only as a refused save or in a manual scenario.
+Tests beside each module pin every rule of data-model.md, and the server's invariant checks stay
+as the last line. Keeping the tests to pure functions in Node (constitution III) keeps `npm test`
+fast and the new dependency to one package.
+
+**Alternatives considered**: *jsdom with a DOM testing library*, to test the rules step's
+components: outside the constitution's stack (v1.1.0), and the logic worth pinning is already in
+pure modules. Rejected. *Running propagation on the server too and comparing*: the second
+implementation that R4 rejects. Rejected.
 
 ## R13. Figma deviations reach every UI task
 
@@ -438,3 +468,4 @@ frame would build the frame.
 | `driving_privileges` arrives in full | The hosted EUDIPLO runs `9.0.0-mdocfix.1` (docs/EUDIPLO.md). An instance without the fix delivers `[{}, …]`, and every licence class rule then reports `not_checked`. Check once with a test licence (quickstart V2) |
 | How the PID's `place_of_birth` and `nationalities` arrive | Check with `issue_test_credentials --show-claims`: an object with `country`, `region`, `locality`, and a list of alpha-2 codes |
 | How serviceBW uses the evaluation | DO.IT confirms with serviceBW (R8) |
+| A Vitest release that supports Vite 8 | Check Vitest's peer dependency on `vite` before installing, and that `npm run build` (`tsc -b`) type-checks the `*.test.ts` files and the `test` block of `vite.config.ts` (R12) |

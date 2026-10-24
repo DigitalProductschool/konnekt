@@ -25,8 +25,8 @@ documents as before plus the **evaluation** of that branch's rules as they were 
   of every branch and its tree with branch marks; `form_connection_branches` holds branch
   identities for stable pull URLs. Requests record the rule set they started with.
 - **Branches**: based branches are stored materialised, with marks. The editor propagates the main
-  branch's changes (pure TypeScript functions); the server validates invariants and refuses an
-  inconsistent snapshot.
+  branch's changes (pure TypeScript functions, unit-tested with Vitest); the server validates
+  invariants and refuses an inconsistent snapshot.
 - **Evaluation**: a pure Python module, run at each delivery on the documents just read from
   EUDIPLO; dates by Germany's calendar day of sharing; never stored or logged.
 - **API**: additive. The pull answer gains `evaluation`; other branches get
@@ -42,11 +42,13 @@ documents as before plus the **evaluation** of that branch's rules as they were 
 **Language/Version**: Python 3.13 (backend), TypeScript 6.0 with React 19.2 (frontend), as on this
 branch.
 
-**Primary Dependencies**: unchanged. FastAPI, SQLAlchemy 2 (sync `Session`), Alembic, psycopg 3,
-Pydantic 2 on the backend; React Router 7, Tailwind 4 and the KERN packages on the frontend.
-Nothing is added: time zones come from the standard library's `zoneinfo` with the image's tz
-database (verified in `python:3.13-slim`), and the country list is a static table (research R6,
-R7). The dev script `issue_test_credentials` gains two options (research R12).
+**Primary Dependencies**: unchanged at runtime. FastAPI, SQLAlchemy 2 (sync `Session`), Alembic,
+psycopg 3, Pydantic 2 on the backend; React Router 7, Tailwind 4 and the KERN packages on the
+frontend. No runtime dependency is added: time zones come from the standard library's `zoneinfo`
+with the image's tz database (verified in `python:3.13-slim`), and the country list is a static
+table (research R6, R7). The frontend gains one development dependency, **Vitest**, the test
+runner of constitution v1.1.0 (research R12). The dev script `issue_test_credentials` gains two
+options (research R12).
 
 **Storage**: PostgreSQL 18. New tables `form_connection_branches` and `form_connection_rule_sets`;
 new columns on `form_connections` (`current_rule_set`, `next_rule_number`, `next_group_number`) and
@@ -56,8 +58,10 @@ aren't stored.
 
 **Testing**: pytest unit tests for the evaluator, its date and text edge cases (SC-003), messages,
 dissolution, snapshot validation and identifier allocation; pytest API tests for saving, refusals,
-atomicity, branch pull URLs and logs; frontend lint and build; manual scenarios with a real wallet
-([quickstart.md](quickstart.md)).
+atomicity, branch pull URLs and logs; Vitest unit tests for the pure modules in
+`frontend/src/utils/rules/` (propagation and marks, dissolution, numbering, statements, messages,
+conditions, pre-checks), run with `npm test`; frontend lint, tests and build as gates; manual
+scenarios with a real wallet ([quickstart.md](quickstart.md)).
 
 **Target Platform**: unchanged (Linux containers; DO.IT's evergreen desktop browsers; citizens'
 EUDI wallets talk only to EUDIPLO).
@@ -84,25 +88,28 @@ details' URLs and rules card.
 
 **Open points**: none (all resolved in [research.md](research.md)). Points to check while coding
 are in research R14: the PID's `sex` codes, the licence class list and descriptions, EUDIPLO's mdoc
-fix, the claim shapes, and serviceBW's use of the evaluation (DO.IT).
+fix, the claim shapes, serviceBW's use of the evaluation (DO.IT), and a Vitest release that
+supports Vite 8.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-checked after Phase 1 design below.*
 
-Checked against constitution v1.0.1 (`.specify/memory/constitution.md`).
+Checked against constitution v1.1.0 (`.specify/memory/constitution.md`), which makes the
+frontend's tests a gate. (The plan was first checked against v1.0.1; v1.1.0 changes the rows III,
+IV, Tests, and Workflow and documentation.)
 
 | Principle or rule | How the plan complies | Result |
 |---|---|---|
 | **I. Contract parity** | New shapes (`DocumentField` kinds and parts, `OptionSet`, rules, branches, `evaluation`) are Pydantic schemas in `schemas.py`; the management shapes are mirrored in `frontend/src/types/` in the same change. The serviceBW shapes are documented in [contracts/integration-api.md](contracts/integration-api.md). Every answer uses `{data, message?}` or `{error, message}` through `HTTPException`, including the new `409 branch_added_later` | PASS |
 | **II. Sync persistence (NON-NEGOTIABLE)** | Handlers stay plain `def` with `Depends(get_db)`; `select()`, `db.get()`, `db.scalars()` only. The rules save extends `create_revision`'s ordering: no transaction is held while EUDIPLO answers; rows are locked with `with_for_update` before the final commit | PASS |
-| **III. Quality gates** | Ruff, mypy (`app/ scripts/ tests/`), ESLint, Prettier and the build as configured; no `pytest.ini` | PASS |
-| **IV. Dependencies and config** | No new dependency and no new setting. `zoneinfo` is standard library; the country list is code | PASS |
+| **III. Quality gates** | Ruff, mypy (`app/ scripts/ tests/`), ESLint, Prettier, `npm test` and the build. Vitest is configured in the `test` block of `frontend/vite.config.ts` with the `node` environment; no `vitest.config.ts`, no `pytest.ini` | PASS |
+| **IV. Dependencies and config** | No new runtime dependency and no new setting. One development dependency, `vitest`, imported by the frontend's tests and documented in `README.md` with its reason. `zoneinfo` is standard library; the country list is code | PASS |
 | **V. Schema evolution** | One autogenerated migration, completed by hand for the data step (main branch and rule set 1 per form connection) and reviewed; committed migrations untouched. New tables use UUID4 `String(36)` keys, `created_at`/`updated_at`, `snake_case`, and indexes on looked-up columns (data-model.md, "Indexes"). No `datetime.utcnow()` | PASS |
-| **Technology and structure** | Stack unchanged. Routers stay one per resource: the branch pull URL joins `routers/connect.py`, `GET /api/option-sets` joins `routers/document_types.py`. Domain logic in `app/services/` (`rules.py`, `evaluation.py`). Frontend: `useReducer` for the rules step and the rule editor; list items as sub-components; sibling `types.ts`, `constants.ts`, `utils.ts`; no inline styles, no `any` | PASS |
+| **Technology and structure** | Stack as in v1.1.0: Vitest, now part of it, is installed by this feature; no jsdom. Routers stay one per resource: the branch pull URL joins `routers/connect.py`, `GET /api/option-sets` joins `routers/document_types.py`. Domain logic in `app/services/` (`rules.py`, `evaluation.py`). Frontend: `useReducer` for the rules step and the rule editor; list items as sub-components; sibling `types.ts`, `constants.ts`, `utils.ts`; no inline styles, no `any` | PASS |
 | **Logging** | `logging` only. No claims, references, evaluations or messages in logs (FR-017). The new pull path is covered by the existing reference redaction in uvicorn's and nginx's access logs (research R3), pinned by a test | PASS |
-| **Workflow and documentation** | Backend: model → schema → migration → services → router; frontend: types → api → components. Documentation checklist: `docs/ARCHITECTURE.md` (rule sets, branches, evaluation, the branch pull URL), `CLAUDE.md` (rules modules, structure listing, the F#/W# citation rule already in "Figma implementation workflow"), `README.md` (the script's new options); no new variables or dependencies | PASS |
-| **Tests (TODO TEST_STRATEGY)** | Backend pytest coverage as a practice, not a gate; no frontend test runner is added (research R12). No amendment | PASS (no amendment) |
+| **Workflow and documentation** | Backend: model → schema → migration → services → router; frontend: types → api → components. Documentation checklist: `docs/ARCHITECTURE.md` (rule sets, branches, evaluation, the branch pull URL), `CLAUDE.md` (rules modules, structure listing, the F#/W# citation rule already in "Figma implementation workflow"), `README.md` (the script's new options; Vitest and why it was added); `CLAUDE.md` and `README.md` (`npm test` in their command tables); no new variables, one new development dependency | PASS |
+| **Tests (III)** | A `*.test.ts` next to each pure module of `src/utils/rules/`, run by `npm test` as a gate for every frontend change (research R12). Backend pytest as a practice, not a gate, with the coverage of research R12 | PASS |
 
 **Gate result (before research)**: PASS, with no violations to justify.
 
@@ -159,21 +166,25 @@ backend/
     │                             #   test_identifiers.py, catalog kinds
     └── api/                      # + test_form_connection_rules.py, test_connect_branches.py
 
-frontend/src/
-├── types/                        # form-connections.ts (+ branches, rules), document-types.ts (+ kinds,
-│                                 #   parts), option-sets.ts (new)
-├── api/                          # option-sets.ts (new); form-connections.ts sends rules
-├── hooks/                        # useOptionSets.ts (new)
-├── utils/rules/                  # pure: tree.ts, branches.ts (propagation, marks), statements.ts,
-│                                 #   messages.ts, conditions.ts, dates.ts, validation.ts
-├── components/                   # shared read-only rule display: RuleRow, GroupFrame, Connector,
-│                                 #   BranchMark, BranchName (name + (i), reuses InfoTooltip)
-├── constants.ts                  # CONNECTION_STEPS gains the Rules step
-└── pages/
-    ├── FormConnectionEditor/     # EditorStep 'rules'; DocumentsStep footer (F17) and removal dialogs (F18)
-    │   └── RulesStep/            # new: tabs, list, groups, select mode, dialogs, footer (S2, S4)
-    │       └── RuleEditor/       # new: data menu, part picker, checks per kind, value inputs, message (S3)
-    └── FormConnectionDetail/     # pull URL per branch (F24, F31, W2); RulesSummary card (F26, W1)
+frontend/
+├── package.json                  # + vitest (devDependencies), "test": "vitest run"
+├── vite.config.ts                # + test block: node environment (constitution III)
+└── src/
+    ├── types/                    # form-connections.ts (+ branches, rules), document-types.ts (+ kinds,
+    │                             #   parts), option-sets.ts (new)
+    ├── api/                      # option-sets.ts (new); form-connections.ts sends rules
+    ├── hooks/                    # useOptionSets.ts (new)
+    ├── utils/rules/              # pure: tree.ts, branches.ts (propagation, marks), statements.ts,
+    │                             #   messages.ts, conditions.ts, dates.ts, validation.ts,
+    │                             #   each with its *.test.ts beside it (research R12)
+    ├── components/               # shared read-only rule display: RuleRow, GroupFrame, Connector,
+    │                             #   BranchMark, BranchName (name + (i), reuses InfoTooltip)
+    ├── constants.ts              # CONNECTION_STEPS gains the Rules step
+    └── pages/
+        ├── FormConnectionEditor/ # EditorStep 'rules'; DocumentsStep footer (F17) and removal dialogs (F18)
+        │   └── RulesStep/        # new: tabs, list, groups, select mode, dialogs, footer (S2, S4)
+        │       └── RuleEditor/   # new: data menu, part picker, checks per kind, value inputs, message (S3)
+        └── FormConnectionDetail/ # pull URL per branch (F24, F31, W2); RulesSummary card (F26, W1)
 ```
 
 **Structure Decision**: the web-application layout of spec 001 stays. Backend domain logic goes
@@ -197,6 +208,16 @@ inside the editor page, with the rule editor nested in it, each with its sibling
   descriptions).
 - Backend tasks follow model → schema → migration → services → router; the evaluator's unit tests
   come with it (research R12).
+- **A Setup task installs Vitest** before any other frontend task: the `vitest` development
+  dependency, `"test": "vitest run"`, the `test` block in `vite.config.ts` with the `node`
+  environment, and at least one test, because `vitest run` fails when it finds no test file (for
+  example for an existing pure function in a page's `utils.ts`). The same task applies the
+  documentation checklist: `npm test` in the command tables of `CLAUDE.md` and `README.md`, and
+  Vitest in `README.md` with the reason it was added. From then on every frontend task passes
+  `npm run lint`, `npm test` and `npm run build` (constitution v1.1.0).
+- **Each task that writes a module of `src/utils/rules/` writes its `*.test.ts` with it**, covering
+  that module's cases from research R12; `branches.ts` is not done until every propagation rule
+  and mark transition of data-model.md has a test.
 
 ## Constitution Check: after Phase 1 design
 
@@ -209,7 +230,10 @@ inside the editor page, with the rule editor nested in it, each with its sibling
   history untouched (V).
 - The save path keeps spec 001's "no transaction while EUDIPLO answers" and adds the rules to the
   one final locked commit; the evaluator is synchronous and pure (II).
-- No dependency, setting or environment variable is added (IV).
+- No runtime dependency, setting or environment variable is added; one development dependency,
+  Vitest, is imported by the frontend's tests and documented in `README.md` (IV).
+- The propagation that only the browser runs is pinned by Vitest tests next to its module and
+  gated by `npm test`; the server's invariant checks stay as the last line (III, research R4, R12).
 - Logging stays free of references, values and evaluations; the redaction covers the new path (IV
   and the logging rule).
 

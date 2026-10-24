@@ -25,12 +25,14 @@ uv run pytest
 
 cd ../frontend
 npm run lint
+npm test
 npm run build
 ```
 
 **Expected**: all pass. The evaluator's unit tests cover every case of SC-003 and the Edge Cases
 (research R12); the API tests cover saving, refusals, atomicity and every answer of the branch pull
-URLs.
+URLs; the frontend's tests cover propagation, marks, dissolution, numbering and the pre-checks
+(research R12). `npm test` runs once and exits; `npx vitest` watches while you work.
 
 In the commands below, `$API` is `http://localhost:3000/api` (the backend without nginx), `$FC` a
 form connection's id, `$BRANCH` a branch's id from its pull URL on the details screen, and `$REF` a
@@ -190,5 +192,5 @@ tooltips on focus; focus on the named problem after a refused Publish.
 |---|---|
 | Every licence class rule is `not_checked` | EUDIPLO without the mdoc fix delivers `driving_privileges` as `[{}, …]` (docs/EUDIPLO.md) |
 | A date rule flips around midnight | The day of sharing is Germany's calendar date of `completed_at`; check the request's `completed_at` |
-| Save refused with "… is out of step with Standard. Reload the connection and try again." | The editor's propagation produced an inconsistent based branch (research R4). Reload, and report the steps |
+| Save refused with "… is out of step with Standard. Reload the connection and try again." | The editor's propagation produced an inconsistent based branch (research R4). Reload, report the steps, and add them as a case to `frontend/src/utils/rules/branches.test.ts` |
 | `409 branch_added_later` | The request was triggered before the branch was saved; start a new request |
