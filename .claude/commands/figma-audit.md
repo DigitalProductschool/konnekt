@@ -11,6 +11,8 @@ You orchestrate; subagents do the work. Context rules (strict):
 - Never call Figma MCP tools in this context.
 - Never read `spec.md`, `requirements.md`, `tree/*` or `units/*.md` here. You may read `units.md` and only the `## Summary` section of `report.md`.
 - Subagents write all results to disk and return one status line. Never ask them to return details.
+  The one exception is `figma-audit-reconciler`: Claude Code refuses report files written by
+  subagents, so it returns the report as text and step 4 saves it.
 - Subagents cannot spawn subagents, so all fan-out happens here. Run them in the foreground (MCP tools are not available to background subagents).
 
 ## 0. Setup
@@ -41,8 +43,14 @@ For every row with scope `IN` selected by the mode:
   and tell me to continue later with `/figma-audit resume`.
 
 ## 4. Reconcile
-Delegate to `figma-audit-reconciler` with AUDIT_DIR.
-Read only `## Summary` of `AUDIT_DIR/report.md` and show it, with the report path.
+Delegate to `figma-audit-reconciler` with AUDIT_DIR. It returns a status line, then the report between
+`=====BEGIN report.md=====` and `=====END report.md=====`.
+1. Save it without retyping it: run
+   `python3 -I .claude/scripts/figma-audit-save-report.py <output_file> <AUDIT_DIR>`, where `<output_file>`
+   is the transcript path in the reconciler's Agent result. If the script fails, write the text between the
+   markers to `AUDIT_DIR/report.md` with Write (Read the old file first, if one exists).
+2. Don't repeat or discuss the returned report. Read only `## Summary` of `AUDIT_DIR/report.md` and show it,
+   with the report path.
 
 ## 5. Next steps (print, don't run)
 - `/speckit.clarify Resolve the items in <AUDIT_DIR>/report.md, section "Clarify questions".`
