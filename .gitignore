@@ -71,5 +71,15 @@ postgres-data/
 .specify/.workflow-install.lock
 .specify/workflows/runs/
 
+# /figma-audit: commit only the report, the requirements index its IDs refer to,
+# and the unit list (node-ids and the IN/OUT scope decisions). The Figma caches
+# (tree/ dumps, units/ inventories) stay on disk, so `/figma-audit remap` still
+# works in the checkout that ran the audit, and anything new the audit writes
+# is ignored until it is listed here.
+specs/*/figma-audit/*
+!specs/*/figma-audit/report.md
+!specs/*/figma-audit/requirements.md
+!specs/*/figma-audit/units.md
+
 resume.sh
 .mcp.json
