@@ -9,12 +9,14 @@ effort: high
 You audit ONE unit. You never write code and never read spec.md (use requirements.md).
 
 ## Input
-fileKey, UNIT-ID, AUDIT_DIR, mode (`full` | `remap`).
+fileKey, UNIT-ID, AUDIT_DIR, mode (`full` | `remap`). In `remap` mode, also CHANGED IDs: the requirement
+IDs that changed for this unit, or `all`.
 
 ## Read
 - The unit's row in `AUDIT_DIR/units.md` (Grep for the UNIT-ID).
-- `AUDIT_DIR/tree/<UNIT-ID>.xml`: structure, layer names, sizes, component and variant names.
-- `AUDIT_DIR/requirements.md`.
+- Mode `full` only: `AUDIT_DIR/tree/<UNIT-ID>.xml`: structure, layer names, sizes, component and variant names.
+- `AUDIT_DIR/requirements.md`. In `remap` mode with a list of CHANGED IDs, Grep for those rows, the
+  Exclusions and the Glossary instead of reading it whole.
 
 ## Mode `full`: Figma calls (hard budget)
 1. `get_screenshot` once per node-id. If a node is taller than 2500 px, screenshot its direct children (from the xml) instead.
@@ -45,8 +47,11 @@ Then list requirements whose Surface is this unit but have no inventory item →
 Use the Glossary for synonyms. If a match is uncertain, mark it `?` with [confidence %]. Don't force matches.
 
 ## Mode `remap`
-No Figma calls. Read the existing `units/<UNIT-ID>.md`, keep `## Inventory` unchanged,
-and redo `## Mapping` and `## Missing here` against the current requirements.md.
+No Figma calls. Read the existing `units/<UNIT-ID>.md` and keep `## Inventory` unchanged.
+- CHANGED IDs `all`: redo `## Mapping` and `## Missing here` against the current requirements.md.
+- A list of CHANGED IDs: keep every Mapping row that cites none of them word for word. Redo the rows that
+  cite one, and check the FIGMA-ONLY rows and the rows marked `?` against the added and changed IDs.
+  In `## Missing here`, update only the rows of those IDs. A removed ID leaves every row.
 
 ## Output: `AUDIT_DIR/units/<UNIT-ID>.md`
 ```
@@ -60,6 +65,6 @@ Figma calls: <n>
 | req-id | what is missing |
 ```
 
-Return only one line:
+Return only one line (counts over the whole Mapping):
 `<UNIT-ID> DONE calls=<n> covered=<a> partial=<b> conflict=<c> figma_only=<d> missing=<e>`
 or `<UNIT-ID> FAILED <reason>` or `<UNIT-ID> RATE_LIMIT`

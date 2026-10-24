@@ -1,6 +1,6 @@
 ---
 description: Audit the active speckit spec against a Figma page/section and report discrepancies in both directions.
-argument-hint: <figma-url-with-node-id> | resume | remap | <UNIT-IDs...>
+argument-hint: <figma-url-with-node-id> | resume | remap [all] | reconcile | <UNIT-IDs...>
 ---
 
 # /figma-audit — orchestrator
@@ -9,7 +9,8 @@ Arguments: $ARGUMENTS
 
 You orchestrate; subagents do the work. Context rules (strict):
 - Never call Figma MCP tools in this context.
-- Never read `spec.md`, `requirements.md`, `tree/*` or `units/*.md` here. You may read `units.md` and only the `## Summary` section of `report.md`.
+- Never read `spec.md`, `requirements.md`, `tree/*` or `units/*.md` here. You may read `units.md`, `changes.md`
+  and only the `## Summary` section of `report.md`.
 - Subagents write all results to disk and return one status line. Never ask them to return details.
   The one exception is `figma-audit-reconciler`: Claude Code refuses report files written by
   subagents, so it returns the report as text and step 4 saves it.
@@ -21,12 +22,19 @@ You orchestrate; subagents do the work. Context rules (strict):
 3. Mode from the arguments:
    - Figma URL → fresh run: steps 1–4. If `units.md` already exists, ask: overwrite or resume?
    - `resume` → step 1 (if stale), step 3 for PENDING / FAILED / RATE_LIMIT rows, step 4.
-   - `remap` → step 1, step 3 in `remap` mode for all DONE rows, step 4. Zero Figma calls.
+   - `remap` → step 1. If it rebuilt the index, step 3 in `remap` mode for the DONE rows under
+     `## Units to remap` in `changes.md`, each with its changed IDs (every DONE row with `all` if it says
+     `Baseline: none`). If the index was already current, remap nothing. Then step 4. Zero Figma calls.
+   - `remap all` → step 1, step 3 in `remap` mode for all DONE rows with CHANGED IDs `all`, step 4.
+     Only needed when the mappings themselves look wrong; it costs as much as the first audit's mapping.
+   - `reconcile` → step 4 only. If `requirements.md` is older than `spec.md`, say that new requirements
+     won't be mapped, and that `/figma-audit remap` does that.
    - UNIT-IDs → step 3 (`full`) for those rows only, then step 4.
 
 ## 1. Requirements index
 If `AUDIT_DIR/requirements.md` is missing or older than `FEATURE_DIR/spec.md` (compare mtimes with Bash),
-delegate to `spec-requirements-indexer` with FEATURE_DIR and AUDIT_DIR.
+delegate to `spec-requirements-indexer` with FEATURE_DIR, AUDIT_DIR and spec.md's mtime.
+Use `changes.md` only when the indexer rebuilt it in this run; an older one is stale.
 
 ## 2. Tree map (fresh run only)
 Delegate to `figma-tree-mapper` with the Figma URL and AUDIT_DIR.
@@ -36,8 +44,10 @@ STOP and wait for my decisions. Write them into the `scope` column of `units.md`
 
 ## 3. Unit audits
 For every row with scope `IN` selected by the mode:
-- Delegate to `figma-unit-auditor` with: fileKey (from the `units.md` header), UNIT-ID, AUDIT_DIR, mode (`full` | `remap`).
-- Max 3 auditors in parallel (Figma per-minute limits; tune if needed).
+- Delegate to `figma-unit-auditor` with: fileKey (from the `units.md` header), UNIT-ID, AUDIT_DIR, mode (`full` | `remap`),
+  and in `remap` mode the CHANGED IDs (the list from `changes.md`, or `all`).
+- In `remap` mode, pass `effort: "medium"` to the Agent call: it matches text, with no Figma calls.
+- Max 3 auditors in parallel in `full` mode (Figma per-minute limits; tune if needed), 6 in `remap` mode.
 - Write each returned status line into the row's `status` and `counts` columns.
 - On `RATE_LIMIT`: launch nothing more, let running auditors finish, report progress,
   and tell me to continue later with `/figma-audit resume`.
@@ -53,5 +63,5 @@ Delegate to `figma-audit-reconciler` with AUDIT_DIR. It returns a status line, t
    with the report path.
 
 ## 5. Next steps (print, don't run)
-- `/speckit.clarify Resolve the items in <AUDIT_DIR>/report.md, section "Clarify questions".`
-- After clarify has updated spec.md: `/figma-audit remap` (re-maps the cached inventories, no Figma calls).
+- `/speckit.clarify Resolve the items in <AUDIT_DIR>/report.md, section "Clarify questions". Ask every one of them, and record each answer with the surfaces and exact wording the question lists.`
+- After clarify has updated spec.md: `/figma-audit remap` (remaps only the units whose requirements changed, no Figma calls).

@@ -33,13 +33,34 @@ AUDIT_DIR. FEATURE_DIR is its parent directory.
    - It amended the spec to follow the design, yet the item still doesn't match → not settled: keep a
      clarify question that cites the decision, since the amendment may have missed something.
    - Unsure whether it covers the item → not settled: keep the question and cite the decision.
+   When two decisions settle the same point differently, the later one wins (later session, then higher n).
+   Decisions that name different things don't conflict: each settles what it names.
    Settled items move to their section and leave the open sections, the Top 5 and the questions.
-5. Order the open items: CONFLICT → SPEC-ONLY (by story priority) → FIGMA-ONLY behavioural → PARTIAL →
+5. Standing rules, for the items that no design decision settles in step 4. A decision always beats a rule.
+   Cite them as `RULE wording` and `RULE ui-detail`.
+   - `RULE wording`: the item differs from a requirement only in its copy (a label, message, hint, toast or
+     confirmation), while the requirement settles the behaviour → **Figma must change**. In "build instead",
+     give the exact text: the spec's own words where it has them, otherwise Figma's copy reworded to say
+     what the requirement says. The rule doesn't apply when the item differs in which elements, options,
+     states or steps exist: that is behaviour.
+   - `RULE ui-detail`: a FIGMA-ONLY item that no requirement or exclusion covers, and that changes no stored
+     data, no validation or permission outcome, and nothing another system receives (a convenience such as
+     an undo, a toast, a search box in a menu or a keyboard shortcut) → built as designed. List it under
+     cosmetic (FYI) with the rule, not as a question. The rule doesn't apply when a decision put the item,
+     or a group that includes it, out of scope.
+6. Order the open items: CONFLICT → SPEC-ONLY (by story priority) → FIGMA-ONLY behavioural → PARTIAL →
    FIGMA-ONLY cosmetic.
-6. Clarify questions: one per open non-cosmetic item, phrased as a decision with options. Example:
+7. Clarify questions: one per open non-cosmetic item, phrased as a decision with options. Example:
    "Figma shows <X> (U03, 12:34), not in the spec: add a requirement / out of scope / design error?"
-   Group related items into one question.
-7. List skipped units (OUT, unresolved UNCERTAIN, FAILED, RATE_LIMIT) so coverage gaps are explicit.
+   Group related items into one question. Each answer must be complete, so that it can't raise a follow-up
+   question in the next run:
+   - Impact: Grep the `## Inventory` sections of all `units/*.md` for the same copy, component, field or
+     concept, and list every node the answer affects, grouped by surface (for example the editor, saved
+     items, toasts, inline messages, dialogs, the details).
+   - Options: say what each option means on each of those surfaces. When an option introduces wording,
+     give the exact text it uses.
+   - Name every Clarifications answer that an option would supersede or contradict.
+8. List skipped units (OUT, unresolved UNCERTAIN, FAILED, RATE_LIMIT) so coverage gaps are explicit.
 
 ## Output: the content of `AUDIT_DIR/report.md`
 ```
@@ -60,7 +81,7 @@ Top 5 issues: ... (open items only)
 ## Figma-only — cosmetic (FYI)
 ## Figma must change (decided)
 Build these as the spec says, keeping Figma's layout and styling, until the design is updated.
-| # | req | Figma (unit, node-ids) | Figma shows | build instead | decision |
+| # | req | Figma (unit, node-ids) | Figma shows | build instead | decision (CLAR … or RULE wording) |
 ## Build without frames (decided)
 | # | req | expected surface | build from (nearest frame or KERN pattern) | decision |
 ## Clarify questions
