@@ -1,8 +1,8 @@
-# Requirements index — spec.md mtime 1792861966 (2026-10-24 17:12:46 UTC)
+# Requirements index — spec.md mtime 1792875219 (2026-10-24 20:53:39 UTC)
 
-Source: specs/002-connection-rules/spec.md (read in full, Clarifications included; rebuilt after the last 2026-10-24 Clarifications: identifiers on the details, from-now wording, whole number ≥ 1, rule editor aids, branch description tooltip, Edit variant).
-Flags: `CLAR` = settled in Clarifications (date given); `COPY` = spec fixes wording that should appear in the UI; `A11Y` = accessibility constraint; `NEW` = item added by the previous rebuild; `ADDED` = item added by this rebuild (see changes.md). No `[NEEDS CLARIFICATION]` markers present.
-ID stability: FR sub-letters and EC-1..EC-28 keep the IDs of the previous index (the spec's Clarifications cite EC-15 and EC-16 in that numbering). Items added by this rebuild take the next free sub-letter of their FR; items that only Clarifications define (rule editor aids) are filed under the FR they extend, with the Clarifications as their Spec §.
+Source: specs/002-connection-rules/spec.md (read in full, Clarifications included; rebuilt after the last 2026-10-24 Clarification: no search field in the Place of birth part picker, "Search classes" in the Licence classes part picker).
+Flags: `CLAR` = settled in Clarifications (date given); `COPY` = spec fixes wording that should appear in the UI; `A11Y` = accessibility constraint; `NEW` and `ADDED` = items added by earlier rebuilds; `CHANGED` = row whose meaning this rebuild changed (see changes.md). No `[NEEDS CLARIFICATION]` markers present.
+ID stability: FR sub-letters and EC-1..EC-28 keep the IDs of the previous index (the spec's Clarifications cite EC-15 and EC-16 in that numbering). Items added by a rebuild take the next free sub-letter of their FR; items that only Clarifications define (rule editor aids) are filed under the FR they extend, with the Clarifications as their Spec §.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -32,7 +32,7 @@ ID stability: FR sub-letters and EC-1..EC-28 keep the IDs of the previous index 
 | FR-003m | Years or months of a date condition must be a whole number of at least 1; otherwise incomplete | P1 | Y | Rules step – rule editor | error | ADDED, CLAR 2026-10-24 | FR / Defining rules |
 | FR-003n | Number fields, such as Height (cm), keep accepting any number | P1 | Y | Rules step – rule editor | default | ADDED, CLAR 2026-10-24 | Clarifications 2026-10-24 |
 | FR-003o | Licence class lists show each code with its description; saved statements keep the codes only | P1 | Y | Rules step – rule editor | default | ADDED, COPY "B Cars up to 3.5 t", CLAR 2026-10-24 | Clarifications 2026-10-24; Assumptions / Design |
-| FR-003p | Part pickers of Place of birth and Licence classes are built like the data menu, with search | P1 | Y | Rules step – rule editor | default | ADDED, CLAR 2026-10-24 | Clarifications 2026-10-24 |
+| FR-003p | Part pickers built like the data menu; Licence classes' has "Search classes", Place of birth's three parts no search | P1 | Y | Rules step – rule editor | default | ADDED, CHANGED, COPY "Choose part", "Country", "Region", "City or town", "Search classes", CLAR 2026-10-24 | Clarifications 2026-10-24; Assumptions / Design |
 | FR-004a | Every rule has an error message for the citizen | P1 | Y | Rules step – rule editor | default | | FR / Defining rules |
 | FR-004b | Once condition complete, system proposes an editable message matching the condition as entered | P1 | Y | Rules step – rule editor | default | CLAR 2026-10-24 | FR / Defining rules |
 | FR-004c | Groups and sub-groups may have an error message of their own | P2 | Y | Rules step | default | | FR / Defining rules |
@@ -315,7 +315,7 @@ couldn't be checked = can't be read, missing, not checkable
 unsaved changes = Save changes to Rule 01?, keep, discard
 data menu = choose data, data picker, field menu, Need other data? Add it in Documents
 menu search = Search Personal ID, Search Driving licence, Search classes, Search options, No options match, search field, filter
-part picker = choose part, value with parts, part menu
+part picker = Choose part, choose part, value with parts, part menu, Country, Region, City or town
 licence class description = class description, B Cars up to 3.5 t
 menu footer = Lists the documents you added, Only documents you request are listed., Select at least one option.
 trigger URL = start URL, request link, trigger link
