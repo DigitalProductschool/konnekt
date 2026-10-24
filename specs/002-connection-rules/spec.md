@@ -80,6 +80,9 @@ Questions raised by the audit of the UI design against this spec (figma-audit/re
 - Q: Which words do the from-now date conditions use, given that the UI design says "≥ at least 6 months left" in the rule editor and in every saved rule? → A: The spec's, in the rule editor and in saved rules alike: "Driving licence – Expiry date is at least 6 months from now" and "is less than 6 months from now" (FR-003, FR-005). "Left" isn't used, and the design's "≥" stays as decoration.
 - Q: Must the number of years or months in a date condition be at least 1, given that the UI design's rule editor rejects 0 with "Enter a number greater than 0." but FR-006 doesn't mention it? → A: Yes. It must be a whole number of at least 1. Anything else leaves the condition incomplete: the rule editor points it out as the design shows, and publishing or saving is refused (FR-003, FR-006). Number fields, such as the "Height (cm)", keep accepting any number.
 - Q: Does the spec cover the UI design's remaining conveniences: "Enter saves · Esc cancels" when renaming, "Cancel" to leave the select mode for grouping, and the toast after copying a rule with a "Show" link to the branch? → A: They are UI detail, built as designed, like the conveniences above. They change no rule, branch or identifier, so the spec adds no requirement for them.
+- Q: Should the rule editor's menus have a search field, should licence class lists show a description next to each code, and should the data menu end with a link to add more data in Documents? → A: Yes, all three are UI detail, built as designed. Long menus get a search field: "Search {document}" in the data menu (such as "Search Personal ID", "Search Driving licence"), "Search classes" in the class menus and "Search options" in the other option menus, with the empty result "No options match "{typed text}".". Class lists show each code with its description, such as "B Cars up to 3.5 t"; saved statements keep the codes only (FR-005). The data menu ends with "Need other data? Add it in Documents", which opens the documents step; if the open rule editor has unsaved changes, "Save changes to Rule 01?" comes first, as when leaving the editor (FR-006). The part pickers, Place of birth's and the one for Licence classes, are built the same way. The menu footers that state a requirement ("Lists the documents you added", "Only documents you request are listed.", "Select at least one option.") and the editor's hints stay. This supersedes "the rule editor's aids" in the answer above that puts the design's unrequired parts out of scope, as far as these parts go.
+- Q: How should a branch's description be displayed in the rules step and on the details? → A: As a tooltip everywhere, opened by an information button "(i)" right after the branch's name, on hover and on keyboard focus. In the rules step, the (i) follows the name on the branch's tab, as in the design. On the details, the same (i) follows the branch's name in the heading of its rules section and in the label of its pull URL, also where the URLs are shown after publishing (FR-026). A branch without a description shows no (i). The Add variant dialog's field keeps the design's "Description - Optional" and its helper "Shown when someone hovers the (i) next to the variant name." (FR-020).
+- Q: Can a team member edit a branch's description after the branch is added, and can the main branch have a description at all? → A: Yes to both. "Rename" in the branch tab's menu opens the Add variant dialog's name and description fields, titled "Edit variant", without "Start with", for every branch, the main branch included. A missing or duplicate name is reported there as when adding a branch (FR-020). This extends the earlier answer on renaming and deleting branches, which named only renaming.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -503,10 +506,13 @@ new one, and no URL has changed.
   any rule. A branch MUST NOT be based on any other branch. All branches MUST request the form
   connection's documents and fields; only their rules differ.
 - **FR-020**: Every branch MUST have a name that is unique within its form connection. Team members
-  MUST be able to rename every branch, and to delete every branch except the main branch after
-  confirming. The rules step MAY refuse a missing or duplicate name as soon as it is entered;
-  FR-006 still applies when publishing or saving. A branch MAY have a description, which the
-  rules step and the details show with its name, and which isn't delivered to serviceBW.
+  MUST be able to rename every branch and change its description, the main branch included, and
+  to delete every branch except the main branch after confirming. The rules step MAY refuse a missing or duplicate name as soon as it is entered;
+  FR-006 still applies when publishing or saving. A branch MAY have a description, which isn't
+  delivered to serviceBW. Wherever the rules step, the details and the URLs after publishing
+  show a branch's name, on its tab, its rules section's heading and its pull URL's label, an
+  information button right after the name MUST show the description in a tooltip, on hover and
+  on keyboard focus. A branch without a description shows no such button.
 - **FR-021**: A branch based on the main branch MUST start with all of the main branch's rules and
   groups, linked to them. While a rule or group is linked, the branch MUST follow every change the
   main branch makes to it, including its removal. Rules and groups that the main branch adds later
@@ -582,7 +588,8 @@ new one, and no URL has changed.
   single rule of that group. It may have an error message of its own, has an identifier and a name
   like a rule, and contains no further groups.
 - **Branch**: A named set of rules of one form connection, combined at its top level with AND or OR,
-  with its own pull URL and an optional description. Every form connection has one main branch,
+  with its own pull URL and an optional description, shown in a tooltip next to its name (FR-020).
+  Every form connection has one main branch,
   which uses the form connection's original pull URL. Every other branch is either based on the
   main branch or started empty. All branches share the form connection's documents, fields and
   trigger URL.
@@ -670,6 +677,9 @@ new one, and no URL has changed.
 - **Design**: The layout and wording of the rules step and of the branches come from the UI design,
   as in spec 001. The UI's words may differ from this spec's, as "connection" stands for "form
   connection" and "variant" for "branch" there, but the conditions keep the wording of FR-003.
+  The rule editor's aids are built as designed: search in long menus, licence class codes with
+  their descriptions, and the data menu's link "Need other data? Add it in Documents"
+  (Clarifications, 2026-10-24).
 - **Out of scope**: holding back from serviceBW the fields that rules check (see Clarifications);
   comparing two fields with each other, such as the names on the ID and on the driving licence;
   calculations across fields; free-form expressions; conditions on the restriction codes of a

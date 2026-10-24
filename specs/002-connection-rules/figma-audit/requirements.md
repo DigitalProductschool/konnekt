@@ -1,8 +1,8 @@
-# Requirements index — spec.md mtime unavailable (no shell access; spec Created 2026-10-22, last Clarifications session 2026-10-24)
+# Requirements index — spec.md mtime 1792861966 (2026-10-24 17:12:46 UTC)
 
-Source: specs/002-connection-rules/spec.md (read in full, Clarifications included; rebuilt after the 2026-10-24 session).
-Flags: `CLAR` = settled in Clarifications (date given); `COPY` = spec fixes wording that should appear in the UI; `A11Y` = accessibility constraint; `NEW` = item added since the previous index. No `[NEEDS CLARIFICATION]` markers present.
-ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index (the spec's Clarifications cite EC-15 and EC-16 in that numbering). Edge cases added to the spec since then are appended as EC-26..EC-28, out of document order.
+Source: specs/002-connection-rules/spec.md (read in full, Clarifications included; rebuilt after the last 2026-10-24 Clarifications: identifiers on the details, from-now wording, whole number ≥ 1, rule editor aids, branch description tooltip, Edit variant).
+Flags: `CLAR` = settled in Clarifications (date given); `COPY` = spec fixes wording that should appear in the UI; `A11Y` = accessibility constraint; `NEW` = item added by the previous rebuild; `ADDED` = item added by this rebuild (see changes.md). No `[NEEDS CLARIFICATION]` markers present.
+ID stability: FR sub-letters and EC-1..EC-28 keep the IDs of the previous index (the spec's Clarifications cite EC-15 and EC-16 in that numbering). Items added by this rebuild take the next free sub-letter of their FR; items that only Clarifications define (rule editor aids) are filed under the FR they extend, with the Clarifications as their Spec §.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -13,6 +13,10 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-002b | Every requested field except images can be checked, by one or several rules | P1 | Y | Rules step | default | | FR / Defining rules |
 | FR-002c | Only enum conditions take several values; other multi-value checks or ranges need one rule each | P1 | Y | Rules step | default | CLAR 2026-10-23, CLAR 2026-10-24 | FR / Defining rules |
 | FR-002d | A rule must not check a field the form connection doesn't request (only requested fields offered) | P1 | Y | Rules step | default | | FR / Defining rules |
+| FR-002e | Long rule-editor menus have a search field: "Search {document}" in the data menu, "Search classes", "Search options" | P1 | Y | Rules step – rule editor | default | ADDED, COPY "Search Personal ID", "Search Driving licence", CLAR 2026-10-24 | Clarifications 2026-10-24; Assumptions / Design |
+| FR-002f | A menu search without matches shows an empty-result message | P1 | Y | Rules step – rule editor | empty | ADDED, COPY "No options match "{typed text}".", CLAR 2026-10-24 | Clarifications 2026-10-24 |
+| FR-002g | Data menu ends with a link that opens the documents step | P1 | Y | Rules step – rule editor | default | ADDED, COPY "Need other data? Add it in Documents", CLAR 2026-10-24 | Clarifications 2026-10-24; Assumptions / Design |
+| FR-002h | Menu footers that state a requirement stay as designed | P1 | Y | Rules step – rule editor | default | ADDED, COPY "Lists the documents you added", "Only documents you request are listed.", "Select at least one option.", CLAR 2026-10-24 | Clarifications 2026-10-24 |
 | FR-003a | Each checkable field has one of four kinds; conditions worded identically per kind, except Date of birth | P1 | Y | Rules step – rule editor | default | CLAR 2026-10-24 | FR / Defining rules |
 | FR-003b | Number conditions: is greater than, is less than, is equal to, is not equal to (strict, one value) | P1 | Y | Rules step – rule editor | default | COPY, CLAR 2026-10-24 | FR / Defining rules |
 | FR-003c | Text conditions: is equal to, is not equal to, contains, doesn't contain; one value, letter-case choice each | P1 | Y | Rules step – rule editor | default | COPY, CLAR 2026-10-24 | FR / Defining rules |
@@ -25,6 +29,10 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-003j | Every date field offers "is at least" / "is less than" N years or months from now | P1 | Y | Rules step – rule editor | default | NEW, COPY, CLAR 2026-10-24 | FR / Defining rules |
 | FR-003k | Date of birth words its three years-ago conditions as age: is at least/less than/exactly N years old | P1 | Y | Rules step – rule editor | default | NEW, COPY, CLAR 2026-10-24 | FR / Defining rules |
 | FR-003l | Editor may add today's worked example; saved rules don't repeat the counting note | P1 | Y | Rules step – rule editor | default | NEW, COPY "Today (…) this means: …", CLAR 2026-10-24 | FR / Defining rules |
+| FR-003m | Years or months of a date condition must be a whole number of at least 1; otherwise incomplete | P1 | Y | Rules step – rule editor | error | ADDED, CLAR 2026-10-24 | FR / Defining rules |
+| FR-003n | Number fields, such as Height (cm), keep accepting any number | P1 | Y | Rules step – rule editor | default | ADDED, CLAR 2026-10-24 | Clarifications 2026-10-24 |
+| FR-003o | Licence class lists show each code with its description; saved statements keep the codes only | P1 | Y | Rules step – rule editor | default | ADDED, COPY "B Cars up to 3.5 t", CLAR 2026-10-24 | Clarifications 2026-10-24; Assumptions / Design |
+| FR-003p | Part pickers of Place of birth and Licence classes are built like the data menu, with search | P1 | Y | Rules step – rule editor | default | ADDED, CLAR 2026-10-24 | Clarifications 2026-10-24 |
 | FR-004a | Every rule has an error message for the citizen | P1 | Y | Rules step – rule editor | default | | FR / Defining rules |
 | FR-004b | Once condition complete, system proposes an editable message matching the condition as entered | P1 | Y | Rules step – rule editor | default | CLAR 2026-10-24 | FR / Defining rules |
 | FR-004c | Groups and sub-groups may have an error message of their own | P2 | Y | Rules step | default | | FR / Defining rules |
@@ -35,6 +43,7 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-005d | Names unique per branch; duplicate refused inline with message naming the branch | P2 | Y | Rules step | error | NEW, COPY "Another rule in Ambulance is already called Rule 01.", CLAR 2026-10-24 | FR / Defining rules |
 | FR-005e | Renaming an inherited rule or group in a based branch changes it there | P2 | Y | Rules step | default | NEW, CLAR 2026-10-24 | FR / Defining rules |
 | FR-005f | Management-interface messages name rules and groups by their name and branch | P1 | Y | Rules step; Documents step | error | NEW | FR / Defining rules |
+| FR-005g | Rule editor and saved statements both carry FR-003 words, e.g. "is at least 6 months from now", never "left" | P1 | Y | Rules step – rule editor; Rules step; Details | default | ADDED, COPY "Driving licence – Expiry date is at least 6 months from now", CLAR 2026-10-24 | FR / Defining rules |
 | FR-006a | Publish/save refused while any branch has incomplete condition, missing message, or unrequested field | P1 | Y | Rules step | error | | FR / Defining rules |
 | FR-006b | Publish/save refused for branch without name or with duplicate branch name | P2 | Y | Rules step | error | | FR / Defining rules |
 | FR-006c | Refusal message names the problem, the rule concerned if any, and its branch | P1 | Y | Rules step | error | | FR / Defining rules |
@@ -42,6 +51,7 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-006e | Publish/save with unsaved rule-editor changes first asks keep or discard, same dialog as leaving editor | P1 | Y | Rules step – rule editor | default | NEW, COPY "Save changes to Rule 01?", CLAR 2026-10-24 | FR / Defining rules |
 | FR-006f | Keep saves the rule (still checked), discard drops changes; publishing or saving then continues | P1 | Y | Rules step – rule editor | default | NEW, CLAR 2026-10-24 | FR / Defining rules |
 | FR-006g | While a rule editor is open, no "without rules" publish/save is offered | P1 | Y | Rules step | default | NEW, CLAR 2026-10-24 | FR / Defining rules |
+| FR-006h | Data menu's Documents link with unsaved editor changes first asks to keep or discard them | P1 | Y | Rules step – rule editor | default | ADDED, COPY "Save changes to Rule 01?", CLAR 2026-10-24 | Clarifications 2026-10-24 |
 | FR-007a | Top level, each group and each sub-group combine with AND by default, per branch | P2 | Y | Rules step | default | | FR / Combining rules |
 | FR-007b | Team member can switch each level to OR and back | P2 | Y | Rules step | default | | FR / Combining rules |
 | FR-007c | All rules and groups of one level combine the same way; mixing needs a group | P2 | Y | Rules step | default | | FR / Combining rules |
@@ -61,7 +71,8 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-010e | Rest of pull answer unchanged from spec 001 | P1 | N | ? | ? | | FR / Evaluating |
 | FR-010f | Identifier set at creation, unchanged on rename or change, never reused within the form connection | P1 | N | ? | ? | NEW, CLAR 2026-10-24 | FR / Evaluating |
 | FR-010g | Inherited items keep main's identifier in every based branch; branch-added items get new ones | P2 | N | ? | ? | NEW, CLAR 2026-10-24 | FR / Evaluating |
-| FR-010h | Details show each rule's and group's identifier | P1 | Y | Details | default | NEW | FR / Evaluating |
+| FR-010h | Details show each rule's, group's and sub-group's identifier read-only next to its name, in every branch's section | P1 | Y | Details | default | NEW, CLAR 2026-10-24 | FR / Evaluating |
+| FR-010i | Rules step doesn't show identifiers | P1 | Y | Rules step | default | ADDED, CLAR 2026-10-24 | FR / Evaluating |
 | FR-011a | When rules are met overall, no error message is reported | P1 | N | ? | ? | | FR / Evaluating |
 | FR-011b | When not met: failing top-level rules' messages; failing group's own message, else its failing members' | P2 | N | ? | ? | | FR / Evaluating |
 | FR-012a | Date conditions use the calendar date in Germany at the moment of sharing | P1 | N | ? | ? | | FR / Evaluating |
@@ -88,10 +99,15 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-019c | All branches share the connection's documents and fields; only rules differ | P2 | N | ? | ? | | FR / Branches |
 | FR-019d | Branches can be added from the start of the rules step, before main has any rule | P2 | Y | Rules step | empty | NEW, COPY "+ Add variant", CLAR 2026-10-24 | FR / Branches |
 | FR-020a | Branch names are unique within the form connection | P2 | Y | Rules step | error | | FR / Branches |
-| FR-020b | Every branch, main included, can be renamed via a menu on its tab | P2 | Y | Rules step | default | CLAR 2026-10-24 | FR / Branches |
+| FR-020b | Every branch, main included, can be renamed and have its description changed via its tab menu | P2 | Y | Rules step | default | CLAR 2026-10-24 | FR / Branches |
 | FR-020c | Every branch except main can be deleted after a confirmation dialog | P2 | Y | Rules step | default | CLAR 2026-10-24 | FR / Branches |
 | FR-020d | Missing or duplicate branch name may be refused where entered; FR-006 still applies | P2 | Y | Rules step | error | NEW, CLAR 2026-10-24 | FR / Branches |
-| FR-020e | Optional branch description shown with its name in rules step and details; not delivered | P2 | Y | Rules step; Details | default | NEW, CLAR 2026-10-24 | FR / Branches |
+| FR-020e | Optional branch description, main included, shown with its name in rules step, details and URLs after publishing; not delivered | P2 | Y | Rules step; Details; After publishing | default | NEW, CLAR 2026-10-24 | FR / Branches |
+| FR-020f | Information button "(i)" right after the branch name on its tab, rules section heading and pull URL label | P2 | Y | Rules step; Details; After publishing | default | ADDED, COPY "(i)", CLAR 2026-10-24 | FR / Branches |
+| FR-020g | The (i) shows the branch description in a tooltip, on hover and on keyboard focus | P2 | Y | Rules step; Details; After publishing | default | ADDED, A11Y, CLAR 2026-10-24 | FR / Branches |
+| FR-020h | A branch without a description shows no (i) button | P2 | Y | Rules step; Details; After publishing | empty | ADDED, CLAR 2026-10-24 | FR / Branches |
+| FR-020i | Add variant dialog has an optional description field with a helper text | P2 | Y | Add variant dialog | default | ADDED, COPY "Description - Optional", "Shown when someone hovers the (i) next to the variant name.", CLAR 2026-10-24 | Clarifications 2026-10-24; FR / Branches |
+| FR-020j | Tab menu "Rename" opens "Edit variant": name and description fields, no "Start with"; every branch, main included | P2 | Y | Edit variant dialog | default | ADDED, COPY "Rename", "Edit variant", CLAR 2026-10-24 | Clarifications 2026-10-24; FR / Branches |
 | FR-021a | Based branch starts with all main rules and groups, linked to them | P2 | Y | Rules step | default | | FR / Branches |
 | FR-021b | Linked items follow every main-branch change, including removal | P2 | Y | Rules step | default | | FR / Branches |
 | FR-021c | Rules and groups later added to main appear, linked, in every based branch | P2 | Y | Rules step | default | | FR / Branches |
@@ -126,7 +142,7 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | FR-028c | Publish/save stores documents, branches and rules together or not at all | P1 | N | ? | ? | NEW, CLAR 2026-10-24 | FR / Changing rules |
 | FR-028d | After a publish/save failure nothing changed, and the team member can try again | P1 | Y | Publish/save dialog | error | NEW, CLAR 2026-10-24 | FR / Changing rules |
 | FR-029 | Removing a document or deselecting a field used by rules names those rules and branches before saving | P3 | Y | Documents step | error | CLAR 2026-10-24 | FR / Changing rules |
-| FR-030a | Details show every branch's rules, groups, AND/OR and marks, read-only, one section per branch | P2 | Y | Details | default | CLAR 2026-10-24 | FR / Changing rules |
+| FR-030a | Details show every branch's rules, groups, AND/OR, marks and identifiers, read-only, one section per branch | P2 | Y | Details | default | CLAR 2026-10-24 | FR / Changing rules |
 | FR-030b | Details lead to the rules step of the edit flow to change the rules | P3 | Y | Details | default | | FR / Changing rules |
 | FR-030c | Edit flow asks for confirmation when saving, not on entry | P3 | Y | Rules step (edit); Publish/save dialog | default | NEW, CLAR 2026-10-24 | FR / Changing rules |
 | FR-031 | Rules and branches visible and changeable only for signed-in DO.IT team members | P1 | Y | Rules step; Details | ? | role-dependent | FR / Changing rules |
@@ -203,7 +219,7 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | ENT-Sub-group.identifier | Identifier like a rule's | P2 | Y | Details | default | NEW | Key Entities |
 | ENT-Sub-group.name | Team name like a rule's | P2 | Y | Rules step; Details | default | NEW | Key Entities |
 | ENT-Branch.name | Name unique within the form connection | P2 | Y | Rules step; Details | default | | Key Entities |
-| ENT-Branch.description | Optional description, not delivered to serviceBW | P2 | Y | Rules step; Details | default | NEW | Key Entities |
+| ENT-Branch.description | Optional description, shown in a tooltip next to its name; not delivered to serviceBW | P2 | Y | Rules step; Details; After publishing | default | NEW, CLAR 2026-10-24 | Key Entities |
 | ENT-Branch.rules | Set of rules, groups and sub-groups | P2 | Y | Rules step; Details | default | | Key Entities |
 | ENT-Branch.operator | Top-level AND or OR | P2 | Y | Rules step | default | | Key Entities |
 | ENT-Branch.pull_url | Own pull URL; main branch uses the original one | P2 | Y | After publishing; Details | default | | Key Entities |
@@ -249,7 +265,7 @@ ID stability: FR sub-letters and EC-1..EC-25 keep the IDs of the previous index 
 | OUT-21 | Warnings about rules that contradict or repeat each other | Assumptions / Out of scope |
 | OUT-22 | Published page counters and "Live since" | Clarifications 2026-10-24 |
 | OUT-23 | Drafts, "Save and exit" and the wizard's draft badge | Clarifications 2026-10-24 |
-| OUT-24 | Wizard shell sticky bars, documents step redesign, rule editor aids beyond the spec | Clarifications 2026-10-24 |
+| OUT-24 | Wizard shell's draft badge, "Save and exit", sticky bars; documents step redesign; rule editor aids other than FR-002e–h, FR-003o/p | Clarifications 2026-10-24 (aids answer superseded in part) |
 | OUT-25 | Date condition "is at most"; months unit on years-ago conditions | Clarifications 2026-10-24 |
 | OUT-26 | Number conditions "at least", "at most", "between" (a range takes two rules) | Clarifications 2026-10-24 |
 | OUT-27 | Text condition "starts with"; text conditions with several values; always-ignore-case text | Clarifications 2026-10-24 |
@@ -274,11 +290,12 @@ sub-group = subgroup, nested group, inner group, Sub-group 01
 AND / OR = all / any, match all / match any, all of / any of, combinator, logic toggle
 branch = variant, scenario, rule set, path, version
 main branch = main, default, base, primary, standard
-branch description = description, subtitle, variant description
+branch description = description, subtitle, variant description, Description - Optional
+information button = (i), info icon, info button, tooltip, description tooltip
 based on the main branch = inherited, linked, follows main, copy of main
 started empty = blank, empty branch, from scratch, start fresh
-add branch = + Add variant, new variant
-rename / delete branch = tab menu, variant menu, rename variant, delete variant
+add branch = + Add variant, new variant, Add variant dialog, Start with
+rename / delete branch = tab menu, variant menu, rename variant, delete variant, Rename, Edit variant
 changed (in branch) = modified, edited, overridden, customised
 removed (in branch) = deleted, excluded, struck through
 added (in branch) = new, branch-only
@@ -290,11 +307,17 @@ letter case = case sensitive, match case, ignore case, Aa
 is at least {years} old = at least N years old, minimum age, older than, ≥
 is less than {years} old = younger than, under, <
 is at least {years} ago = at least N years ago, held for, ≥
-is at least / less than {n} from now = time left, valid for, expires in, months from now
+is at least / less than {n} from now = time left, valid for, expires in, months from now, left
+whole number of at least 1 = Enter a number greater than 0., invalid number
 includes one of / includes none of = includes, doesn't include, one of, none of, any of, is in, is not in
 counted from the day the applicant shares = day of sharing, Today (…) this means
 couldn't be checked = can't be read, missing, not checkable
 unsaved changes = Save changes to Rule 01?, keep, discard
+data menu = choose data, data picker, field menu, Need other data? Add it in Documents
+menu search = Search Personal ID, Search Driving licence, Search classes, Search options, No options match, search field, filter
+part picker = choose part, value with parts, part menu
+licence class description = class description, B Cars up to 3.5 t
+menu footer = Lists the documents you added, Only documents you request are listed., Select at least one option.
 trigger URL = start URL, request link, trigger link
 pull URL = result URL, fetch URL, poll URL, pull link, .../result/…
 copy (one action) = copy button, copy to clipboard, copy icon, Copied
