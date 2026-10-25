@@ -103,6 +103,18 @@ list bare codes, which F32 replaces with these rows.
 - U12's footer "BE, C and D licences always include class B." goes (F5): a class B rule is met
   only by a licence that lists class B. The multi-select menu keeps "Select at least one option."
 
+### Copy built without a frame (T037–T039)
+
+- Inline errors where U25 shows none for the kind (proposed): "Enter a number.", "Enter a text to
+  compare with.", "Enter a date."; years and months keep U25's "Enter a number greater than 0."
+- Licence classes, "includes none of" (proposed): "Met if the licence has none of the chosen
+  classes.", beside U12's "Met if the licence has at least one of the chosen classes."
+- Date pickers: the sections read "Age", "Time from now", "Date of birth" on a Date of birth, and
+  "Time ago", "Time from now", "Fixed date" on every other date (F3). The counting note shows for
+  the "time ago" and "from now" checks; a fixed date gets the missing-value note only (F4).
+- The proposed message follows the condition until the team member writes their own; emptying
+  the field lets the next change of the condition propose one again (F9).
+
 ## 4. Variants (S4)
 
 ### Add variant and Edit variant (W3; U17 `6139:32693`, U26 `6197:12011`)
@@ -167,6 +179,13 @@ changed it and keeps its own version. You can undo this right after."
 As designed: title "Delete Rule 03?", a body that says what applicants will no longer be checked
 for, ending "You can undo this right after.", buttons "Cancel" / "Delete rule" (danger). Toast
 "Rule 03 in Standard deleted." with "Undo" (F29).
+
+- **Body (built, T036)**: the rule's statement in quotes, "Applicants will no longer be checked
+  for “Driving licence – Licence classes includes one of B, BE”. You can undo this right after."
+  A rule kept incomplete ("Save changes", F10) has no statement: "You can undo this right
+  after." alone.
+- **Duplicate** (U14's menu): no toast, since no frame draws one; the focus moves to the copy,
+  "Rule 06", at the end of the list.
 
 ## 5. Groups (S2, S4)
 
@@ -238,11 +257,30 @@ From the Documents step while no variant has rules: spec 001's dialog with the t
 without rules?" (U36, P6), and from the Rules step the footer button "Publish without rules", as
 designed (F10, F17).
 
+- U36 `6376:27630`: intro "Without rules, anyone who shares these documents can apply.", the
+  Rules row "No rules", and the secondary button **"Add rules"**, which closes the dialog and
+  opens the Rules step. In the edit flow the title reads "Save without rules?" (proposed).
+- From the Rules step, the footer's "Publish without rules" opens "Ready to publish?", whose Rules
+  row reads "Standard · No rules".
+
+### A refused Publish or Save (F11; built, T041)
+
+No frame. The step shows a KERN danger alert above the rules card, titled with spec 001's
+"Couldn’t publish" ("Couldn’t save" when editing), whose text is the refusal's message, such as
+"Rule 02 in Standard has no error message."; the focus moves to the rule it names, which carries
+the same message as its flag (U27 `6197:10704`).
+
 ## 7. Details (S6)
 
 No copy is left open for the details by these notes: F24–F26, F31, W1 and W2 in
 contracts/ui-screens.md say what to build, and the rules card keeps "View summary" / "Hide
 summary" (FYI #17). Text rules read as in section 3.
+
+Built (T043), where U37 leaves the wording open:
+- The card's title is "Rules" (U37: "Summary"), with the hint "1 variant · 5 rules" (rules counted
+  once per identifier, removed ones left out).
+- A variant without rules (proposed): "No rules. Anyone who shares the requested documents can
+  apply."
 
 ## 8. Open points
 

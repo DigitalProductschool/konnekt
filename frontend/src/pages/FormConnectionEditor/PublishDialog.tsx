@@ -1,36 +1,63 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { EDITOR_COPY } from './constants';
+import { PUBLISH_COPY } from './constants';
+import PublishSummaryRow from './PublishSummaryRow';
 import type { PublishDialogProps } from './types';
 
 /**
- * Figma "Dialog: Ready to publish?" (06d): the last check before publishing, or before saving
- * an edited connection. While the connection is being saved it can't be closed. If that fails,
- * it stays open with the API's message above the summary and offers "Try again" (no frame;
- * bug publish-error-offscreen): wherever the page is scrolled, the dialog is in view.
+ * Figma "Dialog: Ready to publish?" (U33 6376:25536; S5): the last check before publishing, or
+ * before saving an edited connection (W7), with a summary of the documents and of each
+ * branch's rules. From the documents step, while no branch has rules, it asks "Publish without
+ * rules?" (U36 6376:27630), and its secondary action goes on to the rules. No go-live choice
+ * (F22) and no warnings line (F21): problems refuse publishing beforehand (F11). While the
+ * connection is being saved it can't be closed. If that fails, it stays open with the API's
+ * message and offers "Try again", and nothing has changed (U35 6376:27178; F23).
  */
 export default function PublishDialog({
   open,
   editing,
-  summary,
+  withoutRules,
+  documentLines,
+  ruleLines,
   publishing,
   error,
   onCancel,
+  onClose,
   onConfirm,
 }: PublishDialogProps) {
+  const title = withoutRules
+    ? editing
+      ? PUBLISH_COPY.saveWithoutRulesTitle
+      : PUBLISH_COPY.publishWithoutRulesTitle
+    : editing
+      ? PUBLISH_COPY.saveTitle
+      : PUBLISH_COPY.publishTitle;
+  const intro = withoutRules
+    ? PUBLISH_COPY.withoutRulesIntro
+    : editing
+      ? PUBLISH_COPY.saveIntro
+      : PUBLISH_COPY.publishIntro;
   return (
     <ConfirmDialog
       open={open}
-      title={EDITOR_COPY.dialogTitle}
-      text={summary}
-      confirmLabel={editing ? EDITOR_COPY.confirmSave : EDITOR_COPY.confirm}
-      cancelLabel={EDITOR_COPY.checkAgain}
-      busyLabel={editing ? EDITOR_COPY.saving : EDITOR_COPY.publishing}
+      title={title}
+      text={intro}
+      textClassName="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
+      confirmLabel={editing ? PUBLISH_COPY.save : PUBLISH_COPY.publish}
+      cancelLabel={withoutRules ? PUBLISH_COPY.addRules : PUBLISH_COPY.checkRulesAgain}
+      busyLabel={editing ? PUBLISH_COPY.saving : PUBLISH_COPY.publishing}
       busy={publishing}
       error={error}
-      errorTitle={editing ? EDITOR_COPY.saveErrorTitle : EDITOR_COPY.publishErrorTitle}
-      retryLabel={EDITOR_COPY.retry}
+      errorTitle={editing ? PUBLISH_COPY.saveErrorTitle : PUBLISH_COPY.publishErrorTitle}
+      retryLabel={PUBLISH_COPY.retry}
       onCancel={onCancel}
+      onClose={onClose}
       onConfirm={onConfirm}
-    />
+    >
+      {/* "Dialog content/Publish · summary": a two-column table, documents then rules */}
+      <dl className="rounded-kern-large flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)">
+        <PublishSummaryRow label={PUBLISH_COPY.documents} values={documentLines} divided />
+        <PublishSummaryRow label={PUBLISH_COPY.rules} values={ruleLines} />
+      </dl>
+    </ConfirmDialog>
   );
 }

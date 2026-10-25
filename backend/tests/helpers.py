@@ -101,6 +101,101 @@ DELIVERED_DOCUMENTS: list[dict[str, Any]] = [
 ]
 
 
+# Rules payloads (specs/002-connection-rules/contracts/management-api.md)
+
+
+def target(
+    document_type: str,
+    field: str,
+    part: str | None = None,
+    licence_class: str | None = None,
+) -> dict[str, Any]:
+    """What a rule checks."""
+    return {
+        'document_type': document_type,
+        'field': field,
+        'part': part,
+        'licence_class': licence_class,
+    }
+
+
+def rule(
+    number: int,
+    rule_target: dict[str, Any] | None,
+    condition: dict[str, Any] | None,
+    message: str,
+    *,
+    name: str | None = None,
+) -> dict[str, Any]:
+    """A rule `rule-{number}`, named "Rule NN" unless `name` says otherwise."""
+    return {
+        'type': 'rule',
+        'id': f'rule-{number}',
+        'name': f'Rule {number:02d}' if name is None else name,
+        'mark': None,
+        'target': rule_target,
+        'condition': condition,
+        'message': message,
+    }
+
+
+def main_branch(
+    items: list[dict[str, Any]],
+    *,
+    branch_id: str | None = None,
+    name: str = 'Standard',
+    operator: str = 'and',
+) -> dict[str, Any]:
+    """The main branch; `branch_id` is None for a form connection being created."""
+    return {
+        'id': branch_id,
+        'name': name,
+        'description': None,
+        'origin': 'main',
+        'operator': operator,
+        'operator_mark': None,
+        'items': items,
+    }
+
+
+def rules_input(
+    branches: list[dict[str, Any]],
+    *,
+    rule_base: int = 1,
+    group_base: int = 1,
+    base_version: int | None = None,
+) -> dict[str, Any]:
+    """The `rules` of a create or edit request."""
+    return {
+        'branches': branches,
+        'numbering_base': {'rule': rule_base, 'group': group_base},
+        'base_version': base_version,
+        'replace': False,
+    }
+
+
+# User story 1's three rules, which FORM_CONNECTION's documents allow
+AGE_RULE = rule(
+    1,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 21},
+    'You must be at least 21 years old.',
+)
+CLASS_RULE = rule(
+    2,
+    target('mdl', 'driving_privileges', 'classes'),
+    {'operator': 'includes_one_of', 'values': ['B']},
+    'You must hold a class B licence.',
+)
+HELD_RULE = rule(
+    3,
+    target('mdl', 'driving_privileges', 'issue_date', 'B'),
+    {'operator': 'at_least_years_ago', 'years': 2},
+    'You must have held class B for at least 2 years.',
+)
+US1_RULES = rules_input([main_branch([AGE_RULE, CLASS_RULE, HELD_RULE])])
+
+
 def now() -> datetime:
     return datetime.now(tz=timezone.utc)
 

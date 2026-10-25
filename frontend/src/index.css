@@ -99,6 +99,26 @@
   background-color: var(--kern-color-form-input-border-contextual);
 }
 
+/*
+ * A destructive primary action, such as "Delete rule" (Figma U14 6113:29056): KERN has no danger
+ * button, so the primary button takes the danger colour, with KERN's hover and active shades
+ * made from it instead of from the action colour.
+ */
+.kern-btn--danger {
+  --kern-color-action-default: var(--kern-color-feedback-danger);
+  --kern-color-action-default-contextual: var(--kern-color-feedback-danger);
+  --kern-color-action-state-indicator-shade-hover: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    black calc(100% - var(--kern-color-action-state-opacity-hover))
+  );
+  --kern-color-action-state-indicator-shade-active: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    black calc(100% - var(--kern-color-action-state-opacity-active))
+  );
+}
+
 @layer base {
   html {
     /*

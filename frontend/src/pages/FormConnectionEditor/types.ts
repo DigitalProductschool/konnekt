@@ -15,7 +15,7 @@ export interface FormConnectionEditorPageProps {
 /** What the wizard does: make a connection, the first one, or edit one */
 export type EditorMode = 'create' | 'first' | 'edit';
 
-export type EditorStep = 'connection' | 'documents';
+export type EditorStep = 'connection' | 'documents' | 'rules';
 
 /** Validation messages, each shown next to what it is about */
 export interface EditorErrors {
@@ -131,19 +131,42 @@ export interface PublishDialogProps {
   open: boolean;
   /** Saves changes to an existing connection rather than publishing a new one */
   editing: boolean;
-  /** Which documents and how many items applicants will share */
-  summary: string;
+  /** Opened from the documents step, skipping the rules: "Publish without rules?" (U36) */
+  withoutRules: boolean;
+  /** One line per document: "Personal ID · 7 data items" */
+  documentLines: string[];
+  /** One line per branch: "Standard · 2 rules" */
+  ruleLines: string[];
   publishing: boolean;
   /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
   error: ErrorNotice | null;
+  /** "Check rules again", or "Add rules" when publishing without rules */
   onCancel: () => void;
+  /** The close button and Escape */
+  onClose: () => void;
   onConfirm: () => void;
+}
+
+export interface PublishSummaryRowProps {
+  label: string;
+  values: string[];
+  /** A line under the row, between the documents and the rules */
+  divided?: boolean;
+}
+
+export interface PublishSummaryValueProps {
+  value: string;
 }
 
 export interface EditorFooterProps {
   step: EditorStep;
   editing: boolean;
   publishing: boolean;
+  /** No branch has any rule and no rule editor is open: publishing is "without rules" (FR-001) */
+  withoutRules: boolean;
   onBack: () => void;
+  /** The documents step's "Add rules →" */
+  onAddRules: () => void;
+  /** "Publish" or "Save", or "… without rules" */
   onPublish: () => void;
 }

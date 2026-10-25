@@ -505,6 +505,22 @@ Scan the QR code with the wallet, or open the link on the phone. On a terminal w
 background, save the code with `--qr-png FILE` and scan the image instead. `--no-wait` ends
 without waiting for the wallet.
 
+To test a form connection's rules (spec 002), issue documents on either side of a rule's
+condition on purpose. `--birth-date YYYY-MM-DD` sets the person's date of birth in both
+documents, together with the driving licence's `age_in_years` and `age_birth_year`.
+`--licence-class CODE:ISSUE_DATE`, which can be repeated, gives the driving licence exactly
+these classes, each held since its issue date, instead of made-up ones; the codes are the
+middleware's licence classes (`AM`, `A1` … `T`). The rest of the person stays as the seed
+makes it up. A date that isn't written `YYYY-MM-DD`, a date in the future, an unknown class and
+a class given twice are refused. For example, against the rules "Date of birth is at least 21
+years old" and "Licence class B – Issue date is at least 2 years ago" (quickstart.md V2 of
+spec 002):
+
+```bash
+uv run python -m scripts.issue_test_credentials --birth-date 2001-01-01 --licence-class B:2020-03-01
+uv run python -m scripts.issue_test_credentials --birth-date 2006-06-30 --licence-class B:2025-09-01
+```
+
 Good to know:
 
 - The documents have no status list. With one, EUDIPLO 9.0 fails every strict check of an

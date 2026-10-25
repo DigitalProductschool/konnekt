@@ -20,6 +20,7 @@ import ConnectionStatus from './ConnectionStatus';
 import { DETAIL_COPY } from './constants';
 import DetailFooter from './DetailFooter';
 import DocumentsSummary from './DocumentsSummary';
+import RulesSummary from './RulesSummary';
 import type { ConnectionDetailsProps, StatusAction } from './types';
 import {
   actionErrorNotice,
@@ -32,7 +33,7 @@ import {
 /**
  * A loaded connection in the frame of Figma "22 Published": the header names it (the page's
  * h1), its status and form; every step is done and leads to editing it; the body has the links
- * to copy into serviceBW, the requested documents and the status card. Deactivating and
+ * to copy into serviceBW, the requested documents, the rules and the status card. Deactivating and
  * deleting ask first; deleting returns to the overview.
  */
 export default function ConnectionDetails({
@@ -122,6 +123,7 @@ export default function ConnectionDetails({
           headingRef={headingRef}
         />
         <DocumentsSummary documents={formConnection.documents} />
+        <RulesSummary branches={formConnection.branches} documents={formConnection.documents} />
         <ConnectionStatus
           isActive={isActive}
           activating={state.running === 'activate'}

@@ -9,7 +9,7 @@ import { arrivalOf } from './utils';
 
 /**
  * The details at /form-connections/:id: the connection URLs to copy into serviceBW, the
- * requested documents and the connection's status. It is the wizard's last screen (Figma "22
+ * requested documents, the rules of every variant and the connection's status. It is the wizard's last screen (Figma "22
  * Published"), in its frame. Right after publishing it confirms that the connection is live,
  * and after an edit that the changes are saved. Every state keeps the frame, so the header
  * doesn't jump.

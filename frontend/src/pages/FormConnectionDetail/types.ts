@@ -2,7 +2,14 @@ import type { Ref } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
-import type { FormConnection, RequestedDocumentView } from '../../types/form-connections';
+import type {
+  Branch,
+  Combinator,
+  FormConnection,
+  RequestedDocumentView,
+  RuleItem,
+} from '../../types/form-connections';
+import type { RuleContext } from '../../utils/rules/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
 export type Arrival = 'published' | 'saved' | null;
@@ -78,4 +85,29 @@ export interface ConnectionStatusProps {
   error: ErrorNotice | null;
   onToggle: () => void;
   onDelete: () => void;
+}
+
+export interface RulesSummaryProps {
+  /** Main branch first */
+  branches: Branch[];
+  /** The requested documents, which the statements name */
+  documents: RequestedDocumentView[];
+}
+
+export interface RulesSummaryContentProps {
+  branches: Branch[];
+  context: RuleContext;
+}
+
+export interface SummaryBranchProps {
+  branch: Branch;
+  context: RuleContext;
+}
+
+export interface SummaryRuleItemProps {
+  rule: RuleItem;
+  context: RuleContext;
+  /** How the level combines, shown on the line before every rule but the first */
+  operator: Combinator;
+  first: boolean;
 }

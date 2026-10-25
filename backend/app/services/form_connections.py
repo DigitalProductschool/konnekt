@@ -3,11 +3,13 @@
 Creating a form connection stores revision 1 and creates its EUDIPLO presentation
 configuration; changing its documents stores the next revision with a configuration of
 its own (data-model.md, "Creating a revision"). Changing the name or the serviceBW
-form creates no revision. A new form connection also gets its main branch, "Standard"
-without rules, as rule set 1 (spec 002, FR-018). EUDIPLO errors reach the caller as
-`EudiploError`; nothing is saved then. Deactivating and deleting cancel the open
-requests and call no EUDIPLO: the worker deletes the sessions and, once no request
-needs them, the configurations.
+form creates no revision. A form connection's branches and rules are saved with it, as
+rule sets (spec 002, research R9): checked first, then saved in the transaction that
+makes the documents current, so documents and rules change together or not at all
+(FR-028). Without rules, a new form connection gets its main branch, "Standard" without
+rules (FR-018). EUDIPLO errors reach the caller as `EudiploError`; nothing is saved
+then. Deactivating and deleting cancel the open requests and call no EUDIPLO: the
+worker deletes the sessions and, once no request needs them, the configurations.
 """
 
 import logging
@@ -24,14 +26,8 @@ from sqlalchemy.orm import Session
 from ..catalog import DOCUMENT_TYPES, get_document_type
 from ..config import settings
 from ..errors import describe_error
-from ..models import (
-    FormConnection,
-    FormConnectionBranch,
-    FormConnectionRevision,
-    FormConnectionRuleSet,
-)
+from ..models import FormConnection, FormConnectionRevision
 from ..schemas import (
-    RULE_SET_SNAPSHOT,
     Branch,
     DocumentField,
     FormConnectionCreate,
@@ -275,24 +271,12 @@ def _current_documents(
     return _documents_of(_current_revision(db, form_connection))
 
 
-def _current_branches(
-    db: Session, form_connection: FormConnection
-) -> list[SnapshotBranch]:
-    rule_set = db.scalars(
-        select(FormConnectionRuleSet).where(
-            FormConnectionRuleSet.form_connection_id == form_connection.id,
-            FormConnectionRuleSet.version == form_connection.current_rule_set,
-        )
-    ).one()
-    return RULE_SET_SNAPSHOT.validate_python(rule_set.branches)
-
-
 def _current_view(db: Session, form_connection: FormConnection) -> FormConnectionView:
     """A form connection with its current documents and its current branches."""
     return _view(
         form_connection,
         _current_documents(db, form_connection),
-        _current_branches(db, form_connection),
+        rules.current_branches(db, form_connection),
     )
 
 
@@ -335,13 +319,18 @@ def create_form_connection(
 ) -> FormConnectionView:
     """Create a form connection with revision 1 and its EUDIPLO configuration.
 
-    It also gets its main branch, "Standard" without rules, as rule set 1, in the
-    same transaction. The configuration is created first. If the database then
-    refuses the form connection, the configuration is deleted again.
+    Its branches and rules become rule set 1, in the same transaction; without
+    `rules`, it gets its main branch, "Standard" without rules. Everything is
+    checked first; then the configuration is created. If the database then refuses
+    the form connection, the configuration is deleted again.
     """
     name = clean_name(data.name)
     servicebw_form = clean_servicebw_form(data.servicebw_form)
     documents = clean_documents(data.documents)
+    save: rules.RulesSave | None = None
+    if data.rules is not None:
+        save = rules.clean_rules(data.rules, documents, main_branch_id=None)
+        rules.check_first_save(save)
 
     form_connection_id = str(uuid.uuid4())
     lifetime_seconds = settings.request_lifetime_seconds
@@ -357,8 +346,6 @@ def create_form_connection(
     db.rollback()
     get_eudiplo_client().create_config(body)
 
-    main_branch_id = str(uuid.uuid4())
-    branches = [rules.main_branch_snapshot(main_branch_id)]
     form_connection = FormConnection(
         id=form_connection_id,
         name=name,
@@ -382,21 +369,12 @@ def create_form_connection(
                 eudiplo_config_id=body['id'],
             )
         )
-        db.add(
-            FormConnectionBranch(
-                id=main_branch_id,
-                form_connection_id=form_connection_id,
-                is_main=True,
-            )
-        )
-        db.add(
-            FormConnectionRuleSet(
-                form_connection_id=form_connection_id,
-                version=1,
-                branches=RULE_SET_SNAPSHOT.dump_python(branches, mode='json'),
-            )
-        )
+        branches = rules.first_rule_set(db, form_connection, save)
         db.commit()
+    except HTTPException:
+        db.rollback()
+        _delete_unsaved_config(body['id'])
+        raise
     except SQLAlchemyError as error:
         db.rollback()
         logger.error(
@@ -453,6 +431,7 @@ def create_revision(
     form_connection_id: str,
     documents: list[RequestedDocument],
     changes: Mapping[str, str] | None = None,
+    save: rules.RulesSave | None = None,
 ) -> FormConnection:
     """Store `documents` as the next revision and make it current (FR-005).
 
@@ -463,13 +442,16 @@ def create_revision(
        the same time takes the number after it.
     2. Create the EUDIPLO configuration.
     3. Lock the row again, make the revision current, unless a later one became
-       current meanwhile, and apply `changes` (the name or the serviceBW form).
+       current meanwhile, save the rules of `save` (spec 002, research R9), and
+       apply `changes` (the name or the serviceBW form), in one commit.
 
-    Requests already in progress keep their revision, and the URLs never change. If
-    EUDIPLO fails, the revision is removed again and the `EudiploError` reaches the
-    caller. If the last commit fails, the configuration is deleted again. A form
-    connection that is or gets deleted answers 404. The new configuration uses the
-    current settings, and the revision stores the current REQUEST_LIFETIME_SECONDS.
+    Requests already in progress keep their revision and rule set, and the URLs
+    never change. If EUDIPLO fails, the revision is removed again and the
+    `EudiploError` reaches the caller. If the rules are refused under the lock, or
+    the last commit fails, the configuration is deleted again, and the previous
+    revision and rule set stay current (FR-028). A form connection that is or gets
+    deleted answers 404. The new configuration uses the current settings, and the
+    revision stores the current REQUEST_LIFETIME_SECONDS.
     """
     changes = changes or {}
     form_connection = _lock_form_connection(db, form_connection_id)
@@ -514,9 +496,16 @@ def create_revision(
     try:
         if number > form_connection.current_revision:
             form_connection.current_revision = number
+        if save is not None:
+            rules.save_rule_set(db, form_connection, save)
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
         db.commit()
+    except HTTPException:
+        db.rollback()
+        _delete_unsaved_config(body['id'])
+        _remove_unused_revision(db, revision_id)
+        raise
     except SQLAlchemyError as error:
         db.rollback()
         logger.error(
@@ -534,13 +523,21 @@ def create_revision(
 def update_form_connection(
     db: Session, form_connection_id: str, data: FormConnectionUpdate
 ) -> FormConnectionView:
-    """Change the name, the serviceBW form or the documents.
+    """Change the name, the serviceBW form, the documents or the rules.
 
-    An absent field stays unchanged. Changed documents become a new revision with a
-    configuration of its own (`create_revision`): requests in progress keep theirs,
-    and the URLs stay the same (FR-005). Documents equal to the current ones create
-    no revision, and neither do the name and the serviceBW form. Deactivated form
-    connections can be changed too.
+    An absent field stays unchanged. Everything is checked before anything is
+    written or EUDIPLO is called (research R9): the rules against the documents the
+    save leaves current, and, when only the documents change, the current rules
+    against the new documents, so that no rule is left checking data that is no
+    longer requested (FR-006).
+
+    Changed documents become a new revision with a configuration of its own
+    (`create_revision`), whose last transaction also saves the rules; changed rules
+    alone are saved in one transaction under the row lock. Requests in progress keep
+    their revision and rule set, and the URLs stay the same (FR-005, FR-028).
+    Documents equal to the current ones create no revision, and neither do the name
+    and the serviceBW form; rules equal to the current ones create no rule set.
+    Deactivated form connections can be changed too.
     """
     form_connection = find_form_connection(db, form_connection_id)
     changed = data.model_fields_set
@@ -549,20 +546,38 @@ def update_form_connection(
         changes['name'] = clean_name(data.name)
     if 'servicebw_form' in changed:
         changes['servicebw_form'] = clean_servicebw_form(data.servicebw_form)
+    current_documents = _current_documents(db, form_connection)
     documents: list[RequestedDocument] | None = None
     if 'documents' in changed:
         documents = clean_documents(data.documents or [])
-        if documents == _current_documents(db, form_connection):
+        if documents == current_documents:
             documents = None
 
+    main_branch_id = rules.main_branch_id_of(db, form_connection_id)
+    save: rules.RulesSave | None = None
+    if data.rules is not None:
+        save = rules.clean_rules(
+            data.rules, documents or current_documents, main_branch_id
+        )
+        rules.check_save(db, form_connection, save)
+    elif documents is not None:
+        rules.clean_branches(
+            rules.current_branches(db, form_connection), documents, main_branch_id
+        )
+
     if documents is None:
+        if save is not None:
+            form_connection = _lock_form_connection(db, form_connection_id)
+            rules.save_rule_set(db, form_connection, save)
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
         db.commit()
     else:
         # End the read transaction: the revision path locks the row itself
         db.rollback()
-        form_connection = create_revision(db, form_connection_id, documents, changes)
+        form_connection = create_revision(
+            db, form_connection_id, documents, changes, save
+        )
     return _current_view(db, form_connection)
 
 

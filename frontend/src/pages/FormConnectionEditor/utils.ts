@@ -6,14 +6,18 @@ import type {
   FormConnectionCreate,
   RequestedDocument,
 } from '../../types/form-connections';
+import { countRules } from '../../utils/rules/tree';
 import {
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
+  PUBLISH_COPY,
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
+import { RULES_COPY } from './RulesStep/constants';
+import type { RulesState } from './RulesStep/types';
 import type { EditorAction, EditorErrors, EditorMode, EditorState, EditorStep } from './types';
 
 /** The wizard's first state: empty, or the connection to edit with its documents. */
@@ -41,6 +45,9 @@ export function initialEditorState({
 
 /** The page title of a step: the heading, its hint and the tab title. */
 export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
+  if (step === 'rules') {
+    return { title: RULES_COPY.title, hint: RULES_COPY.hint };
+  }
   if (step === 'documents') {
     return {
       title: mode === 'edit' ? EDITOR_COPY.editDocumentsTitle : EDITOR_COPY.documentsTitle,
@@ -66,7 +73,7 @@ export function headerTitleOf(state: EditorState, formConnection?: FormConnectio
   if (formConnection) {
     return name || formConnection.name;
   }
-  return state.step === 'documents' && name ? name : EDITOR_COPY.headerTitle;
+  return state.step !== 'connection' && name ? name : EDITOR_COPY.headerTitle;
 }
 
 /** Keeps documents in catalog order, the order of the API and the cards. */
@@ -254,36 +261,56 @@ export function labelOf(documentType: string, documentTypes: DocumentType[]): st
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
 }
 
-/**
- * "Applicants will be asked to share Personal ID (7 items) and Driving licence (5 items).",
- * then what saving does: publishing a new connection, or changing one (FR-005).
- */
-export function publishSummary(
+/** The publish dialog's documents: "Personal ID · 7 data items", one line each (U33). */
+export function documentLines(
   documents: RequestedDocument[],
-  documentTypes: DocumentType[],
-  editing = false
-): string {
-  if (documents.length === 0) {
-    return '';
-  }
-  const parts = documents.map((document) => {
-    const count = document.fields.length;
-    return `${labelOf(document.document_type, documentTypes)} (${count} ${count === 1 ? 'item' : 'items'})`;
-  });
-  const list =
-    parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
-  const outcome = editing
-    ? `New requests use this data. ${EDITOR_COPY.editNote}`
-    : 'Once you publish, the form goes live with this data.';
-  return `Applicants will be asked to share ${list}. ${outcome}`;
+  documentTypes: DocumentType[]
+): string[] {
+  return documents.map((document) =>
+    PUBLISH_COPY.documentLine(
+      labelOf(document.document_type, documentTypes),
+      document.fields.length
+    )
+  );
 }
 
-/** The connection to create or, when editing, every field to save; also unchanged ones. */
-export function createPayload(state: EditorState): FormConnectionCreate {
+/**
+ * The publish dialog's rules: one line per branch in tab order, "Standard · 2 rules", counting
+ * the rules that apply in it (design-notes.md §6); "No rules" when publishing without them.
+ */
+export function ruleLines(rules: RulesState, withoutRules: boolean): string[] {
+  if (withoutRules) {
+    return [PUBLISH_COPY.noRules];
+  }
+  return rules.branches.map((branch) =>
+    PUBLISH_COPY.ruleLine(branch.name.trim(), countRules(branch.items))
+  );
+}
+
+/**
+ * The connection to create or, when editing, every field to save; also unchanged ones. The rules
+ * go with it: every branch, main branch first, the counters the step numbered new rules from,
+ * and the rule set it loaded (research R5, R9).
+ */
+export function createPayload(state: EditorState, rules: RulesState): FormConnectionCreate {
   return {
     name: state.name.trim(),
     servicebw_form: state.servicebwForm.trim(),
     documents: state.documents,
+    rules: {
+      branches: rules.branches.map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+        description: branch.description,
+        origin: branch.origin,
+        operator: branch.operator,
+        operator_mark: branch.operator_mark,
+        items: branch.items,
+      })),
+      numbering_base: rules.numberingBase,
+      base_version: rules.ruleSetVersion,
+      replace: false,
+    },
   };
 }
 

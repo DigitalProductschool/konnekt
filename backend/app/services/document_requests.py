@@ -4,7 +4,9 @@ serviceBW starts a request through the trigger URL (FR-008) and follows it throu
 the pull URL (FR-013). A request's status comes from its EUDIPLO session (research
 R5): the worker applies the citizen's answer (services/worker.py), and once a request
 has expired, a pull makes the last check itself. The documents are delivered once,
-and again within the repeat window (FR-018, research R9).
+and again within the repeat window (FR-018, research R9), each time with the
+evaluation of the rules the request was triggered with (spec 002, research R8). The
+evaluation is computed at every delivery and never stored or logged (FR-017).
 
 No database transaction is held while EUDIPLO answers (research R15). Every status
 change locks the request row and checks the current status again (research R7).
@@ -22,16 +24,24 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..errors import describe_error
-from ..models import DocumentRequest, FormConnection, FormConnectionRevision
+from ..models import (
+    DocumentRequest,
+    FormConnection,
+    FormConnectionRevision,
+    FormConnectionRuleSet,
+)
 from ..schemas import (
+    RULE_SET_SNAPSHOT,
     DeliveredDocument,
+    Evaluation,
     PullResponse,
     RequestedDocument,
     RequestStatus,
+    SnapshotBranch,
     TriggerResponse,
     to_iso_utc,
 )
-from . import dcql, qr
+from . import dcql, qr, rules
 from .documents import extract_documents
 from .eudiplo import (
     EudiploClient,
@@ -43,6 +53,7 @@ from .eudiplo import (
     PresentationSession,
     get_eudiplo_client,
 )
+from .evaluation import day_of_sharing, evaluate_branch
 
 logger = logging.getLogger(__name__)
 
@@ -336,6 +347,26 @@ def _requested_documents(db: Session, revision_id: str) -> list[RequestedDocumen
     return [RequestedDocument.model_validate(entry) for entry in revision.documents]
 
 
+def _main_branch_of(db: Session, request: DocumentRequest) -> SnapshotBranch:
+    """The main branch whose rules evaluate a request's documents (FR-025, FR-028).
+
+    The branch as it was when the request was triggered. A request triggered before
+    rules existed has no rule set: it gets the current main branch without rules,
+    which every request meets (US1-AS7, research R8).
+    """
+    if request.rule_set_id is None:
+        form_connection = db.get(FormConnection, request.form_connection_id)
+        if form_connection is None:
+            raise LookupError(f'Document request {request.id} has no form connection')
+        main_branch = rules.current_branches(db, form_connection)[0]
+        return main_branch.model_copy(update={'items': []})
+    rule_set = db.get(FormConnectionRuleSet, request.rule_set_id)
+    if rule_set is None:
+        raise LookupError(f'Document request {request.id} has no rule set')
+    branches = RULE_SET_SNAPSHOT.validate_python(rule_set.branches)
+    return next(branch for branch in branches if branch.origin == 'main')
+
+
 # Trigger URL
 
 
@@ -391,8 +422,11 @@ def _delete_unsaved_session(session_id: str, request_id: str) -> None:
 def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
     """Start a document request with the form connection's current revision (FR-008).
 
-    Answers 404 for an unknown form connection and 409 for a deactivated or deleted
-    one. EUDIPLO errors reach the caller as `EudiploError`, which includes an offer
+    The request also keeps the current rule set, read from the same row as the
+    revision, so that it is evaluated with the rules saved together with its
+    documents (spec 002, FR-028). Answers 404 for an unknown form connection and
+    409 for a deactivated or deleted one. EUDIPLO errors reach the caller as
+    `EudiploError`, which includes an offer
     without a cross-device link (research R19, user). Nothing is stored then: the
     EUDIPLO session of a request that can't be saved is deleted again.
     """
@@ -405,6 +439,12 @@ def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
             FormConnectionRevision.revision == form_connection.current_revision,
         )
     ).one()
+    rule_set_id = db.scalars(
+        select(FormConnectionRuleSet.id).where(
+            FormConnectionRuleSet.form_connection_id == form_connection.id,
+            FormConnectionRuleSet.version == form_connection.current_rule_set,
+        )
+    ).one()
     triggered_at = _now()
     request = DocumentRequest(
         # Sent to EUDIPLO as the session's reference: no personal data
@@ -412,6 +452,7 @@ def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
         reference=secrets.token_urlsafe(32),
         form_connection_id=form_connection.id,
         revision_id=revision.id,
+        rule_set_id=rule_set_id,
         status=PENDING,
         status_changed_at=triggered_at,
         # Whole seconds, as serviceBW sees it; never later than EUDIPLO's own expiry
@@ -481,8 +522,10 @@ def pull(db: Session, form_connection_id: str, reference: str) -> PullResponse:
     one, and then 404 for a reference that it doesn't know, or that belongs to
     another form connection. A pending request past its expiry gets the last check
     first. A completed request hands out its documents to the first pull,
-    and to every pull within the repeat window after it. EUDIPLO errors reach the
-    caller as `EudiploError`; nothing is consumed then.
+    and to every pull within the repeat window after it, each time with the
+    evaluation of the main branch's rules (spec 002, FR-010); without documents
+    there is no evaluation either (FR-017). EUDIPLO errors reach the caller as
+    `EudiploError`; nothing is consumed then.
     """
     _usable_form_connection(db, form_connection_id, REQUEST_NOT_FOUND)
     request = db.scalars(
@@ -498,30 +541,40 @@ def pull(db: Session, form_connection_id: str, reference: str) -> PullResponse:
         session = check_session(db, request)
 
     documents: list[DeliveredDocument] | None = None
+    evaluation: Evaluation | None = None
     if request.status == COMPLETED and documents_available(request, _now()):
-        documents = _deliver(db, request, session)
+        delivery = _deliver(db, request, session)
+        if delivery is not None:
+            documents, evaluation = delivery
     return PullResponse(
         reference=request.reference,
         status=cast(RequestStatus, request.status),
         expires_at=to_iso_utc(request.expires_at),
         documents=documents,
+        evaluation=evaluation,
     )
 
 
 def _deliver(
     db: Session, request: DocumentRequest, session: PresentationSession | None
-) -> list[DeliveredDocument] | None:
-    """Extract a completed request's documents, and count the delivery (research R9).
+) -> tuple[list[DeliveredDocument], Evaluation] | None:
+    """Extract a completed request's documents, evaluate them, and count the delivery.
 
-    Uses the session that the last check has just read, or reads it without
-    holding a transaction. Whether the documents can still be handed out is checked
-    again under the row lock, so that two pulls at the same moment, or a pull and
-    the worker's deletion, agree on what happened. The first pull that hands them
-    out sets `documents_delivered_at`, which starts the repeat window, and ends the
-    request. Returns None when the documents are gone.
+    Research R8, R9. Uses the session that the last check has just read, or reads
+    it without holding a transaction. The evaluation uses the rules the request was
+    triggered with and the day the citizen shared, so a repeated pull gets the same
+    one. It is made before the delivery is counted: if it fails, the error reaches
+    the catch-all handler, nothing is handed out and the repeat window doesn't
+    start, so serviceBW can pull again (FR-017). Whether the documents can still be
+    handed out is checked again under the row lock, so that two pulls at the same
+    moment, or a pull and the worker's deletion, agree on what happened. The first
+    pull that hands them out sets `documents_delivered_at`, which starts the repeat
+    window, and ends the request. Returns None when the documents are gone.
     """
     request_id = request.id
     documents = _requested_documents(db, request.revision_id)
+    branch = _main_branch_of(db, request)
+    shared_on = day_of_sharing(request.completed_at or request.status_changed_at)
     if session is None:
         session_id = request.eudiplo_session_id
         db.rollback()
@@ -540,6 +593,7 @@ def _deliver(
         )
         return None
     delivered = extract_documents(session.credentials, documents, request_id=request_id)
+    evaluation = evaluate_branch(branch, delivered, shared_on)
 
     db.refresh(request, with_for_update=True)
     now = _now()
@@ -552,4 +606,4 @@ def _deliver(
         request.ended_at = now
         logger.info('Document request %s: documents delivered to a pull', request_id)
     db.commit()
-    return delivered
+    return delivered, evaluation

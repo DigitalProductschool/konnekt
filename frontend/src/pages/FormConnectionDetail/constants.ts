@@ -24,6 +24,17 @@ export const DETAIL_COPY = {
   documentsTitle: 'Documents',
   documentsHint: 'Applicants share this data from their EUDI Wallet.',
   items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
+  // The rules of every variant (S6; FYI #17, F26): a card that opens on request
+  rulesTitle: 'Rules',
+  rulesCount: (variants: number, rules: number) =>
+    `${variants} ${variants === 1 ? 'variant' : 'variants'} · ${rules} ${rules === 1 ? 'rule' : 'rules'}`,
+  viewSummary: 'View summary',
+  hideSummary: 'Hide summary',
+  // Proposed, after the Rules step's empty state (design-notes.md §2)
+  noRules: 'No rules. Anyone who shares the requested documents can apply.',
+  loadingRules: 'Loading the rules…',
+  rulesErrorTitle: 'Couldn’t load the rules',
+  rulesErrorText: 'Check your connection and try again.',
   // The status card and its dialogs, which the design has no frames for (FR-006)
   statusTitle: 'Status',
   statusLive: 'Live: your form can start requests with both links.',

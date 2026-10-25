@@ -272,7 +272,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
 
 ### Implementation for User Story 1 (backend)
 
-- [ ] T015 [US1] Validate the rules of a save in `backend/app/services/rules.py` (FR-002 to FR-006, FR-020; data-model.md "The snapshot" and "Validation").
+- [X] T015 [US1] Validate the rules of a save in `backend/app/services/rules.py` (FR-002 to FR-006, FR-020; data-model.md "The snapshot" and "Validation").
   - A function takes the `RulesInput` and the documents that the save leaves current, and returns the cleaned snapshot, with names, descriptions and messages trimmed.
   - On the first problem it finds, it raises `400` `{"error": "Validation error", "message": …}` through the service's validation error.
   - Each message names the problem, the rule by its name, and its branch (FR-005, FR-006). T032 uses the same strings in the frontend.
@@ -299,7 +299,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - "Identifiers are well-formed, unique within each branch". Message: "The rules contain an invalid identifier. Reload the connection and try again.";
     - "Size limits" (spec Assumptions): at most 20 branches, the main branch included, and 200 items per branch, counting every rule, group and sub-group, removed ones and group members included. Messages: "A connection can have at most 20 variants." and "Ambulance can have at most 200 rules and groups.".
   - Groups (T045) and based branches (T053) add their checks later.
-- [ ] T016 [US1] Allocate identifiers and keep the counters in `backend/app/services/rules.py` (research R5 "Allocation"; FR-010).
+- [X] T016 [US1] Allocate identifiers and keep the counters in `backend/app/services/rules.py` (research R5 "Allocation"; FR-010).
   - A function runs under the form connection's row lock, with the cleaned snapshot, the `numbering_base` and the current rule set.
   - Every identifier that is in neither the current rule set nor the rule set the editor loaded (`base_version`) is new, and must be at or above the base. Otherwise the save is refused with T015's invalid-identifier message.
   - An identifier in the loaded rule set only belongs to a rule or group that another save deleted. It comes back under that identifier when the team member replaces that save (T068, FR-028): the same item returns, so no identifier is reused.
@@ -307,7 +307,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - shift every new identifier by the difference, the same way in every branch;
     - rename the default names that still match. For example, "Rule 03" becomes "Rule 05", and the same applies to "Group" and "Sub-group".
   - Store `next_rule_number` and `next_group_number` as the highest number used plus one, never lower than before. No identifier is then reused within the form connection, also after deletions.
-- [ ] T017 [US1] Save a rule set in `backend/app/services/rules.py` (depends on T016; research R9; data-model.md).
+- [X] T017 [US1] Save a rule set in `backend/app/services/rules.py` (depends on T016; research R9; data-model.md).
   - A function runs inside the caller's locked transaction, and doesn't commit. It:
     - allocates the identifiers (T016);
     - gives every branch with `id: null` a UUID4, and inserts its `form_connection_branches` row;
@@ -316,7 +316,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - sets `current_rule_set`.
   - It writes the snapshot through T008's type adapter.
   - It logs only the form connection's id and the new version.
-- [ ] T018 [US1] Save documents and rules together in `backend/app/services/form_connections.py` (depends on T015, T017; FR-001, FR-006, FR-028; research R9; management-api.md "Saving, step by step").
+- [X] T018 [US1] Save documents and rules together in `backend/app/services/form_connections.py` (depends on T015, T017; FR-001, FR-006, FR-028; research R9; management-api.md "Saving, step by step").
   - **Validation first**, before anything is written or EUDIPLO is called:
     - check the name, the serviceBW form and the documents (spec 001);
     - then check the rules against the documents that the save leaves current;
@@ -331,14 +331,14 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - its final locked transaction, which makes the revision current, also saves the rule set, before its one commit;
     - if EUDIPLO or the commit fails, the previous revision and rule set stay current, and nothing has changed (FR-028).
   - The handlers in `backend/app/routers/form_connections.py` keep their shape. Update their docstrings.
-- [ ] T019 [P] [US1] Add the evaluation's shapes to `backend/app/schemas.py` (contracts/integration-api.md "evaluation"; research R8).
+- [X] T019 [P] [US1] Add the evaluation's shapes to `backend/app/schemas.py` (contracts/integration-api.md "evaluation"; research R8).
   - The new shapes:
     - `EvaluationBranch`: `id` and `name`;
     - `EvaluationResult`: `id`, `type: 'rule' | 'group'`, `name`, `group: str | None`, and `outcome: 'met' | 'not_met' | 'not_checked'`;
     - `EvaluationMessage`: `id` and `message`;
     - `Evaluation`: `branch`, `met`, `results` and `messages`.
   - `PullResponse` gains `evaluation: Evaluation | None`. It is `null` whenever `documents` is `null`, and present whenever they are. Update the docstring.
-- [ ] T020 [US1] Evaluate conditions in a new pure module, `backend/app/services/evaluation.py`, with its unit tests (depends on T007, T019; FR-003, FR-012 to FR-014; research R7). The module uses no database and no EUDIPLO, and logs no values.
+- [X] T020 [US1] Evaluate conditions in a new pure module, `backend/app/services/evaluation.py`, with its unit tests (depends on T007, T019; FR-003, FR-012 to FR-014; research R7). The module uses no database and no EUDIPLO, and logs no values.
   - **Day of sharing**: the calendar date in `Europe/Berlin` of the request's `completed_at`, through `zoneinfo`. The zone loads at import, so a missing time zone database fails at start-up, not at a pull.
   - **Values**:
     - read from the delivered documents (`DeliveredDocument`), by document type and field key;
@@ -386,7 +386,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
       - past dates, which are "less than" any amount from now;
       - strict "before" and "after";
       - sharing at 23:30 UTC, which is already the next day in Germany.
-- [ ] T021 [US1] Evaluate a branch's top level in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (depends on T020; FR-009 to FR-011).
+- [X] T021 [US1] Evaluate a branch's top level in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (depends on T020; FR-009 to FR-011).
   - A function takes the branch's snapshot, the delivered documents and the day of sharing, and returns an `Evaluation`.
   - It combines the top-level rules with the branch's operator: AND when all are met, OR when at least one is. `not_checked` counts as not met.
   - A branch without rules is met.
@@ -394,7 +394,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
   - `messages` is empty when the branch is met. Otherwise it holds the message of every top-level rule that isn't met, in order.
   - The evaluation contains no field value (FR-017).
   - Groups come with T044, and marks with T054.
-- [ ] T022 [US1] Deliver the evaluation with the documents in `backend/app/services/document_requests.py` (depends on T010, T021; FR-010, FR-015 to FR-017, FR-025, FR-028; research R8).
+- [X] T022 [US1] Deliver the evaluation with the documents in `backend/app/services/document_requests.py` (depends on T010, T021; FR-010, FR-015 to FR-017, FR-025, FR-028; research R8).
   - `trigger` stores the current rule set's id in `rule_set_id`. It reads it from the same `form_connections` row as `current_revision`.
   - `_deliver`:
     - reads the request's rule set before it ends the read transaction;
@@ -405,7 +405,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - computes it again at every delivery in the repeat window. It is never stored and never logged.
   - A request without `rule_set_id`, triggered before this feature, gets `met: true` with no results and no messages, plus the main branch's `id` and its name in the current rule set (US1-AS7, SC-005).
   - The documents are delivered whether or not the rules are met, and the status stays `completed` (FR-015).
-- [ ] T023 [P] [US1] Add two options to `backend/scripts/issue_test_credentials/` (research R12; SC-003):
+- [X] T023 [P] [US1] Add two options to `backend/scripts/issue_test_credentials/` (research R12; SC-003):
   - the options: `--birth-date YYYY-MM-DD`, and `--licence-class CODE:ISSUE_DATE`, which can be repeated;
   - `cli.py` parses them;
   - where the person and the claims are built, they set:
@@ -417,7 +417,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
 
 ### Tests for User Story 1 (backend)
 
-- [ ] T024 [US1] Write `backend/tests/unit/test_rules_validation.py` and `backend/tests/unit/test_identifiers.py` (depends on T016).
+- [X] T024 [US1] Write `backend/tests/unit/test_rules_validation.py` and `backend/tests/unit/test_identifiers.py` (depends on T016).
   - Validation, covering every check and message of T015, including:
     - a text value of spaces only;
     - `years` of `0` and `1.5`, refused with the named message (T008 refuses `"2"`, and T025 tests it);
@@ -433,7 +433,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - the shift, which renames default names and keeps custom ones;
     - counters that are never lowered;
     - no identifier reused after a deletion.
-- [ ] T025 [US1] Write `backend/tests/api/test_form_connection_rules.py`, with helpers for rules payloads in `backend/tests/helpers.py` (depends on T018). It covers:
+- [X] T025 [US1] Write `backend/tests/api/test_form_connection_rules.py`, with helpers for rules payloads in `backend/tests/helpers.py` (depends on T018). It covers:
   - creating with US1's three rules, and reading them back with identifiers and counters (US1-AS1);
   - creating without rules (US1-AS3);
   - every refusal: `400`, with a message naming the problem, the rule and "Standard", and nothing saved (US1-AS6);
@@ -443,7 +443,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
   - saving an unchanged rule set, which creates no new version;
   - a configuration call that the fake EUDIPLO fails: neither the revision nor the rule set changes (FR-028);
   - `401` without a session, and `415` without JSON.
-- [ ] T026 [US1] Extend `backend/tests/api/test_connect.py`, giving the fake EUDIPLO's sessions credentials (depends on T022). On a connection with US1's three rules:
+- [X] T026 [US1] Extend `backend/tests/api/test_connect.py`, giving the fake EUDIPLO's sessions credentials (depends on T022). On a connection with US1's three rules:
   - a 25-year-old who has held class B for 5 years: the documents arrive with `evaluation` `met: true` and no messages (US1-AS4);
   - the documents still contain the fields that the rules check, such as `birthdate` (FR-016);
   - a 20-year-old who has held class B for 1 year: `met: false`, with the messages of the age rule and the 2-year rule but not the class rule (US1-AS5);
@@ -455,7 +455,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
 
 ### Implementation for User Story 1 (frontend logic, with Vitest)
 
-- [ ] T027 [P] [US1] Write `frontend/src/utils/rules/conditions.ts` with `conditions.test.ts` (FR-003, FR-006, FR-013; data-model.md "Conditions").
+- [X] T027 [P] [US1] Write `frontend/src/utils/rules/conditions.ts` with `conditions.test.ts` (FR-003, FR-006, FR-013; data-model.md "Conditions").
   - The operators of each kind, with their labels in FR-003's words:
     - numbers: "is greater than", "is less than", "is equal to", "is not equal to";
     - text: "is equal to", "is not equal to", "contains", "doesn't contain";
@@ -473,7 +473,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - a date is a valid `YYYY-MM-DD`;
     - a number is a number.
   - Tests: every operator, the age wording only on the Date of birth, and each incomplete case.
-- [ ] T028 [P] [US1] Write `frontend/src/utils/rules/dates.ts` with `dates.test.ts` (FR-003, FR-012; F4). It holds the backend's calendar arithmetic (T020), for the rule editor's example:
+- [X] T028 [P] [US1] Write `frontend/src/utils/rules/dates.ts` with `dates.test.ts` (FR-003, FR-012; F4). It holds the backend's calendar arithmetic (T020), for the rule editor's example:
   - the N-th anniversary, where 29 February becomes 1 March;
   - N months later, the 1st of the following month where the day doesn't exist;
   - the boundary date that each date condition means for a given day;
@@ -483,7 +483,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - 29 February;
     - 31 January + 1 month;
     - "is exactly".
-- [ ] T029 [US1] Write `frontend/src/utils/rules/statements.ts` with `statements.test.ts` (depends on T027, T028; S2, S3, S5, S6; F1, F2, F5, F8; FR-005).
+- [X] T029 [US1] Write `frontend/src/utils/rules/statements.ts` with `statements.test.ts` (depends on T027, T028; S2, S3, S5, S6; F1, F2, F5, F8; FR-005).
   - A rule's statement in FR-005's words, with "–" between the document, the field and the part, and "is" before the condition:
     - "Personal ID – Date of birth is at least 21 years old";
     - "Driving licence – Licence classes includes one of B, BE", with codes only (F32);
@@ -495,19 +495,19 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - a text, with whether letter case counts, worded as design-notes.md says (F7).
   - The decoration symbol of the design's chip for each operator (≥, < or =, or none). The UI hides it from assistive technologies.
   - Tests: every kind and operator, "years old" only on the Date of birth, labels from the catalog, and enum values by label except the licence classes' codes.
-- [ ] T030 [US1] Write `frontend/src/utils/rules/messages.ts` with `messages.test.ts` (depends on T027; S3; F9; FR-004).
+- [X] T030 [US1] Write `frontend/src/utils/rules/messages.ts` with `messages.test.ts` (depends on T027; S3; F9; FR-004).
   - A complete condition gets a proposed error message that matches it as entered, in the design's style (U11 `6348:40735`, U12). For example, from data-model.md: "You must be at least 21 years old.", "You must live in Stuttgart." and "You must have held class B for at least 2 years.".
   - Enum values appear by their label, and licence classes by their code, as in the statements (FR-005).
   - An incomplete condition gets none.
   - Tests: one per kind and operator, and none for an incomplete condition.
-- [ ] T031 [P] [US1] Write `frontend/src/utils/rules/tree.ts` with `tree.test.ts`, the tree operations of one branch that US1 needs (FR-005, FR-007, FR-010; research R5):
+- [X] T031 [P] [US1] Write `frontend/src/utils/rules/tree.ts` with `tree.test.ts`, the tree operations of one branch that US1 needs (FR-005, FR-007, FR-010; research R5):
   - number new rules from the counters (`rule-{n}`), and give them default names with at least two digits, such as "Rule 07";
   - add a rule at the end of its level;
   - update, rename and delete a rule, returning what an undo restores;
   - duplicate a rule as a new rule, with a new identifier and its default name, at the end of the original's level;
   - tell whether a branch has any rule.
   - Groups come with T047, and the derived dissolution with T060.
-- [ ] T032 [US1] Write `frontend/src/utils/rules/validation.ts` with `validation.test.ts` (depends on T027, T031; FR-005, FR-006).
+- [X] T032 [US1] Write `frontend/src/utils/rules/validation.ts` with `validation.test.ts` (depends on T027, T031; FR-005, FR-006).
   - The pre-checks of T015, with the same messages, run before Publish or Save:
     - each problem comes with the rule and branch it names, so that the UI can move the focus there;
     - the first problem is the one shown.
@@ -516,7 +516,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
 
 ### Implementation for User Story 1 (UI)
 
-- [ ] T033 [US1] Add the Rules step to the wizard (S0; F19, F28; FR-001; research R10), in `frontend/src/constants.ts` and `frontend/src/pages/FormConnectionEditor/` (`types.ts`, `utils.ts`, `index.tsx`).
+- [X] T033 [US1] Add the Rules step to the wizard (S0; F19, F28; FR-001; research R10), in `frontend/src/constants.ts` and `frontend/src/pages/FormConnectionEditor/` (`types.ts`, `utils.ts`, `index.tsx`).
   - `CONNECTION_STEPS` becomes Connection, Documents, Rules, Publish, with the Rules label from design-notes.md (U11 `6348:40209`).
   - `EditorStep` gains `'rules'`.
   - The progress bar marks the current step through a step-to-index map. The details still show every step as done.
@@ -528,15 +528,15 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
   - The shell stays spec 001's `WizardLayout`:
     - no draft badge and no "Save and exit" (F28);
     - its header and action bar already stay in place while the step scrolls. Nothing else is built for Figma's sticky bars (F19).
-- [ ] T034 [US1] Change the documents step's footer (S1; F17, F19, F20; FR-001) in `frontend/src/pages/FormConnectionEditor/EditorFooter.tsx` and its types and constants. Figma: U09 `6235:18684`, `6235:19019`; U10 `6324:40069`, `6324:40394`; U36 `6376:27342`.
+- [X] T034 [US1] Change the documents step's footer (S1; F17, F19, F20; FR-001) in `frontend/src/pages/FormConnectionEditor/EditorFooter.tsx` and its types and constants. Figma: U09 `6235:18684`, `6235:19019`; U10 `6324:40069`, `6324:40394`; U36 `6376:27342`.
   - The primary action, "Add rules →", runs the documents' checks, then goes on to the Rules step.
   - "Publish without rules" ("Save without rules" when editing) shows beside it only while no branch has any rule, and opens the publish dialog (T042) (F17).
   - Otherwise the documents step stays spec 001's: none of Figma's redesign (F19), and no "Age over 18" (F20).
-- [ ] T035 [US1] Build the shared read-only rule display in `frontend/src/components/` (depends on T029; S2, S6; F1, F2, F5, F8; FR-005; research R10). Each folder has `index.tsx` and `types.ts`.
+- [X] T035 [US1] Build the shared read-only rule display in `frontend/src/components/` (depends on T029; S2, S6; F1, F2, F5, F8; FR-005; research R10). Each folder has `index.tsx` and `types.ts`.
   - `RuleRow/`: the rule's name, its statement (T029) with the design's ≥, < or = chip marked `aria-hidden`, its error message, and a slot for actions (U14 `6094:6469`, U12 `6350:41102`).
   - `Connector/`: the AND or OR chip between two items of a level (U14), read-only for now. T049 makes it switchable.
   - The Rules step (T036) and the details (T043) both use them, so the details show the rules in the Rules step's layout (FR-030).
-- [ ] T036 [US1] Build the Rules step's rule list in `frontend/src/pages/FormConnectionEditor/RulesStep/` (S2; F1, F2, F8, F12, F29; FR-001, FR-005, FR-007; Figma U14 `6094:6127`, U15, U21 `6168:7004`, U29 `6197:11646`).
+- [X] T036 [US1] Build the Rules step's rule list in `frontend/src/pages/FormConnectionEditor/RulesStep/` (S2; F1, F2, F8, F12, F29; FR-001, FR-005, FR-007; Figma U14 `6094:6127`, U15, U21 `6168:7004`, U29 `6197:11646`).
   - `index.tsx` renders the open branch:
     - without rules: the empty state "No rules yet" with "+ Add rule" (U29 `6197:11654`);
     - with rules: `RuleRow`s in the order of adding, `Connector`s between them, and "+ Add rule" after them;
@@ -546,7 +546,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - rename: inline, as U15 `6344:53317`–`6344:53481` shows ("Enter saves · Esc cancels"). An empty, duplicate or reserved name is refused where it is entered (T032), for example "Another rule in Standard is already called Rule 01." (F12);
     - duplicate: a new rule with a new identifier and its default name (T031);
     - delete: the confirmation "Delete Rule 03?" (U14 `6113:29056`), then the toast "Rule 03 in Standard deleted." with Undo (U14 `6113:29469`; F29).
-- [ ] T037 [US1] Build the rule editor's frame and its choice of data in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F5, FYI #20; FR-002, FR-003; Figma U11 `6348:40219`, `6348:40238`, U32 `6324:17627`).
+- [X] T037 [US1] Build the rule editor's frame and its choice of data in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F5, FYI #20; FR-002, FR-003; Figma U11 `6348:40219`, `6348:40238`, U32 `6324:17627`).
   - `index.tsx`, `types.ts`, `constants.ts`, and `utils.ts` with `ruleEditorReducer` for the rule being edited. The editor shows the rule's name, by default "Rule NN".
   - The choice goes document → data → part → check → value, each unlocked in order.
   - The data menu:
@@ -558,7 +558,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - Place of birth lists "Country", "Region" and "City or town", without a search field (U32 `6324:17746`);
     - Licence classes, also in U24's and U25's frames, lists "Licence classes" (the held classes) and, for every class, "Licence class B – Issue date" and "Licence class B – Expiry date". It has the search field "Search classes" (F5).
   - Each menu item is a sub-component, and the menus work with the keyboard.
-- [ ] T038 [US1] Build the checks and values of numbers, text and enums in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F6, F7, F8, F30, F32; FR-003, FR-013; Figma U31 `6324:16743`–`6324:17351`, U13 `6357:42622`, U12 `6350:41850`, U24 `6191:42065`, `6191:42259`, U25 `6197:11760`).
+- [X] T038 [US1] Build the checks and values of numbers, text and enums in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F6, F7, F8, F30, F32; FR-003, FR-013; Figma U31 `6324:16743`–`6324:17351`, U13 `6357:42622`, U12 `6350:41850`, U24 `6191:42065`, `6191:42259`, U25 `6197:11760`).
   - **Numbers**: "is greater than", "is less than", "is equal to" and "is not equal to", strict, with one value each. The value field accepts any number (F6).
   - **Text** (F7):
     - "is equal to", "is not equal to", "contains" and "doesn't contain", with one value each;
@@ -571,7 +571,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - for Licence classes, U12's menu (`6357:43382`): the search field "Search classes", and each option with its code and description, such as "B Cars up to 3.5 t". The chips and statements show codes only (F32);
     - Nationality's hint: "Nationality can have more than one value. "Includes one of" is met if any of them is one of the chosen values, "includes none of" if none of them is." (F30). U12 `6357:43117`'s hint for licence classes stays.
   - The options come from the page's value sets (T033), and the conditions and their completeness from T027.
-- [ ] T039 [US1] Build the date checks in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F1, F2, F3, F4; FR-003, FR-012, FR-014; Figma U11 `6348:40539`, `6348:40681`, `6348:40749`–`6348:40756`; U12 `6350:42447`–`6350:42449`, `6350:42724`; U25 `6196:10397`–`6196:10401`; U30 `6324:15410`–`6324:16291`).
+- [X] T039 [US1] Build the date checks in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` (S3; F1, F2, F3, F4; FR-003, FR-012, FR-014; Figma U11 `6348:40539`, `6348:40681`, `6348:40749`–`6348:40756`; U12 `6350:42447`–`6350:42449`, `6350:42724`; U25 `6196:10397`–`6196:10401`; U30 `6324:15410`–`6324:16291`).
   - The picker uses FR-003's words, in the sections "Time ago" and "Time from now" (F1, F3):
     - on the Date of birth: "is at least", "is less than" and "is exactly" N "years old";
     - on every other date: "is before", "is after" and "is" a date, and "is at least", "is less than" and "is exactly" N "years ago";
@@ -584,7 +584,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - the missing-value note: "If the date of birth is missing or can't be read, the rule isn't met and is reported as couldn't be checked.". It names the checked field or part, such as "the expiry date" or "the issue date of class B";
     - a class rule may add "If class B is missing, the rule isn't met.".
   - Saved rules don't show these notes. The ≥ and < chips are decoration, marked `aria-hidden`.
-- [ ] T040 [US1] Finish the rule editor: its message, saving and leaving, in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` and `RulesStep/` (S2, S3; F9, F10, F29; FR-004, FR-006; Figma U11 `6348:40234`, `6348:40876`, U12 `6350:41266`, U25 `6196:10232`, `6196:10383`, U28 `6197:10963`).
+- [X] T040 [US1] Finish the rule editor: its message, saving and leaving, in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/` and `RulesStep/` (S2, S3; F9, F10, F29; FR-004, FR-006; Figma U11 `6348:40234`, `6348:40876`, U12 `6350:41266`, U25 `6196:10232`, `6196:10383`, U28 `6197:10963`).
   - The error message field (F9):
     - its placeholder is "Error message applicants read: Suggested once you complete the check. You can edit it.";
     - once the condition is complete, it proposes T030's message, which the team member may change;
@@ -594,7 +594,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - leaving means Cancel, editing another rule, or "Need other data? Add it in Documents";
     - "Save changes" keeps the rule as it is, even if incomplete; FR-006 still checks it at publishing;
     - the dialog is a `SaveChangesDialog` sub-component, which T041 reuses.
-- [ ] T041 [US1] Build the Rules step's footer and the checks before publishing (S2, S3; F10, F11; FR-001, FR-006; Figma U11 `6348:40236`, `6348:40255`, U27 `6197:10682`, `6197:10696`, U29 `6197:11646`), in `frontend/src/pages/FormConnectionEditor/EditorFooter.tsx`, `index.tsx` and `RulesStep/`.
+- [X] T041 [US1] Build the Rules step's footer and the checks before publishing (S2, S3; F10, F11; FR-001, FR-006; Figma U11 `6348:40236`, `6348:40255`, U27 `6197:10682`, `6197:10696`, U29 `6197:11646`), in `frontend/src/pages/FormConnectionEditor/EditorFooter.tsx`, `index.tsx` and `RulesStep/`.
   - "Back" returns to the documents.
   - The primary action reads "Publish" ("Save" when editing). It reads "Publish without rules" ("Save without rules") only while no branch has any rule and no rule editor is open (F10).
   - With unsaved editor changes, Publish and Save first open "Save changes to Rule 01?" (T040). "Save changes" keeps the rule even if incomplete, and "Discard" drops the changes. Either way, publishing or saving then goes on (F10).
@@ -602,7 +602,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - an attempt runs T032's pre-checks;
     - a refusal shows the message naming the problem, the rule and its branch, and moves the focus to that rule.
   - A rule that checks data no longer requested shows a banner and an inline flag: "Rule 02 in Standard checks data that's no longer requested. Add the data again in Documents, or edit or delete the rule." (U27 `6197:10696`; F11).
-- [ ] T042 [US1] Extend the publish and save dialog, and send the rules (S5; F1, F5, F10, F21, F22, F23; FR-001, FR-028; Figma U33 `6376:25342`, `6376:26181`, U35 `6376:26326`–`6376:26984`, U36 `6376:27341`), in `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, `utils.ts` and `constants.ts`.
+- [X] T042 [US1] Extend the publish and save dialog, and send the rules (S5; F1, F5, F10, F21, F22, F23; FR-001, FR-028; Figma U33 `6376:25342`, `6376:26181`, U35 `6376:26326`–`6376:26984`, U36 `6376:27341`), in `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, `utils.ts` and `constants.ts`.
   - The dialog summarises the documents and, for each branch, its rules as statements (T029), in design-notes.md's wording:
     - "Personal ID – Date of birth is at least 21 years old" (F1);
     - a licence class rule shows the part's statement (F5);
@@ -618,7 +618,7 @@ step 2's tab row and "+ Add variant" (F16) come with US3 (T062).
     - `numbering_base` from the counters the editor started from;
     - `base_version`: `null` when creating, and the loaded `rule_set_version` when editing;
     - `replace: false`.
-- [ ] T043 [US1] Show the rules on the details (S6; F1, F5, F8, F22, F25, F26, W1, FYI #17; FR-010, FR-030; Figma U37 `6396:47756`, `6396:48222`–`6396:48277`), in a new `frontend/src/pages/FormConnectionDetail/RulesSummary.tsx` with its sub-components, types and constants.
+- [X] T043 [US1] Show the rules on the details (S6; F1, F5, F8, F22, F25, F26, W1, FYI #17; FR-010, FR-030; Figma U37 `6396:47756`, `6396:48222`–`6396:48277`), in a new `frontend/src/pages/FormConnectionDetail/RulesSummary.tsx` with its sub-components, types and constants.
   - A collapsible card, "View summary" / "Hide summary", collapsed by default (FYI #17).
   - The details load the value sets with `useOptionSets` (T014) for the statements' labels (FR-005), and show their loading and failure like the rest of the page.
   - One read-only section per branch, in the Rules step's layout, from the shared `RuleRow` and `Connector`:

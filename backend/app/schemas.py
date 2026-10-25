@@ -374,14 +374,65 @@ class DeliveredDocument(BaseModel):
     fields: list[DeliveredField]
 
 
+# The evaluation of a branch's rules, delivered with the documents (spec 002,
+# contracts/integration-api.md "evaluation", research R8). It never holds a value
+# of the documents (FR-017).
+
+# not_checked: the value was missing or couldn't be read for the condition (FR-014)
+Outcome = Literal['met', 'not_met', 'not_checked']
+
+
+class EvaluationBranch(BaseModel):
+    """The branch whose pull URL was called, named as at the trigger."""
+
+    id: str
+    name: str
+
+
+class EvaluationResult(BaseModel):
+    """The outcome of one rule or group that the branch evaluates (FR-010)."""
+
+    # rule-{n} or group-{n}: never changes, never reused (research R5)
+    id: str
+    type: Literal['rule', 'group']
+    name: str
+    # The identifier of the containing group or sub-group; null at the top level
+    group: str | None
+    # Groups are met or not met, never not_checked
+    outcome: Outcome
+
+
+class EvaluationMessage(BaseModel):
+    """An error message for the citizen, with the rule or group it belongs to."""
+
+    id: str
+    message: str
+
+
+class Evaluation(BaseModel):
+    """Whether a branch's rules are met, each result, and the messages (FR-009 to
+    FR-011)."""
+
+    branch: EvaluationBranch
+    met: bool
+    # Every evaluated rule and group in the rules step's order: the top level
+    # first, each group's members after it
+    results: list[EvaluationResult]
+    # Empty when met
+    messages: list[EvaluationMessage]
+
+
 class PullResponse(BaseModel):
     """A request's status and, while they can be handed out, its documents.
 
     `documents` is null until the documents are delivered, and after the repeat
-    window.
+    window. `evaluation` is the evaluation of the called branch's rules on those
+    documents: null whenever `documents` is null, present whenever they are
+    (FR-017).
     """
 
     reference: str
     status: RequestStatus
     expires_at: str
     documents: list[DeliveredDocument] | None
+    evaluation: Evaluation | None
