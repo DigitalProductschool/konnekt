@@ -11,13 +11,18 @@ branch, in the words of the rules step's own checks (`utils/rules/validation.ts`
 The rules step numbers new rules and groups from the form connection's counters; the
 server checks those identifiers and shifts them if another save took the numbers
 meanwhile (research R5).
+
+Only the rules step propagates the main branch's changes to the branches based on
+it. The server checks that every saved based branch is what a correct propagation
+gives, through the invariants of its marks (research R4), so that a propagation bug
+can't reach serviceBW.
 """
 
 import logging
 import math
 import re
 import uuid
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Literal
@@ -48,6 +53,7 @@ from ..schemas import (
     RuleTarget,
     SnapshotBranch,
 )
+from .evaluation import effective_items
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +69,7 @@ MESSAGE_MAX_LENGTH = 500
 INVALID_IDENTIFIER = (
     'The rules contain an invalid identifier. Reload the connection and try again.'
 )
+UNKNOWN_BRANCH = 'Unknown variant.'
 
 # The operators of each kind of value, and the keys each one uses
 # (data-model.md "Conditions")
@@ -90,6 +97,15 @@ def _validation_error(message: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={'error': 'Validation error', 'message': message},
+    )
+
+
+def _out_of_step(branch_name: str, main_name: str) -> HTTPException:
+    """A branch that no correct propagation gives (research R4)."""
+    with_main = '' if branch_name == main_name else f' with {main_name}'
+    return _validation_error(
+        f'The variant {branch_name} is out of step{with_main}. Reload the connection '
+        'and try again.'
     )
 
 
@@ -216,6 +232,9 @@ def clean_branches(
 
     A save that changes the documents without sending rules checks the current
     rules this way against its new documents (FR-006).
+
+    The main branch is checked first, so a problem in an item that the branches
+    based on it inherit unchanged is reported once, for the main branch (FR-006).
     """
     if len(branches) > MAX_BRANCHES:
         raise _validation_error(
@@ -234,7 +253,8 @@ def clean_branches(
     names: set[str] = set()
     for branch in branches:
         name = _branch_name(branch.name, names)
-        cleaned.append(_clean_branch(branch, name, requested))
+        main = cleaned[0] if cleaned else None
+        cleaned.append(_clean_branch(branch, name, requested, main))
     return cleaned
 
 
@@ -254,11 +274,36 @@ def _branch_name(value: str, earlier_names: set[str]) -> str:
     return name
 
 
+@dataclass(frozen=True)
+class _TakenName:
+    """A name taken in a branch, by the item that holds it or may get it back."""
+
+    noun: ItemNoun
+    name: str
+    owner_id: str
+
+
+@dataclass(frozen=True)
+class _BranchCheck:
+    """What the checks of one branch's items need."""
+
+    name: str
+    requested: dict[tuple[str, str], _RequestedField]
+    # Taken names by their folded form, filled while the items are checked
+    names: dict[str, _TakenName]
+    # In a branch based on the main branch: the main branch's checked items by
+    # identifier, with their nouns there. None in every other branch
+    inherited: dict[str, tuple[TreeItem, ItemNoun]] | None
+    out_of_step: HTTPException
+
+
 def _clean_branch(
     branch: BranchInput,
     name: str,
     requested: dict[tuple[str, str], _RequestedField],
+    main: BranchInput | None,
 ) -> BranchInput:
+    """Check one branch. `main` is the checked main branch, or None for itself."""
     description = (branch.description or '').strip() or None
     if description is not None and len(description) > DESCRIPTION_MAX_LENGTH:
         raise _validation_error(
@@ -277,48 +322,99 @@ def _clean_branch(
             raise _validation_error(INVALID_IDENTIFIER)
         identifiers.add(item.id)
 
-    names: dict[str, tuple[ItemNoun, str]] = {}
+    out_of_step = _out_of_step(name, main.name if main else name)
+    inherited: dict[str, tuple[TreeItem, ItemNoun]] | None = None
+    if branch.origin == 'based' and main is not None:
+        inherited = {
+            item.id: (item, _noun(item, depth)) for item, depth in walk(main.items)
+        }
+        _check_marks(branch, entries, main, inherited, out_of_step)
+    elif branch.operator_mark is not None or any(
+        item.mark is not None for item, _depth in entries
+    ):
+        # Marks appear only in branches based on the main branch
+        raise out_of_step
+
+    check = _BranchCheck(
+        name=name,
+        requested=requested,
+        names=_names_taken_by_undo(entries, inherited),
+        inherited=inherited,
+        out_of_step=out_of_step,
+    )
     return branch.model_copy(
         update={
             'name': name,
             'description': description,
-            'items': [
-                _clean_item(item, 0, name, names, requested) for item in branch.items
-            ],
+            'items': [_clean_item(item, 0, check) for item in branch.items],
         }
     )
 
 
-def _clean_item(
-    item: TreeItem,
-    depth: int,
-    branch_name: str,
-    names: dict[str, tuple[ItemNoun, str]],
-    requested: dict[tuple[str, str], _RequestedField],
-) -> TreeItem:
+def _check_marks(
+    branch: BranchInput,
+    entries: Sequence[tuple[TreeItem, int]],
+    main: BranchInput,
+    inherited: Mapping[str, tuple[TreeItem, ItemNoun]],
+    out_of_step: HTTPException,
+) -> None:
+    """The marks of a branch based on the main branch (research R4).
+
+    data-model.md, "Marks in a based branch" and "Validation". Every item of the
+    main branch appears in it once, unmarked, `changed` or `removed`; every other
+    item is the branch's own, marked `added`. The top level's AND/OR follows the
+    main branch's until the branch switches it (`operator_mark`). The items'
+    contents are compared while they are checked (`_check_follows`).
+    """
+    if branch.operator_mark is None and branch.operator != main.operator:
+        raise out_of_step
+    for item, _depth in entries:
+        if (item.id in inherited) == (item.mark == 'added'):
+            raise out_of_step
+    # The identifiers are unique within the branch, so each appears once
+    if not inherited.keys() <= {item.id for item, _depth in entries}:
+        raise out_of_step
+
+
+def _names_taken_by_undo(
+    entries: Sequence[tuple[TreeItem, int]],
+    inherited: Mapping[str, tuple[TreeItem, ItemNoun]] | None,
+) -> dict[str, _TakenName]:
+    """The main branch's names of the items a based branch changed (FR-005).
+
+    An undo would bring them back, so no other item of the branch may take them.
+    The names of removed items are taken too, as the items' own names.
+    """
+    taken: dict[str, _TakenName] = {}
+    for item, _depth in entries:
+        if inherited is not None and item.mark == 'changed':
+            original, noun = inherited[item.id]
+            taken[_folded(original.name)] = _TakenName(noun, original.name, item.id)
+    return taken
+
+
+def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
     noun = _noun(item, depth)
-    name = _item_name(item, noun, branch_name, names)
+    name = _item_name(item, noun, check)
+    subject = f'{name} in {check.name}'
     if isinstance(item, GroupItem):
-        subject = f'{name} in {branch_name}'
-        _check_members(item, depth, subject)
+        _check_members(item, depth, subject, check)
         message = (item.message or '').strip() or None
         if message is not None and len(message) > MESSAGE_MAX_LENGTH:
             raise _validation_error(
                 f'The error message of {subject} can have at most '
                 f'{MESSAGE_MAX_LENGTH} characters.'
             )
-        return item.model_copy(
+        cleaned_group = item.model_copy(update={'name': name, 'message': message})
+        _check_follows(cleaned_group, check)
+        return cleaned_group.model_copy(
             update={
-                'name': name,
-                'message': message,
                 'items': [
-                    _clean_item(member, depth + 1, branch_name, names, requested)
-                    for member in item.items
-                ],
+                    _clean_item(member, depth + 1, check) for member in item.items
+                ]
             }
         )
-    subject = f'{name} in {branch_name}'
-    target, kind, entry = _clean_target(item.target, subject, requested)
+    target, kind, entry = _clean_target(item.target, subject, check.requested)
     if item.condition is None:
         raise _validation_error(f'{subject}: choose a check.')
     condition = _clean_condition(item.condition, kind, entry, target, subject)
@@ -330,49 +426,83 @@ def _clean_item(
             f'The error message of {subject} can have at most {MESSAGE_MAX_LENGTH} '
             'characters.'
         )
-    return item.model_copy(
+    cleaned_rule = item.model_copy(
         update={'name': name, 'condition': condition, 'message': message}
     )
+    _check_follows(cleaned_rule, check)
+    return cleaned_rule
 
 
-def _check_members(group: GroupItem, depth: int, subject: str) -> None:
+def _check_members(
+    group: GroupItem, depth: int, subject: str, check: _BranchCheck
+) -> None:
     """A group holds rules and sub-groups, a sub-group rules only (FR-008).
 
-    Each needs at least two active members: the members a based branch removed
-    don't count.
+    Each needs at least two members that count (`effective_items`): those a based
+    branch removed don't. In a based branch, an inherited group with fewer is
+    dissolved there and stays, so that it counts again once two members do
+    (data-model.md, "Dissolution"); a group the branch added needs two.
     """
     if depth > 0 and any(isinstance(member, GroupItem) for member in group.items):
         raise _validation_error(f'{subject} can only hold rules.')
-    active = [member for member in group.items if member.mark != 'removed']
-    if len(active) < 2:
+    based = check.inherited is not None
+    if based and group.mark != 'added':
+        return
+    if len(effective_items(group.items, based)) < 2:
         raise _validation_error(f'{subject} needs at least two rules.')
 
 
-def _item_name(
-    item: TreeItem,
-    noun: ItemNoun,
-    branch_name: str,
-    names: dict[str, tuple[ItemNoun, str]],
-) -> str:
-    """Check a rule's or group's name against the earlier names of its branch."""
+def _change_of(item: TreeItem) -> tuple[object, ...]:
+    """What counts as a change of a checked rule or group (FR-022).
+
+    data-model.md, "Equal": a rule's target, condition, message and name; a group's
+    AND/OR, name and message. Never a group's members or an item's place.
+    """
+    if isinstance(item, RuleItem):
+        return (
+            item.name,
+            item.target.model_dump() if item.target else None,
+            item.condition.model_dump() if item.condition else None,
+            item.message,
+        )
+    return (item.name, item.operator, item.message)
+
+
+def _check_follows(item: TreeItem, check: _BranchCheck) -> None:
+    """An unmarked or removed item of a based branch equals the main branch's.
+
+    A `changed` item may equal it too, after a change in the main branch (FR-024).
+    """
+    if check.inherited is None or item.mark not in (None, 'removed'):
+        return
+    original, _noun_there = check.inherited[item.id]
+    if _change_of(item) != _change_of(original):
+        raise check.out_of_step
+
+
+def _item_name(item: TreeItem, noun: ItemNoun, check: _BranchCheck) -> str:
+    """Check a rule's or group's name against the names taken in its branch.
+
+    Those are the names of the items checked before it, and in a based branch the
+    main branch's names of the items changed there (FR-005).
+    """
     name = item.name.strip()
     if not name:
-        raise _validation_error(f'Enter a name for every {noun} in {branch_name}.')
+        raise _validation_error(f'Enter a name for every {noun} in {check.name}.')
     if len(name) > NAME_MAX_LENGTH:
         raise _validation_error(
-            f'A {noun} in {branch_name} has a name longer than {NAME_MAX_LENGTH} '
+            f'A {noun} in {check.name} has a name longer than {NAME_MAX_LENGTH} '
             'characters.'
         )
-    earlier = names.get(_folded(name))
-    if earlier is not None:
-        earlier_noun, earlier_name = earlier
+    earlier = check.names.get(_folded(name))
+    if earlier is not None and earlier.owner_id != item.id:
         raise _validation_error(
-            f'Another {earlier_noun} in {branch_name} is already called {earlier_name}.'
+            f'Another {earlier.noun} in {check.name} is already called {earlier.name}.'
         )
     reserved = reserved_name_problem(name, item)
     if reserved is not None:
         raise _validation_error(reserved)
-    names[_folded(name)] = (noun, name)
+    check.names[_folded(name)] = _TakenName(noun, name, item.id)
     return name
 
 
@@ -699,15 +829,33 @@ def _plan(db: Session, form_connection: FormConnection, save: RulesSave) -> _Pla
             )
         )
     )
-    _check_branch_ids(save.branches, live_ids)
+    _check_branch_ids(
+        save.branches, live_ids, {branch.id: branch.origin for branch in current}
+    )
     return _Plan(current=current, numbering=numbering, live_ids=live_ids)
 
 
-def _check_branch_ids(branches: Sequence[BranchInput], live_ids: set[str]) -> None:
-    """A saved branch keeps its id, which must be a live branch's (FR-025)."""
+def _check_branch_ids(
+    branches: Sequence[BranchInput],
+    live_ids: set[str],
+    origins: Mapping[str, str],
+) -> None:
+    """A saved branch keeps its id and its origin (FR-019, FR-025).
+
+    The id must be a live branch of this form connection's, once in the save:
+    another form connection's branch and a deleted one are unknown. `origins` are
+    the current branches' origins, which are fixed when a branch is added.
+    """
+    main_name = branches[0].name if branches else ''
+    seen: set[str] = set()
     for branch in branches:
-        if branch.id is not None and branch.id not in live_ids:
-            raise _validation_error('Unknown variant.')
+        if branch.id is None:
+            continue
+        if branch.id not in live_ids or branch.id in seen:
+            raise _validation_error(UNKNOWN_BRANCH)
+        seen.add(branch.id)
+        if origins.get(branch.id) != branch.origin:
+            raise _out_of_step(branch.name, main_name)
 
 
 def _saved_branches(
@@ -801,7 +949,7 @@ def save_rule_set(
 
 
 def _first_numbering(save: RulesSave) -> _Numbering:
-    _check_branch_ids(save.branches, set())
+    _check_branch_ids(save.branches, set(), {})
     return _allocate(save.branches, save.numbering_base, set(), set(), (1, 1))
 
 

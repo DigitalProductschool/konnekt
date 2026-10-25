@@ -1,11 +1,13 @@
 """Rules saved with a form connection (spec 002, contracts/management-api.md).
 
-User stories 1 and 2 through the management API: creating and editing a form
-connection with rules, groups and sub-groups, the refusals that name the problem, the
-rule and its branch, and saving documents and rules together or not at all (FR-028).
+User stories 1 to 3 through the management API: creating and editing a form
+connection with rules, groups and sub-groups, and variants with their ids and pull
+URLs; the refusals that name the problem, the rule and its branch; and saving
+documents and rules together or not at all (FR-028).
 """
 
 import copy
+import uuid
 from typing import Any
 
 import pytest
@@ -13,7 +15,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 from app.db import SessionLocal
-from app.models import FormConnection, FormConnectionRevision, FormConnectionRuleSet
+from app.models import (
+    FormConnection,
+    FormConnectionBranch,
+    FormConnectionRevision,
+    FormConnectionRuleSet,
+)
 from app.services import rules as rules_service
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
@@ -33,6 +40,7 @@ from tests.helpers import (
     rules_input,
     target,
     us2_items,
+    variant,
 )
 
 INVALID_IDENTIFIER = (
@@ -556,6 +564,266 @@ def test_a_group_is_combined_with_and_or_or(
         'message': 'Invalid request payload',
     }
     assert _count(FormConnection) == 0
+
+
+# Branches ("variants" in the UI; FR-019, FR-020, FR-025, FR-027; research R3, R4)
+
+OUT_OF_STEP = (
+    'The variant Ambulance is out of step with Standard. Reload the connection and '
+    'try again.'
+)
+US1_ITEMS = [AGE_RULE, CLASS_RULE, HELD_RULE]
+AGE_19_IN_AMBULANCE = AGE_RULE | {
+    'mark': 'changed',
+    'condition': {'operator': 'at_least_years_ago', 'years': 19},
+    'message': 'You must be at least 19 years old.',
+}
+CITY_IN_TAXI = rule(
+    4,
+    target('pid', 'address_locality'),
+    {'operator': 'equal_to', 'value': 'Stuttgart', 'match_case': False},
+    'You must live in Stuttgart.',
+)
+AMBULANCE = variant(
+    [AGE_19_IN_AMBULANCE, CLASS_RULE, HELD_RULE],
+    description='Applicants for an ambulance licence',
+)
+TAXI = variant([CITY_IN_TAXI], name='Taxi', origin='empty')
+
+
+def _branch_rows(form_connection_id: str) -> dict[str, FormConnectionBranch]:
+    with SessionLocal() as db:
+        rows = db.scalars(
+            select(FormConnectionBranch).where(
+                FormConnectionBranch.form_connection_id == form_connection_id
+            )
+        ).all()
+        return {row.id: row for row in rows}
+
+
+def _as_sent(branch: dict[str, Any], **changes: Any) -> dict[str, Any]:
+    """A saved branch as the rules step sends it back."""
+    sent = {
+        key: value
+        for key, value in branch.items()
+        if key not in ('is_main', 'pull_url')
+    }
+    return copy.deepcopy(sent) | changes
+
+
+def _save_branches(
+    created: dict[str, Any], branches: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """The rules of an edit of `created` with these branches."""
+    return rules_input(
+        branches,
+        rule_base=created['next_rule_number'],
+        group_base=created['next_group_number'],
+        base_version=created['rule_set_version'],
+    )
+
+
+def test_a_save_with_variants_returns_their_ids_and_pull_urls(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE, TAXI])
+    )
+
+    standard, ambulance, taxi = created['branches']
+    # In tab order, as sent
+    assert [(branch['name'], branch['origin']) for branch in created['branches']] == [
+        ('Standard', 'main'),
+        ('Ambulance', 'based'),
+        ('Taxi', 'empty'),
+    ]
+    assert (ambulance['items'], taxi['items']) == (AMBULANCE['items'], TAXI['items'])
+    assert ambulance['description'] == 'Applicants for an ambulance licence'
+    assert [branch['is_main'] for branch in created['branches']] == [True, False, False]
+    # Standard keeps spec 001's pull URL; every other branch's names it (FR-025)
+    assert standard['pull_url'] == created['pull_url']
+    connect_url = f'https://middleware.test/api/connect/{created["id"]}'
+    for branch in (ambulance, taxi):
+        assert uuid.UUID(branch['id']).version == 4
+        assert branch['pull_url'] == (
+            f'{connect_url}/branches/{branch["id"]}/requests/{{reference}}'
+        )
+    rows = _branch_rows(created['id'])
+    assert set(rows) == {standard['id'], ambulance['id'], taxi['id']}
+    assert [row.id for row in rows.values() if row.is_main] == [standard['id']]
+    # Taxi's own rule took the next number
+    assert created['next_rule_number'] == 5
+    assert _get(signed_in_client, created['id']) == created
+
+
+def test_a_variant_added_in_an_edit_gets_its_id_and_pull_url(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+
+    edited = _put(
+        signed_in_client,
+        created,
+        rules=_save_branches(created, [_as_sent(created['branches'][0]), AMBULANCE]),
+    )
+
+    standard, ambulance = edited['branches']
+    assert standard['id'] == created['branches'][0]['id']
+    assert ambulance['name'] == 'Ambulance'
+    assert ambulance['pull_url'] == (
+        f'https://middleware.test/api/connect/{created["id"]}/branches/'
+        f'{ambulance["id"]}/requests/{{reference}}'
+    )
+    assert edited['rule_set_version'] == 2
+
+
+def test_a_rename_keeps_the_ids_and_the_pull_urls(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE])
+    )
+    standard, ambulance = created['branches']
+
+    edited = _put(
+        signed_in_client,
+        created,
+        rules=_save_branches(
+            created,
+            [
+                # Standard can be renamed and described too (FR-020)
+                _as_sent(standard, name='All applicants', description='Everyone'),
+                _as_sent(ambulance, name='Ambulance service', description=None),
+            ],
+        ),
+    )
+
+    assert [
+        (branch['id'], branch['name'], branch['description'], branch['pull_url'])
+        for branch in edited['branches']
+    ] == [
+        (standard['id'], 'All applicants', 'Everyone', standard['pull_url']),
+        (ambulance['id'], 'Ambulance service', None, ambulance['pull_url']),
+    ]
+    assert edited['pull_url'] == created['pull_url']
+
+
+def test_a_variant_left_out_is_deleted_and_its_id_isnt_reused(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE])
+    )
+    standard, ambulance = created['branches']
+
+    without = _put(
+        signed_in_client, created, rules=_save_branches(created, [_as_sent(standard)])
+    )
+
+    assert [branch['id'] for branch in without['branches']] == [standard['id']]
+    assert _branch_rows(created['id'])[ambulance['id']].deleted_at is not None
+    # The deleted variant's id can't be saved again
+    response = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}',
+        json={
+            'rules': _save_branches(without, [_as_sent(standard), _as_sent(ambulance)])
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'Unknown variant.',
+    }
+    assert _get(signed_in_client, created['id']) == without
+    # A new variant of the same name is a new branch, with its own pull URL
+    again = _put(
+        signed_in_client,
+        without,
+        rules=_save_branches(without, [_as_sent(standard), AMBULANCE]),
+    )
+    assert again['branches'][1]['name'] == 'Ambulance'
+    assert again['branches'][1]['id'] != ambulance['id']
+    assert again['branches'][1]['pull_url'] != ambulance['pull_url']
+    assert _branch_rows(created['id'])[ambulance['id']].deleted_at is not None
+
+
+def test_the_main_branch_cant_be_left_out(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE])
+    )
+    ambulance = created['branches'][1]
+
+    for branches in (
+        [_as_sent(ambulance)],
+        [_as_sent(ambulance, origin='main')],
+    ):
+        response = signed_in_client.put(
+            f'/api/form-connections/{created["id"]}',
+            json={'rules': _save_branches(created, branches)},
+        )
+        assert response.status_code == 400
+        assert response.json()['message'] == 'The rules need exactly one main branch.'
+    assert _get(signed_in_client, created['id']) == created
+    assert all(row.deleted_at is None for row in _branch_rows(created['id']).values())
+
+
+def test_an_out_of_step_variant_is_refused_on_create_and_nothing_is_saved(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    # Ambulance lacks Standard's class B rule
+    ambulance = variant([AGE_19_IN_AMBULANCE, CLASS_RULE])
+    rules = rules_input([main_branch(US1_ITEMS), ambulance])
+
+    response = signed_in_client.post(
+        '/api/form-connections', json=FORM_CONNECTION | {'rules': rules}
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'error': 'Validation error', 'message': OUT_OF_STEP}
+    assert fake_eudiplo.calls == []
+    assert _count(FormConnection) == 0
+    assert _count(FormConnectionBranch) == 0
+
+
+def test_an_out_of_step_variant_is_refused_on_edit_and_nothing_is_saved(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE])
+    )
+    standard, ambulance = created['branches']
+    calls = len(fake_eudiplo.calls)
+    # Standard asks for class B for 3 years, but Ambulance's unmarked copy of the
+    # rule still asks for 2: the change didn't reach it. The documents change too
+    held_3_years = HELD_RULE | {
+        'condition': {'operator': 'at_least_years_ago', 'years': 3}
+    }
+
+    response = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}',
+        json={
+            'name': 'Renamed',
+            'documents': FORM_CONNECTION['documents'][:1]
+            + [FORM_CONNECTION['documents'][1] | {'fields': ['driving_privileges']}],
+            'rules': _save_branches(
+                created,
+                [
+                    _as_sent(standard, items=[AGE_RULE, CLASS_RULE, held_3_years]),
+                    _as_sent(ambulance, name=' Ambulance '),
+                ],
+            ),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'error': 'Validation error', 'message': OUT_OF_STEP}
+    # Refused before EUDIPLO is called (research R9)
+    assert len(fake_eudiplo.calls) == calls
+    assert _get(signed_in_client, created['id']) == created
+    assert _count(FormConnectionRuleSet) == 1
+    assert _count(FormConnectionRevision) == 1
 
 
 # Sign-in and CSRF

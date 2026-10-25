@@ -106,6 +106,35 @@ def _calendar_day(year: int, month: int, day: int) -> date:
         return date(year, month + 1, 1)
 
 
+def effective_items(
+    items: Sequence[RuleItem | GroupItem], based: bool
+) -> list[RuleItem | GroupItem]:
+    """The items of a level that count, in a branch's evaluation and its checks.
+
+    data-model.md, "Dissolution". In the main branch and in a branch that started
+    empty (`based` false), every item counts. In a branch based on the main branch,
+    items marked removed don't count, and an inherited group (one not added there)
+    with fewer than two items that count is dissolved in that branch: the item that
+    remains, if any, counts in its place. The rules step derives it the same way.
+    Members put into a group of the branch's own are that group's, so they no
+    longer count for the inherited group they came from, while the new group counts
+    as one item of it.
+    """
+    if not based:
+        return list(items)
+    counted: list[RuleItem | GroupItem] = []
+    for item in items:
+        if item.mark == 'removed':
+            continue
+        if isinstance(item, GroupItem) and item.mark != 'added':
+            members = effective_items(item.items, based)
+            if len(members) < 2:
+                counted.extend(members)
+                continue
+        counted.append(item)
+    return counted
+
+
 def evaluate_branch(
     branch: SnapshotBranch, documents: Sequence[DeliveredDocument], shared_on: date
 ) -> Evaluation:
@@ -117,20 +146,25 @@ def evaluate_branch(
     group or sub-group counts as one item of its level. `not_checked` counts as not
     met, groups are met or not met, and a branch without rules is met.
 
+    In a branch based on the main branch, only the items that count are evaluated
+    (`effective_items`): rules and groups marked removed aren't evaluated or
+    reported, with everything in them, and a group dissolved in the branch isn't
+    reported, while its remaining member is evaluated in its place. A branch whose
+    rules are all removed is met. Marks elsewhere, and a group with fewer than two
+    members that count, raise `ValueError`, since the save's checks refuse them: no
+    documents go out without a correct evaluation.
+
     `results` follow the branch's order: the top level first, each group's members
     after it, with `group` naming the group that contains them. `messages` is empty
     when the branch is met. Otherwise it holds, walking the top level in order, the
     message of each rule that isn't met and, for each group that isn't met, its own
     message or, if it has none, its members' found the same way (FR-011).
 
-    A based branch's marks aren't evaluated here yet, nor the groups they dissolve:
-    a marked item, or a group with fewer than two members, raises `ValueError`, so
-    that no documents go out without a correct evaluation.
-
     The evaluation names rules and groups, never the values they checked (FR-017).
     """
     values = _DocumentValues(documents)
-    top_level = [_evaluated(item, values, shared_on) for item in branch.items]
+    based = branch.origin == 'based'
+    top_level = _evaluated_level(branch.items, values, shared_on, based)
     met = not top_level or _level_met(branch.operator, top_level)
     return Evaluation(
         branch=EvaluationBranch(id=branch.id, name=branch.name),
@@ -149,16 +183,32 @@ class _Evaluated:
     members: list['_Evaluated']
 
 
+def _evaluated_level(
+    items: Sequence[RuleItem | GroupItem],
+    values: '_DocumentValues',
+    shared_on: date,
+    based: bool,
+) -> list[_Evaluated]:
+    """The outcomes of the items of a level that count, in order."""
+    if not based and any(item.mark is not None for item in items):
+        raise ValueError('A branch that is not based on the main branch has a mark')
+    return [
+        _evaluated(item, values, shared_on, based)
+        for item in effective_items(items, based)
+    ]
+
+
 def _evaluated(
-    item: RuleItem | GroupItem, values: '_DocumentValues', shared_on: date
+    item: RuleItem | GroupItem,
+    values: '_DocumentValues',
+    shared_on: date,
+    based: bool,
 ) -> _Evaluated:
-    if item.mark is not None:
-        raise ValueError('The branch has a marked item, which is not evaluated yet')
     if isinstance(item, RuleItem):
         return _Evaluated(item, _rule_outcome(item, values, shared_on), [])
-    if len(item.items) < 2:
-        raise ValueError('A saved group has fewer than two members')
-    members = [_evaluated(member, values, shared_on) for member in item.items]
+    members = _evaluated_level(item.items, values, shared_on, based)
+    if len(members) < 2:
+        raise ValueError('A saved group has fewer than two members that count')
     outcome: Outcome = 'met' if _level_met(item.operator, members) else 'not_met'
     return _Evaluated(item, outcome, members)
 

@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from app.schemas import DeliveredDocument, DeliveredField, SnapshotBranch
+from app.schemas import DeliveredDocument, DeliveredField, Evaluation, SnapshotBranch
 from app.services.evaluation import evaluate_branch
 
 SHARED_ON = date(2026, 10, 23)
@@ -1181,12 +1181,248 @@ def test_the_result_list_of_the_contracts_example() -> None:
     }
 
 
-# What the evaluator doesn't evaluate yet, and saved rules that can't be right
+# A branch based on the main branch: its marks (FR-008, FR-009, FR-023; data-model.md
+# "Dissolution")
+
+AMBULANCE_ID = 'a83e5d0c-3f4b-4f6e-9b84-0e7f3c1d9a21'
 
 
+def _based(
+    *items: dict[str, Any], operator: str = 'and', operator_mark: str | None = None
+) -> SnapshotBranch:
+    return SnapshotBranch.model_validate(
+        {
+            'id': AMBULANCE_ID,
+            'name': 'Ambulance',
+            'description': 'Applicants for an ambulance licence',
+            'origin': 'based',
+            'operator': operator,
+            'operator_mark': operator_mark,
+            'items': list(items),
+        }
+    )
+
+
+def _marked(item: dict[str, Any], mark: str) -> dict[str, Any]:
+    return item | {'mark': mark}
+
+
+def _reported(evaluation: Evaluation) -> list[tuple[str, str | None, str]]:
+    """Each result's identifier, containing group and outcome."""
+    return [(result.id, result.group, result.outcome) for result in evaluation.results]
+
+
+# On SHARED_ON: 20 years old, has held class B for 1 year
+AGED_20_B_FOR_1 = _applicant(AGED_20, 'Stuttgart', B_FOR_1)
+
+
+def test_the_evaluation_names_the_based_branch() -> None:
+    evaluation = evaluate_branch(_based(AT_LEAST_19), AGED_20_B_FOR_1, SHARED_ON)
+
+    assert evaluation.branch.model_dump() == {'id': AMBULANCE_ID, 'name': 'Ambulance'}
+    assert evaluation.met is True
+
+
+def test_changed_and_added_rules_are_evaluated_as_the_branch_has_them() -> None:
+    # Ambulance asks for 19 where Standard asks for 21, and adds the 3-year rule
+    changed_age = _marked(
+        AT_LEAST_21
+        | {
+            'condition': {'operator': 'at_least_years_ago', 'years': 19},
+            'message': 'You must be at least 19 years old.',
+        },
+        'changed',
+    )
+    branch = _based(changed_age, _marked(B_FOR_3_YEARS, 'added'))
+
+    evaluation = evaluate_branch(branch, AGED_20_B_FOR_1, SHARED_ON)
+
+    assert _reported(evaluation) == [
+        ('rule-2', None, 'met'),
+        ('rule-4', None, 'not_met'),
+    ]
+    assert [message.id for message in evaluation.messages] == ['rule-4']
+
+
+def test_a_switched_top_level_is_combined_with_the_branchs_operator() -> None:
+    branch = _based(AT_LEAST_21, AT_LEAST_19, operator='or', operator_mark='changed')
+
+    assert evaluate_branch(branch, AGED_20_B_FOR_1, SHARED_ON).met is True
+
+
+def test_removed_rules_are_neither_evaluated_nor_reported() -> None:
+    branch = _based(_marked(AT_LEAST_21, 'removed'), AT_LEAST_19)
+
+    evaluation = evaluate_branch(branch, AGED_20_B_FOR_1, SHARED_ON)
+
+    assert _reported(evaluation) == [('rule-3', None, 'met')]
+    assert evaluation.met is True
+
+
+def test_a_removed_group_is_neither_evaluated_nor_reported_with_its_members() -> None:
+    # Its members are unmarked: a rule that Standard added to the group, too
+    removed = _marked(
+        _group(1, 'and', AT_LEAST_21, B_FOR_3_YEARS, message=GROUP_MESSAGE), 'removed'
+    )
+
+    evaluation = evaluate_branch(
+        _based(LIVES_IN_STUTTGART, removed), AGED_20_B_FOR_1, SHARED_ON
+    )
+
+    assert _reported(evaluation) == [('rule-1', None, 'met')]
+    assert evaluation.met is True
+
+
+@pytest.mark.parametrize('operator', ['and', 'or'])
+def test_a_branch_whose_rules_are_all_removed_is_met(operator: str) -> None:
+    branch = _based(
+        _marked(AT_LEAST_21, 'removed'),
+        _marked(_group(1, 'and', AT_LEAST_19, B_FOR_3_YEARS), 'removed'),
+        operator=operator,
+    )
+
+    evaluation = evaluate_branch(branch, AGED_20_B_FOR_1, SHARED_ON)
+
+    assert (evaluation.met, evaluation.results, evaluation.messages) == (True, [], [])
+
+
+def test_a_dissolved_group_passes_its_remaining_member_to_its_level() -> None:
+    # Ambulance removed the 21-year rule from user story 2's group. The group, its
+    # OR and its message no longer apply; the sub-group takes its place
+    group = _group(
+        1,
+        'or',
+        _marked(AT_LEAST_21, 'removed'),
+        _group(2, 'and', AT_LEAST_19, B_FOR_3_YEARS, name='Sub-group 02'),
+        message=GROUP_MESSAGE,
+    )
+
+    evaluation = evaluate_branch(
+        _based(LIVES_IN_STUTTGART, group), AGED_20_B_FOR_1, SHARED_ON
+    )
+
+    assert _reported(evaluation) == [
+        ('rule-1', None, 'met'),
+        ('group-2', None, 'not_met'),
+        ('rule-3', 'group-2', 'met'),
+        ('rule-4', 'group-2', 'not_met'),
+    ]
+    assert [message.model_dump() for message in evaluation.messages] == [
+        {'id': 'rule-4', 'message': 'You must have held class B for at least 3 years.'}
+    ]
+
+
+def test_a_dissolved_sub_group_passes_its_rule_to_the_group() -> None:
+    sub_group = _group(
+        2,
+        'and',
+        _marked(AT_LEAST_19, 'removed'),
+        B_FOR_3_YEARS,
+        message=SUB_GROUP_MESSAGE,
+    )
+
+    evaluation = evaluate_branch(
+        _based(_group(1, 'or', AT_LEAST_21, sub_group)), AGED_20_B_FOR_1, SHARED_ON
+    )
+
+    assert _reported(evaluation) == [
+        ('group-1', None, 'not_met'),
+        ('rule-2', 'group-1', 'not_met'),
+        ('rule-4', 'group-1', 'not_met'),
+    ]
+    assert [message.id for message in evaluation.messages] == ['rule-2', 'rule-4']
+
+
+def test_a_changed_group_dissolves_in_the_branch_too() -> None:
+    changed = _marked(
+        _group(1, 'or', _marked(AT_LEAST_21, 'removed'), B_FOR_3_YEARS), 'changed'
+    )
+
+    evaluation = evaluate_branch(_based(changed), AGED_20_B_FOR_1, SHARED_ON)
+
+    assert _reported(evaluation) == [('rule-4', None, 'not_met')]
+
+
+def test_a_dissolved_group_without_members_that_count_reports_nothing() -> None:
+    group = _group(
+        1, 'and', _marked(AT_LEAST_21, 'removed'), _marked(AT_LEAST_19, 'removed')
+    )
+
+    evaluation = evaluate_branch(
+        _based(group, B_FOR_3_YEARS), AGED_20_B_FOR_1, SHARED_ON
+    )
+
+    assert _reported(evaluation) == [('rule-4', None, 'not_met')]
+
+
+@pytest.mark.parametrize(
+    'second_member',
+    [
+        # The removal was undone
+        AT_LEAST_21,
+        # Standard added a member to the group
+        B_FOR_3_YEARS,
+        # Ambulance added one
+        _marked(B_FOR_3_YEARS, 'added'),
+    ],
+)
+def test_a_dissolved_group_counts_again_once_two_members_count(
+    second_member: dict[str, Any],
+) -> None:
+    group = _group(1, 'or', AT_LEAST_19, second_member)
+
+    evaluation = evaluate_branch(_based(group), AGED_20_B_FOR_1, SHARED_ON)
+
+    assert [result.id for result in evaluation.results] == [
+        'group-1',
+        'rule-3',
+        second_member['id'],
+    ]
+    assert evaluation.results[1].group == 'group-1'
+
+
+def test_a_sub_group_the_branch_formed_counts_as_one_member_of_the_group() -> None:
+    # Ambulance put the group's two rules into a sub-group of its own
+    own = _marked(_group(5, 'and', AT_LEAST_21, AT_LEAST_19), 'added')
+
+    alone = evaluate_branch(_based(_group(1, 'or', own)), AGED_20_B_FOR_1, SHARED_ON)
+    beside = evaluate_branch(
+        _based(_group(1, 'or', own, B_FOR_3_YEARS)), AGED_20_B_FOR_1, SHARED_ON
+    )
+
+    # With nothing beside it, the group is dissolved and its sub-group takes its place
+    assert _reported(alone) == [
+        ('group-5', None, 'not_met'),
+        ('rule-2', 'group-5', 'not_met'),
+        ('rule-3', 'group-5', 'met'),
+    ]
+    assert _reported(beside) == [
+        ('group-1', None, 'not_met'),
+        ('group-5', 'group-1', 'not_met'),
+        ('rule-2', 'group-5', 'not_met'),
+        ('rule-3', 'group-5', 'met'),
+        ('rule-4', 'group-1', 'not_met'),
+    ]
+
+
+def test_a_group_the_branch_added_isnt_dissolved_by_the_evaluator() -> None:
+    # The save's checks refuse it, since a group of the branch's own is dissolved at
+    # once (data-model.md "Dissolution")
+    own = _marked(
+        _group(5, 'and', AT_LEAST_19, _marked(AT_LEAST_21, 'removed')), 'added'
+    )
+
+    with pytest.raises(ValueError):
+        evaluate_branch(_based(own), AGED_20_B_FOR_1, SHARED_ON)
+
+
+# Saved rules that can't be right
+
+
+@pytest.mark.parametrize('origin', ['main', 'empty'])
 @pytest.mark.parametrize('mark', ['changed', 'removed', 'added'])
-def test_a_branch_with_a_marked_rule_is_refused(mark: str) -> None:
-    branch = _branch(AGE_21 | {'mark': mark})
+def test_a_mark_outside_a_based_branch_is_refused(mark: str, origin: str) -> None:
+    branch = _branch(AGE_21 | {'mark': mark}).model_copy(update={'origin': origin})
 
     with pytest.raises(ValueError):
         evaluate_branch(branch, _person('2001-01-01', '2021-09-01'), SHARED_ON)
@@ -1197,8 +1433,8 @@ def test_a_branch_with_a_marked_rule_is_refused(mark: str) -> None:
     [
         _group(1, 'or', AGE_21, HOLDS_B) | {'mark': 'changed'},
         _group(1, 'or', AGE_21 | {'mark': 'removed'}, HOLDS_B),
-        # A based branch's marks dissolve groups; a saved group without marks
-        # always has two members
+        # Only a based branch's marks dissolve groups; a saved group of another
+        # branch always has two members
         _group(1, 'or', AGE_21),
         _group(1, 'or'),
     ],

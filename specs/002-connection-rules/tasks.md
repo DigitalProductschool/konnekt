@@ -736,7 +736,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
 
 ### Implementation for User Story 3 (backend)
 
-- [ ] T053 [US3] Validate branches and their marks in `backend/app/services/rules.py` (FR-005, FR-006, FR-019 to FR-024; research R4; data-model.md "Marks in a based branch" and "Validation").
+- [X] T053 [US3] Validate branches and their marks in `backend/app/services/rules.py` (FR-005, FR-006, FR-019 to FR-024; research R4; data-model.md "Marks in a based branch" and "Validation").
   - "Branch names are unique", compared ignoring letter case and outer spaces. Message: "Two variants are called Ambulance. Give each variant its own name.".
   - `origin` is "`main`, `based` or `empty`": "`main` for the main branch only. Fixed when the branch is added". A saved branch keeps its origin.
   - "A saved branch id belongs to this form connection and isn't deleted". Message: "Unknown variant.". The main branch can't be left out of a save. With `replace: true`, T068 lets a branch that another save deleted come back as a new branch.
@@ -750,7 +750,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
   - Taken names in a based branch: the names of removed items, and the main branch's name of every `changed` item (FR-005).
   - Removed items are checked like the others.
   - A problem in an item that based branches inherit unchanged (unmarked or removed) is reported once, for the main branch (FR-006).
-- [ ] T054 [US3] Evaluate a branch's marks in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (FR-008, FR-009; research R7; data-model.md "Dissolution").
+- [X] T054 [US3] Evaluate a branch's marks in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (FR-008, FR-009; research R7; data-model.md "Dissolution").
   - Items marked `removed` aren't evaluated or reported.
   - An inherited group whose active members (data-model.md "Dissolution": not `removed`, and not moved into a group of the branch's own) number fewer than two counts as dissolved:
     - it isn't reported;
@@ -758,7 +758,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
   - A branch whose rules are all removed is met.
   - `evaluation.branch` carries the branch's `id` and its name in the request's rule set.
   - Tests: removed rules and groups, a dissolved group, its return once two members are active, and a sub-group the branch formed inside an inherited group, which counts as one member of it.
-- [ ] T055 [US3] Serve the pull URL of every other branch, in `backend/app/services/document_requests.py` and `backend/app/routers/connect.py` (FR-025, FR-027; research R3; contracts/integration-api.md "Order of the checks").
+- [X] T055 [US3] Serve the pull URL of every other branch, in `backend/app/services/document_requests.py` and `backend/app/routers/connect.py` (FR-025, FR-027; research R3; contracts/integration-api.md "Order of the checks").
   - The route: `GET /api/connect/{form_connection_id}/branches/{branch_id}/requests/{reference}` (`get_branch_document_request`):
     - a plain `def`, which maps EUDIPLO errors like the main pull URL;
     - the main branch's URL keeps evaluating the main branch.
@@ -775,7 +775,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
 
 ### Tests for User Story 3 (backend)
 
-- [ ] T056 [US3] Extend `backend/tests/unit/test_rules_validation.py` with T053's checks (depends on T053):
+- [X] T056 [US3] Extend `backend/tests/unit/test_rules_validation.py` with T053's checks (depends on T053):
   - variant names that differ only in letter case;
   - an unknown or deleted branch id;
   - a changed origin;
@@ -787,7 +787,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
   - taken names;
   - a problem reported once, for the main branch;
   - 21 branches.
-- [ ] T057 [US3] Write `backend/tests/api/test_connect_branches.py` (depends on T055). It covers:
+- [X] T057 [US3] Write `backend/tests/api/test_connect_branches.py` (depends on T055). It covers:
   - each answer of the order of checks, including `404` for the main branch's id in a branch URL;
   - the same status and documents through both branches, with different evaluations (US3-AS8);
   - after a save in which Standard changes a rule that Ambulance follows, the next request pulled through Ambulance's URL is evaluated with Standard's new version, while Ambulance's changed rule stays its own (SC-006, US3-AS3);
@@ -797,7 +797,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
   - a deleted branch, which answers `unavailable` while the trigger URL and the other branches keep working, also for requests in progress (US3-AS9);
   - deactivating, which makes every branch answer `unavailable`, and reactivating, which restores them (FR-027);
   - the reference on the new path, which the access-log redaction in `backend/app/main.py` replaces.
-- [ ] T058 [US3] Extend `backend/tests/api/test_form_connection_rules.py` with branches:
+- [X] T058 [US3] Extend `backend/tests/api/test_form_connection_rules.py` with branches:
   - a save with a based and an empty branch returns their ids and pull URLs;
   - a rename keeps the id and the URL;
   - a branch that a save leaves out is deleted (`deleted_at`), and its id isn't reused;

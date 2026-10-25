@@ -4,13 +4,17 @@ Each refusal is a 400 whose message names the problem, the rule and its branch, 
 the words of the rules step's own checks.
 """
 
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
 from fastapi import HTTPException
 
+from app.db import SessionLocal
+from app.models import FormConnection, FormConnectionBranch, FormConnectionRuleSet
 from app.schemas import RequestedDocument, RulesInput
-from app.services.rules import RulesSave, clean_rules
+from app.services.rules import RulesSave, check_first_save, check_save, clean_rules
 from tests.helpers import (
     AGE_19_RULE,
     AGE_21_RULE,
@@ -26,6 +30,7 @@ from tests.helpers import (
     rules_input,
     target,
     us2_items,
+    variant,
 )
 
 DOCUMENTS = [
@@ -680,3 +685,544 @@ def test_a_groups_problems_come_before_its_members() -> None:
     assert _problem(_rules(group(1, [incomplete, AGE_19_RULE]))) == (
         'Rule 02 in Standard has no error message.'
     )
+
+
+# Variants based on Standard, and their marks (FR-005, FR-006, FR-019 to FR-024;
+# research R4; data-model.md "Marks in a based branch" and "Validation")
+
+OUT_OF_STEP = (
+    'The variant Ambulance is out of step with Standard. Reload the connection and '
+    'try again.'
+)
+INVALID_IDENTIFIER = (
+    'The rules contain an invalid identifier. Reload the connection and try again.'
+)
+UNKNOWN_VARIANT = 'Unknown variant.'
+US1_ITEMS = [AGE_RULE, CLASS_RULE, HELD_RULE]
+
+
+def _with_ambulance(
+    main_items: list[dict[str, Any]],
+    ambulance_items: list[dict[str, Any]],
+    **ambulance: Any,
+) -> dict[str, Any]:
+    """Standard with `main_items`, and Ambulance, based on it, with its own."""
+    return rules_input([main_branch(main_items), variant(ambulance_items, **ambulance)])
+
+
+def _marked(item: dict[str, Any], mark: str | None) -> dict[str, Any]:
+    return item | {'mark': mark}
+
+
+def _edited(
+    items: list[dict[str, Any]], item_id: str, **changes: Any
+) -> list[dict[str, Any]]:
+    """A copy of `items` in which the rule or group `item_id` has these changes."""
+    edited: list[dict[str, Any]] = []
+    for item in items:
+        if item['id'] == item_id:
+            item = item | changes
+        if item['type'] == 'group':
+            item = item | {'items': _edited(item['items'], item_id, **changes)}
+        edited.append(item)
+    return edited
+
+
+def test_a_based_variant_that_follows_standard_is_accepted() -> None:
+    save = _clean(_with_ambulance(us2_items(), us2_items()))
+
+    assert [item.model_dump() for item in save.branches[1].items] == us2_items()
+
+
+@pytest.mark.parametrize('mark', ['changed', 'removed', 'added'])
+def test_marks_appear_only_in_based_variants(mark: str) -> None:
+    marked = [_marked(AGE_RULE, mark), CLASS_RULE]
+    taxi = 'The variant Taxi is out of step with Standard. Reload the connection and '
+
+    assert _problem(_rules(*marked)) == (
+        'The variant Standard is out of step. Reload the connection and try again.'
+    )
+    assert _problem(
+        rules_input(
+            [main_branch(US1_ITEMS), variant(marked, name='Taxi', origin='empty')]
+        )
+    ) == (taxi + 'try again.')
+
+
+def test_a_switched_and_or_appears_only_in_based_variants() -> None:
+    taxi = variant([], name='Taxi', origin='empty', operator_mark='changed')
+
+    assert _problem(_rules(operator_mark='changed')) == (
+        'The variant Standard is out of step. Reload the connection and try again.'
+    )
+    assert _problem(rules_input([main_branch([]), taxi])).startswith(
+        'The variant Taxi is out of step with Standard.'
+    )
+
+
+@pytest.mark.parametrize(
+    ('main_items', 'ambulance_items'),
+    [
+        # A top-level rule
+        (US1_ITEMS, [AGE_RULE, CLASS_RULE]),
+        # A group's member
+        (us2_items(), [STUTTGART_RULE, group(1, [AGE_21_RULE], operator='or')]),
+        # A group with its members
+        (us2_items(), [STUTTGART_RULE]),
+        # Everything
+        (us2_items(), []),
+    ],
+)
+def test_every_item_of_standard_appears_in_a_basedvariant(
+    main_items: list[dict[str, Any]], ambulance_items: list[dict[str, Any]]
+) -> None:
+    assert _problem(_with_ambulance(main_items, ambulance_items)) == OUT_OF_STEP
+
+
+def test_an_item_of_standard_appears_once_in_a_basedvariant() -> None:
+    twice = [AGE_RULE, CLASS_RULE, HELD_RULE, AGE_RULE]
+    in_own_group = [
+        AGE_RULE,
+        _marked(group(4, [CLASS_RULE, AGE_RULE]), 'added'),
+        HELD_RULE,
+    ]
+
+    assert _problem(_with_ambulance(US1_ITEMS, twice)) == INVALID_IDENTIFIER
+    assert _problem(_with_ambulance(US1_ITEMS, in_own_group)) == INVALID_IDENTIFIER
+
+
+@pytest.mark.parametrize(
+    ('item', 'accepted'),
+    [
+        # An item of Standard follows it, or is changed or removed; never added
+        (_marked(HELD_RULE, 'added'), False),
+        (_marked(HELD_RULE, None), True),
+        (_marked(HELD_RULE, 'changed'), True),
+        (_marked(HELD_RULE, 'removed'), True),
+    ],
+)
+def test_an_item_of_standard_isnt_marked_added(
+    item: dict[str, Any], accepted: bool
+) -> None:
+    payload = _with_ambulance(US1_ITEMS, [AGE_RULE, CLASS_RULE, item])
+
+    if accepted:
+        assert _clean(payload)
+    else:
+        assert _problem(payload) == OUT_OF_STEP
+
+
+@pytest.mark.parametrize('mark', [None, 'changed', 'removed'])
+def test_an_item_of_the_variants_own_is_marked_added(mark: str | None) -> None:
+    own = rule(9, CITY, {'operator': 'contains', 'value': 'a'}, 'Hi.')
+    payload = _with_ambulance(US1_ITEMS, [*US1_ITEMS, _marked(own, mark)])
+
+    assert _problem(payload) == OUT_OF_STEP
+    assert _clean(_with_ambulance(US1_ITEMS, [*US1_ITEMS, _marked(own, 'added')]))
+
+
+@pytest.mark.parametrize(
+    ('item_id', 'change'),
+    [
+        # A rule: its name, what it checks, its condition and its message
+        ('rule-1', {'name': 'Lives there'}),
+        ('rule-1', {'target': target('pid', 'family_name')}),
+        ('rule-1', {'condition': {'operator': 'equal_to', 'value': 'Esslingen'}}),
+        ('rule-1', {'condition': {'operator': 'contains', 'value': 'Stuttgart'}}),
+        (
+            'rule-1',
+            {
+                'condition': {
+                    'operator': 'equal_to',
+                    'value': 'Stuttgart',
+                    'match_case': True,
+                }
+            },
+        ),
+        ('rule-1', {'message': 'Live in Stuttgart.'}),
+        # A rule in a group
+        ('rule-2', {'condition': {'operator': 'at_least_years_ago', 'years': 22}}),
+        # A group: its AND/OR, name and message
+        ('group-1', {'operator': 'and'}),
+        ('group-1', {'name': 'Adults'}),
+        ('group-1', {'message': 'You must be an adult.'}),
+        ('group-2', {'operator': 'or'}),
+    ],
+)
+@pytest.mark.parametrize('mark', [None, 'removed'])
+def test_an_unmarked_or_removed_item_equals_standards(
+    item_id: str, change: dict[str, Any], mark: str | None
+) -> None:
+    ambulance = _edited(us2_items(), item_id, mark=mark, **change)
+
+    assert _problem(_with_ambulance(us2_items(), ambulance)) == OUT_OF_STEP
+    # Changed in Ambulance, the item has its own content
+    changed = _edited(us2_items(), item_id, mark='changed', **change)
+    assert _clean(_with_ambulance(us2_items(), changed))
+
+
+def test_items_are_compared_as_they_are_saved() -> None:
+    # Outer spaces are trimmed, and a condition keeps only its operator's keys
+    ambulance = _edited(
+        us2_items(),
+        'rule-1',
+        name=' Rule 01 ',
+        message=' You must live in Stuttgart. ',
+        condition={'operator': 'equal_to', 'value': 'Stuttgart', 'years': 3},
+    )
+
+    assert _clean(_with_ambulance(us2_items(), ambulance))
+
+
+def test_a_changed_item_may_equal_standards() -> None:
+    ambulance = _edited(
+        _edited(us2_items(), 'rule-1', mark='changed'), 'group-1', mark='changed'
+    )
+
+    assert _clean(_with_ambulance(us2_items(), ambulance))
+
+
+@pytest.mark.parametrize(
+    ('operator', 'operator_mark', 'accepted'),
+    [
+        ('or', None, False),
+        ('or', 'changed', True),
+        # Switched back in Ambulance, without undo: it stays its own
+        ('and', 'changed', True),
+        ('and', None, True),
+    ],
+)
+def test_a_based_variants_top_level_follows_standards_until_switched(
+    operator: str, operator_mark: str | None, accepted: bool
+) -> None:
+    payload = _with_ambulance(
+        US1_ITEMS, US1_ITEMS, operator=operator, operator_mark=operator_mark
+    )
+
+    if accepted:
+        assert _clean(payload)
+    else:
+        assert _problem(payload) == OUT_OF_STEP
+
+
+def test_a_rule_added_to_an_inherited_group_leaves_the_group_as_it_is() -> None:
+    added = _marked(
+        rule(5, CITY, {'operator': 'contains', 'value': 'gart'}, 'Hi.'), 'added'
+    )
+    stuttgart, us2_group = us2_items()
+    ambulance = [stuttgart, us2_group | {'items': [*us2_group['items'], added]}]
+
+    assert _clean(_with_ambulance(us2_items(), ambulance))
+
+
+def test_inherited_rules_grouped_in_the_variant_stay_as_they_are() -> None:
+    # Ambulance put two of Standard's rules into a group of its own
+    own_group = _marked(group(1, [AGE_RULE, CLASS_RULE], operator='or'), 'added')
+
+    assert _clean(_with_ambulance(US1_ITEMS, [own_group, HELD_RULE]))
+
+
+@pytest.mark.parametrize(
+    'removed_ids',
+    [
+        # Only the sub-group is left: the group is dissolved in Ambulance
+        ['rule-2'],
+        # Nothing is left of the group
+        ['rule-2', 'group-2'],
+        ['rule-2', 'rule-3', 'rule-4'],
+        # The sub-group is dissolved
+        ['rule-3'],
+    ],
+)
+def test_an_inherited_group_may_be_dissolved_in_a_basedvariant(
+    removed_ids: list[str],
+) -> None:
+    ambulance = us2_items()
+    for item_id in removed_ids:
+        ambulance = _edited(ambulance, item_id, mark='removed')
+
+    assert _clean(_with_ambulance(us2_items(), ambulance))
+
+
+def test_a_group_of_the_variants_own_needs_two_members_that_count() -> None:
+    # The inherited sub-group in it is dissolved, with nothing left
+    stuttgart, us2_group = us2_items()
+    [gone] = _edited(
+        _edited([us2_group['items'][1]], 'rule-3', mark='removed'),
+        'rule-4',
+        mark='removed',
+    )
+    own = _marked(group(5, [stuttgart, gone]), 'added')
+    ambulance = [own, us2_group | {'items': [AGE_21_RULE]}]
+
+    assert _problem(_with_ambulance(us2_items(), ambulance)) == (
+        'Group 05 in Ambulance needs at least two rules.'
+    )
+
+
+def _born_before_2000(name: str) -> dict[str, Any]:
+    birthdate = target('pid', 'birthdate')
+    return rule(
+        9, birthdate, {'operator': 'before', 'date': '2000-01-01'}, 'Hi.', name=name
+    )
+
+
+def test_the_names_of_removed_items_are_taken() -> None:
+    age = AGE_RULE | {'name': 'Age'}
+    own = _marked(_born_before_2000(name=' AGE '), 'added')
+
+    assert (
+        _problem(
+            _with_ambulance(
+                [age, CLASS_RULE], [_marked(age, 'removed'), CLASS_RULE, own]
+            )
+        )
+        == 'Another rule in Ambulance is already called Age.'
+    )
+
+
+def test_standards_names_of_changed_items_are_taken() -> None:
+    age = AGE_RULE | {'name': 'Age'}
+    changed = _marked(age | {'name': 'Age 19'}, 'changed')
+    own = _marked(_born_before_2000(name='age'), 'added')
+
+    # An undo would bring "Age" back, wherever the other rule is
+    assert (
+        _problem(_with_ambulance([age, CLASS_RULE], [own, changed, CLASS_RULE]))
+        == 'Another rule in Ambulance is already called Age.'
+    )
+    # The changed rule itself may keep the name
+    years_19 = {'operator': 'at_least_years_ago', 'years': 19}
+    kept = _marked(age | {'condition': years_19}, 'changed')
+    assert _clean(_with_ambulance([age, CLASS_RULE], [kept, CLASS_RULE]))
+
+
+def test_standards_name_of_a_changed_group_is_taken_as_a_groups() -> None:
+    main = _edited(us2_items(), 'group-1', name='Adults')
+    ambulance = [
+        *_edited(main, 'group-1', name='Grown-ups', mark='changed'),
+        _marked(
+            rule(9, CITY, {'operator': 'contains', 'value': 'a'}, 'Hi.', name='adults'),
+            'added',
+        ),
+    ]
+
+    assert _problem(_with_ambulance(main, ambulance)) == (
+        'Another group in Ambulance is already called Adults.'
+    )
+
+
+@pytest.mark.parametrize('mark', [None, 'removed'])
+def test_a_problem_in_an_inherited_item_is_reported_for_standard(
+    mark: str | None,
+) -> None:
+    incomplete = AGE_RULE | {'message': ''}
+
+    assert (
+        _problem(
+            _with_ambulance(
+                [incomplete, CLASS_RULE], [_marked(incomplete, mark), CLASS_RULE]
+            )
+        )
+        == 'Rule 01 in Standard has no error message.'
+    )
+    # Standard's rule checks data that's no longer requested, in both variants
+    unrequested = AGE_RULE | {'target': target('pid', 'nationalities')}
+    assert (
+        _problem(_with_ambulance([unrequested], [_marked(unrequested, mark)]))
+        == 'Rule 01 in Standard checks data that’s no longer requested.'
+    )
+
+
+def test_a_problem_in_a_variants_own_item_is_reported_for_thevariant() -> None:
+    incomplete = AGE_RULE | {'message': ''}
+
+    assert (
+        _problem(
+            _with_ambulance(
+                US1_ITEMS, [_marked(incomplete, 'changed'), CLASS_RULE, HELD_RULE]
+            )
+        )
+        == 'Rule 01 in Ambulance has no error message.'
+    )
+    # A removed item is checked like the others
+    assert (
+        _problem(
+            _with_ambulance(
+                US1_ITEMS, [_marked(incomplete, 'removed'), CLASS_RULE, HELD_RULE]
+            )
+        )
+        == 'Rule 01 in Ambulance has no error message.'
+    )
+
+
+def test_a_connection_has_at_most_20_based_variants() -> None:
+    variants = [variant(US1_ITEMS, name=f'Variant {number}') for number in range(20)]
+
+    assert _clean(rules_input([main_branch(US1_ITEMS), *variants[:19]]))
+    assert _problem(rules_input([main_branch(US1_ITEMS), *variants])) == (
+        'A connection can have at most 20 variants.'
+    )
+
+
+# A saved variant's id and origin, checked against the stored branches
+
+
+def _stored_connection() -> dict[str, str]:
+    """A form connection with Standard, Ambulance (based), Taxi (empty) and a
+    deleted variant, beside another form connection; their ids by name."""
+    ids = {
+        key: str(uuid.uuid4())
+        for key in (
+            'connection',
+            'Standard',
+            'Ambulance',
+            'Taxi',
+            'Deleted',
+            'other',
+            'other main',
+        )
+    }
+    with SessionLocal() as db:
+        for connection_id in (ids['connection'], ids['other']):
+            db.add(
+                FormConnection(
+                    id=connection_id,
+                    name='Test',
+                    servicebw_form='FS-1',
+                    current_revision=1,
+                    current_rule_set=1,
+                    next_rule_number=1,
+                    next_group_number=1,
+                )
+            )
+        db.flush()
+        db.add_all(
+            [
+                FormConnectionBranch(
+                    id=ids['Standard'],
+                    form_connection_id=ids['connection'],
+                    is_main=True,
+                ),
+                FormConnectionBranch(
+                    id=ids['Ambulance'],
+                    form_connection_id=ids['connection'],
+                    is_main=False,
+                ),
+                FormConnectionBranch(
+                    id=ids['Taxi'], form_connection_id=ids['connection'], is_main=False
+                ),
+                FormConnectionBranch(
+                    id=ids['Deleted'],
+                    form_connection_id=ids['connection'],
+                    is_main=False,
+                    deleted_at=datetime.now(tz=timezone.utc),
+                ),
+                FormConnectionBranch(
+                    id=ids['other main'],
+                    form_connection_id=ids['other'],
+                    is_main=True,
+                ),
+            ]
+        )
+        db.add(
+            FormConnectionRuleSet(
+                form_connection_id=ids['connection'],
+                version=1,
+                branches=_stored_branches(ids),
+            )
+        )
+        db.commit()
+    return ids
+
+
+def _stored_branches(ids: dict[str, str], **origins: str) -> list[dict[str, Any]]:
+    """Standard, Ambulance and Taxi without rules, as saved or as an edit sends
+    them; `origins` changes theirs."""
+    return [
+        main_branch([], branch_id=ids['Standard']),
+        variant(
+            [],
+            branch_id=ids['Ambulance'],
+            origin=origins.get('Ambulance', 'based'),
+        ),
+        variant(
+            [], name='Taxi', branch_id=ids['Taxi'], origin=origins.get('Taxi', 'empty')
+        ),
+    ]
+
+
+def _save_problem(ids: dict[str, str], branches: list[dict[str, Any]]) -> str | None:
+    """The message that refuses saving `branches`, or None if they pass."""
+    payload = RulesInput.model_validate(rules_input(branches, base_version=1))
+    with SessionLocal() as db:
+        form_connection = db.get_one(FormConnection, ids['connection'])
+        try:
+            check_save(
+                db, form_connection, clean_rules(payload, DOCUMENTS, ids['Standard'])
+            )
+        except HTTPException as error:
+            assert error.status_code == 400
+            assert isinstance(error.detail, dict)
+            message: str = error.detail['message']
+            return message
+    return None
+
+
+def test_saved_variants_and_new_ones_pass() -> None:
+    ids = _stored_connection()
+    new = variant([], name='School transport', origin='empty')
+
+    assert _save_problem(ids, [*_stored_branches(ids), new]) is None
+    # Leaving out a variant deletes it
+    assert _save_problem(ids, _stored_branches(ids)[:1]) is None
+
+
+@pytest.mark.parametrize('stored', ['Deleted', 'other', 'unknown'])
+def test_a_saved_variant_is_a_live_variant_of_this_connection(stored: str) -> None:
+    ids = _stored_connection()
+    branch_id = {
+        'Deleted': ids['Deleted'],
+        'other': ids['other main'],
+        'unknown': str(uuid.uuid4()),
+    }[stored]
+    stranger = variant([], name='Stranger', origin='empty', branch_id=branch_id)
+
+    assert _save_problem(ids, [*_stored_branches(ids), stranger]) == UNKNOWN_VARIANT
+
+
+def test_a_variant_is_saved_once() -> None:
+    ids = _stored_connection()
+    again = variant([], name='Ambulance 2', branch_id=ids['Ambulance'])
+
+    assert _save_problem(ids, [*_stored_branches(ids), again]) == UNKNOWN_VARIANT
+    # Not even as Standard's id
+    standard = variant([], name='Standard 2', branch_id=ids['Standard'])
+    assert _save_problem(ids, [*_stored_branches(ids), standard]) == UNKNOWN_VARIANT
+
+
+@pytest.mark.parametrize(
+    ('origins', 'variant'),
+    [({'Ambulance': 'empty'}, 'Ambulance'), ({'Taxi': 'based'}, 'Taxi')],
+)
+def test_a_saved_variant_keeps_its_origin(
+    origins: dict[str, str], variant: str
+) -> None:
+    ids = _stored_connection()
+
+    assert _save_problem(ids, _stored_branches(ids, **origins)) == (
+        f'The variant {variant} is out of step with Standard. Reload the connection '
+        'and try again.'
+    )
+
+
+def test_a_new_connections_variants_have_no_ids_yet() -> None:
+    ambulance = variant([], branch_id=str(uuid.uuid4()))
+    save = _clean(rules_input([main_branch([]), ambulance]))
+
+    with pytest.raises(HTTPException) as caught:
+        check_first_save(save)
+    assert caught.value.detail == {
+        'error': 'Validation error',
+        'message': UNKNOWN_VARIANT,
+    }
