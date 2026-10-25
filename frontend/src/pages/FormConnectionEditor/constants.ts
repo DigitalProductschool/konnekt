@@ -100,6 +100,29 @@ export const PUBLISH_COPY = {
   replaceTheirChanges: 'Replace their changes',
 };
 
+// The question before data that rules check goes (F18): U10 6324:40071 for a document and
+// 6324:40396 for a field. The rules are listed, one per line, between the dialog's two
+// sentences; "All data" and the singular are proposed (design-notes.md §2)
+const rulesCheck = (count: number) => `${count} ${count === 1 ? 'rule checks' : 'rules check'}`;
+const editThem = (count: number, editing: boolean) =>
+  `edit or delete ${count === 1 ? 'this rule' : 'these rules'} before you ${editing ? 'save' : 'publish'}.`;
+
+export const REMOVE_DATA_COPY = {
+  documentTitle: (document: string) => `Remove ${document}?`,
+  fieldTitle: (field: string) => `Stop requesting ${field}?`,
+  allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
+  documentText: (count: number) => `${rulesCheck(count)} data from this document:`,
+  fieldText: (count: number) => `${rulesCheck(count)} it:`,
+  allFieldsText: (count: number) => `${rulesCheck(count)} this data:`,
+  documentAfter: (count: number, editing: boolean) =>
+    `After removing it, ${editThem(count, editing)}`,
+  fieldAfter: (count: number, editing: boolean) => `After this, ${editThem(count, editing)}`,
+  rule: (rule: string, branch: string) => `${rule} in ${branch}`,
+  cancel: 'Cancel',
+  removeDocument: 'Remove document',
+  stopRequesting: 'Stop requesting',
+};
+
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';
 
@@ -162,5 +185,6 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   dialogOpen: false,
   publishing: false,
   removed: null,
+  pendingRemoval: null,
   toast: null,
 };

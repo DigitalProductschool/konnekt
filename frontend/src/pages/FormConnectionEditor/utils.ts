@@ -9,19 +9,29 @@ import type {
 } from '../../types/form-connections';
 import { sameValue } from '../../utils/rules/branches';
 import { countRules } from '../../utils/rules/tree';
+import { rulesCheckingData } from '../../utils/rules/validation';
 import {
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
   PUBLISH_COPY,
+  REMOVE_DATA_COPY,
   RULES_CHANGED_ERROR,
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
 import { RULES_COPY } from './RulesStep/constants';
-import type { RulesState } from './RulesStep/types';
-import type { EditorAction, EditorErrors, EditorMode, EditorState, EditorStep } from './types';
+import type { RulesBranch, RulesState } from './RulesStep/types';
+import type {
+  EditorAction,
+  EditorErrors,
+  EditorMode,
+  EditorState,
+  EditorStep,
+  PendingRemoval,
+  RemovedDataRule,
+} from './types';
 
 /** The wizard's first state: empty, or the connection to edit with its documents. */
 export function initialEditorState({
@@ -93,6 +103,83 @@ function withoutFieldError(errors: EditorErrors, documentType: string): EditorEr
   const fields = { ...errors.fields };
   delete fields[documentType];
   return { ...errors, fields };
+}
+
+/** The change a removal makes, once it is confirmed or needs no question. */
+export function removalAction(removal: PendingRemoval): EditorAction {
+  switch (removal.type) {
+    case 'document':
+      return { type: 'removeDocument', documentType: removal.documentType, label: removal.label };
+    case 'field':
+      return {
+        type: 'setField',
+        documentType: removal.documentType,
+        field: removal.field,
+        selected: false,
+      };
+    case 'allFields':
+      return { type: 'setAllFields', documentType: removal.documentType, fields: [] };
+  }
+}
+
+/**
+ * The rules, in every branch, that check the data a removal takes away (FR-029): a document's
+ * rules, a field's, or for "All data" those of the fields still selected. Rules on data the
+ * connection already doesn't request are flagged by the Rules step (F11) and not named again.
+ */
+export function rulesCheckingRemoval(
+  removal: PendingRemoval,
+  branches: RulesBranch[],
+  documents: RequestedDocument[]
+): RemovedDataRule[] {
+  const selected =
+    documents.find((document) => document.document_type === removal.documentType)?.fields ?? [];
+  const found =
+    removal.type === 'field'
+      ? rulesCheckingData(branches, removal.documentType, removal.field)
+      : rulesCheckingData(branches, removal.documentType).filter(
+          ({ rule }) => rule.target !== null && selected.includes(rule.target.field)
+        );
+  return found.map(({ branchIndex, rule }) => ({
+    key: `${branches[branchIndex].key}-${rule.id}`,
+    ruleName: rule.name.trim(),
+    branchName: branches[branchIndex].name.trim(),
+  }));
+}
+
+/**
+ * The removal dialog's words for a removal that names `count` rules (U10; F18): a document's
+ * removal or a field's deselection, as designed, or "All data" unticked. In the edit flow the
+ * rules need changing "before you save". Empty while no removal waits.
+ */
+export function removalCopyOf(
+  removal: PendingRemoval | null,
+  count: number,
+  editing: boolean
+): { title: string; text: string; after: string; confirmLabel: string } {
+  if (!removal) {
+    return { title: '', text: '', after: '', confirmLabel: '' };
+  }
+  if (removal.type === 'document') {
+    return {
+      title: REMOVE_DATA_COPY.documentTitle(removal.label),
+      text: REMOVE_DATA_COPY.documentText(count),
+      after: REMOVE_DATA_COPY.documentAfter(count, editing),
+      confirmLabel: REMOVE_DATA_COPY.removeDocument,
+    };
+  }
+  return {
+    title:
+      removal.type === 'field'
+        ? REMOVE_DATA_COPY.fieldTitle(removal.label)
+        : REMOVE_DATA_COPY.allFieldsTitle(removal.label),
+    text:
+      removal.type === 'field'
+        ? REMOVE_DATA_COPY.fieldText(count)
+        : REMOVE_DATA_COPY.allFieldsText(count),
+    after: REMOVE_DATA_COPY.fieldAfter(count, editing),
+    confirmLabel: REMOVE_DATA_COPY.stopRequesting,
+  };
 }
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -185,6 +272,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             ? withoutFieldError(state.errors, action.documentType)
             : state.errors,
       };
+    case 'askRemoval':
+      return { ...state, pendingRemoval: action.removal };
+    case 'cancelRemoval':
+      return { ...state, pendingRemoval: null };
+    case 'confirmRemoval': {
+      // The data goes as it would have without rules; the rules stay, and refuse publishing
+      // and saving while they remain (FR-006)
+      const { pendingRemoval } = state;
+      const closed = { ...state, pendingRemoval: null };
+      return pendingRemoval ? editorReducer(closed, removalAction(pendingRemoval)) : closed;
+    }
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
     case 'closeDialog':
@@ -269,6 +367,19 @@ export function firstInvalidElementId(
 
 export function labelOf(documentType: string, documentTypes: DocumentType[]): string {
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
+}
+
+/** A field's label, such as "Date of birth", for the removal dialog's title (F18). */
+export function fieldLabelOf(
+  documentType: string,
+  field: string,
+  documentTypes: DocumentType[]
+): string {
+  return (
+    documentTypes
+      .find((type) => type.key === documentType)
+      ?.fields.find((entry) => entry.key === field)?.label ?? field
+  );
 }
 
 /** The publish dialog's documents: "Personal ID · 7 data items", one line each (U33). */

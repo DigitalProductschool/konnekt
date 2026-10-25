@@ -34,6 +34,25 @@ export interface EditorErrors {
   fields?: Record<string, string>;
 }
 
+/**
+ * Data that rules check, about to stop being requested (FR-029; F18): the documents step names
+ * those rules first, and the change applies once the team member confirms it
+ */
+export type PendingRemoval =
+  /** Removing a document; `label` is the document's */
+  | { type: 'document'; documentType: string; label: string }
+  /** Deselecting one field; `label` is the field's */
+  | { type: 'field'; documentType: string; field: string; label: string }
+  /** Deselecting every field through "All data"; `label` is the document's */
+  | { type: 'allFields'; documentType: string; label: string };
+
+/** A rule that a pending removal names, with its branch: "Rule 01 in Standard" */
+export interface RemovedDataRule {
+  key: string;
+  ruleName: string;
+  branchName: string;
+}
+
 export interface EditorState {
   step: EditorStep;
   name: string;
@@ -49,6 +68,8 @@ export interface EditorState {
   publishing: boolean;
   /** The last removed document, with its selection, which Undo brings back */
   removed: RequestedDocument | null;
+  /** Data that rules check, waiting for the team member to confirm its removal (FR-029) */
+  pendingRemoval: PendingRemoval | null;
   toast: ToastContent | null;
 }
 
@@ -63,6 +84,9 @@ export type EditorAction =
   | { type: 'dismissToast' }
   | { type: 'setField'; documentType: string; field: string; selected: boolean }
   | { type: 'setAllFields'; documentType: string; fields: string[] }
+  | { type: 'askRemoval'; removal: PendingRemoval }
+  | { type: 'cancelRemoval' }
+  | { type: 'confirmRemoval' }
   | { type: 'openDialog' }
   | { type: 'closeDialog' }
   | { type: 'publish' }
@@ -160,6 +184,21 @@ export interface PublishDialogProps {
   onReload: () => void;
   /** "Replace their changes", after `rulesChanged`: the same save, replacing their rules */
   onReplace: () => void;
+}
+
+export interface RemoveDataDialogProps {
+  /** The removal waiting for an answer; the dialog is open while there is one */
+  removal: PendingRemoval | null;
+  /** The rules it names, in branch and tree order */
+  rules: RemovedDataRule[];
+  /** Editing a connection: the rules need changing "before you save" */
+  editing: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+export interface RemovedDataRuleItemProps {
+  rule: RemovedDataRule;
 }
 
 export interface PublishSummaryRowProps {

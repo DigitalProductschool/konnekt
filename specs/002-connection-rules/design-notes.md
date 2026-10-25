@@ -47,6 +47,31 @@ addition:
 | Page hint | "Each rule checks the data applicants share. If a rule isn’t met, the applicant sees its error message." | U11 `6348:40213` |
 | Empty state (every variant without rules, W5) | "No rules yet" / "Without rules, anyone who shares the requested documents can apply." / button "Add rule" | U11 `6348:40217` |
 
+### Removing data that rules check (S1, F18; U10 `6324:40071`, `6324:40396`)
+
+Asked on the documents step before a document is removed or a field deselected, also by
+unticking "All data", while rules of any variant check that data (FR-029). Built (T072,
+2026-10-25). The user chose to list the rules rather than writing them into one sentence as U10
+does (node discovery's UNCERTAIN item): the list goes between U10's two sentences, one rule per
+line, as KERN's large bullet list.
+
+| Element | Document (U10 `6324:40071`) | Field (U10 `6324:40396`) | "All data" (proposed) |
+|---|---|---|---|
+| Title | "Remove Personal ID?" | "Stop requesting Date of birth?" | "Stop requesting all data from Personal ID?" |
+| First sentence | "3 rules check data from this document:" | "2 rules check it:" | "3 rules check this data:" |
+| List | "Rule 01 in Standard", "Rule 05 in Ambulance", … | the same | the same |
+| Last sentence | "After removing it, edit or delete these rules before you publish." | "After this, edit or delete these rules before you publish." | as for a field |
+| Buttons | "Cancel" / "Remove document" (danger) | "Cancel" / "Stop requesting" (danger) | as for a field |
+
+- In the edit flow the last sentence ends "… before you save." (F18).
+- One rule (proposed): "1 rule checks …" and "edit or delete this rule".
+- Every variant's rules are named, also those a based variant inherits and its removed ones:
+  each stops being met in its variant. Rules on data the connection already doesn't request
+  aren't named again; the Rules step flags them (F11).
+- "Cancel", Escape and the close button keep the data, and the focus returns to the control that
+  asked. Confirming removes it as without rules (a removed document keeps its toast with
+  "Undo"), and the rules stay: publishing and saving are refused while they remain (F11).
+
 ### Document menu footer (FYI #20)
 
 Figma has two wordings for the footer of the rule editor's document menu: "Lists the documents you
@@ -316,6 +341,15 @@ Built (T043), where U37 leaves the wording open:
   once per identifier, removed ones left out).
 - A variant without rules (proposed): "No rules. Anyone who shares the requested documents can
   apply."
+
+Built (T071, 2026-10-25), decided by the user where U37 draws nothing (node discovery's UNCERTAIN
+item): **"Edit rules"** sits in the rules card's header, in the place of Figma's "Download PDF"
+(U37 `6396:47755`, dropped by F25), and is styled like it: a KERN secondary button with the edit
+icon, left of "View summary", so it shows while the card is closed. It opens the edit wizard at
+the Rules step (FR-030), with no question on entry (F27); saving asks in the save dialog (W7,
+§6). Below 640 px the actions wrap under the title, and "Edit rules" shows only its icon, as the
+details' footer does. The footer keeps "Edit documents"; U37's footer "Edit connection" (F27)
+isn't built.
 
 ## 8. Open points
 

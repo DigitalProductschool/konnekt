@@ -14,6 +14,9 @@ export interface DetailLocationState {
 
 /** Router state that the edit screen reads */
 export interface EditLocationState {
-  /** The step to open at; the details' "Edit documents" opens the documents */
-  step?: 'connection' | 'documents';
+  /**
+   * The step to open at; the details' "Edit documents" opens the documents, and their rules
+   * card's "Edit rules" the rules (FR-030)
+   */
+  step?: 'connection' | 'documents' | 'rules';
 }

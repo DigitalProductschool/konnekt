@@ -22,6 +22,7 @@ import { EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
 import PublishDialog from './PublishDialog';
+import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
 import RulesDialogs from './RulesStep/RulesDialogs';
 import type { LeaveEditorAction, RulesCatalog, RulesState } from './RulesStep/types';
@@ -32,19 +33,23 @@ import {
   neighbourOf,
   rulesReducer,
 } from './RulesStep/utils';
-import type { EditorErrors, FormConnectionEditorPageProps } from './types';
+import type { EditorErrors, FormConnectionEditorPageProps, PendingRemoval } from './types';
 import {
   createPayload,
   documentLines,
   editorReducer,
+  fieldLabelOf,
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
   initialEditorState,
   isRulesChanged,
+  labelOf,
   pageTitleOf,
   publishErrorNotice,
+  removalAction,
   ruleLines,
+  rulesCheckingRemoval,
   validateConnection,
   validateDocuments,
 } from './utils';
@@ -311,8 +316,42 @@ export default function FormConnectionEditorPage({
     }
   }
 
+  /**
+   * Removes a document or deselects data, or, when rules in any branch check it, first asks in
+   * a dialog that names them (FR-029; F18).
+   */
+  function removeOrAsk(removal: PendingRemoval) {
+    if (rulesCheckingRemoval(removal, rules.branches, state.documents).length > 0) {
+      dispatch({ type: 'askRemoval', removal });
+      return;
+    }
+    dispatch(removalAction(removal));
+  }
+
   function handleRemove(documentType: DocumentType) {
-    dispatch({ type: 'removeDocument', documentType: documentType.key, label: documentType.label });
+    removeOrAsk({ type: 'document', documentType: documentType.key, label: documentType.label });
+  }
+
+  function handleSetField(documentType: string, field: string, selected: boolean) {
+    if (selected) {
+      dispatch({ type: 'setField', documentType, field, selected });
+      return;
+    }
+    removeOrAsk({
+      type: 'field',
+      documentType,
+      field,
+      label: fieldLabelOf(documentType, field, documentTypes),
+    });
+  }
+
+  /** "All data": ticked selects every field; unticked deselects them, asking first (F18). */
+  function handleSetAllFields(documentType: string, fields: string[]) {
+    if (fields.length > 0) {
+      dispatch({ type: 'setAllFields', documentType, fields });
+      return;
+    }
+    removeOrAsk({ type: 'allFields', documentType, label: labelOf(documentType, documentTypes) });
   }
 
   function handleUndo() {
@@ -357,12 +396,8 @@ export default function FormConnectionEditorPage({
               dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder })
             }
             onRemove={handleRemove}
-            onSetField={(documentType, field, selected) =>
-              dispatch({ type: 'setField', documentType, field, selected })
-            }
-            onSetAllFields={(documentType, fields) =>
-              dispatch({ type: 'setAllFields', documentType, fields })
-            }
+            onSetField={handleSetField}
+            onSetAllFields={handleSetAllFields}
           />
         );
       case 'rules':
@@ -433,6 +468,17 @@ export default function FormConnectionEditorPage({
             onConfirm={() => handleConfirm()}
             onReload={() => onReload?.()}
             onReplace={() => handleConfirm(true)}
+          />
+          <RemoveDataDialog
+            removal={state.pendingRemoval}
+            rules={
+              state.pendingRemoval
+                ? rulesCheckingRemoval(state.pendingRemoval, rules.branches, state.documents)
+                : []
+            }
+            editing={editing}
+            onCancel={() => dispatch({ type: 'cancelRemoval' })}
+            onConfirm={() => dispatch({ type: 'confirmRemoval' })}
           />
           <RulesDialogs
             state={rules}

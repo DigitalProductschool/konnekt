@@ -5,13 +5,17 @@ import type { Branch, FormConnection } from '../../types/form-connections';
 import { US1_RULES } from '../../utils/rules/testData';
 import { INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
 import { initialRulesState } from './RulesStep/utils';
+import type { PendingRemoval } from './types';
 import {
   createPayload,
   editorReducer,
   initialEditorState,
   isRulesChanged,
   publishErrorNotice,
+  removalAction,
+  removalCopyOf,
   rulesChanged,
+  rulesCheckingRemoval,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -200,4 +204,102 @@ describe('editorReducer and rules_changed', () => {
       });
     }
   );
+});
+
+describe('removing data that rules check (FR-029, F18)', () => {
+  const documents = [
+    { document_type: 'pid', fields: ['birthdate', 'nationalities'] },
+    { document_type: 'mdl', fields: ['driving_privileges'] },
+  ];
+  const rules = initialRulesState(LOADED);
+  const DOCUMENT: PendingRemoval = {
+    type: 'document',
+    documentType: 'mdl',
+    label: 'Driving licence',
+  };
+  const FIELD: PendingRemoval = {
+    type: 'field',
+    documentType: 'pid',
+    field: 'birthdate',
+    label: 'Date of birth',
+  };
+  const ALL: PendingRemoval = { type: 'allFields', documentType: 'pid', label: 'Personal ID' };
+
+  it('names the rules of a document, a field and "All data", with their variants', () => {
+    const named = (removal: PendingRemoval) =>
+      rulesCheckingRemoval(removal, rules.branches, documents).map(
+        ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
+      );
+    expect(named(DOCUMENT)).toEqual(['Rule 02 in Standard', 'Rule 03 in Standard']);
+    expect(named(FIELD)).toEqual(['Rule 01 in Standard']);
+    expect(named(ALL)).toEqual(['Rule 01 in Standard']);
+    expect(named({ ...FIELD, field: 'nationalities' })).toEqual([]);
+  });
+
+  it('leaves out rules on data already not requested, which the Rules step flags', () => {
+    const withoutBirthdate = [{ document_type: 'pid', fields: ['nationalities'] }];
+    expect(rulesCheckingRemoval(ALL, rules.branches, withoutBirthdate)).toEqual([]);
+    expect(
+      rulesCheckingRemoval({ ...DOCUMENT, documentType: 'pid' }, rules.branches, withoutBirthdate)
+    ).toEqual([]);
+  });
+
+  it('gives each named rule a key of its own in every variant', () => {
+    const twice = {
+      ...rules,
+      branches: [rules.branches[0], { ...rules.branches[0], key: 'ambulance', name: 'Ambulance' }],
+    };
+    const keys = rulesCheckingRemoval(FIELD, twice.branches, documents).map(({ key }) => key);
+    expect(new Set(keys).size).toBe(2);
+  });
+
+  it('asks first, then applies the change once confirmed, keeping no question open', () => {
+    const state = { ...INITIAL_EDITOR_STATE, documents };
+    const asked = editorReducer(state, { type: 'askRemoval', removal: FIELD });
+    expect(asked.pendingRemoval).toEqual(FIELD);
+    expect(asked.documents).toEqual(documents);
+
+    expect(editorReducer(asked, { type: 'cancelRemoval' })).toEqual(state);
+
+    const confirmed = editorReducer(asked, { type: 'confirmRemoval' });
+    expect(confirmed.pendingRemoval).toBeNull();
+    expect(confirmed.documents[0].fields).toEqual(['nationalities']);
+  });
+
+  it('removes a document as without rules, with its Undo, and "All data" deselects every field', () => {
+    const state = { ...INITIAL_EDITOR_STATE, documents };
+    const removed = editorReducer(editorReducer(state, { type: 'askRemoval', removal: DOCUMENT }), {
+      type: 'confirmRemoval',
+    });
+    expect(removed).toEqual(editorReducer(state, removalAction(DOCUMENT)));
+    expect(removed.documents.map((document) => document.document_type)).toEqual(['pid']);
+    expect(removed.toast?.message).toBe('Driving licence removed');
+
+    const cleared = editorReducer(editorReducer(state, { type: 'askRemoval', removal: ALL }), {
+      type: 'confirmRemoval',
+    });
+    expect(cleared.documents[0].fields).toEqual([]);
+  });
+
+  it('words the dialog as designed, "before you save" when editing', () => {
+    expect(removalCopyOf(DOCUMENT, 3, false)).toEqual({
+      title: 'Remove Driving licence?',
+      text: '3 rules check data from this document:',
+      after: 'After removing it, edit or delete these rules before you publish.',
+      confirmLabel: 'Remove document',
+    });
+    expect(removalCopyOf(FIELD, 2, true)).toEqual({
+      title: 'Stop requesting Date of birth?',
+      text: '2 rules check it:',
+      after: 'After this, edit or delete these rules before you save.',
+      confirmLabel: 'Stop requesting',
+    });
+    expect(removalCopyOf(ALL, 1, false)).toEqual({
+      title: 'Stop requesting all data from Personal ID?',
+      text: '1 rule checks this data:',
+      after: 'After this, edit or delete this rule before you publish.',
+      confirmLabel: 'Stop requesting',
+    });
+    expect(removalCopyOf(null, 0, false).title).toBe('');
+  });
 });

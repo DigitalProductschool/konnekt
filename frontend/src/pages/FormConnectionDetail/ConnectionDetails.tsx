@@ -123,7 +123,11 @@ export default function ConnectionDetails({
           headingRef={headingRef}
         />
         <DocumentsSummary documents={formConnection.documents} />
-        <RulesSummary branches={formConnection.branches} documents={formConnection.documents} />
+        <RulesSummary
+          formConnectionId={formConnection.id}
+          branches={formConnection.branches}
+          documents={formConnection.documents}
+        />
         <ConnectionStatus
           isActive={isActive}
           activating={state.running === 'activate'}

@@ -971,13 +971,13 @@ changed. Then deselect a field that a rule checks: the dialog names the rule, an
 
 ### Implementation for User Story 4
 
-- [ ] T071 [US4] Open the Rules step from the details (S6, S7; F10, F27, W7; FR-030; Figma U37 `6424:34839`, U38 `6396:48909`, `6396:49030`).
+- [X] T071 [US4] Open the Rules step from the details (S6, S7; F10, F27, W7; FR-030; Figma U37 `6424:34839`, U38 `6396:48909`, `6396:49030`).
   - `frontend/src/types/routing.ts`: `EditLocationState.step` gains `'rules'`.
   - `frontend/src/pages/FormConnectionEdit/utils.ts`: `initialStepOf` returns `'rules'`. Extend T001's `utils.test.ts`.
   - `RulesSummary.tsx` gets an "Edit rules" link, a `Link` with `state: { step: 'rules' }`. `DetailFooter` keeps "Edit documents".
   - The edit wizard opens at the Rules step with "Save" as its primary action (F10), without "Edit this live connection?" on entry (F27).
   - Saving asks for confirmation in the save dialog (W7), in the words design-notes.md took over (F27).
-- [ ] T072 [US4] Name the rules before removing the data they check (S1, S7; F18; FR-029, US4-AS3; Figma U10 `6324:40001`, `6324:40326`).
+- [X] T072 [US4] Name the rules before removing the data they check (S1, S7; F18; FR-029, US4-AS3; Figma U10 `6324:40001`, `6324:40326`).
   - In `frontend/src/utils/rules/validation.ts`, `rulesCheckingData(branches, documentType, field?)` returns the rules of every branch, removed items included, that check a document or a field. Test it in `validation.test.ts`.
   - The documents step (`DocumentsStep.tsx`, `DocumentPicker.tsx`, `FieldChecklist.tsx`, and `index.tsx`'s reducer, with the pending removal) opens a new `RemoveDataDialog.tsx` before:
     - removing a document that rules check;

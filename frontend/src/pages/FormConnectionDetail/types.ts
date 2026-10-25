@@ -101,6 +101,8 @@ export interface ConnectionStatusProps {
 }
 
 export interface RulesSummaryProps {
+  /** "Edit rules" opens the edit wizard of this connection at its Rules step (FR-030) */
+  formConnectionId: string;
   /** Main branch first */
   branches: Branch[];
   /** The requested documents, which the statements name */

@@ -156,6 +156,30 @@ export function unrequestedRules(
 }
 
 /**
+ * The rules that check a document, or one of its fields, with their branch's index, for the
+ * documents step's question before that data goes (FR-029, US4-AS3; F18). Every branch's rules
+ * count, removed ones and those a based branch inherits included: each stops being met in its
+ * branch, and the step refuses publishing or saving while any of them remains (FR-006).
+ */
+export function rulesCheckingData(
+  branches: Pick<BranchInput, 'items'>[],
+  documentType: string,
+  field?: string
+): { branchIndex: number; rule: RuleItem }[] {
+  return branches.flatMap((branch, branchIndex) =>
+    flattenItems(branch.items)
+      .filter((item): item is RuleItem => item.type === 'rule')
+      .filter(
+        ({ target }) =>
+          target !== null &&
+          target.document_type === documentType &&
+          (field === undefined || target.field === field)
+      )
+      .map((rule) => ({ branchIndex, rule }))
+  );
+}
+
+/**
  * The first problem of a rule's target, condition or message, in the server's words, or null
  * (FR-006). `context.documents` are the requested documents with their requested fields.
  */

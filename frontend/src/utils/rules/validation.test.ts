@@ -12,6 +12,7 @@ import {
   firstProblem,
   nameProblem,
   reservedNameProblem,
+  rulesCheckingData,
   unrequestedRules,
   variantNameProblem,
 } from './validation';
@@ -774,6 +775,63 @@ describe('unrequestedRules', () => {
       [0, 'rule-2'],
       [0, 'rule-3'],
       [1, 'rule-3'],
+    ]);
+  });
+});
+
+describe('rulesCheckingData (FR-029, F18)', () => {
+  /** The branch index and identifier of each rule found. */
+  function found(...args: Parameters<typeof rulesCheckingData>) {
+    return rulesCheckingData(...args).map(({ branchIndex, rule: item }) => [branchIndex, item.id]);
+  }
+
+  it('lists the rules that check a document, in branch and tree order', () => {
+    expect(found([mainBranch()], 'mdl')).toEqual([
+      [0, 'rule-2'],
+      [0, 'rule-3'],
+    ]);
+    expect(found([mainBranch()], 'pid')).toEqual([[0, 'rule-1']]);
+  });
+
+  it('lists the rules that check a field, whatever part they check', () => {
+    expect(found([mainBranch()], 'pid', 'birthdate')).toEqual([[0, 'rule-1']]);
+    expect(found([mainBranch()], 'mdl', 'driving_privileges')).toEqual([
+      [0, 'rule-2'],
+      [0, 'rule-3'],
+    ]);
+    expect(found([mainBranch()], 'pid', 'nationalities')).toEqual([]);
+    expect(found([mainBranch()], 'mdl', 'birthdate')).toEqual([]);
+  });
+
+  it('finds rules in groups and sub-groups', () => {
+    const items = [group(1, [US1_RULES[1], group(2, [US1_RULES[0], US1_RULES[2]])])];
+    expect(found([mainBranch(items)], 'pid', 'birthdate')).toEqual([[0, 'rule-1']]);
+  });
+
+  it('leaves out rules without a target', () => {
+    expect(found([mainBranch([rule(1, null, null)])], 'pid')).toEqual([]);
+  });
+
+  it('names the rules of every branch, inherited and removed ones included', () => {
+    const main = mainBranch();
+    const based = newBranch(main, 'based', 'Ambulance', null);
+    const removed = must(removeItem(main, based, 'rule-1'));
+    const empty = branch('School transport', [{ ...US1_RULES[0], id: 'rule-4', name: 'Rule 04' }]);
+    expect(found([main, removed, empty], 'pid', 'birthdate')).toEqual([
+      [0, 'rule-1'],
+      [1, 'rule-1'],
+      [2, 'rule-4'],
+    ]);
+    const removedGroup = must(
+      removeItem(
+        mainBranch([group(1, US1_RULES)]),
+        newBranch(mainBranch([group(1, US1_RULES)]), 'based', 'Ambulance', null),
+        'group-1'
+      )
+    );
+    expect(found([removedGroup], 'mdl')).toEqual([
+      [0, 'rule-2'],
+      [0, 'rule-3'],
     ]);
   });
 });
