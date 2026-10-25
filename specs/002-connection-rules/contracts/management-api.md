@@ -74,6 +74,13 @@ The request schemas accept incomplete rules (an empty `message`, a `null` `condi
 layer checks them, so that its message can name the problem, the rule and its branch, as spec 001
 does for documents.
 
+The request schemas keep each value's JSON type instead of converting it: `value` is a strict
+number or string, `years` and `amount` a strict integer or number, `values` strict strings or
+integers, and `match_case` a strict boolean. A string where a number belongs, or a boolean where
+a number or string belongs, is refused with spec 001's `400` "Invalid request payload", since the
+editor never sends one. A number that is fractional or below 1 reaches the service, which names the
+rule ("Rule 03 in Standard: enter a number of years of at least 1.").
+
 ## Endpoints
 
 | Method and path | Body | Success | Effects |
@@ -92,19 +99,22 @@ reactivating and deleting apply to the trigger URL and every branch's pull URL (
 | Status | `error` | When |
 |---|---|---|
 | `400` | `Validation error` | A rule of [data-model.md, "Validation"](../data-model.md#validation-fr-006-fr-020-research-r4-r9) is broken. The message names the problem, the rule or group by its name, and its branch, such as "Rule 02 in Standard has no error message." Nothing is saved |
-| `409` | `rules_changed` | `rules.base_version` isn't the current rule set and `rules.replace` is false: another team member saved the rules after this editor loaded them (FR-028). The message names every branch that replacing would delete, such as "Another team member saved the rules of this connection after you opened it. Replacing their changes deletes the variant School transport." Nothing is saved; the editor offers "Reload" or "Replace their changes" (ui-screens.md, W9) |
+| `409` | `rules_changed` | `rules.base_version` isn't the current rule set and `rules.replace` is false: another team member saved the rules after this editor loaded them (FR-028). The message names every branch that replacing would delete, and every branch that it would bring back with a new pull URL because the other save deleted it, such as "Another team member saved the rules of this connection after you opened it. Replacing their changes deletes the variant School transport and brings back the variant Taxi with a new pull URL." Nothing is saved; the editor offers "Reload" or "Replace their changes" (ui-screens.md, W9) |
 | `502`, `503` | as in spec 001 | Changed documents need a new EUDIPLO configuration, which failed. Nothing is saved, rules included (FR-028) |
 
 ## Saving, step by step (research R9)
 
-1. Check the name, the serviceBW form and the documents (spec 001), then the rules against those
-   documents (FR-006). Refuse with `400` before anything is written. If `rules` is present without
-   `replace` and `base_version` isn't the current rule set, refuse with `409 rules_changed`.
+1. Check the name, the serviceBW form and the documents (spec 001). If `rules` is present without
+   `replace` and `base_version` isn't the current rule set, refuse with `409 rules_changed`, before
+   the rules are checked, so that a stale editor meets this answer rather than a refusal its
+   staleness causes. Then check the rules against the documents (FR-006). Refuse with `400`
+   before anything is written.
 2. If the documents changed: reserve the next revision and create its EUDIPLO configuration (spec
    001, "Creating a revision").
 3. Lock the form connection's row and repeat step 1's version check, since another save may have
    committed meanwhile. Allocate the identifiers of new rules and groups (research R5),
-   insert the branch rows of new branches, mark omitted branches deleted, insert the next rule set
+   insert the branch rows of new branches (with `replace`, also of branches that another save
+   deleted, under a new id), mark omitted branches deleted, insert the next rule set
    if the rules changed, and make the revision and the rule set current. Commit once.
 4. On any failure, nothing is current that wasn't before, and the EUDIPLO configuration of step 2
    is deleted again (spec 001).

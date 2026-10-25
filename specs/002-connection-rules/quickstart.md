@@ -169,6 +169,9 @@ request reference.
 6. Deactivate the connection. **Expected**: every branch's URL answers `409 unavailable`; reactivate
    and they work again (FR-027).
 7. Time setting up V4's connection and copying its three URLs (SC-002: under 10 minutes).
+8. Pull step 2's request through `$API/connect/$FC/branches/$MAIN/requests/$REF`, where `$MAIN`
+   is the `evaluation.branch.id` of Standard's answer. **Expected**: `404`: each branch has one
+   pull URL, and Standard's is spec 001's (research R3).
 
 ### V6: Changing the rules of a live connection (US4, FR-028 to FR-030)
 
@@ -192,6 +195,11 @@ request reference.
    session's rules. Repeat, and choose "Replace their changes": the second session's rules are
    saved, and Night's pull URL answers `409 unavailable` (FR-027, FR-028). Saving only the
    connection's name in a stale session meets no such dialog.
+8. Add a variant "Weekend" and save, then open the editor in two browser sessions. In the first,
+   delete Weekend and Rule 01, and save. In the second, change another rule and save. **Expected**:
+   the dialog names Weekend as brought back with a new pull URL (W9). Choose "Replace their
+   changes": the details show Weekend with a new pull URL, Weekend's old pull URL keeps answering
+   `409 unavailable`, and Rule 01 is back under its identifier (FR-010, FR-027, FR-028).
 
 ### V7: Accessibility (SC-009)
 

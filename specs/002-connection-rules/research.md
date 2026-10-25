@@ -96,7 +96,8 @@ and its tree of rules and groups, including the branch marks (data-model.md). Py
 - **Order of the checks** on a branch's pull URL, extending 001-R12:
   1. unknown form connection: `404`;
   2. deactivated or deleted form connection: `409 unavailable` (FR-027);
-  3. branch unknown, or of another form connection: `404`;
+  3. branch unknown, of another form connection, or the main branch, whose pull URL is spec 001's:
+     `404`;
   4. branch deleted: `409 unavailable`, for every request (FR-027, US3-AS9);
   5. unknown reference, or one of another form connection: `404`;
   6. branch not in the request's rule set, because it was added after the trigger: `409` with
@@ -158,7 +159,8 @@ already covers it.
   delete as deletions (data-model.md, propagation rule 8).
 - **The server checks** every saved snapshot against invariants that a correct propagation always
   satisfies (data-model.md, "Validation"), for example: every main-branch item appears exactly
-  once in each based branch; an unmarked or removed item equals the main branch's item; marks
+  once in each based branch; an unmarked or removed item equals the main branch's item, comparing
+  only what counts as a change, never members or place (data-model.md, "Validation"); marks
   appear only in based branches. A violation is refused with `400`, so a propagation bug can't
   reach serviceBW.
 
@@ -200,25 +202,28 @@ already covers it.
 - **Allocation**: the API returns the form connection's counters (`next_rule_number`,
   `next_group_number`; 1 and 1 for a new one). The editor numbers new items from them, so a new
   rule shows "Rule 03" at once, and sends the counters it started from as `numbering_base`. On
-  save, under the form connection's row lock, the server checks that every identifier it doesn't
-  know yet is at or above the base, shifts new identifiers by the difference if another save
-  advanced the counters meanwhile (renaming default names that still match), and stores the
-  counters as the highest number used plus one. Numbers are never lowered, so no identifier is
-  reused within the form connection, even after deletions (FR-010).
+  save, under the form connection's row lock, the server checks that every identifier in neither
+  the current rule set nor the rule set the editor loaded (`base_version`) is at or above the
+  base. An identifier in the loaded rule set only belongs to a rule or group that another save
+  deleted; it comes back under that identifier when the team member replaces that save (R9), which
+  is the same item returning, not a reuse. The server then shifts new identifiers by the
+  difference if another save advanced the counters meanwhile (renaming default names that still
+  match), and stores the counters as the highest number used plus one. Numbers are never lowered,
+  so no identifier is reused within the form connection, even after deletions (FR-010).
 - The details show each identifier next to its item's name (FR-010, W1); the rules step doesn't.
 
 **Rationale**: two-digit numbers match the design's "Rule 01". Allocating on the client keeps the
 editor responsive and the default names stable while editing; the server's shift keeps the
-"never reused" guarantee when two team members save at the same time, where spec 001 lets the
-later save win.
+"never reused" guarantee when a team member replaces the rules that another saved meanwhile (R9).
 
 **Alternatives considered**:
 - *One counter for rules and groups*: gives "Rule 01, Rule 02, Group 03", which reads oddly next
   to the design. Rejected.
 - *UUIDs as identifiers*: unique without coordination, but unreadable when DO.IT agrees their use
   with serviceBW, and the default names need a number anyway. Rejected.
-- *Refusing a save whose counters are stale*: contradicts "the later save wins" (spec 001).
-  Rejected.
+- *Refusing every save whose counters are stale*: a stale rules save is already refused with
+  `409 rules_changed` unless the team member replaces the other's rules (R9, FR-028); when they
+  do, the shift keeps their new identifiers unique instead of refusing again. Rejected.
 
 ## R6. Kinds of value, parts and enum values come from the catalog
 
@@ -269,14 +274,14 @@ delivered documents. Every rule ends as `met`, `not_met` or `not_checked` (FR-01
   anniversary on; "less than" until the day before; "exactly" from the N-th anniversary to the day
   before the (N+1)-th (FR-012, EC-2, EC-3).
 - **From now**: N years or months after the day of sharing, the same day of the month, or the 1st
-  of the following month where that day doesn't exist (EC-4). "At least" holds on or after that
+  of the following month where that day doesn't exist (EC-26). "At least" holds on or after that
   day; "less than" before it, past dates included.
 - **Before, after, on**: comparisons of calendar dates; "before" and "after" are strict, so the
   given date itself meets neither (FR-003).
 - **Text**: both sides trimmed (FR-013) and normalised to Unicode NFC, so a composed "ö" equals
   "o" with a combining diaeresis. Spaces inside a value count as written. Ignoring letter case
   compares `str.casefold()`, which also matches "STRASSE" with "straße" and "KÖLN" with "Köln"
-  (EC-8). "Contains" and "doesn't contain" are substring tests.
+  (EC-7). "Contains" and "doesn't contain" are substring tests.
 - **Numbers**: strict comparisons with one value (F6). A JSON boolean is not a number.
 - **Enums**: "includes one of" holds when at least one of the document's values is in the set,
   "includes none of" when none is (FR-003); a single value counts as a list of one. String values
@@ -362,13 +367,20 @@ serviceBW, or replaces the rule (spec Assumptions).
 - **Saving over newer rules** (FR-028): `GET /api/form-connections/{id}` returns
   `rule_set_version`. The editor sends `rules` only when the team member changed them, with
   `base_version`, the version it loaded. If `current_rule_set` differs from `base_version` and
-  `replace` isn't set, the save is refused with `409 rules_changed`, before EUDIPLO is called and
-  again under the row lock, and nothing is saved. Its message names every branch that replacing
-  would delete: the current rule set's branches that the save leaves out. The save dialog then
-  offers "Reload" (fetch the form connection again, dropping the unsaved changes) or "Replace their
-  changes" (the same save with `replace: true`, where R5's shift keeps identifiers unique). The
-  rule set is the unit: the server can't merge two saves per branch, since only the editor
-  propagates (R4). Name and documents keep spec 001's "the later save wins".
+  `replace` isn't set, the save is refused with `409 rules_changed`, before the rules are checked
+  and before EUDIPLO is called, and again under the row lock, and nothing is saved. Checking the
+  version first means that a stale editor meets this answer, not a refusal that its staleness
+  causes, such as "Unknown variant." for a branch another save deleted. Its message names every
+  branch that replacing would delete (the current rule set's branches that the save leaves out)
+  and every branch that replacing brings back (branches of the save that another save deleted).
+  The save dialog then offers "Reload" (fetch the form connection again, dropping the unsaved
+  changes) or "Replace their changes" (the same save with `replace: true`).
+- **Replacing** saves the editor's version whole (FR-028): rules and groups that the other save
+  deleted come back under their identifiers (R5); a branch that it deleted comes back as a new
+  branch with a new id, so a new pull URL, since the deleted one's answers `409 unavailable` for
+  good (FR-027); R5's shift keeps new identifiers unique. The rule set is the unit: the server
+  can't merge two saves per branch, since only the editor propagates (R4). Name and documents keep
+  spec 001's "the later save wins".
 
 **Rationale**: it reuses spec 001's proven ordering (no transaction held while EUDIPLO answers;
 reserve, call, lock and commit) and adds the rules to the one commit that makes a change visible.
@@ -432,7 +444,7 @@ Their URLs don't change (FR-018, SC-005). `app.cli clear-connections` also delet
 rule sets.
 
 **Rationale**: every form connection then has the same shape, and the only special case, requests
-started before the upgrade, ends within 7 days with their records (FR-021).
+started before the upgrade, ends within 7 days with their records (spec 001, FR-021).
 
 ## R12. Tests
 
@@ -456,7 +468,8 @@ started before the upgrade, ends within 7 days with their records (FR-021).
     when the branch changed it (2, EC-12, EC-13); an added item appears at the matching place, and
     not in a branch that started empty (3, EC-14, US3-AS6); moves, except into a group of the
     branch's own (4); dissolved groups (5); the top-level AND/OR while `operator_mark` is `null`
-    (6); a rename that would clash in a following branch is refused, naming it (7). Every
+    (6); a rename that would clash in a based branch, which follows the item or changed it, is
+    refused, naming that branch (7). Every
     transition of "Marks in a based branch": edit, undo, an edit back to the main branch's content
     (clears the mark) and a main-branch change to equal content (doesn't), remove, restore,
     removing a changed item, restoring a group with the members removed inside it (FR-024),

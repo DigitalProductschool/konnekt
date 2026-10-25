@@ -58,6 +58,8 @@ A rule set's snapshot names its branches by their `form_connection_branches.id`.
 - main branch: `{CONNECTION_BASE_URL}/api/connect/{form_connection_id}/requests/{reference}`, as in
   spec 001 (FR-018);
 - other branches: `{CONNECTION_BASE_URL}/api/connect/{form_connection_id}/branches/{id}/requests/{reference}`.
+  The main branch's id in this form answers `404`, like an unknown branch: each branch has one
+  pull URL.
 
 ## `form_connection_rule_sets`: the branches and their rules, one version per save
 
@@ -173,7 +175,7 @@ of at least 1 (FR-003m).
 |---|---|---|---|
 | Number | `greater_than`, `less_than`, `equal_to`, `not_equal_to` | `value`: a number | is greater than / is less than / is equal to / is not equal to 180 |
 | Text | `equal_to`, `not_equal_to`, `contains`, `not_contains` | `value`: text that isn't empty after trimming (FR-006); `match_case`: boolean, `false` by default (FR-013) | is equal to / is not equal to / contains / doesn't contain "Stuttgart", with whether letter case counts |
-| Enum | `includes_one_of`, `includes_none_of` | `values`: one or more values of the field's set, no duplicates | includes one of / includes none of B, BE |
+| Enum | `includes_one_of`, `includes_none_of` | `values`: one or more values of the field's set, no duplicates | includes one of / includes none of Germany, Austria: each value by its option's label; the licence classes by their code: B, BE (FR-005) |
 | Date | `before`, `after`, `on` | `date`: `YYYY-MM-DD` | is before / is after / is 1 Jan 2020 |
 | Date | `at_least_years_ago`, `less_than_years_ago`, `exactly_years_ago` | `years` | is at least / is less than / is exactly 2 years ago; on a Date of birth: … 21 years old |
 | Date | `at_least_from_now`, `less_than_from_now` | `amount`; `unit`: `years` or `months` | is at least / is less than 6 months from now |
@@ -258,8 +260,10 @@ FR-022, Edge Cases):
    left dissolves all the same (FR-022's one exception, [Dissolution](#dissolution)); the main
    branch's confirmation of the deletion names those branches (F14).
 6. The top level's AND/OR follows the main branch while `operator_mark` is `null` (FR-021).
-7. A name the main branch gives an item must stay unique in every based branch that follows it;
-   otherwise the rename is refused where it is entered, naming that branch (FR-005).
+7. A name the main branch gives an item must stay unique in every based branch: among the
+   branch's names where it follows the item, and among its [taken names](#identifiers-and-names)
+   where it changed the item, since an undo would bring the name back. Otherwise the rename is
+   refused where it is entered, naming that branch (FR-005).
 8. The main branch's "Ungroup" reaches based branches as the group's deletion plus its members'
    moves (rules 2 and 4): where the branch follows the group, it goes and the members take its
    place; where the branch changed it, it stays as `added` with its members, since a group of the
@@ -297,7 +301,7 @@ API and shows the API's message otherwise.
 | Exactly one main branch, listed first, with the form connection's main branch id (or none yet) | "The rules need exactly one main branch." |
 | Every branch has a name | "Enter a name for every variant." |
 | Branch names are unique | "Two variants are called Ambulance. Give each variant its own name." |
-| A saved branch id belongs to this form connection and isn't deleted | "Unknown variant." |
+| A saved branch id belongs to this form connection and isn't deleted. In a save with `replace: true`, a branch that another save deleted comes back as a new branch, with a new id and pull URL (FR-028, research R9) | "Unknown variant." |
 | A rule checks a requested field, which isn't an image | "Rule 02 in Standard checks data that's no longer requested." (F11) |
 | A rule's part and licence class fit its field | "Rule 04 in Ambulance checks a part that Licence classes doesn't have." |
 | A rule's condition is complete and fits the field's kind; a text value isn't empty after trimming | "Rule 03 in Standard: enter a number of years of at least 1." / "Rule 05 in Ambulance: choose at least one value." / "Rule 06 in Standard: enter a text to compare with." |
@@ -306,8 +310,8 @@ API and shows the API's message otherwise.
 | Reserved names stay on their item | "Rule 08 is kept for the rule numbered 08." |
 | Groups hold at least two members; sub-groups hold rules only | "Group 02 in Standard needs at least two rules." |
 | Marks appear only in based branches; every main-branch item appears once in each based branch; unmarked and removed items equal the main branch's | "The variant Ambulance is out of step with Standard. Reload the connection and try again." |
-| Identifiers are well-formed, unique within each branch, and new ones are at or above `numbering_base` | "The rules contain an invalid identifier. Reload the connection and try again." |
-| Size limits: at most 20 branches, 200 items per branch | "A connection can have at most 20 variants." |
+| Identifiers are well-formed and unique within each branch. One that is neither in the current rule set nor in the rule set the editor loaded (`base_version`) is new, and at or above `numbering_base`. One in the loaded rule set only was deleted by another save, and comes back under its identifier when the team member replaces that save (FR-028) | "The rules contain an invalid identifier. Reload the connection and try again." |
+| Size limits (spec Assumptions): at most 20 branches, the main branch included, and 200 items per branch, counting every rule, group and sub-group, removed ones and group members included | "A connection can have at most 20 variants." / "Ambulance can have at most 200 rules and groups." |
 
 Removed items aren't evaluated, but they are checked like the others, so a restore can't bring
 back an invalid rule. They mirror the main branch's item, so fixing or deleting it there clears
@@ -315,6 +319,12 @@ them (FR-006). A problem in an item that based branches inherit unchanged (unmar
 reported once, for the main branch (FR-006). A `changed` item may equal the main branch's item,
 after a change in the main branch (FR-024); the invariant "equal to the main branch's" applies to
 unmarked and removed items only.
+
+**Equal**, in these invariants and wherever an item is compared with the main branch's, compares
+what counts as a change (FR-022): for a rule, its `target`, `condition` (with `match_case`),
+`message` and `name`; for a group, its `operator`, `name` and `message`. It never compares a
+group's members or an item's place. So a rule added to an inherited group, or inherited rules
+grouped in the branch, leave the group and the rules equal to the main branch's.
 
 ---
 

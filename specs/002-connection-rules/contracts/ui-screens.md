@@ -126,8 +126,8 @@ The screen ids S0–S7 are used in [Deviations from Figma](#deviations-from-figm
   Clarification 2026-10-24). "Publishing…", then the details; on failure, "Couldn't publish" with
   "Try again", and nothing has changed (FR-028).
 - When another team member saved the rules after the editor opened them (`409 rules_changed`), the
-  dialog says so, names any branch that replacing would delete, and offers "Reload" or "Replace
-  their changes" (FR-028, W9).
+  dialog says so, names any branch that replacing would delete or bring back with a new pull URL,
+  and offers "Reload" or "Replace their changes" (FR-028, W9).
 - From the documents step while no branch has rules: "Publish without rules?" (FR-001).
 - No go-live date: publishing goes live at once (spec Assumptions, "Out of scope").
 
@@ -286,7 +286,7 @@ Units: U33, U34 (confirmation and go-live frames), U35, U36.
 | # | Expected surface | Build from (frame or KERN pattern) | What to build | Decided by |
 |---|---|---|---|---|
 | W7 (save dialog) | Publish/save dialog of the edit flow | Spec 001's save dialog (`PublishDialog`), extended with U33's per-branch summary rows (`6376:26181`); the failure as in U35 `6376:27178` | Saving asks for confirmation in this dialog, not on entry to the edit flow. A failure shows "Try again", and nothing has changed | CLAR 2026-10-24 #14, #23 (FR-030c, US4-AS1, US4-AS2) |
-| W9 | Publish/save dialog of the edit flow, when the rules changed since the editor opened | The failure state of U35 `6376:27178` inside spec 001's save dialog; KERN dialog buttons as in U14 `6113:29056` | On `409 rules_changed`: a heading saying that another team member saved the rules of this connection after it was opened, the API's message (which names any variant that replacing deletes), and two actions: "Reload" (fetch the connection again, dropping the unsaved changes) and "Replace their changes" (save again with `replace: true`). Final copy in the design notes | CLAR checklist (FR-028) |
+| W9 | Publish/save dialog of the edit flow, when the rules changed since the editor opened | The failure state of U35 `6376:27178` inside spec 001's save dialog; KERN dialog buttons as in U14 `6113:29056` | On `409 rules_changed`: a heading saying that another team member saved the rules of this connection after it was opened, the API's message (which names any variant that replacing deletes, or brings back with a new pull URL), and two actions: "Reload" (fetch the connection again, dropping the unsaved changes) and "Replace their changes" (save again with `replace: true`). Final copy in the design notes | CLAR checklist (FR-028) |
 
 F10 (S2): with unsaved rule-editor changes, "Save changes to Rule 01?" opens before this dialog.
 F23 (S2): a failed save shows here, not on the Rules step.

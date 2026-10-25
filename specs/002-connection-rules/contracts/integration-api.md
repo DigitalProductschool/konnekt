@@ -112,7 +112,7 @@ For another branch's pull URL (research R3):
 |---|---|---|
 | 1 | Unknown form connection | `404` `{"error": "Not found", "message": "Request not found"}` |
 | 2 | Form connection deactivated or deleted | `409` `{"error": "unavailable", "message": "This form connection is deactivated or deleted"}` (FR-027) |
-| 3 | Unknown branch, or a branch of another form connection | `404` `{"error": "Not found", "message": "Request not found"}` |
+| 3 | Unknown branch, a branch of another form connection, or the main branch, whose pull URL is the one above | `404` `{"error": "Not found", "message": "Request not found"}` |
 | 4 | Branch deleted | `409` `{"error": "unavailable", "message": "This variant was deleted"}`, for every request, including those in progress (FR-027, US3-AS9) |
 | 5 | Unknown reference, or one of another form connection, or a record deleted after 7 days | `404` `{"error": "Not found", "message": "Request not found"}` |
 | 6 | The branch was added after the request was triggered | `409` `{"error": "branch_added_later", "message": "This variant didn't exist when the request was triggered"}`, without status or documents (FR-025) |

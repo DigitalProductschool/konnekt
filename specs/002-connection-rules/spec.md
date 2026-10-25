@@ -98,6 +98,14 @@ Questions raised by the requirements checklist ([checklists/rules-logic.md](chec
 - Q: Do serviceBW forms that don't read the evaluation cope with the new field in the pull answer? → A: Yes. DO.IT has confirmed that serviceBW ignores fields it doesn't know (Assumptions).
 - Q: A rule edited to check other data keeps its identifier. How does serviceBW avoid misreading its result? → A: The identifier names the rule, not what it checks, as FR-010 says. When DO.IT changes what a rule checks in a way serviceBW relies on, it agrees the change with serviceBW first, or adds a new rule and deletes the old one (Assumptions).
 
+### Session 2026-10-25 (analysis)
+
+Questions raised by the cross-artifact analysis of the spec, the plan and the tasks.
+
+- Q: When a team member replaces another team member's rules, what happens to the rules, groups and branches that the other deleted? → A: The team member's version is saved whole. Rules and groups that the other deleted come back under their identifiers: the same rule returns, so no identifier is reused. A branch that the other deleted comes back as a new branch with a new pull URL, since the deleted one's pull URL answers "unavailable" for good. The system names it before saving, together with the branches that replacing deletes (FR-028).
+- Q: How do the values of enum fields read in statements and proposed messages, given that some value sets are codes, such as the "Sex"? → A: By their label, such as "Personal ID – Nationality includes one of Germany". Only the licence classes read by their code, such as "B, BE" (FR-005).
+- Q: How many branches and rules can a form connection have? → A: At most 20 branches, the main branch included, and at most 200 rules, groups and sub-groups per branch, removed ones included. Real forms stay far below these limits. Publishing or saving beyond either is refused with a message (Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Check shared documents against rules (Priority: P1)
@@ -368,8 +376,9 @@ new one, and no URL has changed.
   FR-018 and FR-020), neither can the evaluation (FR-017).
 - **Two team members editing the rules at the same time**: The later save doesn't replace the
   other's rules silently. The system says that the rules changed since they were opened, and offers
-  to reload or to replace them, naming every branch that replacing them deletes (FR-028). For the
-  form connection's name and documents, the later save wins (spec 001, Edge Cases).
+  to reload or to replace them, naming every branch that replacing them deletes, or brings back
+  with a new pull URL because the other team member deleted it (FR-028). For the form connection's
+  name and documents, the later save wins (spec 001, Edge Cases).
 
 ## Requirements *(mandatory)*
 
@@ -427,8 +436,10 @@ new one, and no URL has changed.
   field or part of a field it checks, and the condition, and for text whether letter case counts,
   such as "Personal ID – Date of birth is at least 21 years old", "Driving licence – Licence
   class B – Issue date is at least 2 years ago" or "Driving licence – Expiry date is at least 6
-  months from now". The statement, and the rule editor where the condition is chosen, MUST carry
-  the condition in the words of FR-003. A symbol the interface adds for it, such as "≥", is decoration only, which
+  months from now". Enum values MUST appear by their label, such as "Personal ID – Nationality
+  includes one of Germany", in statements and in proposed messages (FR-004); only the licence
+  classes appear by their code, such as "B, BE". The statement, and the rule editor where the
+  condition is chosen, MUST carry the condition in the words of FR-003. A symbol the interface adds for it, such as "≥", is decoration only, which
   assistive technologies MUST NOT announce. Every rule, group and sub-group MUST also have a
   name for the team: by default "Rule", "Group" or "Sub-group" and the number of its identifier
   (FR-010), such as "Rule 07", which the team member MAY change. Names MUST be unique within each
@@ -540,8 +551,10 @@ new one, and no URL has changed.
   as not met and MUST be reported as couldn't be checked, so that serviceBW can tell it apart from
   a value that breaks the rule. An empty text or an empty list counts as a missing value. A rule
   on a date of a licence class that the licence doesn't hold
-  is the exception: it MUST be reported as not met, since the citizen doesn't hold that class. The
-  rule editor MUST say this next to every date condition.
+  is the exception: it MUST be reported as not met, since the citizen doesn't hold that class.
+  Next to every date condition, the rule editor MUST say that a value that is missing or can't be
+  read leaves the rule not met, reported as couldn't be checked. Next to a condition on a licence
+  class's date, it MAY add that the rule isn't met when the licence doesn't list the class.
 - **FR-015**: The documents MUST be delivered whether or not the rules are met, and the request's
   status MUST be "completed" in both cases. serviceBW decides how to proceed, for example by showing
   the error messages to the citizen.
@@ -649,8 +662,12 @@ new one, and no URL has changed.
   (spec 001, FR-005). When a team member saves rules that another team member has saved since the
   first opened them, the system MUST say so before saving, and offer to reload the form
   connection, dropping their unsaved changes, or to replace the other's rules, naming every branch
-  that replacing them deletes. The rules of all branches count as one for this. For the form
-  connection's name and documents, the later save wins, as in spec 001.
+  that replacing them deletes, and every branch that it brings back with a new pull URL. The rules
+  of all branches count as one for this. Replacing them saves the team member's version whole:
+  rules and groups that the other deleted come back under their identifiers (FR-010), and a branch
+  that the other deleted comes back as a new branch with a new pull URL, since the deleted one's
+  pull URL answers "unavailable" for good (FR-027). For the form connection's name and documents,
+  the later save wins, as in spec 001.
 - **FR-029**: When a team member removes a document, or deselects a field, that rules check in any
   branch, the system MUST name those rules and their branches before the change is saved.
 - **FR-030**: A form connection's details MUST show the rules of every branch, with their groups,
@@ -764,6 +781,11 @@ new one, and no URL has changed.
   whichever branch applies. If branches ever needed documents or fields of their own, the trigger
   would have to know the branch again. Branches are based only on the main branch, one level deep.
   A branch that started empty carries no marks, since nothing in it follows the main branch.
+- **Size limits**: A form connection has at most 20 branches, the main branch included, and each
+  branch at most 200 rules, groups and sub-groups, counting removed ones and the members of
+  groups. Real forms stay far below these limits. Publishing or saving beyond either is refused
+  with a message, such as "A connection can have at most 20 variants." or "Ambulance can have at
+  most 200 rules and groups." (Clarifications, 2026-10-25).
 - **Design**: The layout and wording of the rules step and of the branches come from the UI design,
   as in spec 001. The UI's words may differ from this spec's, as "connection" stands for "form
   connection" and "variant" for "branch" there, but the conditions keep the wording of FR-003.
