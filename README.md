@@ -165,7 +165,7 @@ The sign-in screen's "Forgot password?" page asks team members to contact an adm
 who sets a new password with `set-password`.
 
 To start over without losing the accounts, `clear-connections` deletes every form connection
-with its revisions and requests. It shows the row counts and asks before deleting (`--yes`
+with its revisions, branches, rule sets and requests. It shows the row counts and asks before deleting (`--yes`
 skips the question):
 
 ```bash

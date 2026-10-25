@@ -76,8 +76,8 @@ option.").
 ### Licence classes (F32, F5; U12 `6350:42145`, U24 `6191:42191`)
 
 The class menu shows each code with its description, as U12 does; the field's chips and the saved
-statements show the codes only ("B", "BE"). U12 shows all 17 classes, so no description had to be
-made up. U24 and U25 list bare codes, which F32 replaces with these rows.
+statements show the codes only ("B", "BE"). U12's 17 rows show 16 classes, all but B1; U24 and U25
+list bare codes, which F32 replaces with these rows.
 
 | Code | Description | Code | Description |
 |---|---|---|---|
@@ -85,13 +85,18 @@ made up. U24 and U25 list bare codes, which F32 replaces with these rows.
 | A1 | Light motorcycles up to 125 cm³ | CE | C with a heavy trailer |
 | A2 | Motorcycles up to 35 kW | D1 | Minibuses up to 16 passengers |
 | A | All motorcycles | D1E | D1 with a heavy trailer |
-| B | Cars up to 3.5 t | D | Buses |
-| BE | Car with a heavy trailer | DE | D with a heavy trailer |
-| C1 | Trucks 3.5–7.5 t | L | Tractors up to 40 km/h |
-| C1E | C1 with a heavy trailer | T | Tractors up to 60 km/h |
+| B1 | Quadricycles up to 15 kW (**proposed**) | D | Buses |
+| B | Cars up to 3.5 t | DE | D with a heavy trailer |
+| BE | Car with a heavy trailer | L | Tractors up to 40 km/h |
+| C1 | Trucks 3.5–7.5 t | T | Tractors up to 60 km/h |
+| C1E | C1 with a heavy trailer | | |
 
-- Order as in the menu: AM, A1, A2, A, B, BE, C1, C1E, C, CE, D1, D1E, D, DE, L, T. The 17th row
-  of U12 is B, the menu item's default ("B Cars up to 3.5 t").
+- Order as in the menu, with B1 before B as in Directive 2006/126/EC: AM, A1, A2, A, B1, B, BE,
+  C1, C1E, C, CE, D1, D1E, D, DE, L, T. The 17th row of U12 is B, the menu item's default ("B Cars
+  up to 3.5 t").
+- **B1 (proposed, added by T006)**: no frame shows it. The directive's B1 is the motor quadricycle
+  (at most 15 kW, 400 kg unladen); Germany doesn't issue it, but licences of other member states
+  can carry it.
 - The descriptions are copied as Figma writes them, en dash in "3.5–7.5 t" and "cm³" included.
   They become the labels' descriptions in `app/option_sets.py` (`licence_classes`, research R6).
 - Search field "Search classes"; empty result "No options match "XL"." (F32, Clarifications).

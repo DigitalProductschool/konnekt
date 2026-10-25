@@ -109,7 +109,7 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
 
 ### Storage and catalog (backend)
 
-- [ ] T004 Add the models to `backend/app/models.py`, following data-model.md and constitution V: `Mapped` and `mapped_column`, UUID4 `String(36)` keys, and `created_at` and `updated_at` as `DateTime(timezone=True)` with `server_default=func.now()`.
+- [X] T004 Add the models to `backend/app/models.py`, following data-model.md and constitution V: `Mapped` and `mapped_column`, UUID4 `String(36)` keys, and `created_at` and `updated_at` as `DateTime(timezone=True)` with `server_default=func.now()`.
   - `FormConnectionBranch` (`form_connection_branches`), the branch identity:
     - `id`: "`String(36)` PK"; "UUID4, set when the branch is first saved. Part of the branch's pull URL, so it never changes (FR-025). Never reused";
     - `form_connection_id`: "FK → `form_connections.id`, indexed";
@@ -129,7 +129,7 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
     - `(form_connection_id)` and the partial unique `(form_connection_id) WHERE is_main` on branches;
     - `(rule_set_id)` on requests.
   - Update the models' docstrings.
-- [ ] T005 Create the migration (depends on T004 and T008, since the constitution's order is model, schemas, migration; constitution V; data-model.md "Migration"; research R11).
+- [X] T005 Create the migration (depends on T004 and T008, since the constitution's order is model, schemas, migration; constitution V; data-model.md "Migration"; research R11).
   - Run `cd backend && uv run alembic revision --autogenerate -m "connection rules"`. It writes `backend/alembic/versions/<rev>_connection_rules.py`, after `9a22d4b976f8`.
   - Read the file and complete it by hand, in this order:
     1. create `form_connection_branches` and `form_connection_rule_sets` with the indexes of T004, and check that the partial unique index carries `postgresql_where`;
@@ -140,14 +140,14 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
   - The downgrade drops them in reverse.
   - Check `uv run alembic upgrade head`, then `downgrade -1` and `upgrade head` again, on a database with an existing form connection.
   - Committed migrations stay unchanged.
-- [ ] T006 [P] Create `backend/app/option_sets.py` with the value sets of enum fields and parts (research R6). It depends on T002 for the licence class descriptions, and imports nothing from `app.config`.
+- [X] T006 [P] Create `backend/app/option_sets.py` with the value sets of enum fields and parts (research R6). It depends on T002 for the licence class descriptions, and imports nothing from `app.config`.
   - Each set is a list of options with a `value`, a `label` and an optional `description`.
   - The sets, by key:
     - `countries`: the ISO 3166-1 alpha-2 codes with their English short names, as a static list (no new dependency such as `pycountry`);
     - `sex`: the codes of ISO/IEC 5218 and of the PID rulebook, as integers. **Verify** them against the PID rulebook v1.7 (research R14);
     - `licence_classes`: AM, A1, A2, A, B1, B, BE, C1, C1E, C, CE, D1, D1E, D and DE (ISO/IEC 18013-5, Directive 2006/126/EC), plus Germany's L and T, each with its description from design-notes.md (F32);
     - `eye_colours` and `hair_colours`: the values of ISO/IEC 18013-5.
-- [ ] T007 Give every catalog field its kind of value in `backend/app/catalog.py` (depends on T006; research R6; FR-002, FR-003; S1, F20).
+- [X] T007 Give every catalog field its kind of value in `backend/app/catalog.py` (depends on T006; research R6; FR-002, FR-003; S1, F20).
   - `CatalogField` gains:
     - `kind`: `text`, `number`, `date`, `enum`, `image` or `parts`;
     - `option_set`: a T006 key for enums, otherwise `None`;
@@ -167,7 +167,7 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
       - `mdl` `driving_privileges`: `classes` (enum, `licence_classes`, "Licence classes"), plus `issue_date` and `expiry_date` (dates, `per_licence_class`, "Issue date" and "Expiry date");
     - **image**: `pid` `picture`, and `mdl` `portrait` and `signature_usual_mark`. The UI offers them as "Can't be checked".
   - Keep the `age_over_NN` elements out of the catalog (F20). Age is checked through the Date of birth; "Age in years" and "Year of birth" stay number fields.
-- [ ] T008 Add the shapes of contracts/management-api.md "Schemas" to `backend/app/schemas.py` (depends on T007; Constitution I).
+- [X] T008 Add the shapes of contracts/management-api.md "Schemas" to `backend/app/schemas.py` (depends on T007; Constitution I).
   - **Catalog**:
     - `DocumentField` gains `kind`, `option_set`, `date_of_birth`, and `parts: list[FieldPart] | None`;
     - new `FieldPart`, `OptionSet`, and `Option` (`value: str | int`, `label`, `description: str | None`).
@@ -188,12 +188,12 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
   - **Form connections**:
     - `FormConnection` gains `branches` (main branch first, in tab order), `rule_set_version`, `next_rule_number` and `next_group_number`;
     - `FormConnectionCreate` and `FormConnectionUpdate` gain `rules: RulesInput | None`. In an update, an absent `rules` leaves the rules unchanged, through `model_fields_set` as for `documents`.
-- [ ] T009 Serve the kinds and the value sets, one router module per resource (depends on T008; FR-031; constitution, "Technology and Structure Constraints"; plan "Constitution Check"):
+- [X] T009 Serve the kinds and the value sets, one router module per resource (depends on T008; FR-031; constitution, "Technology and Structure Constraints"; plan "Constitution Check"):
   - in `backend/app/routers/document_types.py`, `GET /api/document-types` fills each field's `kind`, `option_set`, `date_of_birth` and `parts` from the catalog;
   - a new `backend/app/routers/option_sets.py` has its own `APIRouter` (prefix `/api/option-sets`, tag `option-sets`, `dependencies=[Depends(get_current_user)]`). Its `GET /api/option-sets` returns `ApiResponse[list[OptionSet]]` with the five sets of T006, for signed-in users only;
   - `backend/app/main.py` registers it with `app.include_router`, beside the other routers;
   - both handlers have docstrings.
-- [ ] T010 Give every form connection its main branch, and return the branches (depends on T005, T008; FR-018; research R9, R11).
+- [X] T010 Give every form connection its main branch, and return the branches (depends on T005, T008; FR-018; research R9, R11).
   - Create `backend/app/services/rules.py` with a module docstring and two functions:
     - one returns the main branch's snapshot without rules: "Standard", `origin: "main"`, `operator: "and"`, `operator_mark: null`, and no items;
     - `pull_url_of(form_connection_id, branch_id, is_main)` returns the main branch's pull URL from spec 001, and for every other branch `{CONNECTION_BASE_URL}/api/connect/{form_connection_id}/branches/{branch_id}/requests/{reference}`, with the literal placeholder `{reference}` (contracts/integration-api.md).
@@ -201,13 +201,13 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
     - `create_form_connection` also inserts the main branch row and rule set 1, with `current_rule_set = 1` and both counters at 1. This happens in the transaction that inserts the form connection and revision 1. A `rules` in the request is ignored until T018;
     - the form connection view (`_view`) returns the current rule set's branches, each with `is_main` and `pull_url`, plus `rule_set_version`, `next_rule_number` and `next_group_number`;
     - the main branch's `pull_url` equals the form connection's `pull_url`.
-- [ ] T011 Delete the branches and rule sets with their form connections in `backend/app/cli.py` (depends on T004; research R11).
+- [X] T011 Delete the branches and rule sets with their form connections in `backend/app/cli.py` (depends on T004; research R11).
   - `clear_connections` deletes the `FormConnectionRuleSet` and `FormConnectionBranch` rows after the document requests, which reference rule sets, and before the form connections.
   - Update:
     - the module docstring;
     - `backend/tests/unit/test_cli.py`;
     - the `clear-connections` row of `CLAUDE.md`'s backend command table: "every form connection with its revisions, branches, rule sets and requests".
-- [ ] T012 Test the foundation (depends on T009, T010).
+- [X] T012 Test the foundation (depends on T009, T010).
   - `backend/tests/unit/test_catalog.py`:
     - every field has a kind, and the kinds match research R6's table;
     - `place_of_birth` and `driving_privileges` have their parts;
@@ -226,7 +226,7 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
 
 ### Shapes and value sets (frontend)
 
-- [ ] T013 Mirror T008's shapes in `frontend/src/types/` (depends on T008). Constitution I puts this in the same change set as T008.
+- [X] T013 Mirror T008's shapes in `frontend/src/types/` (depends on T008). Constitution I puts this in the same change set as T008.
   - `document-types.ts`: `DocumentField` gains `kind`, `option_set`, `date_of_birth` and `parts`; add `FieldPart`.
   - `option-sets.ts` (new): `OptionSet` and `Option`.
   - `form-connections.ts`:
@@ -234,7 +234,7 @@ has a main branch "Standard" without rules, and the API returns it (FR-018).
     - `FormConnection` gains `branches`, `rule_set_version`, `next_rule_number` and `next_group_number`;
     - `FormConnectionCreate` and `FormConnectionUpdate` gain `rules?`.
   - Field names stay snake_case, and a comment names the schema each type mirrors.
-- [ ] T014 Load the value sets in the frontend (depends on T013):
+- [X] T014 Load the value sets in the frontend (depends on T013):
   - `frontend/src/api/option-sets.ts` with `getOptionSets()`, through `apiFetch`;
   - `frontend/src/hooks/useOptionSets.ts`, built like `useDocumentTypes`:
     - it returns its status, `optionSets` and `retry`;

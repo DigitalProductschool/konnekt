@@ -5,11 +5,11 @@ management UI has no account management, so this is the only way to add, change 
 remove an account. The confirmations are written for the operator's terminal, and a
 password is never printed.
 
-`clear-connections` deletes every form connection, with its revisions and requests,
-and keeps the accounts. It first deletes the EUDIPLO session of every request that
-still has one, so that no shared document outlives its request (FR-020, research
-R8), and deletes no row unless all of them are gone. The EUDIPLO configurations hold
-no personal data and stay in EUDIPLO.
+`clear-connections` deletes every form connection, with its revisions, branches, rule
+sets and requests, and keeps the accounts. It first deletes the EUDIPLO session of
+every request that still has one, so that no shared document outlives its request
+(FR-020, research R8), and deletes no row unless all of them are gone. The EUDIPLO
+configurations hold no personal data and stay in EUDIPLO.
 """
 
 import argparse
@@ -25,7 +25,9 @@ from .db import Base, SessionLocal
 from .models import (
     DocumentRequest,
     FormConnection,
+    FormConnectionBranch,
     FormConnectionRevision,
+    FormConnectionRuleSet,
     LoginSession,
     UserAccount,
 )
@@ -91,10 +93,13 @@ def delete_user(db: Session, username: str) -> str:
     return f"Deleted user '{username}'."
 
 
-# Children first, so that no foreign key blocks a deletion
+# Children first, so that no foreign key blocks a deletion: requests name a revision
+# and a rule set, and everything else names its form connection
 CONNECTION_MODELS: tuple[type[Base], ...] = (
     DocumentRequest,
     FormConnectionRevision,
+    FormConnectionRuleSet,
+    FormConnectionBranch,
     FormConnection,
 )
 
@@ -148,12 +153,12 @@ def _delete_eudiplo_sessions(db: Session) -> int:
 
 
 def clear_connections(db: Session, confirmed: bool) -> str:
-    """Delete every form connection with its revisions and requests.
+    """Delete every form connection with everything that belongs to it.
 
-    The EUDIPLO sessions of the requests go first, and the rows only once they are
-    all gone. The accounts and their sign-in sessions stay, and so do the EUDIPLO
-    configurations. Without `confirmed`, the operator sees the row counts and has to
-    type "yes".
+    That is its revisions, branches, rule sets and requests. The EUDIPLO sessions of
+    the requests go first, and the rows only once they are all gone. The accounts and
+    their sign-in sessions stay, and so do the EUDIPLO configurations. Without
+    `confirmed`, the operator sees the row counts and has to type "yes".
     """
     counts = {
         model.__tablename__: db.scalar(select(func.count()).select_from(model)) or 0

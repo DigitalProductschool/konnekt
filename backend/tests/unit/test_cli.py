@@ -13,7 +13,12 @@ from sqlalchemy import func, select
 from app.cli import CONNECTION_MODELS, main
 from app.config import settings
 from app.db import SessionLocal
-from app.models import DocumentRequest, LoginSession, UserAccount
+from app.models import (
+    DocumentRequest,
+    FormConnectionRuleSet,
+    LoginSession,
+    UserAccount,
+)
 from app.services.auth import authenticate, create_login_session
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
@@ -202,6 +207,23 @@ def test_clear_connections_keeps_the_accounts(
         'Deleted 2 form connection(s) and 2 EUDIPLO session(s)'
         in capsys.readouterr().out
     )
+
+
+def test_clear_connections_deletes_the_branches_and_rule_sets(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    reference = _add_connection_rows(signed_in_client)
+    # A request names the rule set it started with, so it must go first
+    with SessionLocal() as db:
+        rule_set_id = db.scalars(select(FormConnectionRuleSet.id)).one()
+    update_request(reference, rule_set_id=rule_set_id)
+    counts = _row_counts()
+    assert counts['form_connection_branches'] == 1
+    assert counts['form_connection_rule_sets'] == 1
+
+    assert main(['clear-connections', '--yes']) == 0
+
+    assert not any(_row_counts().values())
 
 
 def test_clear_connections_deletes_the_eudiplo_sessions_first(

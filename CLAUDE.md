@@ -328,7 +328,7 @@ Key points:
 | `uv run pytest` | Run the tests; `DATABASE_URL` must name a database ending in `_test`, which they empty |
 | `uv run python -m app.cli create-user <name>` | Create a sign-in account (also `set-password`, `delete-user`) |
 | `uv run python -m scripts.issue_test_credentials` | Issue a test PID and driving licence with random data to a test wallet (README, "Test credentials for a test wallet") |
-| `uv run python -m app.cli clear-connections` | Delete the requests' EUDIPLO sessions, then every form connection with its revisions and requests; nothing is deleted if a session can't be. The sign-in accounts and the EUDIPLO configurations stay (`--yes` skips the prompt) |
+| `uv run python -m app.cli clear-connections` | Delete the requests' EUDIPLO sessions, then every form connection with its revisions, branches, rule sets and requests; nothing is deleted if a session can't be. The sign-in accounts and the EUDIPLO configurations stay (`--yes` skips the prompt) |
 | `uv run pre-commit install` | Install the repo's git hooks |
 | `uv run pre-commit run --all-files` | Run every hook against the whole repo |
 | `uv lock --upgrade` | Refresh `uv.lock` to the newest allowed versions |

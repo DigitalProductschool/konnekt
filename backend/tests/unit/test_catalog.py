@@ -10,8 +10,10 @@ from app.catalog import (
     PID,
     SD_JWT_VC_FORMAT,
     CatalogDocumentType,
+    CatalogPart,
     get_document_type,
 )
+from app.option_sets import OPTION_SETS
 
 # data-model.md, "Document type catalog": keys and claim paths, in catalog order
 PID_CLAIM_PATHS = [
@@ -130,3 +132,224 @@ def test_fields_are_found_by_key() -> None:
     assert PID.field('address_locality') is not None
     assert PID.field('birth_date') is None
     assert MDL.field('birth_date') is not None
+
+
+# Kinds of value (spec 002, research R6)
+
+PID_KINDS = {
+    'family_name': 'text',
+    'given_name': 'text',
+    'birthdate': 'date',
+    'place_of_birth': 'parts',
+    'nationalities': 'enum',
+    'address_formatted': 'text',
+    'address_street_address': 'text',
+    'address_house_number': 'text',
+    'address_postal_code': 'text',
+    'address_locality': 'text',
+    'address_region': 'text',
+    'address_country': 'enum',
+    'personal_administrative_number': 'text',
+    'picture': 'image',
+    'birth_family_name': 'text',
+    'birth_given_name': 'text',
+    'sex': 'enum',
+    'email': 'text',
+    'phone_number': 'text',
+    'document_number': 'text',
+    'date_of_issuance': 'date',
+    'date_of_expiry': 'date',
+    'issuing_authority': 'text',
+    'issuing_country': 'enum',
+    'issuing_jurisdiction': 'text',
+}
+
+MDL_KINDS = {
+    'family_name': 'text',
+    'given_name': 'text',
+    'birth_date': 'date',
+    'issue_date': 'date',
+    'expiry_date': 'date',
+    'issuing_country': 'enum',
+    'issuing_authority': 'text',
+    'document_number': 'text',
+    'portrait': 'image',
+    'driving_privileges': 'parts',
+    'un_distinguishing_sign': 'text',
+    'administrative_number': 'text',
+    'sex': 'enum',
+    'height': 'number',
+    'weight': 'number',
+    'eye_colour': 'enum',
+    'hair_colour': 'enum',
+    'birth_place': 'text',
+    'resident_address': 'text',
+    'portrait_capture_date': 'date',
+    'age_in_years': 'number',
+    'age_birth_year': 'number',
+    'issuing_jurisdiction': 'text',
+    'nationality': 'enum',
+    'resident_city': 'text',
+    'resident_state': 'text',
+    'resident_postal_code': 'text',
+    'resident_country': 'enum',
+    'family_name_national_character': 'text',
+    'given_name_national_character': 'text',
+    'signature_usual_mark': 'image',
+}
+
+# The value set of every enum field
+ENUM_OPTION_SETS = {
+    ('pid', 'nationalities'): 'countries',
+    ('pid', 'address_country'): 'countries',
+    ('pid', 'sex'): 'sex',
+    ('pid', 'issuing_country'): 'countries',
+    ('mdl', 'issuing_country'): 'countries',
+    ('mdl', 'sex'): 'sex',
+    ('mdl', 'eye_colour'): 'eye_colours',
+    ('mdl', 'hair_colour'): 'hair_colours',
+    ('mdl', 'nationality'): 'countries',
+    ('mdl', 'resident_country'): 'countries',
+}
+
+LICENCE_CLASSES = [
+    'AM',
+    'A1',
+    'A2',
+    'A',
+    'B1',
+    'B',
+    'BE',
+    'C1',
+    'C1E',
+    'C',
+    'CE',
+    'D1',
+    'D1E',
+    'D',
+    'DE',
+    'L',
+    'T',
+]
+
+
+def _parts() -> list[CatalogPart]:
+    return [
+        part
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        for part in field.parts or ()
+    ]
+
+
+def test_every_field_has_the_kind_of_research_r6() -> None:
+    assert {field.key: field.kind for field in PID.fields} == PID_KINDS
+    assert {field.key: field.kind for field in MDL.fields} == MDL_KINDS
+
+
+def test_enum_fields_and_only_they_name_their_value_set() -> None:
+    option_sets = {
+        (document_type.key, field.key): field.option_set
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.option_set is not None or field.kind == 'enum'
+    }
+
+    assert option_sets == ENUM_OPTION_SETS
+
+
+def test_the_place_of_birth_and_the_licence_classes_have_parts() -> None:
+    place_of_birth = PID.field('place_of_birth')
+    driving_privileges = MDL.field('driving_privileges')
+
+    assert place_of_birth is not None and driving_privileges is not None
+    assert place_of_birth.parts == (
+        CatalogPart('country', 'Country', 'enum', 'countries'),
+        CatalogPart('region', 'Region', 'text'),
+        CatalogPart('locality', 'City or town', 'text'),
+    )
+    assert driving_privileges.parts == (
+        CatalogPart('classes', 'Licence classes', 'enum', 'licence_classes'),
+        CatalogPart('issue_date', 'Issue date', 'date', per_licence_class=True),
+        CatalogPart('expiry_date', 'Expiry date', 'date', per_licence_class=True),
+    )
+    # Parts belong to fields made of parts, and only enum parts have a value set
+    for document_type in DOCUMENT_TYPES:
+        for field in document_type.fields:
+            assert (field.parts is not None) == (field.kind == 'parts'), field.key
+    for part in _parts():
+        assert (part.option_set is not None) == (part.kind == 'enum'), part.key
+
+
+def test_every_value_set_the_catalog_names_exists() -> None:
+    named = {
+        field.option_set
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.option_set is not None
+    } | {part.option_set for part in _parts() if part.option_set is not None}
+
+    assert named == set(OPTION_SETS)
+
+
+def test_only_the_dates_of_birth_are_worded_as_an_age() -> None:
+    dates_of_birth = [
+        (document_type.key, field.key)
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.date_of_birth
+    ]
+
+    assert dates_of_birth == [('pid', 'birthdate'), ('mdl', 'birth_date')]
+    assert all(
+        field.kind == 'date'
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.date_of_birth
+    )
+
+
+def test_no_age_over_element_is_in_the_catalog() -> None:
+    # Age is checked through the date of birth (F20)
+    assert not [
+        field.key
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.key.startswith('age_over')
+    ]
+
+
+@pytest.mark.parametrize('key', list(OPTION_SETS))
+def test_every_value_set_has_options_with_unique_values_and_labels(key: str) -> None:
+    options = OPTION_SETS[key]
+    values = [option.value for option in options]
+    labels = [option.label for option in options]
+
+    assert options
+    assert len(values) == len(set(values))
+    assert len(labels) == len(set(labels))
+    assert all(label.strip() for label in labels)
+
+
+def test_the_countries_are_the_iso_3166_alpha_2_codes() -> None:
+    countries = OPTION_SETS['countries']
+
+    assert len(countries) == 249
+    assert all(re.fullmatch('[A-Z]{2}', str(option.value)) for option in countries)
+    assert ('DE', 'Germany') in [(option.value, option.label) for option in countries]
+
+
+def test_the_sex_codes_follow_the_pid_rulebook() -> None:
+    assert [option.value for option in OPTION_SETS['sex']] == [0, 1, 2, 3, 4, 5, 6, 9]
+
+
+def test_the_17_licence_classes_have_descriptions() -> None:
+    classes = OPTION_SETS['licence_classes']
+
+    assert [option.value for option in classes] == LICENCE_CLASSES
+    # Statements show the code alone, the class menu its description too
+    assert all(option.label == option.value for option in classes)
+    assert all(option.description for option in classes)
+    assert next(option for option in classes if option.value == 'B').description == (
+        'Cars up to 3.5 t'
+    )

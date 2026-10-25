@@ -13,14 +13,18 @@ router = APIRouter(
 
 @router.get('')
 def list_document_types() -> ApiResponse[list[DocumentType]]:
-    """List the catalog's document types and their fields, in catalog order (FR-002)."""
+    """List the catalog's document types and their fields, in catalog order (FR-002).
+
+    Each field comes with its kind of value, the key of its value set, whether it
+    is a date of birth, and its parts (spec 002, FR-003).
+    """
     return ApiResponse(
         data=[
             DocumentType(
                 key=document_type.key,
                 label=document_type.label,
                 fields=[
-                    DocumentField(key=field.key, label=field.label)
+                    DocumentField.model_validate(field)
                     for field in document_type.fields
                 ],
             )
