@@ -67,7 +67,7 @@ tested as an increment.
 **Purpose**: Install the frontend's test runner before any other frontend task (constitution
 v1.1.0), and settle the copy and tokens that the UI tasks need.
 
-- [ ] T001 Install Vitest as the frontend's test runner and apply the documentation checklist (plan "Rules for /speckit-tasks"; constitution v1.1.0, III; research R12, R14):
+- [X] T001 Install Vitest as the frontend's test runner and apply the documentation checklist (plan "Rules for /speckit-tasks"; constitution v1.1.0, III; research R12, R14):
   - check which Vitest release supports Vite 8 (its peer dependency on `vite`), then add it as a development dependency in `frontend/package.json` and `frontend/package-lock.json` (`npm install --save-dev vitest@<version>`), and add the script `"test": "vitest run"`;
   - in `frontend/vite.config.ts`, add a `test` block with `environment: 'node'`, typed by `/// <reference types="vitest/config" />` at the top of the file;
   - add no `frontend/vitest.config.ts`, no jsdom and no DOM testing library;
@@ -78,7 +78,7 @@ v1.1.0), and settle the copy and tokens that the UI tasks need.
   - documentation:
     - add `npm test` ("Run the unit tests once, without watching") to the frontend command tables of `CLAUDE.md` and `README.md`;
     - describe Vitest in `README.md`, with why it was added: the frontend's pure logic, such as the rules' propagation between variants, runs only in the browser, and its tests in Node are a quality gate (constitution v1.1.0).
-- [ ] T002 [P] Write `specs/002-connection-rules/design-notes.md`, the copy that the decisions leave to the design notes (S2–S7; F7, F14, F27, F32, W3, W8, W9; plan "Rules for /speckit-tasks"; research R13).
+- [X] T002 [P] Write `specs/002-connection-rules/design-notes.md`, the copy that the decisions leave to the design notes (S2–S7; F7, F14, F27, F32, W3, W8, W9; plan "Rules for /speckit-tasks"; research R13).
   - Use the format of `specs/001-servicebw-eudi-middleware/design-notes.md`.
   - Read the frames with `get_design_context` and `get_screenshot` (file `s8mU9oJDq3411e8bxMjQO9`). Where Figma has no copy, propose some and mark it as proposed.
   - The notes cover:
@@ -92,7 +92,7 @@ v1.1.0), and settle the copy and tokens that the UI tasks need.
     - S5: the publish and save dialog's rules summary per variant (U33 `6376:26181`), including a variant without rules;
     - FYI #20: one footer wording for the document menu (U11 `6348:40237` against U12 `6350:41316`);
     - F32 (research R6, R14): the licence classes AM, A1, A2, A, B1, B, BE, C1, C1E, C, CE, D1, D1E, D, DE, L and T, each with the description that U12 `6350:42145` and U24 `6191:42191` show, such as "B Cars up to 3.5 t". Add a description for every class that the frames don't show.
-- [ ] T003 Map the Figma variables to the project's tokens, once (CLAUDE.md "Figma implementation workflow", step 2). It runs after T002, since both write `specs/002-connection-rules/design-notes.md`:
+- [X] T003 Map the Figma variables to the project's tokens, once (CLAUDE.md "Figma implementation workflow", step 2). It runs after T002, since both write `specs/002-connection-rules/design-notes.md`:
   - call `get_variable_defs` on the root `6263:12360`, and map every variable to an existing token of `frontend/src/index.css` (KERN's Tailwind theme and the `@theme` block);
   - record the mapping in a "Tokens" section of design-notes.md. Include the colours of the variant marks "Changed here" (U17 `6134:9009`), "New addition" (U17 `6134:9064`) and "Removed" (U18 `6163:5856`), and of the group frames (U14 `6094:6413`);
   - list every value without a matching token, and ask the user before adding any to `@theme`. Don't invent tokens.

@@ -15,7 +15,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
-- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
+- **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
 
 ### Dependencies added to the template
 
@@ -30,6 +30,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
 | `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
+| `vitest` | frontend, `devDependencies` | Runs the frontend's unit tests (`npm test`). Some pure logic runs only in the browser, such as the rules' propagation between the variants of a form connection, so its tests in Node are a quality gate (constitution v1.1.0). Configured in the `test` block of `vite.config.ts`, in the `node` environment, without a DOM. Version 4, because Vitest 5 needs Node 22.12, and the frontend still supports Node 20 |
 
 The three KERN packages and `react-router` are pinned to exact versions; for KERN, a version
 mismatch between the packages is the most likely cause of visual breakage.
@@ -229,6 +230,9 @@ npm run dev
 # Build for production
 npm run build
 
+# Run the unit tests once, without watching
+npm test
+
 # Linting/formatting
 npm run lint          # ESLint
 npm run lint:fix      # ESLint with --fix
@@ -271,7 +275,8 @@ Linting and code formatting is set up for both parts of the stack. The tools are
   React, React Hooks, react-refresh, and `simple-import-sort` for import ordering.
   Prettier (`frontend/.prettierrc`) handles formatting: single quotes, semicolons, 100
   columns, 2-space indent, ES5 trailing commas, and Tailwind class sorting via
-  `prettier-plugin-tailwindcss`.
+  `prettier-plugin-tailwindcss`. Vitest runs the unit tests, the `*.test.ts` files next to the
+  modules they test, in Node; `npm run build` type-checks them with the rest of `src/`.
 
 ### Git hooks (pre-commit)
 

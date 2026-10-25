@@ -343,6 +343,7 @@ Key points:
 | `npm install` | Install dependencies |
 | `npm run dev` | Start dev server |
 | `npm run build` | Build for production |
+| `npm test` | Run the unit tests once, without watching |
 | `npm run lint` | Run ESLint |
 | `npm run lint:fix` | Run ESLint with `--fix` |
 | `npm run format` | Format with Prettier |
@@ -408,7 +409,8 @@ cd frontend
 - Font: Fira Sans, KERN's typeface, loaded from `@kern-ux/native` and set as the default font in
   `index.css`
 - Custom theme values are defined in `index.css` using the `@theme` directive (for example the
-  `shadow-card`, `shadow-menu` and `shadow-chip` tokens, which KERN lacks)
+  `shadow-card`, `shadow-menu` and `shadow-chip` tokens, which KERN lacks, and the variant marks'
+  `variant-changed` and `variant-new` colours of spec 002)
 - The KERN design system is imported in `index.css`: Tailwind, KERN's fonts, KERN's CSS, then the
   KERN Tailwind theme, which turns KERN's design tokens into Tailwind classes. Keep that order,
   and see `docs/KERN-DESIGN-SYSTEM.md` for the components and tokens. Don't import the React
@@ -514,6 +516,11 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Never implement nodes outside the current task.
 - A difference from Figma that an F# or W# item prescribes is not a mismatch: list it with its item
   number in the verification table instead of fixing it.
+- Spec 002's Figma file (`s8mU9oJDq3411e8bxMjQO9`) binds KERN's variable names with the values of
+  an unreleased KERN ("Revamp"): other colours, radii and type sizes than KERN 2.8. Use the KERN
+  2.8 token of the same name, and list a value that differs only for that reason as "KERN 2.8 vs
+  Revamp" instead of fixing it (decision 2026-10-25, `specs/002-connection-rules/design-notes.md`
+  §9).
 
 ## Do Not
 

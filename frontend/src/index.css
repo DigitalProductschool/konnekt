@@ -25,6 +25,16 @@
   /* The number in a step circle of Figma "App/Progress", smaller than any KERN text style */
   --text-step: 13px;
   --text-step--line-height: 16px;
+
+  /*
+   * The variant marks "Changed here" and "New addition" (Figma "Rules/Variant status"), which
+   * KERN has no semantic colours for: the warning colours, which Figma also gives "Changed
+   * here", and the violet of KERN's palette
+   */
+  --color-variant-changed: var(--kern-color-feedback-warning);
+  --color-variant-changed-background: var(--kern-color-feedback-warning-background);
+  --color-variant-new: var(--kern-color-violet-650);
+  --color-variant-new-background: var(--kern-color-violet-025);
 }
 
 /*
