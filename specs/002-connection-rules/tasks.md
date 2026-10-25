@@ -919,7 +919,7 @@ them (FR-028). These tasks are done before US3 merges, and their backend and UI 
     - check after the name, the serviceBW form and the documents, but before the rules are checked (T015, T053) and before EUDIPLO is called. A stale editor then meets the `409`, not a refusal that its staleness causes, such as "Unknown variant.";
     - check again under the row lock (step 3);
     - save nothing.
-  - The message names every branch that replacing would delete (the current branches that the save leaves out), and every branch that it would bring back (the save's branches that another save deleted). For example: "Another team member saved the rules of this connection after you opened it. Replacing their changes deletes the variant School transport and brings back the variant Taxi with a new pull URL.".
+  - The message names every branch that replacing would delete (the current branches that the save leaves out), and every branch that it would bring back (the save's branches that another save deleted). It uses the UI's words, "variant" and "result link" (spec Assumptions, "Design"). For example: "Another team member saved the rules of this connection after you opened it. Replacing their changes deletes the variant School transport and brings back the variant Taxi with a new result link.".
   - With `replace: true`, the save goes on and keeps the editor's version whole (FR-028):
     - rules and groups that the other save deleted come back under their identifiers, which T016 accepts because the loaded rule set has them;
     - a branch that the other save deleted comes back as a new branch: T053's branch check lets it through, and T017 gives it a new UUID4 and row, so a new pull URL. Its old pull URL keeps answering `409 unavailable` (FR-027);
@@ -941,7 +941,7 @@ them (FR-028). These tasks are done before US3 merges, and their backend and UI 
     - unchanged URLs in both cases.
 - [ ] T070 [P] [US3] Send rules only when they changed, and handle `409 rules_changed` (S5, S7; W9; FR-028; Figma U35 `6376:27178`, U14 `6113:29056`). Files: `frontend/src/pages/FormConnectionEditor/utils.ts`, `PublishDialog.tsx` and `constants.ts`, and `frontend/src/pages/FormConnectionEdit/index.tsx`.
   - When editing, the payload carries `rules` only when the branches differ from the loaded ones, compared rather than tracked by a dirty flag. A save of the name or the documents alone never meets the `409`.
-  - On `ApiError` `409` `rules_changed`, the dialog shows design-notes.md's heading, the API's message, which names the variants that replacing deletes or brings back with a new pull URL, and two actions:
+  - On `ApiError` `409` `rules_changed`, the dialog shows design-notes.md's heading, the API's message, which names the variants that replacing deletes or brings back with a new result link, and two actions:
     - "Replace their changes": saves again with `replace: true`;
     - "Reload": fetches the connection again and remounts the editor at the Rules step, dropping the unsaved changes. `FormConnectionEdit/index.tsx` passes an `onReload`, and a key that changes with each load.
 

@@ -788,7 +788,9 @@ new one, and no URL has changed.
   most 200 rules and groups." (Clarifications, 2026-10-25).
 - **Design**: The layout and wording of the rules step and of the branches come from the UI design,
   as in spec 001. The UI's words may differ from this spec's, as "connection" stands for "form
-  connection" and "variant" for "branch" there, but the conditions keep the wording of FR-003.
+  connection", "variant" for "branch", and "Request link" and "Result link" for the trigger URL and
+  a pull URL there, but the conditions keep the wording of FR-003. Messages that the management
+  interface shows, the API's included, use the UI's words.
   The rule editor's aids are built as designed: search in long menus (the Licence classes part
   picker has one, the Place of birth's three parts don't), licence class codes with
   their descriptions, and the data menu's link "Need other data? Add it in Documents"

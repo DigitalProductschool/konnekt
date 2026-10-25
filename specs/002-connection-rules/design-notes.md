@@ -33,7 +33,8 @@ addition:
 - **"Variant"** is the UI's word for a branch; the main branch is called **"Standard"** until it is
   renamed (spec Assumptions, "Design"). The API and the code keep "branch".
 - **Links**: the UI calls the trigger URL the "Request link" and a pull URL the "Result link", as
-  spec 001 does. Messages from the API that say "pull URL" are shown as they come (section 6).
+  spec 001 does. The API's messages, which the UI shows as they come, use the same words (spec
+  Assumptions, "Design"; decided 2026-10-25).
 - Messages name rules and groups with their variant: "Rule 03 in Standard deleted." (FR-005, F29).
   Prompts about the item on screen keep the design's copy ("Delete Rule 03?").
 
@@ -221,12 +222,10 @@ U35's failure alert (proposed):
 - Alert title: "The rules changed since you opened them"
 - Alert body: the API's message as it comes, such as "Another team member saved the rules of this
   connection after you opened it. Replacing their changes deletes the variant School transport and
-  brings back the variant Taxi with a new pull URL." (contracts/management-api.md), then:
+  brings back the variant Taxi with a new result link." (contracts/management-api.md), then:
   "Reload to see their changes; your unsaved changes are lost. Or replace their changes with
   yours."
 - Buttons: "Reload" (secondary) / "Replace their changes" (primary).
-- **Note for the backend task**: the UI calls a pull URL a "result link". The API's message could
-  say "with a new result link" so that the dialog uses one term.
 
 ### Publishing without rules (FR-001)
 
@@ -242,7 +241,8 @@ summary" (FYI #17). Text rules read as in section 3.
 
 ## 8. Open points
 
-- The API message of `409 rules_changed` says "pull URL"; the UI says "result link" (section 6).
+None. The API's `409 rules_changed` message says "result link", as the UI does (decided
+2026-10-25: spec Assumptions "Design", contracts/management-api.md, T068).
 
 ## 9. Tokens (T003)
 
