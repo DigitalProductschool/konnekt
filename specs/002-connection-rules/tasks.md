@@ -650,7 +650,7 @@ each way to qualify, and for an applicant who qualifies in neither (quickstart V
 
 ### Implementation for User Story 2 (backend)
 
-- [ ] T044 [US2] Evaluate groups and sub-groups in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (FR-009, FR-011; research R7 "Levels" and "Messages"; contracts/integration-api.md).
+- [X] T044 [US2] Evaluate groups and sub-groups in `backend/app/services/evaluation.py`, with tests in `backend/tests/unit/test_evaluation.py` (FR-009, FR-011; research R7 "Levels" and "Messages"; contracts/integration-api.md).
   - Every level is combined with its own operator, and a group or sub-group counts as one item of its level.
   - `results` follow the tree's order: the top level first, with each group's members after it. `group` names the containing group's identifier. Groups get `met` or `not_met`, never `not_checked`.
   - `messages` (FR-011) is empty when the top level is met. Otherwise, walking the top level in order, it holds:
@@ -661,13 +661,13 @@ each way to qualify, and for an applicant who qualifies in neither (quickstart V
     - a group's own message, reported instead of its members' (AS4);
     - an OR group with one rule met (AS5);
     - the result list of the contract's example.
-- [ ] T045 [US2] Validate groups in `backend/app/services/rules.py`, with tests in `backend/tests/unit/test_rules_validation.py` (FR-004, FR-005, FR-008; data-model.md "Group and sub-group" and "Validation"):
+- [X] T045 [US2] Validate groups in `backend/app/services/rules.py`, with tests in `backend/tests/unit/test_rules_validation.py` (FR-004, FR-005, FR-008; data-model.md "Group and sub-group" and "Validation"):
   - `operator`: "`and` or `or`";
   - `message`: "Its own error message, 1–500 characters, or none";
   - `items`: "A group holds rules and sub-groups; a sub-group holds rules only", with "At least two active members". Message: "Group 02 in Standard needs at least two rules.";
   - group names follow the rules for rule names, and "Group NN" and "Sub-group NN" are kept for `group-{NN}`;
   - identifiers `group-{n}` come from the group counter (T016).
-- [ ] T046 [US2] Test groups through the API (depends on T044, T045).
+- [X] T046 [US2] Test groups through the API (depends on T044, T045).
   - `backend/tests/api/test_form_connection_rules.py`:
     - a save with a group and a sub-group, with identifiers from the group counter;
     - the refusals of a one-member group, and of a group inside a sub-group.
@@ -675,7 +675,7 @@ each way to qualify, and for an applicant who qualifies in neither (quickstart V
 
 ### Implementation for User Story 2 (frontend)
 
-- [ ] T047 [P] [US2] Add groups to `frontend/src/utils/rules/tree.ts`, with tests in `tree.test.ts` (FR-007, FR-008; data-model.md "Dissolution"). Each operation returns what an undo restores.
+- [X] T047 [P] [US2] Add groups to `frontend/src/utils/rules/tree.ts`, with tests in `tree.test.ts` (FR-007, FR-008; data-model.md "Dissolution"). Each operation returns what an undo restores.
   - Group two or more top-level items into a group, or two or more rules of a group into a sub-group:
     - the new group takes its first member's place;
     - it is numbered from the group counter, and named "Group NN" or "Sub-group NN";
@@ -687,15 +687,15 @@ each way to qualify, and for an applicant who qualifies in neither (quickstart V
   - Delete a group with its members.
   - Dissolve a group whose members drop below two: the remaining member takes its place, and the group's AND/OR and message are dropped.
   - A sub-group that reaches the top level, through dissolution or ungrouping, becomes a group. It keeps its identifier, name, AND/OR and message.
-- [ ] T048 [US2] Add T045's group checks to `frontend/src/utils/rules/validation.ts`, with tests in `validation.test.ts` (depends on T047).
+- [X] T048 [US2] Add T045's group checks to `frontend/src/utils/rules/validation.ts`, with tests in `validation.test.ts` (depends on T047).
   - Add group names to the inline name checks: "Another group in Standard is already called Group 01." and "Group 03 is kept for the group numbered 03.".
-- [ ] T049 [P] [US2] Build `frontend/src/components/GroupFrame/`, and make `Connector` switchable (S2, S6; W6; FR-007, FR-008; Figma U14 `6094:6413`, `6094:6320`, `6324:39410`, U16 `6344:53590`–`6344:53658`).
+- [X] T049 [P] [US2] Build `frontend/src/components/GroupFrame/`, and make `Connector` switchable (S2, S6; W6; FR-007, FR-008; Figma U14 `6094:6413`, `6094:6320`, `6324:39410`, U16 `6344:53590`–`6344:53658`).
   - `GroupFrame` draws a group or sub-group:
     - its header, with the name and a slot for the ⋯ menu;
     - its own message, under the header (U14 `6324:39410`; W6);
     - its members, with connectors between them.
   - `Connector` takes an optional switch handler. With one, it is a button whose accessible name says the level it switches, such as "Switch Group 01 to OR" (ui-screens.md, "Accessibility"). Without one, it stays read-only.
-- [ ] T050 [US2] Group rules in the Rules step, in `RulesStep/` (S2; F12, F13, F29; FR-007, FR-008; Figma U14 `6094:6597` (connector menu), U16 `6344:53506`–`6344:53658`, U21 `6168:7263`).
+- [X] T050 [US2] Group rules in the Rules step, in `RulesStep/` (S2; F12, F13, F29; FR-007, FR-008; Figma U14 `6094:6597` (connector menu), U16 `6344:53506`–`6344:53658`, U21 `6168:7263`).
   - A connector switches its whole level between AND and OR, with the notice after switching as designed.
   - Select mode (U16), which works with the keyboard:
     - choose two or more items of one level, then "Group", or "Cancel";
@@ -704,13 +704,13 @@ each way to qualify, and for an applicant who qualifies in neither (quickstart V
   - "+ Add rule" inside groups and sub-groups.
   - Deleting a member below two dissolves the group: the remaining member takes its place (US2-AS7). Empty and single-member groups never show (F13).
   - Groups and sub-groups are renamed inline, like rules, with T048's messages (F12).
-- [ ] T051 [US2] Build the group and sub-group menus in `RulesStep/` (S2; W6, W8; FR-004, FR-008; Figma U14 `6094:6413`, `6094:6320`, `6324:39410`, `6324:39419`, `6113:29056`, `6113:29469`):
+- [X] T051 [US2] Build the group and sub-group menus in `RulesStep/` (S2; W6, W8; FR-004, FR-008; Figma U14 `6094:6413`, `6094:6320`, `6324:39410`, `6324:39419`, `6113:29056`, `6113:29469`):
   - "Add error message" and "Remove error message": the message card, with its hint, sits under the header (W6);
   - "Ungroup": the members take the group's place, and the toast "Group 01 in Standard ungrouped." offers Undo (W8);
   - "Delete group": design-notes.md's confirmation ("Delete Group 01?", saying that its rules are deleted with it), then a toast with Undo (W8, US2-AS8);
   - "Rename", as for rules.
   - T064 adds "Remove" and "Restore" for inherited groups in based branches.
-- [ ] T052 [US2] Show groups on the details and in the publish dialog, in `frontend/src/pages/FormConnectionDetail/RulesSummary.tsx` and `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx` (S5, S6; F26, W1; FR-030).
+- [X] T052 [US2] Show groups on the details and in the publish dialog, in `frontend/src/pages/FormConnectionDetail/RulesSummary.tsx` and `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx` (S5, S6; F26, W1; FR-030).
   - Groups and sub-groups show through `GroupFrame`, with their AND/OR and their own messages.
   - On the details, each one shows its identifier next to its name, such as `group-3` (W1).
 

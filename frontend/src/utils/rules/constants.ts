@@ -194,8 +194,12 @@ export const RULES_MESSAGES = {
   unknownPart: (rule: string, branch: string, field: string) =>
     `${rule} in ${branch} checks a part that ${field} doesn’t have.`,
   noMessage: (rule: string, branch: string) => `${rule} in ${branch} has no error message.`,
-  messageTooLong: (rule: string, branch: string) =>
-    `The error message of ${rule} in ${branch} can have at most 500 characters.`,
+  messageTooLong: (item: string, branch: string) =>
+    `The error message of ${item} in ${branch} can have at most 500 characters.`,
+  // Groups and sub-groups (FR-008): what they may hold, and how many members
+  rulesOnly: (subGroup: string, branch: string) => `${subGroup} in ${branch} can only hold rules.`,
+  tooFewMembers: (group: string, branch: string) =>
+    `${group} in ${branch} needs at least two rules.`,
   // Inline renaming (`nameProblem`)
   nameMissing: 'Enter a name.',
   nameTooLong: 'A name can have at most 100 characters.',

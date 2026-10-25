@@ -142,9 +142,17 @@ export interface FoundItem extends ItemPosition {
   depth: number;
 }
 
-/** A deleted item with its place: what an undo puts back */
-export interface DeletedItem extends ItemPosition {
-  item: RuleTreeItem;
+/**
+ * What an undo of a change to a tree's structure puts back (`undoChange`): one range of one
+ * level as it was. The change replaced the items `before`, from `index` on, with the items that
+ * `after` names: nothing for a deletion, the members for an ungrouping, the remaining member
+ * for a dissolution, the new group and the items between its members for a grouping
+ */
+export interface LevelChange extends ItemPosition {
+  /** The range's items before the change, as they were */
+  before: RuleTreeItem[];
+  /** The identifiers of the items in the range's place after the change */
+  after: string[];
 }
 
 /** A problem that refuses publishing or saving, with what it names (FR-006) */

@@ -183,7 +183,7 @@ export default function FormConnectionEditorPage({
         dispatchRules({ type: 'editRule', branchKey: next.branchKey, ruleId: next.ruleId });
         return;
       case 'add':
-        dispatchRules({ type: 'addRule', branchKey: next.branchKey });
+        dispatchRules({ type: 'addRule', branchKey: next.branchKey, parentId: next.parentId });
         return;
       case 'documents':
         dispatch({ type: 'goToStep', step: 'documents' });
@@ -239,18 +239,32 @@ export default function FormConnectionEditorPage({
     }
   }
 
-  /** Deletes the rule, then gives the focus to the rule after it, or to "Add rule". */
+  /**
+   * Deletes the rule or group, then gives the focus to the item after it in its level, or the
+   * one before it, or to "Add rule".
+   */
   function handleConfirmDelete() {
     const { dialog } = rules;
-    if (dialog?.type !== 'deleteRule') {
+    if (dialog?.type !== 'deleteRule' && dialog?.type !== 'deleteGroup') {
       return;
     }
-    const neighbour = neighbourOf(rules, dialog.branchKey, dialog.ruleId);
+    const itemId = dialog.type === 'deleteRule' ? dialog.ruleId : dialog.groupId;
+    const neighbour = neighbourOf(rules, dialog.branchKey, itemId);
     dispatchRules({ type: 'confirmDelete' });
     focusSoon(
       neighbour ? ELEMENT_IDS.rule(dialog.branchKey, neighbour) : '',
       ELEMENT_IDS.addRule(dialog.branchKey)
     );
+  }
+
+  /** The toast's Undo: the rules as they were, with the focus on the first item it restores. */
+  function handleRulesUndo() {
+    const { undo } = rules;
+    const restored = undo?.change.before[0];
+    flushSync(() => dispatchRules({ type: 'undo' }));
+    if (undo && restored) {
+      document.getElementById(ELEMENT_IDS.rule(undo.branchKey, restored.id))?.focus();
+    }
   }
 
   /** "Check rules again" closes the dialog; "Add rules", from the documents, opens the rules. */
@@ -336,7 +350,7 @@ export default function FormConnectionEditorPage({
             catalog={ruleCatalog}
             editing={editing}
             dispatch={dispatchRules}
-            onAddRule={(branchKey) => leaveEditor({ type: 'add', branchKey })}
+            onAddRule={(branchKey, parentId) => leaveEditor({ type: 'add', branchKey, parentId })}
             onEditRule={(branchKey, ruleId) => leaveEditor({ type: 'edit', branchKey, ruleId })}
             onAddData={() => leaveEditor({ type: 'documents' })}
             onSaveRule={() => dispatchRules({ type: 'saveRule' })}
@@ -393,11 +407,7 @@ export default function FormConnectionEditorPage({
             onDiscardChanges={() => answerSaveChanges(false)}
           />
           {state.step === 'rules' ? (
-            <Toast
-              toast={rules.toast}
-              onAction={() => dispatchRules({ type: 'undo' })}
-              onDismiss={dismissRulesToast}
-            />
+            <Toast toast={rules.toast} onAction={handleRulesUndo} onDismiss={dismissRulesToast} />
           ) : (
             <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
           )}

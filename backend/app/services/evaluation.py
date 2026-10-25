@@ -17,13 +17,15 @@ the catalog raises `ValueError`, and the pull then hands nothing over.
 import math
 import re
 import unicodedata
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import MAXYEAR, date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from ..catalog import FieldKind, PartKind, get_document_type
 from ..option_sets import OPTION_SETS
 from ..schemas import (
+    Combinator,
     Condition,
     DeliveredDocument,
     Evaluation,
@@ -110,49 +112,94 @@ def evaluate_branch(
     """Evaluate a branch's rules on the delivered documents (FR-009 to FR-011).
 
     `branch` is a branch of the request's rule set, as it was at the trigger, and
-    `shared_on` the day of sharing (`day_of_sharing`). The top-level rules combine
-    with the branch's AND or OR; `not_checked` counts as not met, and a branch without
-    rules is met. `results` follow the branch's order. `messages` holds, when the
-    branch isn't met, the message of every rule that isn't met, in order. Groups and
-    a based branch's marks aren't evaluated here yet: a branch that has them raises
-    `ValueError`, so that no documents go out without a correct evaluation.
+    `shared_on` the day of sharing (`day_of_sharing`). Every level combines its
+    rules and groups with its own AND or OR, the top level with the branch's, and a
+    group or sub-group counts as one item of its level. `not_checked` counts as not
+    met, groups are met or not met, and a branch without rules is met.
 
-    The evaluation names rules, never the values they checked (FR-017).
+    `results` follow the branch's order: the top level first, each group's members
+    after it, with `group` naming the group that contains them. `messages` is empty
+    when the branch is met. Otherwise it holds, walking the top level in order, the
+    message of each rule that isn't met and, for each group that isn't met, its own
+    message or, if it has none, its members' found the same way (FR-011).
+
+    A based branch's marks aren't evaluated here yet, nor the groups they dissolve:
+    a marked item, or a group with fewer than two members, raises `ValueError`, so
+    that no documents go out without a correct evaluation.
+
+    The evaluation names rules and groups, never the values they checked (FR-017).
     """
     values = _DocumentValues(documents)
-    results: list[EvaluationResult] = []
-    unmet: list[RuleItem] = []
-    for item in branch.items:
-        if isinstance(item, GroupItem):
-            raise ValueError('The branch has a group, which is not evaluated yet')
-        if item.mark is not None:
-            raise ValueError('The branch has a marked rule, which is not evaluated yet')
-        outcome = _rule_outcome(item, values, shared_on)
-        results.append(
-            EvaluationResult(
-                id=item.id, type='rule', name=item.name, group=None, outcome=outcome
-            )
-        )
-        if outcome != 'met':
-            unmet.append(item)
-
-    if not results:
-        met = True
-    elif branch.operator == 'and':
-        met = not unmet
-    else:
-        met = len(unmet) < len(results)
-    messages = (
-        []
-        if met
-        else [EvaluationMessage(id=rule.id, message=rule.message) for rule in unmet]
-    )
+    top_level = [_evaluated(item, values, shared_on) for item in branch.items]
+    met = not top_level or _level_met(branch.operator, top_level)
     return Evaluation(
         branch=EvaluationBranch(id=branch.id, name=branch.name),
         met=met,
-        results=results,
-        messages=messages,
+        results=list(_results(top_level, None)),
+        messages=[] if met else list(_messages(top_level)),
     )
+
+
+@dataclass(frozen=True)
+class _Evaluated:
+    """A rule's or group's outcome, with its members' if it is a group."""
+
+    item: RuleItem | GroupItem
+    outcome: Outcome
+    members: list['_Evaluated']
+
+
+def _evaluated(
+    item: RuleItem | GroupItem, values: '_DocumentValues', shared_on: date
+) -> _Evaluated:
+    if item.mark is not None:
+        raise ValueError('The branch has a marked item, which is not evaluated yet')
+    if isinstance(item, RuleItem):
+        return _Evaluated(item, _rule_outcome(item, values, shared_on), [])
+    if len(item.items) < 2:
+        raise ValueError('A saved group has fewer than two members')
+    members = [_evaluated(member, values, shared_on) for member in item.items]
+    outcome: Outcome = 'met' if _level_met(item.operator, members) else 'not_met'
+    return _Evaluated(item, outcome, members)
+
+
+def _level_met(operator: Combinator, items: Sequence[_Evaluated]) -> bool:
+    """AND: every item is met; OR: at least one is (FR-009)."""
+    if operator == 'and':
+        return all(item.outcome == 'met' for item in items)
+    return any(item.outcome == 'met' for item in items)
+
+
+def _results(
+    level: Sequence[_Evaluated], group: str | None
+) -> Iterator[EvaluationResult]:
+    """Every result of a level in order, each group followed by its members'."""
+    for entry in level:
+        item = entry.item
+        yield EvaluationResult(
+            id=item.id,
+            type=item.type,
+            name=item.name,
+            group=group,
+            outcome=entry.outcome,
+        )
+        yield from _results(entry.members, item.id)
+
+
+def _messages(level: Sequence[_Evaluated]) -> Iterator[EvaluationMessage]:
+    """The messages of a level's items that aren't met (FR-011).
+
+    A group with a message of its own reports it instead of its members'.
+    """
+    for entry in level:
+        if entry.outcome == 'met':
+            continue
+        # Every rule has a message; a group may have none
+        message = entry.item.message
+        if message is None:
+            yield from _messages(entry.members)
+        else:
+            yield EvaluationMessage(id=entry.item.id, message=message)
 
 
 class _DocumentValues:

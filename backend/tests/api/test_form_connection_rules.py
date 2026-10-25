@@ -1,8 +1,8 @@
 """Rules saved with a form connection (spec 002, contracts/management-api.md).
 
-User story 1 through the management API: creating and editing a form connection with
-rules, the refusals that name the problem, the rule and its branch, and saving
-documents and rules together or not at all (FR-028).
+User stories 1 and 2 through the management API: creating and editing a form
+connection with rules, groups and sub-groups, the refusals that name the problem, the
+rule and its branch, and saving documents and rules together or not at all (FR-028).
 """
 
 import copy
@@ -17,15 +17,22 @@ from app.models import FormConnection, FormConnectionRevision, FormConnectionRul
 from app.services import rules as rules_service
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
+    AGE_19_RULE,
+    AGE_21_RULE,
     AGE_RULE,
     CLASS_RULE,
     FORM_CONNECTION,
+    HELD_3_YEARS_RULE,
     HELD_RULE,
+    STUTTGART_RULE,
     US1_RULES,
+    US2_RULES,
+    group,
     main_branch,
     rule,
     rules_input,
     target,
+    us2_items,
 )
 
 INVALID_IDENTIFIER = (
@@ -439,6 +446,116 @@ def test_a_refusal_under_the_lock_removes_the_new_configuration(
     assert fake_eudiplo.configs.keys() == {f'fc-{created["id"]}-r1'}
     assert _get(signed_in_client, created['id']) == created
     assert _count(FormConnectionRevision) == 1
+
+
+# Groups and sub-groups (user story 2)
+
+GROUP_MESSAGE = 'You must be at least 21, or 19 with class B for 3 years.'
+
+
+def test_creating_with_a_group_and_a_sub_group_saves_them(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    items = us2_items(group_message=GROUP_MESSAGE)
+
+    created = _create(signed_in_client, rules=rules_input([main_branch(items)]))
+
+    assert created['branches'][0]['items'] == items
+    # Groups and sub-groups count with the group counter (research R5)
+    assert (created['next_rule_number'], created['next_group_number']) == (5, 3)
+    assert _get(signed_in_client, created['id']) == created
+
+
+def test_a_new_group_is_numbered_from_the_group_counter(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US2_RULES)
+    new_group = group(
+        3,
+        [
+            rule(
+                5,
+                target('mdl', 'expiry_date'),
+                {'operator': 'at_least_from_now', 'amount': 6, 'unit': 'months'},
+                'Your licence must be valid for at least 6 more months.',
+            ),
+            CLASS_RULE | {'id': 'rule-6', 'name': 'Rule 06'},
+        ],
+        operator='or',
+    )
+
+    edited = _put(
+        signed_in_client,
+        created,
+        rules=_edit_rules(created, [*us2_items(), new_group]),
+    )
+
+    assert edited['branches'][0]['items'][2] == new_group
+    assert edited['rule_set_version'] == 2
+    assert (edited['next_rule_number'], edited['next_group_number']) == (7, 4)
+
+
+@pytest.mark.parametrize(
+    ('items', 'message'),
+    [
+        (
+            [STUTTGART_RULE, group(1, [AGE_21_RULE])],
+            'Group 01 in Standard needs at least two rules.',
+        ),
+        (
+            [
+                group(
+                    1,
+                    [
+                        AGE_21_RULE,
+                        group(
+                            2,
+                            [
+                                AGE_19_RULE,
+                                group(3, [STUTTGART_RULE, HELD_3_YEARS_RULE]),
+                            ],
+                            name='Sub-group 02',
+                        ),
+                    ],
+                )
+            ],
+            'Sub-group 02 in Standard can only hold rules.',
+        ),
+    ],
+)
+def test_a_refused_group_saves_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    items: list[dict[str, Any]],
+    message: str,
+) -> None:
+    response = signed_in_client.post(
+        '/api/form-connections',
+        json=FORM_CONNECTION | {'rules': rules_input([main_branch(items)])},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'error': 'Validation error', 'message': message}
+    assert fake_eudiplo.calls == []
+    assert _count(FormConnection) == 0
+
+
+def test_a_group_is_combined_with_and_or_or(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    stuttgart, us2_group = us2_items()
+    rules = rules_input([main_branch([stuttgart, us2_group | {'operator': 'xor'}])])
+
+    response = signed_in_client.post(
+        '/api/form-connections', json=FORM_CONNECTION | {'rules': rules}
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'Invalid request payload',
+    }
+    assert _count(FormConnection) == 0
 
 
 # Sign-in and CSRF

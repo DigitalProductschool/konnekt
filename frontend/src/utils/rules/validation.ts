@@ -1,7 +1,7 @@
 // The checks that refuse publishing or saving (FR-005, FR-006; data-model.md, "Validation"), with
 // the server's messages, so that the rules step can name the problem, the rule and its branch
 // before calling the API and move the focus there
-import type { BranchInput, RuleItem, RuleTreeItem } from '../../types/form-connections';
+import type { BranchInput, GroupItem, RuleItem, RuleTreeItem } from '../../types/form-connections';
 import { conditionProblem, optionsOf } from './conditions';
 import {
   CONDITION_PROBLEM_MESSAGES,
@@ -204,6 +204,38 @@ export function ruleProblem(
   return null;
 }
 
+/**
+ * The first problem of a group or sub-group itself, in the server's words, or null (FR-004,
+ * FR-008): a sub-group holds rules only; a group needs at least two members, not counting those
+ * a based branch removed; its own message has at most 500 characters after trimming, and a blank
+ * one counts as none. Its name and its members are checked on their own.
+ */
+export function groupProblem(group: GroupItem, noun: ItemNoun, branchName: string): string | null {
+  const name = group.name.trim();
+  const branch = branchName.trim();
+  if (noun === 'sub-group' && group.items.some((member) => member.type === 'group')) {
+    return RULES_MESSAGES.rulesOnly(name, branch);
+  }
+  if (group.items.filter((member) => member.mark !== 'removed').length < 2) {
+    return RULES_MESSAGES.tooFewMembers(name, branch);
+  }
+  if (textLength((group.message ?? '').trim()) > MESSAGE_MAX_LENGTH) {
+    return RULES_MESSAGES.messageTooLong(name, branch);
+  }
+  return null;
+}
+
+/** The first problem of a rule's target, condition and message, or of a group's content. */
+function contentProblem(
+  { item, noun }: ItemAtDepth,
+  branchName: string,
+  context: RuleContext
+): string | null {
+  return item.type === 'rule'
+    ? ruleProblem(item, branchName, context)
+    : groupProblem(item, noun, branchName);
+}
+
 function identifiersAreValid(items: RuleTreeItem[]): boolean {
   const seen = new Set<string>();
   return flattenItems(items).every((item) => {
@@ -272,9 +304,10 @@ function itemNameProblem(
 /**
  * The first problem that refuses publishing or saving, or null (FR-006). The checks run in the
  * server's order: the number of branches and the main branch; then branch by branch its name,
- * description, size and identifiers, followed by its items in display order, each rule's name
- * before its target, condition and message. A problem that names a branch and an item comes
- * with both, so that the UI can open the branch and move the focus to the item.
+ * description, size and identifiers, followed by its items in display order, each group before
+ * its members. A rule's name comes before its target, condition and message; a group's name
+ * before what it holds, its number of members and its message. A problem that names a branch and
+ * an item comes with both, so that the UI can open the branch and move the focus to the item.
  *
  * `context.documents` are the requested documents with only their requested fields
  * (`requestedRuleDocuments`).
@@ -298,8 +331,7 @@ export function firstProblem(branches: BranchInput[], context: RuleContext): Rul
     const earlier = new Map<string, ItemAtDepth>();
     for (const entry of itemsWithNouns(branch.items)) {
       const message =
-        itemNameProblem(entry, branchName, earlier) ??
-        (entry.item.type === 'rule' ? ruleProblem(entry.item, branchName, context) : null);
+        itemNameProblem(entry, branchName, earlier) ?? contentProblem(entry, branchName, context);
       if (message) {
         return { message, branchIndex, itemId: entry.item.id };
       }

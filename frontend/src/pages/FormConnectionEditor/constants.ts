@@ -118,8 +118,13 @@ export const UPCOMING_DOCUMENTS = [
 export const ELEMENT_IDS = {
   form: 'connection-form',
   rulesProblem: 'rules-problem',
-  rule: (branchKey: string, ruleId: string) => `rule-${branchKey}-${ruleId}`,
-  addRule: (branchKey: string) => `add-rule-${branchKey}`,
+  // A rule's row or a group's frame
+  rule: (branchKey: string, itemId: string) => `rule-${branchKey}-${itemId}`,
+  // "Add rule" at the end of the top level, or of a group (null for the top level)
+  addRule: (branchKey: string, parentId: string | null = null) =>
+    parentId === null ? `add-rule-${branchKey}` : `add-rule-${branchKey}-${parentId}`,
+  selectBox: (branchKey: string, ruleId: string) => `select-${branchKey}-${ruleId}`,
+  groupMessage: (branchKey: string, groupId: string) => `group-message-${branchKey}-${groupId}`,
   name: 'connection-name',
   servicebwForm: 'connection-form-id',
   documentsError: 'documents-error',

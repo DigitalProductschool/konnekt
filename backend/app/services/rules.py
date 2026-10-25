@@ -148,7 +148,7 @@ def _folded(name: str) -> str:
     return name.strip().casefold()
 
 
-# Validation (FR-002 to FR-006, FR-020; data-model.md "Validation"). The checks run
+# Validation (FR-002 to FR-008, FR-020; data-model.md "Validation"). The checks run
 # in the order of the rules step's, and the first problem found is reported.
 
 
@@ -299,7 +299,14 @@ def _clean_item(
     noun = _noun(item, depth)
     name = _item_name(item, noun, branch_name, names)
     if isinstance(item, GroupItem):
+        subject = f'{name} in {branch_name}'
+        _check_members(item, depth, subject)
         message = (item.message or '').strip() or None
+        if message is not None and len(message) > MESSAGE_MAX_LENGTH:
+            raise _validation_error(
+                f'The error message of {subject} can have at most '
+                f'{MESSAGE_MAX_LENGTH} characters.'
+            )
         return item.model_copy(
             update={
                 'name': name,
@@ -326,6 +333,19 @@ def _clean_item(
     return item.model_copy(
         update={'name': name, 'condition': condition, 'message': message}
     )
+
+
+def _check_members(group: GroupItem, depth: int, subject: str) -> None:
+    """A group holds rules and sub-groups, a sub-group rules only (FR-008).
+
+    Each needs at least two active members: the members a based branch removed
+    don't count.
+    """
+    if depth > 0 and any(isinstance(member, GroupItem) for member in group.items):
+        raise _validation_error(f'{subject} can only hold rules.')
+    active = [member for member in group.items if member.mark != 'removed']
+    if len(active) < 2:
+        raise _validation_error(f'{subject} needs at least two rules.')
 
 
 def _item_name(

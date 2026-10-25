@@ -1,15 +1,34 @@
-import type { FormConnection, RuleItem, RuleTreeItem } from '../../../types/form-connections';
+import type {
+  FormConnection,
+  GroupItem,
+  RuleItem,
+  RuleTreeItem,
+} from '../../../types/form-connections';
 import {
+  addRule,
   deleteItem,
   duplicateRule,
   findItem,
+  flattenItems,
+  groupItems,
   newRule,
   numberOfId,
   replaceItem,
-  restoreItem,
+  setGroupMessage,
+  setOperator,
+  undoChange,
+  ungroupItem,
 } from '../../../utils/rules/tree';
 import { MAIN_BRANCH_KEY, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
-import type { RenameAction, RenameField, RulesAction, RulesBranch, RulesState } from './types';
+import type {
+  RenameAction,
+  RenameField,
+  RulesAction,
+  RulesBranch,
+  RulesSelection,
+  RulesState,
+  SwitchedLevel,
+} from './types';
 
 /**
  * The step's first state: the connection's branches and counters when editing; a main branch
@@ -54,6 +73,8 @@ export function initialRulesState(formConnection?: FormConnection): RulesState {
     toast: null,
     undo: null,
     problem: null,
+    selection: null,
+    switched: null,
   };
 }
 
@@ -69,11 +90,27 @@ export function focusSoon(id: string, fallbackId?: string) {
   });
 }
 
-/** Where the focus goes when a rule leaves the list: the next rule, or the one before it. */
-export function neighbourOf(state: RulesState, branchKey: string, ruleId: string): string | null {
+/** The items of a level of a branch: a group's members, or the top level for null. */
+export function levelItems(items: RuleTreeItem[], parentId: string | null): RuleTreeItem[] {
+  if (parentId === null) {
+    return items;
+  }
+  const found = findItem(items, parentId);
+  return found?.item.type === 'group' ? found.item.items : [];
+}
+
+/**
+ * Where the focus goes when an item leaves the list: the next item of its level, or the one
+ * before it. A group left with one member is dissolved, and that member takes its place.
+ */
+export function neighbourOf(state: RulesState, branchKey: string, itemId: string): string | null {
   const items = branchOf(state, branchKey)?.items ?? [];
-  const index = items.findIndex((item) => item.id === ruleId);
-  return (items[index + 1] ?? items[index - 1])?.id ?? null;
+  const found = findItem(items, itemId);
+  if (!found) {
+    return null;
+  }
+  const level = levelItems(items, found.parentId);
+  return (level[found.index + 1] ?? level[found.index - 1])?.id ?? null;
 }
 
 /** The inline rename field: what is typed, and why it was refused. */
@@ -88,20 +125,6 @@ export function renameReducer(field: RenameField, action: RenameAction): RenameF
   }
 }
 
-/** The menu item that an arrow key, Home or End moves the focus to. */
-export function nextMenuIndex(key: string, current: number, count: number): number {
-  switch (key) {
-    case 'Home':
-      return 0;
-    case 'End':
-      return count - 1;
-    case 'ArrowUp':
-      return current <= 0 ? count - 1 : current - 1;
-    default:
-      return current < 0 || current >= count - 1 ? 0 : current + 1;
-  }
-}
-
 export function branchOf(state: RulesState, branchKey: string): RulesBranch | undefined {
   return state.branches.find((branch) => branch.key === branchKey);
 }
@@ -110,6 +133,12 @@ export function branchOf(state: RulesState, branchKey: string): RulesBranch | un
 export function ruleOf(branch: RulesBranch | undefined, ruleId: string): RuleItem | null {
   const found = branch ? findItem(branch.items, ruleId) : null;
   return found?.item.type === 'rule' ? found.item : null;
+}
+
+/** A group or sub-group of a branch, or null. */
+export function groupOf(branch: RulesBranch | undefined, groupId: string): GroupItem | null {
+  const found = branch ? findItem(branch.items, groupId) : null;
+  return found?.item.type === 'group' ? found.item : null;
 }
 
 /** Whether the open rule editor holds changes that "Save changes to Rule 01?" asks about. */
@@ -126,6 +155,65 @@ export function hasUnsavedChanges(state: RulesState): boolean {
   return JSON.stringify(draft) !== JSON.stringify(original);
 }
 
+/** Names as the toasts list them: "Rule 02 and Rule 03", "Rule 02, Rule 03 and Rule 04". */
+export function joinNames(names: string[]): string {
+  if (names.length < 2) {
+    return names.join('');
+  }
+  return `${names.slice(0, -1).join(', ')} ${RULES_COPY.and} ${names[names.length - 1]}`;
+}
+
+/** The selection bar's text (U16): what is chosen, and what grouping it makes. */
+export function selectionText(selection: RulesSelection, branch: RulesBranch): string {
+  const { ids, parentId } = selection;
+  if (ids.length === 0) {
+    return RULES_COPY.selectTwo;
+  }
+  if (ids.length === 1) {
+    const rule = findItem(branch.items, ids[0])?.item;
+    return RULES_COPY.selectOneMore(rule?.name ?? '');
+  }
+  const group = parentId === null ? null : findItem(branch.items, parentId)?.item;
+  return group
+    ? RULES_COPY.selectedSubGroup(ids.length, group.name)
+    : RULES_COPY.selected(ids.length);
+}
+
+/** The note after switching a level's AND or OR, if this level was just switched. */
+export function switchNoteOf(
+  state: RulesState,
+  branch: RulesBranch,
+  parentId: string | null
+): string | null {
+  const { switched } = state;
+  if (!switched || switched.branchKey !== branch.key || switched.parentId !== parentId) {
+    return null;
+  }
+  const level =
+    parentId === null ? branch.name.trim() : (findItem(branch.items, parentId)?.item.name ?? '');
+  return switched.operator === 'or'
+    ? RULES_COPY.switchedToOr(level)
+    : RULES_COPY.switchedToAnd(level);
+}
+
+/** The refused Publish's problem, if it names this item of the branch (F11). */
+export function problemFlagOf(
+  state: RulesState,
+  branch: RulesBranch,
+  itemId: string
+): string | null {
+  const { problem } = state;
+  if (!problem || problem.itemId !== itemId || problem.branchIndex === null) {
+    return null;
+  }
+  return state.branches[problem.branchIndex]?.key === branch.key ? problem.message : null;
+}
+
+/** The sub-groups of a group, which "Delete Group 01?" names (design-notes §5). */
+export function subGroupCount(group: GroupItem): number {
+  return group.items.filter((member) => member.type === 'group').length;
+}
+
 function withItems(
   state: RulesState,
   branchKey: string,
@@ -140,6 +228,23 @@ function nextToastId(state: RulesState): number {
   return (state.toast?.id ?? 0) + 1;
 }
 
+/**
+ * The state after a change of the rules. The change ends select mode and the note after
+ * switching, and clears the refused Publish's problem. It also drops the last Undo, which puts
+ * back the rules as they were before that change only: its toast stays, without its action.
+ */
+function changed(state: RulesState, branches: RulesBranch[]): RulesState {
+  return {
+    ...state,
+    branches,
+    problem: null,
+    selection: null,
+    switched: null,
+    undo: null,
+    toast: state.undo && state.toast ? { ...state.toast, actionLabel: undefined } : state.toast,
+  };
+}
+
 /** A new rule that was never saved gives its number back, so the next one shows it again. */
 function releaseNumber(state: RulesState): RulesState['counters'] {
   const { editing, counters } = state;
@@ -147,6 +252,43 @@ function releaseNumber(state: RulesState): RulesState['counters'] {
     return { ...counters, rule: counters.rule - 1 };
   }
   return counters;
+}
+
+/** Whether the open editor's rule, or its new rule's group, is in a deleted item. */
+function editorIsIn(state: RulesState, deleted: RuleTreeItem): boolean {
+  const { editing } = state;
+  if (!editing) {
+    return false;
+  }
+  const ids = new Set(flattenItems([deleted]).map((item) => item.id));
+  return ids.has(editing.draft.id) || (editing.parentId !== null && ids.has(editing.parentId));
+}
+
+function deleteFromBranch(state: RulesState, branchKey: string, itemId: string): RulesState {
+  const branch = branchOf(state, branchKey);
+  const deleted = branch && deleteItem(branch.items, itemId);
+  if (!deleted) {
+    return { ...state, dialog: null };
+  }
+  const name = deleted.deleted.name;
+  return {
+    ...changed(
+      state,
+      withItems(state, branchKey, () => deleted.items)
+    ),
+    // A rule open in the editor goes with its deletion
+    editing: editorIsIn(state, deleted.deleted) ? null : state.editing,
+    dialog: null,
+    undo: { branchKey, change: deleted.undo },
+    toast: {
+      id: nextToastId(state),
+      message:
+        deleted.deleted.type === 'rule'
+          ? RULES_COPY.ruleDeleted(name, branch.name)
+          : RULES_COPY.groupDeleted(name, branch.name),
+      actionLabel: RULES_COPY.undo,
+    },
+  };
 }
 
 export function rulesReducer(state: RulesState, action: RulesAction): RulesState {
@@ -157,22 +299,35 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         ...state,
         openBranch: action.branchKey,
         counters,
-        editing: { branchKey: action.branchKey, original: null, draft: rule },
+        editing: {
+          branchKey: action.branchKey,
+          parentId: action.parentId,
+          original: null,
+          draft: rule,
+        },
         renaming: null,
         dialog: null,
+        selection: null,
       };
     }
     case 'editRule': {
-      const rule = ruleOf(branchOf(state, action.branchKey), action.ruleId);
-      if (!rule) {
+      const branch = branchOf(state, action.branchKey);
+      const rule = ruleOf(branch, action.ruleId);
+      if (!branch || !rule) {
         return state;
       }
       return {
         ...state,
         counters: releaseNumber(state),
-        editing: { branchKey: action.branchKey, original: rule, draft: rule },
+        editing: {
+          branchKey: action.branchKey,
+          parentId: findItem(branch.items, rule.id)?.parentId ?? null,
+          original: rule,
+          draft: rule,
+        },
         renaming: null,
         dialog: null,
+        selection: null,
       };
     }
     case 'changeDraft':
@@ -187,13 +342,22 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
       const branch = branchOf(state, editing.branchKey);
       const { draft } = editing;
       return {
-        ...state,
-        branches: withItems(state, editing.branchKey, (items) =>
-          editing.original ? replaceItem(items, draft) : [...items, draft]
+        ...changed(
+          state,
+          withItems(state, editing.branchKey, (items) => {
+            if (editing.original) {
+              return replaceItem(items, draft);
+            }
+            // A new rule's group may have gone meanwhile: the rule then ends the top level
+            const parentId =
+              editing.parentId !== null && findItem(items, editing.parentId)
+                ? editing.parentId
+                : null;
+            return addRule(items, draft, parentId);
+          })
         ),
         editing: null,
         dialog: null,
-        problem: null,
         toast: {
           id: nextToastId(state),
           message: RULES_COPY.ruleSaved(draft.name, branch?.name ?? ''),
@@ -210,15 +374,17 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         return state;
       }
       const found = findItem(branchOf(state, renaming.branchKey)?.items ?? [], renaming.itemId);
+      if (!found) {
+        return { ...state, renaming: null };
+      }
       return {
-        ...state,
-        branches: found
-          ? withItems(state, renaming.branchKey, (items) =>
-              replaceItem(items, { ...found.item, name: action.name.trim() })
-            )
-          : state.branches,
+        ...changed(
+          state,
+          withItems(state, renaming.branchKey, (items) =>
+            replaceItem(items, { ...found.item, name: action.name.trim() })
+          )
+        ),
         renaming: null,
-        problem: null,
       };
     }
     case 'cancelRename':
@@ -230,10 +396,11 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         return state;
       }
       return {
-        ...state,
-        branches: withItems(state, action.branchKey, () => duplicated.items),
+        ...changed(
+          state,
+          withItems(state, action.branchKey, () => duplicated.items)
+        ),
         counters: duplicated.counters,
-        problem: null,
       };
     }
     case 'askDelete':
@@ -241,46 +408,43 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         ...state,
         dialog: { type: 'deleteRule', branchKey: action.branchKey, ruleId: action.ruleId },
       };
-    case 'confirmDelete': {
-      const { dialog } = state;
-      if (dialog?.type !== 'deleteRule') {
-        return state;
-      }
-      const branch = branchOf(state, dialog.branchKey);
-      const deleted = branch && deleteItem(branch.items, dialog.ruleId);
-      if (!deleted) {
-        return { ...state, dialog: null };
-      }
+    case 'askDeleteGroup':
       return {
         ...state,
-        branches: withItems(state, dialog.branchKey, () => deleted.items),
-        // A rule open in the editor goes with its deletion
-        editing: state.editing?.draft.id === dialog.ruleId ? null : state.editing,
-        dialog: null,
-        problem: null,
-        undo: { branchKey: dialog.branchKey, deleted: deleted.deleted },
-        toast: {
-          id: nextToastId(state),
-          message: RULES_COPY.ruleDeleted(deleted.deleted.item.name, branch.name),
-          actionLabel: RULES_COPY.undo,
-        },
+        dialog: { type: 'deleteGroup', branchKey: action.branchKey, groupId: action.groupId },
       };
+    case 'confirmDelete': {
+      const { dialog } = state;
+      if (dialog?.type === 'deleteRule') {
+        return deleteFromBranch(state, dialog.branchKey, dialog.ruleId);
+      }
+      if (dialog?.type === 'deleteGroup') {
+        return deleteFromBranch(state, dialog.branchKey, dialog.groupId);
+      }
+      return state;
     }
     case 'askSaveChanges':
       return { ...state, dialog: { type: 'saveChanges', next: action.next } };
     case 'closeDialog':
       return { ...state, dialog: null };
     case 'undo': {
-      const { undo } = state;
+      const { undo, counters } = state;
       if (!undo) {
         return { ...state, toast: null };
       }
       return {
         ...state,
-        branches: withItems(state, undo.branchKey, (items) => restoreItem(items, undo.deleted)),
+        branches: withItems(state, undo.branchKey, (items) => undoChange(items, undo.change)),
+        // An undone grouping gives its number back, so the next group shows it again
+        counters:
+          undo.groupNumber === counters.group - 1
+            ? { ...counters, group: counters.group - 1 }
+            : counters,
         undo: null,
         toast: null,
         problem: null,
+        selection: null,
+        switched: null,
       };
     }
     case 'dismissToast':
@@ -290,6 +454,104 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
     case 'showProblem':
       return { ...state, problem: action.problem };
     case 'selectBranch':
-      return { ...state, openBranch: action.branchKey };
+      return { ...state, openBranch: action.branchKey, selection: null, switched: null };
+    case 'switchOperator': {
+      const branch = branchOf(state, action.branchKey);
+      const switched = branch && setOperator(branch, action.parentId, action.operator);
+      if (!switched) {
+        return state;
+      }
+      const level: SwitchedLevel = {
+        branchKey: action.branchKey,
+        parentId: action.parentId,
+        operator: action.operator,
+      };
+      return {
+        ...changed(
+          state,
+          state.branches.map((entry) => (entry.key === action.branchKey ? switched.branch : entry))
+        ),
+        switched: level,
+      };
+    }
+    case 'startSelect': {
+      const found = findItem(branchOf(state, action.branchKey)?.items ?? [], action.itemId);
+      if (!found) {
+        return state;
+      }
+      return {
+        ...state,
+        selection: { branchKey: action.branchKey, parentId: found.parentId, ids: [action.itemId] },
+        renaming: null,
+      };
+    }
+    case 'toggleSelect': {
+      const { selection } = state;
+      if (!selection) {
+        return state;
+      }
+      const ids = selection.ids.includes(action.itemId)
+        ? selection.ids.filter((id) => id !== action.itemId)
+        : [...selection.ids, action.itemId];
+      return { ...state, selection: { ...selection, ids } };
+    }
+    case 'cancelSelect':
+      return { ...state, selection: null };
+    case 'groupSelected': {
+      const { selection } = state;
+      const branch = selection && branchOf(state, selection.branchKey);
+      const grouped = branch && groupItems(branch.items, selection.ids, state.counters);
+      if (!selection || !branch || !grouped) {
+        return state;
+      }
+      const names = grouped.group.items.map((member) => member.name);
+      return {
+        ...changed(
+          state,
+          withItems(state, selection.branchKey, () => grouped.items)
+        ),
+        counters: grouped.counters,
+        undo: {
+          branchKey: selection.branchKey,
+          change: grouped.undo,
+          groupNumber: state.counters.group,
+        },
+        toast: {
+          id: nextToastId(state),
+          message: RULES_COPY.grouped(joinNames(names), branch.name, grouped.group.name),
+          actionLabel: RULES_COPY.undo,
+        },
+      };
+    }
+    case 'ungroup': {
+      const branch = branchOf(state, action.branchKey);
+      const ungrouped = branch && ungroupItem(branch.items, action.groupId);
+      if (!ungrouped) {
+        return state;
+      }
+      return {
+        ...changed(
+          state,
+          withItems(state, action.branchKey, () => ungrouped.items)
+        ),
+        undo: { branchKey: action.branchKey, change: ungrouped.undo },
+        toast: {
+          id: nextToastId(state),
+          message: RULES_COPY.ungrouped(ungrouped.group.name, branch.name),
+          actionLabel: RULES_COPY.undo,
+        },
+      };
+    }
+    case 'setGroupMessage': {
+      const branch = branchOf(state, action.branchKey);
+      const set = branch && setGroupMessage(branch.items, action.groupId, action.message);
+      if (!set) {
+        return state;
+      }
+      return changed(
+        state,
+        withItems(state, action.branchKey, () => set.items)
+      );
+    }
   }
 }

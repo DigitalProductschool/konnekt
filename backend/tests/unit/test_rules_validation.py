@@ -12,14 +12,20 @@ from fastapi import HTTPException
 from app.schemas import RequestedDocument, RulesInput
 from app.services.rules import RulesSave, clean_rules
 from tests.helpers import (
+    AGE_19_RULE,
+    AGE_21_RULE,
     AGE_RULE,
     CLASS_RULE,
     FORM_CONNECTION,
+    HELD_3_YEARS_RULE,
     HELD_RULE,
+    STUTTGART_RULE,
+    group,
     main_branch,
     rule,
     rules_input,
     target,
+    us2_items,
 )
 
 DOCUMENTS = [
@@ -519,4 +525,158 @@ def test_the_first_problem_is_the_one_reported() -> None:
     assert (
         _problem(_rules(AGE_RULE | {'name': 'Rule 05', 'target': None, 'message': ''}))
         == 'Rule 05 is kept for the rule numbered 05.'
+    )
+
+
+# Groups and sub-groups (FR-004, FR-005, FR-008)
+
+GROUP_MESSAGE = 'You must be at least 21, or 19 with class B for 3 years.'
+
+
+def _us2_with(**changes: Any) -> dict[str, Any]:
+    """User story 2's rules, with these changes to the group."""
+    stuttgart, us2_group = us2_items()
+    return _rules(stuttgart, us2_group | changes)
+
+
+def test_user_story_2s_group_and_sub_group_are_accepted_as_they_are() -> None:
+    save = _clean(_rules(*us2_items(sub_group_message=GROUP_MESSAGE)))
+
+    assert [item.model_dump() for item in save.branches[0].items] == us2_items(
+        sub_group_message=GROUP_MESSAGE
+    )
+
+
+def test_a_groups_message_is_trimmed_and_an_empty_one_is_none() -> None:
+    trimmed = _clean(_us2_with(message=f'  {GROUP_MESSAGE} '))
+    empty = _clean(_us2_with(message='   '))
+
+    assert trimmed.branches[0].items[1].model_dump()['message'] == GROUP_MESSAGE
+    assert empty.branches[0].items[1].model_dump()['message'] is None
+
+
+def test_a_groups_message_has_at_most_500_characters() -> None:
+    assert _clean(_us2_with(message='x' * 500))
+    assert _problem(_us2_with(message='x' * 501)) == (
+        'The error message of Group 01 in Standard can have at most 500 characters.'
+    )
+
+
+@pytest.mark.parametrize(
+    ('items', 'message'),
+    [
+        (
+            [group(1, [AGE_21_RULE])],
+            'Group 01 in Standard needs at least two rules.',
+        ),
+        ([group(1, [])], 'Group 01 in Standard needs at least two rules.'),
+        (
+            [group(1, [AGE_21_RULE, group(2, [AGE_19_RULE], name='Sub-group 02')])],
+            'Sub-group 02 in Standard needs at least two rules.',
+        ),
+    ],
+)
+def test_a_group_or_sub_group_needs_at_least_two_members(
+    items: list[dict[str, Any]], message: str
+) -> None:
+    assert _problem(_rules(*items)) == message
+
+
+def test_a_group_of_a_rule_and_a_sub_group_has_two_members() -> None:
+    sub_group = group(2, [AGE_19_RULE, HELD_3_YEARS_RULE], name='Sub-group 02')
+
+    assert _clean(_rules(group(1, [AGE_21_RULE, sub_group])))
+
+
+def test_a_sub_group_can_only_hold_rules() -> None:
+    inner = group(3, [AGE_19_RULE, HELD_3_YEARS_RULE])
+    sub_group = group(2, [STUTTGART_RULE, inner], name='Sub-group 02')
+
+    assert _problem(_rules(group(1, [AGE_21_RULE, sub_group]))) == (
+        'Sub-group 02 in Standard can only hold rules.'
+    )
+
+
+def test_members_a_based_branch_removed_dont_count() -> None:
+    # Ambulance grouped two inherited rules in a group of its own, then removed one
+    ambulance = main_branch(
+        [
+            group(1, [AGE_RULE, CLASS_RULE | {'mark': 'removed'}]) | {'mark': 'added'},
+            HELD_RULE,
+        ],
+        name='Ambulance',
+    ) | {'origin': 'based'}
+    payload = rules_input([main_branch([AGE_RULE, CLASS_RULE, HELD_RULE]), ambulance])
+
+    assert _problem(payload) == 'Group 01 in Ambulance needs at least two rules.'
+
+
+@pytest.mark.parametrize(
+    ('name', 'message'),
+    [
+        ('  ', 'Enter a name for every group in Standard.'),
+        ('x' * 101, 'A group in Standard has a name longer than 100 characters.'),
+        (' rule 01 ', 'Another rule in Standard is already called Rule 01.'),
+        ('Group 03', 'Group 03 is kept for the group numbered 03.'),
+        ('Sub-group 3', 'Sub-group 3 is kept for the sub-group numbered 03.'),
+        ('Rule 05', 'Rule 05 is kept for the rule numbered 05.'),
+    ],
+)
+def test_a_groups_name_follows_the_rules_for_names(name: str, message: str) -> None:
+    assert _problem(_us2_with(name=name)) == message
+
+
+def test_a_sub_groups_name_is_checked_against_the_groups() -> None:
+    stuttgart, us2_group = us2_items()
+    us2_group['items'][1] |= {'name': ' GROUP 01'}
+
+    assert _problem(_rules(stuttgart, us2_group)) == (
+        'Another group in Standard is already called Group 01.'
+    )
+    us2_group['items'][1] |= {'name': ''}
+    assert _problem(_rules(stuttgart, us2_group)) == (
+        'Enter a name for every sub-group in Standard.'
+    )
+
+
+@pytest.mark.parametrize('name', ['Group 1', 'group 01', 'Sub-group 01', 'Taxi'])
+def test_a_group_may_take_the_default_names_of_its_own_number(name: str) -> None:
+    assert _clean(_us2_with(name=name))
+
+
+@pytest.mark.parametrize('group_id', ['group-01', 'group-0', 'rule-5', 'group-2'])
+def test_group_identifiers_are_well_formed_and_unique(group_id: str) -> None:
+    # group-2 is the sub-group's
+    assert _problem(_us2_with(id=group_id)) == (
+        'The rules contain an invalid identifier. Reload the connection and try again.'
+    )
+
+
+def test_a_group_and_a_rule_may_share_a_number() -> None:
+    assert _clean(_rules(group(1, [AGE_RULE, CLASS_RULE])))
+
+
+def test_group_members_count_towards_the_size_limit() -> None:
+    members = [
+        rule(number, CITY, {'operator': 'contains', 'value': 'a'}, 'Hi.')
+        for number in range(1, 201)
+    ]
+
+    assert _clean(_rules(group(1, members[:199])))
+    assert _problem(_rules(group(1, members))) == (
+        'Standard can have at most 200 rules and groups.'
+    )
+
+
+def test_a_groups_problems_come_before_its_members() -> None:
+    incomplete = AGE_21_RULE | {'message': ''}
+
+    assert _problem(_rules(group(1, [incomplete]))) == (
+        'Group 01 in Standard needs at least two rules.'
+    )
+    assert _problem(_rules(group(1, [incomplete, AGE_19_RULE], name='Rule 09'))) == (
+        'Rule 09 is kept for the rule numbered 09.'
+    )
+    assert _problem(_rules(group(1, [incomplete, AGE_19_RULE]))) == (
+        'Rule 02 in Standard has no error message.'
     )

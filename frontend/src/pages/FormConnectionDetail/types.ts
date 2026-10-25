@@ -4,10 +4,9 @@ import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type {
   Branch,
-  Combinator,
   FormConnection,
   RequestedDocumentView,
-  RuleItem,
+  RuleTreeItem,
 } from '../../types/form-connections';
 import type { RuleContext } from '../../utils/rules/types';
 
@@ -104,10 +103,9 @@ export interface SummaryBranchProps {
   context: RuleContext;
 }
 
-export interface SummaryRuleItemProps {
-  rule: RuleItem;
+export interface SummaryItemProps {
+  item: RuleTreeItem;
   context: RuleContext;
-  /** How the level combines, shown on the line before every rule but the first */
-  operator: Combinator;
-  first: boolean;
+  /** 0 at the top level, 1 in a group, where a group is a sub-group */
+  depth: number;
 }

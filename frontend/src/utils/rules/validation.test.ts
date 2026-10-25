@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BranchInput, GroupItem, RuleItem, RuleTreeItem } from '../../types/form-connections';
 import { requestedRuleDocuments } from './conditions';
 import { CONTEXT, mainBranch, MDL, OPTION_SETS, PID, rule, target, US1_RULES } from './testData';
+import { findItem } from './tree';
 import type { RuleContext } from './types';
 import {
   checksUnrequestedData,
@@ -394,6 +395,148 @@ describe('firstProblem', () => {
     });
   });
 
+  describe('groups (FR-004, FR-008)', () => {
+    /** US2's example: lives in Stuttgart AND (21 OR (19 AND class B for 3 years)). */
+    const US2_ITEMS: RuleTreeItem[] = [
+      rule(1, target('pid', 'address_locality'), {
+        operator: 'equal_to',
+        value: 'Stuttgart',
+        match_case: false,
+      }),
+      group(1, [
+        rule(2, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 21 }),
+        group(
+          2,
+          [
+            rule(3, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 19 }),
+            rule(4, target('mdl', 'driving_privileges', 'issue_date', 'B'), {
+              operator: 'at_least_years_ago',
+              years: 3,
+            }),
+          ],
+          'Sub-group 02'
+        ),
+      ]),
+    ];
+
+    it('accepts a group with a sub-group', () => {
+      expect(problemOf(US2_ITEMS)).toBeUndefined();
+    });
+
+    it('needs at least two rules in a group or sub-group', () => {
+      expect(firstProblem([mainBranch([group(1, [US1_RULES[0]])])], CONTEXT)).toEqual({
+        message: 'Group 01 in Standard needs at least two rules.',
+        branchIndex: 0,
+        itemId: 'group-1',
+      });
+      expect(problemOf([group(1, [])])).toBe('Group 01 in Standard needs at least two rules.');
+      expect(
+        firstProblem(
+          [mainBranch([group(1, [US1_RULES[0], group(2, [US1_RULES[1]], 'Sub-group 02')])])],
+          CONTEXT
+        )
+      ).toEqual({
+        message: 'Sub-group 02 in Standard needs at least two rules.',
+        branchIndex: 0,
+        itemId: 'group-2',
+      });
+    });
+
+    it('doesn’t count the members a branch removed', () => {
+      const removed: RuleItem = { ...US1_RULES[1], mark: 'removed' };
+      expect(
+        firstProblem(
+          [mainBranch(), branch('Ambulance', [group(1, [US1_RULES[0], removed])], 'based')],
+          CONTEXT
+        )?.message
+      ).toBe('Group 01 in Ambulance needs at least two rules.');
+      expect(
+        firstProblem(
+          [
+            mainBranch(),
+            branch(
+              'Ambulance',
+              [group(1, [US1_RULES[0], removed, { ...US1_RULES[2], mark: 'added' }])],
+              'based'
+            ),
+          ],
+          CONTEXT
+        )
+      ).toBeNull();
+    });
+
+    it('lets a sub-group hold rules only', () => {
+      const nested = group(3, US1_RULES.slice(1));
+      expect(
+        firstProblem(
+          [
+            mainBranch([
+              group(1, [US1_RULES[0], group(2, [nested, rule(4, null, null)], 'Sub-group 02')]),
+            ]),
+          ],
+          CONTEXT
+        )
+      ).toEqual({
+        message: 'Sub-group 02 in Standard can only hold rules.',
+        branchIndex: 0,
+        itemId: 'group-2',
+      });
+    });
+
+    it('limits a group’s own message to 500 characters after trimming, code points counted', () => {
+      const withMessage = (message: string | null) => [
+        { ...group(1, US1_RULES.slice(0, 2)), message },
+      ];
+      expect(problemOf(withMessage('m'.repeat(501)))).toBe(
+        'The error message of Group 01 in Standard can have at most 500 characters.'
+      );
+      expect(problemOf(withMessage(` ${'m'.repeat(500)} `))).toBeUndefined();
+      expect(problemOf(withMessage('😀'.repeat(500)))).toBeUndefined();
+      expect(problemOf(withMessage('   '))).toBeUndefined();
+      expect(problemOf(withMessage(null))).toBeUndefined();
+      const subGroup = {
+        ...group(2, US1_RULES.slice(1), 'Sub-group 02'),
+        message: 'm'.repeat(501),
+      };
+      expect(problemOf([group(1, [US1_RULES[0], subGroup])])).toBe(
+        'The error message of Sub-group 02 in Standard can have at most 500 characters.'
+      );
+    });
+
+    it('checks group names like rule names, naming the earlier group', () => {
+      expect(
+        firstProblem(
+          [
+            mainBranch([
+              group(1, US1_RULES.slice(0, 2), 'Older drivers'),
+              group(2, [US1_RULES[2], rule(4, null, null)], ' older DRIVERS '),
+            ]),
+          ],
+          CONTEXT
+        )
+      ).toEqual({
+        message: 'Another group in Standard is already called Older drivers.',
+        branchIndex: 0,
+        itemId: 'group-2',
+      });
+      expect(
+        problemOf([group(1, US1_RULES.slice(0, 2)), { ...US1_RULES[2], name: 'group 01' }])
+      ).toBe('Another group in Standard is already called Group 01.');
+    });
+
+    it('keeps "Group NN" and "Sub-group NN" for the group numbered NN', () => {
+      expect(problemOf([group(1, US1_RULES.slice(0, 2), 'Group 03')])).toBe(
+        'Group 03 is kept for the group numbered 03.'
+      );
+      expect(
+        problemOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Sub-group 3')])])
+      ).toBe('Sub-group 3 is kept for the sub-group numbered 03.');
+      expect(
+        problemOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Group 2')])])
+      ).toBeUndefined();
+    });
+  });
+
   describe('order', () => {
     it('reports the first problem only: the name before the target, rules in order', () => {
       expect(
@@ -422,6 +565,40 @@ describe('firstProblem', () => {
         branchIndex: 1,
         itemId: 'rule-2',
       });
+    });
+
+    it('checks a group’s name, then what it holds, its members’ number, its message', () => {
+      const tooLong = 'm'.repeat(501);
+      expect(problemOf([group(1, [US1_RULES[0]], ' ')])).toBe(
+        'Enter a name for every group in Standard.'
+      );
+      expect(problemOf([group(1, [US1_RULES[0], group(2, [group(3, US1_RULES.slice(1))])])])).toBe(
+        'Group 02 in Standard can only hold rules.'
+      );
+      expect(problemOf([{ ...group(1, [US1_RULES[0]]), message: tooLong }])).toBe(
+        'Group 01 in Standard needs at least two rules.'
+      );
+      expect(
+        problemOf([{ ...group(1, [ageRule({ message: '' }), US1_RULES[1]]), message: tooLong }])
+      ).toBe('The error message of Group 01 in Standard can have at most 500 characters.');
+    });
+
+    it('checks a group before its members, and its members before the next item', () => {
+      expect(problemOf([group(1, [ageRule({ target: null })])])).toBe(
+        'Group 01 in Standard needs at least two rules.'
+      );
+      expect(
+        problemOf([
+          group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }]),
+          { ...US1_RULES[2], target: null },
+        ])
+      ).toBe('Rule 02 in Standard has no error message.');
+      expect(
+        problemOf([
+          group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }], ''),
+          { ...US1_RULES[2], target: null },
+        ])
+      ).toBe('Enter a name for every group in Standard.');
     });
 
     it('reports a problem the main branch shares with a variant once, for the main branch', () => {
@@ -483,6 +660,36 @@ describe('nameProblem', () => {
     );
     expect(nameProblem('Sub-group 7', US1_RULES[0], standard)).toBe(
       'Sub-group 7 is kept for the sub-group numbered 07.'
+    );
+  });
+
+  it('checks group and sub-group names too (F12)', () => {
+    const group1 = findItem(standard.items, 'group-1')?.item as GroupItem;
+    const subGroup = findItem(standard.items, 'group-2')?.item as GroupItem;
+    expect(nameProblem('Older drivers', group1, standard)).toBeNull();
+    expect(nameProblem('group 01', group1, standard)).toBeNull();
+    expect(nameProblem('Sub-group 1', group1, standard)).toBeNull();
+    expect(nameProblem('Group 01', subGroup, standard)).toBe(
+      'Another group in Standard is already called Group 01.'
+    );
+    expect(nameProblem('Rule 02', subGroup, standard)).toBe(
+      'Another rule in Standard is already called Rule 02.'
+    );
+    expect(nameProblem('held b', group1, { ...standard, name: 'Ambulance' })).toBe(
+      'Another sub-group in Ambulance is already called Held B.'
+    );
+    expect(nameProblem('Group 03', group1, standard)).toBe(
+      'Group 03 is kept for the group numbered 03.'
+    );
+    expect(nameProblem('Sub-group 3', subGroup, standard)).toBe(
+      'Sub-group 3 is kept for the sub-group numbered 03.'
+    );
+    expect(nameProblem('Sub-group 02', subGroup, standard)).toBeNull();
+    expect(nameProblem('Rule 2', subGroup, standard)).toBe(
+      'Rule 2 is kept for the rule numbered 02.'
+    );
+    expect(nameProblem('Rule 9', subGroup, standard)).toBe(
+      'Rule 9 is kept for the rule numbered 09.'
     );
   });
 });

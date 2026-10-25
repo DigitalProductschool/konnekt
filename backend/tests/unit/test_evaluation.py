@@ -1,4 +1,4 @@
-"""The evaluator: each condition, the parts and the top level (research R7)."""
+"""The evaluator: each condition, the parts, the levels and groups (research R7)."""
 
 from datetime import date
 from typing import Any
@@ -829,24 +829,359 @@ def test_the_evaluation_holds_no_value_of_the_documents() -> None:
         assert value not in dumped
 
 
-# What the top level doesn't evaluate yet, and saved rules that can't be right
+# Groups and sub-groups (FR-009, FR-011)
 
 
-def test_a_branch_with_a_group_is_refused() -> None:
-    branch = _branch(
-        {
-            'type': 'group',
-            'id': 'group-1',
-            'name': 'Group 01',
-            'mark': None,
-            'operator': 'or',
-            'message': None,
-            'items': [AGE_21, HOLDS_B],
-        }
+def _group(
+    number: int,
+    operator: str,
+    *items: dict[str, Any],
+    name: str | None = None,
+    message: str | None = None,
+) -> dict[str, Any]:
+    return {
+        'type': 'group',
+        'id': f'group-{number}',
+        'name': name or f'Group {number:02d}',
+        'mark': None,
+        'operator': operator,
+        'message': message,
+        'items': list(items),
+    }
+
+
+# User story 2: lives in Stuttgart AND (at least 21 OR (at least 19 AND has held
+# class B for at least 3 years))
+LIVES_IN_STUTTGART = _rule(
+    1,
+    'pid',
+    'address_locality',
+    {'operator': 'equal_to', 'value': 'Stuttgart', 'match_case': False},
+    message='You must live in Stuttgart.',
+)
+AT_LEAST_21 = _rule(
+    2,
+    'pid',
+    'birthdate',
+    {'operator': 'at_least_years_ago', 'years': 21},
+    message='You must be at least 21 years old.',
+)
+AT_LEAST_19 = _rule(
+    3,
+    'pid',
+    'birthdate',
+    {'operator': 'at_least_years_ago', 'years': 19},
+    message='You must be at least 19 years old.',
+)
+B_FOR_3_YEARS = _rule(
+    4,
+    'mdl',
+    'driving_privileges',
+    {'operator': 'at_least_years_ago', 'years': 3},
+    part='issue_date',
+    licence_class='B',
+    message='You must have held class B for at least 3 years.',
+)
+GROUP_MESSAGE = 'You must be at least 21, or 19 with class B for 3 years.'
+SUB_GROUP_MESSAGE = 'You must be at least 19 with class B for 3 years.'
+
+
+def _user_story_2(
+    group_message: str | None = None, sub_group_message: str | None = None
+) -> SnapshotBranch:
+    return _branch(
+        LIVES_IN_STUTTGART,
+        _group(
+            1,
+            'or',
+            AT_LEAST_21,
+            _group(
+                2,
+                'and',
+                AT_LEAST_19,
+                B_FOR_3_YEARS,
+                name='Sub-group 02',
+                message=sub_group_message,
+            ),
+            message=group_message,
+        ),
     )
 
-    with pytest.raises(ValueError):
-        evaluate_branch(branch, _person('2001-01-01', '2021-09-01'), SHARED_ON)
+
+def _applicant(
+    birthdate: str, city: str, b_since: str | None
+) -> list[DeliveredDocument]:
+    """Someone born on `birthdate` who lives in `city` and has held class B since
+    `b_since`, or holds only class AM."""
+    privilege = (
+        {'vehicle_category_code': 'B', 'issue_date': b_since}
+        if b_since
+        else {'vehicle_category_code': 'AM', 'issue_date': '2020-01-01'}
+    )
+    return _documents(
+        pid={'birthdate': birthdate, 'address_locality': city},
+        mdl={'driving_privileges': [privilege]},
+    )
+
+
+# On SHARED_ON, 23 Oct 2026
+AGED_25 = '2001-01-01'
+AGED_20 = '2006-06-30'
+AGED_18 = '2008-06-30'
+B_FOR_3 = '2023-09-01'
+B_FOR_1 = '2025-09-01'
+
+
+@pytest.mark.parametrize(
+    ('documents', 'met', 'messages'),
+    [
+        # At least 21
+        (_applicant(AGED_25, 'Stuttgart', B_FOR_1), True, []),
+        # At least 19 with class B for 3 years (US2-AS2)
+        (_applicant(AGED_20, 'Stuttgart', B_FOR_3), True, []),
+        # 20 with class B for 1 year: the 21-year and 3-year rules' messages, not
+        # the 19-year rule's, which is met (US2-AS3)
+        (_applicant(AGED_20, 'Stuttgart', B_FOR_1), False, ['rule-2', 'rule-4']),
+        # At least 21, but not from Stuttgart
+        (_applicant(AGED_25, 'Esslingen', B_FOR_3), False, ['rule-1']),
+        # Neither way to qualify
+        (
+            _applicant(AGED_18, 'Esslingen', None),
+            False,
+            ['rule-1', 'rule-2', 'rule-3', 'rule-4'],
+        ),
+    ],
+)
+def test_each_way_to_qualify_for_user_story_2(
+    documents: list[DeliveredDocument], met: bool, messages: list[str]
+) -> None:
+    evaluation = evaluate_branch(_user_story_2(), documents, SHARED_ON)
+
+    assert evaluation.met is met
+    assert [message.id for message in evaluation.messages] == messages
+
+
+def test_a_group_and_its_members_are_reported_in_the_rules_steps_order() -> None:
+    evaluation = evaluate_branch(
+        _user_story_2(), _applicant(AGED_20, 'Stuttgart', B_FOR_1), SHARED_ON
+    )
+
+    assert [result.model_dump() for result in evaluation.results] == [
+        {
+            'id': 'rule-1',
+            'type': 'rule',
+            'name': 'Rule 01',
+            'group': None,
+            'outcome': 'met',
+        },
+        {
+            'id': 'group-1',
+            'type': 'group',
+            'name': 'Group 01',
+            'group': None,
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-2',
+            'type': 'rule',
+            'name': 'Rule 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'group-2',
+            'type': 'group',
+            'name': 'Sub-group 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-3',
+            'type': 'rule',
+            'name': 'Rule 03',
+            'group': 'group-2',
+            'outcome': 'met',
+        },
+        {
+            'id': 'rule-4',
+            'type': 'rule',
+            'name': 'Rule 04',
+            'group': 'group-2',
+            'outcome': 'not_met',
+        },
+    ]
+    assert [message.model_dump() for message in evaluation.messages] == [
+        {'id': 'rule-2', 'message': 'You must be at least 21 years old.'},
+        {'id': 'rule-4', 'message': 'You must have held class B for at least 3 years.'},
+    ]
+
+
+def test_a_group_reports_its_own_message_instead_of_its_members() -> None:
+    branch = _user_story_2(group_message=GROUP_MESSAGE)
+
+    evaluation = evaluate_branch(
+        branch, _applicant(AGED_20, 'Stuttgart', B_FOR_1), SHARED_ON
+    )
+
+    # US2-AS4
+    assert [message.model_dump() for message in evaluation.messages] == [
+        {'id': 'group-1', 'message': GROUP_MESSAGE}
+    ]
+
+
+def test_a_sub_group_reports_its_own_message_inside_a_group_without_one() -> None:
+    branch = _user_story_2(sub_group_message=SUB_GROUP_MESSAGE)
+
+    evaluation = evaluate_branch(
+        branch, _applicant(AGED_18, 'Esslingen', None), SHARED_ON
+    )
+
+    assert [message.model_dump() for message in evaluation.messages] == [
+        {'id': 'rule-1', 'message': 'You must live in Stuttgart.'},
+        {'id': 'rule-2', 'message': 'You must be at least 21 years old.'},
+        {'id': 'group-2', 'message': SUB_GROUP_MESSAGE},
+    ]
+
+
+def test_a_met_group_reports_no_message_of_its_members() -> None:
+    # US2-AS5: the OR group is met through the 21-year rule, though the 3-year rule
+    # isn't, and only the top-level rule that isn't met is reported
+    branch = _branch(LIVES_IN_STUTTGART, _group(1, 'or', AT_LEAST_21, B_FOR_3_YEARS))
+
+    evaluation = evaluate_branch(
+        branch, _applicant(AGED_25, 'Esslingen', B_FOR_1), SHARED_ON
+    )
+
+    assert [(result.id, result.outcome) for result in evaluation.results] == [
+        ('rule-1', 'not_met'),
+        ('group-1', 'met'),
+        ('rule-2', 'met'),
+        ('rule-4', 'not_met'),
+    ]
+    assert [message.id for message in evaluation.messages] == ['rule-1']
+
+
+def test_a_met_group_meets_an_or_top_level() -> None:
+    branch = _branch(
+        LIVES_IN_STUTTGART,
+        _group(1, 'and', AT_LEAST_19, B_FOR_3_YEARS),
+        operator='or',
+    )
+
+    evaluation = evaluate_branch(
+        branch, _applicant(AGED_20, 'Esslingen', B_FOR_3), SHARED_ON
+    )
+
+    assert evaluation.met is True
+    assert evaluation.messages == []
+
+
+def test_a_group_counts_couldnt_be_checked_as_not_met() -> None:
+    branch = _branch(_group(1, 'or', AT_LEAST_21, B_FOR_3_YEARS))
+    documents = _documents(
+        pid={'birthdate': '1984'},
+        mdl={'driving_privileges': [{'vehicle_category_code': 'B'}]},
+    )
+
+    evaluation = evaluate_branch(branch, documents, SHARED_ON)
+
+    assert evaluation.met is False
+    assert [(result.id, result.outcome) for result in evaluation.results] == [
+        ('group-1', 'not_met'),
+        ('rule-2', 'not_checked'),
+        ('rule-4', 'not_checked'),
+    ]
+    assert [message.id for message in evaluation.messages] == ['rule-2', 'rule-4']
+
+
+def test_the_result_list_of_the_contracts_example() -> None:
+    # contracts/integration-api.md, "Pull answer": a 20-year-old from Stuttgart
+    # whose class B has no issue date
+    branch = _branch(
+        _rule(
+            4,
+            'pid',
+            'address_locality',
+            {'operator': 'equal_to', 'value': 'Stuttgart', 'match_case': False},
+        )
+        | {'name': 'Lives in Stuttgart'},
+        _group(
+            1,
+            'or',
+            AT_LEAST_21 | {'id': 'rule-1', 'name': 'Rule 01'},
+            _group(
+                2,
+                'and',
+                AT_LEAST_19 | {'id': 'rule-5', 'name': 'Rule 05'},
+                B_FOR_3_YEARS | {'id': 'rule-3', 'name': 'Rule 03'},
+                name='Sub-group 02',
+            ),
+        ),
+    )
+    documents = _documents(
+        pid={'birthdate': AGED_20, 'address_locality': 'Stuttgart'},
+        mdl={'driving_privileges': [{'vehicle_category_code': 'B'}]},
+    )
+
+    evaluation = evaluate_branch(branch, documents, SHARED_ON)
+
+    assert evaluation.model_dump(exclude={'branch'}) == {
+        'met': False,
+        'results': [
+            {
+                'id': 'rule-4',
+                'type': 'rule',
+                'name': 'Lives in Stuttgart',
+                'group': None,
+                'outcome': 'met',
+            },
+            {
+                'id': 'group-1',
+                'type': 'group',
+                'name': 'Group 01',
+                'group': None,
+                'outcome': 'not_met',
+            },
+            {
+                'id': 'rule-1',
+                'type': 'rule',
+                'name': 'Rule 01',
+                'group': 'group-1',
+                'outcome': 'not_met',
+            },
+            {
+                'id': 'group-2',
+                'type': 'group',
+                'name': 'Sub-group 02',
+                'group': 'group-1',
+                'outcome': 'not_met',
+            },
+            {
+                'id': 'rule-5',
+                'type': 'rule',
+                'name': 'Rule 05',
+                'group': 'group-2',
+                'outcome': 'met',
+            },
+            {
+                'id': 'rule-3',
+                'type': 'rule',
+                'name': 'Rule 03',
+                'group': 'group-2',
+                'outcome': 'not_checked',
+            },
+        ],
+        'messages': [
+            {'id': 'rule-1', 'message': 'You must be at least 21 years old.'},
+            {
+                'id': 'rule-3',
+                'message': 'You must have held class B for at least 3 years.',
+            },
+        ],
+    }
+
+
+# What the evaluator doesn't evaluate yet, and saved rules that can't be right
 
 
 @pytest.mark.parametrize('mark', ['changed', 'removed', 'added'])
@@ -855,6 +1190,22 @@ def test_a_branch_with_a_marked_rule_is_refused(mark: str) -> None:
 
     with pytest.raises(ValueError):
         evaluate_branch(branch, _person('2001-01-01', '2021-09-01'), SHARED_ON)
+
+
+@pytest.mark.parametrize(
+    'group',
+    [
+        _group(1, 'or', AGE_21, HOLDS_B) | {'mark': 'changed'},
+        _group(1, 'or', AGE_21 | {'mark': 'removed'}, HOLDS_B),
+        # A based branch's marks dissolve groups; a saved group without marks
+        # always has two members
+        _group(1, 'or', AGE_21),
+        _group(1, 'or'),
+    ],
+)
+def test_a_marked_or_dissolved_group_is_refused(group: dict[str, Any]) -> None:
+    with pytest.raises(ValueError):
+        evaluate_branch(_branch(group), _person('2001-01-01', '2021-09-01'), SHARED_ON)
 
 
 @pytest.mark.parametrize(

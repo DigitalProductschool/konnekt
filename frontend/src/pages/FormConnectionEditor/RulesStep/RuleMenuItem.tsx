@@ -1,6 +1,6 @@
 import type { RuleMenuItemProps } from './types';
 
-/** One action of the rule menu (U14 6113:28988): an icon and a label/small text. */
+/** One action of a ⋯ menu (U14 6113:28988): an icon and a label/small text. */
 export default function RuleMenuItem({ label, icon, danger = false, onSelect }: RuleMenuItemProps) {
   const colour = danger ? 'text-kern-feedback-danger' : 'text-kern-layout-text-default';
   return (

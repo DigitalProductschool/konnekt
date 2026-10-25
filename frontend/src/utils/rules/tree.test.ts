@@ -4,6 +4,7 @@ import type { BranchInput, GroupItem, RuleTreeItem } from '../../types/form-conn
 import { mainBranch, rule, target } from './testData';
 import {
   addRule,
+  canGroup,
   countRules,
   defaultGroupName,
   defaultRuleName,
@@ -12,13 +13,18 @@ import {
   findItem,
   flattenItems,
   groupIdOf,
+  groupItems,
   hasAnyRule,
   newRule,
   numberOfId,
+  operatorOf,
   renameItem,
   replaceItem,
-  restoreItem,
   ruleIdOf,
+  setGroupMessage,
+  setOperator,
+  undoChange,
+  ungroupItem,
   updateRule,
 } from './tree';
 
@@ -118,6 +124,11 @@ describe('addRule', () => {
     expect(items).toHaveLength(4);
   });
 
+  it('adds a rule at the end of a group, after its sub-group (FR-008)', () => {
+    const items = addRule(TREE, rule(6, null, null), 'group-1');
+    expect(findItem(items, 'rule-6')).toMatchObject({ parentId: 'group-1', index: 2, depth: 1 });
+  });
+
   it('adds a rule at the end of a group or sub-group', () => {
     expect(ids(addRule(TREE, rule(6, null, null), 'group-2'))).toEqual([
       'rule-1',
@@ -169,39 +180,246 @@ describe('renameItem', () => {
   });
 });
 
-describe('deleteItem and restoreItem', () => {
+describe('deleteItem and undoChange', () => {
   it('deletes a rule and puts it back in its place', () => {
-    const deleted = deleteItem(TREE, 'rule-3');
-    expect(deleted?.deleted).toEqual({
-      item: findItem(TREE, 'rule-3')?.item,
-      parentId: 'group-2',
-      index: 0,
+    const deleted = deleteItem(TREE, 'rule-1');
+    expect(deleted).toMatchObject({
+      deleted: TREE[0],
+      dissolved: null,
+      undo: { parentId: null, index: 0, before: [TREE[0]], after: [] },
     });
-    expect(deleted && ids(deleted.items)).not.toContain('rule-3');
-    expect(deleted && restoreItem(deleted.items, deleted.deleted)).toEqual(TREE);
+    expect(deleted && ids(deleted.items)).not.toContain('rule-1');
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(TREE);
   });
 
-  it('deletes a top-level rule and puts it back in its place', () => {
-    const deleted = deleteItem(TREE, 'rule-1');
-    expect(deleted && restoreItem(deleted.items, deleted.deleted)).toEqual(TREE);
+  it('deletes a rule of a group that keeps two or more members', () => {
+    const items = [group(1, [rule(1, null, null), rule(2, null, null), rule(3, null, null)])];
+    const deleted = deleteItem(items, 'rule-2');
+    expect(deleted && ids(deleted.items)).toEqual(['group-1', 'rule-1', 'rule-3']);
+    expect(deleted?.dissolved).toBeNull();
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(items);
   });
 
   it('deletes a group with its members', () => {
-    const deleted = deleteItem(TREE, 'group-1');
-    expect(deleted && ids(deleted.items)).toEqual(['rule-1', 'rule-5']);
-    expect(deleted && restoreItem(deleted.items, deleted.deleted)).toEqual(TREE);
+    const items = [...TREE, group(3, [rule(6, null, null), rule(7, null, null)])];
+    const deleted = deleteItem(items, 'group-1');
+    expect(deleted && ids(deleted.items)).toEqual([
+      'rule-1',
+      'rule-5',
+      'group-3',
+      'rule-6',
+      'rule-7',
+    ]);
+    expect(deleted?.dissolved).toBeNull();
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(items);
+  });
+
+  it('dissolves a sub-group left with one rule: the rule takes its place (FR-008, US2-AS7)', () => {
+    const deleted = deleteItem(TREE, 'rule-3');
+    expect(deleted?.dissolved).toBe(findItem(TREE, 'group-2')?.item);
+    expect(deleted && findItem(deleted.items, 'rule-4')).toMatchObject({
+      parentId: 'group-1',
+      index: 1,
+      depth: 1,
+    });
+    expect(deleted && ids(deleted.items)).toEqual([
+      'rule-1',
+      'group-1',
+      'rule-2',
+      'rule-4',
+      'rule-5',
+    ]);
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(TREE);
+  });
+
+  it('dissolves a group left with one rule, dropping its AND/OR and message', () => {
+    const items: RuleTreeItem[] = [
+      rule(1, null, null),
+      { ...group(1, [rule(2, null, null), rule(3, null, null)]), message: 'Own message.' },
+      rule(4, null, null),
+    ];
+    const deleted = deleteItem(items, 'rule-2');
+    expect(deleted?.items).toEqual([items[0], rule(3, null, null), items[2]]);
+    expect(deleted?.undo).toEqual({
+      parentId: null,
+      index: 1,
+      before: [items[1]],
+      after: ['rule-3'],
+    });
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(items);
+  });
+
+  it('dissolves a group whose sub-group is deleted, and keeps no empty group', () => {
+    const deleted = deleteItem(TREE, 'group-2');
+    expect(deleted && ids(deleted.items)).toEqual(['rule-1', 'rule-2', 'rule-5']);
+    expect(deleted?.dissolved?.id).toBe('group-1');
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(TREE);
+  });
+
+  it('turns a sub-group that reaches the top level into a group, keeping all of it', () => {
+    const subGroup = findItem(TREE, 'group-2')?.item;
+    const deleted = deleteItem(TREE, 'rule-2');
+    expect(deleted?.items[1]).toBe(subGroup);
+    expect(deleted && findItem(deleted.items, 'group-2')).toMatchObject({
+      parentId: null,
+      depth: 0,
+    });
+    expect(deleted && undoChange(deleted.items, deleted.undo)).toEqual(TREE);
   });
 
   it('puts an item back at the end of the top level once its group is gone', () => {
-    const deletedRule = deleteItem(TREE, 'rule-3');
-    const withoutGroup = deletedRule && deleteItem(deletedRule.items, 'group-2');
+    const items = [group(1, [rule(1, null, null), rule(2, null, null), rule(3, null, null)])];
+    const deletedRule = deleteItem(items, 'rule-2');
+    const withoutGroup = deletedRule && deleteItem(deletedRule.items, 'group-1');
     expect(
-      deletedRule && withoutGroup && ids(restoreItem(withoutGroup.items, deletedRule.deleted))
-    ).toEqual(['rule-1', 'group-1', 'rule-2', 'rule-5', 'rule-3']);
+      deletedRule && withoutGroup && ids(undoChange(withoutGroup.items, deletedRule.undo))
+    ).toEqual(['rule-2']);
   });
 
   it('deletes nothing unknown', () => {
     expect(deleteItem(TREE, 'rule-9')).toBeNull();
+  });
+});
+
+describe('groupItems', () => {
+  const FLAT: RuleTreeItem[] = deepFreeze([1, 2, 3, 4].map((n) => rule(n, null, null)));
+
+  it('groups top-level rules into a group in the first one’s place (FR-007, FR-008)', () => {
+    const grouped = groupItems(FLAT, ['rule-2', 'rule-3'], { rule: 5, group: 3 });
+    expect(grouped?.group).toEqual({
+      type: 'group',
+      id: 'group-3',
+      name: 'Group 03',
+      mark: null,
+      operator: 'and',
+      message: null,
+      items: [FLAT[1], FLAT[2]],
+    });
+    expect(grouped?.items).toEqual([FLAT[0], grouped?.group, FLAT[3]]);
+    expect(grouped?.counters).toEqual({ rule: 5, group: 4 });
+    expect(grouped && undoChange(grouped.items, grouped.undo)).toEqual(FLAT);
+  });
+
+  it('keeps the rules’ order, whatever order they were chosen in', () => {
+    const grouped = groupItems(FLAT, ['rule-4', 'rule-1', 'rule-3'], { rule: 5, group: 1 });
+    expect(grouped && ids(grouped.items)).toEqual([
+      'group-1',
+      'rule-1',
+      'rule-3',
+      'rule-4',
+      'rule-2',
+    ]);
+    expect(grouped?.undo).toEqual({
+      parentId: null,
+      index: 0,
+      before: FLAT,
+      after: ['group-1', 'rule-2'],
+    });
+    expect(grouped && undoChange(grouped.items, grouped.undo)).toEqual(FLAT);
+  });
+
+  it('groups rules of a group into a sub-group, numbered from the same counter', () => {
+    const items = [group(1, [rule(1, null, null), rule(2, null, null), rule(3, null, null)])];
+    const grouped = groupItems(items, ['rule-1', 'rule-3'], { rule: 4, group: 2 });
+    expect(grouped?.group).toMatchObject({ id: 'group-2', name: 'Sub-group 02' });
+    expect(grouped && findItem(grouped.items, 'group-2')).toMatchObject({
+      parentId: 'group-1',
+      index: 0,
+      depth: 1,
+    });
+    expect(grouped && ids(grouped.items)).toEqual([
+      'group-1',
+      'group-2',
+      'rule-1',
+      'rule-3',
+      'rule-2',
+    ]);
+    expect(grouped && undoChange(grouped.items, grouped.undo)).toEqual(items);
+  });
+
+  it('groups nothing inside a sub-group (US2-AS6)', () => {
+    expect(groupItems(TREE, ['rule-3', 'rule-4'], { rule: 6, group: 3 })).toBeNull();
+    expect(canGroup(TREE, ['rule-3', 'rule-4'])).toBe(false);
+  });
+
+  it('needs two or more distinct rules of one level', () => {
+    expect(canGroup(FLAT, ['rule-1'])).toBe(false);
+    expect(canGroup(FLAT, ['rule-1', 'rule-1'])).toBe(false);
+    expect(canGroup(TREE, ['rule-1', 'rule-2'])).toBe(false);
+    expect(canGroup(TREE, ['rule-1', 'group-1'])).toBe(false);
+    expect(canGroup(TREE, ['rule-1', 'rule-9'])).toBe(false);
+    expect(canGroup(TREE, ['rule-1', 'rule-5'])).toBe(true);
+    expect(canGroup(TREE, ['rule-2', 'group-2'])).toBe(false);
+    expect(groupItems(FLAT, ['rule-1'], { rule: 5, group: 1 })).toBeNull();
+  });
+});
+
+describe('ungroupItem', () => {
+  it('puts a group’s members in its place, and its sub-group becomes a group (FR-008)', () => {
+    const ungrouped = ungroupItem(TREE, 'group-1');
+    const subGroup = findItem(TREE, 'group-2')?.item;
+    expect(ungrouped && ids(ungrouped.items)).toEqual([
+      'rule-1',
+      'rule-2',
+      'group-2',
+      'rule-3',
+      'rule-4',
+      'rule-5',
+    ]);
+    expect(ungrouped?.items[2]).toBe(subGroup);
+    expect(ungrouped?.group).toBe(TREE[1]);
+    expect(ungrouped && undoChange(ungrouped.items, ungrouped.undo)).toEqual(TREE);
+  });
+
+  it('puts a sub-group’s rules in its place in the group', () => {
+    const ungrouped = ungroupItem(TREE, 'group-2');
+    expect(ungrouped && findItem(ungrouped.items, 'group-1')?.item).toMatchObject({
+      items: [rule(2, null, null), rule(3, null, null), rule(4, null, null)],
+    });
+    expect(ungrouped && undoChange(ungrouped.items, ungrouped.undo)).toEqual(TREE);
+  });
+
+  it('ungroups no rule, and nothing unknown', () => {
+    expect(ungroupItem(TREE, 'rule-1')).toBeNull();
+    expect(ungroupItem(TREE, 'group-9')).toBeNull();
+  });
+});
+
+describe('setOperator and operatorOf', () => {
+  it('switches the top level, which is the branch’s operator (FR-007)', () => {
+    const branch = mainBranch(TREE);
+    const switched = setOperator(branch, null, 'or');
+    expect(switched?.branch).toEqual({ ...branch, operator: 'or' });
+    expect(switched?.previous).toBe('and');
+    expect(switched && operatorOf(switched.branch, null)).toBe('or');
+  });
+
+  it('switches a group or a sub-group, and nothing else', () => {
+    const branch = mainBranch(TREE);
+    const switched = setOperator(branch, 'group-2', 'and');
+    expect(switched?.previous).toBe('or');
+    expect(switched && operatorOf(switched.branch, 'group-2')).toBe('and');
+    expect(switched && operatorOf(switched.branch, 'group-1')).toBe('or');
+    expect(switched?.branch.operator).toBe('and');
+    expect(setOperator(branch, 'rule-1', 'or')).toBeNull();
+    expect(setOperator(branch, 'group-9', 'or')).toBeNull();
+  });
+});
+
+describe('setGroupMessage', () => {
+  it('sets and removes a group’s own message, returning the group as it was (FR-004)', () => {
+    const set = setGroupMessage(TREE, 'group-2', 'You must have held class B.');
+    expect(set && findItem(set.items, 'group-2')?.item).toMatchObject({
+      message: 'You must have held class B.',
+    });
+    expect(set?.previous).toBe(findItem(TREE, 'group-2')?.item);
+    const removed = set && setGroupMessage(set.items, 'group-2', null);
+    expect(removed?.items).toEqual(TREE);
+    expect(set && replaceItem(set.items, set.previous)).toEqual(TREE);
+  });
+
+  it('sets no message on a rule', () => {
+    expect(setGroupMessage(TREE, 'rule-1', 'X')).toBeNull();
   });
 });
 

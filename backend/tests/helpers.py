@@ -139,6 +139,27 @@ def rule(
     }
 
 
+def group(
+    number: int,
+    items: list[dict[str, Any]],
+    *,
+    operator: str = 'and',
+    name: str | None = None,
+    message: str | None = None,
+) -> dict[str, Any]:
+    """A group or sub-group `group-{number}`, named "Group NN" unless `name` says
+    otherwise."""
+    return {
+        'type': 'group',
+        'id': f'group-{number}',
+        'name': f'Group {number:02d}' if name is None else name,
+        'mark': None,
+        'operator': operator,
+        'message': message,
+        'items': items,
+    }
+
+
 def main_branch(
     items: list[dict[str, Any]],
     *,
@@ -194,6 +215,52 @@ HELD_RULE = rule(
     'You must have held class B for at least 2 years.',
 )
 US1_RULES = rules_input([main_branch([AGE_RULE, CLASS_RULE, HELD_RULE])])
+
+# User story 2: lives in Stuttgart AND (at least 21 OR (at least 19 AND has held
+# class B for at least 3 years)), with a group and a sub-group
+STUTTGART_RULE = rule(
+    1,
+    target('pid', 'address_locality'),
+    {'operator': 'equal_to', 'value': 'Stuttgart', 'match_case': False},
+    'You must live in Stuttgart.',
+)
+AGE_21_RULE = rule(
+    2,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 21},
+    'You must be at least 21 years old.',
+)
+AGE_19_RULE = rule(
+    3,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 19},
+    'You must be at least 19 years old.',
+)
+HELD_3_YEARS_RULE = rule(
+    4,
+    target('mdl', 'driving_privileges', 'issue_date', 'B'),
+    {'operator': 'at_least_years_ago', 'years': 3},
+    'You must have held class B for at least 3 years.',
+)
+
+
+def us2_items(
+    group_message: str | None = None, sub_group_message: str | None = None
+) -> list[dict[str, Any]]:
+    """User story 2's rules, with the group's and sub-group's own messages."""
+    sub_group = group(
+        2,
+        [AGE_19_RULE, HELD_3_YEARS_RULE],
+        name='Sub-group 02',
+        message=sub_group_message,
+    )
+    return [
+        STUTTGART_RULE,
+        group(1, [AGE_21_RULE, sub_group], operator='or', message=group_message),
+    ]
+
+
+US2_RULES = rules_input([main_branch(us2_items())])
 
 
 def now() -> datetime:

@@ -22,7 +22,14 @@ from app.services.rules import (
     first_rule_set,
     save_rule_set,
 )
-from tests.helpers import FORM_CONNECTION, main_branch, rule, rules_input, target
+from tests.helpers import (
+    FORM_CONNECTION,
+    group,
+    main_branch,
+    rule,
+    rules_input,
+    target,
+)
 
 DOCUMENTS = [
     RequestedDocument.model_validate(document)
@@ -48,6 +55,7 @@ def _create(
     versions: list[list[dict[str, Any]]],
     *,
     next_rule_number: int,
+    next_group_number: int = 1,
 ) -> tuple[str, str]:
     """A form connection whose rule sets have these main branch rules, in order.
 
@@ -63,7 +71,7 @@ def _create(
             current_revision=1,
             current_rule_set=len(versions),
             next_rule_number=next_rule_number,
-            next_group_number=1,
+            next_group_number=next_group_number,
         )
     )
     db.flush()
@@ -90,12 +98,14 @@ def _save(
     items: list[dict[str, Any]],
     *,
     rule_base: int,
+    group_base: int = 1,
     base_version: int | None,
 ) -> list[dict[str, Any]]:
     """Save the main branch's rules as the editor would; return them as saved."""
     payload = rules_input(
         [main_branch(items, branch_id=branch_id)],
         rule_base=rule_base,
+        group_base=group_base,
         base_version=base_version,
     )
     with SessionLocal() as db:
@@ -246,6 +256,59 @@ def test_moved_default_names_keep_two_digits() -> None:
         ('rule-10', 'Rule 10'),
         ('rule-11', 'Rule 11'),
     ]
+
+
+def test_new_groups_take_their_numbers_from_the_group_counter() -> None:
+    with SessionLocal() as db:
+        form_connection_id, branch_id = _create(db, [[]], next_rule_number=1)
+    sub_group = group(2, [_city_rule(3), _city_rule(4)], name='Sub-group 02')
+    items = [_city_rule(1), group(1, [_city_rule(2), sub_group], operator='or')]
+
+    saved = _save(form_connection_id, branch_id, items, rule_base=1, base_version=1)
+
+    # Groups and sub-groups share the group counter (research R5)
+    assert saved == items
+    assert _state(form_connection_id) == (2, 5, 3)
+
+
+def test_new_groups_move_up_when_another_save_took_their_numbers() -> None:
+    rules_ = [_city_rule(1), _city_rule(2), _city_rule(3)]
+    with SessionLocal() as db:
+        # The editor loaded version 1, numbering groups from 1; another save then
+        # grouped the same rules as group-1 and group-2
+        form_connection_id, branch_id = _create(
+            db,
+            [
+                rules_,
+                [group(1, [rules_[0], group(2, rules_[1:], name='Sub-group 02')])],
+            ],
+            next_rule_number=4,
+            next_group_number=3,
+        )
+    sub_group = group(2, rules_[1:], name='Holders of B')
+
+    saved = _save(
+        form_connection_id,
+        branch_id,
+        [group(1, [rules_[0], sub_group], operator='or')],
+        rule_base=4,
+        group_base=1,
+        base_version=1,
+    )
+
+    # The default name moves with the number, the team's own name stays
+    [saved_group] = saved
+    assert (saved_group['id'], saved_group['name']) == ('group-3', 'Group 03')
+    saved_sub_group = saved_group['items'][1]
+    assert (saved_sub_group['id'], saved_sub_group['name']) == (
+        'group-4',
+        'Holders of B',
+    )
+    assert [member['id'] for member in saved_sub_group['items']] == [
+        'rule-2',
+        'rule-3',
+    ]
+    assert _state(form_connection_id) == (3, 4, 5)
 
 
 def test_the_counters_are_never_lowered() -> None:

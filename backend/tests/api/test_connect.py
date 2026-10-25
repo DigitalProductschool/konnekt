@@ -31,11 +31,14 @@ from app.services.evaluation import day_of_sharing
 from app.services.qr import png_data_uri
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
+    AGE_21_RULE,
     AGE_RULE,
     DELIVERED_DOCUMENTS,
+    HELD_3_YEARS_RULE,
     HELD_RULE,
     SHARED_CREDENTIALS,
     US1_RULES,
+    US2_RULES,
     create_form_connection,
     fail_in_wallet,
     main_branch,
@@ -961,6 +964,96 @@ def test_documents_that_break_rules_come_with_their_messages(
     assert evaluation['messages'] == [
         {'id': 'rule-1', 'message': AGE_RULE['message']},
         {'id': 'rule-3', 'message': HELD_RULE['message']},
+    ]
+
+
+def test_user_story_2s_rules_are_met_through_the_sub_group(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US2_RULES)
+    # A 20-year-old from Stuttgart who has held class B for 3 years (US2-AS2)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 3)
+    )
+
+    evaluation = _pull(signed_in_client, form_connection_id, started['reference'])[
+        'evaluation'
+    ]
+
+    assert evaluation['met'] is True
+    assert _outcomes(evaluation) == [
+        ('rule-1', 'met'),
+        ('group-1', 'met'),
+        ('rule-2', 'not_met'),
+        ('group-2', 'met'),
+        ('rule-3', 'met'),
+        ('rule-4', 'met'),
+    ]
+    assert evaluation['messages'] == []
+
+
+def test_user_story_2s_rules_report_the_messages_of_the_rules_not_met(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US2_RULES)
+    # A 20-year-old from Stuttgart who has held class B for 1 year (US2-AS3)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 1)
+    )
+
+    evaluation = _pull(signed_in_client, form_connection_id, started['reference'])[
+        'evaluation'
+    ]
+
+    assert evaluation['met'] is False
+    assert evaluation['results'] == [
+        {
+            'id': 'rule-1',
+            'type': 'rule',
+            'name': 'Rule 01',
+            'group': None,
+            'outcome': 'met',
+        },
+        {
+            'id': 'group-1',
+            'type': 'group',
+            'name': 'Group 01',
+            'group': None,
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-2',
+            'type': 'rule',
+            'name': 'Rule 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'group-2',
+            'type': 'group',
+            'name': 'Sub-group 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-3',
+            'type': 'rule',
+            'name': 'Rule 03',
+            'group': 'group-2',
+            'outcome': 'met',
+        },
+        {
+            'id': 'rule-4',
+            'type': 'rule',
+            'name': 'Rule 04',
+            'group': 'group-2',
+            'outcome': 'not_met',
+        },
+    ]
+    # The 21-year and 3-year rules, not the 19-year rule, which is met
+    assert evaluation['messages'] == [
+        {'id': 'rule-2', 'message': AGE_21_RULE['message']},
+        {'id': 'rule-4', 'message': HELD_3_YEARS_RULE['message']},
     ]
 
 
