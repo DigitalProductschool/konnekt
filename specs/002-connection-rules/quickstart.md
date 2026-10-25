@@ -101,7 +101,13 @@ request reference.
    with class B since 1 year. **Expected**: met; then not met with the group's own message instead
    of its members' (US2-AS2 to AS4).
 5. Rename a rule to the name of another rule. **Expected**: "Another rule in Standard is already
-   called Rule 01." inline (F12).
+   called Rule 01." inline (F12). Rename a rule to "Rule 09". **Expected**: "Rule 09 is kept for
+   the rule numbered 09." (FR-005).
+6. Ungroup the sub-group, then delete the group after confirming, and undo both (W8).
+   **Expected**: ungrouping puts the sub-group's rules in its place in the group; deleting the
+   group removes it with its rules (US2-AS8). Ungroup the group instead: its sub-group reaches the
+   top level as a group with the same identifier, name, AND/OR and message (FR-008). A new group
+   takes its first member's place, and nothing can be reordered (FR-007).
 
 ### V4: Branches in the rules step (US3 scenarios 1–6, FR-019 to FR-024, SC-002, SC-007)
 
@@ -125,9 +131,20 @@ request reference.
 8. Add "School transport", started empty. **Expected**: the empty state (W5); its rules carry no
    marks and Standard's changes don't reach it (US3-AS6).
 9. Rename "Ambulance" and edit its description through the tab menu, then delete "School
-   transport" after confirming (W3). Try a duplicate variant name. **Expected**: reported in the
-   dialog.
-10. Ask five DO.IT participants to say, for every rule of Ambulance, whether it follows Standard or
+   transport" after confirming (W3). Try a duplicate variant name, also differing only in letter
+   case. **Expected**: reported in the dialog (FR-020).
+10. In Ambulance, edit the age rule from 19 back to 21. **Expected**: "Changed here" goes and the
+    rule follows Standard again; in Standard, change it to 22: Ambulance shows 22 (FR-024). Then
+    change Ambulance's age rule to 19 and Standard's to 19: Ambulance's stays "Changed here".
+11. In Standard, group two rules into a group; in Ambulance, switch that group to OR. In Standard,
+    delete one of its two rules. **Expected**: the confirmation names Ambulance; the group
+    dissolves in both branches (FR-022, F14, W8). Undo, then ungroup the group in Standard
+    instead. **Expected**: in Ambulance it stays as "New addition", with both rules (FR-022).
+    In Ambulance, the inherited group's menu has "Remove" and "Restore", not "Ungroup" (W8).
+12. Copy a rule of Ambulance to Standard. **Expected**: the copy dialog shows Ambulance as
+    included once Standard is chosen; the copy appears in Standard and, linked, in Ambulance
+    beside the original (FR-022).
+13. Ask five DO.IT participants to say, for every rule of Ambulance, whether it follows Standard or
     was changed, removed or added (SC-007: at least 4 of 5 correct).
 
 ### V5: Branch pull URLs (US3 scenarios 7–9, FR-025 to FR-027, SC-002)
@@ -169,6 +186,12 @@ request reference.
 6. Make the save fail (stop EUDIPLO's network access, or the fake EUDIPLO in the API tests) after
    changing documents and rules. **Expected**: "Try again" in the dialog, and nothing changed:
    neither documents nor rules (FR-028, F23).
+7. Open the same connection's editor in two browser sessions. In the first, add a variant "Night"
+   and save. In the second, change a rule and save. **Expected**: the dialog says another team
+   member saved the rules and names "Night" as deleted by replacing (W9). "Reload" shows the first
+   session's rules. Repeat, and choose "Replace their changes": the second session's rules are
+   saved, and Night's pull URL answers `409 unavailable` (FR-027, FR-028). Saving only the
+   connection's name in a stale session meets no such dialog.
 
 ### V7: Accessibility (SC-009)
 
@@ -180,11 +203,12 @@ tooltips on focus; focus on the named problem after a refused Publish.
 ### V8: Usability and timing (SC-001, SC-002, SC-007, SC-008) and delay (SC-004)
 
 - SC-001 and SC-002: timed in V1 and V5.
-- SC-007: V4 step 10.
+- SC-007: V4 step 13.
 - SC-008: five participants build V3's rules from a written description, without help; at least 4
   of 5 correct on the first attempt.
-- SC-004: repeat spec 001's V7 load run on a connection with V3's rules. **Expected**: 95% of
-  results ready within 5 seconds of approval, as without rules.
+- SC-004: repeat spec 001's V7 load run on a connection with V3's rules. **Expected**: in 95% of
+  requests, a pull 5 seconds after approval returns the documents with their evaluation, as
+  without rules.
 
 ## 4. Troubleshooting
 
@@ -194,3 +218,4 @@ tooltips on focus; focus on the named problem after a refused Publish.
 | A date rule flips around midnight | The day of sharing is Germany's calendar date of `completed_at`; check the request's `completed_at` |
 | Save refused with "… is out of step with Standard. Reload the connection and try again." | The editor's propagation produced an inconsistent based branch (research R4). Reload, report the steps, and add them as a case to `frontend/src/utils/rules/branches.test.ts` |
 | `409 branch_added_later` | The request was triggered before the branch was saved; start a new request |
+| Save dialog says another team member saved the rules | Someone saved the connection's rules after this editor opened them (`409 rules_changed`, FR-028): reload, or replace their changes |

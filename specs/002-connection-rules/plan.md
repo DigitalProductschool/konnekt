@@ -3,7 +3,8 @@
 **Branch**: `002-connection-rules` (spec header: `rules`) | **Date**: 2026-10-24 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/002-connection-rules/spec.md`, with its
-Clarifications of 2026-10-22 to 2026-10-24, and the Figma audit
+Clarifications of 2026-10-22 to 2026-10-24 (including the session of the requirements checklist
+[checklists/rules-logic.md](checklists/rules-logic.md)), and the Figma audit
 [figma-audit/report.md](figma-audit/report.md).
 
 **Note**: this checkout's `.git` points to a worktree path that doesn't exist here, so git couldn't
@@ -31,11 +32,12 @@ documents as before plus the **evaluation** of that branch's rules as they were 
   EUDIPLO; dates by Germany's calendar day of sharing; never stored or logged.
 - **API**: additive. The pull answer gains `evaluation`; other branches get
   `…/branches/{branch_id}/requests/{reference}`; the management API accepts and returns rules with
-  the form connection, saved atomically with its documents.
+  the form connection, saved atomically with its documents, and refuses a save over newer rules
+  (`409 rules_changed`) unless the team member chooses to replace them (research R9).
 - **UI**: spec.md decides behaviour and wording, Figma layout and styling only. Figma is out of sync
   and won't be updated soon, so [contracts/ui-screens.md](contracts/ui-screens.md) lists the
-  audit's decided deviations (F1–F32, W1–W7) per screen, and **every UI task cites the items it
-  covers** (research R13).
+  decided deviations (F1–F32, W1–W9: the audit's, and W8 and W9 from the requirements checklist)
+  per screen, and **every UI task cites the items it covers** (research R13).
 
 ## Technical Context
 
@@ -80,7 +82,7 @@ PostgreSQL).
 - **Atomicity**: documents, branches and rules are saved together or not at all (FR-028).
 - **Snapshot**: requests use the rules of the trigger time (FR-025, FR-028).
 - **Accessibility**: WCAG 2.1 AA (SC-009); marks never by colour alone (FR-023).
-- **Design**: spec over Figma for behaviour and wording; F1–F32 and W1–W7 apply.
+- **Design**: spec over Figma for behaviour and wording; F1–F32 and W1–W9 apply.
 
 **Scale/Scope**: one team; tens of form connections, each with a few branches and a few dozen
 rules (server limits: 20 branches, 200 items per branch); one new wizard step and its dialogs; the
@@ -101,7 +103,7 @@ IV, Tests, and Workflow and documentation.)
 
 | Principle or rule | How the plan complies | Result |
 |---|---|---|
-| **I. Contract parity** | New shapes (`DocumentField` kinds and parts, `OptionSet`, rules, branches, `evaluation`) are Pydantic schemas in `schemas.py`; the management shapes are mirrored in `frontend/src/types/` in the same change. The serviceBW shapes are documented in [contracts/integration-api.md](contracts/integration-api.md). Every answer uses `{data, message?}` or `{error, message}` through `HTTPException`, including the new `409 branch_added_later` | PASS |
+| **I. Contract parity** | New shapes (`DocumentField` kinds and parts, `OptionSet`, rules, branches, `evaluation`) are Pydantic schemas in `schemas.py`; the management shapes are mirrored in `frontend/src/types/` in the same change. The serviceBW shapes are documented in [contracts/integration-api.md](contracts/integration-api.md). Every answer uses `{data, message?}` or `{error, message}` through `HTTPException`, including the new `409 branch_added_later` and `409 rules_changed` | PASS |
 | **II. Sync persistence (NON-NEGOTIABLE)** | Handlers stay plain `def` with `Depends(get_db)`; `select()`, `db.get()`, `db.scalars()` only. The rules save extends `create_revision`'s ordering: no transaction is held while EUDIPLO answers; rows are locked with `with_for_update` before the final commit | PASS |
 | **III. Quality gates** | Ruff, mypy (`app/ scripts/ tests/`), ESLint, Prettier, `npm test` and the build. Vitest is configured in the `test` block of `frontend/vite.config.ts` with the `node` environment; no `vitest.config.ts`, no `pytest.ini` | PASS |
 | **IV. Dependencies and config** | No new runtime dependency and no new setting. One development dependency, `vitest`, imported by the frontend's tests and documented in `README.md` with its reason. `zoneinfo` is standard library; the country list is code | PASS |
@@ -127,7 +129,7 @@ specs/002-connection-rules/
 ├── contracts/           # Phase 1
 │   ├── integration-api.md   # serviceBW: branch pull URLs and the evaluation
 │   ├── management-api.md    # DO.IT UI ↔ backend: catalog kinds, option sets, rules in create/edit
-│   └── ui-screens.md        # Screens S0–S7, and "Deviations from Figma" (F1–F32, W1–W7)
+│   └── ui-screens.md        # Screens S0–S7, and "Deviations from Figma" (F1–F32, W1–W9)
 ├── design-notes.md      # Written by the first UI task: copy the decisions leave to the design notes
 ├── figma-audit/         # The audit (report.md, units.md, requirements.md)
 ├── checklists/
@@ -204,8 +206,8 @@ inside the editor page, with the rule editor nested in it, each with its sibling
   CLAUDE.md's "Figma implementation workflow"; its visual check lists prescribed differences by
   item number instead of fixing them.
 - The first UI task writes `design-notes.md` with the copy the decisions leave open (F7's checkbox
-  label, F14's dialog body, W3's duplicate-name message, FYI #20's footer wording, the licence class
-  descriptions).
+  label, F14's dialog body, W3's duplicate-name message, W8's delete-group confirmation, W9's
+  dialog, FYI #20's footer wording, the licence class descriptions).
 - Backend tasks follow model → schema → migration → services → router; the evaluator's unit tests
   come with it (research R12).
 - **A Setup task installs Vitest** before any other frontend task: the `vitest` development

@@ -1,7 +1,7 @@
 # Contract: management UI screens, with rules and branches
 
 **Users**: signed-in DO.IT team members (FR-031). **Requirements**: FR-001 to FR-008, FR-010,
-FR-019 to FR-024, FR-026, FR-029, FR-030, SC-001, SC-002, SC-007 to SC-009; US1 to US4.
+FR-019 to FR-024, FR-026, FR-028 to FR-030, SC-001, SC-002, SC-007 to SC-009; US1 to US4.
 **Decisions**: research R10, R13; the spec's Clarifications; the Figma audit
 ([../figma-audit/report.md](../figma-audit/report.md)).
 
@@ -66,12 +66,18 @@ The screen ids S0–S7 are used in [Deviations from Figma](#deviations-from-figm
   level (FR-007).
 - **Groups and sub-groups**: select two or more items to group them; a group's members can form a
   sub-group; a sub-group offers no further grouping (FR-008, US2-AS6). A group's or sub-group's
-  menu adds or removes its own error message, shown under its header (FR-004). Deleting a member
-  below two dissolves the group (FR-008, US2-AS7).
+  menu adds or removes its own error message, shown under its header (FR-004), and offers
+  "Ungroup" and "Delete group" (W8, US2-AS8). Deleting a member below two dissolves the group
+  (FR-008, US2-AS7). A sub-group that reaches the top level becomes a group, with its identifier,
+  name, AND/OR and message (FR-008).
+- **Order**: rules and groups keep the order in which they were added; a new group takes its first
+  member's place. There is no reordering (FR-007).
 - **Rule actions**: edit, rename, duplicate, copy to other variants, delete with confirmation and
   undo (Clarifications 2026-10-24; FR-022 for identifiers).
 - **Names**: renaming happens inline; a name used twice in a branch is refused there, naming the
-  branch (FR-005).
+  branch (FR-005). "Rule NN", "Group NN" and "Sub-group NN" are kept for the item with that
+  number: "Rule 08 is kept for the rule numbered 08." In a based branch, the names that an undo or
+  a restore could bring back count as taken (FR-005).
 - **Problems**: a rule that checks data no longer requested shows a banner and an inline flag that
   name the rule and its branch (FR-006).
 - **Footer**: Back to Documents; the primary action is "Publish" ("Save" when editing), or
@@ -104,18 +110,24 @@ The screen ids S0–S7 are used in [Deviations from Figma](#deviations-from-figm
   variant", without "Start with"; "Delete" for every other branch, after a confirmation (FR-020).
 - **Marks** in a based branch: "Changed here", "New addition" and "Removed", each with colour and
   text (FR-023, SC-007); removed items stay visible and can only be restored (FR-024); undo returns
-  an item to following the main branch (FR-024). A switched top-level AND/OR is marked too
-  (FR-021).
+  an item to following the main branch (FR-024), and so does an edit that makes a changed item
+  equal to the main branch's again (FR-024). A switched top-level AND/OR is marked too (FR-021).
+  An inherited group's menu offers "Remove" and "Restore", not "Ungroup" or "Delete group" (W8).
 - **Following the main branch**: changes to the main branch show at once in every based branch, as
   data-model.md "Propagation from the main branch" says (FR-021, FR-022).
 - **Copy to variant**: copies a rule to chosen branches as a new rule at the end of their top level
-  (FR-022).
+  (FR-022). Choosing Standard covers the branches based on it: they show as included and can't be
+  chosen on their own. A copy from a based branch to Standard also appears, linked, in that branch
+  (FR-021, FR-022).
 
 ### S5. Publish and save dialog
 
 - Spec 001's dialog, extended: it summarises the documents and, for each branch, its rules (FR-028;
   Clarification 2026-10-24). "Publishing…", then the details; on failure, "Couldn't publish" with
   "Try again", and nothing has changed (FR-028).
+- When another team member saved the rules after the editor opened them (`409 rules_changed`), the
+  dialog says so, names any branch that replacing would delete, and offers "Reload" or "Replace
+  their changes" (FR-028, W9).
 - From the documents step while no branch has rules: "Publish without rules?" (FR-001).
 - No go-live date: publishing goes live at once (spec Assumptions, "Out of scope").
 
@@ -157,7 +169,9 @@ build instead, until the design is updated:
 - **F# items** ("Figma must change (decided)"): the frame exists, but its behaviour or wording is
   wrong. Build the spec's behaviour and wording, with the frame's layout and styling.
 - **W# items** ("Build without frames (decided)"): the spec needs something no frame draws. Build it
-  from the frame or KERN pattern named below.
+  from the frame or KERN pattern named below. W1–W7 come from the audit; W8 and W9 from the
+  requirements checklist ([../checklists/rules-logic.md](../checklists/rules-logic.md)), decided
+  in the spec's Clarifications, "Session 2026-10-24 (requirements checklist)" (CLAR checklist).
 
 Node-ids are in file `s8mU9oJDq3411e8bxMjQO9`; units (U06–U38) are listed in
 [../figma-audit/units.md](../figma-audit/units.md). An item that spans several screens is listed
@@ -213,6 +227,7 @@ the rule-editor units.
 | # | Expected surface | Build from (frame or KERN pattern) | What to build | Decided by |
 |---|---|---|---|---|
 | W6 | Group and sub-group headers | The group's ⋯ menu U14 `6094:6413` and the sub-group's ⋯ menu U14 `6094:6320` (KERN menu); the message card under the header U14 `6324:39410`, with its hint `6324:39419` | "Add error message" / "Remove error message" in each group's and sub-group's ⋯ menu. The message card sits under the header, as in U14 `6324:39410` | CLAR 2026-10-24 #12 (FR-004d) |
+| W8 | Group and sub-group ⋯ menus | The same menus as W6 (U14 `6094:6413`, `6094:6320`); the rule's delete confirmation U14 `6113:29056` and its undo toast U14 `6113:29469` | "Ungroup": the members take the group's place in the containing level; a sub-group that reaches the top level becomes a group, keeping its identifier, name, AND/OR and message; toast "Group 01 in Standard ungrouped." with Undo. "Delete group": a confirmation like the rule's ("Delete Group 01?", saying that its rules are deleted with it; final copy in the design notes), then a toast with Undo, like F29's. In a based branch, an inherited group's menu has "Remove" / "Restore" instead (marked as in W4); "Ungroup" and "Delete group" are for the groups of Standard, of branches that started empty, and groups added in a branch. Standard's delete confirmation names the branches whose changed group it dissolves (F14) | CLAR checklist (FR-008, FR-022, US2-AS8) |
 
 ### S3. Rule editor
 
@@ -245,7 +260,7 @@ Units: U17, U18, U19, U20, U23, U26.
 | F2 | Saved rows: U17 `6134:8527`, `6134:9078`; U18 `6163:4865`; U19 `6344:53716`; U20 `6344:53893`; U23 `6185:8570`, `6185:8821`; U26 `6197:11985` | "≥ at least 6 months left" | As F2 in S2: "… is at least 6 months from now" | CLAR 2026-10-24 #33 |
 | F12 | U26 `6196:10653`, `6196:10710` | "Another rule is already called Rule 01." | "Another rule in Ambulance is already called Rule 01.", inline where the name is entered; also for groups and sub-groups, and for a main-branch rename that clashes in a based branch, naming that branch | CLAR 2026-10-24 #30 (and #18) |
 | F13 | U23 `6185:41610`, `6185:41611`, `6185:41613`, `6185:41627` | Groups kept with one member or none in a variant | In a based branch, an inherited group left with fewer than two active members dissolves there only and is shown removed (like U23 `6185:41167`); it comes back when the removal is undone or the main branch adds a member. Empty groups never exist. Built without new frames | CLAR 2026-10-24 #7 |
-| F14 | U23 `6185:8847`, `6185:8846` | "This rule will be removed from Standard and from every variant that uses it (Ambulance, School transport)." | The body must not say the rule leaves every variant: variants that follow the rule lose it; variants that changed it keep their version, which then counts as added (name them); variants that removed it drop it. Proposed copy: "This rule will be removed from Standard and from the variants that follow it. Ambulance changed it and keeps its own version. You can undo this right after." The design notes hold the final wording. If the rule is one of a group's two members, the group dissolves (F13) | CLAR 2026-10-24 #9 |
+| F14 | U23 `6185:8847`, `6185:8846` | "This rule will be removed from Standard and from every variant that uses it (Ambulance, School transport)." | The body must not say the rule leaves every variant: variants that follow the rule lose it; variants that changed it keep their version, which then counts as added (name them); variants that removed it drop it. Proposed copy: "This rule will be removed from Standard and from the variants that follow it. Ambulance changed it and keeps its own version. You can undo this right after." The design notes hold the final wording. If the rule is one of a group's two members, the group dissolves (F13), also in variants that changed the group, and the body names them: "Ambulance's changes to Group 01 go with it." (FR-022's one exception) | CLAR 2026-10-24 #9; CLAR checklist (FR-022) |
 | F15 | U23 `6185:41180`, `6185:41623` (changed rule inside the removed group); U23 `6185:41610` and `6185:41167` (Ambulance AND vs Standard OR `6185:8827`) | A changed rule marked only by an outline; a switched operator without a mark | A switched operator marks the group "Changed here" (as U18 `6163:5440`). A changed rule keeps its "Changed here" text mark, also inside a removed group | CLAR 2026-10-24 #10 |
 | F29 | U19 `6344:53873` | "Grouped in Ambulance only. Standard stays the same." | "Rule 01 and Rule 02 in Ambulance are now Group 02. Standard stays the same." (Undo as designed). The copy toast "Rule 06 copied to School transport." (U20 `6344:54042`) already names its branch | RULE wording |
 
@@ -271,6 +286,7 @@ Units: U33, U34 (confirmation and go-live frames), U35, U36.
 | # | Expected surface | Build from (frame or KERN pattern) | What to build | Decided by |
 |---|---|---|---|---|
 | W7 (save dialog) | Publish/save dialog of the edit flow | Spec 001's save dialog (`PublishDialog`), extended with U33's per-branch summary rows (`6376:26181`); the failure as in U35 `6376:27178` | Saving asks for confirmation in this dialog, not on entry to the edit flow. A failure shows "Try again", and nothing has changed | CLAR 2026-10-24 #14, #23 (FR-030c, US4-AS1, US4-AS2) |
+| W9 | Publish/save dialog of the edit flow, when the rules changed since the editor opened | The failure state of U35 `6376:27178` inside spec 001's save dialog; KERN dialog buttons as in U14 `6113:29056` | On `409 rules_changed`: a heading saying that another team member saved the rules of this connection after it was opened, the API's message (which names any variant that replacing deletes), and two actions: "Reload" (fetch the connection again, dropping the unsaved changes) and "Replace their changes" (save again with `replace: true`). Final copy in the design notes | CLAR checklist (FR-028) |
 
 F10 (S2): with unsaved rule-editor changes, "Save changes to Rule 01?" opens before this dialog.
 F23 (S2): a failed save shows here, not on the Rules step.
@@ -335,7 +351,8 @@ Every decided item, with the screens it applies to. Each must be cited by at lea
 | F17 | S1 | W5 | S4 |
 | F18 | S1, S7 | W6 | S2 |
 | F19 | S0, S1 | W7 | S5, S7 |
-| F20 | S1 | | |
+| F20 | S1 | W8 | S2, S4 |
+| | | W9 | S5, S7 |
 
 ### Also from the audit, not deviations
 

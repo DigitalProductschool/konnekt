@@ -85,6 +85,19 @@ Questions raised by the audit of the UI design against this spec (figma-audit/re
 - Q: Can a team member edit a branch's description after the branch is added, and can the main branch have a description at all? → A: Yes to both. "Rename" in the branch tab's menu opens the Add variant dialog's name and description fields, titled "Edit variant", without "Start with", for every branch, the main branch included. A missing or duplicate name is reported there as when adding a branch (FR-020). This extends the earlier answer on renaming and deleting branches, which named only renaming.
 - Q: Does the rule editor's part picker for the "Place of birth" get a search field, given that the part pickers are built like the data menu, which has one, while the UI design lists the three parts without one? → A: No. Only long menus get a search field: the part pickers are built like the data menu, with a search field when the menu is long. The "Place of birth" part picker ("Choose part") lists "Country", "Region" and "City or town" as designed, without a search field. The "Licence classes" part picker, which lists the held classes and each class's issue date and expiry date, has the search field "Search classes", with the empty result "No options match "{typed text}".". The data menus' "Search Personal ID" and "Search Driving licence", the class value menus' "Search classes" and the check menus, which have no search field, stay as the answer on the rule editor's aids says. This narrows that answer's "built the same way" for the part pickers.
 
+### Session 2026-10-24 (requirements checklist)
+
+Questions raised by the requirements checklist ([checklists/rules-logic.md](checklists/rules-logic.md)). Its items that the plan had already decided, or that took a simple default, are written straight into the requirements they concern.
+
+- Q: Can team members change the order of rules and groups within a level? → A: No. Rules and groups keep the order in which they were added: a new rule goes at the end of its level, and a new group takes the place of the first of its members. Reordering is out of scope (FR-007).
+- Q: When a team member edits an inherited rule or group in a branch back to the main branch's version, does it follow the main branch again? → A: Yes, as after an undo, once the edit leaves it equal to the main branch's version in everything that counts as a change. A change in the main branch that makes the two equal doesn't, so that a later change in the main branch can't overwrite the branch's version (FR-024).
+- Q: What can a team member do with a group or sub-group once it exists? → A: Ungroup it, which puts its members in its place, or delete it with its members after confirming. In a branch based on the main branch, an inherited group can only be removed there, with its members, and restored; ungrouping is for the groups the branch owns. An undo after either action is UI detail, as for rules (FR-008).
+- Q: What happens when a change to the main branch leaves a group that a branch changed with fewer than two members? → A: The group dissolves in that branch too, and the branch's change to it goes, so that a group never has fewer than two members. The main branch's confirmation of the change names those branches. This is the one exception to FR-022's "MUST NOT overwrite or discard" (FR-008, FR-022).
+- Q: What happens when a team member saves rules that another team member saved after the first opened them? → A: The system says so before saving and offers to reload, dropping the team member's unsaved changes, or to replace the other's rules, naming every branch that replacing them deletes. The rules of all branches count as one. For the form connection's name and documents, the later save still wins, as in spec 001 (FR-028).
+- Q: How are name clashes prevented that arise without a name being entered, through a rule the main branch adds, a copy, a duplicate or an undo? → A: By keeping the names they could bring in taken: "Rule", "Group" or "Sub-group" followed by a number is kept for the item whose identifier has that number, and in a branch based on the main branch, a name that an undo or a restore could bring back counts as taken. Every clash is then refused where the name is entered (FR-005).
+- Q: Do serviceBW forms that don't read the evaluation cope with the new field in the pull answer? → A: Yes. DO.IT has confirmed that serviceBW ignores fields it doesn't know (Assumptions).
+- Q: A rule edited to check other data keeps its identifier. How does serviceBW avoid misreading its result? → A: The identifier names the rule, not what it checks, as FR-010 says. When DO.IT changes what a rule checks in a way serviceBW relies on, it agrees the change with serviceBW first, or adds a new rule and deletes the old one (Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Check shared documents against rules (Priority: P1)
@@ -179,6 +192,9 @@ way to qualify, and for an applicant who qualifies in neither.
    system doesn't offer it: rules are grouped two levels deep at most.
 7. **Given** a group of two rules, **When** the team member deletes one of them, **Then** the group
    is dissolved, and the other rule takes the group's place in the level that contained it.
+8. **Given** a group, **When** the team member ungroups it, **Then** its rules and sub-groups take
+   its place in the level that contained it, and its AND or OR and its message no longer apply;
+   **When** they delete it instead and confirm, **Then** it is deleted with everything in it.
 
 ---
 
@@ -230,9 +246,9 @@ the evaluations.
    years, **When** serviceBW pulls it through the "Ambulance" branch's pull URL, **Then** the
    evaluation says the rules are met; **When** it pulls it through the main branch's pull URL
    instead, **Then** the evaluation says they aren't, with the message of the age rule.
-9. **Given** a branch that is no longer needed, **When** the team member deletes it and confirms,
-   **Then** its pull URL answers every call with "unavailable", while the trigger URL and the
-   other branches' pull URLs keep working, also for requests already in progress.
+9. **Given** a branch that is no longer needed, **When** the team member deletes it, confirms and
+   saves, **Then** its pull URL answers every call with "unavailable", while the trigger URL and
+   the other branches' pull URLs keep working, also for requests already in progress.
 
 ---
 
@@ -303,10 +319,13 @@ new one, and no URL has changed.
 - **Documents that fail verification**: Rules are evaluated only on documents that passed
   verification (spec 001, FR-010). A request whose documents don't pass ends as "verification
   failed", without an evaluation.
+- **The evaluation fails**: If the evaluation can't be made, the pull fails like any other server
+  error and hands nothing over, so serviceBW can pull again. Documents never go out without their
+  evaluation (FR-017).
 - **The main branch changes a rule that a branch changed**: The branch keeps its own version
   (FR-022).
 - **The main branch removes a rule that a branch changed**: The branch keeps its version, which now
-  counts as added in the branch.
+  counts as added in the branch, under the same identifier (FR-010).
 - **The main branch removes a rule that a branch removed**: The rule disappears from the branch too.
 - **The main branch adds a rule**: It appears in every branch based on the main branch, following
   it, and in no branch that started empty.
@@ -317,6 +336,9 @@ new one, and no URL has changed.
   only. The other rule takes the group's place there and keeps following the main branch, and the
   group stays visible, marked as removed (FR-008). Undoing the removal, or a rule that the main
   branch adds to the group, brings the group back in the branch.
+- **The main branch leaves a group that a branch changed with one rule**: For example by deleting
+  one of the group's two rules. The group dissolves in the branch too, and the branch's change to
+  it goes (FR-008, FR-022). The main branch's confirmation of the deletion names that branch.
 - **A branch groups inherited rules**: The new group is marked as added in the branch. The rules in
   it keep following the main branch, and a rule that the main branch removes disappears from the
   group, which is dissolved once fewer than two remain (FR-008). If the main branch puts these
@@ -344,8 +366,10 @@ new one, and no URL has changed.
   their documents again.
 - **Pulling after the documents are gone**: Once the documents can no longer be obtained (spec 001,
   FR-018 and FR-020), neither can the evaluation (FR-017).
-- **Two team members editing the rules at the same time**: The later save wins, as for the rest of a
-  form connection (spec 001, Edge Cases).
+- **Two team members editing the rules at the same time**: The later save doesn't replace the
+  other's rules silently. The system says that the rules changed since they were opened, and offers
+  to reload or to replace them, naming every branch that replacing them deletes (FR-028). For the
+  form connection's name and documents, the later save wins (spec 001, Edge Cases).
 
 ## Requirements *(mandatory)*
 
@@ -375,10 +399,13 @@ new one, and no URL has changed.
     or the "Sex": includes one of, or includes none of, a set of one or more of those values, in
     the same words whatever the number of values. "Includes one of" MUST count as met when at
     least one of the document's values for the field is in the set, and "includes none of" when
-    none of them is. A field with a single value, such as the "Sex", holds just that one.
+    none of them is. A field with a single value, such as the "Sex", holds just that one. The
+    document's values MUST be compared as the document gives them, ignoring letter case: a value
+    outside the field's set matches none of the rule's values.
   - **Dates**, such as the "Expiry date": is before, is after, or is a given date; is at least, is
     less than, or is exactly a given number of years ago; or is at least, or is less than, a given
-    number of years or months from now (FR-012). The "Date of birth" of every document words its
+    number of years or months from now (FR-012). "Is before" and "is after" MUST exclude the
+    given date itself. The "Date of birth" of every document words its
     three years-ago conditions as an age instead: is at least, is less than, or is exactly a given
     number of years old. The number of years or months MUST be a whole number of at least 1; a
     condition with any other number is incomplete (FR-006). Years and months MUST be counted from
@@ -389,7 +416,9 @@ new one, and no URL has changed.
   Fields made of parts MUST be checked through their parts, each with the conditions of its kind:
   the driving licence's "Licence classes" through the classes it holds (an enum) and each class's
   issue date and expiry date (dates), such as "Licence class B – Issue date"; the ID's "Place of
-  birth" through its country (an enum), and its region and its city or town (text).
+  birth" through its country (an enum), and its region and its city or town (text). A licence
+  holds a class when it lists it, also if the class's own expiry date has passed; only a rule on
+  that expiry date checks it.
 - **FR-004**: Every rule MUST have an error message for the citizen. Once the rule's condition is
   complete, the system MUST propose a message that describes the condition as entered, which the
   team member MAY change. Groups and sub-groups MAY have an error message of their own (FR-011),
@@ -403,18 +432,27 @@ new one, and no URL has changed.
   assistive technologies MUST NOT announce. Every rule, group and sub-group MUST also have a
   name for the team: by default "Rule", "Group" or "Sub-group" and the number of its identifier
   (FR-010), such as "Rule 07", which the team member MAY change. Names MUST be unique within each
-  branch. A name that would appear twice in a branch, also through a change to the main branch
-  that a branch based on it follows, MUST be refused where the name is entered, with a message
-  that always names that branch, also when it is the branch being edited, such as "Another rule
-  in Ambulance is already called Rule 01.". The
-  name is part of the rule or group: renaming one inherited from the main branch in a branch
-  based on it changes it there (FR-022). Messages in the management interface MUST name rules and
-  groups by their name and branch.
+  branch, compared ignoring letter case and spaces at the start and end. A name that would appear
+  twice in a branch, also through a change to the main branch that a branch based on it follows,
+  MUST be refused where the name is entered, with a message that always names that branch, also
+  when it is the branch being edited, such as "Another rule in Ambulance is already called Rule
+  01.". So that no clash can arise where no name is entered, through a rule the main branch adds,
+  a copy, a duplicate or an undo, "Rule", "Group" or "Sub-group" followed by a number MUST be kept
+  for the rule, or the group or sub-group, whose identifier has that number, such as "Rule 08 is
+  kept for the rule numbered 08."; and in a branch based on the main branch, a name MUST also
+  count as taken when an undo or a restore could bring it back: the name of an item removed there,
+  and the main branch's name of an item changed there. The name is part of the rule or group:
+  renaming one inherited from the main branch in a branch based on it changes it there (FR-022).
+  Messages in the management interface MUST name rules and groups by their name and branch.
 - **FR-006**: The system MUST refuse to publish or save a form connection while, in any of its
   branches, a rule's condition is incomplete, a rule has no error message, or a rule checks a field
   that the form connection doesn't request. It MUST also refuse a branch without a name, or with
   the name of another branch of the same form connection. The message MUST name the problem, the
-  rule concerned, if any, and its branch. The rules step MAY also point out a problem in the rule
+  rule concerned, if any, and its branch. A problem in a rule that branches based on the main
+  branch inherit unchanged MUST be reported once, for the main branch. Rules marked removed in a
+  branch (FR-023) are checked too; they mirror the main branch's version, so fixing or deleting it
+  there clears them. A text value that is empty once spaces at the start and end are removed
+  leaves its condition incomplete. The rules step MAY also point out a problem in the rule
   being edited, but publishing and saving MUST stay available, and be refused when attempted.
   Publishing or saving while a rule being edited has unsaved changes MUST first ask the team
   member to keep or discard them, with the same question as leaving the rule editor. Keeping saves
@@ -427,12 +465,21 @@ new one, and no URL has changed.
 - **FR-007**: In each branch, the rules and groups at the top level, in each group and in each
   sub-group MUST be combined with AND by default. The team member MUST be able to switch each of
   these levels to OR and back. All rules and groups of one level MUST be combined the same way: a
-  different combination needs a group.
+  different combination needs a group. Within a level, rules and groups MUST keep the order in
+  which they were added, which is the order in which they are shown and reported: a new rule goes
+  at the end of its level, and a new group takes the place of the first of its members. Team
+  members can't change the order.
 - **FR-008**: Team members MUST be able to put two or more rules of a branch's top level into a
-  group, and two or more rules of a group into a sub-group, and to add rules to both. A sub-group
-  MUST NOT contain further groups. A group or sub-group MUST always hold at least two rules or
-  sub-groups: when fewer remain, it MUST be dissolved, the one that remains, if any, MUST take its
-  place in the level that contained it, and the group's AND or OR and its message no longer apply.
+  group, and two or more rules of a group into a sub-group, and to add rules to both. They MUST
+  also be able to ungroup a group or sub-group, which puts its members in its place, and to
+  delete one with its members after confirming. In a branch based on the main branch, an
+  inherited group can only be removed there, with its members, and restored (FR-024); ungrouping
+  is for the groups of the main branch, of branches that started empty, and those added in a
+  branch (FR-022). A sub-group MUST NOT contain further groups. A group or sub-group MUST always
+  hold at least two rules or sub-groups: when fewer remain, it MUST be dissolved, the one that
+  remains, if any, MUST take its place in the level that contained it, and the group's AND or OR
+  and its message no longer apply. A sub-group that reaches the top level this way, or through
+  ungrouping, becomes a group and keeps its identifier, name, AND or OR, and message.
   In a branch based on the main branch, the rules and sub-groups removed in the branch, or put
   there into a group of the branch's own (FR-022), don't count: an inherited group they leave with
   fewer than two MUST be dissolved in that branch only, the one
@@ -442,7 +489,10 @@ new one, and no URL has changed.
 - **FR-009**: A level combined with AND MUST count as met when all of its rules and groups are met,
   and a level combined with OR when at least one of them is met. A group or sub-group MUST count as
   a single rule of the level that contains it. A branch's rules MUST count as met overall when its
-  top level is met, and a branch without rules MUST always count as met.
+  top level is met, and a branch without rules MUST always count as met. Rules and groups removed
+  in a branch, and groups dissolved there (FR-008), MUST NOT be evaluated: a dissolved group is
+  evaluated as its remaining member, and a branch whose rules are all removed counts as a branch
+  without rules.
 
 #### Evaluating rules and delivering the result
 
@@ -455,7 +505,9 @@ new one, and no URL has changed.
     set the identifier when the rule or group is created, MUST NOT change it when the item is
     renamed or changed, and MUST NOT reuse it within the form connection. A rule or group keeps
     the main branch's identifier in every branch based on it, whether the branch changed it or
-    not; one added in a branch gets a new identifier. The details MUST show each identifier,
+    not, also once its version counts as added because the main branch removed the original
+    (FR-022); one added in a branch gets a new identifier. Rules and groups that aren't evaluated
+    (FR-009) aren't reported. The details MUST show each identifier,
     read-only next to the item's name in every branch's section (FR-030), so that DO.IT can agree
     its use with serviceBW. The rules step doesn't show identifiers;
   - the error messages that explain why the rules aren't met (FR-011).
@@ -481,10 +533,13 @@ new one, and no URL has changed.
 - **FR-013**: Each text condition MUST either respect or ignore letter case, as the team member
   chooses in the rules step, and MUST be evaluated accordingly. A new text condition ignores letter
   case until the team member changes that. Spaces at the start and end of the citizen's value and
-  of the rule's value MUST be ignored in both cases.
+  of the rule's value MUST be ignored in both cases. A letter written as one character, such as
+  "ö", MUST count the same as the letter followed by a separate accent; spaces inside a value
+  count as written.
 - **FR-014**: A rule whose value is missing, or can't be interpreted for its condition, MUST count
   as not met and MUST be reported as couldn't be checked, so that serviceBW can tell it apart from
-  a value that breaks the rule. A rule on a date of a licence class that the licence doesn't hold
+  a value that breaks the rule. An empty text or an empty list counts as a missing value. A rule
+  on a date of a licence class that the licence doesn't hold
   is the exception: it MUST be reported as not met, since the citizen doesn't hold that class. The
   rule editor MUST say this next to every date condition.
 - **FR-015**: The documents MUST be delivered whether or not the rules are met, and the request's
@@ -495,20 +550,25 @@ new one, and no URL has changed.
 - **FR-017**: The evaluation MUST be delivered, repeated and deleted together with the documents it
   was made from (spec 001, FR-018 and FR-020): once they can no longer be obtained, neither can the
   evaluation. It MUST NOT contain the values of the fields it checked, and MUST NOT be written to
-  any log.
+  any log. If the evaluation can't be made, the pull MUST fail like any other server error and
+  hand nothing over, so that serviceBW can pull again: documents never go out without their
+  evaluation.
 
 #### Branches
 
 - **FR-018**: Every form connection MUST have a main branch, whose pull URL is the pull URL the
   form connection already has. Form connections created before this feature MUST get a main branch
-  without rules, and keep their trigger URL and pull URL.
+  without rules, and keep their trigger URL and pull URL. The main branch is called "Standard"
+  until a team member renames it (FR-020), also in form connections created before this feature.
 - **FR-019**: Team members MUST be able to add branches to a form connection, each starting either
   empty or based on the main branch, from the start of the rules step, before the main branch has
   any rule. A branch MUST NOT be based on any other branch. All branches MUST request the form
   connection's documents and fields; only their rules differ.
-- **FR-020**: Every branch MUST have a name that is unique within its form connection. Team members
-  MUST be able to rename every branch and change its description, the main branch included, and
-  to delete every branch except the main branch after confirming. The rules step MAY refuse a missing or duplicate name as soon as it is entered;
+- **FR-020**: Every branch MUST have a name that is unique within its form connection, compared
+  ignoring letter case and spaces at the start and end. Team members MUST be able to rename every
+  branch and change its description, the main branch included, and to delete every branch except
+  the main branch after confirming; the deletion takes effect when the form connection is saved
+  (FR-027, FR-028). The rules step MAY refuse a missing or duplicate name as soon as it is entered;
   FR-006 still applies when publishing or saving. A branch MAY have a description, which isn't
   delivered to serviceBW. Wherever the rules step, the details and the URLs after publishing
   show a branch's name, on its tab, its rules section's heading and its pull URL's label, an
@@ -517,28 +577,45 @@ new one, and no URL has changed.
 - **FR-021**: A branch based on the main branch MUST start with all of the main branch's rules and
   groups, linked to them. While a rule or group is linked, the branch MUST follow every change the
   main branch makes to it, including its removal. Rules and groups that the main branch adds later
-  MUST appear, linked, in every branch based on it. Here and in FR-022 to FR-024, the AND or OR of
+  MUST appear, linked, in every branch based on it, after the nearest item before them that both
+  branches have in the same level, or first in that level if there is none. A rule that the main
+  branch adds to a group that the branch removed appears in it and, like the group, isn't
+  evaluated until the group is restored; one added to a group that the branch changed appears in
+  it and follows the main branch. The branch MUST also follow the main branch's moves of its
+  rules and groups, changed ones included, except out of a group the branch formed itself
+  (FR-022). Here and in FR-022 to FR-024, the AND or OR of
   the top level counts as a group: a branch based on the main branch starts with the main branch's
   and follows it until the team member switches it in the branch.
 - **FR-022**: A rule or group that the team member changes, removes or adds in a branch based on the
-  main branch MUST no longer follow the main branch. Changes to the main branch MUST NOT overwrite
-  or discard it: when the main branch removes a rule or group that the branch changed, the branch
-  keeps its version, which then counts as added in the branch. A group that the team member forms
-  in such a branch from inherited rules counts as added. The rules in it keep following the main
+  main branch MUST no longer follow the main branch. A change is any edit of the data a rule
+  checks, its condition, value, letter-case choice, message or name, and for a group, switching
+  its AND or OR or changing its name or message; adding a rule to an inherited group adds the
+  rule and doesn't change the group. Changes to the main branch MUST NOT overwrite or discard it: when the main branch removes
+  a rule or group that the branch changed, the branch keeps its version, which then counts as
+  added in the branch. The one exception is a group that a change to the main branch leaves with
+  fewer than two members: it is dissolved in the branch too (FR-008), and the branch's change to
+  it goes; where the main branch asks to confirm that change, it MUST name those branches. A group
+  that the team member forms in such a branch from inherited rules counts as added. The rules in
+  it keep following the main
   branch, including their removal, and carry no mark of their own, but the main branch moving them
   MUST NOT move them out of that group. A rule that the team member duplicates is a new rule with
   a new identifier (FR-010), and counts as added in such a branch. Team members MUST be able to
   copy a rule to one or more other branches: each copy is a new rule, not linked, with a new
   identifier and its default name (FR-005), at the end of the branch's top level, as if added
   there by hand. It counts as added in a branch based on the main branch, and a copy to the main
-  branch appears, linked, in every branch based on it (FR-021).
+  branch appears, linked, in every branch based on it (FR-021). Choosing the main branch as a
+  target therefore covers the branches based on it, which aren't copied to separately; a copy from
+  such a branch to the main branch appears there beside the branch's own original.
 - **FR-023**: In a branch based on the main branch, the system MUST mark every rule and group that
   was changed, removed or added in the branch, with a colour that sets it apart from those that
   follow the main branch and with a text or symbol that says which of the three it is, so that the
   difference doesn't rest on colour alone. Rules and groups removed in the branch, including groups
   dissolved there (FR-008), MUST stay visible there, marked as removed.
 - **FR-024**: For a rule or group that a branch changed or removed, the team member MUST be able to
-  undo the change, so that it follows the main branch again. Undoing the removal of a group,
+  undo the change, so that it follows the main branch again. An edit in the branch that leaves a
+  changed rule or group equal to the main branch's version, in everything that counts as a change
+  (FR-022), MUST also make it follow again; a change in the main branch that makes them equal MUST
+  NOT. Undoing the removal of a group,
   including one dissolved in the branch (FR-008), MUST also undo the removals of the rules and
   sub-groups in it. A rule or group removed in a branch can only be restored there: it MUST NOT be
   changed or deleted in that branch.
@@ -550,15 +627,17 @@ new one, and no URL has changed.
   MUST answer with an error saying that the branch didn't exist when the request was triggered,
   without status or documents. A branch's pull URL MUST stay the same when the branch is renamed or
   its rules change: every branch other than the main branch is identified in it by an identifier
-  fixed when the branch is added, never by its name.
+  fixed when the branch is added, never by its name. That identifier MUST NOT be reused, also
+  after the branch is deleted (FR-027).
 - **FR-026**: After publishing, and on a form connection's details, the system MUST show the
   trigger URL once and the pull URL of every branch, labelled with the branch's name, each copyable
   in one action (spec 001, FR-004). A form connection with only the main branch MUST show its URLs
   as it did before this feature.
-- **FR-027**: Once a branch is deleted, its pull URL MUST answer every call with "unavailable", as
-  for a deleted form connection (spec 001, FR-006). Requests in progress MUST carry on: the trigger
-  URL and the other branches' pull URLs keep working for them. Deactivating, reactivating and
-  deleting a form connection MUST apply to its trigger URL and to all of its branches.
+- **FR-027**: Once a branch's deletion is saved, its pull URL MUST answer every call with
+  "unavailable" for good, as for a deleted form connection (spec 001, FR-006). Requests in
+  progress MUST carry on: the trigger URL and the other branches' pull URLs keep working for them.
+  Deactivating, reactivating and deleting a form connection MUST apply to its trigger URL and to
+  all of its branches.
 
 #### Changing rules
 
@@ -567,7 +646,11 @@ new one, and no URL has changed.
   to try again. Changes to rules and branches MUST apply to the requests triggered after they are
   saved, and MUST NOT change any existing URL. A request in progress MUST be evaluated with the
   rules each branch had when the request was triggered, even if they change before it completes
-  (spec 001, FR-005).
+  (spec 001, FR-005). When a team member saves rules that another team member has saved since the
+  first opened them, the system MUST say so before saving, and offer to reload the form
+  connection, dropping their unsaved changes, or to replace the other's rules, naming every branch
+  that replacing them deletes. The rules of all branches count as one for this. For the form
+  connection's name and documents, the later save wins, as in spec 001.
 - **FR-029**: When a team member removes a document, or deselects a field, that rules check in any
   branch, the system MUST name those rules and their branches before the change is saved.
 - **FR-030**: A form connection's details MUST show the rules of every branch, with their groups,
@@ -620,19 +703,21 @@ new one, and no URL has changed.
   copy its trigger URL and the pull URLs of both branches, in under 10 minutes.
 - **SC-003**: In acceptance testing with test documents on both sides of every condition, 100% of
   the evaluations match the expected outcome, including a birthday on the day of sharing, a
-  29 February birthday, an age exactly at the limit, a date some months from now at the end of a
-  month, and text that differs only in letter case,
-  under rules that respect it and rules that ignore it. Every evaluation whose rules aren't met
-  carries at least one error message.
-- **SC-004**: Rules don't delay the result: in 95% of requests, the documents and their evaluation
-  are ready for serviceBW within 5 seconds of the citizen approving the request in their wallet, as
-  spec 001 requires without rules (SC-004).
+  29 February birthday, an age exactly at the limit, "is exactly N years" on the day before the
+  next anniversary, a date some months from now at the end of a month, a rule on a class the
+  licence doesn't hold, text that differs only in letter case, under rules that respect it and
+  rules that ignore it, German letters such as "ß" when letter case is ignored, and spaces at the
+  start and end. Every evaluation whose rules aren't met carries at least one error message.
+- **SC-004**: Rules don't delay the result: in 95% of requests, a pull 5 seconds after the citizen
+  approves the request in their wallet returns the documents with their evaluation, as spec 001
+  requires without rules (SC-004).
 - **SC-005**: 100% of the form connections created before this feature keep working without any
   change in serviceBW: the same URLs, the same documents, and an evaluation that says the rules are
   met.
-- **SC-006**: In acceptance testing, after a rule of the main branch changes, 100% of the branches
-  based on it that haven't changed that rule evaluate the next request with the new version, and 0
-  of the changes made in those branches are lost.
+- **SC-006**: In acceptance testing, after the main branch changes, adds or removes a rule or group,
+  100% of the branches based on it evaluate the next request with the main branch's new version
+  wherever they follow it, and 0 of the changes made in those branches are lost, apart from the
+  change to a group that FR-022's one exception dissolves.
 - **SC-007**: In usability testing, at least 4 of 5 DO.IT participants tell correctly, for every
   rule of a branch based on the main branch, whether it follows the main branch or was changed,
   removed or added in the branch.
@@ -658,7 +743,11 @@ new one, and no URL has changed.
   decides how to proceed, for example by not accepting the application. Its form decides which
   branch applies, from what the applicant entered earlier in the form, and fetches the result
   through that branch's pull URL. DO.IT agrees the use of the evaluation with serviceBW when it
-  connects a form; changes to serviceBW itself stay out of scope, as in spec 001.
+  connects a form; changes to serviceBW itself stay out of scope, as in spec 001. serviceBW
+  ignores fields of the pull answer it doesn't know, as DO.IT has confirmed, so forms that don't
+  read the evaluation keep working (FR-010, SC-005). An identifier names a rule, not what it
+  checks (FR-010): when DO.IT changes what a rule checks in a way serviceBW relies on, it agrees
+  the change with serviceBW first, or adds a new rule and deletes the old one.
 - **Lawful rules**: DO.IT is responsible for rules that match each form's legal requirements. The
   middleware doesn't judge whether a rule is appropriate.
 - **Error messages**: The team member writes them in the language of the serviceBW form that shows
@@ -684,7 +773,8 @@ new one, and no URL has changed.
   (Clarifications, 2026-10-24).
 - **Out of scope**: holding back from serviceBW the fields that rules check (see Clarifications);
   comparing two fields with each other, such as the names on the ID and on the driving licence;
-  calculations across fields; free-form expressions; conditions on the restriction codes of a
+  calculations across fields; free-form expressions; changing the order of rules and groups;
+  conditions on the restriction codes of a
   licence class; trying rules out with sample data in the management interface; warnings about
   rules that contradict or repeat each other; reports or statistics on evaluation outcomes;
   going live on a scheduled date; an activity log of changes, and an export of a form connection

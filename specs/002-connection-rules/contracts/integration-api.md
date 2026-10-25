@@ -75,7 +75,7 @@ and gone together with the documents (FR-017).
 | `branch` | The branch whose pull URL was called: its `id` (the main branch's too) and its `name` as it was when the request was triggered. The name is a label for people; identify branches by `id` |
 | `met` | Whether the branch's rules are met overall (FR-009). A branch without rules is always met |
 | `results` | Every rule and group of the branch, in the order of its rules step, top level first with each group's members after it. Rules and groups that the branch removed aren't listed, nor groups dissolved in the branch (data-model.md, "Dissolution") |
-| `results[].id` | The identifier: `rule-{n}` or `group-{n}`. Set when the rule or group was created; never changes, also when it is renamed or changed, and never reused within the form connection. A rule or group that a branch inherited from the main branch has the same identifier there (FR-010). Use it to tell results apart; DO.IT agrees their use with serviceBW from the details screen |
+| `results[].id` | The identifier: `rule-{n}` or `group-{n}`. Set when the rule or group was created; never changes, also when it is renamed or changed, and never reused within the form connection. A rule or group that a branch inherited from the main branch has the same identifier there (FR-010). Use it to tell results apart; DO.IT agrees their use with serviceBW from the details screen. It names the rule, not what the rule checks: when DO.IT changes what a rule checks in a way serviceBW relies on, it agrees the change with serviceBW first, or replaces the rule (spec Assumptions) |
 | `results[].type` | `rule` or `group` (a sub-group is a `group` inside a group) |
 | `results[].name` | The team's name for it, which can change. For display and debugging only |
 | `results[].group` | The identifier of the group or sub-group that contains it, or `null` at the top level |
@@ -120,6 +120,11 @@ For another branch's pull URL (research R3):
 
 Stop polling on every `404` and `409`. The `502` and `503` answers of spec 001 are unchanged and
 apply to every branch's pull URL.
+
+If the evaluation can't be made, the pull answers `500` with an `error_id`, like any unexpected
+server error in spec 001, and hands nothing over: the delivery isn't counted and the repeat window
+doesn't start, so serviceBW can pull again. Documents never go out without their evaluation
+(FR-017, research R8).
 
 ## Rules changed while a request is in progress
 

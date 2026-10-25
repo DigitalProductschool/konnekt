@@ -13,7 +13,7 @@ and ISO/IEC 18013-5. Points to confirm while coding are marked **Verify at imple
 
 **Who decides what**: spec.md, with its Clarifications, decides behaviour and wording. Figma (file
 `s8mU9oJDq3411e8bxMjQO9`) decides layout and styling only; it is out of sync with the spec and
-won't be updated soon. Where they differ, the audit's decided items F1–F32 and W1–W7 say what to
+won't be updated soon. Where they differ, the decided items F1–F32 and W1–W9 say what to
 build, and [contracts/ui-screens.md](contracts/ui-screens.md) lists them per screen (R13).
 
 ## Technical Context: open points and how they were resolved
@@ -145,7 +145,17 @@ already covers it.
   (those not removed, and not moved into a group of the branch's own) drop below two counts as
   dissolved there (FR-008). Its one remaining member takes its place, it is shown as removed, and
   it comes back as soon as two members are active again. The evaluator and the UI derive it the
-  same way from the stored tree.
+  same way from the stored tree. A group the branch changed, which the main branch's deletion
+  leaves with fewer than two members, dissolves for good, and the branch's change goes: FR-022's
+  one exception. The main branch's delete confirmation names those branches (F14).
+- **Following again**: an edit in the branch that leaves a `changed` item equal to the main
+  branch's item clears the mark, as an undo does; a change in the main branch that makes them equal
+  doesn't (FR-024). The editor compares the two after each edit of the item in the branch.
+- **Group operations** (FR-008): "Ungroup" and "Delete group" for the groups of the main branch,
+  of branches that started empty, and groups `added` in a branch; an inherited group in a based
+  branch can only be removed and restored, so ungrouping never needs a new kind of mark. The main
+  branch's ungroup reaches based branches as the group's deletion plus moves of its members, its
+  delete as deletions (data-model.md, propagation rule 8).
 - **The server checks** every saved snapshot against invariants that a correct propagation always
   satisfies (data-model.md, "Validation"), for example: every main-branch item appears exactly
   once in each based branch; an unmarked or removed item equals the main branch's item; marks
@@ -179,8 +189,14 @@ already covers it.
   identifier says nothing about the level.
 - Default names are "Rule", "Group" or "Sub-group" and the number with at least two digits:
   "Rule 07", "Group 03", "Sub-group 04" (FR-005). The identifier never changes; the name can.
-- A rule or group keeps its identifier in every branch based on the main branch, changed or not;
-  an item added in a branch, a duplicate and a copy get a new one (FR-010, FR-022).
+- A rule or group keeps its identifier in every branch based on the main branch, changed or not,
+  also once it counts as added because the main branch deleted the original; an item added in a
+  branch, a duplicate and a copy get a new one (FR-010, FR-022).
+- **Reserved names** (FR-005): "Rule NN" belongs to `rule-{NN}`, "Group NN" and "Sub-group NN" to
+  `group-{NN}`; no other item may take them. In a based branch, the main branch's names of changed
+  items count as taken too, besides the names of removed items. So no clash can arise without a
+  name being entered: not from an item the main branch adds, a duplicate, a copy or an undo, and
+  not from the shift below, which renames default names to their new numbers.
 - **Allocation**: the API returns the form connection's counters (`next_rule_number`,
   `next_group_number`; 1 and 1 for a new one). The editor numbers new items from them, so a new
   rule shows "Rule 03" at once, and sends the counters it started from as `numbering_base`. On
@@ -255,19 +271,23 @@ delivered documents. Every rule ends as `met`, `not_met` or `not_checked` (FR-01
 - **From now**: N years or months after the day of sharing, the same day of the month, or the 1st
   of the following month where that day doesn't exist (EC-4). "At least" holds on or after that
   day; "less than" before it, past dates included.
-- **Before, after, on**: comparisons of calendar dates.
-- **Text**: both sides trimmed (FR-013) and normalised to Unicode NFC. Ignoring letter case
+- **Before, after, on**: comparisons of calendar dates; "before" and "after" are strict, so the
+  given date itself meets neither (FR-003).
+- **Text**: both sides trimmed (FR-013) and normalised to Unicode NFC, so a composed "ö" equals
+  "o" with a combining diaeresis. Spaces inside a value count as written. Ignoring letter case
   compares `str.casefold()`, which also matches "STRASSE" with "straße" and "KÖLN" with "Köln"
   (EC-8). "Contains" and "doesn't contain" are substring tests.
 - **Numbers**: strict comparisons with one value (F6). A JSON boolean is not a number.
 - **Enums**: "includes one of" holds when at least one of the document's values is in the set,
   "includes none of" when none is (FR-003); a single value counts as a list of one. String values
-  compare ignoring letter case, codes as integers.
-- **Couldn't be checked** (FR-014): the value is missing, `null`, an empty list, or can't be read
-  for the condition, such as a date of birth with only a year. A rule on a licence class's date
-  for a class the licence doesn't hold is `not_met` (EC-6). A held class without its own expiry
-  date is `not_checked`; it never falls back to the licence's expiry date (Clarification
-  2026-10-24).
+  compare ignoring letter case, codes as integers. A value outside the field's set matches none of
+  the rule's values.
+- **Couldn't be checked** (FR-014): the value is missing, `null`, an empty list, a text that is
+  empty after trimming, or can't be read for the condition, such as a date of birth with only a
+  year. A rule on a licence class's date for a class the licence doesn't hold is `not_met` (EC-6).
+  A class is held when the licence lists it, whatever its own expiry date (FR-003). A held class
+  without its own expiry date is `not_checked`; it never falls back to the licence's expiry date
+  (Clarification 2026-10-24).
 - **Levels**: AND holds when every item holds, OR when at least one does (FR-009). A group's result
   is computed over its active members; `not_checked` counts as not met. A dissolved group (R4)
   isn't reported and passes its single remaining member through. A branch without active rules is
@@ -296,8 +316,10 @@ doesn't match "ß" with "ss". Both rejected.
   `message`, FR-011). It contains no field value (FR-017).
 - The evaluation is **computed at each delivery** from the documents just read from EUDIPLO and
   the request's rule set: in `document_requests._deliver`, after extraction and before the
-  delivery is counted, so an unexpected evaluation error consumes nothing. It is never stored and
-  never logged; only its absence of errors is.
+  delivery is counted, so an unexpected evaluation error consumes nothing: the pull answers `500`
+  with an `error_id` through spec 001's catch-all handler, the repeat window doesn't start, and
+  serviceBW can pull again (FR-017). It is never stored and never logged; only its absence of
+  errors is.
 - A request triggered before this feature, without a rule set, is evaluated as the main branch
   without rules: `met: true`, no results, no messages (US1-AS7, SC-005).
 
@@ -309,8 +331,13 @@ avoids storing anything derived from citizens' data. The cost is microseconds (S
 FR-017 forbids to outlive the documents, for no gain. *A separate evaluation endpoint*: another URL
 per branch for serviceBW to configure. Both rejected.
 
-**To confirm with serviceBW** (extends 001-R20, DO.IT's task): that serviceBW reads
+**Confirmed**: serviceBW ignores fields of the pull answer it doesn't know (spec Assumptions,
+"serviceBW's role"), so the additive field is safe.
+
+**To agree with serviceBW** (extends 001-R20, DO.IT's task): that serviceBW reads
 `evaluation.met` and shows `evaluation.messages`, and how it identifies results (`results[].id`).
+An identifier names a rule, not what it checks: DO.IT agrees a change of what a rule checks with
+serviceBW, or replaces the rule (spec Assumptions).
 
 ## R9. Saving documents, branches and rules together or not at all (FR-028)
 
@@ -332,12 +359,27 @@ per branch for serviceBW to configure. Both rejected.
   revision 1, the branch rows and rule set 1, as today.
 - An unchanged rule set (same snapshot after normalisation) creates no new version, as unchanged
   documents create no revision.
+- **Saving over newer rules** (FR-028): `GET /api/form-connections/{id}` returns
+  `rule_set_version`. The editor sends `rules` only when the team member changed them, with
+  `base_version`, the version it loaded. If `current_rule_set` differs from `base_version` and
+  `replace` isn't set, the save is refused with `409 rules_changed`, before EUDIPLO is called and
+  again under the row lock, and nothing is saved. Its message names every branch that replacing
+  would delete: the current rule set's branches that the save leaves out. The save dialog then
+  offers "Reload" (fetch the form connection again, dropping the unsaved changes) or "Replace their
+  changes" (the same save with `replace: true`, where R5's shift keeps identifiers unique). The
+  rule set is the unit: the server can't merge two saves per branch, since only the editor
+  propagates (R4). Name and documents keep spec 001's "the later save wins".
 
 **Rationale**: it reuses spec 001's proven ordering (no transaction held while EUDIPLO answers;
 reserve, call, lock and commit) and adds the rules to the one commit that makes a change visible.
+The version check stops a stale editor from silently deleting a branch whose pull URL serviceBW
+may already use, which would answer "unavailable" for good (FR-027).
 
 **Alternatives considered**: *a separate `PUT …/rules` endpoint*: the editor saves documents and
-rules with one action, and two calls can't be atomic. Rejected.
+rules with one action, and two calls can't be atomic. Rejected. *Refusing a stale save without an
+override*: the team member would lose their changes every time. Rejected (Clarification,
+requirements checklist). *Merging per branch on the server*: needs the propagation of R4 on the
+server. Rejected.
 
 ## R10. The rules step in the frontend
 
@@ -359,6 +401,11 @@ rules with one action, and two calls can't be atomic. Rejected.
   of the rules step" (FR-030, F26) from the same components.
 - **Leaving the rule editor** with unsaved changes, including through Publish, Save and "Add it in
   Documents", opens the design's "Save changes to Rule 01?" (FR-006, F10).
+- **Group menu**: "Ungroup" and "Delete group", or "Remove" and "Restore" for an inherited group
+  in a based branch (FR-008, W8). **Saving over newer rules**: the save dialog's `409
+  rules_changed` state with "Reload" and "Replace their changes" (FR-028, W9).
+- **Order**: items keep the order of adding; a new group takes its first member's place. There is
+  no reordering (FR-007).
 - **Catalog data**: `useDocumentTypes` gains kinds and parts; a new `useOptionSets` loads the value
   sets once.
 - KERN components and patterns as in spec 001 (`docs/KERN-DESIGN-SYSTEM.md`): menus, dialogs,
@@ -391,14 +438,17 @@ started before the upgrade, ends within 7 days with their records (FR-021).
 
 **Decision**:
 - **Backend unit tests** (`tests/unit/`): the evaluator, condition by condition, with every edge
-  case of SC-003 and the Edge Cases (birthday on the day of sharing, 29 February, months at a
-  month's end, midnight in Germany, letter case, "ß", spaces, missing and unreadable values,
-  licence classes); messages (FR-011); dissolution; the snapshot validation (R4 invariants,
-  FR-006 messages); identifier allocation (R5); the catalog's kinds.
+  case of SC-003 and the Edge Cases (birthday on the day of sharing, 29 February, "exactly N years"
+  on the day before the next anniversary, months at a month's end, midnight in Germany, strict
+  before and after, letter case, "ß", composed and decomposed letters, spaces, missing, empty and
+  unreadable values, values outside an enum's set, licence classes held, not held and expired);
+  messages (FR-011); dissolution; the snapshot validation (R4 invariants, FR-006 messages, reserved
+  and taken names); identifier allocation (R5); the catalog's kinds.
 - **Backend API tests** (`tests/api/`): create and edit with rules, refusals, atomicity when
-  EUDIPLO fails (FR-028), branch pull URLs with every answer of R3, deleted and later branches,
-  rules changed while a request is open, legacy requests, the repeat window across branches, and
-  that no evaluation or reference reaches a log.
+  EUDIPLO fails (FR-028), `409 rules_changed` and `replace` (FR-028), branch pull URLs with every
+  answer of R3, deleted and later branches, rules changed while a request is open, legacy
+  requests, the repeat window across branches, an evaluation error that consumes nothing (R8),
+  and that no evaluation or reference reaches a log.
 - **Frontend unit tests** (Vitest, constitution v1.1.0): a `*.test.ts` beside each pure module of
   `src/utils/rules/` (R10), in the `node` environment, run by `npm test` as a gate:
   - `branches.test.ts`: each propagation rule of data-model.md, "Propagation from the main
@@ -407,20 +457,26 @@ started before the upgrade, ends within 7 days with their records (FR-021).
     not in a branch that started empty (3, EC-14, US3-AS6); moves, except into a group of the
     branch's own (4); dissolved groups (5); the top-level AND/OR while `operator_mark` is `null`
     (6); a rename that would clash in a following branch is refused, naming it (7). Every
-    transition of "Marks in a based branch": edit, undo, remove, restore, removing a changed
-    item, restoring a group with the members removed inside it (FR-024), switching an inherited
-    group's AND/OR (EC-15). Every result is also checked against the invariants that the server
+    transition of "Marks in a based branch": edit, undo, an edit back to the main branch's content
+    (clears the mark) and a main-branch change to equal content (doesn't), remove, restore,
+    removing a changed item, restoring a group with the members removed inside it (FR-024),
+    switching an inherited group's AND/OR (EC-15); the main branch's ungroup and delete group
+    (rule 8), and a changed group that the main branch's deletion dissolves, with the branches the
+    confirmation names (rule 5). Every result is also checked against the invariants that the server
     enforces (data-model.md, "Validation": each main-branch item once per based branch, unmarked
     and removed items equal to the main branch's), so a propagation bug fails here before the
     server refuses a save.
   - `tree.test.ts`: dissolution in the main branch, in a branch that started empty and in a
     branch's own group, and the derived dissolution of an inherited group, including its return
-    when two members are active again (FR-008, EC-16); numbering of new items from the counters,
-    default names with two digits, new identifiers for duplicates and copies (R5, FR-010, FR-022).
+    when two members are active again (FR-008, EC-16); ungroup and delete group, a sub-group that
+    reaches the top level keeping its identifier, name, AND/OR and message, and a new group in its
+    first member's place (FR-007, FR-008); numbering of new items from the counters, default names
+    with two digits, new identifiers for duplicates and copies (R5, FR-010, FR-022).
   - `statements.test.ts`, `messages.test.ts`, `conditions.test.ts`, `dates.test.ts`,
     `validation.test.ts`: the statements in FR-005's words ("years old" only on the Date of birth,
     FR-003), the proposed messages, when a condition is complete, the editor's date example, and
-    the pre-checks of FR-006 with the server's messages (data-model.md, "Validation").
+    the pre-checks of FR-006 with the server's messages, reserved and taken names included
+    (data-model.md, "Validation").
   - Not covered: rendering, focus and keyboard use, which would need jsdom. They stay with the
     quickstart's scenarios (V1, V3, V4, V7).
 - **Manual**: the quickstart's scenarios with a real wallet. `scripts/issue_test_credentials`
@@ -443,12 +499,14 @@ implementation that R4 rejects. Rejected.
 
 **Decision**:
 - [contracts/ui-screens.md](contracts/ui-screens.md) has a section "Deviations from Figma": per
-  screen, the decided items F1–F32 and W1–W7 of the audit with their node-ids, what to build
+  screen, the decided items F1–F32 and W1–W7 of the audit, and W8 and W9 of the requirements
+  checklist, with their node-ids, what to build
   instead, and for each W# the frame or KERN pattern it reuses. A coverage index lists every item
   with its screens.
 - `/speckit-tasks` writes each UI task with the F# and W# items it covers; a UI task without a
   citation, or an item without a task, is a gap for `/speckit-analyze`.
-- The copy the decisions leave to "the design notes" (F7, F14, W3, and the cosmetic FYI #20) goes
+- The copy the decisions leave to "the design notes" (F7, F14, W3, W8, W9, and the cosmetic FYI
+  #20) goes
   to `specs/002-connection-rules/design-notes.md`, written by the first UI task, as spec 001's
   design notes were.
 - The implementation follows CLAUDE.md's Figma workflow: an item's spec behaviour and wording with

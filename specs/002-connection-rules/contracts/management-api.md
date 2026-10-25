@@ -46,7 +46,9 @@ BranchInput      { id: str | null,                  # null: a branch added in th
                    operator: 'and' | 'or', operator_mark: 'changed' | null,
                    items: (RuleItem | GroupItem)[] }
 RulesInput       { branches: BranchInput[],          # main branch first
-                   numbering_base: { rule: int, group: int } }   # the counters the editor started from
+                   numbering_base: { rule: int, group: int },    # the counters the editor started from
+                   base_version: int | null,         # the rule set version the editor loaded; null on create
+                   replace: bool = false }           # true: save over newer rules (FR-028)
 
 # Output
 Branch           = BranchInput with { id: str, is_main: bool, pull_url: str }
@@ -55,6 +57,7 @@ Branch           = BranchInput with { id: str, is_main: bool, pull_url: str }
 FormConnection   { id, name, servicebw_form, is_active, documents, trigger_url,
                    pull_url,                        # the main branch's, as in spec 001
                    branches: Branch[],              # new: main branch first, in tab order
+                   rule_set_version: int,           # new: the current rule set (research R9)
                    next_rule_number: int,           # new (research R5)
                    next_group_number: int,          # new
                    created_at, updated_at }
@@ -63,6 +66,9 @@ FormConnectionCreate { name, servicebw_form, documents,
 FormConnectionUpdate { name?, servicebw_form?, documents?,
                        rules?: RulesInput }          # absent: unchanged
 ```
+
+The editor sends `rules` in an update only when the team member changed them, so that a save of
+the name or the documents alone never meets `409 rules_changed`.
 
 The request schemas accept incomplete rules (an empty `message`, a `null` `condition`): the service
 layer checks them, so that its message can name the problem, the rule and its branch, as spec 001
@@ -86,15 +92,18 @@ reactivating and deleting apply to the trigger URL and every branch's pull URL (
 | Status | `error` | When |
 |---|---|---|
 | `400` | `Validation error` | A rule of [data-model.md, "Validation"](../data-model.md#validation-fr-006-fr-020-research-r4-r9) is broken. The message names the problem, the rule or group by its name, and its branch, such as "Rule 02 in Standard has no error message." Nothing is saved |
+| `409` | `rules_changed` | `rules.base_version` isn't the current rule set and `rules.replace` is false: another team member saved the rules after this editor loaded them (FR-028). The message names every branch that replacing would delete, such as "Another team member saved the rules of this connection after you opened it. Replacing their changes deletes the variant School transport." Nothing is saved; the editor offers "Reload" or "Replace their changes" (ui-screens.md, W9) |
 | `502`, `503` | as in spec 001 | Changed documents need a new EUDIPLO configuration, which failed. Nothing is saved, rules included (FR-028) |
 
 ## Saving, step by step (research R9)
 
 1. Check the name, the serviceBW form and the documents (spec 001), then the rules against those
-   documents (FR-006). Refuse with `400` before anything is written.
+   documents (FR-006). Refuse with `400` before anything is written. If `rules` is present without
+   `replace` and `base_version` isn't the current rule set, refuse with `409 rules_changed`.
 2. If the documents changed: reserve the next revision and create its EUDIPLO configuration (spec
    001, "Creating a revision").
-3. Lock the form connection's row. Allocate the identifiers of new rules and groups (research R5),
+3. Lock the form connection's row and repeat step 1's version check, since another save may have
+   committed meanwhile. Allocate the identifiers of new rules and groups (research R5),
    insert the branch rows of new branches, mark omitted branches deleted, insert the next rule set
    if the rules changed, and make the revision and the rule set current. Commit once.
 4. On any failure, nothing is current that wasn't before, and the EUDIPLO configuration of step 2
