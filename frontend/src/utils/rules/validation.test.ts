@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BranchInput, GroupItem, RuleItem, RuleTreeItem } from '../../types/form-connections';
+import { addRuleToBranch, changeItem, newBranch, removeItem } from './branches';
 import { requestedRuleDocuments } from './conditions';
 import { CONTEXT, mainBranch, MDL, OPTION_SETS, PID, rule, target, US1_RULES } from './testData';
-import { findItem } from './tree';
+import { findItem, foldName } from './tree';
 import type { RuleContext } from './types';
 import {
+  checkedInBranch,
   checksUnrequestedData,
   firstProblem,
-  foldName,
   nameProblem,
   reservedNameProblem,
   unrequestedRules,
+  variantNameProblem,
 } from './validation';
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
@@ -33,6 +35,13 @@ function branch(name: string, items: RuleTreeItem[], origin: BranchInput['origin
 /** The first problem's message of a main branch with these items. */
 function problemOf(items: RuleTreeItem[], context: RuleContext = CONTEXT): string | undefined {
   return firstProblem([mainBranch(items)], context)?.message;
+}
+
+function must<T>(value: T | null): T {
+  if (value === null) {
+    throw new Error('expected a result');
+  }
+  return value;
 }
 
 /** US1's first rule with changes. */
@@ -442,11 +451,12 @@ describe('firstProblem', () => {
       });
     });
 
-    it('doesn’t count the members a branch removed', () => {
+    it('doesn’t count the members a based branch removed, in a group of its own', () => {
       const removed: RuleItem = { ...US1_RULES[1], mark: 'removed' };
+      const own = (items: RuleTreeItem[]): GroupItem => ({ ...group(1, items), mark: 'added' });
       expect(
         firstProblem(
-          [mainBranch(), branch('Ambulance', [group(1, [US1_RULES[0], removed])], 'based')],
+          [mainBranch(), branch('Ambulance', [own([US1_RULES[0], removed])], 'based')],
           CONTEXT
         )?.message
       ).toBe('Group 01 in Ambulance needs at least two rules.');
@@ -456,10 +466,21 @@ describe('firstProblem', () => {
             mainBranch(),
             branch(
               'Ambulance',
-              [group(1, [US1_RULES[0], removed, { ...US1_RULES[2], mark: 'added' }])],
+              [own([US1_RULES[0], removed, { ...US1_RULES[2], mark: 'added' }])],
               'based'
             ),
           ],
+          CONTEXT
+        )
+      ).toBeNull();
+    });
+
+    it('lets a based branch dissolve an inherited group (data-model.md, "Dissolution")', () => {
+      const removed: RuleItem = { ...US1_RULES[1], mark: 'removed' };
+      const main = mainBranch([group(1, [US1_RULES[0], US1_RULES[1]])]);
+      expect(
+        firstProblem(
+          [main, branch('Ambulance', [group(1, [US1_RULES[0], removed])], 'based')],
           CONTEXT
         )
       ).toBeNull();
@@ -627,38 +648,38 @@ describe('nameProblem', () => {
   ]);
 
   it('accepts a free name, and an item’s own name', () => {
-    expect(nameProblem('Old enough', US1_RULES[0], standard)).toBeNull();
-    expect(nameProblem('Rule 01', US1_RULES[0], standard)).toBeNull();
-    expect(nameProblem(' rule 1 ', US1_RULES[0], standard)).toBeNull();
+    expect(nameProblem('Old enough', US1_RULES[0], standard, [standard])).toBeNull();
+    expect(nameProblem('Rule 01', US1_RULES[0], standard, [standard])).toBeNull();
+    expect(nameProblem(' rule 1 ', US1_RULES[0], standard, [standard])).toBeNull();
   });
 
   it('needs a name of at most 100 characters', () => {
-    expect(nameProblem('  ', US1_RULES[0], standard)).toBe('Enter a name.');
-    expect(nameProblem('n'.repeat(101), US1_RULES[0], standard)).toBe(
+    expect(nameProblem('  ', US1_RULES[0], standard, [standard])).toBe('Enter a name.');
+    expect(nameProblem('n'.repeat(101), US1_RULES[0], standard, [standard])).toBe(
       'A name can have at most 100 characters.'
     );
   });
 
   it('refuses another item’s name, naming the branch (F12)', () => {
-    expect(nameProblem(' RULE 02 ', US1_RULES[0], standard)).toBe(
+    expect(nameProblem(' RULE 02 ', US1_RULES[0], standard, [standard])).toBe(
       'Another rule in Standard is already called Rule 02.'
     );
-    expect(nameProblem('held b', US1_RULES[0], standard)).toBe(
+    expect(nameProblem('held b', US1_RULES[0], standard, [standard])).toBe(
       'Another sub-group in Standard is already called Held B.'
     );
-    expect(nameProblem('Group 01', US1_RULES[0], standard)).toBe(
+    expect(nameProblem('Group 01', US1_RULES[0], standard, [standard])).toBe(
       'Another group in Standard is already called Group 01.'
     );
-    expect(nameProblem('Rule 01', US1_RULES[1], { ...standard, name: 'Ambulance' })).toBe(
-      'Another rule in Ambulance is already called Rule 01.'
-    );
+    expect(
+      nameProblem('Rule 01', US1_RULES[1], { ...standard, name: 'Ambulance' }, [standard])
+    ).toBe('Another rule in Ambulance is already called Rule 01.');
   });
 
   it('keeps reserved names for their items (FR-005)', () => {
-    expect(nameProblem('Rule 08', US1_RULES[0], standard)).toBe(
+    expect(nameProblem('Rule 08', US1_RULES[0], standard, [standard])).toBe(
       'Rule 08 is kept for the rule numbered 08.'
     );
-    expect(nameProblem('Sub-group 7', US1_RULES[0], standard)).toBe(
+    expect(nameProblem('Sub-group 7', US1_RULES[0], standard, [standard])).toBe(
       'Sub-group 7 is kept for the sub-group numbered 07.'
     );
   });
@@ -666,29 +687,29 @@ describe('nameProblem', () => {
   it('checks group and sub-group names too (F12)', () => {
     const group1 = findItem(standard.items, 'group-1')?.item as GroupItem;
     const subGroup = findItem(standard.items, 'group-2')?.item as GroupItem;
-    expect(nameProblem('Older drivers', group1, standard)).toBeNull();
-    expect(nameProblem('group 01', group1, standard)).toBeNull();
-    expect(nameProblem('Sub-group 1', group1, standard)).toBeNull();
-    expect(nameProblem('Group 01', subGroup, standard)).toBe(
+    expect(nameProblem('Older drivers', group1, standard, [standard])).toBeNull();
+    expect(nameProblem('group 01', group1, standard, [standard])).toBeNull();
+    expect(nameProblem('Sub-group 1', group1, standard, [standard])).toBeNull();
+    expect(nameProblem('Group 01', subGroup, standard, [standard])).toBe(
       'Another group in Standard is already called Group 01.'
     );
-    expect(nameProblem('Rule 02', subGroup, standard)).toBe(
+    expect(nameProblem('Rule 02', subGroup, standard, [standard])).toBe(
       'Another rule in Standard is already called Rule 02.'
     );
-    expect(nameProblem('held b', group1, { ...standard, name: 'Ambulance' })).toBe(
+    expect(nameProblem('held b', group1, { ...standard, name: 'Ambulance' }, [standard])).toBe(
       'Another sub-group in Ambulance is already called Held B.'
     );
-    expect(nameProblem('Group 03', group1, standard)).toBe(
+    expect(nameProblem('Group 03', group1, standard, [standard])).toBe(
       'Group 03 is kept for the group numbered 03.'
     );
-    expect(nameProblem('Sub-group 3', subGroup, standard)).toBe(
+    expect(nameProblem('Sub-group 3', subGroup, standard, [standard])).toBe(
       'Sub-group 3 is kept for the sub-group numbered 03.'
     );
-    expect(nameProblem('Sub-group 02', subGroup, standard)).toBeNull();
-    expect(nameProblem('Rule 2', subGroup, standard)).toBe(
+    expect(nameProblem('Sub-group 02', subGroup, standard, [standard])).toBeNull();
+    expect(nameProblem('Rule 2', subGroup, standard, [standard])).toBe(
       'Rule 2 is kept for the rule numbered 02.'
     );
-    expect(nameProblem('Rule 9', subGroup, standard)).toBe(
+    expect(nameProblem('Rule 9', subGroup, standard, [standard])).toBe(
       'Rule 9 is kept for the rule numbered 09.'
     );
   });
@@ -733,5 +754,155 @@ describe('unrequestedRules', () => {
 
   it('leaves out rules without a target', () => {
     expect(checksUnrequestedData(rule(1, null, null), CONTEXT.documents)).toBe(false);
+  });
+
+  it('names a rule a based branch inherits unchanged once, for the main branch (FR-006)', () => {
+    const documents = requestedRuleDocuments(
+      [PID, MDL],
+      [{ document_type: 'pid', fields: ['birthdate'] }]
+    );
+    const main = mainBranch();
+    const based = newBranch(main, 'based', 'Ambulance', null);
+    const changed = must(changeItem(main, based, { ...US1_RULES[2], message: 'Held B?' }));
+    const removed = must(removeItem(main, changed, 'rule-2'));
+    expect(
+      unrequestedRules([main, removed], documents).map(({ branchIndex, rule: item }) => [
+        branchIndex,
+        item.id,
+      ])
+    ).toEqual([
+      [0, 'rule-2'],
+      [0, 'rule-3'],
+      [1, 'rule-3'],
+    ]);
+  });
+});
+
+describe('the branches of a based branch (T060)', () => {
+  const main = mainBranch();
+  const based = () => ({ ...newBranch(main, 'based', 'Ambulance', null), id: 'ambulance' });
+
+  it('checks only what a based branch changed or added (FR-006)', () => {
+    const branch = based();
+    expect(checkedInBranch(branch, US1_RULES[0])).toBe(false);
+    expect(checkedInBranch(branch, { ...US1_RULES[0], mark: 'removed' })).toBe(false);
+    expect(checkedInBranch(branch, { ...US1_RULES[0], mark: 'changed' })).toBe(true);
+    expect(checkedInBranch(branch, { ...US1_RULES[0], mark: 'added' })).toBe(true);
+    expect(checkedInBranch(main, US1_RULES[0])).toBe(true);
+  });
+
+  it('reports a problem of an inherited rule once, for the main branch', () => {
+    const broken = mainBranch([{ ...US1_RULES[0], message: '' }]);
+    const branch = newBranch(broken, 'based', 'Ambulance', null);
+    expect(firstProblem([broken, branch], CONTEXT)).toEqual({
+      message: 'Rule 01 in Standard has no error message.',
+      branchIndex: 0,
+      itemId: 'rule-1',
+    });
+  });
+
+  it('checks a changed or added rule in its branch', () => {
+    const changed = must(changeItem(main, based(), { ...US1_RULES[0], message: ' ' }));
+    expect(firstProblem([main, changed], CONTEXT)).toEqual({
+      message: 'Rule 01 in Ambulance has no error message.',
+      branchIndex: 1,
+      itemId: 'rule-1',
+    });
+    const added = must(addRuleToBranch(based(), rule(9, null, null)));
+    expect(firstProblem([main, added], CONTEXT)?.message).toBe(
+      'Rule 09 in Ambulance: choose the data to check.'
+    );
+  });
+
+  it('checks removed items like the others, in the main branch they mirror', () => {
+    const broken = mainBranch([{ ...US1_RULES[0], message: '' }, US1_RULES[1]]);
+    const removed = must(
+      removeItem(broken, newBranch(broken, 'based', 'Ambulance', null), 'rule-1')
+    );
+    expect(firstProblem([broken, removed], CONTEXT)?.branchIndex).toBe(0);
+  });
+
+  it('takes the names an undo gives back in a based branch (FR-005)', () => {
+    const renamed = must(changeItem(main, based(), { ...US1_RULES[0], name: 'Minimum age' }));
+    const added = must(
+      addRuleToBranch(renamed, { ...US1_RULES[0], id: 'rule-9', name: 'rule 01' })
+    );
+    expect(firstProblem([main, added], CONTEXT)).toEqual({
+      message: 'Another rule in Ambulance is already called Rule 01.',
+      branchIndex: 1,
+      itemId: 'rule-9',
+    });
+    // The changed rule itself gets its main-branch name back with an undo
+    expect(firstProblem([main, renamed], CONTEXT)).toBeNull();
+  });
+
+  it('takes removed items’ names', () => {
+    const removed = must(removeItem(main, based(), 'rule-2'));
+    const added = must(
+      addRuleToBranch(removed, { ...US1_RULES[1], id: 'rule-9', name: 'Rule 02' })
+    );
+    expect(firstProblem([main, added], CONTEXT)?.message).toBe(
+      'Another rule in Ambulance is already called Rule 02.'
+    );
+  });
+});
+
+describe('nameProblem in variants (F12; propagation rule 7)', () => {
+  const main = mainBranch();
+  const renamed = must(
+    changeItem(main, newBranch(main, 'based', 'Ambulance', null), {
+      ...US1_RULES[0],
+      name: 'Minimum age',
+    })
+  );
+  const ambulance = must(
+    addRuleToBranch(renamed, { ...US1_RULES[1], id: 'rule-9', name: 'Extra' })
+  );
+  const branches = [main, ambulance];
+
+  it('refuses a name an undo gives back in a based branch', () => {
+    expect(nameProblem('Rule 01', US1_RULES[1], ambulance, branches)).toBe(
+      'Another rule in Ambulance is already called Rule 01.'
+    );
+    expect(nameProblem('Rule 01', ambulance.items[0], ambulance, branches)).toBeNull();
+  });
+
+  it('refuses a rename in the main branch that clashes in a based branch, naming it', () => {
+    expect(nameProblem('minimum age', US1_RULES[1], main, branches)).toBe(
+      'Another rule in Ambulance is already called Minimum age.'
+    );
+    expect(nameProblem('Extra', US1_RULES[0], main, branches)).toBe(
+      'Another rule in Ambulance is already called Extra.'
+    );
+    expect(nameProblem('Minimum age', US1_RULES[0], main, branches)).toBeNull();
+  });
+
+  it('ignores branches that started empty', () => {
+    const taxi = {
+      ...newBranch(main, 'empty', 'Taxi', null),
+      items: [{ ...US1_RULES[0], name: 'Taxi rule' }],
+    };
+    expect(nameProblem('Taxi rule', US1_RULES[1], main, [main, taxi])).toBeNull();
+  });
+});
+
+describe('variantNameProblem (W3)', () => {
+  const others = ['Standard', ' Ambulance '];
+
+  it('needs a name of at most 100 characters', () => {
+    expect(variantNameProblem('  ', others)).toBe('Enter a name for the variant.');
+    expect(variantNameProblem('v'.repeat(101), others)).toBe(
+      'A variant’s name can have at most 100 characters.'
+    );
+  });
+
+  it('refuses another variant’s name, ignoring letter case and outer spaces (FR-020)', () => {
+    expect(variantNameProblem(' ambulance', others)).toBe(
+      'Another variant is already called Ambulance.'
+    );
+    expect(variantNameProblem('STANDARD', others)).toBe(
+      'Another variant is already called Standard.'
+    );
+    expect(variantNameProblem('School transport', others)).toBeNull();
   });
 });

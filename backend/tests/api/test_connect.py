@@ -33,6 +33,7 @@ from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     AGE_21_RULE,
     AGE_RULE,
+    CLASS_RULE,
     DELIVERED_DOCUMENTS,
     HELD_3_YEARS_RULE,
     HELD_RULE,
@@ -1133,6 +1134,95 @@ def test_a_request_keeps_the_rules_it_was_triggered_with(
     assert earlier_data['evaluation']['met'] is False
     assert later_data['evaluation']['met'] is True
     assert later_data['evaluation']['results'] == []
+
+
+def _save_main_rules(
+    client: TestClient, form_connection_id: str, items: list[dict[str, Any]]
+) -> None:
+    """Save `items` as Standard's rules, as the rules step of the edit flow does."""
+    before = client.get(f'/api/form-connections/{form_connection_id}').json()['data']
+    rules = rules_input(
+        [main_branch(items, branch_id=before['branches'][0]['id'])],
+        rule_base=before['next_rule_number'],
+        group_base=before['next_group_number'],
+        base_version=before['rule_set_version'],
+    )
+    response = client.put(
+        f'/api/form-connections/{form_connection_id}', json={'rules': rules}
+    )
+    assert response.status_code == 200, response.json()
+    after = response.json()['data']
+    assert after['rule_set_version'] == before['rule_set_version'] + 1
+    # serviceBW keeps using the same URLs (FR-025, FR-028)
+    assert (after['trigger_url'], after['pull_url']) == (
+        before['trigger_url'],
+        before['pull_url'],
+    )
+
+
+def test_a_changed_rule_applies_to_the_requests_triggered_after_it(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    earlier = trigger(signed_in_client, form_connection_id)
+    age_19 = AGE_RULE | {
+        'condition': {'operator': 'at_least_years_ago', 'years': 19},
+        'message': 'You must be at least 19 years old.',
+    }
+    _save_main_rules(
+        signed_in_client, form_connection_id, [age_19, CLASS_RULE, HELD_RULE]
+    )
+    later = trigger(signed_in_client, form_connection_id)
+    for started in (earlier, later):
+        share(fake_eudiplo, started['reference'], credentials=_person(20, 3))
+    worker.sync_sessions()
+
+    earlier_data = _pull(signed_in_client, form_connection_id, earlier['reference'])
+    later_data = _pull(signed_in_client, form_connection_id, later['reference'])
+
+    # Triggered while the rule asked for 21 years, A keeps it (US4-AS1, FR-028)
+    assert _outcomes(earlier_data['evaluation']) == [
+        ('rule-1', 'not_met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'met'),
+    ]
+    assert earlier_data['evaluation']['messages'] == [
+        {'id': 'rule-1', 'message': AGE_RULE['message']}
+    ]
+    # B meets the 19 years of the changed rule, which kept its identifier
+    assert later_data['evaluation']['met'] is True
+    assert _outcomes(later_data['evaluation']) == [
+        ('rule-1', 'met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'met'),
+    ]
+
+
+def test_rules_added_to_a_live_connection_apply_to_new_requests(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client)
+    earlier = trigger(signed_in_client, form_connection_id)
+    _save_main_rules(
+        signed_in_client, form_connection_id, [AGE_RULE, CLASS_RULE, HELD_RULE]
+    )
+    later = trigger(signed_in_client, form_connection_id)
+    for started in (earlier, later):
+        share(fake_eudiplo, started['reference'], credentials=_person(20, 1))
+    worker.sync_sessions()
+
+    earlier_data = _pull(signed_in_client, form_connection_id, earlier['reference'])
+    later_data = _pull(signed_in_client, form_connection_id, later['reference'])
+
+    # Triggered without rules, A has nothing to meet (US4-AS2)
+    assert earlier_data['evaluation']['met'] is True
+    assert earlier_data['evaluation']['results'] == []
+    assert later_data['evaluation']['met'] is False
+    assert _outcomes(later_data['evaluation']) == [
+        ('rule-1', 'not_met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'not_met'),
+    ]
 
 
 def test_an_evaluation_that_fails_hands_nothing_over(

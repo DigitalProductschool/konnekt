@@ -5,7 +5,7 @@ import type { ErrorNotice } from '../../types/api';
 export interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  /** What confirming does */
+  /** What confirming does; with `children`, it may be empty, and none shows */
   text: string;
   /** The text's classes; KERN's large body text by default */
   textClassName?: string;

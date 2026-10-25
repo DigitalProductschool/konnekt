@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BranchInput, GroupItem, RuleTreeItem } from '../../types/form-connections';
+import { deleteFromBranch, newBranch, removeItem, restoreItem } from './branches';
 import { mainBranch, rule, target } from './testData';
 import {
   addRule,
@@ -10,11 +11,13 @@ import {
   defaultRuleName,
   deleteItem,
   duplicateRule,
+  effectiveItems,
   findItem,
   flattenItems,
   groupIdOf,
   groupItems,
   hasAnyRule,
+  isDissolved,
   newRule,
   numberOfId,
   operatorOf,
@@ -23,6 +26,7 @@ import {
   ruleIdOf,
   setGroupMessage,
   setOperator,
+  shownItems,
   undoChange,
   ungroupItem,
   updateRule,
@@ -477,5 +481,128 @@ describe('countRules', () => {
       rule(4, null, null),
     ];
     expect(countRules(items)).toBe(1);
+  });
+});
+
+describe('dissolution (FR-008; data-model.md, "Dissolution")', () => {
+  // Standard: rule-1, group-1 (rule-2, rule-3), rule-4
+  const main: BranchInput = deepFreeze(
+    mainBranch([
+      rule(1, null, null),
+      group(1, [rule(2, null, null), rule(3, null, null)]),
+      rule(4, null, null),
+    ])
+  );
+  const based = (): BranchInput => deepFreeze(newBranch(main, 'based', 'Ambulance', null));
+
+  function must<T>(value: T | null): T {
+    if (value === null) {
+      throw new Error('expected a result');
+    }
+    return value;
+  }
+
+  function shownIds(branch: BranchInput): [string, boolean][] {
+    return shownItems(branch.items, branch.origin === 'based').map(({ item, dissolved }) => [
+      item.id,
+      dissolved,
+    ]);
+  }
+
+  it('dissolves a group of the main branch at once', () => {
+    expect(ids(must(deleteItem(main.items, 'rule-2')).items)).toEqual([
+      'rule-1',
+      'rule-3',
+      'rule-4',
+    ]);
+    expect(isDissolved(main.items[1], false)).toBe(false);
+  });
+
+  it('dissolves a group of a branch that started empty at once', () => {
+    const empty: BranchInput = { ...newBranch(main, 'empty', 'Taxi', null), items: main.items };
+    expect(ids(must(deleteFromBranch(main, empty, 'rule-3')).items)).toEqual([
+      'rule-1',
+      'rule-2',
+      'rule-4',
+    ]);
+  });
+
+  it('dissolves a group of a based branch’s own at once', () => {
+    const grouped = must(groupItems(based().items, ['rule-1', 'rule-4'], { rule: 5, group: 2 }));
+    const own = {
+      ...based(),
+      items: replaceItem(grouped.items, { ...grouped.group, mark: 'added' }),
+    };
+    const removed = must(removeItem(main, own, 'rule-4'));
+    expect(ids(removed.items)).toEqual(['rule-1', 'rule-4', 'group-1', 'rule-2', 'rule-3']);
+    expect(
+      isDissolved({ ...grouped.group, mark: 'added', items: [rule(1, null, null)] }, true)
+    ).toBe(false);
+  });
+
+  it('derives an inherited group’s dissolution in a based branch, and keeps the group', () => {
+    const removed = must(removeItem(main, based(), 'rule-2'));
+    expect(ids(removed.items)).toEqual(['rule-1', 'group-1', 'rule-2', 'rule-3', 'rule-4']);
+    const group1 = must(findItem(removed.items, 'group-1')).item;
+    expect(isDissolved(group1, true)).toBe(true);
+    expect(isDissolved(group1, false)).toBe(false);
+    // The remaining rule counts in the group's place
+    expect(effectiveItems(removed.items, true).map((item) => item.id)).toEqual([
+      'rule-1',
+      'rule-3',
+      'rule-4',
+    ]);
+    expect(effectiveItems(removed.items, false)).toBe(removed.items);
+  });
+
+  it('shows a dissolved group as removed, after its remaining member in its place (F13)', () => {
+    const removed = must(removeItem(main, based(), 'rule-2'));
+    expect(shownIds(removed)).toEqual([
+      ['rule-1', false],
+      ['rule-3', false],
+      ['group-1', true],
+      ['rule-4', false],
+    ]);
+    const shown = shownItems(removed.items, true)[2].item as GroupItem;
+    expect(ids(shown.items)).toEqual(['rule-2']);
+    // Nothing remains when both members are removed
+    const both = must(removeItem(main, removed, 'rule-3'));
+    expect(shownIds(both)).toEqual([
+      ['rule-1', false],
+      ['group-1', true],
+      ['rule-4', false],
+    ]);
+  });
+
+  it('brings the group back once two members count, through a restore', () => {
+    const removed = must(removeItem(main, based(), 'rule-2'));
+    const restored = must(restoreItem(main, removed, 'rule-2'));
+    expect(isDissolved(must(findItem(restored.items, 'group-1')).item, true)).toBe(false);
+    expect(shownIds(restored).map(([id]) => id)).toEqual(['rule-1', 'group-1', 'rule-4']);
+  });
+
+  it('counts a group of the branch’s own in an inherited group as one member', () => {
+    const nested = mainBranch([
+      group(1, [rule(1, null, null), rule(2, null, null), rule(3, null, null)]),
+    ]);
+    const branch = newBranch(nested, 'based', 'Ambulance', null);
+    const grouped = must(groupItems(branch.items, ['rule-1', 'rule-2'], { rule: 4, group: 2 }));
+    const items = replaceItem(grouped.items, { ...grouped.group, mark: 'added' });
+    const group1 = must(findItem(items, 'group-1')).item as GroupItem;
+    expect(effectiveItems(group1.items, true).map((item) => item.id)).toEqual([
+      'group-2',
+      'rule-3',
+    ]);
+    expect(isDissolved(group1, true)).toBe(false);
+  });
+
+  it('shows everything as it is in the main branch, and a removed group as removed', () => {
+    expect(shownIds(main).every(([, dissolved]) => !dissolved)).toBe(true);
+    const removed = must(removeItem(main, based(), 'group-1'));
+    expect(shownIds(removed)).toEqual([
+      ['rule-1', false],
+      ['group-1', false],
+      ['rule-4', false],
+    ]);
   });
 });

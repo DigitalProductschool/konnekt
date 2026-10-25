@@ -12,7 +12,14 @@ import { renameReducer } from './utils';
  * missing, used or reserved name is refused there, naming the branch (F12). Leaving the field
  * saves a name that fits.
  */
-export default function ItemName({ item, branch, size, renaming, dispatch }: ItemNameProps) {
+export default function ItemName({
+  item,
+  branch,
+  branches,
+  size,
+  renaming,
+  dispatch,
+}: ItemNameProps) {
   const [field, dispatchField] = useReducer(renameReducer, { value: item.name, error: null });
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -36,7 +43,7 @@ export default function ItemName({ item, branch, size, renaming, dispatch }: Ite
       dispatch({ type: 'cancelRename' });
       return true;
     }
-    const problem = nameProblem(field.value, item, branch);
+    const problem = nameProblem(field.value, item, branch, branches);
     if (problem) {
       dispatchField({ type: 'refuse', error: problem });
       return false;

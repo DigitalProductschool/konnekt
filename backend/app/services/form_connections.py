@@ -442,8 +442,10 @@ def create_revision(
        the same time takes the number after it.
     2. Create the EUDIPLO configuration.
     3. Lock the row again, make the revision current, unless a later one became
-       current meanwhile, save the rules of `save` (spec 002, research R9), and
-       apply `changes` (the name or the serviceBW form), in one commit.
+       current meanwhile, save the rules of `save` (spec 002, research R9), which
+       are refused if another team member saved rules meanwhile and `save` doesn't
+       replace them (FR-028), and apply `changes` (the name or the serviceBW
+       form), in one commit.
 
     Requests already in progress keep their revision and rule set, and the URLs
     never change. If EUDIPLO fails, the revision is removed again and the
@@ -529,7 +531,11 @@ def update_form_connection(
     written or EUDIPLO is called (research R9): the rules against the documents the
     save leaves current, and, when only the documents change, the current rules
     against the new documents, so that no rule is left checking data that is no
-    longer requested (FR-006).
+    longer requested (FR-006). Rules saved over newer ones, which another team
+    member saved after this editor loaded them, are refused with 409
+    `rules_changed` unless the save replaces them, before they are checked and
+    again under the row lock; the name and the documents keep "the later save
+    wins" (FR-028).
 
     Changed documents become a new revision with a configuration of its own
     (`create_revision`), whose last transaction also saves the rules; changed rules
@@ -556,6 +562,9 @@ def update_form_connection(
     main_branch_id = rules.main_branch_id_of(db, form_connection_id)
     save: rules.RulesSave | None = None
     if data.rules is not None:
+        # Before the rules are checked: a stale editor meets the 409, not a refusal
+        # that its staleness causes (FR-028)
+        rules.check_rules_version(db, form_connection, data.rules)
         save = rules.clean_rules(
             data.rules, documents or current_documents, main_branch_id
         )

@@ -4,10 +4,13 @@ import successTick from '../../assets/illustrations/success-tick.svg';
 import { DETAIL_COPY } from './constants';
 import LinkCard from './LinkCard';
 import type { ConnectionLinksProps } from './types';
+import { resultLinksOf } from './utils';
 
 /**
- * Figma "Publish/Success card": the trigger URL ("Request link") and the pull URL ("Result
- * link"). Right after publishing it opens with the tick and "Your connection is live".
+ * Figma "Publish/Success card": the trigger URL ("Request link") once, and the pull URL ("Result
+ * link") of every variant, Standard first, each labelled with the variant's name and its (i)
+ * (FR-026, US3-AS7; F24, F31). With Standard only, the URLs show as spec 001 shows them, without
+ * a name (W2). Right after publishing it opens with the tick and "Your connection is live".
  */
 export default function ConnectionLinks({
   formConnection,
@@ -45,14 +48,14 @@ export default function ConnectionLinks({
         <LinkCard
           number={1}
           title={DETAIL_COPY.requestLink}
-          url={formConnection.trigger_url}
+          links={[{ key: 'trigger', url: formConnection.trigger_url, branch: null }]}
           infoLabel={DETAIL_COPY.requestLinkInfoLabel}
           info={DETAIL_COPY.requestLinkInfo}
         />
         <LinkCard
           number={2}
           title={DETAIL_COPY.resultLink}
-          url={formConnection.pull_url}
+          links={resultLinksOf(formConnection)}
           infoLabel={DETAIL_COPY.resultLinkInfoLabel}
           info={DETAIL_COPY.resultLinkInfo}
         />

@@ -10,7 +10,9 @@ import type { PublishDialogProps } from './types';
  * rules?" (U36 6376:27630), and its secondary action goes on to the rules. No go-live choice
  * (F22) and no warnings line (F21): problems refuse publishing beforehand (F11). While the
  * connection is being saved it can't be closed. If that fails, it stays open with the API's
- * message and offers "Try again", and nothing has changed (U35 6376:27178; F23).
+ * message and offers "Try again", and nothing has changed (U35 6376:27178; F23). If another team
+ * member saved the rules meanwhile, the same alert says so, and the dialog offers "Reload" or
+ * "Replace their changes" instead (W9, FR-028).
  */
 export default function PublishDialog({
   open,
@@ -20,9 +22,12 @@ export default function PublishDialog({
   ruleLines,
   publishing,
   error,
+  rulesChanged,
   onCancel,
   onClose,
   onConfirm,
+  onReload,
+  onReplace,
 }: PublishDialogProps) {
   const title = withoutRules
     ? editing
@@ -36,6 +41,16 @@ export default function PublishDialog({
     : editing
       ? PUBLISH_COPY.saveIntro
       : PUBLISH_COPY.publishIntro;
+  const errorTitle = rulesChanged
+    ? PUBLISH_COPY.rulesChangedTitle
+    : editing
+      ? PUBLISH_COPY.saveErrorTitle
+      : PUBLISH_COPY.publishErrorTitle;
+  const cancelLabel = rulesChanged
+    ? PUBLISH_COPY.reload
+    : withoutRules
+      ? PUBLISH_COPY.addRules
+      : PUBLISH_COPY.checkRulesAgain;
   return (
     <ConfirmDialog
       open={open}
@@ -43,15 +58,15 @@ export default function PublishDialog({
       text={intro}
       textClassName="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
       confirmLabel={editing ? PUBLISH_COPY.save : PUBLISH_COPY.publish}
-      cancelLabel={withoutRules ? PUBLISH_COPY.addRules : PUBLISH_COPY.checkRulesAgain}
+      cancelLabel={cancelLabel}
       busyLabel={editing ? PUBLISH_COPY.saving : PUBLISH_COPY.publishing}
       busy={publishing}
       error={error}
-      errorTitle={editing ? PUBLISH_COPY.saveErrorTitle : PUBLISH_COPY.publishErrorTitle}
-      retryLabel={PUBLISH_COPY.retry}
-      onCancel={onCancel}
+      errorTitle={errorTitle}
+      retryLabel={rulesChanged ? PUBLISH_COPY.replaceTheirChanges : PUBLISH_COPY.retry}
+      onCancel={rulesChanged ? onReload : onCancel}
       onClose={onClose}
-      onConfirm={onConfirm}
+      onConfirm={rulesChanged ? onReplace : onConfirm}
     >
       {/* "Dialog content/Publish · summary": a two-column table, documents then rules */}
       <dl className="rounded-kern-large flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)">

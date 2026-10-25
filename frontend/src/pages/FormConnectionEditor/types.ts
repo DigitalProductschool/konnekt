@@ -10,6 +10,13 @@ export interface FormConnectionEditorPageProps {
   formConnection?: FormConnection;
   /** The step the wizard opens at */
   initialStep?: EditorStep;
+  /**
+   * When editing: fetches the connection again and opens the wizard anew at the Rules step,
+   * dropping the unsaved changes (W9)
+   */
+  onReload?: () => void;
+  /** Opened anew by `onReload`: the focus starts on the page title */
+  reloaded?: boolean;
 }
 
 /** What the wizard does: make a connection, the first one, or edit one */
@@ -36,6 +43,8 @@ export interface EditorState {
   errors: EditorErrors;
   /** The API's message after publishing failed, with the error ID of a 5xx answer */
   publishError: ErrorNotice | null;
+  /** The failure was `409 rules_changed`: another team member saved the rules meanwhile (W9) */
+  rulesChanged: boolean;
   dialogOpen: boolean;
   publishing: boolean;
   /** The last removed document, with its selection, which Undo brings back */
@@ -57,7 +66,7 @@ export type EditorAction =
   | { type: 'openDialog' }
   | { type: 'closeDialog' }
   | { type: 'publish' }
-  | { type: 'publishFailed'; error: ErrorNotice };
+  | { type: 'publishFailed'; error: ErrorNotice; rulesChanged: boolean };
 
 export interface ConnectionStepProps {
   name: string;
@@ -140,11 +149,17 @@ export interface PublishDialogProps {
   publishing: boolean;
   /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
   error: ErrorNotice | null;
+  /** The last attempt met rules another team member saved meanwhile (W9) */
+  rulesChanged: boolean;
   /** "Check rules again", or "Add rules" when publishing without rules */
   onCancel: () => void;
   /** The close button and Escape */
   onClose: () => void;
   onConfirm: () => void;
+  /** "Reload", after `rulesChanged` */
+  onReload: () => void;
+  /** "Replace their changes", after `rulesChanged`: the same save, replacing their rules */
+  onReplace: () => void;
 }
 
 export interface PublishSummaryRowProps {

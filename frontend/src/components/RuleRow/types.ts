@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { RuleItem } from '../../types/form-connections';
+import type { Mark, RuleItem } from '../../types/form-connections';
 import type { PredicateParts, RuleContext, StatementParts } from '../../utils/rules/types';
 
 export interface RuleRowProps {
@@ -24,6 +24,10 @@ export interface RuleRowProps {
   flag?: string | null;
   /** The Rules step's ⋯ menu; the details show none */
   actions?: ReactNode;
+  /** How a based variant's rule differs from Standard's (FR-023); none elsewhere */
+  mark?: Mark | null;
+  /** In a removed or dissolved group, which fades its members already: no fading of its own */
+  faded?: boolean;
 }
 
 export interface RuleNameProps {

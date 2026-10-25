@@ -2,6 +2,8 @@ import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import expandActionIcon from '../../assets/icons/expand-more-action-small.svg';
 import expandWhiteIcon from '../../assets/icons/expand-more-white-small.svg';
+import BranchMark from '../BranchMark';
+import { INACTIVE_OPACITY } from '../BranchMark/constants';
 import ConnectorMenu from './ConnectorMenu';
 import { CONNECTOR_COPY, CONNECTOR_LABELS } from './constants';
 import type { ConnectorProps } from './types';
@@ -11,9 +13,17 @@ import type { ConnectorProps } from './types';
  * two of its rules and groups, with the row's padding. AND is a filled pill, OR an outlined one.
  * Given `onSwitch`, the pill is a menu button with the design's chevron, which opens the menu
  * that switches the whole level (FR-007); its name says the level, such as "AND, switch Group 01
- * to AND or OR". Choosing gives the focus back to the pill.
+ * to AND or OR". Choosing gives the focus back to the pill. In a based variant, the first
+ * top-level connector carries the mark of a switched top level (W4), and a connector before a
+ * removed item fades with it.
  */
-export default function Connector({ operator, levelName = '', onSwitch }: ConnectorProps) {
+export default function Connector({
+  operator,
+  levelName = '',
+  onSwitch,
+  mark = null,
+  faded = false,
+}: ConnectorProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -52,7 +62,7 @@ export default function Connector({ operator, levelName = '', onSwitch }: Connec
   }
 
   return (
-    <div className="flex px-24 py-8">
+    <div className={`flex px-24 py-8 ${faded ? INACTIVE_OPACITY : ''}`}>
       <div className="flex flex-1 items-center gap-8">
         {onSwitch ? (
           <div ref={containerRef} className="relative">
@@ -99,6 +109,7 @@ export default function Connector({ operator, levelName = '', onSwitch }: Connec
           aria-hidden="true"
           className="h-px flex-1 bg-(--kern-color-decorative-brand-default)"
         />
+        {mark && <BranchMark mark={mark} />}
       </div>
     </div>
   );

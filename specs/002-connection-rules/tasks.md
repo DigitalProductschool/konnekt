@@ -806,7 +806,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
 
 ### Implementation for User Story 3 (frontend)
 
-- [ ] T059 [P] [US3] Write `frontend/src/utils/rules/branches.ts` with `branches.test.ts` (FR-019 to FR-024; SC-006; research R4, R12; data-model.md "Marks in a based branch" and "Propagation from the main branch"). `branches.ts` isn't done until every propagation rule and mark transition has a test.
+- [X] T059 [P] [US3] Write `frontend/src/utils/rules/branches.ts` with `branches.test.ts` (FR-019 to FR-024; SC-006; research R4, R12; data-model.md "Marks in a based branch" and "Propagation from the main branch"). `branches.ts` isn't done until every propagation rule and mark transition has a test.
   - **New branches**: based on the main branch (a copy of its items, unmarked, following its operator), or empty.
   - **`propagateMain(oldMain, newMain, branch)`** updates a based branch with the rules of data-model.md, and never touches a branch that started empty:
     1. each unmarked or removed item takes the main branch's new content;
@@ -838,7 +838,7 @@ same test documents through both pull URLs, and compare the evaluations (quickst
     - a copy from a based branch to the main branch appears there beside its original.
   - **Confirmations**: the branches whose changed group a main-branch deletion dissolves, and the branches that keep their changed version, for F14's confirmation (rules 2 and 5).
   - A helper in the test file checks every result against T053's invariants, with data-model.md's definition of equal.
-- [ ] T060 [US3] Add the derived dissolution to `frontend/src/utils/rules/tree.ts` and the branch checks to `frontend/src/utils/rules/validation.ts`, with tests in `tree.test.ts` and `validation.test.ts` (depends on T059; FR-005, FR-006, FR-008, FR-020; EC-16).
+- [X] T060 [US3] Add the derived dissolution to `frontend/src/utils/rules/tree.ts` and the branch checks to `frontend/src/utils/rules/validation.ts`, with tests in `tree.test.ts` and `validation.test.ts` (depends on T059; FR-005, FR-006, FR-008, FR-020; EC-16).
   - `tree.ts`: an inherited group in a based branch counts as dissolved while its active members number fewer than two. Active members are those not removed, and not moved into a group of the branch's own:
     - the view shows the group as removed, with its remaining member in its place;
     - the group comes back once two members are active, through an undo or a member the main branch adds;
@@ -851,10 +851,10 @@ same test documents through both pull URLs, and compare the evaluations (quickst
     - problems in inherited, unchanged items reported once, for the main branch;
     - removed items checked like the others;
     - at most 20 variants.
-- [ ] T061 [P] [US3] Build `frontend/src/components/BranchMark/` and `frontend/src/components/BranchName/` (S4, S6; W4, F15, F31; FR-020, FR-023; Figma U17 `6134:9009`, `6134:9064`, `6134:8719`, tooltip `6139:32939`; U18 `6163:5856`, `6163:5438`).
+- [X] T061 [P] [US3] Build `frontend/src/components/BranchMark/` and `frontend/src/components/BranchName/` (S4, S6; W4, F15, F31; FR-020, FR-023; Figma U17 `6134:9009`, `6134:9064`, `6134:8719`, tooltip `6139:32939`; U18 `6163:5856`, `6163:5438`).
   - `BranchMark`: "Changed here", "New addition" or "Removed", each with its colour (tokens from T003) and its text, never colour alone.
   - `BranchName`: the branch's name and, when it has a description, an (i) right after it. The (i) reuses `InfoTooltip` and opens on hover and on keyboard focus. A branch without a description shows no (i).
-- [ ] T062 [US3] Add the variant tabs and adding a variant, in `RulesStep/` (S2, S4; F16, W5; FR-019 to FR-021; Figma U17 `6134:8515`–`6148:4545`).
+- [X] T062 [US3] Add the variant tabs and adding a variant, in `RulesStep/` (S2, S4; F16, W5; FR-019 to FR-021; Figma U17 `6134:8515`–`6148:4545`).
   - `BranchTabs.tsx`, with a `BranchTab` sub-component (F16):
     - one tab per branch, main branch first, each with `BranchName`;
     - "+ Add variant" (U17 `6134:8603`), from the start of the step: also before the first rule, and while a rule is being edited;
@@ -869,12 +869,12 @@ same test documents through both pull URLs, and compare the evaluations (quickst
     - every action that changes the main branch runs `propagateMain` on every based branch;
     - actions in a based branch go through T059's functions.
   - The payload sends the branches in tab order, with `id: null` for new ones.
-- [ ] T063 [US3] Build each variant tab's menu, in `RulesStep/` (S4; W3; FR-020; Figma U14 `6113:28988`, `6113:29056`; U17 `6139:32693`).
+- [X] T063 [US3] Build each variant tab's menu, in `RulesStep/` (S4; W3; FR-020; Figma U14 `6113:28988`, `6113:29056`; U17 `6139:32693`).
   - A KERN menu on each tab, like the rule's ⋯ menu.
   - "Rename", for every branch, Standard included, opens the Add variant dialog titled "Edit variant", without "Start with", with the same name checks.
   - "Delete", for every other branch, asks for confirmation in design-notes.md's words. The deletion takes effect when the connection is saved.
   - Once Standard has a description, its tab shows the (i) too.
-- [ ] T064 [US3] Show and handle marks in based branches, in `RulesStep/` (S2, S4; F12, F13, F15, F29, W4, W8, FYI #10; FR-021 to FR-024; Figma U17, U18 `6163:4850`–`6324:39426`, U19 `6344:53697`–`6344:53873`, U23 `6185:41146`, `6185:41589`).
+- [X] T064 [US3] Show and handle marks in based branches, in `RulesStep/` (S2, S4; F12, F13, F15, F29, W4, W8, FYI #10; FR-021 to FR-024; Figma U17, U18 `6163:4850`–`6324:39426`, U19 `6344:53697`–`6344:53873`, U23 `6185:41146`, `6185:41589`).
   - Marks:
     - every changed, added and removed rule and group shows its `BranchMark`. The marked group header follows U18 `6163:5438`;
     - a changed rule keeps its "Changed here" text mark inside a removed group, and a switched operator marks its inherited group "Changed here" (F15);
@@ -887,18 +887,18 @@ same test documents through both pull URLs, and compare the evaluations (quickst
   - Grouping in a based branch shows the toast "Rule 01 and Rule 02 in Ambulance are now Group 02. Standard stays the same." (F29, U19 `6344:53873`).
   - A rename in Standard that would clash in a based branch is refused where it is entered, naming that branch (F12, U26 `6196:10653`).
   - Standard's changes show at once in every based branch (W4).
-- [ ] T065 [US3] Build Standard's delete confirmations, in `RulesStep/` (S4; F14, W8; FR-022; Figma U23 `6185:8805`, `6185:8846`, `6185:8847`).
+- [X] T065 [US3] Build Standard's delete confirmations, in `RulesStep/` (S4; F14, W8; FR-022; Figma U23 `6185:8805`, `6185:8846`, `6185:8847`).
   - When Standard deletes a rule, the body uses design-notes.md's words:
     - it doesn't say that the rule leaves every variant;
     - it names the variants that changed the rule, which keep their version as "New addition";
     - if the rule is one of a group's two members, it also names the variants whose changed group dissolves with it (FR-022's one exception).
   - Standard's "Delete group" confirmation (W8) names the variants that keep their changed version of the group in the same way.
-- [ ] T066 [US3] Copy a rule to other variants, in `RulesStep/` (S4; F29; FR-021, FR-022; Figma U20 `6344:53874`–`6344:54043`).
+- [X] T066 [US3] Copy a rule to other variants, in `RulesStep/` (S4; F29; FR-021, FR-022; Figma U20 `6344:53874`–`6344:54043`).
   - The rule's ⋯ menu offers "Copy to variant".
   - The dialog lists the other branches, with checkboxes. Once Standard is chosen, the branches based on it show as included, and can't be chosen on their own.
   - The copy uses T059's `copyRule`.
   - The toast "Rule 06 copied to School transport." offers "Show", which opens that variant (F29).
-- [ ] T067 [US3] Show every branch's pull URL and rules on the details (S6; F24, F26, F31, W2, FYI #13; FR-020, FR-026, US3-AS7), in `frontend/src/pages/FormConnectionDetail/ConnectionLinks.tsx`, `LinkCard.tsx` and `RulesSummary.tsx`.
+- [X] T067 [US3] Show every branch's pull URL and rules on the details (S6; F24, F26, F31, W2, FYI #13; FR-020, FR-026, US3-AS7), in `frontend/src/pages/FormConnectionDetail/ConnectionLinks.tsx`, `LinkCard.tsx` and `RulesSummary.tsx`.
   - The trigger URL shows once, then one pull URL per branch from its `pull_url`, never derived from its name (F24):
     - each pull URL is labelled with its branch's `BranchName`, (i) included, and has "Copy link" (F31);
     - this also applies right after publishing (U34 `6396:48632`–`6396:48649`, U37 `6396:47732`–`6396:47749`, U38 `6396:48993`–`6396:49005`).
@@ -914,7 +914,7 @@ From US3 on, a save can delete a variant for good, and serviceBW may already use
 a save over another team member's newer rules is refused unless the team member chooses to replace
 them (FR-028). These tasks are done before US3 merges, and their backend and UI ship together.
 
-- [ ] T068 [US3] Refuse a save over newer rules, and replace them on request, in `backend/app/services/form_connections.py` and `backend/app/services/rules.py` (FR-028; research R5, R9; management-api.md "Errors added by this feature" and "Saving, step by step").
+- [X] T068 [US3] Refuse a save over newer rules, and replace them on request, in `backend/app/services/form_connections.py` and `backend/app/services/rules.py` (FR-028; research R5, R9; management-api.md "Errors added by this feature" and "Saving, step by step").
   - When `rules` is present without `replace`, and `base_version` isn't `current_rule_set`, refuse the save with `409` `{"error": "rules_changed", "message": …}`:
     - check after the name, the serviceBW form and the documents, but before the rules are checked (T015, T053) and before EUDIPLO is called. A stale editor then meets the `409`, not a refusal that its staleness causes, such as "Unknown variant.";
     - check again under the row lock (step 3);
@@ -926,7 +926,7 @@ them (FR-028). These tasks are done before US3 merges, and their backend and UI 
     - T016's shift keeps new identifiers unique.
   - The name and the documents keep "the later save wins".
   - A save without `rules` never meets this `409`.
-- [ ] T069 [US3] Test saving over newer rules, and changing live rules (depends on T068).
+- [X] T069 [US3] Test saving over newer rules, and changing live rules (depends on T068).
   - `backend/tests/api/test_form_connection_rules.py`:
     - the `409`, with the names of the branches that replacing would delete, and nothing saved;
     - `replace: true`, which saves and shifts new identifiers;
@@ -939,7 +939,7 @@ them (FR-028). These tasks are done before US3 merges, and their backend and UI 
     - request A, triggered before a rule changes, is evaluated with the old rules, and request B with the new ones (US4-AS1, FR-028);
     - adding rules to a live connection without rules (US4-AS2);
     - unchanged URLs in both cases.
-- [ ] T070 [P] [US3] Send rules only when they changed, and handle `409 rules_changed` (S5, S7; W9; FR-028; Figma U35 `6376:27178`, U14 `6113:29056`). Files: `frontend/src/pages/FormConnectionEditor/utils.ts`, `PublishDialog.tsx` and `constants.ts`, and `frontend/src/pages/FormConnectionEdit/index.tsx`.
+- [X] T070 [P] [US3] Send rules only when they changed, and handle `409 rules_changed` (S5, S7; W9; FR-028; Figma U35 `6376:27178`, U14 `6113:29056`). Files: `frontend/src/pages/FormConnectionEditor/utils.ts`, `PublishDialog.tsx` and `constants.ts`, and `frontend/src/pages/FormConnectionEdit/index.tsx`.
   - When editing, the payload carries `rules` only when the branches differ from the loaded ones, compared rather than tracked by a dirty flag. A save of the name or the documents alone never meets the `409`.
   - On `ApiError` `409` `rules_changed`, the dialog shows design-notes.md's heading, the API's message, which names the variants that replacing deletes or brings back with a new result link, and two actions:
     - "Replace their changes": saves again with `replace: true`;

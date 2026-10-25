@@ -201,6 +201,8 @@ class RulesSave:
     numbering_base: NumberingBase
     # The rule set version the editor loaded; None on create
     base_version: int | None
+    # Save over rules another team member saved meanwhile (FR-028)
+    replace: bool = False
 
 
 def clean_rules(
@@ -220,6 +222,7 @@ def clean_rules(
         branches=clean_branches(rules.branches, documents, main_branch_id),
         numbering_base=rules.numbering_base,
         base_version=rules.base_version,
+        replace=rules.replace,
     )
 
 
@@ -795,24 +798,119 @@ def main_branch_id_of(db: Session, form_connection_id: str) -> str | None:
     )
 
 
+def _loaded_branches(
+    db: Session,
+    form_connection: FormConnection,
+    base_version: int | None,
+    current: list[SnapshotBranch],
+) -> list[SnapshotBranch]:
+    """The branches of the rule set the editor loaded; the current ones by default."""
+    if base_version is None or base_version == form_connection.current_rule_set:
+        return current
+    rule_set = _rule_set(db, form_connection.id, base_version)
+    return RULE_SET_SNAPSHOT.validate_python(rule_set.branches) if rule_set else []
+
+
+def _live_branch_ids(db: Session, form_connection_id: str) -> set[str]:
+    return set(
+        db.scalars(
+            select(FormConnectionBranch.id).where(
+                FormConnectionBranch.form_connection_id == form_connection_id,
+                FormConnectionBranch.deleted_at.is_(None),
+            )
+        )
+    )
+
+
+def _returning_ids(
+    branches: Sequence[BranchInput],
+    loaded: Sequence[SnapshotBranch],
+    live_ids: set[str],
+) -> set[str]:
+    """The ids of a save's branches that another save deleted since it loaded them."""
+    loaded_ids = {branch.id for branch in loaded}
+    return {
+        branch.id
+        for branch in branches
+        if branch.id is not None
+        and branch.id in loaded_ids
+        and branch.id not in live_ids
+    }
+
+
+def check_rules_version(
+    db: Session, form_connection: FormConnection, rules: RulesInput | RulesSave
+) -> None:
+    """Refuse a save over rules another team member saved meanwhile (FR-028).
+
+    Unless the save replaces them, it must be based on the current rule set;
+    otherwise it is refused with 409 `rules_changed`. Its message names the
+    variants that replacing would delete (the current ones the save leaves out) and
+    bring back with a new pull URL (the save's ones that another save deleted).
+    It runs before the rules are checked, so that a stale editor meets this answer
+    and not a refusal that its staleness causes, such as "Unknown variant.", and
+    again under the row lock (research R9).
+    """
+    if rules.replace or rules.base_version == form_connection.current_rule_set:
+        return
+    current = current_branches(db, form_connection)
+    saved_ids = {branch.id for branch in rules.branches if branch.id is not None}
+    deleted = [
+        branch.name
+        for branch in current
+        if branch.origin != 'main' and branch.id not in saved_ids
+    ]
+    returning_ids = _returning_ids(
+        rules.branches,
+        _loaded_branches(db, form_connection, rules.base_version, current),
+        _live_branch_ids(db, form_connection.id),
+    )
+    returning = [
+        branch.name.strip() for branch in rules.branches if branch.id in returning_ids
+    ]
+    raise _rules_changed(deleted, returning)
+
+
+def _rules_changed(deleted: Sequence[str], returning: Sequence[str]) -> HTTPException:
+    """The 409 of a stale save, in the UI's words: "variant", "result link"."""
+    effects: list[str] = []
+    if deleted:
+        effects.append(f'deletes {_variants(deleted)}')
+    if returning:
+        links = 'a new result link' if len(returning) == 1 else 'new result links'
+        effects.append(f'brings back {_variants(returning)} with {links}')
+    message = (
+        'Another team member saved the rules of this connection after you opened it.'
+    )
+    if effects:
+        message += f' Replacing their changes {" and ".join(effects)}.'
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={'error': 'rules_changed', 'message': message},
+    )
+
+
+def _variants(names: Sequence[str]) -> str:
+    """'the variant Taxi', 'the variants Taxi and Bus', 'the variants A, B and C'."""
+    if len(names) == 1:
+        return f'the variant {names[0]}'
+    return f'the variants {", ".join(names[:-1])} and {names[-1]}'
+
+
 @dataclass(frozen=True)
 class _Plan:
     """What saving a rule set would do: its numbering and its branches as saved."""
 
     current: list[SnapshotBranch]
     numbering: _Numbering
-    live_ids: set[str]
+    # The save's branches, with the id of a branch that comes back dropped
+    branches: list[BranchInput]
 
 
 def _plan(db: Session, form_connection: FormConnection, save: RulesSave) -> _Plan:
+    check_rules_version(db, form_connection, save)
     current = current_branches(db, form_connection)
-    loaded = current
-    base_version = save.base_version
-    if base_version is not None and base_version != form_connection.current_rule_set:
-        rule_set = _rule_set(db, form_connection.id, base_version)
-        loaded = (
-            RULE_SET_SNAPSHOT.validate_python(rule_set.branches) if rule_set else []
-        )
+    loaded = _loaded_branches(db, form_connection, save.base_version, current)
     loaded_ids = _identifiers(loaded)
     numbering = _allocate(
         save.branches,
@@ -821,18 +919,20 @@ def _plan(db: Session, form_connection: FormConnection, save: RulesSave) -> _Pla
         loaded_ids,
         (form_connection.next_rule_number, form_connection.next_group_number),
     )
-    live_ids = set(
-        db.scalars(
-            select(FormConnectionBranch.id).where(
-                FormConnectionBranch.form_connection_id == form_connection.id,
-                FormConnectionBranch.deleted_at.is_(None),
-            )
-        )
-    )
+    live_ids = _live_branch_ids(db, form_connection.id)
+    branches = save.branches
+    if save.replace:
+        # A branch that another save deleted comes back as a new branch, with a new
+        # pull URL: the deleted one's answers "unavailable" for good (FR-027, FR-028)
+        returning = _returning_ids(save.branches, loaded, live_ids)
+        branches = [
+            branch.model_copy(update={'id': None}) if branch.id in returning else branch
+            for branch in save.branches
+        ]
     _check_branch_ids(
-        save.branches, live_ids, {branch.id: branch.origin for branch in current}
+        branches, live_ids, {branch.id: branch.origin for branch in current}
     )
-    return _Plan(current=current, numbering=numbering, live_ids=live_ids)
+    return _Plan(current=current, numbering=numbering, branches=branches)
 
 
 def _check_branch_ids(
@@ -894,7 +994,8 @@ def _saved_branches(
 
 
 def check_save(db: Session, form_connection: FormConnection, save: RulesSave) -> None:
-    """Refuse a save whose identifiers or branch ids `save_rule_set` would refuse.
+    """Refuse a save that `save_rule_set` would refuse: a stale one, or one whose
+    identifiers or branch ids are wrong.
 
     Runs in the read transaction before EUDIPLO is called; writes nothing.
     """
@@ -907,14 +1008,16 @@ def save_rule_set(
     """Save cleaned branches as the form connection's current rules (research R9).
 
     The caller holds the form connection's row lock and commits; nothing here
-    commits. New identifiers are checked and renumbered (`_allocate`), branches
-    without an id get their row, and the current rule set's branches that the save
+    commits. A save over rules saved since its `base_version` is refused unless it
+    replaces them (`check_rules_version`). New identifiers are checked and
+    renumbered (`_allocate`), branches without an id get their row, as does a branch
+    that a replaced save deleted, and the current rule set's branches that the save
     leaves out are marked deleted, so their pull URLs answer "unavailable" for good
     (FR-027). The next rule set version is added only when the snapshot differs
     from the current one. Returns the branches as saved.
     """
     plan = _plan(db, form_connection, save)
-    saved = _saved_branches(db, form_connection.id, save.branches, plan.numbering)
+    saved = _saved_branches(db, form_connection.id, plan.branches, plan.numbering)
 
     kept = {branch.id for branch in saved}
     now = datetime.now(tz=timezone.utc)

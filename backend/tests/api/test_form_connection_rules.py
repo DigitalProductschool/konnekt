@@ -2,8 +2,9 @@
 
 User stories 1 to 3 through the management API: creating and editing a form
 connection with rules, groups and sub-groups, and variants with their ids and pull
-URLs; the refusals that name the problem, the rule and its branch; and saving
-documents and rules together or not at all (FR-028).
+URLs; the refusals that name the problem, the rule and its branch; saving documents
+and rules together or not at all; and a save over another team member's newer rules,
+refused unless it replaces them (FR-028).
 """
 
 import copy
@@ -12,6 +13,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx2 import Request, Response
 from sqlalchemy import func, select
 
 from app.db import SessionLocal
@@ -21,6 +23,8 @@ from app.models import (
     FormConnectionRevision,
     FormConnectionRuleSet,
 )
+from app.schemas import FormConnectionUpdate
+from app.services import form_connections as form_connections_service
 from app.services import rules as rules_service
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
@@ -34,11 +38,13 @@ from tests.helpers import (
     STUTTGART_RULE,
     US1_RULES,
     US2_RULES,
+    branch_pull_url,
     group,
     main_branch,
     rule,
     rules_input,
     target,
+    trigger,
     us2_items,
     variant,
 )
@@ -824,6 +830,285 @@ def test_an_out_of_step_variant_is_refused_on_edit_and_nothing_is_saved(
     assert _get(signed_in_client, created['id']) == created
     assert _count(FormConnectionRuleSet) == 1
     assert _count(FormConnectionRevision) == 1
+
+
+# Saving over another team member's newer rules (FR-028, research R9)
+
+RULES_CHANGED = (
+    'Another team member saved the rules of this connection after you opened it.'
+)
+SCHOOL_TRANSPORT = variant([], name='School transport', origin='empty')
+NIGHT_SHIFT = variant([], name='Night shift', origin='empty')
+
+
+def _refused_as_stale(
+    client: TestClient, created: dict[str, Any], **changes: Any
+) -> str:
+    """Send an edit of `created`; return the message of its 409 `rules_changed`."""
+    response = client.put(f'/api/form-connections/{created["id"]}', json=changes)
+    assert response.status_code == 409, response.json()
+    assert response.json()['error'] == 'rules_changed'
+    message: str = response.json()['message']
+    return message
+
+
+def _replacing(rules: dict[str, Any]) -> dict[str, Any]:
+    """The same save, replacing the rules another team member saved meanwhile."""
+    return rules | {'replace': True}
+
+
+def _with_nationalities() -> list[dict[str, Any]]:
+    documents = copy.deepcopy(FORM_CONNECTION['documents'])
+    documents[0]['fields'].append('nationalities')
+    return documents
+
+
+def test_a_save_over_newer_rules_is_refused_and_saves_nothing(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE])
+    )
+    standard, ambulance = created['branches']
+    # Another team member adds two variants
+    theirs = _put(
+        signed_in_client,
+        created,
+        rules=_save_branches(
+            created,
+            [_as_sent(standard), _as_sent(ambulance), SCHOOL_TRANSPORT, NIGHT_SHIFT],
+        ),
+    )
+    # This editor opened the rules before, and describes Ambulance
+    mine = _save_branches(
+        created, [_as_sent(standard), _as_sent(ambulance, description='Ambulances')]
+    )
+
+    message = _refused_as_stale(signed_in_client, created, name='Renamed', rules=mine)
+
+    assert message == (
+        f'{RULES_CHANGED} Replacing their changes deletes the variants School '
+        'transport and Night shift.'
+    )
+    # Nothing is saved, the name included
+    assert _get(signed_in_client, created['id']) == theirs
+    assert _count(FormConnectionRuleSet) == 2
+    assert all(row.deleted_at is None for row in _branch_rows(created['id']).values())
+
+
+def test_replacing_newer_rules_saves_and_shifts_new_identifiers(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    # Another team member adds rule-4; this editor numbered its own new rule from
+    # the same counter
+    _put(
+        signed_in_client,
+        created,
+        rules=_edit_rules(created, [*US1_ITEMS, CITY_IN_TAXI]),
+    )
+    karlsruhe = CITY_IN_TAXI | {
+        'condition': {
+            'operator': 'equal_to',
+            'value': 'Karlsruhe',
+            'match_case': False,
+        },
+        'message': 'You must live in Karlsruhe.',
+    }
+    mine = _edit_rules(created, [*US1_ITEMS, karlsruhe])
+    # No variant is deleted or comes back, so the message names none
+    assert _refused_as_stale(signed_in_client, created, rules=mine) == RULES_CHANGED
+
+    replaced = _put(signed_in_client, created, rules=_replacing(mine))
+
+    # This editor's version, whole: its new rule moved up past the other's rule-4,
+    # which no rule keeps, and its default name moved with it (research R5)
+    assert replaced['branches'][0]['items'] == [
+        *US1_ITEMS,
+        karlsruhe | {'id': 'rule-5', 'name': 'Rule 05'},
+    ]
+    assert replaced['rule_set_version'] == 3
+    assert (replaced['next_rule_number'], replaced['next_group_number']) == (6, 1)
+
+
+def test_replacing_brings_back_a_deleted_rule_under_its_identifier(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    # Another team member deletes rule-3; this editor keeps it, and changes rule-1
+    _put(signed_in_client, created, rules=_edit_rules(created, [AGE_RULE, CLASS_RULE]))
+    age = AGE_RULE | {'message': 'Applicants must be at least 21.'}
+
+    replaced = _put(
+        signed_in_client,
+        created,
+        rules=_replacing(_edit_rules(created, [age, CLASS_RULE, HELD_RULE])),
+    )
+
+    # The same rule returns, so no identifier is reused (FR-010)
+    assert replaced['branches'][0]['items'] == [age, CLASS_RULE, HELD_RULE]
+    assert replaced['next_rule_number'] == 4
+
+
+def test_replacing_brings_back_a_deleted_variant_with_a_new_pull_url(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(
+        signed_in_client, rules=rules_input([main_branch(US1_ITEMS), AMBULANCE, TAXI])
+    )
+    standard, ambulance, taxi = created['branches']
+    # Another team member deletes Taxi and adds School transport
+    theirs = _put(
+        signed_in_client,
+        created,
+        rules=_save_branches(
+            created, [_as_sent(standard), _as_sent(ambulance), SCHOOL_TRANSPORT]
+        ),
+    )
+    school = theirs['branches'][2]
+    mine = _save_branches(
+        created, [_as_sent(standard), _as_sent(ambulance), _as_sent(taxi)]
+    )
+
+    # The stale save still holds Taxi: it meets the 409, not "Unknown variant."
+    assert _refused_as_stale(signed_in_client, created, rules=mine) == (
+        f'{RULES_CHANGED} Replacing their changes deletes the variant School '
+        'transport and brings back the variant Taxi with a new result link.'
+    )
+
+    replaced = _put(signed_in_client, created, rules=_replacing(mine))
+
+    assert [branch['name'] for branch in replaced['branches']] == [
+        'Standard',
+        'Ambulance',
+        'Taxi',
+    ]
+    new_taxi = replaced['branches'][2]
+    assert (new_taxi['origin'], new_taxi['items']) == ('empty', taxi['items'])
+    # A new branch, with its own row and pull URL (FR-025)
+    assert new_taxi['id'] not in (taxi['id'], school['id'])
+    assert uuid.UUID(new_taxi['id']).version == 4
+    assert new_taxi['pull_url'] != taxi['pull_url']
+    rows = _branch_rows(created['id'])
+    assert rows[new_taxi['id']].deleted_at is None
+    assert rows[taxi['id']].deleted_at is not None
+    assert rows[school['id']].deleted_at is not None
+    # Taxi's old pull URL keeps answering "unavailable" (FR-027)
+    started = trigger(signed_in_client, created['id'])
+    old = signed_in_client.get(
+        branch_pull_url(created['id'], taxi['id'], started['reference'])
+    )
+    assert (old.status_code, old.json()) == (
+        409,
+        {'error': 'unavailable', 'message': 'This variant was deleted'},
+    )
+    new = signed_in_client.get(
+        branch_pull_url(created['id'], new_taxi['id'], started['reference'])
+    )
+    assert new.status_code == 200
+
+
+def test_a_stale_save_meets_the_409_before_its_rules_are_checked(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    # Another team member stops requesting the date of birth, with the rule on it
+    documents = copy.deepcopy(FORM_CONNECTION['documents'])
+    documents[0]['fields'].remove('birthdate')
+    _put(
+        signed_in_client,
+        created,
+        documents=documents,
+        rules=_edit_rules(created, [CLASS_RULE, HELD_RULE]),
+    )
+
+    # Checked against those documents, the age rule would be refused instead
+    message = _refused_as_stale(
+        signed_in_client, created, rules=_edit_rules(created, US1_ITEMS)
+    )
+
+    assert message == RULES_CHANGED
+
+
+def test_a_stale_editor_saves_the_name_and_the_documents(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    theirs = _put(
+        signed_in_client, created, rules=_edit_rules(created, [AGE_RULE, CLASS_RULE])
+    )
+
+    # The editor sends no rules when they didn't change (contracts/management-api.md)
+    renamed = _put(signed_in_client, created, name='Renamed')
+    edited = _put(signed_in_client, created, documents=_with_nationalities())
+
+    # For the name and the documents, the later save wins; the rules stay theirs
+    assert renamed['name'] == 'Renamed'
+    assert 'nationalities' in [
+        field['key'] for field in edited['documents'][0]['fields']
+    ]
+    for saved in (renamed, edited):
+        assert saved['branches'] == theirs['branches']
+        assert saved['rule_set_version'] == theirs['rule_set_version']
+
+
+def test_a_stale_save_of_documents_and_rules_calls_no_eudiplo(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    _put(signed_in_client, created, rules=_edit_rules(created, [AGE_RULE, CLASS_RULE]))
+    calls = fake_eudiplo.call_names()
+
+    message = _refused_as_stale(
+        signed_in_client,
+        created,
+        documents=_with_nationalities(),
+        rules=_edit_rules(created, [*US1_ITEMS, NATIONALITY_RULE]),
+    )
+
+    assert message == RULES_CHANGED
+    # Refused before a configuration is created (research R9)
+    assert fake_eudiplo.call_names() == calls
+    assert _count(FormConnectionRevision) == 1
+
+
+def test_a_save_overtaken_while_eudiplo_answers_is_refused_under_the_lock(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    create_config = fake_eudiplo._create_config
+
+    def overtaken(request: Request) -> Response:
+        # Another team member saves the rules while EUDIPLO creates the configuration
+        with SessionLocal() as db:
+            form_connections_service.update_form_connection(
+                db,
+                created['id'],
+                FormConnectionUpdate.model_validate(
+                    {'rules': _edit_rules(created, [AGE_RULE, CLASS_RULE])}
+                ),
+            )
+        return create_config(request)
+
+    monkeypatch.setattr(fake_eudiplo, '_create_config', overtaken)
+
+    message = _refused_as_stale(
+        signed_in_client,
+        created,
+        documents=_with_nationalities(),
+        rules=_edit_rules(created, [*US1_ITEMS, NATIONALITY_RULE]),
+    )
+
+    assert message == RULES_CHANGED
+    # The new configuration is deleted again, and the other's rules stay
+    assert fake_eudiplo.call_names()[-2:] == ['create_config', 'delete_config']
+    assert fake_eudiplo.configs.keys() == {f'fc-{created["id"]}-r1'}
+    assert _count(FormConnectionRevision) == 1
+    current = _get(signed_in_client, created['id'])
+    assert current['branches'][0]['items'] == [AGE_RULE, CLASS_RULE]
+    assert current['documents'] == created['documents']
 
 
 # Sign-in and CSRF

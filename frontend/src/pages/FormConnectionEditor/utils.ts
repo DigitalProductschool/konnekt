@@ -1,11 +1,13 @@
-import { errorNoticeOf } from '../../api/client';
+import { ApiError, errorNoticeOf } from '../../api/client';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type {
+  BranchInput,
   FormConnection,
   FormConnectionCreate,
   RequestedDocument,
 } from '../../types/form-connections';
+import { sameValue } from '../../utils/rules/branches';
 import { countRules } from '../../utils/rules/tree';
 import {
   EDITOR_COPY,
@@ -13,6 +15,7 @@ import {
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
   PUBLISH_COPY,
+  RULES_CHANGED_ERROR,
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
@@ -105,7 +108,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'showErrors':
       return { ...state, errors: action.errors };
     case 'goToStep':
-      return { ...state, step: action.step, errors: {}, publishError: null };
+      return { ...state, step: action.step, errors: {}, publishError: null, rulesChanged: false };
     case 'addDocument': {
       if (state.documents.some((document) => document.document_type === action.documentType)) {
         return state;
@@ -183,16 +186,23 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             : state.errors,
       };
     case 'openDialog':
-      return { ...state, dialogOpen: true, publishError: null };
+      return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
     case 'closeDialog':
-      return state.publishing ? state : { ...state, dialogOpen: false, publishError: null };
+      return state.publishing
+        ? state
+        : { ...state, dialogOpen: false, publishError: null, rulesChanged: false };
     case 'publish':
       // A retry takes the old message away, so that a new failure is announced again
-      return { ...state, publishing: true, publishError: null };
+      return { ...state, publishing: true, publishError: null, rulesChanged: false };
     case 'publishFailed':
       // The dialog stays open and shows the message where the user is looking: on the page,
       // it would be above the scrolled-to cards (bug publish-error-offscreen)
-      return { ...state, publishing: false, publishError: action.error };
+      return {
+        ...state,
+        publishing: false,
+        publishError: action.error,
+        rulesChanged: action.rulesChanged,
+      };
   }
 }
 
@@ -287,37 +297,74 @@ export function ruleLines(rules: RulesState, withoutRules: boolean): string[] {
   );
 }
 
+/** Branches as the API takes them, without the step's keys or the API's pull URLs. */
+function branchInputs(branches: BranchInput[]): BranchInput[] {
+  return branches.map((branch) => ({
+    id: branch.id,
+    name: branch.name,
+    description: branch.description,
+    origin: branch.origin,
+    operator: branch.operator,
+    operator_mark: branch.operator_mark,
+    items: branch.items,
+  }));
+}
+
+/**
+ * Whether the step's branches differ from the ones it loaded. Compared rather than tracked, so
+ * that a change undone by hand counts as none.
+ */
+export function rulesChanged(rules: RulesState, loaded: FormConnection): boolean {
+  return !sameValue(branchInputs(rules.branches), branchInputs(loaded.branches));
+}
+
 /**
  * The connection to create or, when editing, every field to save; also unchanged ones. The rules
  * go with it: every branch, main branch first, the counters the step numbered new rules from,
- * and the rule set it loaded (research R5, R9).
+ * and the rule set it loaded (research R5, R9). When editing, they go only if they differ from
+ * the `loaded` ones, so that a save of the name or the documents alone never meets
+ * `409 rules_changed`; `replace` saves over the rules another team member saved meanwhile
+ * (FR-028).
  */
-export function createPayload(state: EditorState, rules: RulesState): FormConnectionCreate {
-  return {
+export function createPayload(
+  state: EditorState,
+  rules: RulesState,
+  { loaded, replace = false }: { loaded?: FormConnection; replace?: boolean } = {}
+): FormConnectionCreate {
+  const payload: FormConnectionCreate = {
     name: state.name.trim(),
     servicebw_form: state.servicebwForm.trim(),
     documents: state.documents,
+  };
+  if (loaded && !rulesChanged(rules, loaded)) {
+    return payload;
+  }
+  return {
+    ...payload,
     rules: {
-      branches: rules.branches.map((branch) => ({
-        id: branch.id,
-        name: branch.name,
-        description: branch.description,
-        origin: branch.origin,
-        operator: branch.operator,
-        operator_mark: branch.operator_mark,
-        items: branch.items,
-      })),
+      branches: branchInputs(rules.branches),
       numbering_base: rules.numberingBase,
       base_version: rules.ruleSetVersion,
-      replace: false,
+      replace,
     },
   };
 }
 
+/** Whether a save met rules another team member saved after the editor loaded them (W9). */
+export function isRulesChanged(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError && error.status === 409 && error.data.error === RULES_CHANGED_ERROR
+  );
+}
+
 /**
  * The API's message, which says what went wrong, with the error ID of a 5xx answer, or a general
- * message without them.
+ * message without them. After `409 rules_changed`, the message, which names the variants that
+ * replacing deletes or brings back, says what Reload and replacing do (W9).
  */
 export function publishErrorNotice(error: unknown, editing = false): ErrorNotice {
+  if (isRulesChanged(error)) {
+    return { message: `${error.data.message} ${PUBLISH_COPY.rulesChangedHint}` };
+  }
   return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
 }

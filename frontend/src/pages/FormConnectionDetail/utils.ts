@@ -1,8 +1,15 @@
 import { errorNoticeOf } from '../../api/client';
-import type { Branch, RuleTreeItem } from '../../types/form-connections';
+import type { Branch, FormConnection, RuleTreeItem } from '../../types/form-connections';
 import type { DetailLocationState } from '../../types/routing';
 import { DETAIL_COPY, INITIAL_ACTIONS_STATE } from './constants';
-import type { ActionsAction, ActionsState, Arrival, ConfirmedAction, StatusAction } from './types';
+import type {
+  ActionsAction,
+  ActionsState,
+  Arrival,
+  ConfirmedAction,
+  LinkCardLink,
+  StatusAction,
+} from './types';
 
 export function arrivalOf(state: unknown): Arrival {
   const locationState = state as DetailLocationState | null;
@@ -87,4 +94,16 @@ function appliedRuleIds(items: RuleTreeItem[]): string[] {
 export function rulesCountOf(branches: Branch[]): string {
   const ids = new Set(branches.flatMap((branch) => appliedRuleIds(branch.items)));
   return DETAIL_COPY.rulesCount(branches.length, ids.size);
+}
+
+/**
+ * The result links: every variant's pull URL from its `pull_url`, never derived from its name
+ * (F24), labelled with the variant; with Standard only, its URL unlabelled, as in spec 001 (W2).
+ */
+export function resultLinksOf(formConnection: FormConnection): LinkCardLink[] {
+  const { branches } = formConnection;
+  if (branches.length <= 1) {
+    return [{ key: 'result', url: branches[0]?.pull_url ?? formConnection.pull_url, branch: null }];
+  }
+  return branches.map((branch) => ({ key: branch.id, url: branch.pull_url, branch }));
 }

@@ -200,6 +200,9 @@ export const RULES_MESSAGES = {
   rulesOnly: (subGroup: string, branch: string) => `${subGroup} in ${branch} can only hold rules.`,
   tooFewMembers: (group: string, branch: string) =>
     `${group} in ${branch} needs at least two rules.`,
+  // The Add variant and Edit variant dialogs (W3; U26 6197:12011; design-notes.md §4)
+  variantNameMissing: 'Enter a name for the variant.',
+  variantNameTaken: (name: string) => `Another variant is already called ${name}.`,
   // Inline renaming (`nameProblem`)
   nameMissing: 'Enter a name.',
   nameTooLong: 'A name can have at most 100 characters.',

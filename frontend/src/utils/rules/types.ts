@@ -1,7 +1,7 @@
 // Types of the rules modules (specs/002-connection-rules, research R10). The API's shapes are in
 // src/types/; these describe what the modules derive from them
 import type { DocumentField, FieldPart } from '../../types/document-types';
-import type { RuleTreeItem } from '../../types/form-connections';
+import type { GroupItem, RuleItem, RuleTreeItem } from '../../types/form-connections';
 import type { OptionSet } from '../../types/option-sets';
 
 /** The kind of value a rule compares, which decides its operators (FR-003) */
@@ -172,4 +172,45 @@ export type ItemNoun = 'rule' | 'group' | 'sub-group';
 export interface ItemAtDepth {
   item: RuleTreeItem;
   noun: ItemNoun;
+}
+
+/** A name taken in a branch, by the item that holds it or that an undo or restore gives it back */
+export interface TakenName {
+  /** As written, trimmed */
+  name: string;
+  noun: ItemNoun;
+  /** The item that holds the name, or gets it back */
+  ownerId: string;
+}
+
+/** A rename in the main branch that a based branch can't take (propagation rule 7) */
+export interface RenameClash<B> {
+  branch: B;
+  /** The name it would clash with there */
+  taken: TakenName;
+}
+
+/** What a deletion in the main branch does to a branch based on it (F14) */
+export interface DeletionEffect<B> {
+  branch: B;
+  /** The items the branch changed, which it keeps as its own (propagation rule 2) */
+  kept: RuleTreeItem[];
+  /** The groups the branch changed, which the deletion dissolves there all the same (rule 5) */
+  dissolved: GroupItem[];
+}
+
+/** A copy of a rule in another branch (`copyRule`) */
+export interface RuleCopy {
+  branchIndex: number;
+  rule: RuleItem;
+}
+
+/** An item of a level as it shows (`shownItems`) */
+export interface ShownItem {
+  item: RuleTreeItem;
+  /**
+   * An inherited group dissolved in a based branch: shown as removed, without its member that
+   * counts, which shows in its place (F13)
+   */
+  dissolved: boolean;
 }

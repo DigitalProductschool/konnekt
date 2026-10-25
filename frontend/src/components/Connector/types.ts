@@ -1,4 +1,4 @@
-import type { Combinator } from '../../types/form-connections';
+import type { Combinator, Mark } from '../../types/form-connections';
 
 export interface ConnectorProps {
   /** How the level's rules and groups combine */
@@ -10,6 +10,10 @@ export interface ConnectorProps {
    * it, the connector is read-only
    */
   onSwitch?: (operator: Combinator) => void;
+  /** A based variant's top-level AND/OR switched there: its mark, after the line (W4) */
+  mark?: Mark | null;
+  /** Before a removed rule or group: faded with it (U23 6185:8571) */
+  faded?: boolean;
 }
 
 export interface ConnectorMenuProps {

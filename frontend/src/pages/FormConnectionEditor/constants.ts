@@ -92,7 +92,16 @@ export const PUBLISH_COPY = {
   publishErrorTitle: 'Couldn’t publish',
   saveErrorTitle: 'Couldn’t save',
   retry: 'Try again',
+  // W9: another team member saved the rules after the editor opened them (design-notes.md §6)
+  rulesChangedTitle: 'The rules changed since you opened them',
+  rulesChangedHint:
+    'Reload to see their changes; your unsaved changes are lost. Or replace their changes with yours.',
+  reload: 'Reload',
+  replaceTheirChanges: 'Replace their changes',
 };
+
+/** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
+export const RULES_CHANGED_ERROR = 'rules_changed';
 
 // Validation messages; the API answers with the same ones (data-model.md, FR-003)
 export const VALIDATION_MESSAGES = {
@@ -125,6 +134,10 @@ export const ELEMENT_IDS = {
     parentId === null ? `add-rule-${branchKey}` : `add-rule-${branchKey}-${parentId}`,
   selectBox: (branchKey: string, ruleId: string) => `select-${branchKey}-${ruleId}`,
   groupMessage: (branchKey: string, groupId: string) => `group-message-${branchKey}-${groupId}`,
+  // A variant's tab, and its panel (S2, F16)
+  branchTab: (branchKey: string) => `branch-tab-${branchKey}`,
+  branchPanel: (branchKey: string) => `branch-panel-${branchKey}`,
+  addVariant: 'add-variant',
   name: 'connection-name',
   servicebwForm: 'connection-form-id',
   documentsError: 'documents-error',
@@ -145,6 +158,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   documents: [],
   errors: {},
   publishError: null,
+  rulesChanged: false,
   dialogOpen: false,
   publishing: false,
   removed: null,

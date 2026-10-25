@@ -58,7 +58,7 @@ export default function ConfirmDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      aria-describedby={error ? `${errorId} ${textId}` : textId}
+      aria-describedby={[error ? errorId : '', text ? textId : ''].join(' ').trim() || undefined}
       onCancel={handleCancel}
       // As in the KERN Figma dialog: centred (Tailwind's preflight drops the browser's
       // margin: auto), with its outline drawn inside like Figma's stroke, and the design's
@@ -91,9 +91,11 @@ export default function ConfirmDialog({
         )}
         {children ? (
           <div className="flex w-full flex-col gap-16">
-            <p id={textId} className={textClassName}>
-              {text}
-            </p>
+            {text && (
+              <p id={textId} className={textClassName}>
+                {text}
+              </p>
+            )}
             {children}
           </div>
         ) : (

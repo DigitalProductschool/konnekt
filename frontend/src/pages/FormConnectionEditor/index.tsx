@@ -41,6 +41,7 @@ import {
   hasErrors,
   headerTitleOf,
   initialEditorState,
+  isRulesChanged,
   pageTitleOf,
   publishErrorNotice,
   ruleLines,
@@ -55,12 +56,15 @@ import {
  * screen at /get-started is the same wizard, with its own heading for step 1. Given a
  * connection, the wizard edits it (/form-connections/:id/edit): it starts with its details,
  * documents and rules, and "Save" changes them with one call. Changes apply to new requests
- * only (FR-005, FR-028).
+ * only (FR-005, FR-028). If another team member saved the rules after the wizard loaded them,
+ * the team member reloads the connection or replaces their rules (W9).
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
   formConnection,
   initialStep = 'connection',
+  onReload,
+  reloaded = false,
 }: FormConnectionEditorPageProps) {
   const [state, dispatch] = useReducer(
     editorReducer,
@@ -92,6 +96,13 @@ export default function FormConnectionEditorPage({
   );
 
   useDocumentTitle(pageTitle.title);
+
+  // After Reload, the dialog that had the focus is gone
+  useEffect(() => {
+    if (reloaded) {
+      titleRef.current?.focus();
+    }
+  }, [reloaded]);
 
   // A new step replaces the content, so the focus moves to its heading
   useEffect(() => {
@@ -222,11 +233,13 @@ export default function FormConnectionEditorPage({
     continueWith(dialog.next, after);
   }
 
-  async function handleConfirm() {
+  /** Publishes or saves; `replace` saves over the rules another team member saved meanwhile. */
+  async function handleConfirm(replace = false) {
     dispatch({ type: 'publish' });
     try {
-      // Editing sends every field: unchanged documents and rules create no new version
-      const payload = createPayload(state, rules);
+      // Editing sends the name and the documents, which create no revision when unchanged, and
+      // the rules only when they changed (FR-028)
+      const payload = createPayload(state, rules, { loaded: formConnection, replace });
       const saved = formConnection
         ? await updateFormConnection(formConnection.id, payload)
         : await createFormConnection(payload);
@@ -234,17 +247,27 @@ export default function FormConnectionEditorPage({
       navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatch({ type: 'publishFailed', error: publishErrorNotice(error, editing) });
+        dispatch({
+          type: 'publishFailed',
+          error: publishErrorNotice(error, editing),
+          rulesChanged: isRulesChanged(error),
+        });
       }
     }
   }
 
   /**
    * Deletes the rule or group, then gives the focus to the item after it in its level, or the
-   * one before it, or to "Add rule".
+   * one before it, or to "Add rule". A deleted variant gives it to Standard's tab.
    */
   function handleConfirmDelete() {
     const { dialog } = rules;
+    if (dialog?.type === 'deleteVariant') {
+      // Standard opens in the deleted variant's place
+      dispatchRules({ type: 'confirmDelete' });
+      focusSoon(ELEMENT_IDS.branchTab(rules.branches[0].key));
+      return;
+    }
     if (dialog?.type !== 'deleteRule' && dialog?.type !== 'deleteGroup') {
       return;
     }
@@ -257,13 +280,23 @@ export default function FormConnectionEditorPage({
     );
   }
 
-  /** The toast's Undo: the rules as they were, with the focus on the first item it restores. */
-  function handleRulesUndo() {
-    const { undo } = rules;
-    const restored = undo?.change.before[0];
+  /**
+   * The toast's action: Undo puts the rules back as they were, with the focus on the item it
+   * restores; "Show", after a copy, opens the variant the rule was copied to (F29).
+   */
+  function handleRulesToastAction() {
+    const { undo, showBranch } = rules;
+    if (!undo && showBranch) {
+      flushSync(() => {
+        dispatchRules({ type: 'selectBranch', branchKey: showBranch });
+        dispatchRules({ type: 'dismissToast' });
+      });
+      document.getElementById(ELEMENT_IDS.branchTab(showBranch))?.focus();
+      return;
+    }
     flushSync(() => dispatchRules({ type: 'undo' }));
-    if (undo && restored) {
-      document.getElementById(ELEMENT_IDS.rule(undo.branchKey, restored.id))?.focus();
+    if (undo) {
+      document.getElementById(ELEMENT_IDS.rule(undo.branchKey, undo.itemId))?.focus();
     }
   }
 
@@ -394,20 +427,29 @@ export default function FormConnectionEditorPage({
             ruleLines={ruleLines(rules, state.step === 'documents')}
             publishing={state.publishing}
             error={state.publishError}
+            rulesChanged={state.rulesChanged}
             onCancel={handleDialogCancel}
             onClose={() => dispatch({ type: 'closeDialog' })}
-            onConfirm={handleConfirm}
+            onConfirm={() => handleConfirm()}
+            onReload={() => onReload?.()}
+            onReplace={() => handleConfirm(true)}
           />
           <RulesDialogs
             state={rules}
             context={{ documents: ruleCatalog.allDocuments, optionSets }}
+            editing={editing}
+            dispatch={dispatchRules}
             onCancel={() => dispatchRules({ type: 'closeDialog' })}
             onConfirmDelete={handleConfirmDelete}
             onSaveChanges={() => answerSaveChanges(true)}
             onDiscardChanges={() => answerSaveChanges(false)}
           />
           {state.step === 'rules' ? (
-            <Toast toast={rules.toast} onAction={handleRulesUndo} onDismiss={dismissRulesToast} />
+            <Toast
+              toast={rules.toast}
+              onAction={handleRulesToastAction}
+              onDismiss={dismissRulesToast}
+            />
           ) : (
             <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
           )}

@@ -202,13 +202,14 @@ def rules_input(
     rule_base: int = 1,
     group_base: int = 1,
     base_version: int | None = None,
+    replace: bool = False,
 ) -> dict[str, Any]:
     """The `rules` of a create or edit request."""
     return {
         'branches': branches,
         'numbering_base': {'rule': rule_base, 'group': group_base},
         'base_version': base_version,
-        'replace': False,
+        'replace': replace,
     }
 
 

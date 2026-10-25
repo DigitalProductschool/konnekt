@@ -8,7 +8,7 @@ import type {
   RuleItem,
   RuleTreeItem,
 } from '../../types/form-connections';
-import type { FoundItem, LevelChange } from './types';
+import type { FoundItem, ItemAtDepth, ItemNoun, LevelChange, ShownItem } from './types';
 
 /** A number with at least two digits: 7 → "07", 123 → "123". */
 export function twoDigits(number: number | string): string {
@@ -27,6 +27,27 @@ export function groupIdOf(number: number): string {
 export function numberOfId(id: string): number | null {
   const match = /^(?:rule|group)-(\d+)$/.exec(id);
   return match ? Number(match[1]) : null;
+}
+
+/** A name as names are compared: trimmed and ignoring letter case, "ß" as "ss" (FR-005). */
+export function foldName(name: string): string {
+  return name.trim().toUpperCase().toLowerCase();
+}
+
+/** The noun that names an item: a group inside a group is a sub-group. */
+export function nounOf(item: RuleTreeItem, depth: number): ItemNoun {
+  if (item.type === 'rule') {
+    return 'rule';
+  }
+  return depth === 0 ? 'group' : 'sub-group';
+}
+
+/** Every item of a tree in display order, with the noun that names it. */
+export function itemsWithNouns(items: RuleTreeItem[], depth = 0): ItemAtDepth[] {
+  return items.flatMap((item) => [
+    { item, noun: nounOf(item, depth) },
+    ...(item.type === 'group' ? itemsWithNouns(item.items, depth + 1) : []),
+  ]);
 }
 
 /** A rule's default name: "Rule 07" (FR-005). */
@@ -164,7 +185,7 @@ export function renameItem(
 }
 
 /** The items of a level: the top level for null, or a group's members. */
-function levelOf(items: RuleTreeItem[], parentId: string | null): RuleTreeItem[] {
+export function levelOf(items: RuleTreeItem[], parentId: string | null): RuleTreeItem[] {
   if (parentId === null) {
     return items;
   }
@@ -173,7 +194,7 @@ function levelOf(items: RuleTreeItem[], parentId: string | null): RuleTreeItem[]
 }
 
 /** The tree with `count` items of a level, from `index` on, replaced by `replacement`. */
-function spliceLevel(
+export function spliceLevel(
   items: RuleTreeItem[],
   parentId: string | null,
   index: number,
@@ -441,4 +462,79 @@ export function countRules(items: RuleTreeItem[]): number {
     }
     return total + (item.type === 'rule' ? 1 : countRules(item.items));
   }, 0);
+}
+
+/**
+ * The items of a level that count (data-model.md, "Dissolution"; the evaluator's
+ * `effective_items`). In the main branch and in a branch that started empty (`based` false),
+ * every item counts. In a branch based on the main branch, removed items don't count, and an
+ * inherited group (one not added there) with fewer than two items that count is dissolved in
+ * that branch: the item that remains, if any, counts in its place. Members put into a group of
+ * the branch's own are that group's, which counts as one item of the level.
+ */
+export function effectiveItems(items: RuleTreeItem[], based: boolean): RuleTreeItem[] {
+  if (!based) {
+    return items;
+  }
+  return items.flatMap((item) => {
+    if (item.mark === 'removed') {
+      return [];
+    }
+    if (item.type === 'group' && item.mark !== 'added') {
+      const members = effectiveItems(item.items, true);
+      if (members.length < 2) {
+        return members;
+      }
+    }
+    return [item];
+  });
+}
+
+/**
+ * Whether an item is an inherited group dissolved in a based branch: fewer than two of its
+ * members count there (data-model.md, "Dissolution"). Derived, not stored: it counts again once
+ * two members do, through a restore or a member the main branch adds (FR-008, EC-16). Groups of
+ * the main branch, of a branch that started empty, and of a based branch's own dissolve at once
+ * instead (`deleteItem`).
+ */
+export function isDissolved(item: RuleTreeItem, based: boolean): item is GroupItem {
+  return (
+    based &&
+    item.type === 'group' &&
+    item.mark !== 'added' &&
+    item.mark !== 'removed' &&
+    effectiveItems(item.items, true).length < 2
+  );
+}
+
+/** The tree without the items `ids`, wherever they are. */
+function withoutItems(items: RuleTreeItem[], ids: Set<string>): RuleTreeItem[] {
+  return items
+    .filter((item) => !ids.has(item.id))
+    .map((item) =>
+      item.type === 'group' ? { ...item, items: withoutItems(item.items, ids) } : item
+    );
+}
+
+/**
+ * A level as the Rules step and the details show it (F13, FR-023). In a based branch, an
+ * inherited group dissolved there shows as removed, without its member that counts, which
+ * takes its place just before it; the group's other members stay in it. Every other item shows
+ * as it is. Inside a removed or dissolved group, pass `based` false: nothing in it counts.
+ */
+export function shownItems(items: RuleTreeItem[], based: boolean): ShownItem[] {
+  return items.flatMap((item) => {
+    if (!isDissolved(item, based)) {
+      return [{ item, dissolved: false }];
+    }
+    const remaining = effectiveItems([item], true);
+    const group = {
+      ...item,
+      items: withoutItems(item.items, new Set(remaining.map((entry) => entry.id))),
+    };
+    return [
+      ...remaining.map((entry) => ({ item: entry, dissolved: false })),
+      { item: group, dissolved: true },
+    ];
+  });
 }

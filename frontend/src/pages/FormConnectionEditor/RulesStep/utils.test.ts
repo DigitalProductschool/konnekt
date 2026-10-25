@@ -5,6 +5,8 @@ import { rule } from '../../../utils/rules/testData';
 import { findItem, flattenItems } from '../../../utils/rules/tree';
 import type { RulesAction, RulesState } from './types';
 import {
+  copyTargetsOf,
+  deleteDialogText,
   initialRulesState,
   joinNames,
   neighbourOf,
@@ -304,5 +306,279 @@ describe('adding a rule in a group', () => {
       parentId: null,
       index: 2,
     });
+  });
+});
+
+describe('variants (FR-019 to FR-024)', () => {
+  const items = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  /** Standard with these items and a variant "Ambulance" based on it, open. */
+  function withVariant(origin: 'based' | 'empty' = 'based'): RulesState {
+    return run(stateWith(items), {
+      type: 'addVariant',
+      variant: { name: ' Ambulance ', description: ' For ambulances ' },
+      origin,
+    });
+  }
+  const variantKey = (state: RulesState) => state.branches[1].key;
+  const item = (state: RulesState, index: number, id: string) =>
+    findItem(state.branches[index].items, id)?.item;
+
+  it('adds a variant based on Standard, or empty, and opens it', () => {
+    const based = withVariant();
+    expect(based.branches[1]).toMatchObject({
+      key: 'new-1',
+      id: null,
+      name: 'Ambulance',
+      description: 'For ambulances',
+      origin: 'based',
+      items,
+    });
+    expect(based.openBranch).toBe('new-1');
+    expect(withVariant('empty').branches[1].items).toEqual([]);
+    const another = run(based, {
+      type: 'addVariant',
+      variant: { name: 'Taxi', description: null },
+      origin: 'empty',
+    });
+    expect(another.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2']);
+  });
+
+  it('passes Standard’s changes to based variants at once (W4)', () => {
+    const state = withVariant();
+    const added = run(
+      state,
+      { type: 'addRule', branchKey: BRANCH, parentId: null },
+      { type: 'saveRule' }
+    );
+    expect(item(added, 1, 'rule-9')).toMatchObject({ mark: null });
+    const renamed = run(
+      added,
+      { type: 'startRename', branchKey: BRANCH, itemId: 'rule-1' },
+      { type: 'rename', name: 'Old enough' }
+    );
+    expect(item(renamed, 1, 'rule-1')).toMatchObject({ name: 'Old enough', mark: null });
+    expect(
+      run(
+        withVariant('empty'),
+        { type: 'addRule', branchKey: BRANCH, parentId: null },
+        { type: 'saveRule' }
+      ).branches[1].items
+    ).toEqual([]);
+  });
+
+  it('marks what a based variant changes, and follows again on Reset to Standard', () => {
+    const state = withVariant();
+    const key = variantKey(state);
+    const renamed = run(
+      state,
+      { type: 'startRename', branchKey: key, itemId: 'rule-1' },
+      { type: 'rename', name: 'Old enough' }
+    );
+    expect(item(renamed, 1, 'rule-1')).toMatchObject({ mark: 'changed', name: 'Old enough' });
+    expect(item(renamed, 0, 'rule-1')).toMatchObject({ name: 'Rule 01' });
+    const reset = run(renamed, { type: 'resetItem', branchKey: key, itemId: 'rule-1' });
+    expect(item(reset, 1, 'rule-1')).toMatchObject({ mark: null, name: 'Rule 01' });
+    const switched = run(state, {
+      type: 'switchOperator',
+      branchKey: key,
+      parentId: null,
+      operator: 'or',
+    });
+    expect(switched.branches[1]).toMatchObject({ operator: 'or', operator_mark: 'changed' });
+    expect(run(switched, { type: 'resetOperator', branchKey: key }).branches[1]).toMatchObject({
+      operator: 'and',
+      operator_mark: null,
+    });
+  });
+
+  it('removes and restores inherited items, and adds the variant’s own as added', () => {
+    const state = withVariant();
+    const key = variantKey(state);
+    const removed = run(state, { type: 'removeItem', branchKey: key, itemId: 'group-1' });
+    expect(item(removed, 1, 'group-1')?.mark).toBe('removed');
+    expect(
+      item(run(removed, { type: 'restoreItem', branchKey: key, itemId: 'group-1' }), 1, 'group-1')
+        ?.mark
+    ).toBeNull();
+    const added = run(
+      state,
+      { type: 'addRule', branchKey: key, parentId: 'group-1' },
+      { type: 'saveRule' }
+    );
+    expect(item(added, 1, 'rule-9')?.mark).toBe('added');
+    expect(item(added, 0, 'rule-9')).toBeUndefined();
+  });
+
+  it('groups in a based variant with F29’s toast', () => {
+    const state = withVariant();
+    const key = variantKey(state);
+    const grouped = run(
+      state,
+      { type: 'startSelect', branchKey: key, itemId: 'rule-2' },
+      { type: 'toggleSelect', itemId: 'rule-3' },
+      { type: 'groupSelected' }
+    );
+    expect(item(grouped, 1, 'group-3')?.mark).toBe('added');
+    expect(grouped.toast?.message).toBe(
+      'Rule 02 and Rule 03 in Ambulance are now Sub-group 03. Standard stays the same.'
+    );
+  });
+
+  it('undoes a deletion in Standard in every variant', () => {
+    const state = withVariant();
+    const deleted = run(
+      state,
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete' }
+    );
+    expect(item(deleted, 1, 'rule-1')).toBeUndefined();
+    const undone = run(deleted, { type: 'undo' });
+    expect(undone.branches).toEqual(state.branches);
+    expect(undone.openBranch).toBe(BRANCH);
+  });
+
+  it('renames a variant and deletes it, opening Standard', () => {
+    const state = withVariant();
+    const key = variantKey(state);
+    const edited = run(state, {
+      type: 'editVariant',
+      branchKey: key,
+      variant: { name: 'School transport ', description: '  ' },
+    });
+    expect(edited.branches[1]).toMatchObject({ name: 'School transport', description: null });
+    const asked = run(edited, { type: 'askDeleteVariant', branchKey: key });
+    expect(asked.dialog).toEqual({ type: 'deleteVariant', branchKey: key });
+    const deleted = run(asked, { type: 'confirmDelete' });
+    expect(deleted.branches.map((branch) => branch.key)).toEqual([BRANCH]);
+    expect(deleted.openBranch).toBe(BRANCH);
+    expect(
+      run(state, { type: 'askDeleteVariant', branchKey: BRANCH }, { type: 'confirmDelete' })
+        .branches
+    ).toHaveLength(2);
+  });
+
+  it('copies a rule to other variants with a toast whose Show opens the first (F29)', () => {
+    const state = run(withVariant('empty'), {
+      type: 'addVariant',
+      variant: { name: 'School transport', description: null },
+      origin: 'based',
+    });
+    const copied = run(
+      state,
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: ['new-1', 'new-2'] }
+    );
+    expect(item(copied, 1, 'rule-9')).toMatchObject({ name: 'Rule 09', mark: null });
+    expect(item(copied, 2, 'rule-10')).toMatchObject({ name: 'Rule 10', mark: 'added' });
+    expect(copied.counters).toEqual({ rule: 11, group: 3 });
+    expect(copied.toast).toMatchObject({
+      message: 'Rule 01 copied to Ambulance and School transport.',
+      actionLabel: 'Show',
+    });
+    expect(copied.showBranch).toBe('new-1');
+    expect(copied.dialog).toBeNull();
+  });
+});
+
+describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)', () => {
+  const items = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  function withVariants(...origins: ('based' | 'empty')[]): RulesState {
+    return run(
+      stateWith(items),
+      ...origins.map((origin, index): RulesAction => ({
+        type: 'addVariant',
+        variant: { name: ['Ambulance', 'School transport', 'Taxi'][index], description: null },
+        origin,
+      }))
+    );
+  }
+  const text = (state: RulesState, itemId: string, statement: string | null = null) =>
+    deleteDialogText(state, { branchKey: BRANCH, itemId }, statement);
+
+  it('keeps U14’s body without variants based on Standard, and in a variant', () => {
+    expect(
+      text(stateWith(items), 'rule-1', 'Personal ID – Date of birth is at least 21 years old')
+    ).toBe(
+      'Applicants will no longer be checked for “Personal ID – Date of birth is at least 21 years old”. You can undo this right after.'
+    );
+    expect(text(withVariants('empty'), 'rule-1')).toBe('You can undo this right after.');
+    const state = withVariants('based');
+    expect(deleteDialogText(state, { branchKey: 'new-1', itemId: 'group-1' }, null)).toBe(
+      'Group 01 and the rules in it will be deleted. You can undo this right after.'
+    );
+  });
+
+  it('names the variants that changed the rule and keep their version', () => {
+    const state = withVariants('based', 'based');
+    expect(text(state, 'rule-1')).toBe(
+      'This rule will be removed from Standard and from the variants that follow it. You can undo this right after.'
+    );
+    const changed = run(
+      state,
+      { type: 'startRename', branchKey: 'new-1', itemId: 'rule-1' },
+      { type: 'rename', name: 'Old enough' }
+    );
+    expect(text(changed, 'rule-1')).toBe(
+      'This rule will be removed from Standard and from the variants that follow it. Ambulance changed it and keeps its own version. You can undo this right after.'
+    );
+    const both = run(
+      changed,
+      { type: 'startRename', branchKey: 'new-2', itemId: 'rule-1' },
+      { type: 'rename', name: 'Of age' }
+    );
+    expect(text(both, 'rule-1')).toContain(
+      'Ambulance and School transport changed it and keep their own versions.'
+    );
+  });
+
+  it('names the variants whose changed group a deletion dissolves (FR-022’s one exception)', () => {
+    const switched = run(withVariants('based'), {
+      type: 'switchOperator',
+      branchKey: 'new-1',
+      parentId: 'group-1',
+      operator: 'or',
+    });
+    expect(text(switched, 'rule-2')).toBe(
+      'This rule will be removed from Standard and from the variants that follow it. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. Ambulance’s changes to Group 01 go with it. You can undo this right after.'
+    );
+  });
+
+  it('names the changed rules of a deleted group', () => {
+    const changed = run(
+      withVariants('based'),
+      { type: 'startRename', branchKey: 'new-1', itemId: 'rule-3' },
+      { type: 'rename', name: 'Held B' }
+    );
+    expect(text(changed, 'group-1')).toBe(
+      'This group and the rules in it will be removed from Standard and from the variants that follow them. Ambulance changed Rule 03 and keeps its own version. You can undo this right after.'
+    );
+  });
+});
+
+describe('copy targets (FR-022; U20)', () => {
+  it('lists every other variant, and includes those based on Standard once it is chosen', () => {
+    const state = run(
+      stateWith(FLAT),
+      { type: 'addVariant', variant: { name: 'Ambulance', description: null }, origin: 'based' },
+      { type: 'addVariant', variant: { name: 'Taxi', description: null }, origin: 'empty' }
+    );
+    const summary = (chosen: string[]) =>
+      copyTargetsOf(state, 'new-2', chosen).map(({ branch, included, hint }) => [
+        branch.key,
+        included,
+        hint,
+      ]);
+    expect(summary([])).toEqual([
+      ['main', false, true],
+      ['new-1', false, false],
+    ]);
+    expect(summary(['main'])).toEqual([
+      ['main', false, true],
+      ['new-1', true, false],
+    ]);
+    expect(copyTargetsOf(state, BRANCH, []).map(({ branch }) => branch.key)).toEqual([
+      'new-1',
+      'new-2',
+    ]);
   });
 });

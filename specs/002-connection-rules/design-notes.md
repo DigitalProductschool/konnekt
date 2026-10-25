@@ -174,6 +174,41 @@ Title "Delete Rule 03?"; buttons "Cancel" / "Delete rule" (danger), as U23.
 Example: "This rule will be removed from Standard and from the variants that follow it. Ambulance
 changed it and keeps its own version. You can undo this right after."
 
+### Decisions while building variants (T061–T067, 2026-10-25)
+
+Decided by the user where the frames leave a gap (node discovery's UNCERTAIN items):
+- **Tab menu** (W3): the ⋯ ("Rules/More button", 32px) sits right after the open tab's name and
+  its (i), beside the tab's underline; other tabs show none until opened. The (i) and the ⋯ sit
+  beside the tab button, not in it, so that the tab stays one control.
+- **Copy to variant** (U20 `6344:53981`): Figma's popover under the rule's ⋯, not a modal
+  dialog. The focus moves into it; Escape, Cancel and a click elsewhere close it and give the
+  focus back to the ⋯.
+- **The variant (i)** reuses spec 001's `InfoTooltip` as it is (light bubble, muted (i)), not
+  Figma's dark "Rules/Tooltip" with a blue (i). The difference is listed, not fixed.
+- **Link icons** (FYI #10): on no linked rule; the "Linked to Standard" strip says what follows
+  Standard.
+
+Taken from the components' Figma notes ("Rules/Rule menu", "Rules/Removed rule menu"):
+- In a based variant, delete becomes **"Remove from this variant"** for a rule or group that
+  follows Standard or changed it; "Delete rule" and "Delete group" stay for the variant's own.
+- A removed rule's menu offers only **"Restore rule"**, a removed or dissolved group's only
+  **"Restore group"**, both without an icon (U23 `6185:8802`, `6185:41586`).
+- **"Reset to Standard"** (icon "Reset · restore") only for a changed rule or group; **"Copy to
+  variant"** (icon "Copy to · tab arrow") only while the connection has other variants.
+
+Built without frames:
+- **A group dissolved in a variant** (F13): its remaining member takes its place, and the group
+  follows it, shown removed with the members that don't count, faded. Nothing in a removed or
+  dissolved group can be changed until it is restored, so its members have no menu.
+- **A removed rule** fades its name and strikes its statement and its error message through
+  (U18 `6163:5856` draws no message).
+- **Several result links** (U37 `6396:47723`): spec 001's link card, with each variant's name and
+  (i) above its URL row and the number beside the title. With Standard only, spec 001's card as
+  it was (W2). U37's line "Your form reads the shared data from here. Each variant has its own;
+  use the one your form shows." isn't built: the card's (i) explains the link.
+- **Add variant**: the name field keeps spec 001's `TextField`, 8px shorter than Figma's label
+  row with Revamp's baseline padding.
+
 ### Deleting a rule (U14 `6113:29056`, `6113:29469`)
 
 As designed: title "Delete Rule 03?", a body that says what applicants will no longer be checked

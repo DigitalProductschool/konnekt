@@ -101,12 +101,17 @@ def _save(
     group_base: int = 1,
     base_version: int | None,
 ) -> list[dict[str, Any]]:
-    """Save the main branch's rules as the editor would; return them as saved."""
+    """Save the main branch's rules as the editor would; return them as saved.
+
+    The save replaces any rules saved since `base_version` (FR-028), which is how
+    an editor's numbers can meet another save's.
+    """
     payload = rules_input(
         [main_branch(items, branch_id=branch_id)],
         rule_base=rule_base,
         group_base=group_base,
         base_version=base_version,
+        replace=True,
     )
     with SessionLocal() as db:
         save = clean_rules(RulesInput.model_validate(payload), DOCUMENTS, branch_id)

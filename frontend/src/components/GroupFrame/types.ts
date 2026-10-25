@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { Combinator, GroupItem } from '../../types/form-connections';
+import type { Combinator, GroupItem, Mark } from '../../types/form-connections';
 
 /** A member of a group, already rendered, with its React key */
 export interface GroupFrameMember {
@@ -34,6 +34,12 @@ export interface GroupFrameProps {
   onSwitchOperator?: (operator: Combinator) => void;
   /** Under the members, such as the Rules step's "Add rule" */
   footer?: ReactNode;
+  /** How a based variant's group differs from Standard's (FR-023); none elsewhere */
+  mark?: Mark | null;
+  /** Removed, or dissolved in its variant (F13): shown as removed, its content faded */
+  inactive?: boolean;
+  /** In a removed or dissolved group, which fades its members already: no fading of its own */
+  faded?: boolean;
 }
 
 export interface GroupHeaderProps {
@@ -43,6 +49,9 @@ export interface GroupHeaderProps {
   nameSlot?: ReactNode;
   identifier?: string;
   actions?: ReactNode;
+  mark?: Mark | null;
+  /** Fades the text and strikes the name through */
+  inactive?: boolean;
 }
 
 export interface GroupMessageProps {

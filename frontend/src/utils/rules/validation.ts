@@ -2,6 +2,7 @@
 // the server's messages, so that the rules step can name the problem, the rule and its branch
 // before calling the API and move the focus there
 import type { BranchInput, GroupItem, RuleItem, RuleTreeItem } from '../../types/form-connections';
+import { namesGivenBackByUndo, renameClash, takenNames } from './branches';
 import { conditionProblem, optionsOf } from './conditions';
 import {
   CONDITION_PROBLEM_MESSAGES,
@@ -16,32 +17,19 @@ import {
   RULE_ID_PATTERN,
   RULES_MESSAGES,
 } from './constants';
-import { flattenItems, twoDigits } from './tree';
-import type { ItemAtDepth, ItemNoun, RuleContext, RuleDocument, RulesProblem } from './types';
-
-/** A name as names are compared: trimmed and ignoring letter case, "ß" as "ss" (FR-005). */
-export function foldName(name: string): string {
-  return name.trim().toUpperCase().toLowerCase();
-}
+import { effectiveItems, flattenItems, foldName, itemsWithNouns, twoDigits } from './tree';
+import type {
+  ItemAtDepth,
+  ItemNoun,
+  RuleContext,
+  RuleDocument,
+  RulesProblem,
+  TakenName,
+} from './types';
 
 /** A text's length in characters, as the server counts it (code points, not UTF-16 units). */
 export function textLength(text: string): number {
   return [...text].length;
-}
-
-function nounOf(item: RuleTreeItem, depth: number): ItemNoun {
-  if (item.type === 'rule') {
-    return 'rule';
-  }
-  return depth === 0 ? 'group' : 'sub-group';
-}
-
-/** Every item of a tree in display order, with the noun that names it. */
-function itemsWithNouns(items: RuleTreeItem[], depth = 0): ItemAtDepth[] {
-  return items.flatMap((item) => [
-    { item, noun: nounOf(item, depth) },
-    ...(item.type === 'group' ? itemsWithNouns(item.items, depth + 1) : []),
-  ]);
 }
 
 /** The digits of an identifier's number without leading zeros: `rule-07` → "7". */
@@ -71,13 +59,17 @@ export function reservedNameProblem(name: string, item: RuleTreeItem): string | 
 
 /**
  * Why a rule, group or sub-group can't take a name in its branch, for inline renaming (FR-005;
- * F12): empty, too long, another item's name in the branch, or a name kept for another item.
- * Null when it can.
+ * F12): empty, too long, taken in the branch, or kept for another item. A branch's taken names
+ * include its removed items' names and, in a based branch, the main branch's names of the items
+ * it changed (`takenNames`). A rename in the main branch must also fit every based branch that
+ * follows the item or changed it, and is refused naming that branch (propagation rule 7). Null
+ * when it can. `branches` are all of them, main branch first.
  */
 export function nameProblem(
   name: string,
   item: RuleTreeItem,
-  branch: Pick<BranchInput, 'name' | 'items'>
+  branch: BranchInput,
+  branches: BranchInput[]
 ): string | null {
   const trimmed = name.trim();
   if (!trimmed) {
@@ -87,13 +79,48 @@ export function nameProblem(
     return RULES_MESSAGES.nameTooLong;
   }
   const folded = foldName(trimmed);
-  const other = itemsWithNouns(branch.items).find(
-    (entry) => entry.item.id !== item.id && foldName(entry.item.name) === folded
+  const [main] = branches;
+  const other = takenNames(main, branch).find(
+    (entry) => entry.ownerId !== item.id && foldName(entry.name) === folded
   );
   if (other) {
-    return RULES_MESSAGES.nameTaken(other.noun, branch.name.trim(), other.item.name.trim());
+    return RULES_MESSAGES.nameTaken(other.noun, branch.name.trim(), other.name);
   }
-  return reservedNameProblem(trimmed, item);
+  const reserved = reservedNameProblem(trimmed, item);
+  if (reserved || branch.origin !== 'main') {
+    return reserved;
+  }
+  const clash = renameClash(branches, item.id, trimmed);
+  return (
+    clash && RULES_MESSAGES.nameTaken(clash.taken.noun, clash.branch.name.trim(), clash.taken.name)
+  );
+}
+
+/**
+ * Why a variant can't take a name in the Add variant and Edit variant dialogs (W3;
+ * design-notes.md §4): missing, too long, or another variant's, ignoring letter case and outer
+ * spaces (FR-020). `otherNames` are the other variants' names. Null when it can.
+ */
+export function variantNameProblem(name: string, otherNames: string[]): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return RULES_MESSAGES.variantNameMissing;
+  }
+  if (textLength(trimmed) > NAME_MAX_LENGTH) {
+    return RULES_MESSAGES.branchNameTooLong;
+  }
+  const other = otherNames.find((entry) => foldName(entry) === foldName(trimmed));
+  return other === undefined ? null : RULES_MESSAGES.variantNameTaken(other.trim());
+}
+
+/**
+ * Whether an item of a branch is checked there for what it says: everything in the main branch
+ * and in a branch that started empty; in a based branch only what the branch changed or added.
+ * An inherited item it follows or removed mirrors the main branch's, whose problem is reported
+ * once, for the main branch (FR-006).
+ */
+export function checkedInBranch(branch: Pick<BranchInput, 'origin'>, item: RuleTreeItem): boolean {
+  return branch.origin !== 'based' || item.mark === 'changed' || item.mark === 'added';
 }
 
 /**
@@ -113,16 +140,17 @@ export function checksUnrequestedData(rule: RuleItem, documents: RuleDocument[])
 
 /**
  * The rules that check data no longer requested, with their branch's index, for the rules
- * step's banner and inline flags (F11).
+ * step's banner and inline flags (F11). A rule a based branch inherits unchanged is named once,
+ * for the main branch (FR-006).
  */
 export function unrequestedRules(
-  branches: Pick<BranchInput, 'items'>[],
+  branches: Pick<BranchInput, 'origin' | 'items'>[],
   documents: RuleDocument[]
 ): { branchIndex: number; rule: RuleItem }[] {
   return branches.flatMap((branch, branchIndex) =>
     flattenItems(branch.items)
       .filter((item): item is RuleItem => item.type === 'rule')
-      .filter((rule) => checksUnrequestedData(rule, documents))
+      .filter((rule) => checkedInBranch(branch, rule) && checksUnrequestedData(rule, documents))
       .map((rule) => ({ branchIndex, rule }))
   );
 }
@@ -206,17 +234,24 @@ export function ruleProblem(
 
 /**
  * The first problem of a group or sub-group itself, in the server's words, or null (FR-004,
- * FR-008): a sub-group holds rules only; a group needs at least two members, not counting those
- * a based branch removed; its own message has at most 500 characters after trimming, and a blank
- * one counts as none. Its name and its members are checked on their own.
+ * FR-008): a sub-group holds rules only; a group needs at least two members that count
+ * (`effectiveItems`), except an inherited group in a based branch (`based`), which is dissolved
+ * there instead; its own message has at most 500 characters after trimming, and a blank one
+ * counts as none. Its name and its members are checked on their own.
  */
-export function groupProblem(group: GroupItem, noun: ItemNoun, branchName: string): string | null {
+export function groupProblem(
+  group: GroupItem,
+  noun: ItemNoun,
+  branchName: string,
+  based = false
+): string | null {
   const name = group.name.trim();
   const branch = branchName.trim();
   if (noun === 'sub-group' && group.items.some((member) => member.type === 'group')) {
     return RULES_MESSAGES.rulesOnly(name, branch);
   }
-  if (group.items.filter((member) => member.mark !== 'removed').length < 2) {
+  const counted = !based || group.mark === 'added';
+  if (counted && effectiveItems(group.items, based).length < 2) {
     return RULES_MESSAGES.tooFewMembers(name, branch);
   }
   if (textLength((group.message ?? '').trim()) > MESSAGE_MAX_LENGTH) {
@@ -225,15 +260,21 @@ export function groupProblem(group: GroupItem, noun: ItemNoun, branchName: strin
   return null;
 }
 
-/** The first problem of a rule's target, condition and message, or of a group's content. */
+/**
+ * The first problem of a rule's target, condition and message, or of a group's content. What a
+ * based branch inherits unchanged is checked in the main branch (`checkedInBranch`), but an
+ * inherited group's members still need to fit it.
+ */
 function contentProblem(
   { item, noun }: ItemAtDepth,
-  branchName: string,
+  branch: BranchInput,
   context: RuleContext
 ): string | null {
-  return item.type === 'rule'
-    ? ruleProblem(item, branchName, context)
-    : groupProblem(item, noun, branchName);
+  const based = branch.origin === 'based';
+  if (item.type === 'group') {
+    return groupProblem(item, noun, branch.name, based);
+  }
+  return checkedInBranch(branch, item) ? ruleProblem(item, branch.name, context) : null;
 }
 
 function identifiersAreValid(items: RuleTreeItem[]): boolean {
@@ -281,11 +322,14 @@ function branchProblem(
   return null;
 }
 
-/** The first problem of an item's name within its branch: missing, too long, taken, reserved. */
+/**
+ * The first problem of an item's name within its branch: missing, too long, taken by an item
+ * before it or by an undo (`taken`), or reserved.
+ */
 function itemNameProblem(
   { item, noun }: ItemAtDepth,
   branch: string,
-  earlier: Map<string, ItemAtDepth>
+  taken: Map<string, TakenName>
 ): string | null {
   const name = item.name.trim();
   if (!name) {
@@ -294,9 +338,9 @@ function itemNameProblem(
   if (textLength(name) > NAME_MAX_LENGTH) {
     return RULES_MESSAGES.itemNameTooLong(noun, branch);
   }
-  const other = earlier.get(foldName(name));
-  if (other) {
-    return RULES_MESSAGES.nameTaken(other.noun, branch, other.item.name.trim());
+  const other = taken.get(foldName(name));
+  if (other && other.ownerId !== item.id) {
+    return RULES_MESSAGES.nameTaken(other.noun, branch, other.name);
   }
   return reservedNameProblem(name, item);
 }
@@ -306,8 +350,10 @@ function itemNameProblem(
  * server's order: the number of branches and the main branch; then branch by branch its name,
  * description, size and identifiers, followed by its items in display order, each group before
  * its members. A rule's name comes before its target, condition and message; a group's name
- * before what it holds, its number of members and its message. A problem that names a branch and
- * an item comes with both, so that the UI can open the branch and move the focus to the item.
+ * before what it holds, its number of members and its message. In a based branch, the names an
+ * undo gives back are taken, and what it inherits unchanged is checked once, in the main branch.
+ * A problem that names a branch and an item comes with both, so that the UI can open the branch
+ * and move the focus to the item.
  *
  * `context.documents` are the requested documents with only their requested fields
  * (`requestedRuleDocuments`).
@@ -328,14 +374,18 @@ export function firstProblem(branches: BranchInput[], context: RuleContext): Rul
     }
     branchNames.add(foldName(branch.name));
     const branchName = branch.name.trim();
-    const earlier = new Map<string, ItemAtDepth>();
+    // The server starts a branch's names from those an undo gives back
+    const taken = new Map(
+      namesGivenBackByUndo(branches[0], branch).map((entry) => [foldName(entry.name), entry])
+    );
     for (const entry of itemsWithNouns(branch.items)) {
       const message =
-        itemNameProblem(entry, branchName, earlier) ?? contentProblem(entry, branchName, context);
+        itemNameProblem(entry, branchName, taken) ?? contentProblem(entry, branch, context);
       if (message) {
         return { message, branchIndex, itemId: entry.item.id };
       }
-      earlier.set(foldName(entry.item.name), entry);
+      const name = entry.item.name.trim();
+      taken.set(foldName(name), { name, noun: entry.noun, ownerId: entry.item.id });
     }
   }
   return null;
