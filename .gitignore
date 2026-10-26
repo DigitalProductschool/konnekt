@@ -83,3 +83,6 @@ specs/*/figma-audit/*
 
 resume.sh
 .mcp.json
+
+# Playwright MCP snapshots and console logs
+.playwright-mcp/
