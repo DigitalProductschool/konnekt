@@ -12,7 +12,8 @@ import { copyTargetsOf } from './utils';
  * a click elsewhere close it, as the focus leaving it does, and "Copy" copies to what is chosen. It opens to the left of the ⋯
  * where it fits, otherwise to the right or across the window (WCAG 1.4.10). The popover takes the
  * focus from a press inside it that isn't on a control (bug copy-popover-label-click), so that a
- * click on a variant's name ticks it instead of closing the popover.
+ * click on a variant's name ticks it instead of closing the popover. Cancel calls `onClose`
+ * without the click event, as Escape does (bug copy-popover-cancel-crash).
  */
 export default function CopyPopover({
   state,
@@ -108,7 +109,7 @@ export default function CopyPopover({
       <div className="flex justify-end gap-8">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onClose()}
           className="kern-btn kern-btn--tertiary kern-btn--small"
         >
           <span className="kern-label">{RULES_COPY.cancel}</span>

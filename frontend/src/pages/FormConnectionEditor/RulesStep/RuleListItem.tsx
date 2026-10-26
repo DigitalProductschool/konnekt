@@ -38,10 +38,23 @@ export default function RuleListItem({
   // Where "Copy to variant" opens from the ⋯, measured when it is chosen
   const [copyPlacement, setCopyPlacement] = useState<PopupPlacement>('end');
 
-  /** Closes "Copy to variant" with the focus back on the rule's ⋯. */
-  function closeCopy(targets?: string[]) {
-    dispatch(targets ? { type: 'copyRule', targets } : { type: 'closeDialog' });
+  function focusActions() {
     actionsRef.current?.querySelector<HTMLElement>('[aria-haspopup=menu]')?.focus();
+  }
+
+  /**
+   * Closes "Copy to variant" with the focus back on the rule's ⋯. It takes no argument, so a
+   * click event passed to it can't be taken for targets (bug copy-popover-cancel-crash).
+   */
+  function closeCopy() {
+    dispatch({ type: 'closeDialog' });
+    focusActions();
+  }
+
+  /** Copies the rule to these branches, by key, with the focus back on the rule's ⋯. */
+  function copyTo(targets: string[]) {
+    dispatch({ type: 'copyRule', targets });
+    focusActions();
   }
   return (
     <RuleRow
@@ -97,7 +110,7 @@ export default function RuleListItem({
                 branchKey={branch.key}
                 ruleName={rule.name}
                 placement={copyPlacement}
-                onCopy={closeCopy}
+                onCopy={copyTo}
                 onClose={closeCopy}
                 onDismiss={() => dispatch({ type: 'closeDialog' })}
               />

@@ -504,6 +504,16 @@ describe('variants (FR-019 to FR-024)', () => {
     expect(copied.dialog).toBeNull();
   });
 
+  it('closes "Copy to variant" without copying (bug copy-popover-cancel-crash)', () => {
+    const state = withVariant('empty');
+    const asked = run(state, { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' });
+    const closed = run(asked, { type: 'closeDialog' });
+    expect(closed).toEqual({ ...asked, dialog: null });
+    expect(closed.branches).toEqual(state.branches);
+    expect(closed.counters).toEqual(state.counters);
+    expect(closed.toast).toEqual(state.toast);
+  });
+
   it('drops the copy toast’s Show with the next change, as an Undo is dropped', () => {
     const copied = run(
       withVariant('empty'),
