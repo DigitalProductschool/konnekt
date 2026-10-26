@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B3, B4, B5, B6, B7, B8 applied)
+# Bug Fix: Eight Rules UI fixes (B1–B8 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B3, B4, B5, B6, B7, B8 applied; B2 not yet)
+- **Status**: applied (all eight items; browser checks still pending for several, see Local Verification)
 
 ## Summary
 
@@ -12,6 +12,12 @@ The assessment's items are applied one at a time. This report covers each item a
 - **B1** (applied): a variant without rules now shows the dashed "No rules yet" box with 24px
   on every side, top included, as in Figma frame 1.1 (Empty wrap 6504:43840). The card still
   hugs the box and doesn't stretch to the window's height.
+- **B2** (applied): the open variant tab's black underline now runs under the whole tab, its ⋯
+  included (Figma "Rules/Variant tab · fixes" 6529:39174). The name, its (i) and the ⋯ share one
+  label row, 4px apart. The ⋯ is still a separate 32px button after the tab, and the tab is still
+  38px tall. "Add variant" moved 2px down, so its label is on the same line as the tab labels,
+  22px above the border (Figma "Add variant · aligned" 6542:39560). "Rename" still opens "Edit
+  variant"; Figma's inline rename isn't built.
 - **B3** (applied): in select mode, the bar with "N rules selected", "Cancel" and "Group rules"
   now pins under the wizard's head once the rules card's top scrolls past, and lets go when the
   user scrolls back up or reaches the card's end (Figma note 6524:38720). Pinned, it has square
@@ -49,6 +55,9 @@ The assessment's items are applied one at a time. This report covers each item a
 | File | Change | Notes |
 |------|--------|-------|
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RulesEmptyState.tsx` | modified | B1. Wrapper `px-24 pb-24` → `p-24`; comment cites frame 1.1 instead of U11's "no space above" |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/BranchTab.tsx` | modified | B2. One column: label row (name, (i), and while open the ⋯ in a `-my-4` wrapper), then the 2px underline at full width; doc comment cites 6529:39174 |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/BranchTabs.tsx` | modified | B2. "Add variant"'s wrapper `-mb-2 pt-2`: 2px lower, row height unchanged; comment cites 6542:39560 |
+| `specs/002-connection-rules/design-notes.md` | modified | B2. §4 "Tab menu" decision: dated update with the new structure and alignment |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/SelectionBar.tsx` | modified | B3. `sticky top-0 z-1`; a 1px sentinel before the bar; resting/pinned classes; the text gets `basis-192` so it wraps onto its own line when narrow; doc comment |
 | `frontend/src/hooks/usePinned.ts` | added | B3. `IntersectionObserver` on the sentinel and the bar; each callback compares their tops |
 | `frontend/src/utils/stickyPin.ts` | added | B3. Pure `isPinned(sentinelTop, barTop)` |
@@ -103,6 +112,36 @@ The elements that can come before the box in the card (`RulesStep/index.tsx:217-
 their own padding. The box therefore sits 24px under the link strip (which has no outer
 padding), and 32px under the switch note (`pb-8`) or the problems banner (`p-8`). Those
 elements' own spacing was not changed.
+
+B2:
+
+```tsx
+// BranchTab.tsx: the underline is now a sibling of the whole label row, ⋯ included
+<div className="flex min-w-0 flex-col gap-8 pt-4">
+  <div className="flex min-h-24 min-w-0 items-center gap-4">
+    <BranchName …><button role="tab" …>{branch.name}</button></BranchName>
+    {selected && (
+      <div className="-my-4 shrink-0">
+        <BranchMenu … />
+      </div>
+    )}
+  </div>
+  <span aria-hidden="true" className={`h-2 w-full ${selected ? 'bg-kern-layout-text-default' : ''}`} />
+</div>
+```
+
+```tsx
+// BranchTabs.tsx
+<div className="-mb-2 flex items-center pt-2">
+  <button id={ELEMENT_IDS.addVariant} className="kern-btn kern-btn--tertiary kern-btn--small">…
+```
+
+The `-my-4` wrapper lets the 32px ⋯ overhang the 24px label row, so the tab stays 4 + 24 + 8 +
+2 = 38px tall. It isn't positioned, so `ActionMenu`'s own wrapper stays the menu's anchor and a
+`full` placement still reaches the rules card. "Add variant" is moved with padding and a negative
+margin on its wrapper, not with KERN's `.kern-btn` margins (KERN's CSS beats Tailwind there) or a
+transform (that would make a stacking context and trap the (i)'s z-20 bubble). Its (i), shown
+while Standard is the only variant, moves with it.
 
 B3:
 
@@ -272,6 +311,8 @@ documents.
 
 - None for B1: it is a CSS change only, and Vitest has no DOM. It needs a browser check (see
   Local Verification).
+- None for B2: it is layout only, and Vitest has no DOM. Checked in the browser instead (see
+  Local Verification).
 - None for B5. Vitest runs without a DOM (`frontend/vite.config.ts`), and the handler depends on
   focus events. The assessment calls for a browser check instead (see Local Verification).
 - None for B6: the handler depends on DOM focus and selection, and Vitest has no DOM. Browser
@@ -331,6 +372,43 @@ B1:
     Standard.
   - The same in a based variant: 24px under the link strip.
   - The same with a switch note shown: 32px under it.
+
+B2:
+
+- Figma: `get_design_context` on 6529:39174 ("Rules/Variant tab · fixes") and 6542:39560 ("Add
+  variant · aligned"). Their icons are KERN's `more-vert`, `info` and `add`, which the code
+  already uses through the `kern-icon` classes and `InfoTooltip`, so no asset was downloaded.
+- Commands run:
+  - `npx prettier --write` on the two files → unchanged
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint` on the two files → clean
+  - `npm test` → 16 files, 517 tests passed
+- Manual checks, done in Chromium (Playwright). The dev server ran on `:5173` and the API was
+  mocked in the browser, as for B3: a connection with Standard (with a description), a based
+  variant "Under eighteen" (opened) and an empty variant with a description. Body width 1440 at
+  window 1455×900. All distances are measured from the top of the tab row's 1px border:
+
+  | Element | Property | Figma | Before | After |
+  |---------|----------|-------|--------|-------|
+  | Open tab | underline width | whole tab (label row, ⋯ incl.) | name + (i) only | 162.7 = label row 162.7 (⋯ 253.5–285.5 inside) |
+  | Open tab | height | 4 + 24 + 8 + 2 = 38 | 38 | 38 |
+  | ⋯ | target | 32 | 32 | 32×32, centre 22 above the border |
+  | Label row | gap name / (i) / ⋯ | 4 | 4 | 4 |
+  | Tab labels | centre above the border | 22 | 22 | 22 (all three) |
+  | "Add variant" label | centre above the border | 22 (on the tab labels' line) | 24 | 22 |
+  | Tab row | height | 48 + 1 border | 49 | 49 |
+  | Tab labels | font size | 16 | 18 | 18 (KERN 2.8 vs Revamp, unchanged) |
+  | (i) | style | dark Rules/Tooltip | spec 001's light bubble | unchanged (design-notes §4) |
+
+  - ⋯ of the open tab: the menu opens 4px under the trigger, right edge on the ⋯'s (`end`
+    placement), with "Rename" and "Delete". Escape gives the focus back to the ⋯.
+  - 320×640: the tabs wrap onto two lines with "Add variant" on a third. Each underline spans its
+    tab. No horizontal scroll (`scrollWidth` 305). The ⋯ menu of the open tab in the second line
+    opens across the card (16–289px, `full`).
+  - Screenshots saved to the scratchpad (`b2-tabs-1455.png`, `b2-menu-1455.png`,
+    `b2-tabs-320.png`), not part of the repo; compared with the Figma renders of both nodes.
+- Not checked: Firefox, 200% zoom, and the (i) after "Add variant" with Standard alone (the
+  mock had three variants; per the code it moves with the button).
 
 B3:
 
@@ -451,7 +529,10 @@ B8:
 
 ## Deviations from Assessment
 
-None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/messageField.ts`
+None for B1, B2, B5 or B6. For B2, `ActionMenu.tsx`, which the assessment listed as "maybe",
+didn't change: the ⋯'s overhang is a wrapper in `BranchTab`, since the rule rows share
+`ActionMenu`. `figma-audit/report.md` and `contracts/ui-screens.md` were left as they are, as for
+the other items; design-notes §4 records the change. For B6, the handler lives in a new shared `src/utils/messageField.ts`
 (not listed in the assessment), so that the two components don't duplicate it. For B1, the assessment's docs list includes "design-notes §2 empty state".
 No spec document records the empty state's padding (design-notes:48 lists only its wording), so
 no doc changed.
@@ -511,10 +592,10 @@ For B8:
 
 ## Follow-ups
 
-- Apply B2 (`/speckit-bug-fix slug=rules-ui-fixes B2`), adding it to this report.
 - B3: check in Firefox and Safari, and in a based variant (the link strip scrolls away, the bar
   pins). Check against a real backend once one is available.
-- Browser verification of B1, B4, B5, B6, B7 and B8 in `/speckit-bug-test` (B3 has had a Chromium check against a mocked API).
+- Browser verification of B1, B4, B5, B6, B7 and B8 in `/speckit-bug-test` (B2 and B3 have had
+  a Chromium check against a mocked API). B2 still in Firefox and at 200% zoom.
 - B8: if the reporter expects the rules summed per variant rather than counted once, only
   `rulesCountsOf` changes.
 - B4: nothing in the UI mentions Ctrl/Cmd+Z. If users should know, the Undo toast or the delete

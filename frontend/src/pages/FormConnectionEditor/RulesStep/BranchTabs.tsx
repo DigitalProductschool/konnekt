@@ -53,7 +53,10 @@ export default function BranchTabs({ state, dispatch }: BranchTabsProps) {
           />
         ))}
       </div>
-      <div className="flex items-center">
+      {/* 2px lower than KERN's margins put it, so that its label is on the line of the tab
+          labels, 22px above the border (Figma "Add variant · aligned" 6542:39560, B2); the
+          negative margin keeps the row 48px tall */}
+      <div className="-mb-2 flex items-center pt-2">
         <button
           id={ELEMENT_IDS.addVariant}
           type="button"

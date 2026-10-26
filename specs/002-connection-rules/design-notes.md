@@ -207,6 +207,14 @@ Decided by the user where the frames leave a gap (node discovery's UNCERTAIN ite
 - **Tab menu** (W3): the ⋯ ("Rules/More button", 32px) sits right after the open tab's name and
   its (i), beside the tab's underline; other tabs show none until opened. The (i) and the ⋯ sit
   beside the tab button, not in it, so that the tab stays one control.
+  *Updated 2026-10-26 (bug rules-ui-fixes B2, Figma "Rules/Variant tab · fixes" `6529:39174`):*
+  the name, its (i) and the ⋯ form one label row, 4px apart, and the underline spans that whole
+  row, ⋯ included. The ⋯ keeps its 32px target and overhangs the 24px row by 4px above and below,
+  so the tab stays 38px tall. "Add variant" sits 2px lower than KERN's button margins put it, so
+  that its label is on the line of the tab labels, 22px above the border (Figma "Add variant ·
+  aligned" `6542:39560`); the row stays 48px tall. Figma's inline rename (11.3, 11.4) isn't
+  built: "Rename" keeps opening "Edit variant", which also edits the description. The labels stay
+  KERN 2.8's 18px (Figma's 16px is Revamp).
 - **Copy to variant** (U20 `6344:53981`): Figma's popover under the rule's ⋯, not a modal
   dialog. The focus moves into it; Escape, Cancel and a click elsewhere close it and give the
   focus back to the ⋯.
