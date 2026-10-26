@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B4, B5, B6, B7 applied)
+# Bug Fix: Eight Rules UI fixes (B1, B4, B5, B6, B7, B8 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B4, B5, B6, B7 applied; B2, B3, B8 not yet)
+- **Status**: partial (B1, B4, B5, B6, B7, B8 applied; B2, B3 not yet)
 
 ## Summary
 
@@ -32,6 +32,11 @@ The assessment's items are applied one at a time. This report covers each item a
   `ruleFieldLabel(field)` returns it for a field with `date_of_birth`, in the PID and in the mDL.
   The documents step, the citizen-facing messages (proposed or written), the editor's hints,
   the validation messages (the server's words) and the backend keep "Date of birth".
+- **B8** (applied): on the details page, the closed "Rules" card now shows under its title how
+  many variants and rules the connection has, e.g. "3 variants · 6 rules" (Figma 10.11
+  6530:40737). Standard counts as a variant. Every distinct rule counts once, so a rule that
+  variants inherit, change or remove isn't counted twice. Grouped rules count one by one, groups
+  don't. The hint hides while the card is open.
 
 ## Changes
 
@@ -64,6 +69,13 @@ The assessment's items are applied one at a time. This report covers each item a
 | `specs/002-connection-rules/spec.md` | modified | B7. New "Session 2026-10-26 (bug fixes)" clarification; FR-005's example |
 | `specs/002-connection-rules/contracts/ui-screens.md` | modified | B7. The rule list's example statement (S2) |
 | `specs/002-connection-rules/design-notes.md` | modified | B7. §3 date pickers: the field's rules name, and why the "Date of birth" section keeps its name |
+| `frontend/src/pages/FormConnectionDetail/utils.ts` | modified | B8. `rulesCountsOf(branches)`: variant count and distinct countable rule ids (removed items skipped, as `countRules` does) |
+| `frontend/src/pages/FormConnectionDetail/constants.ts` | modified | B8. `DETAIL_COPY.rulesCounts(variants, rules)`, pluralised, joined with " · " |
+| `frontend/src/pages/FormConnectionDetail/RulesSummary.tsx` | modified | B8. Muted `<p hidden={open}>` under the h2; doc comment no longer says the counts aren't built |
+| `frontend/src/pages/FormConnectionDetail/utils.test.ts` | added tests | B8. `describe('rulesCountsOf')` |
+| `specs/002-connection-rules/spec.md` | modified | B8. Clarification in "Session 2026-10-26 (bug fixes)"; it supersedes the "no counters" answer for these two counts only |
+| `specs/002-connection-rules/design-notes.md` | modified | B8. §7 details: the hint is back, with Figma 10.11's values and the counting rule |
+| `specs/002-connection-rules/contracts/ui-screens.md` | modified | B8. F25 row: the rules card's counts are the exception |
 
 ## Diff Highlights (optional)
 
@@ -181,6 +193,32 @@ Where "Date of birth" stays, deliberately:
 - The documents step.
 - The backend.
 
+B8:
+
+```ts
+// pages/FormConnectionDetail/utils.ts
+export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
+  const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
+  return DETAIL_COPY.rulesCounts(branches.length, ruleIds.size);
+}
+```
+
+```tsx
+// RulesSummary.tsx, in the title column under the h2
+<p
+  hidden={open}
+  className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
+>
+  {counts}
+</p>
+```
+
+The classes are the Documents card's hint's (`DocumentsSummary.tsx`), which match Figma 10.11's
+"body/small/regular" (14/24, `layout-text-muted`). Figma's title column has no gap, so none was
+added. Figma's line also starts with "2 documents · 9 data items". That part was left out because
+the report asks only for variants and rules, and the Documents card next to it already lists the
+documents.
+
 ## Tests Added or Updated
 
 - None for B1: it is a CSS change only, and Vitest has no DOM. It needs a browser check (see
@@ -213,6 +251,13 @@ Where "Date of birth" stays, deliberately:
   - The missing-value note says "If the date of birth is missing" without "(Age)".
 - B7, `src/utils/rules/messages.test.ts › date of birth in messages (B7)`: a from-now message on
   the date of birth reads "…date of birth of your personal ID…", without "(age)".
+- B8, `src/pages/FormConnectionDetail/utils.test.ts › rulesCountsOf (Figma 10.11, B8)`:
+  - "1 variant · 0 rules" for Standard without rules.
+  - "1 variant · 1 rule" (singular).
+  - The rules in groups and sub-groups count one by one, the groups don't (4 rules).
+  - Standard (3 rules), a based variant that inherits, changes and removes them and adds one, and
+    an empty variant with 2 rules: "3 variants · 6 rules".
+  - The rules of a removed group, and a removed rule, don't count when no other branch holds them.
 - `validation.test.ts:280-281` and `FormConnectionEditor/utils.test.ts:224,292` were left
   unchanged and still pass. They pin the server's words and the documents step's "Stop requesting
   Date of birth?".
@@ -305,6 +350,23 @@ B4:
     step's "removed" toast.
   - Screen reader: each toast is still announced once.
 
+B8:
+
+- Commands run:
+  - `npx prettier --write` on the four files → unchanged
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint src/pages/FormConnectionDetail` → clean
+  - `npm test` → 15 files, 514 tests passed (509 before, 5 new)
+- Figma: `get_design_context` on 6530:40737 (the collapsed Summary card), for the hint's type,
+  colour and gap. No asset from it is used ("Download PDF" stays unbuilt).
+- Manual checks: **not done**. Neither `:5173` nor `:8000` answered, so there was no way to sign
+  in. Checks still to do in the app (Figma workflow, 1455×900 and 320px):
+  - A published connection with variants: the closed card reads e.g. "3 variants · 6 rules" under
+    "Rules", 14/24 muted, flush under the title.
+  - "View summary" hides the hint, and "Hide summary" shows it again.
+  - At 320px the actions still wrap under the title column.
+  - A screen reader reads the hint after the heading while the card is closed.
+
 ## Deviations from Assessment
 
 None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/messageField.ts`
@@ -338,11 +400,22 @@ For B7:
   dated clarification in `spec.md` supersedes their example. Only the live S2 contract line (:63)
   and FR-005's example were updated.
 
+For B8:
+
+- The assessment's open question on a connection without rules is decided by its default: "0
+  rules" ("1 variant · 0 rules"), following the `items` pattern. It is recorded in the spec's
+  clarification.
+- Docs: the assessment also lists `contracts/ui-screens.md:366` (FYI #17) and
+  `figma-audit/report.md` (:64, :127). They were left as they are, as for B7's F1 rows: they
+  record the audit's decisions of 2026-10-24. The live F25 contract row, design-notes §7 and the
+  spec's new clarification record the change. design-notes' T077 log entry (:543) stays as history.
+
 ## Follow-ups
 
-- Apply B2, B3 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
-  report.
-- Browser verification of B1, B4, B5, B6 and B7 in `/speckit-bug-test`.
+- Apply B2 and B3 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this report.
+- Browser verification of B1, B4, B5, B6, B7 and B8 in `/speckit-bug-test`.
+- B8: if the reporter expects the rules summed per variant rather than counted once, only
+  `rulesCountsOf` changes.
 - B4: nothing in the UI mentions Ctrl/Cmd+Z. If users should know, the Undo toast or the delete
   dialogs' "You can undo this right after." could name it; that is a copy decision for the
   reporter.

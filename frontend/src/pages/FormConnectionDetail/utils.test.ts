@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Branch, FormConnection } from '../../types/form-connections';
-import { resultLinksOf } from './utils';
+import type {
+  Branch,
+  BranchInput,
+  FormConnection,
+  GroupItem,
+  Mark,
+  RuleTreeItem,
+} from '../../types/form-connections';
+import { mainBranch, rule } from '../../utils/rules/testData';
+import { resultLinksOf, rulesCountsOf } from './utils';
 
 function branch(id: string, name: string, isMain = false): Branch {
   return {
@@ -60,5 +68,61 @@ describe('resultLinksOf (FR-026; F24, W2)', () => {
         'Ambulance',
       ],
     ]);
+  });
+});
+
+function marked<T extends RuleTreeItem>(item: T, mark: Mark | null): T {
+  return { ...item, mark };
+}
+
+function group(number: number, items: RuleTreeItem[]): GroupItem {
+  return {
+    type: 'group',
+    id: `group-${number}`,
+    name: `Group 0${number}`,
+    mark: null,
+    operator: 'or',
+    message: null,
+    items,
+  };
+}
+
+function variant(origin: BranchInput['origin'], items: RuleTreeItem[]): BranchInput {
+  return { ...mainBranch(items), name: 'Ambulance', origin };
+}
+
+describe('rulesCountsOf (Figma 10.11, B8)', () => {
+  it('counts Standard as a variant, and no rules as 0 rules', () => {
+    expect(rulesCountsOf([mainBranch([])])).toBe('1 variant · 0 rules');
+  });
+
+  it('uses the singular for one rule', () => {
+    expect(rulesCountsOf([mainBranch([rule(1, null, null)])])).toBe('1 variant · 1 rule');
+  });
+
+  it('counts the rules in groups and sub-groups one by one, not the groups', () => {
+    const items = [
+      rule(1, null, null),
+      group(1, [rule(2, null, null), group(2, [rule(3, null, null), rule(4, null, null)])]),
+    ];
+    expect(rulesCountsOf([mainBranch(items)])).toBe('1 variant · 4 rules');
+  });
+
+  it('counts a rule that variants inherit, change or remove once, and their own rules too', () => {
+    const standard = [rule(1, null, null), rule(2, null, null), rule(3, null, null)];
+    const ambulance = variant('based', [
+      rule(1, null, null),
+      marked(rule(2, null, null), 'changed'),
+      marked(rule(3, null, null), 'removed'),
+      marked(rule(4, null, null), 'added'),
+    ]);
+    const taxi = variant('empty', [rule(5, null, null), rule(6, null, null)]);
+    expect(rulesCountsOf([mainBranch(standard), ambulance, taxi])).toBe('3 variants · 6 rules');
+  });
+
+  it('skips a rule that only a removed item holds', () => {
+    const removedGroup = marked(group(1, [rule(1, null, null), rule(2, null, null)]), 'removed');
+    const items = [removedGroup, marked(rule(3, null, null), 'removed'), rule(4, null, null)];
+    expect(rulesCountsOf([variant('empty', items)])).toBe('1 variant · 1 rule');
   });
 });

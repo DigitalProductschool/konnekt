@@ -341,7 +341,12 @@ summary" (FYI #17). Text rules read as in section 3.
 Built (T043), where U37 leaves the wording open:
 - The card's title is "Rules" (U37: "Summary"). T043 also built the hint "1 variant · 5 rules"
   under it; T077 removed it (2026-10-26), since it is one of the counters F25 drops (U37
-  `6396:47754`; spec Clarification 2026-10-24: no counters).
+  `6396:47754`; spec Clarification 2026-10-24: no counters). The bug fix `rules-ui-fixes` B8
+  brought it back the same day (spec Clarification 2026-10-26): while the card is closed, the
+  hint under the title reads "3 variants · 6 rules" (Figma 10.11 `6530:40737`: Regular 14/24,
+  `layout-text-muted`, no gap under the title). Standard counts as a variant; every distinct rule
+  counts once, groups don't (`rulesCountsOf` in `pages/FormConnectionDetail/utils.ts`). Figma's
+  "2 documents · 9 data items" isn't repeated there: the Documents card is beside it.
 - A variant without rules (proposed): "No rules. Anyone who shares the requested documents can
   apply."
 

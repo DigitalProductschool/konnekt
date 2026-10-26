@@ -27,6 +27,9 @@ export const DETAIL_COPY = {
   items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
   // The rules of every variant (S6; FYI #17, F26): a card that opens on request
   rulesTitle: 'Rules',
+  // Figma 10.11 (6530:40737): under the closed card's title, e.g. "3 variants · 6 rules" (B8)
+  rulesCounts: (variants: number, rules: number) =>
+    `${variants} ${variants === 1 ? 'variant' : 'variants'} · ${rules} ${rules === 1 ? 'rule' : 'rules'}`,
   // No frame: the card's way to the edit wizard's Rules step, in Download PDF's place (F25, F27)
   editRules: 'Edit rules',
   viewSummary: 'View summary',

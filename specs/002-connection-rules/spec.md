@@ -108,9 +108,10 @@ Questions raised by the cross-artifact analysis of the spec, the plan and the ta
 
 ### Session 2026-10-26 (bug fixes)
 
-Decisions taken with the reporter of `.specify/bugs/rules-ui-fixes` (B7).
+Decisions taken with the reporter of `.specify/bugs/rules-ui-fixes` (B7, B8).
 
 - Q: Should the rules name the "Date of birth" as an age, since its checks read "is at least 21 years old"? → A: Yes. Wherever the rules UI names the field, in the data menu and its search, the chosen data, every statement, the details and the delete dialog, it reads "Date of birth (Age)", such as "Personal ID – Date of birth (Age) is at least 21 years old" (FR-005). The documents step keeps the catalog's "Date of birth". So do the messages for the citizen, the hints, the server's messages and the documents delivered to serviceBW. The check menu's "Date of birth" section, the fixed-date checks under "Age", keeps its name. This supersedes the example in the 2026-10-24 answer on how a "Date of birth" rule reads.
+- Q: Should the details' closed rules card show how many variants and rules the connection has? → A: Yes, under its title while it is closed, such as "3 variants · 6 rules". Standard counts as a variant, and every distinct rule counts once: a rule that variants inherit, change or remove counts once, the rules in groups count one by one, the groups don't, and a connection without rules shows "0 rules". This supersedes, for these two counts only, the 2026-10-24 answer that leaves counters for later; "Live since", the PDF export and the activity log stay out.
 
 ## User Scenarios & Testing *(mandatory)*
 
