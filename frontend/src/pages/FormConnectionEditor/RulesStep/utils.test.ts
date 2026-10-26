@@ -478,6 +478,20 @@ describe('variants (FR-019 to FR-024)', () => {
     expect(copied.showBranch).toBe('new-1');
     expect(copied.dialog).toBeNull();
   });
+
+  it('drops the copy toast’s Show with the next change, as an Undo is dropped', () => {
+    const copied = run(
+      withVariant('empty'),
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: ['new-1'] }
+    );
+    const renamed = run(
+      copied,
+      { type: 'startRename', branchKey: BRANCH, itemId: 'rule-2' },
+      { type: 'rename', name: 'Old enough' }
+    );
+    expect(renamed.toast).toEqual({ ...copied.toast, actionLabel: undefined });
+  });
 });
 
 describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)', () => {

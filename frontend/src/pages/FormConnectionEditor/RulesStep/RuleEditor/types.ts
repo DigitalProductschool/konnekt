@@ -1,6 +1,6 @@
 import type { Dispatch, KeyboardEvent, ReactNode } from 'react';
 
-import type { Condition, RuleItem } from '../../../../types/form-connections';
+import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
 import type { OptionSet } from '../../../../types/option-sets';
 import type { OperatorDefinition } from '../../../../utils/rules/types';
 import type { RulesCatalog } from '../types';
@@ -45,6 +45,28 @@ export interface RuleEditorState {
   typed: Partial<Record<'value' | 'years' | 'amount', string>>;
   /** The value fields that were used, whose problems show (U25) */
   touched: Partial<Record<ValueField, boolean>>;
+  /** "Save rule" was pressed on an incomplete rule, so the rule's problem shows (WCAG 3.3.1) */
+  saveTried: boolean;
+}
+
+/** A control of the rule editor; its element id is the editor's id base and this, joined by "-" */
+export type EditorControl = 'document' | 'data' | 'part' | 'check' | 'value' | 'values' | 'message';
+
+/** What missingControl() needs to know about the rule being edited */
+export interface MissingControlInput {
+  /** The chosen document, also before its data */
+  document: string | null;
+  target: RuleTarget | null;
+  /** The target checks data that is no longer requested */
+  unrequested: boolean;
+  /** The target is made of parts, and its part, or its licence class, isn't chosen yet */
+  partMissing: boolean;
+  condition: Condition | null;
+  /** The condition's values are complete */
+  conditionComplete: boolean;
+  /** The check takes values from a set, in the values picker */
+  valuesInput: boolean;
+  message: string;
 }
 
 export type RuleEditorAction =
@@ -163,6 +185,8 @@ export interface ChoicePickerProps {
   disabled?: boolean;
   /** The red border: what is chosen is no longer requested */
   invalid?: boolean;
+  /** The id of the text that says what is wrong with the picker or missing from it */
+  describedBy?: string;
   sections: MenuSection[];
   widthClass: string;
   searchPlaceholder?: string;
@@ -252,11 +276,15 @@ export interface EditorHintProps {
 export interface FieldErrorProps {
   id: string;
   message: string;
+  /** Announced as it appears, for a problem shown without the focus moving to it first */
+  alert?: boolean;
 }
 
 export interface MessageFieldProps {
   id: string;
   message: string;
+  /** The id of the text that says the rule has no message, once "Save rule" was pressed */
+  errorId?: string;
   onChange: (message: string) => void;
 }
 

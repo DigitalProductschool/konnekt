@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
+import type { AriaRole, InputHTMLAttributes, ReactNode, Ref } from 'react';
 
 export interface TextFieldProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -10,5 +10,7 @@ export interface TextFieldProps extends Omit<
   labelAddon?: ReactNode;
   /** The error message, shown under the field and linked to it */
   error?: ReactNode;
+  /** "alert" to announce the error as it appears, also while the field keeps the focus */
+  errorRole?: AriaRole;
   ref?: Ref<HTMLInputElement>;
 }

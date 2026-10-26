@@ -1,4 +1,5 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
+import type { PopupPlacement } from '../../../utils/popupPlacement';
 import type { ItemNameSize } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */
@@ -11,6 +12,25 @@ export const NAME_SIZES: Record<ItemNameSize, string> = {
   rule: 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)',
   group: 'text-kern-adaptive-medium leading-(--kern-typography-line-height-medium-adaptive)',
   'sub-group': 'text-kern-static-medium leading-(--kern-typography-line-height-medium-static)',
+};
+
+/** The width of a ⋯ menu (U14 6113:28988), and of the "Copy to variant" popover (U20) */
+export const ACTION_MENU_WIDTH = 220;
+export const COPY_POPOVER_WIDTH = 300;
+
+/**
+ * Where a ⋯ menu or the copy popover opens from its ⋯ (utils/popupPlacement.ts): below it,
+ * opening to the side that fits, or across the rules card when neither does
+ */
+export const ACTION_MENU_PLACEMENTS: Record<PopupPlacement, string> = {
+  start: 'absolute top-full left-0 w-220',
+  end: 'absolute top-full right-0 w-220',
+  full: 'absolute inset-x-16',
+};
+export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, string> = {
+  start: 'absolute top-full left-0 w-300',
+  end: 'absolute top-full right-0 w-300',
+  full: 'absolute inset-x-16',
 };
 
 export const RULES_COPY = {

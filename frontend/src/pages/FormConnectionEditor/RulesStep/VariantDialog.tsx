@@ -1,4 +1,5 @@
 import { useEffect, useId, useReducer, useRef } from 'react';
+import { flushSync } from 'react-dom';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import TextField from '../../../components/TextField';
@@ -19,7 +20,7 @@ import {
 /**
  * "Add variant" (U17 6139:32693) and, from a tab's "Rename", "Edit variant" (W3), which has no
  * intro and no "Start with". A missing or used name is refused under the name, as in U26
- * 6197:12011, and the focus goes back to it. The variant starts based on Standard unless the
+ * 6197:12011, announced, and the focus goes back to it. The variant starts based on Standard unless the
  * team member chooses "Start empty" (FR-019, FR-020).
  */
 export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
@@ -44,7 +45,8 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
   function handleConfirm() {
     const problem = variantFormProblem(form, state, editing?.key ?? null);
     if (problem) {
-      dispatchForm({ type: 'refuse', error: problem });
+      // Rendered first, so that the name is invalid and described when it takes the focus
+      flushSync(() => dispatchForm({ type: 'refuse', error: problem }));
       nameRef.current?.focus();
       return;
     }
@@ -82,6 +84,7 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
           label={RULES_COPY.variantName}
           value={form.name}
           error={form.error}
+          errorRole="alert"
           onChange={(event) =>
             dispatchForm({ type: 'change', changes: { name: event.target.value } })
           }

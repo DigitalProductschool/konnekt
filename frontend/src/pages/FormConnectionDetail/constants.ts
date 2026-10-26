@@ -29,8 +29,6 @@ export const DETAIL_COPY = {
   rulesTitle: 'Rules',
   // No frame: the card's way to the edit wizard's Rules step, in Download PDF's place (F25, F27)
   editRules: 'Edit rules',
-  rulesCount: (variants: number, rules: number) =>
-    `${variants} ${variants === 1 ? 'variant' : 'variants'} · ${rules} ${rules === 1 ? 'rule' : 'rules'}`,
   viewSummary: 'View summary',
   hideSummary: 'Hide summary',
   // Proposed, after the Rules step's empty state (design-notes.md §2)

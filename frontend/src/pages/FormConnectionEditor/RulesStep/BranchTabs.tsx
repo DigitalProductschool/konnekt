@@ -12,7 +12,9 @@ import { tabAfterKey } from './utils';
  * variant", from the start of the step: before the first rule and while a rule is edited too
  * (FR-019). While Standard is the only variant, an (i) after "Add variant" says what a variant
  * is (U17 6162:34206). The tabs follow WAI-ARIA's tab pattern: the arrow keys, Home and End
- * open another tab and move the focus there.
+ * open another tab and move the focus there. Each tab has its (i) and ⋯ beside it, which a tab
+ * list mustn't contain, so the tab list is an empty element that owns the tabs (`aria-owns`),
+ * and the row lays out the tabs with their buttons.
  */
 export default function BranchTabs({ state, dispatch }: BranchTabsProps) {
   const { branches, openBranch } = state;
@@ -33,8 +35,11 @@ export default function BranchTabs({ state, dispatch }: BranchTabsProps) {
       <div
         role="tablist"
         aria-label={RULES_COPY.variants}
-        className="flex flex-wrap items-end gap-x-24"
-      >
+        aria-owns={branches.map((branch) => ELEMENT_IDS.branchTab(branch.key)).join(' ')}
+        // Out of the row's flow, so that the row's gap doesn't count it
+        className="absolute"
+      />
+      <div className="flex min-w-0 flex-wrap items-end gap-x-24">
         {branches.map((branch, index) => (
           <BranchTab
             key={branch.key}

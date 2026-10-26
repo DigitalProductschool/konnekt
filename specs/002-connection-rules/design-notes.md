@@ -1,6 +1,6 @@
 # Design notes: rules, groups and variants
 
-**Tasks**: T002 (copy), T003 (tokens) | **Date**: 2026-10-25 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T002 (copy), T003 (tokens), T076 (accessibility, §10), T077 (coverage, §11) | **Date**: 2026-10-25, §7, §8, §10 and §11 2026-10-26 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
 - **Figma "Connection Portal"** (`s8mU9oJDq3411e8bxMjQO9`), page "🔗 Flow · Connection Portal, log in
@@ -337,8 +337,9 @@ contracts/ui-screens.md say what to build, and the rules card keeps "View summar
 summary" (FYI #17). Text rules read as in section 3.
 
 Built (T043), where U37 leaves the wording open:
-- The card's title is "Rules" (U37: "Summary"), with the hint "1 variant · 5 rules" (rules counted
-  once per identifier, removed ones left out).
+- The card's title is "Rules" (U37: "Summary"). T043 also built the hint "1 variant · 5 rules"
+  under it; T077 removed it (2026-10-26), since it is one of the counters F25 drops (U37
+  `6396:47754`; spec Clarification 2026-10-24: no counters).
 - A variant without rules (proposed): "No rules. Anyone who shares the requested documents can
   apply."
 
@@ -353,8 +354,9 @@ isn't built.
 
 ## 8. Open points
 
-None. The API's `409 rules_changed` message says "result link", as the UI does (decided
-2026-10-25: spec Assumptions "Design", contracts/management-api.md, T068).
+The API's `409 rules_changed` message says "result link", as the UI does (decided 2026-10-25:
+spec Assumptions "Design", contracts/management-api.md, T068). What the accessibility review and
+the coverage check leave open is in §10 ("Left to decide") and §11 ("Unresolved").
 
 ## 9. Tokens (T003)
 
@@ -457,3 +459,94 @@ text (FR-023, SC-009). Group frames (U14 `6094:6413`) use only KERN tokens: the 
   itself.
 
 No other value lacks a token, so nothing else was added.
+
+## 10. Accessibility review (T076, 2026-10-26)
+
+Spec 001's walkthrough (its quickstart V9) applied to the Rules step, the rule editor, the variant
+dialogs and menus, the publish dialog and the details' rules card (quickstart V7, SC-009): with
+the keyboard only, in Chromium at 1280, 640 (200 % zoom) and 320 px, reading the accessibility
+tree, plus a static review of the components. axe couldn't be run (loading it into the page was
+not allowed in this session), and no screen reader was used: run NVDA or VoiceOver over V7 before
+the release.
+
+**Passed as built**: marks carry text ("Changed here", "New addition", "Removed"); ≥, < and = are
+`aria-hidden` everywhere, and the statement's words carry the condition; connectors are menu
+buttons named after their level ("AND, switch Sub-group 02 to AND or OR") with
+`menuitemradio` items; the ⋯ menus, the tabs (arrow keys, Home, End) and select mode work with the
+keyboard, and select mode announces "2 rules selected"; the (i) tooltips open on keyboard focus,
+describe their button and close on Escape; dialogs are modal, labelled, and give the focus back;
+saving a rule announces "Rule 05 in Standard saved." and focuses its row; a refused Save focuses
+the rule it names, with the alert.
+
+**Fixed** (behaviour or layout that differs from Figma only where Figma can't hold it):
+- **Reflow at 320 px and 200 %** (WCAG 1.4.10):
+  - the group's and the rule's message fields collapsed to 0 px beside their label: they now wrap
+    under it (`GroupMessage`, `MessageField`);
+  - below 768 px the rule editor's pickers wrap a long choice and their menus hang from the
+    editor's content edge (`Picker`, `ChoicePicker`, `ChoiceMenu`, `ValuesPicker`);
+  - every other popup opens to the side where it fits, measured as it opens
+    (`utils/popupPlacement.ts`): the ⋯ menus, the connector menu, "Copy to variant" and the (i)
+    tooltips. This also fixes the first variant tab's ⋯ menu, which opened off the left edge at
+    1280 px. Where neither side fits, the popup spans the rules card or the page, under its
+    control, and a tooltip then has no arrow;
+  - a long variant name wraps in its tab;
+  - the publish summary puts the lines under their label below 640 px.
+- **Keyboard** (2.1.1): Tab reaches "Add it in Documents" in the data menu, which closes once the
+  focus leaves it; "Copy to variant" closes when the focus leaves it too.
+- **Errors** (3.3.1, 4.1.3): "Save rule" on an incomplete rule now says what is missing under the
+  check row, in the server's words ("Rule 05 in Standard: choose the data to check.", "… has no
+  error message."), announced, and moves the focus to that picker, value or message, which the
+  text describes. A rule on data no longer requested says so there, not only in red. A refused
+  variant name and a refused rename are announced.
+- **Focus** (2.4.3): a refused Publish keeps the focus on the rule it names, also when it closed an
+  empty rule editor; select mode's Cancel with no rule ticked goes to the level's "Add rule"; the
+  focused rule or group is described by its problem note.
+- **Structure** (1.3.1, 4.1.2): the variants' tab list owns only the tabs (`aria-owns`), not their
+  (i) and ⋯; the menus' section headings name their groups without being content of the list box,
+  and "No options match" is announced outside it; the values picker is a disclosure, since its
+  menu holds checkboxes; the publish summary is one `<dt>` and one `<dd>` per row.
+- **Timing** (2.2.1): a toast with an action, Undo or Show, stays in the Rules step until the next
+  change drops its action, then goes after its 6 seconds, so that keyboard users can reach the
+  action. Spec 001's documents toast is unchanged.
+- **Hints**: the Rules step shows three hints the audit keeps ("Settled as designed"), which T039
+  and T037 hadn't built: U30's "Check the time since or until this date, or compare it with a
+  fixed date." for dates other than the Date of birth (F3), U11's "Applicants who turn 21 that day
+  count.", and U32's "Place of birth has parts. Choose the part to check.".
+
+**Left to decide** (design choices that the review questions; not changed):
+- Removed rows fade to 40 % (§9): text then measures 2.56:1, muted text 1.89:1. §9 counts it as
+  inactive content, which WCAG 1.4.3 exempts for inactive *controls* only. Keeping the fade with
+  the "Removed" tag is defensible, but a reviewer may count it as a failure. Default text reaches
+  4.5:1 from 60 % (4.74:1), muted text from 85 % (4.84:1).
+- Value fields, pickers and search fields have the decorative border (1.75:1 on white). Value
+  fields have no visible label, so the border is what shows them (1.4.11 asks for 3:1); KERN's
+  input border (`layout-border`, 4.51:1) would pass.
+- The chosen option in a choice menu is marked by a 1.1:1 background only; a tick, as the
+  connector menu has, would pass 1.4.11 and 1.4.1.
+- "Remove from this variant", "Restore", "Reset to Standard" and "Remove error message" change the
+  page without a toast, so a screen reader hears nothing; F29 sets no toast for them.
+- Every "Add rule" has the same name; the group around each one names its level.
+
+## 11. Coverage of the Figma deviations (T077, 2026-10-26)
+
+Every item of the coverage index of contracts/ui-screens.md, F1–F32 and W1–W9, is cited by a done
+task and built as the item prescribes, after these corrections:
+- **F3**: dates other than the Date of birth showed the Date of birth's hint; they now show U30's
+  (§10, "Hints").
+- **F25**: the details' rules card showed "1 variant · 5 rules", a counter F25 drops; removed
+  (§7).
+- **"Settled as designed"**: three of its five editor hints were missing; built (§10, "Hints").
+
+The publish dialog (S5) lists one line per variant ("Standard · 5 rules"), as U33 `6376:26181`
+and §6 have it. The S5 nodes that ui-screens.md cites for F1 and F5 (U33 `6376:25778`,
+`6376:25788`; U34 `6383:66110`; U35 `6376:26339`) are the Rules step's rule rows behind the
+dialog's scrim, which `RuleRow` builds; T042's "its rules as statements" and T052's groups "in the
+publish dialog" describe those rows, not the dialog.
+
+**Unresolved**:
+- **The visual-verification tables** that every UI task lists its prescribed differences in
+  (CLAUDE.md, "Figma implementation workflow") were reported during implementation and not kept
+  in the repository, so this check can't confirm them from the files. Future UI tasks should
+  append their table to this file.
+- **Figma itself** still shows every deviation; the items stay in force until the design is
+  updated (ui-screens.md, "Deviations from Figma").

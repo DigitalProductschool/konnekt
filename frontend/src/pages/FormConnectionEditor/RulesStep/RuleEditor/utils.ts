@@ -29,8 +29,10 @@ import {
   RULE_EDITOR_COPY,
 } from './constants';
 import type {
+  EditorControl,
   MenuChoice,
   MenuSection,
+  MissingControlInput,
   RuleEditorAction,
   RuleEditorState,
   ValueChoice,
@@ -87,6 +89,7 @@ export function ruleEditorReducer(
       return {
         ...state,
         touched: { value: true, years: true, amount: true, values: true, date: true },
+        saveTried: true,
       };
     case 'resetValues':
       return { ...state, typed: {}, touched: {} };
@@ -340,9 +343,11 @@ function checkedDateOf(target: ResolvedTarget): string {
 }
 
 /**
- * The notes under the check row (S3). Dates: F3's hint until a check is chosen, then F4's notes,
- * in error states too: the counting note with today's example for a date counted from the day of
- * sharing, and the missing-value note for every date condition; a class's dates add the class
+ * The notes under the check row (S3). A field made of parts: U32's hint until its part is
+ * chosen. Dates: F3's hint until a check is chosen, the Date of birth's or U30's for any other
+ * date, then F4's notes, in error states too: the counting note with today's example for a date
+ * counted from the day of sharing, U11's "Applicants who turn 21 that day count." under an age of
+ * at least N, and the missing-value note for every date condition; a class's dates add the class
  * note. Text: the spaces hint (F7). Enums: Nationality's (F30) and the licence classes' hints.
  */
 export function hintsOf(
@@ -350,12 +355,15 @@ export function hintsOf(
   condition: Condition | null,
   today: string
 ): string[] {
+  if (target.field.kind === 'parts' && !target.part) {
+    return [RULE_EDITOR_COPY.partsHint(target.field.label)];
+  }
   const definition =
     condition && target.kind ? operatorDefinition(condition.operator, target.kind) : undefined;
   switch (target.kind) {
     case 'date': {
       if (!condition || !definition) {
-        return [RULE_EDITOR_COPY.dateHint];
+        return [target.dateOfBirth ? RULE_EDITOR_COPY.dateHint : RULE_EDITOR_COPY.dateHintOther];
       }
       const hints: string[] = [];
       if (definition.section !== 'date') {
@@ -368,6 +376,14 @@ export function hintsOf(
               )}`
             : RULE_EDITOR_COPY.countedFrom
         );
+      }
+      if (
+        target.dateOfBirth &&
+        condition.operator === 'at_least_years_ago' &&
+        Number.isInteger(condition.years) &&
+        (condition.years ?? 0) >= 1
+      ) {
+        hints.push(RULE_EDITOR_COPY.turnsThatDay(condition.years ?? 0));
       }
       hints.push(RULE_EDITOR_COPY.missingValue(checkedDateOf(target)));
       if (target.licenceClass) {
@@ -456,4 +472,28 @@ export function focusOption(
   next?.focus();
   next?.scrollIntoView({ block: 'nearest' });
   return next !== undefined;
+}
+
+/**
+ * The control that needs the team member first when "Save rule" is pressed on an incomplete rule,
+ * in the order of the editor, so that the focus moves there (WCAG 3.3.1), or null when the rule
+ * is complete: a picker without its choice, the value, or the message.
+ */
+export function missingControl(input: MissingControlInput): EditorControl | null {
+  if (!input.document) {
+    return 'document';
+  }
+  if (!input.target || input.unrequested) {
+    return 'data';
+  }
+  if (input.partMissing) {
+    return 'part';
+  }
+  if (!input.condition) {
+    return 'check';
+  }
+  if (!input.conditionComplete) {
+    return input.valuesInput ? 'values' : 'value';
+  }
+  return input.message.trim() === '' ? 'message' : null;
 }

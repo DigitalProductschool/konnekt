@@ -35,6 +35,12 @@ them, serviceBW's trigger and pull URLs, the worker steps, the nginx allow-list 
 the connection URLs, and the management UI. serviceBW gets results only by pulling:
 webhook mode was dropped from the scope on 2026-10-19.
 
+Spec 002 ([plan](../specs/002-connection-rules/plan.md)) adds **rules** to a form
+connection: conditions on the requested fields, combined with AND or OR in groups
+and sub-groups, in **branches** ("variants" in the UI) that each get a pull URL of
+their own. A pull hands serviceBW the documents together with the **evaluation** of
+the called branch's rules. See [Rules and branches](#rules-and-branches-spec-002).
+
 ### Data Flow
 
 1. User interacts with the React frontend
@@ -93,23 +99,30 @@ section of `README.md` for the full command list and editor format-on-save setup
 frontend/
 ├── src/
 │   ├── api/              # client.ts (apiFetch, ApiError), one module per resource: auth.ts,
-│   │                     # document-types.ts, form-connections.ts
+│   │                     # document-types.ts, form-connections.ts, option-sets.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the wizard's
 │   │                     # frame (WizardLayout), the signed-out screens' frame (AuthLayout),
-│   │                     # route guards, sign-in state provider, dialogs, shared form pieces
+│   │                     # route guards, sign-in state provider, dialogs, shared form pieces,
+│   │                     # and the read-only rules display that the Rules step and the
+│   │                     # details share: RuleRow, GroupFrame, Connector, BranchMark,
+│   │                     # BranchName
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
-│   │                     # useFormConnection, useSignOutOnUnauthorized
+│   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
-│   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard),
-│   │                     # FormConnectionEdit, FormConnectionDetail
+│   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
+│   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
+│   │                     # FormConnectionDetail
 │   ├── types/            # TypeScript interfaces mirroring backend schemas
-│   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon)
-│   ├── constants.ts      # App name, routes, the KERN kit's English texts
+│   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon),
+│   │                     # menuNavigation.ts (arrow keys in menus), popupPlacement.ts
+│   │                     # (the side a popup opens to), and rules/: the pure rules logic,
+│   │                     # each module with its *.test.ts
+│   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
 │   └── index.css         # Tailwind, KERN, and the project's design tokens
-├── vite.config.ts        # Vite configuration
+├── vite.config.ts        # Vite configuration, and Vitest's `test` block (node environment)
 ├── nginx.conf            # Serves the production build, proxies /api to the backend
 └── package.json
 ```
@@ -146,7 +159,21 @@ frontend/
   `color-scheme: only light` for the browser's own controls and against Chromium's auto
   dark theme (`docs/KERN-DESIGN-SYSTEM.md` §7)
 - The visual design comes from Figma; `specs/001-servicebw-eudi-middleware/design-notes.md`
-  records the screens, tokens and decisions
+  records the screens, tokens and decisions, and `specs/002-connection-rules/design-notes.md`
+  those of the rules. Figma is out of step with spec 002, so its
+  `contracts/ui-screens.md` lists the decided deviations (F1–F32, W1–W9) that the UI builds
+  instead
+- The wizard has four steps, Connection, Documents, Rules and Publish (`CONNECTION_STEPS`
+  in `src/constants.ts`), in create and in edit. The editor's reducer keeps the connection
+  and its documents, the Rules step's own reducer the branches, the open tab, select mode
+  and its dialogs, and the rule editor a third one; nothing reaches the API before Publish
+  or Save. The details open the edit wizard at a step through the router state
+  `EditLocationState.step` (`'connection'`, `'documents'` or `'rules'`)
+- **Vitest** tests the pure logic in Node, without a DOM: the modules of
+  `src/utils/rules/` and the sibling `utils.ts` of components, each with its `*.test.ts`
+  beside it. `npm test` is a gate (constitution III), because the rules' propagation
+  between branches runs only in the browser. It is configured in the `test` block of
+  `vite.config.ts`; a `vitest.config.ts` would silently replace that block
 
 ### backend
 
@@ -156,13 +183,18 @@ frontend/
 backend/
 ├── app/
 │   ├── routers/          # APIRouter modules (one per resource): auth.py,
-│   │                     # document_types.py, form_connections.py, connect.py
+│   │                     # document_types.py, option_sets.py, form_connections.py,
+│   │                     # connect.py
 │   ├── services/         # Domain logic shared by routers and worker:
 │   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), dcql.py,
-│   │                     # form_connections.py, document_requests.py (trigger,
-│   │                     # pull, statuses), documents.py (field extraction),
+│   │                     # form_connections.py, rules.py (branches, rule sets and
+│   │                     # their checks), document_requests.py (trigger, pull,
+│   │                     # statuses), documents.py (field extraction),
+│   │                     # evaluation.py (the rules on the shared documents),
 │   │                     # qr.py, worker.py
-│   ├── catalog.py        # Document types and their fields
+│   ├── catalog.py        # Document types, their fields, and each field's kind and parts
+│   ├── option_sets.py    # The value sets of enum fields: countries, sex, licence
+│   │                     # classes, eye and hair colours
 │   ├── cli.py            # Accounts: create-user, set-password, delete-user; clear-connections
 │   ├── config.py         # Settings via pydantic-settings, with the startup check
 │   ├── db.py             # Engine, sessionmaker, get_db dependency
@@ -254,10 +286,100 @@ would quote the body, is replaced by a terse one. Tests swap in a client with an
   them, the configurations. A deleted form connection keeps its row, so its URLs
   keep answering `409 unavailable`; the management API answers `404` for it.
 - **Clearing everything** (`python -m app.cli clear-connections`) deletes the rows of
-  every form connection. It first deletes the EUDIPLO session of every request that
+  every form connection, with its revisions, branches, rule sets and requests. It
+  first deletes the EUDIPLO session of every request that
   still has one, and deletes no row unless all of them are gone; a request that
   starts meanwhile stops it too. The configurations stay, as they hold no personal
   data.
+
+### Rules and branches (spec 002)
+
+`app/services/rules.py` saves and checks a form connection's branches and rules,
+`app/services/evaluation.py` evaluates them at a pull, and the Rules step edits them
+(`frontend/src/pages/FormConnectionEditor/RulesStep/`). The decisions are research R1
+to R10 in `specs/002-connection-rules/`, the tables its
+[data-model.md](../specs/002-connection-rules/data-model.md).
+
+- **Rule sets**: a form connection's branches and rules are stored as immutable,
+  numbered rule sets in `form_connection_rule_sets`, beside the revisions.
+  `form_connections.current_rule_set` names the one new requests use, as
+  `current_revision` names the documents, and the trigger reads both from the same
+  row, so a request keeps the pair that was saved together (`document_requests.rule_set_id`).
+  A rule set's `branches` is one JSONB snapshot of every branch that isn't deleted,
+  main branch first: name, description, origin (`main`, `based` or `empty`), the top
+  level's AND/OR and the tree of rules, groups and sub-groups, two levels deep. The
+  Pydantic models in `schemas.py` (`RULE_SET_SNAPSHOT`) validate it on the way in and
+  out. A save whose snapshot equals the current one adds no version; requests point to
+  the old ones, which stay. Rules don't change what the wallet is asked for, so a
+  rules-only save creates no revision and needs no EUDIPLO.
+- **Branch identities**: `form_connection_branches` holds each branch's `id`, which its
+  pull URL names, `is_main` (one main branch per form connection, a partial unique
+  index) and `deleted_at`. Names and rules live in the rule sets, so a rename never
+  changes a URL. A save that leaves a branch out marks it deleted, and its pull URL
+  answers `409 unavailable` for good. Every form connection has a main branch,
+  "Standard" until renamed; the migration gave existing ones a main branch without
+  rules, and their requests started before it, without a rule set, are evaluated as
+  met.
+- **Identifiers**: rules are `rule-{n}`, groups and sub-groups `group-{n}`, numbered from
+  the form connection's counters `next_rule_number` and `next_group_number`, which never
+  go down. An identifier never changes and is never reused, because serviceBW may key
+  on it. The editor numbers new items from the counters it loaded; the server checks
+  them and shifts them past numbers another save took meanwhile.
+- **Marks**: a branch based on the main branch is stored as its full tree, and each
+  item carries a mark: none (follows the main branch, a copy of its item), `changed`,
+  `removed` (shown, not evaluated) or `added`; `operator_mark` says that the top
+  level's AND/OR was switched there. The evaluator, the details and the publish
+  summary read the tree as it is, without merging anything. A based group with fewer
+  than two active members counts as dissolved there; that is derived from the tree,
+  not stored (`effective_items` in `evaluation.py`, and `tree.ts` in the browser).
+- **Propagation runs only in the browser**: when the main branch changes in the Rules
+  step, `propagateMain` in `frontend/src/utils/rules/branches.ts` updates every based
+  branch (data-model.md, "Propagation from the main branch"), so the step shows each
+  branch's rules at once. The server doesn't propagate: it checks every saved snapshot
+  against the invariants that a correct propagation satisfies (every main-branch item
+  once in each based branch, unmarked and removed items equal to the main branch's,
+  marks only in based branches) and refuses a violation with `400` "The variant … is
+  out of step with Standard", so a propagation bug can't reach serviceBW. Vitest pins every
+  propagation rule and mark transition in `branches.test.ts`.
+- **Saving**: `POST` and `PUT /api/form-connections` take the rules with the rest, so
+  documents, branches and rules change together or not at all. The server checks the
+  name and the documents, then the rules against the documents the save leaves current,
+  before anything is written or EUDIPLO is called; a refusal is a `400` whose message
+  names the problem, the rule and its branch, in the words of the Rules step's own
+  checks (`utils/rules/validation.ts`). Rules alone are saved in one transaction under
+  the form connection's row lock. With changed documents, `create_revision` runs as
+  before, and its final locked transaction, which makes the revision current, also
+  saves the rule set. Creating a form connection saves its branch rows and rule set 1
+  in the transaction that inserts it.
+- **`409 rules_changed`**: `GET /api/form-connections/{id}` returns `rule_set_version`,
+  and the editor sends `rules` only when the team member changed them, with
+  `base_version`, the version it loaded. If another save made a newer rule set current,
+  the save is refused with `409 rules_changed`, before the rules are checked (so a
+  stale editor meets this answer, not "Unknown variant.") and again under the row lock.
+  Its message names the variants that replacing would delete or bring back with a new
+  result link. The save dialog offers "Reload" or "Replace their changes", which sends
+  the same save with `replace: true`: the rule set is the unit, since the server can't
+  merge two saves without propagating. The name and the documents keep "the later save
+  wins".
+- **Kinds and value sets**: the catalog gives each field its kind (text, number, date,
+  enum, image, or made of parts), its value set and its parts, such as the place of
+  birth's country or a licence class's issue date, and `GET /api/document-types`
+  returns them.
+  `GET /api/option-sets` (`routers/option_sets.py`, signed in) returns the value sets of
+  `app/option_sets.py`, so the menus, the server's checks and the evaluation use the
+  same values; licence classes come with their descriptions.
+- **Evaluation**: computed at each delivery, from the documents just read from EUDIPLO
+  and the called branch as the request's rule set has it (see
+  [serviceBW's connection URLs](#servicebws-connection-urls)). It is a pure function
+  without database or EUDIPLO. Dates count by **Germany's calendar day** of sharing,
+  the date in `Europe/Berlin` (`zoneinfo`, loaded at import, so a missing time zone
+  database fails at start-up) of the request's `completed_at`; anniversaries of 29
+  February fall on 1 March. Text compares trimmed, NFC-normalised and, ignoring letter
+  case, `casefold()`ed. A rule is `met`, `not_met` or `not_checked` (missing or
+  unreadable value, which counts as not met). The evaluation is **never stored and
+  never logged**: its results and messages are about the citizen, so it goes with
+  the documents, and repeated pulls compute it again, the same, since the day of
+  sharing is fixed.
 
 ### Background worker
 
@@ -303,28 +425,51 @@ locks keep the steps correct if that changes.
 
 ### serviceBW's connection URLs
 
-`app/routers/connect.py` serves the two URLs that serviceBW calls
-(`specs/001-servicebw-eudi-middleware/contracts/integration-api.md`), and
-`app/services/document_requests.py` holds their logic:
+`app/routers/connect.py` serves the URLs that serviceBW calls
+(`specs/001-servicebw-eudi-middleware/contracts/integration-api.md`, and for the
+branches and the evaluation `specs/002-connection-rules/contracts/integration-api.md`),
+and `app/services/document_requests.py` holds their logic:
 
 - **Trigger**, `POST /api/connect/{id}/requests`: creates a EUDIPLO request
   (`POST /api/verifier/offer`) on the form connection's current revision, and
   answers with the same-device wallet link, a QR code of the link for another
   device (`segno`, PNG data URI), an unguessable reference and the expiry time.
-  EUDIPLO knows the request only by its internal id.
-- **Pull**, `GET /api/connect/{id}/requests/{reference}`: the status and, once the
-  request is completed, the documents, reduced to exactly the configured fields
-  (`services/documents.py`). They are read from EUDIPLO at the time of the pull and
-  never stored. The first pull that returns them counts as the delivery, and pulls
-  within the next 60 seconds get them again. A pending request past its expiry gets
-  its last check from the pull itself.
+  EUDIPLO knows the request only by its internal id. The request also records the
+  current rule set. One trigger URL serves every branch.
+- **Pull**, `GET /api/connect/{id}/requests/{reference}`: the main branch's pull URL.
+  The status and, once the request is completed, the documents, reduced to exactly
+  the configured fields (`services/documents.py`), with the `evaluation` of the main
+  branch's rules. They are read from EUDIPLO at the time of the pull and never
+  stored. The first pull that returns them counts as the delivery, and pulls within
+  the next 60 seconds get them again. A pending request past its expiry gets its
+  last check from the pull itself.
+- **A branch's pull**, `GET /api/connect/{id}/branches/{branch_id}/requests/{reference}`:
+  the pull URL of every other branch, with the same status and documents and that
+  branch's evaluation. The delivery belongs to the request, not the branch: the first
+  delivery through any pull URL starts the repeat window for all of them. Its checks
+  run in this order:
+  1. unknown form connection: `404`;
+  2. deactivated or deleted form connection: `409 unavailable`;
+  3. unknown branch, another form connection's, or the main branch (whose pull URL is
+     the one above): `404`;
+  4. deleted branch: `409 unavailable`, for good;
+  5. unknown reference, or another form connection's: `404`;
+  6. a branch that the request's rule set doesn't have, because it was added after the
+     trigger: `409 branch_added_later`, without status or documents;
+  7. otherwise the status, the documents and the branch's evaluation.
+- **The evaluation** (`evaluation` in the pull answer: the branch, `met`, a result per
+  rule and group, and the messages for the citizen) is `null` whenever `documents` is,
+  and contains no field value. `_deliver` computes it after extracting the documents
+  and before it counts the delivery, so if it fails, the pull answers `500` with an
+  `error_id`, nothing is consumed and serviceBW can pull again.
 - **No sign-in**: the network restricts these URLs instead. The production nginx
   forwards `/api/connect/` only from `SERVICEBW_ALLOWED_CIDRS` and answers `403` to
   everyone else (see [Production Deployment](#production-deployment-coolify)).
 - **References stay out of the logs**: a filter on uvicorn's access logger and
-  nginx's access log format show `/requests/<reference>` instead, nginx logs only
-  critical errors for `/api/connect/`, and the engine hides the parameters of SQL
-  errors (`hide_parameters=True`).
+  nginx's access log format show `/requests/<reference>` instead, also on a branch's
+  pull URL (a test pins it), nginx logs only critical errors for `/api/connect/`, and
+  the engine hides the parameters of SQL errors (`hide_parameters=True`). Neither the
+  documents nor the evaluation are logged.
 - **Status changes** lock the request row and check the status again
   (`apply_status`), so that of a pull and the worker, only the first change takes
   effect. No transaction is held while EUDIPLO answers: a pull reads the documents
@@ -419,8 +564,11 @@ class ApiError extends Error {
   models
 
 The tables and their rules are described in
-[data-model.md](../specs/001-servicebw-eudi-middleware/data-model.md). No table
-holds a citizen's documents.
+[data-model.md](../specs/001-servicebw-eudi-middleware/data-model.md), and those of
+the rules and branches in
+[spec 002's data-model.md](../specs/002-connection-rules/data-model.md). A rule set's
+tree is one JSONB column, since it is always read and written whole. No table holds
+a citizen's documents or an evaluation.
 
 ## Environment Variables
 

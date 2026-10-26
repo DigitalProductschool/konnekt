@@ -8,12 +8,11 @@ import { ruleDocumentsOf } from '../../utils/rules/conditions';
 import { DETAIL_COPY, EDIT_RULES_STATE } from './constants';
 import RulesSummaryContent from './RulesSummaryContent';
 import type { RulesSummaryProps } from './types';
-import { rulesCountOf } from './utils';
 
 /**
  * Figma "Summary card" (U37 6396:47750, open 6396:48191; S6): the rules of every variant,
- * read-only, in a card that is closed until "View summary" (FYI #17). Its "Download PDF", like
- * the screen's activity and counters, isn't built (F25). In its place, "Edit rules" opens the
+ * read-only, in a card that is closed until "View summary" (FYI #17). Its counts ("3 variants ·
+ * 6 rules") and "Download PDF", like the screen's activity, aren't built (F25). In its place, "Edit rules" opens the
  * edit wizard at the Rules step, which asks for confirmation when saving, not on entry (FR-030;
  * F27, W7). On phones the actions go under the title, and "Edit rules" shows only its icon, so
  * that both fit.
@@ -41,9 +40,6 @@ export default function RulesSummary({ formConnectionId, branches, documents }: 
           >
             {DETAIL_COPY.rulesTitle}
           </h2>
-          <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {rulesCountOf(branches)}
-          </p>
         </div>
         <div className="flex shrink-0 items-center gap-8">
           <Link

@@ -16,6 +16,7 @@ export default function ChoicePicker({
   chosen,
   disabled = false,
   invalid = false,
+  describedBy,
   sections,
   widthClass,
   searchPlaceholder,
@@ -48,7 +49,7 @@ export default function ChoicePicker({
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative max-md:static">
       <Picker
         id={triggerId}
         name={label}
@@ -57,9 +58,10 @@ export default function ChoicePicker({
         disabled={disabled}
         open={open}
         invalid={invalid}
+        describedBy={describedBy}
         icon={chosen?.icon}
         symbol={chosen?.symbol}
-        menuId={menuId}
+        menuId={`${menuId}-list`}
         onToggle={() => dispatch(open ? { type: 'closeMenu' } : { type: 'openMenu', menu })}
       />
       {open && (

@@ -5,9 +5,18 @@ Wallet. For each form, DO.IT creates a form connection that names the documents 
 form needs. serviceBW then uses the form connection's URLs to request those documents from the
 citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
 
-The middleware is built in phases. The specification, the plan and the task list are in
-[specs/001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/). The code base
-started from the Digital Product School React + FastAPI + PostgreSQL template.
+A form connection can also have rules that the shared documents must meet, such as "Date of
+birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
+have their own rules, based on the standard ones or not, and their own pull URL; the trigger URL
+stays one for all. A pull answers with the documents and, next to them, the evaluation of the
+called variant's rules: whether they are met, each rule's outcome and the error messages for the
+citizen.
+
+The middleware is built in phases. Each phase's specification, plan and task list are in
+[specs/](specs/): [001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/) for the
+form connections, [002-connection-rules/](specs/002-connection-rules/) for their rules and
+variants. The code base started from the Digital Product School React + FastAPI + PostgreSQL
+template.
 
 ## Tech Stack
 

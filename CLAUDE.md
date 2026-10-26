@@ -116,15 +116,22 @@ Location: `/backend/app/services/`
   `services/document_requests.py` and the pull do this. Where the EUDIPLO call needs a
   number that must stay unique, reserve it first: `create_revision()` in
   `services/form_connections.py` inserts the next revision under the row lock and
-  commits, calls EUDIPLO, then locks again to make it current.
+  commits, calls EUDIPLO, then locks again to make it current. A save's rules
+  (`services/rules.py`) are checked before anything is written or EUDIPLO is called, and
+  saved in that last locked transaction (`save_rule_set()`), or, without changed documents,
+  in one transaction under the row lock, so documents and rules change together or not at
+  all. A save based on an older rule set than the current one is refused with `409
+  rules_changed` (`check_rules_version()`), before the checks and again under the lock,
+  unless it sets `replace`.
 - **Worker steps** live in `services/worker.py`. A step is a plain function
   without arguments that opens its own `SessionLocal()` session and keeps its
   transactions short; add it to `STEPS` in the order of research R7. Send
   outbound calls through `dispatch(key, call)`, so the loop never waits for them;
   the key is a name plus an internal id, never a request reference. Tests set
   `WORKER_ENABLED=false` and call the steps directly.
-- **Logging**: never log claims, tokens, secrets, request references or response
-  bodies. Log an exception with `describe_error(error)` from `app/errors.py` (its
+- **Logging**: never log claims, tokens, secrets, request references, response
+  bodies or rule evaluations (their results and messages are about the citizen). Log an
+  exception with `describe_error(error)` from `app/errors.py` (its
   type and code location), not its message, which can quote personal data. It lives
   there, not in `services/worker.py`, because `errors.py` imports nothing from the
   app: the services and the worker can all import it without an import cycle.
@@ -437,7 +444,8 @@ cd frontend
   `kern-sr-only`: `kern.css` makes any `.kern-btn` that contains `.kern-sr-only` icon-sized
 - The visual design comes from Figma (see "Figma implementation workflow" below);
   `specs/001-servicebw-eudi-middleware/design-notes.md` records its copy, tokens and the decisions
-  taken. The UI calls form connections "connections" (V1 said "use cases"). SVG glyphs from the
+  taken, and `specs/002-connection-rules/design-notes.md` those of the rules and variants, whose
+  Figma deviations (F#, W#) are listed in that spec's `contracts/ui-screens.md`. The UI calls form connections "connections" (V1 said "use cases"). SVG glyphs from the
   design live in `src/assets/icons/`, decorative SVGs in `src/assets/illustrations/`; KERN's own
   icons use the `kern-icon` classes
 - Signed-in state comes from `useCurrentUser()`. Routes are declared in `App.tsx` with the paths
@@ -460,6 +468,27 @@ cd frontend
 - Links between the app's routes are React Router `Link`s with KERN's classes (`kern-link`, or
   `kern-btn kern-btn--primary` with a `kern-label` span): `KernLink` and `KernButton` with `href`
   render a plain `<a>`, which reloads the page
+- The wizard's steps are `CONNECTION_STEPS` in `src/constants.ts`: Connection, Documents, Rules
+  and Publish, in create and in edit (`EditorStep` in `pages/FormConnectionEditor/types.ts`).
+  The details open the edit wizard at a step through the router state `EditLocationState`
+  (`src/types/routing.ts`): `step: 'documents'` for "Edit documents", `step: 'rules'` for the
+  rules card's "Edit rules". The UI says "connection" for form connection and "variant" for
+  branch, and calls the main branch "Standard" until it is renamed
+- Rules (spec 002): the pure logic lives in `src/utils/rules/`, each module with its
+  `*.test.ts`, and the Rules step, the publish dialog and the details all use it; the details
+  show the rules with the same shared components as the Rules step (`RuleRow`, `GroupFrame`,
+  `Connector`, `BranchMark`, `BranchName`). **Propagation** of the main branch's changes to the
+  branches based on it lives only in `utils/rules/branches.ts` (`propagateMain`): the server
+  doesn't propagate, it only checks a saved snapshot's invariants
+  (`backend/app/services/rules.py`) and refuses an inconsistent one. So every change to
+  `branches.ts` comes with a Vitest case in `branches.test.ts`, and a change to a propagation
+  rule or mark transition also updates the server's invariant checks. The Rules step's own
+  checks (`utils/rules/validation.ts`) use the server's messages word for word
+- Menus, popovers and tooltips open to the side where they fit: `placementFrom()` in
+  `src/utils/popupPlacement.ts`, called in the event that opens them, picks `start`, `end` or
+  `full` (across the rules card or the page, below the control), and the component maps it to a
+  set of Tailwind classes; the wrapper takes `popupWrapperClass()`. Don't anchor a fixed-width
+  popup with `left-0` or `right-0` alone: it runs off the screen at 320 px and 200 % zoom
 - Maintain components that you create small, extract new functionality to new components.
 - When you are declaring types needed in the component, extract them to separate types.ts file in the directory next to the component itself
 - When you are declaring constants needed in the component, extract them to separate constants.ts file in the directory next to the component itself.
@@ -533,8 +562,8 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Use `datetime.utcnow()` (deprecated) — use `datetime.now(tz=timezone.utc)`
 - Commit `.env` files (create `.env.example` instead)
 - Use `print()` for logging (use FastAPI's logger or `logging` module)
-- Log claims, tokens, secrets, request references, response bodies or exception
-  messages (use `describe_error()` from `app/errors.py`)
+- Log claims, tokens, secrets, request references, response bodies, rule evaluations
+  or exception messages (use `describe_error()` from `app/errors.py`)
 - Put a setting's name, a component's internals or an exception's text into an
   error answer — log them with `log_server_error()` and answer with its `error_id`
 - Hold a database transaction open while waiting for EUDIPLO
@@ -569,21 +598,28 @@ backend/
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic schemas
 │   ├── errors.py         # Exception handlers, log_server_error (5xx error ids), describe_error
-│   ├── catalog.py        # Document types and their fields (PID, mDL)
+│   ├── catalog.py        # Document types and their fields (PID, mDL), with kinds and parts
+│   ├── option_sets.py    # Value sets of enum fields (countries, sex, licence classes, colours)
 │   ├── cli.py            # Account management and clear-connections, run as `python -m app.cli`
 │   ├── routers/          # API routers, one module per resource
 │   │   ├── __init__.py
 │   │   ├── auth.py       # /api/auth/login, /logout, /me
 │   │   ├── document_types.py   # /api/document-types
+│   │   ├── option_sets.py      # /api/option-sets
 │   │   ├── form_connections.py # /api/form-connections
-│   │   └── connect.py    # /api/connect/: serviceBW's trigger and pull URLs, no sign-in
+│   │   └── connect.py    # /api/connect/: serviceBW's trigger URL, the main branch's pull URL
+│   │                     # and /{fc}/branches/{branch_id}/requests/{reference}; no sign-in
 │   └── services/         # Domain logic shared by the routers and the worker
 │       ├── auth.py       # Password hashes, sign-in sessions, get_current_user, require_json
 │       ├── eudiplo.py    # EUDIPLO client, get_eudiplo_client, http_error_for
 │       ├── dcql.py       # A revision's EUDIPLO configuration body and config_hash
 │       ├── form_connections.py  # Validation, create, read, edit (revisions), deactivate,
 │       │                        # activate, delete, re-sync, unused configurations
-│       ├── document_requests.py # Trigger, pull, status mapping, apply_status
+│       ├── rules.py      # Branches and rule sets: the save's checks and invariants,
+│       │                 # identifiers, saving, 409 rules_changed
+│       ├── evaluation.py # Pure evaluator of a branch's rules (Germany's calendar day)
+│       ├── document_requests.py # Trigger, pull (per branch, with the evaluation),
+│       │                        # status mapping, apply_status
 │       ├── documents.py  # EUDIPLO credentials → exactly the configured fields
 │       ├── qr.py         # QR code of the cross-device link (segno)
 │       └── worker.py     # Background worker: loop, steps, dispatch
@@ -608,12 +644,21 @@ frontend/
 ├── src/
 │   ├── api/              # client.ts (apiFetch, ApiError) and one module per resource
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
-│   ├── components/       # Shared components: AppLayout, AuthLayout, TopBar, UserMenu, ...
+│   ├── components/       # Shared components: AppLayout, AuthLayout, TopBar, UserMenu, ...,
+│   │                     # and the read-only rules display of the Rules step and the details:
+│   │                     # RuleRow, GroupFrame, Connector, BranchMark, BranchName
 │   ├── pages/            # One folder per screen
-│   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle, useSignOutOnUnauthorized, ...)
+│   │   └── FormConnectionEditor/  # The wizard: Connection, Documents, Rules, Publish
+│   │       └── RulesStep/         # Variant tabs, rule list, groups, select mode, dialogs
+│   │           └── RuleEditor/    # Data menu, part picker, checks per kind, values, message
+│   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle, useOptionSets,
+│   │                     # useSignOutOnUnauthorized, ...)
 │   ├── utils/            # Utility functions
+│   │   └── rules/        # Pure rules logic, each module with its *.test.ts: tree.ts,
+│   │                     # branches.ts (propagation, marks), statements.ts, messages.ts,
+│   │                     # conditions.ts, dates.ts, validation.ts
 │   ├── types/            # TypeScript types
-│   ├── constants.ts      # App name, routes, the KERN kit's English texts
+│   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── index.css         # Tailwind, KERN and the project's design tokens
 │   ├── App.tsx           # Routes
 │   └── main.tsx          # Router, KERN context and sign-in state providers

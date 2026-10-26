@@ -11,6 +11,7 @@ export default function TextField({
   label,
   labelAddon,
   error,
+  errorRole,
   ref,
   ...inputProps
 }: TextFieldProps) {
@@ -36,7 +37,7 @@ export default function TextField({
       />
       {error && (
         <div className="mt-8">
-          <FormErrorMessage id={errorId} message={error} />
+          <FormErrorMessage id={errorId} message={error} role={errorRole} />
         </div>
       )}
     </div>

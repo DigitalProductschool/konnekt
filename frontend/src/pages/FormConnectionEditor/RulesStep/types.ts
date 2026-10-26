@@ -10,6 +10,7 @@ import type {
   RuleTreeItem,
 } from '../../../types/form-connections';
 import type { OptionSet } from '../../../types/option-sets';
+import type { PopupPlacement } from '../../../utils/popupPlacement';
 import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
 
 /** A branch in the rules step. `key` stays the same while the branch has no id yet */
@@ -478,10 +479,14 @@ export interface CopyPopoverProps {
   /** The rule's branch and the rule */
   branchKey: string;
   ruleName: string;
+  /** Where it opens from the rule's ⋯ (utils/popupPlacement.ts) */
+  placement: PopupPlacement;
   /** Copies the rule to these branches, by key */
   onCopy: (targets: string[]) => void;
   /** Cancel, Escape or a click elsewhere */
   onClose: () => void;
+  /** The focus left it, with Tab: it closes, and the focus stays where it went */
+  onDismiss: () => void;
 }
 
 export interface CopyTargetItemProps {

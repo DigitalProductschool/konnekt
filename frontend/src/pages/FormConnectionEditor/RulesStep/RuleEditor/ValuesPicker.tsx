@@ -13,7 +13,10 @@ import ValueOptionItem from './ValueOptionItem';
  * the values of an enum condition, any number of them (F8), shown as chips. The menu lists the
  * value set with checkboxes; long sets get "Search options", the licence classes "Search
  * classes" and rows with code and description (F32). The chips show the codes only. Escape
- * closes the menu; leaving it with the keyboard or the pointer closes it too.
+ * closes the menu; leaving it with the keyboard or the pointer closes it too. The button is a
+ * disclosure (expanded or not), since the menu holds checkboxes, not a list box. Below 768px, the
+ * chips wrap instead of being cut off, and the menu hangs from the rule editor's content edge, as
+ * ChoiceMenu's does.
  */
 export default function ValuesPicker({
   idBase,
@@ -109,22 +112,21 @@ export default function ValuesPicker({
       : 'border-(--kern-color-decorative-border-default)';
 
   return (
-    <div ref={containerRef} className="relative" onBlur={handleBlur}>
+    <div ref={containerRef} className="relative max-md:static" onBlur={handleBlur}>
       <button
         id={triggerId}
         type="button"
-        aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-describedby={describedBy}
         onClick={() =>
           dispatch(open ? { type: 'closeMenu' } : { type: 'openMenu', menu: 'values' })
         }
-        className={`rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default flex h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 ${border}`}
+        className={`rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default flex h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 max-md:h-auto max-md:min-h-40 max-md:py-7 ${border}`}
       >
         <span className="sr-only">{RULE_EDITOR_COPY.valuesMenu}: </span>
         {chips.length ? (
-          <span className="flex min-w-0 items-center gap-4 overflow-hidden">
+          <span className="flex min-w-0 items-center gap-4 overflow-hidden max-md:flex-wrap">
             {chips.map((chip) => (
               // Figma "Rules/Value chip" (6082:3447)
               <span
@@ -149,7 +151,7 @@ export default function ValuesPicker({
       {open && (
         <div
           id={menuId}
-          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${MENU_WIDTHS.values}`}
+          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${MENU_WIDTHS.values}`}
         >
           {searchable && (
             <MenuSearchField

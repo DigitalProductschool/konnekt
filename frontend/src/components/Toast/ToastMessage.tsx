@@ -5,18 +5,25 @@ import type { ToastMessageProps } from './types';
 
 /**
  * The visible toast. Its time runs only while neither the pointer nor the keyboard focus
- * is on it, so that its action can always be reached (WCAG 2.2.1).
+ * is on it, so that its action can always be reached (WCAG 2.2.1). Given `holdAction`, it
+ * doesn't run while the toast has an action.
  */
-export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessageProps) {
+export default function ToastMessage({
+  toast,
+  onAction,
+  holdAction = false,
+  onDismiss,
+}: ToastMessageProps) {
   const [paused, setPaused] = useState(false);
+  const held = holdAction && toast.actionLabel !== undefined;
 
   useEffect(() => {
-    if (paused) {
+    if (paused || held) {
       return;
     }
     const timer = window.setTimeout(onDismiss, TOAST_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, [paused, onDismiss]);
+  }, [paused, held, onDismiss]);
 
   return (
     <div

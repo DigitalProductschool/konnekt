@@ -9,7 +9,8 @@ import {
 } from 'react';
 
 import arrowIcon from '../../assets/icons/tooltip-arrow.svg';
-import { CLOSED } from './constants';
+import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
+import { CLOSED, TOOLTIP_OVERHANG, TOOLTIP_PLACEMENTS, TOOLTIP_WIDTH } from './constants';
 import type { InfoTooltipProps } from './types';
 import { isOpen, tooltipReducer } from './utils';
 
@@ -18,7 +19,9 @@ import { isOpen, tooltipReducer } from './utils';
  * over it, and gone as soon as the mouse leaves (decision 2026-10-12: it was a toggletip
  * that a click opened). The mouse can move onto the bubble without closing it. Keyboard
  * focus shows it too, Escape closes it, and on touch screens, which have no hover, a tap
- * opens and closes it. The text is the button's description (WCAG 1.4.13).
+ * opens and closes it. The text is the button's description (WCAG 1.4.13). The bubble opens to
+ * the side `arrow` asks for where it fits, otherwise to the other side, or across the window
+ * below the icon (WCAG 1.4.10).
  */
 export default function InfoTooltip({
   label,
@@ -32,12 +35,7 @@ export default function InfoTooltip({
   const pressedWith = useRef<string | null>(null);
   const bubbleId = useId();
   const open = isOpen(state);
-  const small = iconSize === 'small';
-  // The arrow's tip is 20px from the bubble's edge and points at the icon's centre
-  const placement =
-    arrow === 'start'
-      ? `items-start ${small ? '-left-10' : '-left-8'}`
-      : `items-end ${small ? '-right-10' : '-right-8'}`;
+  const placement = TOOLTIP_PLACEMENTS[iconSize][state.placement];
 
   useEffect(() => {
     if (!open) {
@@ -61,9 +59,21 @@ export default function InfoTooltip({
     };
   }, [open]);
 
+  // Measured each time it opens, since the page may have moved or changed width
+  function place() {
+    const width = Math.min(TOOLTIP_WIDTH, document.documentElement.clientWidth - 2 * POPUP_GUTTER);
+    dispatch({
+      type: 'place',
+      placement: placementFrom(containerRef.current, width, arrow, TOOLTIP_OVERHANG[iconSize]),
+    });
+  }
+
   // A touch has no hover: its pointerenter comes with the tap, which the click handles
   function handlePointerHover(event: PointerEvent, value: boolean) {
     if (event.pointerType !== 'touch') {
+      if (value) {
+        place();
+      }
       dispatch({ type: 'hover', value });
     }
   }
@@ -71,15 +81,18 @@ export default function InfoTooltip({
   // Only keyboard focus shows it: after a click the mouse decides
   function handleFocus(event: FocusEvent<HTMLButtonElement>) {
     if (event.currentTarget.matches(':focus-visible')) {
+      place();
       dispatch({ type: 'focus', value: true });
     }
   }
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
     if (pressedWith.current === 'touch') {
+      place();
       dispatch({ type: 'tap' });
     } else if (event.detail === 0) {
       // Enter or Space, which shows it again after Escape
+      place();
       dispatch({ type: 'focus', value: true });
     }
     pressedWith.current = null;
@@ -90,7 +103,7 @@ export default function InfoTooltip({
       ref={containerRef}
       onPointerEnter={(event) => handlePointerHover(event, true)}
       onPointerLeave={(event) => handlePointerHover(event, false)}
-      className="relative inline-flex"
+      className={`inline-flex ${popupWrapperClass(open ? state.placement : null)}`}
     >
       <button
         type="button"
@@ -106,7 +119,7 @@ export default function InfoTooltip({
         {/* KERN's info icon, in the muted colour of the design */}
         <span
           aria-hidden="true"
-          className={`kern-icon kern-icon--info bg-kern-layout-text-muted! ${small ? 'kern-icon--small' : ''}`}
+          className={`kern-icon kern-icon--info bg-kern-layout-text-muted! ${iconSize === 'small' ? 'kern-icon--small' : ''}`}
         />
         <span className="kern-sr-only">{label}</span>
       </button>
@@ -115,9 +128,9 @@ export default function InfoTooltip({
       <span
         id={bubbleId}
         role="tooltip"
-        className={`absolute top-full z-20 w-320 max-w-[calc(100vw-32px)] flex-col pt-2 ${placement} ${open ? 'flex' : 'hidden'}`}
+        className={`z-20 flex-col pt-2 ${placement} ${open ? 'flex' : 'hidden'}`}
       >
-        <img src={arrowIcon} alt="" className="-mb-1" />
+        {state.placement !== 'full' && <img src={arrowIcon} alt="" className="-mb-1" />}
         <span className="rounded-kern-large border-kern-darkblue-500 bg-kern-darkblue-050 text-kern-static-small text-kern-layout-text-default shadow-menu w-full border px-16 py-12 leading-(--kern-typography-line-height-medium-static)">
           {text}
         </span>

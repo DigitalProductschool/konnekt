@@ -51,8 +51,14 @@ export const RULE_EDITOR_COPY = {
   // F7, design-notes.md §3
   matchCase: 'Match letter case',
   textHint: 'Spaces at the start or end don’t matter.',
-  // F3: the hint while a date has no check yet
+  // F3: the hint while a Date of birth has no check yet, and U30 6324:15429's, which stays (F3),
+  // for every other date
   dateHint: 'Check an age, the time from now, or compare the date with a fixed date.',
+  dateHintOther: 'Check the time since or until this date, or compare it with a fixed date.',
+  // U11 6348:40755, which stays: under "is at least N years old"
+  turnsThatDay: (years: number) => `Applicants who turn ${years} that day count.`,
+  // U32 6324:17646, which stays: a field made of parts before its part is chosen
+  partsHint: (field: string) => `${field} has parts. Choose the part to check.`,
   // F4: next to every date condition
   countedFrom: 'Counted from the day the applicant shares.',
   todayMeans: (today: string, meaning: string) => `Today (${today}) this means: ${meaning}.`,
@@ -122,4 +128,5 @@ export const INITIAL_RULE_EDITOR_STATE: RuleEditorState = {
   messageEdited: false,
   typed: {},
   touched: {},
+  saveTried: false,
 };

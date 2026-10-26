@@ -91,10 +91,15 @@ export function initialRulesState(formConnection?: FormConnection): RulesState {
 
 /**
  * Moves the focus once the current render, and a dialog it closes, are done: a modal dialog
- * keeps the page inert until it closes, and then gives the focus back to what opened it.
+ * keeps the page inert until it closes, and then gives the focus back to what opened it. With
+ * `onlyIfLost`, only when nothing has the focus by then, so that it doesn't take it from where
+ * something else has just put it.
  */
-export function focusSoon(id: string, fallbackId?: string) {
+export function focusSoon(id: string, fallbackId?: string, onlyIfLost = false) {
   requestAnimationFrame(() => {
+    if (onlyIfLost && document.activeElement && document.activeElement !== document.body) {
+      return;
+    }
     const element =
       document.getElementById(id) ?? (fallbackId ? document.getElementById(fallbackId) : null);
     element?.focus();
@@ -406,8 +411,8 @@ function nextToastId(state: RulesState): number {
  * The state after a change of the rules. A change of the main branch reaches every branch
  * based on it at once (FR-021, W4; `propagateToBranches`). The change ends select mode and the
  * note after switching, and clears the refused Publish's problem. It also drops the last Undo,
- * which puts back the rules as they were before that change only: its toast stays, without its
- * action.
+ * which puts back the rules as they were before that change only, and a copy's Show: the toast
+ * stays, without its action, and goes after its time (the toast holds an action until then).
  */
 function changed(state: RulesState, branches: RulesBranch[]): RulesState {
   return {
@@ -417,7 +422,7 @@ function changed(state: RulesState, branches: RulesBranch[]): RulesState {
     selection: null,
     switched: null,
     undo: null,
-    toast: state.undo && state.toast ? { ...state.toast, actionLabel: undefined } : state.toast,
+    toast: state.toast?.actionLabel ? { ...state.toast, actionLabel: undefined } : state.toast,
   };
 }
 

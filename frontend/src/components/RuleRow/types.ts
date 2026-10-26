@@ -55,5 +55,7 @@ export interface RuleMessageProps {
 }
 
 export interface ProblemNoteProps {
+  /** Its id, which the flagged rule or group points to as its description */
+  id?: string;
   message: string;
 }

@@ -1,4 +1,5 @@
 import type { Combinator, Mark } from '../../types/form-connections';
+import type { PopupPlacement } from '../../utils/popupPlacement';
 
 export interface ConnectorProps {
   /** How the level's rules and groups combine */
@@ -22,6 +23,8 @@ export interface ConnectorMenuProps {
   triggerId: string;
   operator: Combinator;
   levelName: string;
+  /** Where it opens from its pill: below it, to the side that fits (utils/popupPlacement.ts) */
+  placement: PopupPlacement;
   onChoose: (operator: Combinator) => void;
   /** Escape: closes the menu and gives the focus back to its button */
   onClose: () => void;

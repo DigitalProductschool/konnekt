@@ -46,6 +46,7 @@ export default function GroupFrame({
         tabIndex={id ? -1 : undefined}
         role="group"
         aria-label={group.name}
+        aria-describedby={flag && id ? `${id}-problem` : undefined}
         className={`${border} focus-visible:outline-kern-action-focus-default border-l-3 pt-8 focus-visible:outline-4 focus-visible:outline-offset-2 ${
           tint ? `${tint} ${subGroup ? 'rounded-kern-default' : ''}` : background
         }`}
@@ -62,7 +63,7 @@ export default function GroupFrame({
         />
         {flag && (
           <div className="pt-8">
-            <ProblemNote message={flag} />
+            <ProblemNote id={id ? `${id}-problem` : undefined} message={flag} />
           </div>
         )}
         <div className={inactive && !faded ? INACTIVE_OPACITY : undefined}>

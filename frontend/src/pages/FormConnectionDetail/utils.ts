@@ -1,5 +1,5 @@
 import { errorNoticeOf } from '../../api/client';
-import type { Branch, FormConnection, RuleTreeItem } from '../../types/form-connections';
+import type { FormConnection } from '../../types/form-connections';
 import type { DetailLocationState } from '../../types/routing';
 import { DETAIL_COPY, INITIAL_ACTIONS_STATE } from './constants';
 import type {
@@ -77,23 +77,6 @@ export function actionErrorNotice(error: unknown) {
 /** The toast after an action that keeps the connection. */
 export function successMessageOf(action: Exclude<StatusAction, 'delete'>): string {
   return action === 'deactivate' ? DETAIL_COPY.deactivated : DETAIL_COPY.activated;
-}
-
-/** The identifiers of the rules that apply in a tree: removed ones and their members don't. */
-function appliedRuleIds(items: RuleTreeItem[]): string[] {
-  return items.flatMap((item) => {
-    if (item.mark === 'removed') return [];
-    return item.type === 'rule' ? [item.id] : appliedRuleIds(item.items);
-  });
-}
-
-/**
- * "1 variant · 5 rules": the variants, and the rules that apply in at least one of them, each
- * counted once by its identifier, as serviceBW sees them (FR-010).
- */
-export function rulesCountOf(branches: Branch[]): string {
-  const ids = new Set(branches.flatMap((branch) => appliedRuleIds(branch.items)));
-  return DETAIL_COPY.rulesCount(branches.length, ids.size);
 }
 
 /**

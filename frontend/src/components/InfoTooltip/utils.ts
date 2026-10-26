@@ -12,9 +12,11 @@ export function tooltipReducer(state: TooltipState, action: TooltipAction): Tool
         : { ...state, focused: false, tapped: false };
     case 'tap':
       return { ...state, tapped: !state.tapped };
+    case 'place':
+      return { ...state, placement: action.placement };
     case 'close':
       // Escape, or a tap elsewhere. Moving the pointer back in or focusing again reopens it
-      return CLOSED;
+      return { ...CLOSED, placement: state.placement };
   }
 }
 

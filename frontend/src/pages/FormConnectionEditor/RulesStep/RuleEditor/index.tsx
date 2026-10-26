@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
 import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
 import {
   changeOperator,
+  conditionProblem,
   operatorDefinition,
   optionsOf,
   resolveTarget,
@@ -10,6 +11,7 @@ import {
 import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
 import { todayInGermany } from '../../../../utils/rules/dates';
 import type { RuleContext } from '../../../../utils/rules/types';
+import { ruleProblem } from '../../../../utils/rules/validation';
 import ChoicePicker from './ChoicePicker';
 import ConditionFields from './ConditionFields';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';
@@ -31,6 +33,7 @@ import {
   hintsOf,
   initialRuleEditorState,
   isRuleComplete,
+  missingControl,
   partKeyOf,
   partSections,
   ruleEditorReducer,
@@ -46,6 +49,8 @@ import {
  * images as "Can't be checked". The checks are those of the target's kind, in FR-003's words.
  * The message is proposed once the condition is complete, and follows it until the team member
  * writes their own (F9). The rule itself is the page's: every change goes to `onChange`.
+ * "Save rule" on an incomplete rule says what is missing, under the check row, and moves the
+ * focus to that control (WCAG 3.3.1); a rule on data that is no longer requested says so there.
  */
 export default function RuleEditor({
   draft,
@@ -70,6 +75,7 @@ export default function RuleEditor({
   const idBase = useId();
   const nameId = `${idBase}-name`;
   const errorId = `${idBase}-error`;
+  const issueId = `${idBase}-issue`;
   const focusNext = useRef<string | null>(null);
   const day = today ?? todayInGermany();
 
@@ -99,8 +105,30 @@ export default function RuleEditor({
     draft.condition && definition
       ? fieldProblemOf(draft.condition, definition, optionSet, state.touched)
       : null;
-  const hints = target && kind ? hintsOf(target, draft.condition, day) : [];
+  // A field made of parts has a hint before its part, which leaves no kind yet
+  const hints = target && (kind || !target.part) ? hintsOf(target, draft.condition, day) : [];
   const complete = isRuleComplete(draft, branchName, context);
+  const missing = complete
+    ? null
+    : missingControl({
+        document: documentKey,
+        target: draft.target,
+        unrequested,
+        partMissing: field?.kind === 'parts' && kind === null,
+        condition: draft.condition,
+        conditionComplete:
+          kind !== null &&
+          conditionProblem(draft.condition, kind, optionSet?.options ?? null) === null,
+        valuesInput: definition?.input === 'values',
+        message: draft.message,
+      });
+  // What keeps the rule from being saved, once "Save rule" was pressed, or the unrequested data,
+  // unless a value's own problem already says it
+  const issue =
+    !complete && !problem && (state.saveTried || unrequested)
+      ? ruleProblem(draft, branchName, context)
+      : null;
+  const describedIf = (control: string) => (issue && missing === control ? issueId : undefined);
 
   /** Changes the rule; its message follows the condition until it was written (F9). */
   function change(next: RuleItem) {
@@ -183,6 +211,9 @@ export default function RuleEditor({
       onSave();
     } else {
       dispatch({ type: 'touchAll' });
+      if (missing) {
+        document.getElementById(`${idBase}-${missing}`)?.focus();
+      }
     }
   }
 
@@ -191,7 +222,7 @@ export default function RuleEditor({
   return (
     <section
       aria-labelledby={nameId}
-      className="rounded-kern-default border-kern-action-default bg-kern-layout-background-default flex flex-col gap-16 border px-24 py-16"
+      className="rounded-kern-default border-kern-action-default bg-kern-layout-background-default relative flex flex-col gap-16 border px-24 py-16"
     >
       <NameRow id={nameId} name={draft.name} onRename={onRename} />
       <div className="flex flex-col gap-8">
@@ -207,6 +238,7 @@ export default function RuleEditor({
             )}
             sections={documentSections(catalog.documents)}
             widthClass={MENU_WIDTHS.document}
+            describedBy={describedIf('document')}
             footer={<MenuFooter divided text={RULE_EDITOR_COPY.documentsFooter} />}
             state={state}
             dispatch={dispatch}
@@ -220,6 +252,7 @@ export default function RuleEditor({
             chosen={field ? { key: field.key, label: field.label } : null}
             disabled={!documentKey}
             invalid={unrequested}
+            describedBy={describedIf('data')}
             sections={dataSections(ruleDocument)}
             widthClass={MENU_WIDTHS.data}
             searchPlaceholder={
@@ -250,6 +283,7 @@ export default function RuleEditor({
                 ) ?? null
               }
               sections={partSections(field, catalog.optionSets)}
+              describedBy={describedIf('part')}
               widthClass={
                 optionsOf(catalog.optionSets, LICENCE_CLASSES_SET) &&
                 field.parts?.some((part) => part.per_licence_class)
@@ -274,6 +308,7 @@ export default function RuleEditor({
             chosen={checkChoiceOf(draft.condition, kind)}
             disabled={!kind}
             sections={kind ? checkSections(kind, target?.dateOfBirth ?? false) : []}
+            describedBy={describedIf('check')}
             widthClass={kind === 'date' ? MENU_WIDTHS.dateCheck : MENU_WIDTHS.check}
             state={state}
             dispatch={dispatch}
@@ -296,9 +331,15 @@ export default function RuleEditor({
           )}
         </div>
         {problem && <FieldError id={errorId} message={problem.message} />}
+        {issue && <FieldError id={issueId} message={issue} alert />}
       </div>
       {hints.length > 0 && <EditorHints hints={hints} />}
-      <MessageField id={`${idBase}-message`} message={draft.message} onChange={changeMessage} />
+      <MessageField
+        id={`${idBase}-message`}
+        message={draft.message}
+        errorId={describedIf('message')}
+        onChange={changeMessage}
+      />
       <EditorActions complete={complete} onCancel={onCancel} onSave={save} />
     </section>
   );

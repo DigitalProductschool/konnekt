@@ -2,7 +2,7 @@ import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 
 import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../utils/menuNavigation';
 import ConnectorOption from './ConnectorOption';
-import { CONNECTOR_COPY, CONNECTOR_OPTIONS } from './constants';
+import { CONNECTOR_COPY, CONNECTOR_MENU_PLACEMENTS, CONNECTOR_OPTIONS } from './constants';
 import type { ConnectorMenuProps } from './types';
 
 /**
@@ -15,6 +15,7 @@ export default function ConnectorMenu({
   triggerId,
   operator,
   levelName,
+  placement,
   onChoose,
   onClose,
   onLeave,
@@ -44,7 +45,9 @@ export default function ConnectorMenu({
   }
 
   return (
-    <div className="rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex w-300 flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8">
+    <div
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu z-20 mt-4 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${CONNECTOR_MENU_PLACEMENTS[placement]}`}
+    >
       <div
         ref={menuRef}
         id={id}

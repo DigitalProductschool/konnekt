@@ -85,6 +85,13 @@ export default function FormConnectionEditorPage({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const shownStep = useRef(state.step);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
+  // The Rules step needs the catalog and the value sets
+  const rulesStatus =
+    catalogStatus === 'failed' || optionSetsStatus === 'failed'
+      ? 'failed'
+      : catalogStatus === 'loaded' && optionSetsStatus === 'loaded'
+        ? 'loaded'
+        : 'loading';
   const ruleCatalog: RulesCatalog = useMemo(
     () => ({
       documents: requestedRuleDocuments(documentTypes, state.documents),
@@ -156,10 +163,12 @@ export default function FormConnectionEditorPage({
 
   /**
    * Publish or Save on the Rules step, with the rules as they are now: the pre-checks of FR-006
-   * refuse with the server's message and move the focus to the rule it names (F11).
+   * refuse with the server's message and move the focus to the rule it names (F11). Without the
+   * catalog, which is loading or failed to load, they would refuse every rule, so the server's
+   * checks alone apply then.
    */
   function publishRules(current: RulesState) {
-    const problem = firstProblem(current.branches, ruleCatalog);
+    const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, ruleCatalog) : null;
     if (problem) {
       const branch =
         problem.branchIndex === null ? undefined : current.branches[problem.branchIndex];
@@ -403,13 +412,7 @@ export default function FormConnectionEditorPage({
       case 'rules':
         return (
           <RulesStep
-            status={
-              catalogStatus === 'failed' || optionSetsStatus === 'failed'
-                ? 'failed'
-                : catalogStatus === 'loaded' && optionSetsStatus === 'loaded'
-                  ? 'loaded'
-                  : 'loading'
-            }
+            status={rulesStatus}
             onRetry={() => {
               if (catalogStatus === 'failed') retry();
               if (optionSetsStatus === 'failed') retryOptionSets();
@@ -494,6 +497,7 @@ export default function FormConnectionEditorPage({
             <Toast
               toast={rules.toast}
               onAction={handleRulesToastAction}
+              holdAction
               onDismiss={dismissRulesToast}
             />
           ) : (

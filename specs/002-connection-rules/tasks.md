@@ -995,21 +995,21 @@ changed. Then deselect a field that a rule checks: the dialog names the rule, an
 
 **Purpose**: Documentation, accessibility, validation with a real wallet, and the merge gate.
 
-- [ ] T073 [P] Update `docs/ARCHITECTURE.md` (CLAUDE.md "Documentation Checklist": architectural changes):
+- [X] T073 [P] Update `docs/ARCHITECTURE.md` (CLAUDE.md "Documentation Checklist": architectural changes):
   - rule sets and branch identities, and the snapshot with its marks;
   - the evaluation at each delivery: Germany's calendar day, never stored, never logged;
   - the branch pull URL and its order of checks;
   - the save ordering with rules, and `409 rules_changed`;
   - `GET /api/option-sets`;
   - propagation, which runs in the browser and is checked by the server's invariants.
-- [ ] T074 [P] Update `CLAUDE.md` (Documentation Checklist: new patterns):
+- [X] T074 [P] Update `CLAUDE.md` (Documentation Checklist: new patterns):
   - the backend structure listing: `option_sets.py`, `routers/option_sets.py`, `services/rules.py`, `services/evaluation.py`, and the new endpoint in `routers/connect.py`;
   - the frontend structure: `src/utils/rules/` with its tests, `RulesStep/` and `RuleEditor/`, and the shared `RuleRow`, `GroupFrame`, `Connector`, `BranchMark` and `BranchName`;
   - the rule that propagation lives only in `branches.ts`, every change to it comes with a Vitest case, and the server checks the invariants;
   - the wizard's steps, and `EditLocationState.step` `'rules'`.
   - Keep the F#/W# citation rule of "Figma implementation workflow".
-- [ ] T075 [P] Check `README.md` against this feature: Vitest and `npm test` (T001), the script's new options (T023), and the branch pull URLs wherever the README describes the connection URLs.
-- [ ] T076 Review accessibility (SC-009; quickstart V7; ui-screens.md "Accessibility"). Apply spec 001's walkthrough to the Rules step (`frontend/src/pages/FormConnectionEditor/RulesStep/`), the rule editor (`RulesStep/RuleEditor/`), the variant dialogs and menus, the publish dialog (`frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`) and the details' rules card (`frontend/src/pages/FormConnectionDetail/RulesSummary.tsx`):
+- [X] T075 [P] Check `README.md` against this feature: Vitest and `npm test` (T001), the script's new options (T023), and the branch pull URLs wherever the README describes the connection URLs.
+- [X] T076 Review accessibility (SC-009; quickstart V7; ui-screens.md "Accessibility"). Apply spec 001's walkthrough to the Rules step (`frontend/src/pages/FormConnectionEditor/RulesStep/`), the rule editor (`RulesStep/RuleEditor/`), the variant dialogs and menus, the publish dialog (`frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`) and the details' rules card (`frontend/src/pages/FormConnectionDetail/RulesSummary.tsx`):
   - marks readable without colour;
   - ≥, < and = not announced;
   - connectors, tab menus and select mode usable with the keyboard;
@@ -1017,7 +1017,7 @@ changed. Then deselect a field that a rule checks: the dialog names the rule, an
   - the focus on the named problem after a refused Publish;
   - 200% zoom and 320 px width.
   Fix every failure in the files concerned.
-- [ ] T077 Check the coverage of the Figma deviations (research R13), against `specs/002-connection-rules/contracts/ui-screens.md`:
+- [X] T077 Check the coverage of the Figma deviations (research R13), against `specs/002-connection-rules/contracts/ui-screens.md`:
   - every item of its "Coverage index" (F1–F32, W1–W9) was built by its tasks;
   - every visual-verification table lists the prescribed differences with their item numbers;
   - list what is unresolved, and why, in `specs/002-connection-rules/design-notes.md`.

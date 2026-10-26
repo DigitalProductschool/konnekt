@@ -1,6 +1,12 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import RuleRow from '../../../components/RuleRow';
+import {
+  placementFrom,
+  type PopupPlacement,
+  popupWrapperClass,
+} from '../../../utils/popupPlacement';
+import { COPY_POPOVER_WIDTH } from './constants';
 import CopyPopover from './CopyPopover';
 import ItemName from './ItemName';
 import RuleMenu from './RuleMenu';
@@ -29,6 +35,8 @@ export default function RuleListItem({
   const copying =
     dialog?.type === 'copyRule' && dialog.branchKey === branch.key && dialog.ruleId === rule.id;
   const actionsRef = useRef<HTMLDivElement>(null);
+  // Where "Copy to variant" opens from the ⋯, measured when it is chosen
+  const [copyPlacement, setCopyPlacement] = useState<PopupPlacement>('end');
 
   /** Closes "Copy to variant" with the focus back on the rule's ⋯. */
   function closeCopy(targets?: string[]) {
@@ -57,7 +65,7 @@ export default function RuleListItem({
       }
       actions={
         faded ? undefined : (
-          <div ref={actionsRef} className="relative">
+          <div ref={actionsRef} className={popupWrapperClass(copying ? copyPlacement : null)}>
             <RuleMenu
               ruleName={rule.name}
               standing={standing}
@@ -70,7 +78,10 @@ export default function RuleListItem({
                 dispatch({ type: 'startRename', branchKey: branch.key, itemId: rule.id })
               }
               onDuplicate={() => view.onDuplicateRule(rule.id)}
-              onCopy={() => view.onCopyRule(rule.id)}
+              onCopy={() => {
+                setCopyPlacement(placementFrom(actionsRef.current, COPY_POPOVER_WIDTH, 'end'));
+                view.onCopyRule(rule.id);
+              }}
               onGroup={() => view.onStartSelect(rule.id)}
               onReset={() => view.onReset(rule.id)}
               onDelete={() =>
@@ -85,8 +96,10 @@ export default function RuleListItem({
                 state={state}
                 branchKey={branch.key}
                 ruleName={rule.name}
+                placement={copyPlacement}
                 onCopy={closeCopy}
                 onClose={closeCopy}
+                onDismiss={() => dispatch({ type: 'closeDialog' })}
               />
             )}
           </div>

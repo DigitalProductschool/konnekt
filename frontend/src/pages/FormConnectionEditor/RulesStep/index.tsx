@@ -56,7 +56,8 @@ export default function RulesStep({
   );
 
   // An opened editor takes the focus, so that keyboard users continue in it; a closed one
-  // gives it to its rule, or to its level's "Add rule" when the rule wasn't kept
+  // gives it to its rule, or to its level's "Add rule" when the rule wasn't kept. Only if the
+  // focus went with the editor: a refused Publish has moved it to the rule it names (F11)
   useEffect(() => {
     if (editedId && editedBranch) {
       lastEdited.current = { id: editedId, branchKey: editedBranch, parentId: editedParent };
@@ -66,7 +67,7 @@ export default function RulesStep({
     } else if (lastEdited.current) {
       const { id, branchKey, parentId } = lastEdited.current;
       lastEdited.current = null;
-      focusSoon(ELEMENT_IDS.rule(branchKey, id), ELEMENT_IDS.addRule(branchKey, parentId));
+      focusSoon(ELEMENT_IDS.rule(branchKey, id), ELEMENT_IDS.addRule(branchKey, parentId), true);
     }
   }, [editedId, editedBranch, editedParent]);
 
@@ -175,11 +176,13 @@ export default function RulesStep({
       keepFocus(() => dispatch({ type: 'resetItem', branchKey: branch.key, itemId }), itemId),
   };
 
+  // Back to the first chosen rule, or to its level's "Add rule" once no rule is chosen
   function cancelSelect() {
     const origin = selection?.ids[0];
     thenFocus(
       () => dispatch({ type: 'cancelSelect' }),
-      origin ? ELEMENT_IDS.rule(branch.key, origin) : ''
+      origin ? ELEMENT_IDS.rule(branch.key, origin) : '',
+      ELEMENT_IDS.addRule(branch.key, selection?.parentId ?? null)
     );
   }
 

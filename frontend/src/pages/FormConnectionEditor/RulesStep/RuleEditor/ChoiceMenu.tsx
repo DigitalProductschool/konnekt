@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef } from 'react';
+import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
 import { RULE_EDITOR_COPY } from './constants';
 import MenuSearchField from './MenuSearchField';
@@ -9,8 +9,12 @@ import { focusOption, matchesSearch } from './utils';
 /**
  * A rule editor menu (Figma "Rules/Menu", "Elevation/Menu"), below its picker: an optional
  * search field, the choices in sections, and an optional footer. It follows the listbox pattern:
- * the arrow keys, Home and End move between the choices, Enter or Space chooses, Escape closes
- * it and Tab leaves it. It opens with the focus on its search field or its chosen option.
+ * the arrow keys, Home and End move between the choices, Enter or Space chooses, and Escape
+ * closes it. Tab reaches the footer's button, and the menu closes once the focus leaves it. It
+ * opens with the focus on its search field or its chosen option. "No options match" is outside
+ * the list, and announced. Below
+ * 768px (200% zoom, small screens) it hangs from the rule editor's content edge instead of its
+ * picker, and is no wider than the editor's content, so it never runs off the screen (WCAG 1.4.10).
  */
 export default function ChoiceMenu({
   id,
@@ -72,9 +76,6 @@ export default function ChoiceMenu({
         event.preventDefault();
         onClose();
         return;
-      case 'Tab':
-        onDismiss();
-        return;
     }
   }
 
@@ -85,7 +86,14 @@ export default function ChoiceMenu({
     } else if (event.key === 'Escape') {
       event.preventDefault();
       onClose();
-    } else if (event.key === 'Tab') {
+    }
+  }
+
+  // Tab or Shift+Tab out of the menu. A choice moves the focus on itself, and a pointer outside
+  // closes the menu through its picker
+  function handleBlur(event: FocusEvent<HTMLDivElement>) {
+    const next = event.relatedTarget;
+    if (next && !event.currentTarget.contains(next)) {
       onDismiss();
     }
   }
@@ -93,7 +101,8 @@ export default function ChoiceMenu({
   return (
     <div
       id={id}
-      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${widthClass}`}
+      onBlur={handleBlur}
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${widthClass}`}
     >
       {searchPlaceholder && (
         <MenuSearchField
@@ -123,12 +132,17 @@ export default function ChoiceMenu({
             onKeyDown={handleKeyDown}
           />
         ))}
-        {shown.length === 0 && (
-          <p className="text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)">
-            {RULE_EDITOR_COPY.noMatch(search.trim())}
-          </p>
-        )}
       </div>
+      <p
+        role="status"
+        className={
+          shown.length === 0
+            ? 'text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)'
+            : 'sr-only'
+        }
+      >
+        {shown.length === 0 ? RULE_EDITOR_COPY.noMatch(search.trim()) : ''}
+      </p>
       {footer}
     </div>
   );

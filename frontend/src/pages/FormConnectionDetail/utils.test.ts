@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Branch, FormConnection } from '../../types/form-connections';
-import { resultLinksOf, rulesCountOf } from './utils';
+import { resultLinksOf } from './utils';
 
 function branch(id: string, name: string, isMain = false): Branch {
   return {
@@ -60,13 +60,5 @@ describe('resultLinksOf (FR-026; F24, W2)', () => {
         'Ambulance',
       ],
     ]);
-  });
-});
-
-describe('rulesCountOf', () => {
-  it('counts the variants', () => {
-    expect(rulesCountOf([branch('main', 'Standard', true), branch('b-1', 'Ambulance')])).toBe(
-      '2 variants · 0 rules'
-    );
   });
 });

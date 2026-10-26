@@ -14,7 +14,8 @@ import type { RuleRowProps } from './types';
  * as it goes. With a problem, the row is outlined in red with the message under it (U27
  * 6197:10704; F11). In a variant based on Standard, its mark shows left of the ⋯ (FR-023): a
  * changed or added rule is tinted (U17 6134:9009, 6134:9064), a removed one faded and struck
- * through (U18 6163:5856).
+ * through (U18 6163:5856). A flagged row that takes the focus, after a refused Publish, is
+ * described by its problem.
  */
 export default function RuleRow({
   id,
@@ -34,6 +35,7 @@ export default function RuleRow({
   const tint = mark ? BRANCH_MARK_TINTS[mark] : '';
   const framed = Boolean(flag || tint);
   const removed = mark === 'removed';
+  const problemId = flag && id ? `${id}-problem` : undefined;
   const frame = [
     'rounded-kern-default',
     tint || 'bg-kern-layout-background-default',
@@ -43,6 +45,7 @@ export default function RuleRow({
     <div
       id={id}
       tabIndex={id ? -1 : undefined}
+      aria-describedby={problemId}
       className={`focus-visible:outline-kern-action-focus-default focus-visible:outline-4 focus-visible:-outline-offset-4 ${framed ? 'px-8' : ''}`}
     >
       <div className={framed ? frame : undefined}>
@@ -71,7 +74,7 @@ export default function RuleRow({
             </div>
           )}
         </div>
-        {flag && <ProblemNote message={flag} />}
+        {flag && <ProblemNote id={problemId} message={flag} />}
       </div>
     </div>
   );

@@ -103,7 +103,8 @@ export default function ItemName({
       />
       <span
         id={messageId}
-        role={field.error ? 'alert' : undefined}
+        // Live from the start, so that an error replacing the hint is announced
+        aria-live="assertive"
         className={`text-kern-static-small leading-(--kern-typography-line-height-medium-static) ${field.error ? 'text-kern-feedback-danger' : 'text-kern-layout-text-muted'}`}
       >
         {field.error ?? RULES_COPY.renameHint}

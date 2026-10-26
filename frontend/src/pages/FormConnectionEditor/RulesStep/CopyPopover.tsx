@@ -1,6 +1,6 @@
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import { type FocusEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
-import { RULES_COPY } from './constants';
+import { COPY_POPOVER_PLACEMENTS, RULES_COPY } from './constants';
 import CopyTargetItem from './CopyTargetItem';
 import type { CopyPopoverProps } from './types';
 import { copyTargetsOf } from './utils';
@@ -9,14 +9,17 @@ import { copyTargetsOf } from './utils';
  * "Copy to variant" (U20 6344:53981; decision 2026-10-25, design-notes §4): a popover under the
  * rule's ⋯ that lists the other variants. Choosing Standard covers the variants based on it,
  * which then show as included (FR-022). The focus moves to the first variant; Escape, Cancel and
- * a click elsewhere close it, and "Copy" copies to what is chosen.
+ * a click elsewhere close it, as the focus leaving it does, and "Copy" copies to what is chosen. It opens to the left of the ⋯
+ * where it fits, otherwise to the right or across the window (WCAG 1.4.10).
  */
 export default function CopyPopover({
   state,
   branchKey,
   ruleName,
+  placement,
   onCopy,
   onClose,
+  onDismiss,
 }: CopyPopoverProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,13 @@ export default function CopyPopover({
     }
   }
 
+  function handleBlur(event: FocusEvent<HTMLDivElement>) {
+    const next = event.relatedTarget;
+    if (next && !event.currentTarget.parentElement?.contains(next)) {
+      onDismiss();
+    }
+  }
+
   function toggle(key: string) {
     setChosen((current) =>
       current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]
@@ -64,7 +74,8 @@ export default function CopyPopover({
       role="dialog"
       aria-labelledby={`${id}-title`}
       onKeyDown={handleKeyDown}
-      className="rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full right-0 z-20 mt-4 flex w-300 max-w-[calc(100vw-32px)] flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16"
+      onBlur={handleBlur}
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu z-20 mt-4 flex flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16 ${COPY_POPOVER_PLACEMENTS[placement]}`}
     >
       <p
         id={`${id}-title`}
