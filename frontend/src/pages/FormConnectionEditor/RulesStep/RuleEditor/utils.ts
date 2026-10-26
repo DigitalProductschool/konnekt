@@ -14,6 +14,7 @@ import {
 import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
 import { boundaryOf, boundaryPhrase, formatDate } from '../../../../utils/rules/dates';
 import { lowerFirst, proposedMessage } from '../../../../utils/rules/messages';
+import { ruleFieldLabel } from '../../../../utils/rules/statements';
 import type {
   ConditionKind,
   OperatorDefinition,
@@ -130,7 +131,7 @@ export function dataSections(document: RuleDocument | undefined): MenuSection[] 
   const fields = document?.fields ?? [];
   const toChoice = (field: DocumentField): MenuChoice => ({
     key: field.key,
-    label: field.label,
+    label: ruleFieldLabel(field),
     unavailable: field.kind === 'image',
   });
   const sections: MenuSection[] = [

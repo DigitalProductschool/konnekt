@@ -10,6 +10,7 @@ import {
 } from '../../../../utils/rules/conditions';
 import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
 import { todayInGermany } from '../../../../utils/rules/dates';
+import { ruleFieldLabel } from '../../../../utils/rules/statements';
 import type { RuleContext } from '../../../../utils/rules/types';
 import { ruleProblem } from '../../../../utils/rules/validation';
 import ChoicePicker from './ChoicePicker';
@@ -249,7 +250,7 @@ export default function RuleEditor({
             menu="data"
             label={RULE_EDITOR_COPY.dataMenu}
             placeholder={RULE_EDITOR_COPY.chooseData}
-            chosen={field ? { key: field.key, label: field.label } : null}
+            chosen={field ? { key: field.key, label: ruleFieldLabel(field) } : null}
             disabled={!documentKey}
             invalid={unrequested}
             describedBy={describedIf('data')}

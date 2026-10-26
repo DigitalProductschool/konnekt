@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B5, B6 applied)
+# Bug Fix: Eight Rules UI fixes (B1, B5, B6, B7 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B5, B6 applied; B2–B4, B7, B8 not yet)
+- **Status**: partial (B1, B5, B6, B7 applied; B2–B4, B8 not yet)
 
 ## Summary
 
@@ -21,6 +21,12 @@ The assessment's items are applied one at a time. This report covers each item a
   the textarea with the caret at the end of the text. This holds for the rule editor's message
   and for a group's editable message in the list; the read-only group message on the details
   page is unchanged. The pencil stays `aria-hidden` with no tab stop, and gets a pointer cursor.
+- **B7** (applied): the rules UI now calls the date of birth "Date of birth (Age)". This applies
+  to the data menu and its search, the chosen data, and every statement, so the rule rows, the
+  publish dialog, the details page and the delete dialog all change. The new
+  `ruleFieldLabel(field)` returns it for a field with `date_of_birth`, in the PID and in the mDL.
+  The documents step, the citizen-facing messages (proposed or written), the editor's hints,
+  the validation messages (the server's words) and the backend keep "Date of birth".
 
 ## Changes
 
@@ -31,6 +37,17 @@ The assessment's items are applied one at a time. This report covers each item a
 | `frontend/src/utils/messageField.ts` | added | B6. `focusMessageOnPress`, the mousedown handler both message fields share |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/MessageField.tsx` | modified | B6. Handler on the field's box; `cursor-pointer` on the pencil; doc comment |
 | `frontend/src/components/GroupFrame/GroupMessage.tsx` | modified | B6. Handler on the field's box only when editable (`field`); `cursor-pointer` on the pencil; doc comment |
+| `frontend/src/utils/rules/constants.ts` | modified | B7. `DATE_OF_BIRTH_RULE_LABEL = 'Date of birth (Age)'` |
+| `frontend/src/utils/rules/statements.ts` | modified | B7. New `ruleFieldLabel(field)`; `dataOfResolved` uses it for a field without parts, which `subjectOfResolved` and the statements follow; comments |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/utils.ts` | modified | B7. `dataSections` labels its choices with `ruleFieldLabel`, so the data menu's search (`matchesSearch` on the label) finds "age" too |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/index.tsx` | modified | B7. The data picker's chosen value uses `ruleFieldLabel` |
+| `frontend/src/utils/rules/statements.test.ts` | updated + added tests | B7. Expectations now read "Date of birth (Age)"; new `describe('ruleFieldLabel')` |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/utils.test.ts` | added tests | B7. Data menu, its search, the check menu's headings, the missing-value note |
+| `frontend/src/utils/rules/messages.test.ts` | added test | B7. A from-now message on the date of birth keeps "date of birth", without "(Age)" |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/utils.test.ts` | updated | B7. The delete dialog's input statement reads "(Age)" (the test passes the statement in; the text is only made consistent) |
+| `specs/002-connection-rules/spec.md` | modified | B7. New "Session 2026-10-26 (bug fixes)" clarification; FR-005's example |
+| `specs/002-connection-rules/contracts/ui-screens.md` | modified | B7. The rule list's example statement (S2) |
+| `specs/002-connection-rules/design-notes.md` | modified | B7. §3 date pickers: the field's rules name, and why the "Date of birth" section keeps its name |
 
 ## Diff Highlights (optional)
 
@@ -91,6 +108,36 @@ textarea, which changes nothing. Right and middle clicks are ignored. A textarea
 `:focus-visible` whenever focused (it takes keyboard input), so the field's focus ring should show
 after a press on the pencil.
 
+B7:
+
+```ts
+/**
+ * A field's name in the rules UI: "Date of birth (Age)" for the date of birth (B7), the catalog's
+ * label otherwise. Messages, hints and validation keep `field.label`, the citizen's wording.
+ */
+export function ruleFieldLabel(field: DocumentField): string {
+  return field.date_of_birth ? DATE_OF_BIRTH_RULE_LABEL : field.label;
+}
+
+export function dataOfResolved({ field, part, licenceClass }: ResolvedTarget): string {
+  if (!part) {
+    return ruleFieldLabel(field);
+  }
+  …
+```
+
+The branches below `if (!part)` still use `field.label`. That is safe because a field with parts
+is never a date of birth (`resolveTarget` sets `dateOfBirth: false` for parts).
+
+Where "Date of birth" stays, deliberately:
+
+- `messages.ts` (proposed messages, e.g. "The date of birth of your personal ID must …").
+- `RuleEditor/utils.ts` `checkedDateOf` (the missing-value note: "If the date of birth is
+  missing …").
+- `validation.ts` `unknownPart` (the server's words).
+- The documents step.
+- The backend.
+
 ## Tests Added or Updated
 
 - None for B1: it is a CSS change only, and Vitest has no DOM. It needs a browser check (see
@@ -99,6 +146,23 @@ after a press on the pencil.
   focus events. The assessment calls for a browser check instead (see Local Verification).
 - None for B6: the handler depends on DOM focus and selection, and Vitest has no DOM. Browser
   check instead (see Local Verification).
+
+- B7, `src/utils/rules/statements.test.ts`:
+  - Existing statement, parts and `dataOfResolved` expectations now read "Date of birth (Age)" for
+    the PID and the mDL.
+  - `ruleFieldLabel › names the date of birth as an age in the rules only (B7)` and `› keeps the
+    catalog's label for every other field`.
+- B7, `src/pages/FormConnectionEditor/RulesStep/RuleEditor/utils.test.ts`, `date of birth in the
+  rule editor (B7)`:
+  - The data menu lists "Date of birth (Age)" (PID and mDL), not "Date of birth".
+  - The search finds it by "age" and by "birth".
+  - The check menu's headings stay "Age", "Time from now", "Date of birth".
+  - The missing-value note says "If the date of birth is missing" without "(Age)".
+- B7, `src/utils/rules/messages.test.ts › date of birth in messages (B7)`: a from-now message on
+  the date of birth reads "…date of birth of your personal ID…", without "(age)".
+- `validation.test.ts:280-281` and `FormConnectionEditor/utils.test.ts:224,292` were left
+  unchanged and still pass. They pin the server's words and the documents step's "Stop requesting
+  Date of birth?".
 
 ## Local Verification
 
@@ -152,6 +216,22 @@ B6:
   - Details page: the group's read-only message doesn't react.
   - Keyboard: Tab order unchanged, no new tab stop.
 
+B7:
+
+- Commands run:
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint` on the 8 changed frontend files → clean
+  - `npx prettier --check` → one test file reformatted with `--write`, then clean
+  - `npm test` (`vitest run`) → 14 files, 501 tests passed (494 before, 7 new)
+- Manual checks: **not done** (no backend to sign in with, as for the other items). Checks still to
+  do in the app:
+  - Data menu of the PID and the mDL shows "Date of birth (Age)", and typing "age" finds it.
+  - The chosen data and the saved row read "Personal ID – Date of birth (Age) is at least 21
+    years old".
+  - The details page and the delete dialog say the same.
+  - The documents step still says "Date of birth".
+  - A proposed message still says "date of birth".
+
 ## Deviations from Assessment
 
 None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/messageField.ts`
@@ -159,8 +239,23 @@ None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/mess
 No spec document records the empty state's padding (design-notes:48 lists only its wording), so
 no doc changed.
 
+For B7:
+
+- The assessment's open question on the check menu's "Date of birth" section heading is decided:
+  it keeps its name. It doesn't name the field as data. It names the section of fixed-date checks
+  ("is before / is after / is <date>"), and it sits below the "Age" section. "Date of birth (Age)"
+  there would label as an age the one section that isn't one. Recorded in design-notes §3 and in
+  the spec's new clarification.
+- Docs: the assessment lists the F1 rows of `contracts/ui-screens.md` (:216, :259, :281, :300).
+  Those rows are the record of the old Figma deviations, so they were left as they are; the new
+  dated clarification in `spec.md` supersedes their example. Only the live S2 contract line (:63)
+  and FR-005's example were updated.
+
 ## Follow-ups
 
-- Apply B2–B4, B7 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
+- Apply B2–B4 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
   report.
-- Browser verification of B1, B5 and B6 in `/speckit-bug-test`.
+- Browser verification of B1, B5, B6 and B7 in `/speckit-bug-test`.
+- B7: if the reporter also wants "(Age)" in the documents step's rule-removal dialogs ("Stop
+  requesting Date of birth?"), that is a documents-step string and was left out by the "only in the
+  rules" scope.

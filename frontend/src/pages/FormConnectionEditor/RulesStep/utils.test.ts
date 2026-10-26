@@ -511,9 +511,9 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
 
   it('keeps U14’s body without variants based on Standard, and in a variant', () => {
     expect(
-      text(stateWith(items), 'rule-1', 'Personal ID – Date of birth is at least 21 years old')
+      text(stateWith(items), 'rule-1', 'Personal ID – Date of birth (Age) is at least 21 years old')
     ).toBe(
-      'Applicants will no longer be checked for “Personal ID – Date of birth is at least 21 years old”. You can undo this right after.'
+      'Applicants will no longer be checked for “Personal ID – Date of birth (Age) is at least 21 years old”. You can undo this right after.'
     );
     expect(text(withVariants('empty'), 'rule-1')).toBe('You can undo this right after.');
     const state = withVariants('based');

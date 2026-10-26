@@ -240,3 +240,15 @@ describe('orList', () => {
     expect(orList(items)).toBe(expected);
   });
 });
+
+describe('date of birth in messages (B7)', () => {
+  it('keeps the catalog’s "date of birth", without the rules’ "(Age)"', () => {
+    const text = message(target('pid', 'birthdate'), {
+      operator: 'at_least_from_now',
+      amount: 1,
+      unit: 'years',
+    });
+    expect(text).toContain('date of birth of your personal ID');
+    expect(text?.toLowerCase()).not.toContain('(age)');
+  });
+});

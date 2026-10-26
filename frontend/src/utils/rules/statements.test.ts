@@ -5,12 +5,13 @@ import { resolveTarget } from './conditions';
 import {
   dataOfResolved,
   optionLabel,
+  ruleFieldLabel,
   statementOf,
   statementPartsOf,
   subjectOf,
   symbolOf,
 } from './statements';
-import { CONTEXT, OPTION_SETS, PID, target, US1_RULES } from './testData';
+import { CONTEXT, MDL, OPTION_SETS, PID, target, US1_RULES } from './testData';
 
 function statement(ruleTarget: RuleTarget, condition: Condition): string | undefined {
   return statementOf({ target: ruleTarget, condition }, CONTEXT)?.text;
@@ -19,7 +20,7 @@ function statement(ruleTarget: RuleTarget, condition: Condition): string | undef
 describe('statementOf', () => {
   it('reads US1’s rules in FR-005’s words (F1, F5, F32)', () => {
     expect(US1_RULES.map((rule) => statementOf(rule, CONTEXT)?.text)).toEqual([
-      'Personal ID – Date of birth is at least 21 years old',
+      'Personal ID – Date of birth (Age) is at least 21 years old',
       'Driving licence – Licence classes includes one of B',
       'Driving licence – Licence class B – Issue date is at least 2 years ago',
     ]);
@@ -27,10 +28,10 @@ describe('statementOf', () => {
 
   it('splits a statement into its subject, its predicate and the design’s chip', () => {
     expect(statementOf(US1_RULES[0], CONTEXT)).toEqual({
-      subject: 'Personal ID – Date of birth',
+      subject: 'Personal ID – Date of birth (Age)',
       predicate: 'is at least 21 years old',
       symbol: '≥',
-      text: 'Personal ID – Date of birth is at least 21 years old',
+      text: 'Personal ID – Date of birth (Age) is at least 21 years old',
     });
   });
 
@@ -41,10 +42,10 @@ describe('statementOf', () => {
       ['exactly_years_ago', 1, 'is exactly 1 year old'],
     ])('words %s on a Date of birth as an age', (operator, years, predicate) => {
       expect(statement(target('pid', 'birthdate'), { operator, years })).toBe(
-        `Personal ID – Date of birth ${predicate}`
+        `Personal ID – Date of birth (Age) ${predicate}`
       );
       expect(statement(target('mdl', 'birth_date'), { operator, years })).toBe(
-        `Driving licence – Date of birth ${predicate}`
+        `Driving licence – Date of birth (Age) ${predicate}`
       );
     });
 
@@ -237,7 +238,7 @@ describe('statementPartsOf', () => {
       {
         document: 'Personal ID',
         documentType: 'pid',
-        data: 'Date of birth',
+        data: 'Date of birth (Age)',
         predicate: { symbol: '≥', words: 'is at least', values: ['21 years old'], tail: null },
       },
       {
@@ -309,7 +310,7 @@ describe('statementPartsOf', () => {
     ).toEqual({
       document: 'Personal ID',
       documentType: 'pid',
-      data: 'Date of birth',
+      data: 'Date of birth (Age)',
       predicate: null,
     });
     expect(
@@ -331,11 +332,33 @@ describe('dataOfResolved', () => {
       const resolved = resolveTarget(ruleTarget, CONTEXT.documents);
       return resolved && dataOfResolved(resolved);
     };
-    expect(data(target('pid', 'birthdate'))).toBe('Date of birth');
+    expect(data(target('pid', 'birthdate'))).toBe('Date of birth (Age)');
     expect(data(target('pid', 'place_of_birth', 'country'))).toBe('Place of birth – Country');
     expect(data(target('mdl', 'driving_privileges', 'classes'))).toBe('Licence classes');
     expect(data(target('mdl', 'driving_privileges', 'expiry_date', 'C1E'))).toBe(
       'Licence class C1E – Expiry date'
     );
+  });
+});
+
+describe('ruleFieldLabel', () => {
+  const fieldOf = (document: typeof PID, key: string) => {
+    const found = document.fields.find((entry) => entry.key === key);
+    if (!found) {
+      throw new Error(`${document.key}.${key} isn't in the test catalog`);
+    }
+    return found;
+  };
+
+  it('names the date of birth as an age in the rules only (B7)', () => {
+    expect(ruleFieldLabel(fieldOf(PID, 'birthdate'))).toBe('Date of birth (Age)');
+    expect(ruleFieldLabel(fieldOf(MDL, 'birth_date'))).toBe('Date of birth (Age)');
+  });
+
+  it('keeps the catalog’s label for every other field', () => {
+    expect(ruleFieldLabel(fieldOf(PID, 'date_of_expiry'))).toBe(
+      fieldOf(PID, 'date_of_expiry').label
+    );
+    expect(ruleFieldLabel(fieldOf(PID, 'place_of_birth'))).toBe('Place of birth');
   });
 });

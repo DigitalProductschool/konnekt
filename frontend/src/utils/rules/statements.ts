@@ -1,5 +1,6 @@
 // Rules as readable statements (FR-005; F1, F2, F5, F7, F8, F32), such as "Personal ID – Date of
-// birth is at least 21 years old", for the rules step, the publish dialog and the details
+// birth (Age) is at least 21 years old", for the rules step, the publish dialog and the details
+import type { DocumentField } from '../../types/document-types';
 import type { Condition, RuleItem, RuleTarget } from '../../types/form-connections';
 import type { OptionSet } from '../../types/option-sets';
 import {
@@ -9,7 +10,7 @@ import {
   resolveTarget,
   suffixOf,
 } from './conditions';
-import { OPERATOR_SYMBOLS } from './constants';
+import { DATE_OF_BIRTH_RULE_LABEL, OPERATOR_SYMBOLS } from './constants';
 import { formatDate } from './dates';
 import type {
   PredicateParts,
@@ -27,6 +28,14 @@ export function licenceClassLabel(code: string): string {
 }
 
 /**
+ * A field's name in the rules UI: "Date of birth (Age)" for the date of birth (B7), the catalog's
+ * label otherwise. Messages, hints and validation keep `field.label`, the citizen's wording.
+ */
+export function ruleFieldLabel(field: DocumentField): string {
+  return field.date_of_birth ? DATE_OF_BIRTH_RULE_LABEL : field.label;
+}
+
+/**
  * What a resolved target checks, with "–" between the document, the field and the part:
  * "Personal ID – Place of birth – City or town", "Driving licence – Licence class B – Issue date".
  * A part named like its field, such as the classes held, adds nothing: "Driving licence – Licence
@@ -37,12 +46,12 @@ export function subjectOfResolved(target: ResolvedTarget): string {
 }
 
 /**
- * What a resolved target checks within its document: "Date of birth", "Place of birth – City or
+ * What a resolved target checks within its document: "Date of birth (Age)", "Place of birth – City or
  * town", "Licence class B – Issue date", "Licence classes".
  */
 export function dataOfResolved({ field, part, licenceClass }: ResolvedTarget): string {
   if (!part) {
-    return field.label;
+    return ruleFieldLabel(field);
   }
   if (part.per_licence_class && licenceClass) {
     return `${licenceClassLabel(licenceClass)} – ${part.label}`;

@@ -135,8 +135,10 @@ list bare codes, which F32 replaces with these rows.
 - Licence classes, "includes none of" (proposed): "Met if the licence has none of the chosen
   classes.", beside U12's "Met if the licence has at least one of the chosen classes."
 - Date pickers: the sections read "Age", "Time from now", "Date of birth" on a Date of birth, and
-  "Time ago", "Time from now", "Fixed date" on every other date (F3). The counting note shows for
-  the "time ago" and "from now" checks; a fixed date gets the missing-value note only (F4).
+  "Time ago", "Time from now", "Fixed date" on every other date (F3). The rules call the field
+  itself "Date of birth (Age)" (2026-10-26, rules-ui-fixes B7); the third section keeps "Date of
+  birth", since it holds the fixed-date checks, not the age. The counting note shows for the "time
+  ago" and "from now" checks; a fixed date gets the missing-value note only (F4).
 - The proposed message follows the condition until the team member writes their own; emptying
   the field lets the next change of the condition propose one again (F9).
 

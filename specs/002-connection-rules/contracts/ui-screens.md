@@ -60,7 +60,8 @@ The screen ids S0–S7 are used in [Deviations from Figma](#deviations-from-figm
   also before the first rule and while it is being edited (FR-019).
 - **Empty state**: "No rules yet" with "+ Add rule", in every branch without rules (FR-001, EC-17).
 - **Rule list**: each rule shows its name and its statement in FR-005's words, such as "Personal ID
-  – Date of birth is at least 21 years old", and its error message. Decoration symbols (≥, <, =)
+  – Date of birth (Age) is at least 21 years old" (the rules' name for the field since
+  2026-10-26, rules-ui-fixes B7), and its error message. Decoration symbols (≥, <, =)
   are hidden from assistive technologies (FR-005). Identifiers aren't shown here (FR-010).
 - **AND and OR**: a connector between every two items of a level; switching one switches the whole
   level (FR-007).

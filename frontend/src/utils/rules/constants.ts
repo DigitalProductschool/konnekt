@@ -167,6 +167,10 @@ export const ISSUING_COUNTRY_FIELDS = new Set(['pid.issuing_country', 'mdl.issui
 export const EXPIRY_DATE_FIELDS = new Set(['pid.date_of_expiry', 'mdl.expiry_date']);
 export const PLACE_OF_BIRTH_FIELD = 'pid.place_of_birth';
 
+// The rules' name for a field checked as an age (rules-ui-fixes B7). Only the rules UI says it:
+// the documents step, the messages and the server's words keep the catalog's "Date of birth"
+export const DATE_OF_BIRTH_RULE_LABEL = 'Date of birth (Age)';
+
 // The server's messages for FR-006's refusals (backend/app/services/rules.py), word for word.
 // {branch} and {rule} are names as written, trimmed
 export const RULES_MESSAGES = {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveTarget } from '../../../../utils/rules/conditions';
-import { CONTEXT, target } from '../../../../utils/rules/testData';
+import { CONTEXT, MDL, PID, target } from '../../../../utils/rules/testData';
 import type { MissingControlInput } from './types';
-import { hintsOf, missingControl } from './utils';
+import { checkSections, dataSections, hintsOf, matchesSearch, missingControl } from './utils';
 
 const COMPLETE: MissingControlInput = {
   document: 'pid',
@@ -89,5 +89,41 @@ describe('hintsOf', () => {
         TODAY
       )
     ).not.toContain('Applicants who turn 2 that day count.');
+  });
+});
+
+describe('date of birth in the rule editor (B7)', () => {
+  const dataLabels = (document: typeof PID) =>
+    dataSections(document).flatMap((section) => section.choices.map((choice) => choice.label));
+
+  it('names the date of birth as an age in the data menu, for the PID and the mDL', () => {
+    expect(dataLabels(PID)).toContain('Date of birth (Age)');
+    expect(dataLabels(MDL)).toContain('Date of birth (Age)');
+    expect(dataLabels(PID)).not.toContain('Date of birth');
+  });
+
+  it('finds it in the data menu’s search by "age" and by "birth"', () => {
+    const found = (search: string) =>
+      dataLabels(PID).filter((label) => matchesSearch(label, search));
+    expect(found('age')).toContain('Date of birth (Age)');
+    expect(found('birth')).toContain('Date of birth (Age)');
+  });
+
+  it('keeps the check menu’s "Date of birth" section of fixed dates under "Age"', () => {
+    expect(checkSections('date', true).map((section) => section.heading)).toEqual([
+      'Age',
+      'Time from now',
+      'Date of birth',
+    ]);
+  });
+
+  it('keeps "date of birth" in the missing-value note', () => {
+    const resolved = resolveTarget(target('pid', 'birthdate'), CONTEXT.documents);
+    if (!resolved) {
+      throw new Error('pid.birthdate isn’t in the test catalog');
+    }
+    const hints = hintsOf(resolved, { operator: 'before', date: '2000-01-01' }, '2026-10-25');
+    expect(hints.some((hint) => hint.includes('If the date of birth is missing'))).toBe(true);
+    expect(hints.join(' ')).not.toContain('(Age)');
   });
 });

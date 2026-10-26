@@ -106,6 +106,12 @@ Questions raised by the cross-artifact analysis of the spec, the plan and the ta
 - Q: How do the values of enum fields read in statements and proposed messages, given that some value sets are codes, such as the "Sex"? → A: By their label, such as "Personal ID – Nationality includes one of Germany". Only the licence classes read by their code, such as "B, BE" (FR-005).
 - Q: How many branches and rules can a form connection have? → A: At most 20 branches, the main branch included, and at most 200 rules, groups and sub-groups per branch, removed ones included. Real forms stay far below these limits. Publishing or saving beyond either is refused with a message (Assumptions).
 
+### Session 2026-10-26 (bug fixes)
+
+Decisions taken with the reporter of `.specify/bugs/rules-ui-fixes` (B7).
+
+- Q: Should the rules name the "Date of birth" as an age, since its checks read "is at least 21 years old"? → A: Yes. Wherever the rules UI names the field, in the data menu and its search, the chosen data, every statement, the details and the delete dialog, it reads "Date of birth (Age)", such as "Personal ID – Date of birth (Age) is at least 21 years old" (FR-005). The documents step keeps the catalog's "Date of birth". So do the messages for the citizen, the hints, the server's messages and the documents delivered to serviceBW. The check menu's "Date of birth" section, the fixed-date checks under "Age", keeps its name. This supersedes the example in the 2026-10-24 answer on how a "Date of birth" rule reads.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Check shared documents against rules (Priority: P1)
@@ -434,7 +440,7 @@ new one, and no URL has changed.
   which the team member MUST be able to add and remove.
 - **FR-005**: The system MUST show every rule as a readable statement that names the document, the
   field or part of a field it checks, and the condition, and for text whether letter case counts,
-  such as "Personal ID – Date of birth is at least 21 years old", "Driving licence – Licence
+  such as "Personal ID – Date of birth (Age) is at least 21 years old", "Driving licence – Licence
   class B – Issue date is at least 2 years ago" or "Driving licence – Expiry date is at least 6
   months from now". Enum values MUST appear by their label, such as "Personal ID – Nationality
   includes one of Germany", in statements and in proposed messages (FR-004); only the licence
