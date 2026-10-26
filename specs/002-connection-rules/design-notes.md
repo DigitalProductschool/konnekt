@@ -218,6 +218,9 @@ Decided by the user where the frames leave a gap (node discovery's UNCERTAIN ite
 - **Copy to variant** (U20 `6344:53981`): Figma's popover under the rule's ⋯, not a modal
   dialog. The focus moves into it; Escape, Cancel and a click elsewhere close it and give the
   focus back to the ⋯.
+  *Updated 2026-10-26 (bug copy-popover-label-click):* a click anywhere on a variant's row, its
+  name included, ticks it. A press inside the popover that isn't on a control moves the focus to
+  the popover (`tabindex="-1"`, no ring), not to the rule row, so the popover stays open.
 - **The variant (i)** reuses spec 001's `InfoTooltip` as it is (light bubble, muted (i)), not
   Figma's dark "Rules/Tooltip" with a blue (i). The difference is listed, not fixed.
 - **Link icons** (FYI #10): on no linked rule; the "Linked to Standard" strip says what follows

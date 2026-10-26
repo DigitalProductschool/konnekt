@@ -10,7 +10,9 @@ import { copyTargetsOf } from './utils';
  * rule's ⋯ that lists the other variants. Choosing Standard covers the variants based on it,
  * which then show as included (FR-022). The focus moves to the first variant; Escape, Cancel and
  * a click elsewhere close it, as the focus leaving it does, and "Copy" copies to what is chosen. It opens to the left of the ⋯
- * where it fits, otherwise to the right or across the window (WCAG 1.4.10).
+ * where it fits, otherwise to the right or across the window (WCAG 1.4.10). The popover takes the
+ * focus from a press inside it that isn't on a control (bug copy-popover-label-click), so that a
+ * click on a variant's name ticks it instead of closing the popover.
  */
 export default function CopyPopover({
   state,
@@ -55,6 +57,9 @@ export default function CopyPopover({
     }
   }
 
+  // The focus leaving the ⋯ and the popover (Tab out) closes it. A press inside it that isn't on
+  // a control moves the focus to the popover itself (tabIndex -1): otherwise it would go to the
+  // rule row (tabIndex -1 in RuleRow) and close the popover before the label's click ticks the box
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
     if (next && !event.currentTarget.parentElement?.contains(next)) {
@@ -73,9 +78,10 @@ export default function CopyPopover({
       ref={popoverRef}
       role="dialog"
       aria-labelledby={`${id}-title`}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
-      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu z-20 mt-4 flex flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16 ${COPY_POPOVER_PLACEMENTS[placement]}`}
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu z-20 mt-4 flex flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16 outline-none ${COPY_POPOVER_PLACEMENTS[placement]}`}
     >
       <p
         id={`${id}-title`}
