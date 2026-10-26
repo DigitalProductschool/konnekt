@@ -10,7 +10,7 @@ import { unrequestedRules } from '../../../utils/rules/validation';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
-import { RULES_COPY } from './constants';
+import { RULES_COPY, SELECTION_SCROLL_MARGIN } from './constants';
 import LinkStrip from './LinkStrip';
 import RuleEditor from './RuleEditor';
 import RulesEmptyState from './RulesEmptyState';
@@ -207,12 +207,13 @@ export default function RulesStep({
           {problem.message}
         </KernAlert>
       )}
-      {/* Positioned, so that select mode's boxes line up 16px from its left edge */}
+      {/* Positioned, so that select mode's boxes line up 16px from its left edge. In select mode,
+          an element that gets the focus scrolls clear of the pinned selection bar (WCAG 2.4.11) */}
       <section
         id={ELEMENT_IDS.branchPanel(branch.key)}
         role="tabpanel"
         aria-labelledby={ELEMENT_IDS.branchTab(branch.key)}
-        className="rounded-kern-large bg-kern-layout-background-default relative border border-(--kern-color-decorative-border-default)"
+        className={`rounded-kern-large bg-kern-layout-background-default relative border border-(--kern-color-decorative-border-default) ${selection ? SELECTION_SCROLL_MARGIN : ''}`}
       >
         {based && <LinkStrip mainName={state.branches[0].name} />}
         {selection && (

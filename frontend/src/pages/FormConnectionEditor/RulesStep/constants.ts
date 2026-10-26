@@ -33,6 +33,24 @@ export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, string> = {
   full: 'absolute inset-x-16',
 };
 
+/**
+ * The selection bar at rest at the top of the rules card (7px: the card's 8px radius, inside its
+ * border), and pinned under the wizard's head (Figma "Selection bar · pinned" 6524:38485): square
+ * corners and a 1px bottom line, drawn inside the bar so that pinning doesn't move the rows
+ */
+export const SELECTION_BAR_STATES = {
+  resting: 'rounded-t-[7px]',
+  pinned: 'shadow-[inset_0_-1px_0_var(--kern-color-decorative-border-default)]',
+};
+
+/**
+ * In select mode, the space every element of the rules card keeps above it when the focus scrolls
+ * it into view, so that it doesn't land under the pinned selection bar: the bar's 64px (8 + 48 +
+ * 8) and 8px to spare. Below 640px the buttons wrap under the text, which takes up to three lines
+ * with a long rule name: 8 + 72 + 8 + 48 + 8 = 144px, and 8px to spare
+ */
+export const SELECTION_SCROLL_MARGIN = '**:scroll-mt-72 max-sm:**:scroll-mt-152';
+
 export const RULES_COPY = {
   // U11 6348:40213
   title: 'Rules',

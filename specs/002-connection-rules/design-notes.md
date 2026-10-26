@@ -271,6 +271,23 @@ for, ending "You can undo this right after.", buttons "Cancel" / "Delete rule" (
   - "Group 01 in Standard deleted."
   - The same with "Sub-group 01" for a sub-group.
 
+### Select mode's bar (B3, 2026-10-26; Figma 12.1 `6524:38299`, 12.2 `6524:38489`, note `6524:38720`)
+
+- **Pinned**: `sticky top-0` in the rules card, so it pins under the wizard's head (at `split:`
+  the step's own scrolling area, below it the whole area under the header) and lets go at the
+  card's end. Pinned (Figma "Selection bar · pinned" `6524:38485`): square corners and a 1px
+  `decorative-border-default` line under it, drawn as an inset shadow so the rows don't move. A 1px
+  sentinel on the bar's top edge and an `IntersectionObserver` (`hooks/usePinned.ts`) tell the two
+  states apart. In a variant, the link strip scrolls away; only the bar pins.
+- **Layers**: `z-1`, over the rows' select boxes and KERN buttons, under the popups (z-20) and the
+  user menu.
+- **Narrow widths**: the text takes the whole row once less than 192px is left beside the buttons,
+  which wrap under it (120px tall at 320px; before, the text was squeezed into a sliver and the bar
+  was 280px tall at 360px).
+- **Focus not obscured** (WCAG 2.4.11): in select mode every element of the card keeps 72px above
+  it when the focus scrolls it into view, 152px below 640px, where the bar wraps.
+- Not a breach of F19: the spec's 2026-10-26 clarification makes this bar the one exception.
+
 ## 6. Publish and save dialog (S5)
 
 Spec 001's dialog, extended (W7). The copy spec 001 already built stays, such as "Publishing…",

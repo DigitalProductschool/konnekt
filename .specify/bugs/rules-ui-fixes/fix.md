@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B4, B5, B6, B7, B8 applied)
+# Bug Fix: Eight Rules UI fixes (B1, B3, B4, B5, B6, B7, B8 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B4, B5, B6, B7, B8 applied; B2, B3 not yet)
+- **Status**: partial (B1, B3, B4, B5, B6, B7, B8 applied; B2 not yet)
 
 ## Summary
 
@@ -12,6 +12,12 @@ The assessment's items are applied one at a time. This report covers each item a
 - **B1** (applied): a variant without rules now shows the dashed "No rules yet" box with 24px
   on every side, top included, as in Figma frame 1.1 (Empty wrap 6504:43840). The card still
   hugs the box and doesn't stretch to the window's height.
+- **B3** (applied): in select mode, the bar with "N rules selected", "Cancel" and "Group rules"
+  now pins under the wizard's head once the rules card's top scrolls past, and lets go when the
+  user scrolls back up or reaches the card's end (Figma note 6524:38720). Pinned, it has square
+  corners and a 1px line under it (Figma 6524:38485). Keyboard focus never lands under it. Its text
+  now takes its own line at narrow widths, so the bar is at most 120px tall at 320px; it was 280px
+  at 360px, which a pinned bar would have made unusable.
 - **B4** (applied): every toast now goes after 6 seconds, including the ones with "Undo" (after
   deleting, grouping or ungrouping) and "Show" (after copying). The timer still pauses while the
   pointer or the focus is on the toast. Undo stays reachable after the toast has gone: Ctrl+Z
@@ -43,6 +49,13 @@ The assessment's items are applied one at a time. This report covers each item a
 | File | Change | Notes |
 |------|--------|-------|
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RulesEmptyState.tsx` | modified | B1. Wrapper `px-24 pb-24` → `p-24`; comment cites frame 1.1 instead of U11's "no space above" |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/SelectionBar.tsx` | modified | B3. `sticky top-0 z-1`; a 1px sentinel before the bar; resting/pinned classes; the text gets `basis-192` so it wraps onto its own line when narrow; doc comment |
+| `frontend/src/hooks/usePinned.ts` | added | B3. `IntersectionObserver` on the sentinel and the bar; each callback compares their tops |
+| `frontend/src/utils/stickyPin.ts` | added | B3. Pure `isPinned(sentinelTop, barTop)` |
+| `frontend/src/utils/stickyPin.test.ts` | added tests | B3 |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/constants.ts` | modified | B3. `SELECTION_BAR_STATES` (resting: 7px top corners; pinned: inset 1px bottom line), `SELECTION_SCROLL_MARGIN` |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/index.tsx` | modified | B3. The rules card takes `SELECTION_SCROLL_MARGIN` in select mode |
+| `specs/002-connection-rules/spec.md`, `design-notes.md`, `contracts/ui-screens.md` | modified | B3. New clarification (the one exception to F19); design-notes §5 "Select mode's bar"; the F19 row names the exception |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/ValuesPicker.tsx` | modified | B5. `handleBlur` closes only for a non-null `relatedTarget` outside the container. Comment records why |
 | `frontend/src/utils/messageField.ts` | added | B6. `focusMessageOnPress`, the mousedown handler both message fields share |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/MessageField.tsx` | modified | B6. Handler on the field's box; `cursor-pointer` on the pencil; doc comment |
@@ -90,6 +103,42 @@ The elements that can come before the box in the card (`RulesStep/index.tsx:217-
 their own padding. The box therefore sits 24px under the link strip (which has no outer
 padding), and 32px under the switch note (`pb-8`) or the problems banner (`p-8`). Those
 elements' own spacing was not changed.
+
+B3:
+
+```tsx
+<div ref={sentinelRef} aria-hidden="true" className="-mb-px h-px" />
+<div
+  ref={barRef}
+  className={`bg-kern-layout-background-hued sticky top-0 z-1 flex flex-wrap items-center gap-8 px-16 py-8 ${SELECTION_BAR_STATES[pinned ? 'pinned' : 'resting']}`}
+>
+```
+
+```ts
+// hooks/usePinned.ts
+const observer = new IntersectionObserver(() => {
+  setPinned(isPinned(sentinel.getBoundingClientRect().top, bar.getBoundingClientRect().top));
+});
+observer.observe(sentinel);
+observer.observe(bar);
+```
+
+The observer uses the viewport root. Every scrolling ancestor clips the intersection, so it
+follows whichever area scrolls at the current width: the step's body at `split:`, the whole area
+below the header otherwise. The sentinel shares the bar's top while the bar rests. Once the bar
+pins, the sentinel scrolls on above it. The first version watched only the sentinel and read
+`isIntersecting`. The browser check showed it stuck in the pinned look after a single jump back to
+the top (Home, dragging the scrollbar): the sentinel went from out of view above to out of view
+below, with no callback between. Watching the bar too catches that jump, because the bar leaves
+the view instead. Each callback now compares the two tops.
+
+`z-1` puts the bar over the rows' select boxes (`absolute`) and KERN buttons (`relative`). The
+popups (z-20) and the user menu (z-10, in the sticky header outside the scroller) stay above it.
+The pinned line is an inset box shadow, not a border, so pinning doesn't move the rows by 1px.
+
+Focus not obscured: in select mode, the card gives every descendant `scroll-margin-top` 72px
+(the bar's 64px and 8px to spare), and 152px below 640px, where the buttons wrap under the text
+(up to 144px with three lines of text).
 
 B4:
 
@@ -228,6 +277,10 @@ documents.
 - None for B6: the handler depends on DOM focus and selection, and Vitest has no DOM. Browser
   check instead (see Local Verification).
 
+- B3, `src/utils/stickyPin.test.ts`: `isPinned` is false while the sentinel rests on the bar (in
+  view or below it) and for subpixel rounding, and true once the sentinel is above the bar. The
+  sticky position, the observer and the scroll margin need a DOM and were checked in the browser.
+
 - B4, `src/utils/undoShortcut.test.ts`: `isUndoShortcut` takes Ctrl+Z, Cmd+Z and Caps Lock's
   "Z", and ignores Z alone, Shift (redo), Alt, Ctrl+Cmd, other keys and a held key.
   `keepsOwnUndo` is true for text inputs, textareas and contenteditable, and false for buttons,
@@ -278,6 +331,35 @@ B1:
     Standard.
   - The same in a based variant: 24px under the link strip.
   - The same with a switch note shown: 32px under it.
+
+B3:
+
+- Commands run:
+  - `npx prettier --write` on the six files → unchanged
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint src/hooks src/utils/stickyPin* src/pages/FormConnectionEditor/RulesStep` → clean
+  - `npm test` → 16 files, 517 tests passed (514 before, 3 new)
+- Manual checks, done in Chromium (Playwright). The dev server ran on `:5173` and the API was mocked
+  in the browser (`/api/auth/me`, `/api/document-types`, `/api/option-sets`, a connection with 18
+  rules), since no backend was up. Edit wizard › Rules › Rule 1's ⋯ › "Group with other rules":
+  - 1455×900 (`split:`): at rest, top 362, 64px tall, 7px corners, no shadow. Pinned at scroll 900:
+    top 296 (the step's scroller top, under the head), 64px, square corners, inset 1px line in
+    `decorative-border-default`, z-index 1. Back at scroll 0: rest again, 7px corners.
+  - 1455×600 (below `split:`, the whole area scrolls): pinned at top 64, under the app header.
+  - 727×450 (200% zoom of 1455×900): pinned, 64px.
+  - 320×640: 120px tall with the buttons wrapped under the text, pinned at 109, and back to rest
+    after a single jump to the top. That jump is what showed the observer bug described above.
+  - Bar height by width, after the fix: 120px up to 480px, 64px from 520px. Before the fix it was
+    144 / 280 / 160 / 112 / 88px at 320 / 360 / 400 / 440 / 480px.
+  - Keyboard: with the bar pinned, 14 × Shift+Tab upward from Rule 18's box (boxes, names, ⋯,
+    connectors). No focused element was under the bar, at 1455×900 and at 320×640.
+  - Ticking a rule's box with Space while pinned: the status reads "2 rules selected".
+  - A row's ⋯ menu opened just below the pinned bar is painted on top (`elementFromPoint`). The
+    user menu (header) opens outside the scroller and isn't reached by the bar.
+  - Screenshots compared with Figma 12.2 (bar pinned under the head, rows scroll beneath it).
+    Saved to the scratchpad (`b3-pinned.png`, `b3-320-pinned.png`), not part of the repo.
+- Not checked: Firefox and Safari, and a variant's link strip (the mock had only Standard). Per
+  the code, the strip is a sibling before the bar and scrolls away.
 
 B5:
 
@@ -374,6 +456,23 @@ None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/mess
 No spec document records the empty state's padding (design-notes:48 lists only its wording), so
 no doc changed.
 
+For B3:
+
+- **Narrow layout** (scope expansion): the bar's text got `basis-192`. The assessment didn't ask
+  for it. Before, the text had `flex-1` with a zero basis and never wrapped onto its own line, so
+  it was squeezed beside the buttons: 280px tall at 360px. Pinned, that would cover half the
+  screen.
+- **Pinned detection**: the assessment proposed an observer on the sentinel alone. That missed
+  single scroll jumps (see Diff Highlights), so the bar is observed too and the decision compares
+  positions. Logic in `hooks/usePinned.ts` and `utils/stickyPin.ts`, files the assessment didn't
+  name.
+- **Pinned line**: an inset shadow instead of the 1px bottom border, so the rows don't shift when
+  the bar pins.
+- **Scroll margin**: on every descendant of the card in select mode (`**:scroll-mt-*`), not only
+  the rows and boxes. 72px, and 152px below 640px, both measured in the browser.
+- Docs: `figma-audit/report.md` was left as it is, as for B7 and B8. The spec's clarification,
+  design-notes §5 and the F19 row record the change.
+
 For B4:
 
 - The shortcut sits in a new hook, `src/hooks/useUndoShortcut.ts`, with its pure key checks in
@@ -412,8 +511,10 @@ For B8:
 
 ## Follow-ups
 
-- Apply B2 and B3 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this report.
-- Browser verification of B1, B4, B5, B6, B7 and B8 in `/speckit-bug-test`.
+- Apply B2 (`/speckit-bug-fix slug=rules-ui-fixes B2`), adding it to this report.
+- B3: check in Firefox and Safari, and in a based variant (the link strip scrolls away, the bar
+  pins). Check against a real backend once one is available.
+- Browser verification of B1, B4, B5, B6, B7 and B8 in `/speckit-bug-test` (B3 has had a Chromium check against a mocked API).
 - B8: if the reporter expects the rules summed per variant rather than counted once, only
   `rulesCountsOf` changes.
 - B4: nothing in the UI mentions Ctrl/Cmd+Z. If users should know, the Undo toast or the delete
