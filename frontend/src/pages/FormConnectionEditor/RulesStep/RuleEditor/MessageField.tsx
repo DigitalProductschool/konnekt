@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 
+import { focusMessageOnPress } from '../../../../utils/messageField';
 import { RULE_EDITOR_COPY } from './constants';
 import type { MessageFieldProps } from './types';
 
@@ -10,7 +11,8 @@ const MESSAGE_MAX_LENGTH = 500;
  * empty (6348:40234), "Rules/Error message" (editable, 6092:3498) once it has a message. It grows
  * with the message; Enter adds no line break. kern.css gives every textarea a padding and a
  * 96px height, which the field doesn't have. Where the label leaves the field less than 160px,
- * as at 320px wide, the field wraps under the label instead of shrinking to nothing.
+ * as at 320px wide, the field wraps under the label instead of shrinking to nothing. A press on
+ * the pencil or anywhere else in the field focuses the message, with the caret at its end.
  */
 export default function MessageField({ id, message, errorId, onChange }: MessageFieldProps) {
   const empty = message === '';
@@ -23,6 +25,7 @@ export default function MessageField({ id, message, errorId, onChange }: Message
 
   return (
     <div
+      onMouseDown={focusMessageOnPress}
       className={`rounded-kern-small has-[:focus-visible]:outline-kern-action-focus-default flex w-full flex-wrap items-center gap-8 py-8 has-[:focus-visible]:outline-4 has-[:focus-visible]:outline-offset-2 ${
         empty
           ? 'border border-dashed border-(--kern-color-decorative-border-default) px-16'
@@ -50,7 +53,7 @@ export default function MessageField({ id, message, errorId, onChange }: Message
       {!empty && (
         <span
           aria-hidden="true"
-          className="kern-icon kern-icon--edit kern-icon--small bg-kern-action-default! shrink-0"
+          className="kern-icon kern-icon--edit kern-icon--small bg-kern-action-default! shrink-0 cursor-pointer"
         />
       )}
     </div>

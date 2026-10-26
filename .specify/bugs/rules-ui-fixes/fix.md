@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B5 applied)
+# Bug Fix: Eight Rules UI fixes (B1, B5, B6 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B5 applied; B2–B4, B6–B8 not yet)
+- **Status**: partial (B1, B5, B6 applied; B2–B4, B7, B8 not yet)
 
 ## Summary
 
@@ -16,6 +16,11 @@ The assessment's items are applied one at a time. This report covers each item a
   option's text. Its blur handler now closes the menu only when the focus moves to a real target
   outside it, as `ChoiceMenu` and `CopyPopover` already do. The row's `<label>` then ticks the
   option, and "Select at least one option." no longer appears by mistake.
+- **B6** (applied): the pencil beside a message now puts the focus into it. A primary press
+  anywhere in the field's box outside the textarea (the pencil, the label, the padding) focuses
+  the textarea with the caret at the end of the text. This holds for the rule editor's message
+  and for a group's editable message in the list; the read-only group message on the details
+  page is unchanged. The pencil stays `aria-hidden` with no tab stop, and gets a pointer cursor.
 
 ## Changes
 
@@ -23,6 +28,9 @@ The assessment's items are applied one at a time. This report covers each item a
 |------|--------|-------|
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RulesEmptyState.tsx` | modified | B1. Wrapper `px-24 pb-24` → `p-24`; comment cites frame 1.1 instead of U11's "no space above" |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/ValuesPicker.tsx` | modified | B5. `handleBlur` closes only for a non-null `relatedTarget` outside the container. Comment records why |
+| `frontend/src/utils/messageField.ts` | added | B6. `focusMessageOnPress`, the mousedown handler both message fields share |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/MessageField.tsx` | modified | B6. Handler on the field's box; `cursor-pointer` on the pencil; doc comment |
+| `frontend/src/components/GroupFrame/GroupMessage.tsx` | modified | B6. Handler on the field's box only when editable (`field`); `cursor-pointer` on the pencil; doc comment |
 
 ## Diff Highlights (optional)
 
@@ -57,12 +65,40 @@ the menu closes it (a non-null `relatedTarget` outside the container). No `onCli
 the row, because the `<label>` already toggles the checkbox and a second handler would toggle it
 twice.
 
+B6:
+
+```tsx
+export function focusMessageOnPress(event: MouseEvent<HTMLElement>) {
+  const textarea = event.currentTarget.querySelector('textarea');
+  if (event.button !== 0 || !textarea || textarea.contains(event.target as Node)) {
+    return;
+  }
+  event.preventDefault();
+  textarea.focus();
+  const end = textarea.value.length;
+  textarea.setSelectionRange(end, end);
+}
+```
+
+```tsx
+<div onMouseDown={focusMessageOnPress} className="… has-[:focus-visible]:outline-4 …">
+```
+
+A press on the textarea itself is left to the browser, so the caret lands where the user clicked.
+`preventDefault` keeps the mousedown from moving the focus elsewhere (or to nowhere) after the
+handler. A press on the `<label>` is handled too; its click then focuses the already focused
+textarea, which changes nothing. Right and middle clicks are ignored. A textarea matches
+`:focus-visible` whenever focused (it takes keyboard input), so the field's focus ring should show
+after a press on the pencil.
+
 ## Tests Added or Updated
 
 - None for B1: it is a CSS change only, and Vitest has no DOM. It needs a browser check (see
   Local Verification).
 - None for B5. Vitest runs without a DOM (`frontend/vite.config.ts`), and the handler depends on
   focus events. The assessment calls for a browser check instead (see Local Verification).
+- None for B6: the handler depends on DOM focus and selection, and Vitest has no DOM. Browser
+  check instead (see Local Verification).
 
 ## Local Verification
 
@@ -99,14 +135,32 @@ B5:
   - Escape, Tab out, and a click outside each close the menu.
   - Ideally Safari as well.
 
+B6:
+
+- Commands run:
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint` on the three files → clean
+  - `npx prettier --write` on the three files → unchanged
+  - `npm test` → 14 files, 494 tests passed
+- Manual checks: **not done**. The frontend answered on `:5173`, the backend on `:8000` did not,
+  so there was no way to sign in. Checks still to do in the app (Chromium and Firefox):
+  - Rule editor with a message: click the pencil → focus ring on the field, caret after the last
+    character, typing appends. Same for a click in the field's padding.
+  - Click inside the text → caret where clicked (unchanged).
+  - A group's message in the list: same as above.
+  - Empty rule message (dashed placeholder, no pencil): a click in the padding focuses it.
+  - Details page: the group's read-only message doesn't react.
+  - Keyboard: Tab order unchanged, no new tab stop.
+
 ## Deviations from Assessment
 
-None for B1 or B5. For B1, the assessment's docs list includes "design-notes §2 empty state".
+None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/messageField.ts`
+(not listed in the assessment), so that the two components don't duplicate it. For B1, the assessment's docs list includes "design-notes §2 empty state".
 No spec document records the empty state's padding (design-notes:48 lists only its wording), so
 no doc changed.
 
 ## Follow-ups
 
-- Apply B2–B4 and B6–B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
+- Apply B2–B4, B7 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
   report.
-- Browser verification of B1 and B5 in `/speckit-bug-test`.
+- Browser verification of B1, B5 and B6 in `/speckit-bug-test`.
