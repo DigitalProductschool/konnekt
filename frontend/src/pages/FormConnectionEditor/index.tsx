@@ -12,6 +12,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useOptionSets } from '../../hooks/useOptionSets';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
 import type { DetailLocationState } from '../../types/routing';
 import { requestedRuleDocuments } from '../../utils/rules/conditions';
@@ -116,10 +117,12 @@ export default function FormConnectionEditorPage({
     }
   }, [reloaded]);
 
-  // A new step replaces the content, so the focus moves to its heading
+  // A new step replaces the content, so the focus moves to its heading. The Rules step's toast
+  // goes when the step is left, and doesn't come back on return (B4)
   useEffect(() => {
     if (shownStep.current !== state.step) {
       shownStep.current = state.step;
+      dispatchRules({ type: 'dismissToast' });
       titleRef.current?.focus();
     }
   }, [state.step]);
@@ -308,11 +311,21 @@ export default function FormConnectionEditorPage({
       document.getElementById(ELEMENT_IDS.branchTab(showBranch))?.focus();
       return;
     }
+    undoRules();
+  }
+
+  /** Undo, from the toast or from Ctrl/Cmd+Z, with the focus on the item it restores. */
+  function undoRules() {
+    const { undo } = rules;
     flushSync(() => dispatchRules({ type: 'undo' }));
     if (undo) {
       document.getElementById(ELEMENT_IDS.rule(undo.branchKey, undo.itemId))?.focus();
     }
   }
+
+  // Undo stays reachable after its toast has gone, until the next change (B4, WCAG 2.2.1); not
+  // while a rule is being edited, whose fields have their own undo
+  useUndoShortcut(state.step === 'rules' && rules.undo !== null && !rules.editing, undoRules);
 
   /** "Check rules again" closes the dialog; "Add rules", from the documents, opens the rules. */
   function handleDialogCancel() {
@@ -497,7 +510,6 @@ export default function FormConnectionEditorPage({
             <Toast
               toast={rules.toast}
               onAction={handleRulesToastAction}
-              holdAction
               onDismiss={dismissRulesToast}
             />
           ) : (

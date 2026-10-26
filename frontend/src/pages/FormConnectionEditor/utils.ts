@@ -194,8 +194,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
     case 'showErrors':
       return { ...state, errors: action.errors };
+    // Leaving a step drops its toast and the toast's Undo (B4)
     case 'goToStep':
-      return { ...state, step: action.step, errors: {}, publishError: null, rulesChanged: false };
+      return {
+        ...state,
+        step: action.step,
+        errors: {},
+        publishError: null,
+        rulesChanged: false,
+        removed: null,
+        toast: null,
+      };
     case 'addDocument': {
       if (state.documents.some((document) => document.document_type === action.documentType)) {
         return state;

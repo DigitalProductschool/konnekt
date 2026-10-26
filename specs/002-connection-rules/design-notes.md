@@ -507,9 +507,14 @@ the rule it names, with the alert.
   (i) and ⋯; the menus' section headings name their groups without being content of the list box,
   and "No options match" is announced outside it; the values picker is a disclosure, since its
   menu holds checkboxes; the publish summary is one `<dt>` and one `<dd>` per row.
-- **Timing** (2.2.1): a toast with an action, Undo or Show, stays in the Rules step until the next
-  change drops its action, then goes after its 6 seconds, so that keyboard users can reach the
-  action. Spec 001's documents toast is unchanged.
+- **Timing** (2.2.1; changed 2026-10-26, bug `rules-ui-fixes` B4): every toast goes after its 6
+  seconds (Figma's toast component), with or without an action; the time pauses while the pointer
+  or the focus is on it. Leaving a step drops its toast, which doesn't come back on return. Undo
+  stays reachable without a time limit: after its toast has gone, Ctrl+Z (Cmd+Z on a Mac) undoes
+  the last change until the next one, except in a text field, which keeps its own undo, in the
+  rule editor and while a dialog is open. "Show", after a copy, has no shortcut; the variant's tab
+  leads there. Before, a toast with an action stayed until the next change, so it seemed never
+  to go.
 - **Hints**: the Rules step shows three hints the audit keeps ("Settled as designed"), which T039
   and T037 hadn't built: U30's "Check the time since or until this date, or compare it with a
   fixed date." for dates other than the Date of birth (F3), U11's "Applicants who turn 21 that day

@@ -412,7 +412,7 @@ function nextToastId(state: RulesState): number {
  * based on it at once (FR-021, W4; `propagateToBranches`). The change ends select mode and the
  * note after switching, and clears the refused Publish's problem. It also drops the last Undo,
  * which puts back the rules as they were before that change only, and a copy's Show: the toast
- * stays, without its action, and goes after its time (the toast holds an action until then).
+ * stays, without its action, and goes after its time.
  */
 function changed(state: RulesState, branches: RulesBranch[]): RulesState {
   return {
@@ -700,8 +700,10 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         switched: null,
       };
     }
+    // The toast goes after its 6 seconds (B4); its Undo stands until the next change, for
+    // Ctrl/Cmd+Z, while its Show goes with it
     case 'dismissToast':
-      return { ...state, toast: null, undo: null, showBranch: null };
+      return { ...state, toast: null, showBranch: null };
     case 'clearProblem':
       return { ...state, problem: null };
     case 'showProblem':

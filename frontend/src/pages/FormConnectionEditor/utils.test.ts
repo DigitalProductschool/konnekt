@@ -206,6 +206,22 @@ describe('editorReducer and rules_changed', () => {
   );
 });
 
+describe('editorReducer and the toast on leaving a step (B4)', () => {
+  it('drops the documents toast and its Undo', () => {
+    const removed = editorReducer(
+      {
+        ...INITIAL_EDITOR_STATE,
+        step: 'documents',
+        documents: [{ document_type: 'pid', fields: [] }],
+      },
+      { type: 'removeDocument', documentType: 'pid', label: 'Personal ID' }
+    );
+    expect(removed.toast).not.toBeNull();
+    const left = editorReducer(removed, { type: 'goToStep', step: 'rules' });
+    expect(left).toMatchObject({ step: 'rules', toast: null, removed: null });
+  });
+});
+
 describe('removing data that rules check (FR-029, F18)', () => {
   const documents = [
     { document_type: 'pid', fields: ['birthdate', 'nationalities'] },

@@ -1,9 +1,9 @@
-# Bug Fix: Eight Rules UI fixes (B1, B5, B6, B7 applied)
+# Bug Fix: Eight Rules UI fixes (B1, B4, B5, B6, B7 applied)
 
 - **Slug**: rules-ui-fixes
 - **Fixed**: 2026-10-26
 - **Assessment**: ./assessment.md
-- **Status**: partial (B1, B5, B6, B7 applied; B2–B4, B8 not yet)
+- **Status**: partial (B1, B4, B5, B6, B7 applied; B2, B3, B8 not yet)
 
 ## Summary
 
@@ -12,6 +12,11 @@ The assessment's items are applied one at a time. This report covers each item a
 - **B1** (applied): a variant without rules now shows the dashed "No rules yet" box with 24px
   on every side, top included, as in Figma frame 1.1 (Empty wrap 6504:43840). The card still
   hugs the box and doesn't stretch to the window's height.
+- **B4** (applied): every toast now goes after 6 seconds, including the ones with "Undo" (after
+  deleting, grouping or ungrouping) and "Show" (after copying). The timer still pauses while the
+  pointer or the focus is on the toast. Undo stays reachable after the toast has gone: Ctrl+Z
+  (Cmd+Z on a Mac) undoes the last change until the next one. Leaving a step drops its toast, so
+  it no longer comes back on return.
 - **B5** (applied): the value picker of an enum rule no longer closes when the user presses on an
   option's text. Its blur handler now closes the menu only when the focus moves to a real target
   outside it, as `ChoiceMenu` and `CopyPopover` already do. The row's `<label>` then ticks the
@@ -37,6 +42,17 @@ The assessment's items are applied one at a time. This report covers each item a
 | `frontend/src/utils/messageField.ts` | added | B6. `focusMessageOnPress`, the mousedown handler both message fields share |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/MessageField.tsx` | modified | B6. Handler on the field's box; `cursor-pointer` on the pencil; doc comment |
 | `frontend/src/components/GroupFrame/GroupMessage.tsx` | modified | B6. Handler on the field's box only when editable (`field`); `cursor-pointer` on the pencil; doc comment |
+| `frontend/src/components/Toast/ToastMessage.tsx` | modified | B4. `holdAction` removed: every toast runs its 6s timer, paused on hover/focus as before |
+| `frontend/src/components/Toast/index.tsx`, `types.ts` | modified | B4. `holdAction` prop removed; `onDismiss`'s doc comment records the new rule |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/utils.ts` | modified | B4. `dismissToast` keeps `undo` (still drops `showBranch`); `changed()`'s comment |
+| `frontend/src/pages/FormConnectionEditor/utils.ts` | modified | B4. `goToStep` clears `toast` and `removed` |
+| `frontend/src/pages/FormConnectionEditor/index.tsx` | modified | B4. No `holdAction`; the step-change effect dismisses the rules toast; `undoRules()` split out of `handleRulesToastAction`; `useUndoShortcut` |
+| `frontend/src/hooks/useUndoShortcut.ts` | added | B4. Document keydown listener for Ctrl/Cmd+Z while enabled; skips text fields and an open `<dialog>` |
+| `frontend/src/utils/undoShortcut.ts` | added | B4. Pure `isUndoShortcut` and `keepsOwnUndo` |
+| `frontend/src/utils/undoShortcut.test.ts` | added tests | B4 |
+| `frontend/src/pages/FormConnectionEditor/RulesStep/utils.test.ts` | added tests | B4. Undo kept after the toast goes, dropped by the next change; Show dropped with its toast |
+| `frontend/src/pages/FormConnectionEditor/utils.test.ts` | added test | B4. `goToStep` drops the documents toast and its Undo |
+| `specs/002-connection-rules/design-notes.md` | modified | B4. §10 "Timing" rewritten with the new rule and its date |
 | `frontend/src/utils/rules/constants.ts` | modified | B7. `DATE_OF_BIRTH_RULE_LABEL = 'Date of birth (Age)'` |
 | `frontend/src/utils/rules/statements.ts` | modified | B7. New `ruleFieldLabel(field)`; `dataOfResolved` uses it for a field without parts, which `subjectOfResolved` and the statements follow; comments |
 | `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/utils.ts` | modified | B7. `dataSections` labels its choices with `ruleFieldLabel`, so the data menu's search (`matchesSearch` on the label) finds "age" too |
@@ -62,6 +78,33 @@ The elements that can come before the box in the card (`RulesStep/index.tsx:217-
 their own padding. The box therefore sits 24px under the link strip (which has no outer
 padding), and 32px under the switch note (`pb-8`) or the problems banner (`p-8`). Those
 elements' own spacing was not changed.
+
+B4:
+
+```ts
+// RulesStep/utils.ts: the toast goes, its Undo stays until the next change
+case 'dismissToast':
+  return { ...state, toast: null, showBranch: null };
+```
+
+```tsx
+// FormConnectionEditor/index.tsx
+useUndoShortcut(state.step === 'rules' && rules.undo !== null && !rules.editing, undoRules);
+```
+
+The shortcut does nothing:
+
+- in a text field (`input` that takes text, `textarea`, `select`, contenteditable), which keeps
+  the browser's own undo;
+- while a modal `<dialog>` is open (every dialog of the wizard is `ConfirmDialog`'s
+  `showModal()`);
+- while the rule editor is open;
+- for Shift+Ctrl+Z, Alt, a held key, or an event already handled.
+
+On a checkbox (select mode), a button or the page, it undoes. It shares `undoRules()` with the
+toast's Undo, so the focus goes to the restored item. Leaving a step: `goToStep` clears the editor
+state's `toast` and `removed`, and the existing step-change effect dispatches the rules
+`dismissToast`, which keeps `undo`, so Ctrl+Z still works on return until the next change.
 
 B5:
 
@@ -146,6 +189,16 @@ Where "Date of birth" stays, deliberately:
   focus events. The assessment calls for a browser check instead (see Local Verification).
 - None for B6: the handler depends on DOM focus and selection, and Vitest has no DOM. Browser
   check instead (see Local Verification).
+
+- B4, `src/utils/undoShortcut.test.ts`: `isUndoShortcut` takes Ctrl+Z, Cmd+Z and Caps Lock's
+  "Z", and ignores Z alone, Shift (redo), Alt, Ctrl+Cmd, other keys and a held key.
+  `keepsOwnUndo` is true for text inputs, textareas and contenteditable, and false for buttons,
+  checkboxes, the body and no focus.
+- B4, `RulesStep/utils.test.ts › undo after other changes`: `keeps the Undo after its toast has
+  gone, for Ctrl/Cmd+Z` and `drops the kept Undo with the next change`.
+  `› copying … › drops the Show with its toast, which has no shortcut`.
+- B4, `FormConnectionEditor/utils.test.ts › editorReducer and the toast on leaving a step`:
+  `goToStep` clears `toast` and `removed`.
 
 - B7, `src/utils/rules/statements.test.ts`:
   - Existing statement, parts and `dataOfResolved` expectations now read "Date of birth (Age)" for
@@ -232,12 +285,46 @@ B7:
   - The documents step still says "Date of birth".
   - A proposed message still says "date of birth".
 
+B4:
+
+- Commands run:
+  - `npx tsc -b --noEmit` → no errors
+  - `npx eslint` on the changed folders and files (react-hooks rules on) → clean
+  - `npx prettier --write` → two files reformatted, then clean
+  - `npm test` → 15 files, 509 tests passed (501 before, 8 new)
+- Manual checks: **not done** (no backend to sign in with, as for the other items). Checks still to
+  do in the app:
+  - Group two rules: the toast with "Undo" goes after 6s, and stays while hovered or focused.
+  - After it goes, Ctrl+Z (Cmd+Z on a Mac) with the focus on the page or a rule's ⋯ restores the
+    rules and focuses the item.
+  - Ctrl+Z in a rule name being renamed or in a group's message undoes the typing, not the rules.
+  - Ctrl+Z does nothing with a dialog open or the rule editor open, and nothing after a later
+    change.
+  - A copy's "Show" toast goes after 6s.
+  - Leave the Rules step with a toast shown and come back: no toast. The same for the documents
+    step's "removed" toast.
+  - Screen reader: each toast is still announced once.
+
 ## Deviations from Assessment
 
 None for B1, B5 or B6. For B6, the handler lives in a new shared `src/utils/messageField.ts`
 (not listed in the assessment), so that the two components don't duplicate it. For B1, the assessment's docs list includes "design-notes §2 empty state".
 No spec document records the empty state's padding (design-notes:48 lists only its wording), so
 no doc changed.
+
+For B4:
+
+- The shortcut sits in a new hook, `src/hooks/useUndoShortcut.ts`, with its pure key checks in
+  `src/utils/undoShortcut.ts` (and tests). The assessment named only `RulesStep/index.tsx` for it;
+  the editor page owns the rules state and the focus after Undo, so the hook is called there
+  instead.
+- The shortcut is also off while the rule editor or a dialog is open, which the assessment didn't
+  ask for. While the editor is open, a Ctrl+Z on one of its menus would otherwise silently change
+  the rules behind the draft.
+- `goToStep` also clears the documents step's `removed` with its toast: its Undo would otherwise
+  outlive the toast with no way to reach it.
+- No doc comment at `components/Toast/types.ts:12-17` to update: that comment was on `holdAction`,
+  which is gone; `onDismiss`'s comment records the rule instead.
 
 For B7:
 
@@ -253,9 +340,12 @@ For B7:
 
 ## Follow-ups
 
-- Apply B2–B4 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
+- Apply B2, B3 and B8 (`/speckit-bug-fix slug=rules-ui-fixes B<n>`), adding each one to this
   report.
-- Browser verification of B1, B5, B6 and B7 in `/speckit-bug-test`.
+- Browser verification of B1, B4, B5, B6 and B7 in `/speckit-bug-test`.
+- B4: nothing in the UI mentions Ctrl/Cmd+Z. If users should know, the Undo toast or the delete
+  dialogs' "You can undo this right after." could name it; that is a copy decision for the
+  reporter.
 - B7: if the reporter also wants "(Age)" in the documents step's rule-removal dialogs ("Stop
   requesting Date of birth?"), that is a documents-step string and was left out by the "only in the
   rules" scope.

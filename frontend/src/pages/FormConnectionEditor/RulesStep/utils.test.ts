@@ -208,6 +208,31 @@ describe('undo after other changes', () => {
     expect(renamed.undo).toBeNull();
     expect(renamed.toast).toEqual({ ...deleted.toast, actionLabel: undefined });
   });
+
+  it('keeps the Undo after its toast has gone, for Ctrl/Cmd+Z (B4)', () => {
+    const deleted = run(
+      stateWith(FLAT),
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete' }
+    );
+    const timedOut = run(deleted, { type: 'dismissToast' });
+    expect(timedOut.toast).toBeNull();
+    expect(timedOut.undo).toEqual(deleted.undo);
+    expect(run(timedOut, { type: 'undo' }).branches[0].items).toEqual(FLAT);
+  });
+
+  it('drops the kept Undo with the next change (B4)', () => {
+    const changed = run(
+      stateWith(FLAT),
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete' },
+      { type: 'dismissToast' },
+      { type: 'startRename', branchKey: BRANCH, itemId: 'rule-2' },
+      { type: 'rename', name: 'Old enough' }
+    );
+    expect(changed.undo).toBeNull();
+    expect(changed.toast).toBeNull();
+  });
 });
 
 describe('switching AND and OR (FR-007)', () => {
@@ -491,6 +516,17 @@ describe('variants (FR-019 to FR-024)', () => {
       { type: 'rename', name: 'Old enough' }
     );
     expect(renamed.toast).toEqual({ ...copied.toast, actionLabel: undefined });
+  });
+
+  it('drops the Show with its toast, which has no shortcut (B4)', () => {
+    const timedOut = run(
+      withVariant('empty'),
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: ['new-1'] },
+      { type: 'dismissToast' }
+    );
+    expect(timedOut.toast).toBeNull();
+    expect(timedOut.showBranch).toBeNull();
   });
 });
 
