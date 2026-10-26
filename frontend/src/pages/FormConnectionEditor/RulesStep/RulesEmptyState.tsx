@@ -3,11 +3,12 @@ import type { RulesEmptyStateProps } from './types';
 
 /**
  * Figma "Rules/Empty state" (U29 6197:11654): a branch without rules, with "Add rule" (W5). It
- * sits in the rules card without space above it, as in U11 6348:40214.
+ * sits in the rules card with 24px on every side, the card hugging it (frame 1.1, Empty wrap
+ * 6504:43840; bug rules-ui-fixes B1).
  */
 export default function RulesEmptyState({ addRuleId, onAddRule }: RulesEmptyStateProps) {
   return (
-    <div className="px-24 pb-24">
+    <div className="p-24">
       <div className="rounded-kern-default border-kern-action-default flex flex-col items-center gap-8 border border-dashed py-40 text-center">
         <div className="flex flex-col items-center gap-4">
           <h2 className="text-kern-adaptive-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-adaptive) font-semibold">
