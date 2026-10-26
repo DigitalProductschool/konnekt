@@ -99,8 +99,11 @@ export default function ValuesPicker({
     }
   }
 
+  // Tab or Shift+Tab out of the menu. A press on an option's text blurs to nowhere
+  // (relatedTarget null) and must not close it; a pointer outside closes it through the listener
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
-    if (open && !containerRef.current?.contains(event.relatedTarget as Node | null)) {
+    const next = event.relatedTarget;
+    if (open && next && !containerRef.current?.contains(next)) {
       dispatch({ type: 'closeMenu' });
     }
   }
