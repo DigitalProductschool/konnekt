@@ -22,9 +22,11 @@ from scripts.issue_test_credentials.credentials import (
     offer_body,
 )
 from scripts.issue_test_credentials.person import (
+    CATEGORY_ORDER,
     PLACES,
     STUTTGART,
     STUTTGART_STREETS,
+    DrivingPrivilege,
     random_person,
     years_after,
 )
@@ -280,6 +282,88 @@ def test_the_documents_are_valid_today(seed: int) -> None:
     assert mdl['portrait_capture_date'] < mdl['issue_date']
 
 
+def test_a_given_birth_date_is_in_both_documents_with_the_age_that_follows() -> None:
+    # quickstart.md V2: on both sides of "at least 21 years old"
+    person = random_person(4711, TODAY, birth_date=date(2001, 1, 1))
+    pid = credential_claims(PID, person, TODAY)
+    mdl = credential_claims(MDL, person, TODAY)
+
+    assert pid['birthdate'] == mdl['birth_date'] == '2001-01-01'
+    assert mdl['age_in_years'] == 25
+    assert mdl['age_birth_year'] == 2001
+    # The day before the 21st birthday, and the day itself
+    turns_21 = random_person(1, date(2026, 6, 29), birth_date=date(2005, 6, 30))
+    assert credential_claims(MDL, turns_21, date(2026, 6, 29))['age_in_years'] == 20
+    assert credential_claims(MDL, turns_21, date(2026, 6, 30))['age_in_years'] == 21
+
+
+def test_given_licence_classes_replace_the_made_up_ones() -> None:
+    person = random_person(
+        4711,
+        TODAY,
+        privileges=[
+            DrivingPrivilege('C', date(2024, 5, 2)),
+            DrivingPrivilege('B', date(2020, 3, 1)),
+        ],
+    )
+    mdl = credential_claims(MDL, person, TODAY)
+
+    # In the licence's order, in the shape of the made-up ones
+    assert mdl['driving_privileges'] == [
+        {'vehicle_category_code': 'B', 'issue_date': '2020-03-01'},
+        {'vehicle_category_code': 'C', 'issue_date': '2024-05-02'},
+    ]
+    assert '2020-03-01' <= mdl['issue_date'] < TODAY.isoformat() < mdl['expiry_date']
+
+
+def test_given_data_leaves_the_rest_of_the_person_as_the_seed_makes_it() -> None:
+    made_up = random_person(4711, TODAY)
+    given = random_person(
+        4711,
+        TODAY,
+        birth_date=date(2006, 6, 30),
+        privileges=[DrivingPrivilege('B', date(2025, 9, 1))],
+    )
+
+    assert (given.given_name, given.family_name, given.street, given.email) == (
+        made_up.given_name,
+        made_up.family_name,
+        made_up.street,
+        made_up.email,
+    )
+    assert given.birth_date == date(2006, 6, 30) != made_up.birth_date
+    assert given == random_person(
+        4711,
+        TODAY,
+        birth_date=date(2006, 6, 30),
+        privileges=[DrivingPrivilege('B', date(2025, 9, 1))],
+    )
+
+
+@pytest.mark.parametrize('birth_date', [date(2016, 3, 4), TODAY])
+def test_someone_too_young_for_the_documents_still_gets_dates_in_order(
+    birth_date: date,
+) -> None:
+    person = random_person(4711, TODAY, birth_date=birth_date)
+    pid = credential_claims(PID, person, TODAY)
+    mdl = credential_claims(MDL, person, TODAY)
+
+    assert birth_date.isoformat() <= pid['date_of_issuance'] <= TODAY.isoformat()
+    assert pid['date_of_issuance'] < pid['date_of_expiry']
+    assert all(
+        birth_date.isoformat() <= privilege['issue_date'] <= TODAY.isoformat()
+        for privilege in mdl['driving_privileges']
+    )
+    assert mdl['issue_date'] <= TODAY.isoformat() < mdl['expiry_date']
+
+
+def test_the_licence_order_has_every_class_of_the_middleware() -> None:
+    assert CATEGORY_ORDER == (
+        *('AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C1E', 'C', 'CE'),
+        *('D1', 'D1E', 'D', 'DE', 'L', 'T'),
+    )
+
+
 def test_the_offer_carries_each_documents_claims() -> None:
     person = random_person(4711, TODAY)
 
@@ -443,6 +527,83 @@ def issuance(monkeypatch: pytest.MonkeyPatch) -> FakeIssuance:
 
 def _trust_list(*entities: dict[str, Any]) -> dict[str, Any]:
     return {'id': TRUST_LIST_ID, 'entityConfig': list(entities)}
+
+
+def test_the_birth_date_and_licence_classes_can_be_given(
+    issuance: FakeIssuance, capsys: pytest.CaptureFixture[str]
+) -> None:
+    argv = [
+        *('--birth-date', '2001-01-01'),
+        *('--licence-class', 'B:2020-03-01'),
+        *('--licence-class', 'am:2017-05-01'),
+        '--no-wait',
+    ]
+
+    assert cli.main(argv, transport=issuance.transport) == 0
+
+    (offer,) = issuance.offers
+    pid = offer['credentialClaims']['test-pid']['claims']
+    mdl = offer['credentialClaims']['test-mdl']['claims']
+    assert pid['birthdate'] == mdl['birth_date'] == '2001-01-01'
+    assert mdl['age_birth_year'] == 2001
+    assert mdl['driving_privileges'] == [
+        {'vehicle_category_code': 'AM', 'issue_date': '2017-05-01'},
+        {'vehicle_category_code': 'B', 'issue_date': '2020-03-01'},
+    ]
+    output = capsys.readouterr().out
+    assert 'born 2001-01-01' in output
+    assert 'Driving licence categories: AM, B' in output
+
+
+@pytest.mark.parametrize(
+    ('argv', 'error'),
+    [
+        (
+            ['--birth-date', '2001-02-30'],
+            "argument --birth-date: '2001-02-30' is not a date written YYYY-MM-DD",
+        ),
+        (
+            ['--birth-date', '01.01.2001'],
+            "argument --birth-date: '01.01.2001' is not a date written YYYY-MM-DD",
+        ),
+        (
+            ['--birth-date', '20010101'],
+            "argument --birth-date: '20010101' is not a date written YYYY-MM-DD",
+        ),
+        (
+            ['--birth-date', '2999-01-01'],
+            'argument --birth-date: 2999-01-01 is in the future',
+        ),
+        (
+            ['--licence-class', 'B2020-03-01'],
+            "argument --licence-class: 'B2020-03-01' is not written CODE:ISSUE_DATE",
+        ),
+        (
+            ['--licence-class', 'X:2020-03-01'],
+            "argument --licence-class: 'X' is not a licence class; use one of AM, A1",
+        ),
+        (
+            ['--licence-class', 'B:2020-3-1'],
+            "argument --licence-class: '2020-3-1' is not a date written YYYY-MM-DD",
+        ),
+        (
+            ['--licence-class', 'B:2020-03-01', '--licence-class', 'b:2021-01-01'],
+            'argument --licence-class: class B is given more than once',
+        ),
+    ],
+)
+def test_wrong_birth_dates_and_licence_classes_are_refused(
+    issuance: FakeIssuance,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+    error: str,
+) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        cli.main([*argv, '--no-wait'], transport=issuance.transport)
+
+    assert exit_info.value.code == 2
+    assert error in capsys.readouterr().err
+    assert issuance.calls == []
 
 
 def test_the_script_configures_both_documents_and_offers_them(

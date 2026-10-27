@@ -2,7 +2,13 @@ import type { Ref } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
-import type { FormConnection, RequestedDocumentView } from '../../types/form-connections';
+import type {
+  Branch,
+  FormConnection,
+  RequestedDocumentView,
+  RuleTreeItem,
+} from '../../types/form-connections';
+import type { RuleContext } from '../../utils/rules/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
 export type Arrival = 'published' | 'saved' | null;
@@ -50,12 +56,26 @@ export interface ConnectionLinksProps {
   headingRef: Ref<HTMLHeadingElement>;
 }
 
+/** One URL of a link card; with several, each is labelled with its variant (FR-026) */
+export interface LinkCardLink {
+  key: string;
+  url: string;
+  /** The variant whose pull URL it is; null for the trigger URL, and with only Standard (W2) */
+  branch: Pick<Branch, 'name' | 'description'> | null;
+}
+
 export interface LinkCardProps {
   number: number;
   title: string;
-  url: string;
+  links: LinkCardLink[];
   infoLabel: string;
   info: string;
+}
+
+export interface LinkCardUrlProps {
+  link: LinkCardLink;
+  /** The id of the card's title, which describes each copy button with the variant's name */
+  titleId: string;
 }
 
 export interface DocumentsSummaryProps {
@@ -78,4 +98,36 @@ export interface ConnectionStatusProps {
   error: ErrorNotice | null;
   onToggle: () => void;
   onDelete: () => void;
+}
+
+export interface RulesSummaryProps {
+  /** "Edit rules" opens the edit wizard of this connection at its Rules step (FR-030) */
+  formConnectionId: string;
+  /** Main branch first */
+  branches: Branch[];
+  /** The requested documents, which the statements name */
+  documents: RequestedDocumentView[];
+}
+
+export interface RulesSummaryContentProps {
+  branches: Branch[];
+  context: RuleContext;
+}
+
+export interface SummaryBranchProps {
+  branch: Branch;
+  context: RuleContext;
+}
+
+export interface SummaryItemProps {
+  item: RuleTreeItem;
+  context: RuleContext;
+  /** 0 at the top level, 1 in a group, where a group is a sub-group */
+  depth: number;
+  /** Whether the branch is based on the main branch, whose items carry marks (F26) */
+  based: boolean;
+  /** An inherited group dissolved in the branch, shown as removed (F13) */
+  dissolved?: boolean;
+  /** In a removed or dissolved group, which fades what it holds */
+  faded?: boolean;
 }

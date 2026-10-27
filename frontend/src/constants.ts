@@ -12,8 +12,9 @@ export const ROUTES = {
   editFormConnection: '/form-connections/:id/edit',
 } as const;
 
-// The create wizard's steps (Figma "App/Progress"). The details screen shows them all done
-export const CONNECTION_STEPS = ['Connection', 'Documents', 'Publish'] as const;
+// The create wizard's steps (Figma "App/Progress"; the Rules step's label from U11 6348:40212).
+// The details screen shows them all done
+export const CONNECTION_STEPS = ['Connection', 'Documents', 'Rules', 'Publish'] as const;
 
 // The KERN React kit's built-in texts, in the UI's language (its defaults are German)
 export const KERN_TRANSLATIONS = {

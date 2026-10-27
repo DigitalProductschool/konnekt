@@ -1,7 +1,15 @@
 import { errorNoticeOf } from '../../api/client';
+import type { BranchInput, FormConnection, RuleTreeItem } from '../../types/form-connections';
 import type { DetailLocationState } from '../../types/routing';
 import { DETAIL_COPY, INITIAL_ACTIONS_STATE } from './constants';
-import type { ActionsAction, ActionsState, Arrival, ConfirmedAction, StatusAction } from './types';
+import type {
+  ActionsAction,
+  ActionsState,
+  Arrival,
+  ConfirmedAction,
+  LinkCardLink,
+  StatusAction,
+} from './types';
 
 export function arrivalOf(state: unknown): Arrival {
   const locationState = state as DetailLocationState | null;
@@ -69,4 +77,37 @@ export function actionErrorNotice(error: unknown) {
 /** The toast after an action that keeps the connection. */
 export function successMessageOf(action: Exclude<StatusAction, 'delete'>): string {
   return action === 'deactivate' ? DETAIL_COPY.deactivated : DETAIL_COPY.activated;
+}
+
+/**
+ * The result links: every variant's pull URL from its `pull_url`, never derived from its name
+ * (F24), labelled with the variant; with Standard only, its URL unlabelled, as in spec 001 (W2).
+ */
+export function resultLinksOf(formConnection: FormConnection): LinkCardLink[] {
+  const { branches } = formConnection;
+  if (branches.length <= 1) {
+    return [{ key: 'result', url: branches[0]?.pull_url ?? formConnection.pull_url, branch: null }];
+  }
+  return branches.map((branch) => ({ key: branch.id, url: branch.pull_url, branch }));
+}
+
+/** The identifiers of the rules that count in a tree, as `countRules` counts them. */
+function countableRuleIds(items: RuleTreeItem[]): string[] {
+  return items.flatMap((item) => {
+    if (item.mark === 'removed') {
+      return [];
+    }
+    return item.type === 'rule' ? [item.id] : countableRuleIds(item.items);
+  });
+}
+
+/**
+ * The closed rules card's counts (Figma 10.11, B8): every variant, Standard included, and every
+ * distinct rule once. A based variant keeps the main branch's identifiers for inherited rules
+ * (data-model.md), so summing the variants would count them twice; a rule a variant removes
+ * still counts, in Standard. Grouped rules count one by one, groups don't.
+ */
+export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
+  const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
+  return DETAIL_COPY.rulesCounts(branches.length, ruleIds.size);
 }

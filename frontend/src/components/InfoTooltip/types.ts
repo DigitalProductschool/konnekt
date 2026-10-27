@@ -1,3 +1,5 @@
+import type { PopupPlacement } from '../../utils/popupPlacement';
+
 export interface InfoTooltipProps {
   /** The button's accessible name, such as "About the form name" */
   label: string;
@@ -17,10 +19,13 @@ export interface TooltipState {
   focused: boolean;
   /** A tap opened it, on a touch screen, which has no hover */
   tapped: boolean;
+  /** Where the bubble opens from its icon, measured as it opens */
+  placement: PopupPlacement;
 }
 
 export type TooltipAction =
   | { type: 'hover'; value: boolean }
   | { type: 'focus'; value: boolean }
   | { type: 'tap' }
+  | { type: 'place'; placement: PopupPlacement }
   | { type: 'close' };

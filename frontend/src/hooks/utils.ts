@@ -3,6 +3,8 @@ import type {
   DocumentTypesState,
   FormConnectionAction,
   FormConnectionState,
+  OptionSetsAction,
+  OptionSetsState,
 } from './types';
 
 export const INITIAL_DOCUMENT_TYPES_STATE: DocumentTypesState = {
@@ -22,6 +24,26 @@ export function documentTypesReducer(
       return { status: 'failed', attempt: state.attempt, documentTypes: [] };
     case 'retry':
       return { status: 'loading', attempt: state.attempt + 1, documentTypes: [] };
+  }
+}
+
+export const INITIAL_OPTION_SETS_STATE: OptionSetsState = {
+  status: 'loading',
+  attempt: 0,
+  optionSets: [],
+};
+
+export function optionSetsReducer(
+  state: OptionSetsState,
+  action: OptionSetsAction
+): OptionSetsState {
+  switch (action.type) {
+    case 'loaded':
+      return { status: 'loaded', attempt: state.attempt, optionSets: action.optionSets };
+    case 'failed':
+      return { status: 'failed', attempt: state.attempt, optionSets: [] };
+    case 'retry':
+      return { status: 'loading', attempt: state.attempt + 1, optionSets: [] };
   }
 }
 

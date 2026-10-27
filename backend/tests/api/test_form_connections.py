@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import FormConnection, FormConnectionRevision
+from app.models import (
+    FormConnection,
+    FormConnectionBranch,
+    FormConnectionRevision,
+    FormConnectionRuleSet,
+)
 from app.routers.form_connections import CONFIG_FAILED
 from app.services.dcql import config_hash
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
@@ -36,23 +41,66 @@ NEW_FORM_CONNECTION: dict[str, Any] = {
     ],
 }
 
+
+def _field(key: str, label: str, kind: str, **details: Any) -> dict[str, Any]:
+    """A field as the API returns it: a text field unless `details` say more."""
+    return {
+        'key': key,
+        'label': label,
+        'kind': kind,
+        'option_set': None,
+        'date_of_birth': False,
+        'parts': None,
+    } | details
+
+
+# The driving licence's classes held, and each class's issue and expiry date
+LICENCE_CLASS_PARTS = [
+    {
+        'key': 'classes',
+        'label': 'Licence classes',
+        'kind': 'enum',
+        'option_set': 'licence_classes',
+        'per_licence_class': False,
+    },
+    {
+        'key': 'issue_date',
+        'label': 'Issue date',
+        'kind': 'date',
+        'option_set': None,
+        'per_licence_class': True,
+    },
+    {
+        'key': 'expiry_date',
+        'label': 'Expiry date',
+        'kind': 'date',
+        'option_set': None,
+        'per_licence_class': True,
+    },
+]
+
 PID_VIEW = {
     'document_type': 'pid',
     'label': 'Personal ID',
     'fields': [
-        {'key': 'family_name', 'label': 'Family name'},
-        {'key': 'given_name', 'label': 'Given name'},
-        {'key': 'birthdate', 'label': 'Date of birth'},
-        {'key': 'address_locality', 'label': 'City or town'},
+        _field('family_name', 'Family name', 'text'),
+        _field('given_name', 'Given name', 'text'),
+        _field('birthdate', 'Date of birth', 'date', date_of_birth=True),
+        _field('address_locality', 'City or town', 'text'),
     ],
 }
 MDL_VIEW = {
     'document_type': 'mdl',
     'label': 'Driving licence',
     'fields': [
-        {'key': 'expiry_date', 'label': 'Expiry date'},
-        {'key': 'document_number', 'label': 'Licence number'},
-        {'key': 'driving_privileges', 'label': 'Licence classes'},
+        _field('expiry_date', 'Expiry date', 'date'),
+        _field('document_number', 'Licence number', 'text'),
+        _field(
+            'driving_privileges',
+            'Licence classes',
+            'parts',
+            parts=LICENCE_CLASS_PARTS,
+        ),
     ],
 }
 
@@ -90,6 +138,96 @@ def _delete(form_connection_id: str) -> None:
         db.commit()
 
 
+# The catalog and the value sets
+
+
+def test_the_catalog_returns_each_fields_kind_and_parts(
+    signed_in_client: TestClient,
+) -> None:
+    response = signed_in_client.get('/api/document-types')
+
+    assert response.status_code == 200
+    fields = {
+        (document_type['key'], field['key']): field
+        for document_type in response.json()['data']
+        for field in document_type['fields']
+    }
+    assert fields['pid', 'family_name'] == _field('family_name', 'Family name', 'text')
+    assert fields['pid', 'birthdate'] == _field(
+        'birthdate', 'Date of birth', 'date', date_of_birth=True
+    )
+    assert fields['pid', 'nationalities'] == _field(
+        'nationalities', 'Nationality', 'enum', option_set='countries'
+    )
+    assert fields['pid', 'place_of_birth'] == _field(
+        'place_of_birth',
+        'Place of birth',
+        'parts',
+        parts=[
+            {
+                'key': 'country',
+                'label': 'Country',
+                'kind': 'enum',
+                'option_set': 'countries',
+                'per_licence_class': False,
+            },
+            {
+                'key': 'region',
+                'label': 'Region',
+                'kind': 'text',
+                'option_set': None,
+                'per_licence_class': False,
+            },
+            {
+                'key': 'locality',
+                'label': 'City or town',
+                'kind': 'text',
+                'option_set': None,
+                'per_licence_class': False,
+            },
+        ],
+    )
+    assert fields['pid', 'picture'] == _field('picture', 'Photo', 'image')
+    assert fields['mdl', 'height'] == _field('height', 'Height (cm)', 'number')
+    assert fields['mdl', 'sex'] == _field('sex', 'Sex', 'enum', option_set='sex')
+    assert fields['mdl', 'driving_privileges'] == _field(
+        'driving_privileges', 'Licence classes', 'parts', parts=LICENCE_CLASS_PARTS
+    )
+
+
+def test_the_value_sets_are_returned(signed_in_client: TestClient) -> None:
+    response = signed_in_client.get('/api/option-sets')
+
+    assert response.status_code == 200
+    option_sets = {
+        option_set['key']: option_set['options']
+        for option_set in response.json()['data']
+    }
+    assert list(option_sets) == [
+        'countries',
+        'sex',
+        'licence_classes',
+        'eye_colours',
+        'hair_colours',
+    ]
+    assert len(option_sets['countries']) == 249
+    assert {'value': 'DE', 'label': 'Germany', 'description': None} in (
+        option_sets['countries']
+    )
+    # Sex codes are numbers, as the credentials hold them
+    assert option_sets['sex'][:3] == [
+        {'value': 0, 'label': 'Not known', 'description': None},
+        {'value': 1, 'label': 'Male', 'description': None},
+        {'value': 2, 'label': 'Female', 'description': None},
+    ]
+    assert {'value': 'B', 'label': 'B', 'description': 'Cars up to 3.5 t'} in (
+        option_sets['licence_classes']
+    )
+    assert {'value': 'hazel', 'label': 'Hazel', 'description': None} in (
+        option_sets['eye_colours']
+    )
+
+
 # Creating
 
 
@@ -104,6 +242,7 @@ def test_creating_returns_the_form_connection_with_its_urls(
     data = body['data']
     form_connection_id = data['id']
     trigger_url = f'{BASE_URL}/api/connect/{form_connection_id}/requests'
+    pull_url = f'{trigger_url}/{{reference}}'
     assert data == {
         'id': form_connection_id,
         'name': 'Führerscheinantrag Test',
@@ -112,11 +251,82 @@ def test_creating_returns_the_form_connection_with_its_urls(
         # Fields in catalog order: expiry_date comes before document_number
         'documents': [PID_VIEW, MDL_VIEW],
         'trigger_url': trigger_url,
-        'pull_url': f'{trigger_url}/{{reference}}',
+        'pull_url': pull_url,
+        'branches': [
+            {
+                'id': data['branches'][0]['id'],
+                'name': 'Standard',
+                'description': None,
+                'origin': 'main',
+                'operator': 'and',
+                'operator_mark': None,
+                'items': [],
+                'is_main': True,
+                'pull_url': pull_url,
+            }
+        ],
+        'rule_set_version': 1,
+        'next_rule_number': 1,
+        'next_group_number': 1,
         'created_at': data['created_at'],
         'updated_at': data['updated_at'],
     }
     assert data['created_at'].endswith('Z')
+
+
+def test_a_form_connection_created_without_rules_has_a_main_branch_without_rules(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    data = _create(signed_in_client)
+
+    [branch] = data['branches']
+    assert (branch['name'], branch['is_main'], branch['items']) == (
+        'Standard',
+        True,
+        [],
+    )
+    # The main branch keeps spec 001's pull URL
+    assert branch['pull_url'] == data['pull_url']
+    assert data['rule_set_version'] == 1
+    assert (data['next_rule_number'], data['next_group_number']) == (1, 1)
+    with SessionLocal() as db:
+        form_connection = db.get(FormConnection, data['id'])
+        assert form_connection is not None
+        assert form_connection.current_rule_set == 1
+        rows = db.scalars(
+            select(FormConnectionBranch).where(
+                FormConnectionBranch.form_connection_id == data['id']
+            )
+        ).all()
+        assert [(row.id, row.is_main, row.deleted_at) for row in rows] == [
+            (branch['id'], True, None)
+        ]
+        rule_set = db.scalars(
+            select(FormConnectionRuleSet).where(
+                FormConnectionRuleSet.form_connection_id == data['id']
+            )
+        ).one()
+        assert rule_set.version == 1
+        # The snapshot leaves out what the API derives
+        assert rule_set.branches == [
+            {
+                key: value
+                for key, value in branch.items()
+                if key not in ('is_main', 'pull_url')
+            }
+        ]
+
+    reopened = signed_in_client.get(f'/api/form-connections/{data["id"]}')
+    assert reopened.json()['data']['branches'] == data['branches']
+
+
+def test_each_form_connection_has_a_main_branch_of_its_own(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    first = _create(signed_in_client)['branches'][0]['id']
+    second = _create(signed_in_client)['branches'][0]['id']
+
+    assert first != second
 
 
 def test_creating_stores_revision_1_with_its_eudiplo_configuration(
@@ -560,6 +770,8 @@ def test_deleted_and_unknown_form_connections_cannot_be_updated(
 @pytest.mark.parametrize(
     ('method', 'path'),
     [
+        ('GET', '/api/document-types'),
+        ('GET', '/api/option-sets'),
         ('GET', '/api/form-connections'),
         ('POST', '/api/form-connections'),
         ('GET', '/api/form-connections/some-id'),

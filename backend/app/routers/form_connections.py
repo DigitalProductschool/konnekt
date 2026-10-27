@@ -40,7 +40,12 @@ def list_form_connections(
 def create_form_connection(
     data: FormConnectionCreate, db: Session = Depends(get_db)
 ) -> ApiResponse[FormConnection]:
-    """Create a form connection, its first revision and its EUDIPLO configuration."""
+    """Create a form connection with its first revision, configuration and rules.
+
+    The configuration is EUDIPLO's. Without `rules`, the form connection gets a
+    main branch "Standard" without rules. Everything is saved together or not at
+    all (FR-028).
+    """
     try:
         form_connection = form_connections.create_form_connection(db, data)
     except EudiploError as error:
@@ -64,10 +69,12 @@ def update_form_connection(
     data: FormConnectionUpdate,
     db: Session = Depends(get_db),
 ) -> ApiResponse[FormConnection]:
-    """Change a form connection's name, serviceBW form or documents.
+    """Change a form connection's name, serviceBW form, documents or rules.
 
-    Changed documents become a new revision with its own EUDIPLO configuration;
-    requests in progress keep theirs. The connection URLs never change.
+    Changed documents become a new revision with its own EUDIPLO configuration, and
+    changed rules a new rule set, saved together or not at all; requests in progress
+    keep theirs. The connection URLs never change. Rules saved over the newer rules
+    of another team member answer 409 `rules_changed`, unless they replace them.
     """
     try:
         form_connection = form_connections.update_form_connection(

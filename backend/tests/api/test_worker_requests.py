@@ -513,7 +513,8 @@ def test_a_request_from_trigger_to_deleted_documents(
     after = signed_in_client.get(url).json()['data']
 
     assert first['documents'] == repeat['documents'] == DELIVERED_DOCUMENTS
-    assert after == {**first, 'documents': None}
+    # The evaluation goes with the documents (spec 002, FR-017)
+    assert after == {**first, 'documents': None, 'evaluation': None}
     assert _session_gone(fake_eudiplo, reference)
 
 

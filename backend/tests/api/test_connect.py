@@ -4,11 +4,12 @@ These are quickstart V2 and V3, with a fake EUDIPLO in place of the wallet.
 """
 
 import base64
+import copy
 import json
 import logging
 import threading
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx2
@@ -20,21 +21,32 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import SessionLocal
-from app.main import RedactReferencesFilter
+from app.main import RedactReferencesFilter, app
 from app.models import DocumentRequest, FormConnectionRevision
 from app.routers.connect import PULL_FAILED, TRIGGER_FAILED
 from app.schemas import PullResponse
 from app.services import document_requests, worker
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
+from app.services.evaluation import day_of_sharing
 from app.services.qr import png_data_uri
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
+    AGE_21_RULE,
+    AGE_RULE,
+    CLASS_RULE,
     DELIVERED_DOCUMENTS,
+    HELD_3_YEARS_RULE,
+    HELD_RULE,
+    SHARED_CREDENTIALS,
+    US1_RULES,
+    US2_RULES,
     create_form_connection,
     fail_in_wallet,
+    main_branch,
     now,
     pull_url,
     requests_url,
+    rules_input,
     share,
     stored_request,
     trigger,
@@ -66,14 +78,23 @@ def _pull(client: TestClient, form_connection_id: str, reference: str) -> Any:
 
 
 def _completed(
-    client: TestClient, fake: FakeEudiplo, form_connection_id: str
+    client: TestClient,
+    fake: FakeEudiplo,
+    form_connection_id: str,
+    credentials: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """A triggered request that the citizen shared, as the worker has seen it."""
     started = trigger(client, form_connection_id)
-    share(fake, started['reference'])
+    share(fake, started['reference'], credentials=credentials)
     worker.sync_sessions()
     assert stored_request(started['reference']).status == 'completed'
     return started
+
+
+def _main_branch_id(client: TestClient, form_connection_id: str) -> str:
+    response = client.get(f'/api/form-connections/{form_connection_id}')
+    branch_id: str = response.json()['data']['branches'][0]['id']
+    return branch_id
 
 
 # Trigger URL
@@ -404,6 +425,7 @@ def test_a_pending_request_has_no_documents(
             'status': 'pending',
             'expires_at': started['expires_at'],
             'documents': None,
+            'evaluation': None,
         },
         'message': None,
     }
@@ -423,6 +445,16 @@ def test_the_first_pull_after_sharing_delivers_exactly_the_configured_fields(
         'status': 'completed',
         'expires_at': started['expires_at'],
         'documents': DELIVERED_DOCUMENTS,
+        # A form connection without rules: the main branch is met (spec 002)
+        'evaluation': {
+            'branch': {
+                'id': _main_branch_id(signed_in_client, form_connection_id),
+                'name': 'Standard',
+            },
+            'met': True,
+            'results': [],
+            'messages': [],
+        },
     }
     request = stored_request(started['reference'])
     assert request.documents_delivered_at is not None
@@ -845,6 +877,415 @@ def test_a_reactivated_form_connection_answers_again(
         'status'
     ] == ('pending')
     trigger(signed_in_client, form_connection_id)
+
+
+# The evaluation of the rules (spec 002, contracts/integration-api.md "evaluation")
+
+
+def _years_before(day: date, years: int) -> date:
+    # On or before the day's anniversary, whatever the month's length
+    return date(day.year - years, day.month, min(day.day, 28))
+
+
+def _person(age: int, held_b_for: int) -> list[dict[str, Any]]:
+    """What the wallet shares for someone who turned `age` and got class B
+    `held_b_for` years ago, as of today in Germany."""
+    today = day_of_sharing(now())
+    credentials = copy.deepcopy(SHARED_CREDENTIALS)
+    credentials[0]['values'][0]['birthdate'] = _years_before(today, age).isoformat()
+    credentials[1]['values'][0]['driving_privileges'] = [
+        {
+            'vehicle_category_code': 'B',
+            'issue_date': _years_before(today, held_b_for).isoformat(),
+        }
+    ]
+    return credentials
+
+
+def _outcomes(evaluation: dict[str, Any]) -> list[tuple[str, str]]:
+    return [(result['id'], result['outcome']) for result in evaluation['results']]
+
+
+def test_documents_that_meet_every_rule_come_with_a_met_evaluation(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    person = _person(25, 5)
+    started = _completed(signed_in_client, fake_eudiplo, form_connection_id, person)
+
+    data = _pull(signed_in_client, form_connection_id, started['reference'])
+
+    assert data['status'] == 'completed'
+    assert data['evaluation'] == {
+        'branch': {
+            'id': _main_branch_id(signed_in_client, form_connection_id),
+            'name': 'Standard',
+        },
+        'met': True,
+        'results': [
+            {
+                'id': f'rule-{number}',
+                'type': 'rule',
+                'name': f'Rule 0{number}',
+                'group': None,
+                'outcome': 'met',
+            }
+            for number in (1, 2, 3)
+        ],
+        'messages': [],
+    }
+    # The data the rules check is delivered like every other field (FR-016)
+    pid_values = {
+        field['key']: field['value'] for field in data['documents'][0]['fields']
+    }
+    assert pid_values['birthdate'] == person[0]['values'][0]['birthdate']
+
+
+def test_documents_that_break_rules_come_with_their_messages(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 1)
+    )
+
+    data = _pull(signed_in_client, form_connection_id, started['reference'])
+
+    # Delivered all the same, and still completed (FR-015)
+    assert data['status'] == 'completed'
+    assert data['documents'] is not None
+    evaluation = data['evaluation']
+    assert evaluation['met'] is False
+    assert _outcomes(evaluation) == [
+        ('rule-1', 'not_met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'not_met'),
+    ]
+    # The age rule and the 2-year rule, not the class rule (US1-AS5)
+    assert evaluation['messages'] == [
+        {'id': 'rule-1', 'message': AGE_RULE['message']},
+        {'id': 'rule-3', 'message': HELD_RULE['message']},
+    ]
+
+
+def test_user_story_2s_rules_are_met_through_the_sub_group(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US2_RULES)
+    # A 20-year-old from Stuttgart who has held class B for 3 years (US2-AS2)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 3)
+    )
+
+    evaluation = _pull(signed_in_client, form_connection_id, started['reference'])[
+        'evaluation'
+    ]
+
+    assert evaluation['met'] is True
+    assert _outcomes(evaluation) == [
+        ('rule-1', 'met'),
+        ('group-1', 'met'),
+        ('rule-2', 'not_met'),
+        ('group-2', 'met'),
+        ('rule-3', 'met'),
+        ('rule-4', 'met'),
+    ]
+    assert evaluation['messages'] == []
+
+
+def test_user_story_2s_rules_report_the_messages_of_the_rules_not_met(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US2_RULES)
+    # A 20-year-old from Stuttgart who has held class B for 1 year (US2-AS3)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 1)
+    )
+
+    evaluation = _pull(signed_in_client, form_connection_id, started['reference'])[
+        'evaluation'
+    ]
+
+    assert evaluation['met'] is False
+    assert evaluation['results'] == [
+        {
+            'id': 'rule-1',
+            'type': 'rule',
+            'name': 'Rule 01',
+            'group': None,
+            'outcome': 'met',
+        },
+        {
+            'id': 'group-1',
+            'type': 'group',
+            'name': 'Group 01',
+            'group': None,
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-2',
+            'type': 'rule',
+            'name': 'Rule 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'group-2',
+            'type': 'group',
+            'name': 'Sub-group 02',
+            'group': 'group-1',
+            'outcome': 'not_met',
+        },
+        {
+            'id': 'rule-3',
+            'type': 'rule',
+            'name': 'Rule 03',
+            'group': 'group-2',
+            'outcome': 'met',
+        },
+        {
+            'id': 'rule-4',
+            'type': 'rule',
+            'name': 'Rule 04',
+            'group': 'group-2',
+            'outcome': 'not_met',
+        },
+    ]
+    # The 21-year and 3-year rules, not the 19-year rule, which is met
+    assert evaluation['messages'] == [
+        {'id': 'rule-2', 'message': AGE_21_RULE['message']},
+        {'id': 'rule-4', 'message': HELD_3_YEARS_RULE['message']},
+    ]
+
+
+def test_the_evaluation_is_repeated_and_gone_with_the_documents(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    pending = trigger(signed_in_client, form_connection_id)
+    started = _completed(
+        signed_in_client, fake_eudiplo, form_connection_id, _person(20, 1)
+    )
+
+    assert (
+        _pull(signed_in_client, form_connection_id, pending['reference'])['evaluation']
+        is None
+    )
+    first = _pull(signed_in_client, form_connection_id, started['reference'])
+    delivered_at = now() - timedelta(seconds=settings.pull_repeat_window_seconds - 2)
+    update_request(started['reference'], documents_delivered_at=delivered_at)
+    again = _pull(signed_in_client, form_connection_id, started['reference'])
+    update_request(
+        started['reference'], documents_delivered_at=now() - timedelta(seconds=61)
+    )
+    after = _pull(signed_in_client, form_connection_id, started['reference'])
+
+    assert again == first
+    assert first['evaluation']['met'] is False
+    assert (after['documents'], after['evaluation']) == (None, None)
+
+
+def test_a_request_from_before_rules_meets_them(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    started = trigger(signed_in_client, form_connection_id)
+    # Triggered before the migration: no rule set
+    update_request(started['reference'], rule_set_id=None)
+    share(fake_eudiplo, started['reference'], credentials=_person(20, 1))
+    worker.sync_sessions()
+
+    data = _pull(signed_in_client, form_connection_id, started['reference'])
+
+    assert data['documents'] is not None
+    assert data['evaluation'] == {
+        'branch': {
+            'id': _main_branch_id(signed_in_client, form_connection_id),
+            'name': 'Standard',
+        },
+        'met': True,
+        'results': [],
+        'messages': [],
+    }
+
+
+def test_a_request_keeps_the_rules_it_was_triggered_with(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    earlier = trigger(signed_in_client, form_connection_id)
+    branch_id = _main_branch_id(signed_in_client, form_connection_id)
+    without_rules = rules_input(
+        [main_branch([], branch_id=branch_id)], rule_base=4, base_version=1
+    )
+    response = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}', json={'rules': without_rules}
+    )
+    assert response.status_code == 200
+    later = trigger(signed_in_client, form_connection_id)
+    for started in (earlier, later):
+        share(fake_eudiplo, started['reference'], credentials=_person(20, 1))
+    worker.sync_sessions()
+
+    earlier_data = _pull(signed_in_client, form_connection_id, earlier['reference'])
+    later_data = _pull(signed_in_client, form_connection_id, later['reference'])
+
+    # The rules changed after the first trigger, which keeps them (FR-028)
+    assert earlier_data['evaluation']['met'] is False
+    assert later_data['evaluation']['met'] is True
+    assert later_data['evaluation']['results'] == []
+
+
+def _save_main_rules(
+    client: TestClient, form_connection_id: str, items: list[dict[str, Any]]
+) -> None:
+    """Save `items` as Standard's rules, as the rules step of the edit flow does."""
+    before = client.get(f'/api/form-connections/{form_connection_id}').json()['data']
+    rules = rules_input(
+        [main_branch(items, branch_id=before['branches'][0]['id'])],
+        rule_base=before['next_rule_number'],
+        group_base=before['next_group_number'],
+        base_version=before['rule_set_version'],
+    )
+    response = client.put(
+        f'/api/form-connections/{form_connection_id}', json={'rules': rules}
+    )
+    assert response.status_code == 200, response.json()
+    after = response.json()['data']
+    assert after['rule_set_version'] == before['rule_set_version'] + 1
+    # serviceBW keeps using the same URLs (FR-025, FR-028)
+    assert (after['trigger_url'], after['pull_url']) == (
+        before['trigger_url'],
+        before['pull_url'],
+    )
+
+
+def test_a_changed_rule_applies_to_the_requests_triggered_after_it(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    earlier = trigger(signed_in_client, form_connection_id)
+    age_19 = AGE_RULE | {
+        'condition': {'operator': 'at_least_years_ago', 'years': 19},
+        'message': 'You must be at least 19 years old.',
+    }
+    _save_main_rules(
+        signed_in_client, form_connection_id, [age_19, CLASS_RULE, HELD_RULE]
+    )
+    later = trigger(signed_in_client, form_connection_id)
+    for started in (earlier, later):
+        share(fake_eudiplo, started['reference'], credentials=_person(20, 3))
+    worker.sync_sessions()
+
+    earlier_data = _pull(signed_in_client, form_connection_id, earlier['reference'])
+    later_data = _pull(signed_in_client, form_connection_id, later['reference'])
+
+    # Triggered while the rule asked for 21 years, A keeps it (US4-AS1, FR-028)
+    assert _outcomes(earlier_data['evaluation']) == [
+        ('rule-1', 'not_met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'met'),
+    ]
+    assert earlier_data['evaluation']['messages'] == [
+        {'id': 'rule-1', 'message': AGE_RULE['message']}
+    ]
+    # B meets the 19 years of the changed rule, which kept its identifier
+    assert later_data['evaluation']['met'] is True
+    assert _outcomes(later_data['evaluation']) == [
+        ('rule-1', 'met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'met'),
+    ]
+
+
+def test_rules_added_to_a_live_connection_apply_to_new_requests(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client)
+    earlier = trigger(signed_in_client, form_connection_id)
+    _save_main_rules(
+        signed_in_client, form_connection_id, [AGE_RULE, CLASS_RULE, HELD_RULE]
+    )
+    later = trigger(signed_in_client, form_connection_id)
+    for started in (earlier, later):
+        share(fake_eudiplo, started['reference'], credentials=_person(20, 1))
+    worker.sync_sessions()
+
+    earlier_data = _pull(signed_in_client, form_connection_id, earlier['reference'])
+    later_data = _pull(signed_in_client, form_connection_id, later['reference'])
+
+    # Triggered without rules, A has nothing to meet (US4-AS2)
+    assert earlier_data['evaluation']['met'] is True
+    assert earlier_data['evaluation']['results'] == []
+    assert later_data['evaluation']['met'] is False
+    assert _outcomes(later_data['evaluation']) == [
+        ('rule-1', 'not_met'),
+        ('rule-2', 'met'),
+        ('rule-3', 'not_met'),
+    ]
+
+
+def test_an_evaluation_that_fails_hands_nothing_over(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    error_log: Callable[[str], str],
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    person = _person(20, 1)
+    started = _completed(signed_in_client, fake_eudiplo, form_connection_id, person)
+    birthdate = person[0]['values'][0]['birthdate']
+
+    def fail(*_args: object) -> None:
+        raise RuntimeError(f'Cannot read {birthdate}')
+
+    evaluate_branch = document_requests.evaluate_branch
+    monkeypatch.setattr(document_requests, 'evaluate_branch', fail)
+    # Answers the 500 as the server does, instead of raising the error in the test
+    with TestClient(app, raise_server_exceptions=False) as service_bw:
+        response = service_bw.get(pull_url(form_connection_id, started['reference']))
+
+    assert response.status_code == 500
+    error_id = response.json()['error_id']
+    assert 'documents' not in response.text
+    assert birthdate not in error_log(error_id)
+    # Not counted as a delivery, so serviceBW can pull again (FR-017)
+    assert stored_request(started['reference']).documents_delivered_at is None
+    monkeypatch.setattr(document_requests, 'evaluate_branch', evaluate_branch)
+    again = _pull(signed_in_client, form_connection_id, started['reference'])
+    assert again['documents'] is not None
+    assert again['evaluation']['met'] is False
+
+
+def test_no_evaluation_reaches_the_log(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client, rules=US1_RULES)
+    person = _person(20, 1)
+
+    with caplog.at_level(logging.DEBUG):
+        started = _completed(signed_in_client, fake_eudiplo, form_connection_id, person)
+        _pull(signed_in_client, form_connection_id, started['reference'])
+        _pull(signed_in_client, form_connection_id, started['reference'])
+        worker.run_steps()
+
+    text = '\n'.join(
+        message
+        for message in (record.getMessage() for record in caplog.records)
+        if 'http://testserver/' not in message
+    )
+    assert 'Document request' in text
+    assert started['reference'] not in text
+    shared = [
+        person[0]['values'][0]['birthdate'],
+        person[1]['values'][0]['driving_privileges'][0]['issue_date'],
+    ]
+    for value in [*shared, AGE_RULE['message'], HELD_RULE['message']]:
+        assert value not in text
+    for outcome in ('not_met', 'not_checked', "'met'"):
+        assert outcome not in text
 
 
 # References stay out of the logs (FR-019, research R13)

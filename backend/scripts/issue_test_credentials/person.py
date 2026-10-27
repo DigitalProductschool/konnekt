@@ -6,14 +6,21 @@ Stuttgart accepts the address; or, with `stuttgart=False`, in a town from a shor
 of real ones, on a street Faker makes up. Postcode, state and issuing authorities fit
 the town either way. Every date counts from today, so that the documents are valid
 whenever the script runs: the same seed gives the same person on the same day.
+
+A test of the middleware's rules can fix the date of birth and the licence's classes
+with their issue dates. The rest of the person stays as the seed makes it up, and the
+values that follow from them, such as the age or the card's dates, fit.
 """
 
 import string
 import unicodedata
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 
 from faker import Faker
+
+from app.option_sets import OPTION_SETS
 
 COUNTRY = 'DE'
 COUNTRY_NAME = 'Deutschland'
@@ -34,8 +41,9 @@ MOBILE_PREFIXES = (
 UMLAUTS = (('ä', 'ae'), ('ö', 'oe'), ('ü', 'ue'), ('ß', 'ss'))
 # German identity card numbers use digits and these letters
 ID_CARD_LETTERS = 'CFGHJKLMNPRTVWXYZ'
-# The order of the vehicle categories on a driving licence
-CATEGORY_ORDER = ('AM', 'A1', 'A2', 'A', 'B', 'BE', 'C1', 'C1E', 'C', 'CE', 'L', 'T')
+# The vehicle categories in their order on a driving licence: the middleware's
+# licence classes
+CATEGORY_ORDER = tuple(str(option.value) for option in OPTION_SETS['licence_classes'])
 
 
 @dataclass(frozen=True)
@@ -262,11 +270,18 @@ def years_after(day: date, years: int) -> date:
 
 
 def random_person(
-    seed: int, today: date | None = None, *, stuttgart: bool = True
+    seed: int,
+    today: date | None = None,
+    *,
+    stuttgart: bool = True,
+    birth_date: date | None = None,
+    privileges: Sequence[DrivingPrivilege] | None = None,
 ) -> Person:
     """Make up a person. The same seed gives the same person on the same day.
 
     The person lives in Stuttgart, or with `stuttgart=False` in any town of PLACES.
+    `birth_date` and the licence's `privileges` replace the made-up ones; the rest of
+    the person stays the same.
     """
     today = today or date.today()
     fake = Faker('de_DE')
@@ -278,10 +293,12 @@ def random_person(
     # Some changed their family name when they married
     married_name = fake.random_int(1, 100) <= 30
     birth_family_name = fake.last_name() if married_name else family_name
-    # Old enough for a car licence, and not just turned 18
-    birth_date = fake.date_between(
+    # Old enough for a car licence, and not just turned 18. Made up also when it is
+    # given, so that the rest of the person stays the same
+    made_up_birth_date = fake.date_between(
         years_after(today, -75), years_after(today, -18) - timedelta(days=60)
     )
+    birth_date = birth_date or made_up_birth_date
     height_cm = fake.random_int(165, 195) if sex == MALE else fake.random_int(155, 182)
     body_mass_index = fake.random_int(19, 29)
     later_in_life = today.year - birth_date.year >= 55
@@ -311,7 +328,7 @@ def random_person(
         hair_colour=fake.random_element(hair_colours),
         personal_administrative_number=fake.numerify('%##########'),
         id_card=_identity_card(fake, birth_date, today),
-        licence=_driving_licence(fake, birth_date, today),
+        licence=_driving_licence(fake, birth_date, today, privileges),
     )
 
 
@@ -324,11 +341,21 @@ def _address(fake: Faker, home: Place) -> tuple[str, str, str]:
     return fake.street_name(), str(fake.random_int(1, 120)), home.postal_code
 
 
+def _between(fake: Faker, start: date, end: date) -> date:
+    """A day from `start` to `end`, or `end` when `start` comes after it.
+
+    That happens with a given birth date, for example of someone too young for a
+    licence, whose dates then fall on the latest day possible.
+    """
+    return fake.date_between(min(start, end), end)
+
+
 def _identity_card(fake: Faker, birth_date: date, today: date) -> IdentityCard:
     # Issued in the last five years: a card is valid for 6 years (under 24) or 10
-    issue_date = fake.date_between(
+    issue_date = _between(
+        fake,
         max(years_after(today, -5), years_after(birth_date, 16)),
-        today - timedelta(days=7),
+        max(today - timedelta(days=7), birth_date),
     )
     issued_at_age = issue_date.year - birth_date.year
     expiry_date = years_after(issue_date, 10 if issued_at_age >= 24 else 6)
@@ -338,30 +365,38 @@ def _identity_card(fake: Faker, birth_date: date, today: date) -> IdentityCard:
     return IdentityCard(number, issue_date, expiry_date)
 
 
-def _driving_licence(fake: Faker, birth_date: date, today: date) -> DrivingLicence:
+def _driving_licence(
+    fake: Faker,
+    birth_date: date,
+    today: date,
+    given: Sequence[DrivingPrivilege] | None = None,
+) -> DrivingLicence:
+    # Categories were added at least a month ago, and not before the birth
+    latest = max(today - timedelta(days=30), birth_date)
     # Category B, which includes AM and L, passed between 18 and 30
-    passed = fake.date_between(
-        years_after(birth_date, 18),
-        min(years_after(birth_date, 30), today - timedelta(days=30)),
+    passed = _between(
+        fake, years_after(birth_date, 18), min(years_after(birth_date, 30), latest)
     )
     privileges = [DrivingPrivilege(category, passed) for category in ('AM', 'B', 'L')]
     if fake.random_int(1, 100) <= 30:
-        privileges.append(
-            DrivingPrivilege(
-                'BE', fake.date_between(passed, today - timedelta(days=30))
-            )
-        )
+        privileges.append(DrivingPrivilege('BE', _between(fake, passed, latest)))
     if fake.random_int(1, 100) <= 25:
         # A motorcycle licence includes the smaller categories
-        motorcycle = fake.date_between(passed, today - timedelta(days=30))
+        motorcycle = _between(fake, passed, latest)
         privileges.extend(
             DrivingPrivilege(category, motorcycle) for category in ('A1', 'A2', 'A')
         )
+    if given is not None:
+        # Made up all the same, so that the rest of the licence stays the same
+        privileges = list(given)
+        passed = min(privilege.issue_date for privilege in privileges)
     privileges.sort(key=lambda privilege: CATEGORY_ORDER.index(privilege.category))
 
     # The current card is valid for 15 years
-    issue_date = fake.date_between(
-        max(passed, years_after(today, -14)), today - timedelta(days=7)
+    issue_date = _between(
+        fake,
+        max(passed, years_after(today, -14)),
+        max(today - timedelta(days=7), passed),
     )
     photo_day = issue_date - timedelta(days=fake.random_int(3, 40))
     photo_time = time(fake.random_int(8, 17), fake.random_int(0, 59))

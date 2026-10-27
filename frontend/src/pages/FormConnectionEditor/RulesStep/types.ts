@@ -1,0 +1,499 @@
+import type { KeyboardEvent, ReactNode } from 'react';
+
+import type { ToastContent } from '../../../components/Toast/types';
+import type {
+  BranchInput,
+  Combinator,
+  GroupItem,
+  NumberingBase,
+  RuleItem,
+  RuleTreeItem,
+} from '../../../types/form-connections';
+import type { OptionSet } from '../../../types/option-sets';
+import type { PopupPlacement } from '../../../utils/popupPlacement';
+import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
+
+/** A branch in the rules step. `key` stays the same while the branch has no id yet */
+export interface RulesBranch extends BranchInput {
+  key: string;
+}
+
+/** The rule open in the rule editor (S3) */
+export interface RuleEditing {
+  branchKey: string;
+  /** Where a new rule goes: at the end of this group, or of the top level for null */
+  parentId: string | null;
+  /** The rule as saved in the step, which "Cancel" and "Discard" keep; null for a new rule */
+  original: RuleItem | null;
+  /** The rule as edited so far */
+  draft: RuleItem;
+}
+
+/** What the team member did that closes the rule editor, which happens after its question */
+export type LeaveEditorAction =
+  | { type: 'cancel' }
+  | { type: 'edit'; branchKey: string; ruleId: string }
+  | { type: 'add'; branchKey: string; parentId: string | null }
+  | { type: 'documents' }
+  | { type: 'publish' };
+
+export type RulesDialog =
+  /** "Delete Rule 03?" (U14; in Standard with variants, U23 and F14) */
+  | { type: 'deleteRule'; branchKey: string; ruleId: string }
+  /** "Delete Group 01?" (W8) */
+  | { type: 'deleteGroup'; branchKey: string; groupId: string }
+  /** "Save changes to Rule 01?" (U28, F10), then `next` */
+  | { type: 'saveChanges'; next: LeaveEditorAction }
+  /** "Add variant" (U17 6139:32693) */
+  | { type: 'addVariant' }
+  /** "Edit variant", from a tab's "Rename" (W3) */
+  | { type: 'editVariant'; branchKey: string }
+  /** "Delete Ambulance?" (W3) */
+  | { type: 'deleteVariant'; branchKey: string }
+  /** "Copy to variant" (U20) */
+  | { type: 'copyRule'; branchKey: string; ruleId: string };
+
+/**
+ * What the toast's Undo puts back: every branch as it was before the last deletion, grouping or
+ * ungrouping, since a change of the main branch reaches the branches based on it. Any other
+ * change of the rules drops it
+ */
+export interface RulesUndo {
+  branches: RulesBranch[];
+  /** Where the focus goes once undone: the branch and the item the undo brings back */
+  branchKey: string;
+  itemId: string;
+  /** The number of the group a grouping made, which the undo gives back */
+  groupNumber?: number;
+}
+
+/** Select mode (U16): the rules of one level chosen to form a group */
+export interface RulesSelection {
+  branchKey: string;
+  /** The level: a group's identifier, or null for the top level */
+  parentId: string | null;
+  /** The chosen rules, in the order they were chosen */
+  ids: string[];
+}
+
+/** The level whose AND or OR was just switched, which the note under it names (U14 6329:19219) */
+export interface SwitchedLevel {
+  branchKey: string;
+  parentId: string | null;
+  operator: Combinator;
+}
+
+/** An item being renamed inline (U15) */
+export interface RenamingItem {
+  branchKey: string;
+  itemId: string;
+}
+
+export interface RulesState {
+  /** Main branch first, in tab order */
+  branches: RulesBranch[];
+  /** The key of the branch whose rules are shown */
+  openBranch: string;
+  /** The numbers the next new rule and group get (research R5) */
+  counters: NumberingBase;
+  /** The counters the step started from, which a save names as its numbering base */
+  numberingBase: NumberingBase;
+  /** The rule set the step loaded, null for a new connection */
+  ruleSetVersion: number | null;
+  editing: RuleEditing | null;
+  renaming: RenamingItem | null;
+  dialog: RulesDialog | null;
+  toast: ToastContent | null;
+  undo: RulesUndo | null;
+  /** The branch the toast's "Show" opens, after copying a rule to it (F29) */
+  showBranch: string | null;
+  /** The problem that refused the last Publish or Save, shown until the rules change */
+  problem: RulesProblem | null;
+  selection: RulesSelection | null;
+  switched: SwitchedLevel | null;
+}
+
+export type RulesAction =
+  | { type: 'addRule'; branchKey: string; parentId: string | null }
+  | { type: 'editRule'; branchKey: string; ruleId: string }
+  | { type: 'changeDraft'; draft: RuleItem }
+  /** Puts the edited rule into its branch, complete or not, and closes the editor */
+  | { type: 'saveRule' }
+  /** Closes the editor and drops its changes */
+  | { type: 'closeEditor' }
+  | { type: 'startRename'; branchKey: string; itemId: string }
+  | { type: 'rename'; name: string }
+  | { type: 'cancelRename' }
+  | { type: 'duplicateRule'; branchKey: string; ruleId: string }
+  | { type: 'askDelete'; branchKey: string; ruleId: string }
+  | { type: 'askDeleteGroup'; branchKey: string; groupId: string }
+  /** Deletes the rule or group the dialog asks about */
+  | { type: 'confirmDelete' }
+  | { type: 'askSaveChanges'; next: LeaveEditorAction }
+  | { type: 'closeDialog' }
+  | { type: 'undo' }
+  | { type: 'dismissToast' }
+  | { type: 'showProblem'; problem: RulesProblem }
+  | { type: 'clearProblem' }
+  | { type: 'selectBranch'; branchKey: string }
+  | { type: 'switchOperator'; branchKey: string; parentId: string | null; operator: Combinator }
+  /** "Group with other rules": select mode, with this rule chosen */
+  | { type: 'startSelect'; branchKey: string; itemId: string }
+  | { type: 'toggleSelect'; itemId: string }
+  | { type: 'cancelSelect' }
+  /** "Group rules": the chosen rules become a group or sub-group */
+  | { type: 'groupSelected' }
+  | { type: 'ungroup'; branchKey: string; groupId: string }
+  /** Adds (with ''), changes or removes (with null) a group's own message */
+  | { type: 'setGroupMessage'; branchKey: string; groupId: string; message: string | null }
+  | { type: 'askAddVariant' }
+  | { type: 'addVariant'; variant: VariantFields; origin: 'based' | 'empty' }
+  | { type: 'askEditVariant'; branchKey: string }
+  | { type: 'editVariant'; branchKey: string; variant: VariantFields }
+  | { type: 'askDeleteVariant'; branchKey: string }
+  /** An inherited rule or group removed in a based branch, and restored (FR-023, FR-024) */
+  | { type: 'removeItem'; branchKey: string; itemId: string }
+  | { type: 'restoreItem'; branchKey: string; itemId: string }
+  /** "Reset to Standard": a changed item follows the main branch again (FR-024) */
+  | { type: 'resetItem'; branchKey: string; itemId: string }
+  /** The top level's AND/OR follows the main branch again (FR-024) */
+  | { type: 'resetOperator'; branchKey: string }
+  | { type: 'askCopyRule'; branchKey: string; ruleId: string }
+  /** Copies the rule the dialog names to these branches (FR-022) */
+  | { type: 'copyRule'; targets: string[] };
+
+/** A variant's name and description, as the Add variant and Edit variant dialogs give them */
+export interface VariantFields {
+  name: string;
+  description: string | null;
+}
+
+/** The catalog data the step's statements, menus and checks read */
+export interface RulesCatalog {
+  /** The requested documents with only their requested fields, for menus and checks */
+  documents: RuleDocument[];
+  /** Every document of the catalog, so that a rule on data no longer requested still reads */
+  allDocuments: RuleDocument[];
+  optionSets: OptionSet[];
+}
+
+export interface RulesStepProps {
+  /** Whether the catalog and the value sets are loaded, which statements and menus need */
+  status: 'loading' | 'loaded' | 'failed';
+  onRetry: () => void;
+  state: RulesState;
+  catalog: RulesCatalog;
+  /** Whether the connection is being edited, which some wording follows */
+  editing: boolean;
+  dispatch: (action: RulesAction) => void;
+  /**
+   * Opens the rule editor for a new rule, at the end of a group or of the top level (null), or
+   * for a saved one, asking first if one is open
+   */
+  onAddRule: (branchKey: string, parentId: string | null) => void;
+  onEditRule: (branchKey: string, ruleId: string) => void;
+  /** "Need other data? Add it in Documents" */
+  onAddData: () => void;
+  /** "Save rule": the rule is complete */
+  onSaveRule: () => void;
+  /** "Cancel": asks first when the rule has unsaved changes */
+  onCancelEditor: () => void;
+}
+
+export interface RulesEmptyStateProps {
+  /** The id of its "Add rule", where the focus goes when the last rule is deleted */
+  addRuleId: string;
+  onAddRule: () => void;
+}
+
+/** What every item of the open branch's tree needs, passed down the levels */
+export interface RulesTreeView {
+  branch: RulesBranch;
+  /** Whether the branch is based on the main branch, whose items carry marks */
+  based: boolean;
+  state: RulesState;
+  /** For the statements: the whole catalog, so that a rule on data no longer requested reads */
+  context: RuleContext;
+  /** The requested documents, which tell the rules on data no longer requested (F11) */
+  documents: RuleDocument[];
+  /** The open rule editor, shown in its rule's place or at the end of a new rule's level */
+  ruleEditor: ReactNode;
+  dispatch: (action: RulesAction) => void;
+  onAddRule: (parentId: string | null) => void;
+  onEditRule: (ruleId: string) => void;
+  onDuplicateRule: (ruleId: string) => void;
+  /** "Group with other rules": select mode, with the focus on the rule's box */
+  onStartSelect: (ruleId: string) => void;
+  onUngroup: (groupId: string) => void;
+  /** "Add error message": the message card, with the focus in it */
+  onAddGroupMessage: (groupId: string) => void;
+  /** "Copy to variant" (U20), from the rule's ⋯ */
+  onCopyRule: (ruleId: string) => void;
+  /** "Remove from this variant", "Restore" and "Reset to Standard", keeping the focus there */
+  onRemove: (itemId: string) => void;
+  onRestore: (itemId: string) => void;
+  onReset: (itemId: string) => void;
+}
+
+export interface TreeItemProps {
+  view: RulesTreeView;
+  item: RuleTreeItem;
+  /** Its level's items, itself included */
+  level: RuleTreeItem[];
+  parentId: string | null;
+  /** 0 at the top level, 1 in a group, 2 in a sub-group */
+  depth: number;
+  /** An inherited group dissolved in the based branch, shown as removed (F13) */
+  dissolved?: boolean;
+  /** In a removed or dissolved group: faded with it, and read-only */
+  faded?: boolean;
+}
+
+export interface GroupListItemProps {
+  view: RulesTreeView;
+  group: GroupItem;
+  /** 0 for a group, 1 for a sub-group */
+  depth: number;
+  dissolved: boolean;
+  faded: boolean;
+}
+
+export interface RuleListItemProps {
+  rule: RuleItem;
+  view: RulesTreeView;
+  /** The element id the focus moves to after a refused Publish or Save */
+  elementId: string;
+  /** The rule's problem to point out: the refusal, or data no longer requested (F11) */
+  flag: string | null;
+  /** Whether its menu offers "Group with other rules": another rule shares its level */
+  canGroup: boolean;
+  /** In a removed or dissolved group: faded with it, without a menu */
+  faded: boolean;
+}
+
+/**
+ * What a rule or group is to its branch, which decides its menu: the branch's own (in the main
+ * branch, a branch that started empty, or added in a based branch), inherited from the main
+ * branch in a based branch, or removed there (also a group dissolved there)
+ */
+export type ItemStanding = 'own' | 'inherited' | 'removed';
+
+export interface RuleMenuProps {
+  ruleName: string;
+  standing: ItemStanding;
+  canGroup: boolean;
+  /** Whether "Copy to variant" applies: the connection has other variants */
+  canCopy: boolean;
+  /** Whether "Reset to Standard" applies: the rule changed in its based variant */
+  canReset: boolean;
+  /** The main branch's name, which "Reset to Standard" names */
+  mainName: string;
+  onEdit: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+  onCopy: () => void;
+  onGroup: () => void;
+  onReset: () => void;
+  /** "Delete rule", or for an inherited rule "Remove from this variant" */
+  onDelete: () => void;
+  onRestore: () => void;
+}
+
+export interface GroupMenuProps {
+  groupName: string;
+  standing: ItemStanding;
+  hasMessage: boolean;
+  /** Whether "Reset to Standard" applies: the group changed in its based variant */
+  canReset: boolean;
+  mainName: string;
+  onAddMessage: () => void;
+  onRemoveMessage: () => void;
+  onRename: () => void;
+  onUngroup: () => void;
+  onReset: () => void;
+  /** "Delete group", or for an inherited group "Remove from this variant" */
+  onDelete: () => void;
+  onRestore: () => void;
+}
+
+export interface LinkStripProps {
+  /** The main branch's name */
+  mainName: string;
+}
+
+export interface RuleMenuItemProps {
+  label: string;
+  /** A KERN icon class, such as 'kern-icon--edit', or an image; none for "Restore rule" */
+  icon?: { kern: string } | { src: string };
+  danger?: boolean;
+  onSelect: () => void;
+}
+
+/** An action of a ⋯ menu */
+export interface MenuAction {
+  label: string;
+  icon?: RuleMenuItemProps['icon'];
+  danger?: boolean;
+  /** Draws the menu's divider before it */
+  separated?: boolean;
+  onSelect: () => void;
+}
+
+export interface ActionMenuProps {
+  /** The ⋯ button's name, such as "Actions for Rule 01" */
+  label: string;
+  actions: MenuAction[];
+}
+
+/** The type sizes of names: label/small for a rule, title/default and title/small for groups */
+export type ItemNameSize = 'rule' | 'group' | 'sub-group';
+
+export interface ItemNameProps {
+  item: RuleTreeItem;
+  branch: RulesBranch;
+  /** Every branch, main branch first: a rename in the main branch must fit the based ones */
+  branches: RulesBranch[];
+  size: ItemNameSize;
+  renaming: boolean;
+  dispatch: (action: RulesAction) => void;
+}
+
+/** The inline rename field's state */
+export interface RenameField {
+  value: string;
+  /** Why the name was refused (F12), shown until it changes */
+  error: string | null;
+}
+
+export type RenameAction =
+  | { type: 'reset'; value: string }
+  | { type: 'change'; value: string }
+  | { type: 'refuse'; error: string };
+
+export interface UnrequestedBannerProps {
+  /** The rules that check data no longer requested, each with its branch's name */
+  rules: { rule: RuleItem; branchName: string }[];
+}
+
+export interface UnrequestedRuleLineProps {
+  ruleName: string;
+  branchName: string;
+}
+
+export interface AddRuleButtonProps {
+  id: string;
+  onAddRule: () => void;
+}
+
+export interface SelectionBarProps {
+  selection: RulesSelection;
+  branch: RulesBranch;
+  onCancel: () => void;
+  onGroup: () => void;
+}
+
+export interface SelectBoxProps {
+  id: string;
+  ruleName: string;
+  checked: boolean;
+  onToggle: () => void;
+}
+
+export interface SwitchNoteProps {
+  /** The note's text, or null while there is none */
+  text: string | null;
+  /** The top level's note keeps clear of the card's edges; a group's fills its width */
+  topLevel?: boolean;
+}
+
+export interface RulesDialogsProps {
+  state: RulesState;
+  /** For the deleted rule's statement */
+  context: RuleContext;
+  /** Whether the connection is being edited: deleting a variant then ends its result link */
+  editing: boolean;
+  dispatch: (action: RulesAction) => void;
+  /** Closes the dialog: the rule stays, and so does the editor */
+  onCancel: () => void;
+  onConfirmDelete: () => void;
+  /** "Save changes": keeps the rule as it is, complete or not (F10) */
+  onSaveChanges: () => void;
+  /** "Discard": drops the changes */
+  onDiscardChanges: () => void;
+}
+
+export interface BranchTabsProps {
+  state: RulesState;
+  dispatch: (action: RulesAction) => void;
+}
+
+export interface BranchTabProps {
+  branch: RulesBranch;
+  selected: boolean;
+  /** Whether the branch can be deleted: every branch but the main branch */
+  deletable: boolean;
+  onSelect: () => void;
+  /** Arrow keys, Home and End move between the tabs */
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  onRename: () => void;
+  onDelete: () => void;
+}
+
+export interface BranchMenuProps {
+  branchName: string;
+  deletable: boolean;
+  onRename: () => void;
+  onDelete: () => void;
+}
+
+/** The Add variant and Edit variant dialogs' fields, and why the name was refused */
+export interface VariantForm {
+  name: string;
+  description: string;
+  origin: 'based' | 'empty';
+  error: string | null;
+}
+
+export type VariantFormAction =
+  | { type: 'reset'; form: VariantForm }
+  | { type: 'change'; changes: Partial<Omit<VariantForm, 'error'>> }
+  | { type: 'refuse'; error: string };
+
+export interface VariantDialogProps {
+  state: RulesState;
+  dispatch: (action: RulesAction) => void;
+}
+
+export interface StartWithOptionProps {
+  /** The radio group's name */
+  name: string;
+  value: 'based' | 'empty';
+  label: string;
+  help: string;
+  checked: boolean;
+  onSelect: () => void;
+}
+
+export interface CopyPopoverProps {
+  state: RulesState;
+  /** The rule's branch and the rule */
+  branchKey: string;
+  ruleName: string;
+  /** Where it opens from the rule's ⋯ (utils/popupPlacement.ts) */
+  placement: PopupPlacement;
+  /** Copies the rule to these branches, by key */
+  onCopy: (targets: string[]) => void;
+  /** Cancel, Escape or a click elsewhere */
+  onClose: () => void;
+  /** The focus left it, with Tab: it closes, and the focus stays where it went */
+  onDismiss: () => void;
+}
+
+export interface CopyTargetItemProps {
+  id: string;
+  label: string;
+  checked: boolean;
+  /** A variant based on Standard while Standard is chosen: included, not chosen on its own */
+  included: boolean;
+  onToggle: () => void;
+}

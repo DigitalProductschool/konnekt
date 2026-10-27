@@ -1,3 +1,4 @@
+import type { EditLocationState } from '../../types/routing';
 import type { ActionsState } from './types';
 
 export const DETAIL_COPY = {
@@ -24,6 +25,20 @@ export const DETAIL_COPY = {
   documentsTitle: 'Documents',
   documentsHint: 'Applicants share this data from their EUDI Wallet.',
   items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
+  // The rules of every variant (S6; FYI #17, F26): a card that opens on request
+  rulesTitle: 'Rules',
+  // Figma 10.11 (6530:40737): under the closed card's title, e.g. "3 variants · 6 rules" (B8)
+  rulesCounts: (variants: number, rules: number) =>
+    `${variants} ${variants === 1 ? 'variant' : 'variants'} · ${rules} ${rules === 1 ? 'rule' : 'rules'}`,
+  // No frame: the card's way to the edit wizard's Rules step, in Download PDF's place (F25, F27)
+  editRules: 'Edit rules',
+  viewSummary: 'View summary',
+  hideSummary: 'Hide summary',
+  // Proposed, after the Rules step's empty state (design-notes.md §2)
+  noRules: 'No rules. Anyone who shares the requested documents can apply.',
+  loadingRules: 'Loading the rules…',
+  rulesErrorTitle: 'Couldn’t load the rules',
+  rulesErrorText: 'Check your connection and try again.',
   // The status card and its dialogs, which the design has no frames for (FR-006)
   statusTitle: 'Status',
   statusLive: 'Live: your form can start requests with both links.',
@@ -59,3 +74,6 @@ export const INITIAL_ACTIONS_STATE: ActionsState = {
   error: null,
   toast: null,
 };
+
+// The rules card's "Edit rules" opens the edit wizard at the Rules step (FR-030)
+export const EDIT_RULES_STATE: EditLocationState = { step: 'rules' };

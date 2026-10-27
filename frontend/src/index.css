@@ -25,6 +25,16 @@
   /* The number in a step circle of Figma "App/Progress", smaller than any KERN text style */
   --text-step: 13px;
   --text-step--line-height: 16px;
+
+  /*
+   * The variant marks "Changed here" and "New addition" (Figma "Rules/Variant status"), which
+   * KERN has no semantic colours for: the warning colours, which Figma also gives "Changed
+   * here", and the violet of KERN's palette
+   */
+  --color-variant-changed: var(--kern-color-feedback-warning);
+  --color-variant-changed-background: var(--kern-color-feedback-warning-background);
+  --color-variant-new: var(--kern-color-violet-650);
+  --color-variant-new-background: var(--kern-color-violet-025);
 }
 
 /*
@@ -87,6 +97,26 @@
   height: var(--kern-metric-border-width-default);
   margin: 13px auto 0;
   background-color: var(--kern-color-form-input-border-contextual);
+}
+
+/*
+ * A destructive primary action, such as "Delete rule" (Figma U14 6113:29056): KERN has no danger
+ * button, so the primary button takes the danger colour, with KERN's hover and active shades
+ * made from it instead of from the action colour.
+ */
+.kern-btn--danger {
+  --kern-color-action-default: var(--kern-color-feedback-danger);
+  --kern-color-action-default-contextual: var(--kern-color-feedback-danger);
+  --kern-color-action-state-indicator-shade-hover: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    black calc(100% - var(--kern-color-action-state-opacity-hover))
+  );
+  --kern-color-action-state-indicator-shade-active: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    black calc(100% - var(--kern-color-action-state-opacity-active))
+  );
 }
 
 @layer base {

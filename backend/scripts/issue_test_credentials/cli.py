@@ -9,7 +9,9 @@ Run from backend/: `uv run python -m scripts.issue_test_credentials`. The script
    request the middleware builds;
 3. makes up a person living in Stuttgart (with --any-town, in one of a few German
    towns) and creates a pre-authorized-code offer with their data, shown as a QR
-   code and as a link for the wallet;
+   code and as a link for the wallet. --birth-date and --licence-class fix the
+   person's date of birth and the licence's classes, so that documents on either
+   side of a rule's condition can be issued on purpose;
 4. waits until the wallet has fetched the documents.
 
 The person is fake, so the script prints their data; the middleware never logs claims.
@@ -17,6 +19,7 @@ The person is fake, so the script prints their data; the middleware never logs c
 
 import argparse
 import json
+import re
 import secrets
 import sys
 import time
@@ -39,7 +42,7 @@ from .credentials import (
     offer_body,
 )
 from .eudiplo import EudiploIssuer, IssuanceError
-from .person import Person, random_person
+from .person import CATEGORY_ORDER, DrivingPrivilege, Person, random_person
 from .tenant import choose_signer, save_configs
 
 # The document types the script issues: all of the catalog's
@@ -53,6 +56,8 @@ POLL_SECONDS = 2.0
 PNG_SCALE = 8
 # Session statuses after which the wallet has its documents
 FETCHED_STATUSES = ('fetched', 'completed')
+# How --birth-date and the dates of --licence-class are written
+ISO_DATE = re.compile(r'\d{4}-\d{2}-\d{2}')
 
 
 class ScriptSettings(BaseSettings):
@@ -103,7 +108,13 @@ def main(
     ]
     seed = args.seed if args.seed is not None else secrets.randbelow(1_000_000)
     today = date.today()
-    person = random_person(seed, today, stuttgart=not args.any_town)
+    person = random_person(
+        seed,
+        today,
+        stuttgart=not args.any_town,
+        birth_date=args.birth_date,
+        privileges=args.licence_classes,
+    )
 
     try:
         with EudiploIssuer(
@@ -168,6 +179,23 @@ def _parse_arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         help='let the person live in any of a few German towns, not only Stuttgart',
     )
     parser.add_argument(
+        '--birth-date',
+        type=_past_date,
+        metavar='YYYY-MM-DD',
+        help="the person's date of birth, in both documents (default: random)",
+    )
+    parser.add_argument(
+        '--licence-class',
+        action='append',
+        type=_licence_class,
+        dest='licence_classes',
+        metavar='CODE:ISSUE_DATE',
+        help=(
+            'give the driving licence this class, held since ISSUE_DATE, such as '
+            'B:2020-03-01 (repeatable; default: random classes)'
+        ),
+    )
+    parser.add_argument(
         '--show-claims', action='store_true', help='print every claim of the offer'
     )
     parser.add_argument(
@@ -178,7 +206,52 @@ def _parse_arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         action='store_true',
         help="don't wait for the wallet to fetch the documents",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    categories = [privilege.category for privilege in args.licence_classes or []]
+    repeated = sorted(
+        {category for category in categories if categories.count(category) > 1},
+        key=CATEGORY_ORDER.index,
+    )
+    if repeated:
+        parser.error(
+            f'argument --licence-class: class {", ".join(repeated)} is given more '
+            'than once'
+        )
+    return args
+
+
+def _past_date(text: str) -> date:
+    """A date written YYYY-MM-DD that isn't in the future, for argparse."""
+    try:
+        if not ISO_DATE.fullmatch(text):
+            raise ValueError(text)
+        day = date.fromisoformat(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f'{text!r} is not a date written YYYY-MM-DD'
+        ) from None
+    if day > date.today():
+        raise argparse.ArgumentTypeError(f'{text} is in the future')
+    return day
+
+
+def _licence_class(text: str) -> DrivingPrivilege:
+    """A licence class with its issue date, written CODE:ISSUE_DATE, for argparse.
+
+    The code is one of the middleware's licence classes (app/option_sets.py), in any
+    letter case.
+    """
+    code, separator, issue_date = text.partition(':')
+    if not separator:
+        raise argparse.ArgumentTypeError(
+            f'{text!r} is not written CODE:ISSUE_DATE, such as B:2020-03-01'
+        )
+    category = code.strip().upper()
+    if category not in CATEGORY_ORDER:
+        raise argparse.ArgumentTypeError(
+            f'{code!r} is not a licence class; use one of {", ".join(CATEGORY_ORDER)}'
+        )
+    return DrivingPrivilege(category, _past_date(issue_date))
 
 
 def _print_person(

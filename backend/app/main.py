@@ -14,10 +14,12 @@ from .routers.auth import router as auth_router
 from .routers.connect import router as connect_router
 from .routers.document_types import router as document_types_router
 from .routers.form_connections import router as form_connections_router
+from .routers.option_sets import router as option_sets_router
 from .schemas import to_iso_utc
 from .services.worker import Worker
 
-# The reference in a pull URL, /api/connect/<id>/requests/<reference>. It also
+# The reference in a pull URL, /api/connect/<id>/requests/<reference>, also in a
+# branch's, /api/connect/<id>/branches/<branch id>/requests/<reference>. It also
 # matches mistyped paths, such as doubled slashes, that reach the log as 404s
 _REFERENCE_IN_PATH = re.compile(
     r'(/connect/[^?#\s"]*?/requests/)[^/?#\s"]+', re.IGNORECASE
@@ -104,4 +106,5 @@ def health_check() -> dict[str, dict[str, str]]:
 app.include_router(auth_router)
 app.include_router(document_types_router)
 app.include_router(form_connections_router)
+app.include_router(option_sets_router)
 app.include_router(connect_router)

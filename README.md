@@ -5,9 +5,18 @@ Wallet. For each form, DO.IT creates a form connection that names the documents 
 form needs. serviceBW then uses the form connection's URLs to request those documents from the
 citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
 
-The middleware is built in phases. The specification, the plan and the task list are in
-[specs/001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/). The code base
-started from the Digital Product School React + FastAPI + PostgreSQL template.
+A form connection can also have rules that the shared documents must meet, such as "Date of
+birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
+have their own rules, based on the standard ones or not, and their own pull URL; the trigger URL
+stays one for all. A pull answers with the documents and, next to them, the evaluation of the
+called variant's rules: whether they are met, each rule's outcome and the error messages for the
+citizen.
+
+The middleware is built in phases. Each phase's specification, plan and task list are in
+[specs/](specs/): [001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/) for the
+form connections, [002-connection-rules/](specs/002-connection-rules/) for their rules and
+variants. The code base started from the Digital Product School React + FastAPI + PostgreSQL
+template.
 
 ## Tech Stack
 
@@ -15,7 +24,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
-- **Tooling**: ESLint 9, Prettier, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
+- **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
 
 ### Dependencies added to the template
 
@@ -30,6 +39,7 @@ started from the Digital Product School React + FastAPI + PostgreSQL template.
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
 | `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
+| `vitest` | frontend, `devDependencies` | Runs the frontend's unit tests (`npm test`). Some pure logic runs only in the browser, such as the rules' propagation between the variants of a form connection, so its tests in Node are a quality gate (constitution v1.1.0). Configured in the `test` block of `vite.config.ts`, in the `node` environment, without a DOM. Version 4, because Vitest 5 needs Node 22.12, and the frontend still supports Node 20 |
 
 The three KERN packages and `react-router` are pinned to exact versions; for KERN, a version
 mismatch between the packages is the most likely cause of visual breakage.
@@ -164,7 +174,7 @@ The sign-in screen's "Forgot password?" page asks team members to contact an adm
 who sets a new password with `set-password`.
 
 To start over without losing the accounts, `clear-connections` deletes every form connection
-with its revisions and requests. It shows the row counts and asks before deleting (`--yes`
+with its revisions, branches, rule sets and requests. It shows the row counts and asks before deleting (`--yes`
 skips the question):
 
 ```bash
@@ -229,6 +239,9 @@ npm run dev
 # Build for production
 npm run build
 
+# Run the unit tests once, without watching
+npm test
+
 # Linting/formatting
 npm run lint          # ESLint
 npm run lint:fix      # ESLint with --fix
@@ -271,7 +284,8 @@ Linting and code formatting is set up for both parts of the stack. The tools are
   React, React Hooks, react-refresh, and `simple-import-sort` for import ordering.
   Prettier (`frontend/.prettierrc`) handles formatting: single quotes, semicolons, 100
   columns, 2-space indent, ES5 trailing commas, and Tailwind class sorting via
-  `prettier-plugin-tailwindcss`.
+  `prettier-plugin-tailwindcss`. Vitest runs the unit tests, the `*.test.ts` files next to the
+  modules they test, in Node; `npm run build` type-checks them with the rest of `src/`.
 
 ### Git hooks (pre-commit)
 
@@ -499,6 +513,22 @@ uv run python -m scripts.issue_test_credentials --any-town      # someone living
 Scan the QR code with the wallet, or open the link on the phone. On a terminal with a light
 background, save the code with `--qr-png FILE` and scan the image instead. `--no-wait` ends
 without waiting for the wallet.
+
+To test a form connection's rules (spec 002), issue documents on either side of a rule's
+condition on purpose. `--birth-date YYYY-MM-DD` sets the person's date of birth in both
+documents, together with the driving licence's `age_in_years` and `age_birth_year`.
+`--licence-class CODE:ISSUE_DATE`, which can be repeated, gives the driving licence exactly
+these classes, each held since its issue date, instead of made-up ones; the codes are the
+middleware's licence classes (`AM`, `A1` … `T`). The rest of the person stays as the seed
+makes it up. A date that isn't written `YYYY-MM-DD`, a date in the future, an unknown class and
+a class given twice are refused. For example, against the rules "Date of birth is at least 21
+years old" and "Licence class B – Issue date is at least 2 years ago" (quickstart.md V2 of
+spec 002):
+
+```bash
+uv run python -m scripts.issue_test_credentials --birth-date 2001-01-01 --licence-class B:2020-03-01
+uv run python -m scripts.issue_test_credentials --birth-date 2006-06-30 --licence-class B:2025-09-01
+```
 
 Good to know:
 

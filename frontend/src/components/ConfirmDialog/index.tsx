@@ -16,14 +16,18 @@ export default function ConfirmDialog({
   open,
   title,
   text,
+  textClassName = 'kern-body kern-body--large',
+  children,
   confirmLabel,
   cancelLabel,
-  busyLabel,
-  busy,
-  error,
-  errorTitle,
-  retryLabel,
+  danger = false,
+  busyLabel = '',
+  busy = false,
+  error = null,
+  errorTitle = '',
+  retryLabel = '',
   onCancel,
+  onClose = onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -47,14 +51,14 @@ export default function ConfirmDialog({
   // Escape: the page's state decides whether the dialog closes
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
     event.preventDefault();
-    onCancel();
+    onClose();
   }
 
   return (
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      aria-describedby={error ? `${errorId} ${textId}` : textId}
+      aria-describedby={[error ? errorId : '', text ? textId : ''].join(' ').trim() || undefined}
       onCancel={handleCancel}
       // As in the KERN Figma dialog: centred (Tailwind's preflight drops the browser's
       // margin: auto), with its outline drawn inside like Figma's stroke, and the design's
@@ -71,7 +75,7 @@ export default function ConfirmDialog({
         </div>
         <button
           type="button"
-          onClick={onCancel}
+          onClick={onClose}
           aria-disabled={busy}
           className="kern-btn kern-btn--tertiary"
         >
@@ -85,9 +89,20 @@ export default function ConfirmDialog({
             <ErrorNoticeText notice={error} />
           </KernAlert>
         )}
-        <p id={textId} className="kern-body kern-body--large">
-          {text}
-        </p>
+        {children ? (
+          <div className="flex w-full flex-col gap-16">
+            {text && (
+              <p id={textId} className={textClassName}>
+                {text}
+              </p>
+            )}
+            {children}
+          </div>
+        ) : (
+          <p id={textId} className={textClassName}>
+            {text}
+          </p>
+        )}
       </div>
       {/* 23px: in Figma the top stroke is inside the 24px padding */}
       <footer className="kern-dialog__footer pt-23!">
@@ -103,7 +118,7 @@ export default function ConfirmDialog({
           type="button"
           onClick={busy ? undefined : onConfirm}
           aria-disabled={busy}
-          className="kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)]"
+          className={`kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)] ${danger ? 'kern-btn--danger' : ''}`}
         >
           <span className="kern-label">{busy ? busyLabel : error ? retryLabel : confirmLabel}</span>
         </button>

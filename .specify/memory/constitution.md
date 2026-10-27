@@ -1,29 +1,35 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 1.0.1
-Rationale: PATCH. Two statements of fact had gone out of date, and no principle
-changes: the frontend builds with Vite 8 (frontend/package.json has ^8.2.2), and
-backend/tests/ now holds a pytest suite.
+Version change: 1.0.1 → 1.1.0
+Rationale: MINOR. Resolves TODO(TEST_STRATEGY). The frontend gets a test runner (Vitest) and
+its tests become a quality gate; the backend's pytest suite stays a practice, not a gate. This
+adds a gate and states the testing standard. No principle is removed or redefined.
 
-Modified principles: none
+Modified principles:
+- III. Automated Quality Gates (title unchanged): Vitest joins the configuration list;
+  frontend changes MUST also pass `npm test`; a `frontend/vitest.config.ts` MUST NOT be added,
+  for the same reason as `backend/pytest.ini`; new bullets state the testing standard (Vitest
+  in the node environment for pure logic, tests next to their module, no numeric coverage
+  target, backend pytest as a practice); the rationale covers the new gate.
 
 Modified sections:
-- Technology and Structure Constraints: Vite 7 → Vite 8
-- Follow-up TODOs: TODO(TEST_STRATEGY) describes the existing pytest suite
+- Technology and Structure Constraints: Vitest named in the frontend stack.
+- Development Workflow and Quality Gates: step 3 adds `npm test`; the paragraph pointing to
+  TODO(TEST_STRATEGY) now refers to Principle III and keeps the manual verification rule.
 
 Added sections: none
 Removed sections: none
 
-Templates requiring updates: none. .specify/templates/ names neither the Vite version
-nor the test suite. CLAUDE.md, README.md and docs/ARCHITECTURE.md name Vite 8 in the
-same change.
+Templates requiring updates: none. .specify/templates/ names neither the quality gates nor a
+test runner.
 
 Follow-up TODOs:
-- TODO(TEST_STRATEGY): backend/tests/ holds a pytest suite (unit tests, and API tests
-  against a database whose name ends in _test), configured in backend/pyproject.toml.
-  The frontend has no test runner. A future amendment MUST define the testing standard
-  (framework, coverage expectation, whether tests are a merge gate) once the team
-  decides it. Until then, quality gates are lint, format, and type checks only.
+- TODO(TEST_STRATEGY) is resolved and removed.
+- frontend/ has neither Vitest nor a `test` script yet. The change that adds them (the
+  `devDependency`, `"test": "vitest run"`, the `test` block in `vite.config.ts`) has to land
+  before or with the next frontend change, since that change MUST pass `npm test`. The same
+  change applies the documentation checklist: `npm test` in the command tables of CLAUDE.md
+  and README.md, and Vitest in README.md with the reason it was added.
 -->
 
 # DPS React + FastAPI Template Constitution
@@ -67,9 +73,9 @@ amendment to this constitution, not an inline exception.
 
 ### III. Automated Quality Gates
 
-Formatting, linting, and type checking are enforced by tooling, not by reviewer
-attention. Configuration lives in `backend/pyproject.toml` (Ruff, mypy, pytest) and
-`frontend/` (ESLint 9 flat config, Prettier, TypeScript).
+Formatting, linting, type checking, and the frontend's tests are enforced by tooling,
+not by reviewer attention. Configuration lives in `backend/pyproject.toml` (Ruff, mypy,
+pytest) and `frontend/` (ESLint 9 flat config, Prettier, TypeScript, Vitest).
 
 - The repository-wide hooks in `.pre-commit-config.yaml` MUST stay installed and MUST
   NOT be bypassed with `--no-verify`. They run `ruff check --fix` and `ruff format` on
@@ -77,14 +83,30 @@ attention. Configuration lives in `backend/pyproject.toml` (Ruff, mypy, pytest) 
   merge-conflict checks.
 - mypy is deliberately not a hook because it is too slow for a commit. Backend changes
   MUST pass `uv run mypy app/` before being pushed.
-- Frontend changes MUST pass `npm run lint` and `npm run build` (which runs `tsc -b`)
-  before being pushed.
+- Frontend changes MUST pass `npm run lint`, `npm test`, and `npm run build` (which runs
+  `tsc -b`) before being pushed.
 - Tool configuration MUST live in the existing config files. In particular, a
   `backend/pytest.ini` MUST NOT be added — it takes precedence over and silently
-  shadows the `[tool.pytest.ini_options]` block.
+  shadows the `[tool.pytest.ini_options]` block — and a `frontend/vitest.config.ts`
+  MUST NOT be added either, because it takes precedence over the `test` block of
+  `frontend/vite.config.ts` in the same way.
+- Vitest is the frontend's test runner. It runs in the `node` environment and tests pure
+  logic in `src/`: functions that need neither React nor the browser, such as those in
+  `src/utils/rules/` and in the sibling `utils.ts` files of components. jsdom and DOM
+  testing libraries are not part of the stack. A test sits next to the module it tests
+  as `<module>.test.ts`, and `npm test` runs them all once, without watching.
+- Backend tests use pytest in `backend/tests/`: unit tests, and API tests against a
+  PostgreSQL database whose name ends in `_test`, which they empty. They are a practice,
+  not a gate: backend changes SHOULD add or update them and run `uv run pytest`, but
+  passing it is not a condition for merging.
+- Neither suite has a numeric coverage target.
 
 Rationale: this is a template that many teams fork. Gates that run automatically stay
-true across forks; gates that depend on someone remembering do not.
+true across forks; gates that depend on someone remembering do not. Logic that runs only
+in the browser has no other automated check before a person tries it, so the frontend's
+tests are a gate. Keeping them to pure functions in Node keeps `npm test` fast and needs
+no browser. The backend's tests need a dedicated database, which not every environment
+that runs the gates has, so they stay a practice.
 
 ### IV. Declared, Reproducible Dependencies and Config
 
@@ -127,10 +149,10 @@ already applied splits the schema between developers with no error to point at i
 ## Technology and Structure Constraints
 
 The stack is fixed for this template: React 19 + Vite 8 + TypeScript + Tailwind CSS 4
-on the frontend; FastAPI on Python 3.13+ with SQLAlchemy 2, Alembic, psycopg 3, and
-Pydantic 2 on the backend; PostgreSQL 18. Node tooling is scoped to `frontend/` — a
-root `package.json` MUST NOT be introduced. Swapping any element of the stack requires
-an amendment, not a pull request.
+on the frontend, with Vitest for its tests; FastAPI on Python 3.13+ with SQLAlchemy 2,
+Alembic, psycopg 3, and Pydantic 2 on the backend; PostgreSQL 18. Node tooling is scoped
+to `frontend/` — a root `package.json` MUST NOT be introduced. Swapping any element of
+the stack requires an amendment, not a pull request.
 
 Layout is prescribed and MUST be respected: backend code in `backend/app/` with routers
 under `app/routers/` (one module per resource), and the database module is `app/db.py`,
@@ -166,17 +188,17 @@ Before a change is proposed for merge:
 
 1. Pre-commit hooks MUST have run (they run automatically on commit).
 2. `uv run mypy app/` MUST pass for backend changes.
-3. `npm run lint` and `npm run build` MUST pass for frontend changes.
+3. `npm run lint`, `npm test`, and `npm run build` MUST pass for frontend changes.
 4. The documentation checklist in `CLAUDE.md` MUST be applied: new environment
    variables update `README.md`, `docs/ARCHITECTURE.md`, and the `.env.example` files;
    new patterns update `CLAUDE.md`; architectural changes update
    `docs/ARCHITECTURE.md`; new dependencies are documented in `README.md` with the
    reason they were added.
 
-Automated tests are not yet a gate — see TODO(TEST_STRATEGY) in the sync impact report
-above. Until that amendment lands, a change that cannot be checked by the gates above
-MUST be exercised manually against a running stack (`docker compose up`) and the
-verification described in the pull request.
+The backend's tests are not a gate, and the frontend's tests cover pure logic only
+(Principle III). A change that the gates above cannot check MUST be exercised manually
+against a running stack (`docker compose up`) and the verification described in the
+pull request.
 
 ## Governance
 
@@ -203,4 +225,4 @@ complexity, and only for principles not marked NON-NEGOTIABLE.
 contributors alike; it MUST remain consistent with this constitution, and this
 constitution is the authority when they diverge.
 
-**Version**: 1.0.1 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-10-19
+**Version**: 1.1.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-10-24

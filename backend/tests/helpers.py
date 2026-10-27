@@ -101,6 +101,186 @@ DELIVERED_DOCUMENTS: list[dict[str, Any]] = [
 ]
 
 
+# Rules payloads (specs/002-connection-rules/contracts/management-api.md)
+
+
+def target(
+    document_type: str,
+    field: str,
+    part: str | None = None,
+    licence_class: str | None = None,
+) -> dict[str, Any]:
+    """What a rule checks."""
+    return {
+        'document_type': document_type,
+        'field': field,
+        'part': part,
+        'licence_class': licence_class,
+    }
+
+
+def rule(
+    number: int,
+    rule_target: dict[str, Any] | None,
+    condition: dict[str, Any] | None,
+    message: str,
+    *,
+    name: str | None = None,
+) -> dict[str, Any]:
+    """A rule `rule-{number}`, named "Rule NN" unless `name` says otherwise."""
+    return {
+        'type': 'rule',
+        'id': f'rule-{number}',
+        'name': f'Rule {number:02d}' if name is None else name,
+        'mark': None,
+        'target': rule_target,
+        'condition': condition,
+        'message': message,
+    }
+
+
+def group(
+    number: int,
+    items: list[dict[str, Any]],
+    *,
+    operator: str = 'and',
+    name: str | None = None,
+    message: str | None = None,
+) -> dict[str, Any]:
+    """A group or sub-group `group-{number}`, named "Group NN" unless `name` says
+    otherwise."""
+    return {
+        'type': 'group',
+        'id': f'group-{number}',
+        'name': f'Group {number:02d}' if name is None else name,
+        'mark': None,
+        'operator': operator,
+        'message': message,
+        'items': items,
+    }
+
+
+def main_branch(
+    items: list[dict[str, Any]],
+    *,
+    branch_id: str | None = None,
+    name: str = 'Standard',
+    operator: str = 'and',
+) -> dict[str, Any]:
+    """The main branch; `branch_id` is None for a form connection being created."""
+    return {
+        'id': branch_id,
+        'name': name,
+        'description': None,
+        'origin': 'main',
+        'operator': operator,
+        'operator_mark': None,
+        'items': items,
+    }
+
+
+def variant(
+    items: list[dict[str, Any]],
+    *,
+    name: str = 'Ambulance',
+    origin: str = 'based',
+    branch_id: str | None = None,
+    **changes: Any,
+) -> dict[str, Any]:
+    """A branch other than the main branch: based on it, unless `origin` is
+    'empty'. `changes` sets its other keys, such as `description` or `operator`."""
+    return (
+        main_branch(items, branch_id=branch_id, name=name)
+        | {'origin': origin}
+        | changes
+    )
+
+
+def rules_input(
+    branches: list[dict[str, Any]],
+    *,
+    rule_base: int = 1,
+    group_base: int = 1,
+    base_version: int | None = None,
+    replace: bool = False,
+) -> dict[str, Any]:
+    """The `rules` of a create or edit request."""
+    return {
+        'branches': branches,
+        'numbering_base': {'rule': rule_base, 'group': group_base},
+        'base_version': base_version,
+        'replace': replace,
+    }
+
+
+# User story 1's three rules, which FORM_CONNECTION's documents allow
+AGE_RULE = rule(
+    1,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 21},
+    'You must be at least 21 years old.',
+)
+CLASS_RULE = rule(
+    2,
+    target('mdl', 'driving_privileges', 'classes'),
+    {'operator': 'includes_one_of', 'values': ['B']},
+    'You must hold a class B licence.',
+)
+HELD_RULE = rule(
+    3,
+    target('mdl', 'driving_privileges', 'issue_date', 'B'),
+    {'operator': 'at_least_years_ago', 'years': 2},
+    'You must have held class B for at least 2 years.',
+)
+US1_RULES = rules_input([main_branch([AGE_RULE, CLASS_RULE, HELD_RULE])])
+
+# User story 2: lives in Stuttgart AND (at least 21 OR (at least 19 AND has held
+# class B for at least 3 years)), with a group and a sub-group
+STUTTGART_RULE = rule(
+    1,
+    target('pid', 'address_locality'),
+    {'operator': 'equal_to', 'value': 'Stuttgart', 'match_case': False},
+    'You must live in Stuttgart.',
+)
+AGE_21_RULE = rule(
+    2,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 21},
+    'You must be at least 21 years old.',
+)
+AGE_19_RULE = rule(
+    3,
+    target('pid', 'birthdate'),
+    {'operator': 'at_least_years_ago', 'years': 19},
+    'You must be at least 19 years old.',
+)
+HELD_3_YEARS_RULE = rule(
+    4,
+    target('mdl', 'driving_privileges', 'issue_date', 'B'),
+    {'operator': 'at_least_years_ago', 'years': 3},
+    'You must have held class B for at least 3 years.',
+)
+
+
+def us2_items(
+    group_message: str | None = None, sub_group_message: str | None = None
+) -> list[dict[str, Any]]:
+    """User story 2's rules, with the group's and sub-group's own messages."""
+    sub_group = group(
+        2,
+        [AGE_19_RULE, HELD_3_YEARS_RULE],
+        name='Sub-group 02',
+        message=sub_group_message,
+    )
+    return [
+        STUTTGART_RULE,
+        group(1, [AGE_21_RULE, sub_group], operator='or', message=group_message),
+    ]
+
+
+US2_RULES = rules_input([main_branch(us2_items())])
+
+
 def now() -> datetime:
     return datetime.now(tz=timezone.utc)
 
@@ -133,6 +313,13 @@ def requests_url(form_connection_id: str) -> str:
 
 def pull_url(form_connection_id: str, reference: str) -> str:
     return f'/api/connect/{form_connection_id}/requests/{reference}'
+
+
+def branch_pull_url(form_connection_id: str, branch_id: str, reference: str) -> str:
+    """The pull URL of a branch other than the main branch (spec 002)."""
+    return (
+        f'/api/connect/{form_connection_id}/branches/{branch_id}/requests/{reference}'
+    )
 
 
 def trigger(client: TestClient, form_connection_id: str) -> dict[str, Any]:

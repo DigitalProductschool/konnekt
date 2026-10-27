@@ -4,8 +4,9 @@ import { TOAST_DURATION_MS } from './constants';
 import type { ToastMessageProps } from './types';
 
 /**
- * The visible toast. Its time runs only while neither the pointer nor the keyboard focus
- * is on it, so that its action can always be reached (WCAG 2.2.1).
+ * The visible toast. Every toast goes after its 6 seconds, with or without an action (B4,
+ * 2026-10-26); its time runs only while neither the pointer nor the keyboard focus is on it, so
+ * that its action can be reached (WCAG 2.2.1).
  */
 export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessageProps) {
   const [paused, setPaused] = useState(false);

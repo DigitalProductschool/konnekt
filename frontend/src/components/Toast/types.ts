@@ -9,7 +9,11 @@ export interface ToastContent {
 export interface ToastProps {
   toast: ToastContent | null;
   onAction?: () => void;
-  /** Called when the toast's time is up; keep it stable (useCallback) */
+  /**
+   * Called when the toast's time is up, 6 seconds for every toast (B4, 2026-10-26); keep it
+   * stable (useCallback). A page whose action must stay reachable keeps it after the toast goes,
+   * as the Rules step keeps Undo for Ctrl/Cmd+Z
+   */
   onDismiss: () => void;
 }
 

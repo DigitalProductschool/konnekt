@@ -10,12 +10,19 @@ export interface FormConnectionEditorPageProps {
   formConnection?: FormConnection;
   /** The step the wizard opens at */
   initialStep?: EditorStep;
+  /**
+   * When editing: fetches the connection again and opens the wizard anew at the Rules step,
+   * dropping the unsaved changes (W9)
+   */
+  onReload?: () => void;
+  /** Opened anew by `onReload`: the focus starts on the page title */
+  reloaded?: boolean;
 }
 
 /** What the wizard does: make a connection, the first one, or edit one */
 export type EditorMode = 'create' | 'first' | 'edit';
 
-export type EditorStep = 'connection' | 'documents';
+export type EditorStep = 'connection' | 'documents' | 'rules';
 
 /** Validation messages, each shown next to what it is about */
 export interface EditorErrors {
@@ -27,6 +34,25 @@ export interface EditorErrors {
   fields?: Record<string, string>;
 }
 
+/**
+ * Data that rules check, about to stop being requested (FR-029; F18): the documents step names
+ * those rules first, and the change applies once the team member confirms it
+ */
+export type PendingRemoval =
+  /** Removing a document; `label` is the document's */
+  | { type: 'document'; documentType: string; label: string }
+  /** Deselecting one field; `label` is the field's */
+  | { type: 'field'; documentType: string; field: string; label: string }
+  /** Deselecting every field through "All data"; `label` is the document's */
+  | { type: 'allFields'; documentType: string; label: string };
+
+/** A rule that a pending removal names, with its branch: "Rule 01 in Standard" */
+export interface RemovedDataRule {
+  key: string;
+  ruleName: string;
+  branchName: string;
+}
+
 export interface EditorState {
   step: EditorStep;
   name: string;
@@ -36,10 +62,14 @@ export interface EditorState {
   errors: EditorErrors;
   /** The API's message after publishing failed, with the error ID of a 5xx answer */
   publishError: ErrorNotice | null;
+  /** The failure was `409 rules_changed`: another team member saved the rules meanwhile (W9) */
+  rulesChanged: boolean;
   dialogOpen: boolean;
   publishing: boolean;
   /** The last removed document, with its selection, which Undo brings back */
   removed: RequestedDocument | null;
+  /** Data that rules check, waiting for the team member to confirm its removal (FR-029) */
+  pendingRemoval: PendingRemoval | null;
   toast: ToastContent | null;
 }
 
@@ -54,10 +84,13 @@ export type EditorAction =
   | { type: 'dismissToast' }
   | { type: 'setField'; documentType: string; field: string; selected: boolean }
   | { type: 'setAllFields'; documentType: string; fields: string[] }
+  | { type: 'askRemoval'; removal: PendingRemoval }
+  | { type: 'cancelRemoval' }
+  | { type: 'confirmRemoval' }
   | { type: 'openDialog' }
   | { type: 'closeDialog' }
   | { type: 'publish' }
-  | { type: 'publishFailed'; error: ErrorNotice };
+  | { type: 'publishFailed'; error: ErrorNotice; rulesChanged: boolean };
 
 export interface ConnectionStepProps {
   name: string;
@@ -131,19 +164,63 @@ export interface PublishDialogProps {
   open: boolean;
   /** Saves changes to an existing connection rather than publishing a new one */
   editing: boolean;
-  /** Which documents and how many items applicants will share */
-  summary: string;
+  /** Opened from the documents step, skipping the rules: "Publish without rules?" (U36) */
+  withoutRules: boolean;
+  /** One line per document: "Personal ID · 7 data items" */
+  documentLines: string[];
+  /** One line per branch: "Standard · 2 rules" */
+  ruleLines: string[];
   publishing: boolean;
   /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
   error: ErrorNotice | null;
+  /** The last attempt met rules another team member saved meanwhile (W9) */
+  rulesChanged: boolean;
+  /** "Check rules again", or "Add rules" when publishing without rules */
+  onCancel: () => void;
+  /** The close button and Escape */
+  onClose: () => void;
+  onConfirm: () => void;
+  /** "Reload", after `rulesChanged` */
+  onReload: () => void;
+  /** "Replace their changes", after `rulesChanged`: the same save, replacing their rules */
+  onReplace: () => void;
+}
+
+export interface RemoveDataDialogProps {
+  /** The removal waiting for an answer; the dialog is open while there is one */
+  removal: PendingRemoval | null;
+  /** The rules it names, in branch and tree order */
+  rules: RemovedDataRule[];
+  /** Editing a connection: the rules need changing "before you save" */
+  editing: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+}
+
+export interface RemovedDataRuleItemProps {
+  rule: RemovedDataRule;
+}
+
+export interface PublishSummaryRowProps {
+  label: string;
+  values: string[];
+  /** A line under the row, between the documents and the rules */
+  divided?: boolean;
+}
+
+export interface PublishSummaryValueProps {
+  value: string;
 }
 
 export interface EditorFooterProps {
   step: EditorStep;
   editing: boolean;
   publishing: boolean;
+  /** No branch has any rule and no rule editor is open: publishing is "without rules" (FR-001) */
+  withoutRules: boolean;
   onBack: () => void;
+  /** The documents step's "Add rules →" */
+  onAddRules: () => void;
+  /** "Publish" or "Save", or "… without rules" */
   onPublish: () => void;
 }

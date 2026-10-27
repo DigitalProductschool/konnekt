@@ -41,7 +41,7 @@ export default function WizardLayout({
       </TopBar>
       <main className="flex min-h-0 flex-1 flex-col">
         <div
-          className={`flex min-h-0 flex-1 flex-col overflow-y-auto lg:[container-type:size] ${CENTRED_GUTTERS} split:overflow-hidden split:[scrollbar-gutter:auto]`}
+          className={`relative flex min-h-0 flex-1 flex-col overflow-y-auto lg:[container-type:size] ${CENTRED_GUTTERS} split:overflow-hidden split:[scrollbar-gutter:auto]`}
         >
           {head && (
             <div className="px-16 pt-40 pb-32">
