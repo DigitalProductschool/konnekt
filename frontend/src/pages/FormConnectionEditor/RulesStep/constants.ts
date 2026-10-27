@@ -14,8 +14,13 @@ export const NAME_SIZES: Record<ItemNameSize, string> = {
   'sub-group': 'text-kern-static-medium leading-(--kern-typography-line-height-medium-static)',
 };
 
-/** The width of a ⋯ menu (U14 6113:28988), and of the "Copy to variant" popover (U20) */
-export const ACTION_MENU_WIDTH = 220;
+/**
+ * The width of a ⋯ menu. Figma's 220px (U14 6113:28988) holds Revamp's 14px labels; at KERN
+ * 2.8's 16px the longest fixed one, "Remove from this variant", needs 248px to stay on one line
+ * (design-notes §9)
+ */
+export const ACTION_MENU_WIDTH = 248;
+/** The width of the "Copy to variant" popover (U20) */
 export const COPY_POPOVER_WIDTH = 300;
 
 /**
@@ -23,8 +28,8 @@ export const COPY_POPOVER_WIDTH = 300;
  * opening to the side that fits, or across the rules card when neither does
  */
 export const ACTION_MENU_PLACEMENTS: Record<PopupPlacement, string> = {
-  start: 'absolute top-full left-0 w-220',
-  end: 'absolute top-full right-0 w-220',
+  start: 'absolute top-full left-0 w-248',
+  end: 'absolute top-full right-0 w-248',
   full: 'absolute inset-x-16',
 };
 export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, string> = {

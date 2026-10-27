@@ -425,6 +425,17 @@ the token, not the value: a value that differs only because Figma has the Revamp
 The Figma frames' adaptive type (18/24/32/40) is therefore drawn with KERN 2.8's small-screen
 values that `index.css` already pins (21/26/32/48), and their static type with KERN 2.8's (16/18/21).
 
+**The ⋯ menus are 248 px wide, not Figma's 220 (2026-10-27, bug `group-option-alignment`).**
+Figma's rule menu (U14 `6113:28988`, `6522:32824`) holds Revamp's 14 px `label/small` in 220 px.
+At KERN 2.8's 16 px, "Group with other rules", "Remove error message" and "Remove from this
+variant" wrap there. The rule, group and variant menus are therefore 248 px wide
+(`ACTION_MENU_WIDTH`): the longest fixed label, "Remove from this variant" (184 px), plus its
+20 px icon, the 8 px gap, the row's and the menu's 8 px padding on both sides and the 1 px
+border, rounded up to a multiple of 8. Every fixed label then fits on one line in a 40 px row, as
+in Figma. A label that still wraps, such as "Reset to" with a long main variant name, starts each
+line at the text column, with its icon beside the first line. A visual check lists the width as
+"KERN 2.8 vs Revamp".
+
 ### Colours
 
 Light theme. `-contextual` and plain variables map to the same token (`-contextual` is KERN's

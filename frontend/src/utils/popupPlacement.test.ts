@@ -38,7 +38,15 @@ describe('popupPlacement', () => {
 describe('popupWrapperClass', () => {
   it('lets a popup across the page be positioned from the box around its wrapper', () => {
     expect(popupWrapperClass('full')).toBe('static');
+  });
+
+  it('positions the wrapper of a popup open beside its control', () => {
     expect(popupWrapperClass('start')).toBe('relative');
-    expect(popupWrapperClass(null)).toBe('relative');
+    expect(popupWrapperClass('end')).toBe('relative');
+  });
+
+  it("doesn't let a closed popup's wrapper catch the popup inside it, as a rule's ⋯ menu", () => {
+    // RuleListItem's "Copy to variant" wrapper holds the ⋯ menu's: a 32px box, not the card
+    expect(popupWrapperClass(null)).toBe('static');
   });
 });
