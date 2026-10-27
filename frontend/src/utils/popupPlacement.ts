@@ -6,19 +6,23 @@
  * 'start': the popup's left edge lines up with its control's left edge, and it opens to the
  * right; 'end': its right edge lines up with the control's right edge, and it opens to the left;
  * 'full': neither fits, so it spans the box that holds the page's content less the gutters, below
- * its control. For that, the popup's wrapper stops being its containing block while it is open
- * (popupWrapperClass), so that the nearest positioned box around it is: the rules card, or the
- * wizard's scrolling area. Without a top, the popup stays where the flow puts it, below its
- * control
+ * its control. For that, a popup's wrapper is its containing block only while the popup is open
+ * beside its control (popupWrapperClass), so that the nearest positioned box around it is the
+ * rules card, or the wizard's scrolling area, even where one popup's wrapper holds another's.
+ * Without a top, the popup stays where the flow puts it, below its control
  */
 export type PopupPlacement = 'start' | 'end' | 'full';
 
 /** The space kept free between a popup and the window's edge, 16px as the page's side gutter */
 export const POPUP_GUTTER = 16;
 
-/** The class of the element a popup is positioned from, for the popup's placement */
+/**
+ * The class of the element a popup is positioned from, for the popup's placement, null while it
+ * is closed. The wrapper is positioned only while its popup opens beside its control: closed, or
+ * across the page, it is static, so it never catches the 'full' of a popup inside it
+ */
 export function popupWrapperClass(placement: PopupPlacement | null): string {
-  return placement === 'full' ? 'static' : 'relative';
+  return placement === 'start' || placement === 'end' ? 'relative' : 'static';
 }
 
 /** The horizontal extent of the control that opens a popup, as getBoundingClientRect() gives it */
