@@ -78,7 +78,7 @@ tested as an increment.
 
 **Purpose**: Settle the copy and the tokens that the messages and the UI tasks need.
 
-- [ ] T001 [P] Write `specs/003-rule-consistency-checks/design-notes.md`, the copy that the decisions leave open. This is the first UI task, and T021 needs it to complete `checks/findingMessages.ts` (plan "Rules for /speckit-tasks"; research R12; S2, S4, S5; F1, F5, W1, W3, W5, W6, W8, W10).
+- [X] T001 [P] Write `specs/003-rule-consistency-checks/design-notes.md`, the copy that the decisions leave open. This is the first UI task, and T021 needs it to complete `checks/findingMessages.ts` (plan "Rules for /speckit-tasks"; research R12; S2, S4, S5; F1, F5, W1, W3, W5, W6, W8, W10).
   - Use the format of `specs/002-connection-rules/design-notes.md`. Mark each text that no decision gives as "proposed".
   - Settle research R12's seven items:
     1. the note of a rule that can't be met on its own (FR-003: "its condition"), such as "Driving licence – Nationality includes none of" every country (quickstart V4);
@@ -96,7 +96,7 @@ tested as an increment.
     - starts each note with FR-012's kind ("Conflicting.", "Redundant.", "Always met.");
     - names items by their current names, and lists them as "Rule 02, Rule 03 and Rule 04" (W3);
     - never words a finding as something "to fix" (FR-016).
-- [ ] T002 Map the Figma variables to KERN 2.8 tokens, once (CLAUDE.md "Figma implementation workflow", step 2; F2, F4, F7; research R15). It runs after T001, since both write `specs/003-rule-consistency-checks/design-notes.md`.
+- [X] T002 Map the Figma variables to KERN 2.8 tokens, once (CLAUDE.md "Figma implementation workflow", step 2; F2, F4, F7; research R15). It runs after T001, since both write `specs/003-rule-consistency-checks/design-notes.md`.
   - Call `get_variable_defs` on the section `6171:6748`, and map every variable to an existing token of `frontend/src/index.css` (KERN's Tailwind theme and the `@theme` block). Start from the "Tokens" section of `specs/002-connection-rules/design-notes.md`, since the section is in spec 002's file.
   - Record the mapping in a "Tokens" section of design-notes.md. List each value that differs only for the Revamp as "KERN 2.8 vs Revamp" (CLAUDE.md, decision 2026-10-25).
   - Settle research R15's first point:
