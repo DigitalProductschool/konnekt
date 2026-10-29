@@ -77,6 +77,8 @@ class FieldPart(BaseModel):
     option_set: str | None
     # One part per licence class, such as "Licence class B – Issue date"
     per_licence_class: bool
+    # Whether a document can give several values for it, such as the classes held
+    multiple_values: bool
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -93,6 +95,8 @@ class DocumentField(BaseModel):
     date_of_birth: bool
     # Fields of kind 'parts' only
     parts: list[FieldPart] | None
+    # Whether a document can give several values for it, such as the nationalities
+    multiple_values: bool
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -158,6 +158,7 @@ def _documents_view(documents: list[RequestedDocument]) -> list[RequestedDocumen
                     option_set=None,
                     date_of_birth=False,
                     parts=None,
+                    multiple_values=False,
                 )
             )
         views.append(

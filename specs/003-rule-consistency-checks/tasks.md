@@ -118,22 +118,22 @@ visible.
 
 ### Catalog attribute (backend, then its mirror)
 
-- [ ] T003 [P] Add `multiple_values` to the catalog in `backend/app/catalog.py` (FR-007, third bullet; research R9; data-model.md "Catalog").
+- [X] T003 [P] Add `multiple_values` to the catalog in `backend/app/catalog.py` (FR-007, third bullet; research R9; data-model.md "Catalog").
   - `CatalogPart` and `CatalogField` gain `multiple_values: bool = False`, as their last field, with a comment like their siblings'.
   - `_claim()` and `_mdl_element()` build `CatalogField` positionally, so they take `multiple_values: bool = False` as a keyword and pass it on.
   - Values, verbatim from data-model.md: "true for `pid.nationalities` and for the part `classes` of `mdl.driving_privileges`; false for every other field and part". "Images and fields made of parts have `multiple_values` false; a field made of parts declares it on its parts."
   - Extend `backend/tests/unit/test_catalog.py`: exactly those two are true, and no field of kind `image` or `parts` is.
-- [ ] T004 Return the attribute from `GET /api/document-types` (depends on T003; constitution I; contracts/management-api.md).
+- [X] T004 Return the attribute from `GET /api/document-types` (depends on T003; constitution I; contracts/management-api.md).
   - `backend/app/schemas.py`: `FieldPart.multiple_values: bool` and `DocumentField.multiple_values: bool`, read from the catalog by `from_attributes` as the other attributes are. Each gets a comment, such as "Whether a document can give several values for it".
   - Extend `test_the_catalog_returns_each_fields_kind_and_parts` in `backend/tests/api/test_form_connections.py`: every field and every part has `multiple_values`. It is true for the Personal ID's `nationalities` and the driving licence's part `classes` only.
-- [ ] T005 Mirror the attribute in the frontend, in the same change set as T004 (depends on T004; constitution I; contracts/management-api.md).
+- [X] T005 Mirror the attribute in the frontend, in the same change set as T004 (depends on T004; constitution I; contracts/management-api.md).
   - `frontend/src/types/document-types.ts`: `multiple_values: boolean` on `FieldPart` and `DocumentField`, with a comment that names the two fields that hold several values.
   - `frontend/src/utils/rules/testData.ts`: `multiple_values` on every field and part of `PID` and `MDL`, true for `PID`'s `nationalities` and `MDL`'s part `classes`.
   - Fix every other object literal of these types that `tsc -b` now refuses.
 
 ### Fixtures from Python (parity, research R7 and R13)
 
-- [ ] T006 [P] Write the fixture generator `backend/scripts/export_check_fixtures.py`, run as `uv run python -m scripts.export_check_fixtures` from `backend/` (research R7, R13; data-model.md "Generated fixtures"; CLAUDE.md "Developer scripts").
+- [X] T006 [P] Write the fixture generator `backend/scripts/export_check_fixtures.py`, run as `uv run python -m scripts.export_check_fixtures` from `backend/` (research R7, R13; data-model.md "Generated fixtures"; CLAUDE.md "Developer scripts").
   - It reads the interpreter and the evaluator themselves: `str.casefold()`, `unicodedata`, and, from `backend/app/services/evaluation.py`, `_normalised_text()`, `years_after()`, `months_after()` and the rule outcomes (`_rule_outcome()`, or `evaluate_branch()` on a branch of one rule).
   - It may import `app.catalog`, `app.option_sets`, `app.schemas` and `app.services.evaluation`, but never `app.config`. `app/` never imports it.
   - It writes `frontend/src/utils/rules/checks/caseFolding.ts`:
@@ -149,7 +149,7 @@ visible.
   - `--check` writes nothing. It compares what it would write with the committed files, byte for byte.
     - When they match, it prints nothing and exits 0.
     - Otherwise it names each stale file on stderr, as `scripts/issue_test_credentials` reports its warnings, and exits 1.
-- [ ] T007 Generate the fixtures and test their drift check (depends on T006; research R13).
+- [X] T007 Generate the fixtures and test their drift check (depends on T006; research R13).
   - Run `uv run python -m scripts.export_check_fixtures`, and add both generated files to the change.
   - Write `backend/tests/unit/test_check_fixtures.py`:
     - the committed files match what the current interpreter and evaluator produce, through the script's `--check` path called in-process;
@@ -157,7 +157,7 @@ visible.
 
 ### The checks' engine (frontend, pure, with Vitest)
 
-- [ ] T008 [P] Write `checks/types.ts` and `checks/constants.ts`, the shapes and budgets of the checks (data-model.md; contracts/rule-checks.md; research R5, R8, R10). These hold types and constants only, so they have no test file.
+- [X] T008 [P] Write `checks/types.ts` and `checks/constants.ts`, the shapes and budgets of the checks (data-model.md; contracts/rule-checks.md; research R5, R8, R10). These hold types and constants only, so they have no test file.
   - `types.ts`, with data-model.md's field descriptions as comments:
     - `CheckedBranch`, with `branchKey`, `operator`, `items`, `leftOut`, `variables`, `today` ("`YYYY-MM-DD`, the calendar date in Germany when the run started") and `fingerprint` ("canonical serialisation of everything above except `branchKey`; equal fingerprints have equal results");
     - `CheckedItem`: a rule `{ type: 'rule', id, formula }`, or a group `{ type: 'group', id, operator, items }` "with at least two items";
@@ -180,7 +180,7 @@ visible.
     - the conflict and redundancy searches' budget of questions per item (research R8);
     - up to 50 earlier results in the cache (data-model.md "A check run: lifecycle");
     - today read again every 60 seconds.
-- [ ] T009 [P] Write `checks/calendar.ts` with `calendar.test.ts` (depends on T007, T008; FR-007, second bullet; research R6).
+- [X] T009 [P] Write `checks/calendar.ts` with `calendar.test.ts` (depends on T007, T008; FR-007, second bullet; research R6).
   - Day numbers are proleptic Gregorian ordinals, as Python's `date.toordinal()` gives them (0001-01-01 is 1), converted to and from `YYYY-MM-DD`.
   - `yearsAfter(day, n)` and `monthsAfter(day, n)` use the evaluator's arithmetic:
     - 29 February plus a year is 1 March;
@@ -190,7 +190,7 @@ visible.
   - Tests:
     - every calendar vector of `fixtures/evaluator-vectors.json`;
     - `monthsAfter(d, 12N)` equals `yearsAfter(d, N)`, and neither ever decreases as d grows, over a sample of days for N = 1, 2 and 21 (research R6's measurement).
-- [ ] T010 [P] Write `checks/text.ts` with `text.test.ts` (depends on T007, T008; FR-007, first bullet; research R7).
+- [X] T010 [P] Write `checks/text.ts` with `text.test.ts` (depends on T007, T008; FR-007, first bullet; research R7).
   - `normalisedText(text, matchCase)` reproduces `_normalised_text()`:
     - it strips Python's whitespace only: U+0009–U+000D, U+001C–U+001F, U+0020, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Not `trim()`, which keeps U+001C–U+001F and U+0085 and strips U+FEFF;
     - it normalises to NFC;
@@ -198,7 +198,7 @@ visible.
   - It also exports the inverse of the folding, the case variants of a folded character, which `textTheory.ts` needs (T014).
   - It never uses `toUpperCase().toLowerCase()` or `foldName()` (`utils/rules/tree.ts`), which put ẞ and 58 other code points into other classes than Python does.
   - Tests: every `_normalised_text()` vector of `fixtures/evaluator-vectors.json`, and "STRAẞE" equals "straße" when letter case is ignored.
-- [ ] T011 [P] Write `checks/numberTheory.ts` with `numberTheory.test.ts` (depends on T007, T008; FR-007, fourth bullet; research R3, R6).
+- [X] T011 [P] Write `checks/numberTheory.ts` with `numberTheory.test.ts` (depends on T007, T008; FR-007, fourth bullet; research R3, R6).
   - The values are whole numbers from 0. A variable's literals give an integer interval within [0, ∞), minus a finite set of excluded values:
     - "greater than c" sets the lower bound to ⌊c⌋ + 1;
     - "less than c" sets the upper bound to ⌈c⌉ − 1;
@@ -212,7 +212,7 @@ visible.
     - "greater than 20.5" means at least 21, "equal to 20.5" can't be met, and "not equal to 20.5" is always met;
     - EC-11's four literals can't all be met, while any three can;
     - the literal's membership test agrees with every number outcome vector.
-- [ ] T012 [P] Write `checks/enumTheory.ts` with `enumTheory.test.ts` (depends on T007, T008; FR-007, third bullet; research R6, R9).
+- [X] T012 [P] Write `checks/enumTheory.ts` with `enumTheory.test.ts` (depends on T007, T008; FR-007, third bullet; research R6, R9).
   - One value: the allowed values are the set, within every "includes one of", without every "includes none of". They can be met when one value is left.
   - Several values (`multiple`): the applicant's values lie in the set without every "includes none of", and meet every "includes one of" V. They can be met when each V keeps a value outside the "none of" values, and the set keeps at least one.
   - Negation swaps "includes one of" and "includes none of". Values compare as the evaluator compares them (codes as integers, texts case-folded), in the form `literals.ts` gives them (T016).
@@ -220,7 +220,7 @@ visible.
     - EC "Fields with several values": the Personal ID's Nationality "Germany" and "Italy" can be met together, the driving licence's can't, and Licence classes "B" and "C" can;
     - EC "An enum rule with every value": "includes none of" every value can't be met, and "includes one of" every value is always met;
     - the literal's membership test agrees with every enum outcome vector.
-- [ ] T013 [P] Write `checks/dateTheory.ts` with `dateTheory.test.ts` (depends on T009; FR-007, FR-008; research R6).
+- [X] T013 [P] Write `checks/dateTheory.ts` with `dateTheory.test.ts` (depends on T009; FR-007, FR-008; research R6).
   - On one day d, each literal is a set of days within 0001-01-01 to 9999-12-31:
     - "before", "after" and "on" are strict comparisons;
     - "at least N years ago" is v ≤ L_N(d), "less than" is v > L_N(d), and "exactly" is L_{N+1}(d) < v ≤ L_N(d);
@@ -239,7 +239,7 @@ visible.
     - "at least 18 years old" without "before 1 Jan 2010" can't be met up to 2027-12-31, but can from 2028-01-01 on;
     - for seeded literal sets, the answers equal a brute-force pass over every day of a small window;
     - the literal's membership test agrees with every date outcome vector.
-- [ ] T014 [P] Write `checks/textTheory.ts` with `textTheory.test.ts` (depends on T010; FR-007, first bullet; research R7).
+- [X] T014 [P] Write `checks/textTheory.ts` with `textTheory.test.ts` (depends on T010; FR-007, first bullet; research R7).
   - A variable's literals are "is equal to", "is not equal to", "contains" and "doesn't contain", each respecting or ignoring letter case, on texts that `literals.ts` has already normalised (T016). An applicant's text isn't empty after normalisation.
   - Research R7's three cases:
     1. A case-respecting "is equal to" fixes the value, and every literal is evaluated on it.
@@ -256,12 +256,12 @@ visible.
     - the `'unknown'` corner;
     - every witness is re-checked;
     - the literal's membership test agrees with every text outcome vector.
-- [ ] T015 [P] Write `checks/testEvaluator.ts`, test support, with `testEvaluator.test.ts` (depends on T009, T010; research R13). Only tests import it.
+- [X] T015 [P] Write `checks/testEvaluator.ts`, test support, with `testEvaluator.test.ts` (depends on T009, T010; research R13). Only tests import it.
   - It is a plain port of `evaluation.py`'s comparisons: `_number_holds()`, `_text_holds()`, `_enum_holds()`, `_date_holds()` with `_from_now()`, and a licence class's dates through `_privileges_value()`.
   - It evaluates a branch's levels with AND and OR, for an applicant whose documents give every value.
   - It uses `calendar.ts` and `text.ts`, which the vectors pin. It shares no code with the theories, `literals.ts` or the solver.
   - Its test replays every rule-outcome vector of `fixtures/evaluator-vectors.json`.
-- [ ] T016 [P] Write `checks/literals.ts` with `literals.test.ts` (depends on T005, T009, T010; FR-007; research R3; data-model.md "Variables and literals" and "Formulas and questions").
+- [X] T016 [P] Write `checks/literals.ts` with `literals.test.ts` (depends on T005, T009, T010; FR-007; research R3; data-model.md "Variables and literals" and "Formulas and questions").
   - The variable of a target:
     - its key: "`document_type.field`, then `.part` for a field made of parts, then `#class` for a licence class's date, such as `mdl.driving_privileges.issue_date#B`";
     - its kind, from the catalog;
@@ -276,7 +276,7 @@ visible.
   - `negate(formula)` gives the De Morgan dual, with each literal's `negated` flipped. A class's date becomes `¬held(K) ∨ ¬c(date_K)`. `negated` "is set by the questions of research R4, never by a rule".
   - It simplifies `true` and `false` inside `and` and `or`.
   - Tests: every operator of every kind; `negate(negate(f))` equals `f`; a class date's formula and its negation; the variable keys.
-- [ ] T017 Write `checks/checkedTree.ts` with `checkedTree.test.ts`: `buildCheckedBranch(branch, context, today)` (depends on T016; FR-001, FR-002, FR-011; research R2; data-model.md "Checked branch"; contracts/rule-checks.md).
+- [X] T017 Write `checks/checkedTree.ts` with `checkedTree.test.ts`: `buildCheckedBranch(branch, context, today)` (depends on T016; FR-001, FR-002, FR-011; research R2; data-model.md "Checked branch"; contracts/rule-checks.md).
   - `branch` is a `BranchInput` with the rules step's `key`. `RulesBranch` is one, but `utils/` doesn't import from `pages/`.
   - `context` holds the requested documents (`requestedRuleDocuments()`) and the value sets. `today` is `YYYY-MM-DD`, from `todayInGermany()`.
   - The derivation rules, in order, verbatim from data-model.md:
@@ -293,7 +293,7 @@ visible.
     - a rule without an error message is kept;
     - the fingerprint stays the same after a rename or a new message. It changes with a condition, an operator, an AND or OR, the requested documents or the day;
     - W13: an empty branch, and a based branch whose rules are all removed, have no items.
-- [ ] T018 Write `checks/testOracle.ts`, test support (depends on T015, T017; SC-001, SC-002; research R13). Only tests import it.
+- [X] T018 Write `checks/testOracle.ts`, test support (depends on T015, T017; SC-001, SC-002; research R13). Only tests import it.
   - `randomBranch(seed)` builds seeded random branches:
     - one to three levels, AND and OR, with two to eight rules over a few variables with small values;
     - the variables: numbers 0 to 5, an enum of three values, a set of three values that holds several, a per-class date of that set (FR-007, fifth bullet), two dates near a fixed today with conditions counted from the day of sharing, and texts over a, A, b and ß with both letter-case settings;
@@ -301,7 +301,7 @@ visible.
   - It enumerates every applicant in a domain large enough to stand for every case: numbers up to the largest constant plus 2, every value and every non-empty set of values, the dates of a window, and texts up to the constants' total length. It also enumerates every day of sharing in a window.
   - `met(branch, applicant, day)` evaluates through `testEvaluator.ts` (T015). Helpers for the oracle tests answer whether a set of items can be met on a day, and whether deleting items changes an outcome.
   - An assertion that fails prints its seed, so that the branch can be replayed.
-- [ ] T019 Write `checks/solver.ts` with `solver.test.ts`: `satisfiable(formula, days, options)` answers `'sat'`, `'unsat'` or `'unknown'` (depends on T011–T014, T016, T018; research R5).
+- [X] T019 Write `checks/solver.ts` with `solver.test.ts`: `satisfiable(formula, days, options)` answers `'sat'`, `'unsat'` or `'unknown'` (depends on T011–T014, T016, T018; research R5).
   - It is a tableau over the tree:
     - it keeps the literals chosen so far, per variable, and adds the literals under each AND;
     - it branches over the children of one OR at a time, starting with the OR that has the fewest children left;
@@ -412,7 +412,7 @@ that publishing stays possible.
 - [ ] T027 [US1] Write `frontend/src/hooks/useRuleChecks.ts`: `useRuleChecks(branches, context, shownBranchKey): RuleChecks` (depends on T017, T025, T026; FR-010, FR-011; W14; research R10; contracts/rule-checks.md "useRuleChecks"). Local types go in `frontend/src/hooks/types.ts`, and helpers without React in `frontend/src/hooks/utils.ts`.
   - It starts once the catalog and the value sets are loaded, in the create and in the edit flow. In the edit flow, it checks the published rules when the rules step opens (W14).
   - After every change of `branches` or of `context`, including the documents step's (FR-011):
-    - it builds each branch's checked tree on the main thread (`buildCheckedBranch()`), and dispatches the change to `runState`;
+    - it builds each branch's checked tree on the main thread (`buildCheckedBranch()`), and dispatches the change to `runState`. It loads `checks/checkedTree.ts` with a dynamic `import()` when it starts, never statically: the checked tree reaches `checks/caseFolding.ts` through `literals.ts` and `text.ts`, so a static import would put the case-folding table in the main bundle (decision 2026-10-29, option 1 of the bundle review). Until the module has loaded, no branch counts as checked;
     - it sends the branches without a cached result to the worker, the shown branch first, then tab order.
     A change of `shownBranchKey` alone doesn't run the checks.
   - Today comes from `todayInGermany()`, read again every minute and when the page becomes visible (`visibilitychange`). A new day reruns the checks with the cause `'new_day'`.

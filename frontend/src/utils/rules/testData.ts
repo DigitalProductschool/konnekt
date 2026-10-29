@@ -11,7 +11,16 @@ function field(
   kind: DocumentField['kind'],
   extra: Partial<DocumentField> = {}
 ): DocumentField {
-  return { key, label, kind, option_set: null, date_of_birth: false, parts: null, ...extra };
+  return {
+    key,
+    label,
+    kind,
+    option_set: null,
+    date_of_birth: false,
+    parts: null,
+    multiple_values: false,
+    ...extra,
+  };
 }
 
 export const PID: RuleDocument = {
@@ -28,6 +37,7 @@ export const PID: RuleDocument = {
           kind: 'enum',
           option_set: 'countries',
           per_licence_class: false,
+          multiple_values: false,
         },
         {
           key: 'region',
@@ -35,6 +45,7 @@ export const PID: RuleDocument = {
           kind: 'text',
           option_set: null,
           per_licence_class: false,
+          multiple_values: false,
         },
         {
           key: 'locality',
@@ -42,10 +53,14 @@ export const PID: RuleDocument = {
           kind: 'text',
           option_set: null,
           per_licence_class: false,
+          multiple_values: false,
         },
       ],
     }),
-    field('nationalities', 'Nationality', 'enum', { option_set: 'countries' }),
+    field('nationalities', 'Nationality', 'enum', {
+      option_set: 'countries',
+      multiple_values: true,
+    }),
     field('address_locality', 'City or town', 'text'),
     field('address_country', 'Country of residence', 'enum', { option_set: 'countries' }),
     field('picture', 'Photo', 'image'),
@@ -72,6 +87,7 @@ export const MDL: RuleDocument = {
           kind: 'enum',
           option_set: 'licence_classes',
           per_licence_class: false,
+          multiple_values: true,
         },
         {
           key: 'issue_date',
@@ -79,6 +95,7 @@ export const MDL: RuleDocument = {
           kind: 'date',
           option_set: null,
           per_licence_class: true,
+          multiple_values: false,
         },
         {
           key: 'expiry_date',
@@ -86,6 +103,7 @@ export const MDL: RuleDocument = {
           kind: 'date',
           option_set: null,
           per_licence_class: true,
+          multiple_values: false,
         },
       ],
     }),

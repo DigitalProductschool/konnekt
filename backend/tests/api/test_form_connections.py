@@ -51,6 +51,7 @@ def _field(key: str, label: str, kind: str, **details: Any) -> dict[str, Any]:
         'option_set': None,
         'date_of_birth': False,
         'parts': None,
+        'multiple_values': False,
     } | details
 
 
@@ -62,6 +63,7 @@ LICENCE_CLASS_PARTS = [
         'kind': 'enum',
         'option_set': 'licence_classes',
         'per_licence_class': False,
+        'multiple_values': True,
     },
     {
         'key': 'issue_date',
@@ -69,6 +71,7 @@ LICENCE_CLASS_PARTS = [
         'kind': 'date',
         'option_set': None,
         'per_licence_class': True,
+        'multiple_values': False,
     },
     {
         'key': 'expiry_date',
@@ -76,6 +79,7 @@ LICENCE_CLASS_PARTS = [
         'kind': 'date',
         'option_set': None,
         'per_licence_class': True,
+        'multiple_values': False,
     },
 ]
 
@@ -157,7 +161,11 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
         'birthdate', 'Date of birth', 'date', date_of_birth=True
     )
     assert fields['pid', 'nationalities'] == _field(
-        'nationalities', 'Nationality', 'enum', option_set='countries'
+        'nationalities',
+        'Nationality',
+        'enum',
+        option_set='countries',
+        multiple_values=True,
     )
     assert fields['pid', 'place_of_birth'] == _field(
         'place_of_birth',
@@ -170,6 +178,7 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
                 'kind': 'enum',
                 'option_set': 'countries',
                 'per_licence_class': False,
+                'multiple_values': False,
             },
             {
                 'key': 'region',
@@ -177,6 +186,7 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
                 'kind': 'text',
                 'option_set': None,
                 'per_licence_class': False,
+                'multiple_values': False,
             },
             {
                 'key': 'locality',
@@ -184,6 +194,7 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
                 'kind': 'text',
                 'option_set': None,
                 'per_licence_class': False,
+                'multiple_values': False,
             },
         ],
     )
@@ -192,6 +203,24 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
     assert fields['mdl', 'sex'] == _field('sex', 'Sex', 'enum', option_set='sex')
     assert fields['mdl', 'driving_privileges'] == _field(
         'driving_privileges', 'Licence classes', 'parts', parts=LICENCE_CLASS_PARTS
+    )
+    # Every field and part says whether a document can give several values for it:
+    # only the Personal ID's nationalities and the driving licence's classes can
+    several = [key for key, field in fields.items() if field['multiple_values']] + [
+        (*key, part['key'])
+        for key, field in fields.items()
+        for part in field['parts'] or []
+        if part['multiple_values']
+    ]
+    assert several == [
+        ('pid', 'nationalities'),
+        ('mdl', 'driving_privileges', 'classes'),
+    ]
+    assert all(isinstance(field['multiple_values'], bool) for field in fields.values())
+    assert all(
+        isinstance(part['multiple_values'], bool)
+        for field in fields.values()
+        for part in field['parts'] or []
     )
 
 

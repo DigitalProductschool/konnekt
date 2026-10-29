@@ -42,6 +42,8 @@ class CatalogPart:
     option_set: str | None = None
     # One part per licence class, such as "Licence class B – Issue date"
     per_licence_class: bool = False
+    # Whether a document can give several values for it, such as the classes held
+    multiple_values: bool = False
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,9 @@ class CatalogField:
     date_of_birth: bool = False
     # Fields of kind 'parts' only
     parts: tuple[CatalogPart, ...] | None = None
+    # Whether a document can give several values for it, such as the nationalities.
+    # Images and fields made of parts don't: a field made of parts declares it on them
+    multiple_values: bool = False
 
 
 @dataclass(frozen=True)
@@ -88,10 +93,18 @@ def _claim(
     option_set: str | None = None,
     date_of_birth: bool = False,
     parts: tuple[CatalogPart, ...] | None = None,
+    multiple_values: bool = False,
 ) -> CatalogField:
     # An SD-JWT VC claim; most sit at the top level under their own key
     return CatalogField(
-        key, label, claim_path or (key,), kind, option_set, date_of_birth, parts
+        key,
+        label,
+        claim_path or (key,),
+        kind,
+        option_set,
+        date_of_birth,
+        parts,
+        multiple_values,
     )
 
 
@@ -103,9 +116,17 @@ def _mdl_element(
     option_set: str | None = None,
     date_of_birth: bool = False,
     parts: tuple[CatalogPart, ...] | None = None,
+    multiple_values: bool = False,
 ) -> CatalogField:
     return CatalogField(
-        key, label, (MDL_NAMESPACE, key), kind, option_set, date_of_birth, parts
+        key,
+        label,
+        (MDL_NAMESPACE, key),
+        kind,
+        option_set,
+        date_of_birth,
+        parts,
+        multiple_values,
     )
 
 
@@ -130,7 +151,14 @@ PID = CatalogDocumentType(
                 CatalogPart('locality', 'City or town', 'text'),
             ),
         ),
-        _claim('nationalities', 'Nationality', 'enum', option_set=COUNTRIES),
+        # A list: a person can have several nationalities
+        _claim(
+            'nationalities',
+            'Nationality',
+            'enum',
+            option_set=COUNTRIES,
+            multiple_values=True,
+        ),
         _claim('address_formatted', 'Address (full)', 'text', 'address', 'formatted'),
         _claim(
             'address_street_address',
@@ -196,7 +224,13 @@ MDL = CatalogDocumentType(
             'Licence classes',
             'parts',
             parts=(
-                CatalogPart('classes', 'Licence classes', 'enum', LICENCE_CLASSES),
+                CatalogPart(
+                    'classes',
+                    'Licence classes',
+                    'enum',
+                    LICENCE_CLASSES,
+                    multiple_values=True,
+                ),
                 CatalogPart('issue_date', 'Issue date', 'date', per_licence_class=True),
                 CatalogPart(
                     'expiry_date', 'Expiry date', 'date', per_licence_class=True

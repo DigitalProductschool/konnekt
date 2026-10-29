@@ -1,0 +1,3835 @@
+{
+  "day_numbers": [
+    {
+      "day": "0001-01-01",
+      "description": "the calendar's first day",
+      "number": 1
+    },
+    {
+      "day": "0001-12-31",
+      "description": "the end of year 1",
+      "number": 365
+    },
+    {
+      "day": "0004-02-29",
+      "description": "the first 29 February",
+      "number": 1155
+    },
+    {
+      "day": "0100-03-01",
+      "description": "1 March 100, after a February without 29 days",
+      "number": 36219
+    },
+    {
+      "day": "1582-10-15",
+      "description": "the Gregorian calendar's introduction",
+      "number": 577736
+    },
+    {
+      "day": "1900-03-01",
+      "description": "1 March 1900, after a February without 29 days",
+      "number": 693655
+    },
+    {
+      "day": "1970-01-01",
+      "description": "the Unix epoch",
+      "number": 719163
+    },
+    {
+      "day": "2000-02-29",
+      "description": "29 February 2000",
+      "number": 730179
+    },
+    {
+      "day": "2026-10-28",
+      "description": "a recent day",
+      "number": 739917
+    },
+    {
+      "day": "9999-12-31",
+      "description": "the calendar's last day",
+      "number": 3652059
+    }
+  ],
+  "generator": "backend/scripts/export_check_fixtures.py: run `uv run python -m scripts.export_check_fixtures` from backend/. Never edit this file by hand.",
+  "months_after": [
+    {
+      "day": "2026-10-28",
+      "description": "an ordinary day",
+      "months": 1,
+      "result": "2026-11-28"
+    },
+    {
+      "day": "2026-12-15",
+      "description": "into the next year",
+      "months": 1,
+      "result": "2027-01-15"
+    },
+    {
+      "day": "2026-12-31",
+      "description": "from 31 December",
+      "months": 1,
+      "result": "2027-01-31"
+    },
+    {
+      "day": "2026-01-31",
+      "description": "31 January into February",
+      "months": 1,
+      "result": "2026-03-01"
+    },
+    {
+      "day": "2024-01-31",
+      "description": "31 January into a leap February",
+      "months": 1,
+      "result": "2024-03-01"
+    },
+    {
+      "day": "2024-01-29",
+      "description": "29 January into a leap February",
+      "months": 1,
+      "result": "2024-02-29"
+    },
+    {
+      "day": "2023-01-29",
+      "description": "29 January into a February without 29 days",
+      "months": 1,
+      "result": "2023-03-01"
+    },
+    {
+      "day": "2026-03-31",
+      "description": "31 March into April",
+      "months": 1,
+      "result": "2026-05-01"
+    },
+    {
+      "day": "2026-05-31",
+      "description": "31 May into June",
+      "months": 1,
+      "result": "2026-07-01"
+    },
+    {
+      "day": "2026-08-31",
+      "description": "31 August into September",
+      "months": 1,
+      "result": "2026-10-01"
+    },
+    {
+      "day": "2026-10-31",
+      "description": "31 October into November",
+      "months": 1,
+      "result": "2026-12-01"
+    },
+    {
+      "day": "2026-11-30",
+      "description": "30 November into February",
+      "months": 3,
+      "result": "2027-03-01"
+    },
+    {
+      "day": "2026-10-28",
+      "description": "six months",
+      "months": 6,
+      "result": "2027-04-28"
+    },
+    {
+      "day": "2026-10-28",
+      "description": "twelve months",
+      "months": 12,
+      "result": "2027-10-28"
+    },
+    {
+      "day": "2026-10-28",
+      "description": "over two years",
+      "months": 25,
+      "result": "2028-11-28"
+    },
+    {
+      "day": "2024-02-29",
+      "description": "29 February plus twelve months",
+      "months": 12,
+      "result": "2025-03-01"
+    },
+    {
+      "day": "2024-02-29",
+      "description": "29 February plus 48 months",
+      "months": 48,
+      "result": "2028-02-29"
+    },
+    {
+      "day": "9999-10-31",
+      "description": "31 October of the calendar's last year",
+      "months": 1,
+      "result": "9999-12-01"
+    },
+    {
+      "day": "9999-11-30",
+      "description": "within the calendar's last month",
+      "months": 1,
+      "result": "9999-12-30"
+    },
+    {
+      "day": "9999-12-01",
+      "description": "beyond the calendar",
+      "months": 1,
+      "result": "9999-12-31"
+    },
+    {
+      "day": "9999-12-31",
+      "description": "beyond the calendar, from its last day",
+      "months": 1,
+      "result": "9999-12-31"
+    },
+    {
+      "day": "2026-10-28",
+      "description": "far beyond the calendar",
+      "months": 120000,
+      "result": "9999-12-31"
+    }
+  ],
+  "normalised_text": [
+    {
+      "description": "U+0009 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\tK\u00d6LN\t"
+    },
+    {
+      "description": "U+0009 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\tK\u00d6LN\t"
+    },
+    {
+      "description": "U+000A at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\nK\u00d6LN\n"
+    },
+    {
+      "description": "U+000A at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\nK\u00d6LN\n"
+    },
+    {
+      "description": "U+000B at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u000bK\u00d6LN\u000b"
+    },
+    {
+      "description": "U+000B at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u000bK\u00d6LN\u000b"
+    },
+    {
+      "description": "U+000C at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\fK\u00d6LN\f"
+    },
+    {
+      "description": "U+000C at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\fK\u00d6LN\f"
+    },
+    {
+      "description": "U+000D at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\rK\u00d6LN\r"
+    },
+    {
+      "description": "U+000D at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\rK\u00d6LN\r"
+    },
+    {
+      "description": "U+001C at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u001cK\u00d6LN\u001c"
+    },
+    {
+      "description": "U+001C at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u001cK\u00d6LN\u001c"
+    },
+    {
+      "description": "U+001D at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u001dK\u00d6LN\u001d"
+    },
+    {
+      "description": "U+001D at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u001dK\u00d6LN\u001d"
+    },
+    {
+      "description": "U+001E at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u001eK\u00d6LN\u001e"
+    },
+    {
+      "description": "U+001E at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u001eK\u00d6LN\u001e"
+    },
+    {
+      "description": "U+001F at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u001fK\u00d6LN\u001f"
+    },
+    {
+      "description": "U+001F at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u001fK\u00d6LN\u001f"
+    },
+    {
+      "description": "U+0020 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": " K\u00d6LN "
+    },
+    {
+      "description": "U+0020 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": " K\u00d6LN "
+    },
+    {
+      "description": "U+0085 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u0085K\u00d6LN\u0085"
+    },
+    {
+      "description": "U+0085 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u0085K\u00d6LN\u0085"
+    },
+    {
+      "description": "U+00A0 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u00a0K\u00d6LN\u00a0"
+    },
+    {
+      "description": "U+00A0 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u00a0K\u00d6LN\u00a0"
+    },
+    {
+      "description": "U+1680 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u1680K\u00d6LN\u1680"
+    },
+    {
+      "description": "U+1680 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u1680K\u00d6LN\u1680"
+    },
+    {
+      "description": "U+2000 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2000K\u00d6LN\u2000"
+    },
+    {
+      "description": "U+2000 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2000K\u00d6LN\u2000"
+    },
+    {
+      "description": "U+2001 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2001K\u00d6LN\u2001"
+    },
+    {
+      "description": "U+2001 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2001K\u00d6LN\u2001"
+    },
+    {
+      "description": "U+2002 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2002K\u00d6LN\u2002"
+    },
+    {
+      "description": "U+2002 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2002K\u00d6LN\u2002"
+    },
+    {
+      "description": "U+2003 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2003K\u00d6LN\u2003"
+    },
+    {
+      "description": "U+2003 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2003K\u00d6LN\u2003"
+    },
+    {
+      "description": "U+2004 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2004K\u00d6LN\u2004"
+    },
+    {
+      "description": "U+2004 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2004K\u00d6LN\u2004"
+    },
+    {
+      "description": "U+2005 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2005K\u00d6LN\u2005"
+    },
+    {
+      "description": "U+2005 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2005K\u00d6LN\u2005"
+    },
+    {
+      "description": "U+2006 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2006K\u00d6LN\u2006"
+    },
+    {
+      "description": "U+2006 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2006K\u00d6LN\u2006"
+    },
+    {
+      "description": "U+2007 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2007K\u00d6LN\u2007"
+    },
+    {
+      "description": "U+2007 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2007K\u00d6LN\u2007"
+    },
+    {
+      "description": "U+2008 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2008K\u00d6LN\u2008"
+    },
+    {
+      "description": "U+2008 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2008K\u00d6LN\u2008"
+    },
+    {
+      "description": "U+2009 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2009K\u00d6LN\u2009"
+    },
+    {
+      "description": "U+2009 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2009K\u00d6LN\u2009"
+    },
+    {
+      "description": "U+200A at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u200aK\u00d6LN\u200a"
+    },
+    {
+      "description": "U+200A at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u200aK\u00d6LN\u200a"
+    },
+    {
+      "description": "U+2028 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2028K\u00d6LN\u2028"
+    },
+    {
+      "description": "U+2028 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2028K\u00d6LN\u2028"
+    },
+    {
+      "description": "U+2029 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u2029K\u00d6LN\u2029"
+    },
+    {
+      "description": "U+2029 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u2029K\u00d6LN\u2029"
+    },
+    {
+      "description": "U+202F at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u202fK\u00d6LN\u202f"
+    },
+    {
+      "description": "U+202F at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u202fK\u00d6LN\u202f"
+    },
+    {
+      "description": "U+205F at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u205fK\u00d6LN\u205f"
+    },
+    {
+      "description": "U+205F at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u205fK\u00d6LN\u205f"
+    },
+    {
+      "description": "U+3000 at both ends",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "\u3000K\u00d6LN\u3000"
+    },
+    {
+      "description": "U+3000 at both ends",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "\u3000K\u00d6LN\u3000"
+    },
+    {
+      "description": "U+180E, which str.isspace() rejects, at both ends",
+      "match_case": false,
+      "result": "\u180ek\u00f6ln\u180e",
+      "text": "\u180eK\u00d6LN\u180e"
+    },
+    {
+      "description": "U+180E, which str.isspace() rejects, at both ends",
+      "match_case": true,
+      "result": "\u180eK\u00d6LN\u180e",
+      "text": "\u180eK\u00d6LN\u180e"
+    },
+    {
+      "description": "U+200B, which str.isspace() rejects, at both ends",
+      "match_case": false,
+      "result": "\u200bk\u00f6ln\u200b",
+      "text": "\u200bK\u00d6LN\u200b"
+    },
+    {
+      "description": "U+200B, which str.isspace() rejects, at both ends",
+      "match_case": true,
+      "result": "\u200bK\u00d6LN\u200b",
+      "text": "\u200bK\u00d6LN\u200b"
+    },
+    {
+      "description": "U+2060, which str.isspace() rejects, at both ends",
+      "match_case": false,
+      "result": "\u2060k\u00f6ln\u2060",
+      "text": "\u2060K\u00d6LN\u2060"
+    },
+    {
+      "description": "U+2060, which str.isspace() rejects, at both ends",
+      "match_case": true,
+      "result": "\u2060K\u00d6LN\u2060",
+      "text": "\u2060K\u00d6LN\u2060"
+    },
+    {
+      "description": "U+FEFF, which str.isspace() rejects, at both ends",
+      "match_case": false,
+      "result": "\ufeffk\u00f6ln\ufeff",
+      "text": "\ufeffK\u00d6LN\ufeff"
+    },
+    {
+      "description": "U+FEFF, which str.isspace() rejects, at both ends",
+      "match_case": true,
+      "result": "\ufeffK\u00d6LN\ufeff",
+      "text": "\ufeffK\u00d6LN\ufeff"
+    },
+    {
+      "description": "two spaces inside the text",
+      "match_case": false,
+      "result": "bad  cannstatt",
+      "text": "Bad  Cannstatt"
+    },
+    {
+      "description": "two spaces inside the text",
+      "match_case": true,
+      "result": "Bad  Cannstatt",
+      "text": "Bad  Cannstatt"
+    },
+    {
+      "description": "U+00A0 inside the text",
+      "match_case": false,
+      "result": "bad\u00a0cannstatt",
+      "text": "Bad\u00a0Cannstatt"
+    },
+    {
+      "description": "U+00A0 inside the text",
+      "match_case": true,
+      "result": "Bad\u00a0Cannstatt",
+      "text": "Bad\u00a0Cannstatt"
+    },
+    {
+      "description": "U+0085 inside the text",
+      "match_case": false,
+      "result": "bad\u0085cannstatt",
+      "text": "Bad\u0085Cannstatt"
+    },
+    {
+      "description": "U+0085 inside the text",
+      "match_case": true,
+      "result": "Bad\u0085Cannstatt",
+      "text": "Bad\u0085Cannstatt"
+    },
+    {
+      "description": "an empty text",
+      "match_case": false,
+      "result": "",
+      "text": ""
+    },
+    {
+      "description": "an empty text",
+      "match_case": true,
+      "result": "",
+      "text": ""
+    },
+    {
+      "description": "whitespace only",
+      "match_case": false,
+      "result": "",
+      "text": " \t\n\u0085\u00a0\u3000 "
+    },
+    {
+      "description": "whitespace only",
+      "match_case": true,
+      "result": "",
+      "text": " \t\n\u0085\u00a0\u3000 "
+    },
+    {
+      "description": "U+FEFF only",
+      "match_case": false,
+      "result": "\ufeff",
+      "text": "\ufeff"
+    },
+    {
+      "description": "U+FEFF only",
+      "match_case": true,
+      "result": "\ufeff",
+      "text": "\ufeff"
+    },
+    {
+      "description": "sharp s",
+      "match_case": false,
+      "result": "strasse",
+      "text": "Stra\u00dfe"
+    },
+    {
+      "description": "sharp s",
+      "match_case": true,
+      "result": "Stra\u00dfe",
+      "text": "Stra\u00dfe"
+    },
+    {
+      "description": "SS",
+      "match_case": false,
+      "result": "strasse",
+      "text": "STRASSE"
+    },
+    {
+      "description": "SS",
+      "match_case": true,
+      "result": "STRASSE",
+      "text": "STRASSE"
+    },
+    {
+      "description": "the capital sharp s, U+1E9E",
+      "match_case": false,
+      "result": "strasse",
+      "text": "STRA\u1e9eE"
+    },
+    {
+      "description": "the capital sharp s, U+1E9E",
+      "match_case": true,
+      "result": "STRA\u1e9eE",
+      "text": "STRA\u1e9eE"
+    },
+    {
+      "description": "the capital sharp s alone",
+      "match_case": false,
+      "result": "ss",
+      "text": "\u1e9e"
+    },
+    {
+      "description": "the capital sharp s alone",
+      "match_case": true,
+      "result": "\u1e9e",
+      "text": "\u1e9e"
+    },
+    {
+      "description": "the dotted capital I, U+0130",
+      "match_case": false,
+      "result": "i\u0307stanbul",
+      "text": "\u0130stanbul"
+    },
+    {
+      "description": "the dotted capital I, U+0130",
+      "match_case": true,
+      "result": "\u0130stanbul",
+      "text": "\u0130stanbul"
+    },
+    {
+      "description": "the dotless capital I",
+      "match_case": false,
+      "result": "istanbul",
+      "text": "ISTANBUL"
+    },
+    {
+      "description": "the dotless capital I",
+      "match_case": true,
+      "result": "ISTANBUL",
+      "text": "ISTANBUL"
+    },
+    {
+      "description": "the dotless i, U+0131",
+      "match_case": false,
+      "result": "\u0131stanbul",
+      "text": "\u0131stanbul"
+    },
+    {
+      "description": "the dotless i, U+0131",
+      "match_case": true,
+      "result": "\u0131stanbul",
+      "text": "\u0131stanbul"
+    },
+    {
+      "description": "i with a combining dot above",
+      "match_case": false,
+      "result": "i\u0307stanbul",
+      "text": "i\u0307stanbul"
+    },
+    {
+      "description": "i with a combining dot above",
+      "match_case": true,
+      "result": "i\u0307stanbul",
+      "text": "i\u0307stanbul"
+    },
+    {
+      "description": "a combining diaeresis",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "Ko\u0308ln"
+    },
+    {
+      "description": "a combining diaeresis",
+      "match_case": true,
+      "result": "K\u00f6ln",
+      "text": "Ko\u0308ln"
+    },
+    {
+      "description": "a capital with a combining diaeresis",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "KO\u0308LN"
+    },
+    {
+      "description": "a capital with a combining diaeresis",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "KO\u0308LN"
+    },
+    {
+      "description": "a precomposed capital O with diaeresis",
+      "match_case": false,
+      "result": "k\u00f6ln",
+      "text": "K\u00d6LN"
+    },
+    {
+      "description": "a precomposed capital O with diaeresis",
+      "match_case": true,
+      "result": "K\u00d6LN",
+      "text": "K\u00d6LN"
+    },
+    {
+      "description": "the angstrom sign, which NFC maps to U+00C5",
+      "match_case": false,
+      "result": "\u00e5",
+      "text": "\u212b"
+    },
+    {
+      "description": "the angstrom sign, which NFC maps to U+00C5",
+      "match_case": true,
+      "result": "\u00c5",
+      "text": "\u212b"
+    },
+    {
+      "description": "A with a combining ring above",
+      "match_case": false,
+      "result": "\u00e5",
+      "text": "A\u030a"
+    },
+    {
+      "description": "A with a combining ring above",
+      "match_case": true,
+      "result": "\u00c5",
+      "text": "A\u030a"
+    },
+    {
+      "description": "e with a combining acute accent",
+      "match_case": false,
+      "result": "\u00e9",
+      "text": "e\u0301"
+    },
+    {
+      "description": "e with a combining acute accent",
+      "match_case": true,
+      "result": "\u00e9",
+      "text": "e\u0301"
+    },
+    {
+      "description": "U+01F0, which folds to j and a combining caron",
+      "match_case": false,
+      "result": "\u01f0",
+      "text": "\u01f0"
+    },
+    {
+      "description": "U+01F0, which folds to j and a combining caron",
+      "match_case": true,
+      "result": "\u01f0",
+      "text": "\u01f0"
+    },
+    {
+      "description": "J with a combining caron",
+      "match_case": false,
+      "result": "\u01f0",
+      "text": "J\u030c"
+    },
+    {
+      "description": "J with a combining caron",
+      "match_case": true,
+      "result": "J\u030c",
+      "text": "J\u030c"
+    },
+    {
+      "description": "U+0390, which folds to three code points",
+      "match_case": false,
+      "result": "\u0390",
+      "text": "\u0390"
+    },
+    {
+      "description": "U+0390, which folds to three code points",
+      "match_case": true,
+      "result": "\u0390",
+      "text": "\u0390"
+    },
+    {
+      "description": "iota with dialytika and oxia, U+1FD3",
+      "match_case": false,
+      "result": "\u0390",
+      "text": "\u1fd3"
+    },
+    {
+      "description": "iota with dialytika and oxia, U+1FD3",
+      "match_case": true,
+      "result": "\u0390",
+      "text": "\u1fd3"
+    },
+    {
+      "description": "capital alpha with oxia, U+1FBB",
+      "match_case": false,
+      "result": "\u03ac",
+      "text": "\u1fbb"
+    },
+    {
+      "description": "capital alpha with oxia, U+1FBB",
+      "match_case": true,
+      "result": "\u0386",
+      "text": "\u1fbb"
+    },
+    {
+      "description": "alpha with ypogegrammeni, U+1FB3",
+      "match_case": false,
+      "result": "\u03b1\u03b9",
+      "text": "\u1fb3"
+    },
+    {
+      "description": "alpha with ypogegrammeni, U+1FB3",
+      "match_case": true,
+      "result": "\u1fb3",
+      "text": "\u1fb3"
+    },
+    {
+      "description": "capital alpha with prosgegrammeni, U+1FBC",
+      "match_case": false,
+      "result": "\u03b1\u03b9",
+      "text": "\u1fbc"
+    },
+    {
+      "description": "capital alpha with prosgegrammeni, U+1FBC",
+      "match_case": true,
+      "result": "\u1fbc",
+      "text": "\u1fbc"
+    },
+    {
+      "description": "capital sigmas",
+      "match_case": false,
+      "result": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c3",
+      "text": "\u03a3\u038a\u03a3\u03a5\u03a6\u039f\u03a3"
+    },
+    {
+      "description": "capital sigmas",
+      "match_case": true,
+      "result": "\u03a3\u038a\u03a3\u03a5\u03a6\u039f\u03a3",
+      "text": "\u03a3\u038a\u03a3\u03a5\u03a6\u039f\u03a3"
+    },
+    {
+      "description": "a final sigma",
+      "match_case": false,
+      "result": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c3",
+      "text": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c2"
+    },
+    {
+      "description": "a final sigma",
+      "match_case": true,
+      "result": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c2",
+      "text": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c2"
+    },
+    {
+      "description": "the micro sign",
+      "match_case": false,
+      "result": "\u03bc",
+      "text": "\u00b5"
+    },
+    {
+      "description": "the micro sign",
+      "match_case": true,
+      "result": "\u00b5",
+      "text": "\u00b5"
+    },
+    {
+      "description": "the Kelvin sign",
+      "match_case": false,
+      "result": "k",
+      "text": "\u212a"
+    },
+    {
+      "description": "the Kelvin sign",
+      "match_case": true,
+      "result": "K",
+      "text": "\u212a"
+    },
+    {
+      "description": "the long s",
+      "match_case": false,
+      "result": "s",
+      "text": "\u017f"
+    },
+    {
+      "description": "the long s",
+      "match_case": true,
+      "result": "\u017f",
+      "text": "\u017f"
+    },
+    {
+      "description": "the titlecase Dz with caron, U+01C5",
+      "match_case": false,
+      "result": "\u01c6",
+      "text": "\u01c5"
+    },
+    {
+      "description": "the titlecase Dz with caron, U+01C5",
+      "match_case": true,
+      "result": "\u01c5",
+      "text": "\u01c5"
+    },
+    {
+      "description": "the ligature ffi",
+      "match_case": false,
+      "result": "ffi",
+      "text": "\ufb03"
+    },
+    {
+      "description": "the ligature ffi",
+      "match_case": true,
+      "result": "\ufb03",
+      "text": "\ufb03"
+    },
+    {
+      "description": "the ligature long st",
+      "match_case": false,
+      "result": "st",
+      "text": "\ufb05"
+    },
+    {
+      "description": "the ligature long st",
+      "match_case": true,
+      "result": "\ufb05",
+      "text": "\ufb05"
+    },
+    {
+      "description": "n after an apostrophe, U+0149, which folds to two code points",
+      "match_case": false,
+      "result": "\u02bcn",
+      "text": "\u0149"
+    },
+    {
+      "description": "n after an apostrophe, U+0149, which folds to two code points",
+      "match_case": true,
+      "result": "\u0149",
+      "text": "\u0149"
+    },
+    {
+      "description": "a Cherokee small letter, which folds to its capital",
+      "match_case": false,
+      "result": "\u13a0",
+      "text": "\uab70"
+    },
+    {
+      "description": "a Cherokee small letter, which folds to its capital",
+      "match_case": true,
+      "result": "\uab70",
+      "text": "\uab70"
+    },
+    {
+      "description": "Cherokee small ye",
+      "match_case": false,
+      "result": "\u13f0",
+      "text": "\u13f8"
+    },
+    {
+      "description": "Cherokee small ye",
+      "match_case": true,
+      "result": "\u13f8",
+      "text": "\u13f8"
+    },
+    {
+      "description": "an Adlam capital, outside the BMP",
+      "match_case": false,
+      "result": "\ud83a\udd22",
+      "text": "\ud83a\udd00"
+    },
+    {
+      "description": "an Adlam capital, outside the BMP",
+      "match_case": true,
+      "result": "\ud83a\udd00",
+      "text": "\ud83a\udd00"
+    },
+    {
+      "description": "U+A7CB, a capital that Unicode 15.1 lacks",
+      "match_case": false,
+      "result": "\ua7cb",
+      "text": "\ua7cb"
+    },
+    {
+      "description": "U+A7CB, a capital that Unicode 15.1 lacks",
+      "match_case": true,
+      "result": "\ua7cb",
+      "text": "\ua7cb"
+    },
+    {
+      "description": "U+10D50, a Garay capital that Unicode 15.1 lacks",
+      "match_case": false,
+      "result": "\ud803\udd50",
+      "text": "\ud803\udd50"
+    },
+    {
+      "description": "U+10D50, a Garay capital that Unicode 15.1 lacks",
+      "match_case": true,
+      "result": "\ud803\udd50",
+      "text": "\ud803\udd50"
+    },
+    {
+      "description": "Hangul jamo, which NFC composes",
+      "match_case": false,
+      "result": "\uac00",
+      "text": "\u1100\u1161"
+    },
+    {
+      "description": "Hangul jamo, which NFC composes",
+      "match_case": true,
+      "result": "\uac00",
+      "text": "\u1100\u1161"
+    }
+  ],
+  "rule_outcomes": [
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 170.0
+      },
+      "description": "greater",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 180.0
+      },
+      "description": "not greater when equal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 20.5
+      },
+      "description": "greater than a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 21
+    },
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 20.5
+      },
+      "description": "not greater than a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 20
+    },
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 72.0
+      },
+      "description": "a decimal value",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 72.5
+    },
+    {
+      "condition": {
+        "operator": "less_than",
+        "value": 190.0
+      },
+      "description": "less",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "less_than",
+        "value": 180.0
+      },
+      "description": "not less when equal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "less_than",
+        "value": 180.5
+      },
+      "description": "less than a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "less_than",
+        "value": 180.5
+      },
+      "description": "not less than a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 181
+    },
+    {
+      "condition": {
+        "operator": "less_than",
+        "value": 0.0
+      },
+      "description": "nothing is less than 0",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 0
+    },
+    {
+      "condition": {
+        "operator": "equal_to",
+        "value": 180.0
+      },
+      "description": "equal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "equal_to",
+        "value": 181.0
+      },
+      "description": "not equal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "equal_to",
+        "value": 20.5
+      },
+      "description": "a whole value isn't a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 20
+    },
+    {
+      "condition": {
+        "operator": "equal_to",
+        "value": 20.5
+      },
+      "description": "a decimal value equals",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 20.5
+    },
+    {
+      "condition": {
+        "operator": "not_equal_to",
+        "value": 181.0
+      },
+      "description": "not equal to",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "not_equal_to",
+        "value": 180.0
+      },
+      "description": "equal to",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 180
+    },
+    {
+      "condition": {
+        "operator": "not_equal_to",
+        "value": 20.5
+      },
+      "description": "not equal to a decimal",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 20
+    },
+    {
+      "condition": {
+        "operator": "greater_than",
+        "value": 170.0
+      },
+      "description": "a text isn't a number (can't be checked)",
+      "kind": "number",
+      "option_set": null,
+      "outcome": "not_checked",
+      "target": {
+        "document_type": "mdl",
+        "field": "height",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "180"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "equal ignoring case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STUTTGART"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "not equal respecting case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STUTTGART"
+    },
+    {
+      "condition": {
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "letter case is ignored without match_case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "stuttgart"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "trimmed, U+0085 included",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": " Stuttgart\u0085"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "U+FEFF is kept",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "\ufeffStuttgart"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "Bad Cannstatt"
+      },
+      "description": "spaces inside count",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Bad  Cannstatt"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "stra\u00dfe"
+      },
+      "description": "the capital sharp s folds to ss",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STRA\u1e9eE"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "stra\u00dfe"
+      },
+      "description": "sharp s folds to ss",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STRASSE"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "equal_to",
+        "value": "stra\u00dfe"
+      },
+      "description": "sharp s isn't ss respecting case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "strasse"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "istanbul"
+      },
+      "description": "the dotted capital I folds to i with a dot above",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "place_of_birth",
+        "licence_class": null,
+        "part": "locality"
+      },
+      "today": "2026-10-28",
+      "value": {
+        "locality": "\u0130STANBUL"
+      }
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "\u0131stanbul"
+      },
+      "description": "the dotless i doesn't fold to i",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "place_of_birth",
+        "licence_class": null,
+        "part": "locality"
+      },
+      "today": "2026-10-28",
+      "value": {
+        "locality": "ISTANBUL"
+      }
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "\u03a3\u038a\u03a3\u03a5\u03a6\u039f\u03a3"
+      },
+      "description": "the final sigma folds to sigma",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "\u03c3\u03af\u03c3\u03c5\u03c6\u03bf\u03c2"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "contains",
+        "value": "STRA\u1e9e"
+      },
+      "description": "the rule's text is folded too",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Strasse"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "equal_to",
+        "value": " Ko\u0308ln "
+      },
+      "description": "the rule's text is trimmed and in NFC too",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "K\u00f6ln"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "not_equal_to",
+        "value": "K\u00f6ln"
+      },
+      "description": "not equal to, NFC and folded",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "KO\u0308LN"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "not_equal_to",
+        "value": "K\u00f6ln"
+      },
+      "description": "not equal to, NFC respecting case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Ko\u0308ln"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "not_equal_to",
+        "value": "K\u00f6ln"
+      },
+      "description": "not equal to a different text",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Bonn"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "contains",
+        "value": "gart"
+      },
+      "description": "contains ignoring case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STUTTGART"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "contains",
+        "value": "gart"
+      },
+      "description": "doesn't contain respecting case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STUTTGART"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "contains",
+        "value": "Stuttgart"
+      },
+      "description": "contains the whole text",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Stuttgart"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "contains",
+        "value": "SS"
+      },
+      "description": "SS is inside a folded sharp s",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Stra\u00dfe"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "contains",
+        "value": "\u00df"
+      },
+      "description": "a folded sharp s is inside SS",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "STRASSE"
+    },
+    {
+      "condition": {
+        "match_case": true,
+        "operator": "not_contains",
+        "value": "\u00df"
+      },
+      "description": "doesn't contain sharp s respecting case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "family_name",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Strasse"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "not_contains",
+        "value": "i"
+      },
+      "description": "a folded dotted capital I contains i",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "place_of_birth",
+        "licence_class": null,
+        "part": "locality"
+      },
+      "today": "2026-10-28",
+      "value": {
+        "locality": "\u0130stanbul"
+      }
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "not_contains",
+        "value": "berg"
+      },
+      "description": "doesn't contain ignoring case",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "Stuttgart"
+    },
+    {
+      "condition": {
+        "match_case": false,
+        "operator": "equal_to",
+        "value": "Stuttgart"
+      },
+      "description": "whitespace only (can't be checked)",
+      "kind": "text",
+      "option_set": null,
+      "outcome": "not_checked",
+      "target": {
+        "document_type": "pid",
+        "field": "address_locality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": " \u0085\u00a0"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          1
+        ]
+      },
+      "description": "one code",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 1
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          1
+        ]
+      },
+      "description": "another code",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 2
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          1
+        ]
+      },
+      "description": "a code written as text",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "1"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          2
+        ]
+      },
+      "description": "a code with spaces",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": " 2 "
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          0,
+          2
+        ]
+      },
+      "description": "none of two codes",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 1
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          0,
+          2
+        ]
+      },
+      "description": "one of the excluded codes",
+      "kind": "enum",
+      "option_set": "sex",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "sex",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": 0
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "several values, one of them",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        "FR",
+        "DE"
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "several values, none of them",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        "FR"
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "several values, one of two",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        "AT",
+        "FR"
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "a single value where several can be",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "DE"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "texts are case-folded and trimmed",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        " de "
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "several values, none excluded",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        "FR"
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "several values, one excluded",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": [
+        "FR",
+        "AT"
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "an empty list (can't be checked)",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_checked",
+      "target": {
+        "document_type": "pid",
+        "field": "nationalities",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": []
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "one value, one of two",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "nationality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "AT"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "one value in lower case",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "nationality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "at"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE",
+          "AT"
+        ]
+      },
+      "description": "one value, not one of them",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "nationality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "fr"
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "one value, none of them",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "nationality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "FR"
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "one value, excluded",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "nationality",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "de"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "a part of the place of birth",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "place_of_birth",
+        "licence_class": null,
+        "part": "country"
+      },
+      "today": "2026-10-28",
+      "value": {
+        "country": "DE",
+        "locality": "Stuttgart"
+      }
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "DE"
+        ]
+      },
+      "description": "another part of the place of birth",
+      "kind": "enum",
+      "option_set": "countries",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "place_of_birth",
+        "licence_class": null,
+        "part": "country"
+      },
+      "today": "2026-10-28",
+      "value": {
+        "country": "AT",
+        "locality": "Wien"
+      }
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "blue"
+        ]
+      },
+      "description": "a colour in capitals",
+      "kind": "enum",
+      "option_set": "eye_colours",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "eye_colour",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "BLUE"
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "green"
+        ]
+      },
+      "description": "a colour, none of them",
+      "kind": "enum",
+      "option_set": "eye_colours",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "eye_colour",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "blue"
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "B"
+        ]
+      },
+      "description": "a class held",
+      "kind": "enum",
+      "option_set": "licence_classes",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": null,
+        "part": "classes"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "A",
+          "C"
+        ]
+      },
+      "description": "a class not held",
+      "kind": "enum",
+      "option_set": "licence_classes",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": null,
+        "part": "classes"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "C"
+        ]
+      },
+      "description": "none of the classes held",
+      "kind": "enum",
+      "option_set": "licence_classes",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": null,
+        "part": "classes"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_none_of",
+        "values": [
+          "A",
+          "BE"
+        ]
+      },
+      "description": "one of the excluded classes held",
+      "kind": "enum",
+      "option_set": "licence_classes",
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": null,
+        "part": "classes"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "includes_one_of",
+        "values": [
+          "BE"
+        ]
+      },
+      "description": "class codes are case-folded and trimmed",
+      "kind": "enum",
+      "option_set": "licence_classes",
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": null,
+        "part": "classes"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": " be "
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2030-01-01",
+        "operator": "before"
+      },
+      "description": "before",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2029-12-31"
+    },
+    {
+      "condition": {
+        "date": "2030-01-01",
+        "operator": "before"
+      },
+      "description": "not before",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2030-01-01"
+    },
+    {
+      "condition": {
+        "date": "2029-12-31",
+        "operator": "after"
+      },
+      "description": "after",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2030-01-01"
+    },
+    {
+      "condition": {
+        "date": "2029-12-31",
+        "operator": "after"
+      },
+      "description": "not after",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2029-12-31"
+    },
+    {
+      "condition": {
+        "date": "2030-01-01",
+        "operator": "on"
+      },
+      "description": "on",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2030-01-01"
+    },
+    {
+      "condition": {
+        "date": "2030-01-01",
+        "operator": "on"
+      },
+      "description": "not on",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2030-01-02"
+    },
+    {
+      "condition": {
+        "date": "0001-01-02",
+        "operator": "before"
+      },
+      "description": "the calendar's first day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "0001-01-01"
+    },
+    {
+      "condition": {
+        "date": "9999-12-30",
+        "operator": "after"
+      },
+      "description": "the calendar's last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "date": "2030-01-01",
+        "operator": "before"
+      },
+      "description": "a year alone (can't be checked)",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_checked",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2008"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 18
+      },
+      "description": "18 today",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2008-10-28"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 18
+      },
+      "description": "18 tomorrow",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2008-10-29"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 18
+      },
+      "description": "born on 29 February, the day before 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-02-28",
+      "value": "2008-02-29"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 18
+      },
+      "description": "born on 29 February, on 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "birth_date",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-03-01",
+      "value": "2008-02-29"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 100
+      },
+      "description": "long ago",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "0001-01-01"
+    },
+    {
+      "condition": {
+        "operator": "less_than_years_ago",
+        "years": 18
+      },
+      "description": "under 18 until tomorrow",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2008-10-29"
+    },
+    {
+      "condition": {
+        "operator": "less_than_years_ago",
+        "years": 18
+      },
+      "description": "not under 18 from today",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2008-10-28"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "21 from today",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2005-10-28"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "21 for a last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2004-10-29"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "22 from today",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2004-10-28"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "21 from tomorrow",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2005-10-29"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "born on 29 February, 20 until 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2025-02-28",
+      "value": "2004-02-29"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "born on 29 February, 21 from 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2025-03-01",
+      "value": "2004-02-29"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "born on 29 February, 21 until 1 March a year later",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-02-28",
+      "value": "2004-02-29"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 21
+      },
+      "description": "born on 29 February, 22 from 1 March a year later",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-03-01",
+      "value": "2004-02-29"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 1
+      },
+      "description": "the anniversary beyond the calendar is its last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-12-31",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 1
+      },
+      "description": "the day before the calendar's last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-12-30",
+      "value": "9999-12-30"
+    },
+    {
+      "condition": {
+        "operator": "less_than_years_ago",
+        "years": 1
+      },
+      "description": "less than, with the anniversary beyond the calendar",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-12-31",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "operator": "exactly_years_ago",
+        "years": 1
+      },
+      "description": "exactly, with both anniversaries beyond the calendar",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "birthdate",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-12-31",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "amount": 6,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "six months from now",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2027-04-28"
+    },
+    {
+      "condition": {
+        "amount": 6,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "a day short of six months",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "2027-04-27"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "a month from 31 January is 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-01-31",
+      "value": "2026-03-01"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "the last day of February is short of a month from 31 January",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-01-31",
+      "value": "2026-02-28"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "less_than_from_now",
+        "unit": "months"
+      },
+      "description": "less than a month from 31 January",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-01-31",
+      "value": "2026-02-28"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "less_than_from_now",
+        "unit": "months"
+      },
+      "description": "not less than a month from 31 January",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-01-31",
+      "value": "2026-03-01"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "at_least_from_now",
+        "unit": "years"
+      },
+      "description": "a year from 29 February is 1 March",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2024-02-29",
+      "value": "2025-03-01"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "at_least_from_now",
+        "unit": "years"
+      },
+      "description": "short of a year from 29 February",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2024-02-29",
+      "value": "2025-02-28"
+    },
+    {
+      "condition": {
+        "amount": 12,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "twelve months from 29 February",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2024-02-29",
+      "value": "2025-03-01"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "less_than_from_now",
+        "unit": "years"
+      },
+      "description": "less than a year from 29 February",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2024-02-29",
+      "value": "2025-02-28"
+    },
+    {
+      "condition": {
+        "amount": 8000,
+        "operator": "at_least_from_now",
+        "unit": "years"
+      },
+      "description": "beyond the calendar is its last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "amount": 8000,
+        "operator": "at_least_from_now",
+        "unit": "years"
+      },
+      "description": "the day before the calendar's last day",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "9999-12-30"
+    },
+    {
+      "condition": {
+        "amount": 8000,
+        "operator": "less_than_from_now",
+        "unit": "years"
+      },
+      "description": "less than, beyond the calendar",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "9999-12-30"
+    },
+    {
+      "condition": {
+        "amount": 8000,
+        "operator": "less_than_from_now",
+        "unit": "years"
+      },
+      "description": "not less than, beyond the calendar",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "2026-10-28",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "a month beyond the calendar",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-12-15",
+      "value": "9999-12-31"
+    },
+    {
+      "condition": {
+        "amount": 1,
+        "operator": "less_than_from_now",
+        "unit": "months"
+      },
+      "description": "within the calendar's last month",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "pid",
+        "field": "date_of_expiry",
+        "licence_class": null,
+        "part": null
+      },
+      "today": "9999-11-30",
+      "value": "9999-12-30"
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 2
+      },
+      "description": "a held class's issue date",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "B",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 2
+      },
+      "description": "a held class's issue date, two years from tomorrow",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "BE",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 2
+      },
+      "description": "a held class's issue date, two years from today",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "BE",
+        "part": "issue_date"
+      },
+      "today": "2026-10-29",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2020-03-01",
+        "operator": "before"
+      },
+      "description": "a held class's issue date, before",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "B",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2020-03-01",
+        "operator": "on"
+      },
+      "description": "a held class's issue date, on",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "B",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 2
+      },
+      "description": "a class not held, at least",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "C",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "less_than_years_ago",
+        "years": 2
+      },
+      "description": "a class not held, less than",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "C",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "amount": 6,
+        "operator": "at_least_from_now",
+        "unit": "months"
+      },
+      "description": "a held class's expiry date",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "B",
+        "part": "expiry_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "amount": 10,
+        "operator": "less_than_from_now",
+        "unit": "years"
+      },
+      "description": "a held class's expiry date, less than",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "BE",
+        "part": "expiry_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2036-01-01",
+        "operator": "after"
+      },
+      "description": "a held class's expiry date, after",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "BE",
+        "part": "expiry_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2100-01-01",
+        "operator": "before"
+      },
+      "description": "a class not held, expiry date",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "C",
+        "part": "expiry_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2020-03-01",
+          "vehicle_category_code": "B"
+        },
+        {
+          "expiry_date": "2035-02-28",
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": "BE"
+        }
+      ]
+    },
+    {
+      "condition": {
+        "date": "2024-10-29",
+        "operator": "on"
+      },
+      "description": "a class held with codes case-folded and trimmed",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "met",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "BE",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "issue_date": "2024-10-29",
+          "vehicle_category_code": " be "
+        }
+      ]
+    },
+    {
+      "condition": {
+        "operator": "at_least_years_ago",
+        "years": 1
+      },
+      "description": "a class held without the date (can't be checked)",
+      "kind": "date",
+      "option_set": null,
+      "outcome": "not_checked",
+      "target": {
+        "document_type": "mdl",
+        "field": "driving_privileges",
+        "licence_class": "C",
+        "part": "issue_date"
+      },
+      "today": "2026-10-28",
+      "value": [
+        {
+          "vehicle_category_code": "C"
+        }
+      ]
+    }
+  ],
+  "unicode_version": "15.1.0",
+  "years_after": [
+    {
+      "day": "2026-10-28",
+      "description": "an ordinary day",
+      "result": "2027-10-28",
+      "years": 1
+    },
+    {
+      "day": "1999-12-31",
+      "description": "the last day of a year",
+      "result": "2000-12-31",
+      "years": 1
+    },
+    {
+      "day": "2008-10-28",
+      "description": "an 18th birthday",
+      "result": "2026-10-28",
+      "years": 18
+    },
+    {
+      "day": "2000-02-29",
+      "description": "29 February in a year without one",
+      "result": "2001-03-01",
+      "years": 1
+    },
+    {
+      "day": "2000-02-29",
+      "description": "29 February in a leap year",
+      "result": "2004-02-29",
+      "years": 4
+    },
+    {
+      "day": "2000-02-29",
+      "description": "29 February in 2100, which is no leap year",
+      "result": "2100-03-01",
+      "years": 100
+    },
+    {
+      "day": "2000-02-29",
+      "description": "29 February in 2400, a leap year",
+      "result": "2400-02-29",
+      "years": 400
+    },
+    {
+      "day": "2008-02-29",
+      "description": "an 18th birthday of someone born on 29 February",
+      "result": "2026-03-01",
+      "years": 18
+    },
+    {
+      "day": "0001-01-01",
+      "description": "the calendar's first day",
+      "result": "0002-01-01",
+      "years": 1
+    },
+    {
+      "day": "9998-06-15",
+      "description": "into the calendar's last year",
+      "result": "9999-06-15",
+      "years": 1
+    },
+    {
+      "day": "9996-02-29",
+      "description": "29 February into the calendar's last year",
+      "result": "9999-03-01",
+      "years": 3
+    },
+    {
+      "day": "9996-02-29",
+      "description": "beyond the calendar, from 29 February",
+      "result": "9999-12-31",
+      "years": 4
+    },
+    {
+      "day": "9999-01-01",
+      "description": "beyond the calendar",
+      "result": "9999-12-31",
+      "years": 1
+    },
+    {
+      "day": "9999-12-31",
+      "description": "beyond the calendar, from its last day",
+      "result": "9999-12-31",
+      "years": 1
+    },
+    {
+      "day": "2026-10-28",
+      "description": "the calendar's last year",
+      "result": "9999-10-28",
+      "years": 7973
+    },
+    {
+      "day": "2026-10-28",
+      "description": "one year beyond the calendar",
+      "result": "9999-12-31",
+      "years": 7974
+    },
+    {
+      "day": "2026-10-28",
+      "description": "far beyond the calendar",
+      "result": "9999-12-31",
+      "years": 1000000
+    }
+  ]
+}

@@ -269,7 +269,13 @@ def test_the_place_of_birth_and_the_licence_classes_have_parts() -> None:
         CatalogPart('locality', 'City or town', 'text'),
     )
     assert driving_privileges.parts == (
-        CatalogPart('classes', 'Licence classes', 'enum', 'licence_classes'),
+        CatalogPart(
+            'classes',
+            'Licence classes',
+            'enum',
+            'licence_classes',
+            multiple_values=True,
+        ),
         CatalogPart('issue_date', 'Issue date', 'date', per_licence_class=True),
         CatalogPart('expiry_date', 'Expiry date', 'date', per_licence_class=True),
     )
@@ -307,6 +313,33 @@ def test_only_the_dates_of_birth_are_worded_as_an_age() -> None:
         for field in document_type.fields
         if field.date_of_birth
     )
+
+
+def test_only_the_nationalities_and_the_licence_classes_hold_several_values() -> None:
+    # data-model.md, "Catalog: multiple_values" (research R9)
+    fields = [
+        (document_type.key, field.key)
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.multiple_values
+    ]
+    parts = [
+        (document_type.key, field.key, part.key)
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        for part in field.parts or ()
+        if part.multiple_values
+    ]
+
+    assert fields == [('pid', 'nationalities')]
+    assert parts == [('mdl', 'driving_privileges', 'classes')]
+    # A field made of parts declares it on its parts, and an image holds one picture
+    assert not [
+        field.key
+        for document_type in DOCUMENT_TYPES
+        for field in document_type.fields
+        if field.multiple_values and field.kind in ('image', 'parts')
+    ]
 
 
 def test_no_age_over_element_is_in_the_catalog() -> None:
