@@ -1111,6 +1111,60 @@ def test_a_save_overtaken_while_eudiplo_answers_is_refused_under_the_lock(
     assert current['documents'] == created['documents']
 
 
+# Rules that no applicant can meet (spec 003, FR-016, US1-AS7, SC-004)
+
+GERMAN_LICENCE = rule(
+    1,
+    target('mdl', 'nationality'),
+    {'operator': 'includes_one_of', 'values': ['DE']},
+    'Your driving licence must give German nationality.',
+)
+ITALIAN_LICENCE = rule(
+    2,
+    target('mdl', 'nationality'),
+    {'operator': 'includes_one_of', 'values': ['IT']},
+    'Your driving licence must give Italian nationality.',
+)
+
+
+def _with_licence_nationality() -> list[dict[str, Any]]:
+    documents = copy.deepcopy(FORM_CONNECTION['documents'])
+    documents[1]['fields'].append('nationality')
+    return documents
+
+
+def test_rules_that_no_applicant_can_meet_are_published_and_saved(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    # A driving licence gives one nationality, so no applicant meets both rules;
+    # the server neither checks for that nor refuses it (FR-016)
+    created = _create(
+        signed_in_client,
+        documents=_with_licence_nationality(),
+        rules=rules_input([main_branch([GERMAN_LICENCE, ITALIAN_LICENCE])]),
+    )
+
+    assert created['branches'][0]['items'] == [GERMAN_LICENCE, ITALIAN_LICENCE]
+    assert created['rule_set_version'] == 1
+    assert trigger(signed_in_client, created['id'])['reference']
+
+    # Saving them again, with another message, is accepted like any other save
+    italian = ITALIAN_LICENCE | {'message': 'You must hold an Italian licence.'}
+    saved = _put(
+        signed_in_client,
+        created,
+        name='Renamed',
+        rules=_edit_rules(created, [GERMAN_LICENCE, italian]),
+    )
+
+    assert saved['name'] == 'Renamed'
+    assert saved['rule_set_version'] == 2
+    assert saved['branches'][0]['items'] == [GERMAN_LICENCE, italian]
+    # Nothing about findings is stored or answered (FR-018, FR-019)
+    assert 'finding' not in str(saved).lower()
+    assert _get(signed_in_client, created['id']) == saved
+
+
 # Sign-in and CSRF
 
 

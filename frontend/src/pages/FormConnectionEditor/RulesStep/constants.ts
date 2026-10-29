@@ -206,4 +206,13 @@ export const RULES_COPY = {
   // A refused Publish or Save (F11), with the server's message
   refusedPublishTitle: 'Couldn’t publish',
   refusedSaveTitle: 'Couldn’t save',
+  // The findings summary's button (spec 003, S2; F3)
+  goToNextFinding: 'Go to next finding',
 };
+
+/**
+ * Spread last on a `KernAlert` that changes while the team member works, such as the findings
+ * summary: it drops the kit's `role="alert"`, which would read the whole alert out after every
+ * change. The kit's props leave `role` out, but it spreads the rest after its own
+ */
+export const WITHOUT_ALERT_ROLE = { role: undefined };

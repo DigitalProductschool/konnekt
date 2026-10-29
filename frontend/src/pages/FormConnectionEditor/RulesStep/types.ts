@@ -1,5 +1,6 @@
 import type { KeyboardEvent, ReactNode } from 'react';
 
+import type { ShownFinding } from '../../../components/FindingNote/types';
 import type { ToastContent } from '../../../components/Toast/types';
 import type {
   BranchInput,
@@ -11,6 +12,7 @@ import type {
 } from '../../../types/form-connections';
 import type { OptionSet } from '../../../types/option-sets';
 import type { PopupPlacement } from '../../../utils/popupPlacement';
+import type { BranchCheck, ItemNames } from '../../../utils/rules/checks/types';
 import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
 
 /** A branch in the rules step. `key` stays the same while the branch has no id yet */
@@ -183,6 +185,11 @@ export interface RulesStepProps {
   onRetry: () => void;
   state: RulesState;
   catalog: RulesCatalog;
+  /**
+   * The rule checks' result per branch key, from `useRuleChecks()` (spec 003): null while a
+   * branch hasn't been checked yet. The previous result stays until the next one arrives
+   */
+  checks: Record<string, BranchCheck | null>;
   /** Whether the connection is being edited, which some wording follows */
   editing: boolean;
   dispatch: (action: RulesAction) => void;
@@ -218,6 +225,11 @@ export interface RulesTreeView {
   documents: RuleDocument[];
   /** The open rule editor, shown in its rule's place or at the end of a new rule's level */
   ruleEditor: ReactNode;
+  /**
+   * The open branch's findings by item id, with their notes in the current names (spec 003,
+   * FR-011, FR-012). Removed, dissolved and faded items show none
+   */
+  findings: ReadonlyMap<string, ShownFinding>;
   dispatch: (action: RulesAction) => void;
   onAddRule: (parentId: string | null) => void;
   onEditRule: (ruleId: string) => void;
@@ -265,6 +277,8 @@ export interface RuleListItemProps {
   elementId: string;
   /** The rule's problem to point out: the refusal, or data no longer requested (F11) */
   flag: string | null;
+  /** Its finding of spec 003, or null; `flag` wins over it (W11) */
+  finding: ShownFinding | null;
   /** Whether its menu offers "Group with other rules": another rule shares its level */
   canGroup: boolean;
   /** In a removed or dissolved group: faded with it, without a menu */
@@ -369,6 +383,18 @@ export type RenameAction =
   | { type: 'reset'; value: string }
   | { type: 'change'; value: string }
   | { type: 'refuse'; error: string };
+
+/** The KERN alert of a branch's findings summary (F2) */
+export type SummaryVariant = 'warning' | 'info';
+
+export interface FindingsSummaryProps {
+  /** The shown branch's result, from `useRuleChecks()`; null while it hasn't been checked */
+  check: BranchCheck | null;
+  /** The shown branch, which the summary names */
+  branch: RulesBranch;
+  /** Its items' current names in display order, from `namesOf()` */
+  names: ItemNames;
+}
 
 export interface UnrequestedBannerProps {
   /** The rules that check data no longer requested, each with its branch's name */

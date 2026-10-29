@@ -11,6 +11,7 @@ import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useOptionSets } from '../../hooks/useOptionSets';
+import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
@@ -22,6 +23,7 @@ import ConnectionStep from './ConnectionStep';
 import { EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
+import FindingsAnnouncer from './FindingsAnnouncer';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
@@ -100,6 +102,14 @@ export default function FormConnectionEditorPage({
       optionSets,
     }),
     [documentTypes, state.documents, optionSets]
+  );
+  // The checks of every branch's rules, once the catalog and the value sets are loaded, in the
+  // create and the edit flow (FR-011; W14). The rule open in the editor counts as last saved:
+  // its draft isn't in the branches (FR-002; W15). Nothing waits for them (FR-016)
+  const ruleChecks = useRuleChecks(
+    rules.branches,
+    rulesStatus === 'loaded' ? ruleCatalog : null,
+    rules.openBranch
   );
   // A rule being edited counts as a rule (FR-006)
   const withoutRules = !rules.editing && !hasAnyRule(rules.branches);
@@ -432,6 +442,7 @@ export default function FormConnectionEditorPage({
             }}
             state={rules}
             catalog={ruleCatalog}
+            checks={ruleChecks.byBranch}
             editing={editing}
             dispatch={dispatchRules}
             onAddRule={(branchKey, parentId) => leaveEditor({ type: 'add', branchKey, parentId })}
@@ -515,6 +526,8 @@ export default function FormConnectionEditorPage({
           ) : (
             <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
           )}
+          {/* Outside the steps, so that it stays across a change of step (FR-015) */}
+          <FindingsAnnouncer announcement={ruleChecks.announcement} />
         </>
       }
     >

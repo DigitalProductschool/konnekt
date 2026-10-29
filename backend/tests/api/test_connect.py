@@ -35,6 +35,7 @@ from tests.helpers import (
     AGE_RULE,
     CLASS_RULE,
     DELIVERED_DOCUMENTS,
+    FORM_CONNECTION,
     HELD_3_YEARS_RULE,
     HELD_RULE,
     SHARED_CREDENTIALS,
@@ -46,9 +47,11 @@ from tests.helpers import (
     now,
     pull_url,
     requests_url,
+    rule,
     rules_input,
     share,
     stored_request,
+    target,
     trigger,
     update_form_connection,
     update_request,
@@ -1223,6 +1226,87 @@ def test_rules_added_to_a_live_connection_apply_to_new_requests(
         ('rule-2', 'met'),
         ('rule-3', 'not_met'),
     ]
+
+
+GERMAN_LICENCE = rule(
+    1,
+    target('mdl', 'nationality'),
+    {'operator': 'includes_one_of', 'values': ['DE']},
+    'Your driving licence must give German nationality.',
+)
+ITALIAN_LICENCE = rule(
+    2,
+    target('mdl', 'nationality'),
+    {'operator': 'includes_one_of', 'values': ['IT']},
+    'Your driving licence must give Italian nationality.',
+)
+
+
+def _licence_of(nationality: str) -> list[dict[str, Any]]:
+    """What the wallet shares for someone whose driving licence gives this
+    nationality."""
+    credentials = copy.deepcopy(SHARED_CREDENTIALS)
+    credentials[1]['values'][0]['nationality'] = nationality
+    return credentials
+
+
+def test_rules_that_no_applicant_can_meet_answer_not_met_for_every_applicant(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    # Spec 003, US1-AS7, FR-018, SC-004: the checks' findings change nothing that
+    # serviceBW receives; it gets spec 002's evaluation, not met
+    documents = copy.deepcopy(FORM_CONNECTION['documents'])
+    documents[1]['fields'].append('nationality')
+    form_connection_id = create_form_connection(
+        signed_in_client,
+        documents=documents,
+        rules=rules_input([main_branch([GERMAN_LICENCE, ITALIAN_LICENCE])]),
+    )
+    branch = {
+        'id': _main_branch_id(signed_in_client, form_connection_id),
+        'name': 'Standard',
+    }
+
+    for nationality, outcomes in (
+        ('DE', ('met', 'not_met')),
+        ('IT', ('not_met', 'met')),
+    ):
+        started = _completed(
+            signed_in_client,
+            fake_eudiplo,
+            form_connection_id,
+            _licence_of(nationality),
+        )
+
+        data = _pull(signed_in_client, form_connection_id, started['reference'])
+
+        # Delivered and completed like any other request, with exactly the keys of
+        # spec 002's integration contract, and nothing about findings
+        assert data.keys() == PullResponse.model_fields.keys()
+        assert data['status'] == 'completed'
+        assert data['documents'] is not None
+        not_met = [
+            item
+            for item, outcome in zip((GERMAN_LICENCE, ITALIAN_LICENCE), outcomes)
+            if outcome == 'not_met'
+        ]
+        assert data['evaluation'] == {
+            'branch': branch,
+            'met': False,
+            'results': [
+                {
+                    'id': item['id'],
+                    'type': 'rule',
+                    'name': item['name'],
+                    'group': None,
+                    'outcome': outcome,
+                }
+                for item, outcome in zip((GERMAN_LICENCE, ITALIAN_LICENCE), outcomes)
+            ],
+            'messages': [
+                {'id': item['id'], 'message': item['message']} for item in not_met
+            ],
+        }
 
 
 def test_an_evaluation_that_fails_hands_nothing_over(

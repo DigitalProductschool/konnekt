@@ -1,6 +1,8 @@
 import { statementOf, statementPartsOf } from '../../utils/rules/statements';
 import BranchMark from '../BranchMark';
 import { BRANCH_MARK_TINTS, INACTIVE_OPACITY } from '../BranchMark/constants';
+import FindingNote from '../FindingNote';
+import { FINDING_LOOKS, FINDING_NOTE_ID_SUFFIX } from '../FindingNote/constants';
 import ProblemNote from './ProblemNote';
 import RuleMessage from './RuleMessage';
 import RuleName from './RuleName';
@@ -15,7 +17,9 @@ import type { RuleRowProps } from './types';
  * 6197:10704; F11). In a variant based on Standard, its mark shows left of the ⋯ (FR-023): a
  * changed or added rule is tinted (U17 6134:9009, 6134:9064), a removed one faded and struck
  * through (U18 6163:5856). A flagged row that takes the focus, after a refused Publish, is
- * described by its problem.
+ * described by its problem. In the Rules step, a rule with a finding of spec 003 is outlined in
+ * the finding's colour with its note under it, and described by the note (S2; FR-012; F4; U01
+ * 6171:7008, 6171:7022). Its branch mark stays beside it; a problem wins over a finding (W11).
  */
 export default function RuleRow({
   id,
@@ -24,6 +28,7 @@ export default function RuleRow({
   nameSlot,
   showIdentifier = false,
   flag,
+  finding = null,
   actions,
   mark = null,
   faded = false,
@@ -33,19 +38,25 @@ export default function RuleRow({
     statementOf(rule, context)?.text ?? (parts ? `${parts.document} – ${parts.data}` : '');
   const message = rule.message.trim();
   const tint = mark ? BRANCH_MARK_TINTS[mark] : '';
-  const framed = Boolean(flag || tint);
+  // A rule with a problem carries no finding (W11)
+  const shownFinding = flag ? null : finding;
+  const framed = Boolean(flag || tint || shownFinding);
   const removed = mark === 'removed';
   const problemId = flag && id ? `${id}-problem` : undefined;
-  const frame = [
-    'rounded-kern-default',
-    tint || 'bg-kern-layout-background-default',
-    flag ? 'border-kern-feedback-danger border' : '',
-  ].join(' ');
+  const findingId = shownFinding && id ? `${id}${FINDING_NOTE_ID_SUFFIX}` : undefined;
+  const outline = flag
+    ? 'border-kern-feedback-danger border'
+    : shownFinding
+      ? `${FINDING_LOOKS[shownFinding.kind].outline} border`
+      : '';
+  const frame = ['rounded-kern-default', tint || 'bg-kern-layout-background-default', outline].join(
+    ' '
+  );
   return (
     <div
       id={id}
       tabIndex={id ? -1 : undefined}
-      aria-describedby={problemId}
+      aria-describedby={problemId ?? findingId}
       className={`focus-visible:outline-kern-action-focus-default focus-visible:outline-4 focus-visible:-outline-offset-4 ${framed ? 'px-8' : ''}`}
     >
       <div className={framed ? frame : undefined}>
@@ -75,6 +86,9 @@ export default function RuleRow({
           )}
         </div>
         {flag && <ProblemNote id={problemId} message={flag} />}
+        {shownFinding && (
+          <FindingNote id={findingId} kind={shownFinding.kind} text={shownFinding.text} />
+        )}
       </div>
     </div>
   );

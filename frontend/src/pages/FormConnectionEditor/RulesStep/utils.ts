@@ -22,6 +22,7 @@ import {
   setBranchOperator,
   ungroupInBranch,
 } from '../../../utils/rules/branches';
+import type { BranchCheck } from '../../../utils/rules/checks/types';
 import { MAX_BRANCHES, RULES_MESSAGES } from '../../../utils/rules/constants';
 import { deleteItem, findItem, flattenItems, newRule, numberOfId } from '../../../utils/rules/tree';
 import { variantNameProblem } from '../../../utils/rules/validation';
@@ -35,6 +36,7 @@ import type {
   RulesSelection,
   RulesState,
   RulesUndo,
+  SummaryVariant,
   SwitchedLevel,
   VariantForm,
   VariantFormAction,
@@ -104,6 +106,42 @@ export function focusSoon(id: string, fallbackId?: string, onlyIfLost = false) {
       document.getElementById(id) ?? (fallbackId ? document.getElementById(fallbackId) : null);
     element?.focus();
   });
+}
+
+/**
+ * The look of a branch's findings (S2; F2; FR-019): KERN's warning when the branch has a conflict
+ * or no applicant can meet it, its info look otherwise, an incomplete check without a certain
+ * finding included (W12).
+ */
+export function summaryVariantOf(check: BranchCheck): SummaryVariant {
+  const conflict = check.findings.some((finding) => finding.kind === 'conflicting');
+  return conflict || check.notice?.kind === 'none_can_meet' ? 'warning' : 'info';
+}
+
+/**
+ * The rule or group that "Go to next finding" visits next (S2; F3; FR-013): the first of
+ * `targets`, the items with a finding in display order, that comes after `last`, the item it
+ * visited before, or the first one again after the last (or without `last`). `order` is every
+ * item of the branch in display order, which places a `last` that no longer has a finding. Null
+ * without targets (W16).
+ */
+export function nextFindingTarget(
+  targets: readonly string[],
+  order: readonly string[],
+  last: string | null
+): string | null {
+  if (targets.length === 0) {
+    return null;
+  }
+  const at = last === null ? -1 : targets.indexOf(last);
+  if (at >= 0) {
+    return targets[(at + 1) % targets.length];
+  }
+  const place = last === null ? -1 : order.indexOf(last);
+  if (place < 0) {
+    return targets[0];
+  }
+  return targets.find((target) => order.indexOf(target) > place) ?? targets[0];
 }
 
 /** The items of a level of a branch: a group's members, or the top level for null. */

@@ -408,6 +408,159 @@ export interface RuleChecks {
   announcement: string;
 }
 
+// The run state (data-model.md, "A check run: lifecycle"; research R10): the pure reducer of
+// `runState.ts` behind `useRuleChecks()`
+
+/** The causes of a change that the hook dispatches; `'first'` follows from a branch's history */
+export type ChangeCause = Exclude<CheckCause, 'first'>;
+
+/** A run of the worker over the branches without a cached result */
+export interface CheckRun {
+  runId: number;
+  /** The change's time, in milliseconds of `performance.timeOrigin + performance.now()` */
+  startedAt: number;
+  /** The branches to check, in the order to check them: the shown branch first, then tab order */
+  branchKeys: string[];
+}
+
+/** One branch as a change hands it to the run state */
+export interface RunBranch {
+  /** Its key and current name */
+  branch: NamedBranch;
+  /** Its current names, from `namesOf()` */
+  names: ItemNames;
+  /** Its checked tree, from `buildCheckedBranch()` */
+  checked: CheckedBranch;
+}
+
+/** The run state's record of one current branch */
+export interface BranchRun extends RunBranch {
+  /** Pending while its fingerprint's result isn't there yet */
+  status: 'pending' | 'done';
+  /** The cause of the change that gave the branch its fingerprint */
+  cause: ChangeCause;
+}
+
+/** The results that a change with an earlier fingerprint, such as an undo, reuses at once */
+export interface ResultCache {
+  /** The latest `done` result per branch key, complete or not */
+  latest: Record<string, BranchCheck>;
+  /**
+   * Earlier complete results, one per fingerprint, the oldest first, at most
+   * `MAX_EARLIER_RESULTS`
+   */
+  earlier: BranchCheck[];
+}
+
+/** The state of `useRuleChecks()` */
+export interface RunState {
+  /** The current branches, in tab order */
+  branches: BranchRun[];
+  /** The key of the branch shown, for the order of a run and the announcements' wording */
+  shownBranchKey: string;
+  /** `RuleChecks.byBranch`: per current branch, the result to show */
+  byBranch: Record<string, BranchCheck | null>;
+  /** The run the worker is busy with, or null */
+  run: CheckRun | null;
+  /** The id of the next run */
+  nextRunId: number;
+  cache: ResultCache;
+  /** `RuleChecks.announcement` */
+  announcement: string;
+}
+
+/** A change of the branches or of their context (FR-011), or a new day in Germany */
+export interface ChangeAction {
+  type: 'change';
+  /** Every branch, in tab order */
+  branches: RunBranch[];
+  shownBranchKey: string;
+  cause: ChangeCause;
+  /** The change's time, in milliseconds of `performance.timeOrigin + performance.now()` */
+  now: number;
+}
+
+/** Another branch is shown: no run, only the next run's order and the announcements' wording */
+export interface ShowAction {
+  type: 'show';
+  shownBranchKey: string;
+}
+
+/** The worker posted a branch's result (`ResultMessage`) */
+export interface ResultAction {
+  type: 'result';
+  runId: number;
+  check: BranchCheck;
+}
+
+/**
+ * A run ended: the worker posted `'done'`, the watchdog fired, or the worker couldn't be created
+ * or reported an error. Its branches still pending are done, incomplete, with no findings
+ */
+export interface RunEndAction {
+  type: 'done' | 'watchdog' | 'failed';
+  runId: number;
+}
+
+/** What the run state's reducer takes, discriminated by `type` */
+export type RunAction = ChangeAction | ShowAction | ResultAction | RunEndAction;
+
+// The finding texts (research R12): what `findingMessages.ts` reads besides the results
+
+/**
+ * The current names of a branch's rules, groups and sub-groups, by id, in display order (a `Map`
+ * keeps the order it is filled in). Built from the current tree with `namesOf()`, so that a rename
+ * shows at once (FR-011)
+ */
+export type ItemNames = ReadonlyMap<string, string>;
+
+/** A branch as the finding texts name it */
+export interface NamedBranch {
+  /** `RulesBranch.key` of the rules step */
+  key: string;
+  /** Its current name: "Standard" until the main branch is renamed */
+  name: string;
+}
+
+/** A finding that appeared, or whose reason changed with its kind unchanged (FR-015) */
+export interface FindingAppeared {
+  type: 'appeared';
+  branch: NamedBranch;
+  /** The new finding */
+  finding: ItemFinding;
+}
+
+/** A finding that went, worded with its previous reason (FR-015) */
+export interface FindingGone {
+  type: 'gone';
+  branch: NamedBranch;
+  /** The previous finding */
+  finding: ItemFinding;
+}
+
+/** A branch notice that appeared, announced with its own text (FR-015) */
+export interface NoticeAppeared {
+  type: 'notice';
+  branch: NamedBranch;
+  notice: BranchNotice;
+}
+
+/**
+ * A change between a branch's previous result and its new one, which `announcementOf()` words
+ * (data-model.md, "Announcements"), discriminated by `type`
+ */
+export type FindingChange = FindingAppeared | FindingGone | NoticeAppeared;
+
+/** What `announcementsFor()` words a branch's changes with */
+export interface AnnouncementContext {
+  /** The branch whose results are compared, by its current name */
+  branch: NamedBranch;
+  /** Its current names, from `namesOf()`, which also give the display order */
+  names: ItemNames;
+  /** The key of the branch shown: a finding in another branch names its variant */
+  shownBranch: string;
+}
+
 // The theories (research R5, R6, R7): one module per kind decides the literals of one variable,
 // for the solver, which picks the theory by `Variable.kind`
 

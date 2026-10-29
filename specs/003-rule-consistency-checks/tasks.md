@@ -336,7 +336,7 @@ that publishing stays possible.
 
 ### Logic for User Story 1 (with Vitest)
 
-- [ ] T020 [US1] Write `checks/findings.ts` with `findings.test.ts`: `checkBranch(checked, { deadline, now })`, research R8's steps 1, 2 and 5 (depends on T017, T019; FR-003, FR-004, FR-008, FR-010; research R4, R8; contracts/rule-checks.md "checkBranch").
+- [X] T020 [US1] Write `checks/findings.ts` with `findings.test.ts`: `checkBranch(checked, { deadline, now })`, research R8's steps 1, 2 and 5 (depends on T017, T019; FR-003, FR-004, FR-008, FR-010; research R4, R8; contracts/rule-checks.md "checkBranch").
   - Step 1: can the branch be met today? If not, it gets the notice `none_can_meet`, with `today: true` when a later day, up to 9999-12-31, could meet it (FR-004, FR-008).
   - Step 2, for every item, top-down: X is conflicting when it belongs to a minimal set of A(X) ∪ {X} that can't be met today. A(X) is X's AND-context along the path to the top level; its OR-alternatives play no part (research R4).
     - The candidates for T are the items of A(X) that share a variable with X, directly or through other candidates. Items that can't be met on their own never join T, because T must be meetable (FR-003's last sentence).
@@ -355,7 +355,7 @@ that publishing stays possible.
     - deterministic for equal fingerprints, with no side effects and no logging;
     - returned no later than the deadline plus one theory step.
   - `findings.test.ts`: each reason type; the `today` flag; the deadline with a fake clock (`complete: false`, with the certain findings kept); determinism.
-- [ ] T021 [P] [US1] Write `checks/findingMessages.ts` with `findingMessages.test.ts`, the texts of conflicts (depends on T001, T008; FR-004, FR-008, FR-010, FR-012 to FR-015; research R12; contracts/ui-screens.md "Copy").
+- [X] T021 [P] [US1] Write `checks/findingMessages.ts` with `findingMessages.test.ts`, the texts of conflicts (depends on T001, T008; FR-004, FR-008, FR-010, FR-012 to FR-015; research R12; contracts/ui-screens.md "Copy").
   - `noteOf(finding, names)`:
     - "Conflicting. Can't be met together with <items>.", and with FR-008, "… with <items> by applicants who share today.";
     - "Conflicting. <items> in this group can't be met together.";
@@ -369,7 +369,7 @@ that publishing stays possible.
   - `announcementOf(change, names, shownBranch)` for conflicts: "Rule 02 conflicts with Rule 01.", "Rule 02 no longer conflicts with Rule 01.", a new notice's own text, and the wording for groups and for other branches from design-notes.md.
   - Lists read "Rule 02, Rule 03 and Rule 04" (W3). Names come from `names`, the current tree's, so a rename shows at once (FR-011).
   - This module is the only place where finding texts are written. Its tests pin every wording above, F1's U01 text "2 conflicting rules: nobody can meet both Rule 01 and Rule 02. No applicant can meet the rules of Standard.", and the texts taken from design-notes.md.
-- [ ] T022 [US1] Write `checks/scenarios.test.ts` with the conflicts of the spec (depends on T020, T021). Each case builds its branch with `testData.ts`' helpers, sets today to 2026-10-28, runs `buildCheckedBranch()` and `checkBranch()`, and asserts the exact findings and their `noteOf()` texts.
+- [X] T022 [US1] Write `checks/scenarios.test.ts` with the conflicts of the spec (depends on T020, T021). Each case builds its branch with `testData.ts`' helpers, sets today to 2026-10-28, runs `buildCheckedBranch()` and `checkBranch()`, and asserts the exact findings and their `noteOf()` texts.
   - US1-AS1 and AS2.
   - US1-AS3 at the top level, in a group and in a sub-group, with the group's `members` note.
   - US1-AS4.
@@ -382,17 +382,17 @@ that publishing stays possible.
   - EC "Fields that describe the same fact" and EC "Unlikely values": no finding.
   - EC "Rules with problems" (W11): left out, and not counted in `checkedRules`.
   - Quickstart V4's conflict rows.
-- [ ] T023 [P] [US1] Write `checks/oracle.test.ts` for conflicts and the unmeetable branch (depends on T018, T020; SC-001; research R13). Over a thousand seeded branches of T018 to start with, assert that:
+- [X] T023 [P] [US1] Write `checks/oracle.test.ts` for conflicts and the unmeetable branch (depends on T018, T020; SC-001; research R13). Over a thousand seeded branches of T018 to start with, assert that:
   - every reported conflicting finding holds: its T can be met today, T ∧ X can't, and `today` matches whether a later day of the window can meet them;
   - with `complete` true, every conflicting item has its finding;
   - the notice `none_can_meet` appears exactly when no applicant can meet the branch today.
   T037 raises the number of seeds.
-- [ ] T024 [US1] Write `checks/announcements.ts` with `announcements.test.ts`: `announcementsFor(previous, next, cause)` (depends on T021; FR-015; data-model.md "Announcements"; contracts/rule-checks.md).
+- [X] T024 [US1] Write `checks/announcements.ts` with `announcements.test.ts`: `announcementsFor(previous, next, cause)` (depends on T021; FR-015; data-model.md "Announcements"; contracts/rule-checks.md).
   - Only the cause `'action'` returns anything. `'first'` (a branch's first result) and `'new_day'` return nothing.
   - Per branch, it compares the previous done result with the new one. It yields, in display order and with `announcementOf()`'s texts: a conflicting finding appearing or going, and a notice appearing.
   - "A finding that changes kind counts as one going and one appearing. Disappearances are announced only when the new result is `complete`."
   - Tests: each change; `'first'` and `'new_day'`; no disappearance after an incomplete result.
-- [ ] T025 [US1] Write `checks/runState.ts` with `runState.test.ts`, the hook's pure reducer (depends on T024; research R10; data-model.md "A check run: lifecycle").
+- [X] T025 [US1] Write `checks/runState.ts` with `runState.test.ts`, the hook's pure reducer (depends on T024; research R10; data-model.md "A check run: lifecycle").
   - Per branch key:
     - none → pending on a change with a new fingerprint → done (complete or incomplete) when its result is posted;
     - a deadline or the watchdog turns the branches still pending into done, incomplete, with no findings;
@@ -403,13 +403,13 @@ that publishing stays possible.
   - If the worker can't start, or reports an error, every branch with checked rules is done, incomplete, with no findings, so FR-010's sentence stands alone.
   - It keeps the latest announcement, from `announcementsFor()` with the change's cause.
   - Tests: every transition; an undo answered from the cache; stale messages; pending results without gone items; the cache's limit; a deleted branch; a worker failure.
-- [ ] T026 [P] [US1] Write the worker's entry, `checks/worker.ts` (depends on T020; research R10, R15; contracts/rule-checks.md "Worker protocol").
+- [X] T026 [P] [US1] Write the worker's entry, `checks/worker.ts` (depends on T020; research R10, R15; contracts/rule-checks.md "Worker protocol").
   - On `{ type: 'check', runId, deadline, branches }`, it calls `checkBranch()` for each branch in the order given, with `deadline` and the clock `performance.timeOrigin + performance.now()`.
   - It posts `{ type: 'result', runId, check }` as each branch finishes, then `{ type: 'done', runId }`.
   - It holds no state between messages, logs nothing, and imports only `checks/` modules.
   - It types the worker's global scope with a minimal local interface, instead of adding the `WebWorker` library to `tsconfig.app.json`, which conflicts with `DOM` (research R15).
   - It is glue code, covered by lint, build and the quickstart, so it has no test file.
-- [ ] T027 [US1] Write `frontend/src/hooks/useRuleChecks.ts`: `useRuleChecks(branches, context, shownBranchKey): RuleChecks` (depends on T017, T025, T026; FR-010, FR-011; W14; research R10; contracts/rule-checks.md "useRuleChecks"). Local types go in `frontend/src/hooks/types.ts`, and helpers without React in `frontend/src/hooks/utils.ts`.
+- [X] T027 [US1] Write `frontend/src/hooks/useRuleChecks.ts`: `useRuleChecks(branches, context, shownBranchKey): RuleChecks` (depends on T017, T025, T026; FR-010, FR-011; W14; research R10; contracts/rule-checks.md "useRuleChecks"). Local types go in `frontend/src/hooks/types.ts`, and helpers without React in `frontend/src/hooks/utils.ts`.
   - It starts once the catalog and the value sets are loaded, in the create and in the edit flow. In the edit flow, it checks the published rules when the rules step opens (W14).
   - After every change of `branches` or of `context`, including the documents step's (FR-011):
     - it builds each branch's checked tree on the main thread (`buildCheckedBranch()`), and dispatches the change to `runState`. It loads `checks/checkedTree.ts` with a dynamic `import()` when it starts, never statically: the checked tree reaches `checks/caseFolding.ts` through `literals.ts` and `text.ts`, so a static import would put the case-folding table in the main bundle (decision 2026-10-29, option 1 of the bundle review). Until the module has loaded, no branch counts as checked;
@@ -424,18 +424,18 @@ that publishing stays possible.
     - it is terminated on unmount.
   - The hook never blocks rendering, and nothing waits for it (FR-010, FR-016).
   - Check that `npm run build` emits the worker as a chunk of its own under `dist/assets/`, and keeps the solver and the case-folding table out of the main bundle (research R10, R15).
-- [ ] T028 [P] [US1] Test that findings change nothing on the server (FR-016, FR-018; US1-AS7; SC-004). No application code changes.
+- [X] T028 [P] [US1] Test that findings change nothing on the server (FR-016, FR-018; US1-AS7; SC-004). No application code changes.
   - In `backend/tests/api/test_form_connection_rules.py`: publishing, and then saving, a connection whose main branch no applicant can meet (the driving licence's "Nationality includes one of Germany" AND "… of Italy") is accepted like any other.
   - In `backend/tests/api/test_connect.py`: a completed request's pull answers the evaluation "not met" for that branch, in the shape of spec 002's integration contract, with nothing about findings.
 
 ### UI for User Story 1
 
-- [ ] T029 [P] [US1] Build `frontend/src/components/FindingNote/` (`index.tsx`, `types.ts`, `constants.ts`), the note under a rule or group header (depends on T002; S2; F4, F5; FR-012, FR-019; Figma U01 `6171:7010`, `6171:7024`, U04 `6178:8216`, in the layout of spec 002's `Rules/Problem note` `6110:3657`).
+- [X] T029 [P] [US1] Build `frontend/src/components/FindingNote/` (`index.tsx`, `types.ts`, `constants.ts`), the note under a rule or group header (depends on T002; S2; F4, F5; FR-012, FR-019; Figma U01 `6171:7010`, `6171:7024`, U04 `6178:8216`, in the layout of spec 002's `Rules/Problem note` `6110:3657`).
   - Props: the note's `id`, the finding's `kind`, and its `text` from `noteOf()`.
   - Conflicting: KERN's warning colour and warning triangle icon. Redundant and always met: KERN's info colour and info icon. Use the icon classes and the text colours that T002 settled.
   - The icon is `aria-hidden`, since the text starts with the kind. Spec 002's `ProblemNote` stays as it is.
   - Visual check against the three nodes, listing F4's colours and icons and F5's kind prefix as prescribed differences.
-- [ ] T030 [US1] Give the shared `RuleRow` and `GroupFrame` an optional `finding` prop, in `frontend/src/components/RuleRow/` and `frontend/src/components/GroupFrame/` (`index.tsx`, `types.ts`, and `GroupHeader.tsx` as needed) (depends on T029; S2, S6; F4, F6; FR-012, FR-020; research R11; Figma U01 outlines `6171:7008`, `6171:7022`; U02 outline `6171:7487`, sub-group frame `6171:7091` and header `6171:7093`).
+- [X] T030 [US1] Give the shared `RuleRow` and `GroupFrame` an optional `finding` prop, in `frontend/src/components/RuleRow/` and `frontend/src/components/GroupFrame/` (`index.tsx`, `types.ts`, and `GroupHeader.tsx` as needed) (depends on T029; S2, S6; F4, F6; FR-012, FR-020; research R11; Figma U01 outlines `6171:7008`, `6171:7022`; U02 outline `6171:7487`, sub-group frame `6171:7091` and header `6171:7093`).
   - `finding?: { kind, text }`:
     - the row, or the group, is outlined in the finding's colour, with the drawn outline's width and radius;
     - its `FindingNote` sits under the row, or under the group's header;
@@ -444,7 +444,7 @@ that publishing stays possible.
   - A branch mark ("Changed here", "New addition") shows beside a finding (US3-AS5).
   - The details (`frontend/src/pages/FormConnectionDetail/`) never pass `finding` (S6; FR-020).
   - Visual check of a conflicting rule and a conflicting sub-group, listing F4 and F6.
-- [ ] T031 [US1] Check the rules in the editor, and mark each rule and group in the Rules step (depends on T021, T027, T030; S2, S3, S7; F4, F5, F6, F8, W1, W2, W3, W5, W11, W14, W15; FR-002, FR-011, FR-012, FR-016; Figma U01 `6171:6749`, U02 `6171:7064`). Files: `frontend/src/pages/FormConnectionEditor/index.tsx`, `RulesStep/index.tsx`, `RulesStep/TreeItem.tsx`, `RulesStep/RuleListItem.tsx`, `RulesStep/GroupListItem.tsx` and `RulesStep/types.ts`.
+- [X] T031 [US1] Check the rules in the editor, and mark each rule and group in the Rules step (depends on T021, T027, T030; S2, S3, S7; F4, F5, F6, F8, W1, W2, W3, W5, W11, W14, W15; FR-002, FR-011, FR-012, FR-016; Figma U01 `6171:6749`, U02 `6171:7064`). Files: `frontend/src/pages/FormConnectionEditor/index.tsx`, `RulesStep/index.tsx`, `RulesStep/TreeItem.tsx`, `RulesStep/RuleListItem.tsx`, `RulesStep/GroupListItem.tsx` and `RulesStep/types.ts`.
   - The editor page calls `useRuleChecks(rules.branches, …, rules.openBranch)` once, with the requested documents (`requestedRuleDocuments()`) and the value sets, and passes `byBranch` to the Rules step.
   - Each item finds its `ItemFinding` by id, turns it into the note's text with `noteOf()` and the current names (FR-011), and passes it to `RuleRow` or `GroupFrame`. Items left out or removed get none.
   - The rule editor (`RulesStep/RuleEditor/`) shows nothing about findings, and the rule open in it counts as last saved (S3; W15).
@@ -455,7 +455,7 @@ that publishing stays possible.
     - U01's notes `6171:7010` and `6171:7024`;
     - U02's notes `6171:7490` and `6171:7500`;
     - U02's Sub-group 01 `6171:7093`, with F6's note "Conflicting. Rule 04 and Rule 05 in this group can't be met together.".
-- [ ] T032 [US1] Build `RulesStep/FindingsSummary.tsx`, the summary above the rules (depends on T031; S2; F1, F2, F3, W5, W12, W13, W16; FR-004, FR-008, FR-010, FR-013; research R11; Figma U01 `6616:44378`, U02 `6616:44400`).
+- [X] T032 [US1] Build `RulesStep/FindingsSummary.tsx`, the summary above the rules (depends on T031; S2; F1, F2, F3, W5, W12, W13, W16; FR-004, FR-008, FR-010, FR-013; research R11; Figma U01 `6616:44378`, U02 `6616:44400`).
   - It is a `KernAlert` where the alerts are drawn: `warning` when the branch has a conflict or no applicant can meet it, `info` otherwise. Its text comes from `summaryOf()`.
   - "Go to next finding" (KERN tertiary, F3):
     - each press scrolls the next rule or group with a finding, in display order (the order of `findings`, research R2), into view, and moves the focus to its row (`ELEMENT_IDS.rule()`) or group header. After the last one, it starts over;
@@ -466,7 +466,7 @@ that publishing stays possible.
   - There is no summary for a branch whose `checkedRules` is 0 (W13), or for a branch that hasn't been checked yet.
   - W5's notice "No applicant who shares today can meet the rules of Standard." goes in the warning alert.
   - Visual check of U01 `6616:44378` and U02 `6616:44400`, listing F1's wording, F2's colours and F3's button. Check F3's cycle in U01: Rule 01 `6171:6762` → Rule 02 `6171:6765`.
-- [ ] T033 [US1] Build `frontend/src/pages/FormConnectionEditor/FindingsAnnouncer.tsx`, the status region (depends on T027; S2; W1; FR-015; research R11).
+- [X] T033 [US1] Build `frontend/src/pages/FormConnectionEditor/FindingsAnnouncer.tsx`, the status region (depends on T027; S2; W1; FR-015; research R11).
   - It is one visually hidden (`sr-only`), polite `role="status"` region. The editor page renders it outside the steps, beside the toast in `WizardLayout`'s `overlay`, so that it outlives a change of step.
   - It shows `announcement`, with the sentences of one change together, and never takes the focus.
   - Check with a screen reader that causing and removing U01's conflict announces "Rule 02 conflicts with Rule 01." and "Rule 02 no longer conflicts with Rule 01.", while the focus stays where it was (quickstart V7).

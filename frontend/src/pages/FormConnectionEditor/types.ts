@@ -224,3 +224,8 @@ export interface EditorFooterProps {
   /** "Publish" or "Save", or "… without rules" */
   onPublish: () => void;
 }
+
+export interface FindingsAnnouncerProps {
+  /** The latest change's announcement from `useRuleChecks()`, empty before the first one */
+  announcement: string;
+}

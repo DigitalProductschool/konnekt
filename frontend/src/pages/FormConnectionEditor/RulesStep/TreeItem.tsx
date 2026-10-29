@@ -11,7 +11,8 @@ import { problemFlagOf } from './utils';
  * An item of the open branch's tree: a rule, or the rule editor in its place, or a group with
  * its members. In select mode, the rules of the chosen level get their box (U16), except removed
  * ones. A rule a based variant inherits unchanged isn't flagged there for data no longer
- * requested: Standard's rule is (FR-006).
+ * requested: Standard's rule is (FR-006). A rule with a finding of spec 003 gets its note, unless
+ * it is removed or faded with its group, which the checks leave out (FR-001, FR-012).
  */
 export default function TreeItem({
   view,
@@ -66,6 +67,7 @@ export default function TreeItem({
         view={view}
         elementId={ELEMENT_IDS.rule(branch.key, item.id)}
         flag={flag}
+        finding={faded || removed ? null : (view.findings.get(item.id) ?? null)}
         canGroup={canGroup}
         faded={faded}
       />
