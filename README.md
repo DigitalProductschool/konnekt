@@ -66,7 +66,7 @@ mismatch between the packages is the most likely cause of visual breakage.
 │   ├── pyproject.toml    # Python dependencies + ruff/mypy/pytest config
 │   ├── .python-version   # Pins the interpreter uv provisions (3.13)
 │   └── uv.lock          # Lock file for dependencies
-├── docs/                  # Architecture, EUDIPLO and KERN docs
+├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
 ├── specs/                 # Specification, plan and tasks (Spec Kit)
 ├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint)
 └── docker-compose.yml     # Local development

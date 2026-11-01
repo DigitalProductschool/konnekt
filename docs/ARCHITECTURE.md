@@ -70,7 +70,7 @@ dps-react-python-template/
 │   ├── eslint.config.mjs  # ESLint 9 flat config
 │   └── .prettierrc        # Prettier formatting rules
 ├── backend/               # FastAPI API (SQLAlchemy + Alembic)
-├── docs/                  # Architecture, EUDIPLO and KERN docs
+├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
 ├── specs/                 # Feature specification, plan, contracts and tasks (Spec Kit)
 ├── .pre-commit-config.yaml # Git hook definitions (both stacks)
 ├── .dockerignore          # Applies to both image builds (context is the repo root)
@@ -156,13 +156,36 @@ frontend/
   only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
   components read it with `useCurrentUser()`
+- **Layouts**: signed-in screens render inside `RequireSignIn` and `AppLayout`, whose top
+  bar is sticky. The create wizard (`/form-connections/new`, and `/get-started` through
+  `pages/FirstConnection/`), editing (`/form-connections/:id/edit`, through
+  `pages/FormConnectionEdit/`) and the details (`/form-connections/:id`, the wizard's last
+  screen in Figma) render their own `WizardLayout` instead, in every state, loading and
+  errors included: a header with a title, a 1120 px column and an action bar. It fills the
+  window and scrolls only the step between header and action bar; from the `split:` variant
+  (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays put
+  too. Modal dialogs and toasts render in its `overlay`, outside the scrolling area. The
+  signed-out screens (`/login`, `/forgot-password`) render inside `RequireSignedOut` and
+  `AuthLayout`
+- **Titles**: every page sets its tab title with `useDocumentTitle()` and has one `h1`:
+  `PageTitle` on signed-in screens, except the loaded details, whose header title is the
+  `h1` (`titleAsHeading`), and the intro's headline in `AuthLayout` on signed-out ones
+- **Popups**: menus, popovers and tooltips open to the side where they fit.
+  `placementFrom()` in `src/utils/popupPlacement.ts`, called in the event that opens them,
+  picks `start`, `end` or `full` (across the rules card or the page, below the control);
+  the component maps it to a set of Tailwind classes, and the wrapper takes
+  `popupWrapperClass()`. A fixed-width popup anchored with `left-0` or `right-0` alone runs
+  off the screen at 320 px and 200 % zoom
 - KERN design system: `index.css` imports Tailwind, KERN's fonts, `kern.css` and the
   KERN Tailwind theme, in that order. The React kit's own stylesheet is not imported,
   because it bundles an older KERN whose rules override KERN 2.8 (`docs/KERN-DESIGN-SYSTEM.md`
   §2). `index.css` also keeps KERN's adaptive type at its small-screen values on every
-  width, as the Figma design uses it, adds the shadow tokens KERN lacks, and shows the
-  focus ring of KERN's buttons for keyboard focus only (`kern.css` draws it on any
-  `:focus`, so also after a click; `docs/KERN-DESIGN-SYSTEM.md` §7)
+  width, as the Figma design uses it, and shows the focus ring of KERN's buttons and
+  checkboxes for keyboard focus only (`kern.css` draws it on any `:focus`, so also after a
+  click; `docs/KERN-DESIGN-SYSTEM.md` §7). Its `@theme` adds the tokens KERN lacks: the
+  shadows (`shadow-card`, `shadow-menu`, `shadow-chip`, `shadow-toast`) and the variant
+  marks' `variant-changed` and `variant-new` colours (spec 002). With the KERN Tailwind
+  theme, numeric utilities are pixels (`p-16` is 16px)
 - Light only, as the Figma design has no dark variant: `index.html` pins KERN's light
   theme with `data-kern-theme="light"` on `<html>`, which `kern.css` would otherwise
   switch to dark with the browser's preference, and `index.css` sets
@@ -221,7 +244,7 @@ backend/
 ├── scripts/              # Developer scripts, not in the production image:
 │                         # issue_test_credentials/ issues test documents to a wallet,
 │                         # export_check_fixtures.py writes the rule checks' fixtures
-├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, api/, unit/
+├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, helpers.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
 └── uv.lock               # Fully resolved dependency pins
@@ -246,6 +269,13 @@ backend/
 - Outside development the backend refuses to start unless `CONNECTION_BASE_URL`
   is set and uses `https://` (or `ALLOW_PLAIN_HTTP=true`): the connection URLs
   that DO.IT copies into serviceBW are built from it.
+- Developer scripts live in `scripts/` and run with `uv run python -m scripts.<name>`.
+  They aren't in the production image, so they may use `dev` dependencies such as
+  Faker, and `app/` never imports them. They may import `app.catalog` and other
+  modules without side effects, but not `app.config`, which checks the middleware's
+  settings at import. `issue_test_credentials` issues test documents with an EUDIPLO
+  client of its own, since the middleware has no issuance role, and prints the fake
+  person's data, which the app never does.
 
 ### Sign-in (DO.IT team members)
 
@@ -279,6 +309,17 @@ that ID (see Error Handling). It never logs
 tokens, secrets, response bodies or session credentials; a validation error, which
 would quote the body, is replaced by a terse one. Tests swap in a client with an
 `httpx2.MockTransport` (`tests/fake_eudiplo.py`).
+
+**Transactions around EUDIPLO calls**: no database connection is held while EUDIPLO
+answers. A service ends its read transaction before the call and opens a new one
+afterwards. If what happens next depends on a row, it locks the row then
+(`db.refresh(row, with_for_update=True)`) and checks its state again, because the worker
+or another request may have changed it meanwhile: `apply_status()` in
+`services/document_requests.py` and the pull do this. A number that must stay unique is
+reserved before the call: `create_revision()` inserts the next revision under the row lock
+and commits, calls EUDIPLO, then locks again to make it current (see
+[Form connections](#form-connections); the rules save joins that last transaction, see
+[Rules and branches](#rules-and-branches-spec-002)).
 
 ### Form connections
 
@@ -364,13 +405,14 @@ to R10 in `specs/002-connection-rules/`, the tables its
   checks (`utils/rules/validation.ts`). Rules alone are saved in one transaction under
   the form connection's row lock. With changed documents, `create_revision` runs as
   before, and its final locked transaction, which makes the revision current, also
-  saves the rule set. Creating a form connection saves its branch rows and rule set 1
-  in the transaction that inserts it.
+  saves the rule set (`save_rule_set()`). Creating a form connection saves its branch
+  rows and rule set 1 in the transaction that inserts it.
 - **`409 rules_changed`**: `GET /api/form-connections/{id}` returns `rule_set_version`,
   and the editor sends `rules` only when the team member changed them, with
   `base_version`, the version it loaded. If another save made a newer rule set current,
-  the save is refused with `409 rules_changed`, before the rules are checked (so a
-  stale editor meets this answer, not "Unknown variant.") and again under the row lock.
+  the save is refused with `409 rules_changed` (`check_rules_version()`), before the
+  rules are checked (so a stale editor meets this answer, not "Unknown variant.") and
+  again under the row lock.
   Its message names the variants that replacing would delete or bring back with a new
   result link. The save dialog offers "Reload" or "Replace their changes", which sends
   the same save with `replace: true`: the rule set is the unit, since the server can't
@@ -459,7 +501,10 @@ steps, which are plain functions that open their own `SessionLocal()` sessions a
 keep transactions short. A failing step is logged by exception type and code
 location only, never its message, and the next step still runs. Outbound calls go
 to a pool of 8 threads through `dispatch(key, call)`, so the loop never waits for
-them, and a key that is still in flight isn't dispatched twice.
+them, and a key that is still in flight isn't dispatched twice. A key is a name plus
+an internal id, never a request reference. A step is a plain function without
+arguments in the `STEPS` tuple, in the order below. Tests set `WORKER_ENABLED=false`
+and call the steps directly.
 
 Implemented steps, in the order of research R7 in the spec folder:
 
@@ -597,7 +642,9 @@ catch-all handler use it, and so should any other `5xx` answer. The line never
 holds an exception's message, a setting's value, a request reference or the URL:
 it uses `describe_error()` and the route's template. The app configures no logging
 of its own, so these lines reach stderr through Python's last-resort handler,
-without a time or level prefix.
+without a time or level prefix. `errors.py` imports nothing from the app, so that
+the services and the worker can all import `describe_error()` and
+`log_server_error()` from it without an import cycle.
 
 **`APP_ENV` must be set to something other than `development` in production**:
 development drops the session cookie's `Secure` flag and fills in a default
@@ -606,7 +653,10 @@ development drops the session cookie's `Secure` flag and fills in a default
 **Frontend**: the `ApiError` class in `src/api/client.ts` wraps HTTP errors with
 status and response data. `errorNoticeOf(error, fallback)` turns a failure into
 what a page shows, the API's message and `error_id` (an `ErrorNotice`), and the
-shared `ErrorNoticeText` renders it, the error ID on a line of its own.
+shared `ErrorNoticeText` renders it, the error ID on a line of its own. A page passes
+failures through `useSignOutOnUnauthorized()` first: a `401` means the session
+expired, so the app signs out and the route guard asks for a sign-in that returns to
+the page.
 
 ```typescript
 class ApiError extends Error {
