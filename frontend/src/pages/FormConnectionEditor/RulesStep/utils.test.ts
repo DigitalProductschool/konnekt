@@ -9,6 +9,7 @@ import {
   bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
+  findingTargetIdsOf,
   initialRulesState,
   joinNames,
   neighbourOf,
@@ -793,5 +794,21 @@ describe('toggleFindings', () => {
     expect(
       rulesReducer(both, { type: 'toggleFindings', branchKey: 'main' }).expandedFindings
     ).toEqual(['new-1']);
+  });
+});
+
+describe('findingTargetIdsOf', () => {
+  it("moves the focus to a group's header first, then to its row or frame (W19)", () => {
+    expect(findingTargetIdsOf('main', 'group-1')).toEqual([
+      'rule-main-group-1-header',
+      'rule-main-group-1',
+    ]);
+  });
+
+  it("falls back to a rule's row, which has no header", () => {
+    expect(findingTargetIdsOf('new-1', 'rule-2')).toEqual([
+      'rule-new-1-rule-2-header',
+      'rule-new-1-rule-2',
+    ]);
   });
 });

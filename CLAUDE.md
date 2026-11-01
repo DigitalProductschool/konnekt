@@ -142,6 +142,8 @@ Location: `/backend/app/services/`
   middleware's settings at import. `scripts/issue_test_credentials` issues test documents
   with its own EUDIPLO client (roles `issuance:manage` + `issuance:offer`): the middleware
   has no issuance role. It prints the fake person's data, which the app never does.
+  `scripts/export_check_fixtures.py` writes the rule checks' generated files (spec 003, see
+  "Rule checks" below) from the interpreter and `app/services/evaluation.py`.
 
 ### Pydantic Schemas
 
@@ -335,6 +337,8 @@ Key points:
 | `uv run pytest` | Run the tests; `DATABASE_URL` must name a database ending in `_test`, which they empty |
 | `uv run python -m app.cli create-user <name>` | Create a sign-in account (also `set-password`, `delete-user`) |
 | `uv run python -m scripts.issue_test_credentials` | Issue a test PID and driving licence with random data to a test wallet (README, "Test credentials for a test wallet") |
+| `uv run python -m scripts.export_check_fixtures` | Regenerate the rule checks' `caseFolding.ts` and `fixtures/evaluator-vectors.json` from the interpreter and `evaluation.py`; run it after a Python upgrade or a change to the evaluator's comparisons, and commit the result |
+| `uv run python -m scripts.export_check_fixtures --check` | Write nothing; name each generated file that is stale and exit with 1 (the backend tests run it too) |
 | `uv run python -m app.cli clear-connections` | Delete the requests' EUDIPLO sessions, then every form connection with its revisions, branches, rule sets and requests; nothing is deleted if a session can't be. The sign-in accounts and the EUDIPLO configurations stay (`--yes` skips the prompt) |
 | `uv run pre-commit install` | Install the repo's git hooks |
 | `uv run pre-commit run --all-files` | Run every hook against the whole repo |
@@ -484,6 +488,21 @@ cd frontend
   `branches.ts` comes with a Vitest case in `branches.test.ts`, and a change to a propagation
   rule or mark transition also updates the server's invariant checks. The Rules step's own
   checks (`utils/rules/validation.ts`) use the server's messages word for word
+- Rule checks (spec 003): the Rules step points out rules and groups that conflict, are
+  duplicates or covered, or are always met, and variants no applicant can meet. The checks
+  live in `src/utils/rules/checks/`, pure modules each with its `*.test.ts`, and run in a module
+  Web Worker (`checks/worker.ts`) that `useRuleChecks()` (`src/hooks/useRuleChecks.ts`) starts
+  from the editor page; only the worker's entry and the hook touch browser APIs. The checks
+  judge every condition as `backend/app/services/evaluation.py` does, so a change to the
+  evaluator's comparisons, or a Python upgrade, comes with regenerated fixtures
+  (`uv run python -m scripts.export_check_fixtures` from `backend/`), and the script's
+  `--check` must pass (`tests/unit/test_check_fixtures.py` runs it). The generated files,
+  `checks/caseFolding.ts` and `checks/fixtures/evaluator-vectors.json`, are never edited by
+  hand. Every finding text comes from `checks/findingMessages.ts`. Findings stay in the Rules
+  step and the publish and save dialog: they are never stored, sent or logged (no `console.*`
+  in `checks/`, the worker or the hook), and the details never show them, so `RuleRow`,
+  `GroupFrame` and `BranchName` get their `finding` or `findings` prop only from the Rules
+  step. Which fields hold several values comes from the catalog's `multiple_values`
 - Menus, popovers and tooltips open to the side where they fit: `placementFrom()` in
   `src/utils/popupPlacement.ts`, called in the event that opens them, picks `start`, `end` or
   `full` (across the rules card or the page, below the control), and the component maps it to a
@@ -598,7 +617,8 @@ backend/
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic schemas
 │   ├── errors.py         # Exception handlers, log_server_error (5xx error ids), describe_error
-│   ├── catalog.py        # Document types and their fields (PID, mDL), with kinds and parts
+│   ├── catalog.py        # Document types and their fields (PID, mDL), with kinds and parts,
+│   │                     # and multiple_values (a field or part with several values)
 │   ├── option_sets.py    # Value sets of enum fields (countries, sex, licence classes, colours)
 │   ├── cli.py            # Account management and clear-connections, run as `python -m app.cli`
 │   ├── routers/          # API routers, one module per resource
@@ -624,7 +644,8 @@ backend/
 │       ├── qr.py         # QR code of the cross-device link (segno)
 │       └── worker.py     # Background worker: loop, steps, dispatch
 ├── alembic/              # Database migrations
-├── scripts/              # Developer scripts, not in the image: issue_test_credentials/
+├── scripts/              # Developer scripts, not in the image: issue_test_credentials/,
+│                         # export_check_fixtures.py (the rule checks' generated files)
 ├── tests/                # conftest.py, fake_eudiplo.py, helpers.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
@@ -646,17 +667,30 @@ frontend/
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # Shared components: AppLayout, AuthLayout, TopBar, UserMenu, ...,
 │   │                     # and the read-only rules display of the Rules step and the details:
-│   │                     # RuleRow, GroupFrame, Connector, BranchMark, BranchName
+│   │                     # RuleRow, GroupFrame, Connector, BranchMark, BranchName.
+│   │                     # RuleRow and GroupFrame take a `finding`, shown with FindingNote/
+│   │                     # (the note under a rule or group), and BranchName `findings` (the
+│   │                     # tab's icon and tooltip); only the Rules step passes them
 │   ├── pages/            # One folder per screen
-│   │   └── FormConnectionEditor/  # The wizard: Connection, Documents, Rules, Publish
-│   │       └── RulesStep/         # Variant tabs, rule list, groups, select mode, dialogs
+│   │   └── FormConnectionEditor/  # The wizard: Connection, Documents, Rules, Publish;
+│   │       │                      # FindingsAnnouncer.tsx, the checks' status region
+│   │       └── RulesStep/         # Variant tabs, rule list, groups, select mode, dialogs,
+│   │                              # FindingsBanner.tsx (the open variant's findings)
 │   │           └── RuleEditor/    # Data menu, part picker, checks per kind, values, message
 │   ├── hooks/            # Custom React hooks (useCurrentUser, useDocumentTitle, useOptionSets,
-│   │                     # useSignOutOnUnauthorized, ...)
+│   │                     # useSignOutOnUnauthorized, useRuleChecks (the rule checks' runs
+│   │                     # and their worker), ...)
 │   ├── utils/            # Utility functions
 │   │   └── rules/        # Pure rules logic, each module with its *.test.ts: tree.ts,
 │   │                     # branches.ts (propagation, marks), statements.ts, messages.ts,
 │   │                     # conditions.ts, dates.ts, validation.ts
+│   │       └── checks/   # Rule checks (spec 003): checkedTree.ts, literals.ts,
+│   │                     # textTheory.ts, numberTheory.ts, dateTheory.ts, enumTheory.ts,
+│   │                     # solver.ts, findings.ts,
+│   │                     # findingMessages.ts (every finding text), announcements.ts,
+│   │                     # runState.ts (the hook's reducer), calendar.ts, text.ts, the
+│   │                     # worker's entry worker.ts, the test-only testEvaluator.ts and
+│   │                     # testOracle.ts, and the generated caseFolding.ts and fixtures/
 │   ├── types/            # TypeScript types
 │   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── index.css         # Tailwind, KERN and the project's design tokens

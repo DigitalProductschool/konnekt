@@ -60,7 +60,8 @@ mismatch between the packages is the most likely cause of visual breakage.
 │   │   ├── errors.py     # Error handlers
 │   │   └── main.py       # FastAPI app entry point, starts the background worker
 │   ├── alembic/          # Database migrations
-│   ├── scripts/          # Developer scripts, not in the production image: test credentials
+│   ├── scripts/          # Developer scripts, not in the production image: test credentials,
+│   │                     # the rule checks' generated fixtures
 │   ├── tests/            # pytest suite, with a fake EUDIPLO
 │   ├── pyproject.toml    # Python dependencies + ruff/mypy/pytest config
 │   ├── .python-version   # Pins the interpreter uv provisions (3.13)
@@ -220,10 +221,38 @@ uv run alembic upgrade head
 
 # Issue a test PID and driving licence to a test wallet (see Test credentials below)
 uv run python -m scripts.issue_test_credentials
+
+# Regenerate the rule checks' fixtures (see Rule checks' fixtures below)
+uv run python -m scripts.export_check_fixtures           # write them
+uv run python -m scripts.export_check_fixtures --check   # only check they are current
 ```
 
 The tests replace EUDIPLO with a fake and switch the background worker off, so they need
 neither EUDIPLO credentials nor a wallet.
+
+#### Rule checks' fixtures
+
+The Rules step checks the rules for conflicts and redundancies in the browser (spec 003), and
+judges each condition as the backend's evaluator (`app/services/evaluation.py`) does. Two
+generated files keep the checks in step with it: `frontend/src/utils/rules/checks/caseFolding.ts`,
+Python's `str.casefold()` table, and `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json`,
+Python's results for the evaluator's text normalisation, date arithmetic and rule outcomes, which
+the frontend's Vitest tests replay. `scripts/export_check_fixtures` writes both from the current
+interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
+
+Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can
+bring a new Unicode version, and with it other case folding) **or a change to the evaluator's
+comparisons**:
+
+```bash
+cd backend
+uv run python -m scripts.export_check_fixtures
+```
+
+With `--check` it writes nothing: it names each committed file that differs from what it would
+write and exits with 1. The backend tests run the same check
+(`tests/unit/test_check_fixtures.py`), so stale fixtures fail `uv run pytest`. The script adds no
+dependency and no environment variable.
 
 ### Frontend (React + Vite)
 

@@ -692,17 +692,17 @@ V6).
 **Purpose**: Performance budgets, documentation, accessibility, coverage of the Figma deviations,
 validation on the running stack, and the merge gate.
 
-- [ ] T047 [P] Write `checks/performance.test.ts` (depends on T034; SC-003; research R13), with the real clock.
+- [X] T047 [P] Write `checks/performance.test.ts` (depends on T034; SC-003; research R13), with the real clock.
   - A generated 50-item branch is checked within 1 second after at least 95 % of a series of single-item changes.
   - A generated 200-item branch built to be hard returns by the deadline, checked completely or not.
   - 20 branches of 200 items stay within the run's 5 seconds when the deadline cuts them short.
   If a budget fails, speed up the solver or the searches (research R5, R8). Don't change the budget.
-- [ ] T048 [P] Update `docs/ARCHITECTURE.md` (CLAUDE.md "Documentation Checklist": architectural changes):
+- [X] T048 [P] Update `docs/ARCHITECTURE.md` (CLAUDE.md "Documentation Checklist": architectural changes):
   - the checks run in the browser, in a module Web Worker that the editor starts;
   - findings are never stored, sent or logged;
   - the catalog's `multiple_values`;
   - the generated fixtures that keep the checks in step with `evaluation.py`.
-- [ ] T049 [P] Update `CLAUDE.md` (Documentation Checklist: new patterns):
+- [X] T049 [P] Update `CLAUDE.md` (Documentation Checklist: new patterns):
   - the frontend structure: `src/utils/rules/checks/` (its modules, the worker's entry, the generated `caseFolding.ts` and `fixtures/`), `src/hooks/useRuleChecks.ts`, `src/components/FindingNote/`, the `finding` prop of `RuleRow` and `GroupFrame`, `RulesStep/FindingsBanner.tsx`, and the `findings` prop of `BranchName`;
   - the backend structure: `scripts/export_check_fixtures.py`, and `multiple_values` in `catalog.py`'s description;
   - the rules:
@@ -712,8 +712,8 @@ validation on the running stack, and the merge gate.
     - every finding text comes from `findingMessages.ts`;
     - findings stay in the rules step and the publish and save dialog;
   - the command table: the fixture script, and its `--check`.
-- [ ] T050 [P] Update `README.md`: the fixture script, when to run it (after a Python upgrade, or a change to the evaluator's comparisons), and its `--check`. No dependency or environment variable is added.
-- [ ] T051 Review accessibility (SC-006; quickstart V7; contracts/ui-screens.md "Accessibility"; W19; research R15) in `RulesStep/`, `frontend/src/components/FindingNote/`, `RuleRow/`, `GroupFrame/`, `BranchName/`, `FindingsAnnouncer.tsx` and `PublishDialog.tsx`:
+- [X] T050 [P] Update `README.md`: the fixture script, when to run it (after a Python upgrade, or a change to the evaluator's comparisons), and its `--check`. No dependency or environment variable is added.
+- [X] T051 Review accessibility (SC-006; quickstart V7; contracts/ui-screens.md "Accessibility"; W19; research R15) in `RulesStep/`, `frontend/src/components/FindingNote/`, `RuleRow/`, `GroupFrame/`, `BranchName/`, `FindingsAnnouncer.tsx` and `PublishDialog.tsx`:
   - the kind never rests on colour alone: the icons differ in shape, each note's and banner item's icon carries its hidden kind text, and the tab icon's accessible name says "<variant> has findings";
   - icons and outlines reach 3:1, texts 4.5:1, in KERN 2.8;
   - the banner's chevron is a button with `aria-expanded`, and each name link moves the focus to a row or group header that its note describes;
@@ -721,7 +721,7 @@ validation on the running stack, and the merge gate.
   - the status region is polite and never takes the focus, and NVDA with Firefox and VoiceOver with Safari read announcements that follow each other quickly;
   - the banner, the notes, the tooltip and the dialog's lines reflow at 320 px and 200 % zoom.
   Fix every failure in the files concerned.
-- [ ] T052 Check the coverage of the Figma deviations (research R14) against `specs/003-rule-consistency-checks/contracts/ui-screens.md`:
+- [X] T052 Check the coverage of the Figma deviations (research R14) against `specs/003-rule-consistency-checks/contracts/ui-screens.md`:
   - every item of its "Coverage index" (A1–A8, W1–W15, W17–W20) was built by the tasks that cite it, and no task built anything from O1–O6;
   - every visual-verification table lists the page-design differences (O1–O5) and the "KERN 2.8 vs Revamp" values (O6), with their item numbers;
   - record what is unresolved, and why, in `specs/003-rule-consistency-checks/design-notes.md`.

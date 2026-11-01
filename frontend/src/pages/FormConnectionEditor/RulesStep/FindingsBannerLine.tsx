@@ -23,7 +23,7 @@ export default function FindingsBannerLine({
         aria-hidden="true"
         className={`kern-icon ${BANNER_ICONS[item.tone]} kern-icon--small shrink-0`}
       />
-      <p className="text-kern-layout-text-default min-w-px flex-1 text-(length:--kern-font-size-14) leading-(--kern-typography-line-height-medium-static)">
+      <p className="text-kern-layout-text-default min-w-px flex-1 text-(length:--kern-font-size-14) leading-(--kern-typography-line-height-medium-static) wrap-anywhere">
         {item.kindText && <span className="sr-only">{item.kindText} </span>}
         {item.parts.map((part, index) => {
           if (typeof part === 'string') {

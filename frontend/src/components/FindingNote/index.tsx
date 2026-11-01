@@ -16,7 +16,7 @@ export default function FindingNote({ id, kind, text }: FindingNoteProps) {
   return (
     <p
       id={id}
-      className="text-kern-layout-text-default flex items-center gap-4 pb-8 pl-24 text-(length:--kern-font-size-14) leading-(--kern-typography-line-height-medium-static)"
+      className="text-kern-layout-text-default flex items-center gap-4 pb-8 pl-24 text-(length:--kern-font-size-14) leading-(--kern-typography-line-height-medium-static) wrap-anywhere"
     >
       <span
         aria-hidden="true"

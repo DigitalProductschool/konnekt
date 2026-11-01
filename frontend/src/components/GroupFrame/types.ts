@@ -50,6 +50,13 @@ export interface GroupFrameProps {
 }
 
 export interface GroupHeaderProps {
+  /**
+   * The header's element id, which makes it focusable from script: the findings banner's name
+   * links move the focus there (spec 003, W19)
+   */
+  id?: string;
+  /** The id of the note under the header that describes it, a problem or a finding */
+  describedBy?: string;
   name: string;
   subGroup: boolean;
   operator: Combinator;

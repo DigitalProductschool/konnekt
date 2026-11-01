@@ -3,7 +3,7 @@ import Connector from '../Connector';
 import FindingNote from '../FindingNote';
 import { FINDING_LOOKS, FINDING_NOTE_ID_SUFFIX } from '../FindingNote/constants';
 import ProblemNote from '../RuleRow/ProblemNote';
-import { GROUP_FINDING_NOTE_SPACING } from './constants';
+import { GROUP_FINDING_NOTE_SPACING, GROUP_HEADER_ID_SUFFIX } from './constants';
 import GroupHeader from './GroupHeader';
 import GroupMessage from './GroupMessage';
 import type { GroupFrameProps } from './types';
@@ -19,7 +19,8 @@ import type { GroupFrameProps } from './types';
  * a violet border (U17 6163:5268), and a removed one, or one dissolved there, fades what it
  * holds and strikes its name through (U23 6185:41164; F13). In the Rules step, a group with a
  * finding of spec 003 is outlined all round in the finding's colour, in place of its left border,
- * with the note under its header (6750:41108), and described by the note (S2; FR-012; A4, A5; U02
+ * with the note under its header (6750:41108). The note describes the frame and the header, where
+ * the findings banner's name links move the focus (S2; FR-012; A4, A5; W19; U02
  * 6171:7091, 6171:7093; U06 6753:40525, U07 6753:40862): a duplicate, covered or always-met
  * group's note in the info look, 8 px below the header, and its rules plain, as the checks report
  * nothing inside it; its mark stays beside it, and a flag wins over a finding
@@ -72,6 +73,8 @@ export default function GroupFrame({
         }`}
       >
         <GroupHeader
+          id={id ? `${id}${GROUP_HEADER_ID_SUFFIX}` : undefined}
+          describedBy={problemId ?? findingId}
           name={group.name}
           subGroup={subGroup}
           operator={group.operator}

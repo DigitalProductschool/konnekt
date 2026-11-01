@@ -28,7 +28,7 @@ export default function BranchName({ name, description, findings, children }: Br
           iconSize="small"
           text={
             <span className="flex flex-col gap-8">
-              {text && <span>{text}</span>}
+              {text && <span className="break-words">{text}</span>}
               <FindingsSegment findings={findings} divided={Boolean(text)} />
             </span>
           }

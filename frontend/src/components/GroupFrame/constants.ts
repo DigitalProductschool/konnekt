@@ -26,3 +26,8 @@ export const GROUP_FINDING_NOTE_SPACING: Record<ItemFindingKind, string> = {
   redundant: 'pt-8',
   always_met: 'pt-8',
 };
+
+// Appended to a group frame's id for its header's id: the findings banner's name links move the
+// focus to the header, which the group's note describes (spec 003, W19; contracts/ui-screens.md
+// "Accessibility")
+export const GROUP_HEADER_ID_SUFFIX = '-header';

@@ -4,8 +4,8 @@ import { goToItem } from './utils';
 /**
  * A rule's or group's name in the findings banner (spec 003, S2; A1, W19; FR-013; Figma
  * `Rules/Finding item` 6750:40604, U05 6753:40144): a button that looks like a link, in
- * `action-default` and underlined, which scrolls its rule or group into view and moves the focus
- * to its row or group frame, which the item's note describes.
+ * `action-default` and underlined, which moves the focus to its rule's row or its group's header,
+ * which the item's note describes, and scrolls it into view (`goToItem()`).
  */
 export default function FindingLink({ reference, branchKey }: FindingLinkProps) {
   return (

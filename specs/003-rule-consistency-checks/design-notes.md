@@ -354,3 +354,75 @@ outlines and icons. No darker text token is needed. The alerts' body text is KER
 `layout-text-default` (#131525), at least 14.9:1 on both alert backgrounds.
 
 **No token was added** to `@theme`: every value the findings need has a KERN 2.8 token.
+
+## 8. Coverage of the Figma items (T052)
+
+**Date**: 2026-11-01. Checked against [contracts/ui-screens.md](contracts/ui-screens.md)'s
+"Coverage index" (research R14): each item's tasks in [tasks.md](tasks.md), Phase 3R's reworks
+included, and the code under `frontend/src/`. The texts were checked through
+`checks/findingMessages.test.ts`, `checks/scenarios.test.ts`, `RulesStep/utils.test.ts` and the
+editor's `utils.test.ts` (256 tests, passing).
+
+### 8.1 Items
+
+| Item | Tasks | Built in | Note |
+|---|---|---|---|
+| A1 | T056, T058, T039, T043 | `RulesStep/FindingsBanner.tsx`, `FindingsBannerLine.tsx`, `FindingLink.tsx`; `bannerOf()` | Inside the rules card, below `LinkStrip` and `UnrequestedBanner`; single, collapsed, expanded; `FindingsSummary` and "Go to next finding" are gone |
+| A2 | T056, T058, T035, T039 | `findingMessages.ts` (`bannerOf()`, `countsOf()`) | Drawn texts pinned in the tests |
+| A3 | T056, T057, T035, T039 | `components/FindingNote/` | No visible label; `kindTextOf()` as hidden text; text in `layout-text-default` |
+| A4 | T057, T039 | `RuleRow/index.tsx`, `GroupFrame/index.tsx`, `FindingNote/constants.ts` | 1 px, warning or info; a group's outline replaces its left border. See 8.3, item 3 |
+| A5 | T056, T057, T035, T039 | `GroupFrame/index.tsx`; `findings.ts` (nothing inside a redundant or always-met group) | |
+| A6 | T042, T043 | `components/BranchName/` (`index.tsx`, `FindingsSegment.tsx`), `RulesStep/BranchTab(s).tsx` | Merged with the (i); "<variant> has findings"; tooltip on hover and keyboard focus (`InfoTooltip`) |
+| A7 | T056, T058 | `findingMessages.ts` | "… at the moment.", "Right now, no applicant …" |
+| A8 | T031, T045 | `EditorFooter.tsx`, `PublishDialog.tsx` | Only `publishing` disables the actions |
+| W1 | T031, T033, T058 | `hooks/useRuleChecks.ts` (called by the editor page, whatever the step), `FindingsAnnouncer.tsx` | |
+| W2, W3 | T031, T056 | `findings.ts`, `findingMessages.ts` | US1-AS5 and EC-11 in `scenarios.test.ts` |
+| W4 | T034, T039 | `findings.ts` | EC-20 in `scenarios.test.ts` |
+| W5 | T031, T056 | `findingMessages.ts` | |
+| W6, W7, W8 | T035, T039 | `findingMessages.ts`, `FindingsBanner.tsx` | |
+| W9 | T042, T043 | `RulesStep/TreeItem.tsx`, `GroupListItem.tsx` (no finding when removed or faded) | US3-AS2, AS4 in `scenarios.test.ts` |
+| W10 | T044, T045, T046 | `PublishDialog.tsx`, `PublishFindingLine.tsx`, `findingLinesOf()`, `firstBranchWithFindings()` | |
+| W11 | T030, T031, T057 | `RuleRow`, `GroupFrame` (a `flag` wins) | |
+| W12 | T056, T058, T042 | `bannerOf()`, `tabFindingsOf()`, `findingLinesOf()` | |
+| W13 | T058, T042 | `bannerOf()` and `tabFindingsOf()` return `null` without checked rules | |
+| W14 | T031, T058 | the editor page's `useRuleChecks()` | Checks the loaded rules when the edit flow opens |
+| W15 | T031 | `RulesStep/RuleEditor/` | Nothing about findings |
+| W17 | T056, T058, T039 | `bannerViewOf()` in `RulesStep/utils.ts` | |
+| W18 | T056 | `findingMessages.ts` | |
+| W19 | T057, T058, T039, T042 | hidden kind texts, the chevron's `aria-expanded`, `FindingLink`, the tab icon's name | T051 reviews it in full |
+| W20 | T056, T035, T042 | `tabFindingsOf()`, `FindingsSegment.tsx` | |
+
+**O1–O6**: nothing was built from them. The footer still says "Publish" and "Save" (O1); rule
+rows, group frames, connectors and add buttons are spec 002's (O2); "Changed here" stays orange
+and "New addition" purple, and no "Added here" exists (O3); the link strip keeps its copy (O4);
+`BranchTab`'s styling is unchanged (O5); every colour is a KERN 2.8 token (O6), apart from the
+14 px of 8.3, item 2.
+
+### 8.2 Visual-verification tables
+
+Every O# is named by at least one task's visual check: O1 (T058), O2 (T057, T058, T039, T043), O3
+and O4 (T043), O5 (T042), O6 (T057, T058, T039, T042, T043). The tables themselves aren't
+recorded: neither tasks.md, nor these notes, nor [figma-audit/report.md](figma-audit/report.md)
+holds one, so whether each table listed its O# and "KERN 2.8 vs Revamp" rows can't be confirmed
+from the documents (8.3, item 1).
+
+### 8.3 Unresolved
+
+1. **The visual-verification tables aren't recorded.** T057, T058, T039, T042, T043 and T045 ran
+   their checks, but their tables stayed in the sessions' reports. T045's instruction names only
+   W10, although its lines use `feedback-warning` and `feedback-info`, which the file binds with
+   Revamp values (O6). To close it: rerun the visual checks during T053 and record their tables
+   here, each listing its O# and "KERN 2.8 vs Revamp" rows.
+2. **The banner's 14 px.** §7's exception (Figma's 14 px with `--kern-font-size-14` instead of
+   KERN 2.8's 16 px `small-static`) names the notes only, but
+   `frontend/src/pages/FormConnectionEditor/RulesStep/FindingsBannerLine.tsx` uses it for the
+   banner's lines too. Either the decision covers the banner as well, and §7 says so, or the
+   banner goes back to `small-static` (a "KERN 2.8 vs Revamp" row). Needs the user's decision.
+3. **A group's outline corners.** A4 says radius 8 all round. `frontend/src/components/GroupFrame/index.tsx`
+   rounds a sub-group's outline but keeps a top-level group's corners square, citing Figma's U06
+   `6753:40525` and U07 `6753:40862`. Not re-checked against the nodes here; if Figma rounds them,
+   the fix belongs in that file.
+4. **A group link's focus target.** `goToItem()` in `RulesStep/utils.ts` focuses the group's
+   frame (`role="group"`, which starts with the header and is described by the note), where the
+   contract says "group header". The note describes the focused element, as W19 asks; T051 decides
+   whether that is enough.

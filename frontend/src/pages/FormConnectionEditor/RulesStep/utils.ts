@@ -1,3 +1,4 @@
+import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
 import type {
   FormConnection,
   GroupItem,
@@ -157,21 +158,29 @@ export function bannerViewOf(banner: FindingsBanner, expanded: boolean): BannerV
 }
 
 /**
- * A banner name's link (S2; A1; FR-013): scrolls its rule or group into view, only as far as
- * needed, and moves the focus to its row or group frame, which its note describes. A group's
- * frame starts with its header, which then comes into view too, when the group is taller than
- * the visible area.
+ * Where a banner name's link moves the focus, in order of preference (S2; A1; W19; FR-013): a
+ * group's header, which its note describes (contracts/ui-screens.md "Accessibility"), then the
+ * rule's row, or the group's frame should the header be missing. Only a group's frame has a
+ * header, so a rule's row is the first id that exists.
+ */
+export function findingTargetIdsOf(branchKey: string, itemId: string): string[] {
+  const frameId = ELEMENT_IDS.rule(branchKey, itemId);
+  return [`${frameId}${GROUP_HEADER_ID_SUFFIX}`, frameId];
+}
+
+/**
+ * A banner name's link (S2; A1; W19; FR-013): moves the focus to its rule's row or its group's
+ * header, which its note describes, and scrolls it into view, only as far as needed.
  */
 export function goToItem(branchKey: string, itemId: string) {
-  const element = document.getElementById(ELEMENT_IDS.rule(branchKey, itemId));
+  const element = findingTargetIdsOf(branchKey, itemId)
+    .map((id) => document.getElementById(id))
+    .find((found) => found !== null);
   if (!element) {
     return;
   }
   element.focus({ preventScroll: true });
   element.scrollIntoView({ block: 'nearest' });
-  if (element.getAttribute('role') === 'group') {
-    element.firstElementChild?.scrollIntoView({ block: 'nearest' });
-  }
 }
 
 /** The items of a level of a branch: a group's members, or the top level for null. */
