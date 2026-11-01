@@ -1,199 +1,134 @@
-# Figma ↔ spec audit — 2026-10-28
+# Figma ↔ spec audit — 2026-11-01 (redesign of the findings)
 
 ## Summary
-Units audited 4/4 (OUT 0, UNCERTAIN 0, FAILED 0). Figma calls 5: 1 by the mapper and 1 per unit, as each unit file's header records. `units.md`'s counts list a call for U04 only.
 
-Figma file `s8mU9oJDq3411e8bxMjQO9`, section `6171:6748` "Rules · 5 · Problems: contradiction and duplicate". The decisions come from the spec's Clarifications session 2026-10-28, which has 15 answers. Answers #2 to #15 refer to the design. Answer #1 doesn't, so it settles nothing here.
+Section `6171:6748` of file `s8mU9oJDq3411e8bxMjQO9` was redesigned in place: it now has 11 frames
+(U01–U11, [units.md](units.md)) instead of 4, and is named "Rules · 5 · Contradictions and
+duplicates (findings: warning / info, never block Publish)". This is a **targeted delta audit**,
+done by hand (decision 2026-11-01): it compares only the findings surfaces with the spec and with
+the UI built in Phase 3 (T029–T033). Figma calls: 16 (1 metadata, 10 screenshots, 1 variable
+definitions, 3 design contexts, 1 failed retry).
+
+**Decisions 2026-11-01** (the user, in the session that ran this audit; recorded in the spec's
+Clarifications of 2026-11-01):
+1. The redesign decides the findings' look, behaviour and wording. The rest of the page stays as
+   built (spec 001/002) until a later task matches the whole application to the new design.
+2. Notes drop the visible kind label ("Conflicting.", "Redundant.", "Always met."), as Figma draws
+   them. The icon carries a visually hidden text alternative with the kind (FR-012).
+3. The purple "Changed here" and the label "Added here" are page design: deferred (O3).
+4. A targeted delta audit, not the `/figma-audit` pipeline.
 
 | category | count |
 |---|---|
-| Conflicts | 0 |
-| Spec-only (not in Figma) | 0 |
-| Figma-only — behavioural | 0 |
-| Partial matches | 0 |
-| Figma-only — cosmetic (FYI) | 8 |
-| Figma must change (decided) | 8 |
-| Build without frames (decided) | 16 |
+| Adopted from Figma (decided) | 8 (A1–A8) |
+| Out of scope (decided) | 6 (O1–O6) |
+| Build without frames (decided) | 19 (W1–W15, W17–W20) |
+| Retired | 9 (F1–F8 of 2026-10-28, W16) |
+| Open questions | 0 |
 
-Top 5 issues: none open. A 2026-10-28 design decision or a standing rule settles every non-cosmetic item (F1–F8, W1–W16).
+The audit of 2026-10-28 is archived in [archive-2026-10-28/report.md](archive-2026-10-28/report.md).
+Its **F1–F8 are retired**: Figma now draws what they asked for, or the decisions above replace
+them (see "Retired items"). **W1–W15 keep their numbers** with updated content, so that the tasks
+that cite them stay valid. W16 is retired, and W17–W20 are new.
 
-## Conflicts
-None open. The conflicts the units found are settled:
-- the summary alert's wording (F1) and style (F2)
-- the finding look (F4)
-- the disabled "Publish" button and the "(blocks)" frame name (F8)
+## Adopted from Figma (decided 2026-11-01)
 
-## Spec-only (not in Figma)
-None open. No unit covers 34 requirements with UI = Y. All of them are settled under Build without frames, W1–W16 (see Coverage).
+Build these as Figma draws them. Every text follows
+[../design-notes.md](../design-notes.md) §2–§6, which quotes the drawn texts and proposes the
+undrawn ones in the same voice.
 
-## Figma-only — behavioural
-None open. Every FIGMA-ONLY behavioural row in the units is spec 001/002 baseline that spec 003 doesn't change. These rows are listed under cosmetic (FYI), rows 1–6.
+| # | surface | Figma (units, node ids) | build | replaces |
+|---|---|---|---|---|
+| A1 | Findings banner | `Rules/Findings banner` `6750:40865`; U01 `6750:40882`, U02 `6750:40933`, U03 `6750:41008`, U04 `6750:41077`, U05 `6753:40144`, U06 `6753:40514`, U07 `6753:40851`, U08 `6753:41324`, U09 `6753:41612`, U10 `6758:43067`, U11 `6758:43557` | One compact banner at the top of the rules card, inside it (8 px inset), below the link strip in a based variant (U03), replacing the KERN alert and "Go to next finding". Body/small text, no title. **Kind**: warning (warning background and border) when the variant has a conflict or no applicant can meet it, info otherwise. **States**: *single* (one line, no chevron: U01, U04, U06–U09, U11); *collapsed* (counts row and a chevron that opens the list: U02, U03, U10), the default when there are several lines; *expanded* (counts row, then one `Rules/Finding item` per line, each with its kind icon: U05). The rule and group names in a line are links that scroll the item into view and move the focus to its row or group header ("Go to rule"); branch notices and the incomplete sentence have no link. Warning icon for conflicts and the "No applicant …" notice, info icon for duplicates, covered and always-met items, the "Every applicant …" notice and the incomplete sentence | F1, F2, F3, W16 |
+| A2 | Banner copy | U01 "Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules of Standard."; U02/U03/U10 "2 rules can’t be met together · 1 duplicate rule"; U04/U09/U11 "Rule 06 is the same as Rule 03."; U05 "Sub-group 01: Rule 04 and Rule 05 can’t be met together." and "Rule 06 is the same as Rule 03."; U06 "Every applicant meets Group 01, so it doesn’t check anything."; U07 "Anyone who meets Rule 01 also meets Group 01."; U08 "Rule 01 and Rule 02 can’t be met together at the moment. Right now, no applicant can meet the rules of Standard." | Lines per conflict set, not per item: a pair or larger set is one line (U01), a group's own conflict takes the lines of the members it names (U05). The counts row counts rules and groups per kind, joined with " · ". Undrawn lines, counts and notices: design-notes §3 | F1 |
+| A3 | Rule and group notes | `Rules/Problem note` `6177:7837` (levels `conflicting`, `redundant`); U01 `6171:7010`, `6171:7024`; U02 `6171:7490`, `6171:7500`, `6171:7510`; U03 `6171:7960`, `6171:7968`, `6171:7983`; U04 `6178:8216`; U05 `6753:40171`, `6753:40178`, `6753:40187`; U08 `6753:41332`, `6753:41339`; U09 `6753:41644`; U11 `6758:43589` | No visible kind label (decision 2). Text in body/small regular and the default text colour; only the 20 px icon has the kind's colour (warning triangle; info icon). 4 px between icon and text, 24 px from the left, 8 px below. Texts: "Can’t be met together with Rule 02." (U01), "Same as Rule 03. You can delete one of them." (U02), "Can’t be met together with Rule 02 at the moment." (U08). The icon has a visually hidden text alternative: "Conflicting:", "Redundant:" or "Always met:" (FR-012) | F5, F4 (note colours) |
+| A4 | Outlines | Rules: U01 `6171:7008`, `6171:7022`; U02 `6171:7488`, `6171:7498`, `6171:7508`; U08 `6753:41329`, `6753:41336`. Groups: U02 `6171:7091`, U05 `6753:40162` (warning), U06 `6753:40525`, U07 `6753:40862` (info) | 1 px outline, radius 8, all round, in the warning colour for conflicts and the info colour for duplicates, covered and always-met items; a group's outline replaces its left border. As built in T030; verify the values | F4 (outline), F6 |
+| A5 | Group notes | U02 `6750:41000`, U03 `6750:41069`, U05 `6753:40166` "Rule 04 and Rule 05 in this group can’t be met together."; U06 `6753:40824` "Every applicant meets this group."; U07 `6753:41298` "Anyone who meets Rule 01 also meets this group. You can delete the group." | Under the group's header, in A3's look. Inside a redundant or always-met group the rules stay plain (U06, U07); inside a conflicting group they keep their own notes (U02) | F6, W7 (now drawn) |
+| A6 | Tab icon and tooltip | Tabs: U01 `6171:6755`, U02 `6171:7070`, U03 `6171:7541`/`6171:7542`, U04 `6178:7806`, U09 `6753:41605`/`6753:41694`, U10 `6758:43059`/`6758:43060`, U11 `6758:43549`. `Rules/Tooltip` `6139:3739`: U10 `6758:43524`, U11 `6758:43967` | One icon after the variant's name, selected or not (U09), merged with spec 002's (i) of the description: the warning triangle when the variant has a conflict or no applicant can meet it, the info icon otherwise ("ⓘ stays", U11). A variant with neither findings nor a description shows no icon. On hover and keyboard focus, `Rules/Tooltip` shows the description, then, below a divider, a findings segment with the kind icon: the counts row (U10 "2 rules can’t be met together · 1 duplicate rule"), or for a single line "1 duplicate: Rule 06 is the same as Rule 03." (U11). The icon's accessible name is "<variant> has findings" when it has findings (FR-014) | F7 |
+| A7 | Findings for today only | U08 banner `6753:41324`, notes `6753:41332`, `6753:41339` | "… at the moment." at the end of a note or line; the notice "Right now, no applicant can meet the rules of Standard." | W5 (now drawn) |
+| A8 | Footer | U01 `6171:6771` … U11 `6758:43594` | Findings never disable an action (the section's name: "never block Publish"). The footer itself is page design (O1) | F8 |
 
-## Partial matches
-None open. The partial matches are settled:
-- F1: summary counts and the FR-004 notice
-- F3: "Go to next finding"
-- F5: the kind prefix
-- F6: the sub-group mark
-- F7: the tab icon
+## Out of scope (decided 2026-11-01)
 
-## Figma-only — cosmetic (FYI)
-These are spec 001/002 baseline or annotations. They need no action and no question.
+The redesigned page around the findings. Build nothing from it in spec 003; a later task matches
+the whole application to the new design. Visual checks list these as "page design (O#)", like
+"KERN 2.8 vs Revamp".
 
-| # | item | where (units, node-ids) | why no action |
-|---|------|-------------------------|---------------|
-| 1 | App header: "Proov" logo, breadcrumb "Your connections / Passenger transport licence", "Draft" badge, avatar "LW" | U01 `6702:41161`, U02 `6702:41194`, U03 `6702:41227`, U04 `6702:41260` | Spec 001/002 baseline. It is the signed-in context of FR-020 (CLAR 2026-10-28 #11) |
-| 2 | Step header: "Step 3 of 4", title "Rules", description | U01 `6702:41182`, U02 `6702:41215`, U03 `6702:41248`, U04 `6702:41281` | Spec 002 baseline. The edit flow's rules step looks the same (CLAR 2026-10-28 #11, W14) |
-| 3 | "+ Add variant" with the "What is a variant" tooltip | U01 `6171:6757`, `6171:6758`; U02 `6171:7072`, `6171:7073`; U03 `6171:7543`; U04 `6178:7808`, `6178:7809` | Spec 002 baseline |
-| 4 | AND/OR connectors, ⋮ menus on rules and groups, "+ Add rule" | Connectors: U01 `6171:6764`, `6171:6767`; U02 `6171:7079`, `6171:7082`, `6171:7089`, `6171:7096`, `6171:7441`; U03 `6171:7549`, `6171:7552`, `6171:7559`, `6171:7566`, `6171:7575`; U04 `6178:7815`, `6178:7818`, `6178:7825`, `6178:7832`, `6178:8167`. Add buttons: U01 `6171:6770`; U02 `6171:7099`, `6171:7101`, `6171:7103`; U03 `6171:7571`, `6171:7573`, `6171:7580`; U04 `6178:7835`, `6178:7837`, `6178:7839` | Spec 002 baseline. Every change made through them reruns the checks (CLAR 2026-10-28 #4, W1) |
-| 5 | Rule rows without a finding | U02 Rule 01 `6171:7077`, Rule 02 `6171:7080` (the same rows are COVERED in U03 `6171:7547`, `6171:7550` and U04 `6178:7813`, `6178:7816`) | Spec 002 rule row, correctly unmarked |
-| 6 | Variant link strip "Linked to Standard" / "Rules you don't change here update with Standard." | U03 `6344:60080` | Spec 002 baseline |
-| 7 | Page scrollbar | U01 `6274:33711`, U02 `6274:33713`, U03 `6274:33715` | Cosmetic |
-| 8 | Frame and layer names: "problems on changed and new rules", layers "Problem" / "Problem note", "Suggestion only (does not block)", "suggestion (duplicate)" | U03 `6171:7535`, `6171:7957`, `6171:7959`, `6171:7967`, `6171:7982`; U04 `6178:7800`; U02 `6171:7064` | Annotations, not built. The UI uses the kinds "conflicting", "redundant" and "always met" (F1, F5) and the finding look (F4). U02's "(blocks)" is handled in F8 |
-
-## Figma must change (decided)
-Build these as the spec says, keeping Figma's layout and styling, until the design is updated.
-
-| # | req | Figma (unit, node-ids) | Figma shows | build instead | decision (CLAR … or RULE wording) |
-|---|-----|------------------------|-------------|---------------|-----------------------------------|
-| F1 | FR-013a, FR-016d, FR-004, FR-013c, FR-003b, FR-005b, FR-011d, FR-016a, ENT-Finding.kind, ENT-Finding.branchKind, US1-AS1 | Summary alert: U01 `6616:44378`, U02 `6616:44400`, U03 `6616:44417`, U04 `6616:44434` | U01 "1 rule conflict to fix: nobody can meet both Rule 01 and Rule 02."; U02 "1 rule conflict to fix: nobody can meet both Rule 04 and Rule 05. There's also 1 suggestion."; U03 "1 rule conflict to fix in this variant: nobody can meet both Rule 04 and Rule 05. There's also 1 suggestion."; U04 "1 suggestion: Rule 06 is the same as Rule 03. You can still continue." Problems: counts pairs instead of marked items; says "to fix"; says "suggestion" for redundant; U01 lacks the FR-004 notice; U02/U03 don't count the conflicting sub-group | U01 "2 conflicting rules: nobody can meet both Rule 01 and Rule 02. No applicant can meet the rules of Standard."; U02 "2 conflicting rules and 1 conflicting group: nobody can meet both Rule 04 and Rule 05. There's also 1 redundant rule."; U03 "2 conflicting rules and 1 conflicting group in this variant: nobody can meet both Rule 04 and Rule 05. There's also 1 redundant rule." (the decision gives only the start and "…": completed with U03's own clause and U02's count wording); U04 "1 redundant rule: Rule 06 is the same as Rule 03. You can still continue." In other states, count the marked items per kind ("N conflicting rules/groups", "N redundant rules/groups", "N always-met rules/groups", W8), put "There's also …" after the conflicts, end with the FR-004 or FR-006 notice, and never say "to fix" | CLAR 2026-10-28 #2 (U01; no "to fix"; U04 keeps "You can still continue."); CLAR 2026-10-28 #13 (U02, U03); RULE wording (U04 "1 suggestion" → "1 redundant rule") |
-| F2 | FR-013c, FR-019c, FR-012c | Summary alert: U01 `6616:44378`, U02 `6616:44400`, U03 `6616:44417`, U04 `6616:44434` | U01–U03: red error/danger alert with a diamond "!" icon. U04: orange warning alert with a triangle icon and bold text, though the branch has only a redundancy | U01, U02, U03: KERN warning alert (warning colour, triangle icon). U04: KERN info alert (info colour, info icon), less prominent than a conflict. Red stays reserved for spec 002 problems. Keep position and width | CLAR 2026-10-28 #3 |
-| F3 | FR-013b, FR-013d (button present when a rule or group has a finding) | Summary alert: U01 `6616:44378`, U02 `6616:44400`, U03 `6616:44417`, U04 `6616:44434` | Items named in bold plain text, with no link or button. U02/U03 don't name Rule 06 | Add a "Go to next finding" button (KERN tertiary) to each alert. The alert text stays as in F1. Each press scrolls the next rule or group with a finding, in display order, into view and moves the focus to its row or group header. After the last one it starts over. Cycles: U01 Rule 01 `6171:6762` → Rule 02 `6171:6765`; U02 Sub-group 01 header `6171:7093` → Rule 04 `6171:7094` → Rule 05 `6171:7097` → Rule 06 `6171:7442`; U03 Sub-group 01 header `6171:7563` → Rule 04 `6171:7564` → Rule 05 `6171:7569` → Rule 06 `6171:7578`; U04 Rule 06 `6178:8168`. When to leave the button out: W16 | CLAR 2026-10-28 #15 |
-| F4 | FR-012c, FR-012a, FR-019c | Conflict outlines/notes: U01 `6171:7008`/`6171:7010`, `6171:7022`/`6171:7024`; U02 `6171:7487`, `6171:7488`/`6171:7490`, `6171:7498`/`6171:7500`; U03 `6171:7957`, `6171:7958`/`6171:7960`, `6171:7568`/`6171:7968`. Redundancy outlines/notes: U02 `6171:7508`/`6171:7510`; U03 `6171:7577`/`6171:7983`; U04 `6178:8214`/`6178:8216` | Conflicts use spec 002's red "Problem" outline and the `Rules/Problem note` component (red icon, red text). Redundancy notes have an amber/orange outline and an orange info icon (U02, U04) or warning icon (U03), also built from `Rules/Problem note` | Keep the outline and note layout. Conflicts: KERN warning colour and warning triangle icon. Redundant and always-met findings: KERN info colour and info icon. Spec 002 problems keep their red "Problem" look. The "Changed here" chip (U03 `6171:7568`, `6171:7569`) is orange too, so F5's kind label is what tells a conflict apart from it | CLAR 2026-10-28 #3 |
-| F5 | FR-012d, FR-012a, FR-003b, FR-005b, FR-011d, FR-016d, ENT-Finding.kind, ENT-Finding.reason, US1-AS1, US2-AS3, EC-9 | Notes: U01 `6171:7010`, `6171:7024`; U02 `6171:7490`, `6171:7500`, `6171:7510`; U03 `6171:7960`, `6171:7968`, `6171:7983`; U04 `6178:8216` | Notes don't name their kind: "Can't be met together with Rule 02.", "Same as Rule 03. You can delete one to keep the list clear."; U03 `6171:7960` reads "Can't be met together with Rule 05 (changed here)." | U01 `6171:7010` "Conflicting. Can't be met together with Rule 02.", `6171:7024` "Conflicting. Can't be met together with Rule 01."; U02 `6171:7490` "Conflicting. Can't be met together with Rule 05.", `6171:7500` "Conflicting. Can't be met together with Rule 04.", `6171:7510` "Redundant. Same as Rule 03. You can delete one to keep the list clear."; U03 `6171:7960` "Conflicting. Can't be met together with Rule 05.", `6171:7968` "Conflicting. Can't be met together with Rule 04.", `6171:7983` "Redundant. Same as Rule 01. You can delete one to keep the list clear."; U04 `6178:8216` "Redundant. Same as Rule 03. You can delete one to keep the list clear." | CLAR 2026-10-28 #3; RULE wording (U03 `6171:7960` drops "(changed here)", which is copy only). CLAR #13's "The rule notes … stay as drawn" keeps these notes next to the new group mark. It doesn't bring back their drawn text |
-| F6 | FR-012e, FR-003b, FR-003a, FR-012a, US1-AS3, US1-AS4, ENT-Finding.target | Sub-group 01: U02 header `6171:7093` (frame `6171:7091`), U03 header `6171:7563` (frame `6171:7561`) | Sub-group unmarked. Only Rule 04 and Rule 05 carry notes, although the sub-group can't be met on its own | Conflicting mark on Sub-group 01 in the conflict look of F4: an outline round the group and a note under its header, "Conflicting. Rule 04 and Rule 05 in this group can't be met together." The rule notes stay. Group 01 (U02 `6171:7086`, U03 `6171:7556`, U04 `6178:7822`) and U04's Sub-group 01 `6178:7829` stay plain. The summary counts the group (F1) | CLAR 2026-10-28 #13 (look: #3) |
-| F7 | FR-014a, FR-014b, US3-AS1 | Variant tabs: U01 "Standard" `6171:6755`, U02 "Standard" `6171:7070`, U03 "Ambulance" `6171:7542`, U04 "Standard" `6178:7806` | U01, U02, U04: no icon (only the component variant name "Rules/Variant tab · fixes" hints at one). U03: blue info icon, although Ambulance has a conflict. No text alternative | Every tab whose branch has findings, selected or not, shows an icon after the name, without a number. KERN warning icon on U01 `6171:6755`, U02 `6171:7070` and U03 `6171:7542` (these branches have conflicts). KERN info icon on U04 `6178:7806` (redundancy only). Text alternative "<branch> has findings", e.g. "Standard has findings", "Ambulance has findings". U03 "Standard" `6171:7541` stays plain | CLAR 2026-10-28 #14 (colours: #3) |
-| F8 | FR-016c, FR-016a, FR-016b, US1-AS7, US4-AS5 | Footer: U01 `6171:6771`, U02 `6171:7104`, U03 `6171:7581`. Frame name: U02 `6171:7064` | "Publish" drawn pale (disabled) while a conflict is shown and no spec 002 problem is on screen. The frame is named "… sub-group: conflict (blocks)" | "Publish" (and "Save" in the edit flow) stays enabled, as in U04 `6178:7840`, unless a spec 002 FR-006 problem refuses it. Findings never disable, delay or add a step to any action. The frame name drops "(blocks)" (annotation only) | CLAR 2026-10-28 #2 |
+| # | Figma (every unit) | stays as built |
+|---|---|---|
+| O1 | App header ("Konnekt", breadcrumb, "Draft" badge), step header ("Step 3 of 4", progress, "Next: Test"), footer ("Back", "Save and exit", "Test rules") | Spec 001/002's `WizardLayout`, step header and `EditorFooter` ("Publish", "Save") |
+| O2 | Rule rows (blue names, "Message for applicants:", value chips), group headers and frames, connectors, "+ Add rule" | Spec 002's `RuleRow`, `GroupFrame`, connectors and add buttons; only the `finding` look of A3–A5 changes |
+| O3 | "Changed here" in purple, the same as the new mark (variables `variant/changed-text`, `variant/changed-background` "(purple, same as New addition)"), and "Added here" (U03 `6171:7569`, `6171:7578`) | The orange "Changed here" and "New addition" (decision 3). A conflict note on a changed row is told apart by its icon and text, not by colour (US3-AS5) |
+| O4 | Link strip "Rules you don’t change follow Standard." (U03 `6344:60080`) | Spec 002's strip and copy |
+| O5 | Variant tabs' and "+ Add variant"'s styling | Spec 002's `BranchTab`; only A6's icon and tooltip change |
+| O6 | Values bound to KERN's names with the unreleased "Revamp" (`layout-text-default` #0b1220, `action-default` #1d56f0, `layout-background-hued` #f2f5fb, the feedback colours, radii) | KERN 2.8's token of the same name, listed as "KERN 2.8 vs Revamp" (CLAUDE.md, decision 2026-10-25) |
 
 ## Build without frames (decided)
-| # | req | expected surface | build from (nearest frame or KERN pattern) | decision |
-|---|-----|------------------|--------------------------------------------|----------|
-| W1 | FR-015, US1-AS2, US1-AS6, US2-AS3 (mark gone after a change), FR-011b | Rules step: notes, summary alert, tab icon, status region | The existing controls (cosmetic row 4) trigger it: after every change the checks rerun unasked, and the notes, summary alert and tab update in place. Example: switching U01's connector `6171:6764` to OR removes both notes (`6171:7010`, `6171:7024`) and the alert `6616:44378`. A visually hidden polite status region (`role="status"`) announces each change without moving the focus. New conflict: "Rule 02 conflicts with Rule 01."; new redundancy: "Rule 06 is the same as Rule 03." or "Rule 01 makes no difference beside Rule 02."; new always-met item: "Every applicant meets Rule 05."; finding gone: "Rule 02 no longer conflicts with Rule 01.", "Rule 06 is no longer redundant.", "Rule 05 is no longer always met."; a new FR-004 or FR-006 notice is announced with its own text | CLAR 2026-10-28 #4 |
-| W2 | US1-AS5 | Rules step – rule note | The conflict note of F4/F5 (U01 `6171:7010`). Only the rule inside the OR group (Group 01: U02 `6171:7086`, U03 `6171:7556`, U04 `6178:7822`) gets a note: "Conflicting. Can't be met together with Rule 01." Its AND sibling, the group and the group's other rule stay plain, and the branch gets no notice | CLAR 2026-10-28 #5 |
-| W3 | EC-11 | Rules step – rule notes | The conflict note of F4/F5. Each of the four rules names the other three, e.g. "Conflicting. Can't be met together with Rule 02, Rule 03 and Rule 04." | CLAR 2026-10-28 #5 |
-| W4 | EC-20, FR-006b | Rules step – notes | U01 `6171:6749`: an unmeetable branch shows only its conflict notes. The redundancy and always-met notes (as U02 `6171:7510`, U03 `6171:7983`, U04 `6178:8216`) appear once the conflict is gone. Rules inside a redundant or always-met group stay plain (W7), as FR-005e/FR-005c require | CLAR 2026-10-28 #5, #6 |
-| W5 | FR-008b, EC-7, ENT-Finding.appliesToday | Rules step – rule note, summary alert | Conflict note of F4/F5: "Conflicting. Can't be met together with Rule 02 by applicants who share today." A branch that can be met on other days but not today gets "No applicant who shares today can meet the rules of Standard." in its warning summary alert (F1/F2) | CLAR 2026-10-28 #5 |
-| W6 | FR-005b, US2-AS1, US2-AS2, US2-AS4 | Rules step – rule note | U04's redundancy note `6178:8214`/`6178:8216` in the info look (F4). Implied by others in a level combined with AND: "Redundant. Anyone who meets Rule 02 also meets this rule. You can delete it to keep the list clear."; with several rules: "Redundant. Anyone who meets Rule 02 and Rule 03 also meets this rule. You can delete it to keep the list clear." Implies another in a level combined with OR: "Redundant. Anyone who meets this rule also meets Rule 01. You can delete it to keep the list clear." | CLAR 2026-10-28 #6 |
-| W7 | FR-005c, FR-012e (redundant and always-met groups), US2-AS6 | Rules step – group mark | Group headers (U02 `6171:7086`, `6171:7093`; U03 `6171:7556`, `6171:7563`; U04 `6178:7822`, `6178:7829`) with F6's group outline and header note, in the info look. Redundant group: "Redundant. Anyone who meets Rule 01 also meets this group. You can delete it to keep the list clear." Always-met group: "Always met. Every applicant meets this group." The rules inside stay plain | CLAR 2026-10-28 #6 (look: #3) |
-| W8 | FR-006a, FR-006c, US2-AS5, ENT-Finding.branchKind (all-meet) | Rules step – rule/group note, summary alert | U04's note `6178:8216` and alert `6616:44434`, in the info look. Notes: "Always met. Every applicant meets this rule." / "Always met. Every applicant meets this group." The summary counts "1 always-met rule" / "1 always-met group", after "There's also" when the branch has conflicts. It ends with "Every applicant meets the rules of Standard." when every applicant meets the top level | CLAR 2026-10-28 #6 |
-| W9 | US3-AS2, US3-AS4 | Rules step – variant | U03: tabs `6171:7541`/`6171:7542`, link strip `6344:60080`, branch marks `6171:7568`/`6171:7569` and `6171:7577`/`6171:7578`, notes `6171:7960`/`6171:7968`/`6171:7983`, alert `6616:44417`. US3-AS2: a rule removed in "Ambulance" shows spec 002's removed state and no note there. The findings it took part in leave Ambulance's summary and tab icon. Once the rule is restored, it is checked again. US3-AS4: a conflict among inherited rules that Ambulance keeps unchanged shows the same notes and summary in both tabs, and both tabs show F7's icon | CLAR 2026-10-28 #7 |
-| W10 | FR-017a, FR-017b, FR-017c, FR-017d, US4-AS1, US4-AS2, US4-AS3, US4-AS4, US4-AS5, FR-016c, FR-019c, US1-AS7 (dialog) | Publish/save dialog | Spec 002's warnings line, U33 `6376:26181` ("1 warning on Ambulance"). Below it, one line per branch with findings, in tab order, e.g. "Ambulance: 2 conflicting rules, 1 redundant rule". An unmeetable branch's line adds "No applicant can meet the rules of Ambulance." Lines with conflicts use the warning style. Lines with only redundant or always-met findings use the info style. A "Check rules again" button (KERN secondary) opens the rules step on the first branch, in tab order, that has findings. Without findings the dialog stays as spec 002 has it. "Publish" and "Save" stay enabled and go ahead without a further question | CLAR 2026-10-28 #8 |
-| W11 | FR-002b, EC-13 | Rules step | The rule keeps spec 002's red `Rules/Problem note` and outline unchanged and carries no finding. It isn't counted in the summary alert or by the tab icon, and the other rules are checked without it. Once fixed, it is checked again. A rule without an error message is still checked (FR-002a) | CLAR 2026-10-28 #9 |
-| W12 | FR-010c, EC-19 | Rules step – summary alert, tab | The summary alert (U01 `6616:44378`, U02 `6616:44400`, U03 `6616:44417`, U04 `6616:44434`) adds "The rules of Standard couldn't be checked completely. Only findings that are certain are shown." When no finding is certain, that sentence stands alone in a KERN info alert in place of U04's alert `6616:44434`, without "Go to next finding". The tab icon (F7) reflects only certain findings, so with none it shows no icon. Nothing waits for the checks | CLAR 2026-10-28 #10, #14, #15 |
-| W13 | EC-15 | Rules step | A branch without rules, or with all of them removed, shows spec 002's rules step with no summary alert, no notice and no tab icon | CLAR 2026-10-28 #11 |
-| W14 | EC-21 (FR-011a in the edit flow) | Rules step, edit flow | Looks like U01–U04 (step headers U01 `6702:41182`, U02 `6702:41215`, U03 `6702:41248`, U04 `6702:41281`). It checks the published rules when it opens | CLAR 2026-10-28 #11 |
-| W15 | FR-002d (OUT-8; also FR-002c, EC-14) | Rule editor | Spec 002's rule editor, unchanged: it shows nothing about findings. A new rule is checked once it is added, and the rule and group notes stay the only place where findings show | CLAR 2026-10-28 #12 |
-| W16 | FR-013d | Rules step – summary alert | Leave F3's "Go to next finding" out when no rule or group has a finding, e.g. a summary with only a branch notice. After an incomplete check (W12) it visits only certain findings, and the info alert that stands alone has no button | CLAR 2026-10-28 #15 |
 
-Superseded: the tab counts in CLAR 2026-10-28 #6, #7, #10 and #13 give way to #14, the later answer: a tab shows an icon and no number. F7, W9 and W12 follow #14.
+W1–W15 keep their numbers; their content follows the decisions of 2026-11-01.
 
-## Clarify questions
-None. CLAR 2026-10-28 #1 (findings can't be dismissed and nothing about them is stored) doesn't refer to the design and settles nothing here. FR-019a, its UI point, is COVERED in U01, U02 and U04.
+| # | req | build |
+|---|---|---|
+| W1 | FR-011, FR-015, US1-AS2, US1-AS6, US2-AS3 | Checks rerun unasked after every change, and notes, banner and tab icon update in place: switching U01's connector `6171:6764` to OR removes both notes and the banner. The status region announces each change (design-notes §5) |
+| W2 | US1-AS5 | Only the rule inside the OR group gets "Can’t be met together with Rule 01."; its AND sibling, the group and the group's other rule stay plain; no notice |
+| W3 | EC-11 | Each of the four notes names the other three: "Can’t be met together with Rule 02, Rule 03 and Rule 04."; one banner line "Rule 01, Rule 02, Rule 03 and Rule 04 can’t be met together." |
+| W4 | EC-20, FR-005 | A variant that no applicant can meet shows only its conflicts; duplicate, covered and always-met marks and lines appear once the conflict is gone |
+| W5 | FR-008, EC-7 | Drawn for rule pairs (A7). Built the same way for groups, rules on their own and the dialog: "… at the moment.", "Right now, no applicant can meet the rules of <variant>." |
+| W6 | FR-005, US2-AS1, AS2, AS4 | Covered rules, in U07's voice: AND "Anyone who meets Rule 02 also meets this rule. You can delete the rule.", OR "Anyone who meets this rule also meets Rule 01. You can delete the rule."; banner lines "Anyone who meets Rule 02 also meets Rule 01." and so on (design-notes §2.4, §3) |
+| W7 | FR-005, FR-006, US2-AS5, AS6 | Drawn (A4, A5). Built the same way for a group that is covered in an OR level: "Anyone who meets this group also meets Rule 01. You can delete the group." |
+| W8 | FR-006 | An always-met rule: note "Every applicant meets this rule.", line "Every applicant meets Rule 05, so it doesn’t check anything."; the notice "Every applicant meets the rules of Standard." in the info look, without a link |
+| W9 | US3-AS2, AS4, AS5 | A rule removed in a based variant shows spec 002's removed state and no note, and leaves its lines, counts and tab icon; restored, it is checked again. A conflict among inherited rules shows in both variants, with A6's warning icon on both tabs. A changed row with a finding keeps the orange "Changed here" (O3) |
+| W10 | FR-017, US4-AS1 to AS5 | Publish and save dialog, from spec 002's warnings line U33 `6376:26181`: one line per variant with findings, in tab order, "<variant>: <counts row>" ("Ambulance: 2 rules can’t be met together · 1 duplicate rule"), adding "No applicant can meet the rules of Ambulance." where it applies; warning style with a conflict, info otherwise; "Check rules again" (KERN secondary) opens the rules step on the first variant with findings; "Publish" and "Save" go ahead without a further question |
+| W11 | FR-002, EC-13 | A rule with a spec 002 problem keeps the red `Rules/Problem note` (level `blocking`) and outline, carries no finding, and isn't counted |
+| W12 | FR-010, EC-19 | The banner adds the info item "The rules of Standard couldn’t be checked completely. Only findings that are certain are shown." (without a link), and " · couldn’t be checked completely" to a counts row; with no certain finding it stands alone in a single info banner. Only certain findings have notes, lines, counts and the tab icon |
+| W13 | EC-15 | A variant without checked rules: no banner and no findings icon on its tab |
+| W14 | EC-21 | The edit flow's rules step looks like the create flow's and checks the published rules when it opens |
+| W15 | FR-002, EC-14 | The rule editor shows nothing about findings |
+| W17 | FR-004, FR-013 | Banner states that aren't drawn: several lines in a variant that no applicant can meet: counts row, then ". So no applicant can meet the rules of <variant>." collapsed, and the notice as its own item, without a link, when expanded; a notice or the incomplete sentence alone: a single banner without links |
+| W18 | FR-003 | Conflicts without a pair: a rule that can't be met on its own, note "No applicant can meet this rule.", line "No applicant can meet Rule 03."; a group none of whose members can be met, note "Neither Rule 04 nor Rule 05 in this group can be met.", line "Sub-group 01: neither Rule 04 nor Rule 05 can be met." |
+| W19 | FR-012 to FR-014, SC-006 | Accessibility of the redesigned parts: the notes' and lines' kind icons carry a hidden kind text (A3); the chevron is a button "Show findings" / "Hide findings" with `aria-expanded`; the name links are links or link-styled buttons that move the focus to the row or group header, which its note describes; the tab icon's accessible name is "<variant> has findings" with findings, and the tooltip opens on keyboard focus |
+| W20 | FR-014 | The tooltip's findings segment for the cases that aren't drawn: "1 conflict: <line>" for a single conflict line, "1 finding: <line>" for a single covered or always-met line, otherwise the counts row; the notice appended as in the banner (design-notes §4) |
+
+## Retired items of 2026-10-28
+
+| item | was | now |
+|---|---|---|
+| F1 | Summary alert's counts and wording | A1, A2 |
+| F2 | KERN warning / info alert | A1 (the banner's kinds) |
+| F3 | "Go to next finding" | A1 (name links) |
+| F4 | Warning and info look of outlines and notes | A3 (notes), A4 (outlines) |
+| F5 | Kind label at the start of each note | A3 (no visible label; hidden text) |
+| F6 | Conflicting sub-group mark | A4, A5 (now drawn) |
+| F7 | Tab icon after the name, separate from the (i) | A6 |
+| F8 | Disabled "Publish" | A8 (Figma no longer disables it) |
+| W16 | No "Go to next finding" without marked items | W17 (a notice alone: a single banner without links) |
 
 ## Coverage
-| req-id | status | units |
-|--------|--------|-------|
-| FR-001a | COVERED (UI = N) | U02, U03 |
-| FR-001b | COVERED (UI = N) | U03 |
-| FR-001c | COVERED (UI = N) | U03 |
-| FR-002a | COVERED (UI = N) | U01 |
-| FR-002b | SPEC-ONLY → W11 | — (missing U01, U02, U03) |
-| FR-002d | SPEC-ONLY → W15 | — |
-| FR-003a | PARTIAL (UI = N) → F6 | U01 COVERED, U02 COVERED/PARTIAL, U03 COVERED/PARTIAL |
-| FR-003b | PARTIAL → F1, F5, F6 | U01 COVERED, U02 PARTIAL, U03 PARTIAL |
-| FR-003c | COVERED (UI = N) | U01 (70 %), U02 |
-| FR-004 | PARTIAL → F1 | U01 PARTIAL, U04 COVERED (correctly absent) |
-| FR-005b | PARTIAL → F1, F5, W6 | U02 PARTIAL, U03 COVERED, U04 PARTIAL |
-| FR-005c | SPEC-ONLY → W7 | — |
-| FR-005d | COVERED | U02, U03, U04 |
-| FR-005e | COVERED | U01 (70 %), U04 |
-| FR-006a | SPEC-ONLY → W8 | — |
-| FR-006b | SPEC-ONLY → W4 | — |
-| FR-006c | COVERED (correctly absent only) → W8 | U04 |
-| FR-007d | COVERED (UI = N) | U01 |
-| FR-008b | SPEC-ONLY → W5 | — |
-| FR-010a | COVERED (UI = N) | U03, U04 |
-| FR-010b | COVERED (UI = N) | U04 |
-| FR-010c | SPEC-ONLY → W12 | — |
-| FR-011b | not mapped (UI = N) → W1 | — |
-| FR-011d | PARTIAL → F1, F5 | U01 COVERED, U02 PARTIAL, U03 PARTIAL, U04 PARTIAL |
-| FR-012a | PARTIAL → F4, F5, F6 | U01, U02, U03 PARTIAL; U04 CONFLICT row (PARTIAL for FR-012a) |
-| FR-012b | COVERED | U03 |
-| FR-012c | CONFLICT → F2, F4 | U01, U02, U03, U04 |
-| FR-012d | PARTIAL → F5 | U01, U02, U03, U04 |
-| FR-012e | PARTIAL → F6, W7 | U02, U03 |
-| FR-013a | PARTIAL → F1 | U01, U02, U03, U04 |
-| FR-013b | PARTIAL → F3 | U01, U02, U03, U04 |
-| FR-013c | CONFLICT → F1, F2 | U01, U02, U03, U04 |
-| FR-013d | PARTIAL → F3, W16 | U02, U03, U04 |
-| FR-014a | PARTIAL → F7 | U01, U02, U03, U04 |
-| FR-014b | PARTIAL → F7 | U01, U02, U03, U04 |
-| FR-015 | SPEC-ONLY → W1 | — |
-| FR-016a | CONFLICT → F1, F8 | U01 CONFLICT (80 %) / PARTIAL (70 %), U02 CONFLICT, U03 CONFLICT, U04 COVERED |
-| FR-016b | CONFLICT (UI = N) → F8 | U01 (80 %), U02 |
-| FR-016c | CONFLICT → F8, W10 | U01, U02, U03 |
-| FR-016d | CONFLICT → F1, F5 | U01, U02, U03 CONFLICT; U04 PARTIAL |
-| FR-017a | SPEC-ONLY → W10 | — |
-| FR-017b | SPEC-ONLY → W10 | — |
-| FR-017c | SPEC-ONLY → W10 | — |
-| FR-017d | SPEC-ONLY → W10 | — |
-| FR-019a | COVERED | U01, U02, U04 |
-| FR-019c | CONFLICT → F2, W10 | U02 PARTIAL, U03 COVERED, U04 CONFLICT |
-| FR-020 | COVERED | U01 (60 %), U03 |
-| US1-AS1 | PARTIAL → F1, F5 | U01, U02, U03 |
-| US1-AS2 | SPEC-ONLY → W1 | — |
-| US1-AS3 | PARTIAL → F6 | U02 |
-| US1-AS4 | PARTIAL → F6 | U02, U03 |
-| US1-AS5 | SPEC-ONLY → W2 | — |
-| US1-AS6 | SPEC-ONLY → W1 | — |
-| US1-AS7 | CONFLICT → F8, W10 | U01 (80 %), U02 |
-| US2-AS1 | SPEC-ONLY → W6 | — |
-| US2-AS2 | SPEC-ONLY → W6 | — |
-| US2-AS3 | PARTIAL → F5, W1 | U02 PARTIAL, U03 COVERED, U04 PARTIAL |
-| US2-AS4 | SPEC-ONLY → W6 | — |
-| US2-AS5 | SPEC-ONLY → W8 | — |
-| US2-AS6 | SPEC-ONLY → W7 | — |
-| US3-AS1 | PARTIAL → F7 | U03 |
-| US3-AS2 | SPEC-ONLY → W9 | — |
-| US3-AS4 | SPEC-ONLY → W9 | — |
-| US3-AS5 | COVERED | U03 |
-| US4-AS1 | SPEC-ONLY → W10 | — |
-| US4-AS2 | SPEC-ONLY → W10 | — |
-| US4-AS3 | SPEC-ONLY → W10 | — |
-| US4-AS4 | SPEC-ONLY → W10 | — |
-| US4-AS5 | CONFLICT → F8, W10 | U03 |
-| EC-7 | SPEC-ONLY → W5 | — |
-| EC-9 | PARTIAL → F5 | U02 PARTIAL, U03 COVERED, U04 PARTIAL |
-| EC-10 | COVERED | U02, U03, U04 |
-| EC-11 | SPEC-ONLY → W3 | — |
-| EC-13 | SPEC-ONLY → W11 | — |
-| EC-15 | SPEC-ONLY → W13 | — |
-| EC-19 | SPEC-ONLY → W12 | — |
-| EC-20 | SPEC-ONLY → W4 | — |
-| EC-21 | SPEC-ONLY → W14 | — |
-| ENT-Finding.target | PARTIAL → F6 | U01 COVERED, U02 PARTIAL |
-| ENT-Finding.kind | PARTIAL → F1, F5 | U01, U02 |
-| ENT-Finding.reason | PARTIAL → F5 | U01 COVERED, U02 PARTIAL |
-| ENT-Finding.branchKind | PARTIAL → F1, W8 | U01 |
-| ENT-Finding.appliesToday | SPEC-ONLY → W5 | — |
 
-The remaining requirements have UI = N and no unit mapped them, as they have no Figma surface:
-- FR-002c, FR-005a, FR-007a, FR-007b, FR-007c, FR-007e, FR-007f, FR-007g
-- FR-008a, FR-008c, FR-009, FR-010d, FR-011a, FR-011c, FR-018, FR-019b
-- US2-AS7, US3-AS3
-- EC-1, EC-2, EC-3, EC-4, EC-5, EC-6, EC-8, EC-12, EC-14, EC-16, EC-17, EC-18
-- ENT-CheckedRules.scope, ENT-RuleCheck.trigger, ENT-RuleCheck.effects
-
-FR-002c and EC-14 are carried by W15, and FR-011a by W14 for the edit flow.
+| req | items |
+|---|---|
+| FR-003 | A2, A3, A5, W2, W3, W18 |
+| FR-004 | A2, W17 |
+| FR-005 | A2, A3, A5, W4, W6, W7 |
+| FR-006 | A2, A5, W8 |
+| FR-008 | A7, W5 |
+| FR-010 | W12 |
+| FR-011 | W1, W14 |
+| FR-012 | A3, A4, A5, W11, W19 |
+| FR-013 | A1, A2, W17, W19 |
+| FR-014 | A6, W9, W12, W13, W19, W20 |
+| FR-015 | W1 |
+| FR-016 | A8, W10 |
+| FR-017 | W10 |
+| FR-019 | A1, A3, A4, A6, W10 |
+| FR-020 | O1 (the signed-in page), W14 |
+| US1 | A1–A5, W1–W3, W18 |
+| US2 | A2, A3, A5, W4, W6–W8 |
+| US3 | A6, W9 |
+| US4 | W10 |
 
 ## Not audited
-- No unit was skipped. U01–U04 are all IN and DONE: none is OUT, unresolved UNCERTAIN, FAILED or RATE_LIMIT.
-- The mapper skipped hidden layers: "Old · …" frames, hidden card headers and old problems banners.
-- The mapper judged scope from `spec.md`, because `requirements.md` was missing at mapping time. All four frames in the section were IN, so no unit was lost to that.
-- These surfaces have no frame in section `6171:6748`, so no unit audited them:
-  - the publish/save dialog: W10 builds it from spec 002's U33 `6376:26181`, which this audit didn't open
-  - the rule editor (W15)
-  - the edit flow's rules step (W14)
-  - a branch without rules (W13)
-  - an incomplete check (W12)
-  - the status region (W1)
+
+- The publish and save dialog, the rule editor, the edit flow, an incomplete check, a variant
+  without rules and the status region: no frame in the section (W10, W15, W14, W12, W13, W1).
+- Page design around the findings (O1–O6): out of scope by decision 1.

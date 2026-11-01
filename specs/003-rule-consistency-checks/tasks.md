@@ -9,7 +9,8 @@ description: "Task list for conflict and redundancy checks for rules"
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
 [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md),
-[figma-audit/report.md](figma-audit/report.md)
+[figma-audit/report.md](figma-audit/report.md) (redesign of 2026-11-01; the audit of 2026-10-28 is
+in [figma-audit/archive-2026-10-28/](figma-audit/archive-2026-10-28/))
 
 **Tests**: Included, because the plan asks for them: plan.md "Testing" and "Rules for
 /speckit-tasks", research R13, quickstart §2.
@@ -61,16 +62,20 @@ tested as an increment.
   - The UI says "variant" for branch and "connection" for form connection.
 - **Gates**: every frontend task passes `npm run lint`, `npm test` and `npm run build`. Every
   backend task passes `uv run ruff check .` and `uv run mypy app/ scripts/ tests/`.
-- **UI tasks**: spec.md decides behaviour and wording; Figma decides layout and styling only.
-  - Every UI task cites its screen (S2–S7) and the F# and W# items it covers, from
-    contracts/ui-screens.md "Deviations from Figma" (research R14).
+- **UI tasks** (revised 2026-11-01, the Figma section was redesigned): spec.md decides what is a
+  finding; the redesigned section decides the findings' look, behaviour and wording; the page
+  around the findings stays as built.
+  - Every UI task cites its screen (S2–S7) and the items it covers, from contracts/ui-screens.md
+    "Items from the audit": A1–A8 (adopted from Figma), W1–W15 and W17–W20 (built without frames),
+    O1–O6 (page design, out of scope). Tasks completed before 2026-11-01 cite F1–F8 and W1–W16 of
+    the archived audit; Phase 3R reworks what the redesign changed.
   - It follows CLAUDE.md's "Figma implementation workflow" on section `6171:6748` of file
-    `s8mU9oJDq3411e8bxMjQO9`, for the nodes it names: node discovery through `figma-node-finder`;
-    `get_design_context` and `get_screenshot` per node; exact values; then the numeric and visual
-    checks.
-  - Its visual-verification table lists each difference that a cited item prescribes, with the
-    item's number. It lists each value that differs only because the file binds KERN's names to
-    the unreleased "Revamp" as "KERN 2.8 vs Revamp". Neither is fixed.
+    `s8mU9oJDq3411e8bxMjQO9`, for the nodes it names: `get_design_context` and `get_screenshot`
+    per node (the node ids are in figma-audit/units.md and report.md, so `figma-node-finder` is
+    needed only for a node they don't list); exact values; then the numeric and visual checks.
+  - Its visual-verification table lists each difference that an O# item explains ("page design
+    (O2)"), and each value that differs only because the file binds KERN's names to the unreleased
+    "Revamp" ("KERN 2.8 vs Revamp", O6). Neither is fixed.
 
 ---
 
@@ -97,6 +102,7 @@ tested as an increment.
     - names items by their current names, and lists them as "Rule 02, Rule 03 and Rule 04" (W3);
     - never words a finding as something "to fix" (FR-016).
 - [X] T002 Map the Figma variables to KERN 2.8 tokens, once (CLAUDE.md "Figma implementation workflow", step 2; F2, F4, F7; research R15). It runs after T001, since both write `specs/003-rule-consistency-checks/design-notes.md`.
+  - Redesign 2026-11-01: design-notes.md §1–§6 and §7's update were rewritten for the redesigned section by T055.
   - Call `get_variable_defs` on the section `6171:6748`, and map every variable to an existing token of `frontend/src/index.css` (KERN's Tailwind theme and the `@theme` block). Start from the "Tokens" section of `specs/002-connection-rules/design-notes.md`, since the section is in spec 002's file.
   - Record the mapping in a "Tokens" section of design-notes.md. List each value that differs only for the Revamp as "KERN 2.8 vs Revamp" (CLAUDE.md, decision 2026-10-25).
   - Settle research R15's first point:
@@ -356,6 +362,7 @@ that publishing stays possible.
     - returned no later than the deadline plus one theory step.
   - `findings.test.ts`: each reason type; the `today` flag; the deadline with a fake clock (`complete: false`, with the certain findings kept); determinism.
 - [X] T021 [P] [US1] Write `checks/findingMessages.ts` with `findingMessages.test.ts`, the texts of conflicts (depends on T001, T008; FR-004, FR-008, FR-010, FR-012 to FR-015; research R12; contracts/ui-screens.md "Copy").
+  - Redesign 2026-11-01: the texts, `summaryOf()` and the kind prefix are superseded; T056 reworks this module.
   - `noteOf(finding, names)`:
     - "Conflicting. Can't be met together with <items>.", and with FR-008, "… with <items> by applicants who share today.";
     - "Conflicting. <items> in this group can't be met together.";
@@ -431,11 +438,13 @@ that publishing stays possible.
 ### UI for User Story 1
 
 - [X] T029 [P] [US1] Build `frontend/src/components/FindingNote/` (`index.tsx`, `types.ts`, `constants.ts`), the note under a rule or group header (depends on T002; S2; F4, F5; FR-012, FR-019; Figma U01 `6171:7010`, `6171:7024`, U04 `6178:8216`, in the layout of spec 002's `Rules/Problem note` `6110:3657`).
+  - Redesign 2026-11-01: the look (coloured semibold text, 8 px gap) is superseded by A3; T057 reworks it.
   - Props: the note's `id`, the finding's `kind`, and its `text` from `noteOf()`.
   - Conflicting: KERN's warning colour and warning triangle icon. Redundant and always met: KERN's info colour and info icon. Use the icon classes and the text colours that T002 settled.
   - The icon is `aria-hidden`, since the text starts with the kind. Spec 002's `ProblemNote` stays as it is.
   - Visual check against the three nodes, listing F4's colours and icons and F5's kind prefix as prescribed differences.
 - [X] T030 [US1] Give the shared `RuleRow` and `GroupFrame` an optional `finding` prop, in `frontend/src/components/RuleRow/` and `frontend/src/components/GroupFrame/` (`index.tsx`, `types.ts`, and `GroupHeader.tsx` as needed) (depends on T029; S2, S6; F4, F6; FR-012, FR-020; research R11; Figma U01 outlines `6171:7008`, `6171:7022`; U02 outline `6171:7487`, sub-group frame `6171:7091` and header `6171:7093`).
+  - Redesign 2026-11-01: the outlines stay (A4); T057 verifies their values against the redesign.
   - `finding?: { kind, text }`:
     - the row, or the group, is outlined in the finding's colour, with the drawn outline's width and radius;
     - its `FindingNote` sits under the row, or under the group's header;
@@ -456,6 +465,7 @@ that publishing stays possible.
     - U02's notes `6171:7490` and `6171:7500`;
     - U02's Sub-group 01 `6171:7093`, with F6's note "Conflicting. Rule 04 and Rule 05 in this group can't be met together.".
 - [X] T032 [US1] Build `RulesStep/FindingsSummary.tsx`, the summary above the rules (depends on T031; S2; F1, F2, F3, W5, W12, W13, W16; FR-004, FR-008, FR-010, FR-013; research R11; Figma U01 `6616:44378`, U02 `6616:44400`).
+  - Redesign 2026-11-01: superseded by the findings banner (A1); T058 replaces this component.
   - It is a `KernAlert` where the alerts are drawn: `warning` when the branch has a conflict or no applicant can meet it, `info` otherwise. Its text comes from `summaryOf()`.
   - "Go to next finding" (KERN tertiary, F3):
     - each press scrolls the next rule or group with a finding, in display order (the order of `findings`, research R2), into view, and moves the focus to its row (`ELEMENT_IDS.rule()`) or group header. After the last one, it starts over;
@@ -473,6 +483,54 @@ that publishing stays possible.
 
 **Checkpoint**: conflicts are marked, summarised and announced at every level. Validate with
 quickstart V1, V2, V4's conflict rows, and V7's announcements. This is the MVP.
+
+---
+
+## Phase 3R: Redesign rework (2026-11-01)
+
+**Purpose**: The Figma section `6171:6748` was redesigned after Phase 3: 11 frames (U01–U11), a
+findings banner instead of the summary alert and "Go to next finding", notes without a kind label
+in the default text colour, the tab icon merged with the description's (i), and new wording.
+Decisions of 2026-11-01 (spec Clarifications): the redesign decides the findings' look, behaviour
+and wording; the page around them stays as built (O1–O6); notes carry the kind only as the icon's
+hidden text. This phase brings the built US1 UI in line before US2 builds on it.
+
+**⚠️ Blocks** T035, T039 and every later UI task.
+
+- [X] T055 Re-audit the redesigned section and re-plan (decisions 2026-11-01). Done in the session that found the redesign:
+  - `figma-audit/report.md` and `units.md`: targeted delta audit, items A1–A8, O1–O6, W1–W15 and W17–W20; F1–F8 and W16 retired; the audit of 2026-10-28 moved to `figma-audit/archive-2026-10-28/`.
+  - `spec.md`: Clarifications session 2026-11-01; FR-003, FR-005, FR-006, FR-008, FR-010, FR-012 to FR-015, FR-017 and the "Design" assumption updated.
+  - `design-notes.md` §1–§6 rewritten in the redesign's voice, every undrawn text marked **Proposed**; §7 updated.
+  - `contracts/ui-screens.md`, `contracts/rule-checks.md` (`bannerOf()`, `countsOf()`, `tabFindingsOf()`), research R11, R12, R14, `plan.md`, `data-model.md` and `quickstart.md` updated.
+- [ ] T056 [US1] Rework `checks/findingMessages.ts` for the redesign, with its tests, for conflicts, notices and the incomplete sentence (depends on T055; A1, A2, A3, A5, A7, W2, W3, W5, W12, W17, W18, W20; FR-003, FR-004, FR-008, FR-010, FR-012 to FR-015; design-notes.md §1–§5; contracts/rule-checks.md).
+  - `noteOf()`: the texts of design-notes §2.1–§2.3, without the kind prefix: "Can’t be met together with Rule 02.", "… at the moment.", "Rule 04 and Rule 05 in this group can’t be met together.", "No applicant can meet this rule.", and the OR-group and one-member forms.
+  - Add `kindTextOf(kind)` for the icons' hidden text: "Conflicting:", "Redundant:", "Always met:" (A3).
+  - Replace `summaryOf()` with `bannerOf(check, branch, names)`, which returns the banner as data (contracts/rule-checks.md): its kind; its lines (design-notes §3.1), each with its icon's kind and its text as parts, plain text or `{ itemId, name }`; the counts row; the notice, as an item and as the appended sentence (§3.2); the incomplete sentence; `null` without a banner (W13).
+    - Conflicts with equal sets share a line, and a set contained in the members a group's own conflict names goes on the group's line (§3.1): U01 one line, U05 "Sub-group 01: Rule 04 and Rule 05 can’t be met together.", EC-11 one line of four (W3).
+    - Lines in display order of their first item; the notice, then the incomplete sentence, after them.
+  - Add `countsOf(check)`: the counts row of §3.4, for conflicts here ("2 rules can’t be met together", "1 rule and 1 group can’t be met together", "1 rule can’t be met"); a group with the `members` reason isn't counted.
+  - Add `tabFindingsOf(check, branch, names)` for the tooltip (§4): "1 conflict: <line>", or the counts row, then the notice. Keep `tabLabelOf()`.
+  - `announcementOf()`: today's wording "at the moment" and "Right now, no applicant …" (§5); the other sentences stay.
+  - Update the texts that `findingMessages.test.ts`, `scenarios.test.ts` (T022) and `announcements.test.ts` (T024) pin, and pin the drawn ones: U01 "Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules of Standard.", U05's line, U08 "Rule 01 and Rule 02 can’t be met together at the moment. Right now, no applicant can meet the rules of Standard.", the notes U01 `6171:7010`, U02 `6750:41000`, U08 `6753:41332`.
+  - Remove `summaryOf()` and every text of the old voice ("Conflicting.", "nobody can meet both …", "who share today"). No text words a finding as something "to fix".
+- [ ] T057 [P] [US1] Restyle `frontend/src/components/FindingNote/` (`index.tsx`, `constants.ts`, `types.ts`) and verify the outlines of `RuleRow` and `GroupFrame` (depends on T055; S2; A3, A4, A5, W11, W19; FR-012, FR-019; Figma `Rules/Problem note` `6177:7837` (levels `conflicting`, `redundant`): U01 `6171:7010`/`6171:7008`, U02 `6171:7510`/`6171:7508`, U02 group note `6750:41000` in frame `6171:7091`, U08 `6753:41332`).
+  - The note: the 20 px kind icon (KERN's `kern-icon--warning` in the warning colour; `kern-icon--info` in the colour `get_design_context` gives, drawn darker than the banner's), 4 px gap, then the text in body/small regular and `layout-text-default`; 24 px left, 8 px below. Drop the coloured, semibold text.
+  - The icon gets a visually hidden kind text from `kindTextOf()` (T056), so that the note, the row's description, is read "Conflicting: Can’t be met together with Rule 02." (W19). The icon itself stays `aria-hidden`.
+  - Outlines (A4): 1 px, radius 8, all round, warning or info; a group's in place of its left border. Fix any value that differs from the nodes.
+  - Spec 002's `ProblemNote` (level `blocking`) stays as it is (W11).
+  - Visual check of the five nodes, listing O2 (rule row restyle) and O6 (Revamp values) as page design.
+- [ ] T058 [US1] Replace `RulesStep/FindingsSummary.tsx` with `RulesStep/FindingsBanner.tsx`, with `FindingsBannerLine.tsx` for each line and `FindingLink.tsx` for each name (depends on T056; S2, S7; A1, A2, A7, W1, W12, W13, W14, W17, W19; FR-010, FR-013; Figma `Rules/Findings banner` `6750:40865`, `Rules/Finding item` `6750:40604`: U01 `6750:40882`, U02 `6750:40933`, U05 `6753:40144`, U08 `6753:41324`).
+  - Draw what `bannerOf()` returns (no text is built in the component): kind (warning or info background and 1 px border, radius 8, padding 8 with 16 on the left), body/small text in `layout-text-default`, no title; inside the rules card, at the top, below `LinkStrip` and `UnrequestedBanner`, where `FindingsSummary` sits.
+  - States (design-notes §3.3): single (no chevron); collapsed (counts row, chevron) by default with two or more lines; expanded (one item per line with its 20 px kind icon and hidden kind text, then the notice and the incomplete sentence without a link).
+  - The chevron is a button with `aria-expanded`, named "Show findings" / "Hide findings" (constants in `RulesStep/constants.ts`), with the project's `expand-less.svg` / `expand-more.svg` if they match the MCP's `icon-expand_less-small`, otherwise the MCP asset. Whether a variant's banner is expanded is kept per variant while the editor is open (in the rules step's reducer or the banner's parent), never stored.
+  - `FindingLink`: a link-styled button (`action-default`, underlined) that scrolls its rule or group into view and moves the focus to its row (`ELEMENT_IDS.rule()`) or group header, as `FindingsSummary`'s `goToNextFinding()` did. Only items with a row on the screen are links; the rule open in the rule editor stays plain text.
+  - Remove `FindingsSummary.tsx`, `RULES_COPY.goToNextFinding`, `WITHOUT_ALERT_ROLE` if unused, and `nextFindingTarget()` with its tests; rename `summaryVariantOf()` to the banner's kind, or replace it with `bannerOf()`'s kind, in `RulesStep/utils.ts` and `utils.test.ts`.
+  - No banner before the first check or for a variant without checked rules (W13). The banner isn't a live region: the status region announces the changes (FR-015).
+  - Verify W1: switching U01's connector `6171:6764` to OR removes both notes and the banner at once. Verify W14: the edit flow's rules step shows the banner of the published rules when it opens.
+  - Visual check of the four banners, single, collapsed and expanded, listing O1, O2 and O6. Check the links' focus targets in U01 (Rule 01 `6171:6762`, Rule 02 `6171:6765`) and U05 (Sub-group 01's header `6753:40164`, Rule 04, Rule 05, Rule 06).
+
+**Checkpoint**: the US1 UI matches the redesign. Validate with quickstart V1, V2, V4's conflict rows
+and V7, and the gates (`npm run lint`, `npm test`, `npm run build`).
 
 ---
 
@@ -507,16 +565,13 @@ that no outcome changes).
     - inside a redundant or always-met group;
     - for an item, or inside an item, whose conflict question came back `'unknown'` (step 5).
   - `findings.test.ts` checks data-model.md's invariants on every result: "1. At most one finding per item. 2. With `notice.kind === 'none_can_meet'`, there are only `conflicting` findings (FR-005, W4). 3. No finding inside a `redundant` or `always_met` group. No `redundant` or `always_met` finding on a conflicting item or inside one (FR-005)." It also covers each reason type.
-- [ ] T035 [P] [US2] Add the texts of redundant and always-met findings to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T021; FR-005, FR-006, FR-015, FR-019; W6, W7, W8; contracts/ui-screens.md "Copy").
-  - Notes:
-    - "Redundant. Same as <item>. You can delete one to keep the list clear.";
-    - "Redundant. Anyone who meets <items> also meets this rule. You can delete it to keep the list clear.", and "… this group. …";
-    - "Redundant. Anyone who meets this rule also meets <items>. You can delete it to keep the list clear.";
-    - the reasons through an enclosing level, from design-notes.md;
-    - "Always met. Every applicant meets this rule.", and "… this group.".
-  - The summary: "1 redundant rule", "1 always-met group" and so on; "There's also …" after conflicts; "You can still continue." without a conflict; and the notice "Every applicant meets the rules of <branch>.".
+- [ ] T035 [P] [US2] Add the texts of redundant and always-met findings to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T056; FR-005, FR-006, FR-015, FR-019; A2, A3, A5, W6, W7, W8, W20; design-notes.md §2.4, §2.5, §3, §4).
+  - Notes (§2.4, §2.5): "Same as <item>. You can delete one of them."; "Anyone who meets <items> also meets this rule. You can delete the rule." and "… this group. You can delete the group."; "Anyone who meets this rule also meets <items>. You can delete the rule."; the reasons through an enclosing level; "Every applicant meets this rule." and "… this group.".
+  - Banner lines (§3.1): "<item> is the same as <y>.", "Anyone who meets <items> also meets <item>.", the OR and enclosing-level forms, "Every applicant meets <item>, so it doesn’t check anything."; the notice "Every applicant meets the rules of <branch>." (§3.2).
+  - Counts (§3.4): "1 duplicate rule", "1 rule already covered", "1 group every applicant meets", after the conflicts, joined with " · ".
+  - Tooltip (§4): "1 duplicate: <line>", "1 finding: <line>".
   - Announcements: "Rule 06 is the same as Rule 03.", "Rule 01 makes no difference beside Rule 02.", "Every applicant meets Rule 05.", "Rule 06 is no longer redundant.", "Rule 05 is no longer always met.".
-  - Tests pin these, and F1's U02 and U04 texts: "2 conflicting rules and 1 conflicting group: nobody can meet both Rule 04 and Rule 05. There's also 1 redundant rule." and "1 redundant rule: Rule 06 is the same as Rule 03. You can still continue.".
+  - Tests pin the drawn texts: U02 counts row "2 rules can’t be met together · 1 duplicate rule"; U04 "Rule 06 is the same as Rule 03." and note `6178:8216` "Same as Rule 03. You can delete one of them."; U06 "Every applicant meets Group 01, so it doesn’t check anything." and `6753:40824`; U07 "Anyone who meets Rule 01 also meets Group 01." and `6753:41298` "Anyone who meets Rule 01 also meets this group. You can delete the group."; U11 "1 duplicate: Rule 06 is the same as Rule 03.".
 - [ ] T036 [US2] Add the redundancy scenarios to `checks/scenarios.test.ts` (depends on T034, T035).
   - US2-AS1 to AS6, each with its note.
   - US2-AS3 through `tree.ts`' `duplicateRule()`, and then a changed value.
@@ -543,12 +598,12 @@ that no outcome changes).
 
 ### UI for User Story 2
 
-- [ ] T039 [US2] Show redundant and always-met findings in the Rules step, in `RulesStep/` and `RulesStep/FindingsSummary.tsx` (depends on T032, T035; S2; F1, F2, F3, F4, F5, W4, W6, W7, W8; FR-005, FR-006, FR-013, FR-019; Figma U02 `6171:7508`/`6171:7510`; U04 `6178:7800`, `6178:8214`/`6178:8216`, group headers `6178:7822`, `6178:7829`, alert `6616:44434`).
-  - Rule notes and outlines are in the info look. A redundant or always-met group gets the outline and the header note in the info look, and the rules inside it stay plain (W7).
-  - Without a conflict, the summary is an info alert (F2, U04), ending with "You can still continue." or with FR-006's notice (W8). With conflicts, the other kinds follow "There's also" in the warning alert.
-  - "Go to next finding" visits redundant and always-met items too (F3): U02 Sub-group 01 `6171:7093` → Rule 04 `6171:7094` → Rule 05 `6171:7097` → Rule 06 `6171:7442`; U04 Rule 06 `6178:8168`.
-  - A branch that no applicant can meet shows only its conflict notes (W4).
-  - Visual check of U04, and of U02's redundancy note, listing F1, F2, F4 and F5. The info look reads less prominently than the warning look (FR-019).
+- [ ] T039 [US2] Show redundant and always-met findings in the Rules step, in `RulesStep/` and `RulesStep/FindingsBanner.tsx` (depends on T035, T057, T058; S2; A1–A5, W4, W6, W7, W8, W17, W19; FR-005, FR-006, FR-013, FR-019; Figma U02 `6171:7508`/`6171:7510`; U04 `6750:41077`, `6178:8168`/`6178:8216`, Sub-group 01 `6178:7829` plain; U05 `6753:40144` (expanded), `6753:40184`/`6753:40187`; U06 `6753:40514`, Group 01 `6753:40525`/`6753:40527`, note `6753:40824`; U07 `6753:40851`, Group 01 `6753:40862`/`6753:40864`, note `6753:41298`).
+  - Rule notes and outlines in the info look (A3, A4). A covered or always-met group gets the outline and the header note in the info look, and the rules inside it stay plain (A5; U06, U07).
+  - The banner: info without a conflict (U04, U06, U07), warning with one, the duplicate's line in the expanded list with the info icon (U05); the notice "Every applicant meets the rules of Standard." without a link (W8).
+  - The names in every line are links (A1): U05 Sub-group 01 `6753:40164`, Rule 04, Rule 05, Rule 06 `6753:40185`; U04 Rule 06 `6178:8168` and Rule 03; U07 Rule 01 and Group 01 `6753:40864`.
+  - A variant that no applicant can meet shows only its conflicts (W4).
+  - Visual check of U04, U06 and U07, and of U02's and U05's duplicate note, listing O2 and O6. The info look reads less prominently than the warning look (FR-019).
 
 **Checkpoint**: every kind of finding is marked and summarised. Validate with quickstart V3 and V4.
 
@@ -576,7 +631,7 @@ the marks in both branches and on their tabs (quickstart V5).
   - Two branches with the same rules: no finding compares them (FR-001).
   With this task, `scenarios.test.ts` covers every acceptance scenario and edge case that a rule set expresses, which completes `findings.ts`.
 - [ ] T041 [P] [US3] Word the variants' findings (depends on T025, T038; FR-014, FR-015; research R12, item 6), with tests beside each module.
-  - `checks/findingMessages.ts`: "in this variant" in the summary, where design-notes.md puts it, such as U03's "2 conflicting rules and 1 conflicting group in this variant: nobody can meet both Rule 04 and Rule 05. There's also 1 redundant rule."; and `tabLabelOf()` for any branch's name ("Ambulance has findings").
+  - `checks/findingMessages.ts`: `tabLabelOf()` and `tabFindingsOf()` for any variant ("Ambulance has findings"; U10's segment "2 rules can’t be met together · 1 duplicate rule"). The banner says no "in this variant" (U03 `6750:41008`).
   - `checks/announcements.ts`: the findings of a branch other than the one shown use design-notes.md's wording ("In Ambulance: Rule 02 conflicts with Rule 05."), so that a change to Standard that causes a conflict in Ambulance is announced.
   - `checks/runState.test.ts`:
     - a change to Standard reruns the based branches whose fingerprints change;
@@ -585,17 +640,18 @@ the marks in both branches and on their tabs (quickstart V5).
 
 ### UI for User Story 3
 
-- [ ] T042 [US3] Show on each variant tab whether its branch has findings, in `RulesStep/BranchTab.tsx`, `RulesStep/BranchTabs.tsx` and a new `RulesStep/FindingsTabIcon.tsx` (depends on T027, T041; S4; F7, W9, W12, W13; FR-014; Figma U01 `6171:6755`, U02 `6171:7070`, U03 `6171:7541` and `6171:7542`, U04 `6178:7806`).
-  - Every tab whose branch has findings, selected or not, shows an icon after its name, without a number: KERN's warning icon when the branch has a conflict or no applicant can meet it, its info icon otherwise.
-  - Its text alternative, `tabLabelOf()` ("Standard has findings"), sits inside the tab button in an `sr-only` span, so that it is read with the tab's name.
-  - Only certain findings count (W12). A branch without checked rules shows no icon (W13).
-  - The (i) and the ⋯ menu keep their places.
-  - Visual check of the four tabs, listing F7. U03's "Standard" `6171:7541` stays plain.
-- [ ] T043 [US3] Check the variants' findings in the Rules step, in `RulesStep/` (depends on T039, T042; S2, S4; F4, F5, W9; FR-001, FR-012; US3-AS2, AS4, AS5; Figma U03 `6171:7535`: tabs `6171:7541`/`6171:7542`, link strip `6344:60080`, branch marks `6171:7568`/`6171:7569` and `6171:7577`/`6171:7578`, notes `6171:7960`, `6171:7968`, `6171:7983`, alert `6616:44417`).
-  - A rule removed in Ambulance shows spec 002's removed state and no note. The findings it took part in leave Ambulance's summary and tab icon, and restoring it brings them back (W9).
-  - A conflict among inherited rules shows the same notes and summary in both tabs, and both tabs show the icon (W9).
-  - A rule with "Changed here" and a finding shows both, told apart by the note's kind label (F4; US3-AS5). Note `6171:7960` reads "Conflicting. Can't be met together with Rule 05.", without "(changed here)" (F5).
-  - Visual check of U03, listing F4, F5 and F7.
+- [ ] T042 [US3] Show on each variant tab whether its branch has findings, merged with the description's (i), in `RulesStep/BranchTab.tsx`, `RulesStep/BranchTabs.tsx` and `frontend/src/components/BranchName/` (`index.tsx`, `types.ts`, `constants.ts`), with the tooltip's findings segment in a new `frontend/src/components/BranchName/FindingsSegment.tsx` (depends on T027, T041; S4; A6, W9, W12, W13, W19, W20; FR-014; Figma U01 `6171:6755`, U03 `6171:7541`/`6171:7542`, U09 `6753:41605`/`6753:41694`, U10 `6758:43059`/`6758:43060` and tooltip `6758:43524`, U11 `6758:43549` and tooltip `6758:43967`; `Rules/Tooltip` `6139:3739`).
+  - `BranchName` takes an optional `findings` (the icon's kind and `tabFindingsOf()`'s segment). With findings, its (i) becomes the findings icon: KERN's warning icon when the branch has a conflict or no applicant can meet it, the info icon otherwise ("ⓘ stays", U11). Without findings, it is spec 002's (i), shown only with a description. The details never pass `findings` (S6; FR-020).
+  - The icon's accessible name is `tabLabelOf()` ("Standard has findings") with findings, spec 002's "About Standard" otherwise. On hover and keyboard focus, the tooltip (`InfoTooltip`, as `Rules/Tooltip` draws it) shows the description, if any, then a divider and the findings segment with its kind icon (W20).
+  - Every tab whose branch has findings shows the icon, selected or not (U09). Only certain findings count (W12). A branch without checked rules shows none (W13).
+  - The ⋯ menu keeps its place.
+  - Visual check of the tabs and both tooltips, listing O5 (tab styling) and O6. U03's "Standard" `6171:7541` shows only its description's (i), if any.
+- [ ] T043 [US3] Check the variants' findings in the Rules step, in `RulesStep/` (depends on T039, T042; S2, S4; A1–A6, W9, O3, O4; FR-001, FR-012; US3-AS2, AS4, AS5; Figma U03 `6171:7535`: tabs `6171:7541`/`6171:7542`, link strip `6344:60080`, banner `6750:41008`, Sub-group 01 `6171:7561`/`6171:7563` with note `6750:41069`, notes `6171:7960`, `6171:7968`, `6171:7983`; U10 `6758:43049`).
+  - A rule removed in Ambulance shows spec 002's removed state and no note. It leaves Ambulance's banner lines, counts and tab icon, and restoring it brings them back (W9).
+  - A conflict among inherited rules shows the same notes and banner in both tabs, and both tabs show the warning icon (W9).
+  - A rule with "Changed here" and a finding shows both, told apart by the note's icon and text (US3-AS5). "Changed here" and "New addition" stay orange and purple as built (O3), although U03 draws "Changed here" purple and "Added here". Note `6171:7960` reads "Can’t be met together with Rule 05.".
+  - The banner sits below the link strip (U03), whose copy stays as built (O4).
+  - Visual check of U03, listing O3, O4, O2 and O6.
 
 **Checkpoint**: every branch is checked, and every tab shows its findings. Validate with
 quickstart V5.
@@ -611,16 +667,16 @@ back to the first of them, while "Publish" and "Save" go ahead as before.
 another. Check the dialog's lines, "Check rules again", and that publishing succeeds (quickstart
 V6).
 
-- [ ] T044 [US4] Add `dialogLineOf(check, branchName)` to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T035; FR-017, FR-019; W10). It runs after T041 when both are built, since both change this file.
-  - "<branch>: 2 conflicting rules, 1 redundant rule", with the counts per kind in the summary's order.
-  - "No applicant can meet the rules of <branch>." for a branch that no applicant can meet, in FR-008's form when it applies today.
-  - The line of a branch whose only finding is that every applicant meets its rules, from design-notes.md.
+- [ ] T044 [US4] Add `dialogLineOf(check, branchName)` to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T035; FR-017, FR-019; W10; design-notes.md §6). It runs after T041 when both are built, since both change this file.
+  - "<branch>: <counts row>", with `countsOf()`: "Ambulance: 2 rules can’t be met together · 1 duplicate rule".
+  - "No applicant can meet the rules of <branch>." for a branch that no applicant can meet, "Right now, no applicant can meet the rules of <branch>." when it applies today.
+  - "Every applicant meets the rules of <branch>." for a branch whose only finding it is (design-notes §6).
   - Nothing for a branch without findings.
-- [ ] T045 [US4] List the findings in the publish and save dialog (depends on T031, T044; S5; F8, W10; FR-016, FR-017, FR-019; US4-AS1, AS2, AS4, AS5; Figma spec 002's dialog U33 `6376:25536` and its warnings line `6376:26181`). Files: `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, a new `PublishFindingLine.tsx`, and `types.ts`, `utils.ts` and `utils.test.ts` beside them.
+- [ ] T045 [US4] List the findings in the publish and save dialog (depends on T031, T044; S5; A8, W10; FR-016, FR-017, FR-019; US4-AS1, AS2, AS4, AS5; Figma spec 002's dialog U33 `6376:25536` and its warnings line `6376:26181`). Files: `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, a new `PublishFindingLine.tsx`, and `types.ts`, `utils.ts` and `utils.test.ts` beside them.
   - Spec 002 left the warnings line out (its F21), so the lines go below the dialog's summary (research R11).
   - One `PublishFindingLine` per branch with findings, in tab order, with `dialogLineOf()`'s text: in the warning style when the branch has a conflict or no applicant can meet it, in the info style otherwise (FR-019).
   - A pure `findingLinesOf(branches, byBranch)` in `utils.ts`, tested in `utils.test.ts`: tab order, only branches with certain findings, and the style of each line.
-  - Without findings, the dialog is as in spec 002 (US4-AS4). "Publish" and "Save" stay enabled, and go ahead without a further question (F8; US4-AS5).
+  - Without findings, the dialog is as in spec 002 (US4-AS4). "Publish" and "Save" stay enabled, and go ahead without a further question (A8; US4-AS5).
   - Visual check against U33's lines, listing W10.
 - [ ] T046 [US4] Make "Check rules again" open the first branch with findings, in `frontend/src/pages/FormConnectionEditor/index.tsx` and `utils.ts` (depends on T045; S5; W10; FR-017; US4-AS3; research R11).
   - `handleDialogCancel()` opens the rules step on the first branch, in tab order, that has findings, through the rules reducer's action that opens a branch, as `BranchTabs` dispatches it. Without findings, it keeps spec 002's behaviour.
@@ -647,7 +703,7 @@ validation on the running stack, and the merge gate.
   - the catalog's `multiple_values`;
   - the generated fixtures that keep the checks in step with `evaluation.py`.
 - [ ] T049 [P] Update `CLAUDE.md` (Documentation Checklist: new patterns):
-  - the frontend structure: `src/utils/rules/checks/` (its modules, the worker's entry, the generated `caseFolding.ts` and `fixtures/`), `src/hooks/useRuleChecks.ts`, `src/components/FindingNote/`, and the `finding` prop of `RuleRow` and `GroupFrame`;
+  - the frontend structure: `src/utils/rules/checks/` (its modules, the worker's entry, the generated `caseFolding.ts` and `fixtures/`), `src/hooks/useRuleChecks.ts`, `src/components/FindingNote/`, the `finding` prop of `RuleRow` and `GroupFrame`, `RulesStep/FindingsBanner.tsx`, and the `findings` prop of `BranchName`;
   - the backend structure: `scripts/export_check_fixtures.py`, and `multiple_values` in `catalog.py`'s description;
   - the rules:
     - the checks judge conditions as `evaluation.py` does;
@@ -657,16 +713,17 @@ validation on the running stack, and the merge gate.
     - findings stay in the rules step and the publish and save dialog;
   - the command table: the fixture script, and its `--check`.
 - [ ] T050 [P] Update `README.md`: the fixture script, when to run it (after a Python upgrade, or a change to the evaluator's comparisons), and its `--check`. No dependency or environment variable is added.
-- [ ] T051 Review accessibility (SC-006; quickstart V7; contracts/ui-screens.md "Accessibility"; research R15) in `RulesStep/`, `frontend/src/components/FindingNote/`, `RuleRow/`, `GroupFrame/`, `FindingsAnnouncer.tsx` and `PublishDialog.tsx`:
-  - the kind never rests on colour alone: notes start with their kind, and icons have text alternatives;
-  - warning and info texts reach WCAG 2.1 AA contrast in KERN 2.8;
-  - "Go to next finding" moves the focus to a row or group header that its note describes;
+- [ ] T051 Review accessibility (SC-006; quickstart V7; contracts/ui-screens.md "Accessibility"; W19; research R15) in `RulesStep/`, `frontend/src/components/FindingNote/`, `RuleRow/`, `GroupFrame/`, `BranchName/`, `FindingsAnnouncer.tsx` and `PublishDialog.tsx`:
+  - the kind never rests on colour alone: the icons differ in shape, each note's and banner item's icon carries its hidden kind text, and the tab icon's accessible name says "<variant> has findings";
+  - icons and outlines reach 3:1, texts 4.5:1, in KERN 2.8;
+  - the banner's chevron is a button with `aria-expanded`, and each name link moves the focus to a row or group header that its note describes;
+  - the tab's tooltip opens on keyboard focus as on hover;
   - the status region is polite and never takes the focus, and NVDA with Firefox and VoiceOver with Safari read announcements that follow each other quickly;
-  - the summary, the notes and the dialog's lines reflow at 320 px and 200 % zoom.
+  - the banner, the notes, the tooltip and the dialog's lines reflow at 320 px and 200 % zoom.
   Fix every failure in the files concerned.
 - [ ] T052 Check the coverage of the Figma deviations (research R14) against `specs/003-rule-consistency-checks/contracts/ui-screens.md`:
-  - every item of its "Coverage index" (F1–F8, W1–W16) was built by the tasks that cite it;
-  - every visual-verification table lists the prescribed differences, and the "KERN 2.8 vs Revamp" values, with their item numbers;
+  - every item of its "Coverage index" (A1–A8, W1–W15, W17–W20) was built by the tasks that cite it, and no task built anything from O1–O6;
+  - every visual-verification table lists the page-design differences (O1–O5) and the "KERN 2.8 vs Revamp" values (O6), with their item numbers;
   - record what is unresolved, and why, in `specs/003-rule-consistency-checks/design-notes.md`.
 - [ ] T053 Validate on the running stack: quickstart.md V1 to V8. V6 needs EUDIPLO and a test wallet (`uv run python -m scripts.issue_test_credentials`). Include research R15's remaining checks:
   - EUDIPLO's mdoc decoding delivers `height`, `weight`, `age_in_years` and `age_birth_year` as integers (research R3);
@@ -696,6 +753,9 @@ validation on the running stack, and the merge gate.
     - T016 follows T005, T009 and T010;
     - T017 → T018 (which also needs T015) → T019 (which also needs T011–T014 and T016).
 - **User stories (Phases 3–6)**: depend on Foundational, and on each other as described below.
+- **Redesign rework (Phase 3R)**: follows US1 (Phase 3) and blocks US2 to US4's UI tasks.
+  - T056 first; T057 alongside it ([P]); T058 after T056.
+  - T035 needs T056; T039 needs T035, T057 and T058; T042 needs T041 (and so T056).
 - **Polish (Phase 7)**:
   - T047 can start once T034 is done;
   - T048–T050 can start once the stories they describe are done;
@@ -705,7 +765,7 @@ validation on the running stack, and the merge gate.
 ### User Story Dependencies
 
 - **US1 (P1)**: starts after Foundational, and depends on no other story. It is the MVP.
-- **US2 (P2)**: starts after US1. Step 4 of `findings.ts` skips the conflicts of step 2 (T020), and
+- **US2 (P2)**: starts after US1 and Phase 3R. Step 4 of `findings.ts` skips the conflicts of step 2 (T020), and
   its UI extends US1's notes and summary (T031, T032).
 - **US3 (P2)**: starts after US2.
   - Its checked trees already follow `effectiveItems()` (T017), so it adds scenarios, wording and
@@ -722,22 +782,23 @@ validation on the running stack, and the merge gate.
   (T023, T037).
 - Tasks that touch the same file run in order:
   - `checks/findings.ts` and `findings.test.ts`: T020, T034;
-  - `checks/findingMessages.ts` and its test: T021, T035, T041, T044;
-  - `checks/announcements.ts` and its test: T024, T038, T041;
+  - `checks/findingMessages.ts` and its test: T021, T056, T035, T041, T044;
+  - `checks/announcements.ts` and its test: T024, T056 (texts only), T038, T041;
   - `checks/runState.ts` and its test: T025, T041;
-  - `checks/scenarios.test.ts`: T022, T036, T040;
+  - `checks/scenarios.test.ts`: T022, T056 (texts only), T036, T040;
   - `checks/oracle.test.ts`: T023, T037;
   - `frontend/src/pages/FormConnectionEditor/index.tsx`: T031, T033, T046;
   - `frontend/src/pages/FormConnectionEditor/utils.ts` and `utils.test.ts`: T045, T046;
   - `frontend/src/pages/FormConnectionEditor/constants.ts`: T032;
-  - `RulesStep/` (`index.tsx`, `TreeItem.tsx`, `RuleListItem.tsx`, `GroupListItem.tsx`, `FindingsSummary.tsx`, `types.ts`, `utils.ts`): T031, T032, T039, T043;
-  - `RulesStep/BranchTab.tsx` and `BranchTabs.tsx`: T042;
-  - `frontend/src/components/RuleRow/` and `GroupFrame/`: T030;
+  - `RulesStep/` (`index.tsx`, `TreeItem.tsx`, `RuleListItem.tsx`, `GroupListItem.tsx`, `FindingsSummary.tsx` then `FindingsBanner.tsx`, `constants.ts`, `types.ts`, `utils.ts`): T031, T032, T058, T039, T043;
+  - `RulesStep/BranchTab.tsx`, `BranchTabs.tsx` and `frontend/src/components/BranchName/`: T042;
+  - `frontend/src/components/RuleRow/` and `GroupFrame/`: T030, T057 (verify only);
+  - `frontend/src/components/FindingNote/`: T029, T057;
   - `frontend/src/utils/rules/testData.ts`: T005;
   - `frontend/.prettierignore`: T006;
   - `backend/tests/api/test_form_connections.py`: T004;
   - `backend/tests/api/test_form_connection_rules.py` and `test_connect.py`: T028;
-  - `specs/003-rule-consistency-checks/design-notes.md`: T001, T002, T052.
+  - `specs/003-rule-consistency-checks/design-notes.md`: T001, T002, T055, T052.
 
 ### Parallel Opportunities
 
@@ -751,7 +812,8 @@ validation on the running stack, and the merge gate.
   - T022 and T023 together once T020 is done;
   - T026 alongside T024 and T025;
   - T028 and T029 at any time in the phase (T029 needs T002).
-- **US2**: T035 alongside T034; T036 and T037 together.
+- **Phase 3R**: T057 alongside T056.
+- **US2**: T034 alongside Phase 3R (it touches only `findings.ts`); T035 after T056; T036 and T037 together.
 - **US3**: T040 and T041 together.
 - **US4**: T044 alongside US3's T040 and T042.
 - **Polish**: T047–T050 together.
@@ -824,8 +886,8 @@ Task: "Make Check rules again open the first branch with findings (T046)"
 1. Complete Phase 1, Setup: the design notes and the tokens.
 2. Complete Phase 2, Foundational. **Validate**: `npm test` (the solver against the oracle),
    `--check`, and `GET /api/document-types` with `multiple_values`.
-3. Complete Phase 3, US1. **Validate** with quickstart V1, V2, V4's conflict rows, and V7's
-   announcements.
+3. Complete Phase 3, US1, and Phase 3R, the redesign rework. **Validate** with quickstart V1, V2,
+   V4's conflict rows, and V7.
 4. Run the merge gate (T054) and merge. Team members now see the rules that no applicant can meet.
 
 ### Incremental Delivery
@@ -833,7 +895,8 @@ Task: "Make Check rules again open the first branch with findings (T046)"
 Merge at least at the end of each step, after the merge gate (T054):
 
 1. Setup + Foundational: the engine and the catalog attribute. Nothing visible changes in the UI.
-2. + US1: conflicts, the unmeetable branch, the summary and the announcements. **This is the MVP.**
+2. + US1 and Phase 3R: conflicts, the unmeetable branch, the findings banner and the announcements.
+   **This is the MVP.**
 3. + US2: redundant and always-met findings, and the branch that every applicant meets.
 4. + US3: the variants' scenarios, wording and tab icons. `findings.ts` is complete.
 5. + US4: the publish and save dialog's lines, and "Check rules again".
@@ -845,8 +908,8 @@ Merge at least at the end of each step, after the merge gate (T054):
 - Developer A takes the backend and the fixtures: T003–T007 and T028, then T048–T050.
 - Developer B takes the engine and the findings: T008–T027 and T034–T038, then T040, T041, T044
   and T047.
-- Developer C takes the UI: T001 and T002, then T029 and T030 early, then T031–T033, T039,
-  T042–T043, T045–T046 and T051–T052.
+- Developer C takes the UI: T001 and T002, then T029 and T030 early, then T031–T033, T057, T058,
+  T039, T042–T043, T045–T046 and T051–T052. Developer B takes T056.
 - The UI can be built against hand-made `BranchCheck` results before the engine is done, but it
   can be checked end to end only once T027 is in.
 
@@ -856,14 +919,15 @@ Merge at least at the end of each step, after the merge gate (T054):
 
 - [P] tasks touch different files and depend on no unfinished task in the same phase.
 - The [Story] label maps a task to its user story.
-- Every UI task cites its screen and its F# and W# items. Every item of the coverage index (F1–F8,
-  W1–W16) is cited by at least one task, and T052 checks that it was built.
+- Every UI task cites its screen and its A#, W# and O# items. Every item of the coverage index
+  (A1–A8, W1–W15, W17–W20) is cited by at least one open or reworked task, and T052 checks that it
+  was built. Tasks completed before 2026-11-01 cite the retired F1–F8 and W16.
 - Research R15's points to verify are assigned to tasks:
   - KERN's warning icon and text contrast: T002 and T051;
   - the worker's global scope: T026;
   - the number fields' delivered type: T053;
   - the worker's chunk: T027 and T053;
-  - the group header's focus target: T032;
+    - the group header's focus target: T032, T058;
   - quickly following announcements: T051.
 - **Not tasks, because people run them**: the usability sessions of quickstart V8 (SC-005), with
   five DO.IT participants.

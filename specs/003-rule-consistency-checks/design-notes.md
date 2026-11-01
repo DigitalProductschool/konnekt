@@ -1,273 +1,285 @@
 # Design notes: conflict and redundancy checks
 
-**Tasks**: T001 (copy, §1–§6), T002 (tokens, §7) | **Date**: 2026-10-28 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
+**Tasks**: T001 (copy), T002 (tokens, §7); §1–§6 rewritten for the redesign on 2026-11-01 | **Dates**: 2026-10-28, redesign 2026-11-01 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
-- **Figma "Connection Portal"** (`s8mU9oJDq3411e8bxMjQO9`), section `6171:6748` ("Rules · 5 ·
-  Problems: contradiction and duplicate"), units U01–U04 of the
-  [audit](figma-audit/report.md). Variables: `get_variable_defs` on the section (§7).
-- [spec.md](spec.md) with its Clarifications of 2026-10-28, research R8 and R12, and the "Copy" and
-  "Deviations from Figma" (F#, W#) of [contracts/ui-screens.md](contracts/ui-screens.md).
+- **Figma "Middleware – V4"** (`s8mU9oJDq3411e8bxMjQO9`), section `6171:6748` ("Rules · 5 ·
+  Contradictions and duplicates"), redesigned on 2026-11-01: units U01–U11 of the
+  [audit](figma-audit/report.md), items A1–A8 (adopted), O1–O6 (out of scope) and W1–W20 (built
+  without frames). Components: `Rules/Findings banner` `6750:40865`, `Rules/Finding item`
+  `6750:40604`, `Rules/Problem note` `6177:7837`, `Rules/Tooltip` `6139:3739`.
+- [spec.md](spec.md) with its Clarifications of 2026-10-28 and 2026-11-01, research R8 and R12.
 - Spec 002's design notes ([../002-connection-rules/design-notes.md](../002-connection-rules/design-notes.md)),
   which still apply, in particular §1 (language) and §9 (tokens).
 
 Node ids can change when the file is edited.
 
-**What decides what**: spec.md decides behaviour and wording, Figma layout and styling only. These
-notes hold the copy that the decisions leave open (research R12, items 1–7) and what follows from
-it. Copy marked **Proposed** is in no decision and no frame; the rest quotes the spec, its
-Clarifications or the contract, named next to it. `checks/findingMessages.ts` builds every text
-below and nothing else does (research R12); its tests pin them.
+**What decides what** (decision 2026-11-01): the redesign decides the findings' look, behaviour and
+wording; spec.md decides what is a finding. The page around the findings stays as built (O1–O6).
+These notes quote every text Figma draws, and give the undrawn ones in the same voice, marked
+**Proposed**. `checks/findingMessages.ts` builds every text below and nothing else does (research
+R12); its tests pin them. The copy of 2026-10-28 ("Conflicting. …", the summary alert's counts) is
+in this file's history and in [figma-audit/archive-2026-10-28/](figma-audit/archive-2026-10-28/).
 
 ## 1. Language and conventions
 
 As in spec 002, §1: English, "variant" for a branch, "connection" for a form connection, the main
 branch called "Standard" until it is renamed. In addition:
-- **Apostrophes are typographic (’)** in the built strings, as in every other string of the app
-  (`RulesStep/constants.ts`): "Can’t", "couldn’t", "There’s". The spec and the contract write
-  straight ones; the tests compare with ’.
+- **Apostrophes are typographic (’)** in the built strings: "Can’t", "doesn’t", "couldn’t".
 - **Names**: every text names rules, groups, sub-groups and variants by their current names
-  (FR-011). Groups and sub-groups are named as the rules step shows them ("Group 01",
-  "Sub-group 01").
+  (FR-011), as the rules step shows them ("Rule 01", "Group 01", "Sub-group 01").
 - **Order**: items in a list follow the display order of the rules step (spec 002, FR-007).
-- **Lists** (W3): one item "Rule 02"; two "Rule 02 and Rule 03"; more "Rule 02, Rule 03 and
-  Rule 04", without a serial comma. The same with "or" where a text says "or". "Neither Rule 04
-  nor Rule 05" for two items in §2.2.
-- **Kinds** (FR-012): every note starts with "Conflicting.", "Redundant." or "Always met.".
-- **Today** (FR-008): a conflict or a notice that holds only for applicants who share today says
-  so with "by applicants who share today" at the end of a note's sentence, or "who shares today"
-  after "No applicant" and "nobody". Redundant and always-met findings never depend on the day.
-- **Never "to fix"** (FR-016): no text calls a finding a mistake, an error or something to fix,
-  resolve or correct. Redundancy notes offer "You can delete …", the summary without a conflict
-  says "You can still continue.".
+- **Lists** (W3): "Rule 02"; "Rule 02 and Rule 03"; "Rule 02, Rule 03 and Rule 04", without a
+  serial comma. The same with "or". "neither Rule 04 nor Rule 05" for two items in §2.2 and §3.
+- **No visible kind label** (decision 2026-11-01, A3): notes and lines say what is wrong in plain
+  words. The kind is shown by the icon, which carries a visually hidden text: "Conflicting:",
+  "Redundant:" or "Always met:" (FR-012). Notices and the incomplete sentence have none.
+- **Words for the kinds**: a conflict "can’t be met together"; a redundant item with the same check
+  is a "duplicate" ("is the same as"); one that another item makes redundant is "already covered"
+  (from U07's frame name, "Rule 01 already covers Group 01"); an always-met item is one that
+  "every applicant meets". The words "conflicting", "redundant" and "always met" appear only in the
+  hidden kind texts and the announcements (§5).
+- **Today** (FR-008, A7): a conflict that holds only for applicants who share today ends with "at
+  the moment"; the notice reads "Right now, no applicant can meet the rules of <variant>." Redundant
+  and always-met findings never depend on the day.
+- **Never "to fix"** (FR-016): no text calls a finding a mistake or something to fix. Notes on
+  duplicates and covered items offer "You can delete …".
 
-## 2. Notes on rules and groups (S2; FR-003, FR-005, FR-006, FR-012; F5, F6, W2–W8)
+## 2. Notes under a rule or a group's header (S2; FR-003, FR-005, FR-006, FR-012; A3, A5)
 
-`<items>` is a list as in §1. One note per item, under the rule or the group's header.
+One note per item, under the rule or under the group's header. `<items>` is a list as in §1.
 
-### 2.1 Conflicting: with other items (FR-003; F5, W2, W3, W5)
+### 2.1 Conflict with other items (FR-003; A3, A7, W2, W3)
 
 | Case | Note | Source |
 |---|---|---|
-| A rule or group that can't be met together with T | "Conflicting. Can’t be met together with <items of T>." | FR-003, F5, W3 |
-| The same, today only | "Conflicting. Can’t be met together with <items of T> by applicants who share today." | FR-008, W5 |
+| A rule or group that can't be met together with T | "Can’t be met together with <items of T>." | U01 `6171:7010` |
+| The same, today only | "Can’t be met together with <items of T> at the moment." | U08 `6753:41332` |
 
-Examples: U01 "Conflicting. Can’t be met together with Rule 02."; EC-11 "Conflicting. Can’t be
-met together with Rule 02, Rule 03 and Rule 04."; a group: "Conflicting. Can’t be met together
-with Rule 01." (the same pattern for rules and groups).
+Examples: U01 "Can’t be met together with Rule 02."; EC-11 "Can’t be met together with Rule 02,
+Rule 03 and Rule 04." (W3); a group that conflicts with a rule: "Can’t be met together with Rule
+01.".
 
-### 2.2 Conflicting: a group that can't be met on its own (FR-003; F6; items 2 and 8)
+### 2.2 A group that can't be met on its own (FR-003; A5, W18)
 
 The group names the smallest set of its members that can't be met together (AND), or its members,
-none of which can be met (OR). The members carry their own notes (§2.1, §2.3).
+none of which can be met (OR). The members keep their own notes (§2.1, §2.3).
 
 | Case | Note | Source |
 |---|---|---|
-| AND group, two or more members named | "Conflicting. <items> in this group can’t be met together." | FR-003, F6 |
-| The same, today only | "Conflicting. <items> in this group can’t be met together by applicants who share today." | **Proposed** (FR-008's words) |
-| OR group, two members, none can be met | "Conflicting. Neither <item> nor <item> in this group can be met." | **Proposed** (R12 item 2) |
-| OR group, three or more members | "Conflicting. None of <items> in this group can be met." | **Proposed** (R12 item 2) |
-| Either kind, one member named (a group whose only checked member, or whose smallest set, is one item that can't be met on its own) | "Conflicting. <item> in this group can’t be met." | **Proposed** |
-| OR group or single member, today only | The same sentence ending "… can be met by applicants who share today." or "… can’t be met by applicants who share today." | **Proposed** (FR-008's words) |
+| AND group, two or more members named | "<items> in this group can’t be met together." | U02 `6750:41000` |
+| OR group, two members | "Neither <a> nor <b> in this group can be met." | **Proposed** (W18) |
+| OR group, three or more members | "None of <items> in this group can be met." | **Proposed** (W18) |
+| One member named | "<item> in this group can’t be met." | **Proposed** |
+| Any of these, today only | the same sentence ending "… at the moment." | **Proposed** (A7's words) |
 
-Examples: U02 Sub-group 01 "Conflicting. Rule 04 and Rule 05 in this group can’t be met
-together."; an OR group "Conflicting. Neither Rule 04 nor Rule 05 in this group can be met.".
-
-### 2.3 Conflicting: a rule that can't be met on its own (FR-003 "its condition"; R12 item 1)
+### 2.3 A rule that can't be met on its own (FR-003, "its condition"; W18)
 
 | Case | Note | Source |
 |---|---|---|
-| A rule no applicant can meet, whatever the other rules | "Conflicting. No applicant can meet this rule’s condition." | **Proposed** |
-| The same, today only | "Conflicting. No applicant who shares today can meet this rule’s condition." | **Proposed** (FR-008's words) |
+| No applicant can meet the rule, whatever the other rules | "No applicant can meet this rule." | **Proposed** |
+| The same, today only | "No applicant can meet this rule at the moment." | **Proposed** |
 
-Example: quickstart V4, "Driving licence – Nationality includes none of" every country: "Conflicting.
-No applicant can meet this rule’s condition." The rule's statement stands right above the note, so
-the note doesn't repeat the condition; "this rule’s condition" points at it (FR-003).
+The rule's statement stands right above the note, so the note doesn't repeat the condition
+(quickstart V4: "Driving licence – Nationality includes none of" every country).
 
-### 2.4 Redundant (FR-005; F5, W6, W7)
+### 2.4 Duplicate and already covered (FR-005; A3, A5, W6, W7)
 
 | Case | Note | Source |
 |---|---|---|
-| Same check as one item | "Redundant. Same as <item>. You can delete one to keep the list clear." | FR-005, F5 |
-| Implied by others, in an AND level | "Redundant. Anyone who meets <items> also meets this rule. You can delete it to keep the list clear." | FR-005, W6 |
-| Implies others, in an OR level | "Redundant. Anyone who meets this rule also meets <items>. You can delete it to keep the list clear." | FR-005, W6 |
-| A group | The same sentences with "this group" | W7 |
+| Same check as one item | "Same as <item>. You can delete one of them." | U02 `6171:7510` |
+| A group implied by others, in an AND level | "Anyone who meets <items> also meets this group. You can delete the group." | U07 `6753:41298` |
+| A rule implied by others, in an AND level | "Anyone who meets <items> also meets this rule. You can delete the rule." | **Proposed** (W6, from U07) |
+| A rule or group that implies others, in an OR level | "Anyone who meets this rule also meets <items>. You can delete the rule." / "… this group … You can delete the group." | **Proposed** (W6, W7) |
 
 "Same as" is used only when the reason is a single item Y that also implies the item back, and no
-enclosing level takes part (research R8, step 4). Otherwise one of the two "Anyone who meets"
+enclosing level takes part (research R8, step 4). Otherwise one of the "Anyone who meets"
 sentences.
 
-**Through an enclosing level** (research R8, step 4; R12 item 5) — **Proposed**. One general form,
-"Anyone who meets <P> also meets <Q>.", where the item itself is "this rule" or "this group":
-- **In an OR level, with the AND context of an enclosing level**: P is the item and the context
-  items, Q its siblings that it implies. "Redundant. Anyone who meets this rule and Rule 05 also
-  meets Rule 01. You can delete it to keep the list clear." Several: "… meets this rule, Rule 05
-  and Rule 07 also meets Rule 01. …"
-- **In an AND level, with the alternatives of an enclosing OR level**: P the siblings that imply
-  it, Q the item or the alternatives, joined with "or". "Redundant. Anyone who meets Rule 02 also
-  meets this rule or Group 03. You can delete it to keep the list clear." Several: "… also meets
-  this rule, Group 03 or Rule 07. …"
-- **When P is empty** (the item or the alternatives are met by everyone, though the item alone
-  isn't): "Redundant. Every applicant meets this rule or Group 03. You can delete it to keep the
-  list clear."
-- "this rule" / "this group" comes first in its list, then the other items in display order.
+**Through an enclosing level** (research R8, step 4; R12 item 5) — **Proposed**. One form, "Anyone
+who meets <P> also meets <Q>. You can delete the rule.", where the item itself is "this rule" or
+"this group", first in its list:
+- In an OR level, with the AND context of an enclosing level: "Anyone who meets this rule and Rule
+  05 also meets Rule 01. You can delete the rule."
+- In an AND level, with the alternatives of an enclosing OR level: "Anyone who meets Rule 02 also
+  meets this rule or Group 03. You can delete the rule."
+- When P is empty: "Every applicant meets this rule or Group 03. You can delete the rule."
 
-### 2.5 Always met (FR-006; W8)
+### 2.5 Always met (FR-006; A5, W8)
 
 | Case | Note | Source |
 |---|---|---|
-| A rule | "Always met. Every applicant meets this rule." | FR-006, W8 |
-| A group | "Always met. Every applicant meets this group." | FR-006, W8 |
+| A group | "Every applicant meets this group." | U06 `6753:40824` |
+| A rule | "Every applicant meets this rule." | **Proposed** (W8) |
 
-## 3. Summary alert (S2; FR-013; F1, F2, W5, W8, W12, W13, W16; R12 items 3 and 4)
+## 3. Findings banner (S2; FR-004, FR-006, FR-010, FR-013; A1, A2, A7, W12, W13, W17)
 
-The summary is a KERN warning alert when the variant has a conflict or no applicant can meet it, a
-KERN info alert otherwise (F2). It is built from up to six parts, in this order, joined with a
-space. Parts that don't apply are left out.
+One `Rules/Findings banner` at the top of the open variant's rules (A1). It is made of **lines**,
+an optional **notice** and an optional **incomplete sentence**.
 
-1. **Conflict counts** (if any conflicting item), then " in this variant" (see below), then ": ",
-   then the **first conflict's clause**, then ".".
-2. **Other counts after conflicts**: "There’s also <counts>." when the first number is 1, "There
-   are also <counts>." otherwise (**Proposed**: the spec's "There's also" fits one).
-3. **Without conflicts**: the counts, " in this variant", ": ", the **first finding's clause**, ".",
-   then "You can still continue." (F1, U04).
-4. **The variant's notice** (FR-004, FR-006, FR-008), one of: "No applicant can meet the rules of
-   <variant>.", "No applicant who shares today can meet the rules of <variant>.", "Every applicant
-   meets the rules of <variant>.".
-5. **Incomplete** (FR-010): "The rules of <variant> couldn’t be checked completely. Only findings
-   that are certain are shown."
+### 3.1 Lines
 
-### Counts (R12 item 4) — **Proposed**, following F1 and W8
+One line per conflict set and per other finding, with the names as links to the items (A1). A
+line names its items in display order.
 
-- **Order of kinds**: conflicting, redundant, always met. Within a kind, rules before groups.
-  Sub-groups count as groups (U02: "1 conflicting group" for Sub-group 01).
-- **Phrases**: "1 conflicting rule", "2 conflicting rules", "1 conflicting group", "2 conflicting
-  groups", "1 redundant rule", "1 redundant group", "1 always-met rule", "1 always-met group",
-  plural with "s" on "rule" and "group".
-- **Joined as a list** (§1): "2 conflicting rules and 1 conflicting group" (F1),
-  "1 redundant rule and 1 always-met group".
-- **Only checked, certain findings count** (FR-002, FR-010, W11): rules with a spec 002 problem,
-  removed rules and findings that aren't certain are not counted.
-- **"in this variant"** (U03 `6616:44417`): after the first counts when the connection has more
-  than one variant, on every tab (U01, U02 and U04 have one variant and don't say it). It appears
-  once, never after "There’s also".
-
-### Clauses (R12 item 3) — **Proposed**, following F1
-
-The clause explains the first item with a finding of the leading kind, in display order. For a
-conflict, its set is the item and T (§2.1), or the members named by a group's own note (§2.2), or
-the rule alone (§2.3), in display order.
-
-| First finding | Clause | Example |
+| Finding | Line | Source |
 |---|---|---|
-| Conflict, set of two | "nobody can meet both <a> and <b>" | U01 "nobody can meet both Rule 01 and Rule 02"; U02 (Sub-group 01's own) "nobody can meet both Rule 04 and Rule 05" |
-| Conflict, set of three or more | "nobody can meet all of <items>" | EC-11 "nobody can meet all of Rule 01, Rule 02, Rule 03 and Rule 04" |
-| Conflict, one rule (§2.3) | "nobody can meet <rule>" | "nobody can meet Rule 03" |
-| Conflict, OR group none of whose members can be met (§2.2) | "nobody can meet <items joined with or>" | "nobody can meet Rule 04 or Rule 05" |
-| Any conflict, today only | "nobody" becomes "nobody who shares today" | "nobody who shares today can meet both Rule 01 and Rule 02" |
-| Redundant, same check | "<item> is the same as <y>" | U04 "Rule 06 is the same as Rule 03" |
-| Redundant, any other reason | "<item> makes no difference beside <items of the reason>" | "Rule 01 makes no difference beside Rule 02"; through a level: "Rule 02 makes no difference beside Rule 01 and Rule 05" |
-| Always met | "every applicant meets <item>" | "every applicant meets Rule 05" |
+| Conflict set (the item and its T) | "<items> can’t be met together." | U01 `6750:40882` |
+| The same, today only | "<items> can’t be met together at the moment." | U08 `6753:41324` |
+| A group's own conflict, AND | "<group>: <items> can’t be met together." | U05 `6753:40144` |
+| A group's own conflict, OR or one member | "<group>: neither <a> nor <b> can be met.", "<group>: none of <items> can be met.", "<group>: <item> can’t be met." | **Proposed** (W18) |
+| A rule that can't be met on its own | "No applicant can meet <rule>." | **Proposed** (W18) |
+| Any conflict line, today only | ends "… at the moment." | U08; **Proposed** for the others |
+| Duplicate | "<item> is the same as <y>." | U04 `6750:41077` |
+| Covered, AND | "Anyone who meets <items> also meets <item>." | U07 `6753:40851` |
+| Covered, OR | "Anyone who meets <item> also meets <items>." | **Proposed** (W6) |
+| Covered through a level | "Anyone who meets <item> and Rule 05 also meets Rule 01.", "Anyone who meets Rule 02 also meets <item> or Group 03.", "Every applicant meets <item> or Group 03." | **Proposed** |
+| Always met | "Every applicant meets <item>, so it doesn’t check anything." | U06 `6753:40514` |
 
-The redundancy and always-met clauses use FR-015's announcement words. **Several conflicts**: the
-clause explains only the first. When a conflicting item is neither in the first conflict's set nor
-the group whose note names it, the first sentence is followed by "The other conflicts are marked
-below." (**Proposed**), so that the clause doesn't read as the whole story. "Go to next finding"
-visits them all.
+**Which findings share a line** (A2):
+- The conflicting findings whose sets are equal share one line: U01's Rule 01 and Rule 02, EC-11's
+  four rules (W3).
+- A conflict set contained in the members that a group's own conflict names is shown on the group's
+  line: U05's Rule 04 and Rule 05 on Sub-group 01's line.
+- Every other finding has a line of its own.
+- Order: by each line's first item in display order.
 
-### Worked examples
+### 3.2 Notice and incomplete sentence (no link)
 
-- U01: "2 conflicting rules: nobody can meet both Rule 01 and Rule 02. No applicant can meet the
-  rules of Standard." (warning)
-- U02: "2 conflicting rules and 1 conflicting group: nobody can meet both Rule 04 and Rule 05.
-  There’s also 1 redundant rule." (warning)
-- U03: "2 conflicting rules and 1 conflicting group in this variant: nobody can meet both Rule 04
-  and Rule 05. There’s also 1 redundant rule." (warning)
-- U04: "1 redundant rule: Rule 06 is the same as Rule 03. You can still continue." (info)
-- EC-11 with another, separate conflict: "6 conflicting rules: nobody can meet all of Rule 01,
-  Rule 02, Rule 03 and Rule 04. The other conflicts are marked below. No applicant can meet the
-  rules of Standard." (warning)
-- W5: "2 conflicting rules: nobody who shares today can meet both Rule 01 and Rule 02. No
-  applicant who shares today can meet the rules of Standard." (warning)
-- W8, always met everywhere: "1 always-met rule: every applicant meets Rule 01. You can still
-  continue. Every applicant meets the rules of Standard." (info)
-- A notice without marked items (an OR top level that everyone meets, W16): "Every applicant meets
-  the rules of Standard." (info, no "Go to next finding")
-- W12 with certain findings: "1 redundant rule: Rule 06 is the same as Rule 03. You can still
-  continue. The rules of Standard couldn’t be checked completely. Only findings that are certain
-  are shown." (info); without: the incomplete sentence alone (info, no button).
+| Case | As its own item, or alone | Appended to a single line or to the counts row | Source |
+|---|---|---|---|
+| No applicant can meet the variant | "No applicant can meet the rules of <variant>." | "So no applicant can meet the rules of <variant>." | U01; own item **Proposed** (W17) |
+| The same, today only | "Right now, no applicant can meet the rules of <variant>." | the same | U08 |
+| Every applicant meets the variant | "Every applicant meets the rules of <variant>." | the same | **Proposed** (W8) |
+| Incomplete (FR-010) | "The rules of <variant> couldn’t be checked completely. Only findings that are certain are shown." | " · couldn’t be checked completely" after the counts row; the full sentence after a single line | FR-010; **Proposed** (W12) |
 
-## 4. Tab (S4; FR-014; F7)
+### 3.3 States (A1, W17)
 
-Text alternative "<variant> has findings", for a variant with any certain finding, its notices
-included: "Standard has findings", "Ambulance has findings" (F7). Warning icon with a conflict or
-the "No applicant …" notice, info icon otherwise; a variant whose only finding is "Every applicant
-meets …" gets the info icon.
+- **None**: the variant hasn't been checked yet, has no checked rules (W13), or has no line, notice
+  or incomplete sentence.
+- **Single**, no chevron: one line, followed by the notice and the incomplete sentence where they
+  apply (U01, U08); or the notice or the incomplete sentence alone (W12, W17).
+- **Collapsed**, the default with two or more lines: the counts row (§3.4), then the notice where
+  it applies, and a chevron button "Show findings" (U02).
+- **Expanded**: the counts row, the chevron "Hide findings", then one `Rules/Finding item` per
+  line, then the notice and the incomplete sentence as items without a link (U05).
+- Whether a variant's banner is expanded is kept per variant while the editor is open, and is
+  never stored (FR-019). **Proposed**.
+- **Kind** (A1): warning when the variant has a conflict or the "No applicant …" notice, info
+  otherwise. Each item's icon: warning for conflicts and the "No applicant …" notice, info for the
+  others.
+
+### 3.4 Counts row (A2) — the banner, the tab's tooltip and the dialog
+
+The kinds in this order, joined with " · ", each as one phrase; within a phrase, rules before
+groups, joined with "and":
+
+| Kind | Phrase | Source |
+|---|---|---|
+| Conflicts in sets (reason `with`) | "2 rules can’t be met together", "1 rule and 1 group can’t be met together" | U02 `6750:40933` |
+| Rules or groups that can't be met on their own (reason `condition`) | "1 rule can’t be met" | **Proposed** |
+| Duplicates | "1 duplicate rule", "2 duplicate rules and 1 duplicate group" | U02 |
+| Covered | "1 rule already covered", "1 group already covered" | **Proposed** (U07's frame name) |
+| Always met | "1 rule every applicant meets", "1 group every applicant meets" | **Proposed** (U06's frame name) |
+
+- A group whose own conflict names its members (reason `members`) isn't counted: its members are
+  (U02 counts "2 rules" for Sub-group 01, Rule 04 and Rule 05).
+- Only checked, certain findings count (FR-002, FR-010, W11, W12).
+
+### 3.5 Worked examples
+
+- U01 (single, warning): "Rule 01 and Rule 02 can’t be met together. So no applicant can meet the
+  rules of Standard."
+- U02 (collapsed, warning): "2 rules can’t be met together · 1 duplicate rule"; expanded as U05:
+  "Sub-group 01: Rule 04 and Rule 05 can’t be met together." / "Rule 06 is the same as Rule 03."
+- U08 (single, warning): "Rule 01 and Rule 02 can’t be met together at the moment. Right now, no
+  applicant can meet the rules of Standard."
+- EC-11 with a second, separate conflict (collapsed, warning): "6 rules can’t be met together. So
+  no applicant can meet the rules of Standard."
+- W8, an OR top level that every applicant meets, no marked item (single, info): "Every applicant
+  meets the rules of Standard."
+- W12 without a certain finding (single, info): "The rules of Standard couldn’t be checked
+  completely. Only findings that are certain are shown."
+
+## 4. Tab icon and tooltip (S4; FR-014; A6, W20)
+
+- **Icon**: after the variant's name, selected or not. The warning triangle when the variant has a
+  conflict or the "No applicant …" notice; otherwise the info icon, which is also spec 002's (i) of
+  the description. No icon without findings and without a description.
+- **Accessible name of the icon**: "<variant> has findings" when the variant has findings, "About
+  <variant>" (spec 002) otherwise.
+- **Tooltip** (`Rules/Tooltip`): the description, if any; then, below a divider, the findings
+  segment with the kind icon of the banner (A1):
+
+| Variant's findings | Findings segment | Source |
+|---|---|---|
+| One duplicate line | "1 duplicate: <line>" | U11 `6758:43967` ("1 duplicate: Rule 06 is the same as Rule 03.") |
+| One conflict line | "1 conflict: <line>" | **Proposed** (W20) |
+| One covered or always-met line | "1 finding: <line>" | **Proposed** (W20) |
+| Two or more lines | the counts row | U10 `6758:43524` ("2 rules can’t be met together · 1 duplicate rule") |
+| A notice or the incomplete sentence alone | its text | **Proposed** |
+
+After a line or the counts row, the notice and the incomplete sentence follow as in the banner
+(§3.2). **Proposed**.
 
 ## 5. Announcements (FR-015; W1; R12 item 6)
 
 The polite status region speaks the difference between the previous result and the new one after
-an action (research R11). Every sentence ends with ".", and the sentences of one change go in
-together, joined with a space.
-
-### Rules — FR-015 and the Clarifications
-
-| Change | Sentence | Source |
-|---|---|---|
-| New conflict with T | "<item> conflicts with <items of T>." | FR-015 |
-| New redundancy, same check | "<item> is the same as <y>." | FR-015 |
-| New redundancy, other reason | "<item> makes no difference beside <items of the reason>." | FR-015 |
-| New always met | "Every applicant meets <item>." | FR-015 |
-| Conflict gone | "<item> no longer conflicts with <items of the old T>." | FR-015 |
-| Redundancy gone | "<item> is no longer redundant." | FR-015 |
-| Always met gone | "<item> is no longer always met." | FR-015 |
-| New variant notice | Its text (§3, part 4) | FR-015 |
-
-### Groups and cases the spec doesn't word — **Proposed**
+an action. The sentences of one change go in together, joined with a space. The wording of
+2026-10-28 stays (FR-015), except that "by applicants who share today" becomes "at the moment" and
+"No applicant who shares today" becomes "Right now, no applicant" (A7).
 
 | Change | Sentence |
 |---|---|
-| A group or sub-group with T | as for a rule: "Sub-group 01 conflicts with Rule 01." |
-| A group's own conflict, AND | "<items> in <group> can’t be met together." ("Rule 04 and Rule 05 in Sub-group 01 can’t be met together.") |
-| A group's own conflict, OR | "Neither <a> nor <b> in <group> can be met." / "None of <items> in <group> can be met." |
+| New conflict with T | "<item> conflicts with <items of T>." (today: "… at the moment.") |
+| New duplicate | "<item> is the same as <y>." |
+| New covered item | "<item> makes no difference beside <items of the reason>." |
+| New always met | "Every applicant meets <item>." |
+| Conflict gone | "<item> no longer conflicts with <items of the old T>." |
+| Duplicate or covered gone | "<item> is no longer redundant." |
+| Always met gone | "<item> is no longer always met." |
+| A group's own conflict | "<items> in <group> can’t be met together." / "Neither <a> nor <b> in <group> can be met." / "None of <items> in <group> can be met." |
 | A rule that can't be met on its own | "No applicant can meet <rule>." |
-| Today only | as in §1: "… by applicants who share today.", "No applicant who shares today can meet <rule>." |
-| A conflict without T gone (a group's own, a rule on its own) | "<item> is no longer conflicting." |
-| A finding whose reason changed, kind unchanged | the new finding's sentence, as if new |
-| A finding whose kind changed | the old kind's "no longer" sentence, then the new kind's sentence |
-| A notice gone | nothing: the items' "no longer" sentences say it |
-| Incomplete, newly | its sentence (§3, part 5) |
-| Incomplete, gone | nothing |
+| A conflict without T gone | "<item> is no longer conflicting." |
+| New notice, newly incomplete | its text (§3.2) |
+| Other variants | "In <variant>: " before the sentence ("In Ambulance: Rule 02 conflicts with Rule 05.") |
 
-### Other variants — **Proposed** (R12 item 6)
-
-A finding in a variant other than the one shown starts with "In <variant>: ": "In Ambulance: Rule
-02 conflicts with Rule 05.", "In Ambulance: Rule 05 is no longer always met." The notices and the
-incomplete sentence name their variant already and take no prefix.
-
-**Order**: the variant shown first, then the others in tab order; within a variant, the items in
+Order: the variant shown first, then the others in tab order; within a variant, the items in
 display order, then the notice, then the incomplete sentence.
 
-## 6. Publish and save dialog (S5; FR-017, FR-019; W10; R12 item 7)
+## 6. Publish and save dialog (S5; FR-017, FR-019; W10)
 
-One block per variant with findings, in tab order, below spec 002's lines:
+Not in the redesigned section; built from spec 002's warnings line (U33 `6376:26181`) with the
+counts row of §3.4.
 
 | Line | Copy | Source |
 |---|---|---|
-| Counts | "<variant>: <counts>", the counts of §3 in the same order, joined with ", " and without "and" or a final full stop | FR-017, W10 ("Ambulance: 2 conflicting rules, 1 redundant rule") |
-| Counts with groups and always-met items | "Ambulance: 1 conflicting group, 1 always-met rule" | **Proposed**, from W10 |
-| Unmeetable | "No applicant can meet the rules of <variant>." after the counts | FR-017, W10 |
-| Unmeetable, today only | "No applicant who shares today can meet the rules of <variant>." | **Proposed** (FR-008's words) |
-| Every applicant meets the variant | "Every applicant meets the rules of <variant>." after the counts; alone, without "<variant>: ", when it is the variant's only finding | **Proposed** (R12 item 7) |
-| Button | "Check rules again" (spec 002's secondary action) | FR-017 |
+| Counts | "<variant>: <counts row>" | W10 ("Ambulance: 2 rules can’t be met together · 1 duplicate rule") |
+| Unmeetable | "No applicant can meet the rules of <variant>." / "Right now, no applicant can meet the rules of <variant>." after the counts | W10, A7 |
+| Every applicant meets the variant | "Every applicant meets the rules of <variant>."; alone, without "<variant>: ", when it is the variant's only finding | **Proposed** |
+| Button | "Check rules again" | FR-017 |
 
-- Warning style for a variant with a conflict or the "No applicant …" notice, info style otherwise
-  (FR-019, W10).
-- The incomplete sentence isn't repeated in the dialog: it isn't a finding, and the rules step
-  shows it (FR-010, FR-017). **Proposed**.
+- Warning style with a conflict or the "No applicant …" notice, info style otherwise (FR-019).
+- The incomplete sentence isn't repeated in the dialog. **Proposed**.
 - Without findings, nothing is added (US4-AS4).
 
 ## 7. Tokens (T002)
+
+**Update 2026-11-01** (redesign): `get_variable_defs` on the section returns the same KERN variables
+as below, with Revamp values (O6), plus two new ones, `variant/changed-text` #8a22b5 and
+`variant/changed-background` #f8f1fc, "(purple, same as New addition)", for the purple "Changed
+here", which is deferred (O3): `--color-variant-changed` stays. What changes for the findings:
+- **Notes** (A3): the text is `layout-text-default` (`text-kern-layout-text-default`), body/small
+  regular, not the feedback colour and not semibold; only the 20 px icon takes
+  `feedback-warning` or its info colour. Read the info icon's exact colour with
+  `get_design_context` on a note (U02 `6171:7510`): it is drawn darker than the banner's info icon.
+- **Banner** (A1): warning: background `feedback-warning-background`, 1 px border
+  `feedback-warning`; info: `feedback-info-background` and `feedback-info`; radius `default` (8);
+  padding 8, 16 on the left; text `layout-text-default`, links `action-default`, underlined.
+- **Tooltip** (A6): background `layout-background-inverse`, text `layout-text-inverse`, radius
+  `default`, padding 8/16, as spec 002's tooltip.
+- The contrast table below still holds for outlines and icons (3:1). Note text is now
+  `layout-text-default`, at least 14.9:1 on every background a note sits on.
 
 `get_variable_defs` on the section `6171:6748` returns only variables that spec 002 §9 has already
 mapped; the section binds no new one. As there, the file binds KERN's names with the values of the
@@ -315,7 +327,8 @@ KERN 2.8.2 (`@kern-ux/native/dist/kern.css`) has both glyphs as mask icons:
   `bg-kern-feedback-info!`.
 
 Spec 002's `ProblemNote` uses `kern-icon--info` in the danger colour for its problems; the
-findings' notes keep that layout and change only icon and colour (F4).
+findings' notes keep that layout and change only the icon and its colour (A3; the note's text is
+`layout-text-default`, see the update above).
 
 ### Text contrast (research R15; SC-006)
 

@@ -40,10 +40,22 @@ through one hook. This file fixes what each part promises the others.
 
 ### `findingMessages.ts`
 
-Pure functions from a finding or result, the current tree and the branch's name, to text:
-`noteOf(finding, names)`, `summaryOf(check, branch, names)`, `tabLabelOf(branchName)`,
-`dialogLineOf(check, branchName)`, `announcementOf(change, names, shownBranch)`. They are the only
-place where finding texts are written. Wording: [ui-screens.md](ui-screens.md), "Copy".
+Pure functions from a finding or result, the current tree and the branch's name, to text. They are
+the only place where finding texts are written. Wording: [../design-notes.md](../design-notes.md)
+§1–§6.
+- `noteOf(finding, names)`: a note's text (A3, A5).
+- `bannerOf(check, branch, names)`: the findings banner (A1, A2, W12, W17), as data, so that the
+  component draws the links: its kind (`'warning' | 'info'`); its lines in display order, each with
+  its icon's kind and its text as parts, plain text or a reference to an item (`itemId` and current
+  name), which the banner draws as a link; the counts row (used when there are two or more lines);
+  the notice, as an item and as the sentence appended to a single line or the counts row; the
+  incomplete sentence. `null` when there is no banner (W13). It replaces `summaryOf()`.
+- `countsOf(check)`: the counts row (§3.4), for the banner, the tab's tooltip and the dialog.
+- `tabLabelOf(branchName)`: the tab icon's accessible name, "Standard has findings".
+- `tabFindingsOf(check, branch, names)`: the tooltip's findings segment, with its icon's kind (A6,
+  W20).
+- `dialogLineOf(check, branchName)`: the publish and save dialog's line (W10).
+- `announcementOf(change, names, shownBranch)`: one change's sentences (FR-015).
 
 ### `announcements.ts`
 

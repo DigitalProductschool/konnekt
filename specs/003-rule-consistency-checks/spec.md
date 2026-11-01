@@ -164,6 +164,46 @@ The rule page will then make these check every time we create/modify/duplicate/d
   only a branch notice. When a branch couldn't be checked completely (FR-010), only certain
   findings are visited, and the info alert that stands alone has no button.
 
+### Session 2026-11-01
+
+- Q: The UI design's section `6171:6748` was redesigned, with 11 frames (U01–U11 of the audit of
+  2026-11-01, `figma-audit/report.md`), and with it the whole page. What does the redesign decide?
+  → A: The findings' look, behaviour and wording: notes, outlines, group marks, the findings banner,
+  the tab icon and its tooltip (audit A1–A8). The rest of the page (app header, step header, rule
+  rows, link strip, variant marks, the tabs' styling, footer) stays as built until a later task
+  matches the whole application to the new design (audit O1–O6). Where this session's answers
+  differ from those of 2026-10-28, they supersede them: the summary's wording and look (#2, #3,
+  #13), the kind label (#3), the notes' texts (#5, #6, #13), the dialog's wording (#8), the
+  incomplete alert (#10), the tab icon (#14) and "Go to next finding" (#15). Node ids in the
+  answers of 2026-10-28 refer to the section before the redesign.
+- Q: Do notes start with their kind ("Conflicting.", "Redundant.", "Always met."), given that the
+  redesigned notes don't (U01 `6171:7010`: "Can't be met together with Rule 02.")? → A: No. Notes
+  and banner lines say what is wrong in plain words, as drawn, in the default text colour. The kind
+  shows by the icon, a warning triangle or an info circle in the kind's colour, which carries a
+  visually hidden kind text, "Conflicting:", "Redundant:" or "Always met:", so that the kind
+  doesn't rest on colour alone (FR-012).
+- Q: How does the rules step summarise a branch's findings and lead to them? → A: With the
+  findings banner (`Rules/Findings banner`: U01 `6750:40882`, U02 `6750:40933`, U05 `6753:40144`)
+  instead of a KERN alert with "Go to next finding". It has one line per conflict set or other
+  finding, whose rule and group names are links that scroll the item into view and move the focus
+  to it. One line shows on its own ("Rule 01 and Rule 02 can't be met together. So no applicant
+  can meet the rules of Standard."); two or more show as a counts row ("2 rules can't be met
+  together · 1 duplicate rule") with a chevron that opens the list. The banner is a warning with a
+  conflict or when no applicant can meet the branch, info otherwise (FR-013).
+- Q: How does a tab show its findings? → A: As drawn (U09 `6753:41694`, U10 `6758:43524`, U11
+  `6758:43967`): one icon after the name, selected or not, merged with spec 002's (i) of the
+  description: the warning triangle with a conflict, the info icon otherwise. On hover and keyboard
+  focus, its tooltip shows the description and, below, the findings: the counts row, or for one
+  finding a line such as "1 duplicate: Rule 06 is the same as Rule 03.". The icon's accessible name
+  is "Standard has findings" (FR-014).
+- Q: How do findings that hold only for applicants who share today read? → A: As U08 (`6753:41324`,
+  `6753:41332`): "Can't be met together with Rule 02 at the moment." and "Right now, no applicant
+  can meet the rules of Standard." (FR-008).
+- Q: Does this rework include the redesign's purple "Changed here" and its label "Added here" (U03
+  `6171:7569`, `6171:7578`)? → A: No: they are page design, deferred (audit O3). The orange "Changed
+  here" and "New addition" stay, and a conflict note on a changed row is told apart from the mark
+  by its icon and text (US3-AS5).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - See rules that no applicant can meet (Priority: P1)
@@ -427,9 +467,8 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
   group that contains it, but no applicant can meet those and it as well. The report MUST say why:
   the rules and groups it can't be met together with, as a smallest such set; for a group that can't
   be met on its own, which is marked as well as the items inside it, the conflicting rules and
-  sub-groups inside it, such as "Conflicting. Rule 04 and Rule 05 in this group can't be met
-  together."; for a rule that can't be met on
-  its own, its condition. A rule or group MUST NOT be reported as conflicting only because something
+  sub-groups inside it, such as "Rule 04 and Rule 05 in this group can't be met
+  together."; for a rule that can't be met on its own, that no applicant can meet it. A rule or group MUST NOT be reported as conflicting only because something
   it is combined with can't be met on its own.
 - **FR-004**: When no applicant can meet a branch's top level, the rules step MUST say, for the
   whole branch, that no applicant can meet its rules, such as "No applicant can meet the rules of
@@ -439,11 +478,10 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
 
 - **FR-005**: A rule or group MUST be reported as **redundant** when deleting it would change, for no
   applicant (FR-009) on any day of sharing from today on, whether the branch's rules are met (spec
-  002, FR-009). The report MUST say why: the rules and groups whose check is the same ("Redundant.
-  Same as Rule 03. You can delete one to keep the list clear."), those that imply it in a level
-  combined with AND ("Redundant. Anyone who meets Rule 02 also meets this rule. You can delete it to
-  keep the list clear."), or those it implies in a level combined with OR ("Redundant. Anyone who
-  meets this rule also meets Rule 01. You can delete it to keep the list clear."). A group
+  002, FR-009). The report MUST say why: the rules and groups whose check is the same ("Same as Rule
+  03. You can delete one of them."), those that imply it in a level combined with AND ("Anyone who
+  meets Rule 02 also meets this rule. You can delete the rule."), or those it implies in a level
+  combined with OR ("Anyone who meets this rule also meets Rule 01. You can delete the rule."). A group
   that is redundant or always met (FR-006) MUST be reported, and the rules and sub-groups inside it
   MUST NOT be. Of items that are
   redundant only because of each other, such as two rules with the same check, only the one that
@@ -453,8 +491,8 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
   anything inside one.
 - **FR-006**: A rule or group that every applicant meets, on every day of sharing from today on,
   MUST be reported as **always met** instead of as redundant, also in a level combined with OR,
-  where deleting it would make a difference, with "Always met. Every applicant meets this rule." or
-  "Always met. Every applicant meets this group." It MUST NOT be reported where FR-005 rules out
+  where deleting it would make a difference, with "Every applicant meets this rule." or "Every
+  applicant meets this group." It MUST NOT be reported where FR-005 rules out
   reporting redundancy. When every applicant
   meets a branch's top level, and the branch has rules that are checked, the rules step MUST say so
   for the whole branch, such as "Every applicant meets the rules of Standard."
@@ -478,9 +516,8 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
 - **FR-008**: Some findings depend on the day the applicant shares, because they compare a fixed
   date with a number of years or months counted from that day. Such a conflict, including a branch
   that no applicant can meet, MUST be judged for applicants who share today, by the calendar date in
-  Germany, and MUST say that it applies to applicants who share today, such as "Conflicting. Can't
-  be met together with Rule 02 by applicants who share today." or "No applicant who shares today
-  can meet the rules of Standard." Redundant and always-met
+  Germany, and MUST say that it applies to applicants who share today, such as "Can't be met together
+  with Rule 02 at the moment." or "Right now, no applicant can meet the rules of Standard." Redundant and always-met
   items, and a branch that every applicant meets, MUST be reported only when they hold on every day
   from today on, so that acting on them never changes an outcome later.
 - **FR-009**: The checks MUST consider applicants whose documents give every value that the rules
@@ -490,9 +527,9 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
   be checked.
 - **FR-010**: Every finding MUST be true by FR-007 to FR-009, and the checks MUST find every
   conflicting, redundant and always-met item of the rules they check. If the checks of a branch
-  can't finish within 5 seconds, the branch's summary MUST say "The rules of Standard couldn't be
-  checked completely. Only findings that are certain are shown.", alone in a KERN info alert when
-  no finding is certain, and the rules step and the tab MUST show only findings that are certain. Editing, publishing and saving MUST NOT wait for the checks.
+  can't finish within 5 seconds, the branch's findings banner (FR-013) MUST say "The rules of
+  Standard couldn't be checked completely. Only findings that are certain are shown.", alone in an
+  info banner when no finding is certain, and the rules step and the tab MUST show only findings that are certain. Editing, publishing and saving MUST NOT wait for the checks.
 
 #### When the checks run
 
@@ -507,32 +544,38 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
 
 #### Showing the findings
 
-- **FR-012**: In the rules step, every rule and group with a finding MUST carry a mark that says
-  whether it is conflicting, redundant or always met, in text or with a symbol that has a text
-  alternative, so that the kind doesn't rest on colour alone. The marks MUST be distinguishable from
-  the branch marks of spec 002, FR-023, which an item can carry at the same time, and from the
-  problems that refuse publishing (spec 002, FR-006): conflicts in KERN's warning colour with its
-  warning icon, redundant and always-met items in KERN's info colour with its info icon, while spec
-  002's problems keep their red look. The finding's explanation MUST be available from its mark,
-  start with its kind ("Conflicting.", "Redundant.", "Always met.") and name the rules and groups
-  involved by their names (spec 002, FR-005), such as "Conflicting. Can't be met together with
-  Rule 02." or "Redundant. Same as Rule 03. You can delete one to keep the list clear."
-- **FR-013**: For the branch shown, the rules step MUST summarise its findings above its rules: how
-  many there are of each kind, and the notice of FR-004 or FR-006. From the summary, the team member
-  MUST be able to reach every rule and group with a finding: a "Go to next finding" button in the
-  summary scrolls the next rule or group with a finding, in display order, into view and moves the
-  focus to its row or group header, starting over at the first after the last. The button is left
-  out when no rule or group has a finding, and visits only certain findings when the branch
-  couldn't be checked completely (FR-010).
-- **FR-014**: Each branch's tab, selected or not, MUST show whether the branch has findings, so that
-  the findings of a branch other than the one shown are noticed, such as those that a change to the
-  main branch causes. The indication is an icon without a number: KERN's warning icon when the
-  branch has a conflict, its info icon otherwise. It MUST have a text alternative, such as
-  "Standard has findings".
+- **FR-012**: In the rules step, every rule and group with a finding MUST be outlined and carry a
+  note, under the rule or under the group's header, whose icon says whether it is conflicting,
+  redundant or always met: KERN's warning triangle in the warning colour for conflicts, the info
+  icon for redundant and always-met items, each with a visually hidden kind text ("Conflicting:",
+  "Redundant:", "Always met:"), so that the kind doesn't rest on colour alone. The marks MUST be
+  distinguishable from the branch marks of spec 002, FR-023, which an item can carry at the same
+  time, and from the problems that refuse publishing (spec 002, FR-006), which keep their red
+  look. The note's text, in the default text colour, MUST say what is wrong in plain words and name
+  the rules and groups involved by their names (spec 002, FR-005), such as "Can't be met together
+  with Rule 02." or "Same as Rule 03. You can delete one of them." (Clarifications 2026-11-01).
+- **FR-013**: For the branch shown, the rules step MUST summarise its findings in a findings banner
+  at the top of its rules: one line per conflict set or other finding, then the notice of FR-004 or
+  FR-006 and FR-010's sentence where they apply. A single line shows on its own; two or more show
+  as a row of counts per kind, such as "2 rules can't be met together · 1 duplicate rule", with a
+  button that shows and hides the lines. The banner is a warning when the branch has a conflict or
+  no applicant can meet it, info otherwise. From the banner, the team member MUST be able to reach
+  every rule and group with a finding: the names in its lines are links that scroll the item into
+  view and move the focus to its row or group header. The notice and FR-010's sentence have no
+  link. After an incomplete check (FR-010), only certain findings have lines.
+- **FR-014**: Each branch's tab, selected or not, MUST show whether the branch has findings, so
+  that the findings of a branch other than the one shown are noticed, such as those that a change
+  to the main branch causes. The indication is one icon after the name, merged with spec 002's (i)
+  of the description: KERN's warning icon when the branch has a conflict or no applicant can meet
+  it, the info icon otherwise. Its accessible name MUST say so, such as "Standard has findings",
+  and on hover and keyboard focus its tooltip MUST show the description, if any, and the branch's
+  findings: the counts of FR-013, or the finding itself when there is one, such as "1 duplicate:
+  Rule 06 is the same as Rule 03.".
 - **FR-015**: When an action changes the findings, each changed finding MUST be announced to
   assistive technologies through a polite status region, without moving the focus: "Rule 02
   conflicts with Rule 01.", "Rule 06 is the same as Rule 03.", "Rule 01 makes no difference beside
-  Rule 02.", "Every applicant meets Rule 05." when a finding appears; "Rule 02 no longer conflicts
+  Rule 02.", "Every applicant meets Rule 05." when a finding appears, ending "at the moment" for a conflict that
+  holds only today (FR-008); "Rule 02 no longer conflicts
   with Rule 01.", "Rule 06 is no longer redundant.", "Rule 05 is no longer always met." when it
   goes; and the notice of FR-004 or FR-006 when it appears.
 
@@ -545,7 +588,7 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
   something "to fix".
 - **FR-017**: The publish and save dialog (spec 002, FR-028) MUST name every branch that has
   findings, below its warnings line, one line per branch in tab order, with how many of each kind,
-  such as "Ambulance: 2 conflicting rules, 1 redundant rule", and MUST add, for a branch that no
+  such as "Ambulance: 2 rules can't be met together · 1 duplicate rule", and MUST add, for a branch that no
   applicant can meet, "No applicant can meet the rules of Ambulance." Without findings, it shows
   nothing about them. Its "Check rules again" button (KERN secondary) MUST open the rules step on
   the first branch, in tab order, that has findings.
@@ -629,10 +672,10 @@ in another. Check the dialog's summary, "Check rules again", and that publishing
 - **Size**: A branch has at most 200 rules, groups and sub-groups (spec 002, Assumptions), and real
   forms stay far below that. The 5-second limit of FR-010 is for unusually large or tangled
   branches.
-- **Design**: No UI design for findings exists yet. The marks, the branch summary and the tab
-  indications are built from KERN patterns next to the branch marks of spec 002. The publish
-  dialog's findings start from the design's warnings line ("1 warning on Ambulance", U33
-  `6376:26181`), which spec 002 left out (its F21). The UI says "variant" for branch and
+- **Design**: The findings' look, behaviour and wording come from the redesigned section
+  `6171:6748` (audit of 2026-11-01, A1–A8); the page around them stays as built until a later task
+  (O1–O6). The publish dialog's findings start from the design's warnings line ("1 warning on
+  Ambulance", U33 `6376:26181`), which spec 002 left out (its F21). The UI says "variant" for branch and
   "connection" for form connection, as in spec 002.
 - **Out of scope**: showing findings on a form connection's details or in the overview; comparing
   branches with each other, such as two branches with the same rules; relations between different

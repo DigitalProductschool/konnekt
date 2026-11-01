@@ -112,7 +112,7 @@ whether a conflict holds on later days) (research R4).
 | `itemId` | string | the rule or group (`rule-{n}`, `group-{n}`) |
 | `kind` | `'conflicting'` \| `'redundant'` \| `'always_met'` | FR-003, FR-005, FR-006 |
 | `reason` | see below | why. Null for `always_met` |
-| `today` | boolean | conflicting only: true when the finding holds today but not on every later day (FR-008), so the note adds "by applicants who share today" |
+| `today` | boolean | conflicting only: true when the finding holds today but not on every later day (FR-008), so the note and the banner's line end "at the moment" |
 
 `reason` for `conflicting` (FR-003):
 - `{ type: 'with', items: string[] }`: can't be met together with these items, a smallest set from
@@ -146,7 +146,7 @@ names (FR-011).
 | `complete` | boolean | false when the deadline passed or a question came back `'unknown'` (FR-010) |
 | `notice` | `BranchNotice` \| null | |
 | `findings` | `ItemFinding[]` | in display order. Only certain findings |
-| `checkedRules` | number | the rules checked. 0 means no summary, notice or tab icon (W13) |
+| `checkedRules` | number | the rules checked. 0 means no banner, notice or findings icon on the tab (W13) |
 
 **Invariants**, which the tests check (research R13):
 1. At most one finding per item.

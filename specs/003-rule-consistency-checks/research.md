@@ -8,15 +8,17 @@ alternatives that were weighed. It builds on spec 002's research
 R1–R14 still apply; "002-R7" below means spec 002's R7.
 
 **Sources**: the spec and its 15 Clarifications of 2026-10-28, the Figma audit
-([figma-audit/report.md](figma-audit/report.md), items F1–F8 and W1–W16), the code on this branch
+([figma-audit/report.md](figma-audit/report.md); items F1–F8 and W1–W16 of 2026-10-28, revised on
+2026-11-01 for the redesign to A1–A8, O1–O6 and W1–W20), the code on this branch
 (`frontend/src/utils/rules/`, `backend/app/services/evaluation.py`, `backend/app/catalog.py`), and
 measurements taken while planning with the backend's interpreter (Python 3.13.5, Unicode 15.1.0)
 and Node 20.19.2 (ICU 76.1, Unicode 16.0). Points to confirm while coding are marked **Verify at
 implementation** and collected in R15.
 
-**Who decides what**: spec.md, with its Clarifications, decides behaviour and wording. Figma (file
-`s8mU9oJDq3411e8bxMjQO9`, section `6171:6748`) decides layout and styling only. Where they differ,
-the decided items F1–F8 and W1–W16 say what to build, and
+**Who decides what** (revised 2026-11-01): spec.md, with its Clarifications, decides what is a
+finding. The redesigned Figma section (file `s8mU9oJDq3411e8bxMjQO9`, section `6171:6748`) decides
+the findings' look, behaviour and wording, and the page around them stays as built. The audit's
+items A1–A8, O1–O6 and W1–W20 say what to build, and
 [contracts/ui-screens.md](contracts/ui-screens.md) lists them per screen (R14).
 
 ## Technical Context: open points and how they were resolved
@@ -98,7 +100,7 @@ spec's "checked rules":
   fewer than two members (002 data-model, "Dissolution"). It lasts only while the rule left out
   has a spec 002 problem, which refuses publishing anyway.
 - **Display order**: the order of `shownItems()`. For the items that count it is their
-  `effectiveItems()` order, so "later in the order shown" (FR-005) and "Go to next finding"
+  `effectiveItems()` order, so "later in the order shown" (FR-005) and the banner's lines
   (FR-013) need no second ordering.
 - **A fingerprint**: a canonical serialisation of what the checks read. It covers the top level's
   AND or OR, each item's id, type, operator, target and condition in order, the kind, value set
@@ -327,7 +329,7 @@ answers that are certain:
    the smallest. The reasons:
    - an item with T ≠ ∅: "Can't be met together with Rule 02 …", naming each item of T (EC-11, W3);
    - a group that can't be met on its own (T = ∅): its members that can't be met together, as a
-     smallest set (AND group, F6); or its members, none of which can be met (OR group);
+     smallest set (AND group, A5); or its members, none of which can be met (OR group);
    - a rule that can't be met on its own: its condition (copy open, R12).
 3. **Every applicant meets the branch?** (FR-006) Asked only when step 1 found the branch
    meetable.
@@ -344,7 +346,7 @@ answers that are certain:
    The reasons are smallest sets in the working tree:
    - **In a level combined with AND**: the smallest S ⊆ A(X) with S ⇒ X. That is "Anyone who
      meets Rule 02 also meets this rule." (US2-AS1, US2-AS4, US2-AS6, W6). If S = {Y} and also
-     X ⇒ Y, the reason is "Same as Y" (US2-AS3, EC "Duplicates and copies", F5).
+     X ⇒ Y, the reason is "Same as Y" (US2-AS3, EC "Duplicates and copies", A3).
    - **In a level combined with OR**: the smallest R among X's siblings with X ⇒ ⋁R. That is
      "Anyone who meets this rule also meets Rule 01." (US2-AS2, W6), with "Same as" as above.
    - **When no such set exists**, the redundancy comes through an enclosing level, and the reason
@@ -429,25 +431,28 @@ rejected.
 
 ## R11. Showing the findings
 
-**Decision**: behaviour and wording come from the spec, layout from Figma, with the items F1–F8
-and W1–W16 per screen in [contracts/ui-screens.md](contracts/ui-screens.md):
-- **Rules and groups** (FR-012, F4–F6, W2–W9, W11): the shared `RuleRow` and `GroupFrame` gain an
+**Decision** (revised 2026-11-01 for the redesign): what is a finding comes from the spec; the
+findings' look, behaviour and wording from the redesigned Figma section, with the items A1–A8, O1–O6
+and W1–W20 per screen in [contracts/ui-screens.md](contracts/ui-screens.md). The page around the
+findings stays as built (O1–O6).
+- **Rules and groups** (FR-012, A3–A5, W2–W9, W11): the shared `RuleRow` and `GroupFrame` take an
   optional `finding` prop with the kind and the note's text. The rules step passes it; the details
-  never do (FR-020). A new shared `components/FindingNote/` draws the note in the layout of
-  Figma's `Rules/Problem note`. It uses KERN's warning colour and icon for conflicts, and KERN's
-  info colour and icon for redundant and always-met items, with the matching outline. Spec 002's
-  red problem flag stays as it is, and a flagged rule never has a finding (R2). The row or group
-  header is described by its note (`aria-describedby`), as it is by a problem.
-- **Summary** (FR-013, F1–F3, W5, W8, W12, W13, W16): `RulesStep/FindingsSummary.tsx` above the
-  rules is a `KernAlert`: `warning` when the branch has a conflict or no applicant can meet it,
-  `info` otherwise. Its text comes from `findingMessages.ts`. Its "Go to next finding" button
-  (KERN tertiary) scrolls the next item with a finding, in display order, into view, moves the
-  focus to its row or group header, and starts over after the last one. The button is left out
-  when no rule or group has a finding. A branch without checked rules has no summary.
-- **Tabs** (FR-014, F7, W9, W12): `BranchTab` shows the icon after the name of every branch with
-  findings: warning when the branch has a conflict or no applicant can meet it, info otherwise.
-  The icon's text alternative, "Standard has findings", sits inside the tab button, so it is read
-  with the tab's name.
+  never do (FR-020). The shared `components/FindingNote/` draws the note in the layout of Figma's
+  `Rules/Problem note` (levels `conflicting`, `redundant`): the kind's icon, with a visually hidden
+  kind text, and the text in the default text colour. The outline is 1 px in the warning or info
+  colour, all round. Spec 002's red problem flag stays as it is, and a flagged rule never has a
+  finding (R2). The row or group header is described by its note (`aria-describedby`).
+- **Findings banner** (FR-013, A1, A2, W12, W13, W17): `RulesStep/FindingsBanner.tsx` replaces
+  `FindingsSummary.tsx` at the top of the rules card: warning when the branch has a conflict or no
+  applicant can meet it, info otherwise; single, collapsed (counts row and chevron) or expanded (one
+  item per line). The names in a line are link-styled buttons that scroll the item into view and
+  move the focus to its row or group header. Its content comes from `findingMessages.ts` as
+  structured lines (the names as references to item ids), so that the component renders the links
+  and no text is built in it. A branch without checked rules has no banner.
+- **Tabs** (FR-014, A6, W9, W12, W20): `BranchTab` passes the branch's findings to `BranchName`,
+  whose (i) of the description becomes the findings icon: warning when the branch has a conflict or
+  no applicant can meet it, info otherwise. The icon's accessible name is "Standard has findings",
+  and its tooltip adds the findings segment below the description.
 - **Status region** (FR-015, W1): one visually hidden `role="status"` region (polite) at the
   editor level, which outlives the step. `checks/announcements.ts` computes what to say: the
   difference between the previous result and the new one, after an action of the team member.
@@ -455,22 +460,24 @@ and W1–W16 per screen in [contracts/ui-screens.md](contracts/ui-screens.md):
   announced only when the new result is complete, because an incomplete one may only have failed
   to confirm it.
 - **Publish and save dialog** (FR-016, FR-017, W10): below the lines it has, one line per branch
-  with findings, in tab order, in the warning style when the branch has a conflict and the info
-  style otherwise, adding "No applicant can meet the rules of Ambulance." where it applies. The
-  existing secondary action "Check rules again" now opens the rules step on the first branch, in
-  tab order, that has findings, and the open branch as before when none has. "Publish" and "Save"
-  don't change (F8).
+  with findings, in tab order, with the banner's counts row, in the warning style when the branch
+  has a conflict and the info style otherwise, adding "No applicant can meet the rules of
+  Ambulance." where it applies. The existing secondary action "Check rules again" now opens the
+  rules step on the first branch, in tab order, that has findings, and the open branch as before
+  when none has. "Publish" and "Save" don't change (A8).
 - **Rule editor**: unchanged (FR-002, W15).
 
 **Rationale**: extending the two shared components keeps the rule row's single layout, while the
-prop keeps findings out of the details. The dialog's existing secondary action is already the way
-back to the rules.
+prop keeps findings out of the details. Building the banner's lines as data keeps every text in
+`findingMessages.ts` while the component draws the links. The dialog's existing secondary action is
+already the way back to the rules.
 
 ## R12. Messages, and the copy the decisions leave open
 
 **Decision**: `checks/findingMessages.ts` builds every text from a finding and the current names:
-the notes (FR-012, F5, W2–W8), the summary (F1, W5, W8, W12), the tab's text alternative (F7),
-the announcements (FR-015, W1) and the dialog's lines (W10). Its tests pin each wording the spec
+the notes (FR-012, A3, A5, W2–W8), the banner's lines, counts row and notices (A1, A2, W12, W17),
+the tab's accessible name and tooltip segment (A6, W20), the announcements (FR-015, W1) and the
+dialog's lines (W10). Its tests pin each wording the spec
 gives. Lists read "Rule 02, Rule 03 and Rule 04" (W3).
 
 The first UI task writes `specs/003-rule-consistency-checks/design-notes.md` with the copy the
@@ -488,6 +495,11 @@ decisions don't give:
 
 Every proposal keeps FR-012's kind at the start of each note, and never words a finding as
 something "to fix" (FR-016).
+
+**Revised 2026-11-01**: the redesign draws the notes without a kind label and words the findings
+in plain sentences. [design-notes.md](design-notes.md) §1–§6 now quotes the drawn texts and gives
+the undrawn ones (items 1–7 above included) in the same voice; the kind label survives only as the
+icons' hidden text.
 
 ## R13. Tests
 
@@ -536,13 +548,15 @@ independently can show both, and only on domains small enough to enumerate. The 
 runs from Python's evaluator, through the vectors and the test evaluator, to the oracle, so the
 oracle's truth is the evaluation's.
 
-## R14. Figma deviations reach every UI task
+## R14. Figma items reach every UI task
 
 **Decision**: as in 002-R13. [contracts/ui-screens.md](contracts/ui-screens.md) lists the audit's
-F1–F8 and W1–W16 per screen. Every UI task cites the items it covers with the screen's id, builds
-the spec's behaviour and wording with Figma's layout and styling, and lists the differences an
-item prescribes in its visual check instead of fixing them. The section lives in the Figma file
-of spec 002, so the "KERN 2.8 vs Revamp" rule of CLAUDE.md applies.
+items per screen: since the redesign of 2026-11-01, A1–A8 (adopted from Figma), O1–O6 (page design,
+out of scope) and W1–W20 (built without frames). Every UI task cites the items it covers with the
+screen's id and builds the findings as Figma draws them. Its visual check lists each difference
+that an O# item explains ("page design (O2)") or that only the Revamp explains ("KERN 2.8 vs
+Revamp"), and doesn't fix it. The F1–F8 of 2026-10-28 are retired; the tasks completed before the
+redesign cite them ([figma-audit/archive-2026-10-28/](figma-audit/archive-2026-10-28/)).
 
 ## R15. Points to verify at implementation
 
@@ -555,7 +569,7 @@ of spec 002, so the "KERN 2.8 vs Revamp" rule of CLAUDE.md applies.
   integers (R3).
 - That `vite build` emits the worker as its own chunk under `assets/`, which nginx's immutable
   cache rule serves.
-- That the group header has an element id that "Go to next finding" can focus, like the rule
+- That the group header has an element id that the banner's name links can focus, like the rule
   rows' `ELEMENT_IDS.rule(...)`.
 - That NVDA and VoiceOver read polite announcements that follow each other quickly. The sentences
   of one change go into the region together.

@@ -2,9 +2,10 @@
 
 **Branch**: `003-rule-consistency-checks` (spec header: `rules-check`) | **Date**: 2026-10-28 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/003-rule-consistency-checks/spec.md`, with its 15
-Clarifications of 2026-10-28, and the Figma audit [figma-audit/report.md](figma-audit/report.md)
-(F1–F8, W1–W16).
+**Input**: Feature specification from `/specs/003-rule-consistency-checks/spec.md`, with its
+Clarifications of 2026-10-28 and 2026-11-01, and the Figma audit
+[figma-audit/report.md](figma-audit/report.md) of the redesign (A1–A8, O1–O6, W1–W15, W17–W20; the
+audit of 2026-10-28, with F1–F8 and W1–W16, is archived beside it).
 
 **Note**: this checkout's `.git` points to a worktree path that doesn't exist here, so git couldn't
 confirm the branch; `setup-plan.sh` resolved the feature from `.specify/feature.json`.
@@ -37,8 +38,9 @@ dialog. They never block anything, are never stored and never reach serviceBW.
 - **Running**: a hook in the editor page sends changed branches to the worker, shown branch
   first. It has a 5-second deadline per run and a watchdog, keeps the previous findings while a
   check runs, and diffs results for the status region (R10, R11).
-- **UI**: spec.md decides behaviour and wording, Figma layout and styling.
-  [contracts/ui-screens.md](contracts/ui-screens.md) lists F1–F8 and W1–W16 per screen, and
+- **UI**: spec.md decides what is a finding; since 2026-11-01 the redesigned Figma section decides
+  the findings' look, behaviour and wording, and the page around them stays as built.
+  [contracts/ui-screens.md](contracts/ui-screens.md) lists A1–A8, O1–O6 and W1–W20 per screen, and
   **every UI task cites the items it covers** (R14).
 
 ## Technical Context
@@ -78,7 +80,8 @@ at spec 002's limit of 200 items per branch and 20 branches (SC-003). The main t
   to FR-020).
 - **Accessibility**: WCAG 2.1 AA; the kind of a finding never rests on colour alone (FR-012,
   SC-006).
-- **Design**: spec over Figma for behaviour and wording; F1–F8 and W1–W16 apply.
+- **Design**: Figma's redesign for the findings (A1–A8), the page as built (O1–O6), and W1–W20
+  where nothing is drawn.
 
 **Scale/Scope**: one team; branches of a few dozen rules in practice, at most 200 items and 20
 branches. New: one module folder (about 15 pure modules with tests), one hook, four small
@@ -123,7 +126,7 @@ specs/003-rule-consistency-checks/
 ├── contracts/           # Phase 1
 │   ├── management-api.md    # GET /api/document-types: multiple_values (the only API change)
 │   ├── rule-checks.md       # The checks' functions, worker protocol and hook
-│   └── ui-screens.md        # S2–S7 behaviour, "Deviations from Figma" (F1–F8, W1–W16), copy
+│   └── ui-screens.md        # S2–S7 behaviour, "Items from the audit" (A#, O#, W#), copy
 ├── design-notes.md      # Written by the first UI task: the copy the decisions leave open (research R12)
 ├── figma-audit/         # The audit (report.md, units, tree)
 ├── checklists/
@@ -178,8 +181,9 @@ frontend/src/
     ├── PublishDialog.tsx         # + findings lines; "Check rules again" opens the first branch with findings
     ├── PublishFindingLine.tsx    # new: one branch's line
     └── RulesStep/
-        ├── FindingsSummary.tsx   # new: KERN warning/info alert, counts, notice, "Go to next finding"
-        ├── BranchTab.tsx         # + findings icon with its text alternative
+        ├── FindingsBanner.tsx    # new (redesign, replaces FindingsSummary.tsx): single,
+        │                         #   collapsed or expanded, name links to the items
+        ├── BranchTab.tsx         # + findings icon merged with the description's (i), tooltip
         └── RuleListItem.tsx, GroupListItem.tsx, TreeItem.tsx   # pass each item's finding down
 ```
 
@@ -192,11 +196,11 @@ stay without findings. The backend gains one catalog attribute and one developer
 
 ## Rules for `/speckit-tasks`
 
-- **Every UI task cites the F# and W# items it covers**, from
+- **Every UI task cites the A#, W# and O# items it covers**, from
   [contracts/ui-screens.md](contracts/ui-screens.md), with its screen id (S2–S7), such as "Build the
-  sub-group's conflict mark (S2; F4, F6)". Every item of the coverage index is cited by at least one
+  findings banner (S2; A1, A2)". Tasks completed before 2026-11-01 cite the retired F1–F8. Every item of the coverage index is cited by at least one
   task. UI tasks follow CLAUDE.md's "Figma implementation workflow" on section `6171:6748`, and
-  their visual check lists the prescribed differences, and "KERN 2.8 vs Revamp" values, by item
+  their visual check lists the page-design differences (O1–O5) and "KERN 2.8 vs Revamp" values (O6), by item
   instead of fixing them.
 - **The first UI task writes `design-notes.md`** with the copy research R12 lists, before
   `findingMessages.ts` is completed.
