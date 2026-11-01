@@ -25,6 +25,133 @@
   editor is open; "Test rules" as soon as a rule exists. The documents step keeps its own "Publish
   without rules" (FR-001, FR-003).
 
+### Session 2026-11-01
+
+Answers to the Figma audit's questions ([figma-audit/report.md](figma-audit/report.md), "Clarify
+questions"). Frame and node references are to Figma file "Middleware – V4", section "Test · 1 ·
+Test rules" (node 7057:58708).
+
+- Q: When a team member edits a persona's values, do the results update live with every change,
+  or only once the edit is confirmed (Figma: a modal "Edit Mia's data" dialog with Cancel and "Save
+  and test", frames 4–6)? → A: Live, as the spec says, and editing happens inside the persona
+  panel, not in a dialog. "Edit data" turns the persona's values into fields, grouped under the
+  document headings of Figma's dialog ("Personal ID", "Driving licence"), and "Done" turns them
+  back. Every valid change applies at once and the results next to it update. An invalid field
+  shows its error under it, such as "Enter a date that exists, e.g. 28.02.2007.", and keeps its
+  last valid value while the persona's other changes apply. There is no Cancel, Close or "Save and
+  test". Figma's dialog (frames 4–5) and its "after Save and test" frame (frame 6) are to be
+  replaced (FR-006, FR-008, FR-017).
+- Q: When the publish dialog is opened from the test step, does its secondary action stay "Check
+  rules again" or become "Back to test" (Figma: frame 16, node 7058:62120)? → A: It stays "Check
+  rules again": the dialog is unchanged, and the action still closes it and opens the rules step at
+  the first branch, in tab order, with findings (spec 003), also when the dialog was opened from the
+  test step. Figma's "Back to test" is to be changed back (FR-003, Assumptions, "Out of scope").
+- Q: Must generation always give, for every branch that some applicant can meet, a persona who
+  meets it (Figma: nobody meets Ambulance in frames 8–10)? → A: Yes, as FR-011 goal 1 and US1-AS3
+  say. Figma's sample data is a slip: frames 8–10 should show at least one applicant who meets
+  Ambulance, such as one who holds class C1. No UI element changes (FR-011).
+- Q: Where and when does the test step name the test day (no Figma frame has it)? → A: Built
+  without frames: one line directly under the step's intro, "Tested as if shared today, 1 Nov
+  2026." (today's date in Germany, in that format). It shows whenever results are shown, also while
+  one persona is generated anew (frame 19), and is hidden in the first-open loading state (frame
+  18) and in a failure state without results (FR-016).
+- Q: Are the rules step's and documents step's changes built without Figma frames, which show
+  only the test step? → A: Yes, from the current steps: the rules step's button to go on reads
+  "Test rules" while any branch has a rule or a rule editor is open, and "Publish without rules"
+  ("Save without rules" when editing) otherwise, which opens the publish dialog and skips the test
+  step, as the progress does. The documents step keeps its own "Publish without rules". "Test
+  rules" is refused with publishing's existing message, naming the rule and the variant, and
+  unsaved editor changes first raise the existing question, such as "Save changes to Rule 01?"
+  (FR-001, FR-002, FR-003).
+- Q: Where is the action that generates all three personas anew, and how does it confirm (no Figma
+  frame has it)? → A: Built without frames: a tertiary button "Generate all again", with a refresh
+  icon, at the right end of the applicants row. When any persona has changes, it first asks with
+  frame 7's dialog: title "Generate new data for all applicants?", body "Your changes to Mia's data
+  will be replaced.", naming every persona with changes ("Your changes to Mia's and Anna's data
+  will be replaced."), buttons "Cancel" and "Generate new data". Without changes it doesn't ask.
+  While it runs, the step shows frame 18's loading state (FR-012).
+- Q: Can generating the personas fail, and what does the test step show then (Figma: frame 20)?
+  → A: Yes, it can stop with an error, for example when the browser can't run it. The persona area
+  then shows "Couldn't create sample applicants" and "Try again, or publish without testing." ("Try
+  again, or save without testing." when editing), and a "Try again" button, which generates all
+  three anew with frame 18's loading state. The variant tabs, Back and "Publish" / "Save" stay
+  usable. Frame 20's "Your rules are saved." is left out, since nothing is stored before publishing
+  (FR-013, Edge Cases).
+- Q: Does the test step show one selected persona at a time, as Figma does, and how does each
+  persona's chip state its outcome? → A: The selection model stays: the three personas are chips,
+  the first is selected by default, and the selection stays when the variant tab changes; only the
+  selected persona's data ("Mia's data") and results fill the panel. The chips stay icon-only, and
+  each chip's accessible name carries the outcome for the selected variant: "Mia Schulz: meets the
+  rules of Standard" or "Mia Schulz: doesn't meet the rules of Standard". Visible text appears only
+  in the selected persona's "Result: …" heading. The intro stays "Choose a sample applicant to see
+  which rules they meet and which messages they'd see. The data is made up, and nothing is shared."
+  (FR-004, FR-015).
+- Q: What does the result table show for the selected persona (Figma: name and message only, one
+  icon for every failure, met rules listed, a success message)? → A: (1) Each reported row shows
+  the rule's name, its statement as the rules step words it, the status "Not met" or "Couldn't be
+  checked", each with its own icon, and its message. (2) Met rules are listed too, as Figma has
+  them: every top-level rule and group with its outcome as the evaluation judges it, reported ones
+  first; under a met variant they are headed "Rules Mia meets". A rule inside a group that is met
+  doesn't count as failing. (3) There is no success message: a met variant has no message column,
+  since the evaluation gives none. (4) Built without frames: a reported group gets a row with its
+  name, statement, status and message, and below it, indented, its members that aren't met or
+  couldn't be checked, each with name, statement and status. The heading counts reported items, a
+  group as one: "Result: meets the rules" or "Result: doesn't meet 1 rule and 1 group" (FR-014,
+  FR-015, Key Entities).
+- Q: Where does the notice for a branch that no applicant can meet go, and how is it worded
+  (Figma: a warning icon on the variant tab, the notice only in its hover tooltip, frame 14)? → A:
+  Both: spec 003's notice next to the branch's results, above the "Result: …" heading, "No
+  applicant can meet the rules of Standard.", and Figma's warning icon on the variant tab, whose
+  tooltip shows the same text and opens on keyboard focus as well as on hover. Figma's tooltip
+  wording "Rule 01 and Rule 02 can't be met together, so no applicant can meet these rules." is
+  not used (FR-018, Edge Cases).
+- Q: How does the persona panel show the age and the licence class dates, and what happens when a
+  class is removed and added again (Figma: no age in the panel, one date per row of classes such
+  as "B, BE since 02.05.2010")? → A: As the spec says. (1) The panel shows the age next to the date
+  of birth, "08.07.2007 (age 19)", and in edit mode the age can be entered too. (2) "Licence
+  classes" lists the codes, such as "B, BE", and each class date a rule checks gets its own row
+  under "Driving licence", labelled as the rules name it ("Licence class B – Issue date"), shown
+  only while the class is held. (3) Built without frames: removing class B hides its date and the
+  rule on it reports "Not met"; adding B again brings the earlier date back (FR-005, FR-007,
+  FR-020, US2-AS4).
+- Q: Which fields does the persona editor have, how are several values entered, and which errors
+  and name fields does it need (Figma: no Nationality field, a hidden Expiry date row, licence
+  classes as plain text, rules on data without a value in frame 15)? → A: (1) As the spec says:
+  the editor has a field for every value the persona shows, including Nationality, Expiry date and
+  every row of frame 15's longer list, and the persona has a value for every field a rule checks,
+  such as "Licence not suspended" and class B's expiry date; Figma's gaps are slips. (2) Several
+  values are picked from a list: licence classes by code (B, BE, C1, …), nationalities by label
+  (German, Italian, …). (3) Built without frames: "Enter a name." under Name, and the persona keeps
+  its previous name; "Enter a whole number, e.g. 25." under "Age today" for letters or decimals.
+  (4) Built without frames: when rules check them, given name and family name are fields of their
+  own under "Personal ID", labelled as the rules name them; generation fills them from the persona
+  name ("Mia Schulz" gives "Mia" and "Schulz"), and afterwards they are edited separately, so
+  renaming the persona changes neither (FR-005, FR-006, FR-008, FR-009).
+- Q: Is a persona's change of outcome announced by a visible toast, an invisible announcement, or
+  both (Figma: toast "Results updated. Mia now meets Rule 01.", frame 6)? → A: Only an invisible
+  polite status region, which doesn't move the focus and announces changes of outcome per persona
+  and variant: "Mia Schulz now meets the rules of Standard." / "Mia Schulz no longer meets the
+  rules of Standard." There is no toast (FR-017).
+- Q: While one persona is generated anew, may editing that persona wait until its new values
+  arrive (Figma: frame 19 shows it as a skeleton without "Edit data" and "Generate again")? → A:
+  Yes, as Figma has it: the persona being generated can't be edited until its values arrive,
+  within 5 seconds, and on first open none can be edited until all three arrive. Editing the other
+  personas, going back, publishing and saving never wait for generation (FR-013).
+- Q: Are the remaining behaviours that no frame shows, and that add no UI element, built without
+  frames? → A: Yes. Evaluation boundaries (a birthday exactly 21 years ago, letter case in a city,
+  a branch every applicant meets) appear in the existing results. After returning from the rules
+  step, the panel shows rows only for the fields that evaluated rules check, so rows come and go
+  (as between frame 1's 4 rows and frame 15's 10), and the results follow the current rules and
+  branches. A later create or edit flow opens with frame 18's loading state and three new personas.
+  The step lives only in the signed-in editor (US2-AS2, US2-AS3, US3-AS1, US3-AS3, US3-AS5,
+  FR-020, FR-021).
+- Q: Do the result table's rows for rules the persona meets show the rule's statement as well as
+  its name (Figma: "Rule NN · <name>" and a check icon only)? → A: Yes. Every met rule and group
+  shows its name and its statement as the rules step words it, the same as reported rows, with the
+  check icon and no message. In a branch the persona doesn't meet, a met row shows "–" in the
+  message column; a branch the persona meets has no message column. Figma is to add the statement
+  to its met rows and to the skeleton rows of frames 18–19 (FR-015).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - See which personas meet the rules of each variant (Priority: P1)
@@ -175,7 +302,8 @@ and branches, and return to the test step.
   The same goes for a branch based on the main branch whose rules are all removed there.
 - **A branch that no applicant can meet** (spec 003, FR-004): No persona meets it, and generation
   doesn't try. The step shows spec 003's notice for it, such as "No applicant can meet the rules
-  of Ambulance.", next to the personas' results for that branch (FR-018).
+  of Ambulance.", above the personas' results for that branch, and a warning icon on its tab
+  (FR-018).
 - **A branch that every applicant meets** (spec 003, FR-006): Every persona meets it, and
   generation doesn't try to make one fail it.
 - **Rules removed in a branch**: They aren't tested in that branch, as they aren't evaluated there
@@ -215,14 +343,17 @@ and branches, and return to the test step.
   200, which the test evaluates like any other value. Generation gives such values only when a
   rule can't be met, or can't be failed, otherwise (FR-010).
 - **An entry that isn't a value**: A date that doesn't exist, such as 31 February, or a number with
-  letters or decimals is pointed out where it is entered, and the results keep using the persona's
-  last valid value until it is corrected (FR-008).
+  letters or decimals is pointed out under its field, and the results keep using that field's last
+  valid value until it is corrected, while the persona's other changes apply (FR-008).
 - **More rules than three personas can cover**: Three personas can't always meet and fail every
   rule. Generation reaches its goals in the order of FR-011 as far as three personas allow, and the
   team member can edit or generate the personas anew to test the rest.
 - **Generation takes too long**: In a branch at spec 002's limit of 200 rules and groups,
   generation stops after 5 seconds with the best personas found so far, which still have valid
-  values (FR-013). Nothing waits for it.
+  values (FR-013). Nothing but the persona being generated waits for it.
+- **Generation fails**: If generation stops with an error, for example because the browser can't
+  run it, the step says "Couldn't create sample applicants" and offers "Try again". The team member
+  can still go back or publish without testing (FR-013).
 - **Documents changed meanwhile**: The team member goes back to the documents step and stops
   requesting data that rules check. The rules then have a problem, and the test step can be reached
   again only once it is fixed (spec 002, FR-029 and FR-006).
@@ -246,44 +377,69 @@ and branches, and return to the test step.
   publishing and saving are subject to (spec 002, FR-006): while a rule in any branch has an
   incomplete condition or no error message, or checks data that the form connection doesn't
   request, or a branch has no name or a duplicate one, it MUST be refused with the message that
-  publishing would give. While a rule editor has unsaved changes, it MUST first ask to keep or
-  discard them, as publishing does. The test step therefore tests exactly the rules that
+  publishing would give, where publishing shows it. While a rule editor has unsaved changes, it
+  MUST first ask to keep or discard them with the editor's existing question, such as "Save
+  changes to Rule 01?", as publishing does. The test step therefore tests exactly the rules that
   publishing or saving would store.
 - **FR-003**: Once a branch has a rule, or a rule editor is open, the rules step's single button to
   go on MUST be "Test rules", which opens the test step (FR-002); the rules step MUST NOT offer
   "Publish" or "Save" any more, nor "Publish without rules" except as FR-001 says. The test step
-  MUST offer going back to the rules step, and "Publish" ("Save" when editing), which opens the publish
-  and save dialog of specs 002 and 003, unchanged. Every publish or save of a form connection with
-  rules therefore goes through the test step. The personas' results MUST NOT refuse, delay or add
-  a question to publishing or saving, nor disable any action.
+  MUST offer going back to the rules step, and "Publish" ("Save" when editing), which opens the
+  publish and save dialog of specs 002 and 003, unchanged: its secondary action stays "Check rules
+  again", which closes the dialog and opens the rules step at the first branch, in tab order, with
+  findings (spec 003), also when the dialog was opened from the test step. Every publish or save of
+  a form connection with rules therefore goes through the test step. The personas' results MUST NOT
+  refuse, delay or add a question to publishing or saving, nor disable any action.
 
 #### Personas
 
 - **FR-004**: The test step MUST show three personas: fictitious applicants, each with a name and a
   value for every piece of data that the rules check (FR-005). The system MUST generate them when
-  the test step first opens (FR-010, FR-011).
+  the test step first opens (FR-010, FR-011). The step MUST show the personas as a row of three
+  chips, of which one is selected at a time: the first by default, and the selection MUST stay when
+  the branch tab changes. Only the selected persona's values, under the heading "<Name>'s data"
+  (such as "Mia's data"), and its results fill the panel. The step's intro reads "Choose a sample
+  applicant to see which rules they meet and which messages they'd see. The data is made up, and
+  nothing is shared."
 - **FR-005**: A persona MUST have values for exactly the fields, and parts of fields, that at least
   one rule evaluated in some branch checks (spec 002, FR-009), and for no other data. Its values
   MUST be grouped by document and named as the rules name them (spec 002, FR-005), such as
-  "Personal ID – Date of birth (Age)" or "Driving licence – Licence class B – Issue date". When a
-  rule checks the issue date or expiry date of a licence class, the persona MUST also have the
-  "Licence classes" it holds, and MUST have that date only while it holds the class.
+  "Personal ID – Date of birth (Age)" or "Driving licence – Licence class B – Issue date". On
+  screen, each document's values MUST appear under its heading, such as "Personal ID" or "Driving
+  licence", which stands in for the document in their names, such as "Date of birth (Age)" under
+  "Personal ID". When a rule checks the issue date or expiry date of a licence class, the persona
+  MUST also have the "Licence classes" it holds, and MUST have that date only while it holds the
+  class. "Licence
+  classes" MUST list the codes in one row, such as "B, BE", and each class date that a rule checks
+  MUST have a row of its own, such as "Licence class B – Issue date", not one date for several
+  classes.
 - **FR-006**: The team member MUST be able to change every value of a persona, with a value of its
   kind (spec 002, FR-003): any text; a whole number; a date; or values from the field's set, shown
   by their labels, and for the licence classes by their codes. "Personal ID – Nationality" and
-  "Driving licence – Licence classes" take one or more values, every other enum field one. The team
-  member MUST also be able to clear a value, which stands for a document that doesn't give it: an
-  empty text or an empty list counts as missing, as for the evaluation (spec 002, FR-014).
-- **FR-007**: Next to a persona's "Date of birth", the step MUST show the age it gives today (FR-016).
-  The team member MUST be able to change the date of birth as a date, or by entering an age, which
-  sets a date of birth that gives that age today, keeping its day and month where possible.
+  "Driving licence – Licence classes" take one or more values, every other enum field one; several
+  values MUST be picked from a list, the licence classes by code (B, BE, C1, …) and nationalities by
+  label (German, Italian, …), not typed. Every value the persona shows MUST have a field, with none
+  left read-only or hidden. The team member MUST also be able to clear a value, which stands for a
+  document that doesn't give it: an empty text or an empty list counts as missing, as for the
+  evaluation (spec 002, FR-014). Editing MUST happen in the persona's panel, not in a dialog: "Edit
+  data" turns the persona's values into fields, under the same document headings, and "Done" turns
+  them back into values. There is nothing to confirm or cancel: every valid change applies at once
+  (FR-017).
+- **FR-007**: Next to a persona's "Date of birth", the step MUST show the age it gives today
+  (FR-016), such as "08.07.2007 (age 19)", also while the values aren't being edited. The team
+  member MUST be able to change the date of birth as a date, or by entering an age in "Age today",
+  which sets a date of birth that gives that age today, keeping its day and month where possible.
 - **FR-008**: An entry that isn't a valid value of its kind, such as a date that doesn't exist or a
-  number with letters or decimals, MUST be pointed out where it is entered. Until it is corrected,
-  the results MUST keep using the persona's last valid value.
+  number with letters or decimals, MUST be pointed out under its field, such as "Enter a date that
+  exists, e.g. 28.02.2007.", or "Enter a whole number, e.g. 25." under "Age today" for letters or
+  decimals. Until it is corrected, the results MUST keep using that field's last valid value, while
+  the persona's other changes apply.
 - **FR-009**: A persona's name is a label for the team, not data that the rules check. The team
-  member MUST be able to change it; a name left empty is pointed out where it is entered, and the
-  persona keeps its previous name. When rules check a "Given name" or "Family name", generation
-  takes the persona's values for them from its name, but they are changed separately from it.
+  member MUST be able to change it; a name left empty is pointed out under its field with "Enter a
+  name.", and the persona keeps its previous name. When rules check a "Given name" or "Family
+  name", they MUST be fields of their own under "Personal ID", labelled as the rules name them.
+  Generation takes the persona's values for them from its name ("Mia Schulz" gives "Mia" and
+  "Schulz"), but they are changed separately from it: renaming the persona changes neither.
 
 #### Generating personas
 
@@ -309,10 +465,21 @@ and branches, and return to the test step.
 - **FR-012**: The team member MUST be able to generate one persona anew, which gives it new values
   chosen to reach the goals of FR-011 together with the other two personas, which don't change, and
   to generate all three anew. Either replaces the values the team member changed, and MUST first ask
-  to confirm when it would.
+  to confirm when it would. Generating all three anew MUST be a tertiary button "Generate all
+  again", with a refresh icon, at the right end of the row of personas. Its question MUST be titled
+  "Generate new data for all applicants?", say "Your changes to Mia's data will be replaced.",
+  naming every persona with changes ("Your changes to Mia's and Anna's data will be replaced."),
+  and offer "Cancel" and "Generate new data". While it runs, the step MUST show the same loading
+  state as when the personas are first generated.
 - **FR-013**: Generation MUST finish within 5 seconds, with the best personas found by then, whose
-  values are still valid (FR-010). Editing the personas, going back to the rules step, publishing
-  and saving MUST NOT wait for it.
+  values are still valid (FR-010). Editing the other personas, going back to the rules step,
+  publishing and saving MUST NOT wait for it. The persona being generated MUST be shown as a
+  placeholder, without "Edit data" and "Generate again", until its values arrive; while the
+  personas are first generated, none can be edited until all three arrive. If generation stops
+  with an error, such as a browser that can't run it, the step MUST show "Couldn't create sample
+  applicants" and "Try again, or publish without testing." ("Try again, or save without testing."
+  when editing) in place of the personas, with a "Try again" button that generates all three anew,
+  and the branch tabs, going back, publishing and saving MUST stay usable.
 
 #### Testing the personas
 
@@ -320,25 +487,45 @@ and branches, and return to the test step.
   branches without rules, exactly as the evaluation would evaluate documents that give the persona's
   values and no others, shared today (spec 002, FR-009 to FR-014). For every persona and branch, the
   result MUST be what serviceBW would receive in the evaluation: whether the rules are met overall,
-  the rules and groups reported, and their messages.
+  the rules and groups reported, and their messages. For showing it (FR-015), the result MUST also
+  hold the outcome of every top-level rule and group of the branch as the evaluation judges it.
 - **FR-015**: For every persona and branch, the step MUST show whether the persona meets the
-  branch's rules, in text and not by colour alone. When it doesn't, the step MUST show each rule and
-  group whose error message serviceBW would receive (spec 002, FR-011), by its name and its
-  statement (spec 002, FR-005), whether it isn't met or couldn't be checked (spec 002, FR-014), and
-  the message. For a group reported with a message of its own, the step MUST also show which of its
-  rules and sub-groups aren't met or couldn't be checked, so that the team member sees why the
-  group isn't met. Branches MUST appear by their names, in the order of their tabs in the rules
-  step.
+  branch's rules, not by colour alone: on each persona's chip by an icon that differs in shape, not
+  only in colour, whose accessible name states the outcome, such as "Mia Schulz: meets the rules of
+  Standard" or "Mia Schulz: doesn't meet the rules of Standard"; and for the selected persona in
+  visible text, in its "Result: …" heading: "Result: meets the rules", or the number of reported
+  items, a group counting as one, such as "Result: doesn't meet 1 rule and 1 group".
+  For the selected persona, the step MUST list every rule and group whose error message serviceBW
+  would receive (spec 002, FR-011), and after them every other top-level rule and group of the
+  branch, each with its outcome as the evaluation judges it: a rule inside a group that is met
+  doesn't count as failing. Under a branch the persona meets, the list MUST be headed "Rules
+  <first name> meets", such as "Rules Mia meets". Each reported rule or group MUST show its name,
+  its statement as the rules step words it (spec 002, FR-005), the status "Not met" or "Couldn't be
+  checked" (spec 002, FR-014), each with its own icon, and its message. A met rule or group MUST
+  show its name and its statement as the rules step words it, the same as a reported one, with a
+  check icon and no message: in a branch the persona doesn't meet, its message column shows "–",
+  and a branch the persona meets has no message column, since the evaluation gives no message
+  then. Below a reported group, indented, the step MUST show
+  its rules and sub-groups that aren't met or couldn't be checked, each with its name, statement
+  and status, so that the team member sees why the group isn't met; the members of a group that
+  isn't reported aren't listed. Branches MUST appear by their names, in the order of their tabs in
+  the rules step.
 - **FR-016**: "Today" MUST be the calendar date in Germany when the results are made, as for the
   evaluation (spec 002, FR-012). The step MUST say that the personas are tested as if they shared
-  their documents today, and name the date, such as "Tested as if shared today, 29 Oct 2026."
-- **FR-017**: After every change to a persona's values, the results MUST update at once, without the
-  team member asking. Each persona whose outcome for a branch changes MUST be announced to assistive
-  technologies through a polite status region, without moving the focus, such as "Lena Hoffmann now
-  meets the rules of Ambulance." or "Lena Hoffmann no longer meets the rules of Standard."
+  their documents today, and name the date, in one line directly under the step's intro: "Tested
+  as if shared today, 29 Oct 2026." The line MUST show whenever results are shown, also while one
+  persona is generated anew, and MUST NOT show while no results are shown: while the personas are
+  first generated, or when generation failed.
+- **FR-017**: After every valid change to a persona's values, the results MUST update at once,
+  without the team member asking or confirming the change. Each persona whose outcome for a branch
+  changes MUST be announced to assistive technologies through a polite status region that isn't
+  visible, without moving the focus, such as "Mia Schulz now meets the rules of Standard." or "Mia
+  Schulz no longer meets the rules of Standard." The step MUST NOT show a visible toast for it.
 - **FR-018**: For a branch that no applicant can meet, the step MUST show spec 003's notice next to
-  the personas' results for it, such as "No applicant can meet the rules of Ambulance." (spec 003,
-  FR-004), so that the team member doesn't try to edit a persona into meeting them.
+  the personas' results for it, above the "Result: …" heading, such as "No applicant can meet the
+  rules of Ambulance." (spec 003, FR-004), so that the team member doesn't try to edit a persona
+  into meeting them. The branch's tab MUST also carry a warning icon whose tooltip shows the same
+  text and opens on keyboard focus as well as on hover.
 
 #### Keeping the personas while the rules change
 
@@ -372,7 +559,8 @@ and branches, and return to the test step.
   of the field's kind of value (spec 002, FR-003), or empty for a document that doesn't give it.
 - **Test result**: The outcome of evaluating one persona against the rules of one branch, as if
   shared today: whether the rules are met overall, and the rules and groups whose messages
-  serviceBW would receive, each not met or couldn't be checked, with their messages (FR-014,
+  serviceBW would receive, each not met or couldn't be checked, with their messages; and, for
+  showing them, the outcome of every top-level rule and group as the evaluation judges it (FR-014,
   FR-015).
 - **Test day**: Today's calendar date in Germany, on which every persona is tested (FR-016).
 - **Rule, Group, Sub-group, Branch** (spec 002) and **Finding** (spec 003): unchanged. The test
@@ -395,8 +583,8 @@ and branches, and return to the test step.
   applicants can both meet and fail are met by at least one persona and failed by at least one.
 - **SC-003**: In branches of up to 50 rules, groups and sub-groups, the personas and their results
   appear within 2 seconds of the test step opening, and the results update within 1 second of
-  each change to a persona. At spec 002's limits, nothing waits for generation, which ends within
-  5 seconds.
+  each change to a persona. At spec 002's limits, nothing but the persona being generated waits
+  for generation, which ends within 5 seconds.
 - **SC-004**: In usability testing with a rule set that contains a mistake that spec 003 doesn't
   report, such as the age limits of Standard and Ambulance swapped, at least 4 of 5 DO.IT
   participants find the mistake with the test step within 3 minutes and without help.
@@ -429,8 +617,12 @@ and branches, and return to the test step.
   publishing, and publishing and saving move there (Clarifications, 2026-10-29). A form connection
   without rules has nothing to test, so the flow skips the step, as "Publish without rules" already
   skips the rules step.
-- **Design**: No UI design for the test step exists yet. It is built from KERN patterns, inside the
-  wizard frame of spec 001 (header, progress, action bar), and the progress names the step "Test".
+- **Design**: The test step is designed in Figma file "Middleware – V4", section "Test · 1 · Test
+  rules" (node 7057:58708). That file also redesigns the whole site, which is out of scope here:
+  only what this spec covers is built from it. Where the design and this spec differed, the
+  Clarifications of 2026-11-01 decide. The rules and documents steps have no frames: their changes
+  are built from the current steps. The step is built from KERN patterns, inside the wizard
+  frame of spec 001 (header, progress, action bar), and the progress names the step "Test".
   The UI says "persona", "variant" for branch and "connection" for form connection, as in specs 002
   and 003. Final wording belongs to the design notes.
 - **Out of scope**: more or fewer than three personas; expected outcomes that the team member
