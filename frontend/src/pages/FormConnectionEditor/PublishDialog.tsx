@@ -1,7 +1,9 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { PUBLISH_COPY } from './constants';
+import PublishFindingLine from './PublishFindingLine';
 import PublishSummaryRow from './PublishSummaryRow';
 import type { PublishDialogProps } from './types';
+import { findingLinesOf } from './utils';
 
 /**
  * Figma "Dialog: Ready to publish?" (U33 6376:25536; S5): the last check before publishing, or
@@ -13,6 +15,11 @@ import type { PublishDialogProps } from './types';
  * message and offers "Try again", and nothing has changed (U35 6376:27178; F23). If another team
  * member saved the rules meanwhile, the same alert says so, and the dialog offers "Reload" or
  * "Replace their changes" instead (W9, FR-028).
+ *
+ * Spec 003 (S5; A8, W10; FR-016, FR-017, FR-019): below the summary, where spec 002's warnings
+ * line would be (research R11), one line per branch with findings, in tab order. "Check rules
+ * again" then leads back to them. Without findings nothing is added (US4-AS4), and findings never
+ * disable "Publish" or "Save" nor ask anything more (US4-AS5).
  */
 export default function PublishDialog({
   open,
@@ -20,6 +27,8 @@ export default function PublishDialog({
   withoutRules,
   documentLines,
   ruleLines,
+  branches,
+  checks,
   publishing,
   error,
   rulesChanged,
@@ -51,6 +60,8 @@ export default function PublishDialog({
     : withoutRules
       ? PUBLISH_COPY.addRules
       : PUBLISH_COPY.checkRulesAgain;
+  // Publishing without rules has no rules to have findings
+  const findingLines = withoutRules ? [] : findingLinesOf(branches, checks);
   return (
     <ConfirmDialog
       open={open}
@@ -73,6 +84,13 @@ export default function PublishDialog({
         <PublishSummaryRow label={PUBLISH_COPY.documents} values={documentLines} divided />
         <PublishSummaryRow label={PUBLISH_COPY.rules} values={ruleLines} />
       </dl>
+      {findingLines.length > 0 && (
+        <ul className="flex w-full flex-col gap-8">
+          {findingLines.map((line) => (
+            <PublishFindingLine key={line.key} line={line} />
+          ))}
+        </ul>
+      )}
     </ConfirmDialog>
   );
 }

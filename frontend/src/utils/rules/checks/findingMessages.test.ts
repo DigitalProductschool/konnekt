@@ -6,6 +6,7 @@ import {
   announcementOf,
   bannerOf,
   countsOf,
+  dialogLineOf,
   kindTextOf,
   listOf,
   namesOf,
@@ -712,6 +713,70 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
   });
 });
 
+describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
+  const u02 = [
+    conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+    ...conflictSet(['rule-4', 'rule-5']),
+    same('rule-6', 'rule-3'),
+  ];
+
+  it('reads "<variant>: <counts row>" (W10)', () => {
+    expect(dialogLineOf(check(u02), 'Ambulance')).toBe(
+      'Ambulance: 2 rules can’t be met together · 1 duplicate rule'
+    );
+    expect(dialogLineOf(check([same('rule-6', 'rule-3')]), 'Standard')).toBe(
+      'Standard: 1 duplicate rule'
+    );
+    expect(dialogLineOf(check([alwaysMet('rule-5')]), 'Standard')).toBe(
+      'Standard: 1 rule every applicant meets'
+    );
+  });
+
+  it('adds that no applicant can meet the variant after the counts (FR-017, A7)', () => {
+    expect(dialogLineOf(check(u02, NONE_CAN_MEET), 'Ambulance')).toBe(
+      'Ambulance: 2 rules can’t be met together · 1 duplicate rule. ' +
+        'No applicant can meet the rules of Ambulance.'
+    );
+    expect(dialogLineOf(check(u02, NONE_CAN_MEET_TODAY), 'Ambulance')).toBe(
+      'Ambulance: 2 rules can’t be met together · 1 duplicate rule. ' +
+        'Right now, no applicant can meet the rules of Ambulance.'
+    );
+  });
+
+  it('says only the notice when the variant has no finding to count', () => {
+    expect(dialogLineOf(check([], NONE_CAN_MEET), 'Ambulance')).toBe(
+      'No applicant can meet the rules of Ambulance.'
+    );
+    expect(dialogLineOf(check([], NONE_CAN_MEET_TODAY), 'Ambulance')).toBe(
+      'Right now, no applicant can meet the rules of Ambulance.'
+    );
+    expect(dialogLineOf(check([], ALL_MEET), 'Ambulance')).toBe(
+      'Every applicant meets the rules of Ambulance.'
+    );
+  });
+
+  it('adds that every applicant meets the variant after other findings', () => {
+    expect(dialogLineOf(check([same('rule-6', 'rule-3')], ALL_MEET), 'Standard')).toBe(
+      'Standard: 1 duplicate rule. Every applicant meets the rules of Standard.'
+    );
+  });
+
+  it('doesn’t repeat that the check couldn’t finish (§6)', () => {
+    expect(dialogLineOf(check(u02, null, { complete: false }), 'Ambulance')).toBe(
+      'Ambulance: 2 rules can’t be met together · 1 duplicate rule'
+    );
+    expect(dialogLineOf(check([], NONE_CAN_MEET, { complete: false }), 'Ambulance')).toBe(
+      'No applicant can meet the rules of Ambulance.'
+    );
+  });
+
+  it('is null for a variant without findings (US4-AS4, W13)', () => {
+    expect(dialogLineOf(check([]), 'Standard')).toBeNull();
+    expect(dialogLineOf(check([], null, { complete: false }), 'Standard')).toBeNull();
+    expect(dialogLineOf(check(u02, NONE_CAN_MEET, { checkedRules: 0 }), 'Standard')).toBeNull();
+  });
+});
+
 describe('tabLabelOf', () => {
   it('reads "<variant> has findings" (A6)', () => {
     expect(tabLabelOf('Standard')).toBe('Standard has findings');
@@ -1151,6 +1216,10 @@ describe('every text', () => {
       banner?.incomplete ?? 'complete',
     ]),
     ...findings.map((finding) => tabFindingsOf(check([finding]), STANDARD, NAMES)?.text ?? ''),
+    ...notices.flatMap((notice) => [
+      dialogLineOf(check([], notice), AMBULANCE.name) ?? '',
+      dialogLineOf(check(findings, notice), AMBULANCE.name) ?? '',
+    ]),
   ];
 
   it('are all there', () => {

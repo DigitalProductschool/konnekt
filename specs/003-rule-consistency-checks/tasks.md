@@ -667,18 +667,18 @@ back to the first of them, while "Publish" and "Save" go ahead as before.
 another. Check the dialog's lines, "Check rules again", and that publishing succeeds (quickstart
 V6).
 
-- [ ] T044 [US4] Add `dialogLineOf(check, branchName)` to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T035; FR-017, FR-019; W10; design-notes.md §6). It runs after T041 when both are built, since both change this file.
+- [X] T044 [US4] Add `dialogLineOf(check, branchName)` to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T035; FR-017, FR-019; W10; design-notes.md §6). It runs after T041 when both are built, since both change this file.
   - "<branch>: <counts row>", with `countsOf()`: "Ambulance: 2 rules can’t be met together · 1 duplicate rule".
   - "No applicant can meet the rules of <branch>." for a branch that no applicant can meet, "Right now, no applicant can meet the rules of <branch>." when it applies today.
   - "Every applicant meets the rules of <branch>." for a branch whose only finding it is (design-notes §6).
   - Nothing for a branch without findings.
-- [ ] T045 [US4] List the findings in the publish and save dialog (depends on T031, T044; S5; A8, W10; FR-016, FR-017, FR-019; US4-AS1, AS2, AS4, AS5; Figma spec 002's dialog U33 `6376:25536` and its warnings line `6376:26181`). Files: `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, a new `PublishFindingLine.tsx`, and `types.ts`, `utils.ts` and `utils.test.ts` beside them.
+- [X] T045 [US4] List the findings in the publish and save dialog (depends on T031, T044; S5; A8, W10; FR-016, FR-017, FR-019; US4-AS1, AS2, AS4, AS5; Figma spec 002's dialog U33 `6376:25536` and its warnings line `6376:26181`). Files: `frontend/src/pages/FormConnectionEditor/PublishDialog.tsx`, a new `PublishFindingLine.tsx`, and `types.ts`, `utils.ts` and `utils.test.ts` beside them.
   - Spec 002 left the warnings line out (its F21), so the lines go below the dialog's summary (research R11).
   - One `PublishFindingLine` per branch with findings, in tab order, with `dialogLineOf()`'s text: in the warning style when the branch has a conflict or no applicant can meet it, in the info style otherwise (FR-019).
   - A pure `findingLinesOf(branches, byBranch)` in `utils.ts`, tested in `utils.test.ts`: tab order, only branches with certain findings, and the style of each line.
   - Without findings, the dialog is as in spec 002 (US4-AS4). "Publish" and "Save" stay enabled, and go ahead without a further question (A8; US4-AS5).
   - Visual check against U33's lines, listing W10.
-- [ ] T046 [US4] Make "Check rules again" open the first branch with findings, in `frontend/src/pages/FormConnectionEditor/index.tsx` and `utils.ts` (depends on T045; S5; W10; FR-017; US4-AS3; research R11).
+- [X] T046 [US4] Make "Check rules again" open the first branch with findings, in `frontend/src/pages/FormConnectionEditor/index.tsx` and `utils.ts` (depends on T045; S5; W10; FR-017; US4-AS3; research R11).
   - `handleDialogCancel()` opens the rules step on the first branch, in tab order, that has findings, through the rules reducer's action that opens a branch, as `BranchTabs` dispatches it. Without findings, it keeps spec 002's behaviour.
   - The dialog's other secondary actions, "Add rules" without rules and "Reload" after `409 rules_changed`, stay as they are.
   - A pure `firstBranchWithFindings(branches, byBranch)` in `utils.ts`, tested in `utils.test.ts`.

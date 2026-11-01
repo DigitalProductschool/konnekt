@@ -1,7 +1,8 @@
 // The texts of the rule checks' findings (specs/003-rule-consistency-checks, research R12;
-// contracts/ui-screens.md "Copy"; design-notes.md §1–§5): the notes on rules and groups, the
-// findings banner, the counts row, the tab's icon and tooltip, and the announcements. This module
-// is the only place where finding texts are written. Every function is pure.
+// contracts/ui-screens.md "Copy"; design-notes.md §1–§6): the notes on rules and groups, the
+// findings banner, the counts row, the tab's icon and tooltip, the publish and save dialog's
+// lines, and the announcements. This module is the only place where finding texts are written.
+// Every function is pure.
 //
 // Conventions (design-notes.md §1): apostrophes are typographic (’); rules, groups and variants
 // are named by their current names (FR-011), lists follow the display order and read "Rule 02,
@@ -575,6 +576,29 @@ export function tabFindingsOf(
     kind: banner.kind,
     text: labels.length === 1 ? `${labels[0]}: ${text}` : text,
   };
+}
+
+// The publish and save dialog (S5; FR-017, FR-019; W10; design-notes.md §6)
+
+/**
+ * A branch's line in the publish and save dialog (§6): "<variant>: <counts row>", followed by the
+ * notice, as in "Ambulance: 2 rules can’t be met together. No applicant can meet the rules of
+ * Ambulance."; the notice alone, without "<variant>: ", when the branch has no finding to count.
+ * FR-010's sentence isn't repeated in the dialog (§6). Null when the branch has nothing to show:
+ * no checked rules (W13), or neither a finding to count nor a notice, such as a check that only
+ * couldn't finish.
+ */
+export function dialogLineOf(check: BranchCheck, branchName: string): string | null {
+  if (check.checkedRules === 0) {
+    return null;
+  }
+  const counts = countsOf(check);
+  const notice = check.notice ? noticeText(check.notice, branchName) : null;
+  if (counts === '') {
+    return notice;
+  }
+  const line = `${branchName}: ${counts}`;
+  return notice === null ? line : `${line}. ${notice}`;
 }
 
 // Announcements (FR-015; W1; design-notes.md §5)

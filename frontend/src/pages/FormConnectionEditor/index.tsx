@@ -42,6 +42,7 @@ import {
   documentLines,
   editorReducer,
   fieldLabelOf,
+  firstBranchWithFindings,
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
@@ -337,7 +338,12 @@ export default function FormConnectionEditorPage({
   // while a rule is being edited, whose fields have their own undo
   useUndoShortcut(state.step === 'rules' && rules.undo !== null && !rules.editing, undoRules);
 
-  /** "Check rules again" closes the dialog; "Add rules", from the documents, opens the rules. */
+  /**
+   * "Check rules again" closes the dialog and opens the first branch, in tab order, that the
+   * dialog lists findings for, or stays on the open branch when none has (FR-017; research R11);
+   * "Add rules", from the documents, opens the rules. "Reload" after `409 rules_changed` is the
+   * dialog's `onReload`, not this.
+   */
   function handleDialogCancel() {
     if (state.publishing) {
       return;
@@ -345,6 +351,11 @@ export default function FormConnectionEditorPage({
     dispatch({ type: 'closeDialog' });
     if (state.step === 'documents') {
       dispatch({ type: 'goToStep', step: 'rules' });
+      return;
+    }
+    const branchKey = firstBranchWithFindings(rules.branches, ruleChecks.byBranch);
+    if (branchKey !== null) {
+      dispatchRules({ type: 'selectBranch', branchKey });
     }
   }
 
@@ -487,6 +498,8 @@ export default function FormConnectionEditorPage({
             withoutRules={state.step === 'documents'}
             documentLines={documentLines(state.documents, documentTypes)}
             ruleLines={ruleLines(rules, state.step === 'documents')}
+            branches={rules.branches}
+            checks={ruleChecks.byBranch}
             publishing={state.publishing}
             error={state.publishError}
             rulesChanged={state.rulesChanged}
