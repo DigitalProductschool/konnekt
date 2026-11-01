@@ -12,10 +12,11 @@ import type {
 import { CONTEXT, mainBranch, rule, target } from '../testData';
 import { renameItem } from '../tree';
 import { buildCheckedBranch } from './checkedTree';
-import { checkBranch } from './findings';
+import { checkBranch as checkBranchOnly } from './findings';
 import {
   BRANCH,
   checkedBranchOf,
+  FROM_TODAY,
   LATER_DAYS,
   type Oracle,
   ORACLE_TODAY_DAY,
@@ -23,7 +24,69 @@ import {
   randomBranch,
   withSeed,
 } from './testOracle';
-import type { BranchCheck, CheckedBranch, CheckedItem, CheckOptions, ItemFinding } from './types';
+import type {
+  BranchCheck,
+  CheckedBranch,
+  CheckedItem,
+  CheckOptions,
+  ItemFinding,
+  RedundantReason,
+} from './types';
+
+// data-model.md's invariants 1 to 3, checked on every result of this file
+
+/**
+ * `checkBranch()`, whose every result is checked against data-model.md's invariants 1 to 3: at
+ * most one finding per item; only conflicting findings with the notice `none_can_meet` (FR-005,
+ * W4); no finding inside a redundant or always-met group, and no redundant or always-met finding
+ * on a conflicting item or inside one (FR-005)
+ */
+function checkBranch(checked: CheckedBranch, options: CheckOptions): BranchCheck {
+  const result = checkBranchOnly(checked, options);
+  expectInvariants(checked, result);
+  return result;
+}
+
+function expectInvariants(checked: CheckedBranch, result: BranchCheck): void {
+  const ids = result.findings.map((finding) => finding.itemId);
+  expect(new Set(ids).size, 'invariant 1').toBe(ids.length);
+  if (result.notice?.kind === 'none_can_meet') {
+    expect(
+      result.findings.every((finding) => finding.kind === 'conflicting'),
+      'invariant 2'
+    ).toBe(true);
+  }
+  const byId = new Map(result.findings.map((finding) => [finding.itemId, finding]));
+  const ancestors = ancestorsOf(checked);
+  for (const finding of result.findings) {
+    const above = (ancestors.get(finding.itemId) ?? []).map((id) => byId.get(id)?.kind);
+    expect(
+      above.some((kind) => kind === 'redundant' || kind === 'always_met'),
+      `invariant 3: ${finding.itemId} is inside a redundant or always-met group`
+    ).toBe(false);
+    if (finding.kind !== 'conflicting') {
+      expect(
+        above.includes('conflicting'),
+        `invariant 3: ${finding.itemId} is inside a conflicting group`
+      ).toBe(false);
+    }
+  }
+}
+
+/** The groups that hold each item, by item id, the innermost first */
+function ancestorsOf(checked: CheckedBranch): Map<string, string[]> {
+  const ancestors = new Map<string, string[]>();
+  const visit = (items: CheckedItem[], above: string[]) => {
+    for (const item of items) {
+      ancestors.set(item.id, above);
+      if (item.type === 'group') {
+        visit(item.items, [item.id, ...above]);
+      }
+    }
+  };
+  visit(checked.items, []);
+  return ancestors;
+}
 
 // Hand-built branches
 
@@ -301,6 +364,247 @@ describe('checkBranch: the today flag (FR-008)', () => {
   });
 });
 
+// Steps 3 and 4
+
+const heightIs = (number: number, value: number) =>
+  on(number, HEIGHT, { operator: 'equal_to', value });
+/** Every applicant meets it: heights are whole numbers */
+const anyHeight = (number: number) => notHeight(number, 20.5);
+
+const ALL_MEET = { kind: 'all_meet', today: false };
+
+function redundant(itemId: string, reason: RedundantReason): ItemFinding {
+  return { itemId, kind: 'redundant', reason, today: false };
+}
+
+function impliedBy(itemId: string, items: string[], orItems: string[] = []): ItemFinding {
+  return redundant(itemId, { type: 'implied_by', items, orItems });
+}
+
+function implies(itemId: string, items: string[], givenItems: string[] = []): ItemFinding {
+  return redundant(itemId, { type: 'implies', items, givenItems });
+}
+
+function same(itemId: string, item: string): ItemFinding {
+  return redundant(itemId, { type: 'same', item });
+}
+
+function alwaysMet(itemId: string): ItemFinding {
+  return { itemId, kind: 'always_met', reason: null, today: false };
+}
+
+describe('checkBranch, step 3: every applicant meets the branch (FR-006, FR-008)', () => {
+  it('gives the notice when no applicant fails the top level on any day from today on', () => {
+    const result = check([anyHeight(1)]);
+    expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
+    expect(result.findings).toEqual([alwaysMet('rule-1')]);
+  });
+
+  it('gives it for a top level combined with OR that one item makes always met', () => {
+    const result = check([taller(1, 180), anyHeight(2)], 'or');
+    expect(result.notice).toEqual(ALL_MEET);
+    // Rule 01 makes no difference beside Rule 02, which every applicant meets
+    expect(result.findings).toEqual([implies('rule-1', ['rule-2']), alwaysMet('rule-2')]);
+  });
+
+  it('gives none while some applicant fails the branch', () => {
+    expect(check([taller(1, 100), anyHeight(2)]).notice).toBeNull();
+  });
+
+  it('gives none when every applicant meets the branch today but not on a later day', () => {
+    // Born before 2024, or less than 5 years ago: everyone today, but from 2029 on, those born in
+    // 2024 meet neither
+    const result = check([
+      group(
+        1,
+        [
+          on(1, BIRTH, { operator: 'before', date: '2024-01-01' }),
+          on(2, BIRTH, { operator: 'less_than_years_ago', years: 5 }),
+        ],
+        'or'
+      ),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [] });
+  });
+});
+
+describe('checkBranch, step 4: always met (FR-006)', () => {
+  it('marks a rule that every applicant meets, in a level combined with AND', () => {
+    const result = check([taller(1, 100), anyHeight(2)]);
+    expect(result.findings).toEqual([alwaysMet('rule-2')]);
+  });
+
+  it('marks a group that every applicant meets, and nothing inside it', () => {
+    // Taller than 100 or shorter than 101; Rule 03 would otherwise make no difference beside …
+    const result = check([sexOneOf(1, 1), group(1, [taller(2, 100), shorter(3, 101)], 'or')]);
+    expect(result.findings).toEqual([alwaysMet('group-1')]);
+  });
+
+  it('marks nothing inside an always-met group, even a duplicate', () => {
+    const result = check([sexOneOf(1, 1), group(1, [anyHeight(2), anyHeight(3)])]);
+    expect(result.findings).toEqual([alwaysMet('group-1')]);
+  });
+
+  it('marks nothing that every applicant meets today only (FR-008)', () => {
+    const result = check([
+      sexOneOf(1, 1),
+      group(
+        2,
+        [
+          on(2, BIRTH, { operator: 'before', date: '2024-01-01' }),
+          on(3, BIRTH, { operator: 'less_than_years_ago', years: 5 }),
+        ],
+        'or'
+      ),
+    ]);
+    expect(result.findings).toEqual([]);
+  });
+});
+
+describe('checkBranch, step 4: redundant (FR-005)', () => {
+  it('marks a rule that another implies in a level combined with AND (implied_by)', () => {
+    expect(check([taller(1, 180), taller(2, 150)]).findings).toEqual([
+      impliedBy('rule-2', ['rule-1']),
+    ]);
+    // The earlier rule, when it is the one implied
+    expect(check([taller(1, 150), taller(2, 180)]).findings).toEqual([
+      impliedBy('rule-1', ['rule-2']),
+    ]);
+  });
+
+  it('names a smallest set of the AND-context that implies the item', () => {
+    // Greater than 10 and less than 12: only 11
+    const result = check([taller(1, 10), sexOneOf(4, 1), shorter(2, 12), heightIs(3, 11)]);
+    expect(result.findings).toEqual([impliedBy('rule-3', ['rule-1', 'rule-2'])]);
+  });
+
+  it('names the AND-context along the path to the top level', () => {
+    const result = check([taller(1, 180), group(1, [sexOneOf(2, 1), taller(3, 150)])]);
+    expect(result.findings).toEqual([impliedBy('rule-3', ['rule-1'])]);
+  });
+
+  it('marks the later of two rules with the same check (same), and only that one', () => {
+    expect(check([taller(1, 180), taller(2, 180)]).findings).toEqual([same('rule-2', 'rule-1')]);
+    expect(check([taller(1, 180), taller(2, 180)], 'or').findings).toEqual([
+      same('rule-2', 'rule-1'),
+    ]);
+  });
+
+  it('marks every later copy, each the same as the first, in the working tree', () => {
+    const result = check([taller(1, 180), taller(2, 180), taller(3, 180)]);
+    expect(result.findings).toEqual([same('rule-2', 'rule-1'), same('rule-3', 'rule-1')]);
+  });
+
+  it('marks a rule that implies another in a level combined with OR (implies)', () => {
+    expect(check([taller(1, 150), taller(2, 180)], 'or').findings).toEqual([
+      implies('rule-2', ['rule-1']),
+    ]);
+  });
+
+  it('names a smallest set of the siblings that the item implies', () => {
+    // Sex 1 or 2 is sex 1 or sex 2
+    const result = check([sexOneOf(1, 1), taller(2, 180), sexOneOf(3, 2), sexOneOf(4, 1, 2)], 'or');
+    expect(result.findings).toEqual([implies('rule-4', ['rule-1', 'rule-3'])]);
+  });
+
+  it('marks a redundant group, and nothing inside it', () => {
+    // Rule 03 has the same check as Rule 02, inside the group
+    const result = check([taller(1, 180), group(1, [taller(2, 150), taller(3, 150)], 'or')]);
+    expect(result.findings).toEqual([impliedBy('group-1', ['rule-1'])]);
+  });
+
+  it('reasons through an enclosing OR level in a level combined with AND (orItems)', () => {
+    // Top OR: Group 01 (AND: sex 1 or 2, sex 1), sex 2. Rule 02 makes no difference: an applicant
+    // who meets Rule 01 and not Rule 03 has sex 1
+    const result = check([group(1, [sexOneOf(1, 1, 2), sexOneOf(2, 1)]), sexOneOf(3, 2)], 'or');
+    expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'], ['rule-3'])]);
+  });
+
+  it('reasons through an enclosing AND level in a level combined with OR (givenItems)', () => {
+    // Top AND: sex 0 or 1, Group 01 (OR: sex 1, sex 1 or 2). Rule 03 makes no difference given
+    // Rule 01; once it is deleted, Group 01 is Rule 02, which implies Rule 01
+    const result = check([sexOneOf(1, 0, 1), group(1, [sexOneOf(2, 1), sexOneOf(3, 1, 2)], 'or')]);
+    expect(result.findings).toEqual([
+      impliedBy('rule-1', ['rule-2']),
+      implies('rule-3', ['rule-2'], ['rule-1']),
+    ]);
+  });
+
+  it('reads the working tree: a group left with one member is that member', () => {
+    // Rule 03 is the same as Rule 02; Group 01 is then Rule 02, the top level's sibling of Rule 01
+    const result = check([sexOneOf(1, 1), group(1, [taller(2, 180), taller(3, 180)], 'or')]);
+    expect(result.findings).toEqual([same('rule-3', 'rule-2')]);
+  });
+
+  it('never marks the top level’s only item, which is redundant only when always met', () => {
+    expect(check([taller(1, 180)]).findings).toEqual([]);
+    expect(check([taller(1, 180)], 'or').findings).toEqual([]);
+    // Once Rule 02 is deleted, Group 01 is Rule 01, the only item left
+    expect(check([group(1, [taller(1, 180), taller(2, 180)])]).findings).toEqual([
+      same('rule-2', 'rule-1'),
+    ]);
+  });
+
+  it('marks nothing that is implied today but not on every later day (FR-008)', () => {
+    // Born after 2009 is less than 18 years ago today, but not from 2027 on
+    const result = check([
+      on(1, BIRTH, { operator: 'after', date: '2009-01-01' }),
+      on(2, BIRTH, { operator: 'less_than_years_ago', years: 18 }),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [] });
+  });
+});
+
+describe('checkBranch, step 4: what isn’t reported (FR-005, W4)', () => {
+  it('reports nothing but conflicts in a branch that no applicant can meet', () => {
+    // Rule 04 has the same check as Rule 03
+    const result = check([taller(1, 180), shorter(2, 150), sexOneOf(3, 1), sexOneOf(4, 1)]);
+    expect(result.notice).toEqual({ kind: 'none_can_meet', today: false });
+    expect(result.findings).toEqual([
+      withItems('rule-1', ['rule-2']),
+      withItems('rule-2', ['rule-1']),
+    ]);
+  });
+
+  it('reports no redundancy for a conflicting item', () => {
+    // Rule 03 implies Rule 02 in the OR group, but both conflict with Rule 01
+    const result = check([
+      taller(1, 180),
+      group(1, [shorter(2, 150), shorter(3, 140), sexOneOf(4, 1)], 'or'),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([
+      withItems('rule-2', ['rule-1']),
+      withItems('rule-3', ['rule-1']),
+    ]);
+  });
+
+  it('reports no redundancy inside a conflicting group', () => {
+    // Rule 04 has the same check as Rule 03
+    const result = check(
+      [group(1, [taller(1, 180), shorter(2, 150), sexOneOf(3, 1), sexOneOf(4, 1)]), sexOneOf(5, 2)],
+      'or'
+    );
+    expect(result.notice).toBeNull();
+    expect(result.findings).toEqual([
+      {
+        itemId: 'group-1',
+        kind: 'conflicting',
+        reason: { type: 'members', operator: 'and', items: ['rule-1', 'rule-2'] },
+        today: false,
+      },
+      withItems('rule-1', ['rule-2']),
+      withItems('rule-2', ['rule-1']),
+    ]);
+  });
+
+  it('gives a group that holds a conflicting item no finding, but visits its members', () => {
+    // Group 01 is always met through Rule 03, and holds Rule 02, which conflicts with Rule 01
+    const result = check([taller(1, 180), group(1, [shorter(2, 150), anyHeight(3)], 'or')]);
+    expect(result.findings).toEqual([withItems('rule-2', ['rule-1']), alwaysMet('rule-3')]);
+  });
+});
+
 describe('checkBranch: certainty (FR-010)', () => {
   /** A text field mixing letter case with "contains", which the text theory can't decide (R7) */
   const UNDECIDED = [
@@ -321,6 +625,17 @@ describe('checkBranch: certainty (FR-010)', () => {
 
   it("gives no notice when whether the branch can be met is 'unknown'", () => {
     const result = check([...UNDECIDED, taller(3, 180)]);
+    expect(result).toMatchObject({ complete: false, notice: null, findings: [] });
+  });
+
+  it("reports no redundancy for an item whose conflict answer is 'unknown', nor inside it", () => {
+    // Without the text rules, Group 01 implies Rule 06 and Rule 04 is the same as Rule 03
+    const rest = [sexOneOf(3, 1), sexOneOf(4, 1), taller(5, 200)];
+    expect(check([group(1, rest), taller(6, 180)], 'or')).toMatchObject({
+      complete: true,
+      findings: [implies('group-1', ['rule-6'])],
+    });
+    const result = check([group(1, [...UNDECIDED, ...rest]), taller(6, 180)], 'or');
     expect(result).toMatchObject({ complete: false, notice: null, findings: [] });
   });
 
@@ -418,7 +733,7 @@ const SEEDS = 300;
 const SEARCHED_WHOLE = 6;
 
 describe(`checkBranch against the oracle, for ${SEEDS} seeded branches`, () => {
-  it('reports exactly the conflicts and the notice, with smallest reasons', () => {
+  it('reports exactly the conflicts and the notices, with smallest reasons, and true redundancies', () => {
     const reasons = new Map<string, number>();
     let incomplete = 0;
     for (let seed = 1; seed <= SEEDS; seed += 1) {
@@ -427,15 +742,20 @@ describe(`checkBranch against the oracle, for ${SEEDS} seeded branches`, () => {
       const result = checkBranch(checked, IN_TIME);
       withSeed(seed, () => compareWithOracle(checked, oracleOf(branch), result));
       for (const finding of result.findings) {
-        const key = `${finding.reason?.type ?? 'none'}${finding.today ? ', today' : ''}`;
+        const key = `${finding.reason?.type ?? finding.kind}${finding.today ? ', today' : ''}`;
         reasons.set(key, (reasons.get(key) ?? 0) + 1);
+      }
+      if (result.notice) {
+        reasons.set(result.notice.kind, (reasons.get(result.notice.kind) ?? 0) + 1);
       }
       incomplete += result.complete ? 0 : 1;
       // Deterministic: the same branch again
       expect(checkBranch(checkedBranchOf(branch), IN_TIME)).toEqual(result);
     }
     // Every reason occurs, and the text theory's 'unknown' is rare
-    for (const key of ['with', 'with, today', 'members', 'condition']) {
+    const occurring = ['with', 'with, today', 'members', 'condition'];
+    occurring.push('always_met', 'all_meet', 'same', 'implied_by', 'implies');
+    for (const key of occurring) {
       expect(reasons.get(key) ?? 0, key).toBeGreaterThan(0);
     }
     expect(incomplete).toBeLessThan(SEEDS / 20);
@@ -495,10 +815,16 @@ function compareWithOracle(checked: CheckedBranch, oracle: Oracle, result: Branc
   const today = ORACLE_TODAY_DAY;
   const meetable = oracle.canMeet([BRANCH], today);
   if (result.notice || result.complete) {
+    const allMeet = meetable && oracle.alwaysMet([BRANCH], FROM_TODAY);
     expect(result.notice).toEqual(
-      meetable ? null : { kind: 'none_can_meet', today: oracle.canMeet([BRANCH], LATER_DAYS) }
+      meetable
+        ? allMeet
+          ? { kind: 'all_meet', today: false }
+          : null
+        : { kind: 'none_can_meet', today: oracle.canMeet([BRANCH], LATER_DAYS) }
     );
   }
+  expectDifferences(checked, oracle, result);
   const byItem = new Map(result.findings.map((finding) => [finding.itemId, finding]));
   expect(byItem.size).toBe(result.findings.length);
   const placed = placedOf(checked);
@@ -531,7 +857,7 @@ function compareWithOracle(checked: CheckedBranch, oracle: Oracle, result: Branc
         ) ?? null;
     }
     if (!smallest) {
-      expect(finding).toBeUndefined();
+      expect(finding?.kind).not.toBe('conflicting');
       continue;
     }
     expect(finding?.reason?.type).toBe('with');
@@ -550,6 +876,56 @@ function compareWithOracle(checked: CheckedBranch, oracle: Oracle, result: Branc
       }
     }
   }
+}
+
+/**
+ * The always-met and redundant findings hold (FR-005, FR-006): an always-met item is met by every
+ * applicant on every day from today on; each redundant item, deleted from the working tree in the
+ * order step 4 visits them, changes no outcome on any day from today on; and deleting them all at
+ * once changes none either (SC-002). With `complete`, every always-met item that may be reported
+ * has its finding
+ */
+function expectDifferences(checked: CheckedBranch, oracle: Oracle, result: BranchCheck): void {
+  const byItem = new Map(result.findings.map((finding) => [finding.itemId, finding]));
+  const redundant: string[] = [];
+  for (const id of visitOrderOf(checked.items)) {
+    const finding = byItem.get(id);
+    if (finding?.kind === 'always_met') {
+      expect(oracle.alwaysMet([id], FROM_TODAY), `${id} is always met`).toBe(true);
+    } else if (finding?.kind === 'redundant') {
+      expect(oracle.changedOutcome([id], FROM_TODAY, redundant), `${id} is redundant`).toBeNull();
+      redundant.push(id);
+    }
+  }
+  expect(oracle.changedOutcome(redundant, FROM_TODAY)).toBeNull();
+  if (result.complete && result.notice?.kind !== 'none_can_meet') {
+    const ancestors = ancestorsOf(checked);
+    for (const id of oracle.itemIds) {
+      const reportable = [id, ...(ancestors.get(id) ?? [])].every((each) => !byItem.has(each));
+      if (reportable && oracle.alwaysMet([id], FROM_TODAY)) {
+        // Unreported only when it holds a conflicting item: it has no finding then
+        expect(conflictInside(id, ancestors, result), `${id} is always met`).toBe(true);
+      }
+    }
+  }
+}
+
+/** Whether a conflicting item is inside the item */
+function conflictInside(
+  id: string,
+  ancestors: Map<string, string[]>,
+  result: BranchCheck
+): boolean {
+  return result.findings.some(
+    (finding) => finding.kind === 'conflicting' && ancestors.get(finding.itemId)?.includes(id)
+  );
+}
+
+/** The ids in the order step 4 visits them: from the last to the first, each group first */
+function visitOrderOf(items: CheckedItem[]): string[] {
+  return [...items]
+    .reverse()
+    .flatMap((item) => [item.id, ...(item.type === 'group' ? visitOrderOf(item.items) : [])]);
 }
 
 /**

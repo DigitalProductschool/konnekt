@@ -8,9 +8,6 @@
 // Rule 03 and Rule 04" (W3); notes and lines carry no visible kind, which only the icon's hidden
 // text gives (`kindTextOf()`, A3); a finding that holds only for applicants who share today ends
 // "at the moment" (FR-008, A7); no text words a finding as something to change (FR-016).
-//
-// Redundant and always-met findings (US2) have no texts yet: their notes, lines, counts and
-// announcements slot into the `switch`es on the finding's kind below.
 import type { RuleTreeItem } from '../../../types/form-connections';
 import { flattenItems } from '../tree';
 import type {
@@ -27,6 +24,8 @@ import type {
   ItemNames,
   MembersReason,
   NamedBranch,
+  RedundantFinding,
+  RedundantReason,
   TabFindings,
 } from './types';
 
@@ -117,6 +116,15 @@ function isConflicting(finding: ItemFinding): finding is ConflictingFinding {
   return finding.kind === 'conflicting';
 }
 
+function isRedundant(finding: ItemFinding): finding is RedundantFinding {
+  return finding.kind === 'redundant';
+}
+
+/** "rule" or "group", for "this rule" and "You can delete the group." */
+function nounOf(id: string): string {
+  return isGroupId(id) ? 'group' : 'rule';
+}
+
 // Pieces shared by the notes, the banner and the announcements (FR-008, A7)
 
 /** Ends a conflict's sentence when it holds only for applicants who share today. */
@@ -190,6 +198,56 @@ function conflictingNote(finding: ConflictingFinding, names: ItemNames): string 
 }
 
 /**
+ * A covered item's sentence, with its full stop (design-notes.md §2.4, §3.1; research R8, step 4).
+ * `self` is the item: "this rule" in a note, its reference in a banner line; `others` names the
+ * reason's items in display order. In an AND level, "Anyone who meets <items> also meets <self>",
+ * with an enclosing OR level's alternatives after `self` ("<self> or Group 03"), and "Every
+ * applicant meets <self> or Group 03" without items. In an OR level, "Anyone who meets <self> also
+ * meets <items>" (one of them, so joined with "or"), with an enclosing AND level's context after
+ * `self` ("<self> and Rule 05"). Null when a list the sentence needs has no current name left.
+ */
+function coveredParts(
+  reason: Exclude<RedundantReason, { type: 'same' }>,
+  self: BannerPart,
+  others: (ids: readonly string[]) => BannerPart[]
+): BannerPart[] | null {
+  if (reason.type === 'implied_by') {
+    const given = others(reason.items);
+    const alternatives = others(reason.orItems);
+    if (reason.items.length > 0 && given.length === 0) {
+      return null;
+    }
+    const met = listParts([self, ...alternatives], 'or');
+    return given.length === 0
+      ? ['Every applicant meets ', ...met, '.']
+      : ['Anyone who meets ', ...listParts(given), ' also meets ', ...met, '.'];
+  }
+  const met = others(reason.items);
+  if (met.length === 0) {
+    return null;
+  }
+  const given = listParts([self, ...others(reason.givenItems)]);
+  return ['Anyone who meets ', ...given, ' also meets ', ...listParts(met, 'or'), '.'];
+}
+
+/** The note of a redundant rule or group (design-notes.md §2.4): what covers it, and its deletion. */
+function redundantNote(finding: RedundantFinding, names: ItemNames): string {
+  const { itemId, reason } = finding;
+  const noun = nounOf(itemId);
+  if (reason.type === 'same') {
+    // "another rule" only while the item it names has no name any more, such as a deleted one
+    const other = names.get(reason.item) ?? `another ${nounOf(reason.item)}`;
+    return `Same as ${other}. You can delete one of them.`;
+  }
+  const parts = coveredParts(reason, `this ${noun}`, (ids) => {
+    const others = namesInOrder(ids, names);
+    // Only while the items it names have no name any more, such as deleted ones
+    return others.length > 0 || ids.length === 0 ? others : ['other rules'];
+  });
+  return `${textOf(parts ?? [])} You can delete the ${noun}.`;
+}
+
+/**
  * The note under a rule or a group's header, without its kind, which the icon's hidden text gives
  * (`kindTextOf()`, A3). `names` are the current names of the branch's items, from `namesOf()`.
  */
@@ -197,10 +255,10 @@ export function noteOf(finding: ItemFinding, names: ItemNames): string {
   switch (finding.kind) {
     case 'conflicting':
       return conflictingNote(finding, names);
-    // The texts of redundant and always-met findings come with US2 (T035)
     case 'redundant':
+      return redundantNote(finding, names);
     case 'always_met':
-      return '';
+      return `Every applicant meets this ${nounOf(finding.itemId)}.`;
   }
 }
 
@@ -245,13 +303,17 @@ const INCOMPLETE_AFTER_COUNTS = ' · couldn’t be checked completely';
 
 // The counts row (A2; design-notes.md §3.4)
 
-/** "2 rules", "1 rule and 1 group": the findings' items, rules before groups. */
-function itemsPhrase(findings: readonly ItemFinding[]): string {
+/**
+ * "2 rules", "1 rule and 1 group": the findings' items, rules before groups. With `adjective`,
+ * before each noun: "2 duplicate rules and 1 duplicate group".
+ */
+function itemsPhrase(findings: readonly ItemFinding[], adjective = ''): string {
   const groups = findings.filter((finding) => isGroupId(finding.itemId)).length;
   const rules = findings.length - groups;
+  const prefix = adjective === '' ? '' : `${adjective} `;
   const phrases = [
-    ...(rules > 0 ? [`${rules} rule${rules === 1 ? '' : 's'}`] : []),
-    ...(groups > 0 ? [`${groups} group${groups === 1 ? '' : 's'}`] : []),
+    ...(rules > 0 ? [`${rules} ${prefix}rule${rules === 1 ? '' : 's'}`] : []),
+    ...(groups > 0 ? [`${groups} ${prefix}group${groups === 1 ? '' : 's'}`] : []),
   ];
   return listOf(phrases);
 }
@@ -266,20 +328,30 @@ export function countsOf(check: BranchCheck): string {
   const conflicts = check.findings.filter(isConflicting);
   const together = conflicts.filter((finding) => finding.reason.type === 'with');
   const alone = conflicts.filter((finding) => finding.reason.type === 'condition');
-  // The phrases of duplicates, covered and always-met items follow with US2 (T035)
+  const redundant = check.findings.filter(isRedundant);
+  const duplicates = redundant.filter((finding) => finding.reason.type === 'same');
+  const covered = redundant.filter((finding) => finding.reason.type !== 'same');
+  const alwaysMet = check.findings.filter((finding) => finding.kind === 'always_met');
   return [
     ...(together.length > 0 ? [`${itemsPhrase(together)} can’t be met together`] : []),
     ...(alone.length > 0 ? [`${itemsPhrase(alone)} can’t be met`] : []),
+    ...(duplicates.length > 0 ? [itemsPhrase(duplicates, 'duplicate')] : []),
+    ...(covered.length > 0 ? [`${itemsPhrase(covered)} already covered`] : []),
+    ...(alwaysMet.length > 0 ? [`${itemsPhrase(alwaysMet)} every applicant meets`] : []),
   ].join(' · ');
 }
 
 // The banner's lines (A1, A2, W3, W18; design-notes.md §3.1)
 
-/** A line in the making: the ids it names and where it goes. */
+/** What the tab's tooltip says before a branch's only line (§4; W20) */
+type OneLineLabel = '1 conflict' | '1 duplicate' | '1 finding';
+
+/** A line in the making: where it goes, and how the tooltip counts it alone. */
 interface LineDraft {
   /** The display position of its first item */
   position: number;
   line: BannerLine;
+  label: OneLineLabel;
 }
 
 /** The ids a conflict names in its line: the item and T, or the rule alone. */
@@ -315,6 +387,7 @@ function conflictLines(conflicts: readonly ConflictingFinding[], names: ItemName
     drafts.push({
       position: position(itemId),
       line: lineOf('conflicting', [{ itemId, name: group }, ': ', ...sentence, '.']),
+      label: '1 conflict',
     });
   }
   const shownByGroup = (ids: readonly string[]): boolean =>
@@ -347,16 +420,60 @@ function conflictLines(conflicts: readonly ConflictingFinding[], names: ItemName
       findings[0].reason.type === 'condition'
         ? ['No applicant can meet ', references[0], `${suffix}.`]
         : [...listParts(references), ` can’t be met together${suffix}.`];
-    drafts.push({ position: position(ids[0]), line: lineOf('conflicting', parts) });
+    drafts.push({
+      position: position(ids[0]),
+      line: lineOf('conflicting', parts),
+      label: '1 conflict',
+    });
   }
   return drafts;
 }
 
+/**
+ * The line of a redundant or always-met finding (§3.1; A2: each has a line of its own), placed at
+ * its item. Null without a current name for the item, or for the items its sentence needs.
+ */
+function otherLine(finding: ItemFinding, names: ItemNames): LineDraft | null {
+  const name = names.get(finding.itemId);
+  if (name === undefined || finding.kind === 'conflicting') {
+    return null;
+  }
+  const self: BannerPart = { itemId: finding.itemId, name };
+  const position = [...names.keys()].indexOf(finding.itemId);
+  if (finding.kind === 'always_met') {
+    return {
+      position,
+      line: lineOf('always_met', [
+        'Every applicant meets ',
+        self,
+        ', so it doesn’t check anything.',
+      ]),
+      label: '1 finding',
+    };
+  }
+  const { reason } = finding;
+  if (reason.type === 'same') {
+    const [other] = referencesInOrder([reason.item], names);
+    if (other === undefined) {
+      return null;
+    }
+    return {
+      position,
+      line: lineOf('redundant', [self, ' is the same as ', other, '.']),
+      label: '1 duplicate',
+    };
+  }
+  const parts = coveredParts(reason, self, (ids) => referencesInOrder(ids, names));
+  return parts === null ? null : { position, line: lineOf('redundant', parts), label: '1 finding' };
+}
+
 /** The banner's lines in display order of their first item (§3.1). */
-function linesOf(check: BranchCheck, names: ItemNames): BannerLine[] {
-  // The lines of redundant and always-met findings follow with US2 (T035)
-  const drafts = conflictLines(check.findings.filter(isConflicting), names);
-  return drafts.sort((a, b) => a.position - b.position).map(({ line }) => line);
+function lineDraftsOf(check: BranchCheck, names: ItemNames): LineDraft[] {
+  const drafts = [
+    ...conflictLines(check.findings.filter(isConflicting), names),
+    ...check.findings.flatMap((finding) => otherLine(finding, names) ?? []),
+  ];
+  return drafts.sort((a, b) => a.position - b.position);
 }
 
 // The banner (S2; A1, A2, A7, W12, W13, W17; FR-004, FR-010, FR-013; design-notes.md §3)
@@ -396,10 +513,20 @@ export function bannerOf(
   branch: NamedBranch,
   names: ItemNames
 ): FindingsBanner | null {
+  return bannerWithLabels(check, branch, names)?.banner ?? null;
+}
+
+/** `bannerOf()`, with what the tab's tooltip says before each line when it is the only one. */
+function bannerWithLabels(
+  check: BranchCheck,
+  branch: NamedBranch,
+  names: ItemNames
+): { banner: FindingsBanner; labels: OneLineLabel[] } | null {
   if (check.checkedRules === 0) {
     return null;
   }
-  const lines = linesOf(check, names);
+  const drafts = lineDraftsOf(check, names);
+  const lines = drafts.map(({ line }) => line);
   const notice = check.notice ? bannerNoticeOf(check.notice, branch.name) : null;
   const incomplete = check.complete ? null : incompleteText(branch.name);
   if (lines.length === 0 && notice === null && incomplete === null) {
@@ -408,12 +535,15 @@ export function bannerOf(
   const counts = lines.length >= 2 ? countsOf(check) : '';
   const warning = lines.some((line) => line.tone === 'warning') || notice?.tone === 'warning';
   return {
-    kind: warning ? 'warning' : 'info',
-    lines,
-    counts,
-    notice,
-    incomplete,
-    head: headOf(lines, counts, notice, incomplete),
+    banner: {
+      kind: warning ? 'warning' : 'info',
+      lines,
+      counts,
+      notice,
+      incomplete,
+      head: headOf(lines, counts, notice, incomplete),
+    },
+    labels: drafts.map(({ label }) => label),
   };
 }
 
@@ -424,36 +554,26 @@ export function tabLabelOf(branchName: string): string {
   return `${branchName} has findings`;
 }
 
-/** What the tooltip says before a branch's only line: "1 conflict". */
-function oneLineLabel(line: BannerLine): string {
-  switch (line.kind) {
-    case 'conflicting':
-      return '1 conflict';
-    // "1 duplicate" and "1 finding" come with US2 (T035)
-    case 'redundant':
-    case 'always_met':
-      return '1 finding';
-  }
-}
-
 /**
- * The findings segment of a variant tab's tooltip, with its icon's kind (§4): "1 conflict: <line>"
- * or the counts row, followed by the notice and FR-010's sentence as in the banner; or these
- * alone. Null when the branch has no banner.
+ * The findings segment of a variant tab's tooltip, with its icon's kind (§4): "1 conflict: <line>",
+ * "1 duplicate: <line>", "1 finding: <line>" for a covered or always-met item, or the counts row,
+ * followed by the notice and FR-010's sentence as in the banner; or these alone. Null when the
+ * branch has no banner.
  */
 export function tabFindingsOf(
   check: BranchCheck,
   branch: NamedBranch,
   names: ItemNames
 ): TabFindings | null {
-  const banner = bannerOf(check, branch, names);
-  if (banner === null) {
+  const result = bannerWithLabels(check, branch, names);
+  if (result === null) {
     return null;
   }
+  const { banner, labels } = result;
   const text = textOf(banner.head);
   return {
     kind: banner.kind,
-    text: banner.lines.length === 1 ? `${oneLineLabel(banner.lines[0])}: ${text}` : text,
+    text: labels.length === 1 ? `${labels[0]}: ${text}` : text,
   };
 }
 
@@ -489,6 +609,21 @@ function conflictGone(finding: ConflictingFinding, item: string, names: ItemName
     : `${item} is no longer conflicting.`;
 }
 
+/**
+ * A redundant finding that appeared: "Rule 06 is the same as Rule 03.", or "Rule 01 makes no
+ * difference beside Rule 02." with every item its reason names, in display order.
+ */
+function redundantAppeared(finding: RedundantFinding, item: string, names: ItemNames): string {
+  const { reason } = finding;
+  if (reason.type === 'same') {
+    const other = names.get(reason.item);
+    return other === undefined ? '' : `${item} is the same as ${other}.`;
+  }
+  const extra = reason.type === 'implied_by' ? reason.orItems : reason.givenItems;
+  const others = namesInOrder([...reason.items, ...extra], names);
+  return others.length > 0 ? `${item} makes no difference beside ${listOf(others)}.` : '';
+}
+
 /** The sentence of a finding that appeared or went, without the variant's prefix. */
 function findingSentence(change: FindingChange, names: ItemNames): string {
   if (change.type === 'notice') {
@@ -504,10 +639,14 @@ function findingSentence(change: FindingChange, names: ItemNames): string {
       return change.type === 'appeared'
         ? conflictAppeared(finding, item, names)
         : conflictGone(finding, item, names);
-    // The announcements of redundant and always-met findings come with US2 (T038)
     case 'redundant':
+      return change.type === 'appeared'
+        ? redundantAppeared(finding, item, names)
+        : `${item} is no longer redundant.`;
     case 'always_met':
-      return '';
+      return change.type === 'appeared'
+        ? `Every applicant meets ${item}.`
+        : `${item} is no longer always met.`;
   }
 }
 

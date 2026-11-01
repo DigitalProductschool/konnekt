@@ -3,6 +3,7 @@ import Connector from '../Connector';
 import FindingNote from '../FindingNote';
 import { FINDING_LOOKS, FINDING_NOTE_ID_SUFFIX } from '../FindingNote/constants';
 import ProblemNote from '../RuleRow/ProblemNote';
+import { GROUP_FINDING_NOTE_SPACING } from './constants';
 import GroupHeader from './GroupHeader';
 import GroupMessage from './GroupMessage';
 import type { GroupFrameProps } from './types';
@@ -18,8 +19,10 @@ import type { GroupFrameProps } from './types';
  * a violet border (U17 6163:5268), and a removed one, or one dissolved there, fades what it
  * holds and strikes its name through (U23 6185:41164; F13). In the Rules step, a group with a
  * finding of spec 003 is outlined all round in the finding's colour, in place of its left border,
- * with the note right under its header (6750:41108), and described by the note (S2; FR-012; F4,
- * F6; U02 6171:7091, 6171:7093); its mark stays beside it, and a flag wins over a finding
+ * with the note under its header (6750:41108), and described by the note (S2; FR-012; A4, A5; U02
+ * 6171:7091, 6171:7093; U06 6753:40525, U07 6753:40862): a duplicate, covered or always-met
+ * group's note in the info look, 8 px below the header, and its rules plain, as the checks report
+ * nothing inside it; its mark stays beside it, and a flag wins over a finding
  * (W11). Nothing in it is positioned, so that the Rules step's select boxes line up with the
  * rules card.
  */
@@ -50,10 +53,11 @@ export default function GroupFrame({
   const shownFinding = flag ? null : finding;
   const problemId = flag && id ? `${id}-problem` : undefined;
   const findingId = shownFinding && id ? `${id}${FINDING_NOTE_ID_SUFFIX}` : undefined;
-  // With a finding: the rule outline's colour, width and radius all round, in place of the left
-  // border (F6; U02 6171:7091)
+  // With a finding: the rule outline's colour and width all round, in place of the left border
+  // (A4; U02 6171:7091, U06 6753:40525, U07 6753:40862). The frame keeps its corners: a
+  // sub-group's are rounded, a group's square, as Figma draws both
   const frameBorder = shownFinding
-    ? `${FINDING_LOOKS[shownFinding.kind].outline} rounded-kern-default border`
+    ? `${FINDING_LOOKS[shownFinding.kind].outline} border`
     : `${border} border-l-3`;
   return (
     <div className="px-16 py-8">
@@ -83,7 +87,9 @@ export default function GroupFrame({
           </div>
         )}
         {shownFinding && (
-          <FindingNote id={findingId} kind={shownFinding.kind} text={shownFinding.text} />
+          <div className={GROUP_FINDING_NOTE_SPACING[shownFinding.kind] || undefined}>
+            <FindingNote id={findingId} kind={shownFinding.kind} text={shownFinding.text} />
+          </div>
         )}
         <div className={inactive && !faded ? INACTIVE_OPACITY : undefined}>
           {group.message !== null && <GroupMessage message={group.message} field={messageField} />}

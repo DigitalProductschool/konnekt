@@ -729,6 +729,57 @@ describe('bannerViewOf', () => {
       { key: 'incomplete', tone: 'info', kindText: null, parts: [INCOMPLETE] },
     ]);
   });
+
+  const rule3 = { itemId: 'rule-3', name: 'Rule 03' };
+  const rule6 = { itemId: 'rule-6', name: 'Rule 06' };
+  const group1 = { itemId: 'group-1', name: 'Group 01' };
+  const U04_LINE: BannerLine = {
+    kind: 'redundant',
+    tone: 'info',
+    parts: [rule6, ' is the same as ', rule3, '.'],
+  };
+
+  it('shows a duplicate or always-met line alone in the info look, with its kind text (U04, U06)', () => {
+    const u04 = banner({ kind: 'info', lines: [U04_LINE], head: U04_LINE.parts });
+    expect(bannerViewOf(u04, false)).toEqual({
+      state: 'single',
+      summary: { key: 'summary', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
+      items: [],
+    });
+    const parts = ['Every applicant meets ', group1, ', so it doesn’t check anything.'];
+    const u06 = banner({
+      kind: 'info',
+      lines: [{ kind: 'always_met', tone: 'info', parts }],
+      head: parts,
+    });
+    expect(bannerViewOf(u06, false).summary).toMatchObject({ kindText: 'Always met:', parts });
+  });
+
+  it('lists a duplicate with its info icon in a warning banner (U05)', () => {
+    const u05 = banner({
+      lines: [U05_LINE, U04_LINE],
+      counts: '2 rules can’t be met together · 1 duplicate rule',
+      head: ['2 rules can’t be met together · 1 duplicate rule'],
+    });
+    expect(bannerViewOf(u05, true).items).toEqual([
+      { key: 'line-0', tone: 'warning', kindText: 'Conflicting:', parts: U05_LINE.parts },
+      { key: 'line-1', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
+    ]);
+  });
+
+  it('shows the notice that every applicant meets the rules alone, without a link (W8)', () => {
+    const text = 'Every applicant meets the rules of Standard.';
+    const w8 = banner({
+      kind: 'info',
+      notice: { tone: 'info', text, appended: text },
+      head: [text],
+    });
+    expect(bannerViewOf(w8, false)).toEqual({
+      state: 'single',
+      summary: { key: 'summary', tone: 'info', kindText: null, parts: [text] },
+      items: [],
+    });
+  });
 });
 
 describe('toggleFindings', () => {

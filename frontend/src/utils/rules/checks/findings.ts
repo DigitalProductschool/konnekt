@@ -1,4 +1,4 @@
-// The findings of one branch (specs/003-rule-consistency-checks, FR-003, FR-004, FR-008, FR-010;
+// The findings of one branch (specs/003-rule-consistency-checks, FR-003 to FR-006, FR-008, FR-010;
 // research R4, R8; data-model.md, "Findings"; contracts/rule-checks.md, "checkBranch"):
 // `checkBranch()` asks the solver the questions of research R4 about a checked tree and returns
 // its notice and its findings, each with its reason. It runs in the worker, and directly in the
@@ -7,7 +7,9 @@
 // The steps of research R8 run in order (`STEPS`), on one `Run` that holds what they found:
 // 1. Can the branch be met today? If not, the notice `none_can_meet` (FR-004).
 // 2. Conflicts (FR-003), for every item, top-down, with a smallest set as the reason.
-// 3. and 4. Every applicant meets the branch, always met and redundant (FR-005, FR-006): T034.
+// 3. Every applicant meets the branch, on every day from today on? The notice `all_meet` (FR-006).
+// 4. Always met and redundant (FR-005, FR-006), from the last item to the first, each group before
+//    its members, in the working tree: the branch without the items already found redundant.
 // 5. Certainty (FR-010) runs through every step: an 'unknown' answer, or the deadline, makes the
 //    result incomplete, and keeps the findings made so far, which are true. A later step reads
 //    `Run.meetable` and `Run.conflicts`, and visits only the items whose earlier answers are
@@ -19,6 +21,8 @@
 import type { Combinator } from '../../../types/form-connections';
 import { dayNumber } from './calendar';
 import { LAST_DAY, SEARCH_QUESTIONS_PER_ITEM } from './constants';
+import { isRelativeDateTest } from './dateTheory';
+import { negate } from './literals';
 import { createSolverMemo, satisfiable, type SolverOptions } from './solver';
 import type {
   BranchCheck,
@@ -31,6 +35,7 @@ import type {
   DayRange,
   Formula,
   ItemFinding,
+  RedundantReason,
   Verdict,
 } from './types';
 
@@ -38,8 +43,9 @@ import type {
  * One branch's findings and notice (contracts/rule-checks.md, "checkBranch"), from the steps of
  * research R8 that `STEPS` holds:
  * - sound: every finding and notice is true for the rules of `checked`;
- * - complete when `complete` is true: every conflicting item has its finding, and the notice is
- *   there;
+ * - complete when `complete` is true: every conflicting and always-met item has its finding, and
+ *   the notice is there; the redundant findings are those of research R8, step 4, so deleting them
+ *   all at once changes no outcome;
  * - at most one finding per item, in display order (data-model.md, invariant 1);
  * - deterministic: equal fingerprints give equal results, ties going to the earlier item in
  *   display order;
@@ -80,6 +86,11 @@ interface Entry {
   formula: Formula;
   /** The variables its formula reads */
   variables: ReadonlySet<string>;
+  /**
+   * Its variables, and `SHARING_DAY` when a condition is counted from the day of sharing: over a
+   * range of days, those conditions are linked by that day (research R5)
+   */
+  linked: ReadonlySet<string>;
 }
 
 /** The checked tree as the steps read it */
@@ -109,6 +120,11 @@ interface Run {
   readonly today: DayRange;
   /** The days after today: whether a finding holds on later days too (FR-008) */
   readonly later: DayRange;
+  /**
+   * Today to 9999-12-31: the days of the always-met, redundant and every-applicant questions,
+   * which hold on every day from today on or aren't reported (FR-008)
+   */
+  readonly fromToday: DayRange;
   /** False once a question came back 'unknown' or the deadline passed (FR-010) */
   complete: boolean;
   notice: BranchNotice | null;
@@ -128,8 +144,8 @@ interface Run {
 /** A step of research R8: it asks its questions and records its answers in the run */
 type Step = (run: Run) => void;
 
-/** The steps, in the order of research R8. T034 adds steps 3 and 4 after step 2 */
-const STEPS: readonly Step[] = [branchStep, conflictStep];
+/** The steps, in the order of research R8 */
+const STEPS: readonly Step[] = [branchStep, conflictStep, allMeetStep, redundancyStep];
 
 /** Thrown through the steps once the deadline has passed; the run keeps what it found */
 class DeadlinePassed extends Error {
@@ -151,6 +167,7 @@ function runOf(checked: CheckedBranch, options: CheckOptions): Run {
     },
     today: { from: today, to: today },
     later: { from: today + 1, to: LAST_DAY },
+    fromToday: { from: today, to: LAST_DAY },
     complete: true,
     notice: null,
     meetable: null,
@@ -246,6 +263,7 @@ function entriesOf(items: CheckedItem[], parent: Entry | null, entries: Entry[])
       members: [],
       formula: true,
       variables: new Set(),
+      linked: new Set(),
     };
     entries.push(entry);
     if (item.type === 'rule') {
@@ -258,6 +276,9 @@ function entriesOf(items: CheckedItem[], parent: Entry | null, entries: Entry[])
       );
     }
     entry.variables = variablesOf(entry.formula);
+    entry.linked = countsFromSharing(entry.formula)
+      ? new Set([...entry.variables, SHARING_DAY])
+      : entry.variables;
     return entry;
   });
 }
@@ -279,6 +300,23 @@ function variablesOf(formula: Formula, found = new Set<string>()): Set<string> {
     variablesOf(each, found);
   }
   return found;
+}
+
+/**
+ * Stands for the day of sharing among an entry's `linked` variables. No variable's key is empty,
+ * so it can't be one
+ */
+const SHARING_DAY = '';
+
+/** Whether a formula has a date condition counted from the day of sharing */
+function countsFromSharing(formula: Formula): boolean {
+  if (typeof formula === 'boolean') {
+    return false;
+  }
+  if ('variable' in formula) {
+    return formula.test.kind === 'date' && isRelativeDateTest(formula.test);
+  }
+  return ('and' in formula ? formula.and : formula.or).some(countsFromSharing);
 }
 
 /** The AND of the entries' formulas */
@@ -312,22 +350,28 @@ function andContextOf(tree: Tree, entry: Entry): Entry[] {
 
 /**
  * Whether the entries, with `joined`, are linked by the variables they share: a smallest set
- * that can't be met is, since parts that share no variable are met or not on their own on one day
+ * that can't be met is, since parts that share no variable are met or not on their own on one day.
+ * Over a range of days, `linkedOf` adds the day of sharing (`Entry.linked`)
  */
-function connected(entries: readonly Entry[], joined: Entry | null): boolean {
+function connected(
+  entries: readonly Entry[],
+  joined: Entry | null,
+  linkedOf: (entry: Entry) => ReadonlySet<string> = (entry) => entry.variables
+): boolean {
   const left = joined ? [...entries] : entries.slice(1);
   const first = joined ?? entries[0];
   if (!first) {
     return true;
   }
-  const reached = new Set(first.variables);
+  const reached = new Set(linkedOf(first));
   let grew = true;
   while (left.length > 0 && grew) {
     grew = false;
     for (let index = left.length - 1; index >= 0; index -= 1) {
       const entry = left[index];
-      if ([...entry.variables].some((key) => reached.has(key))) {
-        entry.variables.forEach((key) => reached.add(key));
+      const linked = linkedOf(entry);
+      if ([...linked].some((key) => reached.has(key))) {
+        linked.forEach((key) => reached.add(key));
         left.splice(index, 1);
         grew = true;
       }
@@ -363,15 +407,16 @@ type SearchResult = Entry[] | 'none' | 'unknown' | 'budget';
 
 /**
  * The first set of `pool` that `accepts` answers 'yes' for, trying sets of growing size, and the
- * sets of one size in display order, so that ties go to the earlier items. Sets that aren't
- * linked by their variables, together with `joined`, are skipped without a question: a smallest
- * set always is. `accepts` asks its questions through `budget`; once it is spent, the search
- * returns 'budget', and the caller settles for a minimal set. The deadline unwinds the search
+ * sets of one size in display order, so that ties go to the earlier items. Sets that `linked`
+ * rejects, those not linked by their variables (`connected()`), are skipped without a question: a
+ * smallest set always is. `accepts` asks its questions through `budget`; once it is spent, the
+ * search returns 'budget', and the caller settles for a minimal set. The deadline unwinds the
+ * search
  */
 function smallestSet(
   run: Run,
   pool: readonly Entry[],
-  joined: Entry | null,
+  linked: (set: Entry[]) => boolean,
   budget: Budget,
   accepts: (set: Entry[]) => SetAnswer
 ): SearchResult {
@@ -382,7 +427,7 @@ function smallestSet(
         return 'budget';
       }
       budget.sets += 1;
-      if (!connected(set, joined)) {
+      if (!linked(set)) {
         continue;
       }
       checkpoint(run);
@@ -545,23 +590,29 @@ function conflictSet(run: Run, entry: Entry, candidates: Entry[]): Entry[] | Con
     budget.questions += 1;
     return ask(run, allOfEntries(set), run.today);
   };
-  const found = smallestSet(run, candidates, entry, budget, (set) => {
-    if (unmet.some((known) => [...known].every((each) => set.includes(each)))) {
-      return 'no';
+  const found = smallestSet(
+    run,
+    candidates,
+    (set) => connected(set, entry),
+    budget,
+    (set) => {
+      if (unmet.some((known) => [...known].every((each) => set.includes(each)))) {
+        return 'no';
+      }
+      const withIt = question([...set, entry]);
+      if (withIt === 'sat') {
+        return 'no';
+      }
+      if (allMet || withIt === 'unknown') {
+        return withIt === 'unsat' ? 'yes' : 'unknown';
+      }
+      const alone = question(set);
+      if (alone === 'unsat') {
+        unmet.push(new Set(set));
+      }
+      return alone === 'sat' ? 'yes' : alone === 'unsat' ? 'no' : 'unknown';
     }
-    const withIt = question([...set, entry]);
-    if (withIt === 'sat') {
-      return 'no';
-    }
-    if (allMet || withIt === 'unknown') {
-      return withIt === 'unsat' ? 'yes' : 'unknown';
-    }
-    const alone = question(set);
-    if (alone === 'unsat') {
-      unmet.push(new Set(set));
-    }
-    return alone === 'sat' ? 'yes' : alone === 'unsat' ? 'no' : 'unknown';
-  });
+  );
   if (found === 'none') {
     return 'clear';
   }
@@ -637,10 +688,16 @@ function unmetMembers(run: Run, entry: Entry): Entry[] {
     budget.questions += 1;
     return ask(run, allOfEntries(set), run.today);
   };
-  const found = smallestSet(run, entry.members, null, budget, (set) => {
-    const verdict = question(set);
-    return verdict === 'unsat' ? 'yes' : verdict === 'sat' ? 'no' : 'unknown';
-  });
+  const found = smallestSet(
+    run,
+    entry.members,
+    (set) => connected(set, null),
+    budget,
+    (set) => {
+      const verdict = question(set);
+      return verdict === 'unsat' ? 'yes' : verdict === 'sat' ? 'no' : 'unknown';
+    }
+  );
   if (typeof found !== 'string') {
     return found;
   }
@@ -654,4 +711,346 @@ function conflicting(
   today: () => boolean
 ): ConflictingFinding {
   return { itemId: entry.item.id, kind: 'conflicting', reason, today: today() };
+}
+
+// Step 3: does every applicant meet the branch? (FR-006, FR-008)
+
+/**
+ * The notice `all_meet` when no applicant fails to meet the branch on any day from today to
+ * 9999-12-31. Asked only when step 1 found the branch meetable today; the branch has checked
+ * rules, or no step runs
+ */
+function allMeetStep(run: Run): void {
+  if (run.meetable !== 'sat') {
+    return;
+  }
+  if (ask(run, negate(run.tree.formula), run.fromToday) === 'unsat') {
+    run.notice = { kind: 'all_meet', today: false };
+  }
+}
+
+// Step 4: always met and redundant (FR-005, FR-006)
+
+/**
+ * An item of the working tree (research R8, step 4): the branch without the items found redundant
+ * so far. A group left with one member is that member, in the group's place, and a group left
+ * with none is left out, as the rules step's deletions do
+ */
+interface WorkNode {
+  entry: Entry;
+  /** The group that holds it in the working tree, or null at the top level */
+  parent: WorkNode | null;
+  /** A group's members left, at least two. Empty for a rule */
+  members: WorkNode[];
+  /** Its formula in the working tree */
+  formula: Formula;
+}
+
+/** The working tree, rebuilt after each deletion */
+interface WorkingTree {
+  /** The top level's items left */
+  top: WorkNode[];
+  /** Every item left, by id; a group dissolved into its one member isn't among them */
+  byId: Map<string, WorkNode>;
+}
+
+/** What step 4 keeps while it visits the items */
+interface Visit {
+  /** The ids of the items found redundant so far */
+  deleted: Set<string>;
+  work: WorkingTree;
+  /** The groups that hold a conflicting item: they get no finding of step 4 (data-model.md, 3) */
+  holdingConflicts: ReadonlySet<Entry>;
+}
+
+/** An item's level in the working tree: how it combines its items, and the items */
+interface WorkLevel {
+  operator: Combinator;
+  nodes: WorkNode[];
+}
+
+/**
+ * An item's context in the working tree (research R4), each in display order: A(X), the siblings
+ * along the path to the top level whose level combines with AND; O(X), those whose level combines
+ * with OR; and the item's own siblings
+ */
+interface WorkContext {
+  and: WorkNode[];
+  or: WorkNode[];
+  siblings: WorkNode[];
+}
+
+/**
+ * Step 4 (research R8): visits the items from the last in display order to the first, each group
+ * before its members (reverse post-order). It runs only when step 1 found the branch meetable
+ * today (FR-005, W4), and skips the items whose conflict answer isn't 'clear' with everything
+ * inside them: conflicting items, and those whose question came back 'unknown' (step 5). An item
+ * that is always met, or redundant, gets its finding, and its members are skipped; otherwise they
+ * are visited. A group that holds a conflicting item gets no finding, so that no finding is inside
+ * a redundant or always-met group (data-model.md, invariant 3), but its members are visited
+ */
+function redundancyStep(run: Run): void {
+  if (run.meetable !== 'sat') {
+    return;
+  }
+  const deleted = new Set<string>();
+  const visit: Visit = {
+    deleted,
+    work: workingTreeOf(run.tree, deleted),
+    holdingConflicts: conflictHolders(run),
+  };
+  visitLevel(run, visit, run.tree.top);
+}
+
+/** Visits the entries of one level from the last to the first, each before its members */
+function visitLevel(run: Run, visit: Visit, entries: readonly Entry[]): void {
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    checkpoint(run);
+    if (run.conflicts.get(entry.item.id) !== 'clear') {
+      continue;
+    }
+    const answer = visit.holdingConflicts.has(entry) ? 'visit' : differenceOf(run, visit, entry);
+    if (answer === 'visit') {
+      visitLevel(run, visit, entry.members);
+    }
+  }
+}
+
+/** The groups that hold a conflicting item, at any depth */
+function conflictHolders(run: Run): Set<Entry> {
+  const holders = new Set<Entry>();
+  for (const entry of run.tree.entries) {
+    if (run.findings.get(entry.item.id)?.kind === 'conflicting') {
+      for (let on = entry.parent; on; on = on.parent) {
+        holders.add(on);
+      }
+    }
+  }
+  return holders;
+}
+
+/**
+ * Whether the item makes a difference: 'found' when it got an always-met or redundant finding,
+ * 'visit' when it makes one, so that its members are visited, 'skip' when that isn't certain
+ */
+function differenceOf(run: Run, visit: Visit, entry: Entry): 'found' | 'visit' | 'skip' {
+  const node = visit.work.byId.get(entry.item.id);
+  if (!node) {
+    // Not reached: an item is visited before anything inside it can be deleted
+    return 'skip';
+  }
+  // Always met (FR-006): no applicant fails to meet it on any day from today on, also in a level
+  // combined with OR
+  const failed = ask(run, negate(node.formula), run.fromToday);
+  if (failed === 'unsat') {
+    addFinding(run, { itemId: entry.item.id, kind: 'always_met', reason: null, today: false });
+    return 'found';
+  }
+  if (failed === 'unknown') {
+    return 'skip';
+  }
+  const level = workLevelOf(run.tree, visit.work, node);
+  if (level.nodes.length < 2) {
+    // The top level's only item: deleting it leaves no rules, which every applicant meets, so it
+    // is redundant only when it is always met, which is reported instead (research R4)
+    return 'visit';
+  }
+  const context = workContextOf(run.tree, visit.work, node);
+  const changed = ask(run, redundancyQuestion(node, level.operator, context), run.fromToday);
+  if (changed !== 'unsat') {
+    return changed === 'sat' ? 'visit' : 'skip';
+  }
+  const reason = redundantReason(run, visit.work, node, level.operator, context);
+  addFinding(run, { itemId: entry.item.id, kind: 'redundant', reason, today: false });
+  visit.deleted.add(entry.item.id);
+  visit.work = workingTreeOf(run.tree, visit.deleted);
+  return 'found';
+}
+
+/**
+ * The applicants for whom deleting the item changes whether the branch is met (research R4):
+ * `pivotal(X) ∧ ¬X` in a level combined with AND, `pivotal(X) ∧ X` with OR, where
+ * `pivotal(X) = ⋀A(X) ∧ ¬⋁O(X)`. The item is redundant when no applicant meets it
+ */
+function redundancyQuestion(node: WorkNode, operator: Combinator, context: WorkContext): Formula {
+  return {
+    and: [
+      ...context.and.map((each) => each.formula),
+      ...context.or.map((each) => negate(each.formula)),
+      operator === 'and' ? negate(node.formula) : node.formula,
+    ],
+  };
+}
+
+/** The working tree: the checked tree without the items of `deleted` */
+function workingTreeOf(tree: Tree, deleted: ReadonlySet<string>): WorkingTree {
+  const byId = new Map<string, WorkNode>();
+  const nodesOf = (entries: readonly Entry[], parent: WorkNode | null): WorkNode[] => {
+    const nodes: WorkNode[] = [];
+    for (const entry of entries) {
+      if (deleted.has(entry.item.id)) {
+        continue;
+      }
+      const node: WorkNode = { entry, parent, members: [], formula: entry.formula };
+      if (entry.item.type === 'group') {
+        node.members = nodesOf(entry.members, node);
+        if (node.members.length === 0) {
+          continue;
+        }
+        if (node.members.length === 1) {
+          const [only] = node.members;
+          only.parent = parent;
+          nodes.push(only);
+          continue;
+        }
+        node.formula = levelFormula(
+          entry.item.operator,
+          node.members.map((member) => member.formula)
+        );
+      }
+      byId.set(entry.item.id, node);
+      nodes.push(node);
+    }
+    return nodes;
+  };
+  return { top: nodesOf(tree.top, null), byId };
+}
+
+/** The level that holds a node in the working tree */
+function workLevelOf(tree: Tree, work: WorkingTree, node: WorkNode): WorkLevel {
+  const holder = node.parent?.entry.item;
+  return node.parent && holder?.type === 'group'
+    ? { operator: holder.operator, nodes: node.parent.members }
+    : { operator: tree.operator, nodes: work.top };
+}
+
+/** A(X), O(X) and the siblings of a node in the working tree, each in display order */
+function workContextOf(tree: Tree, work: WorkingTree, node: WorkNode): WorkContext {
+  const context: WorkContext = { and: [], or: [], siblings: [] };
+  for (let on: WorkNode | null = node; on; on = on.parent) {
+    const level = workLevelOf(tree, work, on);
+    const others = level.nodes.filter((sibling) => sibling !== on);
+    if (on === node) {
+      context.siblings = others;
+    }
+    context[level.operator].push(...others);
+  }
+  for (const nodes of [context.and, context.or, context.siblings]) {
+    nodes.sort((first, second) => first.entry.order - second.entry.order);
+  }
+  return context;
+}
+
+/**
+ * Why a redundant item is redundant (research R8, step 4), as smallest sets in the working tree,
+ * ties going to the earlier items:
+ * - in a level combined with AND, the smallest S ⊆ A(X) with S ⇒ X (`implied_by`);
+ * - in a level combined with OR, the smallest R among X's siblings with X ⇒ ⋁R (`implies`);
+ * - `same` when S or R is one item Y, and X and Y imply each other;
+ * - otherwise through an enclosing level: S ⊆ A(X) and R ⊆ O(X), with at least one item of R,
+ *   such that S ∧ ¬⋁R ⇒ X (`implied_by` with `orItems`, in an AND level), or X ∧ S ⇒ ⋁R
+ *   (`implies` with `givenItems`, in an OR level).
+ *
+ * Past the budget, or when no set linked by its variables is one, a minimal set of the whole
+ * pool, still a true reason. The whole context always is one, since the item is redundant
+ */
+function redundantReason(
+  run: Run,
+  work: WorkingTree,
+  node: WorkNode,
+  operator: Combinator,
+  context: WorkContext
+): RedundantReason {
+  const budget: Budget = { questions: 0, sets: 0 };
+  const formulaOf = (entry: Entry): Formula => work.byId.get(entry.item.id)?.formula ?? true;
+  const inOr = new Set(context.or.map((each) => each.entry));
+  const idsOf = (set: readonly Entry[]) => set.map((each) => each.item.id);
+  // Each item of a set as the question reads it: an AND-context item as it is, an alternative
+  // negated; and X, negated in an AND level
+  const question = (set: readonly Entry[]): Verdict =>
+    ask(
+      run,
+      {
+        and: [
+          ...set.map((each) => (inOr.has(each) ? negate(formulaOf(each)) : formulaOf(each))),
+          operator === 'and' ? negate(node.formula) : node.formula,
+        ],
+      },
+      run.fromToday
+    );
+  const implies = (first: WorkNode, second: Entry) =>
+    ask(run, { and: [first.formula, negate(formulaOf(second))] }, run.fromToday) === 'unsat';
+  const entriesOf = (nodes: readonly WorkNode[]) => nodes.map((each) => each.entry);
+
+  const direct = reasonSet(
+    run,
+    node.entry,
+    entriesOf(operator === 'and' ? context.and : context.siblings),
+    budget,
+    question,
+    () => true
+  );
+  if (direct) {
+    const [only] = direct;
+    // X ⇒ Y in an AND level, Y ⇒ X in an OR level: the other way round of what the set shows
+    const other = work.byId.get(only.item.id);
+    if (
+      direct.length === 1 &&
+      other &&
+      (operator === 'and' ? implies(node, only) : implies(other, node.entry))
+    ) {
+      return { type: 'same', item: only.item.id };
+    }
+    return operator === 'and'
+      ? { type: 'implied_by', items: idsOf(direct), orItems: [] }
+      : { type: 'implies', items: idsOf(direct), givenItems: [] };
+  }
+  const pool = entriesOf([...context.and, ...context.or]).sort(
+    (first, second) => first.order - second.order
+  );
+  const hasAlternative = (set: readonly Entry[]) => set.some((each) => inOr.has(each));
+  const enclosing = reasonSet(run, node.entry, pool, budget, question, hasAlternative) ?? pool;
+  const inContext = idsOf(enclosing.filter((each) => !inOr.has(each)));
+  const alternatives = idsOf(enclosing.filter((each) => inOr.has(each)));
+  return operator === 'and'
+    ? { type: 'implied_by', items: inContext, orItems: alternatives }
+    : { type: 'implies', items: alternatives, givenItems: inContext };
+}
+
+/**
+ * The smallest set of `pool` for which `question` is 'unsat', among the sets `allowed` accepts,
+ * linked with `entry` by their variables and the day of sharing; past the budget, or when none of
+ * those is, a minimal set of the whole pool when the whole pool is one. Null when there is none,
+ * or that isn't certain
+ */
+function reasonSet(
+  run: Run,
+  entry: Entry,
+  pool: readonly Entry[],
+  budget: Budget,
+  question: (set: readonly Entry[]) => Verdict,
+  allowed: (set: readonly Entry[]) => boolean
+): Entry[] | null {
+  const found = smallestSet(
+    run,
+    pool,
+    (set) => connected(set, entry, (each) => each.linked),
+    budget,
+    (set) => {
+      if (!allowed(set)) {
+        return 'no';
+      }
+      budget.questions += 1;
+      const verdict = question(set);
+      return verdict === 'unsat' ? 'yes' : verdict === 'sat' ? 'no' : 'unknown';
+    }
+  );
+  if (typeof found !== 'string') {
+    return found;
+  }
+  if (pool.length === 0 || !allowed(pool) || question(pool) !== 'unsat') {
+    return null;
+  }
+  return minimalSet(run, pool, (set) => (allowed(set) ? question(set) : 'sat'));
 }

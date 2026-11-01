@@ -547,7 +547,7 @@ that no outcome changes).
 
 ### Logic for User Story 2 (with Vitest)
 
-- [ ] T034 [US2] Add research R8's steps 3 and 4 to `checks/findings.ts`, with tests in `findings.test.ts` (depends on T020; FR-005, FR-006, FR-008; research R4, R8; data-model.md "Findings").
+- [X] T034 [US2] Add research R8's steps 3 and 4 to `checks/findings.ts`, with tests in `findings.test.ts` (depends on T020; FR-005, FR-006, FR-008; research R4, R8; data-model.md "Findings").
   - Step 3 runs only when step 1 found the branch meetable and the branch has a checked rule. The branch gets the notice `all_meet` when no applicant fails to meet it on any day from today to 9999-12-31.
   - Step 4 visits the items from the last in display order to the first, each group before its members (reverse post-order), and skips conflicting items and what is inside them:
     - an item that no applicant fails to meet, on any day from today on, is `always_met`, also in a level combined with OR, and its members are skipped;
@@ -565,14 +565,14 @@ that no outcome changes).
     - inside a redundant or always-met group;
     - for an item, or inside an item, whose conflict question came back `'unknown'` (step 5).
   - `findings.test.ts` checks data-model.md's invariants on every result: "1. At most one finding per item. 2. With `notice.kind === 'none_can_meet'`, there are only `conflicting` findings (FR-005, W4). 3. No finding inside a `redundant` or `always_met` group. No `redundant` or `always_met` finding on a conflicting item or inside one (FR-005)." It also covers each reason type.
-- [ ] T035 [P] [US2] Add the texts of redundant and always-met findings to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T056; FR-005, FR-006, FR-015, FR-019; A2, A3, A5, W6, W7, W8, W20; design-notes.md §2.4, §2.5, §3, §4).
+- [X] T035 [P] [US2] Add the texts of redundant and always-met findings to `checks/findingMessages.ts`, with tests in `findingMessages.test.ts` (depends on T056; FR-005, FR-006, FR-015, FR-019; A2, A3, A5, W6, W7, W8, W20; design-notes.md §2.4, §2.5, §3, §4).
   - Notes (§2.4, §2.5): "Same as <item>. You can delete one of them."; "Anyone who meets <items> also meets this rule. You can delete the rule." and "… this group. You can delete the group."; "Anyone who meets this rule also meets <items>. You can delete the rule."; the reasons through an enclosing level; "Every applicant meets this rule." and "… this group.".
   - Banner lines (§3.1): "<item> is the same as <y>.", "Anyone who meets <items> also meets <item>.", the OR and enclosing-level forms, "Every applicant meets <item>, so it doesn’t check anything."; the notice "Every applicant meets the rules of <branch>." (§3.2).
   - Counts (§3.4): "1 duplicate rule", "1 rule already covered", "1 group every applicant meets", after the conflicts, joined with " · ".
   - Tooltip (§4): "1 duplicate: <line>", "1 finding: <line>".
   - Announcements: "Rule 06 is the same as Rule 03.", "Rule 01 makes no difference beside Rule 02.", "Every applicant meets Rule 05.", "Rule 06 is no longer redundant.", "Rule 05 is no longer always met.".
   - Tests pin the drawn texts: U02 counts row "2 rules can’t be met together · 1 duplicate rule"; U04 "Rule 06 is the same as Rule 03." and note `6178:8216` "Same as Rule 03. You can delete one of them."; U06 "Every applicant meets Group 01, so it doesn’t check anything." and `6753:40824`; U07 "Anyone who meets Rule 01 also meets Group 01." and `6753:41298` "Anyone who meets Rule 01 also meets this group. You can delete the group."; U11 "1 duplicate: Rule 06 is the same as Rule 03.".
-- [ ] T036 [US2] Add the redundancy scenarios to `checks/scenarios.test.ts` (depends on T034, T035).
+- [X] T036 [US2] Add the redundancy scenarios to `checks/scenarios.test.ts` (depends on T034, T035).
   - US2-AS1 to AS6, each with its note.
   - US2-AS3 through `tree.ts`' `duplicateRule()`, and then a changed value.
   - US2-AS7: delete every redundant item, and compare outcomes with `testOracle.ts`.
@@ -585,20 +585,20 @@ that no outcome changes).
   - EC-20 (W4): no redundant finding while the branch can't be met, and the duplicate's note once the conflict is gone.
   - EC "A branch without rules": no notice.
   - Quickstart V3, and V4's redundancy rows.
-- [ ] T037 [P] [US2] Complete `checks/oracle.test.ts`, over at least 5,000 seeded branches (depends on T023, T034; SC-001, SC-002; research R13). Assert that:
+- [X] T037 [P] [US2] Complete `checks/oracle.test.ts`, over at least 5,000 seeded branches (depends on T023, T034; SC-001, SC-002; research R13). Assert that:
   - every reported finding holds: an always-met item is met by every applicant on every day of the window; a redundant item, deleted from the working tree, changes no outcome; the `all_meet` notice holds;
   - with `complete` true, every always-met item and every notice is reported;
   - deleting every item reported redundant at once changes no outcome for any applicant on any day of the window (SC-002; data-model.md invariant 4);
   - every item not reported as redundant changes an outcome in the working tree (invariant 5).
   Keep the run within what `npm test` can afford. Lower the number of seeds only if it can't, and say so in the file.
-- [ ] T038 [US2] Announce redundant and always-met findings in `checks/announcements.ts`, with tests in `announcements.test.ts` (depends on T024, T035; FR-015).
+- [X] T038 [US2] Announce redundant and always-met findings in `checks/announcements.ts`, with tests in `announcements.test.ts` (depends on T024, T035; FR-015).
   - A redundant finding appearing (`same`: "is the same as"; other reasons: "makes no difference beside") or going.
   - An always-met finding appearing or going, and the notice `all_meet` appearing.
   - A finding that changes kind, such as a duplicate's once its conflict is gone, counts as one going and one appearing.
 
 ### UI for User Story 2
 
-- [ ] T039 [US2] Show redundant and always-met findings in the Rules step, in `RulesStep/` and `RulesStep/FindingsBanner.tsx` (depends on T035, T057, T058; S2; A1–A5, W4, W6, W7, W8, W17, W19; FR-005, FR-006, FR-013, FR-019; Figma U02 `6171:7508`/`6171:7510`; U04 `6750:41077`, `6178:8168`/`6178:8216`, Sub-group 01 `6178:7829` plain; U05 `6753:40144` (expanded), `6753:40184`/`6753:40187`; U06 `6753:40514`, Group 01 `6753:40525`/`6753:40527`, note `6753:40824`; U07 `6753:40851`, Group 01 `6753:40862`/`6753:40864`, note `6753:41298`).
+- [X] T039 [US2] Show redundant and always-met findings in the Rules step, in `RulesStep/` and `RulesStep/FindingsBanner.tsx` (depends on T035, T057, T058; S2; A1–A5, W4, W6, W7, W8, W17, W19; FR-005, FR-006, FR-013, FR-019; Figma U02 `6171:7508`/`6171:7510`; U04 `6750:41077`, `6178:8168`/`6178:8216`, Sub-group 01 `6178:7829` plain; U05 `6753:40144` (expanded), `6753:40184`/`6753:40187`; U06 `6753:40514`, Group 01 `6753:40525`/`6753:40527`, note `6753:40824`; U07 `6753:40851`, Group 01 `6753:40862`/`6753:40864`, note `6753:41298`).
   - Rule notes and outlines in the info look (A3, A4). A covered or always-met group gets the outline and the header note in the info look, and the rules inside it stay plain (A5; U06, U07).
   - The banner: info without a conflict (U04, U06, U07), warning with one, the duplicate's line in the expanded list with the info icon (U05); the notice "Every applicant meets the rules of Standard." without a link (W8).
   - The names in every line are links (A1): U05 Sub-group 01 `6753:40164`, Rule 04, Rule 05, Rule 06 `6753:40185`; U04 Rule 06 `6178:8168` and Rule 03; U07 Rule 01 and Group 01 `6753:40864`.

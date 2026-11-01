@@ -1,9 +1,9 @@
-// The spec's scenarios of the rule checks (specs/003-rule-consistency-checks, US1 acceptance
-// scenarios, edge cases, quickstart V4): each case builds its branch with testData.ts' helpers,
+// The spec's scenarios of the rule checks (specs/003-rule-consistency-checks, US1 and US2
+// acceptance scenarios, edge cases, quickstart V3 and V4): each case builds its branch with testData.ts' helpers,
 // checks it on 2026-10-28 with `buildCheckedBranch()` and `checkBranch()`, and asserts the exact
 // findings, their notes (`noteOf()`) and, where the spec words it, the banner (`bannerOf()`).
 //
-// Conflicts (US1) come first. The redundancy scenarios (US2, T036) and the variants' (US3, T040)
+// Conflicts (US1) come first, then the redundancy scenarios (US2, T036). The variants' (US3, T040)
 // extend this file with the same helpers: `scenario()` for a main branch's items, `scenarioOf()`
 // for any branch, such as one based on the main branch.
 import { describe, expect, it } from 'vitest';
@@ -19,11 +19,20 @@ import type {
   RuleTreeItem,
 } from '../../../types/form-connections';
 import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
-import { deleteItem, replaceItem, setOperator, undoChange, ungroupItem, updateRule } from '../tree';
+import {
+  deleteItem,
+  duplicateRule,
+  replaceItem,
+  setOperator,
+  undoChange,
+  ungroupItem,
+  updateRule,
+} from '../tree';
 import type { RuleContext } from '../types';
 import { buildCheckedBranch } from './checkedTree';
 import { bannerOf, namesOf, noteOf, textOf } from './findingMessages';
 import { checkBranch } from './findings';
+import { checkedBranchOf, FROM_TODAY, oracleOf } from './testOracle';
 import type {
   BranchCheck,
   CheckedBranch,
@@ -31,6 +40,7 @@ import type {
   ConflictingFinding,
   ItemFinding,
   ItemNames,
+  RedundantFinding,
 } from './types';
 
 // The context and the day
@@ -207,6 +217,52 @@ function withNote(items: string, today = false): string {
 }
 
 const NONE_CAN_MEET = { kind: 'none_can_meet', today: false } as const;
+const ALL_MEET = { kind: 'all_meet', today: false } as const;
+
+/** Redundant: the same check as `item` */
+function sameAs(itemId: string, item: string): RedundantFinding {
+  return { itemId, kind: 'redundant', reason: { type: 'same', item }, today: false };
+}
+
+/** Redundant: anyone who meets `items` also meets this item (or one of `orItems`) */
+function impliedBy(itemId: string, items: string[], orItems: string[] = []): RedundantFinding {
+  return {
+    itemId,
+    kind: 'redundant',
+    reason: { type: 'implied_by', items, orItems },
+    today: false,
+  };
+}
+
+/** Redundant: anyone who meets this item (and `givenItems`) also meets one of `items` */
+function implies(itemId: string, items: string[], givenItems: string[] = []): RedundantFinding {
+  return {
+    itemId,
+    kind: 'redundant',
+    reason: { type: 'implies', items, givenItems },
+    today: false,
+  };
+}
+
+/** Always met: every applicant meets the item */
+function alwaysMet(itemId: string): ItemFinding {
+  return { itemId, kind: 'always_met', reason: null, today: false };
+}
+
+/** "Same as <item>. You can delete one of them." */
+function sameNote(item: string): string {
+  return `Same as ${item}. You can delete one of them.`;
+}
+
+/** "Anyone who meets <items> also meets this rule. You can delete the rule." */
+function impliedNote(items: string, noun: 'rule' | 'group' = 'rule'): string {
+  return `Anyone who meets ${items} also meets this ${noun}. You can delete the ${noun}.`;
+}
+
+/** "Anyone who meets this rule also meets <items>. You can delete the rule." */
+function impliesNote(items: string, noun: 'rule' | 'group' = 'rule'): string {
+  return `Anyone who meets this ${noun} also meets ${items}. You can delete the ${noun}.`;
+}
 
 // US1: see rules that can't be met together
 
@@ -587,12 +643,24 @@ describe('EC "An enum rule with every value" (FR-007)', () => {
     expect(result.findings).toEqual([condition('rule-2')]);
   });
 
-  it('"includes one of" every country isn’t conflicting', () => {
-    const { result } = scenario([
+  it('"includes one of" every country: every applicant meets the rule, and the branch', () => {
+    const { result, notes, banner } = scenario([
       on(1, MDL_NATIONALITY, { operator: 'includes_one_of', values: EVERY_COUNTRY }),
     ]);
+    expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
+    expect(result.findings).toEqual([alwaysMet('rule-1')]);
+    expect(notes).toEqual({ 'rule-1': 'Every applicant meets this rule.' });
+    expect(banner).toContain('Every applicant meets Rule 01, so it doesn’t check anything.');
+  });
+
+  it('"includes one of" every country beside a rule that checks something: no notice', () => {
+    const { result, notes } = scenario([
+      classesOneOf(1, 'B'),
+      on(2, PID_NATIONALITY, { operator: 'includes_one_of', values: EVERY_COUNTRY }),
+    ]);
     expect(result).toMatchObject({ complete: true, notice: null });
-    expect(conflictsOf(result)).toEqual([]);
+    expect(result.findings).toEqual([alwaysMet('rule-2')]);
+    expect(notes).toEqual({ 'rule-2': 'Every applicant meets this rule.' });
   });
 });
 
@@ -654,23 +722,331 @@ describe('EC "Rules with problems" (FR-002, W11)', () => {
   });
 });
 
+// US2: see rules that make no difference (quickstart V3)
+
+/** The next numbers of the rules step after Rule 01 */
+const AFTER_ONE_RULE = { rule: 2, group: 1 };
+
+describe('US2-AS1 and AS2: "greater than 10" and "greater than 11" (V3 step 1)', () => {
+  const items = [ageAbove(1, 10), ageAbove(2, 11)];
+
+  it('AS1: with AND, the weaker Rule 01 is redundant, naming Rule 02', () => {
+    const { result, notes, banner } = scenario(items);
+    expect(result).toMatchObject({ complete: true, notice: null, checkedRules: 2 });
+    expect(result.findings).toEqual([impliedBy('rule-1', ['rule-2'])]);
+    expect(notes).toEqual({ 'rule-1': impliedNote('Rule 02') });
+    expect(banner).toBe('Anyone who meets Rule 02 also meets Rule 01.');
+  });
+
+  it('AS2: with OR, the stronger Rule 02 is redundant, naming Rule 01', () => {
+    const { result, notes, banner } = scenario(items, 'or');
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([implies('rule-2', ['rule-1'])]);
+    expect(notes).toEqual({ 'rule-2': impliesNote('Rule 01') });
+    expect(banner).toBe('Anyone who meets Rule 02 also meets Rule 01.');
+  });
+});
+
+describe('US2-AS3 and EC "Duplicates and copies": a duplicated rule (V3 step 2)', () => {
+  const original = [ageAbove(1, 18)];
+  const duplicated = duplicateRule(original, 'rule-1', AFTER_ONE_RULE);
+
+  it('the copy is the same check as the original, which stays plain', () => {
+    expect(duplicated?.rule.id).toBe('rule-2');
+    const { result, notes, banner } = scenario(duplicated?.items ?? []);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-2': sameNote('Rule 01') });
+    expect(banner).toBe('Rule 02 is the same as Rule 01.');
+  });
+
+  it('a duplicate in a group is the same check too', () => {
+    const items = [group(1, [ageAbove(1, 18), classesOneOf(2, 'B')], 'or')];
+    const copy = duplicateRule(items, 'rule-1', { rule: 3, group: 2 });
+    const { result, notes } = scenario(copy?.items ?? []);
+    expect(result.findings).toEqual([sameAs('rule-3', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-3': sameNote('Rule 01') });
+  });
+
+  it('the copy’s mark goes once its value changes to a stronger one', () => {
+    const changed = updateRule(duplicated?.items ?? [], 'rule-2', {
+      condition: { operator: 'greater_than', value: 30 },
+    });
+    const { result, notes } = scenario(changed?.items ?? []);
+    // The copy now checks more than the original: the original adds nothing beside it
+    expect(result.findings).toEqual([impliedBy('rule-1', ['rule-2'])]);
+    expect(notes).toEqual({ 'rule-1': impliedNote('Rule 02') });
+  });
+
+  it('unless the new condition still makes no difference', () => {
+    const changed = updateRule(duplicated?.items ?? [], 'rule-2', {
+      condition: { operator: 'greater_than', value: 10 },
+    });
+    const { result, notes } = scenario(changed?.items ?? []);
+    expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'])]);
+    expect(notes).toEqual({ 'rule-2': impliedNote('Rule 01') });
+  });
+});
+
+describe('US2-AS4: a class listed, and a date of that class (V3 step 3)', () => {
+  it('"Licence classes includes one of B" is redundant beside "Licence class B – Issue date"', () => {
+    const { result, notes } = scenario([
+      classesOneOf(1, 'B'),
+      on(2, target('mdl', 'driving_privileges', 'issue_date', 'B'), {
+        operator: 'at_least_years_ago',
+        years: 2,
+      }),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([impliedBy('rule-1', ['rule-2'])]);
+    expect(notes).toEqual({ 'rule-1': impliedNote('Rule 02') });
+  });
+});
+
+describe('US2-AS5: an OR group that every applicant meets (V3 step 4)', () => {
+  it('marks the group as always met, its rules stay plain', () => {
+    const { result, notes, banner } = scenario([
+      group(1, [ageAbove(1, 18), ageBelow(2, 21)], 'or'),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
+    expect(result.findings).toEqual([alwaysMet('group-1')]);
+    expect(notes).toEqual({ 'group-1': 'Every applicant meets this group.' });
+    expect(banner).toContain('Every applicant meets Group 01, so it doesn’t check anything.');
+  });
+
+  it('beside a rule that checks something, the branch has no notice', () => {
+    const { result, notes, banner } = scenario([
+      group(1, [ageAbove(1, 18), ageBelow(2, 21)], 'or'),
+      classesOneOf(3, 'B'),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([alwaysMet('group-1')]);
+    expect(notes).toEqual({ 'group-1': 'Every applicant meets this group.' });
+    expect(banner).toBe('Every applicant meets Group 01, so it doesn’t check anything.');
+  });
+});
+
+describe('US2-AS6: an OR group implied by a rule beside it (V3 step 5)', () => {
+  it('marks the group redundant, naming Rule 01, and the rules inside it stay plain', () => {
+    const { result, notes } = scenario([
+      yearsAgo(1, 'at_least_years_ago', 21),
+      group(
+        1,
+        [
+          yearsAgo(2, 'at_least_years_ago', 18),
+          on(3, PID_NATIONALITY, { operator: 'includes_one_of', values: ['DE'] }),
+        ],
+        'or'
+      ),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([impliedBy('group-1', ['rule-1'])]);
+    expect(notes).toEqual({ 'group-1': impliedNote('Rule 01', 'group') });
+  });
+});
+
+describe('US2-AS7: deleting every redundant item changes no outcome (V3 step 6)', () => {
+  // On the oracle's fields (testOracle.ts' ORACLE_CONTEXT), so that the oracle can compare
+  // every applicant's outcome on every day from today on
+  const height = target('mdl', 'height');
+  const classes = target('mdl', 'driving_privileges', 'classes');
+  const familyName = target('pid', 'family_name');
+  const items: RuleTreeItem[] = [
+    on(1, height, { operator: 'greater_than', value: 10 }),
+    on(2, height, { operator: 'greater_than', value: 11 }),
+    group(
+      1,
+      [
+        on(3, height, { operator: 'greater_than', value: 5 }),
+        on(4, classes, { operator: 'includes_one_of', values: ['B'] }),
+      ],
+      'or'
+    ),
+    on(5, familyName, { operator: 'equal_to', value: 'a', match_case: false }),
+    on(6, familyName, { operator: 'equal_to', value: 'A', match_case: false }),
+  ];
+  const branch = { ...mainBranch(items), key: 'us2-as7' };
+  const before = checkBranch(checkedBranchOf(branch), IN_TIME);
+  const redundant = before.findings
+    .filter((finding) => finding.kind === 'redundant')
+    .map((finding) => finding.itemId);
+
+  it('reports Rule 01, Group 01 and Rule 06 as redundant', () => {
+    // Research R8 visits the items from the last: Group 01 is asked about while Rule 01 is still
+    // in the working tree, and Rule 01 is the first of the smallest sets that imply it
+    expect(before).toMatchObject({ complete: true, notice: null });
+    expect(before.findings).toEqual([
+      impliedBy('rule-1', ['rule-2']),
+      impliedBy('group-1', ['rule-1']),
+      sameAs('rule-6', 'rule-5'),
+    ]);
+  });
+
+  it('deleting all of them at once changes no applicant’s outcome', () => {
+    expect(oracleOf(branch).changedOutcome(redundant, FROM_TODAY)).toBeNull();
+  });
+
+  it('deleting them one after the other keeps the notice and the always-met marks', () => {
+    const alwaysMetOf = (check: BranchCheck) =>
+      check.findings.filter((finding) => finding.kind === 'always_met');
+    let current = items;
+    for (const id of redundant) {
+      current = deleteItem(current, id)?.items ?? current;
+      const after = checkBranch(
+        checkedBranchOf({ ...mainBranch(current), key: 'us2-as7' }),
+        IN_TIME
+      );
+      expect(after.notice).toEqual(before.notice);
+      expect(alwaysMetOf(after)).toEqual(alwaysMetOf(before));
+    }
+  });
+});
+
+describe('EC "Letter case" and "Text inside other text": redundant text rules', () => {
+  it('both ignoring letter case, the later rule is the same check', () => {
+    const { result, notes } = scenario([
+      city(1, 'equal_to', 'Stuttgart'),
+      city(2, 'equal_to', 'STUTTGART'),
+    ]);
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-2': sameNote('Rule 01') });
+  });
+
+  it('the first respecting letter case, the second ignoring it: the second is redundant', () => {
+    const { result, notes } = scenario([
+      city(1, 'equal_to', 'Stuttgart', true),
+      city(2, 'equal_to', 'STUTTGART'),
+    ]);
+    expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'])]);
+    expect(notes).toEqual({ 'rule-2': impliedNote('Rule 01') });
+  });
+
+  it('"contains straße" and "contains STRASSE", ignoring letter case, are the same check', () => {
+    const { result, notes } = scenario([
+      city(1, 'contains', 'straße'),
+      city(2, 'contains', 'STRASSE'),
+    ]);
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-2': sameNote('Rule 01') });
+  });
+
+  it('"is equal to Stuttgart" makes "contains Stutt" redundant', () => {
+    const { result, notes } = scenario([
+      city(1, 'equal_to', 'Stuttgart'),
+      city(2, 'contains', 'Stutt'),
+    ]);
+    expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'])]);
+    expect(notes).toEqual({ 'rule-2': impliedNote('Rule 01') });
+  });
+});
+
+describe('EC "Years and months"', () => {
+  it('"at least 12 months from now" and "at least 1 year from now" are the same check', () => {
+    const { result, notes } = scenario([
+      on(1, PID_EXPIRY, { operator: 'at_least_from_now', amount: 12, unit: 'months' }),
+      on(2, PID_EXPIRY, { operator: 'at_least_from_now', amount: 1, unit: 'years' }),
+    ]);
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-2': sameNote('Rule 01') });
+  });
+
+  it('"exactly 21 years old" makes "at least 18 years old" redundant with AND', () => {
+    const { result, notes } = scenario([
+      yearsAgo(1, 'exactly_years_ago', 21),
+      yearsAgo(2, 'at_least_years_ago', 18),
+    ]);
+    expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'])]);
+    expect(notes).toEqual({ 'rule-2': impliedNote('Rule 01') });
+  });
+});
+
+describe('EC-7’s second example: redundant today, but not on every later day', () => {
+  it('"before 1 Jan 2010" next to "at least 18 years old" gives no finding', () => {
+    const { result } = scenario([
+      on(1, PID_BIRTH, { operator: 'before', date: '2010-01-01' }),
+      yearsAgo(2, 'at_least_years_ago', 18),
+    ]);
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [] });
+  });
+});
+
+describe('EC "Rules that are redundant only because of each other" (FR-005)', () => {
+  it('of two rules with the same check, only the later one is marked', () => {
+    const { result } = scenario([ageAbove(1, 18), ageAbove(2, 18)]);
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+  });
+
+  it('the same in a level combined with OR', () => {
+    const { result } = scenario([ageAbove(1, 18), ageAbove(2, 18)], 'or');
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1')]);
+  });
+
+  it('of three, the two later ones, each the same as the first', () => {
+    const { result, notes } = scenario([ageAbove(1, 18), ageAbove(2, 18), ageAbove(3, 18)]);
+    expect(result.findings).toEqual([sameAs('rule-2', 'rule-1'), sameAs('rule-3', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-2': sameNote('Rule 01'), 'rule-3': sameNote('Rule 01') });
+  });
+});
+
+describe('EC-20 (W4): a branch that no applicant can meet, with a duplicate (V3 step 7)', () => {
+  const conflict = [nationalityOneOf(1, 'DE'), nationalityOneOf(2, 'IT')];
+  const duplicated = duplicateRule(conflict, 'rule-1', { rule: 3, group: 1 });
+
+  it('reports only conflicts while the branch can’t be met', () => {
+    const { result } = scenario(duplicated?.items ?? []);
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET });
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings.every((finding) => finding.kind === 'conflicting')).toBe(true);
+  });
+
+  it('shows the duplicate’s note once the conflict is gone', () => {
+    const resolved = deleteItem(duplicated?.items ?? [], 'rule-2');
+    const { result, notes } = scenario(resolved?.items ?? []);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([sameAs('rule-3', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-3': sameNote('Rule 01') });
+  });
+});
+
+describe('EC "A branch without rules"', () => {
+  it('has no findings and no notice, although every applicant meets it', () => {
+    const { result, banner } = scenario([]);
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [], checkedRules: 0 });
+    expect(banner).toBe('');
+  });
+});
+
 // Quickstart V4: how conditions are judged, combined with AND
 
-/** A row of quickstart V4: its two rules, and its conflicting findings and notice */
+/** A row of quickstart V4: its two rules, and its findings, their notes and the notice */
 interface V4Row {
   rules: string;
   items: RuleTreeItem[];
-  /** The row expects conflicts: these findings, and the notice */
-  conflicts: ItemFinding[];
+  /** Every finding the row expects, conflicting or redundant */
+  findings: ItemFinding[];
+  /** The note of each finding's item */
+  notes: Record<string, string>;
   notice: BranchCheck['notice'];
-  /**
-   * The row expects no finding at all. False for the rows that expect a redundant rule, whose
-   * redundancy T036 asserts: here, only that nothing conflicts
-   */
-  noFinding: boolean;
 }
 
 const BOTH_CONFLICT = [withItems('rule-1', ['rule-2']), withItems('rule-2', ['rule-1'])];
+const BOTH_CONFLICT_NOTES = { 'rule-1': withNote('Rule 02'), 'rule-2': withNote('Rule 01') };
+
+/** The second rule redundant, "Same as" the first */
+const SECOND_SAME = {
+  findings: [sameAs('rule-2', 'rule-1')],
+  notes: { 'rule-2': sameNote('Rule 01') },
+  notice: null,
+};
+
+/** The second rule redundant: whoever meets the first meets it */
+const SECOND_IMPLIED = {
+  findings: [impliedBy('rule-2', ['rule-1'])],
+  notes: { 'rule-2': impliedNote('Rule 01') },
+  notice: null,
+};
+
+const NO_FINDING = { findings: [], notes: {}, notice: null };
 
 const V4_ROWS: V4Row[] = [
   {
@@ -679,65 +1055,53 @@ const V4_ROWS: V4Row[] = [
       on(1, PID_NATIONALITY, { operator: 'includes_one_of', values: ['DE'] }),
       on(2, PID_NATIONALITY, { operator: 'includes_one_of', values: ['IT'] }),
     ],
-    conflicts: [],
-    notice: null,
-    noFinding: true,
+    ...NO_FINDING,
   },
   {
     rules: 'Licence classes includes one of B, … of C',
     items: [classesOneOf(1, 'B'), classesOneOf(2, 'C')],
-    conflicts: [],
-    notice: null,
-    noFinding: true,
+    ...NO_FINDING,
   },
   {
     rules: 'City or town is equal to Stuttgart, … STUTTGART, both ignoring case',
     items: [city(1, 'equal_to', 'Stuttgart'), city(2, 'equal_to', 'STUTTGART')],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_SAME,
   },
   {
     rules: 'the same, both respecting case',
     items: [city(1, 'equal_to', 'Stuttgart', true), city(2, 'equal_to', 'STUTTGART', true)],
-    conflicts: BOTH_CONFLICT,
+    findings: BOTH_CONFLICT,
+    notes: BOTH_CONFLICT_NOTES,
     notice: NONE_CAN_MEET,
-    noFinding: false,
   },
   {
     rules: 'the first respecting case, the second ignoring it',
     items: [city(1, 'equal_to', 'Stuttgart', true), city(2, 'equal_to', 'STUTTGART')],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_IMPLIED,
   },
   {
     rules: 'contains straße, contains STRASSE, ignoring case',
     items: [city(1, 'contains', 'straße'), city(2, 'contains', 'STRASSE')],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_SAME,
   },
   {
     rules: 'is equal to Stuttgart, doesn’t contain gart',
     items: [city(1, 'equal_to', 'Stuttgart'), city(2, 'not_contains', 'gart')],
-    conflicts: BOTH_CONFLICT,
+    findings: BOTH_CONFLICT,
+    notes: BOTH_CONFLICT_NOTES,
     notice: NONE_CAN_MEET,
-    noFinding: false,
   },
   {
     rules: 'is equal to Stuttgart, contains Stutt',
     items: [city(1, 'equal_to', 'Stuttgart'), city(2, 'contains', 'Stutt')],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_IMPLIED,
   },
   {
     rules: 'Age in years is greater than 20, … less than 21',
     items: [ageAbove(1, 20), ageBelow(2, 21)],
-    conflicts: BOTH_CONFLICT,
+    findings: BOTH_CONFLICT,
+    notes: BOTH_CONFLICT_NOTES,
     notice: NONE_CAN_MEET,
-    noFinding: false,
   },
   {
     rules: 'Expiry date is before 1 Jan 2030, … is after 31 Dec 2029',
@@ -745,9 +1109,9 @@ const V4_ROWS: V4Row[] = [
       on(1, PID_EXPIRY, { operator: 'before', date: '2030-01-01' }),
       on(2, PID_EXPIRY, { operator: 'after', date: '2029-12-31' }),
     ],
-    conflicts: BOTH_CONFLICT,
+    findings: BOTH_CONFLICT,
+    notes: BOTH_CONFLICT_NOTES,
     notice: NONE_CAN_MEET,
-    noFinding: false,
   },
   {
     rules: 'Expiry date is at least 12 months from now, … at least 1 year from now',
@@ -755,16 +1119,12 @@ const V4_ROWS: V4Row[] = [
       on(1, PID_EXPIRY, { operator: 'at_least_from_now', amount: 12, unit: 'months' }),
       on(2, PID_EXPIRY, { operator: 'at_least_from_now', amount: 1, unit: 'years' }),
     ],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_SAME,
   },
   {
     rules: 'Date of birth (Age) is exactly 21 years old, … at least 18 years old',
     items: [yearsAgo(1, 'exactly_years_ago', 21), yearsAgo(2, 'at_least_years_ago', 18)],
-    conflicts: [],
-    notice: null,
-    noFinding: false,
+    ...SECOND_IMPLIED,
   },
   {
     rules: 'Personal ID – Date of birth is after 1 Jan 2010, … (Age) is at least 21 years old',
@@ -772,9 +1132,9 @@ const V4_ROWS: V4Row[] = [
       on(1, PID_BIRTH, { operator: 'after', date: '2010-01-01' }),
       yearsAgo(2, 'at_least_years_ago', 21),
     ],
-    conflicts: [withItems('rule-1', ['rule-2'], true), withItems('rule-2', ['rule-1'], true)],
+    findings: [withItems('rule-1', ['rule-2'], true), withItems('rule-2', ['rule-1'], true)],
+    notes: { 'rule-1': withNote('Rule 02', true), 'rule-2': withNote('Rule 01', true) },
     notice: { kind: 'none_can_meet', today: true },
-    noFinding: false,
   },
   {
     rules: 'Date of birth is before 1 Jan 2010, … (Age) is at least 18 years old',
@@ -782,34 +1142,28 @@ const V4_ROWS: V4Row[] = [
       on(1, PID_BIRTH, { operator: 'before', date: '2010-01-01' }),
       yearsAgo(2, 'at_least_years_ago', 18),
     ],
-    conflicts: [],
-    notice: null,
-    noFinding: true,
+    ...NO_FINDING,
   },
   {
     rules: 'Driving licence – Nationality includes none of every country',
     items: [on(1, MDL_NATIONALITY, { operator: 'includes_none_of', values: EVERY_COUNTRY })],
-    conflicts: [condition('rule-1')],
+    findings: [condition('rule-1')],
+    notes: { 'rule-1': 'No applicant can meet this rule.' },
     notice: NONE_CAN_MEET,
-    noFinding: false,
   },
   {
     rules: 'Personal ID – Date of birth (Age) at least 21, Driving licence – Age in years < 18',
     items: [yearsAgo(1, 'at_least_years_ago', 21), ageBelow(2, 18)],
-    conflicts: [],
-    notice: null,
-    noFinding: true,
+    ...NO_FINDING,
   },
 ];
 
 describe('Quickstart V4: how conditions are judged', () => {
-  it.each(V4_ROWS)('$rules', ({ items, conflicts, notice, noFinding }) => {
-    const { result } = scenario(items);
-    expect(result.complete).toBe(true);
-    expect(result.notice).toEqual(notice);
-    expect(conflictsOf(result)).toEqual(conflicts);
-    if (noFinding) {
-      expect(result.findings).toEqual([]);
-    }
+  it.each(V4_ROWS)('$rules', ({ items, findings, notes, notice }) => {
+    const result = scenario(items);
+    expect(result.result.complete).toBe(true);
+    expect(result.result.notice).toEqual(notice);
+    expect(result.result.findings).toEqual(findings);
+    expect(result.notes).toEqual(notes);
   });
 });

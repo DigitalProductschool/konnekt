@@ -12,17 +12,8 @@ import type {
   FindingChange,
   FindingGone,
   ItemFinding,
-  ItemFindingKind,
   NamedBranch,
 } from './types';
-
-/** The kinds of finding whose appearing and going are announced (US1: conflicts) */
-const ANNOUNCED_KINDS: ReadonlySet<ItemFindingKind> = new Set<ItemFindingKind>(['conflicting']);
-
-/** The branch notices whose appearing is announced (US1: no applicant can meet the branch) */
-const ANNOUNCED_NOTICES: ReadonlySet<BranchNotice['kind']> = new Set<BranchNotice['kind']>([
-  'none_can_meet',
-]);
 
 /** Whether two findings on the same item say the same: kind, reason and `today` */
 function sameFinding(a: ItemFinding, b: ItemFinding): boolean {
@@ -63,8 +54,8 @@ function itemChanges(
 }
 
 /**
- * The changes between a branch's previous result and its new one, of the kinds announced: per
- * item in the current display order (`names`), the going before the appearing; then the notice.
+ * The changes between a branch's previous result and its new one, of every kind of finding
+ * (conflicting, redundant, always met) and both notices: per item in the current display order (`names`), the going before the appearing; then the notice.
  * Items without a current name, such as deleted ones, come last; their findings have no text
  */
 export function findingChanges(
@@ -83,11 +74,11 @@ export function findingChanges(
   const itemIds = [...new Set([...after.keys(), ...before.keys()])].sort(
     (a, b) => position(a) - position(b)
   );
-  const changes: FindingChange[] = itemIds
-    .flatMap((id) => itemChanges(before.get(id), after.get(id), branch, next.complete))
-    .filter((change) => ANNOUNCED_KINDS.has(change.finding.kind));
+  const changes: FindingChange[] = itemIds.flatMap((id) =>
+    itemChanges(before.get(id), after.get(id), branch, next.complete)
+  );
   const { notice } = next;
-  if (notice && ANNOUNCED_NOTICES.has(notice.kind) && !sameNotice(previous.notice, notice)) {
+  if (notice && !sameNotice(previous.notice, notice)) {
     changes.push({ type: 'notice', branch, notice });
   }
   return changes;

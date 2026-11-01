@@ -5,6 +5,7 @@ import { rule } from '../testData';
 import { announcementsFor } from './announcements';
 import { namesOf } from './findingMessages';
 import type {
+  AlwaysMetFinding,
   AnnouncementContext,
   BranchCheck,
   BranchNotice,
@@ -29,6 +30,28 @@ function conflict(itemId: string, items: string[], today = false): ConflictingFi
 
 function same(itemId: string, item: string): RedundantFinding {
   return { itemId, kind: 'redundant', reason: { type: 'same', item }, today: false };
+}
+
+function impliedBy(itemId: string, items: string[]): RedundantFinding {
+  return {
+    itemId,
+    kind: 'redundant',
+    reason: { type: 'implied_by', items, orItems: [] },
+    today: false,
+  };
+}
+
+function implies(itemId: string, items: string[], givenItems: string[]): RedundantFinding {
+  return {
+    itemId,
+    kind: 'redundant',
+    reason: { type: 'implies', items, givenItems },
+    today: false,
+  };
+}
+
+function alwaysMet(itemId: string): AlwaysMetFinding {
+  return { itemId, kind: 'always_met', reason: null, today: false };
 }
 
 function check(
@@ -82,13 +105,52 @@ describe('announcementsFor', () => {
   });
 
   it('counts a change of kind as one going and one appearing', () => {
-    // A redundant finding isn't announced yet (T038): only the conflict's going is
+    // A duplicate's conflict is gone: it is now redundant
     expect(
       announce(check([conflict('rule-2', ['rule-1'])]), check([same('rule-2', 'rule-1')]))
-    ).toEqual(['Rule 02 no longer conflicts with Rule 01.']);
+    ).toEqual(['Rule 02 no longer conflicts with Rule 01.', 'Rule 02 is the same as Rule 01.']);
     expect(
       announce(check([same('rule-2', 'rule-1')]), check([conflict('rule-2', ['rule-1'])]))
-    ).toEqual(['Rule 02 conflicts with Rule 01.']);
+    ).toEqual(['Rule 02 is no longer redundant.', 'Rule 02 conflicts with Rule 01.']);
+    expect(
+      announce(check([alwaysMet('rule-3')]), check([impliedBy('rule-3', ['rule-1'])]))
+    ).toEqual(['Rule 03 is no longer always met.', 'Rule 03 makes no difference beside Rule 01.']);
+  });
+
+  it('announces a redundant finding that appears and goes (FR-015)', () => {
+    expect(announce(NONE, check([same('rule-4', 'rule-3')]))).toEqual([
+      'Rule 04 is the same as Rule 03.',
+    ]);
+    expect(announce(NONE, check([impliedBy('rule-1', ['rule-2'])]))).toEqual([
+      'Rule 01 makes no difference beside Rule 02.',
+    ]);
+    expect(announce(NONE, check([implies('rule-4', ['rule-1'], ['rule-3'])]))).toEqual([
+      'Rule 04 makes no difference beside Rule 01 and Rule 03.',
+    ]);
+    expect(announce(check([same('rule-4', 'rule-3')]), NONE)).toEqual([
+      'Rule 04 is no longer redundant.',
+    ]);
+    expect(announce(check([impliedBy('rule-1', ['rule-2'])]), NONE)).toEqual([
+      'Rule 01 is no longer redundant.',
+    ]);
+  });
+
+  it('announces a redundant finding whose reason changed as if new', () => {
+    expect(
+      announce(check([same('rule-4', 'rule-3')]), check([impliedBy('rule-4', ['rule-2'])]))
+    ).toEqual(['Rule 04 makes no difference beside Rule 02.']);
+    const findings = [same('rule-4', 'rule-3')];
+    expect(announce(check(findings), check(findings))).toEqual([]);
+  });
+
+  it('announces an always-met finding that appears and goes (FR-015)', () => {
+    expect(announce(NONE, check([alwaysMet('rule-3')]))).toEqual([
+      'Every applicant meets Rule 03.',
+    ]);
+    expect(announce(check([alwaysMet('rule-3')]), NONE)).toEqual([
+      'Rule 03 is no longer always met.',
+    ]);
+    expect(announce(check([alwaysMet('rule-3')]), check([alwaysMet('rule-3')]))).toEqual([]);
   });
 
   it('announces the notice that no applicant can meet the branch when it appears', () => {
@@ -103,8 +165,19 @@ describe('announcementsFor', () => {
     ).toEqual(['Right now, no applicant can meet the rules of Standard.']);
   });
 
-  it('leaves out the notice that every applicant meets the branch (T038)', () => {
-    expect(announce(NONE, check([], { notice: { kind: 'all_meet', today: false } }))).toEqual([]);
+  it('announces the notice that every applicant meets the branch when it appears', () => {
+    const notice: BranchNotice = { kind: 'all_meet', today: false };
+    expect(announce(NONE, check([], { notice }))).toEqual([
+      'Every applicant meets the rules of Standard.',
+    ]);
+    expect(announce(check([], { notice }), check([], { notice }))).toEqual([]);
+    expect(announce(check([], { notice }), NONE)).toEqual([]);
+    expect(
+      announce(
+        check([], { notice: { kind: 'none_can_meet', today: false } }),
+        check([], { notice })
+      )
+    ).toEqual(['Every applicant meets the rules of Standard.']);
   });
 
   it('announces in display order, the going before the appearing, then the notice', () => {
@@ -116,6 +189,7 @@ describe('announcementsFor', () => {
     expect(announce(previous, next)).toEqual([
       'Rule 01 conflicts with Rule 03.',
       'Rule 02 no longer conflicts with Rule 03.',
+      'Rule 02 is the same as Rule 03.',
       'Rule 03 conflicts with Rule 01.',
       'Rule 04 no longer conflicts with Rule 01.',
       'No applicant can meet the rules of Standard.',
@@ -128,7 +202,10 @@ describe('announcementsFor', () => {
     expect(
       announce(previous, check([conflict('rule-4', ['rule-3'])], { complete: false }))
     ).toEqual(['Rule 04 conflicts with Rule 03.']);
-    expect(announce(previous, check([same('rule-2', 'rule-1')], { complete: false }))).toEqual([]);
+    expect(announce(previous, check([same('rule-2', 'rule-1')], { complete: false }))).toEqual([
+      'Rule 02 is the same as Rule 01.',
+    ]);
+    expect(announce(check([alwaysMet('rule-3')]), check([], { complete: false }))).toEqual([]);
   });
 
   it('announces nothing on a branch’s first result or on a new day', () => {
@@ -151,6 +228,9 @@ describe('announcementsFor', () => {
     const context = { ...SHOWN, branch: AMBULANCE };
     expect(announce(NONE, check([conflict('rule-2', ['rule-1'])]), context)).toEqual([
       'In Ambulance: Rule 02 conflicts with Rule 01.',
+    ]);
+    expect(announce(NONE, check([alwaysMet('rule-3')]), context)).toEqual([
+      'In Ambulance: Every applicant meets Rule 03.',
     ]);
   });
 });

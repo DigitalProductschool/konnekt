@@ -23,6 +23,8 @@ import type {
   FindingsBanner,
   ItemFinding,
   NamedBranch,
+  RedundantFinding,
+  RedundantReason,
 } from './types';
 
 function group(
@@ -57,6 +59,26 @@ function conflicting(itemId: string, reason: ConflictingReason, today = false): 
 
 function withItems(itemId: string, items: string[], today = false): ConflictingFinding {
   return conflicting(itemId, { type: 'with', items }, today);
+}
+
+function redundant(itemId: string, reason: RedundantReason): RedundantFinding {
+  return { itemId, kind: 'redundant', reason, today: false };
+}
+
+function same(itemId: string, item: string): RedundantFinding {
+  return redundant(itemId, { type: 'same', item });
+}
+
+function impliedBy(itemId: string, items: string[], orItems: string[] = []): RedundantFinding {
+  return redundant(itemId, { type: 'implied_by', items, orItems });
+}
+
+function implies(itemId: string, items: string[], givenItems: string[] = []): RedundantFinding {
+  return redundant(itemId, { type: 'implies', items, givenItems });
+}
+
+function alwaysMet(itemId: string): ItemFinding {
+  return { itemId, kind: 'always_met', reason: null, today: false };
 }
 
 /** Each of `ids` conflicting with the others, as the checks report a conflict set */
@@ -216,6 +238,61 @@ describe('noteOf', () => {
   });
 });
 
+describe('noteOf for redundant and always-met findings (US2)', () => {
+  it('reads U02’s and U04’s duplicate note 6171:7510 / 6178:8216 (FR-005, A3)', () => {
+    expect(noteOf(same('rule-6', 'rule-3'), NAMES)).toBe(
+      'Same as Rule 03. You can delete one of them.'
+    );
+  });
+
+  it('reads U07’s note 6753:41298 for a covered group (A5)', () => {
+    expect(noteOf(impliedBy('group-1', ['rule-1']), NAMES)).toBe(
+      'Anyone who meets Rule 01 also meets this group. You can delete the group.'
+    );
+  });
+
+  it('words a covered rule in an AND level (W6)', () => {
+    expect(noteOf(impliedBy('rule-6', ['rule-4', 'rule-1']), NAMES)).toBe(
+      'Anyone who meets Rule 01 and Rule 04 also meets this rule. You can delete the rule.'
+    );
+  });
+
+  it('words an item that implies others in an OR level (W6, W7)', () => {
+    expect(noteOf(implies('rule-3', ['rule-2']), NAMES)).toBe(
+      'Anyone who meets this rule also meets Rule 02. You can delete the rule.'
+    );
+    expect(noteOf(implies('group-3', ['rule-6', 'rule-1']), NAMES)).toBe(
+      'Anyone who meets this group also meets Rule 01 or Rule 06. You can delete the group.'
+    );
+  });
+
+  it('takes in an enclosing level (research R8, step 4; design-notes.md §2.4)', () => {
+    expect(noteOf(implies('rule-6', ['rule-1'], ['rule-5']), NAMES)).toBe(
+      'Anyone who meets this rule and Rule 05 also meets Rule 01. You can delete the rule.'
+    );
+    expect(noteOf(impliedBy('rule-4', ['rule-2'], ['group-1']), NAMES)).toBe(
+      'Anyone who meets Rule 02 also meets this rule or Group 01. You can delete the rule.'
+    );
+    expect(noteOf(impliedBy('rule-4', [], ['group-1']), NAMES)).toBe(
+      'Every applicant meets this rule or Group 01. You can delete the rule.'
+    );
+  });
+
+  it('reads U06’s note 6753:40824, and a rule’s (W8)', () => {
+    expect(noteOf(alwaysMet('group-1'), NAMES)).toBe('Every applicant meets this group.');
+    expect(noteOf(alwaysMet('rule-5'), NAMES)).toBe('Every applicant meets this rule.');
+  });
+
+  it('never shows an id for an item without a current name', () => {
+    expect(noteOf(same('rule-6', 'rule-9'), NAMES)).toBe(
+      'Same as another rule. You can delete one of them.'
+    );
+    expect(noteOf(impliedBy('rule-6', ['rule-9']), NAMES)).toBe(
+      'Anyone who meets other rules also meets this rule. You can delete the rule.'
+    );
+  });
+});
+
 describe('countsOf', () => {
   it('counts the rules of conflict sets (U02 6750:40933, A2)', () => {
     expect(countsOf(check(conflictSet(['rule-1', 'rule-2'])))).toBe(
@@ -246,7 +323,36 @@ describe('countsOf', () => {
     expect(countsOf(check(findings))).toBe('2 rules can’t be met together · 2 rules can’t be met');
   });
 
-  it('is empty without a conflict', () => {
+  it('reads U02’s counts row 6750:40933 with a duplicate (A2)', () => {
+    const findings = [
+      conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+      ...conflictSet(['rule-4', 'rule-5']),
+      same('rule-6', 'rule-3'),
+    ];
+    expect(countsOf(check(findings))).toBe('2 rules can’t be met together · 1 duplicate rule');
+  });
+
+  it('counts duplicates, covered and always-met items after the conflicts (§3.4)', () => {
+    const findings = [
+      alwaysMet('group-1'),
+      same('rule-6', 'rule-3'),
+      same('group-3', 'rule-1'),
+      same('rule-5', 'rule-1'),
+      impliedBy('rule-4', ['rule-1']),
+      implies('group-2', ['rule-1']),
+      conflicting('rule-2', { type: 'condition' }),
+    ];
+    expect(countsOf(check(findings))).toBe(
+      '1 rule can’t be met · 2 duplicate rules and 1 duplicate group · 1 rule and 1 group ' +
+        'already covered · 1 group every applicant meets'
+    );
+    expect(countsOf(check([impliedBy('group-1', ['rule-1'])]))).toBe('1 group already covered');
+    expect(countsOf(check([alwaysMet('rule-1'), alwaysMet('rule-6')]))).toBe(
+      '2 rules every applicant meets'
+    );
+  });
+
+  it('is empty without a finding', () => {
     expect(countsOf(check([]))).toBe('');
   });
 });
@@ -486,6 +592,126 @@ describe('bannerOf', () => {
   });
 });
 
+describe('bannerOf for redundant and always-met findings (US2)', () => {
+  it('reads U04’s line 6750:41077 for a duplicate, info (A1, A2)', () => {
+    const banner = bannerOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES);
+    expect(banner).toMatchObject({ kind: 'info', counts: '', notice: null, incomplete: null });
+    expect(banner?.lines).toEqual([
+      { kind: 'redundant', tone: 'info', parts: [ref(6), ' is the same as ', ref(3), '.'] },
+    ]);
+    expect(head(banner)).toBe('Rule 06 is the same as Rule 03.');
+  });
+
+  it('reads U06’s line 6753:40514 for an always-met group', () => {
+    const banner = bannerOf(check([alwaysMet('group-1')]), STANDARD, NAMES);
+    expect(banner?.kind).toBe('info');
+    expect(banner?.lines).toEqual([
+      {
+        kind: 'always_met',
+        tone: 'info',
+        parts: [
+          'Every applicant meets ',
+          { itemId: 'group-1', name: 'Group 01' },
+          ', so it doesn’t check anything.',
+        ],
+      },
+    ]);
+    expect(head(banner)).toBe('Every applicant meets Group 01, so it doesn’t check anything.');
+  });
+
+  it('reads U07’s line 6753:40851 for a covered group', () => {
+    const banner = bannerOf(check([impliedBy('group-1', ['rule-1'])]), STANDARD, NAMES);
+    expect(banner?.lines).toEqual([
+      {
+        kind: 'redundant',
+        tone: 'info',
+        parts: [
+          'Anyone who meets ',
+          ref(1),
+          ' also meets ',
+          { itemId: 'group-1', name: 'Group 01' },
+          '.',
+        ],
+      },
+    ]);
+    expect(head(banner)).toBe('Anyone who meets Rule 01 also meets Group 01.');
+  });
+
+  it('words the OR and enclosing-level forms (W6)', () => {
+    const line = (finding: ItemFinding): string =>
+      head(bannerOf(check([finding]), STANDARD, NAMES));
+    expect(line(implies('rule-3', ['rule-2']))).toBe(
+      'Anyone who meets Rule 03 also meets Rule 02.'
+    );
+    expect(line(implies('rule-6', ['rule-4', 'rule-1']))).toBe(
+      'Anyone who meets Rule 06 also meets Rule 01 or Rule 04.'
+    );
+    expect(line(implies('rule-6', ['rule-1'], ['rule-5']))).toBe(
+      'Anyone who meets Rule 06 and Rule 05 also meets Rule 01.'
+    );
+    expect(line(impliedBy('rule-4', ['rule-2'], ['group-1']))).toBe(
+      'Anyone who meets Rule 02 also meets Rule 04 or Group 01.'
+    );
+    expect(line(impliedBy('rule-4', [], ['group-1']))).toBe(
+      'Every applicant meets Rule 04 or Group 01.'
+    );
+  });
+
+  it('reads U02 and U05: warning with a conflict, the duplicate’s line with the info icon', () => {
+    const findings = [
+      same('rule-6', 'rule-3'),
+      conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+      ...conflictSet(['rule-4', 'rule-5']),
+    ];
+    const banner = bannerOf(check(findings), STANDARD, NAMES);
+    expect(banner?.kind).toBe('warning');
+    expect(banner?.counts).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(head(banner)).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(banner?.lines.map((line) => [line.kind, line.tone, textOf(line.parts)])).toEqual([
+      ['conflicting', 'warning', 'Sub-group 01: Rule 04 and Rule 05 can’t be met together.'],
+      ['redundant', 'info', 'Rule 06 is the same as Rule 03.'],
+    ]);
+  });
+
+  it('orders every line by its item in display order (§3.1)', () => {
+    const findings = [
+      alwaysMet('rule-6'),
+      same('rule-3', 'rule-2'),
+      ...conflictSet(['rule-4', 'rule-5']),
+    ];
+    const banner = bannerOf(check(findings), STANDARD, NAMES);
+    expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
+      'Rule 03 is the same as Rule 02.',
+      'Rule 04 and Rule 05 can’t be met together.',
+      'Every applicant meets Rule 06, so it doesn’t check anything.',
+    ]);
+  });
+
+  it('adds the all_meet notice after a line, and after the counts row (W8, §3.2)', () => {
+    expect(head(bannerOf(check([alwaysMet('rule-1')], ALL_MEET), STANDARD, NAMES))).toBe(
+      'Every applicant meets Rule 01, so it doesn’t check anything. Every applicant meets the ' +
+        'rules of Standard.'
+    );
+    const two = bannerOf(
+      check([alwaysMet('rule-1'), same('rule-6', 'rule-3')], ALL_MEET),
+      STANDARD,
+      NAMES
+    );
+    expect(two?.kind).toBe('info');
+    expect(head(two)).toBe(
+      '1 duplicate rule · 1 rule every applicant meets. Every applicant meets the rules of Standard.'
+    );
+  });
+
+  it('leaves out a line without current names, and never shows an id', () => {
+    expect(bannerOf(check([same('rule-9', 'rule-3')]), STANDARD, NAMES)).toBeNull();
+    expect(bannerOf(check([same('rule-6', 'rule-9')]), STANDARD, NAMES)).toBeNull();
+    expect(bannerOf(check([impliedBy('rule-6', ['rule-9'])]), STANDARD, NAMES)).toBeNull();
+    expect(bannerOf(check([implies('rule-6', ['rule-9'])]), STANDARD, NAMES)).toBeNull();
+    expect(bannerOf(check([alwaysMet('rule-9')]), STANDARD, NAMES)).toBeNull();
+  });
+});
+
 describe('tabLabelOf', () => {
   it('reads "<variant> has findings" (A6)', () => {
     expect(tabLabelOf('Standard')).toBe('Standard has findings');
@@ -522,6 +748,33 @@ describe('tabFindingsOf', () => {
       'The rules of Ambulance couldn’t be checked completely. Only findings that are certain are ' +
         'shown.'
     );
+  });
+
+  it('reads U11’s tooltip 6758:43967, "1 duplicate: <line>"', () => {
+    expect(tabFindingsOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES)).toEqual({
+      kind: 'info',
+      text: '1 duplicate: Rule 06 is the same as Rule 03.',
+    });
+  });
+
+  it('reads "1 finding: <line>" for a covered or always-met item (W20)', () => {
+    expect(tabFindingsOf(check([impliedBy('group-1', ['rule-1'])]), STANDARD, NAMES)?.text).toBe(
+      '1 finding: Anyone who meets Rule 01 also meets Group 01.'
+    );
+    expect(tabFindingsOf(check([alwaysMet('group-1')], ALL_MEET), STANDARD, NAMES)).toEqual({
+      kind: 'info',
+      text:
+        '1 finding: Every applicant meets Group 01, so it doesn’t check anything. Every ' +
+        'applicant meets the rules of Standard.',
+    });
+  });
+
+  it('reads U10’s counts row with a duplicate', () => {
+    const findings = [...conflictSet(['rule-4', 'rule-5']), same('rule-6', 'rule-3')];
+    expect(tabFindingsOf(check(findings), STANDARD, NAMES)).toEqual({
+      kind: 'warning',
+      text: '2 rules can’t be met together · 1 duplicate rule',
+    });
   });
 
   it('is null without a banner', () => {
@@ -601,6 +854,41 @@ describe('announcementOf', () => {
     expect(announce(gone(finding))).toBe('Rule 03 is no longer conflicting.');
   });
 
+  it('announces a redundant finding that appears and goes (FR-015)', () => {
+    expect(announce(appeared(same('rule-6', 'rule-3')))).toBe('Rule 06 is the same as Rule 03.');
+    expect(announce(appeared(impliedBy('rule-1', ['rule-2'])))).toBe(
+      'Rule 01 makes no difference beside Rule 02.'
+    );
+    expect(announce(appeared(implies('rule-6', ['rule-1'], ['rule-5'])))).toBe(
+      'Rule 06 makes no difference beside Rule 01 and Rule 05.'
+    );
+    expect(announce(appeared(impliedBy('rule-4', [], ['group-1'])))).toBe(
+      'Rule 04 makes no difference beside Group 01.'
+    );
+    expect(announce(gone(same('rule-6', 'rule-3')))).toBe('Rule 06 is no longer redundant.');
+    expect(announce(gone(impliedBy('rule-1', ['rule-2'])))).toBe('Rule 01 is no longer redundant.');
+  });
+
+  it('announces an always-met finding that appears and goes (FR-015)', () => {
+    expect(announce(appeared(alwaysMet('rule-5')))).toBe('Every applicant meets Rule 05.');
+    expect(announce(gone(alwaysMet('rule-5')))).toBe('Rule 05 is no longer always met.');
+    expect(announce(appeared(alwaysMet('group-1'), AMBULANCE))).toBe(
+      'In Ambulance: Every applicant meets Group 01.'
+    );
+  });
+
+  it('announces the all_meet notice with its own text', () => {
+    expect(announce({ type: 'notice', branch: STANDARD, notice: ALL_MEET })).toBe(
+      'Every applicant meets the rules of Standard.'
+    );
+  });
+
+  it('says nothing of a redundant finding whose names are gone', () => {
+    expect(announce(appeared(same('rule-6', 'rule-9')))).toBe('');
+    expect(announce(appeared(impliedBy('rule-6', ['rule-9'])))).toBe('');
+    expect(announce(appeared(alwaysMet('rule-9')))).toBe('');
+  });
+
   it('announces a new notice with its own text, without a prefix', () => {
     expect(announce({ type: 'notice', branch: STANDARD, notice: NONE_CAN_MEET })).toBe(
       'No applicant can meet the rules of Standard.'
@@ -635,10 +923,20 @@ describe('every text', () => {
     { type: 'members', operator: 'or', items: ['rule-4', 'rule-5', 'rule-6'] },
     { type: 'condition' },
   ];
-  const findings = reasons.flatMap((reason) => [
-    conflicting('group-3', reason),
-    conflicting('group-3', reason, true),
-  ]);
+  const findings: ItemFinding[] = [
+    ...reasons.flatMap((reason) => [
+      conflicting('group-3', reason),
+      conflicting('group-3', reason, true),
+    ]),
+    same('rule-6', 'rule-3'),
+    impliedBy('group-1', ['rule-1']),
+    impliedBy('rule-4', ['rule-2'], ['group-1']),
+    impliedBy('rule-4', [], ['group-1']),
+    implies('rule-3', ['rule-2']),
+    implies('rule-6', ['rule-1'], ['rule-5']),
+    alwaysMet('group-1'),
+    alwaysMet('rule-5'),
+  ];
   const notices = [NONE_CAN_MEET, NONE_CAN_MEET_TODAY, ALL_MEET];
   const banners = notices.flatMap((notice) =>
     [true, false].flatMap((complete) => [
@@ -649,7 +947,13 @@ describe('every text', () => {
       ),
       bannerOf(
         check(
-          [...conflictSet(['rule-1', 'rule-2']), ...conflictSet(['rule-5', 'rule-6'])],
+          [
+            ...conflictSet(['rule-1', 'rule-2']),
+            ...conflictSet(['rule-5', 'rule-6']),
+            same('rule-4', 'rule-3'),
+            alwaysMet('group-1'),
+            impliedBy('rule-2', ['rule-1']),
+          ],
           notice,
           {
             complete,

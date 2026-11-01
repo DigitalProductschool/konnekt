@@ -16,9 +16,9 @@ import { standingOf } from './utils';
 /**
  * A saved rule in the Rules step (S2, S4): the shared row, its name and its ⋯ menu, with "Copy to
  * variant" under it (U20), and in a based variant its mark (FR-023), beside its finding's
- * outline and note (spec 003, FR-012; F4). A removed rule keeps its
- * name, and only offers "Restore rule"; in a removed or dissolved group, a rule is faded with it
- * and has no menu.
+ * outline and note (spec 003, FR-012; A3, A4), in the warning or info look of its kind. A
+ * removed rule keeps its name, and only offers "Restore rule"; in a removed or dissolved group, a
+ * rule is faded with it and has no menu.
  */
 export default function RuleListItem({
   rule,
