@@ -97,7 +97,7 @@ the test step's UI. The documentation is the last task.
 
 **Purpose**: Settle the copy and the tokens that `personas/messages.ts` and the UI tasks need.
 
-- [ ] T001 Write `specs/004-rule-test-personas/design-notes.md`, the copy that the decisions leave open. This is the first UI task, and T013 needs it to complete `personas/messages.ts` (plan "Rules for /speckit-tasks"; research R13; S8.2, S8.4, S8.5, S8.6, S8.8; F6, F10, K1, K2, W10).
+- [X] T001 Write `specs/004-rule-test-personas/design-notes.md`, the copy that the decisions leave open. This is the first UI task, and T013 needs it to complete `personas/messages.ts` (plan "Rules for /speckit-tasks"; research R13; S8.2, S8.4, S8.5, S8.6, S8.8; F6, F10, K1, K2, W10).
   - Use the format of `specs/003-rule-consistency-checks/design-notes.md`. Mark each text that no decision gives as "proposed".
   - Settle research R13's nine items:
     1. a group's statement in the result rows: read how the rules step words a group's header (`editor/RulesStep/GroupListItem.tsx`, `ItemName.tsx`) and reuse that wording (R16);
@@ -110,7 +110,7 @@ the test step's UI. The documentation is the last task.
     8. the heading's counts in general: singular and plural, rules before groups, groups only ("Result: doesn’t meet 2 groups"), sub-groups counting as their reported top-level group;
     9. what "Done" does with invalid drafts (proposed: drops them, the value stays its last valid one), and that switching persona or variant ends edit mode.
   - Also record the decision on the chips' keyboard pattern, to be confirmed by T032 and T056 (research R16): tabs inside the variant's tab panel (one selected, controlling the panel), or a radio group.
-- [ ] T002 Map the Figma variables to KERN 2.8 tokens, once (`docs/FIGMA-WORKFLOW.md` step 2; research R15). It runs after T001, since both write `specs/004-rule-test-personas/design-notes.md`.
+- [X] T002 Map the Figma variables to KERN 2.8 tokens, once (`docs/FIGMA-WORKFLOW.md` step 2; research R15). It runs after T001, since both write `specs/004-rule-test-personas/design-notes.md`.
   - Call `get_variable_defs` on the section `7057:58708`, and map every variable to an existing token of `frontend/src/index.css` (KERN's Tailwind theme and the `@theme` block). Start from the "Tokens" sections of `specs/002-connection-rules/design-notes.md` and `specs/003-rule-consistency-checks/design-notes.md`, since the file is the same.
   - Record the mapping in a "Tokens" section of design-notes.md. List each value that differs only for the Revamp as "KERN 2.8 vs Revamp".
   - Settle the icons the step needs, as KERN 2.8 `kern-icon` classes or as SVGs from the design in `frontend/src/assets/icons/`: the chips' check circle and warning diamond (U01 7057:58755, 7057:58758), "Generate again"'s refresh and "Edit data"'s pencil (7057:58771, 7057:58770), the status icons of "Not met" and "Couldn't be checked" (F8: one icon each, different in shape), the result rows' check icon, the tab's warning icon (U07 7058:61618), the failing-value dot (K1, 7057:59074), and the skeleton's colours (U11 7062:51206).
