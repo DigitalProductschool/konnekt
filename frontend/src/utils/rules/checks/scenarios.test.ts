@@ -1,7 +1,7 @@
 // The spec's scenarios of the rule checks (specs/003-rule-consistency-checks, US1 acceptance
 // scenarios, edge cases, quickstart V4): each case builds its branch with testData.ts' helpers,
 // checks it on 2026-10-28 with `buildCheckedBranch()` and `checkBranch()`, and asserts the exact
-// findings, their notes (`noteOf()`) and, where the spec words it, the summary (`summaryOf()`).
+// findings, their notes (`noteOf()`) and, where the spec words it, the banner (`bannerOf()`).
 //
 // Conflicts (US1) come first. The redundancy scenarios (US2, T036) and the variants' (US3, T040)
 // extend this file with the same helpers: `scenario()` for a main branch's items, `scenarioOf()`
@@ -22,7 +22,7 @@ import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
 import { deleteItem, replaceItem, setOperator, undoChange, ungroupItem, updateRule } from '../tree';
 import type { RuleContext } from '../types';
 import { buildCheckedBranch } from './checkedTree';
-import { namesOf, noteOf, summaryOf } from './findingMessages';
+import { bannerOf, namesOf, noteOf, textOf } from './findingMessages';
 import { checkBranch } from './findings';
 import type {
   BranchCheck,
@@ -152,11 +152,11 @@ interface Scenario {
   names: ItemNames;
   /** The note of each item with a finding, by item id, in display order */
   notes: Record<string, string>;
-  /** The summary above the rules: '' when the result has neither a finding nor a notice */
-  summary: string;
+  /** The findings banner's single or collapsed text: '' without a banner */
+  banner: string;
 }
 
-/** Checks a branch on `today`, with the branch's own name in the summary */
+/** Checks a branch on `today`, with the branch's own name in the banner */
 function scenarioOf(branch: BranchInput, today = TODAY, key = 'branch-1'): Scenario {
   const checked = buildCheckedBranch({ ...branch, key }, SCENARIO_CONTEXT, today);
   const result = checkBranch(checked, IN_TIME);
@@ -164,14 +164,8 @@ function scenarioOf(branch: BranchInput, today = TODAY, key = 'branch-1'): Scena
   const notes = Object.fromEntries(
     result.findings.map((finding) => [finding.itemId, noteOf(finding, names)])
   );
-  const shown = result.findings.length > 0 || result.notice !== null;
-  return {
-    checked,
-    result,
-    names,
-    notes,
-    summary: shown ? summaryOf(result, { key, name: branch.name }, names) : '',
-  };
+  const banner = bannerOf(result, { key, name: branch.name }, names);
+  return { checked, result, names, notes, banner: banner ? textOf(banner.head) : '' };
 }
 
 /** The main branch "Standard" with these items at a top level combined with `operator` */
@@ -206,10 +200,10 @@ function condition(itemId: string, today = false): ConflictingFinding {
   return { itemId, kind: 'conflicting', reason: { type: 'condition' }, today };
 }
 
-/** "Conflicting. Can’t be met together with <items>." */
+/** "Can’t be met together with <items>." */
 function withNote(items: string, today = false): string {
-  const suffix = today ? ' by applicants who share today' : '';
-  return `Conflicting. Can’t be met together with ${items}${suffix}.`;
+  const suffix = today ? ' at the moment' : '';
+  return `Can’t be met together with ${items}${suffix}.`;
 }
 
 const NONE_CAN_MEET = { kind: 'none_can_meet', today: false } as const;
@@ -220,16 +214,15 @@ describe('US1-AS1 and AS2: two rules on a field that holds one value', () => {
   const items = [nationalityOneOf(1, 'DE'), nationalityOneOf(2, 'IT')];
 
   it('AS1: marks both rules, each naming the other, and gives the branch its notice (F1)', () => {
-    const { result, notes, summary } = scenario(items);
+    const { result, notes, banner } = scenario(items);
     expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 2 });
     expect(result.findings).toEqual([
       withItems('rule-1', ['rule-2']),
       withItems('rule-2', ['rule-1']),
     ]);
     expect(notes).toEqual({ 'rule-1': withNote('Rule 02'), 'rule-2': withNote('Rule 01') });
-    expect(summary).toBe(
-      '2 conflicting rules: nobody can meet both Rule 01 and Rule 02. No applicant can meet the ' +
-        'rules of Standard.'
+    expect(banner).toBe(
+      'Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules of Standard.'
     );
   });
 
@@ -253,7 +246,7 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
   });
 
   it('in a group: both rules, the group with its members note, and the notice (F6)', () => {
-    const { result, notes, summary } = scenario([group(1, [ageAbove(1, 30), ageBelow(2, 20)])]);
+    const { result, notes, banner } = scenario([group(1, [ageAbove(1, 30), ageBelow(2, 20)])]);
     expect(result.notice).toEqual(NONE_CAN_MEET);
     expect(result.findings).toEqual([
       members('group-1', ['rule-1', 'rule-2']),
@@ -261,19 +254,19 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
       withItems('rule-2', ['rule-1']),
     ]);
     expect(notes).toEqual({
-      'group-1': 'Conflicting. Rule 01 and Rule 02 in this group can’t be met together.',
+      'group-1': 'Rule 01 and Rule 02 in this group can’t be met together.',
       'rule-1': withNote('Rule 02'),
       'rule-2': withNote('Rule 01'),
     });
-    expect(summary).toBe(
-      '2 conflicting rules and 1 conflicting group: nobody can meet both Rule 01 and Rule 02. No ' +
-        'applicant can meet the rules of Standard.'
+    expect(banner).toBe(
+      'Group 01: Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules ' +
+        'of Standard.'
     );
   });
 
   it('in a sub-group: the same marks on the sub-group, and its group names it', () => {
     // Top level AND: Group 01 (AND: Sub-group 02 (AND: Rule 01, Rule 02), Rule 03)
-    const { result, notes } = scenario([
+    const { result, notes, banner } = scenario([
       group(1, [
         group(2, [ageAbove(1, 30), ageBelow(2, 20)], 'and', true),
         on(3, PID_NATIONALITY, { operator: 'includes_one_of', values: ['DE'] }),
@@ -287,11 +280,15 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
       withItems('rule-2', ['rule-1']),
     ]);
     expect(notes).toEqual({
-      'group-1': 'Conflicting. Sub-group 02 in this group can’t be met.',
-      'group-2': 'Conflicting. Rule 01 and Rule 02 in this group can’t be met together.',
+      'group-1': 'Sub-group 02 in this group can’t be met.',
+      'group-2': 'Rule 01 and Rule 02 in this group can’t be met together.',
       'rule-1': withNote('Rule 02'),
       'rule-2': withNote('Rule 01'),
     });
+    // Two lines, "Group 01: Sub-group 02 can’t be met." and Sub-group 02's, so collapsed
+    expect(banner).toBe(
+      '2 rules can’t be met together. So no applicant can meet the rules of Standard.'
+    );
   });
 });
 
@@ -310,22 +307,20 @@ describe('US1-AS4: a group that can’t be met, as an alternative', () => {
       withItems('rule-1', ['rule-2']),
       withItems('rule-2', ['rule-1']),
     ]);
-    expect(notes['group-1']).toBe(
-      'Conflicting. Rule 01 and Rule 02 in this group can’t be met together.'
-    );
+    expect(notes['group-1']).toBe('Rule 01 and Rule 02 in this group can’t be met together.');
   });
 });
 
 describe('US1-AS5: a rule in an OR group that conflicts with an AND sibling (W2)', () => {
   it('marks only Rule 02, naming Rule 01, and the branch has no notice', () => {
-    const { result, notes, summary } = scenario([
+    const { result, notes, banner } = scenario([
       yearsAgo(1, 'at_least_years_ago', 21),
       group(1, [yearsAgo(2, 'less_than_years_ago', 18), classesOneOf(3, 'B')], 'or'),
     ]);
     expect(result).toMatchObject({ complete: true, notice: null, checkedRules: 3 });
     expect(result.findings).toEqual([withItems('rule-2', ['rule-1'])]);
     expect(notes).toEqual({ 'rule-2': withNote('Rule 01') });
-    expect(summary).toBe('1 conflicting rule: nobody can meet both Rule 01 and Rule 02.');
+    expect(banner).toBe('Rule 01 and Rule 02 can’t be met together.');
   });
 });
 
@@ -397,7 +392,7 @@ describe('US1-AS6: the marks follow every change, and its undo', () => {
 
 describe('EC-11: a conflict among four rules, any three of which can be met (W3)', () => {
   it('marks each of the four, naming the other three', () => {
-    const { result, notes, summary } = scenario([
+    const { result, notes, banner } = scenario([
       ageAbove(1, 17),
       ageBelow(2, 20),
       ageNot(3, 18),
@@ -416,9 +411,9 @@ describe('EC-11: a conflict among four rules, any three of which can be met (W3)
       'rule-3': withNote('Rule 01, Rule 02 and Rule 04'),
       'rule-4': withNote('Rule 01, Rule 02 and Rule 03'),
     });
-    expect(summary).toBe(
-      '4 conflicting rules: nobody can meet all of Rule 01, Rule 02, Rule 03 and Rule 04. No ' +
-        'applicant can meet the rules of Standard.'
+    expect(banner).toBe(
+      'Rule 01, Rule 02, Rule 03 and Rule 04 can’t be met together. So no applicant can meet the ' +
+        'rules of Standard.'
     );
   });
 });
@@ -541,8 +536,8 @@ describe('EC-7: a fixed date against the day of sharing (FR-008, W5)', () => {
     yearsAgo(2, 'at_least_years_ago', 21),
   ];
 
-  it('conflicts for applicants who share today, in the notes and the notice', () => {
-    const { result, notes, summary } = scenario(items);
+  it('conflicts at the moment, in the notes, the banner and the notice (A7)', () => {
+    const { result, notes, banner } = scenario(items);
     expect(result).toMatchObject({
       complete: true,
       notice: { kind: 'none_can_meet', today: true },
@@ -555,9 +550,9 @@ describe('EC-7: a fixed date against the day of sharing (FR-008, W5)', () => {
       'rule-1': withNote('Rule 02', true),
       'rule-2': withNote('Rule 01', true),
     });
-    expect(summary).toBe(
-      '2 conflicting rules: nobody who shares today can meet both Rule 01 and Rule 02. No ' +
-        'applicant who shares today can meet the rules of Standard.'
+    expect(banner).toBe(
+      'Rule 01 and Rule 02 can’t be met together at the moment. Right now, no applicant can meet ' +
+        'the rules of Standard.'
     );
   });
 
@@ -570,16 +565,16 @@ describe('EC-7: a fixed date against the day of sharing (FR-008, W5)', () => {
 
 describe('EC "An enum rule with every value" (FR-007)', () => {
   it('"includes none of" every country: the rule’s condition can’t be met', () => {
-    const { result, notes, summary } = scenario([
+    const { result, notes, banner } = scenario([
       on(1, MDL_NATIONALITY, { operator: 'includes_none_of', values: EVERY_COUNTRY }),
     ]);
     expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET });
     expect(result.findings).toEqual([condition('rule-1')]);
     expect(notes).toEqual({
-      'rule-1': 'Conflicting. No applicant can meet this rule’s condition.',
+      'rule-1': 'No applicant can meet this rule.',
     });
-    expect(summary).toBe(
-      '1 conflicting rule: nobody can meet Rule 01. No applicant can meet the rules of Standard.'
+    expect(banner).toBe(
+      'No applicant can meet Rule 01. So no applicant can meet the rules of Standard.'
     );
   });
 

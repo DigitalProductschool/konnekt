@@ -296,8 +296,8 @@ export interface ConflictingFinding {
   kind: 'conflicting';
   reason: ConflictingReason;
   /**
-   * True when the finding holds today but not on every later day (FR-008), so the note adds "by
-   * applicants who share today"
+   * True when the finding holds today but not on every later day (FR-008), so the note and the
+   * banner's line end "at the moment"
    */
   today: boolean;
 }
@@ -332,8 +332,8 @@ export type ItemFindingKind = ItemFinding['kind'];
 export interface NoneCanMeetNotice {
   kind: 'none_can_meet';
   /**
-   * True when it holds today but not on every later day: "No applicant who shares today can meet
-   * …" (FR-008)
+   * True when it holds today but not on every later day: "Right now, no applicant can meet …"
+   * (FR-008)
    */
   today: boolean;
 }
@@ -358,7 +358,7 @@ export interface BranchCheck {
   notice: BranchNotice | null;
   /** In display order, at most one per item. Only certain findings */
   findings: ItemFinding[];
-  /** The rules checked. 0 means no summary, notice or tab icon (W13) */
+  /** The rules checked. 0 means no banner, notice or tab icon (W13) */
   checkedRules: number;
 }
 
@@ -550,6 +550,73 @@ export interface NoticeAppeared {
  * (data-model.md, "Announcements"), discriminated by `type`
  */
 export type FindingChange = FindingAppeared | FindingGone | NoticeAppeared;
+
+/**
+ * The look of the findings banner, of an item's icon in it and of the tab's icon (A1): warning for
+ * a conflict and for "No applicant can meet …", info otherwise
+ */
+export type FindingTone = 'warning' | 'info';
+
+/** A rule's or group's name in a banner line, which the banner draws as a link to its row */
+export interface ItemReference {
+  itemId: string;
+  /** Its current name (FR-011) */
+  name: string;
+}
+
+/** A piece of a banner text: plain text, or a name the banner draws as a link */
+export type BannerPart = string | ItemReference;
+
+/** One line of the findings banner (design-notes.md §3.1): a conflict set or another finding */
+export interface BannerLine {
+  /** Its finding's kind, for the icon's hidden text (`kindTextOf()`) */
+  kind: ItemFindingKind;
+  /** Its icon */
+  tone: FindingTone;
+  /** "Rule 01 and Rule 02 can’t be met together.", with the names as references */
+  parts: BannerPart[];
+}
+
+/** A branch notice in the banner (design-notes.md §3.2), without a link */
+export interface BannerNotice {
+  /** Its icon */
+  tone: FindingTone;
+  /** As its own item, or alone: "No applicant can meet the rules of Standard." */
+  text: string;
+  /** Appended to a single line or to the counts row: "So no applicant can meet …" */
+  appended: string;
+}
+
+/**
+ * The findings banner of the branch shown, from `bannerOf()` (contracts/rule-checks.md; A1, A2,
+ * W12, W17; design-notes.md §3). Its states (§3.3): single with fewer than two lines, showing
+ * `head`; collapsed by default with two or more, showing `head`; expanded, showing `counts`, then
+ * one item per line, then `notice.text` and `incomplete` as items without a link
+ */
+export interface FindingsBanner {
+  kind: FindingTone;
+  /** In display order of each line's first item */
+  lines: BannerLine[];
+  /** The counts row (§3.4) with two or more lines, '' otherwise */
+  counts: string;
+  notice: BannerNotice | null;
+  /** FR-010's sentence after an incomplete check, null otherwise */
+  incomplete: string | null;
+  /**
+   * The single banner's text, or the collapsed banner's row: the line, the notice appended and
+   * the incomplete sentence; or the counts row, " · couldn’t be checked completely" and the notice
+   * appended; or the notice and the incomplete sentence alone
+   */
+  head: BannerPart[];
+}
+
+/** The findings segment of a variant tab's tooltip, from `tabFindingsOf()` (§4; A6, W20) */
+export interface TabFindings {
+  /** Its icon */
+  kind: FindingTone;
+  /** "1 conflict: Rule 01 and Rule 02 can’t be met together. So no applicant …" */
+  text: string;
+}
 
 /** What `announcementsFor()` words a branch's changes with */
 export interface AnnouncementContext {

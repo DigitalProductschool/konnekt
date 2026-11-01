@@ -22,12 +22,16 @@ import {
   setBranchOperator,
   ungroupInBranch,
 } from '../../../utils/rules/branches';
-import type { BranchCheck } from '../../../utils/rules/checks/types';
+import { kindTextOf } from '../../../utils/rules/checks/findingMessages';
+import type { FindingsBanner } from '../../../utils/rules/checks/types';
 import { MAX_BRANCHES, RULES_MESSAGES } from '../../../utils/rules/constants';
 import { deleteItem, findItem, flattenItems, newRule, numberOfId } from '../../../utils/rules/tree';
 import { variantNameProblem } from '../../../utils/rules/validation';
+import { ELEMENT_IDS } from '../constants';
 import { MAIN_BRANCH_KEY, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
 import type {
+  BannerItem,
+  BannerView,
   ItemStanding,
   RenameAction,
   RenameField,
@@ -36,7 +40,6 @@ import type {
   RulesSelection,
   RulesState,
   RulesUndo,
-  SummaryVariant,
   SwitchedLevel,
   VariantForm,
   VariantFormAction,
@@ -88,6 +91,7 @@ export function initialRulesState(formConnection?: FormConnection): RulesState {
     problem: null,
     selection: null,
     switched: null,
+    expandedFindings: [],
   };
 }
 
@@ -109,39 +113,65 @@ export function focusSoon(id: string, fallbackId?: string, onlyIfLost = false) {
 }
 
 /**
- * The look of a branch's findings (S2; F2; FR-019): KERN's warning when the branch has a conflict
- * or no applicant can meet it, its info look otherwise, an incomplete check without a certain
- * finding included (W12).
+ * What the findings banner draws (S2; A1, W12, W17; design-notes.md §3.3), from `bannerOf()`:
+ * *single* with fewer than two lines, its `head` with the banner's icon, and the line's hidden kind
+ * text when there is a line; *collapsed* by default with two or more lines, its `head` (the counts
+ * row with what follows it); *expanded*, the counts row, then one item per line with its icon and
+ * hidden kind text, then the notice and FR-010's sentence without a link or kind text. No text is
+ * built here.
  */
-export function summaryVariantOf(check: BranchCheck): SummaryVariant {
-  const conflict = check.findings.some((finding) => finding.kind === 'conflicting');
-  return conflict || check.notice?.kind === 'none_can_meet' ? 'warning' : 'info';
+export function bannerViewOf(banner: FindingsBanner, expanded: boolean): BannerView {
+  const { kind, lines, counts, notice, incomplete, head } = banner;
+  if (lines.length < 2) {
+    const kindText = lines.length === 1 ? kindTextOf(lines[0].kind) : null;
+    return {
+      state: 'single',
+      summary: { key: 'summary', tone: kind, kindText, parts: head },
+      items: [],
+    };
+  }
+  if (!expanded) {
+    return {
+      state: 'collapsed',
+      summary: { key: 'summary', tone: kind, kindText: null, parts: head },
+      items: [],
+    };
+  }
+  const items: BannerItem[] = [
+    ...lines.map((line, index) => ({
+      key: `line-${index}`,
+      tone: line.tone,
+      kindText: kindTextOf(line.kind),
+      parts: line.parts,
+    })),
+    ...(notice ? [{ key: 'notice', tone: notice.tone, kindText: null, parts: [notice.text] }] : []),
+    ...(incomplete
+      ? [{ key: 'incomplete', tone: 'info' as const, kindText: null, parts: [incomplete] }]
+      : []),
+  ];
+  return {
+    state: 'expanded',
+    summary: { key: 'summary', tone: kind, kindText: null, parts: [counts] },
+    items,
+  };
 }
 
 /**
- * The rule or group that "Go to next finding" visits next (S2; F3; FR-013): the first of
- * `targets`, the items with a finding in display order, that comes after `last`, the item it
- * visited before, or the first one again after the last (or without `last`). `order` is every
- * item of the branch in display order, which places a `last` that no longer has a finding. Null
- * without targets (W16).
+ * A banner name's link (S2; A1; FR-013): scrolls its rule or group into view, only as far as
+ * needed, and moves the focus to its row or group frame, which its note describes. A group's
+ * frame starts with its header, which then comes into view too, when the group is taller than
+ * the visible area.
  */
-export function nextFindingTarget(
-  targets: readonly string[],
-  order: readonly string[],
-  last: string | null
-): string | null {
-  if (targets.length === 0) {
-    return null;
+export function goToItem(branchKey: string, itemId: string) {
+  const element = document.getElementById(ELEMENT_IDS.rule(branchKey, itemId));
+  if (!element) {
+    return;
   }
-  const at = last === null ? -1 : targets.indexOf(last);
-  if (at >= 0) {
-    return targets[(at + 1) % targets.length];
+  element.focus({ preventScroll: true });
+  element.scrollIntoView({ block: 'nearest' });
+  if (element.getAttribute('role') === 'group') {
+    element.firstElementChild?.scrollIntoView({ block: 'nearest' });
   }
-  const place = last === null ? -1 : order.indexOf(last);
-  if (place < 0) {
-    return targets[0];
-  }
-  return targets.find((target) => order.indexOf(target) > place) ?? targets[0];
 }
 
 /** The items of a level of a branch: a group's members, or the top level for null. */
@@ -789,6 +819,15 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
     }
     case 'cancelSelect':
       return { ...state, selection: null };
+    case 'toggleFindings': {
+      const { expandedFindings } = state;
+      return {
+        ...state,
+        expandedFindings: expandedFindings.includes(action.branchKey)
+          ? expandedFindings.filter((key) => key !== action.branchKey)
+          : [...expandedFindings, action.branchKey],
+      };
+    }
     case 'groupSelected': {
       const { selection } = state;
       const branch = selection && branchOf(state, selection.branchKey);

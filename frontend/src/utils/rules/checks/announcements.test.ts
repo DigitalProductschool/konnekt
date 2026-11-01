@@ -78,7 +78,7 @@ describe('announcementsFor', () => {
         check([conflict('rule-3', ['rule-1'])]),
         check([conflict('rule-3', ['rule-1'], true)])
       )
-    ).toEqual(['Rule 03 conflicts with Rule 01 by applicants who share today.']);
+    ).toEqual(['Rule 03 conflicts with Rule 01 at the moment.']);
   });
 
   it('counts a change of kind as one going and one appearing', () => {
@@ -100,7 +100,7 @@ describe('announcementsFor', () => {
     expect(announce(check([], { notice }), NONE)).toEqual([]);
     expect(
       announce(check([], { notice }), check([], { notice: { kind: 'none_can_meet', today: true } }))
-    ).toEqual(['No applicant who shares today can meet the rules of Standard.']);
+    ).toEqual(['Right now, no applicant can meet the rules of Standard.']);
   });
 
   it('leaves out the notice that every applicant meets the branch (T038)', () => {

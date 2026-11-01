@@ -12,7 +12,13 @@ import type {
 } from '../../../types/form-connections';
 import type { OptionSet } from '../../../types/option-sets';
 import type { PopupPlacement } from '../../../utils/popupPlacement';
-import type { BranchCheck, ItemNames } from '../../../utils/rules/checks/types';
+import type {
+  BannerPart,
+  BranchCheck,
+  FindingTone,
+  ItemNames,
+  ItemReference,
+} from '../../../utils/rules/checks/types';
 import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
 
 /** A branch in the rules step. `key` stays the same while the branch has no id yet */
@@ -113,6 +119,11 @@ export interface RulesState {
   problem: RulesProblem | null;
   selection: RulesSelection | null;
   switched: SwitchedLevel | null;
+  /**
+   * The keys of the variants whose findings banner is expanded while the editor is open, never
+   * stored (design-notes.md §3.3; FR-019)
+   */
+  expandedFindings: string[];
 }
 
 export type RulesAction =
@@ -143,6 +154,8 @@ export type RulesAction =
   | { type: 'startSelect'; branchKey: string; itemId: string }
   | { type: 'toggleSelect'; itemId: string }
   | { type: 'cancelSelect' }
+  /** Opens or closes a variant's findings banner (A1) */
+  | { type: 'toggleFindings'; branchKey: string }
   /** "Group rules": the chosen rules become a group or sub-group */
   | { type: 'groupSelected' }
   | { type: 'ungroup'; branchKey: string; groupId: string }
@@ -384,16 +397,54 @@ export type RenameAction =
   | { type: 'change'; value: string }
   | { type: 'refuse'; error: string };
 
-/** The KERN alert of a branch's findings summary (F2) */
-export type SummaryVariant = 'warning' | 'info';
+/** How the findings banner shows (design-notes.md §3.3; A1, W17) */
+export type BannerState = 'single' | 'collapsed' | 'expanded';
 
-export interface FindingsSummaryProps {
+/** One item of the expanded findings banner: a line, the notice or FR-010's sentence */
+export interface BannerItem {
+  key: string;
+  /** Its icon */
+  tone: FindingTone;
+  /** Its icon's visually hidden kind text ("Conflicting:"), null for the notice and FR-010's */
+  kindText: string | null;
+  /** Its text, the names as references to link */
+  parts: BannerPart[];
+}
+
+/** What the findings banner draws, from `bannerViewOf()` */
+export interface BannerView {
+  state: BannerState;
+  /** The summary row: the line and what follows it, or the counts row */
+  summary: BannerItem;
+  /** The expanded banner's items, empty otherwise */
+  items: BannerItem[];
+}
+
+export interface FindingsBannerProps {
   /** The shown branch's result, from `useRuleChecks()`; null while it hasn't been checked */
   check: BranchCheck | null;
-  /** The shown branch, which the summary names */
+  /** The shown branch, which the banner names */
   branch: RulesBranch;
   /** Its items' current names in display order, from `namesOf()` */
   names: ItemNames;
+  /** Whether the banner is expanded, kept per variant in the step's state */
+  expanded: boolean;
+  dispatch: (action: RulesAction) => void;
+  /** The rule open in the rule editor, which has no row and isn't a link */
+  plainItemId: string | null;
+}
+
+export interface FindingsBannerLineProps {
+  item: BannerItem;
+  branchKey: string;
+  plainItemId: string | null;
+  /** After the text: the chevron of the summary row */
+  children?: ReactNode;
+}
+
+export interface FindingLinkProps {
+  reference: ItemReference;
+  branchKey: string;
 }
 
 export interface UnrequestedBannerProps {

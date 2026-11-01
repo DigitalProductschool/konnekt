@@ -13,7 +13,7 @@ import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
 import { RULES_COPY, SELECTION_SCROLL_MARGIN } from './constants';
-import FindingsSummary from './FindingsSummary';
+import FindingsBanner from './FindingsBanner';
 import LinkStrip from './LinkStrip';
 import RuleEditor from './RuleEditor';
 import RulesEmptyState from './RulesEmptyState';
@@ -37,8 +37,8 @@ import { branchOf, focusSoon, groupOf, switchNoteOf } from './utils';
  * banner and flagged (F11); a refused Publish or Save shows the server's message above the
  * card. Identifiers aren't shown here (FR-010). The rule checks of spec 003 outline each rule
  * and group of the open branch that has a finding, with its note (S2; FR-012; F4, F5, F6; Figma
- * U01 6171:6749, U02 6171:7064), and summarise them above its rules, after the problems banner
- * (FR-013; F1, F2, F3); they update in place after every change (W1), refuse nothing (F8;
+ * U01 6171:6749, U02 6171:7064), and the findings banner sums them up above its rules, after the
+ * problems banner, with links to them (FR-013; A1, A2); they update in place after every change (W1), refuse nothing (F8;
  * FR-016), and the rule editor shows nothing about them (S3; W15).
  */
 export default function RulesStep({
@@ -243,11 +243,13 @@ export default function RulesStep({
           />
         )}
         {unrequested.length > 0 && <UnrequestedBanner rules={unrequested} />}
-        <FindingsSummary
-          key={branch.key}
+        <FindingsBanner
           check={checks[branch.key] ?? null}
           branch={branch}
           names={names}
+          expanded={state.expandedFindings.includes(branch.key)}
+          dispatch={dispatch}
+          plainItemId={editor && editor.original !== null ? editor.draft.id : null}
         />
         <SwitchNote text={switchNoteOf(state, branch, null)} topLevel />
         {items.length === 0 && !editor ? (

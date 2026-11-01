@@ -270,9 +270,17 @@ as below, with Revamp values (O6), plus two new ones, `variant/changed-text` #8a
 `variant/changed-background` #f8f1fc, "(purple, same as New addition)", for the purple "Changed
 here", which is deferred (O3): `--color-variant-changed` stays. What changes for the findings:
 - **Notes** (A3): the text is `layout-text-default` (`text-kern-layout-text-default`), body/small
-  regular, not the feedback colour and not semibold; only the 20 px icon takes
-  `feedback-warning` or its info colour. Read the info icon's exact colour with
-  `get_design_context` on a note (U02 `6171:7510`): it is drawn darker than the banner's info icon.
+  regular, not the feedback colour and not semibold; only the 20 px icon takes a colour.
+  - **Icon colour** (decision 2026-11-01): a conflict's icon is `feedback-warning`
+    (`bg-kern-feedback-warning!`). A redundant or always-met note's info icon is `layout-text-muted`
+    (`bg-kern-layout-text-muted!`), the variable Figma binds on the notes' `icon-info-small` (U02
+    `6171:7510`, `6750:40560`), darker than the banner's. This holds only inside the rules (the
+    notes under a rule or a group's header); the info icons at the variant level (the tab icon, the
+    banner, the dialog's lines) keep `feedback-info`.
+  - **Font size** (decision 2026-11-01): 14 px, as Figma draws it, with KERN's primitive
+    `--kern-font-size-14` (`text-(length:--kern-font-size-14)`), line height 24
+    (`--kern-typography-line-height-medium-static`). This is an exception to the "KERN 2.8 vs
+    Revamp" rule, whose `small-static` would be 16 px.
 - **Banner** (A1): warning: background `feedback-warning-background`, 1 px border
   `feedback-warning`; info: `feedback-info-background` and `feedback-info`; radius `default` (8);
   padding 8, 16 on the left; text `layout-text-default`, links `action-default`, underlined.
@@ -306,7 +314,7 @@ Every colour is in spec 002 §9's table; the ones the findings use:
 |---|---|---|---|---|
 | `feedback-warning-contextual` | #9a4a00 | `--kern-color-feedback-warning` (`text-kern-feedback-warning`, `border-kern-feedback-warning`, `bg-kern-feedback-warning`) | #925400 | conflict outline, note text and icon; warning tab icon; warning dialog line |
 | `feedback-warning-background-contextual` | #fff4e0 | `--kern-color-feedback-warning-background` | #ffe7b6 | KERN's warning alert (set by `kern-alert--warning`) |
-| `feedback-info(-contextual)` | #0284c7 | `--kern-color-feedback-info` (`text-kern-feedback-info`, `border-kern-feedback-info`, `bg-kern-feedback-info`) | #006b8c | redundant and always-met outline, note text and icon; info tab icon; info dialog line |
+| `feedback-info(-contextual)` | #0284c7 | `--kern-color-feedback-info` (`text-kern-feedback-info`, `border-kern-feedback-info`, `bg-kern-feedback-info`) | #006b8c | redundant and always-met outline; info tab icon; banner's info icon; info dialog line (the notes' info icon is `layout-text-muted`, see the update above) |
 | `feedback-info-background-contextual` | #e0f2fe | `--kern-color-feedback-info-background` | #c0f3ff | KERN's info alert (set by `kern-alert--info`) |
 | `feedback-danger(-contextual)` | #c4271c | `--kern-color-feedback-danger` | #c31c13 | spec 002's problems only (unchanged, W11) |
 | `feedback-danger-background-contextual` | #fef1f0 | `--kern-color-feedback-danger-background` | #fee4e0 | spec 002's problems only |
@@ -323,8 +331,9 @@ KERN 2.8.2 (`@kern-ux/native/dist/kern.css`) has both glyphs as mask icons:
 - **Warning**: `kern-icon kern-icon--warning`, the triangle with "!" (Material "warning"), which
   `kern-alert--warning` uses. With `kern-icon--small` and `bg-kern-feedback-warning!` in a note, as
   `ProblemNote` colours its icon.
-- **Info**: `kern-icon kern-icon--info`, the circled "i", which `kern-alert--info` uses, with
-  `bg-kern-feedback-info!`.
+- **Info**: `kern-icon kern-icon--info`, the circled "i", which `kern-alert--info` uses. In a note
+  under a rule or group, with `bg-kern-layout-text-muted!`; at the variant level (tab icon, banner,
+  dialog), with `bg-kern-feedback-info!` (decision 2026-11-01).
 
 Spec 002's `ProblemNote` uses `kern-icon--info` in the danger colour for its problems; the
 findings' notes keep that layout and change only the icon and its colour (A3; the note's text is

@@ -1,20 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import type { GroupItem, RuleTreeItem } from '../../../types/form-connections';
-import type { BranchCheck, ItemFinding } from '../../../utils/rules/checks/types';
+import type { BannerLine, FindingsBanner } from '../../../utils/rules/checks/types';
 import { rule } from '../../../utils/rules/testData';
 import { findItem, flattenItems } from '../../../utils/rules/tree';
 import type { RulesAction, RulesState } from './types';
 import {
+  bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
   initialRulesState,
   joinNames,
   neighbourOf,
-  nextFindingTarget,
   rulesReducer,
   selectionText,
-  summaryVariantOf,
   switchNoteOf,
 } from './utils';
 
@@ -646,88 +645,102 @@ describe('copy targets (FR-022; U20)', () => {
   });
 });
 
-describe('summaryVariantOf', () => {
-  const conflicting: ItemFinding = {
-    itemId: 'rule-1',
+describe('bannerViewOf', () => {
+  const rule1 = { itemId: 'rule-1', name: 'Rule 01' };
+  const rule2 = { itemId: 'rule-2', name: 'Rule 02' };
+  const group2 = { itemId: 'group-2', name: 'Sub-group 01' };
+  const rule4 = { itemId: 'rule-4', name: 'Rule 04' };
+  const rule5 = { itemId: 'rule-5', name: 'Rule 05' };
+  const U01_LINE: BannerLine = {
     kind: 'conflicting',
-    reason: { type: 'with', items: ['rule-2'] },
-    today: false,
+    tone: 'warning',
+    parts: [rule1, ' and ', rule2, ' can’t be met together.'],
   };
-  const alwaysMet: ItemFinding = {
-    itemId: 'rule-3',
-    kind: 'always_met',
-    reason: null,
-    today: false,
+  const U05_LINE: BannerLine = {
+    kind: 'conflicting',
+    tone: 'warning',
+    parts: [group2, ': ', rule4, ' and ', rule5, ' can’t be met together.'],
   };
+  const NOTICE = {
+    tone: 'warning' as const,
+    text: 'No applicant can meet the rules of Standard.',
+    appended: 'So no applicant can meet the rules of Standard.',
+  };
+  const INCOMPLETE =
+    'The rules of Standard couldn’t be checked completely. Only findings that are certain are shown.';
 
-  function check(changes: Partial<BranchCheck>): BranchCheck {
+  function banner(changes: Partial<FindingsBanner>): FindingsBanner {
     return {
-      branchKey: 'main',
-      fingerprint: 'f',
-      complete: true,
+      kind: 'warning',
+      lines: [],
+      counts: '',
       notice: null,
-      findings: [],
-      checkedRules: 3,
+      incomplete: null,
+      head: [],
       ...changes,
     };
   }
 
-  it('is a warning with a conflict (F2, U01)', () => {
-    expect(summaryVariantOf(check({ findings: [conflicting] }))).toBe('warning');
+  it('shows one line with its kind text and no items, expanded or not (U01)', () => {
+    const head = [...U01_LINE.parts, ' So no applicant can meet the rules of Standard.'];
+    const u01 = banner({ lines: [U01_LINE], notice: NOTICE, head });
+    for (const expanded of [false, true]) {
+      expect(bannerViewOf(u01, expanded)).toEqual({
+        state: 'single',
+        summary: { key: 'summary', tone: 'warning', kindText: 'Conflicting:', parts: head },
+        items: [],
+      });
+    }
   });
 
-  it('is a warning when no applicant can meet the branch, today only too (W5)', () => {
-    expect(summaryVariantOf(check({ notice: { kind: 'none_can_meet', today: true } }))).toBe(
-      'warning'
-    );
+  it('shows the notice or FR-010’s sentence alone without a kind text (W12, W17)', () => {
+    const alone = banner({ kind: 'info', incomplete: INCOMPLETE, head: [INCOMPLETE] });
+    expect(bannerViewOf(alone, false)).toMatchObject({
+      state: 'single',
+      summary: { tone: 'info', kindText: null, parts: [INCOMPLETE] },
+    });
   });
 
-  it('is info without a conflict (F2, U04; W8)', () => {
-    expect(summaryVariantOf(check({ findings: [alwaysMet] }))).toBe('info');
-    expect(
-      summaryVariantOf(check({ findings: [alwaysMet], notice: { kind: 'all_meet', today: false } }))
-    ).toBe('info');
+  const counts = '3 rules can’t be met together';
+  const two = banner({
+    lines: [U01_LINE, U05_LINE],
+    counts,
+    notice: NOTICE,
+    incomplete: INCOMPLETE,
+    head: [`${counts} · couldn’t be checked completely. ${NOTICE.appended}`],
   });
 
-  it('is info for an incomplete check without a certain finding (W12)', () => {
-    expect(summaryVariantOf(check({ complete: false }))).toBe('info');
+  it('is collapsed by default with two lines, showing the head (U02, W17)', () => {
+    expect(bannerViewOf(two, false)).toEqual({
+      state: 'collapsed',
+      summary: { key: 'summary', tone: 'warning', kindText: null, parts: two.head },
+      items: [],
+    });
+  });
+
+  it('lists the lines, then the notice and FR-010’s sentence when expanded (U05)', () => {
+    const view = bannerViewOf(two, true);
+    expect(view.state).toBe('expanded');
+    expect(view.summary).toMatchObject({ kindText: null, parts: [counts] });
+    expect(view.items).toEqual([
+      { key: 'line-0', tone: 'warning', kindText: 'Conflicting:', parts: U01_LINE.parts },
+      { key: 'line-1', tone: 'warning', kindText: 'Conflicting:', parts: U05_LINE.parts },
+      { key: 'notice', tone: 'warning', kindText: null, parts: [NOTICE.text] },
+      { key: 'incomplete', tone: 'info', kindText: null, parts: [INCOMPLETE] },
+    ]);
   });
 });
 
-describe('nextFindingTarget', () => {
-  // U02: Rule 01, Rule 02, Group 01 with Rule 03, Sub-group 01 (Rule 04, Rule 05), Rule 06
-  const order = ['rule-1', 'rule-2', 'group-1', 'rule-3', 'group-2', 'rule-4', 'rule-5', 'rule-6'];
-
-  it('cycles through U01: Rule 01, Rule 02, then Rule 01 again (F3)', () => {
-    const targets = ['rule-1', 'rule-2'];
-    const u01 = ['rule-1', 'rule-2', 'rule-3'];
-    expect(nextFindingTarget(targets, u01, null)).toBe('rule-1');
-    expect(nextFindingTarget(targets, u01, 'rule-1')).toBe('rule-2');
-    expect(nextFindingTarget(targets, u01, 'rule-2')).toBe('rule-1');
-  });
-
-  it('visits a sub-group before its rules, in display order (F3, U02)', () => {
-    const targets = ['group-2', 'rule-4', 'rule-5', 'rule-6'];
-    const visited: (string | null)[] = [];
-    let last: string | null = null;
-    for (let press = 0; press < 5; press += 1) {
-      last = nextFindingTarget(targets, order, last);
-      visited.push(last);
-    }
-    expect(visited).toEqual(['group-2', 'rule-4', 'rule-5', 'rule-6', 'group-2']);
-  });
-
-  it('goes on after an item that no longer has a finding', () => {
-    expect(nextFindingTarget(['rule-1', 'rule-5', 'rule-6'], order, 'rule-4')).toBe('rule-5');
-    expect(nextFindingTarget(['rule-1', 'rule-2'], order, 'rule-6')).toBe('rule-1');
-  });
-
-  it('starts over after an item that is gone', () => {
-    expect(nextFindingTarget(['rule-2', 'rule-5'], order, 'rule-9')).toBe('rule-2');
-  });
-
-  it('has nothing to visit without a finding on a rule or group (W12, W16)', () => {
-    expect(nextFindingTarget([], order, null)).toBeNull();
-    expect(nextFindingTarget([], order, 'rule-1')).toBeNull();
+describe('toggleFindings', () => {
+  it('opens and closes each variant’s banner on its own, starting closed', () => {
+    const start = initialRulesState();
+    expect(start.expandedFindings).toEqual([]);
+    const open = rulesReducer(start, { type: 'toggleFindings', branchKey: 'main' });
+    expect(open.expandedFindings).toEqual(['main']);
+    const both = rulesReducer(open, { type: 'toggleFindings', branchKey: 'new-1' });
+    expect(both.expandedFindings).toEqual(['main', 'new-1']);
+    expect(
+      rulesReducer(both, { type: 'toggleFindings', branchKey: 'main' }).expandedFindings
+    ).toEqual(['new-1']);
   });
 });

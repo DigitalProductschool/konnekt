@@ -1,5 +1,6 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
 import type { PopupPlacement } from '../../../utils/popupPlacement';
+import type { FindingTone } from '../../../utils/rules/checks/types';
 import type { ItemNameSize } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */
@@ -206,13 +207,27 @@ export const RULES_COPY = {
   // A refused Publish or Save (F11), with the server's message
   refusedPublishTitle: 'Couldn’t publish',
   refusedSaveTitle: 'Couldn’t save',
-  // The findings summary's button (spec 003, S2; F3)
-  goToNextFinding: 'Go to next finding',
+  // The findings banner's chevron (spec 003, S2; A1, W19)
+  showFindings: 'Show findings',
+  hideFindings: 'Hide findings',
 };
 
 /**
- * Spread last on a `KernAlert` that changes while the team member works, such as the findings
- * summary: it drops the kit's `role="alert"`, which would read the whole alert out after every
- * change. The kit's props leave `role` out, but it spreads the rest after its own
+ * The findings banner's looks by kind (spec 003, S2; A1; design-notes.md §7, "Banner"): the
+ * warning or info background with its 1 px border. At the variant level the info icon keeps
+ * `feedback-info`; the darker `layout-text-muted` is only for the notes inside the rules
+ * (decision 2026-11-01)
  */
-export const WITHOUT_ALERT_ROLE = { role: undefined };
+export const BANNER_LOOKS: Record<FindingTone, string> = {
+  warning: 'bg-kern-feedback-warning-background border-kern-feedback-warning',
+  info: 'bg-kern-feedback-info-background border-kern-feedback-info',
+};
+
+/** The banner's 20 px kind icons, KERN's warning triangle and info icon (A1; research R15) */
+export const BANNER_ICONS: Record<FindingTone, string> = {
+  warning: 'kern-icon--warning bg-kern-feedback-warning!',
+  info: 'kern-icon--info bg-kern-feedback-info!',
+};
+
+/** The id of a variant's expanded findings list, which the chevron controls */
+export const findingsListId = (branchKey: string) => `findings-${branchKey}`;

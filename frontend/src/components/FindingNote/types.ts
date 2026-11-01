@@ -6,7 +6,10 @@ import type { ItemFindingKind } from '../../utils/rules/checks/types';
  */
 export interface ShownFinding {
   kind: ItemFindingKind;
-  /** Starts with the kind ("Conflicting.", "Redundant.", "Always met.") and names the items */
+  /**
+   * Names the items, without the kind ("Can’t be met together with Rule 02."): the note's icon
+   * carries the kind as hidden text (A3, W19)
+   */
   text: string;
 }
 
@@ -15,10 +18,8 @@ export interface FindingNoteProps extends ShownFinding {
   id?: string;
 }
 
-/** The classes of one kind's look (F4) */
+/** The classes of one kind's look (A3, A4) */
 export interface FindingLook {
-  /** The note's text colour */
-  text: string;
   /** KERN's icon and its colour */
   icon: string;
   /** The colour of the outline round the rule row or group frame */
