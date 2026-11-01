@@ -621,7 +621,7 @@ the marks in both branches and on their tabs (quickstart V5).
 
 ### Logic for User Story 3 (with Vitest)
 
-- [ ] T040 [P] [US3] Add the variants' scenarios to `checks/scenarios.test.ts` (depends on T036; FR-001; research R2). Each case builds its branches with `branches.ts` (`newBranch()`, `propagateMain()`, `removeItem()`, `restoreItem()`, `copyRule()`) and checks each branch on its own with `buildCheckedBranch()`.
+- [X] T040 [P] [US3] Add the variants' scenarios to `checks/scenarios.test.ts` (depends on T036; FR-001; research R2). Each case builds its branches with `branches.ts` (`newBranch()`, `propagateMain()`, `removeItem()`, `restoreItem()`, `copyRule()`) and checks each branch on its own with `buildCheckedBranch()`.
   - US3-AS1: changing Standard's Rule 02 to "includes one of C" makes Rule 02 and Rule 05 conflicting in Ambulance, and Standard gets no conflict.
   - US3-AS2: a rule removed in Ambulance carries no finding there, and the findings it took part in leave Ambulance. Once restored, it is checked again.
   - US3-AS3: a branch that started empty is checked without Standard's rules.
@@ -630,7 +630,7 @@ the marks in both branches and on their tabs (quickstart V5).
   - EC "Duplicates and copies": a rule copied to another branch is checked with that branch's rules.
   - Two branches with the same rules: no finding compares them (FR-001).
   With this task, `scenarios.test.ts` covers every acceptance scenario and edge case that a rule set expresses, which completes `findings.ts`.
-- [ ] T041 [P] [US3] Word the variants' findings (depends on T025, T038; FR-014, FR-015; research R12, item 6), with tests beside each module.
+- [X] T041 [P] [US3] Word the variants' findings (depends on T025, T038; FR-014, FR-015; research R12, item 6), with tests beside each module.
   - `checks/findingMessages.ts`: `tabLabelOf()` and `tabFindingsOf()` for any variant ("Ambulance has findings"; U10's segment "2 rules can’t be met together · 1 duplicate rule"). The banner says no "in this variant" (U03 `6750:41008`).
   - `checks/announcements.ts`: the findings of a branch other than the one shown use design-notes.md's wording ("In Ambulance: Rule 02 conflicts with Rule 05."), so that a change to Standard that causes a conflict in Ambulance is announced.
   - `checks/runState.test.ts`:
@@ -640,13 +640,13 @@ the marks in both branches and on their tabs (quickstart V5).
 
 ### UI for User Story 3
 
-- [ ] T042 [US3] Show on each variant tab whether its branch has findings, merged with the description's (i), in `RulesStep/BranchTab.tsx`, `RulesStep/BranchTabs.tsx` and `frontend/src/components/BranchName/` (`index.tsx`, `types.ts`, `constants.ts`), with the tooltip's findings segment in a new `frontend/src/components/BranchName/FindingsSegment.tsx` (depends on T027, T041; S4; A6, W9, W12, W13, W19, W20; FR-014; Figma U01 `6171:6755`, U03 `6171:7541`/`6171:7542`, U09 `6753:41605`/`6753:41694`, U10 `6758:43059`/`6758:43060` and tooltip `6758:43524`, U11 `6758:43549` and tooltip `6758:43967`; `Rules/Tooltip` `6139:3739`).
+- [X] T042 [US3] Show on each variant tab whether its branch has findings, merged with the description's (i), in `RulesStep/BranchTab.tsx`, `RulesStep/BranchTabs.tsx` and `frontend/src/components/BranchName/` (`index.tsx`, `types.ts`, `constants.ts`), with the tooltip's findings segment in a new `frontend/src/components/BranchName/FindingsSegment.tsx` (depends on T027, T041; S4; A6, W9, W12, W13, W19, W20; FR-014; Figma U01 `6171:6755`, U03 `6171:7541`/`6171:7542`, U09 `6753:41605`/`6753:41694`, U10 `6758:43059`/`6758:43060` and tooltip `6758:43524`, U11 `6758:43549` and tooltip `6758:43967`; `Rules/Tooltip` `6139:3739`).
   - `BranchName` takes an optional `findings` (the icon's kind and `tabFindingsOf()`'s segment). With findings, its (i) becomes the findings icon: KERN's warning icon when the branch has a conflict or no applicant can meet it, the info icon otherwise ("ⓘ stays", U11). Without findings, it is spec 002's (i), shown only with a description. The details never pass `findings` (S6; FR-020).
   - The icon's accessible name is `tabLabelOf()` ("Standard has findings") with findings, spec 002's "About Standard" otherwise. On hover and keyboard focus, the tooltip (`InfoTooltip`, as `Rules/Tooltip` draws it) shows the description, if any, then a divider and the findings segment with its kind icon (W20).
   - Every tab whose branch has findings shows the icon, selected or not (U09). Only certain findings count (W12). A branch without checked rules shows none (W13).
   - The ⋯ menu keeps its place.
   - Visual check of the tabs and both tooltips, listing O5 (tab styling) and O6. U03's "Standard" `6171:7541` shows only its description's (i), if any.
-- [ ] T043 [US3] Check the variants' findings in the Rules step, in `RulesStep/` (depends on T039, T042; S2, S4; A1–A6, W9, O3, O4; FR-001, FR-012; US3-AS2, AS4, AS5; Figma U03 `6171:7535`: tabs `6171:7541`/`6171:7542`, link strip `6344:60080`, banner `6750:41008`, Sub-group 01 `6171:7561`/`6171:7563` with note `6750:41069`, notes `6171:7960`, `6171:7968`, `6171:7983`; U10 `6758:43049`).
+- [X] T043 [US3] Check the variants' findings in the Rules step, in `RulesStep/` (depends on T039, T042; S2, S4; A1–A6, W9, O3, O4; FR-001, FR-012; US3-AS2, AS4, AS5; Figma U03 `6171:7535`: tabs `6171:7541`/`6171:7542`, link strip `6344:60080`, banner `6750:41008`, Sub-group 01 `6171:7561`/`6171:7563` with note `6750:41069`, notes `6171:7960`, `6171:7968`, `6171:7983`; U10 `6758:43049`).
   - A rule removed in Ambulance shows spec 002's removed state and no note. It leaves Ambulance's banner lines, counts and tab icon, and restoring it brings them back (W9).
   - A conflict among inherited rules shows the same notes and banner in both tabs, and both tabs show the warning icon (W9).
   - A rule with "Changed here" and a finding shows both, told apart by the note's icon and text (US3-AS5). "Changed here" and "New addition" stay orange and purple as built (O3), although U03 draws "Changed here" purple and "Added here". Note `6171:7960` reads "Can’t be met together with Rule 05.".

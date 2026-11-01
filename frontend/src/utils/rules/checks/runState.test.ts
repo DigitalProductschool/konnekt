@@ -363,6 +363,152 @@ describe('runStateReducer', () => {
   });
 });
 
+describe('runStateReducer with variants (US3)', () => {
+  const MOBILE: NamedBranch = { key: 'branch-3', name: 'Mobile' };
+
+  /** Standard, Ambulance (based on it, 5 rules) and Mobile (started empty), all checked once */
+  function threeChecked(findings: ItemFinding[] = []): RunState {
+    const state = reduce(
+      initialRunState,
+      changeTo([input(STANDARD, 's1'), input(AMBULANCE, 'a1', 5), input(MOBILE, 'm1')])
+    );
+    return reduce(
+      state,
+      { type: 'result', runId: 1, check: result(STANDARD, 's1') },
+      { type: 'result', runId: 1, check: result(AMBULANCE, 'a1', findings) },
+      { type: 'result', runId: 1, check: result(MOBILE, 'm1') }
+    );
+  }
+
+  it('reruns, on a change to Standard, only the based branches whose fingerprints change', () => {
+    let state = threeChecked();
+    state = reduce(
+      state,
+      changeTo([input(STANDARD, 's2'), input(AMBULANCE, 'a2', 5), input(MOBILE, 'm1')], {
+        now: 2000,
+      })
+    );
+    expect(state.run).toEqual({
+      runId: 2,
+      startedAt: 2000,
+      branchKeys: ['branch-main', 'branch-2'],
+    });
+    expect(state.branches.map(({ status }) => status)).toEqual(['pending', 'pending', 'done']);
+    expect(checkMessageOf(state)?.branches.map(({ fingerprint }) => fingerprint)).toEqual([
+      's2',
+      'a2',
+    ]);
+    expect(state.byBranch['branch-3']).toEqual(result(MOBILE, 'm1'));
+    // Standard's change causes a conflict in Ambulance, and Standard gets none (US3-AS1)
+    state = reduce(state, { type: 'result', runId: 2, check: result(STANDARD, 's2') });
+    expect(state.announcement).toBe('');
+    state = reduce(state, {
+      type: 'result',
+      runId: 2,
+      check: result(AMBULANCE, 'a2', [
+        conflict('rule-2', ['rule-5']),
+        conflict('rule-5', ['rule-2']),
+      ]),
+    });
+    expect(state.run).toBeNull();
+    expect(state.announcement).toBe(
+      'In Ambulance: Rule 02 conflicts with Rule 05. In Ambulance: Rule 05 conflicts with Rule 02.'
+    );
+    expect(state.byBranch['branch-2']?.findings).toHaveLength(2);
+  });
+
+  it('announces the shown branch first, then the others in tab order', () => {
+    const findings = [conflict('rule-2', ['rule-1'])];
+    let state = reduce(
+      initialRunState,
+      changeTo([input(STANDARD, 'x'), input(AMBULANCE, 'y'), input(MOBILE, 'z')])
+    );
+    state = reduce(
+      state,
+      { type: 'result', runId: 1, check: result(STANDARD, 'x', findings) },
+      { type: 'result', runId: 1, check: result(AMBULANCE, 'y', findings) },
+      { type: 'result', runId: 1, check: result(MOBILE, 'z', findings) }
+    );
+    state = reduce(
+      state,
+      changeTo([input(STANDARD, 'x2'), input(AMBULANCE, 'y2'), input(MOBILE, 'z2')])
+    );
+    state = reduce(
+      state,
+      { type: 'result', runId: 2, check: result(STANDARD, 'x2') },
+      { type: 'result', runId: 2, check: result(AMBULANCE, 'y2') },
+      { type: 'result', runId: 2, check: result(MOBILE, 'z2') }
+    );
+    // The undo, shown on Mobile: every result comes from the cache at once
+    state = reduce(
+      state,
+      changeTo([input(STANDARD, 'x'), input(AMBULANCE, 'y'), input(MOBILE, 'z')], {
+        shown: MOBILE.key,
+      })
+    );
+    expect(state.run).toBeNull();
+    expect(state.announcement).toBe(
+      'Rule 02 conflicts with Rule 01. In Standard: Rule 02 conflicts with Rule 01. ' +
+        'In Ambulance: Rule 02 conflicts with Rule 01.'
+    );
+  });
+
+  it('checks a new variant, and drops a deleted one from byBranch', () => {
+    let state = threeChecked();
+    const branches = [
+      input(STANDARD, 's1'),
+      input(AMBULANCE, 'a1', 5),
+      input(MOBILE, 'm1'),
+      input({ key: 'branch-4', name: 'Taxi' }, 't1'),
+    ];
+    state = reduce(state, changeTo(branches, { shown: 'branch-4', now: 3000 }));
+    expect(state.run).toEqual({ runId: 2, startedAt: 3000, branchKeys: ['branch-4'] });
+    expect(state.byBranch['branch-4']).toBeNull();
+    state = reduce(state, {
+      type: 'result',
+      runId: 2,
+      check: result({ key: 'branch-4', name: 'Taxi' }, 't1', [conflict('rule-2', ['rule-1'])]),
+    });
+    expect(state.byBranch['branch-4']?.findings).toEqual([conflict('rule-2', ['rule-1'])]);
+    // A new variant's first result isn't announced
+    expect(state.announcement).toBe('');
+    // Ambulance is deleted while it is shown: Standard is shown, and Ambulance leaves byBranch
+    state = reduce(
+      state,
+      changeTo([branches[0], branches[2], branches[3]], { shown: STANDARD.key })
+    );
+    expect(state.run).toBeNull();
+    expect(Object.keys(state.byBranch)).toEqual(['branch-main', 'branch-3', 'branch-4']);
+    expect(state.branches.map(({ branch }) => branch.key)).toEqual([
+      'branch-main',
+      'branch-3',
+      'branch-4',
+    ]);
+  });
+
+  it('sends the shown branch first, then the others in tab order', () => {
+    const state = reduce(
+      initialRunState,
+      changeTo([input(STANDARD, 's1'), input(AMBULANCE, 'a1'), input(MOBILE, 'm1')], {
+        shown: MOBILE.key,
+      })
+    );
+    expect(checkMessageOf(state)?.branches.map(({ branchKey }) => branchKey)).toEqual([
+      'branch-3',
+      'branch-main',
+      'branch-2',
+    ]);
+    // A shown key that no branch has any more, such as a deleted variant's: tab order
+    const orphan = reduce(
+      initialRunState,
+      changeTo([input(STANDARD, 's1'), input(AMBULANCE, 'a1')], { shown: 'branch-gone' })
+    );
+    expect(orphan.run?.branchKeys).toEqual(['branch-main', 'branch-2']);
+    // Showing another branch alone starts no run
+    expect(reduce(threeChecked(), { type: 'show', shownBranchKey: AMBULANCE.key }).run).toBeNull();
+  });
+});
+
 describe('withoutGoneItems', () => {
   it('returns the same result when every item is still there', () => {
     const check = result(STANDARD, 'a', [conflict('rule-2', ['rule-1'])]);

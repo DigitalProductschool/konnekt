@@ -213,7 +213,7 @@ export default function RulesStep({
 
   return (
     <div className="flex flex-col gap-16">
-      <BranchTabs state={state} dispatch={dispatch} />
+      <BranchTabs state={state} checks={checks} dispatch={dispatch} />
       {problem && (
         <KernAlert
           id={ELEMENT_IDS.rulesProblem}

@@ -3,9 +3,9 @@
 // checks it on 2026-10-28 with `buildCheckedBranch()` and `checkBranch()`, and asserts the exact
 // findings, their notes (`noteOf()`) and, where the spec words it, the banner (`bannerOf()`).
 //
-// Conflicts (US1) come first, then the redundancy scenarios (US2, T036). The variants' (US3, T040)
-// extend this file with the same helpers: `scenario()` for a main branch's items, `scenarioOf()`
-// for any branch, such as one based on the main branch.
+// Conflicts (US1) come first, then the redundancy scenarios (US2, T036), then the variants' (US3,
+// T040), whose branches branches.ts builds and each of which is checked on its own: `scenario()`
+// for a main branch's items, `scenarioOf()` for any branch, such as one based on the main branch.
 import { describe, expect, it } from 'vitest';
 
 import type { DocumentField } from '../../../types/document-types';
@@ -18,6 +18,14 @@ import type {
   RuleTarget,
   RuleTreeItem,
 } from '../../../types/form-connections';
+import {
+  addRuleToBranch,
+  copyRule,
+  newBranch,
+  propagateMain,
+  removeItem,
+  restoreItem,
+} from '../branches';
 import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
 import {
   deleteItem,
@@ -1165,5 +1173,250 @@ describe('Quickstart V4: how conditions are judged', () => {
     expect(result.result.notice).toEqual(notice);
     expect(result.result.findings).toEqual(findings);
     expect(result.notes).toEqual(notes);
+  });
+});
+
+// US3: checks in every branch. Each branch is built with branches.ts and checked on its own
+
+/** "Ambulance", based on `main`, with these rules of its own added at its top level */
+function ambulanceOf(main: BranchInput, own: RuleItem[] = []): BranchInput {
+  return own.reduce<BranchInput>(
+    (branch, item) => addRuleToBranch(branch, item) ?? branch,
+    newBranch(main, 'based', 'Ambulance', null)
+  );
+}
+
+/** A branch that started empty, "Children", with these rules */
+function childrenOf(main: BranchInput, own: RuleItem[] = []): BranchInput {
+  return own.reduce<BranchInput>(
+    (branch, item) => addRuleToBranch(branch, item) ?? branch,
+    newBranch(main, 'empty', 'Children', null)
+  );
+}
+
+/** The ids of the items that a finding names */
+function namedBy(finding: ItemFinding): string[] {
+  const { reason } = finding;
+  switch (reason?.type) {
+    case 'with':
+    case 'members':
+      return reason.items;
+    case 'same':
+      return [reason.item];
+    case 'implied_by':
+      return [...reason.items, ...reason.orItems];
+    case 'implies':
+      return [...reason.items, ...reason.givenItems];
+    default:
+      return [];
+  }
+}
+
+/** The item ids that a branch's findings are about or name */
+function idsOf(result: BranchCheck): string[] {
+  return result.findings.flatMap((finding) => [finding.itemId, ...namedBy(finding)]);
+}
+
+describe('US3-AS1: a change to Standard causes a conflict in Ambulance only', () => {
+  const standard = mainBranch([ageAbove(1, 18), classesOneOf(2, 'B')]);
+  const ambulance = ambulanceOf(standard, [
+    on(5, CLASSES, { operator: 'includes_none_of', values: ['C'] }),
+  ]);
+
+  it('before the change, neither branch has a finding', () => {
+    expect(scenarioOf(standard).result).toMatchObject({ complete: true, findings: [] });
+    expect(scenarioOf(ambulance, TODAY, 'ambulance').result).toMatchObject({
+      complete: true,
+      notice: null,
+      findings: [],
+      checkedRules: 3,
+    });
+  });
+
+  it('"includes one of C" in Standard: Rule 02 and Rule 05 conflict in Ambulance', () => {
+    const edited = updateRule(standard.items, 'rule-2', {
+      condition: { operator: 'includes_one_of', values: ['C'] },
+    });
+    expect(edited).not.toBeNull();
+    const changed = { ...standard, items: edited?.items ?? [] };
+    const propagated = propagateMain(standard, changed, ambulance);
+
+    const inStandard = scenarioOf(changed);
+    expect(inStandard.result).toMatchObject({ complete: true, notice: null, findings: [] });
+
+    const { result, notes } = scenarioOf(propagated, TODAY, 'ambulance');
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 3 });
+    expect(result.findings).toEqual([
+      withItems('rule-2', ['rule-5']),
+      withItems('rule-5', ['rule-2']),
+    ]);
+    expect(notes).toEqual({ 'rule-2': withNote('Rule 05'), 'rule-5': withNote('Rule 02') });
+  });
+});
+
+describe('US3-AS2: a rule removed in Ambulance, and restored', () => {
+  const standard = mainBranch([ageAbove(1, 30), classesOneOf(2, 'B')]);
+  const ambulance = ambulanceOf(standard, [ageBelow(5, 20)]);
+  const conflict = [withItems('rule-1', ['rule-5']), withItems('rule-5', ['rule-1'])];
+
+  it('while inherited, Rule 01 conflicts with Ambulance’s Rule 05', () => {
+    const { result } = scenarioOf(ambulance, TODAY, 'ambulance');
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 3 });
+    expect(result.findings).toEqual(conflict);
+  });
+
+  it('removed, Rule 01 isn’t checked, and the conflict it took part in leaves Ambulance', () => {
+    const removed = removeItem(standard, ambulance, 'rule-1');
+    expect(removed).not.toBeNull();
+    const { result } = scenarioOf(removed ?? ambulance, TODAY, 'ambulance');
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [], checkedRules: 2 });
+    // Standard keeps Rule 01, with no conflict of its own
+    expect(scenarioOf(standard).result).toMatchObject({ findings: [], checkedRules: 2 });
+  });
+
+  it('restored, Rule 01 is checked again, with its conflict', () => {
+    const removed = removeItem(standard, ambulance, 'rule-1');
+    const restored = removed && restoreItem(standard, removed, 'rule-1');
+    expect(restored).not.toBeNull();
+    const before = scenarioOf(ambulance, TODAY, 'ambulance');
+    const after = scenarioOf(restored ?? ambulance, TODAY, 'ambulance');
+    expect(after.checked.fingerprint).toBe(before.checked.fingerprint);
+    expect(after.result).toEqual(before.result);
+    expect(after.result.findings).toEqual(conflict);
+  });
+});
+
+describe('US3-AS3: a branch that started empty is checked without Standard’s rules', () => {
+  const standard = mainBranch([nationalityOneOf(1, 'DE'), ageAbove(2, 18)]);
+
+  it('a rule that would conflict with Standard’s gets no finding', () => {
+    const children = childrenOf(standard, [nationalityOneOf(5, 'IT'), ageAbove(6, 18)]);
+    const { result } = scenarioOf(children, TODAY, 'children');
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [], checkedRules: 2 });
+  });
+
+  it('its own rules are checked against each other', () => {
+    const children = childrenOf(standard, [nationalityOneOf(5, 'IT'), nationalityOneOf(6, 'DE')]);
+    const { result } = scenarioOf(children, TODAY, 'children');
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 2 });
+    expect(result.findings).toEqual([
+      withItems('rule-5', ['rule-6']),
+      withItems('rule-6', ['rule-5']),
+    ]);
+  });
+});
+
+describe('US3-AS4: a conflict among inherited rules shows in both branches', () => {
+  const standard = mainBranch([ageAbove(1, 30), ageBelow(2, 20)]);
+  const ambulance = ambulanceOf(standard, [classesOneOf(5, 'B')]);
+  const conflict = [withItems('rule-1', ['rule-2']), withItems('rule-2', ['rule-1'])];
+
+  it('Standard and Ambulance both mark Rule 01 and Rule 02, and neither can be met', () => {
+    const inStandard = scenarioOf(standard).result;
+    const inAmbulance = scenarioOf(ambulance, TODAY, 'ambulance').result;
+    expect(inStandard).toMatchObject({ complete: true, notice: NONE_CAN_MEET });
+    expect(inStandard.findings).toEqual(conflict);
+    expect(inAmbulance).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 3 });
+    expect(inAmbulance.findings).toEqual(conflict);
+  });
+});
+
+describe('EC "Removed rules and dissolved groups": a group dissolved in Ambulance', () => {
+  // Standard: Group 01 (OR: Rule 01 "greater than 30", Rule 02 "includes one of B") AND Rule 03
+  // "less than 20". Rule 01 conflicts with its AND sibling Rule 03 (US1-AS5), Group 01 doesn’t
+  const standard = mainBranch([
+    group(1, [ageAbove(1, 30), classesOneOf(2, 'B')], 'or'),
+    ageBelow(3, 20),
+  ]);
+  const ambulance = ambulanceOf(standard);
+
+  it('in Standard, only Rule 01 is marked, and the branch can be met', () => {
+    const { result } = scenarioOf(standard);
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([withItems('rule-1', ['rule-3'])]);
+  });
+
+  it('Rule 02 removed: Group 01 is checked as Rule 01, which Rule 03 then conflicts with', () => {
+    const removed = removeItem(standard, ambulance, 'rule-2');
+    expect(removed).not.toBeNull();
+    const { checked, result } = scenarioOf(removed ?? ambulance, TODAY, 'ambulance');
+    expect(checked.items.map((entry) => entry.id)).toEqual(['rule-1', 'rule-3']);
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 2 });
+    expect(result.findings).toEqual([
+      withItems('rule-1', ['rule-3']),
+      withItems('rule-3', ['rule-1']),
+    ]);
+  });
+
+  it('Group 01 restored: Ambulance is checked as Standard again', () => {
+    const removed = removeItem(standard, ambulance, 'rule-2');
+    const restored = removed && restoreItem(standard, removed, 'group-1');
+    expect(restored).not.toBeNull();
+    const { result } = scenarioOf(restored ?? ambulance, TODAY, 'ambulance');
+    expect(result).toEqual({ ...scenarioOf(standard).result, branchKey: 'ambulance' });
+  });
+});
+
+describe('EC "Duplicates and copies": a rule copied to another branch', () => {
+  const standard = mainBranch([ageAbove(1, 30)]);
+  const branches = [standard, ambulanceOf(standard), childrenOf(standard, [ageBelow(5, 20)])];
+  const counters = { rule: 6, group: 1 };
+
+  it('copied to Children, it is checked with Children’s rules, and Standard keeps none', () => {
+    const copied = copyRule(branches, 0, 'rule-1', [2], counters);
+    expect(copied?.copies.map((copy) => copy.rule.id)).toEqual(['rule-6']);
+    const [inStandard, , inChildren] = copied?.branches ?? branches;
+    expect(scenarioOf(inStandard).result).toMatchObject({ findings: [], checkedRules: 1 });
+    const { result } = scenarioOf(inChildren, TODAY, 'children');
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 2 });
+    expect(result.findings).toEqual([
+      withItems('rule-5', ['rule-6']),
+      withItems('rule-6', ['rule-5']),
+    ]);
+  });
+
+  it('copied from Children to Ambulance, it conflicts there with the inherited Rule 01', () => {
+    const copied = copyRule(branches, 2, 'rule-5', [1], counters);
+    const inAmbulance = copied?.branches[1] ?? branches[1];
+    const { result } = scenarioOf(inAmbulance, TODAY, 'ambulance');
+    expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET, checkedRules: 2 });
+    expect(result.findings).toEqual([
+      withItems('rule-1', ['rule-6']),
+      withItems('rule-6', ['rule-1']),
+    ]);
+  });
+
+  it('copied from Standard to Ambulance, which inherits the original: the same check', () => {
+    const copied = copyRule(branches, 0, 'rule-1', [1], counters);
+    const inAmbulance = copied?.branches[1] ?? branches[1];
+    const { result, notes } = scenarioOf(inAmbulance, TODAY, 'ambulance');
+    expect(result).toMatchObject({ complete: true, notice: null });
+    expect(result.findings).toEqual([sameAs('rule-6', 'rule-1')]);
+    expect(notes).toEqual({ 'rule-6': sameNote('Rule 01') });
+  });
+});
+
+describe('FR-001: two branches with the same rules', () => {
+  const standard = mainBranch([ageAbove(1, 18), classesOneOf(2, 'B')]);
+
+  it('a based branch that changes nothing: no finding compares it with Standard', () => {
+    const inStandard = scenarioOf(standard).result;
+    const inAmbulance = scenarioOf(ambulanceOf(standard), TODAY, 'ambulance').result;
+    expect(inStandard).toMatchObject({ complete: true, notice: null, findings: [] });
+    expect(inAmbulance).toEqual({ ...inStandard, branchKey: 'ambulance' });
+  });
+
+  it('a branch that started empty with the same checks: none in either branch', () => {
+    const children = childrenOf(standard, [ageAbove(5, 18), classesOneOf(6, 'B')]);
+    expect(scenarioOf(standard).result.findings).toEqual([]);
+    const { result } = scenarioOf(children, TODAY, 'children');
+    expect(result).toMatchObject({ complete: true, notice: null, findings: [], checkedRules: 2 });
+  });
+
+  it('each branch’s findings name only its own items', () => {
+    const children = childrenOf(standard, [ageAbove(5, 18), ageAbove(6, 18)]);
+    const { result } = scenarioOf(children, TODAY, 'children');
+    expect(result.findings).toEqual([sameAs('rule-6', 'rule-5')]);
+    expect(idsOf(result).every((id) => ['rule-5', 'rule-6'].includes(id))).toBe(true);
   });
 });

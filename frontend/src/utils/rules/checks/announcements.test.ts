@@ -224,6 +224,66 @@ describe('announcementsFor', () => {
     );
   });
 
+  describe('in a variant other than the one shown (US3; design-notes.md §5)', () => {
+    // Ambulance's own tree: Standard's Rule 01 to Rule 04, then its own Rule 05
+    const AMBULANCE_NAMES = namesOf([1, 2, 3, 4, 5].map((number) => rule(number, null, null)));
+    const IN_AMBULANCE: AnnouncementContext = {
+      branch: AMBULANCE,
+      names: AMBULANCE_NAMES,
+      shownBranch: STANDARD.key,
+    };
+
+    function ambulance(
+      findings: ItemFinding[],
+      options: { notice?: BranchNotice | null; complete?: boolean } = {}
+    ): BranchCheck {
+      return { ...check(findings, options), branchKey: AMBULANCE.key };
+    }
+
+    it('announces a conflict that a change to Standard causes in Ambulance (US3-AS1)', () => {
+      const next = ambulance([conflict('rule-2', ['rule-5']), conflict('rule-5', ['rule-2'])], {
+        notice: { kind: 'none_can_meet', today: false },
+      });
+      expect(announce(ambulance([]), next, IN_AMBULANCE)).toEqual([
+        'In Ambulance: Rule 02 conflicts with Rule 05.',
+        'In Ambulance: Rule 05 conflicts with Rule 02.',
+        'No applicant can meet the rules of Ambulance.',
+      ]);
+      expect(announce(next, ambulance([]), IN_AMBULANCE)).toEqual([
+        'In Ambulance: Rule 02 no longer conflicts with Rule 05.',
+        'In Ambulance: Rule 05 no longer conflicts with Rule 02.',
+      ]);
+    });
+
+    it('announces every kind with the prefix, and a notice with its own text', () => {
+      const previous = ambulance([same('rule-4', 'rule-3'), alwaysMet('rule-1')]);
+      const next = ambulance([impliedBy('rule-2', ['rule-5'])], {
+        notice: { kind: 'all_meet', today: false },
+      });
+      expect(announce(previous, next, IN_AMBULANCE)).toEqual([
+        'In Ambulance: Rule 01 is no longer always met.',
+        'In Ambulance: Rule 02 makes no difference beside Rule 05.',
+        'In Ambulance: Rule 04 is no longer redundant.',
+        'Every applicant meets the rules of Ambulance.',
+      ]);
+    });
+
+    it('drops the prefix while Ambulance is shown', () => {
+      expect(
+        announce(ambulance([]), ambulance([conflict('rule-2', ['rule-5'])]), {
+          ...IN_AMBULANCE,
+          shownBranch: AMBULANCE.key,
+        })
+      ).toEqual(['Rule 02 conflicts with Rule 05.']);
+    });
+
+    it('announces nothing on a new variant’s first result', () => {
+      expect(
+        announcementsFor(null, ambulance([conflict('rule-2', ['rule-5'])]), 'action', IN_AMBULANCE)
+      ).toEqual([]);
+    });
+  });
+
   it('names the variant of a finding in a branch other than the one shown', () => {
     const context = { ...SHOWN, branch: AMBULANCE };
     expect(announce(NONE, check([conflict('rule-2', ['rule-1'])]), context)).toEqual([

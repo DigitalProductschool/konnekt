@@ -18,6 +18,7 @@ import type {
   FindingTone,
   ItemNames,
   ItemReference,
+  TabFindings,
 } from '../../../utils/rules/checks/types';
 import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
 
@@ -501,6 +502,8 @@ export interface RulesDialogsProps {
 
 export interface BranchTabsProps {
   state: RulesState;
+  /** The rule checks' result per branch key, as `RulesStepProps.checks`, for the tab icons */
+  checks: Record<string, BranchCheck | null>;
   dispatch: (action: RulesAction) => void;
 }
 
@@ -509,6 +512,8 @@ export interface BranchTabProps {
   selected: boolean;
   /** Whether the branch can be deleted: every branch but the main branch */
   deletable: boolean;
+  /** Its findings for the tab's icon and tooltip, from `tabFindingsOf()`; null without (W13) */
+  findings: TabFindings | null;
   onSelect: () => void;
   /** Arrow keys, Home and End move between the tabs */
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;

@@ -9,12 +9,15 @@ import type { BranchTabProps } from './types';
  * of its description (F31) and, while open, the ⋯ of its menu (W3; design-notes §4), 4px apart,
  * then a black underline while open, under the whole row, ⋯ included. The (i) and the ⋯ are
  * buttons beside the tab, not in it, so that the tab stays one control. The ⋯ keeps its 32px
- * target in the 24px row by overhanging it by 4px above and below. A long name wraps.
+ * target in the 24px row by overhanging it by 4px above and below. A long name wraps. A variant
+ * with findings shows their icon in the (i)'s place, selected or not, and its tooltip adds them
+ * (spec 003, S4; A6, W20; FR-014; Figma U09 6753:41694, U10 6758:43060, U11 6758:43549).
  */
 export default function BranchTab({
   branch,
   selected,
   deletable,
+  findings,
   onSelect,
   onKeyDown,
   onRename,
@@ -26,7 +29,7 @@ export default function BranchTab({
   return (
     <div className="flex min-w-0 flex-col gap-8 pt-4">
       <div className="flex min-h-24 min-w-0 items-center gap-4">
-        <BranchName name={branch.name} description={branch.description}>
+        <BranchName name={branch.name} description={branch.description} findings={findings}>
           <button
             id={ELEMENT_IDS.branchTab(branch.key)}
             type="button"

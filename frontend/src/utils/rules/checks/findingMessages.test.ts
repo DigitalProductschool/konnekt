@@ -916,6 +916,177 @@ describe('announcementOf', () => {
   });
 });
 
+describe('the variants’ findings (US3; FR-014, FR-015)', () => {
+  // Ambulance's own tree: Standard's Rule 01 to Rule 05, then its own Rule 06
+  const AMBULANCE_NAMES = namesOf([1, 2, 3, 4, 5, 6].map((number) => rule(number, null, null)));
+
+  function ambulance(
+    findings: ItemFinding[],
+    notice: BranchNotice | null = null,
+    options: { complete?: boolean; checkedRules?: number } = {}
+  ): BranchCheck {
+    return { ...check(findings, notice, options), branchKey: AMBULANCE.key };
+  }
+
+  /** US3-AS1: Standard's Rule 02 changed, so that Rule 02 and Rule 05 conflict in Ambulance */
+  const AS1 = conflictSet(['rule-2', 'rule-5']);
+  /** U03 and U10: the conflict, and a duplicate */
+  const U03 = [...AS1, same('rule-6', 'rule-3')];
+
+  it('labels the icon of any variant’s tab, selected or not (A6)', () => {
+    expect(tabLabelOf(AMBULANCE.name)).toBe('Ambulance has findings');
+    expect(tabLabelOf('Passenger transport (night)')).toBe(
+      'Passenger transport (night) has findings'
+    );
+  });
+
+  it('reads U10’s tooltip segment 6758:43524 for Ambulance, with the warning icon', () => {
+    expect(tabFindingsOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES)).toEqual({
+      kind: 'warning',
+      text: '2 rules can’t be met together · 1 duplicate rule',
+    });
+  });
+
+  it('names the variant in the tooltip’s notice and incomplete sentence (W20)', () => {
+    expect(tabFindingsOf(ambulance(AS1, NONE_CAN_MEET), AMBULANCE, AMBULANCE_NAMES)).toEqual({
+      kind: 'warning',
+      text:
+        '1 conflict: Rule 02 and Rule 05 can’t be met together. So no applicant can meet the ' +
+        'rules of Ambulance.',
+    });
+    expect(
+      tabFindingsOf(ambulance(U03, null, { complete: false }), AMBULANCE, AMBULANCE_NAMES)?.text
+    ).toBe('2 rules can’t be met together · 1 duplicate rule · couldn’t be checked completely');
+    expect(
+      tabFindingsOf(ambulance([same('rule-6', 'rule-3')]), AMBULANCE, AMBULANCE_NAMES)
+    ).toEqual({ kind: 'info', text: '1 duplicate: Rule 06 is the same as Rule 03.' });
+  });
+
+  it('shows no segment for a variant without checked rules (W13)', () => {
+    expect(
+      tabFindingsOf(ambulance(AS1, null, { checkedRules: 0 }), AMBULANCE, AMBULANCE_NAMES)
+    ).toBeNull();
+    expect(tabFindingsOf(ambulance([]), AMBULANCE, AMBULANCE_NAMES)).toBeNull();
+  });
+
+  it('reads U03’s banner 6750:41008 without "in this variant"', () => {
+    const banner = bannerOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES);
+    expect(banner).toMatchObject({
+      kind: 'warning',
+      counts: '2 rules can’t be met together · 1 duplicate rule',
+      notice: null,
+      incomplete: null,
+    });
+    expect(head(banner)).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
+      'Rule 02 and Rule 05 can’t be met together.',
+      'Rule 06 is the same as Rule 03.',
+    ]);
+  });
+
+  it('never says "variant" in a variant’s banner or tooltip; the notices name it', () => {
+    const findings = [
+      ...AS1,
+      same('rule-6', 'rule-3'),
+      impliedBy('rule-4', ['rule-1']),
+      alwaysMet('rule-1'),
+    ];
+    const notices = [null, NONE_CAN_MEET, NONE_CAN_MEET_TODAY, ALL_MEET];
+    const checks = notices.flatMap((notice) =>
+      [true, false].flatMap((complete) => [
+        ambulance(AS1, notice, { complete }),
+        ambulance(findings, notice, { complete }),
+      ])
+    );
+    const texts = checks.flatMap((ambulanceCheck) => {
+      const banner = bannerOf(ambulanceCheck, AMBULANCE, AMBULANCE_NAMES);
+      return [
+        head(banner),
+        ...(banner?.lines.map((line) => textOf(line.parts)) ?? []),
+        banner?.notice?.text ?? '',
+        banner?.incomplete ?? '',
+        tabFindingsOf(ambulanceCheck, AMBULANCE, AMBULANCE_NAMES)?.text ?? '',
+      ];
+    });
+    expect(texts.filter((text) => /\bvariants?\b/i.test(text))).toEqual([]);
+    expect(texts.filter((text) => TEXT_TO_FIX.test(text))).toEqual([]);
+    expect(texts.filter((text) => text.includes('Standard'))).toEqual([]);
+    expect(texts).toContain('Right now, no applicant can meet the rules of Ambulance.');
+  });
+
+  it('announces a finding in another variant with "In <variant>: " (design-notes.md §5)', () => {
+    const announce = (change: FindingChange, shown = STANDARD.key): string =>
+      announcementOf(change, AMBULANCE_NAMES, shown);
+    const appeared = (finding: ItemFinding): FindingChange => ({
+      type: 'appeared',
+      branch: AMBULANCE,
+      finding,
+    });
+    const gone = (finding: ItemFinding): FindingChange => ({
+      type: 'gone',
+      branch: AMBULANCE,
+      finding,
+    });
+    expect(announce(appeared(AS1[0]))).toBe('In Ambulance: Rule 02 conflicts with Rule 05.');
+    expect(announce(appeared(withItems('rule-2', ['rule-5'], true)))).toBe(
+      'In Ambulance: Rule 02 conflicts with Rule 05 at the moment.'
+    );
+    expect(announce(gone(AS1[0]))).toBe('In Ambulance: Rule 02 no longer conflicts with Rule 05.');
+    expect(announce(appeared(conflicting('rule-3', { type: 'condition' })))).toBe(
+      'In Ambulance: No applicant can meet Rule 03.'
+    );
+    expect(announce(appeared(same('rule-6', 'rule-3')))).toBe(
+      'In Ambulance: Rule 06 is the same as Rule 03.'
+    );
+    expect(announce(gone(same('rule-6', 'rule-3')))).toBe(
+      'In Ambulance: Rule 06 is no longer redundant.'
+    );
+    expect(announce(appeared(impliedBy('rule-4', ['rule-1'])))).toBe(
+      'In Ambulance: Rule 04 makes no difference beside Rule 01.'
+    );
+    expect(announce(gone(alwaysMet('rule-1')))).toBe(
+      'In Ambulance: Rule 01 is no longer always met.'
+    );
+    // A notice names its variant already
+    expect(announce({ type: 'notice', branch: AMBULANCE, notice: NONE_CAN_MEET })).toBe(
+      'No applicant can meet the rules of Ambulance.'
+    );
+    // Shown, Ambulance's findings have no prefix, and Standard's have one
+    expect(announce(appeared(AS1[0]), AMBULANCE.key)).toBe('Rule 02 conflicts with Rule 05.');
+    expect(
+      announcementOf(
+        { type: 'appeared', branch: STANDARD, finding: withItems('rule-2', ['rule-1']) },
+        NAMES,
+        AMBULANCE.key
+      )
+    ).toBe('In Standard: Rule 02 conflicts with Rule 01.');
+  });
+
+  it('names a group in another variant by its own name (design-notes.md §5)', () => {
+    const own = conflicting('group-3', {
+      type: 'members',
+      operator: 'and',
+      items: ['rule-4', 'rule-5'],
+    });
+    expect(announcementOf({ type: 'appeared', branch: AMBULANCE, finding: own }, NAMES, '')).toBe(
+      'In Ambulance: Rule 04 and Rule 05 in Sub-group 01 can’t be met together.'
+    );
+    expect(announcementOf({ type: 'gone', branch: AMBULANCE, finding: own }, NAMES, '')).toBe(
+      'In Ambulance: Sub-group 01 is no longer conflicting.'
+    );
+  });
+
+  it('says nothing of a finding in another variant on an item without a name', () => {
+    expect(
+      announcementOf(
+        { type: 'appeared', branch: AMBULANCE, finding: withItems('rule-9', ['rule-2']) },
+        AMBULANCE_NAMES,
+        STANDARD.key
+      )
+    ).toBe('');
+  });
+});
+
 describe('every text', () => {
   const reasons: ConflictingReason[] = [
     { type: 'with', items: ['rule-2', 'rule-3'] },
