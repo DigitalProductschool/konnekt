@@ -1,6 +1,9 @@
 import type { PopupPlacement } from '../../utils/popupPlacement';
 import type { TooltipState } from './types';
 
+/** KERN's info icon, in the muted colour of the design */
+export const DEFAULT_ICON = 'kern-icon--info bg-kern-layout-text-muted!';
+
 export const CLOSED: TooltipState = {
   hovered: false,
   focused: false,

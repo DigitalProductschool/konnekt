@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { GroupItem, RuleTreeItem } from '../../../types/form-connections';
+import type { BannerLine, FindingsBanner } from '../../../utils/rules/checks/types';
 import { rule } from '../../../utils/rules/testData';
 import { findItem, flattenItems } from '../../../utils/rules/tree';
 import type { RulesAction, RulesState } from './types';
 import {
+  bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
+  findingTargetIdsOf,
   initialRulesState,
   joinNames,
   neighbourOf,
@@ -639,6 +642,173 @@ describe('copy targets (FR-022; U20)', () => {
     expect(copyTargetsOf(state, BRANCH, []).map(({ branch }) => branch.key)).toEqual([
       'new-1',
       'new-2',
+    ]);
+  });
+});
+
+describe('bannerViewOf', () => {
+  const rule1 = { itemId: 'rule-1', name: 'Rule 01' };
+  const rule2 = { itemId: 'rule-2', name: 'Rule 02' };
+  const group2 = { itemId: 'group-2', name: 'Sub-group 01' };
+  const rule4 = { itemId: 'rule-4', name: 'Rule 04' };
+  const rule5 = { itemId: 'rule-5', name: 'Rule 05' };
+  const U01_LINE: BannerLine = {
+    kind: 'conflicting',
+    tone: 'warning',
+    parts: [rule1, ' and ', rule2, ' can’t be met together.'],
+  };
+  const U05_LINE: BannerLine = {
+    kind: 'conflicting',
+    tone: 'warning',
+    parts: [group2, ': ', rule4, ' and ', rule5, ' can’t be met together.'],
+  };
+  const NOTICE = {
+    tone: 'warning' as const,
+    text: 'No applicant can meet the rules of Standard.',
+    appended: 'So no applicant can meet the rules of Standard.',
+  };
+  const INCOMPLETE =
+    'The rules of Standard couldn’t be checked completely. Only findings that are certain are shown.';
+
+  function banner(changes: Partial<FindingsBanner>): FindingsBanner {
+    return {
+      kind: 'warning',
+      lines: [],
+      counts: '',
+      notice: null,
+      incomplete: null,
+      head: [],
+      ...changes,
+    };
+  }
+
+  it('shows one line with its kind text and no items, expanded or not (U01)', () => {
+    const head = [...U01_LINE.parts, ' So no applicant can meet the rules of Standard.'];
+    const u01 = banner({ lines: [U01_LINE], notice: NOTICE, head });
+    for (const expanded of [false, true]) {
+      expect(bannerViewOf(u01, expanded)).toEqual({
+        state: 'single',
+        summary: { key: 'summary', tone: 'warning', kindText: 'Conflicting:', parts: head },
+        items: [],
+      });
+    }
+  });
+
+  it('shows the notice or FR-010’s sentence alone without a kind text (W12, W17)', () => {
+    const alone = banner({ kind: 'info', incomplete: INCOMPLETE, head: [INCOMPLETE] });
+    expect(bannerViewOf(alone, false)).toMatchObject({
+      state: 'single',
+      summary: { tone: 'info', kindText: null, parts: [INCOMPLETE] },
+    });
+  });
+
+  const counts = '3 rules can’t be met together';
+  const two = banner({
+    lines: [U01_LINE, U05_LINE],
+    counts,
+    notice: NOTICE,
+    incomplete: INCOMPLETE,
+    head: [`${counts} · couldn’t be checked completely. ${NOTICE.appended}`],
+  });
+
+  it('is collapsed by default with two lines, showing the head (U02, W17)', () => {
+    expect(bannerViewOf(two, false)).toEqual({
+      state: 'collapsed',
+      summary: { key: 'summary', tone: 'warning', kindText: null, parts: two.head },
+      items: [],
+    });
+  });
+
+  it('lists the lines, then the notice and FR-010’s sentence when expanded (U05)', () => {
+    const view = bannerViewOf(two, true);
+    expect(view.state).toBe('expanded');
+    expect(view.summary).toMatchObject({ kindText: null, parts: [counts] });
+    expect(view.items).toEqual([
+      { key: 'line-0', tone: 'warning', kindText: 'Conflicting:', parts: U01_LINE.parts },
+      { key: 'line-1', tone: 'warning', kindText: 'Conflicting:', parts: U05_LINE.parts },
+      { key: 'notice', tone: 'warning', kindText: null, parts: [NOTICE.text] },
+      { key: 'incomplete', tone: 'info', kindText: null, parts: [INCOMPLETE] },
+    ]);
+  });
+
+  const rule3 = { itemId: 'rule-3', name: 'Rule 03' };
+  const rule6 = { itemId: 'rule-6', name: 'Rule 06' };
+  const group1 = { itemId: 'group-1', name: 'Group 01' };
+  const U04_LINE: BannerLine = {
+    kind: 'redundant',
+    tone: 'info',
+    parts: [rule6, ' is the same as ', rule3, '.'],
+  };
+
+  it('shows a duplicate or always-met line alone in the info look, with its kind text (U04, U06)', () => {
+    const u04 = banner({ kind: 'info', lines: [U04_LINE], head: U04_LINE.parts });
+    expect(bannerViewOf(u04, false)).toEqual({
+      state: 'single',
+      summary: { key: 'summary', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
+      items: [],
+    });
+    const parts = ['Every applicant meets ', group1, ', so it doesn’t check anything.'];
+    const u06 = banner({
+      kind: 'info',
+      lines: [{ kind: 'always_met', tone: 'info', parts }],
+      head: parts,
+    });
+    expect(bannerViewOf(u06, false).summary).toMatchObject({ kindText: 'Always met:', parts });
+  });
+
+  it('lists a duplicate with its info icon in a warning banner (U05)', () => {
+    const u05 = banner({
+      lines: [U05_LINE, U04_LINE],
+      counts: '2 rules can’t be met together · 1 duplicate rule',
+      head: ['2 rules can’t be met together · 1 duplicate rule'],
+    });
+    expect(bannerViewOf(u05, true).items).toEqual([
+      { key: 'line-0', tone: 'warning', kindText: 'Conflicting:', parts: U05_LINE.parts },
+      { key: 'line-1', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
+    ]);
+  });
+
+  it('shows the notice that every applicant meets the rules alone, without a link (W8)', () => {
+    const text = 'Every applicant meets the rules of Standard.';
+    const w8 = banner({
+      kind: 'info',
+      notice: { tone: 'info', text, appended: text },
+      head: [text],
+    });
+    expect(bannerViewOf(w8, false)).toEqual({
+      state: 'single',
+      summary: { key: 'summary', tone: 'info', kindText: null, parts: [text] },
+      items: [],
+    });
+  });
+});
+
+describe('toggleFindings', () => {
+  it('opens and closes each variant’s banner on its own, starting closed', () => {
+    const start = initialRulesState();
+    expect(start.expandedFindings).toEqual([]);
+    const open = rulesReducer(start, { type: 'toggleFindings', branchKey: 'main' });
+    expect(open.expandedFindings).toEqual(['main']);
+    const both = rulesReducer(open, { type: 'toggleFindings', branchKey: 'new-1' });
+    expect(both.expandedFindings).toEqual(['main', 'new-1']);
+    expect(
+      rulesReducer(both, { type: 'toggleFindings', branchKey: 'main' }).expandedFindings
+    ).toEqual(['new-1']);
+  });
+});
+
+describe('findingTargetIdsOf', () => {
+  it("moves the focus to a group's header first, then to its row or frame (W19)", () => {
+    expect(findingTargetIdsOf('main', 'group-1')).toEqual([
+      'rule-main-group-1-header',
+      'rule-main-group-1',
+    ]);
+  });
+
+  it("falls back to a rule's row, which has no header", () => {
+    expect(findingTargetIdsOf('new-1', 'rule-2')).toEqual([
+      'rule-new-1-rule-2-header',
+      'rule-new-1-rule-2',
     ]);
   });
 });

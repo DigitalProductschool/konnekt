@@ -2,6 +2,8 @@ import type { LoginRequest, UserView } from '../types/auth';
 import type { DocumentType } from '../types/document-types';
 import type { FormConnection } from '../types/form-connections';
 import type { OptionSet } from '../types/option-sets';
+import type { buildCheckedBranch, KeyedBranch } from '../utils/rules/checks/checkedTree';
+import type { RunBranch } from '../utils/rules/checks/types';
 
 export interface DocumentTypesState {
   status: 'loading' | 'loaded' | 'failed';
@@ -46,3 +48,39 @@ export type FormConnectionAction =
   | { type: 'notFound' }
   | { type: 'failed' }
   | { type: 'retry' };
+
+// useRuleChecks() (specs/003-rule-consistency-checks, contracts/rule-checks.md "useRuleChecks")
+
+/**
+ * A branch as `useRuleChecks()` reads it: its key, name and what the checks read. The rules step's
+ * `RulesBranch` is one
+ */
+export interface CheckableBranch extends KeyedBranch {
+  /** Its current name: "Standard" until the main branch is renamed */
+  name: string;
+}
+
+/**
+ * The part of `checks/checkedTree.ts` the hook uses, once its dynamic `import()` has loaded it.
+ * Only its type is imported statically, so the module and the case-folding table it reaches stay
+ * out of the main bundle
+ */
+export interface CheckedTreeModule {
+  buildCheckedBranch: typeof buildCheckedBranch;
+}
+
+/** The branches the hook last handed to the run state, which an equal change doesn't repeat */
+export interface SentChange {
+  branches: RunBranch[];
+  /** `YYYY-MM-DD`, today in Germany when they were built */
+  today: string;
+}
+
+/** The worker of the current run, one at a time, with its watchdog */
+export interface ActiveRun {
+  runId: number;
+  /** Null when the worker couldn't be created */
+  worker: Worker | null;
+  /** The watchdog's timer, or null without a worker */
+  watchdog: number | null;
+}

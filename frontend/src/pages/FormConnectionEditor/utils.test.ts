@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';
 import type { Branch, FormConnection } from '../../types/form-connections';
+import type { BranchCheck, BranchNotice, ItemFinding } from '../../utils/rules/checks/types';
 import { US1_RULES } from '../../utils/rules/testData';
 import { INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
+import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState } from './RulesStep/utils';
 import type { PendingRemoval } from './types';
 import {
   createPayload,
   editorReducer,
+  findingLinesOf,
+  firstBranchWithFindings,
   initialEditorState,
   isRulesChanged,
   publishErrorNotice,
@@ -317,5 +321,210 @@ describe('removing data that rules check (FR-029, F18)', () => {
       confirmLabel: 'Stop requesting',
     });
     expect(removalCopyOf(null, 0, false).title).toBe('');
+  });
+});
+
+// The dialog's lines and "Check rules again" (spec 003, S5; W10; FR-017, FR-019)
+
+/** A branch of the rules step, with US1's rules. */
+function branch(key: string, name: string): RulesBranch {
+  return {
+    key,
+    id: key,
+    name,
+    description: null,
+    origin: key === 'main' ? 'main' : 'based',
+    operator: 'and',
+    operator_mark: null,
+    items: US1_RULES,
+  };
+}
+
+/** A complete check of US1's rules with these findings. */
+function check(
+  branchKey: string,
+  findings: ItemFinding[],
+  notice: BranchNotice | null = null
+): BranchCheck {
+  return {
+    branchKey,
+    fingerprint: 'f',
+    complete: true,
+    notice,
+    findings,
+    checkedRules: US1_RULES.length,
+  };
+}
+
+const conflict: ItemFinding[] = [
+  {
+    itemId: 'rule-1',
+    kind: 'conflicting',
+    reason: { type: 'with', items: ['rule-2'] },
+    today: false,
+  },
+  {
+    itemId: 'rule-2',
+    kind: 'conflicting',
+    reason: { type: 'with', items: ['rule-1'] },
+    today: false,
+  },
+];
+const alwaysMet: ItemFinding[] = [
+  { itemId: 'rule-3', kind: 'always_met', reason: null, today: false },
+];
+const BRANCHES = [branch('main', 'Standard'), branch('b2', 'Ambulance'), branch('b3', 'Taxi')];
+
+describe('firstBranchWithFindings', () => {
+  it('is null when no branch has findings', () => {
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        main: check('main', []),
+        b2: check('b2', []),
+        b3: check('b3', []),
+      })
+    ).toBeNull();
+    expect(firstBranchWithFindings(BRANCHES, {})).toBeNull();
+  });
+
+  it('takes the first in tab order, not in the order of byBranch', () => {
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        b3: check('b3', conflict),
+        b2: check('b2', conflict),
+        main: check('main', []),
+      })
+    ).toBe('b2');
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        b2: check('b2', conflict),
+        main: check('main', conflict),
+      })
+    ).toBe('main');
+  });
+
+  it('skips branches missing from byBranch or not checked yet', () => {
+    expect(firstBranchWithFindings(BRANCHES, { main: null, b3: check('b3', conflict) })).toBe('b3');
+  });
+
+  it('skips a branch without checked rules', () => {
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        main: { ...check('main', conflict), checkedRules: 0 },
+        b2: check('b2', conflict),
+      })
+    ).toBe('b2');
+  });
+
+  it('counts a branch no applicant can meet, or with always-met findings only', () => {
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        main: check('main', []),
+        b2: check('b2', [], { kind: 'none_can_meet', today: false }),
+      })
+    ).toBe('b2');
+    expect(
+      firstBranchWithFindings(BRANCHES, { main: check('main', []), b3: check('b3', alwaysMet) })
+    ).toBe('b3');
+  });
+
+  it('skips a branch whose only notice is that it couldn’t be checked completely', () => {
+    expect(
+      firstBranchWithFindings(BRANCHES, {
+        main: { ...check('main', []), complete: false },
+        b2: check('b2', alwaysMet),
+      })
+    ).toBe('b2');
+    expect(
+      firstBranchWithFindings(BRANCHES, { main: { ...check('main', []), complete: false } })
+    ).toBeNull();
+  });
+
+  it('opens the first branch the dialog names', () => {
+    const byBranch = {
+      main: { ...check('main', []), complete: false },
+      b2: { ...check('b2', alwaysMet), checkedRules: 0 },
+      b3: check('b3', conflict),
+    };
+    expect(firstBranchWithFindings(BRANCHES, byBranch)).toBe(
+      findingLinesOf(BRANCHES, byBranch)[0].key
+    );
+  });
+});
+
+describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
+  const duplicate: ItemFinding[] = [
+    {
+      itemId: 'rule-3',
+      kind: 'redundant',
+      reason: { type: 'same', item: 'rule-1' },
+      today: false,
+    },
+  ];
+
+  it('is empty without findings', () => {
+    expect(findingLinesOf(BRANCHES, {})).toEqual([]);
+    expect(
+      findingLinesOf(BRANCHES, { main: check('main', []), b2: null, b3: check('b3', []) })
+    ).toEqual([]);
+  });
+
+  it('gives one line per branch with findings, in tab order, under the name the tab shows', () => {
+    const lines = findingLinesOf([branch('main', 'Standard'), branch('b2', ' Ambulance ')], {
+      b2: check('b2', conflict),
+      main: check('main', duplicate),
+    });
+    expect(lines).toEqual([
+      { key: 'main', text: 'Standard: 1 duplicate rule', tone: 'info' },
+      { key: 'b2', text: 'Ambulance: 2 rules can’t be met together', tone: 'warning' },
+    ]);
+  });
+
+  it('adds the notice of a branch no applicant can meet, in the warning style', () => {
+    expect(
+      findingLinesOf(BRANCHES, {
+        b2: check('b2', conflict, { kind: 'none_can_meet', today: false }),
+        b3: check('b3', [], { kind: 'none_can_meet', today: true }),
+      })
+    ).toEqual([
+      {
+        key: 'b2',
+        text: 'Ambulance: 2 rules can’t be met together. No applicant can meet the rules of Ambulance.',
+        tone: 'warning',
+      },
+      { key: 'b3', text: 'Right now, no applicant can meet the rules of Taxi.', tone: 'warning' },
+    ]);
+  });
+
+  it('shows duplicate, always-met and all-meet findings in the info style', () => {
+    expect(
+      findingLinesOf(BRANCHES, {
+        main: check('main', alwaysMet),
+        b2: check('b2', [], { kind: 'all_meet', today: false }),
+      })
+    ).toEqual([
+      { key: 'main', text: 'Standard: 1 rule every applicant meets', tone: 'info' },
+      { key: 'b2', text: 'Every applicant meets the rules of Ambulance.', tone: 'info' },
+    ]);
+  });
+
+  it('takes the warning style for a conflict next to info findings', () => {
+    expect(findingLinesOf(BRANCHES, { main: check('main', [...conflict, ...duplicate]) })).toEqual([
+      {
+        key: 'main',
+        text: 'Standard: 2 rules can’t be met together · 1 duplicate rule',
+        tone: 'warning',
+      },
+    ]);
+  });
+
+  it('leaves out branches without checked rules or only checked incompletely', () => {
+    expect(
+      findingLinesOf(BRANCHES, {
+        main: { ...check('main', conflict), checkedRules: 0 },
+        b2: { ...check('b2', []), complete: false },
+        b3: { ...check('b3', duplicate), complete: false },
+      })
+    ).toEqual([{ key: 'b3', text: 'Taxi: 1 duplicate rule', tone: 'info' }]);
   });
 });

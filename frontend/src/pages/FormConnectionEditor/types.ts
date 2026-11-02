@@ -2,6 +2,8 @@ import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { FormConnection, RequestedDocument } from '../../types/form-connections';
+import type { FindingTone, RuleChecks } from '../../utils/rules/checks/types';
+import type { RulesBranch } from './RulesStep/types';
 
 export interface FormConnectionEditorPageProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
@@ -170,6 +172,10 @@ export interface PublishDialogProps {
   documentLines: string[];
   /** One line per branch: "Standard · 2 rules" */
   ruleLines: string[];
+  /** The rules step's branches, in tab order, for the findings' lines (spec 003, S5; W10) */
+  branches: readonly RulesBranch[];
+  /** The latest checks per branch key, from `useRuleChecks()` */
+  checks: RuleChecks['byBranch'];
   publishing: boolean;
   /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
   error: ErrorNotice | null;
@@ -212,6 +218,22 @@ export interface PublishSummaryValueProps {
   value: string;
 }
 
+/**
+ * A branch's line in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019): "Ambulance:
+ * 2 rules can’t be met together · 1 duplicate rule", from `dialogLineOf()`
+ */
+export interface FindingLine {
+  /** The branch's key */
+  key: string;
+  text: string;
+  /** Warning when the branch has a conflict or no applicant can meet it, info otherwise */
+  tone: FindingTone;
+}
+
+export interface PublishFindingLineProps {
+  line: FindingLine;
+}
+
 export interface EditorFooterProps {
   step: EditorStep;
   editing: boolean;
@@ -223,4 +245,9 @@ export interface EditorFooterProps {
   onAddRules: () => void;
   /** "Publish" or "Save", or "… without rules" */
   onPublish: () => void;
+}
+
+export interface FindingsAnnouncerProps {
+  /** The latest change's announcement from `useRuleChecks()`, empty before the first one */
+  announcement: string;
 }

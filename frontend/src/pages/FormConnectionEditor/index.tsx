@@ -11,6 +11,7 @@ import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useOptionSets } from '../../hooks/useOptionSets';
+import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
@@ -22,6 +23,7 @@ import ConnectionStep from './ConnectionStep';
 import { EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';
 import EditorFooter from './EditorFooter';
+import FindingsAnnouncer from './FindingsAnnouncer';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
@@ -40,6 +42,7 @@ import {
   documentLines,
   editorReducer,
   fieldLabelOf,
+  firstBranchWithFindings,
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
@@ -100,6 +103,14 @@ export default function FormConnectionEditorPage({
       optionSets,
     }),
     [documentTypes, state.documents, optionSets]
+  );
+  // The checks of every branch's rules, once the catalog and the value sets are loaded, in the
+  // create and the edit flow (FR-011; W14). The rule open in the editor counts as last saved:
+  // its draft isn't in the branches (FR-002; W15). Nothing waits for them (FR-016)
+  const ruleChecks = useRuleChecks(
+    rules.branches,
+    rulesStatus === 'loaded' ? ruleCatalog : null,
+    rules.openBranch
   );
   // A rule being edited counts as a rule (FR-006)
   const withoutRules = !rules.editing && !hasAnyRule(rules.branches);
@@ -327,7 +338,12 @@ export default function FormConnectionEditorPage({
   // while a rule is being edited, whose fields have their own undo
   useUndoShortcut(state.step === 'rules' && rules.undo !== null && !rules.editing, undoRules);
 
-  /** "Check rules again" closes the dialog; "Add rules", from the documents, opens the rules. */
+  /**
+   * "Check rules again" closes the dialog and opens the first branch, in tab order, that the
+   * dialog lists findings for, or stays on the open branch when none has (FR-017; research R11);
+   * "Add rules", from the documents, opens the rules. "Reload" after `409 rules_changed` is the
+   * dialog's `onReload`, not this.
+   */
   function handleDialogCancel() {
     if (state.publishing) {
       return;
@@ -335,6 +351,11 @@ export default function FormConnectionEditorPage({
     dispatch({ type: 'closeDialog' });
     if (state.step === 'documents') {
       dispatch({ type: 'goToStep', step: 'rules' });
+      return;
+    }
+    const branchKey = firstBranchWithFindings(rules.branches, ruleChecks.byBranch);
+    if (branchKey !== null) {
+      dispatchRules({ type: 'selectBranch', branchKey });
     }
   }
 
@@ -432,6 +453,7 @@ export default function FormConnectionEditorPage({
             }}
             state={rules}
             catalog={ruleCatalog}
+            checks={ruleChecks.byBranch}
             editing={editing}
             dispatch={dispatchRules}
             onAddRule={(branchKey, parentId) => leaveEditor({ type: 'add', branchKey, parentId })}
@@ -476,6 +498,8 @@ export default function FormConnectionEditorPage({
             withoutRules={state.step === 'documents'}
             documentLines={documentLines(state.documents, documentTypes)}
             ruleLines={ruleLines(rules, state.step === 'documents')}
+            branches={rules.branches}
+            checks={ruleChecks.byBranch}
             publishing={state.publishing}
             error={state.publishError}
             rulesChanged={state.rulesChanged}
@@ -515,6 +539,8 @@ export default function FormConnectionEditorPage({
           ) : (
             <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
           )}
+          {/* Outside the steps, so that it stays across a change of step (FR-015) */}
+          <FindingsAnnouncer announcement={ruleChecks.announcement} />
         </>
       }
     >

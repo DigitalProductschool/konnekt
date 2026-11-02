@@ -16,7 +16,9 @@ import { problemFlagOf, standingOf, switchNoteOf } from './utils';
  * note after switching its AND or OR, its members, a new rule's editor at their end, and "Add
  * rule" (U14 6094:6430, 6094:6337). In a based variant it shows its mark (FR-023); removed
  * there, or dissolved (F13), it is shown removed, read-only, with "Restore group" only, and what
- * it holds is faded with it (U23 6185:41164).
+ * it holds is faded with it (U23 6185:41164). A group with a finding of spec 003 is outlined,
+ * with its note under its header (FR-012; A4, A5; U02 6171:7091, 6171:7093; U06 6753:40525, U07
+ * 6753:40862), unless it is removed, dissolved or faded, which the checks leave out (FR-001).
  */
 export default function GroupListItem({
   view,
@@ -63,6 +65,7 @@ export default function GroupListItem({
       subGroup={subGroup}
       id={ELEMENT_IDS.rule(branch.key, group.id)}
       flag={problemFlagOf(state, branch, group.id)}
+      finding={locked ? null : (view.findings.get(group.id) ?? null)}
       mark={view.based ? group.mark : null}
       inactive={inactive}
       faded={faded}

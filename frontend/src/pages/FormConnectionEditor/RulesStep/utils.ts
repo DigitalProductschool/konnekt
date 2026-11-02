@@ -1,3 +1,4 @@
+import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
 import type {
   FormConnection,
   GroupItem,
@@ -22,11 +23,16 @@ import {
   setBranchOperator,
   ungroupInBranch,
 } from '../../../utils/rules/branches';
+import { kindTextOf } from '../../../utils/rules/checks/findingMessages';
+import type { FindingsBanner } from '../../../utils/rules/checks/types';
 import { MAX_BRANCHES, RULES_MESSAGES } from '../../../utils/rules/constants';
 import { deleteItem, findItem, flattenItems, newRule, numberOfId } from '../../../utils/rules/tree';
 import { variantNameProblem } from '../../../utils/rules/validation';
+import { ELEMENT_IDS } from '../constants';
 import { MAIN_BRANCH_KEY, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
 import type {
+  BannerItem,
+  BannerView,
   ItemStanding,
   RenameAction,
   RenameField,
@@ -86,6 +92,7 @@ export function initialRulesState(formConnection?: FormConnection): RulesState {
     problem: null,
     selection: null,
     switched: null,
+    expandedFindings: [],
   };
 }
 
@@ -104,6 +111,76 @@ export function focusSoon(id: string, fallbackId?: string, onlyIfLost = false) {
       document.getElementById(id) ?? (fallbackId ? document.getElementById(fallbackId) : null);
     element?.focus();
   });
+}
+
+/**
+ * What the findings banner draws (S2; A1, W12, W17; design-notes.md §3.3), from `bannerOf()`:
+ * *single* with fewer than two lines, its `head` with the banner's icon, and the line's hidden kind
+ * text when there is a line; *collapsed* by default with two or more lines, its `head` (the counts
+ * row with what follows it); *expanded*, the counts row, then one item per line with its icon and
+ * hidden kind text, then the notice and FR-010's sentence without a link or kind text. No text is
+ * built here.
+ */
+export function bannerViewOf(banner: FindingsBanner, expanded: boolean): BannerView {
+  const { kind, lines, counts, notice, incomplete, head } = banner;
+  if (lines.length < 2) {
+    const kindText = lines.length === 1 ? kindTextOf(lines[0].kind) : null;
+    return {
+      state: 'single',
+      summary: { key: 'summary', tone: kind, kindText, parts: head },
+      items: [],
+    };
+  }
+  if (!expanded) {
+    return {
+      state: 'collapsed',
+      summary: { key: 'summary', tone: kind, kindText: null, parts: head },
+      items: [],
+    };
+  }
+  const items: BannerItem[] = [
+    ...lines.map((line, index) => ({
+      key: `line-${index}`,
+      tone: line.tone,
+      kindText: kindTextOf(line.kind),
+      parts: line.parts,
+    })),
+    ...(notice ? [{ key: 'notice', tone: notice.tone, kindText: null, parts: [notice.text] }] : []),
+    ...(incomplete
+      ? [{ key: 'incomplete', tone: 'info' as const, kindText: null, parts: [incomplete] }]
+      : []),
+  ];
+  return {
+    state: 'expanded',
+    summary: { key: 'summary', tone: kind, kindText: null, parts: [counts] },
+    items,
+  };
+}
+
+/**
+ * Where a banner name's link moves the focus, in order of preference (S2; A1; W19; FR-013): a
+ * group's header, which its note describes (contracts/ui-screens.md "Accessibility"), then the
+ * rule's row, or the group's frame should the header be missing. Only a group's frame has a
+ * header, so a rule's row is the first id that exists.
+ */
+export function findingTargetIdsOf(branchKey: string, itemId: string): string[] {
+  const frameId = ELEMENT_IDS.rule(branchKey, itemId);
+  return [`${frameId}${GROUP_HEADER_ID_SUFFIX}`, frameId];
+}
+
+/**
+ * A banner name's link (S2; A1; W19; FR-013): moves the focus to its rule's row or its group's
+ * header, which its note describes, and scrolls it into view, only as far as needed.
+ */
+export function goToItem(branchKey: string, itemId: string) {
+  const element = findingTargetIdsOf(branchKey, itemId)
+    .map((id) => document.getElementById(id))
+    .find((found) => found !== null);
+  if (!element) {
+    return;
+  }
+  element.focus({ preventScroll: true });
+  element.scrollIntoView({ block: 'nearest' });
 }
 
 /** The items of a level of a branch: a group's members, or the top level for null. */
@@ -751,6 +828,15 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
     }
     case 'cancelSelect':
       return { ...state, selection: null };
+    case 'toggleFindings': {
+      const { expandedFindings } = state;
+      return {
+        ...state,
+        expandedFindings: expandedFindings.includes(action.branchKey)
+          ? expandedFindings.filter((key) => key !== action.branchKey)
+          : [...expandedFindings, action.branchKey],
+      };
+    }
     case 'groupSelected': {
       const { selection } = state;
       const branch = selection && branchOf(state, selection.branchKey);

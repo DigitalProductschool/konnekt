@@ -4,6 +4,8 @@ import { flushSync } from 'react-dom';
 
 import Connector from '../../../components/Connector';
 import FeedbackLoader from '../../../components/FeedbackLoader';
+import type { ShownFinding } from '../../../components/FindingNote/types';
+import { namesOf, noteOf } from '../../../utils/rules/checks/findingMessages';
 import { groupIdOf, ruleIdOf, shownItems } from '../../../utils/rules/tree';
 import type { RuleContext } from '../../../utils/rules/types';
 import { unrequestedRules } from '../../../utils/rules/validation';
@@ -11,6 +13,7 @@ import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
 import { RULES_COPY, SELECTION_SCROLL_MARGIN } from './constants';
+import FindingsBanner from './FindingsBanner';
 import LinkStrip from './LinkStrip';
 import RuleEditor from './RuleEditor';
 import RulesEmptyState from './RulesEmptyState';
@@ -32,13 +35,18 @@ import { branchOf, focusSoon, groupOf, switchNoteOf } from './utils';
  * marks what it changed, removed or added (FR-023, W4); a group dissolved there shows as removed
  * after its remaining member (F13). A rule that checks data no longer requested is named in a
  * banner and flagged (F11); a refused Publish or Save shows the server's message above the
- * card. Identifiers aren't shown here (FR-010).
+ * card. Identifiers aren't shown here (FR-010). The rule checks of spec 003 outline each rule
+ * and group of the open branch that has a finding, with its note (S2; FR-012; F4, F5, F6; Figma
+ * U01 6171:6749, U02 6171:7064), and the findings banner sums them up above its rules, after the
+ * problems banner, with links to them (FR-013; A1, A2); they update in place after every change (W1), refuse nothing (F8;
+ * FR-016), and the rule editor shows nothing about them (S3; W15).
  */
 export default function RulesStep({
   status,
   onRetry,
   state,
   catalog,
+  checks,
   editing,
   dispatch,
   onAddRule,
@@ -100,6 +108,15 @@ export default function RulesStep({
   const addingAtTop = editor !== null && editor.original === null && editor.parentId === null;
   const selection = state.selection?.branchKey === branch.key ? state.selection : null;
   const { problem } = state;
+  // Each finding's note names the items by their current names, so a rename shows at once
+  // (FR-011)
+  const names = namesOf(items);
+  const findings = new Map<string, ShownFinding>(
+    (checks[branch.key]?.findings ?? []).map((finding) => [
+      finding.itemId,
+      { kind: finding.kind, text: noteOf(finding, names) },
+    ])
+  );
 
   /** Runs an action that changes the list, then moves the focus to the element it names. */
   function thenFocus(action: () => void, id: string, fallbackId?: string) {
@@ -142,6 +159,7 @@ export default function RulesStep({
     context,
     documents: catalog.documents,
     ruleEditor,
+    findings,
     dispatch,
     onAddRule: (parentId) => onAddRule(branch.key, parentId),
     onEditRule: (ruleId) => onEditRule(branch.key, ruleId),
@@ -195,7 +213,7 @@ export default function RulesStep({
 
   return (
     <div className="flex flex-col gap-16">
-      <BranchTabs state={state} dispatch={dispatch} />
+      <BranchTabs state={state} checks={checks} dispatch={dispatch} />
       {problem && (
         <KernAlert
           id={ELEMENT_IDS.rulesProblem}
@@ -225,6 +243,14 @@ export default function RulesStep({
           />
         )}
         {unrequested.length > 0 && <UnrequestedBanner rules={unrequested} />}
+        <FindingsBanner
+          check={checks[branch.key] ?? null}
+          branch={branch}
+          names={names}
+          expanded={state.expandedFindings.includes(branch.key)}
+          dispatch={dispatch}
+          plainItemId={editor && editor.original !== null ? editor.draft.id : null}
+        />
         <SwitchNote text={switchNoteOf(state, branch, null)} topLevel />
         {items.length === 0 && !editor ? (
           <RulesEmptyState

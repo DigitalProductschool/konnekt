@@ -41,6 +41,12 @@ and sub-groups, in **branches** ("variants" in the UI) that each get a pull URL 
 their own. A pull hands serviceBW the documents together with the **evaluation** of
 the called branch's rules. See [Rules and branches](#rules-and-branches-spec-002).
 
+Spec 003 ([plan](../specs/003-rule-consistency-checks/plan.md)) adds **rule
+consistency checks**: while the team member edits, the Rules step points out rules and
+groups that conflict, repeat or cover each other, are always met, or make a variant
+that no applicant can meet. They run only in the browser and never reach the server.
+See [Rule consistency checks](#rule-consistency-checks-spec-003).
+
 ### Data Flow
 
 1. User interacts with the React frontend
@@ -106,9 +112,11 @@ frontend/
 │   │                     # route guards, sign-in state provider, dialogs, shared form pieces,
 │   │                     # and the read-only rules display that the Rules step and the
 │   │                     # details share: RuleRow, GroupFrame, Connector, BranchMark,
-│   │                     # BranchName
+│   │                     # BranchName; FindingNote, the note under a rule or group with a
+│   │                     # finding of the rule checks
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
-│   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized
+│   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
+│   │                     # useRuleChecks (the rule checks' run and their worker)
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
 │   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
@@ -117,7 +125,9 @@ frontend/
 │   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon),
 │   │                     # menuNavigation.ts (arrow keys in menus), popupPlacement.ts
 │   │                     # (the side a popup opens to), and rules/: the pure rules logic,
-│   │                     # each module with its *.test.ts
+│   │                     # each module with its *.test.ts, with rules/checks/: the rule
+│   │                     # checks, their worker's entry worker.ts, and the generated
+│   │                     # caseFolding.ts and fixtures/
 │   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
@@ -174,6 +184,9 @@ frontend/
   beside it. `npm test` is a gate (constitution III), because the rules' propagation
   between branches runs only in the browser. It is configured in the `test` block of
   `vite.config.ts`; a `vitest.config.ts` would silently replace that block
+- The **rule checks** (spec 003) run in the browser, in a module Web Worker that the
+  editor page starts through `useRuleChecks()`; Vite builds the worker into a chunk of
+  its own. See [Rule consistency checks](#rule-consistency-checks-spec-003)
 
 ### backend
 
@@ -192,7 +205,8 @@ backend/
 │   │                     # statuses), documents.py (field extraction),
 │   │                     # evaluation.py (the rules on the shared documents),
 │   │                     # qr.py, worker.py
-│   ├── catalog.py        # Document types, their fields, and each field's kind and parts
+│   ├── catalog.py        # Document types, their fields, and each field's kind, parts
+│   │                     # and multiple_values (whether it can hold several values)
 │   ├── option_sets.py    # The value sets of enum fields: countries, sex, licence
 │   │                     # classes, eye and hair colours
 │   ├── cli.py            # Accounts: create-user, set-password, delete-user; clear-connections
@@ -205,7 +219,8 @@ backend/
 │                         # and it redacts references in uvicorn's access log
 ├── alembic/              # Database migrations
 ├── scripts/              # Developer scripts, not in the production image:
-│                         # issue_test_credentials/ issues test documents to a wallet
+│                         # issue_test_credentials/ issues test documents to a wallet,
+│                         # export_check_fixtures.py writes the rule checks' fixtures
 ├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
@@ -364,7 +379,9 @@ to R10 in `specs/002-connection-rules/`, the tables its
 - **Kinds and value sets**: the catalog gives each field its kind (text, number, date,
   enum, image, or made of parts), its value set and its parts, such as the place of
   birth's country or a licence class's issue date, and `GET /api/document-types`
-  returns them.
+  returns them. It also says whether a field or part can hold several values
+  (`multiple_values`: the PID's nationalities and the driving licence's classes), which
+  the rule checks of spec 003 need; the evaluation treats a single value as a list of one.
   `GET /api/option-sets` (`routers/option_sets.py`, signed in) returns the value sets of
   `app/option_sets.py`, so the menus, the server's checks and the evaluation use the
   same values; licence classes come with their descriptions.
@@ -380,6 +397,59 @@ to R10 in `specs/002-connection-rules/`, the tables its
   never logged**: its results and messages are about the citizen, so it goes with
   the documents, and repeated pulls compute it again, the same, since the day of
   sharing is fixed.
+
+### Rule consistency checks (spec 003)
+
+While the team member edits, the Rules step checks each variant's rules and shows its
+**findings**: rules and groups that conflict, that are duplicates or covered by others,
+or that are always met, and variants that no applicant can meet or that every applicant
+meets. The decisions are research R1 to R15 in `specs/003-rule-consistency-checks/`.
+The checks have no endpoint, table, setting or dependency of their own.
+
+- **In the browser, in a module Web Worker**: `useRuleChecks()`
+  (`frontend/src/hooks/useRuleChecks.ts`), in the editor page
+  (`pages/FormConnectionEditor/index.tsx`), builds each branch's checked tree on the main
+  thread after every change (`checks/checkedTree.ts`, with a fingerprint, so an unchanged
+  branch reuses its cached result) and starts a module worker,
+  `new Worker(new URL('../utils/rules/checks/worker.ts', import.meta.url), { type: 'module' })`,
+  for the others: the shown branch first, then the rest in tab order. The worker
+  (`checks/worker.ts`) runs the solver and the findings (`checks/solver.ts`,
+  `checks/findings.ts`, the theories per kind) and posts each branch's result as it
+  finishes. A change during a run terminates the worker and starts a new one. A run has
+  5 seconds from the change; branches it can't finish count as not checked completely,
+  and a worker that can't start leaves every branch not checked completely, while
+  editing goes on. Vite builds the worker into a
+  chunk of its own under `assets/`, so the solver and the case-folding table stay out of
+  the main bundle. The run state is the pure reducer of `checks/runState.ts`; the modules
+  of `src/utils/rules/checks/` are pure, and only `worker.ts` and the hook touch browser
+  APIs.
+- **Shown in two places only**: the Rules step (notes under rules and groups through
+  `FindingNote`, the findings banner, the variant tab's icon and tooltip, and a polite
+  status region, `FindingsAnnouncer`) and the publish and save dialog, which lists the
+  variants with findings. Findings never block Publish or Save. Every finding text comes
+  from `checks/findingMessages.ts`. The details page never shows them.
+- **Never stored, sent or logged**: findings exist only in the page's memory. They are
+  not part of a save, no request carries them, nothing in `checks/`, the worker or the
+  hook writes to the console, and the hook handles the worker's errors so that the
+  browser doesn't log them. Nothing changes for serviceBW or the server.
+- **The catalog's `multiple_values`**: whether a field or part can hold several values
+  comes from `app/catalog.py` through `GET /api/document-types`
+  (`frontend/src/types/document-types.ts` mirrors it), so that a rule set requiring two
+  nationalities isn't reported as a conflict.
+- **In step with `evaluation.py`**: the checks judge each condition as the evaluator
+  does: text trimmed, NFC-normalised and case-folded with Python's `str.casefold()`,
+  dates by the evaluator's calendar arithmetic. Two files are generated from the
+  interpreter and the evaluator by `backend/scripts/export_check_fixtures.py`:
+  `checks/caseFolding.ts` (Python's case-folding table, which `checks/text.ts` uses) and
+  `checks/fixtures/evaluator-vectors.json` (Python's results for text normalisation,
+  `years_after()`, `months_after()`, day numbers and rule outcomes), which the Vitest
+  tests replay against `checks/text.ts`, `checks/calendar.ts` and the test evaluator. They
+  are never edited by hand; after a Python upgrade or a change to the evaluator's
+  comparisons, run `uv run python -m scripts.export_check_fixtures` from `backend/` and
+  commit the result. Its `--check` writes nothing and fails on stale files, and
+  `backend/tests/unit/test_check_fixtures.py` runs it. A brute-force oracle
+  (`checks/testOracle.ts`, test-only) checks the solver's answers against an evaluator
+  ported from `evaluation.py` (`checks/testEvaluator.ts`).
 
 ### Background worker
 

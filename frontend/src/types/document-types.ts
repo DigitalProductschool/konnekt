@@ -15,6 +15,8 @@ export interface FieldPart {
   option_set: string | null;
   /** One part per licence class, such as "Licence class B – Issue date" */
   per_licence_class: boolean;
+  /** Whether a document can give several values for it: true for the licence classes held only */
+  multiple_values: boolean;
 }
 
 export interface DocumentField {
@@ -27,6 +29,11 @@ export interface DocumentField {
   date_of_birth: boolean;
   /** Fields of kind 'parts' only */
   parts: FieldPart[] | null;
+  /**
+   * Whether a document can give several values for it: true for the Personal ID's nationalities
+   * only. A field made of parts declares it on its parts (the driving licence's classes)
+   */
+  multiple_values: boolean;
 }
 
 /** A catalog entry: a kind of document and its fields, in catalog order */

@@ -8,6 +8,8 @@ import type {
   RequestedDocument,
 } from '../../types/form-connections';
 import { sameValue } from '../../utils/rules/branches';
+import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
+import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
 import { countRules } from '../../utils/rules/tree';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
@@ -29,6 +31,7 @@ import type {
   EditorMode,
   EditorState,
   EditorStep,
+  FindingLine,
   PendingRemoval,
   RemovedDataRule,
 } from './types';
@@ -487,4 +490,50 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
     return { message: `${error.data.message} ${PUBLISH_COPY.rulesChangedHint}` };
   }
   return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
+}
+
+/**
+ * The style of a branch's line in the publish and save dialog (FR-019): warning when the branch
+ * has a conflict or no applicant can meet it, info when it has only duplicate, covered or
+ * always-met items, or every applicant meets it.
+ */
+function dialogToneOf(check: BranchCheck): FindingTone {
+  const warning =
+    check.findings.some((finding) => finding.kind === 'conflicting') ||
+    check.notice?.kind === 'none_can_meet';
+  return warning ? 'warning' : 'info';
+}
+
+/**
+ * The findings' lines of the publish and save dialog (spec 003, S5; W10; FR-017, FR-019;
+ * US4-AS1, AS2, AS4): one per branch that has a line, in tab order, with `dialogLineOf()`'s text
+ * under the name the tab shows, and its style. `branches` are the rules state's, in tab order,
+ * Standard first. A branch missing from `byBranch` or never checked yet, without checked rules,
+ * or whose only notice is that it couldn't be checked completely, has no line. Empty without
+ * findings: the dialog is then as in spec 002.
+ *
+ * This is the one test of "a branch with findings" for the dialog and for "Check rules again"
+ * (`firstBranchWithFindings()`), so that the button always opens a branch the dialog names.
+ */
+export function findingLinesOf(
+  branches: readonly RulesBranch[],
+  byBranch: RuleChecks['byBranch']
+): FindingLine[] {
+  return branches.flatMap((branch) => {
+    const check = byBranch[branch.key];
+    const text = check ? dialogLineOf(check, branch.name.trim()) : null;
+    return check && text !== null ? [{ key: branch.key, text, tone: dialogToneOf(check) }] : [];
+  });
+}
+
+/**
+ * The key of the first branch, in tab order, that has findings, for "Check rules again" (spec 003,
+ * S5; W10; FR-017; US4-AS3), or null when none has. A branch has findings when the dialog gives it
+ * a line (`findingLinesOf()`), so the button opens the first branch the dialog names.
+ */
+export function firstBranchWithFindings(
+  branches: readonly RulesBranch[],
+  byBranch: RuleChecks['byBranch']
+): string | null {
+  return findingLinesOf(branches, byBranch)[0]?.key ?? null;
 }

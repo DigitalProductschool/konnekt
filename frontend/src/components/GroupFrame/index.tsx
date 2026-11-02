@@ -1,6 +1,9 @@
 import { BRANCH_MARK_TINTS, INACTIVE_OPACITY } from '../BranchMark/constants';
 import Connector from '../Connector';
+import FindingNote from '../FindingNote';
+import { FINDING_LOOKS, FINDING_NOTE_ID_SUFFIX } from '../FindingNote/constants';
 import ProblemNote from '../RuleRow/ProblemNote';
+import { GROUP_FINDING_NOTE_SPACING, GROUP_HEADER_ID_SUFFIX } from './constants';
 import GroupHeader from './GroupHeader';
 import GroupMessage from './GroupMessage';
 import type { GroupFrameProps } from './types';
@@ -14,8 +17,15 @@ import type { GroupFrameProps } from './types';
  * rule"; the details add the identifier (W1). In a variant based on Standard, the header shows
  * its mark (FR-023): a changed group is tinted yellow (U18 6163:5438), an added one violet with
  * a violet border (U17 6163:5268), and a removed one, or one dissolved there, fades what it
- * holds and strikes its name through (U23 6185:41164; F13). Nothing in it is positioned, so
- * that the Rules step's select boxes line up with the rules card.
+ * holds and strikes its name through (U23 6185:41164; F13). In the Rules step, a group with a
+ * finding of spec 003 is outlined all round in the finding's colour, in place of its left border,
+ * with the note under its header (6750:41108). The note describes the frame and the header, where
+ * the findings banner's name links move the focus (S2; FR-012; A4, A5; W19; U02
+ * 6171:7091, 6171:7093; U06 6753:40525, U07 6753:40862): a duplicate, covered or always-met
+ * group's note in the info look, 8 px below the header, and its rules plain, as the checks report
+ * nothing inside it; its mark stays beside it, and a flag wins over a finding
+ * (W11). Nothing in it is positioned, so that the Rules step's select boxes line up with the
+ * rules card.
  */
 export default function GroupFrame({
   group,
@@ -27,6 +37,7 @@ export default function GroupFrame({
   messageField,
   note,
   flag,
+  finding = null,
   members,
   onSwitchOperator,
   footer,
@@ -39,6 +50,16 @@ export default function GroupFrame({
     : 'bg-kern-layout-background-hued';
   const tint = mark ? BRANCH_MARK_TINTS[mark] : '';
   const border = mark === 'added' ? 'border-variant-new' : 'border-kern-action-default';
+  // A flagged group shows its problem and no finding (W11)
+  const shownFinding = flag ? null : finding;
+  const problemId = flag && id ? `${id}-problem` : undefined;
+  const findingId = shownFinding && id ? `${id}${FINDING_NOTE_ID_SUFFIX}` : undefined;
+  // With a finding: the rule outline's colour and width all round, in place of the left border
+  // (A4; U02 6171:7091, U06 6753:40525, U07 6753:40862). The frame keeps its corners: a
+  // sub-group's are rounded, a group's square, as Figma draws both
+  const frameBorder = shownFinding
+    ? `${FINDING_LOOKS[shownFinding.kind].outline} border`
+    : `${border} border-l-3`;
   return (
     <div className="px-16 py-8">
       <div
@@ -46,12 +67,14 @@ export default function GroupFrame({
         tabIndex={id ? -1 : undefined}
         role="group"
         aria-label={group.name}
-        aria-describedby={flag && id ? `${id}-problem` : undefined}
-        className={`${border} focus-visible:outline-kern-action-focus-default border-l-3 pt-8 focus-visible:outline-4 focus-visible:outline-offset-2 ${
+        aria-describedby={problemId ?? findingId}
+        className={`${frameBorder} focus-visible:outline-kern-action-focus-default pt-8 focus-visible:outline-4 focus-visible:outline-offset-2 ${
           tint ? `${tint} ${subGroup ? 'rounded-kern-default' : ''}` : background
         }`}
       >
         <GroupHeader
+          id={id ? `${id}${GROUP_HEADER_ID_SUFFIX}` : undefined}
+          describedBy={problemId ?? findingId}
           name={group.name}
           subGroup={subGroup}
           operator={group.operator}
@@ -63,7 +86,12 @@ export default function GroupFrame({
         />
         {flag && (
           <div className="pt-8">
-            <ProblemNote id={id ? `${id}-problem` : undefined} message={flag} />
+            <ProblemNote id={problemId} message={flag} />
+          </div>
+        )}
+        {shownFinding && (
+          <div className={GROUP_FINDING_NOTE_SPACING[shownFinding.kind] || undefined}>
+            <FindingNote id={findingId} kind={shownFinding.kind} text={shownFinding.text} />
           </div>
         )}
         <div className={inactive && !faded ? INACTIVE_OPACITY : undefined}>

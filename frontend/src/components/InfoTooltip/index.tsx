@@ -10,7 +10,13 @@ import {
 
 import arrowIcon from '../../assets/icons/tooltip-arrow.svg';
 import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
-import { CLOSED, TOOLTIP_OVERHANG, TOOLTIP_PLACEMENTS, TOOLTIP_WIDTH } from './constants';
+import {
+  CLOSED,
+  DEFAULT_ICON,
+  TOOLTIP_OVERHANG,
+  TOOLTIP_PLACEMENTS,
+  TOOLTIP_WIDTH,
+} from './constants';
 import type { InfoTooltipProps } from './types';
 import { isOpen, tooltipReducer } from './utils';
 
@@ -28,6 +34,7 @@ export default function InfoTooltip({
   text,
   arrow = 'start',
   iconSize = 'default',
+  icon = DEFAULT_ICON,
 }: InfoTooltipProps) {
   const [state, dispatch] = useReducer(tooltipReducer, CLOSED);
   const containerRef = useRef<HTMLSpanElement>(null);
@@ -116,10 +123,9 @@ export default function InfoTooltip({
         onBlur={() => dispatch({ type: 'focus', value: false })}
         className="rounded-kern-circle focus-visible:outline-kern-action-focus-default flex cursor-pointer focus-visible:outline-4 focus-visible:outline-offset-2"
       >
-        {/* KERN's info icon, in the muted colour of the design */}
         <span
           aria-hidden="true"
-          className={`kern-icon kern-icon--info bg-kern-layout-text-muted! ${iconSize === 'small' ? 'kern-icon--small' : ''}`}
+          className={`kern-icon ${icon} ${iconSize === 'small' ? 'kern-icon--small' : ''}`}
         />
         <span className="kern-sr-only">{label}</span>
       </button>

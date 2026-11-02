@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Mark, RuleItem } from '../../types/form-connections';
 import type { PredicateParts, RuleContext, StatementParts } from '../../utils/rules/types';
+import type { ShownFinding } from '../FindingNote/types';
 
 export interface RuleRowProps {
   /** The row's element id; the focus moves there after a refused Publish or Save (F11) */
@@ -22,6 +23,12 @@ export interface RuleRowProps {
    * row is then outlined in red with the message under it (U27 6197:10704)
    */
   flag?: string | null;
+  /**
+   * The rule's finding of spec 003, in the Rules step only: the details never pass it (FR-020).
+   * The row is then outlined in the finding's colour with its note under it (F4). A `flag` wins:
+   * a rule with a problem shows no finding (W11)
+   */
+  finding?: ShownFinding | null;
   /** The Rules step's ⋯ menu; the details show none */
   actions?: ReactNode;
   /** How a based variant's rule differs from Standard's (FR-023); none elsewhere */

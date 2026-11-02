@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Combinator, GroupItem, Mark } from '../../types/form-connections';
+import type { ShownFinding } from '../FindingNote/types';
 
 /** A member of a group, already rendered, with its React key */
 export interface GroupFrameMember {
@@ -29,6 +30,12 @@ export interface GroupFrameProps {
   note?: ReactNode;
   /** A problem to point out under the header, such as a refused Publish's (F11) */
   flag?: string | null;
+  /**
+   * The group's finding of spec 003, in the Rules step only: the details never pass it (FR-020).
+   * The frame is then outlined in the finding's colour with its note under the header (F4, F6). A
+   * `flag` wins: a flagged group shows no finding (W11)
+   */
+  finding?: ShownFinding | null;
   members: GroupFrameMember[];
   /** Switches the group's AND or OR; without it, the connectors are read-only */
   onSwitchOperator?: (operator: Combinator) => void;
@@ -43,6 +50,13 @@ export interface GroupFrameProps {
 }
 
 export interface GroupHeaderProps {
+  /**
+   * The header's element id, which makes it focusable from script: the findings banner's name
+   * links move the focus there (spec 003, W19)
+   */
+  id?: string;
+  /** The id of the note under the header that describes it, a problem or a finding */
+  describedBy?: string;
   name: string;
   subGroup: boolean;
   operator: Combinator;
