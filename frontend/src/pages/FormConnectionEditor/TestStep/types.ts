@@ -1,12 +1,15 @@
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 
+import type { ValueChoice } from '../../../components/ValuesPicker/types';
 import type { Personas } from '../../../hooks/usePersonas';
 import type { BranchCheck } from '../../../utils/rules/checks/types';
 import type {
   GenerationRun,
   Persona,
+  PersonaConfirm,
   PersonaField,
   PersonaSlot,
+  PersonaValue,
   ResultRow,
   ResultView,
   TestResults,
@@ -88,6 +91,26 @@ export interface ApplicantsRowProps {
   onGenerateAll: () => void;
 }
 
+/** `RegenerateDialog` (S8.7; W9; T046): the question before generating anew */
+export interface RegenerateDialogProps {
+  /** `state.confirm`: the open question, or `null` while it is closed */
+  confirm: PersonaConfirm | null;
+  /** `state.personas`, for the names in the question */
+  personas: readonly Persona[] | null;
+  /** "Generate new data": `confirmed()` */
+  onConfirm: () => void;
+  /** "Cancel", the close button and Escape: `cancelled()` */
+  onCancel: () => void;
+}
+
+/** `PersonasAnnouncer` (S8.10; F2; T047): the hidden status region for changes of outcome */
+export interface PersonasAnnouncerProps {
+  /** `state.announcement`: the latest text, '' when the last change moved no outcome */
+  announcement: string;
+  /** `state.announcementId`: goes up with every non-empty announcement */
+  announcementId: number;
+}
+
 /** `PersonaPanel` (S8.4; T033): the selected persona's data card, left of the results */
 export interface PersonaPanelProps {
   /** A ready persona */
@@ -100,6 +123,16 @@ export interface PersonaPanelProps {
   today: string;
   /** The keys of the fields read by rules failing in the shown variant (K1) */
   failingFields: readonly string[];
+  /** The panel is in edit mode: fields in place of the values (`PersonaState.editing`, S8.5) */
+  editing: boolean;
+  /** "Edit data" */
+  onEditData: () => void;
+  /** "Done" */
+  onDone: () => void;
+  /** One valid entry for a field (`usePersonas().setValue()` for the selected persona) */
+  onSetValue: (key: string, value: PersonaValue) => void;
+  /** A new, trimmed, non-empty name (`usePersonas().rename()` for the selected persona) */
+  onRename: (name: string) => void;
   /** "Generate again" */
   onGenerateAgain: () => void;
 }
@@ -125,9 +158,15 @@ export interface GenerateAllButtonProps {
   onGenerateAll: () => void;
 }
 
-/** `PersonaHead` (S8.4; T033): "Mia’s data" and the persona's buttons */
+/** `PersonaHead` (S8.4, S8.5; T033, T043): "Mia’s data" and the persona's buttons */
 export interface PersonaHeadProps {
   persona: Persona;
+  /** Edit mode: "Done" in place of "Edit data" */
+  editing: boolean;
+  /** "Edit data" */
+  onEditData: () => void;
+  /** "Done": the focus goes back to its button, which then reads "Edit data" */
+  onDone: () => void;
   /** "Generate again" */
   onGenerateAgain: () => void;
 }
@@ -165,6 +204,8 @@ export interface ValueRowProps {
   text: string;
   /** Read by a rule shown as failing in the shown variant (K1) */
   failing: boolean;
+  /** The value differs from the generated one (K2, `changedKeys()`) */
+  changed: boolean;
 }
 
 /** `ResultSection` (S8.6; T034): the selected persona's results for the shown variant */
@@ -234,3 +275,152 @@ export interface SkeletonResultRowProps {
   statement: string;
   message: string;
 }
+
+/**
+ * A field's draft in edit mode (T038; research R12): what the team member typed, and the error
+ * it shows under the field, `null` while the entry is valid. A valid entry has been applied to
+ * the persona; an invalid one hasn't, so the persona keeps its last valid value (FR-008)
+ */
+export interface Draft {
+  text: string;
+  error: string | null;
+}
+
+/** The panel's drafts by key: a field's key, `NAME_DRAFT_KEY` or `ageDraftKey(key)` */
+export type DraftsState = Readonly<Record<string, Draft>>;
+
+/** `draftsReducer()`'s actions */
+export type DraftsAction =
+  /** One entry was typed: its text and its error, `null` when it is valid */
+  | { type: 'edit'; key: string; text: string; error: string | null }
+  /** "Done", or ending edit mode otherwise: drops the invalid drafts, keeps the valid ones */
+  | { type: 'done' }
+  /** Drops every draft: another persona, a persona generated anew */
+  | { type: 'reset' };
+
+/** An entry's parse: its value (`null` when empty), or the error to show under its field */
+export type ParseResult<T> = { ok: true; value: T | null } | { ok: false; error: string };
+
+/**
+ * `PersonaEditor` (S8.5; T043): the data card's fields in edit mode, in place of `PersonaData`.
+ * It owns the drafts (`draftsReducer`) and focuses the name when it mounts, which is when "Edit
+ * data" was pressed; "Done" unmounts it, which drops the drafts
+ */
+export interface PersonaEditorProps {
+  persona: Persona;
+  fields: readonly PersonaField[];
+  context: RuleContext;
+  /** `YYYY-MM-DD`, for "Age today" */
+  today: string;
+  /** One valid entry for a field */
+  onSetValue: (key: string, value: PersonaValue) => void;
+  /** A new, trimmed, non-empty name */
+  onRename: (name: string) => void;
+}
+
+/** What one field's component needs of the editor's drafts and commits (T043, T044) */
+export interface FieldHandlers {
+  /** The text typed into the field (a date of birth's date, a value's text) */
+  onText: (field: PersonaField, text: string) => void;
+  /** The text typed into a date of birth's "Age today" */
+  onAge: (field: PersonaField, text: string) => void;
+  /** A chosen value of a set, or several, or `null` for none */
+  onValue: (field: PersonaField, value: PersonaValue) => void;
+}
+
+/** `DocumentFields` (S8.5; T043): a document's heading and the fields of its values */
+export interface DocumentFieldsProps extends FieldHandlers {
+  group: DocumentGroup;
+  persona: Persona;
+  context: RuleContext;
+  today: string;
+  drafts: DraftsState;
+}
+
+/** `EditorField` (S8.5; T044): the field for one value, by its kind */
+export interface EditorFieldProps extends FieldHandlers {
+  field: PersonaField;
+  /** The persona's value (`undefined` while it has none) */
+  value: PersonaValue | undefined;
+  /** The options of the field's value set, in the set's order; none for another kind */
+  choices: ValueChoice[];
+  today: string;
+  drafts: DraftsState;
+  /** The element id of the field's control */
+  id: string;
+}
+
+/**
+ * `FieldFrame` (S8.5; T044): KERN 2.8's form field around a control: its label above, the control,
+ * and the error under it with the danger icon (Figma 7058:60812: 4px danger bar before the field,
+ * `kern-form-input--error`). The control gets `aria-describedby`/`aria-invalid` itself, from
+ * `errorIdOf()`
+ */
+export interface FieldFrameProps {
+  /** The control's id: the label's `for`, and the base of the error's id (`${id}-error`) */
+  id: string;
+  label: string;
+  /** The error shown under the field, `null` while the entry is valid */
+  error: string | null;
+  /**
+   * Without a control to point the label at, as for a picker whose button reads its own name: the
+   * label is plain text, not a `label`
+   */
+  plainLabel?: boolean;
+  children: ReactNode;
+}
+
+/** `ValueField` (S8.5; T044): text, a whole number, a date as `dd.mm.yyyy`, or "Age today" */
+export interface ValueFieldProps {
+  id: string;
+  label: string;
+  /** What the field shows: the draft's text, or the value written as the field takes it */
+  text: string;
+  /** `'number'` and `'date'` get the numeric keypad (`inputmode="numeric"`, R16) */
+  kind: PersonaField['kind'];
+  error: string | null;
+  onChange: (text: string) => void;
+}
+
+/** `DateOfBirthField` (S8.5; F10, T044): the date and "Age today" side by side */
+export interface DateOfBirthFieldProps {
+  id: string;
+  label: string;
+  dateText: string;
+  dateError: string | null;
+  ageText: string;
+  ageError: string | null;
+  onDateChange: (text: string) => void;
+  onAgeChange: (text: string) => void;
+}
+
+/** `ChoiceField` (S8.5; F12, T044): a select of labels for one value of a set */
+export interface ChoiceFieldProps {
+  id: string;
+  label: string;
+  choices: ValueChoice[];
+  value: PersonaValue | undefined;
+  /** The chosen value, or `null` for "Not shared" */
+  onChange: (value: string | number | null) => void;
+}
+
+/** `ValuesField` (S8.5; F12, T044): several values picked from a list, never typed */
+export interface ValuesFieldProps {
+  id: string;
+  label: string;
+  choices: ValueChoice[];
+  /** Licence classes: by code, with their descriptions, "Search classes" */
+  classes: boolean;
+  value: PersonaValue | undefined;
+  /** The chosen values in the set's order, or `null` for none */
+  onChange: (values: readonly (string | number)[] | null) => void;
+}
+
+/** A `ValuesField`'s menu: whether it is open, and its search text */
+export interface PickerState {
+  open: boolean;
+  search: string;
+}
+
+/** `pickerReducer()`'s actions */
+export type PickerAction = { type: 'open' } | { type: 'close' } | { type: 'search'; text: string };

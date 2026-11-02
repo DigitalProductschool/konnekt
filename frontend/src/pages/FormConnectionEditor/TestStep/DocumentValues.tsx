@@ -1,3 +1,4 @@
+import { changedKeys } from '../../../utils/rules/personas/values';
 import type { DocumentValuesProps } from './types';
 import { valueTextOf } from './utils';
 import ValueRow from './ValueRow';
@@ -14,6 +15,7 @@ export default function DocumentValues({
   today,
   failingFields,
 }: DocumentValuesProps) {
+  const changed = changedKeys(persona, group.fields);
   return (
     <div className="flex flex-col gap-8">
       <h3 className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words">
@@ -26,6 +28,7 @@ export default function DocumentValues({
             field={field}
             text={valueTextOf(field, persona.values[field.key], context.optionSets, today)}
             failing={failingFields.includes(field.key)}
+            changed={changed.includes(field.key)}
           />
         ))}
       </dl>

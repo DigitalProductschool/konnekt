@@ -2,12 +2,25 @@ import { describe, expect, it } from 'vitest';
 
 import type { OptionSet } from '../../../types/option-sets';
 import type { GenerationRun, Persona, PersonaField } from '../../../utils/rules/personas/types';
+import { ageOn } from '../../../utils/rules/personas/values';
 import { mainBranch } from '../../../utils/rules/testData';
 import type { RulesBranch } from '../RulesStep/types';
 import {
+  ageDraftKey,
+  ageTextOf,
   createsAll,
+  dateOfBirthForAge,
   documentGroupsOf,
+  draftsReducer,
+  entryTextOf,
   formatDisplayDate,
+  NAME_DRAFT_KEY,
+  nameProblem,
+  orderedValues,
+  parseDisplayDate,
+  parseEntry,
+  parseWholeNumber,
+  pickerReducer,
   runStatusTextOf,
   selectedBranchOf,
   valueTextOf,
@@ -197,5 +210,217 @@ describe('runStatusTextOf and createsAll', () => {
     expect(createsAll(run(['free', 'free', 'free']))).toBe(true);
     expect(createsAll(run(['free', 'kept', 'free']))).toBe(false);
     expect(createsAll(run(['filled', 'filled', 'filled']))).toBe(false);
+  });
+});
+
+describe('parseDisplayDate', () => {
+  it('reads dd.mm.yyyy as YYYY-MM-DD', () => {
+    expect(parseDisplayDate('28.02.2007')).toEqual({ ok: true, value: '2007-02-28' });
+    expect(parseDisplayDate(' 08.07.2007 ')).toEqual({ ok: true, value: '2007-07-08' });
+  });
+
+  it('gives null for an empty entry', () => {
+    expect(parseDisplayDate('')).toEqual({ ok: true, value: null });
+    expect(parseDisplayDate('  ')).toEqual({ ok: true, value: null });
+  });
+
+  it('knows leap years', () => {
+    expect(parseDisplayDate('29.02.2008')).toEqual({ ok: true, value: '2008-02-29' });
+    expect(parseDisplayDate('29.02.2007')).toEqual({ ok: false, error: expect.any(String) });
+    expect(parseDisplayDate('29.02.1900').ok).toBe(false);
+    expect(parseDisplayDate('29.02.2000').ok).toBe(true);
+  });
+
+  it('points out dates that do not exist and other text', () => {
+    const error = { ok: false, error: 'Enter a date that exists, e.g. 28.02.2007.' };
+    for (const text of [
+      '31.02.2007',
+      '00.01.2007',
+      '01.13.2007',
+      '01.01.0000',
+      '2007-02-28',
+      '8.7.2007',
+      'abc',
+    ]) {
+      expect(parseDisplayDate(text)).toEqual(error);
+    }
+  });
+});
+
+describe('parseWholeNumber', () => {
+  it('reads digits', () => {
+    expect(parseWholeNumber('25')).toEqual({ ok: true, value: 25 });
+    expect(parseWholeNumber(' 0 ')).toEqual({ ok: true, value: 0 });
+  });
+
+  it('gives null for an empty entry', () => {
+    expect(parseWholeNumber('')).toEqual({ ok: true, value: null });
+  });
+
+  it('points out decimals, letters and signs', () => {
+    const error = { ok: false, error: 'Enter a whole number, e.g. 25.' };
+    for (const text of ['2.5', '12a', 'a', '-3', '1,5', '99999999999999999999']) {
+      expect(parseWholeNumber(text)).toEqual(error);
+    }
+  });
+});
+
+describe('dateOfBirthForAge', () => {
+  it('keeps the day and month (US2-AS1: age 20)', () => {
+    expect(dateOfBirthForAge(20, '2007-07-08', '2026-11-02')).toEqual({
+      ok: true,
+      value: '2006-07-08',
+    });
+  });
+
+  it('gives the day 21 years before today (US2-AS2)', () => {
+    expect(dateOfBirthForAge(21, '2007-11-02', '2026-11-02')).toEqual({
+      ok: true,
+      value: '2005-11-02',
+    });
+  });
+
+  it('goes one year further back when the day and month are still to come this year', () => {
+    expect(dateOfBirthForAge(20, '2007-12-24', '2026-11-02')).toEqual({
+      ok: true,
+      value: '2005-12-24',
+    });
+  });
+
+  it('turns a 29 February into 1 March in a year without it', () => {
+    expect(dateOfBirthForAge(19, '2008-02-29', '2026-11-02')).toEqual({
+      ok: true,
+      value: '2007-03-01',
+    });
+    expect(dateOfBirthForAge(22, '2008-02-29', '2026-11-02')).toEqual({
+      ok: true,
+      value: '2004-02-29',
+    });
+  });
+
+  it('uses today for an empty or invalid current date', () => {
+    expect(dateOfBirthForAge(30, null, '2026-11-02')).toEqual({ ok: true, value: '1996-11-02' });
+    expect(dateOfBirthForAge(30, '', '2026-11-02')).toEqual({ ok: true, value: '1996-11-02' });
+    expect(dateOfBirthForAge(30, '2007-02-30', '2026-11-02')).toEqual({
+      ok: true,
+      value: '1996-11-02',
+    });
+  });
+
+  it('accepts 200 and rejects an age before year 1', () => {
+    expect(dateOfBirthForAge(200, '2007-07-08', '2026-11-02')).toEqual({
+      ok: true,
+      value: '1826-07-08',
+    });
+    expect(dateOfBirthForAge(2026, '2007-07-08', '2026-11-02').ok).toBe(false);
+    expect(dateOfBirthForAge(5000, '2007-07-08', '2026-11-02')).toEqual({
+      ok: false,
+      error: 'Enter a smaller age, e.g. 25.',
+    });
+  });
+
+  it('gives the age entered, for many ages and days', () => {
+    const todays = ['2026-11-02', '2026-02-28', '2024-02-29', '2026-03-01', '2027-01-01'];
+    const currents = ['2007-07-08', '2008-02-29', '2007-12-31', '2000-01-01', null];
+    for (const today of todays) {
+      for (const current of currents) {
+        for (let age = 0; age <= 300; age++) {
+          const result = dateOfBirthForAge(age, current, today);
+          if (result.ok) {
+            expect(ageOn(result.value, today)).toBe(age);
+          } else {
+            expect(Number(today.slice(0, 4)) - age).toBeLessThan(1);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('nameProblem', () => {
+  it('points out an empty name', () => {
+    expect(nameProblem('')).toBe('Enter a name.');
+    expect(nameProblem('   ')).toBe('Enter a name.');
+    expect(nameProblem(' Mia ')).toBeNull();
+  });
+});
+
+describe('draftsReducer', () => {
+  it('records and replaces a draft', () => {
+    let state = draftsReducer({}, { type: 'edit', key: 'a', text: '31.02', error: 'bad' });
+    expect(state).toEqual({ a: { text: '31.02', error: 'bad' } });
+    state = draftsReducer(state, { type: 'edit', key: 'a', text: '28.02.2007', error: null });
+    expect(state).toEqual({ a: { text: '28.02.2007', error: null } });
+  });
+
+  it('drops the invalid drafts on done', () => {
+    let state = draftsReducer({}, { type: 'edit', key: 'a', text: 'x', error: 'bad' });
+    state = draftsReducer(state, { type: 'edit', key: NAME_DRAFT_KEY, text: '', error: 'e' });
+    state = draftsReducer(state, { type: 'edit', key: ageDraftKey('a'), text: '5', error: null });
+    expect(draftsReducer(state, { type: 'done' })).toEqual({
+      'age:a': { text: '5', error: null },
+    });
+  });
+
+  it('empties on reset', () => {
+    const state = draftsReducer({}, { type: 'edit', key: 'a', text: 'x', error: null });
+    expect(draftsReducer(state, { type: 'reset' })).toEqual({});
+  });
+});
+
+describe('parseEntry', () => {
+  it('commits a text as typed, and an empty one as null', () => {
+    expect(parseEntry('text', ' Stuttgart ')).toEqual({ ok: true, value: ' Stuttgart ' });
+    expect(parseEntry('text', '')).toEqual({ ok: true, value: null });
+  });
+
+  it('parses a number and a date as their parsers do', () => {
+    expect(parseEntry('number', ' 25 ')).toEqual({ ok: true, value: 25 });
+    expect(parseEntry('number', '2.5')).toEqual(parseWholeNumber('2.5'));
+    expect(parseEntry('date', '08.07.2007')).toEqual({ ok: true, value: '2007-07-08' });
+    expect(parseEntry('date', '31.02.2007')).toEqual(parseDisplayDate('31.02.2007'));
+    expect(parseEntry('date', '')).toEqual({ ok: true, value: null });
+  });
+});
+
+describe('entryTextOf and ageTextOf', () => {
+  it('writes a value as its field takes it', () => {
+    expect(entryTextOf('date', '2007-07-08')).toBe('08.07.2007');
+    expect(entryTextOf('text', '2007-07-08')).toBe('2007-07-08');
+    expect(entryTextOf('number', 3)).toBe('3');
+    expect(entryTextOf('text', null)).toBe('');
+    expect(entryTextOf('text', undefined)).toBe('');
+    expect(entryTextOf('enum', ['B'])).toBe('');
+  });
+
+  it('gives the age, and nothing for an empty or future date of birth', () => {
+    expect(ageTextOf('2007-07-08', '2026-11-01')).toBe('19');
+    expect(ageTextOf('2026-11-01', '2026-11-01')).toBe('0');
+    expect(ageTextOf('2030-01-01', '2026-11-01')).toBe('');
+    expect(ageTextOf(null, '2026-11-01')).toBe('');
+    expect(ageTextOf('', '2026-11-01')).toBe('');
+  });
+});
+
+describe('orderedValues', () => {
+  const choices = ['B', 'BE', 'C1'].map((value) => ({ value, label: value, description: null }));
+
+  it("puts the values in the value set's order, a value outside it last", () => {
+    expect(orderedValues(['C1', 'B'], choices)).toEqual(['B', 'C1']);
+    expect(orderedValues(['Z', 'BE', 'B'], choices)).toEqual(['B', 'BE', 'Z']);
+  });
+
+  it('gives null for none', () => {
+    expect(orderedValues([], choices)).toBeNull();
+  });
+});
+
+describe('pickerReducer', () => {
+  it('opens and closes with an empty search, and keeps the search while open', () => {
+    const open = pickerReducer({ open: false, search: 'x' }, { type: 'open' });
+    expect(open).toEqual({ open: true, search: '' });
+    const searched = pickerReducer(open, { type: 'search', text: 'ger' });
+    expect(searched).toEqual({ open: true, search: 'ger' });
+    expect(pickerReducer(searched, { type: 'close' })).toEqual({ open: false, search: '' });
   });
 });

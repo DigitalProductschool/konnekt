@@ -7,6 +7,7 @@ import type { RuleItem } from '../../../types/form-connections';
 import type { CheckedBranch, Formula, Literal } from '../checks/types';
 import type { EvaluatedItem } from '../evaluation';
 import type { RuleContext, StatementParts } from '../types';
+import type { AnnouncedBranch, MetByBranch } from './announcements';
 
 // Persona fields and values (data-model.md, "Persona field", "Persona value"; research R3, R4)
 
@@ -103,8 +104,15 @@ export interface GenerationRun {
   slots: SlotKind[];
 }
 
-/** The open question before generating anew (FR-012) */
-export type PersonaConfirm = { type: 'one'; slot: PersonaSlot } | { type: 'all' };
+/**
+ * The open question before generating anew (FR-012, W9). `'one'` is "Generate again" for `slot`
+ * (`confirmOneOf(personas[slot])`); `'all'` is "Generate all again", with `changed` the slots of
+ * the ready personas that have changes, in the chips' order, never empty
+ * (`confirmAllOf(changed.map((slot) => personas[slot]))`). Names are read from `personas`, which a
+ * question that is open doesn't change
+ */
+export type PersonaConfirm =
+  { type: 'one'; slot: PersonaSlot } | { type: 'all'; changed: PersonaSlot[] };
 
 /** The state of `usePersonas()`, changed only by `personaStateReducer()` */
 export interface PersonaState {
@@ -130,12 +138,17 @@ export interface PersonaState {
   editing: PersonaSlot | null;
   /** The open question before generating anew (FR-012) */
   confirm: PersonaConfirm | null;
-  /** The latest text for the status region (FR-017) */
+  /** The latest text for the status region (FR-017); '' when the last change moved no outcome */
   announcement: string;
+  /**
+   * Counts the announcements: `setValue` raises it whenever it gives a text, so that the same
+   * sentence twice in a row still changes the region (the announcer uses it as its React `key`)
+   */
+  announcementId: number;
 }
 
 /**
- * The reducer's actions. US1's (T023); T040 adds the editing and confirm actions, T051 the fill
+ * The reducer's actions. US1's (T023) and the editing and confirm ones (T040); T051 adds the fill
  * run's.
  *
  * Every action that may start a run, or merge a request into the running one, carries `now`: the
@@ -154,8 +167,28 @@ export type PersonaAction =
       branchKeys: string[];
       now: number;
     }
-  | { type: 'generateOne'; slot: PersonaSlot; now: number }
-  | { type: 'generateAll'; now: number }
+  | {
+      /**
+       * "Generate again". With `fields` it is judged whether the persona has changes: if so it only
+       * sets `confirm`, and `confirmed` starts the run (FR-012)
+       */
+      type: 'generateOne';
+      slot: PersonaSlot;
+      fields: readonly PersonaField[];
+      now: number;
+    }
+  | {
+      /** "Generate all again": asks when a ready persona has changes (FR-012) */
+      type: 'generateAll';
+      fields: readonly PersonaField[];
+      now: number;
+    }
+  | {
+      /** "Generate new data" in the question: starts the run it was about; `now` as above */
+      type: 'confirmed';
+      now: number;
+    }
+  | { type: 'cancelled' }
   | { type: 'retry'; now: number }
   | { type: 'runSucceeded'; runId: number; slots: GeneratedMessage['slots'] }
   | {
@@ -167,7 +200,31 @@ export type PersonaAction =
       runId: number | null;
     }
   | { type: 'select'; slot: PersonaSlot }
-  | { type: 'selectBranch'; branchKey: string };
+  | { type: 'selectBranch'; branchKey: string }
+  | {
+      /**
+       * One valid entry: changes one value of a ready persona, never `generated`, and sets
+       * `announcement` from the persona's outcome changes. The hook computes `before` and `after`
+       * (`PersonaBranchResult.met` per branch key, before and after the change) with the loaded
+       * results module, so that the reducer stays out of the evaluator's chunk. A branch missing
+       * from either map isn't announced. `branches` are the tabs' keys and names, in tab order
+       */
+      type: 'setValue';
+      slot: PersonaSlot;
+      key: string;
+      value: PersonaValue;
+      before: MetByBranch;
+      after: MetByBranch;
+      branches: readonly AnnouncedBranch[];
+    }
+  | {
+      /** A non-empty name (an empty or blank one is ignored); changes no result, no announcement */
+      type: 'rename';
+      slot: PersonaSlot;
+      name: string;
+    }
+  | { type: 'startEditing'; slot: PersonaSlot }
+  | { type: 'stopEditing' };
 
 // Test results (data-model.md, "Test result"; research R5)
 

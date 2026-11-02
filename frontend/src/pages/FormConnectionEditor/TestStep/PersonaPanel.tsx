@@ -1,4 +1,5 @@
 import PersonaData from './PersonaData';
+import PersonaEditor from './PersonaEditor';
 import PersonaHead from './PersonaHead';
 import type { PersonaPanelProps } from './types';
 
@@ -17,18 +18,41 @@ export default function PersonaPanel({
   context,
   today,
   failingFields,
+  editing,
+  onEditData,
+  onDone,
+  onSetValue,
+  onRename,
   onGenerateAgain,
 }: PersonaPanelProps) {
   return (
     <div className="rounded-kern-large bg-kern-layout-background-default flex flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16 lg:w-410 lg:shrink-0">
-      <PersonaHead persona={persona} onGenerateAgain={onGenerateAgain} />
-      <PersonaData
+      <PersonaHead
         persona={persona}
-        fields={fields}
-        context={context}
-        today={today}
-        failingFields={failingFields}
+        editing={editing}
+        onEditData={onEditData}
+        onDone={onDone}
+        onGenerateAgain={onGenerateAgain}
       />
+      {editing ? (
+        <PersonaEditor
+          key={persona.id}
+          persona={persona}
+          fields={fields}
+          context={context}
+          today={today}
+          onSetValue={onSetValue}
+          onRename={onRename}
+        />
+      ) : (
+        <PersonaData
+          persona={persona}
+          fields={fields}
+          context={context}
+          today={today}
+          failingFields={failingFields}
+        />
+      )}
     </div>
   );
 }

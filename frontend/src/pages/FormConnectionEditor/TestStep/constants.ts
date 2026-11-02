@@ -113,3 +113,15 @@ export const SKELETON_BARS = {
   strong: 'bg-(--kern-color-feedback-default-background)',
   light: 'bg-kern-layout-background-hued',
 } as const;
+
+/**
+ * The values picker's texts in a persona field (S8.5; T044), but the menu's name, which is the
+ * field's label. Nothing has to stay chosen, so no footer; "Not shared" says none is
+ */
+export const VALUES_PICKER_COPY = {
+  placeholder: TEST_STEP_COPY.notShared,
+  searchClasses: 'Search classes',
+  searchOptions: 'Search options',
+  footer: null,
+  noMatch: (search: string) => `No options match “${search}”.`,
+};

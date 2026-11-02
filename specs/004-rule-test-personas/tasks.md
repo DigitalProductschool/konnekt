@@ -360,47 +360,47 @@ announcements, "· edited", and the questions before generating anew.
 
 ### Logic for User Story 2 (with Vitest)
 
-- [ ] T038 [P] [US2] Add the editing helpers and the panel's drafts reducer to `TestStep/utils.ts`, with `TestStep/utils.test.ts` (contracts/personas.md "Editing helpers"; research R12; FR-007 to FR-009).
+- [X] T038 [P] [US2] Add the editing helpers and the panel's drafts reducer to `TestStep/utils.ts`, with `TestStep/utils.test.ts` (contracts/personas.md "Editing helpers"; research R12; FR-007 to FR-009).
   - `parseDisplayDate(text)`: a `dd.mm.yyyy` entry gives `YYYY-MM-DD`, an empty entry `null`, anything else "Enter a date that exists, e.g. 28.02.2007.".
   - `parseWholeNumber(text)`: digits give a number, an empty entry `null`, letters or decimals "Enter a whole number, e.g. 25." (W11).
   - `dateOfBirthForAge(age, current, today)`: a date of birth that gives `age` today, keeping the day and month of `current` (a 29 February becomes 1 March in a year without it); for any age it accepts, `ageOn(result, today) === age`; an age that gives no date of birth has design-notes item 6's error.
   - `nameProblem(text)`: "Enter a name." for a name that is empty after trimming.
   - `draftsReducer()`: the panel's drafts by field key, with their errors; "Done" drops the invalid ones (design-notes item 9).
   - Tests: 31.02.2007, 29.02 in leap and other years, empty entries, "2.5" and "12a", US2-AS1's age 20 keeping day and month, US2-AS2's day 21 years before today, the property over many ages and days.
-- [ ] T039 [P] [US2] Write `personas/announcements.ts` with `announcements.test.ts`: `announcementOf(before, after, persona, branches)` (data-model.md "Announcements"; FR-017, F2).
+- [X] T039 [P] [US2] Write `personas/announcements.ts` with `announcements.test.ts`: `announcementOf(before, after, persona, branches)` (data-model.md "Announcements"; FR-017, F2).
   - Compares the edited persona's `met` per branch before and after one change; in tab order, one sentence per change (`nowMeetsOf()`, `noLongerMeetsOf()`), joined with a space; empty when nothing changed.
-- [ ] T040 [US2] Add the editing and confirm actions to `personas/personaState.ts` and `personas/types.ts`, with `personaState.test.ts` (depends on T039; data-model.md "Actions"; research R10, R12; FR-006, FR-008, FR-009, FR-012, FR-017).
+- [X] T040 [US2] Add the editing and confirm actions to `personas/personaState.ts` and `personas/types.ts`, with `personaState.test.ts` (depends on T039; data-model.md "Actions"; research R10, R12; FR-006, FR-008, FR-009, FR-012, FR-017).
   - `setValue` (slot, key, value, the persona's `met` per branch before and after): changes one value, never `generated`, and sets `announcement` with `announcementOf()`. The hook computes the two `met` maps with the loaded results module, so that the reducer stays out of the evaluator's chunk (Bundle rule).
   - `rename` (slot, a non-empty name): changes the name, no announcement (US2-AS7).
   - `startEditing` / `stopEditing`: set or clear `editing`; never for a persona being generated (FR-013). `select` and `selectBranch` already end edit mode (T023).
   - `generateOne` / `generateAll` carry the current fields: if a persona to generate anew has `changedKeys()`, set `confirm` instead of starting the run (FR-012). `confirmed` starts it (merged as in T023); `cancelled` closes the question. Generating anew keeps the names (research R10).
   - Tests: each action; the question only with changes, naming every persona with changes; `generated` untouched by edits; announcements only from `setValue`.
-- [ ] T041 [US2] Add US2's scenarios and edge cases to `personas/scenarios.test.ts` (depends on T039; research R14; SC-001).
+- [X] T041 [US2] Add US2's scenarios and edge cases to `personas/scenarios.test.ts` (depends on T039; research R14; SC-001).
   - US2-AS1: a date of birth giving age 20 no longer meets Standard, naming Rule 01 with its message, still meets Ambulance, and `announcementOf()` gives "… no longer meets the rules of Standard." (the date arithmetic is pinned in T038). US2-AS2: the day 21 years before today meets "at least 21 years old". US2-AS3: "STUTTGART" fails Rule 02 respecting letter case and meets it ignoring case. US2-AS4: removing class B hides its date (`shownFieldsOf()`) and Rule 04 is "Not met"; adding B again shows the earlier date. US2-AS5: an empty date of birth makes Rule 01 "Couldn't be checked" in both variants. US2-AS6: no family name. US2-AS7: a rename changes no result.
   - Edge cases: a date of birth in the future and an age of 200 evaluate like any value; changing `pid.birthdate` leaves `mdl.birth_date` unchanged; SC-001's cases: an age exactly at the limit, a date some months from now at the end of a month, German letters, spaces at the start and end.
-- [ ] T042 [US2] Wire editing into `frontend/src/hooks/usePersonas.ts` (depends on T026, T040).
+- [X] T042 [US2] Wire editing into `frontend/src/hooks/usePersonas.ts` (depends on T026, T040).
   - `setValue(slot, key, value)` computes the persona's `met` per branch before and after with the loaded module, then dispatches; `rename`, `startEditing`, `stopEditing`; `generateOne`, `generateAll` pass the current fields; `confirmed` and `cancelled`.
 
 ### UI for User Story 2
 
-- [ ] T043 [US2] Build edit mode in the panel: `TestStep/PersonaEditor.tsx`, with "Edit data" / "Done" in `TestStep/PersonaHead.tsx` and the switch in `TestStep/PersonaPanel.tsx` (depends on T038, T042; S8.5; F1, W11; FR-006, FR-008, FR-009, FR-017; Figma U02 frames `7058:60514`, `7058:60670`, Name `7058:60652`, invalid state `7058:60812`, `7058:60824`, "Edit data" `7057:58770`).
+- [X] T043 [US2] Build edit mode in the panel: `TestStep/PersonaEditor.tsx`, with "Edit data" / "Done" in `TestStep/PersonaHead.tsx` and the switch in `TestStep/PersonaPanel.tsx` (depends on T038, T042; S8.5; F1, W11; FR-006, FR-008, FR-009, FR-017; Figma U02 frames `7058:60514`, `7058:60670`, Name `7058:60652`, invalid state `7058:60812`, `7058:60824`, "Edit data" `7057:58770`).
   - "Edit data" (tertiary, pencil icon) turns the values into fields under the same document headings and becomes "Done", which turns them back. No dialog, Cancel, Close, "Save and test" or intro "Results update when you save." (F1).
   - The panel's drafts live in `useReducer(draftsReducer)`. Every valid entry applies at once (`setValue`, `rename`); an invalid one shows its error under its field (`aria-describedby`, `aria-invalid`), KERN 2.8's error pattern, and the persona keeps its last valid value while its other changes apply (FR-008).
   - Name: "Enter a name." under it when empty, and the persona keeps its name (W11).
   - Focus: "Edit data" moves it to the first field, "Done" back to "Edit data". Switching persona or variant ends edit mode. A persona being generated has no "Edit data".
-- [ ] T044 [US2] Build the fields by kind: `TestStep/ValueField.tsx`, `TestStep/DateOfBirthField.tsx`, `TestStep/ChoiceField.tsx` and `TestStep/ValuesField.tsx`, used by `TestStep/PersonaEditor.tsx` (depends on T043; S8.5; F10, F12, W4, W11, W12; FR-005 to FR-009; Figma Age today `7058:60657`, licence classes `7058:60661`, class date `7058:60662`, Nationality `7058:60663` and Expiry date `7058:60664` (hidden in Figma, built here)).
+- [X] T044 [US2] Build the fields by kind: `TestStep/ValueField.tsx`, `TestStep/DateOfBirthField.tsx`, `TestStep/ChoiceField.tsx` and `TestStep/ValuesField.tsx`, used by `TestStep/PersonaEditor.tsx` (depends on T043; S8.5; F10, F12, W4, W11, W12; FR-005 to FR-009; Figma Age today `7058:60657`, licence classes `7058:60661`, class date `7058:60662`, Nationality `7058:60663` and Expiry date `7058:60664` (hidden in Figma, built here)).
   - A field for every value shown, none read-only or hidden (F12): `ValueField` for text, a whole number (`parseWholeNumber()`, W11) and a date as `dd.mm.yyyy` (`parseDisplayDate()`); `DateOfBirthField` for a date of birth, with "Age today" beside it (`dateOfBirthForAge()`, F10); `ChoiceField`, a select of labels for one value of a set; `ValuesField` for several values picked from a list, licence classes by code (B, BE, C1, …) and nationalities by label (German, Italian, …), never typed.
   - `ValuesField` reuses `editor/RulesStep/RuleEditor/ValuesPicker.tsx` if its interface serves persona fields as it is; otherwise move it to `frontend/src/components/` with a narrower interface, keeping the rule editor's behaviour (R16).
   - The date input: a text input with `inputmode="numeric"`, as KERN 2.8 allows (R16).
   - Every field can be cleared, which makes the value empty.
   - Class date rows only for the classes held: removing B hides its dates, adding B again brings the earlier ones back (W4). Given and family name are fields of their own under "Personal ID", labelled as the rules name them, edited separately from the persona's name (W12).
-- [ ] T045 [P] [US2] Add "· edited" to `TestStep/ValueRow.tsx` (S8.4; K2; FR-012; Figma U03 `7058:61193`): after each value in `changedKeys()`, with design-notes item 3's hidden text.
-- [ ] T046 [US2] Build the questions before generating anew: `TestStep/RegenerateDialog.tsx`, with `ConfirmDialog`, opened from `state.confirm` in `TestStep/index.tsx` (depends on T042; S8.7; W9; FR-012; Figma U04 frame `7058:61209`, dialog `7058:61334`).
+- [X] T045 [P] [US2] Add "· edited" to `TestStep/ValueRow.tsx` (S8.4; K2; FR-012; Figma U03 `7058:61193`): after each value in `changedKeys()`, with design-notes item 3's hidden text.
+- [X] T046 [US2] Build the questions before generating anew: `TestStep/RegenerateDialog.tsx`, with `ConfirmDialog`, opened from `state.confirm` in `TestStep/index.tsx` (depends on T042; S8.7; W9; FR-012; Figma U04 frame `7058:61209`, dialog `7058:61334`).
   - One persona: `confirmOneOf()` with "Cancel" and "Generate new data". All: `confirmAllOf()` naming every persona with changes, with "Cancel" and "Generate new data". "Generate again" and "Generate all again" ask only when a persona to generate anew has changes.
-- [ ] T047 [US2] Build the announcements: `TestStep/PersonasAnnouncer.tsx` in `TestStep/index.tsx` (depends on T042; S8.10; F2; FR-017).
+- [X] T047 [US2] Build the announcements: `TestStep/PersonasAnnouncer.tsx` in `TestStep/index.tsx` (depends on T042; S8.10; F2; FR-017).
   - A visually hidden, polite `role="status"` region with `state.announcement`, which never moves the focus; the same sentence twice is announced twice. No visible toast (F2).
   - Check that the loading status (T035) and this region don't interrupt each other (R16); keep them separate regions.
-- [ ] T048 [US2] Validate User Story 2 with `specs/004-rule-test-personas/quickstart.md` V3 and V4, and the gates. Record and fix any difference in the task that owns it.
+- [X] T048 [US2] Validate User Story 2 with `specs/004-rule-test-personas/quickstart.md` V3 and V4, and the gates. Record and fix any difference in the task that owns it.
 
 **Checkpoint**: personas can be edited into any case; results and announcements follow every
 valid change; generating anew asks first when it would replace changes.

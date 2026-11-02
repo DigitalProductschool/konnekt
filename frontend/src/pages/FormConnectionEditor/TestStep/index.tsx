@@ -7,6 +7,8 @@ import { LOADING_STATUS_ID } from './constants';
 import GenerationFailed from './GenerationFailed';
 import PersonaPanel from './PersonaPanel';
 import PersonaPlaceholder from './PersonaPlaceholder';
+import PersonasAnnouncer from './PersonasAnnouncer';
+import RegenerateDialog from './RegenerateDialog';
 import ResultSection from './ResultSection';
 import TestDayLine from './TestDayLine';
 import type { TestStepProps } from './types';
@@ -31,6 +33,9 @@ import VariantTabs from './VariantTabs';
  *   selected one's cards are skeletons, without "Edit data" or "Generate again", while the others
  *   stay usable.
  *
+ * Before generating anew, a persona with changes gets a question (`RegenerateDialog`, S8.7), and
+ * the changes' effects on the outcomes are announced by `PersonasAnnouncer` (S8.10).
+ *
  * The focus is never lost (quickstart V9): when a state change removes the focused element (the
  * button that started a run, which gives way to a skeleton, or "Try again"), it moves to what
  * stands in for it: frame 18's status, the failure's "Try again", or the selected persona's chip;
@@ -49,7 +54,18 @@ export default function TestStep({
   editing,
   onRetry,
 }: TestStepProps) {
-  const { state, fields, results, today, dispatch, generateOne, generateAll, viewOf } = personas;
+  const {
+    state,
+    fields,
+    results,
+    today,
+    dispatch,
+    generateOne,
+    generateAll,
+    confirmed,
+    cancelled,
+    viewOf,
+  } = personas;
   const branch = selectedBranchOf(branches, state.branchKey);
   const failed = state.failed || contextFailed;
   const loaded =
@@ -88,8 +104,11 @@ export default function TestStep({
   useEffect(() => {
     const active = document.activeElement;
     const last = lastFocusedRef.current;
-    const lost =
-      (active === null || active === document.body) && last !== null && !last.isConnected;
+    // After "Generate new data", the dialog has just closed (its effect runs first), and the focus
+    // may still be on its button, which is hidden now, or already on the page
+    const idle =
+      active === null || active === document.body || active.closest('dialog:not([open])') !== null;
+    const lost = idle && last !== null && !last.isConnected;
     const parked = active?.id === LOADING_STATUS_ID && focusTargetId !== LOADING_STATUS_ID;
     if (!lost && !parked) {
       return;
@@ -102,73 +121,92 @@ export default function TestStep({
   }, [phase, focusTargetId]);
 
   return (
-    <div
-      className="split:h-[100cqh] flex flex-col gap-16"
-      onFocus={(event) => {
-        lastFocusedRef.current = event.target;
-      }}
-    >
-      {shown && <TestDayLine today={today} />}
-      <VariantTabs
-        branches={branches}
-        selected={branch.key}
-        checks={checks}
-        onSelect={(branchKey) => dispatch({ type: 'selectBranch', branchKey })}
-      />
-      <section
-        ref={panelRef}
-        id={ELEMENT_IDS.testPanel(branch.key)}
-        role="tabpanel"
-        aria-labelledby={ELEMENT_IDS.testTab(branch.key)}
-        className="rounded-kern-large bg-kern-layout-background-hued split:min-h-0 split:flex-1 flex flex-col overflow-clip border border-(--kern-color-decorative-border-default)"
+    <>
+      <div
+        className="split:h-[100cqh] flex flex-col gap-16"
+        onFocus={(event) => {
+          lastFocusedRef.current = event.target;
+        }}
       >
-        {failed ? (
-          <GenerationFailed editing={editing} onRetry={onRetry} />
-        ) : (
-          <>
-            <ApplicantsRow
-              personas={shown?.personas ?? null}
-              selected={state.selected}
-              branch={branch}
-              results={shown?.results ?? null}
-              run={state.run}
-              onSelect={(slot: PersonaSlot) => dispatch({ type: 'select', slot })}
-              onGenerateAll={generateAll}
-            />
-            {/* The only part that scrolls (K3) */}
-            <div
-              id={persona ? ELEMENT_IDS.personaPanel(persona.id) : undefined}
-              role={persona ? 'tabpanel' : undefined}
-              aria-labelledby={persona ? ELEMENT_IDS.personaChip(persona.id) : undefined}
-              aria-busy={persona && !ready ? true : undefined}
-              className="split:min-h-0 split:flex-1 split:overflow-y-auto overflow-x-clip p-16"
-            >
-              {/*
-               * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Applicant
-               * panel": its own box, as high as its taller card, so that the other card stretches
-               * to it and neither takes the scrolling panel's height
-               */}
-              <div className="flex flex-col gap-16 lg:flex-row">
-                {shown && ready ? (
-                  <>
-                    <PersonaPanel
-                      persona={ready}
-                      fields={fields}
-                      context={shown.context}
-                      today={today}
-                      failingFields={view?.failingFields ?? []}
-                      onGenerateAgain={() => generateOne(state.selected)}
-                    />
-                    <ResultSection view={view} branch={branch} check={checks[branch.key] ?? null} />
-                  </>
-                ) : (
-                  <PersonaPlaceholder />
-                )}
+        {shown && <TestDayLine today={today} />}
+        <VariantTabs
+          branches={branches}
+          selected={branch.key}
+          checks={checks}
+          onSelect={(branchKey) => dispatch({ type: 'selectBranch', branchKey })}
+        />
+        <section
+          ref={panelRef}
+          id={ELEMENT_IDS.testPanel(branch.key)}
+          role="tabpanel"
+          aria-labelledby={ELEMENT_IDS.testTab(branch.key)}
+          className="rounded-kern-large bg-kern-layout-background-hued split:min-h-0 split:flex-1 flex flex-col overflow-clip border border-(--kern-color-decorative-border-default)"
+        >
+          {failed ? (
+            <GenerationFailed editing={editing} onRetry={onRetry} />
+          ) : (
+            <>
+              <ApplicantsRow
+                personas={shown?.personas ?? null}
+                selected={state.selected}
+                branch={branch}
+                results={shown?.results ?? null}
+                run={state.run}
+                onSelect={(slot: PersonaSlot) => dispatch({ type: 'select', slot })}
+                onGenerateAll={generateAll}
+              />
+              {/* The only part that scrolls (K3) */}
+              <div
+                id={persona ? ELEMENT_IDS.personaPanel(persona.id) : undefined}
+                role={persona ? 'tabpanel' : undefined}
+                aria-labelledby={persona ? ELEMENT_IDS.personaChip(persona.id) : undefined}
+                aria-busy={persona && !ready ? true : undefined}
+                className="split:min-h-0 split:flex-1 split:overflow-y-auto overflow-x-clip p-16"
+              >
+                {/*
+                 * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Applicant
+                 * panel": its own box, as high as its taller card, so that the other card stretches
+                 * to it and neither takes the scrolling panel's height
+                 */}
+                <div className="flex flex-col gap-16 lg:flex-row">
+                  {shown && ready ? (
+                    <>
+                      <PersonaPanel
+                        persona={ready}
+                        fields={fields}
+                        context={shown.context}
+                        today={today}
+                        failingFields={view?.failingFields ?? []}
+                        editing={state.editing === state.selected}
+                        onEditData={() => personas.startEditing(state.selected)}
+                        onDone={personas.stopEditing}
+                        onSetValue={(key, value) => personas.setValue(state.selected, key, value)}
+                        onRename={(name) => personas.rename(state.selected, name)}
+                        onGenerateAgain={() => generateOne(state.selected)}
+                      />
+                      <ResultSection
+                        view={view}
+                        branch={branch}
+                        check={checks[branch.key] ?? null}
+                      />
+                    </>
+                  ) : (
+                    <PersonaPlaceholder />
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </section>
-    </div>
+            </>
+          )}
+        </section>
+      </div>
+      {/* Beside the step's wrapper, so that the dialog's focus isn't taken for the step's own */}
+      <RegenerateDialog
+        confirm={state.confirm}
+        personas={state.personas}
+        onConfirm={confirmed}
+        onCancel={cancelled}
+      />
+      <PersonasAnnouncer announcement={state.announcement} announcementId={state.announcementId} />
+    </>
   );
 }

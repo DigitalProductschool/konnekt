@@ -4,15 +4,18 @@
 // runs, and keeps the selections. Pure: the hook passes the request's time as `now`. Bundle rule
 // (research R9, R16): this module is in the main bundle and imports neither `results.ts`,
 // `fields.ts`, `evaluation.ts` nor anything that reaches `checks/checkedTree.ts` or `checks/text.ts`
+import { announcementOf } from './announcements';
 import { PERSONA_IDS } from './constants';
 import type {
   GeneratedMessage,
   Persona,
   PersonaAction,
+  PersonaField,
   PersonaSlot,
   PersonaState,
   SlotKind,
 } from './types';
+import { changedKeys } from './values';
 
 /** Before the step first opens: no personas, no run, the first persona selected (FR-004) */
 export const initialPersonaState: PersonaState = {
@@ -25,6 +28,7 @@ export const initialPersonaState: PersonaState = {
   editing: null,
   confirm: null,
   announcement: '',
+  announcementId: 0,
 };
 
 /** Every persona generated anew: the first run, "Generate all again" and "Try again" */
@@ -36,15 +40,22 @@ const ALL_FREE: readonly SlotKind[] = ['free', 'free', 'free'];
  */
 const SLOT_RANK: Readonly<Record<SlotKind, number>> = { kept: 0, filled: 1, free: 2 };
 
+/** The `setValue` action */
+type SetValueAction = Extract<PersonaAction, { type: 'setValue' }>;
+
 /** The personas' state after `action` */
 export function personaStateReducer(state: PersonaState, action: PersonaAction): PersonaState {
   switch (action.type) {
     case 'opened':
       return opened(state, action.openBranchKey, action.branchKeys, action.now);
     case 'generateOne':
-      return requestRun(state, oneFree(action.slot), action.now);
+      return generateOne(state, action.slot, action.fields, action.now);
     case 'generateAll':
-      return requestRun(state, ALL_FREE, action.now);
+      return generateAll(state, action.fields, action.now);
+    case 'confirmed':
+      return confirmed(state, action.now);
+    case 'cancelled':
+      return state.confirm === null ? state : { ...state, confirm: null };
     case 'retry':
       return requestRun(state, ALL_FREE, action.now);
     case 'runSucceeded':
@@ -62,7 +73,115 @@ export function personaStateReducer(state: PersonaState, action: PersonaAction):
       return action.branchKey === state.branchKey
         ? state
         : { ...state, branchKey: action.branchKey, editing: null };
+    case 'setValue':
+      return setValue(state, action);
+    case 'rename':
+      return rename(state, action.slot, action.name);
+    case 'startEditing':
+      return startEditing(state, action.slot);
+    case 'stopEditing':
+      return state.editing === null ? state : { ...state, editing: null };
   }
+}
+
+/** The persona in `slot` when it is ready, otherwise null: a persona being generated can't be edited */
+function readyPersona(state: PersonaState, slot: PersonaSlot): Persona | null {
+  const persona = state.personas?.[slot];
+  return persona?.status === 'ready' ? persona : null;
+}
+
+/** The state with the question closed, the same object when none is open */
+function withoutConfirm(state: PersonaState): PersonaState {
+  return state.confirm === null ? state : { ...state, confirm: null };
+}
+
+/** "Generate again": asks first when the persona has changes, otherwise starts the run */
+function generateOne(
+  state: PersonaState,
+  slot: PersonaSlot,
+  fields: readonly PersonaField[],
+  now: number
+): PersonaState {
+  const persona = readyPersona(state, slot);
+  if (persona !== null && changedKeys(persona, fields).length > 0) {
+    return { ...state, confirm: { type: 'one', slot } };
+  }
+  return requestRun(withoutConfirm(state), oneFree(slot), now);
+}
+
+/**
+ * "Generate all again": asks first, naming every ready persona with changes, otherwise starts the
+ * run. A persona being generated is not asked about again: its question was answered (FR-012)
+ */
+function generateAll(
+  state: PersonaState,
+  fields: readonly PersonaField[],
+  now: number
+): PersonaState {
+  const changed = ([0, 1, 2] as const).filter((slot) => {
+    const persona = readyPersona(state, slot);
+    return persona !== null && changedKeys(persona, fields).length > 0;
+  });
+  if (changed.length > 0) {
+    return { ...state, confirm: { type: 'all', changed } };
+  }
+  return requestRun(withoutConfirm(state), ALL_FREE, now);
+}
+
+/** The question's "Generate new data": closes it and starts the run it was about */
+function confirmed(state: PersonaState, now: number): PersonaState {
+  const { confirm } = state;
+  if (confirm === null) {
+    return state;
+  }
+  return requestRun(
+    withoutConfirm(state),
+    confirm.type === 'one' ? oneFree(confirm.slot) : ALL_FREE,
+    now
+  );
+}
+
+/**
+ * One value of a ready persona changes; `generated` never does. The announcement is the text of
+ * the outcome changes, or '' when none moved (FR-017); every text raises `announcementId`
+ */
+function setValue(state: PersonaState, action: SetValueAction): PersonaState {
+  const persona = readyPersona(state, action.slot);
+  if (persona === null || state.personas === null) {
+    return state;
+  }
+  const announcement = announcementOf(action.before, action.after, persona, action.branches);
+  const personas = state.personas.map((other, index) =>
+    index === action.slot
+      ? { ...other, values: { ...other.values, [action.key]: action.value } }
+      : other
+  );
+  return {
+    ...state,
+    personas,
+    announcement,
+    announcementId: announcement === '' ? state.announcementId : state.announcementId + 1,
+  };
+}
+
+/** A new name for a ready persona; an empty or blank one is ignored, since a name is never empty */
+function rename(state: PersonaState, slot: PersonaSlot, name: string): PersonaState {
+  const persona = readyPersona(state, slot);
+  if (persona === null || state.personas === null || name.trim() === '') {
+    return state;
+  }
+  return {
+    ...state,
+    personas: state.personas.map((other, index) => (index === slot ? { ...other, name } : other)),
+  };
+}
+
+/** Edit mode for a persona, never for one being generated, or while there are no personas (FR-013) */
+function startEditing(state: PersonaState, slot: PersonaSlot): PersonaState {
+  if (readyPersona(state, slot) === null || state.editing === slot) {
+    return state;
+  }
+  return { ...state, editing: slot };
 }
 
 /**
@@ -80,7 +199,11 @@ function opened(
     openBranchKey !== null && branchKeys.includes(openBranchKey)
       ? openBranchKey
       : (branchKeys[0] ?? null);
-  const next = branchKey === state.branchKey ? state : { ...state, branchKey };
+  // Opening the step again ends edit mode: the drafts went with the panel (design-notes 5.3)
+  const next =
+    branchKey === state.branchKey && state.editing === null
+      ? state
+      : { ...state, branchKey, editing: null };
   if (next.personas === null && next.run === null && !next.failed) {
     return requestRun(next, ALL_FREE, now);
   }

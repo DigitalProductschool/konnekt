@@ -12,11 +12,31 @@ import type {
 const CITY = 'pid.address_locality';
 const CLASSES = 'mdl.driving_privileges.classes';
 const ISSUE_B = 'mdl.driving_privileges.issue_date#B';
+
+function field(key: string, kind: PersonaField['kind'], licenceClass: string | null): PersonaField {
+  return {
+    key,
+    documentType: 'x',
+    documentLabel: 'X',
+    label: key,
+    field: key,
+    part: null,
+    licenceClass,
+    kind,
+    optionSet: null,
+    multiple: kind === 'enum',
+    dateOfBirth: false,
+  };
+}
 const NAMES = ['Mia Schulz', 'Anna Berger', 'Jonas Weber'];
 const BRANCH_KEYS = ['b-main', 'b-ambulance'];
 
-/** The fields `opened` carries; the reducer of US1 doesn't read them */
-const FIELDS: PersonaField[] = [];
+/** The fields the actions carry: the city, and the issue date of class B */
+const FIELDS: PersonaField[] = [
+  field(CITY, 'text', null),
+  field(CLASSES, 'enum', null),
+  field(ISSUE_B, 'date', 'B'),
+];
 
 function opened(
   openBranchKey: string | null = 'b-ambulance',
@@ -76,6 +96,7 @@ describe('initialPersonaState', () => {
       editing: null,
       confirm: null,
       announcement: '',
+      announcementId: 0,
     });
   });
 });
@@ -125,6 +146,14 @@ describe('opened', () => {
   it('returns the same state when nothing changes', () => {
     const before = ready();
     expect(reduce(before, opened())).toBe(before);
+  });
+
+  it('ends edit mode: coming back from the rules step opens the panel in read mode', () => {
+    const before: PersonaState = { ...ready(), selected: 1, editing: 1 };
+    const state = reduce(before, opened('b-main', 5000));
+    expect(state.editing).toBeNull();
+    expect(state.selected).toBe(1);
+    expect(state.personas).toBe(before.personas);
   });
 });
 
@@ -201,7 +230,7 @@ describe('runFailed', () => {
 
   it('[ready + run] → [failed]: the personas keep their last values and are ready again', () => {
     const before = ready();
-    const running = reduce(before, { type: 'generateAll', now: 3000 });
+    const running = reduce(before, { type: 'generateAll', fields: FIELDS, now: 3000 });
     expect(statuses(running)).toEqual(['generating', 'generating', 'generating']);
     const state = reduce(running, { type: 'runFailed', runId: 2 });
     expect(state.failed).toBe(true);
@@ -224,8 +253,8 @@ describe('runFailed', () => {
   });
 
   it('ignores a failure of a superseded run', () => {
-    const running = reduce(ready(), { type: 'generateOne', slot: 1, now: 3000 });
-    const merged = reduce(running, { type: 'generateOne', slot: 0, now: 3500 });
+    const running = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
+    const merged = reduce(running, { type: 'generateOne', slot: 0, fields: FIELDS, now: 3500 });
     expect(reduce(merged, { type: 'runFailed', runId: 2 })).toBe(merged);
     expect(reduce(ready(), { type: 'runFailed', runId: 1 }).failed).toBe(false);
   });
@@ -245,7 +274,7 @@ describe('retry', () => {
   it('keeps the names of the personas that exist, and ignores an older answer', () => {
     const failed = reduce(
       ready(),
-      { type: 'generateAll', now: 3000 },
+      { type: 'generateAll', fields: FIELDS, now: 3000 },
       { type: 'runFailed', runId: 2 }
     );
     const state = reduce(failed, { type: 'retry', now: 7000 });
@@ -262,7 +291,7 @@ describe('retry', () => {
 describe('generateOne and generateAll', () => {
   it('[ready] → [ready + run]: one persona generated anew, the others kept', () => {
     const before = ready();
-    const state = reduce(before, { type: 'generateOne', slot: 1, now: 3000 });
+    const state = reduce(before, { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
     expect(state.run).toEqual({ runId: 2, startedAt: 3000, slots: ['kept', 'free', 'kept'] });
     expect(statuses(state)).toEqual(['ready', 'generating', 'ready']);
     expect(state.personas?.[0]).toBe(before.personas?.[0]);
@@ -270,13 +299,13 @@ describe('generateOne and generateAll', () => {
   });
 
   it('[ready] → [ready + run]: all three generated anew', () => {
-    const state = reduce(ready(), { type: 'generateAll', now: 3000 });
+    const state = reduce(ready(), { type: 'generateAll', fields: FIELDS, now: 3000 });
     expect(state.run).toEqual({ runId: 2, startedAt: 3000, slots: ['free', 'free', 'free'] });
     expect(statuses(state)).toEqual(['generating', 'generating', 'generating']);
   });
 
   it('[ready + run] → [ready]: new values for the free slot, the rest unchanged', () => {
-    const before = reduce(ready(), { type: 'generateOne', slot: 1, now: 3000 });
+    const before = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
     const state = reduce(before, succeeded(before, answer(['X', 'Neu-Ulm', 'Z'])));
     expect(cities(state)).toEqual(['Stuttgart', 'Neu-Ulm', 'Köln']);
     expect(state.personas?.[1]).toMatchObject({
@@ -291,22 +320,24 @@ describe('generateOne and generateAll', () => {
 
   it('drops the hidden values of a free slot, and keeps a kept slot’s', () => {
     const base = ready();
+    const hidden = { [CLASSES]: [], [ISSUE_B]: '2020-01-01' };
     const withHidden: PersonaState = {
       ...base,
       personas: (base.personas ?? []).map((persona) => ({
         ...persona,
-        values: { ...persona.values, [CLASSES]: [], [ISSUE_B]: '2020-01-01' },
+        values: { ...persona.values, ...hidden },
+        generated: { ...persona.generated, ...hidden },
       })),
     };
-    const running = reduce(withHidden, { type: 'generateOne', slot: 0, now: 3000 });
+    const running = reduce(withHidden, { type: 'generateOne', slot: 0, fields: FIELDS, now: 3000 });
     const state = reduce(running, succeeded(running, answer(['Esslingen', 'Y', 'Z'])));
     expect(state.personas?.[0].values).toEqual({ [CITY]: 'Esslingen' });
     expect(state.personas?.[1].values[ISSUE_B]).toBe('2020-01-01');
   });
 
   it('merges a request into the running run: a new run id, the free slots united', () => {
-    const first = reduce(ready(), { type: 'generateOne', slot: 1, now: 3000 });
-    const merged = reduce(first, { type: 'generateOne', slot: 0, now: 3500 });
+    const first = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
+    const merged = reduce(first, { type: 'generateOne', slot: 0, fields: FIELDS, now: 3500 });
     expect(merged.run).toEqual({ runId: 3, startedAt: 3500, slots: ['free', 'free', 'kept'] });
     expect(statuses(merged)).toEqual(['generating', 'generating', 'ready']);
     // The superseded run's answer is ignored
@@ -319,43 +350,49 @@ describe('generateOne and generateAll', () => {
   });
 
   it('merges "Generate all again" into a running "Generate again": every slot free', () => {
-    const first = reduce(ready(), { type: 'generateOne', slot: 2, now: 3000 });
-    const state = reduce(first, { type: 'generateAll', now: 3200 });
+    const first = reduce(ready(), { type: 'generateOne', slot: 2, fields: FIELDS, now: 3000 });
+    const state = reduce(first, { type: 'generateAll', fields: FIELDS, now: 3200 });
     expect(state.run).toEqual({ runId: 3, startedAt: 3200, slots: ['free', 'free', 'free'] });
   });
 
   it('changes nothing when the running run already generates what is asked', () => {
-    const one = reduce(ready(), { type: 'generateOne', slot: 1, now: 3000 });
-    expect(reduce(one, { type: 'generateOne', slot: 1, now: 3100 })).toBe(one);
-    const all = reduce(ready(), { type: 'generateAll', now: 3000 });
-    expect(reduce(all, { type: 'generateOne', slot: 0, now: 3100 })).toBe(all);
+    const one = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
+    expect(reduce(one, { type: 'generateOne', slot: 1, fields: FIELDS, now: 3100 })).toBe(one);
+    const all = reduce(ready(), { type: 'generateAll', fields: FIELDS, now: 3000 });
+    expect(reduce(all, { type: 'generateOne', slot: 0, fields: FIELDS, now: 3100 })).toBe(all);
     expect(reduce(all, { type: 'retry', now: 3100 })).toBe(all);
   });
 
   it('frees every slot while there are no personas yet', () => {
     const running = firstRun();
-    expect(reduce(running, { type: 'generateOne', slot: 1, now: 2000 })).toBe(running);
+    expect(reduce(running, { type: 'generateOne', slot: 1, fields: FIELDS, now: 2000 })).toBe(
+      running
+    );
     const failed = reduce(running, { type: 'runFailed', runId: 1 });
-    const state = reduce(failed, { type: 'generateOne', slot: 1, now: 2000 });
+    const state = reduce(failed, { type: 'generateOne', slot: 1, fields: FIELDS, now: 2000 });
     expect(state.run).toEqual({ runId: 2, startedAt: 2000, slots: ['free', 'free', 'free'] });
   });
 
   it('clears an earlier failure when a run starts', () => {
     const failed = reduce(
       ready(),
-      { type: 'generateAll', now: 3000 },
+      { type: 'generateAll', fields: FIELDS, now: 3000 },
       { type: 'runFailed', runId: 2 }
     );
-    const state = reduce(failed, { type: 'generateOne', slot: 0, now: 4000 });
+    const state = reduce(failed, { type: 'generateOne', slot: 0, fields: FIELDS, now: 4000 });
     expect(state.failed).toBe(false);
     expect(state.run).toEqual({ runId: 3, startedAt: 4000, slots: ['free', 'kept', 'kept'] });
   });
 
   it('ends edit mode for a persona being generated, not for another one', () => {
     const editing: PersonaState = { ...ready(), editing: 1 };
-    expect(reduce(editing, { type: 'generateOne', slot: 1, now: 3000 }).editing).toBeNull();
-    expect(reduce(editing, { type: 'generateOne', slot: 0, now: 3000 }).editing).toBe(1);
-    expect(reduce(editing, { type: 'generateAll', now: 3000 }).editing).toBeNull();
+    expect(
+      reduce(editing, { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 }).editing
+    ).toBeNull();
+    expect(
+      reduce(editing, { type: 'generateOne', slot: 0, fields: FIELDS, now: 3000 }).editing
+    ).toBe(1);
+    expect(reduce(editing, { type: 'generateAll', fields: FIELDS, now: 3000 }).editing).toBeNull();
   });
 });
 
@@ -383,7 +420,7 @@ describe('select and selectBranch', () => {
   });
 
   it('leaves the run alone', () => {
-    const running = reduce(ready(), { type: 'generateOne', slot: 0, now: 3000 });
+    const running = reduce(ready(), { type: 'generateOne', slot: 0, fields: FIELDS, now: 3000 });
     const state = reduce(
       running,
       { type: 'select', slot: 1 },
@@ -391,5 +428,271 @@ describe('select and selectBranch', () => {
     );
     expect(state.run).toBe(running.run);
     expect(state.personas).toBe(running.personas);
+  });
+});
+
+/** Mia's city edited, as the hook dispatches it */
+function setCity(
+  slot: 0 | 1 | 2,
+  value: PersonaValue,
+  before: Record<string, boolean | undefined> = {},
+  after: Record<string, boolean | undefined> = {},
+  key = CITY
+): PersonaAction {
+  return {
+    type: 'setValue',
+    slot,
+    key,
+    value,
+    before,
+    after,
+    branches: [
+      { key: 'b-main', name: 'Standard' },
+      { key: 'b-ambulance', name: 'Ambulance' },
+    ],
+  };
+}
+
+describe('setValue', () => {
+  it('changes one value, never `generated`, and the other personas stay', () => {
+    const before = ready();
+    const state = reduce(before, setCity(1, 'Heilbronn'));
+    expect(cities(state)).toEqual(['Stuttgart', 'Heilbronn', 'Köln']);
+    expect(state.personas?.[1].generated[CITY]).toBe('Ulm');
+    expect(state.personas?.[0]).toBe(before.personas?.[0]);
+    expect(state.personas?.[2]).toBe(before.personas?.[2]);
+  });
+
+  it('announces the changes of outcome, in tab order, with the full name', () => {
+    const state = reduce(
+      ready(),
+      setCity(
+        0,
+        'Ulm',
+        { 'b-main': true, 'b-ambulance': true },
+        { 'b-main': false, 'b-ambulance': false }
+      )
+    );
+    expect(state.announcement).toBe(
+      'Mia Schulz no longer meets the rules of Standard. ' +
+        'Mia Schulz no longer meets the rules of Ambulance.'
+    );
+    expect(state.announcementId).toBe(1);
+  });
+
+  it('announces nothing when no outcome changed, and clears the earlier text', () => {
+    const first = reduce(ready(), setCity(0, 'Ulm', { 'b-main': true }, { 'b-main': false }));
+    expect(first.announcement).not.toBe('');
+    const second = reduce(first, setCity(0, 'Ulm2', { 'b-main': false }, { 'b-main': false }));
+    expect(second.announcement).toBe('');
+    expect(second.announcementId).toBe(first.announcementId);
+  });
+
+  it('raises the announcement id for the same sentence twice in a row', () => {
+    const edit = setCity(0, 'Ulm', { 'b-main': true }, { 'b-main': false });
+    const once = reduce(ready(), edit);
+    const twice = reduce(once, edit);
+    expect(twice.announcement).toBe(once.announcement);
+    expect(twice.announcementId).toBe(once.announcementId + 1);
+  });
+
+  it('is ignored for a persona being generated and while there are no personas', () => {
+    const running = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
+    expect(reduce(running, setCity(1, 'X'))).toBe(running);
+    const first = firstRun();
+    expect(reduce(first, setCity(0, 'X'))).toBe(first);
+  });
+
+  it('keeps the edit through a fill run, and leaves the run alone', () => {
+    const running = reduce(ready(), { type: 'generateOne', slot: 2, fields: FIELDS, now: 3000 });
+    const state = reduce(running, setCity(0, 'Mainz'));
+    expect(state.run).toBe(running.run);
+    expect(cities(state)[0]).toBe('Mainz');
+  });
+});
+
+describe('rename', () => {
+  it('changes the name, nothing else, and announces nothing', () => {
+    const announced = reduce(ready(), setCity(0, 'Ulm', { 'b-main': true }, { 'b-main': false }));
+    const state = reduce(announced, { type: 'rename', slot: 2, name: 'Yusuf Kaya' });
+    expect(state.personas?.map((persona) => persona.name)).toEqual([
+      'Mia Schulz',
+      'Anna Berger',
+      'Yusuf Kaya',
+    ]);
+    expect(state.personas?.[2].values).toBe(announced.personas?.[2].values);
+    expect(state.announcement).toBe(announced.announcement);
+    expect(state.announcementId).toBe(announced.announcementId);
+  });
+
+  it('ignores an empty or blank name, since a name is never empty', () => {
+    const before = ready();
+    expect(reduce(before, { type: 'rename', slot: 0, name: '' })).toBe(before);
+    expect(reduce(before, { type: 'rename', slot: 0, name: '   ' })).toBe(before);
+  });
+
+  it('is ignored for a persona being generated', () => {
+    const running = reduce(ready(), { type: 'generateOne', slot: 0, fields: FIELDS, now: 3000 });
+    expect(reduce(running, { type: 'rename', slot: 0, name: 'Eva' })).toBe(running);
+  });
+});
+
+describe('startEditing and stopEditing', () => {
+  it('sets and clears the persona in edit mode', () => {
+    const editing = reduce(ready(), { type: 'startEditing', slot: 1 });
+    expect(editing.editing).toBe(1);
+    expect(reduce(editing, { type: 'stopEditing' }).editing).toBeNull();
+  });
+
+  it('refuses a persona being generated (FR-013) and a state without personas', () => {
+    const running = reduce(ready(), { type: 'generateOne', slot: 1, fields: FIELDS, now: 3000 });
+    expect(reduce(running, { type: 'startEditing', slot: 1 })).toBe(running);
+    expect(reduce(running, { type: 'startEditing', slot: 0 }).editing).toBe(0);
+    const first = firstRun();
+    expect(reduce(first, { type: 'startEditing', slot: 0 })).toBe(first);
+  });
+
+  it('changes nothing when already so', () => {
+    const before = ready();
+    expect(reduce(before, { type: 'stopEditing' })).toBe(before);
+    const editing = reduce(before, { type: 'startEditing', slot: 0 });
+    expect(reduce(editing, { type: 'startEditing', slot: 0 })).toBe(editing);
+  });
+});
+
+describe('the question before generating anew', () => {
+  const NOW = 5000;
+
+  /** Anna (slot 1) has an edited city; Mia (0) an edited hidden value only */
+  function edited(): PersonaState {
+    const base = ready();
+    return reduce(
+      base,
+      setCity(1, 'Heilbronn'),
+      // a hidden value, a class date of a class not held, never counts
+      setCity(0, '2020-01-01', {}, {}, ISSUE_B)
+    );
+  }
+
+  it('asks instead of starting when the persona has changes', () => {
+    const state = reduce(edited(), {
+      type: 'generateOne',
+      slot: 1,
+      fields: FIELDS,
+      now: NOW,
+    });
+    expect(state.confirm).toEqual({ type: 'one', slot: 1 });
+    expect(state.run).toBeNull();
+    expect(statuses(state)).toEqual(['ready', 'ready', 'ready']);
+  });
+
+  it('starts at once when the persona has no changes, hidden values included', () => {
+    const state = reduce(edited(), { type: 'generateOne', slot: 0, fields: FIELDS, now: NOW });
+    expect(state.confirm).toBeNull();
+    expect(state.run?.slots).toEqual(['free', 'kept', 'kept']);
+  });
+
+  it('starts at once when an edit was put back', () => {
+    const back = reduce(edited(), setCity(1, 'Ulm'));
+    const state = reduce(back, { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW });
+    expect(state.confirm).toBeNull();
+    expect(state.run).not.toBeNull();
+  });
+
+  it('names every persona with changes for "Generate all again"', () => {
+    const twice = reduce(edited(), setCity(0, 'Mainz'));
+    const state = reduce(twice, { type: 'generateAll', fields: FIELDS, now: NOW });
+    expect(state.confirm).toEqual({ type: 'all', changed: [0, 1] });
+    expect(state.run).toBeNull();
+  });
+
+  it('starts "Generate all again" at once when nobody has changes', () => {
+    const state = reduce(ready(), { type: 'generateAll', fields: FIELDS, now: NOW });
+    expect(state.confirm).toBeNull();
+    expect(state.run?.slots).toEqual(['free', 'free', 'free']);
+  });
+
+  it('does not ask again about a persona that is already being generated', () => {
+    const running = reduce(edited(), { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW });
+    const confirmed = reduce(
+      reduce(edited(), { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW }),
+      { type: 'confirmed', now: NOW }
+    );
+    expect(running.confirm).not.toBeNull();
+    const state = reduce(confirmed, { type: 'generateAll', fields: FIELDS, now: NOW + 100 });
+    expect(state.confirm).toBeNull();
+    expect(state.run?.slots).toEqual(['free', 'free', 'free']);
+  });
+
+  it('"confirmed" starts the run the question was about and closes it', () => {
+    const asked = reduce(edited(), { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW });
+    const state = reduce(asked, { type: 'confirmed', now: 6000 });
+    expect(state.confirm).toBeNull();
+    expect(state.run).toEqual({ runId: 2, startedAt: 6000, slots: ['kept', 'free', 'kept'] });
+    expect(statuses(state)).toEqual(['ready', 'generating', 'ready']);
+    const all = reduce(reduce(edited(), { type: 'generateAll', fields: FIELDS, now: NOW }), {
+      type: 'confirmed',
+      now: 6000,
+    });
+    expect(all.run?.slots).toEqual(['free', 'free', 'free']);
+  });
+
+  it('merges a confirmed run into a running one, as in T023', () => {
+    const running = reduce(edited(), { type: 'generateOne', slot: 2, fields: FIELDS, now: NOW });
+    const asked = reduce(running, { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW + 10 });
+    const state = reduce(asked, { type: 'confirmed', now: NOW + 20 });
+    expect(state.run).toEqual({ runId: 3, startedAt: NOW + 20, slots: ['kept', 'free', 'free'] });
+  });
+
+  it('"cancelled" closes the question and changes nothing else', () => {
+    const asked = reduce(edited(), { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW });
+    const state = reduce(asked, { type: 'cancelled' });
+    expect(state.confirm).toBeNull();
+    expect(state.run).toBeNull();
+    expect(state.personas).toBe(asked.personas);
+    expect(reduce(state, { type: 'cancelled' })).toBe(state);
+  });
+
+  it('"confirmed" without a question changes nothing', () => {
+    const before = ready();
+    expect(reduce(before, { type: 'confirmed', now: NOW })).toBe(before);
+  });
+
+  it('generating anew keeps the names and drops the edits (R10, FR-012)', () => {
+    const asked = reduce(edited(), { type: 'generateOne', slot: 1, fields: FIELDS, now: NOW });
+    const running = reduce(asked, { type: 'confirmed', now: NOW });
+    const renamed = reduce(running, { type: 'rename', slot: 0, name: 'Eva Roth' });
+    const done = reduce(renamed, succeeded(renamed, answer(['', 'Bonn', ''], [null, null, null])));
+    expect(done.personas?.map((persona) => persona.name)).toEqual([
+      'Eva Roth',
+      'Anna Berger',
+      'Jonas Weber',
+    ]);
+    expect(done.personas?.[1].values[CITY]).toBe('Bonn');
+    expect(done.personas?.[1].generated[CITY]).toBe('Bonn');
+  });
+});
+
+describe('edit mode and the other actions', () => {
+  it('"confirmed" ends edit mode for a persona generated anew', () => {
+    const asked = reduce(ready(), { type: 'startEditing', slot: 1 }, setCity(1, 'Heilbronn'), {
+      type: 'generateOne',
+      slot: 1,
+      fields: FIELDS,
+      now: 4000,
+    });
+    expect(asked.editing).toBe(1);
+    expect(reduce(asked, { type: 'confirmed', now: 4100 }).editing).toBeNull();
+  });
+
+  it('an announcement stays when other actions come', () => {
+    const announced = reduce(ready(), setCity(0, 'Ulm', { 'b-main': true }, { 'b-main': false }));
+    const state = reduce(
+      announced,
+      { type: 'select', slot: 1 },
+      { type: 'startEditing', slot: 1 },
+      { type: 'stopEditing' }
+    );
+    expect(state.announcement).toBe(announced.announcement);
   });
 });

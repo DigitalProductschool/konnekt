@@ -86,9 +86,6 @@ export const RULE_EDITOR_COPY = {
   rename: (name: string) => `Rename ${name}`,
 };
 
-// Value sets with more options than this get a search field ("Search options")
-export const SEARCH_THRESHOLD = 10;
-
 // The menus' widths in the frames: documents and parts 300, data and dates 340, checks 300,
 // units 200
 export const MENU_WIDTHS = {
@@ -99,7 +96,6 @@ export const MENU_WIDTHS = {
   check: 'w-300',
   dateCheck: 'w-340',
   unit: 'w-200',
-  values: 'w-300',
 };
 
 // The decoration chips of the check menus and the check picker (Figma "Rules/Symbol"). Text and

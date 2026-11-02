@@ -1,10 +1,21 @@
 import Checkbox from '../../../../components/Checkbox';
+import ValuesPicker from '../../../../components/ValuesPicker';
+import type { ValuesPickerCopy } from '../../../../components/ValuesPicker/types';
+import { valueChoices } from '../../../../components/ValuesPicker/utils';
 import ChoicePicker from './ChoicePicker';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';
 import type { ConditionFieldsProps } from './types';
-import { parseCount, parseNumber, valueChoices, yearsSuffix } from './utils';
+import { parseCount, parseNumber, yearsSuffix } from './utils';
 import ValueInput from './ValueInput';
-import ValuesPicker from './ValuesPicker';
+
+const VALUES_COPY: ValuesPickerCopy = {
+  menu: RULE_EDITOR_COPY.valuesMenu,
+  placeholder: RULE_EDITOR_COPY.chooseOptions,
+  searchClasses: RULE_EDITOR_COPY.searchClasses,
+  searchOptions: RULE_EDITOR_COPY.searchOptions,
+  footer: RULE_EDITOR_COPY.selectAtLeastOne,
+  noMatch: RULE_EDITOR_COPY.noMatch,
+};
 
 const UNIT_SECTIONS = [
   {
@@ -89,8 +100,13 @@ export default function ConditionFields({
           values={condition.values ?? []}
           invalid={problemField === 'values'}
           describedBy={describedBy('values')}
-          state={state}
-          dispatch={dispatch}
+          copy={VALUES_COPY}
+          open={state.openMenu === 'values'}
+          search={state.search}
+          onOpenChange={(open) =>
+            dispatch(open ? { type: 'openMenu', menu: 'values' } : { type: 'closeMenu' })
+          }
+          onSearch={(text) => dispatch({ type: 'search', text })}
           onChange={(values) => onChange({ ...condition, values })}
         />
       );

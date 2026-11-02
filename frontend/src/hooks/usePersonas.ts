@@ -20,6 +20,7 @@ import {
 
 import type { BranchInput } from '../types/form-connections';
 import type { KeyedBranch } from '../utils/rules/checks/checkedTree';
+import type { AnnouncedBranch, MetByBranch } from '../utils/rules/personas/announcements';
 import { GENERATION_STOP_MS, GENERATION_WATCHDOG_MS } from '../utils/rules/personas/constants';
 import { initialPersonaState, personaStateReducer } from '../utils/rules/personas/personaState';
 import type {
@@ -38,6 +39,7 @@ import type {
   PersonaField,
   PersonaSlot,
   PersonaState,
+  PersonaValue,
   ResultView,
   TestResults,
 } from '../utils/rules/personas/types';
@@ -48,12 +50,24 @@ import { useTodayInGermany } from './useTodayInGermany';
 export interface PersonasInput {
   /** Whether the test step is shown */
   active: boolean;
-  /** The rules state's branches, in tab order (`RulesBranch` fits) */
-  branches: readonly KeyedBranch[];
+  /**
+   * The rules state's branches, in tab order (`RulesBranch` fits): the names are the tabs', for
+   * the announcements
+   */
+  branches: readonly (KeyedBranch & Pick<BranchInput, 'name'>)[];
   /** The requested documents and value sets, or `null` while they load */
   context: RuleContext | null;
   /** The rules step's open branch */
   openBranchKey: string | null;
+}
+
+/** What `setValue()` compares: each branch's `met`, by branch key */
+function metByBranchOf(results: Partial<Record<string, PersonaBranchResult>> | undefined) {
+  const met: Record<string, boolean | undefined> = {};
+  for (const [key, result] of Object.entries(results ?? {})) {
+    met[key] = result?.met;
+  }
+  return met satisfies MetByBranch;
 }
 
 /** One persona's result for one variant, as the test step shows it: `resultViewOf()` */
@@ -74,10 +88,29 @@ export interface Personas {
   today: string;
   /** The reducer's dispatch, for selections, edits and confirm answers */
   dispatch: Dispatch<PersonaAction>;
-  /** "Generate again" for one persona */
+  /**
+   * "Generate again" for one persona. Starts the run, or sets `state.confirm` when the persona has
+   * changes (FR-012)
+   */
   generateOne: (slot: PersonaSlot) => void;
-  /** "Generate all again" */
+  /** "Generate all again". Starts the run, or sets `state.confirm` when a persona has changes */
   generateAll: () => void;
+  /** The question's "Generate new data": starts the run `state.confirm` was about */
+  confirmed: () => void;
+  /** The question's "Cancel": closes it */
+  cancelled: () => void;
+  /**
+   * One valid entry for a persona's field (FR-006): changes the value, and sets
+   * `state.announcement` (and raises `state.announcementId`) when a variant's outcome moved
+   * (FR-017). Empties should be committed as `null`, lists in value-set order
+   */
+  setValue: (slot: PersonaSlot, key: string, value: PersonaValue) => void;
+  /** A new, non-empty name (FR-009); no announcement */
+  rename: (slot: PersonaSlot, name: string) => void;
+  /** "Edit data": no effect for a persona being generated (FR-013) */
+  startEditing: (slot: PersonaSlot) => void;
+  /** "Done" */
+  stopEditing: () => void;
   /** "Try again" after a failure; loads `results.ts` again if it couldn't load */
   retry: () => void;
   /**
@@ -248,6 +281,8 @@ function useResultsModule(
  *   idle one is reused. The request is posted with a fresh seed and `deadline = startedAt +
  *   GENERATION_STOP_MS`; the watchdog fails the run at `startedAt + GENERATION_WATCHDOG_MS`. A
  *   worker that can't be created, its `error` or `messageerror` fail the run.
+ * - Editing: `setValue()` evaluates the persona before and after with the loaded module and lets
+ *   the reducer announce the change; "Generate again" asks first for a persona with changes.
  * - `fields`, `results` and `viewOf` follow the branches, the personas, the context and today.
  * - The worker is terminated on unmount. Nothing is stored, sent or logged (FR-021)
  */
@@ -341,20 +376,65 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
 
   useEffect(() => () => stopWorker(workerRef), []);
 
+  const announced = useMemo<AnnouncedBranch[]>(
+    () => branches.map(({ key, name }) => ({ key, name })),
+    [branches]
+  );
+
   const generateOne = useCallback(
     (slot: PersonaSlot) => {
       if (active) {
-        dispatch({ type: 'generateOne', slot, now: clockNow() });
+        dispatch({ type: 'generateOne', slot, fields, now: clockNow() });
       }
     },
-    [active]
+    [active, fields]
   );
 
   const generateAll = useCallback(() => {
     if (active) {
-      dispatch({ type: 'generateAll', now: clockNow() });
+      dispatch({ type: 'generateAll', fields, now: clockNow() });
+    }
+  }, [active, fields]);
+
+  const confirmed = useCallback(() => {
+    if (active) {
+      dispatch({ type: 'confirmed', now: clockNow() });
     }
   }, [active]);
+
+  const cancelled = useCallback(() => dispatch({ type: 'cancelled' }), []);
+
+  // The persona's `met` per branch before (the memoised results) and after the change, with the
+  // loaded module, so that the reducer never evaluates (Bundle rule). Without them, the value
+  // changes and nothing is announced
+  const setValue = useCallback(
+    (slot: PersonaSlot, key: string, value: PersonaValue) => {
+      const persona = personas?.[slot];
+      let before: MetByBranch = {};
+      let after: MetByBranch = {};
+      if (persona && persona.status === 'ready' && resultsModule && context && results) {
+        before = metByBranchOf(results[persona.id]);
+        const changed = { ...persona, values: { ...persona.values, [key]: value } };
+        after = metByBranchOf(
+          resultsModule.testResultsOf([changed], fields, branches, context, today)[persona.id]
+        );
+      }
+      dispatch({ type: 'setValue', slot, key, value, before, after, branches: announced });
+    },
+    [personas, resultsModule, context, results, fields, branches, today, announced]
+  );
+
+  const rename = useCallback(
+    (slot: PersonaSlot, name: string) => dispatch({ type: 'rename', slot, name }),
+    []
+  );
+
+  const startEditing = useCallback(
+    (slot: PersonaSlot) => dispatch({ type: 'startEditing', slot }),
+    []
+  );
+
+  const stopEditing = useCallback(() => dispatch({ type: 'stopEditing' }), []);
 
   const retry = useCallback(() => {
     if (!active) {
@@ -367,7 +447,38 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
   }, [active, load.status, setLoad]);
 
   return useMemo(
-    () => ({ state, fields, results, today, dispatch, generateOne, generateAll, retry, viewOf }),
-    [state, fields, results, today, generateOne, generateAll, retry, viewOf]
+    () => ({
+      state,
+      fields,
+      results,
+      today,
+      dispatch,
+      generateOne,
+      generateAll,
+      confirmed,
+      cancelled,
+      setValue,
+      rename,
+      startEditing,
+      stopEditing,
+      retry,
+      viewOf,
+    }),
+    [
+      state,
+      fields,
+      results,
+      today,
+      generateOne,
+      generateAll,
+      confirmed,
+      cancelled,
+      setValue,
+      rename,
+      startEditing,
+      stopEditing,
+      retry,
+      viewOf,
+    ]
   );
 }

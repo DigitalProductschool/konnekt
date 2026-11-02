@@ -1,4 +1,5 @@
-import { failingValueHiddenText } from '../../../utils/rules/personas/messages';
+import { editedHiddenText, failingValueHiddenText } from '../../../utils/rules/personas/messages';
+import { TEST_STEP_COPY } from './constants';
 import type { ValueRowProps } from './types';
 
 /**
@@ -7,10 +8,12 @@ import type { ValueRowProps } from './types';
  * further the value (body/small). A value read by a rule shown as failing (K1; 7057:59073) has
  * Figma's 6px red dot (7057:59074), 6px before it, and bold text; screen readers hear "Fails a
  * rule:" before it, where the dot is (design-notes §4.2). A term and its description, so a row
- * reads "Date of birth (Age): Fails a rule: 08.07.2007 (age 19)". "· edited" (K2) goes after the
- * value with T045
+ * reads "Date of birth (Age): Fails a rule: 08.07.2007 (age 19)". A changed value (K2; U03
+ * 7058:61193) continues its text with " · edited" in the same body/small style and colour, in
+ * regular weight; screen readers hear the hidden ", edited" after the value instead (design-notes
+ * §4.2)
  */
-export default function ValueRow({ field, text, failing }: ValueRowProps) {
+export default function ValueRow({ field, text, failing, changed }: ValueRowProps) {
   return (
     <div className="text-kern-static-small flex items-center gap-16 border-t border-(--kern-color-decorative-border-default) py-8 leading-(--kern-typography-line-height-medium-static)">
       <dt className="text-kern-layout-text-muted w-120 shrink-0 break-words">{field.label}</dt>
@@ -24,6 +27,15 @@ export default function ValueRow({ field, text, failing }: ValueRowProps) {
         <span className={`min-w-0 flex-1 break-words ${failing ? 'font-semibold' : ''}`}>
           {failing && <span className="sr-only">{failingValueHiddenText} </span>}
           {text}
+          {changed && (
+            <>
+              <span aria-hidden="true" className="font-normal">
+                {' '}
+                {TEST_STEP_COPY.edited}
+              </span>
+              <span className="sr-only">{editedHiddenText}</span>
+            </>
+          )}
         </span>
       </dd>
     </div>

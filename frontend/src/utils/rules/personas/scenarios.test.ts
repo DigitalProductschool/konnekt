@@ -20,6 +20,7 @@ import type { CheckOptions } from '../checks/types';
 import { evaluateBranch } from '../evaluation';
 import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
 import type { RuleContext } from '../types';
+import { announcementOf } from './announcements';
 import { applicantOf } from './applicant';
 import { generatePersonas } from './generation';
 import { goalsOf } from './goals';
@@ -582,7 +583,7 @@ describe('US1-AS5: generating one persona anew', () => {
         const slot = (seed % 3) as PersonaSlot;
         const resultsBefore = resultsOf(personas, EXAMPLE);
 
-        const running = personaStateReducer(before, { type: 'generateOne', slot, now: 1 });
+        const running = personaStateReducer(before, { type: 'generateOne', slot, fields, now: 1 });
         expect(must(running.run).slots).toEqual(
           [0, 1, 2].map((index) => (index === slot ? 'free' : 'kept'))
         );
@@ -1038,4 +1039,294 @@ describe('EC "More rules than three personas can cover": FR-011’s goals in ord
     },
     GENERATING
   );
+});
+
+// User Story 2: editing a persona. The reducer's `setValue` and `rename` are T040's; a case here
+// edits as they do, with a copy of the persona's values, and judges the persona the step shows.
+
+/** The persona with one value changed, as an edit applies it (`generated` stays) */
+function edited(subject: Persona, key: string, value: PersonaValue): Persona {
+  return { ...subject, values: { ...subject.values, [key]: value } };
+}
+
+/** The date `years` years before `today` (a `YYYY-MM-DD` day that is not 29 February) */
+function yearsBefore(today: string, years: number): string {
+  return `${Number(today.slice(0, 4)) - years}${today.slice(4)}`;
+}
+
+/** Each branch's `met` for the persona, as `announcementOf()` takes it */
+function metOf(subject: Persona, branches: readonly KeyedBranch[]): Record<string, boolean> {
+  const results = must(resultsOf([subject], branches)[subject.id]);
+  return Object.fromEntries(branches.map((each) => [each.key, must(results[each.key]).met]));
+}
+
+const EXAMPLE_TABS = [
+  { key: 'standard', name: 'Standard' },
+  { key: 'ambulance', name: 'Ambulance' },
+];
+
+/** Rule 01's outcome for a persona on `today` */
+function ruleOneOf(subject: Persona, branches: readonly KeyedBranch[], today = TODAY): string {
+  return must(
+    resultOf(subject, branches, branches[0].key, today).items.find(
+      (each) => each.item.id === 'rule-1'
+    )
+  ).outcome;
+}
+
+describe('US2-AS1: an age of 20 no longer meets Standard, still meets Ambulance', () => {
+  // The date that gives age 20 today: the day after the 21st birthday's day, a year later
+  const twenty = edited(MIA, BIRTH, '2006-11-01');
+
+  it('gives age 20 on today', () => {
+    expect(ageOn(MIA.values[BIRTH], TODAY)).toBe(25);
+    expect(ageOn(twenty.values[BIRTH], TODAY)).toBe(20);
+    expect(ageSuffixOf(twenty.values[BIRTH], TODAY)).toBe(' (age 20)');
+  });
+
+  it('fails Standard at Rule 01 with its message, and meets Ambulance', () => {
+    const standard = viewOf(twenty, EXAMPLE, 'standard');
+    expect(standard.meets).toBe(false);
+    expect(standard.heading).toBe('Result: doesn’t meet 1 rule');
+    expect(rowsOf(standard)[0]).toEqual([
+      'rule-1',
+      'not_met',
+      'You are too young for this licence.',
+      true,
+    ]);
+    expect(standard.rows[0].name).toBe('Rule 01');
+    expect(standard.failingFields).toEqual([BIRTH]);
+    expect(viewOf(twenty, EXAMPLE, 'ambulance').meets).toBe(true);
+  });
+
+  it('announces that the persona no longer meets the rules of Standard, and nothing else', () => {
+    expect(metOf(MIA, EXAMPLE)).toEqual({ standard: true, ambulance: true });
+    expect(metOf(twenty, EXAMPLE)).toEqual({ standard: false, ambulance: true });
+    expect(announcementOf(metOf(MIA, EXAMPLE), metOf(twenty, EXAMPLE), twenty, EXAMPLE_TABS)).toBe(
+      'Mia Schulz no longer meets the rules of Standard.'
+    );
+    expect(
+      announcementOf(metOf(twenty, EXAMPLE), metOf(twenty, EXAMPLE), twenty, EXAMPLE_TABS)
+    ).toBe('');
+  });
+});
+
+describe('US2-AS2: the day 21 years before today meets "at least 21 years old"', () => {
+  it('meets Rule 01, and the day after does not', () => {
+    const exact = edited(MIA, BIRTH, yearsBefore(TODAY, 21));
+    expect(exact.values[BIRTH]).toBe('2005-11-01');
+    expect(ruleOneOf(exact, EXAMPLE)).toBe('met');
+    expect(viewOf(exact, EXAMPLE, 'standard').rows[0].statement).toBe(
+      'Personal ID – Date of birth (Age) is at least 21 years old'
+    );
+    expect(ruleOneOf(edited(MIA, BIRTH, '2005-11-02'), EXAMPLE)).toBe('not_met');
+  });
+});
+
+describe('US2-AS3: "STUTTGART" against letter case', () => {
+  const upper = edited(MIA, CITY_KEY, 'STUTTGART');
+  const ruleTwo = (branches: readonly KeyedBranch[]) =>
+    outcomesOf(upper, branches, 'standard')['rule-2'];
+
+  it('fails Rule 02 when the rule respects letter case', () => {
+    const respecting = [
+      keyed(
+        mainBranch([
+          { ...CITY, condition: { operator: 'equal_to', value: 'Stuttgart', match_case: true } },
+        ]),
+        'standard'
+      ),
+    ];
+    expect(ruleTwo(respecting)).toBe('not_met');
+    expect(resultOf(upper, respecting, 'standard').met).toBe(false);
+    expect(outcomesOf(MIA, respecting, 'standard')['rule-2']).toBe('met');
+  });
+
+  it('meets Rule 02 when the rule ignores letter case', () => {
+    expect(ruleTwo(EXAMPLE)).toBe('met');
+    expect(resultOf(upper, EXAMPLE, 'standard').met).toBe(true);
+  });
+});
+
+describe('US2-AS4: removing class B hides its date; adding it back shows the earlier date', () => {
+  const fields = fieldsOf(EXAMPLE);
+  const without = edited(MIA, CLASSES, ['BE']);
+
+  it('hides the date but keeps its value, and reports Rule 04 as not met', () => {
+    expect(shownFieldsOf(MIA, fields).map((each) => each.key)).toContain(ISSUE_B);
+    expect(shownFieldsOf(without, fields).map((each) => each.key)).not.toContain(ISSUE_B);
+    expect(without.values[ISSUE_B]).toBe('2020-05-04');
+    expect(outcomesOf(without, EXAMPLE, 'standard')).toMatchObject({
+      'rule-3': 'not_met',
+      'rule-4': 'not_met',
+    });
+  });
+
+  it('shows the earlier date again with class B', () => {
+    const back = edited(without, CLASSES, ['BE', 'B']);
+    expect(shownFieldsOf(back, fields).map((each) => each.key)).toContain(ISSUE_B);
+    expect(back.values[ISSUE_B]).toBe('2020-05-04');
+    expect(resultOf(back, EXAMPLE, 'standard').met).toBe(true);
+  });
+});
+
+describe('US2-AS5: an empty date of birth couldn’t be checked', () => {
+  it('reports Rule 01 as not checked in both variants, and meets neither', () => {
+    for (const empty of ['', null]) {
+      const cleared = edited(MIA, BIRTH, empty);
+      for (const branchKey of ['standard', 'ambulance']) {
+        const view = viewOf(cleared, EXAMPLE, branchKey);
+        expect(view.meets).toBe(false);
+        expect(rowsOf(view)[0]).toEqual([
+          'rule-1',
+          'not_checked',
+          'You are too young for this licence.',
+          true,
+        ]);
+        expect(view.failingFields).toEqual([BIRTH]);
+      }
+      expect(ageSuffixOf(cleared.values[BIRTH], TODAY)).toBe('');
+    }
+  });
+});
+
+describe('US2-AS6: data that no rule checks isn’t there', () => {
+  it('has no family name, in the fields, the values or the documents', () => {
+    const fields = fieldsOf(EXAMPLE);
+    expect(fields.map((each) => each.key)).not.toContain('pid.family_name');
+    for (const seed of [1, 2, 3]) {
+      for (const subject of generated(EXAMPLE, seed)) {
+        expect(Object.keys(subject.values)).not.toContain('pid.family_name');
+        expect(applicantOf(subject, fields).pid).not.toHaveProperty('family_name');
+      }
+    }
+    expect(Object.keys(MIA.values).filter((key) => key.includes('family'))).toEqual([]);
+  });
+});
+
+describe('US2-AS7: a rename changes no result', () => {
+  it('keeps every outcome, row and message; only the name in the texts changes', () => {
+    const renamed = { ...JONAS, name: 'Erika Mustermann' };
+    expect(resultsOf([renamed], EXAMPLE)['persona-2']).toEqual(
+      resultsOf([JONAS], EXAMPLE)['persona-2']
+    );
+    for (const branchKey of ['standard', 'ambulance']) {
+      const before = viewOf(JONAS, EXAMPLE, branchKey);
+      const after = viewOf(renamed, EXAMPLE, branchKey);
+      expect(rowsOf(after)).toEqual(rowsOf(before));
+      expect(after.meets).toBe(before.meets);
+      expect(after.failingFields).toEqual(before.failingFields);
+    }
+    expect(viewOf(renamed, EXAMPLE, 'standard').messageColumn).toBe('Message Erika reads');
+    expect(
+      announcementOf(metOf(JONAS, EXAMPLE), metOf(renamed, EXAMPLE), renamed, EXAMPLE_TABS)
+    ).toBe('');
+  });
+});
+
+describe('EC "Dates of birth in the future and ages of 200": evaluated like any value', () => {
+  it('a date of birth in the future fails Rule 01 and reads "not born yet"', () => {
+    const future = edited(MIA, BIRTH, '2030-01-15');
+    expect(ageOn(future.values[BIRTH], TODAY)).toBeLessThan(0);
+    expect(ageSuffixOf(future.values[BIRTH], TODAY)).toBe(' (not born yet)');
+    expect(ruleOneOf(future, EXAMPLE)).toBe('not_met');
+    expect(resultOf(future, EXAMPLE, 'standard').met).toBe(false);
+    expect(resultOf(future, EXAMPLE, 'ambulance').met).toBe(false);
+  });
+
+  it('an age of 200 meets "at least 21 years old"', () => {
+    const old = edited(MIA, BIRTH, yearsBefore(TODAY, 200));
+    expect(old.values[BIRTH]).toBe('1826-11-01');
+    expect(ageOn(old.values[BIRTH], TODAY)).toBe(200);
+    expect(ruleOneOf(old, EXAMPLE)).toBe('met');
+  });
+});
+
+describe('EC "Changing the personal ID’s date of birth": the licence’s stays', () => {
+  const both = [
+    keyed(
+      mainBranch([
+        on(1, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 21 }),
+        on(2, target('mdl', 'birth_date'), { operator: 'at_least_years_ago', years: 21 }),
+      ]),
+      'standard'
+    ),
+  ];
+  const fields = fieldsOf(both);
+
+  it('delivers the old licence date and judges each rule on its own field', () => {
+    const base = persona('Mia Schulz', { [BIRTH]: '2001-06-15', 'mdl.birth_date': '2001-06-15' });
+    const changed = edited(base, BIRTH, '2010-01-01');
+    expect(changed.values['mdl.birth_date']).toBe('2001-06-15');
+    expect(applicantOf(changed, fields)).toEqual({
+      pid: { birthdate: '2010-01-01' },
+      mdl: { birth_date: '2001-06-15' },
+    });
+    expect(outcomesOf(changed, both, 'standard')).toEqual({
+      'rule-1': 'not_met',
+      'rule-2': 'met',
+    });
+  });
+});
+
+describe('SC-001: the evaluation’s edge cases, on edited values', () => {
+  it('an age exactly at the limit, and a day short of it', () => {
+    for (const [birth, outcome] of [
+      ['2005-11-01', 'met'],
+      ['2005-11-02', 'not_met'],
+      ['2005-10-31', 'met'],
+    ] as const) {
+      expect(ruleOneOf(edited(MIA, BIRTH, birth), EXAMPLE)).toBe(outcome);
+    }
+  });
+
+  it('a date some months from now, at the end of a month', () => {
+    const valid = on(5, target('mdl', 'driving_privileges', 'expiry_date', 'B'), {
+      operator: 'at_least_from_now',
+      amount: 6,
+      unit: 'months',
+    });
+    const branches = [keyed(mainBranch([CLASS_B, valid]), 'standard')];
+    // 31 Aug 2026 plus 6 months has no 31 Feb: it is the 1st of March 2027 (FR-012)
+    const thirtyFirst = '2026-08-31';
+    for (const [expiry, met] of [
+      ['2027-02-28', false],
+      ['2027-03-01', true],
+      ['2027-03-02', true],
+    ] as const) {
+      const subject = persona('Mia Schulz', { [CLASSES]: ['B'], [EXPIRY_B]: expiry });
+      expect(resultOf(subject, branches, 'standard', thirtyFirst).met, expiry).toBe(met);
+    }
+  });
+
+  it('German letters match ignoring case, "ß" with "SS" included', () => {
+    const city = (value: string, match_case: boolean) => [
+      keyed(
+        mainBranch([
+          on(1, target('pid', 'address_locality'), { operator: 'equal_to', value, match_case }),
+        ]),
+        'standard'
+      ),
+    ];
+    const at = (typed: string, branches: readonly KeyedBranch[]) =>
+      resultOf(persona('Mia Schulz', { [CITY_KEY]: typed }), branches, 'standard').met;
+    expect(at('KÖLN', city('Köln', false))).toBe(true);
+    expect(at('KÖLN', city('Köln', true))).toBe(false);
+    expect(at('STRASSE', city('Straße', false))).toBe(true);
+    expect(at('Schönau', city('Schönau', true))).toBe(true);
+  });
+
+  it('spaces at the start and the end of a typed value are ignored', () => {
+    const typed = edited(MIA, CITY_KEY, '  Stuttgart ');
+    expect(outcomesOf(typed, EXAMPLE, 'standard')['rule-2']).toBe('met');
+    const respecting = [
+      keyed(
+        mainBranch([
+          { ...CITY, condition: { operator: 'equal_to', value: 'Stuttgart', match_case: true } },
+        ]),
+        'standard'
+      ),
+    ];
+    expect(outcomesOf(typed, respecting, 'standard')['rule-2']).toBe('met');
+  });
 });

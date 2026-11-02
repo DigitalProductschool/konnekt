@@ -36,7 +36,6 @@ import type {
   MissingControlInput,
   RuleEditorAction,
   RuleEditorState,
-  ValueChoice,
   ValueField,
 } from './types';
 
@@ -233,20 +232,6 @@ export function checkChoiceOf(
   return definition ? checkChoice(definition) : null;
 }
 
-/** A value set's options for the values menu; licence classes show code and description. */
-export function valueChoices(optionSet: OptionSet | null): ValueChoice[] {
-  return (optionSet?.options ?? []).map((option) => ({
-    value: option.value,
-    label: option.label,
-    description: option.description,
-  }));
-}
-
-/** Whether a choice matches a menu's search, ignoring letter case. */
-export function matchesSearch(text: string, search: string): boolean {
-  return text.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase());
-}
-
 /** The message follows the condition until the team member writes one (F9). */
 export function withProposal(draft: RuleItem, context: RuleContext, edited: boolean): RuleItem {
   if (edited) {
@@ -422,17 +407,6 @@ export function yearsSuffix(
   years: number | null
 ) {
   return suffixOf(definition, dateOfBirth, years ?? 2) ?? '';
-}
-
-/** The labels of the chosen values: licence classes by their code (F32). */
-export function chosenValueLabels(
-  values: (string | number)[],
-  choices: ValueChoice[]
-): { value: string | number; label: string }[] {
-  return values.map((value) => ({
-    value,
-    label: choices.find((choice) => choice.value === value)?.label ?? String(value),
-  }));
 }
 
 /**
