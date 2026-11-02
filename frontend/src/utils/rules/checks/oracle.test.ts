@@ -1,7 +1,7 @@
 // `checkBranch()` against the brute-force oracle (specs/003-rule-consistency-checks, SC-001,
 // SC-002; research R13): for seeded random branches of testOracle.ts, every finding and notice
 // that the checks report must be true for every applicant and every day of sharing, and a complete
-// result must miss nothing. The oracle evaluates real applicants with testEvaluator.ts and uses
+// result must miss nothing. The oracle evaluates real applicants with ../evaluation.ts and uses
 // neither the theories nor the solver.
 //
 // Each seed's branch is checked once (`checkSeed()`), and its result compared with the oracle:

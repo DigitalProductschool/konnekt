@@ -6,7 +6,7 @@
 // import it.
 //
 // Independence: every answer comes from evaluating real applicants on real days with
-// testEvaluator.ts, the port of the evaluator that Python's vectors pin: `ruleOutcome()` sorts a
+// ../evaluation.ts, the port of the evaluator that Python's vectors pin: `ruleOutcome()` sorts a
 // field's values by their outcomes, and `evaluateBranch()` gives each combination's items and
 // branch. The deletion questions recombine a combination's rule outcomes with `levelMet()`, a
 // port of `_level_met()` that every evaluation checks against `evaluateBranch()` on the whole
@@ -89,12 +89,6 @@ import type {
   RuleTreeItem,
 } from '../../../types/form-connections';
 import { LICENCE_CLASSES_SET, OPERATORS } from '../constants';
-import { MDL, PID, rule, target } from '../testData';
-import { effectiveItems } from '../tree';
-import type { RuleContext, RuleDocument } from '../types';
-import { dayNumber, isDayNumber, isoDate, monthsAfter, yearsAfter } from './calendar';
-import { buildCheckedBranch, type KeyedBranch } from './checkedTree';
-import { FIRST_DAY, LAST_DAY } from './constants';
 import {
   type Applicant,
   type BranchEvaluation,
@@ -103,7 +97,13 @@ import {
   type EvaluatedItem,
   type Outcome,
   ruleOutcome,
-} from './testEvaluator';
+} from '../evaluation';
+import { MDL, PID, rule, target } from '../testData';
+import { effectiveItems } from '../tree';
+import type { RuleContext, RuleDocument } from '../types';
+import { dayNumber, isDayNumber, isoDate, monthsAfter, yearsAfter } from './calendar';
+import { buildCheckedBranch, type KeyedBranch } from './checkedTree';
+import { FIRST_DAY, LAST_DAY } from './constants';
 import type { CheckedBranch, DayRange } from './types';
 
 // The context and the day

@@ -128,24 +128,24 @@ After this phase, evaluating a persona gives exactly what `evaluate_branch()` gi
 
 ### Whole-branch vectors (backend, research R2)
 
-- [ ] T003 Add `branch_evaluations` to `backend/scripts/export_check_fixtures.py` (research R2; data-model.md "Generated fixtures"; FR-014, SC-001).
+- [X] T003 Add `branch_evaluations` to `backend/scripts/export_check_fixtures.py` (research R2; data-model.md "Generated fixtures"; FR-014, SC-001).
   - A generator `_branch_evaluation_vectors() -> Iterator[dict[str, object]]`, with a docstring, beside `_rule_outcome_vectors()`, and `'branch_evaluations': list(_branch_evaluation_vectors())` in the vectors dict (next to `'rule_outcomes'`).
   - Each vector is hand-written as the `SnapshotBranch` and `DeliveredDocument`s that `evaluate_branch()` reads, and its output comes from `evaluate_branch(branch, documents, shared_on)` (`backend/app/services/evaluation.py`), in data-model.md's shape: `name`, `branch` (`origin`, `operator`, `items`), `documents`, `shared_on`, `met`, `results` (`id`, `group`, `outcome`, without names) and `messages` (`id`, `message`).
   - The branches cover research R2's list: AND and OR levels; groups and sub-groups, with and without a message of their own (an OR group without a message reports its members); a based branch with removed items and a dissolved inherited group; a branch without items; rules that are met, not met and couldn't be checked; a rule on a class that the licence doesn't list; a class list that is empty.
   - Deterministic output (fixed days, no `date.today()`), single quotes, Ruff and mypy clean. The script never imports `app.config` (CLAUDE.md).
-- [ ] T004 Regenerate `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json` (depends on T003).
+- [X] T004 Regenerate `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json` (depends on T003).
   - In `backend/`: `uv run python -m scripts.export_check_fixtures`, then `uv run python -m scripts.export_check_fixtures --check`, which prints nothing and exits 0.
   - `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest tests/unit/test_check_fixtures.py` passes, its drift check now covering `branch_evaluations`.
   - The diff adds only the `branch_evaluations` key; `checks/caseFolding.ts` is unchanged. Never edit either file by hand.
 
 ### The evaluator in production (frontend, research R2)
 
-- [ ] T005 [P] Move `checks/testEvaluator.ts` to `frontend/src/utils/rules/evaluation.ts` and `checks/testEvaluator.test.ts` to `frontend/src/utils/rules/evaluation.test.ts`, without changing behaviour (research R2; contracts/personas.md "The evaluator").
+- [X] T005 [P] Move `checks/testEvaluator.ts` to `frontend/src/utils/rules/evaluation.ts` and `checks/testEvaluator.test.ts` to `frontend/src/utils/rules/evaluation.test.ts`, without changing behaviour (research R2; contracts/personas.md "The evaluator").
   - Update every import: `checks/testOracle.ts` (imports the evaluator from `../evaluation`), `checks/solver.test.ts`, `checks/testOracle.test.ts`, and the test's own fixture path (`./checks/fixtures/evaluator-vectors.json`). Update the comments that name `testEvaluator.ts` in `checks/testOracle.ts` and `checks/oracle.test.ts`.
   - The module's header says it is production code, the browser port of `backend/app/services/evaluation.py`, and each exported function names the Python function it ports (`evaluateBranch` ← `evaluate_branch()`, `ruleOutcome` ← `_rule_outcome()`, …).
   - Separation (contracts/personas.md): it imports none of `checks/literals.ts`, the theories, `checks/checkedTree.ts` or `checks/solver.ts`. Check the current imports and keep it so.
   - `npm test` passes with the same results as before the move.
-- [ ] T006 Port `_messages()` and `_results()`'s order into `frontend/src/utils/rules/evaluation.ts`, and replay the whole-branch vectors in `frontend/src/utils/rules/evaluation.test.ts` (depends on T004, T005; research R2; FR-014, SC-001).
+- [X] T006 Port `_messages()` and `_results()`'s order into `frontend/src/utils/rules/evaluation.ts`, and replay the whole-branch vectors in `frontend/src/utils/rules/evaluation.test.ts` (depends on T004, T005; research R2; FR-014, SC-001).
   - `BranchEvaluation` gains `messages: { id: string; message: string }[]`: empty when met; otherwise the reported items in `_messages()`'s order. It walks the top level in order, and a group that isn't met reports its own message, or its members' if it has none.
   - The evaluated items follow `_results()`'s order: each group followed by its members, each member with the id of the group that contains it.
   - `evaluateBranch()` still throws where Python raises `ValueError`. Date-times with a time zone (`_DATE_TIME`) stay unported (research R2).
@@ -153,7 +153,7 @@ After this phase, evaluating a persona gives exactly what `evaluate_branch()` gi
 
 ### The personas' groundwork (pure, with Vitest)
 
-- [ ] T007 [P] Write `personas/types.ts` and `personas/constants.ts`, the shapes of data-model.md and the numbers of research R6–R9 (data-model.md; contracts/personas.md).
+- [X] T007 [P] Write `personas/types.ts` and `personas/constants.ts`, the shapes of data-model.md and the numbers of research R6–R9 (data-model.md; contracts/personas.md).
   - `types.ts`, field for field as data-model.md gives them:
     - `PersonaField`: `key` (spec 003's `variableKey()`), `documentType`, `documentLabel`, `label`, `field`, `part: string | null`, `licenceClass: string | null`, `kind: 'number' | 'text' | 'enum' | 'date'`, `optionSet: string | null`, `multiple: boolean`, `dateOfBirth: boolean`.
     - `PersonaValue = number | string | readonly (string | number)[] | null`. "Empty: `null`, `''` or `[]`, for a document that doesn't give the value". "Absent: the key is missing from `values`, because the persona never had a value. Only a fill run gives absent values."
@@ -163,22 +163,22 @@ After this phase, evaluating a persona gives exactly what `evaluate_branch()` gi
     - The generation shapes `SlotPlan`, `BranchClass`, `OutcomeVector`, `Target`, `Score` (`[goal1, goal2, goal3, goal4]`), `Model`, and the worker messages `GenerateMessage` and `GeneratedMessage` exactly as contracts/personas.md "Worker protocol" gives them.
     - `PersonaAction`, the reducer's actions, starts with US1's (T023); T040 and T051 add theirs.
   - `constants.ts`: `PERSONA_IDS`; `GENERATION_STOP_MS = 4500` (the deadline posted to the worker); `GENERATION_WATCHDOG_MS = 5500`; `MAX_VECTORS = 256`; `MAX_COMBINATIONS = 4096`; `MAX_RESTARTS_WITHOUT_GAIN = 20`; the plausible ranges of research R7 (ages 18 to 80, issue dates in the past, expiry dates from two years ago to fifteen years ahead, human height and weight); and the agreeing field pairs (research R7 step 1): `pid.birthdate` and `mdl.birth_date`; `mdl.age_in_years` and `mdl.age_birth_year` from the date of birth; `pid.family_name`/`mdl.family_name` and `pid.given_name`/`mdl.given_name` from the persona's name; `pid.address_locality` and `mdl.resident_city`; `pid.address_postal_code` and `mdl.resident_postal_code`; `pid.address_region` and `mdl.resident_state`; `pid.address_country` and `mdl.resident_country`; `pid.nationalities` and `mdl.nationality`.
-- [ ] T008 [P] Write `personas/random.ts` with `random.test.ts`, a small seeded generator (research R7 "Randomness").
+- [X] T008 [P] Write `personas/random.ts` with `random.test.ts`, a small seeded generator (research R7 "Randomness").
   - `createRandom(seed: number)` with `next()` in [0, 1), `int(min, max)`, `pick(list)`, `shuffle(list)` (a new array) and `weighted(list, weights)`. A few lines (e.g. mulberry32), no dependency, never `Math.random()`.
   - Tests: equal seeds give equal sequences; different seeds give different ones; bounds hold; `shuffle` returns a permutation.
-- [ ] T009 [P] Write `personas/values.ts` with `values.test.ts`, the persona's derived values that the main bundle needs (depends on T007; data-model.md "Persona", "Derived"; FR-005, FR-007, FR-012; research R4).
+- [X] T009 [P] Write `personas/values.ts` with `values.test.ts`, the persona's derived values that the main bundle needs (depends on T007; data-model.md "Persona", "Derived"; FR-005, FR-007, FR-012; research R4).
   - `isEmptyValue(value)`: `null`, `''` or `[]`.
   - `changedKeys(persona, fields)`: the current fields whose value differs from `generated`, by `sameValue()` of `utils/rules/branches.ts` (K2, FR-012).
   - `shownFieldsOf(persona, fields)`: the fields shown for this persona; a class date only while the persona's `mdl.driving_privileges.classes` includes its `licenceClass` (FR-005, W4).
   - `ageOn(dateOfBirth, today)`: "the largest N for which `yearsAfter(dateOfBirth, N)` ≤ today, as the evaluator counts it" (`checks/calendar.ts`), `null` for an empty date (FR-007).
   - It imports nothing that reaches `checks/checkedTree.ts`, `checks/text.ts` or `evaluation.ts` (Bundle rule).
   - Tests: a birthday today (21 today is 21); 29 February reaches the next age on 1 March in years without it; a date of birth in the future; an empty value; class dates hidden and shown with the classes; `changedKeys` for lists in another order, `''` against `null`, and hidden values (never counted).
-- [ ] T010 [P] Write `personas/fields.ts` with `fields.test.ts`: `personaFieldsOf(branches, context)` and `checkedBranchesOf(branches, context)` (depends on T007; research R3; data-model.md "Persona field"; contracts/personas.md; FR-005, FR-009).
+- [X] T010 [P] Write `personas/fields.ts` with `fields.test.ts`: `personaFieldsOf(branches, context)` and `checkedBranchesOf(branches, context)` (depends on T007; research R3; data-model.md "Persona field"; contracts/personas.md; FR-005, FR-009).
   - `personaFieldsOf`: the union of every branch's `buildCheckedBranch().variables` (`checks/checkedTree.ts`), plus `mdl.driving_privileges.classes` whenever a class date is a field. Order: catalog document order (Personal ID, then Driving licence), then catalog field order, then part order; each class's dates right after "Licence classes", in the licence-class set's order, the issue date before the expiry date. Labels from `dataOfResolved()` (`utils/rules/statements.ts`), without the document; `documentLabel` is the document's heading. Kind, value set, `multiple` (`multiple_values` of the field or part) and `dateOfBirth` (`date_of_birth`) from the catalog. Total: it never throws, and a rule that `buildCheckedBranch()` leaves out adds no field.
   - `checkedBranchesOf`: every branch, in tab order, as the worker request needs it: `{ checked: CheckedBranch; rules: Record<string, RuleItem> }` (contracts/personas.md "Worker protocol").
   - Tests: the spec's example gives exactly "Date of birth (Age)" and "City or town" under "Personal ID", and "Licence classes" and "Licence class B – Issue date" under "Driving licence" (US1-AS1), and no family name (US2-AS6); a rule removed in a based branch keeps its data while the main branch's version checks it (EC "Rules removed in a branch"); a class date alone brings "Licence classes"; given and family name are fields of their own when checked (W12); nationalities and classes are `multiple`; the order rules above.
 
-- [ ] T011 Write `personas/applicant.ts` with `applicant.test.ts`: `applicantOf(persona, fields)` (depends on T006, T009, T010; research R4; data-model.md "The documents a persona stands for"; FR-014).
+- [X] T011 Write `personas/applicant.ts` with `applicant.test.ts`: `applicantOf(persona, fields)` (depends on T006, T009, T010; research R4; data-model.md "The documents a persona stands for"; FR-014).
   - From the current fields only, empty values left out: a field without parts as `{ [documentType]: { [field]: value } }`; the parts of `place_of_birth` in one object; `mdl.driving_privileges` as one entry per class held, `{ vehicle_category_code: code, issue_date?, expiry_date? }`, with a date only where it is a field and not empty. An empty list of classes delivers `[]`.
   - Tests, each also through `evaluateBranch()` (`evaluation.ts`): hidden values and dates of classes not held are never delivered; removing class B while another class remains makes a rule on B's issue date `'not_met'` (US2-AS4); removing every class makes it `'not_checked'` (research R4); an empty value makes its rule `'not_checked'` (US2-AS5).
 

@@ -9,12 +9,12 @@ import type {
   RuleTreeItem,
 } from '../../../types/form-connections';
 import { OPERATORS } from '../constants';
+import { type Applicant, evaluateBranch, type EvaluatedItem, ruleOutcome } from '../evaluation';
 import { rule, target } from '../testData';
 import { deleteItem, isDissolved } from '../tree';
 import { dayNumber, isoDate } from './calendar';
 import { CASE_FOLDING } from './caseFolding';
 import { FIRST_DAY, LAST_DAY } from './constants';
-import { type Applicant, evaluateBranch, type EvaluatedItem, ruleOutcome } from './testEvaluator';
 import {
   BRANCH,
   checkedBranchOf,

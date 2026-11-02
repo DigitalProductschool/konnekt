@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import type { Combinator } from '../../../types/form-connections';
+import { evaluateBranch, type EvaluatedItem } from '../evaluation';
 import { dayNumber } from './calendar';
 import { LAST_DAY } from './constants';
 import { allOf, isLiteral, negate } from './literals';
 import { createSolverMemo, feasibleDaysOf, satisfiable, type SolverOptions } from './solver';
-import { evaluateBranch, type EvaluatedItem } from './testEvaluator';
 import {
   BRANCH,
   checkedBranchOf,
@@ -695,7 +695,7 @@ function drawn<T>(items: readonly T[], size: number, random: (count: number) => 
 
 /**
  * The items each applicant of the oracle meets, on each day that stands for a stretch of days from
- * today on (`Oracle.days()`), evaluated with testEvaluator.ts: questions about items that some
+ * today on (`Oracle.days()`), evaluated with ../evaluation.ts: questions about items that some
  * meet and others fail, which the oracle's own helpers don't ask
  */
 interface MetTable {
