@@ -11,6 +11,7 @@ import {
   listOf,
   namesOf,
   noteOf,
+  noticeText,
   tabFindingsOf,
   tabLabelOf,
   textOf,
@@ -774,6 +775,23 @@ describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
     expect(dialogLineOf(check([]), 'Standard')).toBeNull();
     expect(dialogLineOf(check([], null, { complete: false }), 'Standard')).toBeNull();
     expect(dialogLineOf(check(u02, NONE_CAN_MEET, { checkedRules: 0 }), 'Standard')).toBeNull();
+  });
+});
+
+describe('noticeText (spec 004, FR-018)', () => {
+  it('words the notice that the test step shows above the results and in the tab', () => {
+    expect(noticeText({ kind: 'none_can_meet', today: false }, 'Standard')).toBe(
+      'No applicant can meet the rules of Standard.'
+    );
+  });
+
+  it('keeps its other forms', () => {
+    expect(noticeText({ kind: 'none_can_meet', today: true }, 'Standard')).toBe(
+      'Right now, no applicant can meet the rules of Standard.'
+    );
+    expect(noticeText({ kind: 'all_meet', today: false }, 'Standard')).toBe(
+      'Every applicant meets the rules of Standard.'
+    );
   });
 });
 

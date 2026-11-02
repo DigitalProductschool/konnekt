@@ -6,7 +6,7 @@
 import type { RuleItem } from '../../../types/form-connections';
 import type { CheckedBranch, Formula, Literal } from '../checks/types';
 import type { EvaluatedItem } from '../evaluation';
-import type { RuleContext } from '../types';
+import type { RuleContext, StatementParts } from '../types';
 
 // Persona fields and values (data-model.md, "Persona field", "Persona value"; research R3, R4)
 
@@ -119,6 +119,11 @@ export interface PersonaState {
   branchKey: string | null;
   /** The run in progress */
   run: GenerationRun | null;
+  /**
+   * The last run id given, 0 before the first run. A new run, or a request merged into the
+   * running one, takes the next id, so that answers of a superseded run are ignored (research R9)
+   */
+  lastRunId: number;
   /** The last run failed: the failure state (FR-013, F7) */
   failed: boolean;
   /** The persona whose panel is in edit mode (FR-006) */
@@ -131,7 +136,12 @@ export interface PersonaState {
 
 /**
  * The reducer's actions. US1's (T023); T040 adds the editing and confirm actions, T051 the fill
- * run's
+ * run's.
+ *
+ * Every action that may start a run, or merge a request into the running one, carries `now`: the
+ * time of the request in ms of `performance.timeOrigin + performance.now()`, which becomes the
+ * run's `startedAt`. The reducer stays pure, and the hook takes the deadline and the watchdog from
+ * the request's time
  */
 export type PersonaAction =
   | {
@@ -142,12 +152,20 @@ export type PersonaAction =
       openBranchKey: string | null;
       /** Every branch's key, in tab order */
       branchKeys: string[];
+      now: number;
     }
-  | { type: 'generateOne'; slot: PersonaSlot }
-  | { type: 'generateAll' }
-  | { type: 'retry' }
+  | { type: 'generateOne'; slot: PersonaSlot; now: number }
+  | { type: 'generateAll'; now: number }
+  | { type: 'retry'; now: number }
   | { type: 'runSucceeded'; runId: number; slots: GeneratedMessage['slots'] }
-  | { type: 'runFailed'; runId: number }
+  | {
+      /**
+       * The run failed: its worker's error, its watchdog. `null` for a failure outside a run, such
+       * as `results.ts` that can't load, which fails whatever runs
+       */
+      type: 'runFailed';
+      runId: number | null;
+    }
   | { type: 'select'; slot: PersonaSlot }
   | { type: 'selectBranch'; branchKey: string };
 
@@ -169,15 +187,28 @@ export interface PersonaBranchResult {
   messages: { id: string; message: string }[];
 }
 
-/** By persona id, then branch key: every ready persona against every branch */
-export type TestResults = Partial<Record<PersonaId, Record<string, PersonaBranchResult>>>;
+/**
+ * By persona id, then branch key: every ready persona against every branch. A branch the evaluator
+ * can't evaluate (a rule that doesn't pass `firstProblem()`, which only the rules step shows) has
+ * no result
+ */
+export type TestResults = Partial<Record<PersonaId, Partial<Record<string, PersonaBranchResult>>>>;
 
 /** One item of the result list, for the selected persona and variant */
 export interface ResultRow {
   itemId: string;
   type: 'rule' | 'group';
   name: string;
+  /**
+   * A rule's statement as the rules step words it (`statementOf()`, as `RuleRow` falls back), what
+   * assistive technologies read; a group's is its header's subtitle (design-notes.md §6.2)
+   */
   statement: string;
+  /**
+   * A rule's statement laid out as `RuleSentence` draws it (`statementPartsOf()`), with
+   * `statement` as its text; null for a group, and for a rule whose target the context lacks
+   */
+  parts: StatementParts | null;
   status: 'met' | 'not_met' | 'not_checked';
   /**
    * The item's message for a reported row; `null` for other rows, which the step draws as "–"
@@ -210,6 +241,24 @@ export interface ResultView {
 
 // Generation, internal to the worker (data-model.md, "Generation"; research R6–R8)
 
+/**
+ * What `generatePersonas()` reads: a 'generate' message without its type, its run id and its
+ * deadline, which come with the options
+ */
+export type GenerationRequest = Pick<
+  GenerateMessage,
+  'seed' | 'today' | 'branches' | 'fields' | 'context' | 'slots'
+>;
+
+/**
+ * What `generatePersonas()` returns: the 'generated' message's slots, in persona order. A free
+ * slot gets a value for every field and, without a name, the name drawn; a filled slot the values
+ * of its absent fields; a kept slot `{ values: {}, name: null }`, since its persona stays as it is
+ */
+export interface GenerationResult {
+  slots: GeneratedMessage['slots'];
+}
+
 /** A slot's kind, its fixed values (kept, filled) and its name (kept, or drawn) */
 export interface SlotPlan {
   kind: SlotKind;
@@ -239,7 +288,9 @@ export type OutcomeVector = readonly boolean[];
 /**
  * What generation tries to cover (FR-011): goal 1 `meet(class)`, goal 2 `fail(class)`, goal 3
  * `differ(a, b)`, goal 4 `meet(item)` and `fail(item)`. Classes by their index; items by their
- * formula's canonical serialisation, so that a rule several branches inherit is one pair of targets
+ * formula's canonical serialisation, so that a rule several branches inherit is one pair of targets.
+ * Goal 3 with `a < b`, covered by meeting either one and failing the other. Goal 4's `formula` is
+ * what a persona meets to cover the target: the item's formula X for meet, `negate(X)` for fail
  */
 export type Target =
   | { goal: 1; type: 'meet'; classIndex: number }
@@ -252,7 +303,9 @@ export type Score = readonly [goal1: number, goal2: number, goal3: number, goal4
 
 /**
  * Per variable key, the literals that a satisfying choice of OR children picked (`modelOf()`, by
- * random self-reduction)
+ * random self-reduction), with the plausibility literals when they didn't have to give way. Values
+ * that meet every literal of a variable, for every variable, meet the formula. A variable without
+ * literals has no key
  */
 export type Model = Record<string, Literal[]>;
 

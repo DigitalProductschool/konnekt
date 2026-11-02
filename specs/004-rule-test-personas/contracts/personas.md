@@ -192,6 +192,9 @@ no state between messages.
 - `today`: from `useTodayInGermany()`.
 - `dispatch`: the reducer's dispatch, for selections, edits and confirm answers.
 - `generateOne(slot)`, `generateAll()` and `retry()`.
+- `viewOf(result, branch, persona)`: the loaded module's `resultViewOf()` with the current context
+  and fields, so that the test step never imports `results.ts` statically. `null` exactly when
+  `results` is.
 
 **Behaviour**:
 - When `active` turns true, it dispatches `opened` (research R9). It never starts a run while

@@ -24,7 +24,13 @@ export interface FormConnectionEditorPageProps {
 /** What the wizard does: make a connection, the first one, or edit one */
 export type EditorMode = 'create' | 'first' | 'edit';
 
-export type EditorStep = 'connection' | 'documents' | 'rules';
+export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
+
+/**
+ * The rules step's button to go on (spec 004, S2; W2; FR-001): "Test rules" while any branch has
+ * a rule or a rule editor is open, "Publish without rules" ("Save without rules") otherwise
+ */
+export type RulesNextAction = 'test' | 'publishWithoutRules';
 
 /** Validation messages, each shown next to what it is about */
 export interface EditorErrors {
@@ -238,12 +244,18 @@ export interface EditorFooterProps {
   step: EditorStep;
   editing: boolean;
   publishing: boolean;
-  /** No branch has any rule and no rule editor is open: publishing is "without rules" (FR-001) */
-  withoutRules: boolean;
+  /**
+   * `rulesNextActionOf()`: `'publishWithoutRules'` while no branch has any rule and no rule editor
+   * is open, which the documents and the rules step offer (FR-001; W2); `'test'` otherwise
+   */
+  rulesNextAction: RulesNextAction;
+  /** "Back": the previous step; from the test step, the rules step */
   onBack: () => void;
   /** The documents step's "Add rules →" */
   onAddRules: () => void;
-  /** "Publish" or "Save", or "… without rules" */
+  /** The rules step's "Test rules →" (spec 004, S2) */
+  onTestRules: () => void;
+  /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */
   onPublish: () => void;
 }
 

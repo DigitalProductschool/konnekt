@@ -11,13 +11,13 @@ import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useOptionSets } from '../../hooks/useOptionSets';
+import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
 import type { DetailLocationState } from '../../types/routing';
 import { requestedRuleDocuments } from '../../utils/rules/conditions';
-import { hasAnyRule } from '../../utils/rules/tree';
 import { firstProblem } from '../../utils/rules/validation';
 import ConnectionStep from './ConnectionStep';
 import { EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
@@ -36,6 +36,7 @@ import {
   neighbourOf,
   rulesReducer,
 } from './RulesStep/utils';
+import TestStep from './TestStep';
 import type { EditorErrors, FormConnectionEditorPageProps, PendingRemoval } from './types';
 import {
   createPayload,
@@ -50,10 +51,12 @@ import {
   isRulesChanged,
   labelOf,
   pageTitleOf,
+  problemPlaceOf,
   publishErrorNotice,
   removalAction,
   ruleLines,
   rulesCheckingRemoval,
+  rulesNextActionOf,
   validateConnection,
   validateDocuments,
 } from './utils';
@@ -66,7 +69,9 @@ import {
  * connection, the wizard edits it (/form-connections/:id/edit): it starts with its details,
  * documents and rules, and "Save" changes them with one call. Changes apply to new requests
  * only (FR-005, FR-028). If another team member saved the rules after the wizard loaded them,
- * the team member reloads the connection or replaces their rules (W9).
+ * the team member reloads the connection or replaces their rules (W9). Rules are published or
+ * saved from the test step, which "Test rules" opens through publishing's checks (spec 004,
+ * FR-001 to FR-003).
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
@@ -107,13 +112,18 @@ export default function FormConnectionEditorPage({
   // The checks of every branch's rules, once the catalog and the value sets are loaded, in the
   // create and the edit flow (FR-011; W14). The rule open in the editor counts as last saved:
   // its draft isn't in the branches (FR-002; W15). Nothing waits for them (FR-016)
-  const ruleChecks = useRuleChecks(
-    rules.branches,
-    rulesStatus === 'loaded' ? ruleCatalog : null,
-    rules.openBranch
-  );
+  const loadedCatalog = rulesStatus === 'loaded' ? ruleCatalog : null;
+  const ruleChecks = useRuleChecks(rules.branches, loadedCatalog, rules.openBranch);
+  // The test step's personas live as long as the page: leaving the step and coming back keeps
+  // them (spec 004, FR-019). Nothing runs while the step isn't shown
+  const personas = usePersonas({
+    active: state.step === 'test',
+    branches: rules.branches,
+    context: loadedCatalog,
+    openBranchKey: rules.openBranch,
+  });
   // A rule being edited counts as a rule (FR-006)
-  const withoutRules = !rules.editing && !hasAnyRule(rules.branches);
+  const rulesNextAction = rulesNextActionOf(rules);
   const pageTitle = pageTitleOf(
     state.step,
     editing ? 'edit' : firstConnection ? 'first' : 'create'
@@ -176,30 +186,60 @@ export default function FormConnectionEditorPage({
   }
 
   /**
-   * Publish or Save on the Rules step, with the rules as they are now: the pre-checks of FR-006
-   * refuse with the server's message and move the focus to the rule it names (F11). Without the
-   * catalog, which is loading or failed to load, they would refuse every rule, so the server's
-   * checks alone apply then.
+   * Publishing's pre-checks (spec 002, FR-006), with the rules as they are now, which "Test
+   * rules" passes too (spec 004, FR-002; W3): a problem refuses with the server's message, shown
+   * in the rules step where publishing shows it, opens the branch it names and moves the focus to
+   * the rule (F11). Without the catalog, which is loading or failed to load, they would refuse
+   * every rule, so the server's checks alone apply then. Whether they pass.
+   */
+  function passesPreChecks(current: RulesState): boolean {
+    const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, ruleCatalog) : null;
+    if (!problem) {
+      return true;
+    }
+    const { branchKey, focusIds } = problemPlaceOf(current.branches, problem);
+    flushSync(() => {
+      // Only from the test step, when the catalog arrived after "Test rules" let the rules pass
+      // unchecked: the message and the rule are in the rules step
+      if (state.step !== 'rules') {
+        dispatch({ type: 'goToStep', step: 'rules' });
+      }
+      dispatchRules({ type: 'showProblem', problem });
+      if (branchKey !== null) {
+        dispatchRules({ type: 'selectBranch', branchKey });
+      }
+    });
+    focusIds
+      .map((id) => document.getElementById(id))
+      .find((element) => element !== null)
+      ?.focus();
+    return false;
+  }
+
+  /**
+   * "Publish" or "Save" with rules, on the test step, or "Publish without rules" on the rules
+   * step: the pre-checks, then the publish and save dialog, unchanged (FR-003; O6). The personas'
+   * results refuse, delay and ask nothing.
    */
   function publishRules(current: RulesState) {
-    const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, ruleCatalog) : null;
-    if (problem) {
-      const branch =
-        problem.branchIndex === null ? undefined : current.branches[problem.branchIndex];
-      flushSync(() => {
-        dispatchRules({ type: 'showProblem', problem });
-        if (branch) {
-          dispatchRules({ type: 'selectBranch', branchKey: branch.key });
-        }
-      });
-      const target =
-        branch && problem.itemId
-          ? document.getElementById(ELEMENT_IDS.rule(branch.key, problem.itemId))
-          : null;
-      (target ?? document.getElementById(ELEMENT_IDS.rulesProblem))?.focus();
+    if (passesPreChecks(current)) {
+      dispatch({ type: 'openDialog' });
+    }
+  }
+
+  /**
+   * "Test rules", after the editor's question (W8): with no rule left, since the answer
+   * discarded the first one, the team member stays in the rules step, whose button now reads
+   * "Publish without rules" (EC "The first rule discarded"). Otherwise the pre-checks, then the
+   * test step (FR-002).
+   */
+  function testRules(current: RulesState) {
+    if (rulesNextActionOf(current) !== 'test') {
       return;
     }
-    dispatch({ type: 'openDialog' });
+    if (passesPreChecks(current)) {
+      dispatch({ type: 'goToStep', step: 'test' });
+    }
   }
 
   function handlePublish() {
@@ -229,6 +269,9 @@ export default function FormConnectionEditorPage({
         return;
       case 'publish':
         publishRules(current);
+        return;
+      case 'test':
+        testRules(current);
         return;
     }
   }
@@ -340,17 +383,20 @@ export default function FormConnectionEditorPage({
 
   /**
    * "Check rules again" closes the dialog and opens the first branch, in tab order, that the
-   * dialog lists findings for, or stays on the open branch when none has (FR-017; research R11);
-   * "Add rules", from the documents, opens the rules. "Reload" after `409 rules_changed` is the
-   * dialog's `onReload`, not this.
+   * dialog lists findings for, or stays on the open branch when none has (FR-017; research R11).
+   * Opened from the test step, it does so in the rules step, whose open branch is then the one it
+   * had (spec 004, FR-003; S5; F4). "Add rules", from the documents, opens the rules. "Reload"
+   * after `409 rules_changed` is the dialog's `onReload`, not this.
    */
   function handleDialogCancel() {
     if (state.publishing) {
       return;
     }
     dispatch({ type: 'closeDialog' });
-    if (state.step === 'documents') {
+    if (state.step === 'documents' || state.step === 'test') {
       dispatch({ type: 'goToStep', step: 'rules' });
+    }
+    if (state.step === 'documents') {
       return;
     }
     const branchKey = firstBranchWithFindings(rules.branches, ruleChecks.byBranch);
@@ -406,10 +452,24 @@ export default function FormConnectionEditorPage({
     }
   }
 
+  /**
+   * A finished step of the progress, which leads back to it. Only steps before the current one
+   * are offered, and the test step is the last, so it is never one; should it be, it opens
+   * through the gate of "Test rules" all the same (FR-002).
+   */
+  function selectStep(index: number) {
+    const step = STEP_ORDER[index];
+    if (step === 'test') {
+      leaveEditor({ type: 'test' });
+      return;
+    }
+    dispatch({ type: 'goToStep', step });
+  }
+
   function goBack() {
     dispatch({
       type: 'goToStep',
-      step: state.step === 'rules' ? 'documents' : 'connection',
+      step: state.step === 'test' ? 'rules' : state.step === 'rules' ? 'documents' : 'connection',
     });
   }
 
@@ -463,6 +523,22 @@ export default function FormConnectionEditorPage({
             onCancelEditor={() => leaveEditor({ type: 'cancel' })}
           />
         );
+      case 'test':
+        return (
+          <TestStep
+            personas={personas}
+            branches={rules.branches}
+            checks={ruleChecks.byBranch}
+            context={loadedCatalog}
+            contextFailed={rulesStatus === 'failed'}
+            editing={editing}
+            onRetry={() => {
+              if (catalogStatus === 'failed') retry();
+              if (optionSetsStatus === 'failed') retryOptionSets();
+              if (personas.state.failed) personas.retry();
+            }}
+          />
+        );
     }
   }
 
@@ -474,7 +550,7 @@ export default function FormConnectionEditorPage({
           <WizardProgress
             steps={CONNECTION_STEPS}
             current={STEP_ORDER.indexOf(state.step)}
-            onSelect={(index) => dispatch({ type: 'goToStep', step: STEP_ORDER[index] })}
+            onSelect={selectStep}
           />
           <PageTitle ref={titleRef} title={pageTitle.title} hint={pageTitle.hint} />
         </>
@@ -484,9 +560,10 @@ export default function FormConnectionEditorPage({
           step={state.step}
           editing={editing}
           publishing={state.publishing}
-          withoutRules={withoutRules}
+          rulesNextAction={rulesNextAction}
           onBack={goBack}
           onAddRules={handleAddRules}
+          onTestRules={() => leaveEditor({ type: 'test' })}
           onPublish={handlePublish}
         />
       }

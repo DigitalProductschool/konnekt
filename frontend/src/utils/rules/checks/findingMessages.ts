@@ -265,8 +265,12 @@ export function noteOf(finding: ItemFinding, names: ItemNames): string {
 
 // Branch notices and the incomplete check (FR-004, FR-006, FR-008, FR-010; design-notes.md §3.2)
 
-/** A branch notice as its own item, or alone, and as an announcement. */
-function noticeText(notice: BranchNotice, branchName: string): string {
+/**
+ * A branch notice as its own item, or alone, and as an announcement; also the test step's notice
+ * and tab tooltip (spec 004, FR-018, research R5, R16): "No applicant can meet the rules of
+ * Standard."
+ */
+export function noticeText(notice: BranchNotice, branchName: string): string {
   switch (notice.kind) {
     case 'none_can_meet':
       return `${notice.today ? 'Right now, no' : 'No'} applicant can meet the rules of ${branchName}.`;
