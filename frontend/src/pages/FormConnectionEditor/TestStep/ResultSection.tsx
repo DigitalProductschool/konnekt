@@ -12,11 +12,14 @@ import type { ResultSectionProps } from './types';
  * - The heading (U01 7057:58811, U07 7058:61454), title/small in a 48px row: "Result: meets the
  *   rules" or the count of reported items (W10).
  * - The rows (`ResultTable`), or, for a variant without rules, Figma's note (U06 7057:61658).
+ *
+ * The card is a container, so that the table can ask how wide it is (`ResultTable`; quickstart V9:
+ * at 320px nothing is cut off).
  */
 export default function ResultSection({ view, branch, check }: ResultSectionProps) {
   const notice = check?.notice?.kind === 'none_can_meet' ? check.notice : null;
   return (
-    <div className="rounded-kern-large bg-kern-layout-background-default flex min-w-0 flex-1 flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16">
+    <div className="rounded-kern-large bg-kern-layout-background-default @container flex min-w-0 flex-1 flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16">
       {notice && (
         <div className="rounded-kern-default bg-kern-feedback-warning-background border-kern-feedback-warning flex items-start gap-8 border py-8 pr-8 pl-16">
           <span

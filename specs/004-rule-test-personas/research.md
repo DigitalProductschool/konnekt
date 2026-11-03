@@ -254,7 +254,9 @@ vector**: a meet or fail per branch.
   realizable, never as a guess. The search is exhaustive up to `MAX_VECTORS` (256) realizable
   vectors. Beyond that, which happens only near spec 002's limits, each target of goals 1 to 3 is
   asked directly (`B`, `¬B`, `B_a ∧ ¬B_b`), which finds a vector for each target that can be
-  reached.
+  reached. A prefix answered `'unknown'` is still searched further, but only within
+  `MAX_QUESTIONS_BELOW_UNKNOWN = 14` questions (`personas/goals.ts`, counted across the search);
+  beyond them such prefixes are dropped, so that an unsolvable corner can't use up the deadline.
 - **Targets**:
   - goal 1: meet each class that some applicant can meet;
   - goal 2: fail each class that some applicant can fail;
@@ -623,3 +625,4 @@ by the F items. Its visual check lists each difference that an O item explains, 
 - KERN 2.8's input for a `dd.mm.yyyy` date (a text input with `inputmode="numeric"`), and its error
   pattern under a field.
 - The time of the vector search with 20 branches that differ, against the 4.5-second stop.
+  **Resolved**: about 0.75 s. With 50 rules, the step took about 0.37 s to open in the V8 run.

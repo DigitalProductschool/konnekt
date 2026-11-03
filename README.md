@@ -237,7 +237,10 @@ judges each condition as the backend's evaluator (`app/services/evaluation.py`) 
 generated files keep the checks in step with it: `frontend/src/utils/rules/checks/caseFolding.ts`,
 Python's `str.casefold()` table, and `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json`,
 Python's results for the evaluator's text normalisation, date arithmetic and rule outcomes, which
-the frontend's Vitest tests replay. `scripts/export_check_fixtures` writes both from the current
+the frontend's Vitest tests replay. Its `rule_outcomes` vectors pin single rules, and its
+`branch_evaluations` vectors (spec 004) whole branches, with their groups and inherited items, for
+the browser's evaluator `frontend/src/utils/rules/evaluation.ts`, which the test step uses to
+evaluate its sample applicants. `scripts/export_check_fixtures` writes both from the current
 interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
 
 Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can

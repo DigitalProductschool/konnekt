@@ -17,8 +17,11 @@ The shapes are in [data-model.md](data-model.md), and the functions in
   - the frontend: `cd frontend && npm install && npm run dev`;
   - a sign-in account: `uv run python -m app.cli create-user <name>`.
 - No new setting, environment variable or dependency. EUDIPLO and the test credentials (README,
-  "Test credentials") are needed only for V1's comparison with a real evaluation (SC-001) and for
-  V10's check of what serviceBW receives.
+  "Test credentials") are needed for V1's comparison with a real evaluation (SC-001), for V10's
+  check of what serviceBW receives, and for every step that publishes (V1.6, V5.5, V7.2–3): the
+  backend needs `EUDIPLO_URL`, `EUDIPLO_CLIENT_ID`, `EUDIPLO_CLIENT_SECRET` and
+  `EUDIPLO_TRUST_LIST_ID` (README, "Environment variables"); without them publishing answers
+  `503` "EUDIPLO is not configured".
 - A browser with a screen reader for V9: NVDA with Firefox, or VoiceOver with Safari.
 
 ## 2. Automated checks
@@ -100,9 +103,11 @@ Set up spec 002's "Passenger transport licence" (its User Story 3):
 
 1. Open Rule 02 in the editor, change its text without saving, and press "Test rules".
    **Expect**: "Save changes to Rule 02?" first. "Discard" then opens the test step.
-2. In Ambulance, clear Rule 03's message, then press "Test rules". **Expect**: refused with
-   publishing's message, naming the rule and Ambulance, with the focus on the rule. Restore the
-   message.
+2. Go back to the Documents step and stop requesting the data that Rule 02 checks (City or
+   town), return to the rules step and press "Test rules". **Expect**: refused with publishing's
+   message ("Rule 02 in Standard checks data that’s no longer requested. …"), you stay on the
+   rules step with the focus on the rule. Request the data again. (The rule editor can't save an
+   empty message, so that refusal can't be reproduced here.)
 3. Start a new form connection, open the rules step, add the first rule, and with its editor open
    press "Test rules", then choose to discard it. **Expect**: you stay in the rules step, whose
    button now reads "Publish without rules".
@@ -124,7 +129,7 @@ headings, a "Done" button, and no dialog.
 4. Enter "STUTTGART" as the city or town. **Expect**: Rule 02 is met (letter case ignored). On the
    rules step, set Rule 02 to respect letter case and come back. **Expect**: it isn't met (US2-AS3).
 5. Remove B from "Licence classes", which is picked from a list by code. **Expect**: the "Licence
-   class B – Issue date" row disappears, and Rule 04 is reported as "Not met". Add B again.
+   class B – Issue date" row disappears, and Rule 04 is "Couldn't be checked" when B was the only class (an empty list counts as missing), and "Not met" when another class such as C1 is still held. Add B again.
    **Expect**: the date comes back with its earlier value (US2-AS4, W4).
 6. Clear the date of birth. **Expect**: Rule 01 "Couldn't be checked", in both variants (US2-AS5).
 7. Rename the persona, then empty the name. **Expect**: the new name shows on the chip and in
@@ -234,4 +239,5 @@ headings, a "Done" button, and no dialog.
 | The loading state never ends | `personas/results.ts` didn't load (dynamic import): check the console and the chunk |
 | A result that the evaluation disagrees with | Stale fixtures, or an evaluator change not regenerated: `uv run python -m scripts.export_check_fixtures --check` |
 | No "No applicant can meet …" notice on a variant that nobody meets | Spec 003's check for that variant is still pending, or incomplete; it appears when the check finishes |
+| Publishing (V1.6, V5.5, V7.2–3) answers 503 "EUDIPLO is not configured" | The backend's `EUDIPLO_*` settings are empty: set them in `backend/.env` and restart |
 | A persona that doesn't vary between generations | The seed isn't taken from `crypto.getRandomValues()` |

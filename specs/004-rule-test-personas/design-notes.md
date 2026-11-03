@@ -105,7 +105,7 @@ connection, the main branch called "Standard" until it is renamed. In addition:
 | The chips' group (tab list) name | "Sample applicants" | **Proposed**, from the intro's "sample applicant" |
 | Button | "Generate all again" | FR-012, W9 |
 
-### 3.2 Keyboard pattern of the chips (R16) — to be confirmed by T032 and T056
+### 3.2 Keyboard pattern of the chips (R16) — confirmed by T056 for the browser, screen readers pending
 
 **Decision: tabs inside the variant's tab panel.** The chips are a tab list, named "Sample
 applicants", inside the selected variant's tab panel. Each chip is a tab; exactly one is selected
@@ -128,6 +128,22 @@ is the tab panel the chips control, labelled by the selected chip.
   outcome is read on arrow keys. If the nesting confuses, the fallback is a radio group named
   "Sample applicants" with the same names, the same arrow keys and the same order. T056 records
   the result here.
+- **T056's result (2026-11-03, Chromium, keyboard and accessibility tree): the pattern is
+  confirmed, unchanged.** Checked:
+  - the tree reads `tablist "Variants"` > `tab` > `tabpanel "Standard"` > `tablist "Sample
+    applicants"` > `tab "Ioana Russo: doesn’t meet the rules of Standard"` > `tabpanel` labelled by
+    the selected chip; the chips' names carry their outcomes, and the name is the name alone while
+    a persona is generated;
+  - one tab stop on the selected chip and on the selected variant tab; Left, Right (wrapping),
+    Home and End move and select; Up and Down do nothing; the panel's `aria-labelledby` follows
+    the selected chip; selecting a chip announces nothing;
+  - `axe-core` 4.12 (WCAG 2.2 AA and best practice) reports no violation in read mode, edit mode
+    with an invalid field, and with the dialog open.
+  - **Still pending, as no screen reader runs in the test environment**: that NVDA with Firefox
+    and VoiceOver with Safari announce the nested tab lists clearly (a tab inside a panel of
+    another tab list), and read each chip's name on the arrow keys. The pattern stays unless one of
+    them confuses; then the fallback above applies, with these same names and keys. The list of
+    what a human checks is in T056's report.
 
 ## 4. Persona panel, read mode (S8.4; FR-004–FR-007, F9–F11, K1, K2)
 

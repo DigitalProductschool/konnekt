@@ -11,6 +11,10 @@ import type { ResultTableProps } from './types';
  *   "Message Mia reads".
  * - A variant the persona meets: the one column "Rules Mia meets", no message column (F3).
  *
+ * Figma's 340px column needs a card of 480px or more (a container query on `ResultSection`'s
+ * card); in a narrower card (a phone, or 200 % zoom) the two columns share the width, so that the
+ * message column isn't cut off (quickstart V9).
+ *
  * A table, so that each message is read with its column's name.
  */
 export default function ResultTable({ view }: ResultTableProps) {
@@ -21,7 +25,10 @@ export default function ResultTable({ view }: ResultTableProps) {
     <table className="w-full table-fixed border-collapse">
       <thead>
         <tr className="border-b border-(--kern-color-decorative-border-default)">
-          <th scope="col" className={`${head} pl-40 ${messageColumn ? 'w-340' : 'pr-8'}`}>
+          <th
+            scope="col"
+            className={`${head} pl-40 ${messageColumn ? 'w-1/2 @min-[480px]:w-340' : 'pr-8'}`}
+          >
             {view.listHeading ?? TEST_STEP_COPY.rule}
           </th>
           {messageColumn && (

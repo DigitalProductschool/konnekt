@@ -97,7 +97,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - No `any` without a justification, no `require()`. Never add a `vitest.config.ts`: it would
   replace the `test` block of `vite.config.ts`.
 
-## Rules and rule checks (specs 002, 003)
+## Rules, rule checks and test personas (specs 002, 003, 004)
 
 - The pure rules logic lives in `src/utils/rules/`, every module with its `*.test.ts`.
 - **Propagation** of the main branch's changes lives only in `utils/rules/branches.ts`
@@ -113,6 +113,12 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the Rules
   step passes the `finding` / `findings` props. Only `checks/worker.ts` and the hook touch
   browser APIs.
+- **Test personas** (spec 004; ARCHITECTURE, "The test step and the test personas"): the evaluator
+  is `utils/rules/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
+  (`rule_outcomes`, `branch_evaluations`). Personas live in `utils/rules/personas/`, pure, every
+  module with its `*.test.ts`, and are never stored, sent or logged: no `console.*` in
+  `personas/`, its worker, `usePersonas` or `useTodayInGermany`. The evaluator and the checked
+  trees reach the page only through `usePersonas`'s dynamic `import()`.
 
 ## Code style
 

@@ -197,7 +197,8 @@ frontend/
   `contracts/ui-screens.md` lists the decided deviations (F1–F32, W1–W9) that the UI builds
   instead
 - The wizard has four steps, Connection, Documents, Rules and Publish (`CONNECTION_STEPS`
-  in `src/constants.ts`), in create and in edit. The editor's reducer keeps the connection
+  in `src/constants.ts`), in create and in edit; once a rule exists, the Test step (spec 004)
+  stands between Rules and Publish. The editor's reducer keeps the connection
   and its documents, the Rules step's own reducer the branches, the open tab, select mode
   and its dialogs, and the rule editor a third one; nothing reaches the API before Publish
   or Save. The details open the edit wizard at a step through the router state
@@ -491,7 +492,68 @@ The checks have no endpoint, table, setting or dependency of their own.
   commit the result. Its `--check` writes nothing and fails on stale files, and
   `backend/tests/unit/test_check_fixtures.py` runs it. A brute-force oracle
   (`checks/testOracle.ts`, test-only) checks the solver's answers against an evaluator
-  ported from `evaluation.py` (`checks/testEvaluator.ts`).
+  ported from `evaluation.py` (`utils/rules/evaluation.ts`, since spec 004 production code
+  that the test step shares; see "The test step and the test personas").
+
+### The test step and the test personas (spec 004)
+
+Before publishing, the team member sees how three sample applicants (personas) fare against
+each variant's rules. The decisions are research R1 to R16 in
+`specs/004-rule-test-personas/`, the shapes in its `contracts/personas.md`. The step has no
+endpoint, table, setting or dependency of its own.
+
+- **The step in the wizard**: `pages/FormConnectionEditor/TestStep/`, with no route of its
+  own, in the create and the edit wizard. While any variant has a rule, or a rule editor is
+  open, the Rules step's button to go on is "Test rules" (`rulesNextActionOf()`), and
+  Publish and Save move to the test step; without rules, the Rules and Documents steps
+  keep "Publish without rules" ("Save without rules"), which skips the test step. "Test
+  rules" first asks about an open rule editor's changes, then goes through the same checks
+  as publishing (`passesPreChecks()`): an incomplete condition, a missing message, a rule on
+  data that isn't requested, or a variant without a (unique) name is refused where
+  publishing would refuse it, in the Rules step. The publish and save dialog, opened from
+  the test step, is the unchanged one; its "Check rules again" goes back to the Rules
+  step, to the first variant with findings or the one that was open.
+- **Generation in a module worker**: `usePersonas()`
+  (`hooks/usePersonas.ts`) starts `personas/worker.ts`
+  (`new Worker(new URL(...), { type: 'module' })`) with a `generate` message: the checked
+  trees, the slots to generate and a deadline. The worker runs `generatePersonas()`
+  (`personas/generation.ts`: the branches' outcome vectors found with spec 003's solver,
+  then values per rule target, research R6 to R8) and posts one `generated` message. The
+  run stops searching at `GENERATION_STOP_MS` (4.5 s from the start) and delivers the best
+  personas so far; a watchdog fails the run at `GENERATION_WATCHDOG_MS` (5.5 s), and a worker
+  that can't start or throws fails it too, with "Try again". A request during a running run is
+  merged into it, and an answer for an older run id is ignored. The worker keeps no state, catches nothing and logs
+  nothing. Prefixes of the vector search that the solver answers `'unknown'` are dropped after
+  `MAX_QUESTIONS_BELOW_UNKNOWN` (14) questions, so that an unsolvable corner can't use up
+  the deadline.
+- **Evaluation on the main thread**: the personas' results are computed in the page, on
+  every change, by `utils/rules/evaluation.ts`, the port of `evaluation.py` (spec 003's
+  test evaluator promoted to production code, so that the step shows exactly what the real
+  evaluation answers). It and the checked trees are loaded by `usePersonas`'s one dynamic
+  `import()` of `personas/results.ts`, so the main bundle doesn't hold them (the step shows
+  its loading state meanwhile). The vectors of `export_check_fixtures`, `rule_outcomes` and
+  `branch_evaluations` (whole-branch outcomes), pin it to Python.
+- **The day**: the test day is today in Germany, from `useTodayInGermany()`
+  (`hooks/useTodayInGermany.ts`, read again every minute and when the page becomes visible),
+  shown in the test-day line; ages and dates are judged on it.
+- **Fill runs and substitution**: the step opening again (after the team member went back to
+  the rules) keeps the personas. `opened` marks each persona that lacks a key for a
+  field the rules now check as `filled`, and the others `kept`; a fill run generates only
+  those slots. An empty value counts as present, and so does a hidden one (a value of a
+  field no rule checks any more), so a field that comes back isn't generated again, and a
+  field the team member emptied stays empty. For a `filled` slot the worker substitutes the
+  persona's fixed values into the checked trees (`personas/substitute.ts`, rule by rule,
+  through the evaluator) and plans only what is still free. `runSucceeded` writes the
+  absent keys only: a value the persona has is never replaced. A `free` slot ("Generate
+  again", "Generate all again") replaces all values, hidden ones too.
+- **Lifetime**: the personas are the state of `usePersonas`' reducer
+  (`personas/personaState.ts`), in the editor page. They live as long as the page: they
+  survive going between the steps, and a reload, leaving the flow or a new create or edit
+  flow starts with new ones. Edits (names, values, "Done") are part of that state.
+- **Nothing stored or sent**: personas, their values and results are never saved, never in a
+  request, and never logged (no `console.*` in `personas/`, its worker, `usePersonas` or
+  `useTodayInGermany`). Publishing and saving don't change; serviceBW and the server don't
+  know about the personas.
 
 ### Background worker
 
