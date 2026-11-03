@@ -1,10 +1,13 @@
-// A test evaluator (specs/003-rule-consistency-checks, research R13): a plain port of the
-// comparisons and the AND/OR evaluation of backend/app/services/evaluation.py. It is the ground
-// truth of the brute-force oracle (testOracle.ts), which validates the solver and the findings, so
-// only tests import it. It shares no code with the theories, literals.ts, checkedTree.ts or the
-// solver, so that a mistake there can't hide in the oracle as well. It uses calendar.ts and text.ts,
-// which Python's vectors in fixtures/evaluator-vectors.json pin, and its test replays every
-// rule-outcome vector. Each function names the Python function it ports.
+// The evaluator in the browser (specs/004-rule-test-personas, research R2): production code, the
+// browser port of backend/app/services/evaluation.py, its comparisons and its AND/OR evaluation.
+// The test step evaluates personas with it, so that their results are exactly what the evaluation
+// would return (FR-014). Spec 003 wrote it as checks/testEvaluator.ts (003-R13), the ground truth of
+// the brute-force oracle (checks/testOracle.ts), which still validates the solver and the findings
+// with it. It shares no code with the theories, checks/literals.ts, checks/checkedTree.ts or
+// checks/solver.ts, so that a mistake there can't hide here as well. It uses checks/calendar.ts and
+// checks/text.ts, which Python's vectors in checks/fixtures/evaluator-vectors.json pin, and its test
+// replays every rule-outcome and whole-branch vector. Each exported function names the Python
+// function it ports.
 //
 // What it reads:
 // - a branch of the rules state as the server stores it (`EvaluatedBranch`; a `BranchInput` fits).
@@ -26,8 +29,8 @@
 //
 // One part of `_date()` isn't ported: a date-time with a time zone (`_DATE_TIME`), read by
 // `datetime.fromisoformat()` in Germany's time zone. Such a value throws instead of risking an
-// answer Python wouldn't give; the oracle delivers dates as `YYYY-MM-DD`
-import type { FieldKind, PartKind } from '../../../types/document-types';
+// answer Python wouldn't give; the oracle and the personas deliver dates as `YYYY-MM-DD`
+import type { FieldKind, PartKind } from '../../types/document-types';
 import type {
   BranchInput,
   Combinator,
@@ -35,11 +38,11 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '../../../types/form-connections';
-import type { OptionSet } from '../../../types/option-sets';
-import type { RuleContext } from '../types';
-import { isDayNumber, monthsAfter, parseDayNumber, yearsAfter } from './calendar';
-import { caseFold, normalisedText } from './text';
+} from '../../types/form-connections';
+import type { OptionSet } from '../../types/option-sets';
+import { isDayNumber, monthsAfter, parseDayNumber, yearsAfter } from './checks/calendar';
+import { caseFold, normalisedText } from './checks/text';
+import type { RuleContext } from './types';
 
 /** `Outcome` of backend/app/schemas.py: a rule's outcome; a group's is met or not met */
 export type Outcome = 'met' | 'not_met' | 'not_checked';
@@ -55,20 +58,34 @@ export type Applicant = Readonly<Record<string, Readonly<Record<string, unknown>
 /** What `evaluateBranch()` reads of a branch, as `SnapshotBranch`; a `BranchInput` fits */
 export type EvaluatedBranch = Pick<BranchInput, 'origin' | 'operator' | 'items'>;
 
-/** `_Evaluated`: an item that counts, its outcome, and its members' if it is a group */
+/**
+ * `_Evaluated`: an item that counts, its outcome, and its members' if it is a group. With `group`,
+ * it carries what `_results()` reports of it; walking the items depth first, each group before its
+ * members, gives `_results()`'s order
+ */
 export interface EvaluatedItem {
   item: RuleTreeItem;
+  /** `EvaluationResult.group`: the id of the group that contains the item; null at the top level */
+  group: string | null;
   outcome: Outcome;
   /** A group's members that count, in order; empty for a rule */
   members: EvaluatedItem[];
 }
 
-/** What `evaluate_branch()` decides: whether the branch is met, and each item's outcome */
+/** `EvaluationMessage`: a reported item's id and its message */
+export interface EvaluationMessage {
+  id: string;
+  message: string;
+}
+
+/** What `evaluate_branch()` decides: whether the branch is met, each item's outcome, the messages */
 export interface BranchEvaluation {
   /** `Evaluation.met`: true for a branch without items that count */
   met: boolean;
-  /** The top level's items that count, in order */
+  /** The top level's items that count, in order, each group with its members (`_results()`) */
   items: EvaluatedItem[];
+  /** `Evaluation.messages`: empty when met; otherwise the reported items in `_messages()`'s order */
+  messages: EvaluationMessage[];
 }
 
 /** `_kind_of()`'s answer: the kind of value a rule checks, and the value set of an enum */
@@ -240,13 +257,14 @@ function effectiveItems(items: readonly RuleTreeItem[], based: boolean): RuleTre
 }
 
 /**
- * `evaluate_branch()`, without the names and messages: whether the applicant meets the branch's
- * rules on the day of sharing `sharedOn` (a day number), and each item's outcome. Every level
- * combines its items with its own AND or OR, the top level with the branch's, and a group counts as
- * one item of its level. `not_checked` counts as not met, and a branch without items that count is
- * met. In a based branch, only the items that count are evaluated (`effective_items()`). Throws
- * where Python raises ValueError (see the module's comment), and a `RangeError` unless `sharedOn` is
- * a day number
+ * `evaluate_branch()`, without the branch's id and name: whether the applicant meets the branch's
+ * rules on the day of sharing `sharedOn` (a day number), each item's outcome, and the messages.
+ * Every level combines its items with its own AND or OR, the top level with the branch's, and a
+ * group counts as one item of its level. `not_checked` counts as not met, and a branch without
+ * items that count is met. In a based branch, only the items that count are evaluated
+ * (`effective_items()`). `items` follow `_results()`'s order, and `messages` are `_messages()`'s:
+ * empty when the branch is met. Throws where Python raises ValueError (see the module's comment),
+ * and a `RangeError` unless `sharedOn` is a day number
  */
 export function evaluateBranch(
   branch: EvaluatedBranch,
@@ -256,33 +274,65 @@ export function evaluateBranch(
 ): BranchEvaluation {
   requireDay(sharedOn);
   const based = branch.origin === 'based';
-  const items = evaluatedLevel(branch.items, { applicant, sharedOn, context }, based);
-  return { met: items.length === 0 || levelMet(branch.operator, items), items };
+  const items = evaluatedLevel(branch.items, { applicant, sharedOn, context }, based, null);
+  const met = items.length === 0 || levelMet(branch.operator, items);
+  return { met, items, messages: met ? [] : messagesOf(items) };
 }
 
-/** `_evaluated_level()`: the outcomes of the items of a level that count, in order */
+/**
+ * `_evaluated_level()`: the outcomes of the items of a level that count, in order. `group` is the
+ * id of the group whose members they are, null at the top level
+ */
 function evaluatedLevel(
   items: readonly RuleTreeItem[],
   inputs: Inputs,
-  based: boolean
+  based: boolean,
+  group: string | null
 ): EvaluatedItem[] {
   if (!based && items.some((item) => !isNone(item.mark))) {
     throw new Error('A branch that is not based on the main branch has a mark');
   }
-  return effectiveItems(items, based).map((item) => evaluated(item, inputs, based));
+  return effectiveItems(items, based).map((item) => evaluated(item, inputs, based, group));
 }
 
 /** `_evaluated()`: a rule's outcome, or a group's with its members' */
-function evaluated(item: RuleTreeItem, inputs: Inputs, based: boolean): EvaluatedItem {
+function evaluated(
+  item: RuleTreeItem,
+  inputs: Inputs,
+  based: boolean,
+  group: string | null
+): EvaluatedItem {
   if (item.type === 'rule') {
     const outcome = ruleOutcome(item, inputs.applicant, inputs.sharedOn, inputs.context);
-    return { item, outcome, members: [] };
+    return { item, group, outcome, members: [] };
   }
-  const members = evaluatedLevel(item.items, inputs, based);
+  const members = evaluatedLevel(item.items, inputs, based, item.id);
   if (members.length < 2) {
     throw new Error('A saved group has fewer than two members that count');
   }
-  return { item, outcome: levelMet(item.operator, members) ? 'met' : 'not_met', members };
+  const outcome = levelMet(item.operator, members) ? 'met' : 'not_met';
+  return { item, group, outcome, members };
+}
+
+/**
+ * `_messages()`: the messages of a level's items that aren't met, walking the level in order. A
+ * rule reports its message; a group reports its own message instead of its members', or, if it has
+ * none, its members' found the same way
+ */
+function messagesOf(level: readonly EvaluatedItem[]): EvaluationMessage[] {
+  const messages: EvaluationMessage[] = [];
+  for (const { item, outcome, members } of level) {
+    if (outcome === 'met') {
+      continue;
+    }
+    // Every rule has a message; a group may have none
+    if (isNone(item.message)) {
+      messages.push(...messagesOf(members));
+    } else {
+      messages.push({ id: item.id, message: item.message });
+    }
+  }
+  return messages;
 }
 
 /** `_level_met()`: AND, every item is met; OR, at least one is */
@@ -666,7 +716,7 @@ function dateOf(value: unknown): number | null {
     return parseDayNumber(text);
   }
   if (DATE_TIME.test(text)) {
-    throw new Error('The test evaluator reads no date-times: deliver dates as YYYY-MM-DD');
+    throw new Error('The evaluator reads no date-times: deliver dates as YYYY-MM-DD');
   }
   return null;
 }

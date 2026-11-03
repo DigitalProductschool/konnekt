@@ -164,15 +164,6 @@ export interface MenuChoiceItemProps {
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }
 
-export interface MenuSearchFieldProps {
-  id: string;
-  placeholder: string;
-  value: string;
-  controls: string;
-  onChange: (text: string) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-}
-
 export interface ChoicePickerProps {
   /** Distinguishes the picker's element ids */
   idBase: string;
@@ -194,37 +185,6 @@ export interface ChoicePickerProps {
   state: RuleEditorState;
   dispatch: Dispatch<RuleEditorAction>;
   onChoose: (key: string) => void;
-}
-
-/** An option of a value set, as the values menu lists it */
-export interface ValueChoice {
-  value: string | number;
-  /** The label, or a licence class's code */
-  label: string;
-  /** A licence class's description, such as "Cars up to 3.5 t" */
-  description: string | null;
-}
-
-export interface ValuesPickerProps {
-  idBase: string;
-  choices: ValueChoice[];
-  /** Licence classes: rows with code and description, "Search classes" (F32) */
-  classes: boolean;
-  values: (string | number)[];
-  invalid: boolean;
-  describedBy?: string;
-  state: RuleEditorState;
-  dispatch: Dispatch<RuleEditorAction>;
-  onChange: (values: (string | number)[]) => void;
-}
-
-export interface ValueOptionItemProps {
-  id: string;
-  choice: ValueChoice;
-  classes: boolean;
-  checked: boolean;
-  onToggle: () => void;
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export interface ValueInputProps {

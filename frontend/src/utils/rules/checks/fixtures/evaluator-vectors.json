@@ -1,4 +1,2964 @@
 {
+  "branch_evaluations": [
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 18
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "match_case": false,
+              "operator": "equal_to",
+              "value": "stuttgart"
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "pid",
+              "field": "address_locality",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "AND level, every rule met",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 18
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "amount": 6,
+              "operator": "at_least_from_now",
+              "unit": "months"
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "pid",
+              "field": "date_of_expiry",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "AND level, rules met, not met and couldn't be checked",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "DE"
+              ]
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "OR level, one rule met",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "AT"
+              ]
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "amount": 6,
+              "operator": "at_least_from_now",
+              "unit": "months"
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "pid",
+              "field": "date_of_expiry",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-1",
+          "message": "Rule 01 is not met."
+        },
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "OR level, no rule met, reports every rule",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "AT"
+              ]
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "at_least_years_ago",
+                  "years": 18
+                },
+                "id": "rule-2",
+                "mark": null,
+                "message": "Rule 02 is not met.",
+                "name": "Rule 02",
+                "target": {
+                  "document_type": "pid",
+                  "field": "birthdate",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "B"
+                  ]
+                },
+                "id": "rule-3",
+                "mark": null,
+                "message": "Rule 03 is not met.",
+                "name": "Rule 03",
+                "target": {
+                  "document_type": "mdl",
+                  "field": "driving_privileges",
+                  "licence_class": null,
+                  "part": "classes"
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": null,
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          }
+        ],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "OR level met by a group",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-2",
+          "outcome": "met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-3",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 18
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "greater_than",
+                  "value": 190.0
+                },
+                "id": "rule-2",
+                "mark": null,
+                "message": "Rule 02 is not met.",
+                "name": "Rule 02",
+                "target": {
+                  "document_type": "mdl",
+                  "field": "height",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-3",
+                "mark": null,
+                "message": "Rule 03 is not met.",
+                "name": "Rule 03",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": "Group 01 is not met.",
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "group-1",
+          "message": "Group 01 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A group with a message of its own reports it instead of its members",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-3",
+          "outcome": "not_met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "match_case": false,
+              "operator": "equal_to",
+              "value": "stuttgart"
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "address_locality",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "greater_than",
+                  "value": 190.0
+                },
+                "id": "rule-2",
+                "mark": null,
+                "message": "Rule 02 is not met.",
+                "name": "Rule 02",
+                "target": {
+                  "document_type": "mdl",
+                  "field": "height",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "amount": 6,
+                  "operator": "at_least_from_now",
+                  "unit": "months"
+                },
+                "id": "rule-3",
+                "mark": null,
+                "message": "Rule 03 is not met.",
+                "name": "Rule 03",
+                "target": {
+                  "document_type": "pid",
+                  "field": "date_of_expiry",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": null,
+            "name": "Group 01",
+            "operator": "or",
+            "type": "group"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "OR group without a message reports its members",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-3",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-1",
+                "mark": null,
+                "message": "Rule 01 is not met.",
+                "name": "Rule 01",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "DE"
+                  ]
+                },
+                "id": "rule-2",
+                "mark": null,
+                "message": "Rule 02 is not met.",
+                "name": "Rule 02",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": null,
+            "name": "Group 01",
+            "operator": "or",
+            "type": "group"
+          },
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "An OR group met by one member reports nothing",
+      "results": [
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-2",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "at_least_years_ago",
+                  "years": 18
+                },
+                "id": "rule-1",
+                "mark": null,
+                "message": "Rule 01 is not met.",
+                "name": "Rule 01",
+                "target": {
+                  "document_type": "pid",
+                  "field": "birthdate",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "id": "group-2",
+                "items": [
+                  {
+                    "condition": {
+                      "operator": "greater_than",
+                      "value": 190.0
+                    },
+                    "id": "rule-2",
+                    "mark": null,
+                    "message": "Rule 02 is not met.",
+                    "name": "Rule 02",
+                    "target": {
+                      "document_type": "mdl",
+                      "field": "height",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  },
+                  {
+                    "condition": {
+                      "operator": "includes_one_of",
+                      "values": [
+                        "AT"
+                      ]
+                    },
+                    "id": "rule-3",
+                    "mark": null,
+                    "message": "Rule 03 is not met.",
+                    "name": "Rule 03",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "nationalities",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  }
+                ],
+                "mark": null,
+                "message": null,
+                "name": "Group 02",
+                "operator": "or",
+                "type": "group"
+              },
+              {
+                "id": "group-3",
+                "items": [
+                  {
+                    "condition": {
+                      "amount": 6,
+                      "operator": "at_least_from_now",
+                      "unit": "months"
+                    },
+                    "id": "rule-4",
+                    "mark": null,
+                    "message": "Rule 04 is not met.",
+                    "name": "Rule 04",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "date_of_expiry",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  },
+                  {
+                    "condition": {
+                      "match_case": false,
+                      "operator": "equal_to",
+                      "value": "stuttgart"
+                    },
+                    "id": "rule-5",
+                    "mark": null,
+                    "message": "Rule 05 is not met.",
+                    "name": "Rule 05",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "address_locality",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  }
+                ],
+                "mark": null,
+                "message": "Group 03 is not met.",
+                "name": "Group 03",
+                "operator": "and",
+                "type": "group"
+              }
+            ],
+            "mark": null,
+            "message": null,
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          },
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "DE"
+              ]
+            },
+            "id": "rule-6",
+            "mark": null,
+            "message": "Rule 06 is not met.",
+            "name": "Rule 06",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        },
+        {
+          "id": "group-3",
+          "message": "Group 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "Sub-groups with and without a message of their own",
+      "results": [
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": "group-1",
+          "id": "group-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-3",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "group-3",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-3",
+          "id": "rule-4",
+          "outcome": "not_checked"
+        },
+        {
+          "group": "group-3",
+          "id": "rule-5",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-6",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "greater_than",
+                  "value": 190.0
+                },
+                "id": "rule-1",
+                "mark": null,
+                "message": "Rule 01 is not met.",
+                "name": "Rule 01",
+                "target": {
+                  "document_type": "mdl",
+                  "field": "height",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "id": "group-2",
+                "items": [
+                  {
+                    "condition": {
+                      "operator": "includes_one_of",
+                      "values": [
+                        "AT"
+                      ]
+                    },
+                    "id": "rule-2",
+                    "mark": null,
+                    "message": "Rule 02 is not met.",
+                    "name": "Rule 02",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "nationalities",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  },
+                  {
+                    "condition": {
+                      "operator": "at_least_years_ago",
+                      "years": 18
+                    },
+                    "id": "rule-3",
+                    "mark": null,
+                    "message": "Rule 03 is not met.",
+                    "name": "Rule 03",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "birthdate",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  }
+                ],
+                "mark": null,
+                "message": "Group 02 is not met.",
+                "name": "Group 02",
+                "operator": "and",
+                "type": "group"
+              }
+            ],
+            "mark": null,
+            "message": "Group 01 is not met.",
+            "name": "Group 01",
+            "operator": "or",
+            "type": "group"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "group-1",
+          "message": "Group 01 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A group's own message replaces its sub-group's",
+      "results": [
+        {
+          "group": null,
+          "id": "group-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-1",
+          "id": "group-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-3",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 18
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-2",
+            "mark": "removed",
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-3",
+                "mark": "removed",
+                "message": "Rule 03 is not met.",
+                "name": "Rule 03",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "match_case": false,
+                  "operator": "equal_to",
+                  "value": "stuttgart"
+                },
+                "id": "rule-4",
+                "mark": null,
+                "message": "Rule 04 is not met.",
+                "name": "Rule 04",
+                "target": {
+                  "document_type": "pid",
+                  "field": "address_locality",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": "Group 01 is not met.",
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          },
+          {
+            "id": "group-2",
+            "items": [
+              {
+                "condition": {
+                  "amount": 6,
+                  "operator": "at_least_from_now",
+                  "unit": "months"
+                },
+                "id": "rule-5",
+                "mark": "removed",
+                "message": "Rule 05 is not met.",
+                "name": "Rule 05",
+                "target": {
+                  "document_type": "pid",
+                  "field": "date_of_expiry",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-6",
+                "mark": "removed",
+                "message": "Rule 06 is not met.",
+                "name": "Rule 06",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": null,
+            "message": null,
+            "name": "Group 02",
+            "operator": "or",
+            "type": "group"
+          },
+          {
+            "id": "group-3",
+            "items": [
+              {
+                "condition": {
+                  "operator": "greater_than",
+                  "value": 190.0
+                },
+                "id": "rule-7",
+                "mark": null,
+                "message": "Rule 07 is not met.",
+                "name": "Rule 07",
+                "target": {
+                  "document_type": "mdl",
+                  "field": "height",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "amount": 6,
+                  "operator": "at_least_from_now",
+                  "unit": "months"
+                },
+                "id": "rule-8",
+                "mark": null,
+                "message": "Rule 08 is not met.",
+                "name": "Rule 08",
+                "target": {
+                  "document_type": "pid",
+                  "field": "date_of_expiry",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": "removed",
+            "message": "Group 03 is not met.",
+            "name": "Group 03",
+            "operator": "and",
+            "type": "group"
+          },
+          {
+            "id": "group-4",
+            "items": [
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-9",
+                "mark": "added",
+                "message": "Rule 09 is not met.",
+                "name": "Rule 09",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "amount": 6,
+                  "operator": "at_least_from_now",
+                  "unit": "months"
+                },
+                "id": "rule-10",
+                "mark": "changed",
+                "message": "Rule 10 is not met.",
+                "name": "Rule 10",
+                "target": {
+                  "document_type": "pid",
+                  "field": "date_of_expiry",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": "added",
+            "message": null,
+            "name": "Group 04",
+            "operator": "or",
+            "type": "group"
+          },
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "DE"
+              ]
+            },
+            "id": "rule-11",
+            "mark": "changed",
+            "message": "Rule 11 is not met.",
+            "name": "Rule 11",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "based"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-9",
+          "message": "Rule 09 is not met."
+        },
+        {
+          "id": "rule-10",
+          "message": "Rule 10 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A based branch with removed items and a dissolved inherited group",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-4",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "group-4",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-4",
+          "id": "rule-9",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-4",
+          "id": "rule-10",
+          "outcome": "not_checked"
+        },
+        {
+          "group": null,
+          "id": "rule-11",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "at_least_years_ago",
+                  "years": 18
+                },
+                "id": "rule-1",
+                "mark": "removed",
+                "message": "Rule 01 is not met.",
+                "name": "Rule 01",
+                "target": {
+                  "document_type": "pid",
+                  "field": "birthdate",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "id": "group-2",
+                "items": [
+                  {
+                    "condition": {
+                      "operator": "greater_than",
+                      "value": 190.0
+                    },
+                    "id": "rule-2",
+                    "mark": null,
+                    "message": "Rule 02 is not met.",
+                    "name": "Rule 02",
+                    "target": {
+                      "document_type": "mdl",
+                      "field": "height",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  },
+                  {
+                    "condition": {
+                      "operator": "includes_one_of",
+                      "values": [
+                        "AT"
+                      ]
+                    },
+                    "id": "rule-3",
+                    "mark": null,
+                    "message": "Rule 03 is not met.",
+                    "name": "Rule 03",
+                    "target": {
+                      "document_type": "pid",
+                      "field": "nationalities",
+                      "licence_class": null,
+                      "part": null
+                    },
+                    "type": "rule"
+                  }
+                ],
+                "mark": null,
+                "message": null,
+                "name": "Group 02",
+                "operator": "or",
+                "type": "group"
+              }
+            ],
+            "mark": null,
+            "message": "Group 01 is not met.",
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          },
+          {
+            "condition": {
+              "match_case": false,
+              "operator": "equal_to",
+              "value": "stuttgart"
+            },
+            "id": "rule-4",
+            "mark": null,
+            "message": "Rule 04 is not met.",
+            "name": "Rule 04",
+            "target": {
+              "document_type": "pid",
+              "field": "address_locality",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "based"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A dissolved inherited group's sub-group takes its place",
+      "results": [
+        {
+          "group": null,
+          "id": "group-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-2",
+          "outcome": "not_met"
+        },
+        {
+          "group": "group-2",
+          "id": "rule-3",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-4",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-1",
+            "mark": "removed",
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "id": "group-1",
+            "items": [
+              {
+                "condition": {
+                  "operator": "includes_one_of",
+                  "values": [
+                    "AT"
+                  ]
+                },
+                "id": "rule-2",
+                "mark": null,
+                "message": "Rule 02 is not met.",
+                "name": "Rule 02",
+                "target": {
+                  "document_type": "pid",
+                  "field": "nationalities",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              },
+              {
+                "condition": {
+                  "amount": 6,
+                  "operator": "at_least_from_now",
+                  "unit": "months"
+                },
+                "id": "rule-3",
+                "mark": null,
+                "message": "Rule 03 is not met.",
+                "name": "Rule 03",
+                "target": {
+                  "document_type": "pid",
+                  "field": "date_of_expiry",
+                  "licence_class": null,
+                  "part": null
+                },
+                "type": "rule"
+              }
+            ],
+            "mark": "removed",
+            "message": null,
+            "name": "Group 01",
+            "operator": "and",
+            "type": "group"
+          }
+        ],
+        "operator": "and",
+        "origin": "based"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "A based branch whose items are all removed is met",
+      "results": [],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "An AND branch without items is met",
+      "results": [],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "An OR branch without items is met",
+      "results": [],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [],
+        "operator": "and",
+        "origin": "empty"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "A branch that started empty, without items",
+      "results": [],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "AT"
+              ]
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "nationalities",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "amount": 6,
+              "operator": "at_least_from_now",
+              "unit": "months"
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "pid",
+              "field": "date_of_expiry",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "or",
+        "origin": "empty"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-1",
+          "message": "Rule 01 is not met."
+        },
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A branch that started empty, with rules of its own",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "match_case": false,
+              "operator": "contains",
+              "value": "Muster"
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "family_name",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "greater_than",
+              "value": 190.0
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "mdl",
+              "field": "height",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 18
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "   "
+            },
+            {
+              "key": "birthdate",
+              "value": "2005"
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-1",
+          "message": "Rule 01 is not met."
+        },
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "Rules that couldn't be checked: a missing document, an empty text, a year",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_checked"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "not_checked"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "B"
+              ]
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": null,
+              "part": "classes"
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 2
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": "B",
+              "part": "issue_date"
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 1
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": "C",
+              "part": "issue_date"
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "height",
+              "value": 180
+            },
+            {
+              "key": "driving_privileges",
+              "value": [
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2020-03-01",
+                  "vehicle_category_code": "B"
+                },
+                {
+                  "expiry_date": "2035-02-28",
+                  "issue_date": "2024-10-29",
+                  "vehicle_category_code": "BE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A rule on a class that the licence doesn't list",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "met"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "includes_one_of",
+              "values": [
+                "B"
+              ]
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": null,
+              "part": "classes"
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 2
+            },
+            "id": "rule-2",
+            "mark": null,
+            "message": "Rule 02 is not met.",
+            "name": "Rule 02",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": "B",
+              "part": "issue_date"
+            },
+            "type": "rule"
+          },
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 1
+            },
+            "id": "rule-3",
+            "mark": null,
+            "message": "Rule 03 is not met.",
+            "name": "Rule 03",
+            "target": {
+              "document_type": "mdl",
+              "field": "driving_privileges",
+              "licence_class": "C",
+              "part": "issue_date"
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "or",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "family_name",
+              "value": "Mustermann"
+            },
+            {
+              "key": "birthdate",
+              "value": "2005-10-23"
+            },
+            {
+              "key": "address_locality",
+              "value": "Stuttgart"
+            },
+            {
+              "key": "nationalities",
+              "value": [
+                "DE"
+              ]
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "fields": [
+            {
+              "key": "driving_privileges",
+              "value": []
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-1",
+          "message": "Rule 01 is not met."
+        },
+        {
+          "id": "rule-2",
+          "message": "Rule 02 is not met."
+        },
+        {
+          "id": "rule-3",
+          "message": "Rule 03 is not met."
+        }
+      ],
+      "met": false,
+      "name": "A class list that is empty",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_checked"
+        },
+        {
+          "group": null,
+          "id": "rule-2",
+          "outcome": "not_checked"
+        },
+        {
+          "group": null,
+          "id": "rule-3",
+          "outcome": "not_checked"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 21
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "birthdate",
+              "value": "2005-10-29"
+            }
+          ]
+        }
+      ],
+      "messages": [
+        {
+          "id": "rule-1",
+          "message": "Rule 01 is not met."
+        }
+      ],
+      "met": false,
+      "name": "The day before a 21st birthday",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "not_met"
+        }
+      ],
+      "shared_on": "2026-10-28"
+    },
+    {
+      "branch": {
+        "items": [
+          {
+            "condition": {
+              "operator": "at_least_years_ago",
+              "years": 21
+            },
+            "id": "rule-1",
+            "mark": null,
+            "message": "Rule 01 is not met.",
+            "name": "Rule 01",
+            "target": {
+              "document_type": "pid",
+              "field": "birthdate",
+              "licence_class": null,
+              "part": null
+            },
+            "type": "rule"
+          }
+        ],
+        "operator": "and",
+        "origin": "main"
+      },
+      "documents": [
+        {
+          "document_type": "pid",
+          "fields": [
+            {
+              "key": "birthdate",
+              "value": "2005-10-29"
+            }
+          ]
+        }
+      ],
+      "messages": [],
+      "met": true,
+      "name": "On a 21st birthday",
+      "results": [
+        {
+          "group": null,
+          "id": "rule-1",
+          "outcome": "met"
+        }
+      ],
+      "shared_on": "2026-10-29"
+    }
+  ],
   "day_numbers": [
     {
       "day": "0001-01-01",

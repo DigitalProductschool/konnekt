@@ -6,7 +6,7 @@ import type { BranchCheck, BranchNotice, ItemFinding } from '../../utils/rules/c
 import { US1_RULES } from '../../utils/rules/testData';
 import { INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
 import type { RulesBranch } from './RulesStep/types';
-import { initialRulesState } from './RulesStep/utils';
+import { initialRulesState, rulesReducer } from './RulesStep/utils';
 import type { PendingRemoval } from './types';
 import {
   createPayload,
@@ -15,11 +15,14 @@ import {
   firstBranchWithFindings,
   initialEditorState,
   isRulesChanged,
+  pageTitleOf,
+  problemPlaceOf,
   publishErrorNotice,
   removalAction,
   removalCopyOf,
   rulesChanged,
   rulesCheckingRemoval,
+  rulesNextActionOf,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -526,5 +529,87 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
         b3: { ...check('b3', duplicate), complete: false },
       })
     ).toEqual([{ key: 'b3', text: 'Taxi: 1 duplicate rule', tone: 'info' }]);
+  });
+});
+
+describe('the test step (spec 004, S2, S8)', () => {
+  const TEST_HINT =
+    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.';
+
+  it('titles the test step "Test rules" with the intro, in both modes (FR-004)', () => {
+    expect(pageTitleOf('test', 'create')).toEqual({ title: 'Test rules', hint: TEST_HINT });
+    expect(pageTitleOf('test', 'edit')).toEqual({ title: 'Test rules', hint: TEST_HINT });
+  });
+
+  it('publishes without rules while no branch has a rule (FR-001)', () => {
+    expect(rulesNextActionOf(initialRulesState())).toBe('publishWithoutRules');
+  });
+
+  it('tests the rules when only a based variant has one (W2)', () => {
+    const rules = initialRulesState({
+      ...LOADED,
+      branches: [
+        { ...STANDARD, items: [] },
+        {
+          ...STANDARD,
+          id: 'ambulance',
+          name: 'Ambulance',
+          origin: 'based',
+          is_main: false,
+        },
+      ],
+    });
+    expect(rulesNextActionOf(rules)).toBe('test');
+  });
+
+  it('tests the rules while the first rule is open in the editor, until it is discarded', () => {
+    const empty = initialRulesState();
+    const editing = rulesReducer(empty, {
+      type: 'addRule',
+      branchKey: empty.branches[0].key,
+      parentId: null,
+    });
+    expect(rulesNextActionOf(editing)).toBe('test');
+    // EC "The first rule discarded"
+    const discarded = rulesReducer(editing, { type: 'closeEditor' });
+    expect(rulesNextActionOf(discarded)).toBe('publishWithoutRules');
+  });
+});
+
+describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
+  const rules = initialRulesState(LOADED);
+  const [standard] = rules.branches;
+  const ruleId = standard.items[0].id;
+
+  it('opens the branch the problem names and focuses its rule, then the message', () => {
+    const problem = {
+      message: 'Rule 01 in Standard has no error message.',
+      branchIndex: 0,
+      itemId: ruleId,
+    };
+    expect(problemPlaceOf(rules.branches, problem)).toEqual({
+      branchKey: standard.key,
+      focusIds: [`rule-${standard.key}-${ruleId}`, 'rules-problem'],
+    });
+  });
+
+  it('focuses the message when the problem names a branch but no rule', () => {
+    const problem = { message: 'Enter a name for the variant.', branchIndex: 0, itemId: null };
+    expect(problemPlaceOf(rules.branches, problem)).toEqual({
+      branchKey: standard.key,
+      focusIds: ['rules-problem'],
+    });
+  });
+
+  it('keeps the open branch when the problem names none', () => {
+    const problem = {
+      message: 'There can be at most 10 variants.',
+      branchIndex: null,
+      itemId: null,
+    };
+    expect(problemPlaceOf(rules.branches, problem)).toEqual({
+      branchKey: null,
+      focusIds: ['rules-problem'],
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
+  BranchInput,
   Combinator,
   Condition,
   GroupItem,
@@ -8,12 +9,10 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '../../../types/form-connections';
-import { OPERATORS } from '../constants';
-import { CONTEXT, rule, target, US1_RULES } from '../testData';
-import type { ConditionKind } from '../types';
-import { dayNumber } from './calendar';
-import vectors from './fixtures/evaluator-vectors.json';
+} from '../../types/form-connections';
+import { dayNumber, parseDayNumber } from './checks/calendar';
+import vectors from './checks/fixtures/evaluator-vectors.json';
+import { OPERATORS } from './constants';
 import {
   type Applicant,
   type BranchEvaluation,
@@ -27,7 +26,9 @@ import {
   type Outcome,
   ruleOutcome,
   textHolds,
-} from './testEvaluator';
+} from './evaluation';
+import { CONTEXT, rule, target, US1_RULES } from './testData';
+import type { ConditionKind } from './types';
 
 /** A `rule_outcomes` vector: `evaluate_branch()` on a main branch of that one rule */
 interface RuleOutcomeVector {
@@ -42,6 +43,19 @@ interface RuleOutcomeVector {
 }
 
 const OUTCOMES = vectors.rule_outcomes as RuleOutcomeVector[];
+
+/** A `branch_evaluations` vector: `evaluate_branch()` on a whole branch, without names */
+interface BranchEvaluationVector {
+  branch: { items: RuleTreeItem[]; operator: Combinator; origin: BranchInput['origin'] };
+  documents: { document_type: string; fields: { key: string; value: unknown }[] }[];
+  messages: { id: string; message: string }[];
+  met: boolean;
+  name: string;
+  results: { group: string | null; id: string; outcome: Outcome }[];
+  shared_on: string;
+}
+
+const BRANCH_EVALUATIONS = vectors.branch_evaluations as BranchEvaluationVector[];
 
 /** The day of sharing of backend/tests/unit/test_evaluation.py, whose cases these mirror */
 const SHARED_ON = dayNumber('2026-10-23');
@@ -165,17 +179,29 @@ function marked<T extends RuleTreeItem>(item: T, mark: Mark): T {
   return { ...item, mark };
 }
 
+/**
+ * `_results()` read off the evaluated items: depth first, each group before its members, each
+ * item with the group that contains it
+ */
+function resultsOf(level: readonly EvaluatedItem[]): EvaluatedItem[] {
+  return level.flatMap((entry) => [entry, ...resultsOf(entry.members)]);
+}
+
 /** `_reported()` of test_evaluation.py: each result's id, containing group and outcome */
 function reported(evaluation: BranchEvaluation): [string, string | null, Outcome][] {
-  const results: [string, string | null, Outcome][] = [];
-  const walk = (level: EvaluatedItem[], groupId: string | null) => {
-    for (const entry of level) {
-      results.push([entry.item.id, groupId, entry.outcome]);
-      walk(entry.members, entry.item.id);
+  return resultsOf(evaluation.items).map((entry) => [entry.item.id, entry.group, entry.outcome]);
+}
+
+/** The `Applicant` of a vector's delivered documents, as `_DocumentValues` reads them */
+function applicantOfDocuments(documents: BranchEvaluationVector['documents']): Applicant {
+  const applicant: Record<string, Record<string, unknown>> = {};
+  for (const document of documents) {
+    applicant[document.document_type] ??= {};
+    for (const field of document.fields) {
+      applicant[document.document_type][field.key] = field.value;
     }
-  };
-  walk(evaluation.items, null);
-  return results;
+  }
+  return applicant;
 }
 
 function outcomes(evaluation: BranchEvaluation): Outcome[] {
@@ -221,6 +247,46 @@ describe('the rule-outcome vectors', () => {
     const evaluation = evaluateBranch(branch([item]), applicant, day, CONTEXT);
     expect(outcomes(evaluation)).toEqual([vector.outcome]);
     expect(evaluation.met).toBe(vector.outcome === 'met');
+  });
+});
+
+describe('the whole-branch vectors', () => {
+  it('has every vector of the fixture', () => {
+    expect(BRANCH_EVALUATIONS).toHaveLength(22);
+  });
+
+  it('covers met and unmet branches, every origin, and every outcome', () => {
+    expect(new Set(BRANCH_EVALUATIONS.map((vector) => vector.met))).toEqual(new Set([true, false]));
+    expect(new Set(BRANCH_EVALUATIONS.map((vector) => vector.branch.origin))).toEqual(
+      new Set(['main', 'based', 'empty'])
+    );
+    expect(
+      new Set(BRANCH_EVALUATIONS.flatMap((vector) => vector.results.map((each) => each.outcome)))
+    ).toEqual(new Set(['met', 'not_met', 'not_checked']));
+  });
+
+  it.each(BRANCH_EVALUATIONS)('$name', (vector) => {
+    const sharedOn = parseDayNumber(vector.shared_on);
+    if (sharedOn === null) {
+      throw new Error(`Not a day: ${vector.shared_on}`);
+    }
+
+    const evaluation = evaluateBranch(
+      vector.branch,
+      applicantOfDocuments(vector.documents),
+      sharedOn,
+      CONTEXT
+    );
+
+    expect(evaluation.met).toBe(vector.met);
+    expect(
+      resultsOf(evaluation.items).map((entry) => ({
+        id: entry.item.id,
+        group: entry.group,
+        outcome: entry.outcome,
+      }))
+    ).toEqual(vector.results);
+    expect(evaluation.messages).toEqual(vector.messages);
   });
 });
 
@@ -695,7 +761,7 @@ describe('ruleOutcome, beyond the vectors', () => {
 
   it('throws for a date-time, which it does not port', () => {
     expect(() => outcomeOf(BIRTHDATE, AGE_21, '1984-01-26T10:00:00+01:00')).toThrow(
-      'The test evaluator reads no date-times'
+      'The evaluator reads no date-times'
     );
   });
 
@@ -818,7 +884,7 @@ describe('evaluateBranch', () => {
   });
 
   it.each(['and', 'or'] as const)('meets a branch without rules, with %s', (operator) => {
-    expect(evaluate(branch([], operator), {})).toEqual({ met: true, items: [] });
+    expect(evaluate(branch([], operator), {})).toEqual({ met: true, items: [], messages: [] });
   });
 
   it.each([
@@ -840,6 +906,14 @@ describe('evaluateBranch', () => {
       ['rule-3', 'group-2', 'met'],
       ['rule-4', 'group-2', 'not_met'],
     ]);
+  });
+
+  it("reports the members of a group without a message of its own, and none when it's met", () => {
+    const unmet = evaluate(USER_STORY_2, AGED_20_B_FOR_1);
+    const met = evaluate(USER_STORY_2, applicant(AGED_25, 'Stuttgart', B_FOR_1));
+
+    expect(unmet.messages.map(({ id }) => id)).toEqual(['rule-2', 'rule-4']);
+    expect(met.messages).toEqual([]);
   });
 
   it('meets an OR group through one member', () => {
@@ -935,7 +1009,7 @@ describe('evaluateBranch on a branch based on the main branch', () => {
       AGED_20_B_FOR_1
     );
 
-    expect(evaluation).toEqual({ met: true, items: [] });
+    expect(evaluation).toEqual({ met: true, items: [], messages: [] });
   });
 
   it('puts the remaining member of a dissolved group in its place', () => {

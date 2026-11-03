@@ -61,6 +61,10 @@ export const EDITOR_COPY = {
   editDocumentsTitle: 'Edit documents',
   editNote: 'Requests already in progress keep their previous data.',
   save: 'Save',
+  // The test step (spec 004, S2, S8; FR-004)
+  testRules: 'Test rules',
+  testRulesHint:
+    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.',
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
@@ -169,10 +173,18 @@ export const ELEMENT_IDS = {
   fieldsError: (documentType: string) => `document-${documentType}-error`,
   field: (documentType: string, field: string) => `document-${documentType}-${field}`,
   title: (documentType: string) => `document-${documentType}-title`,
+  // The test step (S8): a variant's tab and its panel, a persona's chip, its panel with the
+  // heading "Mia’s data", and a field of its data
+  testTab: (branchKey: string) => `test-tab-${branchKey}`,
+  testPanel: (branchKey: string) => `test-panel-${branchKey}`,
+  personaChip: (personaId: string) => `persona-chip-${personaId}`,
+  personaPanel: (personaId: string) => `persona-panel-${personaId}`,
+  personaHeading: (personaId: string) => `persona-heading-${personaId}`,
+  personaField: (personaId: string, fieldKey: string) => `persona-${personaId}-${fieldKey}`,
 };
 
 // The wizard's steps by their place in the progress bar (CONNECTION_STEPS)
-export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules'];
+export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules', 'test'];
 
 export const INITIAL_EDITOR_STATE: EditorState = {
   step: 'connection',

@@ -10,7 +10,8 @@ import type {
 import { sameValue } from '../../utils/rules/branches';
 import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import { countRules } from '../../utils/rules/tree';
+import { countRules, hasAnyRule } from '../../utils/rules/tree';
+import type { RulesProblem } from '../../utils/rules/types';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
   EDITOR_COPY,
@@ -34,6 +35,7 @@ import type {
   FindingLine,
   PendingRemoval,
   RemovedDataRule,
+  RulesNextAction,
 } from './types';
 
 /** The wizard's first state: empty, or the connection to edit with its documents. */
@@ -61,6 +63,9 @@ export function initialEditorState({
 
 /** The page title of a step: the heading, its hint and the tab title. */
 export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
+  if (step === 'test') {
+    return { title: EDITOR_COPY.testRules, hint: EDITOR_COPY.testRulesHint };
+  }
   if (step === 'rules') {
     return { title: RULES_COPY.title, hint: RULES_COPY.hint };
   }
@@ -78,6 +83,34 @@ export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string
     case 'create':
       return { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
   }
+}
+
+/**
+ * The rules step's button to go on (spec 004, S2; W2; FR-001): "Test rules" while any branch has
+ * a rule or a rule editor is open, since a rule being edited counts as a rule (spec 002, FR-006),
+ * and "Publish without rules" otherwise, which skips the test step. Once the answer to "Save
+ * changes to Rule 01?" discards the first rule, it is `'publishWithoutRules'` again (EC "The
+ * first rule discarded").
+ */
+export function rulesNextActionOf(
+  rules: Pick<RulesState, 'branches' | 'editing'>
+): RulesNextAction {
+  return rules.editing !== null || hasAnyRule(rules.branches) ? 'test' : 'publishWithoutRules';
+}
+
+/**
+ * Where a problem of publishing's pre-checks leads, when it refuses "Publish", "Save" or "Test
+ * rules" (spec 002, FR-006; spec 004, FR-002; W3): the branch it names, to open, or null when it
+ * names none; and the elements that take the focus, the first one present: the rule or group it
+ * names, then the rules step's message.
+ */
+export function problemPlaceOf(
+  branches: readonly RulesBranch[],
+  problem: RulesProblem
+): { branchKey: string | null; focusIds: string[] } {
+  const branch = problem.branchIndex === null ? undefined : branches[problem.branchIndex];
+  const itemIds = branch && problem.itemId ? [ELEMENT_IDS.rule(branch.key, problem.itemId)] : [];
+  return { branchKey: branch?.key ?? null, focusIds: [...itemIds, ELEMENT_IDS.rulesProblem] };
 }
 
 /**

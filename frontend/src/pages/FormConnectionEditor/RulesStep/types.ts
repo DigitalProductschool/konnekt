@@ -44,7 +44,9 @@ export type LeaveEditorAction =
   | { type: 'edit'; branchKey: string; ruleId: string }
   | { type: 'add'; branchKey: string; parentId: string | null }
   | { type: 'documents' }
-  | { type: 'publish' };
+  | { type: 'publish' }
+  /** "Test rules" (spec 004, S2): the pre-checks of publishing, then the test step */
+  | { type: 'test' };
 
 export type RulesDialog =
   /** "Delete Rule 03?" (U14; in Standard with variants, U23 and F14) */

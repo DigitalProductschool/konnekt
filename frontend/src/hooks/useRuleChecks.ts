@@ -13,7 +13,6 @@ import {
   useState,
 } from 'react';
 
-import { TODAY_REFRESH_MS } from '../utils/rules/checks/constants';
 import type { LiteralContext } from '../utils/rules/checks/literals';
 import {
   checkMessageOf,
@@ -27,8 +26,8 @@ import type {
   RunAction,
   WorkerMessage,
 } from '../utils/rules/checks/types';
-import { todayInGermany } from '../utils/rules/dates';
 import type { ActiveRun, CheckableBranch, CheckedTreeModule, SentChange } from './types';
+import { useTodayInGermany } from './useTodayInGermany';
 import { actionOf, byBranchFor, causeOf, runBranchesOf, sameRunBranches } from './utils';
 
 /** The clock of the deadline and the watchdog, the same as the worker's */
@@ -63,30 +62,6 @@ function useCheckedTree(ready: boolean): CheckedTreeModule | null {
   }, [ready, checkedTree]);
 
   return checkedTree;
-}
-
-/** Today in Germany, `YYYY-MM-DD`, read again every minute and when the page becomes visible */
-function useTodayInGermany(): string {
-  const [today, setToday] = useState(() => todayInGermany());
-
-  useEffect(() => {
-    function refresh() {
-      setToday(todayInGermany());
-    }
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
-        refresh();
-      }
-    }
-    const timer = window.setInterval(refresh, TODAY_REFRESH_MS);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  return today;
 }
 
 /**

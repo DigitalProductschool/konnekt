@@ -1,10 +1,11 @@
 import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
+import MenuSearchField from '../../../../components/MenuSearchField';
+import { matchesSearch } from '../../../../components/ValuesPicker/utils';
 import { RULE_EDITOR_COPY } from './constants';
-import MenuSearchField from './MenuSearchField';
 import MenuSectionGroup from './MenuSectionGroup';
 import type { ChoiceMenuProps } from './types';
-import { focusOption, matchesSearch } from './utils';
+import { focusOption } from './utils';
 
 /**
  * A rule editor menu (Figma "Rules/Menu", "Elevation/Menu"), below its picker: an optional

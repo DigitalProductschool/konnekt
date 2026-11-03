@@ -8,8 +8,9 @@ themselves (research R7, R13) and writes
 - `caseFolding.ts`: Python's `str.casefold()` for every code point it changes,
   compressed into ranges, which `checks/text.ts` folds texts with;
 - `fixtures/evaluator-vectors.json`: inputs and Python's results for
-  `_normalised_text()`, `years_after()`, `months_after()`, `date.toordinal()` and
-  rule outcomes, which the checks' Vitest tests replay.
+  `_normalised_text()`, `years_after()`, `months_after()`, `date.toordinal()`,
+  rule outcomes and whole-branch evaluations (`evaluate_branch()`: met, results and
+  messages; spec 004, research R2), which the Vitest tests replay.
 
 Both are generated, never edited by hand. Run the script again after a Python upgrade
 or a change to the evaluator's comparisons. With --check it writes nothing: it names
@@ -25,12 +26,15 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from app.schemas import (
+    Combinator,
     Condition,
     DeliveredDocument,
     DeliveredField,
+    GroupItem,
+    Mark,
     RuleItem,
     RuleTarget,
     SnapshotBranch,
@@ -1131,6 +1135,395 @@ def _rule_outcome_vectors() -> Iterator[dict[str, object]]:
         }
 
 
+# Whole branches (spec 004, research R2)
+
+# A target and a condition, the rule a branch case numbers and names
+_Check = tuple[tuple[str, str, str | None, str | None], dict[str, object]]
+
+# The applicant's results on TODAY: ADULT, IN_STUTTGART, GERMAN, HOLDS_B and B_HELD
+# are met, TALLER_THAN_190 and AUSTRIAN aren't, VALID_ID can't be checked (the
+# documents have no date of expiry), and C_HELD isn't met (the licence doesn't list C)
+ADULT: _Check = (BIRTH_DATE, _years_ago('at_least_years_ago', 18))
+IN_STUTTGART: _Check = (LOCALITY, _text('equal_to', 'stuttgart', False))
+GERMAN: _Check = (NATIONALITIES, _enum('includes_one_of', 'DE'))
+HOLDS_B: _Check = (CLASSES, _enum('includes_one_of', 'B'))
+B_HELD: _Check = (
+    _class_date('issue_date', 'B'),
+    _years_ago('at_least_years_ago', 2),
+)
+TALLER_THAN_190: _Check = (HEIGHT, _number('greater_than', 190))
+AUSTRIAN: _Check = (NATIONALITIES, _enum('includes_one_of', 'AT'))
+VALID_ID: _Check = (EXPIRY, _from_now('at_least_from_now', 6, 'months'))
+C_HELD: _Check = (
+    _class_date('issue_date', 'C'),
+    _years_ago('at_least_years_ago', 1),
+)
+OVER_21: _Check = (BIRTH_DATE, _years_ago('at_least_years_ago', 21))
+MUSTER: _Check = (FAMILY_NAME, _text('contains', 'Muster', False))
+
+# The applicant's fields, by document type
+PID_FIELDS: dict[str, object] = {
+    'family_name': 'Mustermann',
+    'birthdate': '2005-10-23',
+    'address_locality': 'Stuttgart',
+    'nationalities': ['DE'],
+}
+MDL_FIELDS: dict[str, object] = {'height': 180, 'driving_privileges': PRIVILEGES}
+
+
+def _rule(number: int, check: _Check, mark: Mark | None = None) -> RuleItem:
+    """Rule `number` with its check, as a saved branch holds it."""
+    (document_type, field_key, part, licence_class), condition = check
+    return RuleItem(
+        type='rule',
+        id=f'rule-{number}',
+        name=f'Rule {number:02d}',
+        mark=mark,
+        target=RuleTarget(
+            document_type=document_type,
+            field=field_key,
+            part=part,
+            licence_class=licence_class,
+        ),
+        condition=Condition.model_validate(condition),
+        message=f'Rule {number:02d} is not met.',
+    )
+
+
+def _group(
+    number: int,
+    operator: Combinator,
+    items: Sequence[RuleItem | GroupItem],
+    message: str | None = None,
+    mark: Mark | None = None,
+) -> GroupItem:
+    """Group `number` with its members, and its own message if it has one."""
+    return GroupItem(
+        type='group',
+        id=f'group-{number}',
+        name=f'Group {number:02d}',
+        mark=mark,
+        operator=operator,
+        message=message,
+        items=list(items),
+    )
+
+
+def _documents(
+    pid: Mapping[str, object] | None = PID_FIELDS,
+    mdl: Mapping[str, object] | None = MDL_FIELDS,
+) -> list[DeliveredDocument]:
+    """The delivered documents with these fields; None leaves the document out."""
+    return [
+        DeliveredDocument(
+            document_type=document_type,
+            label=document_type,
+            fields=[
+                DeliveredField.model_validate(
+                    {'key': key, 'label': key, 'value': value}
+                )
+                for key, value in fields.items()
+            ],
+        )
+        for document_type, fields in (('pid', pid), ('mdl', mdl))
+        if fields is not None
+    ]
+
+
+# The documents that a case doesn't name
+APPLICANT = tuple(_documents())
+
+
+@dataclass(frozen=True)
+class _BranchCase:
+    """A branch, the documents delivered for it, and the day of sharing."""
+
+    name: str
+    origin: Literal['main', 'based', 'empty']
+    operator: Combinator
+    items: Sequence[RuleItem | GroupItem]
+    documents: Sequence[DeliveredDocument] = APPLICANT
+    shared_on: date = TODAY
+
+
+def _branch_cases() -> list[_BranchCase]:
+    """Branches covering research R2's list, each case named after what it pins."""
+    return [
+        # AND and OR levels
+        _BranchCase(
+            'AND level, every rule met',
+            'main',
+            'and',
+            [_rule(1, ADULT), _rule(2, IN_STUTTGART)],
+        ),
+        _BranchCase(
+            "AND level, rules met, not met and couldn't be checked",
+            'main',
+            'and',
+            [_rule(1, ADULT), _rule(2, TALLER_THAN_190), _rule(3, VALID_ID)],
+        ),
+        _BranchCase(
+            'OR level, one rule met',
+            'main',
+            'or',
+            [_rule(1, TALLER_THAN_190), _rule(2, GERMAN)],
+        ),
+        _BranchCase(
+            'OR level, no rule met, reports every rule',
+            'main',
+            'or',
+            [_rule(1, TALLER_THAN_190), _rule(2, AUSTRIAN), _rule(3, VALID_ID)],
+        ),
+        _BranchCase(
+            'OR level met by a group',
+            'main',
+            'or',
+            [
+                _rule(1, AUSTRIAN),
+                _group(1, 'and', [_rule(2, ADULT), _rule(3, HOLDS_B)]),
+            ],
+        ),
+        # Groups and sub-groups, with and without a message of their own
+        _BranchCase(
+            'A group with a message of its own reports it instead of its members',
+            'main',
+            'and',
+            [
+                _rule(1, ADULT),
+                _group(
+                    1,
+                    'and',
+                    [_rule(2, TALLER_THAN_190), _rule(3, AUSTRIAN)],
+                    'Group 01 is not met.',
+                ),
+            ],
+        ),
+        _BranchCase(
+            'OR group without a message reports its members',
+            'main',
+            'and',
+            [
+                _rule(1, IN_STUTTGART),
+                _group(1, 'or', [_rule(2, TALLER_THAN_190), _rule(3, VALID_ID)]),
+            ],
+        ),
+        _BranchCase(
+            'An OR group met by one member reports nothing',
+            'main',
+            'and',
+            [
+                _group(1, 'or', [_rule(1, AUSTRIAN), _rule(2, GERMAN)]),
+                _rule(3, TALLER_THAN_190),
+            ],
+        ),
+        _BranchCase(
+            'Sub-groups with and without a message of their own',
+            'main',
+            'and',
+            [
+                _group(
+                    1,
+                    'and',
+                    [
+                        _rule(1, ADULT),
+                        _group(
+                            2, 'or', [_rule(2, TALLER_THAN_190), _rule(3, AUSTRIAN)]
+                        ),
+                        _group(
+                            3,
+                            'and',
+                            [_rule(4, VALID_ID), _rule(5, IN_STUTTGART)],
+                            'Group 03 is not met.',
+                        ),
+                    ],
+                ),
+                _rule(6, GERMAN),
+            ],
+        ),
+        _BranchCase(
+            "A group's own message replaces its sub-group's",
+            'main',
+            'and',
+            [
+                _group(
+                    1,
+                    'or',
+                    [
+                        _rule(1, TALLER_THAN_190),
+                        _group(
+                            2,
+                            'and',
+                            [_rule(2, AUSTRIAN), _rule(3, ADULT)],
+                            'Group 02 is not met.',
+                        ),
+                    ],
+                    'Group 01 is not met.',
+                ),
+            ],
+        ),
+        # A based branch: removed items and dissolved inherited groups
+        _BranchCase(
+            'A based branch with removed items and a dissolved inherited group',
+            'based',
+            'and',
+            [
+                _rule(1, ADULT),
+                _rule(2, TALLER_THAN_190, 'removed'),
+                _group(
+                    1,
+                    'and',
+                    [_rule(3, AUSTRIAN, 'removed'), _rule(4, IN_STUTTGART)],
+                    'Group 01 is not met.',
+                ),
+                _group(
+                    2,
+                    'or',
+                    [_rule(5, VALID_ID, 'removed'), _rule(6, AUSTRIAN, 'removed')],
+                ),
+                _group(
+                    3,
+                    'and',
+                    [_rule(7, TALLER_THAN_190), _rule(8, VALID_ID)],
+                    'Group 03 is not met.',
+                    'removed',
+                ),
+                _group(
+                    4,
+                    'or',
+                    [_rule(9, AUSTRIAN, 'added'), _rule(10, VALID_ID, 'changed')],
+                    mark='added',
+                ),
+                _rule(11, GERMAN, 'changed'),
+            ],
+        ),
+        _BranchCase(
+            "A dissolved inherited group's sub-group takes its place",
+            'based',
+            'and',
+            [
+                _group(
+                    1,
+                    'and',
+                    [
+                        _rule(1, ADULT, 'removed'),
+                        _group(
+                            2, 'or', [_rule(2, TALLER_THAN_190), _rule(3, AUSTRIAN)]
+                        ),
+                    ],
+                    'Group 01 is not met.',
+                ),
+                _rule(4, IN_STUTTGART),
+            ],
+        ),
+        _BranchCase(
+            'A based branch whose items are all removed is met',
+            'based',
+            'and',
+            [
+                _rule(1, TALLER_THAN_190, 'removed'),
+                _group(
+                    1,
+                    'and',
+                    [_rule(2, AUSTRIAN), _rule(3, VALID_ID)],
+                    mark='removed',
+                ),
+            ],
+        ),
+        # Branches without items
+        _BranchCase('An AND branch without items is met', 'main', 'and', []),
+        _BranchCase('An OR branch without items is met', 'main', 'or', []),
+        _BranchCase('A branch that started empty, without items', 'empty', 'and', []),
+        _BranchCase(
+            'A branch that started empty, with rules of its own',
+            'empty',
+            'or',
+            [_rule(1, AUSTRIAN), _rule(2, VALID_ID)],
+        ),
+        # Rules that couldn't be checked
+        _BranchCase(
+            "Rules that couldn't be checked: a missing document, an empty text, a year",
+            'main',
+            'or',
+            [_rule(1, MUSTER), _rule(2, TALLER_THAN_190), _rule(3, ADULT)],
+            _documents(pid={'family_name': '   ', 'birthdate': '2005'}, mdl=None),
+        ),
+        # Licence classes
+        _BranchCase(
+            "A rule on a class that the licence doesn't list",
+            'main',
+            'and',
+            [_rule(1, HOLDS_B), _rule(2, B_HELD), _rule(3, C_HELD)],
+        ),
+        _BranchCase(
+            'A class list that is empty',
+            'main',
+            'or',
+            [_rule(1, HOLDS_B), _rule(2, B_HELD), _rule(3, C_HELD)],
+            _documents(mdl={'driving_privileges': []}),
+        ),
+        # The day of sharing
+        _BranchCase(
+            'The day before a 21st birthday',
+            'main',
+            'and',
+            [_rule(1, OVER_21)],
+            _documents(pid={'birthdate': '2005-10-29'}, mdl=None),
+        ),
+        _BranchCase(
+            'On a 21st birthday',
+            'main',
+            'and',
+            [_rule(1, OVER_21)],
+            _documents(pid={'birthdate': '2005-10-29'}, mdl=None),
+            date(2026, 10, 29),
+        ),
+    ]
+
+
+def _branch_evaluation_vectors() -> Iterator[dict[str, object]]:
+    """Each branch case with `evaluate_branch()`'s answer, without names.
+
+    The branch keeps what the evaluation reads of a `SnapshotBranch` (origin,
+    operator, items) and the documents what it reads of a `DeliveredDocument`
+    (document type, field keys and values).
+    """
+    for case in _branch_cases():
+        branch = SnapshotBranch(
+            id='branch',
+            name='Branch',
+            origin=case.origin,
+            operator=case.operator,
+            items=list(case.items),
+        )
+        evaluation = evaluate_branch(branch, case.documents, case.shared_on)
+        yield {
+            'name': case.name,
+            'branch': branch.model_dump(
+                mode='json', include={'origin', 'operator', 'items'}
+            ),
+            'documents': [
+                {
+                    'document_type': document.document_type,
+                    'fields': [
+                        {'key': delivered.key, 'value': delivered.value}
+                        for delivered in document.fields
+                    ],
+                }
+                for document in case.documents
+            ],
+            'shared_on': case.shared_on.isoformat(),
+            'met': evaluation.met,
+            'results': [
+                {'id': result.id, 'group': result.group, 'outcome': result.outcome}
+                for result in evaluation.results
+            ],
+            'messages': [
+                {'id': message.id, 'message': message.message}
+                for message in evaluation.messages
+            ],
+        }
+
+
 def vectors_json() -> str:
     """The text of `fixtures/evaluator-vectors.json`."""
     vectors: dict[str, Any] = {
@@ -1143,6 +1536,7 @@ def vectors_json() -> str:
         'months_after': list(_months_after_vectors()),
         'day_numbers': list(_day_number_vectors()),
         'rule_outcomes': list(_rule_outcome_vectors()),
+        'branch_evaluations': list(_branch_evaluation_vectors()),
     }
     return json.dumps(vectors, indent=2, sort_keys=True, ensure_ascii=True) + '\n'
 

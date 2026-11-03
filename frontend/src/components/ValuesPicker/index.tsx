@@ -1,16 +1,17 @@
 import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
-import expandIcon from '../../../../assets/icons/picker-expand.svg';
-import expandOpenIcon from '../../../../assets/icons/picker-expand-open.svg';
-import { MENU_WIDTHS, RULE_EDITOR_COPY, SEARCH_THRESHOLD } from './constants';
-import MenuSearchField from './MenuSearchField';
+import expandIcon from '../../assets/icons/picker-expand.svg';
+import expandOpenIcon from '../../assets/icons/picker-expand-open.svg';
+import MenuSearchField from '../MenuSearchField';
+import { MENU_WIDTH, SEARCH_THRESHOLD } from './constants';
 import type { ValuesPickerProps } from './types';
 import { chosenValueLabels, matchesSearch } from './utils';
 import ValueOptionItem from './ValueOptionItem';
 
 /**
  * Figma "Rules/Multi-select field" and "Rules/Multi-select menu" (U24 6191:42191, 6191:42209):
- * the values of an enum condition, any number of them (F8), shown as chips. The menu lists the
+ * the values of an enum condition, any number of them (F8), shown as chips. Also the persona
+ * fields that hold several values (specs/004-rule-test-personas T044; `field`). The menu lists the
  * value set with checkboxes; long sets get "Search options", the licence classes "Search
  * classes" and rows with code and description (F32). The chips show the codes only. Escape
  * closes the menu; leaving it with the keyboard or the pointer closes it too. The button is a
@@ -25,13 +26,16 @@ export default function ValuesPicker({
   values,
   invalid,
   describedBy,
-  state,
-  dispatch,
+  field = false,
+  copy,
+  open,
+  search,
+  onOpenChange,
+  onSearch,
   onChange,
 }: ValuesPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const open = state.openMenu === 'values';
   const triggerId = `${idBase}-values`;
   const menuId = `${idBase}-values-menu`;
   const searchId = `${menuId}-search`;
@@ -39,8 +43,7 @@ export default function ValuesPicker({
   const shown = searchable
     ? choices.filter(
         (choice) =>
-          matchesSearch(choice.label, state.search) ||
-          matchesSearch(choice.description ?? '', state.search)
+          matchesSearch(choice.label, search) || matchesSearch(choice.description ?? '', search)
       )
     : choices;
   const chips = chosenValueLabels(values, choices);
@@ -54,9 +57,13 @@ export default function ValuesPicker({
     } else {
       listRef.current?.querySelector<HTMLInputElement>('input')?.focus();
     }
+    if (field) {
+      // In a scrolling card, bring the field to the top, so that as much of its menu as fits shows
+      containerRef.current?.scrollIntoView({ block: 'start' });
+    }
     function closeOnOutsidePointer(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
-        dispatch({ type: 'closeMenu' });
+        onOpenChange(false);
       }
     }
     document.addEventListener('pointerdown', closeOnOutsidePointer);
@@ -94,7 +101,7 @@ export default function ValuesPicker({
       moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Escape') {
       event.preventDefault();
-      dispatch({ type: 'closeMenu' });
+      onOpenChange(false);
       document.getElementById(triggerId)?.focus();
     }
   }
@@ -104,7 +111,7 @@ export default function ValuesPicker({
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
     if (open && next && !containerRef.current?.contains(next)) {
-      dispatch({ type: 'closeMenu' });
+      onOpenChange(false);
     }
   }
 
@@ -113,21 +120,34 @@ export default function ValuesPicker({
     : invalid
       ? 'border-kern-feedback-danger'
       : 'border-(--kern-color-decorative-border-default)';
+  // A form field (Figma 7058:60661; KERN's input and its error state): the field background and
+  // a 2px bottom border, danger red with a problem
+  const fieldLook = invalid
+    ? 'bg-kern-feedback-danger-background border-b-2 border-kern-feedback-danger'
+    : 'bg-kern-layout-background-hued border-b-2 border-(--kern-color-form-input-border)';
+  const triggerLook = field
+    ? `rounded-kern-small focus-visible:outline-kern-action-focus-default min-h-48 w-full cursor-pointer items-center justify-between gap-8 px-16 py-4 focus-visible:outline-4 focus-visible:outline-offset-0 ${fieldLook}`
+    : `rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 max-md:h-auto max-md:min-h-40 max-md:py-7 ${border}`;
+  const menuLook = field
+    ? 'left-0 w-full'
+    : `left-0 max-w-[calc(100vw-32px)] max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${MENU_WIDTH}`;
 
   return (
-    <div ref={containerRef} className="relative max-md:static" onBlur={handleBlur}>
+    <div
+      ref={containerRef}
+      className={field ? 'relative w-full' : 'relative max-md:static'}
+      onBlur={handleBlur}
+    >
       <button
         id={triggerId}
         type="button"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-describedby={describedBy}
-        onClick={() =>
-          dispatch(open ? { type: 'closeMenu' } : { type: 'openMenu', menu: 'values' })
-        }
-        className={`rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default flex h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 max-md:h-auto max-md:min-h-40 max-md:py-7 ${border}`}
+        onClick={() => onOpenChange(!open)}
+        className={`flex text-left ${triggerLook}`}
       >
-        <span className="sr-only">{RULE_EDITOR_COPY.valuesMenu}: </span>
+        <span className="sr-only">{copy.menu}: </span>
         {chips.length ? (
           <span className="flex min-w-0 items-center gap-4 overflow-hidden max-md:flex-wrap">
             {chips.map((chip) => (
@@ -142,7 +162,7 @@ export default function ValuesPicker({
           </span>
         ) : (
           <span className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) whitespace-nowrap">
-            {RULE_EDITOR_COPY.chooseOptions}
+            {copy.placeholder}
           </span>
         )}
         <img
@@ -154,24 +174,22 @@ export default function ValuesPicker({
       {open && (
         <div
           id={menuId}
-          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${MENU_WIDTHS.values}`}
+          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full z-20 mt-4 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${menuLook}`}
         >
           {searchable && (
             <MenuSearchField
               id={searchId}
-              placeholder={
-                classes ? RULE_EDITOR_COPY.searchClasses : RULE_EDITOR_COPY.searchOptions
-              }
-              value={state.search}
+              placeholder={classes ? copy.searchClasses : copy.searchOptions}
+              value={search}
               controls={`${menuId}-list`}
-              onChange={(text) => dispatch({ type: 'search', text })}
+              onChange={onSearch}
               onKeyDown={handleKeyDown}
             />
           )}
           <ul
             ref={listRef}
             id={`${menuId}-list`}
-            aria-label={RULE_EDITOR_COPY.valuesMenu}
+            aria-label={copy.menu}
             className={`flex max-h-280 flex-col overflow-y-auto ${classes ? 'gap-2' : 'p-4'}`}
           >
             {shown.map((choice) => (
@@ -186,18 +204,20 @@ export default function ValuesPicker({
               />
             ))}
           </ul>
-          <div
-            aria-hidden="true"
-            className="h-px w-full shrink-0 bg-(--kern-color-decorative-border-default)"
-          />
-          <p
-            aria-live="polite"
-            className="text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)"
-          >
-            {shown.length
-              ? RULE_EDITOR_COPY.selectAtLeastOne
-              : RULE_EDITOR_COPY.noMatch(state.search.trim())}
-          </p>
+          {(copy.footer !== null || shown.length === 0) && (
+            <>
+              <div
+                aria-hidden="true"
+                className="h-px w-full shrink-0 bg-(--kern-color-decorative-border-default)"
+              />
+              <p
+                aria-live="polite"
+                className="text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)"
+              >
+                {shown.length ? copy.footer : copy.noMatch(search.trim())}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

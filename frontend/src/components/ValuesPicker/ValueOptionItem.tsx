@@ -1,4 +1,4 @@
-import checkIcon from '../../../../assets/icons/check-white-small.svg';
+import checkIcon from '../../assets/icons/check-white-small.svg';
 import type { ValueOptionItemProps } from './types';
 
 /**
