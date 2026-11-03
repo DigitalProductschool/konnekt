@@ -138,7 +138,12 @@ function requestOf(
 function personasOf(request: GenerationRequest, result: GenerationResult): Persona[] {
   return request.slots.map((slot, index) => {
     const answer = result.slots[index];
-    const values = slot.kind === 'kept' ? slot.values : { ...answer.values };
+    const values =
+      slot.kind === 'kept'
+        ? slot.values
+        : slot.kind === 'filled'
+          ? { ...slot.values, ...answer.values }
+          : { ...answer.values };
     return {
       id: PERSONA_IDS[index],
       name: slot.name ?? must(answer.name),
@@ -1042,4 +1047,217 @@ describe('generatePersonas: the spec’s example and its variants (SC-002)', () 
       }
     });
   }
+});
+
+// Filled slots (US3, FR-020; research R8; tasks.md T050): the persona's values stay, only the
+// fields it lacks are new, and the personas still reach the goals on the rule set as it is now
+
+/** A new rule on a field the example's personas have no value for (US3-AS2) */
+const NATIONALITY = rule(41, target('pid', 'nationalities'), {
+  operator: 'includes_one_of',
+  values: ['DE'],
+});
+const NATIONALITY_KEY = 'pid.nationalities';
+
+/** The example with the nationality rule in Standard and so in Ambulance, which is based on it */
+const WITH_NATIONALITY: KeyedBranch[] = (() => {
+  const standard = mainBranch([AGE, CITY, CLASS_B, HELD_B, NATIONALITY]);
+  return [keyed(standard, 'standard'), keyed(basedAt(standard, 'Ambulance', 19), 'ambulance')];
+})();
+
+/** Three personas of the example, generated before the rule existed */
+function oldPersonas(seed: number): Persona[] {
+  return generated(EXAMPLE, seed);
+}
+
+/** A request that fills the personas' missing fields, on `branches`; `kinds` per persona */
+function fillRequestOf(
+  branches: readonly KeyedBranch[],
+  seed: number,
+  personas: readonly Persona[],
+  kinds: readonly SlotKind[] = ['filled', 'filled', 'filled']
+): GenerationRequest {
+  return requestOf(
+    branches,
+    seed,
+    personas.map((persona, index) => ({
+      kind: kinds[index],
+      name: persona.name,
+      values: kinds[index] === 'free' ? {} : persona.values,
+    }))
+  );
+}
+
+/** Which of the branches the persona meets, as `meet` and `fail` joined */
+function vectorOfPersona(
+  persona: Persona,
+  branches: readonly KeyedBranch[],
+  fields: readonly PersonaField[]
+): string {
+  return branches.map((branch) => (meets(persona, branch, fields) ? 'meet' : 'fail')).join('/');
+}
+
+/** Whether `ids`'s item is met by one persona and failed by another, in the first branch */
+function metAndFailed(
+  personas: readonly Persona[],
+  branch: KeyedBranch,
+  fields: readonly PersonaField[],
+  id: string
+): boolean {
+  const met = personas.map((persona) => itemOutcomes(persona, branch, fields)[id]);
+  return met.includes(true) && met.includes(false);
+}
+
+describe('generatePersonas: filled slots (FR-020)', () => {
+  const fields = personaFieldsOf(WITH_NATIONALITY, CONTEXT);
+
+  it('reads the example with the rule, whose field the old personas lack', () => {
+    for (const { checked } of requestOf(WITH_NATIONALITY, 1).branches) {
+      expect(checked.leftOut).toEqual([]);
+    }
+    const old = oldPersonas(1);
+    expect(fields.some((each) => each.key === NATIONALITY_KEY)).toBe(true);
+    for (const persona of old) {
+      expect(persona.values).not.toHaveProperty(NATIONALITY_KEY);
+    }
+  });
+
+  it('answers the absent fields only, and changes no value the persona has', () => {
+    for (const seed of SEEDS) {
+      const old = oldPersonas(seed);
+      const request = fillRequestOf(WITH_NATIONALITY, seed + 50, old);
+      const result = generatePersonas(request, NO_DEADLINE);
+      result.slots.forEach((slot, index) => {
+        expect(Object.keys(slot.values), `seed ${seed}`).toEqual([NATIONALITY_KEY]);
+        expect(slot.name).toBeNull();
+        for (const key of Object.keys(slot.values)) {
+          expect(old[index].values).not.toHaveProperty(key);
+        }
+      });
+      const personas = personasOf(request, result);
+      personas.forEach((persona, index) => {
+        for (const [key, value] of Object.entries(old[index].values)) {
+          expect(persona.values[key]).toEqual(value);
+        }
+        expect(persona.name).toBe(old[index].name);
+      });
+      expectValid(personas, fields);
+    }
+  });
+
+  it('keeps the personas’ vectors and lets one meet the new rule and another fail it (US3-AS2)', () => {
+    for (const seed of SEEDS) {
+      const old = oldPersonas(seed);
+      const request = fillRequestOf(WITH_NATIONALITY, seed + 50, old);
+      const personas = personasOf(request, generatePersonas(request, NO_DEADLINE));
+      // Goals 1 to 3 as before the rule: the filled personas still reach every vector
+      expect(
+        personas.map((persona) => vectorOfPersona(persona, WITH_NATIONALITY, fields)).sort(),
+        `seed ${seed}`
+      ).toEqual(['fail/fail', 'fail/meet', 'meet/meet']);
+      for (const branch of WITH_NATIONALITY) {
+        expect(
+          metAndFailed(personas, branch, fields, 'rule-41'),
+          `${branch.key}, seed ${seed}`
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('treats an empty value as a value, and a hidden one as fixed', () => {
+    for (const seed of SEEDS.slice(0, 10)) {
+      const old = oldPersonas(seed);
+      const request = requestOf(WITH_NATIONALITY, seed + 50, [
+        // No nationality, which the rule counts as not met, and a hidden value
+        {
+          kind: 'filled',
+          name: old[0].name,
+          values: { ...old[0].values, [NATIONALITY_KEY]: [], 'pid.family_name': 'Muster' },
+        },
+        { kind: 'filled', name: old[1].name, values: old[1].values },
+        { kind: 'filled', name: old[2].name, values: old[2].values },
+      ]);
+      const result = generatePersonas(request, NO_DEADLINE);
+      expect(result.slots[0], `seed ${seed}`).toEqual({ values: {}, name: null });
+      expect(Object.keys(result.slots[1].values)).toEqual([NATIONALITY_KEY]);
+      const personas = personasOf(request, result);
+      expect(personas[0].values['pid.family_name']).toBe('Muster');
+      expect(personas[0].values[NATIONALITY_KEY]).toEqual([]);
+      // The empty value fails the rule, so a persona that can meet it does
+      expect(metAndFailed(personas, WITH_NATIONALITY[0], fields, 'rule-41'), `seed ${seed}`).toBe(
+        true
+      );
+    }
+  });
+
+  it('plans a filled slot between a kept and a free one, each as its kind asks', () => {
+    for (const seed of SEEDS.slice(0, 10)) {
+      const old = oldPersonas(seed);
+      const request = fillRequestOf(WITH_NATIONALITY, seed + 50, old, ['kept', 'filled', 'free']);
+      const result = generatePersonas(request, NO_DEADLINE);
+      expect(result.slots[0], `seed ${seed}`).toEqual({ values: {}, name: null });
+      expect(Object.keys(result.slots[1].values)).toEqual([NATIONALITY_KEY]);
+      expect(Object.keys(result.slots[2].values).sort()).toEqual(fields.map((f) => f.key).sort());
+      const personas = personasOf(request, result);
+      expect(personas[0].values).toBe(old[0].values);
+      expect(personas[1].values).toMatchObject(old[1].values);
+      expectValid(personas.slice(1), fields);
+    }
+  });
+
+  it('answers nothing for a filled slot with no absent field', () => {
+    const personas = generated(EXAMPLE, 4);
+    const request = fillRequestOf(EXAMPLE, 5, personas);
+    expect(generatePersonas(request, NO_DEADLINE).slots).toEqual([
+      { values: {}, name: null },
+      { values: {}, name: null },
+      { values: {}, name: null },
+    ]);
+  });
+
+  it('covers the new rule when the old rules’ outcomes are already decided by fixed values', () => {
+    // Height is new; the nationality of two personas is fixed, so that rule's outcome is decided
+    // for them: they count for it, and the new rule on the height is still met and failed
+    const height = rule(42, target('mdl', 'height'), { operator: 'greater_than', value: 170 });
+    const standard = mainBranch([AGE, CITY, CLASS_B, HELD_B, NATIONALITY, height]);
+    const branches = [keyed(standard, 'standard')];
+    const branchFields = personaFieldsOf(branches, CONTEXT);
+    for (const seed of SEEDS.slice(0, 10)) {
+      const old = oldPersonas(seed).map((persona, index) => ({
+        ...persona,
+        values: {
+          ...persona.values,
+          ...(index < 2 ? { [NATIONALITY_KEY]: [index === 0 ? 'DE' : 'FR'] } : {}),
+        },
+      }));
+      const request = fillRequestOf(branches, seed + 50, old);
+      const result = generatePersonas(request, NO_DEADLINE);
+      expect(Object.keys(result.slots[0].values), `seed ${seed}`).toEqual(['mdl.height']);
+      expect(Object.keys(result.slots[2].values).sort(), `seed ${seed}`).toEqual(
+        ['mdl.height', NATIONALITY_KEY].sort()
+      );
+      const personas = personasOf(request, result);
+      expectValid(personas, branchFields);
+      expect(metAndFailed(personas, branches[0], branchFields, 'rule-41')).toBe(true);
+      expect(metAndFailed(personas, branches[0], branchFields, 'rule-42')).toBe(true);
+    }
+  });
+
+  it('returns valid personas when the clock passes the deadline during a fill', () => {
+    for (const reads of [1, 5, 20, 80, 300]) {
+      let clock = 0;
+      const old = oldPersonas(reads);
+      const request = fillRequestOf(WITH_NATIONALITY, reads, old);
+      const result = generatePersonas(request, { deadline: reads, now: () => (clock += 1) });
+      expectValid(personasOf(request, result), fields);
+      result.slots.forEach((slot) => expect(Object.keys(slot.values)).toEqual([NATIONALITY_KEY]));
+    }
+  });
+
+  it('gives equal results for equal seeds', () => {
+    const old = oldPersonas(3);
+    const answer = (seed: number) =>
+      JSON.stringify(generatePersonas(fillRequestOf(WITH_NATIONALITY, seed, old), NO_DEADLINE));
+    expect(answer(9)).toBe(answer(9));
+  });
 });

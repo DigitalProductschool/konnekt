@@ -25,8 +25,9 @@ const UNSELECTED_CLASSES = 'border border-(--kern-color-decorative-border-defaul
  * outcome for the shown variant, a check circle when it meets it, the warning diamond when not.
  * The chip shows no outcome text: its accessible name carries it ("Mia Schulz: doesn’t meet the
  * rules of Standard", `chipNameOf()`). Without a result, no icon and the name alone (design-notes
- * §3.1); while the persona is generated anew, the loading ring in the icon's place (frame 19,
- * 7062:51295). The chip controls the persona panel
+ * §3.1); while the persona is generated anew or filled with data for new fields (`'generating'`,
+ * `'filling'`: a fill run looks like frame 19, FR-020), the loading ring in the icon's place
+ * (7062:51295), and the name stays. The chip controls the persona panel
  */
 export default function PersonaChip({
   persona,
@@ -49,7 +50,7 @@ export default function PersonaChip({
       onKeyDown={onKeyDown}
       className={`${CHIP_CLASSES} ${selected ? SELECTED_CLASSES : UNSELECTED_CLASSES}`}
     >
-      {persona.status === 'generating' && <LoadingRing />}
+      {persona.status !== 'ready' && <LoadingRing />}
       {meets !== null && (
         <span
           aria-hidden="true"

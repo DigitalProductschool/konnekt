@@ -82,8 +82,12 @@ export interface Persona {
   values: Record<string, PersonaValue>;
   /** The values as generation last gave them */
   generated: Record<string, PersonaValue>;
-  /** `'generating'` shows the placeholder, without "Edit data" or "Generate again" (FR-013) */
-  status: 'ready' | 'generating';
+  /**
+   * `'generating'` (all its values are being made anew) and `'filling'` (a fill run gives it values
+   * for the fields that came into the rules, FR-020) show the placeholder, without "Edit data" or
+   * "Generate again" (FR-013). A persona that is neither has a result
+   */
+  status: 'ready' | 'generating' | 'filling';
 }
 
 // Persona state (data-model.md, "Persona state"; research R9, R10)
@@ -148,8 +152,8 @@ export interface PersonaState {
 }
 
 /**
- * The reducer's actions. US1's (T023) and the editing and confirm ones (T040); T051 adds the fill
- * run's.
+ * The reducer's actions. US1's (T023), the editing and confirm ones (T040) and the fill run of
+ * `opened` (T051).
  *
  * Every action that may start a run, or merge a request into the running one, carries `now`: the
  * time of the request in ms of `performance.timeOrigin + performance.now()`, which becomes the
@@ -158,7 +162,11 @@ export interface PersonaState {
  */
 export type PersonaAction =
   | {
-      /** The step opens with the current fields: selects the variant, may start the first run */
+      /**
+       * The step opens with the current fields: selects the variant, and may start the first run,
+       * or a fill run for the personas that lack a value for a field (`values` has no key for it;
+       * an empty value is a value) (FR-020)
+       */
       type: 'opened';
       fields: PersonaField[];
       /** The rules step's open branch */

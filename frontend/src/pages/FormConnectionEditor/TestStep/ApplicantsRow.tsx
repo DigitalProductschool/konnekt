@@ -28,7 +28,11 @@ import { runStatusTextOf } from './utils';
  * chips, and no tab list and no "Generate all again", only the status "Creating 3 sample
  * applicants…". While some are generated anew (frame 19), their chips stay, with a loading ring,
  * the status names them ("Creating new data for Mia…"), and "Generate all again" stays usable
- * after it. The status is always in the row, so that a run's text is announced when it starts
+ * after it. A fill run, after the team member returns from the rules step with new fields (FR-020),
+ * looks the same for each persona being filled, with the status "Adding new data for Mia…"
+ * (design-notes §8; `runStatusTextOf()`). A persona that isn't ready has no outcome icon, so its
+ * chip's accessible name is its name alone. The status is always in the row, so that a run's text
+ * is announced when it starts
  */
 export default function ApplicantsRow({
   personas,

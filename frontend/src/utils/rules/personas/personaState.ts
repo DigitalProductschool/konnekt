@@ -47,7 +47,7 @@ type SetValueAction = Extract<PersonaAction, { type: 'setValue' }>;
 export function personaStateReducer(state: PersonaState, action: PersonaAction): PersonaState {
   switch (action.type) {
     case 'opened':
-      return opened(state, action.openBranchKey, action.branchKeys, action.now);
+      return opened(state, action.fields, action.openBranchKey, action.branchKeys, action.now);
     case 'generateOne':
       return generateOne(state, action.slot, action.fields, action.now);
     case 'generateAll':
@@ -184,13 +184,22 @@ function startEditing(state: PersonaState, slot: PersonaSlot): PersonaState {
   return { ...state, editing: slot };
 }
 
+/** Whether the persona has no value, not even an empty one, for a current field (FR-020) */
+function lacksValue(persona: Persona, fields: readonly PersonaField[]): boolean {
+  return fields.some((field) => !Object.hasOwn(persona.values, field.key));
+}
+
 /**
  * The step opens: selects the rules step's open branch, or the first one when it is gone. Without
- * personas, without a run and without a failure, starts the first run with every slot free. A
- * running run is never started twice, and a failure stays until "Try again" (FR-013)
+ * personas, without a run and without a failure, starts the first run with every slot free. With
+ * personas, a persona that lacks a value for a current field is filled and the others are kept: a
+ * fill run, merged into a running one (research R9; FR-020). Hidden values are values, so a field
+ * that comes back is never filled. A running run is never started twice, and a failure stays until
+ * "Try again" (FR-013)
  */
 function opened(
   state: PersonaState,
+  fields: readonly PersonaField[],
   openBranchKey: string | null,
   branchKeys: readonly string[],
   now: number
@@ -204,10 +213,16 @@ function opened(
     branchKey === state.branchKey && state.editing === null
       ? state
       : { ...state, branchKey, editing: null };
-  if (next.personas === null && next.run === null && !next.failed) {
-    return requestRun(next, ALL_FREE, now);
+  if (next.personas === null) {
+    return next.run === null && !next.failed ? requestRun(next, ALL_FREE, now) : next;
   }
-  return next;
+  if (next.failed) {
+    return next;
+  }
+  const request = next.personas.map((persona): SlotKind =>
+    lacksValue(persona, fields) ? 'filled' : 'kept'
+  );
+  return request.includes('filled') ? requestRun(next, request, now) : next;
 }
 
 /** One persona generated anew, the other two kept (FR-012) */
@@ -219,7 +234,8 @@ function oneFree(slot: PersonaSlot): SlotKind[] {
  * Starts a run for `request`, or merges it into the running one: a new run id whose slots are the
  * union of both, so that the hook supersedes the running worker (research R9). Without personas
  * every slot is free. A request the running run already covers changes nothing. The personas of
- * free slots become placeholders, and a persona being generated leaves edit mode (FR-013)
+ * free slots become placeholders (`'generating'`), those of filled slots too, for their new
+ * fields (`'filling'`), and a persona being generated or filled leaves edit mode (FR-013)
  */
 function requestRun(state: PersonaState, request: readonly SlotKind[], now: number): PersonaState {
   const { personas, run } = state;
@@ -233,15 +249,27 @@ function requestRun(state: PersonaState, request: readonly SlotKind[], now: numb
   const runId = state.lastRunId + 1;
   return {
     ...state,
-    personas:
-      personas?.map((persona, index) =>
-        slots[index] === 'free' ? { ...persona, status: 'generating' } : persona
-      ) ?? null,
+    personas: personas?.map((persona, index) => placeholderOf(persona, slots[index])) ?? null,
     run: { runId, startedAt: now, slots },
     lastRunId: runId,
     failed: false,
-    editing: state.editing !== null && slots[state.editing] === 'free' ? null : state.editing,
+    editing: state.editing !== null && slots[state.editing] !== 'kept' ? null : state.editing,
   };
+}
+
+/**
+ * The persona as a run of `kind` leaves it: a free slot's is `'generating'`, a filled slot's
+ * `'filling'` unless it is generated anyway, a kept slot's stays as it is
+ */
+function placeholderOf(persona: Persona, kind: SlotKind): Persona {
+  const status =
+    kind === 'free' ? 'generating' : kind === 'filled' ? fillingStatusOf(persona) : persona.status;
+  return status === persona.status ? persona : { ...persona, status };
+}
+
+/** `'filling'` for a persona that is ready, and what it is for one that is already a placeholder */
+function fillingStatusOf(persona: Persona): Persona['status'] {
+  return persona.status === 'ready' ? 'filling' : persona.status;
 }
 
 /** The kind of a slot that two requests ask for: the one that generates more of it */
@@ -291,13 +319,18 @@ function runSucceeded(
             generated: { ...answer.values },
             status: 'ready',
           };
-        case 'filled':
+        case 'filled': {
+          // Only the fields that were absent: a value the persona has is fixed (FR-020)
+          const added = Object.fromEntries(
+            Object.entries(answer.values).filter(([key]) => !Object.hasOwn(persona.values, key))
+          );
           return {
             ...persona,
-            values: { ...persona.values, ...answer.values },
-            generated: { ...persona.generated, ...answer.values },
+            values: { ...persona.values, ...added },
+            generated: { ...persona.generated, ...added },
             status: 'ready',
           };
+        }
         case 'kept':
           return persona;
       }
@@ -308,14 +341,14 @@ function runSucceeded(
 
 /**
  * The failure state (FR-013, F7): no run, and the personas keep their last values, those being
- * generated back to `'ready'` with them
+ * generated or filled back to `'ready'` with them
  */
 function failed(state: PersonaState): PersonaState {
   return {
     ...state,
     personas:
       state.personas?.map((persona) =>
-        persona.status === 'generating' ? { ...persona, status: 'ready' } : persona
+        persona.status === 'ready' ? persona : { ...persona, status: 'ready' }
       ) ?? null,
     run: null,
     failed: true,

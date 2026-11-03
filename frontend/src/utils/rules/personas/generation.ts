@@ -27,8 +27,11 @@
 //
 // Each planned slot plans on its own formulas (`SlotFormulas`): the classes' formulas and their
 // negations, the items' formulas and the vectors it can reach. They are the same for every free
-// slot; a filled slot will plan on formulas with its fixed values substituted (T050, research R8).
-// Until then a filled slot gets plausible values for its absent fields and stays, like a kept one.
+// slot. A filled slot plans on the formulas with its fixed values substituted (`filledFormulasOf()`,
+// `substitute.ts`, research R8): its values for the fields it has, hidden ones included, are
+// decided, so the formulas speak only of the absent fields, and its vectors and item targets are
+// those it can still reach. Its new values cover only the absent fields. A filled slot with no
+// absent field, like a kept one, stays as it is.
 //
 // Bounded (FR-013): every solver question gets the deadline and the clock, a restart doesn't start
 // once the deadline has passed, and a plan whose questions the deadline cut is dropped, so the run
@@ -37,7 +40,7 @@
 // reaches `checks/text.ts`, so it runs in the worker only (tasks.md, "Bundle")
 import type { GroupItem, RuleItem, RuleTreeItem } from '../../../types/form-connections';
 import { dayNumber } from '../checks/calendar';
-import { allOf, negate } from '../checks/literals';
+import { allOf, negate, simplify } from '../checks/literals';
 import { satisfiable } from '../checks/solver';
 import type { CheckedBranch, CheckedItem, CheckOptions, Formula, Literal } from '../checks/types';
 import { evaluateBranch, type EvaluatedBranch, type EvaluatedItem } from '../evaluation';
@@ -51,6 +54,7 @@ import {
   itemKeysOf,
   mergedVariablesOf,
   type PersonaOutcome,
+  realizableVectors,
   scoreOf,
   vectorOf,
 } from './goals';
@@ -58,6 +62,11 @@ import { modelOf, plausibilityLiteralsOf } from './models';
 import { createRandom, type Random } from './random';
 import { drawNames } from './samples';
 import { sampleValues } from './sampling';
+import {
+  substituteBranches,
+  substitutedClassFormulas,
+  substitutedItemFormulas,
+} from './substitute';
 import type {
   GenerationRequest,
   GenerationResult,
@@ -185,7 +194,10 @@ export function generatePersonas(
       itemKeys: itemKeysOf(tree),
     })),
   };
-  const values = slots.some(isPlanned) && !passed(options) ? planned(run, fallback) : fallback;
+  const values =
+    slots.some((slot) => isPlanned(slot, request)) && !passed(options)
+      ? planned(run, fallback)
+      : fallback;
   return { slots: slots.map((slot, index) => answerOf(slot, values[index])) };
 }
 
@@ -206,11 +218,20 @@ function slotsOf(request: GenerationRequest, random: Random): Slot[] {
 }
 
 /**
- * Whether the run plans the slot. Free slots only: a filled slot will plan on its substituted
- * formulas (T050); until then it keeps the plausible values of its absent fields
+ * Whether the run plans the slot: a free one, and a filled one that lacks a value for some field
+ * of the request. A kept slot, and a filled one with nothing to fill, stay as they are
  */
-function isPlanned(slot: Slot): boolean {
-  return slot.plan.kind === 'free';
+function isPlanned(slot: Slot, request: GenerationRequest): boolean {
+  switch (slot.plan.kind) {
+    case 'free':
+      return true;
+    case 'filled': {
+      const { values } = slot.plan;
+      return request.fields.some((field) => !Object.hasOwn(values, field.key));
+    }
+    case 'kept':
+      return false;
+  }
 }
 
 /** A slot's part of the answer (contracts/personas.md, "Worker protocol") */
@@ -272,19 +293,39 @@ function planned(run: Run, fallback: ValueSet): ValueSet {
   if (passed(options)) {
     return fallback;
   }
-  const formulas = freeFormulasOf(goals);
+  const free = freeFormulasOf(goals);
   const plannedSlots: PlannedSlot[] = slots.flatMap((slot, index) =>
-    isPlanned(slot) ? [{ index, formulas }] : []
+    isPlanned(slot, request)
+      ? [
+          {
+            index,
+            formulas: slot.plan.kind === 'filled' ? filledFormulasOf(run, goals, slot, free) : free,
+          },
+        ]
+      : []
   );
+  if (passed(options)) {
+    return fallback;
+  }
   const staying = slots.flatMap((slot, index) =>
-    isPlanned(slot) ? [] : [outcomeOf(fallback[index], run, goals)]
+    isPlanned(slot, request) ? [] : [outcomeOf(fallback[index], run, goals)]
   );
   const vectorTargets = goals.targets.filter((target) => target.goal !== 4);
   const itemTargets = goals.targets.filter((target): target is ItemTarget => target.goal === 4);
   const chooser = vectorChooserOf(plannedSlots, staying, vectorTargets, random);
-  const bound: Score = [...chooser.bound, itemTargets.length];
+  const stays = (target: ItemTarget) => staying.some((outcome) => covers(target, outcome));
+  // A planned slot whose fixed values decide an item (its substituted formula is a constant) covers
+  // the item's target for sure when the constant is `true`, and can't when it is `false`
+  const outcomeOfTarget = (formulas: SlotFormulas, target: ItemTarget): Formula | undefined =>
+    formulas.items.get(target.item)?.[target.type === 'meet' ? 'meet' : 'fail'];
+  const decided = (target: ItemTarget) =>
+    plannedSlots.some(({ formulas }) => outcomeOfTarget(formulas, target) === true);
+  const coverable = (target: ItemTarget) =>
+    stays(target) ||
+    plannedSlots.some(({ formulas }) => outcomeOfTarget(formulas, target) !== false);
+  const bound: Score = [...chooser.bound, itemTargets.filter(coverable).length];
   const plausible = plausibilityLiteralsOf(request.fields, goals.solver.variables, request.today);
-  const open = itemTargets.filter((target) => !staying.some((outcome) => covers(target, outcome)));
+  const open = itemTargets.filter((target) => !stays(target) && !decided(target));
 
   const parts: PartAnswers = new Map();
   const scoreOfSet = (values: ValueSet): Score =>
@@ -344,6 +385,43 @@ function freeFormulasOf(goals: Goals): SlotFormulas {
     ),
     vectors: goals.vectors,
   };
+}
+
+/**
+ * A filled slot's formulas (research R8): the branches with the slot's fixed values substituted
+ * (`substituteBranches()`), each class's formula and each item's, simplified so that what its fixed
+ * values decide is a constant, and the vectors realizable over what is left. Negation comes after
+ * substitution. A slot without fixed values plans on the `free` formulas. The solver reads the
+ * original branches' variables (`goals.solver`): substitution only changes formulas
+ */
+function filledFormulasOf(run: Run, goals: Goals, slot: Slot, free: SlotFormulas): SlotFormulas {
+  const { request, sharedOn } = run;
+  if (Object.keys(slot.plan.values).length === 0) {
+    return free;
+  }
+  const substituted = substituteBranches(request.branches, {
+    fixed: slot.plan.values,
+    fields: request.fields,
+    context: request.context,
+    sharedOn,
+  });
+  const meet = substitutedClassFormulas(goals.classes, substituted).map(simplify);
+  const byKey = substitutedItemFormulas(
+    request.branches.map((branch) => branch.checked),
+    substituted
+  );
+  const items = new Map<string, ItemFormulas>(
+    goals.items.map((item) => {
+      const formula = simplify(byKey.get(item.key) ?? item.formula);
+      return [item.key, { meet: formula, fail: negate(formula) }];
+    })
+  );
+  const vectors = realizableVectors(
+    goals.classes.map((each, index) => ({ ...each, formula: meet[index] })),
+    request.today,
+    goals.solver
+  );
+  return { meet, fail: meet.map(negate), items, vectors };
 }
 
 /** Whether a score reaches the bound on every goal: no restart can do better */
@@ -478,6 +556,10 @@ function assignTargets(
   };
   /** Whether two parts are 'unsat' together, asked once per run */
   const exclusive = (one: Part, other: Part): boolean => {
+    if (one.formula === false || other.formula === false) {
+      // A constant `false` (an item the slot's fixed values decide) excludes everything
+      return true;
+    }
     const [first, second] = one.id < other.id ? [one, other] : [other, one];
     let known = first.exclusive.get(second.id);
     if (known === undefined) {

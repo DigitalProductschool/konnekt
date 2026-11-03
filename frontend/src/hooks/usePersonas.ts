@@ -12,6 +12,7 @@ import {
   type Dispatch,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -147,6 +148,27 @@ interface PersonaWorker {
 /** No fields while `results.ts` or the context loads. Never changed */
 const NO_FIELDS: PersonaField[] = [];
 
+/**
+ * Whether a persona has no value, not even an empty one, for a field that the last request didn't
+ * carry, so that the worker couldn't give it one (FR-020). `postedKeys` is the keys of the fields
+ * of the last request, or `null` before the first. A field that the worker knew and still left
+ * empty doesn't count, which keeps a fill from repeating: only a change of the rules while a run
+ * was in flight leaves a field behind
+ */
+export function lacksUnrequestedValue(
+  personas: readonly Pick<Persona, 'values'>[] | null,
+  fields: readonly Pick<PersonaField, 'key'>[],
+  postedKeys: ReadonlySet<string> | null
+): boolean {
+  return (
+    personas?.some((persona) =>
+      fields.some(
+        (field) => !Object.hasOwn(persona.values, field.key) && !postedKeys?.has(field.key)
+      )
+    ) ?? false
+  );
+}
+
 /** The clock of the deadline and the watchdog, the same as the worker's */
 function clockNow(): number {
   return performance.timeOrigin + performance.now();
@@ -205,7 +227,12 @@ function stopWorker(workerRef: { current: PersonaWorker | null }): void {
   workerRef.current = null;
 }
 
-/** The 'generate' message of `run`: per slot its kind, the persona's name and its values */
+/**
+ * The 'generate' message of `run`: per slot its kind, the persona's name and its values. A filled
+ * slot (FR-020) carries all of the persona's values, hidden ones included, which are fixed: the
+ * worker substitutes them into the rules and answers only the fields the persona lacks. The
+ * personas are those after the run was requested, so a persona being filled still has its values
+ */
 function generateMessageOf(
   run: GenerationRun,
   personas: readonly Persona[] | null,
@@ -277,6 +304,9 @@ function useResultsModule(
  * - The first activation loads `results.ts`. Once it has loaded and `context` isn't null, each
  *   activation dispatches `opened` with the current fields, which may start the first run.
  * - No run starts while `active` is false, but a started run continues and its values apply.
+ * - A run that was in flight when the step opened with changed rules lacks the new fields when it
+ *   answers: the hook then dispatches `opened` again, once per set of fields, so that they are
+ *   filled.
  * - Each run gets the worker, created lazily: a superseded run's worker is terminated first, an
  *   idle one is reused. The request is posted with a fresh seed and `deadline = startedAt +
  *   GENERATION_STOP_MS`; the watchdog fails the run at `startedAt + GENERATION_WATCHDOG_MS`. A
@@ -292,6 +322,8 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
   const today = useTodayInGermany();
   const workerRef = useRef<PersonaWorker | null>(null);
   const openedRef = useRef(false);
+  // The keys of the fields in the last request, for the fill after a run that missed new fields
+  const postedKeysRef = useRef<ReadonlySet<string> | null>(null);
   const resultsModule = load.status === 'loaded' ? load.resultsModule : null;
   const { run, personas } = state;
 
@@ -317,24 +349,59 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
     [resultsModule, context, fields]
   );
 
-  // Each activation opens the step once, as soon as the module and the context are there
-  useEffect(() => {
+  // Each activation opens the step once, as soon as the module and the context are there.
+  //
+  // The step may be opened while a run is in flight, after the rules changed: `opened` finds the
+  // run covering the request and changes nothing, but the worker had the old fields. When that
+  // run has answered, the personas lack values for the new fields: opened again, which fills them
+  // (FR-020). Not in the pass that opened the step, whose state is stale, and not while a persona
+  // is in edit mode, which `opened` would end. It repeats only when the last request lacked the
+  // field, so a worker that leaves a field empty doesn't start it again.
+  //
+  // A layout effect, so that the personas that lack a value for a new field become placeholders
+  // before the first paint: as a passive effect, the step showed "Not shared" for the new field
+  // for a frame or two
+  useLayoutEffect(() => {
     if (!active) {
       openedRef.current = false;
       return;
     }
-    if (openedRef.current || !resultsModule || !context) {
+    if (!resultsModule || !context) {
       return;
     }
-    openedRef.current = true;
-    dispatch({
-      type: 'opened',
-      fields,
-      openBranchKey,
-      branchKeys: branches.map((branch) => branch.key),
-      now: clockNow(),
-    });
-  }, [active, resultsModule, context, fields, openBranchKey, branches]);
+    const branchKeys = branches.map((branch) => branch.key);
+    if (!openedRef.current) {
+      openedRef.current = true;
+      dispatch({ type: 'opened', fields, openBranchKey, branchKeys, now: clockNow() });
+      return;
+    }
+    if (
+      run === null &&
+      !state.failed &&
+      state.editing === null &&
+      lacksUnrequestedValue(personas, fields, postedKeysRef.current)
+    ) {
+      dispatch({
+        type: 'opened',
+        fields,
+        openBranchKey: state.branchKey,
+        branchKeys,
+        now: clockNow(),
+      });
+    }
+  }, [
+    active,
+    resultsModule,
+    context,
+    fields,
+    openBranchKey,
+    branches,
+    run,
+    personas,
+    state.failed,
+    state.editing,
+    state.branchKey,
+  ]);
 
   // The watchdog of each run, from its request, also while its request waits for the module
   useEffect(() => {
@@ -369,6 +436,7 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
     workerRef.current = entry;
     entry.runId = run.runId;
     entry.busy = true;
+    postedKeysRef.current = new Set(fields.map((field) => field.key));
     entry.worker.postMessage(
       generateMessageOf(run, personas, resultsModule, branches, context, fields, today)
     );

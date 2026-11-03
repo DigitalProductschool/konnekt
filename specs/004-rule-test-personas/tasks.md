@@ -419,27 +419,27 @@ and branches, and return (quickstart V5).
 
 ### Logic for User Story 3 (with Vitest)
 
-- [ ] T049 [P] [US3] Write `personas/substitute.ts` with `substitute.test.ts` (research R8; data-model.md "Substitution").
+- [X] T049 [P] [US3] Write `personas/substitute.ts` with `substitute.test.ts` (research R8; data-model.md "Substitution").
   - Turns a branch's checked tree and a slot's fixed values into a formula over the free variables, rule by rule and before any negation:
     - all of a rule's values fixed: `true` if `ruleOutcome()` (`evaluation.ts`) is `'met'`, `false` otherwise;
     - none fixed: its formula, unchanged;
     - class K's date, classes fixed and date free: `false` if the classes are empty or lack K, the date's literal otherwise;
     - class K's date, date fixed and classes free: `false` if the date is empty, `held(K) ∧ (ruleOutcome() for the date is 'met')` otherwise.
   - Tests: each row; ¬X is true for a rule X on an empty value, as the evaluation counts it; hidden values count as fixed.
-- [ ] T050 [US3] Add filled slots to `personas/generation.ts`, with properties in `personas/generation.test.ts` (depends on T019, T049; research R8; contracts/personas.md "Keeps"; FR-020).
+- [X] T050 [US3] Add filled slots to `personas/generation.ts`, with properties in `personas/generation.test.ts` (depends on T019, T049; research R8; contracts/personas.md "Keeps"; FR-020).
   - A filled slot plans on its substituted formulas (`substitute.ts`) for goals 1 to 4, and its new values cover only the fields that were absent. Hidden values are fixed, never filled.
   - Properties: a fill changes no existing value; a new rule on a free field is met by one persona and failed by another where applicants can do both (US3-AS2).
-- [ ] T051 [P] [US3] Add the fill run to `personas/personaState.ts`, with `personaState.test.ts` (depends on T040; research R9, R10; data-model.md "Actions"; FR-019, FR-020).
+- [X] T051 [P] [US3] Add the fill run to `personas/personaState.ts`, with `personaState.test.ts` (depends on T040; research R9, R10; data-model.md "Actions"; FR-019, FR-020).
   - `opened` with personas that lack a value for a current field starts a fill run: those slots filled, the rest kept, merged with a running run as in T023. A filled slot's persona shows as a placeholder for its new fields.
   - `runSucceeded` for a filled slot writes only the new fields into `values` and `generated`.
   - `opened` selects the rules step's open branch, so a deleted variant's tab never stays selected (US3-AS4).
   - Tests: no fill without missing values; a fill alongside a running "Generate again"; hidden values never filled.
-- [ ] T052 [US3] Add US3's scenarios to `personas/scenarios.test.ts` (depends on T050, T051; research R14).
+- [X] T052 [US3] Add US3's scenarios to `personas/scenarios.test.ts` (depends on T050, T051; research R14).
   - US3-AS1: Standard's Rule 01 from 21 to 18 keeps every value and the results follow. US3-AS2: a new rule "Nationality includes one of Germany" gives every persona a nationality, at least one meets it and one doesn't, and no earlier value changes. US3-AS3: deleting the only rule on "City or town" removes the field and every result's dependence on it; adding it back brings the earlier values. US3-AS4: a branch added has results, a branch deleted has none. EC "A rule that the main branch changes": a based branch's results follow.
 
 ### UI for User Story 3
 
-- [ ] T053 [US3] Show fill runs and the rows that come and go in `TestStep/ApplicantsRow.tsx`, `TestStep/PersonaPanel.tsx` and `TestStep/PersonaPlaceholder.tsx` (depends on T051; S8.4, S8.8; W6, W7; FR-019, FR-020).
+- [X] T053 [US3] Show fill runs and the rows that come and go in `TestStep/ApplicantsRow.tsx`, `TestStep/PersonaPanel.tsx` and `TestStep/PersonaPlaceholder.tsx` (depends on T051; S8.4, S8.8; W6, W7; FR-019, FR-020).
   - Filling after returning from the rules step: as frame 19 for each persona being filled, with design-notes item 7's status text (T013).
   - The panel shows rows only for the current fields, so rows come and go with the rules, and a row that comes back keeps its earlier value (W6). Check that `usePersonas()` posts filled slots with their fixed values.
   - A later create or edit flow opens with frame 18 and three new personas (W7, US3-AS5).

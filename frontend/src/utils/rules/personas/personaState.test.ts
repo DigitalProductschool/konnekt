@@ -38,12 +38,15 @@ const FIELDS: PersonaField[] = [
   field(ISSUE_B, 'date', 'B'),
 ];
 
+/** The fields the personas of `answer()` have values for: the city only */
+const CITY_FIELDS: PersonaField[] = [field(CITY, 'text', null)];
+
 function opened(
   openBranchKey: string | null = 'b-ambulance',
   now = 1000,
   branchKeys: string[] = BRANCH_KEYS
 ): PersonaAction {
-  return { type: 'opened', fields: FIELDS, openBranchKey, branchKeys, now };
+  return { type: 'opened', fields: CITY_FIELDS, openBranchKey, branchKeys, now };
 }
 
 /** A generated answer: per slot, its city and its name drawn (or none) */
@@ -154,6 +157,185 @@ describe('opened', () => {
     expect(state.editing).toBeNull();
     expect(state.selected).toBe(1);
     expect(state.personas).toBe(before.personas);
+  });
+});
+
+/** The fields after the rules step added a field the personas have no value for */
+const NEW_FIELD = 'pid.address_region';
+const MORE_FIELDS: PersonaField[] = [...CITY_FIELDS, field(NEW_FIELD, 'text', null)];
+
+function openedWith(
+  fields: PersonaField[],
+  now = 5000,
+  openBranchKey = 'b-ambulance'
+): PersonaAction {
+  return { type: 'opened', fields, openBranchKey, branchKeys: BRANCH_KEYS, now };
+}
+
+const readyWithCities = ready;
+
+describe('opened: the fill run (FR-020)', () => {
+  it('starts no fill run without missing values, also for empty values and a field gone', () => {
+    const before = readyWithCities();
+    // Fewer fields than the personas have values for: the values are hidden, not missing
+    expect(reduce(before, openedWith(CITY_FIELDS))).toBe(before);
+    expect(reduce(before, openedWith([]))).toBe(before);
+    // An empty value is a value (the team member cleared it, or the document doesn't give it)
+    const emptied = reduce(before, {
+      type: 'setValue',
+      slot: 0,
+      key: CITY,
+      value: null,
+      before: {},
+      after: {},
+      branches: [],
+    });
+    expect(reduce(emptied, openedWith(CITY_FIELDS))).toBe(emptied);
+  });
+
+  it('[ready] → [ready + run]: fills every persona that lacks a value, with their values kept', () => {
+    const before = readyWithCities();
+    const state = reduce(before, openedWith(MORE_FIELDS, 7000, 'b-main'));
+    expect(state.run).toEqual({ runId: 2, startedAt: 7000, slots: ['filled', 'filled', 'filled'] });
+    expect(state.lastRunId).toBe(2);
+    expect(statuses(state)).toEqual(['filling', 'filling', 'filling']);
+    // Their values stay: the hook sends them as the filled slots' fixed values
+    expect(state.personas?.map((persona) => persona.values)).toEqual(
+      before.personas?.map((persona) => persona.values)
+    );
+    expect(state.branchKey).toBe('b-main');
+  });
+
+  it('fills only the personas that lack a value and keeps the others', () => {
+    const before = readyWithCities();
+    const some: PersonaState = {
+      ...before,
+      personas:
+        before.personas?.map((persona, index) =>
+          index === 1 ? { ...persona, values: { ...persona.values, [NEW_FIELD]: 'BW' } } : persona
+        ) ?? null,
+    };
+    const state = reduce(some, openedWith(MORE_FIELDS));
+    expect(state.run?.slots).toEqual(['filled', 'kept', 'filled']);
+    expect(statuses(state)).toEqual(['filling', 'ready', 'filling']);
+    expect(state.personas?.[1]).toBe(some.personas?.[1]);
+  });
+
+  it('never fills a hidden value: a field that comes back keeps its earlier value (W6)', () => {
+    const before = readyWithCities();
+    const hidden = reduce(before, openedWith([]));
+    expect(hidden.run).toBeNull();
+    const back = reduce(hidden, openedWith(CITY_FIELDS, 6000));
+    expect(back).toBe(hidden);
+    expect(cities(back)).toEqual(['Stuttgart', 'Ulm', 'Köln']);
+  });
+
+  it('writes only the new fields into `values` and `generated`, and the persona is ready', () => {
+    const running = reduce(ready(), openedWith(MORE_FIELDS));
+    const answers = ['BW', 'BY', 'NW'].map((region, index) => ({
+      // An answer that repeats an existing value doesn't change it
+      values: { [CITY]: 'Changed', [NEW_FIELD]: region } as Record<string, PersonaValue>,
+      name: index === 0 ? 'Other' : null,
+    }));
+    const state = reduce(running, succeeded(running, answers));
+    expect(state.run).toBeNull();
+    expect(statuses(state)).toEqual(['ready', 'ready', 'ready']);
+    expect(cities(state)).toEqual(['Stuttgart', 'Ulm', 'Köln']);
+    expect(state.personas?.map((persona) => persona.values[NEW_FIELD])).toEqual(['BW', 'BY', 'NW']);
+    expect(state.personas?.[0].generated).toEqual({ [CITY]: 'Stuttgart', [NEW_FIELD]: 'BW' });
+    expect(state.personas?.[0].name).toBe('Mia Schulz');
+    // An edit made earlier survives, so a fill adds fields, never replaces values
+    const edited = reduce(ready(), setCity(1, 'Heilbronn'));
+    const filling = reduce(edited, openedWith(MORE_FIELDS));
+    const done = reduce(filling, succeeded(filling, answers));
+    expect(cities(done)).toEqual(['Stuttgart', 'Heilbronn', 'Köln']);
+    expect(done.personas?.[1].generated[CITY]).toBe('Ulm');
+  });
+
+  it('a persona being filled has neither edit mode nor "Generate again" (FR-013)', () => {
+    const editing: PersonaState = { ...ready(), editing: 0 };
+    const state = reduce(editing, openedWith(MORE_FIELDS));
+    expect(state.editing).toBeNull();
+    expect(reduce(state, { type: 'startEditing', slot: 0 })).toBe(state);
+    expect(reduce(state, setCity(0, 'X'))).toBe(state);
+    expect(
+      reduce(state, { type: 'generateAll', fields: MORE_FIELDS, now: 9000 }).confirm
+    ).toBeNull();
+  });
+
+  it('opening again while the fill runs changes nothing', () => {
+    const filling = reduce(ready(), openedWith(MORE_FIELDS, 7000));
+    expect(reduce(filling, openedWith(MORE_FIELDS, 8000))).toBe(filling);
+  });
+
+  it('merges a fill into a running "Generate again": the generated slot stays free', () => {
+    const generating = reduce(ready(), {
+      type: 'generateOne',
+      slot: 0,
+      fields: FIELDS,
+      now: 3000,
+    });
+    expect(generating.run?.slots).toEqual(['free', 'kept', 'kept']);
+    const state = reduce(generating, openedWith(MORE_FIELDS, 4000));
+    expect(state.run).toEqual({ runId: 3, startedAt: 4000, slots: ['free', 'filled', 'filled'] });
+    expect(statuses(state)).toEqual(['generating', 'filling', 'filling']);
+    // The superseded run's answer is ignored
+    expect(reduce(state, { type: 'runSucceeded', runId: 2, slots: answer(['A', 'B', 'C']) })).toBe(
+      state
+    );
+    const answers = ['Esslingen', 'Neu-Ulm', 'Z'].map((city, index) => ({
+      values: (index === 0 ? { [CITY]: city, [NEW_FIELD]: 'BW' } : { [NEW_FIELD]: 'BY' }) as Record<
+        string,
+        PersonaValue
+      >,
+      name: null,
+    }));
+    const done = reduce(state, succeeded(state, answers));
+    expect(cities(done)).toEqual(['Esslingen', 'Ulm', 'Köln']);
+    expect(statuses(done)).toEqual(['ready', 'ready', 'ready']);
+    expect(done.personas?.map((persona) => persona.values[NEW_FIELD])).toEqual(['BW', 'BY', 'BY']);
+  });
+
+  it('merges a "Generate again" into a running fill: the slot becomes free', () => {
+    const filling = reduce(ready(), openedWith(MORE_FIELDS, 7000));
+    const state = reduce(filling, { type: 'generateOne', slot: 1, fields: MORE_FIELDS, now: 7500 });
+    expect(state.run).toEqual({ runId: 3, startedAt: 7500, slots: ['filled', 'free', 'filled'] });
+    expect(statuses(state)).toEqual(['filling', 'generating', 'filling']);
+    // "Generate all again" frees all three
+    const all = reduce(state, { type: 'generateAll', fields: MORE_FIELDS, now: 7600 });
+    expect(all.run?.slots).toEqual(['free', 'free', 'free']);
+    expect(statuses(all)).toEqual(['generating', 'generating', 'generating']);
+  });
+
+  it('a failed fill leaves the personas ready with their values, and the failure stays', () => {
+    const before = ready();
+    const filling = reduce(before, openedWith(MORE_FIELDS));
+    const failed = reduce(filling, { type: 'runFailed', runId: 2 });
+    expect(failed.failed).toBe(true);
+    expect(statuses(failed)).toEqual(['ready', 'ready', 'ready']);
+    expect(failed.personas?.map((persona) => persona.values)).toEqual(
+      before.personas?.map((persona) => persona.values)
+    );
+    // Opening again starts no run: the failure stays until "Try again"
+    expect(reduce(failed, openedWith(MORE_FIELDS, 9000))).toBe(failed);
+    const retried = reduce(failed, { type: 'retry', now: 9500 });
+    expect(retried.run?.slots).toEqual(['free', 'free', 'free']);
+  });
+
+  it('selects the open branch while it fills, and the first when the open one was deleted', () => {
+    const ambulance = reduce(ready(), openedWith(MORE_FIELDS, 7000, 'b-ambulance'));
+    expect(ambulance.branchKey).toBe('b-ambulance');
+    const deleted = reduce(
+      { ...ready(), branchKey: 'b-deleted' },
+      openedWith(MORE_FIELDS, 7000, 'b-deleted')
+    );
+    expect(deleted.branchKey).toBe('b-main');
+    expect(deleted.run?.slots).toEqual(['filled', 'filled', 'filled']);
+  });
+
+  it('keeps the selected persona through a fill', () => {
+    const state = reduce({ ...ready(), selected: 2 }, openedWith(MORE_FIELDS));
+    expect(state.selected).toBe(2);
   });
 });
 

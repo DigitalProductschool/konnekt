@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DocumentField } from '../../../types/document-types';
 import type { BranchInput, Condition, RuleItem, RuleTarget } from '../../../types/form-connections';
-import { addRuleToBranch, changeItem, newBranch, removeItem } from '../branches';
+import { addRuleToBranch, changeItem, newBranch, propagateMain, removeItem } from '../branches';
 import { dayNumber, parseDayNumber } from '../checks/calendar';
 import { buildCheckedBranch, type KeyedBranch } from '../checks/checkedTree';
 import { noticeText } from '../checks/findingMessages';
@@ -19,6 +19,7 @@ import { checkBranch } from '../checks/findings';
 import type { CheckOptions } from '../checks/types';
 import { evaluateBranch } from '../evaluation';
 import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
+import { deleteItem, replaceItem } from '../tree';
 import type { RuleContext } from '../types';
 import { announcementOf } from './announcements';
 import { applicantOf } from './applicant';
@@ -1328,5 +1329,300 @@ describe('SC-001: the evaluation’s edge cases, on edited values', () => {
       ),
     ];
     expect(outcomesOf(typed, respecting, 'standard')['rule-2']).toBe('met');
+  });
+});
+
+// User Story 3: keeping the personas while the rules change. The round trip is the hook's: the
+// rules step changes the branches, `opened` starts a fill run for a persona that lacks a value for
+// a current field, and the worker's answer ends it.
+
+const STANDARD_KEY = 'standard';
+const NATIONALITY_KEY = 'pid.nationalities';
+
+/** The three hand-made personas as the step holds them after its first run */
+function stateOfExample(): PersonaState {
+  return { ...firstRun(EXAMPLE, 1), personas: [MIA, JONAS, ANNA] };
+}
+
+/** The state after an edit of a persona's value, as the reducer applies it */
+function editedState(
+  state: PersonaState,
+  slot: PersonaSlot,
+  key: string,
+  value: PersonaValue
+): PersonaState {
+  return personaStateReducer(state, {
+    type: 'setValue',
+    slot,
+    key,
+    value,
+    before: {},
+    after: {},
+    branches: [],
+  });
+}
+
+/** The branches after a change of the main branch: Ambulance follows it (`propagateMain()`) */
+function afterMainChange(newMain: BranchInput, oldMain = STANDARD): KeyedBranch[] {
+  return [
+    keyed(newMain, STANDARD_KEY),
+    keyed(propagateMain(oldMain, newMain, AMBULANCE), 'ambulance'),
+  ];
+}
+
+/** The state back in the test step with `branches`: `opened`, and the answer of a run it starts */
+function returnedTo(
+  state: PersonaState,
+  branches: readonly KeyedBranch[],
+  seed: number,
+  openBranchKey: string = STANDARD_KEY
+): { opened: PersonaState; done: PersonaState } {
+  const opened = personaStateReducer(state, {
+    type: 'opened',
+    fields: fieldsOf(branches),
+    openBranchKey,
+    branchKeys: branches.map((branch) => branch.key),
+    now: 0,
+  });
+  return { opened, done: opened.run === null ? opened : answered(opened, branches, seed) };
+}
+
+/** The personas the state holds */
+function personasIn(state: PersonaState): Persona[] {
+  return must(state.personas);
+}
+
+/** Standard's items with `item` replacing the rule of its identifier */
+function mainWith(item: RuleItem): BranchInput {
+  return mainBranch(replaceItem(STANDARD.items, item));
+}
+
+describe('US3-AS1: Standard’s Rule 01 from 21 to 18 keeps every value and the results follow', () => {
+  // A persona of 19 years and a month: too young for 21, old enough for 18
+  const AGE_19 = '2007-10-01';
+  const LOWERED = afterMainChange(
+    mainWith({ ...AGE, condition: { operator: 'at_least_years_ago', years: 18 } })
+  );
+
+  it('keeps every value, the names and the order, and starts no run', () => {
+    const before = editedState(stateOfExample(), 0, BIRTH, AGE_19);
+    const { opened, done } = returnedTo(before, LOWERED, 4);
+    expect(opened.run).toBeNull();
+    expect(done.personas).toBe(before.personas);
+    expect(personasIn(done).map((each) => each.name)).toEqual([
+      'Mia Schulz',
+      'Jonas Weber',
+      'Anna Becker',
+    ]);
+    expect(personasIn(done)[0].values[BIRTH]).toBe(AGE_19);
+    expect(opened.branchKey).toBe(STANDARD_KEY);
+  });
+
+  it('judges Rule 01 by the new limit, and no other rule changes', () => {
+    const subject = personasIn(editedState(stateOfExample(), 0, BIRTH, AGE_19))[0];
+    expect(outcomesOf(subject, EXAMPLE, 'standard')).toMatchObject({ 'rule-1': 'not_met' });
+    expect(outcomesOf(subject, LOWERED, 'standard')).toMatchObject({ 'rule-1': 'met' });
+    const { 'rule-1': _before, ...othersBefore } = outcomesOf(subject, EXAMPLE, 'standard');
+    const { 'rule-1': _after, ...othersAfter } = outcomesOf(subject, LOWERED, 'standard');
+    expect(othersAfter).toEqual(othersBefore);
+    expect(viewOf(subject, EXAMPLE, 'standard').meets).toBe(false);
+    expect(viewOf(subject, LOWERED, 'standard').meets).toBe(true);
+  });
+
+  it('shows the same rows and fields, with Rule 01 judged anew', () => {
+    expect(fieldsOf(LOWERED)).toEqual(fieldsOf(EXAMPLE));
+    const jonas = viewOf(JONAS, LOWERED, 'standard');
+    expect(jonas.meets).toBe(true);
+    expect(rowsOf(jonas).map((row) => row[1])).toEqual(['met', 'met', 'met', 'met']);
+  });
+});
+
+describe('US3-AS2: a new rule on "Nationality" gives every persona a nationality', () => {
+  const NATIONALITY = rule(5, target('pid', 'nationalities'), {
+    operator: 'includes_one_of',
+    values: ['DE'],
+  });
+  const WITH = afterMainChange(mainBranch([...STANDARD.items, NATIONALITY]));
+
+  it('adds the field to the personas’ fields, and Ambulance follows', () => {
+    expect(fieldsOf(WITH).map((each) => each.key)).toEqual([
+      BIRTH,
+      NATIONALITY_KEY,
+      CITY_KEY,
+      CLASSES,
+      ISSUE_B,
+    ]);
+    expect(outcomesOf(MIA, WITH, 'ambulance')).toHaveProperty('rule-5');
+  });
+
+  it('fills every persona, while it is generated shows each as filling', () => {
+    const { opened } = returnedTo(stateOfExample(), WITH, 2);
+    expect(opened.run?.slots).toEqual(['filled', 'filled', 'filled']);
+    expect(personasIn(opened).map((each) => each.status)).toEqual([
+      'filling',
+      'filling',
+      'filling',
+    ]);
+  });
+
+  it(
+    'gives each a nationality, one that meets the rule and one that doesn’t, and changes no value',
+    () => {
+      const before = [MIA, JONAS, ANNA];
+      for (const seed of SEEDS) {
+        const { done } = returnedTo(stateOfExample(), WITH, seed);
+        const personas = personasIn(done);
+        expect(done.run, `seed ${seed}`).toBeNull();
+        expect(
+          personas.map((each) => each.status),
+          `seed ${seed}`
+        ).toEqual(['ready', 'ready', 'ready']);
+        personas.forEach((each, index) => {
+          expect(Object.hasOwn(each.values, NATIONALITY_KEY), `seed ${seed}`).toBe(true);
+          expect(each.values, `seed ${seed}`).toMatchObject(before[index].values);
+          expect(each.name).toBe(before[index].name);
+        });
+        const outcomes = personas.map((each) => outcomesOf(each, WITH, 'standard')['rule-5']);
+        expect(outcomes, `seed ${seed}`).toContain('met');
+        expect(outcomes, `seed ${seed}`).toContain('not_met');
+      }
+    },
+    GENERATING
+  );
+
+  it('shows the nationality as a row of the panel’s fields', () => {
+    const { done } = returnedTo(stateOfExample(), WITH, 6);
+    const shown = shownFieldsOf(personasIn(done)[0], fieldsOf(WITH));
+    expect(shown.map((each) => each.key)).toContain(NATIONALITY_KEY);
+  });
+});
+
+describe('US3-AS3: deleting the only rule on "City or town" removes the field, adding it back returns the value', () => {
+  const WITHOUT = afterMainChange(mainBranch(must(deleteItem(STANDARD.items, 'rule-2')).items));
+
+  it('removes the field, and no result depends on it', () => {
+    expect(fieldsOf(WITHOUT).map((each) => each.key)).not.toContain(CITY_KEY);
+    for (const branchKey of ['standard', 'ambulance']) {
+      expect(outcomesOf(MIA, WITHOUT, branchKey)).not.toHaveProperty('rule-2');
+    }
+    // Whatever the city is, every outcome stays the same
+    const elsewhere = edited(MIA, CITY_KEY, 'Esslingen');
+    expect(outcomesOf(elsewhere, WITHOUT, 'standard')).toEqual(
+      outcomesOf(MIA, WITHOUT, 'standard')
+    );
+    expect(viewOf(elsewhere, WITHOUT, 'ambulance').meets).toBe(true);
+    expect(rowsOf(viewOf(elsewhere, WITHOUT, 'standard')).map((row) => row[0])).toEqual([
+      'rule-1',
+      'rule-3',
+      'rule-4',
+    ]);
+    expect(
+      resultsOf([MIA, JONAS, ANNA], WITHOUT)['persona-1']?.standard?.items.map(
+        (each) => each.item.id
+      )
+    ).not.toContain('rule-2');
+  });
+
+  it('starts no run, and keeps the city as a value that is never shown', () => {
+    const { opened, done } = returnedTo(stateOfExample(), WITHOUT, 3);
+    expect(opened.run).toBeNull();
+    expect(personasIn(done).map((each) => each.values[CITY_KEY])).toEqual([
+      'Stuttgart',
+      'stuttgart',
+      'Esslingen',
+    ]);
+    const fields = fieldsOf(WITHOUT);
+    expect(shownFieldsOf(personasIn(done)[0], fields).map((each) => each.key)).not.toContain(
+      CITY_KEY
+    );
+  });
+
+  it('brings the earlier value back with the rule, and fills nobody', () => {
+    const state = stateOfExample();
+    const edited = editedState(state, 1, CITY_KEY, 'Böblingen');
+    const away = returnedTo(edited, WITHOUT, 3).done;
+    const back = returnedTo(away, EXAMPLE, 7);
+    expect(back.opened.run).toBeNull();
+    expect(back.done.personas).toBe(edited.personas);
+    expect(personasIn(back.done).map((each) => each.values[CITY_KEY])).toEqual([
+      'Stuttgart',
+      'Böblingen',
+      'Esslingen',
+    ]);
+    expect(fieldsOf(EXAMPLE).map((each) => each.key)).toContain(CITY_KEY);
+    expect(outcomesOf(personasIn(back.done)[1], EXAMPLE, 'standard')['rule-2']).toBe('not_met');
+    expect(outcomesOf(personasIn(back.done)[0], EXAMPLE, 'standard')['rule-2']).toBe('met');
+  });
+});
+
+describe('US3-AS4: a branch added has results, a branch deleted has none', () => {
+  const SCHOOL = keyed(
+    must(
+      addRuleToBranch(
+        newBranch(STANDARD, 'empty', 'School transport', null),
+        rule(5, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 22 })
+      )
+    ),
+    'school'
+  );
+  const WITH_SCHOOL = [...EXAMPLE, SCHOOL];
+
+  it('gives every persona results for the new branch', () => {
+    const { opened, done } = returnedTo(stateOfExample(), WITH_SCHOOL, 5);
+    expect(opened.run).toBeNull();
+    const results = resultsOf(personasIn(done), WITH_SCHOOL);
+    for (const id of ['persona-1', 'persona-2', 'persona-3'] as const) {
+      expect(Object.keys(results[id] ?? {})).toEqual(['standard', 'ambulance', 'school']);
+    }
+    expect(viewOf(MIA, WITH_SCHOOL, 'school').meets).toBe(true);
+    expect(viewOf(JONAS, WITH_SCHOOL, 'school').meets).toBe(false);
+    expect(rowsOf(viewOf(JONAS, WITH_SCHOOL, 'school'))).toEqual([
+      ['rule-5', 'not_met', 'You must meet this rule.', true],
+    ]);
+  });
+
+  it('removes the results of a deleted branch, and selects the first branch again', () => {
+    const open = returnedTo(stateOfExample(), WITH_SCHOOL, 5, 'school').opened;
+    expect(open.branchKey).toBe('school');
+    const deleted = returnedTo(open, EXAMPLE, 5, 'school');
+    expect(deleted.opened.branchKey).toBe(STANDARD_KEY);
+    const results = resultsOf(personasIn(deleted.done), EXAMPLE);
+    for (const id of ['persona-1', 'persona-2', 'persona-3'] as const) {
+      expect(Object.keys(results[id] ?? {})).toEqual(['standard', 'ambulance']);
+      expect(results[id]?.school).toBeUndefined();
+    }
+  });
+});
+
+describe('EC "A rule that the main branch changes": a based branch’s results follow', () => {
+  const ESSLINGEN = mainWith({
+    ...CITY,
+    condition: { operator: 'equal_to', value: 'Esslingen', match_case: false },
+  });
+  const CHANGED = afterMainChange(ESSLINGEN);
+
+  it('judges Ambulance’s inherited Rule 02 by the main branch’s new city', () => {
+    expect(outcomesOf(MIA, EXAMPLE, 'ambulance')['rule-2']).toBe('met');
+    expect(outcomesOf(MIA, CHANGED, 'ambulance')['rule-2']).toBe('not_met');
+    expect(outcomesOf(ANNA, EXAMPLE, 'ambulance')['rule-2']).toBe('not_met');
+    expect(outcomesOf(ANNA, CHANGED, 'ambulance')['rule-2']).toBe('met');
+    expect(viewOf(MIA, CHANGED, 'standard').meets).toBe(false);
+    expect(viewOf(MIA, CHANGED, 'ambulance').meets).toBe(false);
+  });
+
+  it('keeps the personas as they are, and starts no run', () => {
+    const state = stateOfExample();
+    const { opened, done } = returnedTo(state, CHANGED, 9);
+    expect(opened.run).toBeNull();
+    expect(done.personas).toBe(state.personas);
+  });
+
+  it('leaves a changed rule of the branch alone: Ambulance keeps its 19 years', () => {
+    const lowered = afterMainChange(
+      mainWith({ ...AGE, condition: { operator: 'at_least_years_ago', years: 18 } })
+    );
+    const eighteen = edited(MIA, BIRTH, '2008-10-01');
+    expect(outcomesOf(eighteen, lowered, 'standard')['rule-1']).toBe('met');
+    expect(outcomesOf(eighteen, lowered, 'ambulance')['rule-1']).toBe('not_met');
   });
 });

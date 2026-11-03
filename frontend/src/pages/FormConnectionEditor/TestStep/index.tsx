@@ -29,9 +29,10 @@ import VariantTabs from './VariantTabs';
  * - failure (`state.failed`, or a catalog that couldn't load; S8.9): no test-day line, and the
  *   failure in place of the row and the panel;
  * - results: the test-day line, the chips, and the selected persona's cards; while some personas
- *   are generated anew (frame 19), their chips show a loading ring, the status names them, and the
- *   selected one's cards are skeletons, without "Edit data" or "Generate again", while the others
- *   stay usable.
+ *   are generated anew or filled with data for the rules' new fields (frame 19; "Adding new data for
+ *   Mia…" after returning from the rules step, FR-020), their chips show a loading ring, the
+ *   status names them, and the selected one's cards are skeletons, without "Edit data" or
+ *   "Generate again", while the others stay usable.
  *
  * Before generating anew, a persona with changes gets a question (`RegenerateDialog`, S8.7), and
  * the changes' effects on the outcomes are announced by `PersonasAnnouncer` (S8.10).
@@ -76,7 +77,8 @@ export default function TestStep({
   const creatingAll = !failed && (loaded === null || createsAll(state.run));
   const shown = creatingAll ? null : loaded;
   const persona = shown?.personas[state.selected] ?? null;
-  // A persona being generated anew shows its placeholder (frame 19)
+  // A persona being generated anew, or filled with data for new fields, shows its placeholder
+  // (frame 19; FR-020)
   const ready = persona?.status === 'ready' ? persona : null;
   const result = shown && ready ? shown.results[ready.id]?.[branch.key] : undefined;
   const view = shown && ready && result ? shown.viewOf(result, branch, ready) : null;
@@ -91,13 +93,14 @@ export default function TestStep({
     : creatingAll
       ? LOADING_STATUS_ID
       : persona && ELEMENT_IDS.personaChip(persona.id);
-  // Changes with every change of state: failure, frame 18, or which personas are generated anew
+  // Changes with every change of state: failure, frame 18, or which personas are generated anew or
+  // filled (every persona that isn't ready)
   const phase = failed
     ? 'failed'
     : creatingAll
       ? 'creatingAll'
       : (shown?.personas ?? [])
-          .filter((entry) => entry.status === 'generating')
+          .filter((entry) => entry.status !== 'ready')
           .map((entry) => entry.id)
           .join(' ');
 

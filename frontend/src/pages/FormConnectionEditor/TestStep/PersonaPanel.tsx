@@ -10,7 +10,12 @@ import type { PersonaPanelProps } from './types';
  * doesn't scroll itself: it shares the scrolling panel of `TestStep` with the results (K3; U08
  * 7058:61704, 7058:61705), and stretches to the results' height there, as both cards are 714px
  * high in U08. Only a ready persona has it: while the persona is generated, `TestStep` shows
- * `PersonaPlaceholder` in its place, without "Edit data" or "Generate again" (S8.8; FR-013)
+ * `PersonaPlaceholder` in its place, without "Edit data" or "Generate again" (S8.8; FR-013); that
+ * goes for a persona being filled after the rules changed too (FR-020).
+ *
+ * The rows follow the current rules (W6; FR-005): `fields` holds only the fields the rules check
+ * now, so a row comes and goes with them. A persona keeps the value of a field that no rule
+ * checks at the moment, hidden, and a row that comes back shows it again, as it was
  */
 export default function PersonaPanel({
   persona,
