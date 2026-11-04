@@ -84,10 +84,10 @@ The editor's own pure functions live in `pages/FormConnectionEditor/utils.ts`, w
 localContentOf(state: EditorState, rules: RulesState): LocalDraftContent
   // the rule open in the editor counts as kept, as rulesReducer's 'saveRule' would keep it (R9)
 initialStatesFromLocal(record: LocalDraftRecord): { editor: EditorState; rules: RulesState }
-initialStatesFromDraft(draft: FormConnectionDraft): { editor: EditorState; rules: RulesState }
+initialStatesFromDraft(draft: FormConnectionDraft, step?: EditorStep): { editor: EditorState; rules: RulesState }
 openingStepOf(step: EditorStep, rules: RulesState): EditorStep    // 'test' without a rule → 'rules'
 draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate
-conflictOf(error: unknown, origin: EditorOrigin): DraftConflict | null
+conflictOf(error: unknown, origin: EditorOrigin, during: 'save' | 'publish'): DraftConflict | null
 ```
 
 ## Hooks: `frontend/src/hooks/`
@@ -99,27 +99,32 @@ conflictOf(error: unknown, origin: EditorOrigin): DraftConflict | null
 - **The account.** `username` comes from `useCurrentUser()`.
 - **Sign-in.** It calls `store.reopen(username)` when the account signs in.
 
-### `useLocalDraft({ origin, baseline, content, step, enabled }): { flush(): void; forget(): void }`
+### `useLocalDraft({ flowKey, draftId, draftVersion, baseline, content, step, enabled }): { flush(): void; forget(): void }`
 
 Used by the editor page, for origins `new` and `draft` only. It is disabled for `published`
 (FR-014).
 
-- **Writing.** While `enabled` and `!sameContent(content, baseline)`, it writes the record: at the
-  first difference at once, then at most once per `LOCAL_DRAFT_WRITE_INTERVAL_MS`, trailing. It
-  removes the record when the content equals the baseline again.
+- **Baseline.** `LocalDraftContent | null`: what is already safe elsewhere
+  ([data-model.md, section 6](../data-model.md#6-local-draft-browser-only-r9r11)). It is `null` for
+  a stored draft's record resumed through `?local=`, and never the record's own content.
+- **Writing.** After the first change in the flow, while `enabled` and the content differs from
+  the baseline (on every change with `null`), it writes the record: at once, then at most once per
+  `LOCAL_DRAFT_WRITE_INTERVAL_MS`, trailing. Mounting writes nothing.
+- **Removing.** With a baseline, it removes the record when a change brings the content back to
+  it. With `null`, only `forget()` removes it. Mounting never removes a record.
 - **Flushing.** Pending writes are flushed on `pagehide`, on `visibilitychange` to hidden, and on
   unmount. On unmount the record stays: leaving the flow keeps it (FR-018).
 - **Another tab removed the record.** When a `storage` event shows that its key was removed while
-  this flow still differs from its baseline, the flow writes its record again at once (edge case
-  "the same connection open in two tabs").
-- **`forget()`.** It cancels pending writes, removes the record, and stops writing until the next
-  change of `origin`. The editor calls it after a successful save or publish, and on "Reload" and
+  this flow holds unsaved work (it has written the record and hasn't called `forget()`), the flow
+  writes its record again at once (edge case "the same connection open in two tabs").
+- **`forget()`.** It cancels pending writes, removes the record, and stops writing until `flowKey`
+  changes. The editor calls it after a successful save or publish, and on "Reload" and
   "Open the connection".
 - **`flush()`.** It writes now. `UserMenu` reaches it through a module-level registry
   (`flushPendingLocalDrafts()` in `store.ts`), so the sign-out warning counts the work of the last
   second (R11).
-- **The record.** It carries `draftId` and `draftVersion` from the origin, `step`, and `changedAt`
-  set to the time of the change.
+- **The record.** It carries `draftId`, `draftVersion` and `step` as passed, and `changedAt` set to
+  the time of the change.
 
 ### `useLocalDrafts(exceptFlowKey?: string): { drafts: LocalDraftRecord[]; discard(flowKey): void }`
 

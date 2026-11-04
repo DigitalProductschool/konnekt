@@ -228,8 +228,8 @@ frontend/src/
 ## Rules for `/speckit-tasks`
 
 - **Order**:
-  1. **Backend, bottom-up**: model and migration (with the hand-added backfill and CHECK) →
-     schemas → `rules.py` (the `complete` switch, the first numbering with counters) →
+  1. **Backend, bottom-up**: model → schemas → migration (with the hand-added backfill and CHECK)
+     → `rules.py` (the `complete` switch, the first numbering with counters) →
      `form_connections.py` (`clean_documents(complete=)`, the guard in `create_revision`, refusing
      drafts on published paths, list and get) → `services/drafts.py` → router →
      `document_requests.py` and `worker.py` → tests.

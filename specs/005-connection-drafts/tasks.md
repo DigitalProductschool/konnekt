@@ -64,7 +64,7 @@ pure modules with their tests, the hooks, the editor, the pages, and the documen
     labelled `kern-btn`.
 - **Contract parity** (constitution I): every schema change in `backend/app/schemas.py` is
   mirrored field for field (snake_case) in `frontend/src/types/form-connections.ts` in the same
-  phase (T004 with T007).
+  phase (T003 with T007).
 - **Published connections are left alone** (FR-025, FR-026, SC-007): no task changes the published
   edit flow beyond refusing drafts. A task that touches a reader of `current_revision` or
   `current_rule_set` narrows it with a guard that refuses drafts, never with `# type: ignore`, and
@@ -127,13 +127,7 @@ answers "unavailable" at its URLs.
     `(published_at IS NULL AND current_revision IS NULL AND current_rule_set IS NULL AND draft IS NOT NULL AND draft_version IS NOT NULL) OR (published_at IS NOT NULL AND current_revision IS NOT NULL AND current_rule_set IS NOT NULL AND draft IS NULL AND draft_version IS NULL)`.
   - Update the class docstring and the column comments: `is_active` "stays `true` on a draft and means nothing until it is published"; `deleted_at` is for published connections only, since a draft is deleted by removing its row (R7); `next_rule_number` / `next_group_number` are also the draft's numbering (R4).
   - mypy now reports every reader of the two nullable columns. T005 and T006 fix them; this task may leave them failing only until those two tasks land in the same change set.
-- [ ] T003 Create the migration `backend/alembic/versions/<rev>_connection_drafts.py` (research R15; constitution V). Depends on T002.
-  - `uv run alembic revision --autogenerate -m "connection drafts"`. Its `down_revision` is `d5a4c9462af7`. Read the generated file and keep: `published_at` (nullable, with index `ix_form_connections_published_at`), `draft` (`postgresql.JSONB`, nullable), `draft_version` (integer, nullable), and `current_revision` / `current_rule_set` made nullable.
-  - Add by hand, after the columns: `UPDATE form_connections SET published_at = created_at` (every existing row is published; FR-026), then `op.create_check_constraint('ck_form_connections_draft_or_published', 'form_connections', <the condition of T002>)`.
-  - Downgrade, by hand, in this order: delete the revisions of drafts (`DELETE FROM form_connection_revisions WHERE form_connection_id IN (SELECT id FROM form_connections WHERE published_at IS NULL)`), delete the drafts (`DELETE FROM form_connections WHERE published_at IS NULL`), drop the constraint, drop the index and the three columns, and make `current_revision` and `current_rule_set` non-null again.
-  - Write a module docstring like `d5a4c9462af7_connection_rules.py`'s: what the upgrade does and that the downgrade deletes drafts first.
-  - Check: `uv run alembic upgrade head`, `uv run alembic downgrade -1`, `uv run alembic upgrade head` on the development database, then `uv run alembic check` reports no difference. After the commit, never edit this file again.
-- [ ] T004 Add the shapes of contracts/management-api.md "Schemas" to `backend/app/schemas.py` (research R2; data-model.md sections 2 and 5).
+- [ ] T003 Add the shapes of contracts/management-api.md "Schemas" to `backend/app/schemas.py` (research R2; data-model.md sections 2 and 5).
   - `ConnectionStatus = Literal['draft', 'published']` and `EditorStep = Literal['connection', 'documents', 'rules', 'test']`.
   - `FormConnectionSummary` gains `status: ConnectionStatus`, and `FormConnection` gains `status: Literal['published'] = 'published'`. Each field comment says what it means.
   - `DraftContent(BaseModel)`: `documents: list[RequestedDocument]` (may be empty, and a document may have no fields), `branches: list[BranchInput]` (main branch first, every `id` null), `step: EditorStep`. Add `DRAFT_CONTENT = TypeAdapter(DraftContent)` beside `RULE_SET_SNAPSHOT`, with a comment that the name and the serviceBW form live in their columns, and that personas, findings, the open tab and the rule editor's position are never stored.
@@ -141,7 +135,13 @@ answers "unavailable" at its URLs.
   - `DraftRules`: `branches: list[BranchInput]`, `numbering_base: NumberingBase`. `DraftCreate`: `name: str`, `servicebw_form: str`, `documents: list[RequestedDocument]`, `rules: DraftRules`, `step: EditorStep`. `DraftUpdate(DraftCreate)`: `version: int`, `replace: bool = False`. `DraftPublish(FormConnectionCreate)`: `version: int`, `replace: bool = False`, with a docstring that `rules.base_version` and `rules.replace` are ignored. As in specs 001 and 002, these request schemas accept empty texts and lists and incomplete rules, and the service layer checks the content.
   - `FormConnectionOrDraft = Annotated[FormConnection | FormConnectionDraft, Field(discriminator='status')]`.
   - Research R16: check that `ApiResponse[FormConnectionOrDraft]` serialises both members and that `/openapi.json` stays valid (`uv run python -c "from app.main import app; app.openapi()"`). If the generic doesn't take the annotated union, define `FormConnectionOrDraftResponse` explicitly and record why in its docstring.
-- [ ] T005 Make the published-only paths of `backend/app/services/form_connections.py` and `backend/app/services/rules.py` refuse or skip drafts (research R2, R8; data-model.md "Reading the state in code"). Depends on T002, T004.
+- [ ] T004 Create the migration `backend/alembic/versions/<rev>_connection_drafts.py` (research R15; constitution V). Depends on T002 and T003: model → schemas → migration, the order of the constitution's Development Workflow.
+  - `uv run alembic revision --autogenerate -m "connection drafts"`. Its `down_revision` is `d5a4c9462af7`. Read the generated file and keep: `published_at` (nullable, with index `ix_form_connections_published_at`), `draft` (`postgresql.JSONB`, nullable), `draft_version` (integer, nullable), and `current_revision` / `current_rule_set` made nullable.
+  - Add by hand, after the columns: `UPDATE form_connections SET published_at = created_at` (every existing row is published; FR-026), then `op.create_check_constraint('ck_form_connections_draft_or_published', 'form_connections', <the condition of T002>)`.
+  - Downgrade, by hand, in this order: delete the revisions of drafts (`DELETE FROM form_connection_revisions WHERE form_connection_id IN (SELECT id FROM form_connections WHERE published_at IS NULL)`), delete the drafts (`DELETE FROM form_connections WHERE published_at IS NULL`), drop the constraint, drop the index and the three columns, and make `current_revision` and `current_rule_set` non-null again.
+  - Write a module docstring like `d5a4c9462af7_connection_rules.py`'s: what the upgrade does and that the downgrade deletes drafts first.
+  - Check: `uv run alembic upgrade head`, `uv run alembic downgrade -1`, `uv run alembic upgrade head` on the development database, then `uv run alembic check` reports no difference. After the commit, never edit this file again.
+- [ ] T005 Make the published-only paths of `backend/app/services/form_connections.py` and `backend/app/services/rules.py` refuse or skip drafts (research R2, R8; data-model.md "Reading the state in code"). Depends on T002, T003.
   - `NOT_PUBLISHED_DETAIL = {'error': 'not_published', 'message': 'This connection is a draft. Continue it to save or publish it.'}`. Add helpers that refuse a draft with `409` and this detail: one for reading (`find_published_form_connection`) and one under the row lock (`_lock_published_form_connection`). `update_form_connection`, `deactivate_form_connection`, `activate_form_connection` and `delete_form_connection` use them (contracts/management-api.md, the rows for `PUT`, `…/deactivate`, `…/activate`, `DELETE`).
   - `_summary()` sets `status='draft'` when `published_at is None`, and `'published'` otherwise. `_view()` sets `status='published'`. `list_form_connections()` keeps its query, so drafts are listed with the published connections, most recently updated first (FR-007, FR-011).
   - Narrow every reader of `current_revision` / `current_rule_set` that mypy reports from `int | None` to `int` behind a guard that refuses drafts. Among them: `_view()`'s `rule_set_version`, the `number > form_connection.current_revision` comparison in `create_revision()`, and `rules.current_branches()`'s `_rule_set(...)` call. Check `_current_revision()`, `rules._loaded_branches()` and `rules.check_rules_version()` too. No `# type: ignore`.
@@ -154,9 +154,10 @@ answers "unavailable" at its URLs.
 
 ### Frontend
 
-- [ ] T007 [P] Mirror the shapes of T004 in `frontend/src/types/form-connections.ts`, and add the draft API functions to `frontend/src/api/form-connections.ts` (constitution I; contracts/management-api.md). Same change set as T004.
+- [ ] T007 [P] Mirror the shapes of T003 in `frontend/src/types/form-connections.ts`, and add the draft API functions to `frontend/src/api/form-connections.ts` (constitution I; contracts/management-api.md). Same change set as T003.
   - Types: `ConnectionStatus`, `EditorStep` (moved here from `editor/types.ts`; `editor/types.ts` re-exports it so that existing imports keep working), `FormConnectionSummary.status`, `FormConnection.status: 'published'`, `FormConnectionDraft`, `DraftRules`, `DraftCreate`, `DraftUpdate`, `DraftPublish` and `FormConnectionOrDraft = FormConnection | FormConnectionDraft`. Use snake_case field names, field for field, each with its comment.
-  - API: `createDraft(data: DraftCreate): Promise<FormConnectionDraft>` (`POST /form-connections/drafts`), `saveDraft(id, data: DraftUpdate): Promise<FormConnectionDraft>` (`PUT /form-connections/{id}/draft`), `publishDraft(id, data: DraftPublish): Promise<FormConnection>` (`POST /form-connections/{id}/publish`), `deleteDraft(id): Promise<null>` (`DELETE /form-connections/{id}/draft`), all through `apiFetch` with `encodeURIComponent(id)`. `getFormConnection` keeps its return type until T029.
+  - API: `createDraft(data: DraftCreate): Promise<FormConnectionDraft>` (`POST /form-connections/drafts`), `saveDraft(id, data: DraftUpdate): Promise<FormConnectionDraft>` (`PUT /form-connections/{id}/draft`), `publishDraft(id, data: DraftPublish): Promise<FormConnection>` (`POST /form-connections/{id}/publish`), `deleteDraft(id): Promise<null>` (`DELETE /form-connections/{id}/draft`), all through `apiFetch` with `encodeURIComponent(id)`. `getFormConnection(id): Promise<FormConnectionOrDraft>` changes here too, so that the frontend accepts a draft before T014 can send one (constitution I).
+  - Hook and pages: in `frontend/src/hooks/types.ts`, `frontend/src/hooks/utils.ts` and `frontend/src/hooks/useFormConnection.ts`, the `loaded` state holds `FormConnectionOrDraft`; `replace` still takes a `FormConnection`. `frontend/src/pages/FormConnectionDetail/index.tsx` and `frontend/src/pages/FormConnectionEdit/index.tsx` check `status === 'published'` and show their not-found state for a draft, until T029 routes drafts.
 - [ ] T008 [P] Write `frontend/src/utils/localDrafts/types.ts` with the contract's interfaces, word for word (contracts/local-drafts.md "Pure modules"; data-model.md section 6): `StorageLike` (`setItem` may throw), `LocalDraftRecord` (`format: 1`, `flowKey`, `draftId: string | null`, `draftVersion: number | null`, `changedAt` as ISO 8601, `step: EditorStep`, `content`) and `LocalDraftContent` (`name`, `servicebwForm`, `documents`, `branches`, `numberingBase`, `counters`), each field with its comment. US1's "Save and exit" builds its body from `LocalDraftContent` (T021), so this file comes first. It holds no logic and has no test.
 
 **Checkpoint**: Ruff, mypy and pytest pass with the migration applied. A row inserted as a draft is
@@ -206,7 +207,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - with a guard, the final commit makes the revision current, writes rule set 1, the branch rows and the counters with `rules.first_rule_set(db, form_connection, save, counters=(row.next_rule_number, row.next_group_number))`, applies `changes` (the name and the serviceBW form), sets `published_at = datetime.now(tz=timezone.utc)`, and clears `draft` and `draft_version`, in that one commit.
     - Without a guard, nothing changes for published connections.
   - Extend the docstring with the draft path. The log line names the id and the revision only.
-- [ ] T013 [US1] Write `backend/app/services/drafts.py` (research R2–R7; contracts/management-api.md "Saving a draft", "Publishing a draft" and "Deleting a draft", step by step). Depends on T004, T009–T012.
+- [ ] T013 [US1] Write `backend/app/services/drafts.py` (research R2–R7; contracts/management-api.md "Saving a draft", "Publishing a draft" and "Deleting a draft", step by step). Depends on T003, T009–T012.
   - Module docstring: what a draft is, the two states, that publishing goes through `form_connections.create_revision()` and no second save path, and that nothing here calls EUDIPLO except through publishing.
   - `draft_view(form_connection) -> FormConnectionDraft`: the content through `DRAFT_CONTENT.validate_python(form_connection.draft)`, the documents through `form_connections.documents_view()`, `version=form_connection.draft_version`, ISO timestamps through `to_iso_utc`.
   - `get_form_connection_or_draft(db, form_connection_id) -> FormConnection | FormConnectionDraft`: `404` for unknown or deleted, `draft_view()` for a draft, `form_connections.get_form_connection()` otherwise.
@@ -286,7 +287,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - `editor/types.ts`:
     - `EditorOrigin = { kind: 'new' } | { kind: 'draft'; draftId: string; draftVersion: number } | { kind: 'published'; formConnection: FormConnection }`. T038 adds `flowKey` to the first two kinds.
     - `FormConnectionEditorPageProps` replaces `formConnection?` with `origin?: EditorOrigin` (default `{ kind: 'new' }`), and gains `initialStates?: { editor: EditorState; rules: RulesState }`.
-    - `EditorState` gains `savingDraft: boolean` ("Save and exit" in progress) and `draftError: DraftSaveError | null` (a refused or failed draft save, shown above the step; FR-013). `DraftSaveError = { notice: ErrorNotice; retryable: boolean }`: data-model.md section 7 says `ErrorNotice`, and the flag decides whether "Try again" shows (only when the failure isn't a `400`; S1.5).
+    - `EditorState` gains `savingDraft: boolean` ("Save and exit" in progress) and `draftError: DraftSaveError | null` (a refused or failed draft save, shown above the step; FR-013). `DraftSaveError = { notice: ErrorNotice; retryable: boolean }` (data-model.md section 7): the flag decides whether "Try again" shows (only for a network failure or a `5xx`; T021, S1.5).
     - `EditorAction` gains `{ type: 'saveDraft' }` and `{ type: 'saveDraftFailed'; error: DraftSaveError }`.
     - The props of this story's new and changed components, so that T023 and T024 touch only their own files: `SaveDraftAlertProps { error: DraftSaveError | null; retrying: boolean; onRetry: () => void }`, and `EditorFooterProps` gains `canSaveDraft: boolean` (origin `new` or `draft`), `savingDraft: boolean` and `onSaveAndExit: () => void`.
   - `editor/RulesStep/types.ts`: `LeaveEditorAction` gains `{ type: 'saveAndExit' }`, with a comment: "Save and exit" closes the rule editor through "Save changes to Rule 01?" first (FR-012).
@@ -307,14 +308,17 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - `rules`: the variants with the editor's keys (`MAIN_BRANCH_KEY` for the main variant, `newBranchKey()` for the others, in order), `counters` and `numberingBase` from `next_rule_number` / `next_group_number`, and `ruleSetVersion: null`;
     - the step comes from `openingStepOf`.
   - `draftNameErrors(name: string): EditorErrors`: the name part of `validateConnection` only (`{ name }` or `{}`), so "Save and exit" never asks for the form ID.
-  - `draftSaveErrorOf(error: unknown): DraftSaveError`: for a `400`, the server's message with `retryable: false`. Otherwise `errorNoticeOf(error, DRAFT_COPY.saveNetworkError)` with `retryable: true`, so a network failure or `5xx` shows U28's text with the `error_id` (S1.5, W3).
+  - `draftSaveErrorOf(error: unknown): DraftSaveError` (S1.5, W3):
+    - a `400`: the server's message, with `retryable: false`;
+    - an `ApiError` with a status of 500 or more, or an error that isn't an `ApiError` (a network failure): U28's text, `{ message: DRAFT_COPY.saveNetworkError, error_id }` with the server's `error_id` when it sent one, and `retryable: true`. `errorNoticeOf` alone isn't enough: it shows the server's generic text for a `5xx`, and nginx's `502`/`503` carry no JSON;
+    - any other status (a `404` or `409` before T050 turns them into conflicts, a `413`): the server's message through `errorNoticeOf`, with `retryable: false`.
   - Tests:
     - `localContentOf` with and without an open rule, an incomplete one included;
     - `draftPayload`'s trimming and shape;
     - `openingStepOf` for all four steps;
     - `initialStatesFromDraft` with zero, one and three variants, an empty form ID and a dropped field;
     - `draftNameErrors` for an empty name, 200 and 201 characters;
-    - `draftSaveErrorOf` for a `400`, a `500` with `error_id`, and a `TypeError`.
+    - `draftSaveErrorOf` for a `400`, a `404`, a `500` with `error_id`, a `502` without a JSON body, and a `TypeError`.
 
 ### Frontend: the editor's screens
 
@@ -358,6 +362,9 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - `editor/types.ts`: `PendingRemoval` gains `{ type: 'dropped'; items: DroppedData[]; label: string }`. `removalAction()` turns it into one action that removes every dropped type and field at once. `rulesCheckingRemoval()` finds the rules that check any of it, so spec 002's removal dialog names them first. Add tests.
   - New `editor/CatalogDroppedNote.tsx`: a KERN warning alert at the top of the documents step, titled "The wallet no longer offers some data of this draft", with the list as a `ul` of a sub-component `editor/CatalogDroppedItem.tsx`, and a "Remove it" button that calls `removeOrAsk({ type: 'dropped', … })`. It shows only while `droppedDataOf` isn't empty and the catalog is loaded. Put its copy in `editor/constants.ts`.
   - `editor/DocumentsStep.tsx` renders it above the picker. The cards show only what the catalog offers, as today: check that a dropped document renders no card.
+  - **Opening on another step** (S0, S8): a flow that opens elsewhere, at a stored draft's saved step or a resumed local draft's step, moves to the documents step once the catalog has loaded and dropped data exists, so that the note is seen before a save is refused.
+    - `editor/utils.ts`: `stepForDroppedData(step: EditorStep, dropped: DroppedData[]): EditorStep | null` gives `'documents'` when `dropped` isn't empty and `step` is another step, and `null` otherwise. Add tests.
+    - `editor/index.tsx` applies it once per opening (a ref), through `goToStep`. The note then takes the focus (`tabIndex={-1}` and a ref focused in an effect, as `SaveDraftAlert`). Moving between steps afterwards works as usual.
   - "Save and exit" and publishing are refused while dropped data remains, with the server's message in `SaveDraftAlert` or in the publish dialog. No new client check.
 
 ### Frontend: the overview, the details and the edit route
@@ -400,9 +407,8 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - `constants.ts`: the copy above, from contracts/ui-screens.md "Copy" (`draftNotLive`, `draftCardText(date)`, `deleteDraft`, `deleteDraftTitle`, `deleteDraftText(name)`, `noFormId`, `continue`). Dates use the overview's format with the 24-hour time.
   - `utils.ts`: `reachedStepsOf(step: EditorStep): number`, `savedLineOf(updatedAt: string): string` and `deleteDraftErrorOf(error)`, with tests in `utils.test.ts`.
   - The component isn't wired yet; T029 renders it.
-- [ ] T029 [US1] Answer the union from `getFormConnection`, and route drafts on the details and the edit route (S0, S5 without the restore question, S6; FR-008; research R10). Depends on T025, T028.
-  - `frontend/src/api/form-connections.ts`: `getFormConnection(id): Promise<FormConnectionOrDraft>`.
-  - `frontend/src/hooks/types.ts`, `frontend/src/hooks/utils.ts` and `frontend/src/hooks/useFormConnection.ts`: the `loaded` state holds `FormConnectionOrDraft`. `replace` still takes a `FormConnection`. Update the hook's docstring.
+- [ ] T029 [US1] Route drafts on the details and the edit route (S0, S5 without the restore question, S6; FR-008; research R10). Depends on T025, T028.
+  - `getFormConnection` and `useFormConnection` already answer `FormConnectionOrDraft` (T007). Replace T007's not-found state for drafts on both pages, as below, and update the hook's docstring.
   - `frontend/src/pages/FormConnectionDetail/index.tsx`: a draft renders `<DraftDetails draft={…} />`, and a published connection renders `ConnectionDetails` unchanged.
   - `frontend/src/pages/FormConnectionEdit/index.tsx` and its `utils.ts`:
     - a published connection keeps today's behaviour, with `origin={{ kind: 'published', formConnection }}`;
@@ -439,7 +445,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - `isFlowKey(value)` accepts exactly those two forms (UUID-shaped);
     - `parseStorageKey(key): { username; flowKey } | null` reads a key back, for listing. A username may contain `:`, so split at the last `:`.
   - Tests: round trips, a username with `:`, rejected flow keys (empty, `new-`, `draft-`, other prefixes), and keys of other apps.
-- [ ] T032 [P] [US2] Write `localDrafts/content.ts` with `localDrafts/content.test.ts` (contracts/local-drafts.md). Depends on T008.
+- [ ] T032 [P] [US2] Write `localDrafts/content.ts` with `localDrafts/content.test.ts` (contracts/local-drafts.md). Depends on T008 and T021: its test checks `emptyContent()` against the editor's `localContentOf`.
   - `emptyContent()`: the content of a fresh create flow. Its name and form ID are empty, it has no documents, and its branches are what `initialRulesState()` gives for a new connection: Standard, `main`, AND, no items, with numbering base and counters `{ rule: 1, group: 1 }`. Build it without importing the editor, and pin it with a test against `localContentOf(initialEditorState(...), initialRulesState())`, so that the two can't drift.
   - `sameContent(a, b)`: a structural comparison that ignores key order and treats `undefined` and a missing key alike.
   - `displayNameOf(content)`: the trimmed name, or `'Untitled connection'`.
@@ -486,10 +492,11 @@ the draft and no longer offers the local draft (quickstart V6–V9).
   - An effect calls `store.reopen(username)` when the account signs in (the username changes from `null`).
   - Docstring: why it is the only binding, and that an expired session never removes anything.
 - [ ] T036 [P] [US2] Write `frontend/src/hooks/useLocalDraft.ts`, the editor's autosave (contracts/local-drafts.md `useLocalDraft`; research R9; FR-014, FR-015, FR-018, SC-004). Depends on T032, T035.
-  - Signature: `useLocalDraft({ flowKey, draftId, draftVersion, baseline, content, step, enabled }): { flush(): void; forget(): void }`.
-  - **Writing**: while `enabled` and `!sameContent(content, baseline)`, it writes the record. The first difference writes at once, and later ones at most once per `LOCAL_DRAFT_WRITE_INTERVAL_MS`, trailing. `changedAt` is the time of the change. When the content equals the baseline again, it removes the record.
+  - Signature: `useLocalDraft({ flowKey, draftId, draftVersion, baseline, content, step, enabled }): { flush(): void; forget(): void }`, with `baseline: LocalDraftContent | null`: what is already safe elsewhere, or `null` when the flow doesn't know it (T039; data-model.md section 6).
+  - **Writing**: after the first change in the flow, while `enabled` and the content differs from the baseline (on every change with `null`), it writes the record. The first write is at once, and later ones at most once per `LOCAL_DRAFT_WRITE_INTERVAL_MS`, trailing. `changedAt` is the time of the change. Mounting writes nothing, so a resumed record keeps its time of last change.
+  - **Removing**: with a baseline, it removes the record when a change brings the content back to the baseline. With `null`, only `forget()` removes it. Mounting never removes a record.
   - **Flushing**: pending writes flush on `pagehide`, on `visibilitychange` to `hidden`, and on unmount. On unmount the record stays. Research R16: `pagehide` also fires in Firefox's back-forward cache, where `unload` doesn't.
-  - **Other tabs**: on a `storage` event that removes its key while the content still differs from the baseline, it writes again at once.
+  - **Other tabs**: on a `storage` event that removes its key while this flow holds unsaved work (it has written the record and hasn't called `forget()`), it writes again at once.
   - **`forget()`**: it cancels pending writes, removes the record, and stops writing until `flowKey` changes.
   - **`flush()`**: it writes now. The hook registers it with `registerFlush` while mounted.
   - No `console.*`, no `fetch` or `apiFetch`.
@@ -516,7 +523,11 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - A record opens with `initialStatesFromLocal` and `originOfRecord`. `missingDraft` navigates to `generatePath(ROUTES.editFormConnection, { id })` with `replace`.
     - A fresh flow gets `newFlowKey(crypto.randomUUID())` and writes it into the URL with `setSearchParams({ local: flowKey }, { replace: true })`, without remounting (R16: check that the editor keeps its state and that no history entry is added).
     - The origin lives in state, since a resumed `draft-<id>` record turns the `new` route into a draft flow.
-  - **Baseline**: `useState(() => localContentOf(initial editor, initial rules))`, the content the flow started from. For a resumed record, that is the record's content.
+  - **Baseline** (data-model.md section 6): what is already safe elsewhere, so that the local draft holds only unsaved work. It is computed once, in a `useState` initializer:
+    - `emptyContent()` for a new connection, fresh or resumed from a `new-` record;
+    - `null` for a `draft-` record resumed through `?local=`, since R10 opens it without reading the stored draft;
+    - on the edit route of a stored draft, the stored draft as loaded: `localContentOf` of the initial states, or the new prop `baseline?: LocalDraftContent` of `FormConnectionEditorPageProps` when T042's "Restore changes" opens the editor with the record's content.
+    - Never the record's own content. That copy exists only on the device, so a change that is undone after resuming would delete the only copy.
   - **Autosave**: call `useLocalDraft` with `enabled` for origins `new` and `draft` only, never `published` (FR-014). Its `content` is `localContentOf(state, rules)`, memoised on `state` and `rules`.
   - **Forget**: after a successful "Save and exit" and after a successful publish, call `forget()` before navigating (FR-018). A failed save keeps the record (FR-013).
   - **Badge**: a resumed `draft-` record shows the "Draft" badge.
@@ -546,9 +557,9 @@ the draft and no longer offers the local draft (quickstart V6–V9).
   - New `frontend/src/pages/FormConnectionEdit/RestoreDialog.tsx`, in the wizard frame with the "Draft" badge, before the editor mounts. It is a native modal dialog with the focus inside:
     - title "Restore your unsaved changes?";
     - text "This device has changes to <name> from 4 Nov 2026, 14:32 that weren’t saved.";
-    - "Restore changes" (primary) opens the editor with `initialStatesFromLocal(record)` and the origin at `record.draftVersion`, so a save meets US3's conflict if the draft has changed since;
+    - "Restore changes" (primary) opens the editor with `initialStatesFromLocal(record)`, the origin at `record.draftVersion`, so a save meets US3's conflict if the draft has changed since, and `baseline` set to the stored draft as loaded (T039);
     - "Discard them" (secondary) removes the record and opens the stored draft;
-    - Escape opens the stored draft and keeps the record, which is offered again next time.
+    - Escape (the dialog's `cancel` event) navigates to the draft's details (`generatePath(ROUTES.formConnection, { id })`, with `replace`) and keeps the record, which is offered again next time. The editor doesn't mount, so its autosave can't write over the kept record (S5).
   - `frontend/src/pages/FormConnectionEdit/index.tsx`:
     - for a draft, read the record of `flowKeyOfDraft(id)`. `'ask'` shows the dialog, `'same'` removes the record silently, and `'none'` opens the editor;
     - for a published connection, remove any `draft-<id>` record (rule 3).
@@ -693,9 +704,9 @@ final gates.
 ### Phase dependencies
 
 - **Setup (Phase 1)**: no dependencies.
-- **Foundational (Phase 2)**: after Setup. **Blocks every story.** T002 → T003, and T002 + T004 → T005. T006 needs T002 only. T007 goes with T004 (contract parity), and T008 is independent.
+- **Foundational (Phase 2)**: after Setup. **Blocks every story.** T002 → T003 → T004 (model → schemas → migration, the constitution's order), and T002 + T003 → T005. T006 needs T002 only. T007 goes with T003 (contract parity), and T008 is independent.
 - **US1 (Phase 3)**: after Foundational. The MVP.
-- **US2 (Phase 4)**: after US1. Its "Save and exit" from a resumed flow, the draft's restore question and its `?local=draft-<id>` entries need US1's editor origin (T025), its pure functions (T021) and the draft routes (T029). Its pure modules (T031–T034) and hooks (T035–T037) can start right after Foundational.
+- **US2 (Phase 4)**: after US1. Its "Save and exit" from a resumed flow, the draft's restore question and its `?local=draft-<id>` entries need US1's editor origin (T025), its pure functions (T021) and the draft routes (T029). T031, T033, T034, T035 and T037 can start right after Foundational. T032, and T036 after it, also need US1's T021.
 - **US3 (Phase 5)**: after US1. Its backend (T045, T046) needs only T013. Its frontend wiring (T050) also calls US2's `forget()` (T039) on "Reload", "Open the connection" and "Save as new draft". If US3 is built before US2, leave those calls out and add them with T039.
 - **Polish (Phase 6)**: after the stories it documents.
 
@@ -707,7 +718,7 @@ final gates.
 
 ### Within US2
 
-- T031 and T032 run in parallel → T033 → T034 → T035. Then T036 and T037 run in parallel. T038 needs T021 and T031. T039 needs T036 and T038. T040 runs in parallel after T032 and T037. T041 needs T027, T039 and T040. T042 needs T039. T043 runs in parallel after T035. T044 comes last.
+- T031 and T032 (after T021) run in parallel → T033 → T034 → T035. Then T036 and T037 run in parallel. T038 needs T021 and T031. T039 needs T036 and T038. T040 runs in parallel after T032 and T037. T041 needs T027, T039 and T040. T042 needs T039. T043 runs in parallel after T035. T044 comes last.
 
 ### Within US3
 
@@ -764,7 +775,7 @@ Task: "T048 [US3] DraftConflictDialog.tsx"
 2. Phase 2: Foundational (T002–T008). It is critical, because it blocks every story.
 3. Phase 3: User Story 1 (T009–T030).
 4. **Stop and validate**: quickstart V1–V5 and V13. Drafts can be stored, continued, published and deleted, and published connections are unchanged.
-5. Deploy or demo. Without US3, a later save of a draft wins silently, as the name of a published connection does today. Say so if the MVP ships alone.
+5. Deploy or demo. Without US3, a later save of a draft wins silently, as the name of a published connection does today, and a draft published or deleted meanwhile shows the server's message in the save alert, without the conflict dialog. Say so if the MVP ships alone.
 
 ### Incremental delivery
 
@@ -778,5 +789,5 @@ Task: "T048 [US3] DraftConflictDialog.tsx"
 
 - [P] tasks touch different files and depend on no unfinished task.
 - Commit after each task or logical group, with the gates of the side it touches green.
-- The migration (T003) is reviewed by hand and never edited after its commit.
+- The migration (T004) is reviewed by hand and never edited after its commit.
 - Stop at any checkpoint to validate a story on its own.

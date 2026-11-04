@@ -343,7 +343,10 @@ request (FR-010). Nothing else changes.
 - **An open rule editor.** Its rule counts as kept, complete or not, as "Save and exit" would
   keep it (FR-012). Typing in the rule editor is protected too.
 - **When it is removed.** A content that returns to the starting point removes the entry. So does
-  a successful save or publish (FR-018).
+  a successful save or publish (FR-018). A stored draft's local draft resumed through `?local=`
+  has no starting point the flow knows (R10), and the entry is never its own starting point, since
+  it is the only copy. So only saving, publishing, discarding, "Reload" or "Open the connection"
+  removes it (data-model.md, section 6).
 - **Expiry.** Entries without a change for 30 days are removed whenever local drafts are listed
   (FR-018).
 - **Unreadable entries.** Every read validates the record. An entry that can't be read (another
@@ -476,7 +479,9 @@ The `new` and `draft` origins behave as follows:
     conflicts appear in the publish dialog, where `409 rules_changed` appears today (spec 002,
     W9).
 - **Where it opens.** A stored draft opens at its saved step. A step it can't open falls back:
-  the test step without any rule becomes the rules step.
+  the test step without any rule becomes the rules step. If the catalog no longer offers some of
+  its data, the flow moves to the documents step once the catalog has loaded, where that data is
+  pointed out.
 - **Branch keys.** The draft's variants get the editor's keys: `main` for the main variant, and
   `newBranchKey()` for the others.
 - **Restoring.** On the edit route of a draft, `FormConnectionEditPage` compares the local draft

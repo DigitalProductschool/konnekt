@@ -60,7 +60,8 @@ No new route (research R10). The wizard's routes read the query parameter `local
   on the documents and the rules steps, with the same publish dialog. Conflicts appear in that
   dialog (S2).
 - **Where a stored draft opens**: at the step it was saved in, or at the rules step if it was
-  saved in the test step and has no rule any more (FR-008, R12). The personas are generated anew,
+  saved in the test step and has no rule any more (FR-008, R12). If the catalog no longer offers
+  some of its data, the flow moves to the documents step once the catalog has loaded (S8). The personas are generated anew,
   and the rule checks run again (spec edge cases).
 
 ## S1. "Save and exit" (FR-001, FR-012, FR-013)
@@ -161,8 +162,9 @@ a dialog opens before the flow (W6), in the wizard frame with the "Draft" badge:
   - "Restore changes" (primary) opens the flow with the local draft's content and step, at the
     version it was loaded at, so a save meets S2 if the draft has changed since;
   - "Discard them" (secondary) removes the local draft and opens the stored draft.
-- **Escape** closes the dialog and opens the stored draft without removing the local draft, which
-  is offered again the next time the draft is opened. Only "Discard them" removes it.
+- **Escape** closes the dialog and opens the draft's details (S6), without opening the flow or
+  removing the local draft, which is offered again the next time the draft is opened. Only
+  "Discard them" removes it. Since the flow doesn't open, nothing writes over the kept local draft.
 
 ## S6. Details of a draft (FR-007, FR-010)
 
@@ -212,6 +214,10 @@ warning alert at the top of the documents step lists them (W10):
 - **The list**: "Personal ID – Eye colour", or for a whole document "Residence permit".
 - **The action**: "Remove it", which removes all of it at once (rules that check it are named
   first, through spec 002's removal dialog).
+- **Opening on another step**: a stored draft or a resumed local draft that opens at another step
+  moves to the documents step once the catalog has loaded and such data exists, and the note takes
+  the focus. This happens once per opening; afterwards the team member moves between steps as
+  usual.
 
 "Save and exit" and publishing are refused while it remains, with the server's message in S1's
 alert or in the publish dialog. The step's cards show only what the catalog offers.

@@ -202,11 +202,21 @@ LocalDraftContent {
 **Rules**:
 - **Content.** It equals what "Save and exit" would send at that moment, apart from the version
   (FR-015). Never: personas, findings, the open tab, the rule editor's position, or citizen data.
-- **When it is written.** Only while `content` differs from the flow's starting content (the
-  stored draft as loaded, or the empty flow). It is written at the first change, then at most once
-  a second, and flushed on `pagehide`, on `visibilitychange` to hidden, and on leaving the flow.
+- **Baseline.** What is already safe elsewhere, so that a record holds only unsaved work:
+  - the empty flow (`emptyContent()`) for a new connection, fresh or resumed;
+  - the stored draft as loaded, for a stored draft opened on its edit route, also after "Restore
+    changes";
+  - none for a stored draft's record resumed through `?local=`, since that flow doesn't read the
+    stored draft (R10).
+
+  Never the record's own content: that copy exists only on the device.
+- **When it is written.** After the first change in the flow, while `content` differs from the
+  baseline, or on every change without one. It is written at once, then at most once a second,
+  and flushed on `pagehide`, on `visibilitychange` to hidden, and on leaving the flow. Opening a
+  flow writes nothing.
 - **When it is removed.**
-  - When the content returns to its start.
+  - When a change brings the content back to the baseline. Without a baseline, only the cases
+    below remove it.
   - After a successful save or publish (FR-018).
   - On "Discard" after confirming (FR-018).
   - On "Reload" and "Open the connection" (R6).
@@ -233,13 +243,15 @@ EditorOrigin =
 
 EditorState gains:
   savingDraft: boolean                  # "Save and exit" in progress
-  draftError: ErrorNotice | null        # a refused or failed draft save, shown above the step (FR-013)
+  draftError: DraftSaveError | null     # a refused or failed draft save, shown above the step (FR-013)
   conflict: DraftConflict | null        # the dialog after a refused save or publish (R6)
   # `rulesChanged` (spec 002) stays for the published edit flow
 
-DraftConflict = 'draft_changed' | 'draft_published' | 'draft_deleted'
-  with `during: 'save' | 'publish'`, which decides what "Replace their changes" resends
+DraftSaveError = { notice: ErrorNotice; retryable: boolean }   # retryable: "Try again" shows (S1.5)
+DraftConflict  = { kind: 'draft_changed' | 'draft_published' | 'draft_deleted';
+                   during: 'save' | 'publish';                 # what "Replace their changes" resends
+                   message: string }                           # the server's, or the deleted text
 ```
 
-The flow's starting content (`baseline: LocalDraftContent`) is kept beside the reducers, so that
-the local draft is written only while the content differs (section 6).
+The flow's baseline (`baseline: LocalDraftContent | null`, section 6) is kept beside the reducers,
+so that the local draft holds only unsaved work.

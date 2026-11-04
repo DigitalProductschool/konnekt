@@ -68,6 +68,11 @@ and the migrated database.
    with Family name, the variants Standard and Taxi, and the incomplete rules as saved.
 3. Repeat from every step (connection, documents, rules, test): the flow opens at that step with
    everything entered (SC-001). The test step generates new personas.
+4. Data the catalog dropped (S8): in the database, rename one of the draft's fields in
+   `form_connections.draft` to a key the catalog doesn't know, such as `eye_colour_old`. "Continue"
+   the draft, saved in the rules step. Expected: the flow moves to the documents step, the note
+   lists "Personal ID – eye_colour_old" and takes the focus, and "Save and exit" is refused with
+   the server's message until "Remove it".
 
 ### V3. A draft's URLs, then publishing it (US1-AS5, AS6, AS7; FR-006, FR-009; SC-002, SC-003)
 
@@ -123,6 +128,9 @@ After each one, `GET` the draft: its content and version are unchanged.
 4. "Save and exit". Expected: the overview lists the draft and no longer offers the local draft.
 5. Repeat with a reload (F5) and with a closed and reopened tab instead of the crash. Expected: the
    reload stays in the flow with the work (R10), and the reopened tab or the overview offers it.
+6. Resume a local draft again, tick one more field and untick it (or type a character in the name
+   and delete it), then kill the browser. Expected: the local draft is still offered, with the
+   work. An undone change never removes a resumed local draft (FR-014).
 
 ### V7. Discard, other accounts, expiry (US2-AS4, AS7; FR-018, FR-019)
 
@@ -143,8 +151,9 @@ After each one, `GET` the draft: its content and version are unchanged.
 
 1. "Continue" a stored draft, change the name of a rule, and leave through the logo.
 2. "Continue" the draft again. Expected: "Restore your unsaved changes?" with the time.
-   "Restore changes" shows the changed rule name. Leave again, "Continue", "Discard them": the
-   stored version, and no offer afterwards.
+   "Restore changes" shows the changed rule name. Leave again, "Continue", Escape: the draft's
+   details, and "Continue" asks again. Then "Discard them": the stored version, and no offer
+   afterwards.
 3. "Continue" a stored draft, change nothing, and leave. Expected: no local draft is offered (EC
    "Opening a stored draft and leaving without changing anything").
 

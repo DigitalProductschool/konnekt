@@ -281,8 +281,9 @@ team member's version whole.
     deeper than sub-groups, a group with fewer than two members, a variant based on the main
     variant that is out of step with it, or more than the limits of 20 variants and 200 rules,
     groups and sub-groups per variant;
-  - identifiers of rules and groups that don't come from the connection's numbering (spec 002,
-    FR-010), which only goes up, so that an identifier is never reused;
+  - identifiers of rules and groups that aren't of the form the connection's numbering gives
+    (spec 002, FR-010). New identifiers are renumbered from that numbering, which only goes up, so
+    that a published connection never reuses an identifier;
   - values beyond the limits that publishing applies, such as the length of the name.
 - **FR-004**: Saving a draft MUST accept incomplete content that publishing refuses, at least:
   no serviceBW form; no documents; a document without a chosen field; rules on data that isn't
