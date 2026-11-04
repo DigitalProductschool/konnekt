@@ -46,11 +46,13 @@ and the migrated database.
 ### V1. Save and exit an incomplete new connection (US1-AS1, AS2; FR-001, FR-004)
 
 1. As `anna`, open the overview, then "New connection". Enter the name "Parking permit draft" and
-   no form ID. "Continue".
-2. Add "Personal ID" and choose no field. Choose "Save and exit".
-3. Expected: the overview opens, says "Draft Parking permit draft saved.", and lists it with the
+   no form ID, and choose "Save and exit" on step 1. (Step 1's "Continue" still needs a form ID;
+   spec.md, Assumptions.)
+2. Expected: the overview opens, says "Draft Parking permit draft saved.", and lists it with the
    "Draft" badge, "Saved <today>", "No form ID yet", "Continue" and "View". The hint reads "Pick
    up your draft or connect another form."
+3. "Continue" opens step 1 with the name. Enter a form ID, "Continue", add "Personal ID" and choose
+   no field. Choose "Save and exit". Expected: the overview lists the draft with its form ID.
 4. "Continue" opens the documents step with Personal ID and no field chosen. Choose
    "Family name" and "Date of birth", then "Add rules →". Add a variant "Taxi" without rules. In
    Standard, add a rule on "Date of birth" without choosing a check ("Save changes" keeps it
@@ -65,7 +67,7 @@ and the migrated database.
 
 1. In the second browser, as `ben`, open the overview and "Continue" the draft of V1.
 2. Expected: the "Draft" badge, the rules step (the step it was saved in), the name, Personal ID
-   with Family name, the variants Standard and Taxi, and the incomplete rules as saved.
+   with Date of birth, the variants Standard and Taxi, and the incomplete rules as saved.
 3. Repeat from every step (connection, documents, rules, test): the flow opens at that step with
    everything entered (SC-001). The test step generates new personas.
 4. Data the catalog dropped (S8): in the database, rename one of the draft's fields in
@@ -221,6 +223,9 @@ with a stored draft. Expected: no WCAG 2.1 AA findings.
 
 ## Known limits (research R11, R16)
 
+- **A draft without a form ID stays on step 1.** "Save and exit" accepts an empty form ID, but
+  step 1's "Continue" still requires one, so "No form ID yet" appears only for drafts saved on
+  step 1. The planned change of the form ID to an optional description removes this.
 - **Logging out in one tab while editing in another.** If `anna` logs out in one tab while she
   keeps editing in another, the other tab writes its local draft again until its next save signs
   it out. That draft is offered at her next sign-in.

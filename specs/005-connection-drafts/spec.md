@@ -459,6 +459,11 @@ team member's version whole.
 - **A draft needs a name**: The overview identifies form connections by name, so a draft without
   one would be hard to find. A local draft may lack a name, and is then shown with a placeholder
   such as "Untitled connection".
+- **Step 1 still needs a form ID to continue**: A draft may be saved without a serviceBW form
+  (FR-004), but step 1's "Continue" keeps spec 001's check, so a draft without one can only be
+  saved on step 1. This is deliberate for now: the form ID is planned to become an optional
+  description, a change that will remove the check from step 1 and from publishing together
+  (decided 2026-11-04).
 - **Drafts are kept until published or deleted**: Stored drafts don't expire. Old drafts are
   deleted by the team, like form connections that are no longer needed.
 - **Local drafts stay on one browser**: They are for accidents, not for moving between devices,
