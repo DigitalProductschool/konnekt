@@ -68,6 +68,25 @@ export const EDITOR_COPY = {
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
+// Drafts (spec 005, contracts/ui-screens.md "Copy")
+export const DRAFT_COPY = {
+  saveAndExit: 'Save and exit',
+  saving: 'Saving…',
+  savingStatus: 'Saving draft…',
+  saveErrorTitle: 'Couldn’t save your draft',
+  saveNetworkError: 'Couldn’t save. Check your internet connection and try again.',
+  tryAgain: 'Try again',
+  draftBadge: 'Draft',
+  untitled: 'Untitled connection',
+  noFormId: 'No form ID yet',
+  draftSaved: (name: string) => `Draft ${name} saved.`,
+  // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
+  // whole document by its key, since the catalog has no label for it any more
+  catalogDroppedTitle: 'The wallet no longer offers some data of this draft',
+  droppedField: (document: string, field: string) => `${document} – ${field}`,
+  removeIt: 'Remove it',
+};
+
 // The publish and save dialog (S5): U33 6376:25536, U35 6376:27178, U36 6376:27630, and
 // design-notes.md §6
 export const PUBLISH_COPY = {
@@ -199,4 +218,6 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   removed: null,
   pendingRemoval: null,
   toast: null,
+  savingDraft: false,
+  draftError: null,
 };

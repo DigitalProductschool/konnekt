@@ -1,6 +1,7 @@
 """The worker's steps for document requests (research R6 to R8, quickstart V6)."""
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -10,12 +11,14 @@ from sqlalchemy import func, select
 from app.config import settings
 from app.db import SessionLocal
 from app.models import DocumentRequest
-from app.services import worker
+from app.services import form_connections, worker
 from tests.fake_eudiplo import FakeEudiplo, FakeSession
 from tests.helpers import (
     DELIVERED_DOCUMENTS,
+    FORM_CONNECTION,
     create_form_connection,
     fail_in_wallet,
+    main_branch,
     now,
     pull_url,
     share,
@@ -476,6 +479,62 @@ def test_request_records_are_deleted_after_the_retention_period(
     response = signed_in_client.get(pull_url(form_connection_id, old))
     assert response.status_code == 404
     assert response.json() == {'error': 'Not found', 'message': 'Request not found'}
+
+
+# Drafts (spec 005, research R8)
+
+
+def _create_draft(client: TestClient) -> str:
+    """Save a new draft through the management API and return its id."""
+    rules = {'branches': [main_branch([])], 'numbering_base': {'rule': 1, 'group': 1}}
+    response = client.post(
+        '/api/form-connections/drafts',
+        json=FORM_CONNECTION | {'rules': rules, 'step': 'connection'},
+    )
+    assert response.status_code == 201, response.json()
+    draft_id: str = response.json()['data']['id']
+    return draft_id
+
+
+def test_the_re_sync_leaves_drafts_out(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    published_id = create_form_connection(signed_in_client)
+    draft_id = _create_draft(signed_in_client)
+    dispatched: list[str] = []
+    dispatch = worker.dispatch
+
+    def recording_dispatch(key: str, call: Callable[[], None]) -> bool:
+        dispatched.append(key)
+        return dispatch(key, call)
+
+    monkeypatch.setattr(worker, 'dispatch', recording_dispatch)
+
+    worker.resync_configs()
+
+    assert dispatched == [f'resync:{published_id}']
+    assert f'resync:{draft_id}' not in dispatched
+    # The draft doesn't keep the step from ending
+    worker.resync_configs()
+    assert dispatched == [f'resync:{published_id}']
+    assert worker._resync_done
+
+
+def test_re_syncing_a_draft_does_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    draft_id = _create_draft(signed_in_client)
+    # Changed settings would renew a published connection's configuration
+    monkeypatch.setattr(settings, 'eudiplo_trust_list_id', 'production-issuers')
+
+    with SessionLocal() as db:
+        assert form_connections.resync_config(db, draft_id) is False
+
+    assert fake_eudiplo.calls == []
 
 
 # One whole cycle

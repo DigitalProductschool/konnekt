@@ -1,15 +1,39 @@
+import type { Ref } from 'react';
+
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { EditorStep, FormConnection, RequestedDocument } from '../../types/form-connections';
 import type { FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import type { RulesBranch } from './RulesStep/types';
+import type { RulesBranch, RulesState } from './RulesStep/types';
+
+/**
+ * Where the flow's content comes from (research R12): a new connection, a stored draft, or a
+ * published connection, whose edit flow stays as it is (FR-026). T038 adds `flowKey` to the first
+ * two kinds
+ */
+export type EditorOrigin =
+  /** /form-connections/new and /get-started */
+  | { kind: 'new' }
+  /** A stored draft, at the version the flow opened (or last saved) */
+  | { kind: 'draft'; draftId: string; draftVersion: number }
+  /** The connection to edit, at /form-connections/:id/edit */
+  | { kind: 'published'; formConnection: FormConnection };
+
+/** A refused or failed draft save (data-model.md section 7; S1.5) */
+export interface DraftSaveError {
+  notice: ErrorNotice;
+  /** "Try again" shows: only after a network failure or a `5xx` */
+  retryable: boolean;
+}
 
 export interface FormConnectionEditorPageProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
-  /** The connection to edit, at /form-connections/:id/edit; without it, a new one is made */
-  formConnection?: FormConnection;
+  /** Where the content comes from; `{ kind: 'new' }` when left out */
+  origin?: EditorOrigin;
+  /** The reducers' starting states, such as a stored draft's (`initialStatesFromDraft()`) */
+  initialStates?: { editor: EditorState; rules: RulesState };
   /** The step the wizard opens at */
   initialStep?: EditorStep;
   /**
@@ -53,7 +77,24 @@ export type PendingRemoval =
   /** Deselecting one field; `label` is the field's */
   | { type: 'field'; documentType: string; field: string; label: string }
   /** Deselecting every field through "All data"; `label` is the document's */
-  | { type: 'allFields'; documentType: string; label: string };
+  | { type: 'allFields'; documentType: string; label: string }
+  /**
+   * "Remove it" on the note of data the catalog dropped (S8; W10): every item at once; `label`
+   * names them all, from `droppedRemovalOf()`
+   */
+  | { type: 'dropped'; items: DroppedData[]; label: string };
+
+/**
+ * A document type, or a field of a known one, that the flow requests and the catalog no longer
+ * offers (S8; FR-003 edge case), from `droppedDataOf()`
+ */
+export interface DroppedData {
+  documentType: string;
+  /** The field's key; null when the catalog lacks the whole document type */
+  field: string | null;
+  /** "Personal ID – Eye colour", or a whole document's key, as the catalog has no label for it */
+  label: string;
+}
 
 /** A rule that a pending removal names, with its branch: "Rule 01 in Standard" */
 export interface RemovedDataRule {
@@ -80,6 +121,10 @@ export interface EditorState {
   /** Data that rules check, waiting for the team member to confirm its removal (FR-029) */
   pendingRemoval: PendingRemoval | null;
   toast: ToastContent | null;
+  /** "Save and exit" in progress */
+  savingDraft: boolean;
+  /** A refused or failed draft save, shown above the step until the step changes (FR-013) */
+  draftError: DraftSaveError | null;
 }
 
 export type EditorAction =
@@ -96,10 +141,15 @@ export type EditorAction =
   | { type: 'askRemoval'; removal: PendingRemoval }
   | { type: 'cancelRemoval' }
   | { type: 'confirmRemoval' }
+  /** Stops requesting every dropped document type and field at once (S8) */
+  | { type: 'removeDropped'; items: DroppedData[] }
   | { type: 'openDialog' }
   | { type: 'closeDialog' }
   | { type: 'publish' }
-  | { type: 'publishFailed'; error: ErrorNotice; rulesChanged: boolean };
+  | { type: 'publishFailed'; error: ErrorNotice; rulesChanged: boolean }
+  /** "Save and exit" starts storing the draft */
+  | { type: 'saveDraft' }
+  | { type: 'saveDraftFailed'; error: DraftSaveError };
 
 export interface ConnectionStepProps {
   name: string;
@@ -117,6 +167,15 @@ export interface DocumentsStepProps {
   documentTypes: DocumentType[];
   documents: RequestedDocument[];
   errors: EditorErrors;
+  /**
+   * The data the catalog dropped (S8): the note above the picker shows while there is any. Empty
+   * in the published edit flow, which stays as it is (FR-026)
+   */
+  dropped: DroppedData[];
+  /** The note, which takes the focus when the flow moved to this step for it (S8) */
+  droppedNoteRef: Ref<HTMLElement>;
+  /** The note's "Remove it" */
+  onRemoveDropped: () => void;
   onRetryCatalog: () => void;
   onAdd: (documentType: DocumentType) => void;
   onRemove: (documentType: DocumentType) => void;
@@ -258,6 +317,34 @@ export interface EditorFooterProps {
   onTestRules: () => void;
   /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */
   onPublish: () => void;
+  /** "Save and exit" shows on every step: the origin is `new` or `draft` (FR-001, FR-026) */
+  canSaveDraft: boolean;
+  /** A draft save is running: "Save and exit" reads "Saving…" and ignores clicks */
+  savingDraft: boolean;
+  /** "Save and exit" */
+  onSaveAndExit: () => void;
+}
+
+export interface SaveDraftAlertProps {
+  /** The failed draft save; nothing renders without one */
+  error: DraftSaveError | null;
+  /** "Try again" is running */
+  retrying: boolean;
+  /** "Try again", shown only while `error.retryable` */
+  onRetry: () => void;
+}
+
+export interface CatalogDroppedNoteProps {
+  /** The dropped data, in document order; not empty */
+  items: DroppedData[];
+  /** "Remove it" */
+  onRemove: () => void;
+  /** The alert itself, which can take the focus */
+  ref?: Ref<HTMLElement>;
+}
+
+export interface CatalogDroppedItemProps {
+  item: DroppedData;
 }
 
 export interface FindingsAnnouncerProps {

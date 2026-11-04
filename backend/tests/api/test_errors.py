@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.errors import INTERNAL_ERROR_MESSAGE
 from app.main import app
-from app.services import form_connections
+from app.services import drafts
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 
 # The kind of text an exception's message can quote, such as a database address
@@ -19,7 +19,7 @@ def test_an_unexpected_error_answers_500_with_only_an_error_id(
     def fail(*_args: object) -> None:
         raise RuntimeError(SENSITIVE_TEXT)
 
-    monkeypatch.setattr(form_connections, 'get_form_connection', fail)
+    monkeypatch.setattr(drafts, 'get_form_connection_or_draft', fail)
     create_user()
 
     # Answers the 500 as the server does, instead of raising the error in the test

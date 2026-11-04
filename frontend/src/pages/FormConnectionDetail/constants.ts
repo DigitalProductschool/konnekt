@@ -1,5 +1,6 @@
+import type { EditorStep } from '../../types/form-connections';
 import type { EditLocationState } from '../../types/routing';
-import type { ActionsState } from './types';
+import type { ActionsState, DraftDeleteState } from './types';
 
 export const DETAIL_COPY = {
   // Figma "App/Header" on "22 Published": the form before the user
@@ -65,6 +66,23 @@ export const DETAIL_COPY = {
   deactivated: 'Connection deactivated',
   activated: 'Connection reactivated',
   saved: 'Changes saved',
+  // A draft's details (spec 005: S6, W2, W7), which the design has no frames for
+  noFormId: 'No form ID yet',
+  draftNotLive: 'This draft isn’t live. Its connection links appear once you publish it.',
+  noDocumentsYet: 'No documents yet',
+  noDataYet: 'No data chosen yet',
+  draftTitle: 'Draft',
+  draftCardText: (date: string) => `Saved ${date}. Continue to finish and publish it.`,
+  continue: 'Continue',
+  deleteDraft: 'Delete draft',
+  deleteDraftTitle: 'Delete this draft?',
+  deleteDraftText: (name: string) =>
+    `${name} will be deleted for good. It was never live, so nothing changes for serviceBW.`,
+  // The delete confirmation's errors (S6): published or deleted meanwhile
+  draftPublishedSince: 'This draft has been published since you opened it.',
+  openConnection: 'Open the connection',
+  draftAlreadyDeleted: 'This draft has already been deleted.',
+  toOverview: 'Go to overview',
 };
 
 export const INITIAL_ACTIONS_STATE: ActionsState = {
@@ -74,6 +92,23 @@ export const INITIAL_ACTIONS_STATE: ActionsState = {
   error: null,
   toast: null,
 };
+
+export const INITIAL_DRAFT_DELETE_STATE: DraftDeleteState = {
+  dialogOpen: false,
+  deleting: false,
+  failure: null,
+};
+
+// The steps a draft can be saved in, in the wizard's order: the editor's STEP_ORDER. Publish,
+// CONNECTION_STEPS' last, is never reached by a draft
+export const DRAFT_STEPS: readonly EditorStep[] = ['connection', 'documents', 'rules', 'test'];
+
+// "4 Nov 2026, 14:32": the overview's date, with the 24-hour time in the browser's time zone
+export const SAVED_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
 
 // The rules card's "Edit rules" opens the edit wizard at the Rules step (FR-030)
 export const EDIT_RULES_STATE: EditLocationState = { step: 'rules' };

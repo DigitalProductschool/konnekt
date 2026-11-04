@@ -8,7 +8,7 @@ import { ruleDocumentsOf } from '../../utils/rules/conditions';
 import { DETAIL_COPY, EDIT_RULES_STATE } from './constants';
 import RulesSummaryContent from './RulesSummaryContent';
 import type { RulesSummaryProps } from './types';
-import { rulesCountsOf } from './utils';
+import { draftRuleDocumentsOf, rulesCountsOf } from './utils';
 
 /**
  * Figma "Summary card" (U37 6396:47750, open 6396:48191; S6): the rules of every variant,
@@ -17,15 +17,26 @@ import { rulesCountsOf } from './utils';
  * "Download PDF", like the screen's activity, isn't built (F25). In its place, "Edit rules" opens the
  * edit wizard at the Rules step, which asks for confirmation when saving, not on entry (FR-030;
  * F27, W7). On phones the actions go under the title, and "Edit rules" shows only its icon, so
- * that both fit.
+ * that both fit. A draft's card shows what the draft holds, incomplete rules included, without
+ * "Edit rules": the draft's progress and "Continue" lead into its flow (spec 005, S6). Its rules
+ * may check data it doesn't request (FR-004), which `catalog` names.
  */
-export default function RulesSummary({ formConnectionId, branches, documents }: RulesSummaryProps) {
+export default function RulesSummary({
+  formConnectionId,
+  branches,
+  documents,
+  draft = false,
+  catalog,
+}: RulesSummaryProps) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const contentId = useId();
   const context = useMemo(
-    () => ({ documents: ruleDocumentsOf(documents), optionSets: [] }),
-    [documents]
+    () => ({
+      documents: catalog ? draftRuleDocumentsOf(documents, catalog) : ruleDocumentsOf(documents),
+      optionSets: [],
+    }),
+    [documents, catalog]
   );
   const counts = useMemo(() => rulesCountsOf(branches), [branches]);
 
@@ -51,14 +62,16 @@ export default function RulesSummary({ formConnectionId, branches, documents }: 
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-8">
-          <Link
-            to={generatePath(ROUTES.editFormConnection, { id: formConnectionId })}
-            state={EDIT_RULES_STATE}
-            className="kern-btn kern-btn--secondary"
-          >
-            <span aria-hidden="true" className="kern-icon kern-icon--edit" />
-            <span className="kern-label max-sm:sr-only">{DETAIL_COPY.editRules}</span>
-          </Link>
+          {!draft && (
+            <Link
+              to={generatePath(ROUTES.editFormConnection, { id: formConnectionId })}
+              state={EDIT_RULES_STATE}
+              className="kern-btn kern-btn--secondary"
+            >
+              <span aria-hidden="true" className="kern-icon kern-icon--edit" />
+              <span className="kern-label max-sm:sr-only">{DETAIL_COPY.editRules}</span>
+            </Link>
+          )}
           <button
             type="button"
             aria-expanded={open}

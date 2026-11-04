@@ -5,9 +5,23 @@ import type { ConnectionStatusBadgeProps } from './types';
 
 /**
  * Whether a connection is active, as KERN's small badge: "Live" (success) or "Deactivated"
- * (warning). The text and the icon say it, not the colour alone.
+ * (warning). With `draft`, a saved draft that isn't live yet: "Draft" (info), whatever
+ * `isActive` says. The text and the icon say it, not the colour alone.
  */
-export default function ConnectionStatusBadge({ isActive }: ConnectionStatusBadgeProps) {
+export default function ConnectionStatusBadge({
+  isActive,
+  draft = false,
+}: ConnectionStatusBadgeProps) {
+  if (draft) {
+    return (
+      <KernBadge
+        variant="info"
+        label={STATUS_BADGE_COPY.draft}
+        withIcon
+        className="kern-badge--small"
+      />
+    );
+  }
   return (
     <KernBadge
       variant={isActive ? 'success' : 'warning'}

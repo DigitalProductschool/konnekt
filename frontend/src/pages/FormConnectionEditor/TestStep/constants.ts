@@ -77,12 +77,7 @@ export const MEMBER_INDENT = ['', 'pl-32', 'pl-64', 'pl-96'] as const;
  */
 export const LOADING_STATUS_ID = 'test-loading-status';
 
-/**
- * How long a status region that has just appeared stays empty before it shows its text, so that
- * screen readers know the region before its text changes and announce it (as live-region
- * libraries do, about 100 ms)
- */
-export const LIVE_REGION_DELAY_MS = 100;
+export { LIVE_REGION_DELAY_MS } from '../../../constants';
 
 /** Frame 18's three skeleton pills (7062:51206–7062:51208), 40px high: their widths */
 export const SKELETON_PILL_WIDTHS = ['w-130', 'w-126', 'w-132'] as const;

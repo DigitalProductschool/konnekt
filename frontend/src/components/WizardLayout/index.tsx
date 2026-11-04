@@ -15,6 +15,7 @@ const CENTRED_GUTTERS = 'min-[1197px]:[scrollbar-gutter:stable_both-edges]';
  * wide and 640 px tall (`split:`, index.css) the head stays put too, and only the body
  * scrolls; its scrollbar is outside the column, at the area's right edge. A step sizes
  * things to the visible height with `cqh` units: the scrolling area is their container.
+ * The bar wraps its actions into rows where they don't fit in one (spec 005, FR-028).
  * The details screen uses the same frame, with the header's badge and meta; its loading and
  * error states leave out the title and the head.
  */
@@ -54,8 +55,14 @@ export default function WizardLayout({
             <div className="mx-auto flex w-full max-w-1120 flex-1 flex-col gap-32">{children}</div>
           </div>
         </div>
-        <div className="border-kern-neutral-100 bg-kern-layout-background-default flex h-80 shrink-0 border-t px-16">
-          <div className="mx-auto flex w-full max-w-1120 items-center gap-16">{footer}</div>
+        {/* 80px tall while the actions fit in one row. Where they don't (320px, or 200% zoom),
+            they wrap into more rows rather than scroll, and the bar grows; the scrolling area
+            above shrinks, so the bar never covers the step. The actions after the footer's
+            spacer carry `ml-auto`, so that they stay on the right in a row of their own. */}
+        <div className="border-kern-neutral-100 bg-kern-layout-background-default flex min-h-80 shrink-0 border-t px-16 py-8">
+          <div className="mx-auto flex w-full max-w-1120 flex-wrap items-center gap-x-16 gap-y-8">
+            {footer}
+          </div>
         </div>
         {overlay}
       </main>

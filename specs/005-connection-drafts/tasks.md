@@ -184,17 +184,17 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
 
 ### Backend: checks and numbering
 
-- [ ] T009 [US1] Add the `complete` switch to the rules checks in `backend/app/services/rules.py` (research R3, its table; data-model.md section 3; FR-003, FR-004).
+- [X] T009 [US1] Add the `complete` switch to the rules checks in `backend/app/services/rules.py` (research R3, its table; data-model.md section 3; FR-003, FR-004).
   - `clean_rules(rules, documents, main_branch_id, *, complete: bool = True)` and `clean_branches(..., *, complete: bool = True)` pass it to `_clean_branch()`, `_branch_name()` and, through a new `complete` field of `_BranchCheck`, to `_clean_item()` and `_item_name()`. With `complete=True`, nothing changes: the same checks, the same order, the same messages.
   - Kept with `complete=False` (structure): at most 20 variants; exactly one main variant, first, with `id` equal to `main_branch_id` (None for drafts); variant name ≤ 100 and description ≤ 500 characters; ≤ 200 rules, groups and sub-groups per variant; identifiers `rule-{n}` / `group-{n}`, unique in a variant; a sub-group holds rules only; a group that isn't dissolved has at least two members (`_check_members`); marks (`_check_marks`, `_check_follows`); rule and group names ≤ 100 characters; messages ≤ 500 characters.
   - Skipped with `complete=False` (completeness): the variant name being present and unique; rule and group names being present, unique and not reserved (`reserved_name_problem`); the rule's data being chosen, requested and a valid part (`_clean_target`); the condition being present and complete for its kind (`_clean_condition`); the message being present. A draft's `target` and `condition` are stored as sent, not reduced to the operator's keys, so `_check_follows` compares them as sent. Names, descriptions and messages are still trimmed.
   - Messages that name a variant or an item whose name is empty use `Variant <n>` (its position, Standard being 1) or the item's identifier (`rule-7`), for example "The variant Variant 3 is out of step with Standard. …" and "The error message of rule-7 in Taxi can have at most 500 characters." (data-model.md "Validation").
   - Update the docstrings of `clean_rules` and `clean_branches` with what `complete=False` checks.
-- [ ] T010 [US1] Number drafts from the connection's counters in `backend/app/services/rules.py` (research R4; data-model.md section 4). Depends on T009 (same file).
+- [X] T010 [US1] Number drafts from the connection's counters in `backend/app/services/rules.py` (research R4; data-model.md section 4). Depends on T009 (same file).
   - `_first_numbering(save, counters: tuple[int, int] | None = None)`. With `None` it is the create path, unchanged: counters `(1, 1)`, and no identifier counts as loaded. With counters, it is the draft path: the counters are the row's, and the identifiers below `save.numbering_base` (per kind) are passed to `_allocate()` as `loaded` and `known`. Below the base they keep their number. At or above it they are new, and they shift past numbers taken meanwhile, the same way in every variant. `_check_branch_ids(save.branches, set(), {})` still refuses any branch id ("Unknown variant.").
   - `check_first_save(save, counters=None)` and `first_rule_set(db, form_connection, save, counters=None)` pass `counters` through. Without `save`, `first_rule_set` keeps the given counters (or `(1, 1)`) instead of resetting them. Its docstring says that publishing a draft passes the row's counters.
   - New `number_draft(save: RulesSave, counters: tuple[int, int]) -> DraftNumbering`: a frozen dataclass with `branches` (renumbered with `_renumber_items`, default names following their new numbers) and `next_rule_number` / `next_group_number`, each `max(counter, highest identifier + 1)` and never lower. It is used for creating (`(1, 1)`) and saving (the row's, under the lock) a draft. Give it a docstring.
-- [ ] T011 [P] [US1] Add the `complete` switch to the document and form checks in `backend/app/services/form_connections.py` (research R3; FR-003, FR-004). It touches a file other than T009/T010's. Depends on T005.
+- [X] T011 [P] [US1] Add the `complete` switch to the document and form checks in `backend/app/services/form_connections.py` (research R3; FR-003, FR-004). It touches a file other than T009/T010's. Depends on T005.
   - `clean_servicebw_form(value, *, complete: bool = True)`: with `complete=False`, an empty form ID is allowed (stored as `''`), and more than 500 characters is still refused with "The form ID can have at most 500 characters.".
   - `clean_documents(documents, *, complete: bool = True)`: with `complete=False`, "Add at least one document." and "Select at least one field for '…'." are skipped. Unknown document types, unknown fields, a document added twice and a field selected twice are still refused, with the same messages. A document without fields stays in the result, in catalog order.
   - `clean_name` is unchanged: a draft needs a name too.
@@ -202,7 +202,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
 
 ### Backend: publishing, the drafts service and the router
 
-- [ ] T012 [US1] Add the draft guard to `create_revision()` in `backend/app/services/form_connections.py` (research R5; contracts/management-api.md "Publishing a draft, step by step"). Depends on T010, T011.
+- [X] T012 [US1] Add the draft guard to `create_revision()` in `backend/app/services/form_connections.py` (research R5; contracts/management-api.md "Publishing a draft, step by step"). Depends on T010, T011.
   - `DRAFT_PUBLISHED_DETAIL = {'error': 'draft_published', 'message': 'This draft has been published since you opened it.'}`.
   - `@dataclass(frozen=True) class DraftGuard` with `version: int` and `replace: bool`, and a method `check(form_connection) -> None` that raises `409` with `DRAFT_PUBLISHED_DETAIL` when `published_at is not None`. The version comparison is added in T045. It lives here, not in `drafts.py`, so that `create_revision` needs no import of `drafts`.
   - `create_revision(..., guard: DraftGuard | None = None)`:
@@ -211,7 +211,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - with a guard, the final commit makes the revision current, writes rule set 1, the branch rows and the counters with `rules.first_rule_set(db, form_connection, save, counters=(row.next_rule_number, row.next_group_number))`, applies `changes` (the name and the serviceBW form), sets `published_at = datetime.now(tz=timezone.utc)`, and clears `draft` and `draft_version`, in that one commit.
     - Without a guard, nothing changes for published connections.
   - Extend the docstring with the draft path. The log line names the id and the revision only.
-- [ ] T013 [US1] Write `backend/app/services/drafts.py` (research R2–R7; contracts/management-api.md "Saving a draft", "Publishing a draft" and "Deleting a draft", step by step). Depends on T003, T009–T012.
+- [X] T013 [US1] Write `backend/app/services/drafts.py` (research R2–R7; contracts/management-api.md "Saving a draft", "Publishing a draft" and "Deleting a draft", step by step). Depends on T003, T009–T012.
   - Module docstring: what a draft is, the two states, that publishing goes through `form_connections.create_revision()` and no second save path, and that nothing here calls EUDIPLO except through publishing.
   - `draft_view(form_connection) -> FormConnectionDraft`: the content through `DRAFT_CONTENT.validate_python(form_connection.draft)`, the documents through `form_connections.documents_view()`, `version=form_connection.draft_version`, ISO timestamps through `to_iso_utc`.
   - `get_form_connection_or_draft(db, form_connection_id) -> FormConnection | FormConnectionDraft`: `404` for unknown or deleted, `draft_view()` for a draft, `form_connections.get_form_connection()` otherwise.
@@ -230,14 +230,14 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     `EudiploError` reaches the router. Log "Draft %s published".
   - `delete_draft(db, form_connection_id) -> None`: lock the row (`404` if missing), `409 DRAFT_PUBLISHED_DETAIL` if published. Otherwise delete any revision of it, which only a publish in flight can have reserved, then the row, and commit (FR-010, R7). No EUDIPLO call. Log "Draft %s deleted".
   - Every function has a docstring and full type hints. Every `HTTPException` carries an `{error, message}` detail.
-- [ ] T014 [US1] Add the draft endpoints to `backend/app/routers/form_connections.py` (contracts/management-api.md "Endpoints"). Depends on T013.
+- [X] T014 [US1] Add the draft endpoints to `backend/app/routers/form_connections.py` (contracts/management-api.md "Endpoints"). Depends on T013.
   - `POST /api/form-connections/drafts` (`201`, `ApiResponse[FormConnectionDraft]`, message `'Draft saved'`), `PUT /{form_connection_id}/draft` (`ApiResponse[FormConnectionDraft]`, `'Draft saved'`), `POST /{form_connection_id}/publish` (`ApiResponse[FormConnection]`, `'Form connection published'`, `EudiploError` → `http_error_for(error, CONFIG_FAILED)`), `DELETE /{form_connection_id}/draft` (`ApiResponse[None]`, `data=None`, `'Draft deleted'`). Each is a plain `def` with `dependencies=[Depends(require_json)]` and a docstring that names its refusals.
   - `GET /{form_connection_id}` answers `ApiResponse[FormConnectionOrDraft]` through `drafts.get_form_connection_or_draft()`. Update its docstring: a draft answers its content without URLs.
   - The router stays thin: no logic beyond the calls and the error mapping. `app.include_router()` in `backend/app/main.py` is unchanged, since the router already exists.
 
 ### Backend: tests
 
-- [ ] T015 [P] [US1] Write `backend/tests/unit/test_draft_validation.py` for the `complete=False` checks (research R3 table; FR-003, FR-004). Depends on T009–T011.
+- [X] T015 [P] [US1] Write `backend/tests/unit/test_draft_validation.py` for the `complete=False` checks (research R3 table; FR-003, FR-004). Depends on T009–T011.
   - **Accepted**, each in its own test:
     - no documents;
     - a document without fields;
@@ -264,7 +264,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - a form ID of 501 characters;
     - a message of 501 characters on an unnamed rule, named by its identifier.
   - **Numbering**: `number_draft` keeps identifiers below the base, shifts new ones past the counters in every variant alike, and never lowers the counters. With `counters=None`, `_first_numbering` refuses an identifier below the base as before.
-- [ ] T016 [US1] Write `backend/tests/api/test_form_connection_drafts.py`, part 1: the draft lifecycle (research R14; contracts/management-api.md; FR-001–FR-011, FR-027). Depends on T014.
+- [X] T016 [US1] Write `backend/tests/api/test_form_connection_drafts.py`, part 1: the draft lifecycle (research R14; contracts/management-api.md; FR-001–FR-011, FR-027). Depends on T014.
   - Helpers at the top: `draft_body(**changes)`, `create_draft(client, **changes) -> str`, `get(client, id)`. Reuse `backend/tests/helpers.py` (`main_branch`, `variant`, `rule`, `rules_input`) for the trees.
   - **Create**: `201` with `status: 'draft'`, `version: 1`, the `step`, no `trigger_url`, `pull_url` or `is_active`. The fake EUDIPLO received no call, and no revision, rule set or branch row exists (FR-005, SC-002).
   - **Get and list**: `GET` answers `FormConnectionDraft`. `GET /api/form-connections` lists it with `status: 'draft'` among published ones, ordered by `updated_at` (FR-007). A team with only a draft lists one connection, which is what the first-connection screen counts (FR-011).
@@ -274,20 +274,20 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - **Delete**: `200` with `data: null`. The row and any reserved revision are gone, and `GET` gives `404`. Another connection's `updated_at` is unchanged (FR-010).
   - **Boundaries**: `PUT /api/form-connections/{draft}`, `…/deactivate`, `…/activate` and `DELETE /api/form-connections/{draft}` give `409 not_published` with its message. `PUT …/{published}/draft`, `POST …/{published}/publish` and `DELETE …/{published}/draft` give `409 draft_published`, and the published connection is unchanged.
   - **Auth**: without a session, each new endpoint gives `401`. Without a JSON content type, `POST`, `PUT` and `DELETE` give `415`.
-- [ ] T017 [US1] Add the publish parity test (SC-003, FR-009) to `backend/tests/api/test_form_connection_drafts.py`. Depends on T016 (same file).
+- [X] T017 [US1] Add the publish parity test (SC-003, FR-009) to `backend/tests/api/test_form_connection_drafts.py`. Depends on T016 (same file).
   - One `pytest.mark.parametrize` table of `FormConnectionCreate` payloads: two valid ones (with rules and variants, and without `rules`), and one per refusal of the create path. The refusals cover a missing name, a missing form ID, no documents, a document without a field, an unknown field, a missing variant name, an unnamed rule, a rule without data, data that isn't requested, an incomplete condition, a missing message and an invalid identifier.
   - Each payload goes through `POST /api/form-connections` and through `POST /api/form-connections/drafts` (a minimal valid draft), then `POST …/{id}/publish` with the payload plus `version`. Compare the status code, `error` and `message`. For the valid ones, also compare the published shape, apart from ids, URLs' ids and timestamps: the documents, the variants, the items with their identifiers, conditions and messages, `rule_set_version: 1`, and that a trigger then answers `201`.
-- [ ] T018 [US1] Add the concurrency tests of research R14 to `backend/tests/api/test_form_connection_drafts.py`. Use the pattern of `test_concurrent_edits_get_distinct_revision_numbers` in `backend/tests/api/test_form_connection_maintenance.py`: monkeypatch `fake_eudiplo._create_config` and call the service functions with their own `SessionLocal()`. Depends on T017 (same file).
+- [X] T018 [US1] Add the concurrency tests of research R14 to `backend/tests/api/test_form_connection_drafts.py`. Use the pattern of `test_concurrent_edits_get_distinct_revision_numbers` in `backend/tests/api/test_form_connection_maintenance.py`: monkeypatch `fake_eudiplo._create_config` and call the service functions with their own `SessionLocal()`. Depends on T017 (same file).
   - **Two publishes of one draft**, both waiting in EUDIPLO at once. One answers the `FormConnection`, the other `409 draft_published`. They reserved different revisions. The winner's configuration is still in `fake_eudiplo.configs`, unchanged (`config_hash`), and the loser's is deleted. The connection's current revision is the winner's (R5, quickstart V12).
   - **A delete during a publish**: `drafts.delete_draft` runs inside the publish's `create_config`. The publish answers `404`, the row and its revisions are gone, and the configuration it created is deleted (R7).
-- [ ] T019 [P] [US1] Cover the URLs of drafts and the worker (SC-002, FR-006, FR-010; research R8, R14). Depends on T014. It touches files other than T016–T018's.
+- [X] T019 [P] [US1] Cover the URLs of drafts and the worker (SC-002, FR-006, FR-010; research R8, R14). Depends on T014. It touches files other than T016–T018's.
   - `backend/tests/api/test_connect.py`: a draft's trigger URL and main pull URL answer `409` with exactly `UNAVAILABLE_DETAIL`. No `document_requests` row is written, and the fake EUDIPLO received no call. After `DELETE …/draft`, the trigger answers `404` "Form connection not found" and the pull URL `404` "Request not found".
   - `backend/tests/api/test_connect_branches.py`: a draft's branch pull URL answers the same `409`, for any branch id, before the branch is looked at.
   - `backend/tests/api/test_worker_requests.py`: with one published connection and one draft, `worker.resync_configs()` dispatches the published one only, and `form_connections.resync_config(db, draft_id)` returns `False` without an EUDIPLO call.
 
 ### Frontend: the editor's model
 
-- [ ] T020 [US1] Give the editor an origin and the draft-save state (research R12; data-model.md section 7; contracts/ui-screens.md "Copy").
+- [X] T020 [US1] Give the editor an origin and the draft-save state (research R12; data-model.md section 7; contracts/ui-screens.md "Copy").
   - `editor/types.ts`:
     - `EditorOrigin = { kind: 'new' } | { kind: 'draft'; draftId: string; draftVersion: number } | { kind: 'published'; formConnection: FormConnection }`. T038 adds `flowKey` to the first two kinds.
     - `FormConnectionEditorPageProps` replaces `formConnection?` with `origin?: EditorOrigin` (default `{ kind: 'new' }`), and gains `initialStates?: { editor: EditorState; rules: RulesState }`.
@@ -303,7 +303,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - `editor/constants.ts`: a `DRAFT_COPY` object with `saveAndExit`, `saving`, `savingStatus`, `saveErrorTitle`, `saveNetworkError`, `tryAgain`, `draftBadge`, `untitled`, `noFormId`, `draftSaved(name)`, word for word from contracts/ui-screens.md "Copy".
   - `frontend/src/types/routing.ts`: `OverviewLocationState { draftSaved?: string }`, the name of the draft "Save and exit" just stored (W1). `EditLocationState.step` also accepts `'test'`, for a draft's details (T028).
   - Tests in `editor/utils.test.ts` for the three reducer cases.
-- [ ] T021 [US1] Write the editor's pure draft functions in `editor/utils.ts`, with tests in `editor/utils.test.ts` (contracts/local-drafts.md "The editor's own pure functions"; research R12; FR-002, FR-008). Depends on T008, T020.
+- [X] T021 [US1] Write the editor's pure draft functions in `editor/utils.ts`, with tests in `editor/utils.test.ts` (contracts/local-drafts.md "The editor's own pure functions"; research R12; FR-002, FR-008). Depends on T008, T020.
   - `localContentOf(state: EditorState, rules: RulesState): LocalDraftContent`: name and form ID as typed, documents, branches as `branchInputs()` gives them, `numberingBase`, `counters`. A rule open in the rule editor counts as kept, complete or not, as `rulesReducer`'s `'saveRule'` would keep it (`rulesReducer(rules, { type: 'saveRule' })` when `rules.editing`).
   - `draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate`: name and form ID trimmed, `rules: { branches, numbering_base: content.numberingBase }`, and `step`.
   - `openingStepOf(step: EditorStep, rules: RulesState): EditorStep`: `'test'` without any rule in any variant becomes `'rules'`. Otherwise it is unchanged.
@@ -326,16 +326,16 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
 
 ### Frontend: the editor's screens
 
-- [ ] T022 [P] [US1] Add the "Draft" badge to `frontend/src/components/ConnectionStatusBadge/` (S0, S3, S6; FR-007; F28 badge nodes, such as U07 `6235:16742` and U11 `6348:40210`).
+- [X] T022 [P] [US1] Add the "Draft" badge to `frontend/src/components/ConnectionStatusBadge/` (S0, S3, S6; FR-007; F28 badge nodes, such as U07 `6235:16742` and U11 `6348:40210`).
   - `types.ts`: an optional `draft?: boolean`. Existing callers stay unchanged.
   - `index.tsx`: with `draft`, KERN's small info badge (`variant="info"`, `withIcon`, `kern-badge--small`) with the label `STATUS_BADGE_COPY.draft` ("Draft"), so a draft is never told apart by colour alone. Extend the docstring.
   - `constants.ts`: `draft: 'Draft'`.
   - Follow `docs/FIGMA-WORKFLOW.md` on the two nodes. List the differences that only "KERN 2.8 vs Revamp" explains, and don't fix them.
-- [ ] T023 [P] [US1] Write `editor/SaveDraftAlert.tsx` (S1.5, W3; F23 reversed: U28 `6197:11098`). Depends on T020, which declares its props.
+- [X] T023 [P] [US1] Write `editor/SaveDraftAlert.tsx` (S1.5, W3; F23 reversed: U28 `6197:11098`). Depends on T020, which declares its props.
   - Render: a KERN danger alert titled `DRAFT_COPY.saveErrorTitle` ("Couldn’t save your draft"), with `error.notice`'s message and the error ID on its own line through `ErrorNoticeText`. A "Try again" secondary button shows only while `error.retryable`. It is `aria-disabled` while `retrying`. Nothing renders without an error.
   - The alert takes the focus when it appears (`tabIndex={-1}` and a ref focused in an effect), because an alert that refuses something takes the focus (contracts/ui-screens.md "Accessibility").
   - Follow `docs/FIGMA-WORKFLOW.md` on U28 `6197:11098` for spacing, the icon and the button.
-- [ ] T024 [US1] Add "Save and exit" to `editor/EditorFooter.tsx` (S0, S1, W9; FR-001; F28 "Save and exit" nodes, such as U09 `6235:18684` on the documents step and U11 `6348:40218` on the rules step, and the other steps' nodes in spec 002's F28 row). Depends on T020.
+- [X] T024 [US1] Add "Save and exit" to `editor/EditorFooter.tsx` (S0, S1, W9; FR-001; F28 "Save and exit" nodes, such as U09 `6235:18684` on the documents step and U11 `6348:40218` on the rules step, and the other steps' nodes in spec 002's F28 row). Depends on T020.
   - Use the props that T020 added to `EditorFooterProps`.
   - Place it on every step while `canSaveDraft`. It is a secondary button (`kern-btn kern-btn--secondary`), before the step's primary action, with Back on the left as today.
     - Step 1, without Back: it stands before "Continue".
@@ -346,7 +346,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - Replace the docstring's sentence "Nothing is saved until then, so the design's 'Save and exit' is left out (F28, O3)" with the new behaviour.
   - At 320 px and 200 % zoom the actions wrap as spec 004's do, and "Save and exit" keeps its label.
   - Follow `docs/FIGMA-WORKFLOW.md` on the F28 footer nodes for each step's order and spacing.
-- [ ] T025 [US1] Wire the origin, "Save and exit" and publishing a draft into `editor/index.tsx` (S0, S1, W1, W3, W9; FR-001, FR-008, FR-009, FR-012, FR-013, FR-026; research R12). Depends on T021–T024.
+- [X] T025 [US1] Wire the origin, "Save and exit" and publishing a draft into `editor/index.tsx` (S0, S1, W1, W3, W9; FR-001, FR-008, FR-009, FR-012, FR-013, FR-026; research R12). Depends on T021–T024.
   - **Initial state**: `useReducer` starts from `initialStates` when given, and otherwise from `initialEditorState` / `initialRulesState` as today, with `origin.formConnection` for `published`. `editing` becomes `origin.kind === 'published'`. Every place that read `formConnection` reads it from the published origin.
   - **"Save and exit"**: `handleSaveAndExit = () => leaveEditor({ type: 'saveAndExit' })`. In `continueWith`, `'saveAndExit'` calls `saveDraftAndExit(current)`:
     1. With `draftNameErrors(state.name)` failing, go to step 1 (`goToStep`), then `refuse(errors)`, so the message shows under "Form name" and the field gets the focus. Nothing is stored (S1.2).
@@ -361,7 +361,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - **Step 1's note**: it stays "Nothing goes live until you publish." (R13).
   - **Docstring**: rewrite the page's docstring. Drop "the API has no drafts", and describe the three origins and "Save and exit".
   - **Other callers**: `frontend/src/pages/FirstConnection/index.tsx` and the `/form-connections/new` route in `frontend/src/App.tsx` keep rendering the page without `origin` (default `new`). `frontend/src/pages/FormConnectionEdit/index.tsx` passes `origin={{ kind: 'published', formConnection }}` until T029.
-- [ ] T026 [US1] Point out data that the catalog dropped, on the documents step (S8, W10; FR-003 edge case "The catalog drops a document type or field"; research R12). Depends on T025.
+- [X] T026 [US1] Point out data that the catalog dropped, on the documents step (S8, W10; FR-003 edge case "The catalog drops a document type or field"; research R12). Depends on T025.
   - `editor/utils.ts`: `droppedDataOf(documents: RequestedDocument[], documentTypes: DocumentType[]): DroppedData[]`, in document order. A document whose type the catalog lacks is one entry, labelled with its key, since the catalog no longer has its label. A missing field of a known document is "<document label> – <field key>". Add tests in `editor/utils.test.ts`.
   - `editor/types.ts`: `PendingRemoval` gains `{ type: 'dropped'; items: DroppedData[]; label: string }`. `removalAction()` turns it into one action that removes every dropped type and field at once. `rulesCheckingRemoval()` finds the rules that check any of it, so spec 002's removal dialog names them first. Add tests.
   - New `editor/CatalogDroppedNote.tsx`: a KERN warning alert at the top of the documents step, titled "The wallet no longer offers some data of this draft", with the list as a `ul` of a sub-component `editor/CatalogDroppedItem.tsx`, and a "Remove it" button that calls `removeOrAsk({ type: 'dropped', … })`. It shows only while `droppedDataOf` isn't empty and the catalog is loaded. Put its copy in `editor/constants.ts`.
@@ -373,7 +373,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
 
 ### Frontend: the overview, the details and the edit route
 
-- [ ] T027 [P] [US1] List drafts on the overview in `frontend/src/pages/FormConnectionList/` (S3, W1, W2; FR-007, SC-005). Depends on T007, T020, T022.
+- [X] T027 [P] [US1] List drafts on the overview in `frontend/src/pages/FormConnectionList/` (S3, W1, W2; FR-007, SC-005). Depends on T007, T020, T022.
   - `constants.ts` (`LIST_COPY`): `saved(date)` ("Saved {date}"), `noFormId` ("No form ID yet"), `continue` ("Continue"), `hintWithDrafts` ("Pick up your draft or connect another form."), `draftSaved(name)` ("Draft {name} saved.").
   - `utils.ts`: `hintOf(formConnections, localDraftCount = 0)`. It gives `hintWithDrafts` while any summary has `status: 'draft'` or `localDraftCount > 0`, and otherwise the existing hint. Also `formIdLineOf(summary)` ("No form ID yet" for an empty form ID). New `utils.test.ts` covers both.
   - `FormConnectionRow.tsx`:
@@ -384,7 +384,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - read `OverviewLocationState.draftSaved` once (`useState` initializer, as `FormConnectionDetail` reads `arrival`), then clear the router state with `navigate(location.pathname, { replace: true })`;
     - while it is set, a polite live region (`role="status"`) under the page title says "Draft <name> saved." (W1);
     - the `PageTitle` hint is `hintOf(...)` once loaded.
-- [ ] T028 [P] [US1] Write the details of a draft in `frontend/src/pages/FormConnectionDetail/` (S6, W2, W7; FR-006, FR-007, FR-010; research R16 "Rendering an incomplete rule"). Depends on T007, T022.
+- [X] T028 [P] [US1] Write the details of a draft in `frontend/src/pages/FormConnectionDetail/` (S6, W2, W7; FR-006, FR-007, FR-010; research R16 "Rendering an incomplete rule"). Depends on T007, T022.
   - New `DraftDetails.tsx` (props `draft: FormConnectionDraft`), in the `WizardLayout` frame:
     - the name as the `h1` (`titleAsHeading`), the "Draft" badge, and the meta "Form ID …" or "No form ID yet";
     - `WizardProgress` with every step up to and including `draft.step` reached. A reached step navigates to `ROUTES.editFormConnection` with `{ step }` (`EditLocationState`);
@@ -411,7 +411,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
   - `constants.ts`: the copy above, from contracts/ui-screens.md "Copy" (`draftNotLive`, `draftCardText(date)`, `deleteDraft`, `deleteDraftTitle`, `deleteDraftText(name)`, `noFormId`, `continue`). Dates use the overview's format with the 24-hour time.
   - `utils.ts`: `reachedStepsOf(step: EditorStep): number`, `savedLineOf(updatedAt: string): string` and `deleteDraftErrorOf(error)`, with tests in `utils.test.ts`.
   - The component isn't wired yet; T029 renders it.
-- [ ] T029 [US1] Route drafts on the details and the edit route (S0, S5 without the restore question, S6; FR-008; research R10). Depends on T025, T028.
+- [X] T029 [US1] Route drafts on the details and the edit route (S0, S5 without the restore question, S6; FR-008; research R10). Depends on T025, T028.
   - `getFormConnection` and `useFormConnection` already answer `FormConnectionOrDraft` (T007). Replace T007's not-found state for drafts on both pages, as below, and update the hook's docstring.
   - `frontend/src/pages/FormConnectionDetail/index.tsx`: a draft renders `<DraftDetails draft={…} />`, and a published connection renders `ConnectionDetails` unchanged.
   - `frontend/src/pages/FormConnectionEdit/index.tsx` and its `utils.ts`:
@@ -419,7 +419,7 @@ publish it: it is live, and serviceBW can start requests through its URLs (quick
     - a draft renders the editor with `origin={{ kind: 'draft', draftId: draft.id, draftVersion: draft.version }}` and `initialStates={initialStatesFromDraft(draft, requestedStep ?? draft.step)}`, keyed by `${id}:${attempt}`;
     - `initialStepOf()` returns `'test'` only for a draft, with a test in `FormConnectionEdit/utils.test.ts`;
     - update the page's docstring.
-- [ ] T030 [US1] Validate User Story 1: run `specs/005-connection-drafts/quickstart.md` V1–V5 and V13 against a running stack, with the gates of both sides green. Fix what fails in the task that owns it. FR-011 needs no code: `FirstConnection` counts the list's entries, and drafts are among them. Check it with V5.3.
+- [X] T030 [US1] Validate User Story 1: run `specs/005-connection-drafts/quickstart.md` V1–V5 and V13 against a running stack, with the gates of both sides green. Fix what fails in the task that owns it. FR-011 needs no code: `FirstConnection` counts the list's entries, and drafts are among them. Check it with V5.3.
 
 **Checkpoint**: User Story 1 is fully functional. Drafts are stored, listed, continued on another
 device at their step, published through `create_revision`, and deleted, and their URLs are never

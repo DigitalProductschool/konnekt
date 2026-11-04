@@ -1,12 +1,25 @@
-import { errorNoticeOf } from '../../api/client';
-import type { BranchInput, FormConnection, RuleTreeItem } from '../../types/form-connections';
+import { ApiError, errorNoticeOf } from '../../api/client';
+import type { DocumentType } from '../../types/document-types';
+import type {
+  BranchInput,
+  EditorStep,
+  FormConnection,
+  RequestedDocumentView,
+  RuleTreeItem,
+} from '../../types/form-connections';
 import type { DetailLocationState } from '../../types/routing';
-import { DETAIL_COPY, INITIAL_ACTIONS_STATE } from './constants';
+import { ruleDocumentsOf } from '../../utils/rules/conditions';
+import type { RuleDocument } from '../../utils/rules/types';
+import { formatEditedDate } from '../FormConnectionList/utils';
+import { DETAIL_COPY, DRAFT_STEPS, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMAT } from './constants';
 import type {
   ActionsAction,
   ActionsState,
   Arrival,
   ConfirmedAction,
+  DeleteDraftFailure,
+  DraftDeleteAction,
+  DraftDeleteState,
   LinkCardLink,
   StatusAction,
 } from './types';
@@ -110,4 +123,100 @@ function countableRuleIds(items: RuleTreeItem[]): string[] {
 export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
   const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
   return DETAIL_COPY.rulesCounts(branches.length, ruleIds.size);
+}
+
+/**
+ * What a draft's rules summary names (S6): the requested documents as the draft holds them (a type
+ * or field the catalog dropped keeps its key as its label), each followed by the catalog's fields
+ * it doesn't request, then the catalog's documents it doesn't request. A draft may keep rules on
+ * data that isn't requested (FR-004), and the summary names that data as the rules step does,
+ * which looks rules up in the whole catalog. Without the catalog, only the requested documents.
+ */
+export function draftRuleDocumentsOf(
+  documents: RequestedDocumentView[],
+  documentTypes: DocumentType[]
+): RuleDocument[] {
+  const requested = ruleDocumentsOf(documents).map((document) => {
+    const known = new Set(document.fields.map((field) => field.key));
+    const others = documentTypes.find((type) => type.key === document.key)?.fields ?? [];
+    return {
+      ...document,
+      fields: [...document.fields, ...others.filter((field) => !known.has(field.key))],
+    };
+  });
+  const keys = new Set(requested.map((document) => document.key));
+  return [...requested, ...documentTypes.filter((type) => !keys.has(type.key))];
+}
+
+/**
+ * How many of the wizard's steps a draft has reached: every step up to and including the one it
+ * was saved in (S6), which `WizardProgress` shows as done and leading to the flow there.
+ */
+export function reachedStepsOf(step: EditorStep): number {
+  return DRAFT_STEPS.indexOf(step) + 1;
+}
+
+/**
+ * The draft card's text, with the draft's last save as the overview writes dates and the 24-hour
+ * time in the browser's time zone: "Saved 4 Nov 2026, 14:32. Continue to finish and publish it."
+ */
+export function savedLineOf(updatedAt: string): string {
+  const time = SAVED_TIME_FORMAT.format(new Date(updatedAt));
+  return DETAIL_COPY.draftCardText(`${formatEditedDate(updatedAt)}, ${time}`);
+}
+
+/**
+ * Why deleting a draft failed (S6): published meanwhile (`409 draft_published`), deleted
+ * meanwhile (`404`), or anything else, with the API's message and a 5xx answer's error ID. A
+ * `401` signs out before this is asked.
+ */
+export function deleteDraftErrorOf(error: unknown): DeleteDraftFailure {
+  if (error instanceof ApiError && error.status === 409 && error.data.error === 'draft_published') {
+    return { kind: 'published', notice: { message: DETAIL_COPY.draftPublishedSince } };
+  }
+  if (error instanceof ApiError && error.status === 404) {
+    return { kind: 'deleted', notice: { message: DETAIL_COPY.draftAlreadyDeleted } };
+  }
+  return { kind: 'failed', notice: errorNoticeOf(error, DETAIL_COPY.actionErrorText) };
+}
+
+export function draftDeleteReducer(
+  state: DraftDeleteState,
+  action: DraftDeleteAction
+): DraftDeleteState {
+  switch (action.type) {
+    case 'openDialog':
+      return { dialogOpen: true, deleting: false, failure: null };
+    case 'closeDialog':
+      return state.deleting ? state : { ...state, dialogOpen: false, failure: null };
+    case 'start':
+      // A retry takes the old message away, so that a new failure is announced again
+      return { ...state, deleting: true, failure: null };
+    case 'failed':
+      return { ...state, deleting: false, failure: action.failure };
+  }
+}
+
+/**
+ * The delete confirmation's error title and the confirm button after a failure: published
+ * meanwhile, it opens the connection; deleted meanwhile, the overview; otherwise it retries.
+ * Only deleting is in the danger colour.
+ */
+export function deleteDraftDialogOf(failure: DeleteDraftFailure | null) {
+  switch (failure?.kind) {
+    case 'published':
+      return {
+        errorTitle: DETAIL_COPY.deleteError,
+        retryLabel: DETAIL_COPY.openConnection,
+        danger: false,
+      };
+    case 'deleted':
+      return {
+        errorTitle: DETAIL_COPY.deleteError,
+        retryLabel: DETAIL_COPY.toOverview,
+        danger: false,
+      };
+    default:
+      return { errorTitle: DETAIL_COPY.deleteError, retryLabel: DETAIL_COPY.retry, danger: true };
+  }
 }

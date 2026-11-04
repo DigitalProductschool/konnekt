@@ -9,13 +9,28 @@ const EDIT_DOCUMENTS: EditLocationState = { step: 'documents' };
 
 /**
  * The actions of Figma "App/Footer" on "22 Published": "Edit documents" and "Create new
- * connection". While the connection isn't there, "Home" takes the place of "Edit documents".
- * On phones the first action shows only its icon, so that both fit.
+ * connection". While the connection isn't there, "Home" takes the place of "Edit documents", and
+ * for a draft "Continue", to its flow at the step it was saved in (spec 005, S6). On phones the
+ * first action shows only its icon, so that both fit.
  */
-export default function DetailFooter({ formConnectionId }: DetailFooterProps) {
+export default function DetailFooter({ formConnectionId, draft }: DetailFooterProps) {
+  const continueState: EditLocationState | undefined = draft && { step: draft.step };
   return (
     <>
-      {formConnectionId ? (
+      {formConnectionId && draft ? (
+        <Link
+          to={generatePath(ROUTES.editFormConnection, { id: formConnectionId })}
+          state={continueState}
+          className="kern-btn kern-btn--tertiary"
+        >
+          <span className="kern-label max-sm:sr-only">
+            {DETAIL_COPY.continue}
+            {/* "Continue" alone doesn't say which connection */}
+            <span className="sr-only"> {draft.name}</span>
+          </span>
+          <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
+        </Link>
+      ) : formConnectionId ? (
         <Link
           to={generatePath(ROUTES.editFormConnection, { id: formConnectionId })}
           state={EDIT_DOCUMENTS}

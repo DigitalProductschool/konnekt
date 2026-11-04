@@ -4,12 +4,17 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..schemas import (
     ApiResponse,
+    DraftCreate,
+    DraftPublish,
+    DraftUpdate,
     FormConnection,
     FormConnectionCreate,
+    FormConnectionDraft,
+    FormConnectionOrDraft,
     FormConnectionSummary,
     FormConnectionUpdate,
 )
-from ..services import form_connections
+from ..services import drafts, form_connections
 from ..services.auth import get_current_user, require_json
 from ..services.eudiplo import EudiploError, http_error_for
 
@@ -53,14 +58,78 @@ def create_form_connection(
     return ApiResponse(data=form_connection, message='Form connection created')
 
 
+@router.post(
+    '/drafts', status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_json)]
+)
+def create_draft(
+    data: DraftCreate, db: Session = Depends(get_db)
+) -> ApiResponse[FormConnectionDraft]:
+    """Store a new draft, version 1, without calling EUDIPLO (spec 005).
+
+    Refuses a broken structure with 400; an incomplete draft is accepted.
+    """
+    return ApiResponse(data=drafts.create_draft(db, data), message='Draft saved')
+
+
 @router.get('/{form_connection_id}')
 def get_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
-) -> ApiResponse[FormConnection]:
-    """Get a form connection with its documents and connection URLs."""
+) -> ApiResponse[FormConnectionOrDraft]:
+    """Get a form connection with its documents and connection URLs.
+
+    A draft answers its content and version, without URLs (`status: 'draft'`).
+    Unknown and deleted form connections answer 404.
+    """
+    return ApiResponse(data=drafts.get_form_connection_or_draft(db, form_connection_id))
+
+
+@router.put('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+def save_draft(
+    form_connection_id: str,
+    data: DraftUpdate,
+    db: Session = Depends(get_db),
+) -> ApiResponse[FormConnectionDraft]:
+    """Replace a draft's content and add 1 to its version, without calling EUDIPLO.
+
+    Refuses a broken structure with 400, an unknown or deleted draft with 404, and
+    a published connection with 409 `draft_published`.
+    """
     return ApiResponse(
-        data=form_connections.get_form_connection(db, form_connection_id)
+        data=drafts.save_draft(db, form_connection_id, data), message='Draft saved'
     )
+
+
+@router.post('/{form_connection_id}/publish', dependencies=[Depends(require_json)])
+def publish_draft(
+    form_connection_id: str,
+    data: DraftPublish,
+    db: Session = Depends(get_db),
+) -> ApiResponse[FormConnection]:
+    """Publish a draft with its first revision, configuration, rules and URLs.
+
+    Refuses with the 400 of creating a form connection, 404 for an unknown or
+    deleted draft, and 409 `draft_published` for a published connection. If
+    EUDIPLO can't create the configuration, it answers 502 or 503 and the draft
+    stays a draft.
+    """
+    try:
+        form_connection = drafts.publish_draft(db, form_connection_id, data)
+    except EudiploError as error:
+        raise http_error_for(error, CONFIG_FAILED) from None
+    return ApiResponse(data=form_connection, message='Form connection published')
+
+
+@router.delete('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+def delete_draft(
+    form_connection_id: str, db: Session = Depends(get_db)
+) -> ApiResponse[None]:
+    """Remove a draft for good, without calling EUDIPLO; its URLs answer 404.
+
+    Refuses an unknown draft with 404 and a published connection with 409
+    `draft_published`.
+    """
+    drafts.delete_draft(db, form_connection_id)
+    return ApiResponse(data=None, message='Draft deleted')
 
 
 @router.put('/{form_connection_id}', dependencies=[Depends(require_json)])

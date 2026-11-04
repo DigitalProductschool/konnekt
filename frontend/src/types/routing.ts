@@ -16,7 +16,13 @@ export interface DetailLocationState {
 export interface EditLocationState {
   /**
    * The step to open at; the details' "Edit documents" opens the documents, and their rules
-   * card's "Edit rules" the rules (FR-030)
+   * card's "Edit rules" the rules (FR-030); a draft's details may also open the test step
    */
-  step?: 'connection' | 'documents' | 'rules';
+  step?: 'connection' | 'documents' | 'rules' | 'test';
+}
+
+/** Router state that the overview reads */
+export interface OverviewLocationState {
+  /** The name of the draft "Save and exit" just stored: the overview confirms it (W1) */
+  draftSaved?: string;
 }

@@ -3,17 +3,23 @@ import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type {
   BranchInput,
+  DraftCreate,
   FormConnection,
   FormConnectionCreate,
+  FormConnectionDraft,
   RequestedDocument,
+  RequestedDocumentView,
+  RuleItem,
 } from '../../types/form-connections';
+import type { LocalDraftContent } from '../../utils/localDrafts/types';
 import { sameValue } from '../../utils/rules/branches';
 import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import { countRules, hasAnyRule } from '../../utils/rules/tree';
+import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
 import type { RulesProblem } from '../../utils/rules/types';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
+  DRAFT_COPY,
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
@@ -24,9 +30,12 @@ import {
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
-import { RULES_COPY } from './RulesStep/constants';
+import { MAIN_BRANCH_KEY, RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
+import { initialRulesState, newBranchKey, rulesReducer } from './RulesStep/utils';
 import type {
+  DraftSaveError,
+  DroppedData,
   EditorAction,
   EditorErrors,
   EditorMode,
@@ -54,11 +63,16 @@ export function initialEditorState({
     step: initialStep,
     name: formConnection.name,
     servicebwForm: formConnection.servicebw_form,
-    documents: formConnection.documents.map((document) => ({
-      document_type: document.document_type,
-      fields: document.fields.map((field) => field.key),
-    })),
+    documents: requestedDocumentsOf(formConnection.documents),
   };
+}
+
+/** The API's documents as the editor holds them: by key, with the keys of their fields. */
+function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocument[] {
+  return documents.map((document) => ({
+    document_type: document.document_type,
+    fields: document.fields.map((field) => field.key),
+  }));
 }
 
 /** The page title of a step: the heading, its hint and the tab title. */
@@ -155,26 +169,75 @@ export function removalAction(removal: PendingRemoval): EditorAction {
       };
     case 'allFields':
       return { type: 'setAllFields', documentType: removal.documentType, fields: [] };
+    case 'dropped':
+      return { type: 'removeDropped', items: removal.items };
   }
+}
+
+/** The fields a document requests, in its order. */
+function fieldsOf(documents: RequestedDocument[], documentType: string): string[] {
+  return documents.find((document) => document.document_type === documentType)?.fields ?? [];
+}
+
+/**
+ * Whether a removal takes away the data a rule checks: a whole document's requested fields, or
+ * one field; for "All data", those still selected. Data already not requested doesn't count.
+ */
+function removalTakes(
+  removal: PendingRemoval,
+  target: { document_type: string; field: string },
+  documents: RequestedDocument[]
+): boolean {
+  if (removal.type === 'dropped') {
+    return removal.items.some((item) =>
+      removalTakes(
+        item.field === null
+          ? { type: 'document', documentType: item.documentType, label: item.label }
+          : {
+              type: 'field',
+              documentType: item.documentType,
+              field: item.field,
+              label: item.label,
+            },
+        target,
+        documents
+      )
+    );
+  }
+  if (target.document_type !== removal.documentType) {
+    return false;
+  }
+  return removal.type === 'field'
+    ? target.field === removal.field
+    : fieldsOf(documents, removal.documentType).includes(target.field);
 }
 
 /**
  * The rules, in every branch, that check the data a removal takes away (FR-029): a document's
- * rules, a field's, or for "All data" those of the fields still selected. Rules on data the
- * connection already doesn't request are flagged by the Rules step (F11) and not named again.
+ * rules, a field's, or for "All data" those of the fields still selected; for the data the
+ * catalog dropped (S8), those of every dropped document and field, each rule once, in branch and
+ * tree order. Rules on data the connection already doesn't request are flagged by the Rules step
+ * (F11) and not named again.
  */
 export function rulesCheckingRemoval(
   removal: PendingRemoval,
   branches: RulesBranch[],
   documents: RequestedDocument[]
 ): RemovedDataRule[] {
-  const selected =
-    documents.find((document) => document.document_type === removal.documentType)?.fields ?? [];
   const found =
-    removal.type === 'field'
-      ? rulesCheckingData(branches, removal.documentType, removal.field)
-      : rulesCheckingData(branches, removal.documentType).filter(
-          ({ rule }) => rule.target !== null && selected.includes(rule.target.field)
+    removal.type === 'dropped'
+      ? branches.flatMap((branch, branchIndex) =>
+          flattenItems(branch.items)
+            .filter((item): item is RuleItem => item.type === 'rule')
+            .filter(({ target }) => target !== null && removalTakes(removal, target, documents))
+            .map((rule) => ({ branchIndex, rule }))
+        )
+      : rulesCheckingData(
+          branches,
+          removal.documentType,
+          removal.type === 'field' ? removal.field : undefined
+        ).filter(
+          ({ rule }) => rule.target !== null && removalTakes(removal, rule.target, documents)
         );
   return found.map(({ branchIndex, rule }) => ({
     key: `${branches[branchIndex].key}-${rule.id}`,
@@ -195,6 +258,15 @@ export function removalCopyOf(
 ): { title: string; text: string; after: string; confirmLabel: string } {
   if (!removal) {
     return { title: '', text: '', after: '', confirmLabel: '' };
+  }
+  if (removal.type === 'dropped') {
+    // Spec 002's words for data that stops being requested, naming every dropped item
+    return {
+      title: REMOVE_DATA_COPY.fieldTitle(removal.label),
+      text: REMOVE_DATA_COPY.allFieldsText(count),
+      after: REMOVE_DATA_COPY.fieldAfter(count, editing),
+      confirmLabel: REMOVE_DATA_COPY.stopRequesting,
+    };
   }
   if (removal.type === 'document') {
     return {
@@ -230,7 +302,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
     case 'showErrors':
       return { ...state, errors: action.errors };
-    // Leaving a step drops its toast and the toast's Undo (B4)
+    // Leaving a step drops its toast and the toast's Undo (B4), and a failed draft save's alert
+    // (S1.5)
     case 'goToStep':
       return {
         ...state,
@@ -240,6 +313,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         rulesChanged: false,
         removed: null,
         toast: null,
+        draftError: null,
       };
     case 'addDocument': {
       if (state.documents.some((document) => document.document_type === action.documentType)) {
@@ -328,6 +402,30 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const closed = { ...state, pendingRemoval: null };
       return pendingRemoval ? editorReducer(closed, removalAction(pendingRemoval)) : closed;
     }
+    case 'removeDropped': {
+      // Without a toast or Undo: the catalog can't offer the data again (S8)
+      const goneTypes = action.items
+        .filter((item) => item.field === null)
+        .map((item) => item.documentType);
+      const documents = state.documents
+        .filter((document) => !goneTypes.includes(document.document_type))
+        .map((document) => {
+          const goneFields = action.items
+            .filter((item) => item.documentType === document.document_type)
+            .map((item) => item.field);
+          return goneFields.length > 0
+            ? {
+                ...document,
+                fields: document.fields.filter((field) => !goneFields.includes(field)),
+              }
+            : document;
+        });
+      return {
+        ...state,
+        documents,
+        errors: goneTypes.reduce(withoutFieldError, state.errors),
+      };
+    }
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
     case 'closeDialog':
@@ -346,6 +444,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         publishError: action.error,
         rulesChanged: action.rulesChanged,
       };
+    case 'saveDraft':
+      // A retry takes the old alert away, so that a new failure is announced again
+      return { ...state, savingDraft: true, draftError: null };
+    case 'saveDraftFailed':
+      return { ...state, savingDraft: false, draftError: action.error };
   }
 }
 
@@ -412,6 +515,53 @@ export function firstInvalidElementId(
 
 export function labelOf(documentType: string, documentTypes: DocumentType[]): string {
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
+}
+
+/**
+ * The data the flow requests that the catalog no longer offers (S8; FR-003 edge case), in
+ * document order: a document type the catalog lacks is one item, labelled with its key, since
+ * the catalog has no label for it any more; a field a known document lacks is "Personal ID –
+ * eye_colour", with the field's key. Empty when the catalog offers everything.
+ */
+export function droppedDataOf(
+  documents: RequestedDocument[],
+  documentTypes: DocumentType[]
+): DroppedData[] {
+  return documents.flatMap((document): DroppedData[] => {
+    const documentType = documentTypes.find((type) => type.key === document.document_type);
+    if (!documentType) {
+      return [{ documentType: document.document_type, field: null, label: document.document_type }];
+    }
+    return document.fields
+      .filter((field) => !documentType.fields.some((offered) => offered.key === field))
+      .map((field) => ({
+        documentType: documentType.key,
+        field,
+        label: DRAFT_COPY.droppedField(documentType.label, field),
+      }));
+  });
+}
+
+/** The note's "Remove it" (S8): every dropped item at once, named in the removal dialog. */
+export function droppedRemovalOf(items: DroppedData[]): PendingRemoval {
+  return { type: 'dropped', items, label: items.map((item) => item.label).join(', ') };
+}
+
+/**
+ * Where a flow that opens with data the catalog dropped goes once the catalog has loaded (S0,
+ * S8): the documents step, where the note points the data out, unless it is there already; null
+ * without dropped data.
+ */
+export function stepForDroppedData(step: EditorStep, dropped: DroppedData[]): EditorStep | null {
+  return dropped.length > 0 && step !== 'documents' ? 'documents' : null;
+}
+
+/**
+ * A document card's selected fields (S8): only those the catalog offers, so that "3 of 7 shared"
+ * and "All data" leave out a field it dropped, which the note lists.
+ */
+export function offeredFieldsOf(fields: string[], documentType: DocumentType): string[] {
+  return fields.filter((field) => documentType.fields.some((offered) => offered.key === field));
 }
 
 /** A field's label, such as "Date of birth", for the removal dialog's title (F18). */
@@ -523,6 +673,103 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
     return { message: `${error.data.message} ${PUBLISH_COPY.rulesChangedHint}` };
   }
   return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
+}
+
+/**
+ * What "Save and exit" would store at this moment, apart from the step and the version (FR-002,
+ * FR-015): the name and the form ID as typed, the documents, and the branches with the counters.
+ * A rule open in the rule editor counts as kept, complete or not, as "Save changes" would keep it
+ * (R9, FR-012).
+ */
+export function localContentOf(state: EditorState, rules: RulesState): LocalDraftContent {
+  const kept = rules.editing ? rulesReducer(rules, { type: 'saveRule' }) : rules;
+  return {
+    name: state.name,
+    servicebwForm: state.servicebwForm,
+    documents: state.documents,
+    branches: branchInputs(kept.branches),
+    numberingBase: kept.numberingBase,
+    counters: kept.counters,
+  };
+}
+
+/** The body of "Save and exit" (R12): the content, the name and the form ID trimmed, the step. */
+export function draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate {
+  return {
+    name: content.name.trim(),
+    servicebw_form: content.servicebwForm.trim(),
+    documents: content.documents,
+    rules: { branches: content.branches, numbering_base: content.numberingBase },
+    step,
+  };
+}
+
+/**
+ * The step a draft opens at (FR-008; R12): the step it was saved in, except the test step without
+ * any rule in any variant, which can't open, and becomes the rules step.
+ */
+export function openingStepOf(step: EditorStep, rules: RulesState): EditorStep {
+  return step === 'test' && !hasAnyRule(rules.branches) ? 'rules' : step;
+}
+
+/**
+ * The reducers' starting states for a stored draft (R12): its name, form ID and documents, a
+ * type or field the catalog dropped included; its variants with the editor's keys (`main` for the
+ * main variant, `newBranchKey()` for the others, in order), numbering from the draft's counters,
+ * without a rule set; at `step` (the draft's own by default), through `openingStepOf()`.
+ */
+export function initialStatesFromDraft(
+  draft: FormConnectionDraft,
+  step: EditorStep = draft.step
+): { editor: EditorState; rules: RulesState } {
+  const empty = initialRulesState();
+  const branches = draft.branches.reduce<RulesBranch[]>(
+    (keyed, branch) => [
+      ...keyed,
+      { ...branch, key: branch.origin === 'main' ? MAIN_BRANCH_KEY : newBranchKey(keyed) },
+    ],
+    []
+  );
+  const counters = { rule: draft.next_rule_number, group: draft.next_group_number };
+  const rules: RulesState =
+    branches.length > 0
+      ? { ...empty, branches, openBranch: branches[0].key, counters, numberingBase: counters }
+      : { ...empty, counters, numberingBase: counters };
+  const editor: EditorState = {
+    ...INITIAL_EDITOR_STATE,
+    step: openingStepOf(step, rules),
+    name: draft.name,
+    servicebwForm: draft.servicebw_form,
+    documents: requestedDocumentsOf(draft.documents),
+  };
+  return { editor, rules };
+}
+
+/**
+ * The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them,
+ * so that a draft never needs a form ID.
+ */
+export function draftNameErrors(name: string): EditorErrors {
+  const errors = validateConnection(name, '');
+  return errors.name ? { name: errors.name } : {};
+}
+
+/**
+ * The alert after a failed "Save and exit" (S1.5; W3; FR-013). A `5xx`, nginx's `502` or `503`
+ * without JSON included, or a network failure gets U28's text, the error ID the server sent, and
+ * "Try again". Any other answer, such as a `400`, shows the server's message, without "Try again".
+ */
+export function draftSaveErrorOf(error: unknown): DraftSaveError {
+  if (!(error instanceof ApiError) || error.status >= 500) {
+    const errorId = error instanceof ApiError ? error.data.error_id : undefined;
+    return {
+      notice: errorId
+        ? { message: DRAFT_COPY.saveNetworkError, error_id: errorId }
+        : { message: DRAFT_COPY.saveNetworkError },
+      retryable: true,
+    };
+  }
+  return { notice: errorNoticeOf(error, DRAFT_COPY.saveNetworkError), retryable: false };
 }
 
 /**
