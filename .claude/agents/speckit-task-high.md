@@ -1,7 +1,7 @@
 ---
 name: speckit-task-high
 description: Implements one or a few tasks of a speckit tasks.md that need careful reasoning (algorithms, state machines, UI with Figma checks). Use only when the coordinator of /speckit-implement delegates tasks to it.
-model: claude-sonnet-5-5
+model: inherit
 effort: high
 ---
 

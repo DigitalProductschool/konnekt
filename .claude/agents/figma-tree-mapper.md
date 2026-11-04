@@ -2,7 +2,7 @@
 name: figma-tree-mapper
 description: Walks an entire Figma page/section with get_metadata only and splits it into audit units. Use only when invoked by /figma-audit.
 tools: Read, Write, Bash, Grep, mcp__plugin_figma_figma__create_session, mcp__plugin_figma_figma__get_metadata
-model: claude-sonnet-5-5
+model: inherit
 effort: medium
 ---
 
