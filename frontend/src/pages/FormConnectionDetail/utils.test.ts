@@ -29,6 +29,7 @@ function branch(id: string, name: string, isMain = false): Branch {
 
 function connection(branches: Branch[]): FormConnection {
   return {
+    status: 'published',
     id: 'fc',
     name: 'Passenger transport licence',
     servicebw_form: 'PT-1',

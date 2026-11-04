@@ -8,8 +8,9 @@ import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import { formConnectionReducer, INITIAL_FORM_CONNECTION_STATE } from './utils';
 
 /**
- * One form connection from GET /api/form-connections/:id. A 404 means it doesn't exist or was
- * deleted; a 401 signs out. `replace` takes a newer version, such as an action's answer.
+ * One form connection or draft from GET /api/form-connections/:id. A 404 means it doesn't exist or
+ * was deleted; a 401 signs out. `replace` takes a newer version of a published connection, such
+ * as an action's answer.
  */
 export function useFormConnection(id: string): {
   state: FormConnectionState;

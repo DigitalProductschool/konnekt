@@ -1,7 +1,8 @@
 """SQLAlchemy models.
 
 specs/001-servicebw-eudi-middleware/data-model.md, extended by the rule sets and
-branches of specs/002-connection-rules/data-model.md.
+branches of specs/002-connection-rules/data-model.md and the drafts of
+specs/005-connection-drafts/data-model.md.
 """
 
 import uuid
@@ -10,6 +11,7 @@ from typing import Annotated, Any
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -77,31 +79,60 @@ class FormConnection(Base):
     """A serviceBW form, the documents it requests and the rules they must meet.
 
     Spec 001: FR-001, FR-004 to FR-006. Spec 002: the rule sets and the counters of
-    the rules' and groups' identifiers (research R1, R5).
+    the rules' and groups' identifiers (research R1, R5). Spec 005: a row is either
+    a draft (``published_at`` is null; its content lives in ``draft``, and it has no
+    revision, rule set, branch rows or EUDIPLO configuration) or a published
+    connection, never both (research R1, the CHECK constraint below).
     """
 
     __tablename__ = 'form_connections'
+    __table_args__ = (
+        # Every row is exactly a draft or a published connection (spec 005, R1)
+        CheckConstraint(
+            '(published_at IS NULL AND current_revision IS NULL'
+            ' AND current_rule_set IS NULL AND draft IS NOT NULL'
+            ' AND draft_version IS NOT NULL)'
+            ' OR (published_at IS NOT NULL AND current_revision IS NOT NULL'
+            ' AND current_rule_set IS NOT NULL AND draft IS NULL'
+            ' AND draft_version IS NULL)',
+            name='ck_form_connections_draft_or_published',
+        ),
+    )
 
     id: Mapped[UuidPk]
+    # Required for drafts too
     name: Mapped[str] = mapped_column(String(200))
+    # May be '' in a draft
     servicebw_form: Mapped[str] = mapped_column(String(500))
+    # Stays true on a draft and means nothing until it is published
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true()
     )
-    # The revision that new requests use
-    current_revision: Mapped[int] = mapped_column(Integer)
+    # When the connection was published. Null exactly while it is a draft
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
+    # The revision that new requests use. Null exactly while a draft
+    current_revision: Mapped[int | None] = mapped_column(Integer)
     # The rule set version that new requests use; changes together with
-    # current_revision when a save changes both
-    current_rule_set: Mapped[int] = mapped_column(Integer)
+    # current_revision when a save changes both. Null exactly while a draft
+    current_rule_set: Mapped[int | None] = mapped_column(Integer)
+    # A draft's content: documents, branches and step (schemas.DRAFT_CONTENT,
+    # spec 005 data-model.md section 2). Null once published
+    draft: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    # 1 when created, +1 on every save (FR-022, R6). Null once published
+    draft_version: Mapped[int | None] = mapped_column(Integer)
     # The next free number of rule-{n}, and of group-{n}, which groups and
-    # sub-groups share. Never lowered, so no identifier is reused
+    # sub-groups share. Never lowered, so no identifier is reused. Also the
+    # draft's numbering, carried into publishing (spec 005, R4)
     next_rule_number: Mapped[int] = mapped_column(
         Integer, default=1, server_default=text('1')
     )
     next_group_number: Mapped[int] = mapped_column(
         Integer, default=1, server_default=text('1')
     )
-    # Set on deletion; the row stays so its URLs keep answering "unavailable"
+    # Set on deletion of a published connection; the row stays so its URLs keep
+    # answering "unavailable". A draft is deleted by removing its row (spec 005, R7)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
     )

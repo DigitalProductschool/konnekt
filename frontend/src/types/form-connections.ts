@@ -117,15 +117,30 @@ export interface Branch extends BranchInput {
   pull_url: string;
 }
 
+// Drafts (specs/005-connection-drafts/contracts/management-api.md "Schemas")
+
+/** Whether a connection is a draft or published; mirrors ConnectionStatus */
+export type ConnectionStatus = 'draft' | 'published';
+
+/** A step of the editor's wizard; mirrors EditorStep */
+export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
+
 export interface FormConnectionSummary {
   id: string;
   name: string;
+  /** '' possible for a draft */
   servicebw_form: string;
+  /** True for a draft; means nothing until it is published */
   is_active: boolean;
+  /** Draft or published */
+  status: ConnectionStatus;
+  /** A draft's last save (FR-007) */
   updated_at: string;
 }
 
 export interface FormConnection {
+  /** Always 'published': a draft is a FormConnectionDraft */
+  status: 'published';
   id: string;
   name: string;
   servicebw_form: string;
@@ -159,4 +174,72 @@ export interface FormConnectionUpdate {
   servicebw_form?: string;
   documents?: RequestedDocument[];
   rules?: RulesInput;
+}
+
+/**
+ * A draft as the API returns it. No URLs, no rule set version and no is_active (FR-006, FR-007)
+ */
+export interface FormConnectionDraft {
+  /** Always 'draft' */
+  status: 'draft';
+  id: string;
+  name: string;
+  /** '' possible */
+  servicebw_form: string;
+  /**
+   * May be empty, and a document's fields may be empty; a type or field the catalog dropped keeps
+   * its key as its label
+   */
+  documents: RequestedDocumentView[];
+  /** Main branch first; every id is null */
+  branches: BranchInput[];
+  /** The next free identifier numbers, the draft's numbering */
+  next_rule_number: number;
+  next_group_number: number;
+  /** The step it was saved in, where "Continue" opens it (FR-008) */
+  step: EditorStep;
+  /** The draft version, sent back on save and publish (FR-022) */
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** What GET /api/form-connections/:id answers; discriminated by `status` */
+export type FormConnectionOrDraft = FormConnection | FormConnectionDraft;
+
+/** A draft's branches and rules */
+export interface DraftRules {
+  /** Main branch first; every id is null */
+  branches: BranchInput[];
+  /** The counters the editor started from */
+  numbering_base: NumberingBase;
+}
+
+/** Stores a new draft. Empty texts and lists and incomplete rules are accepted */
+export interface DraftCreate {
+  name: string;
+  servicebw_form: string;
+  documents: RequestedDocument[];
+  rules: DraftRules;
+  /** The step the draft is saved in */
+  step: EditorStep;
+}
+
+/** Saves a draft's content again */
+export interface DraftUpdate extends DraftCreate {
+  /** The draft version the editor loaded */
+  version: number;
+  /** Save over another team member's save; false by default */
+  replace?: boolean;
+}
+
+/**
+ * Publishes a draft: the body of POST /api/form-connections, plus the draft's version.
+ * `rules.base_version` and `rules.replace` are ignored: a draft has no rule set yet
+ */
+export interface DraftPublish extends FormConnectionCreate {
+  /** The draft version the editor loaded */
+  version: number;
+  /** Publish over another team member's save; false by default */
+  replace?: boolean;
 }

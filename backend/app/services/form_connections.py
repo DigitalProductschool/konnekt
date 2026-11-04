@@ -10,6 +10,11 @@ makes the documents current, so documents and rules change together or not at al
 rules (FR-018). EUDIPLO errors reach the caller as `EudiploError`; nothing is saved
 then. Deactivating and deleting cancel the open requests and call no EUDIPLO: the
 worker deletes the sessions and, once no request needs them, the configurations.
+
+A form connection is a draft until it is published (spec 005): it has no revision,
+rule set or EUDIPLO configuration yet, and `services/drafts.py` saves and publishes
+it. The published paths here refuse a draft with 409 `not_published`, and the
+worker's re-sync leaves it alone.
 """
 
 import logging
@@ -49,6 +54,10 @@ NAME_MAX_LENGTH = 200
 SERVICEBW_FORM_MAX_LENGTH = 500
 
 NOT_FOUND = FORM_CONNECTION_NOT_FOUND
+NOT_PUBLISHED_DETAIL = {
+    'error': 'not_published',
+    'message': 'This connection is a draft. Continue it to save or publish it.',
+}
 
 
 def _validation_error(message: str) -> HTTPException:
@@ -208,7 +217,8 @@ def _view(
         # reference in place of the placeholder
         pull_url=next(view.pull_url for view in branch_views if view.is_main),
         branches=branch_views,
-        rule_set_version=form_connection.current_rule_set,
+        status='published',
+        rule_set_version=_published_rule_set(form_connection),
         next_rule_number=form_connection.next_rule_number,
         next_group_number=form_connection.next_group_number,
         created_at=to_iso_utc(form_connection.created_at),
@@ -222,6 +232,7 @@ def _summary(form_connection: FormConnection) -> FormConnectionSummary:
         name=form_connection.name,
         servicebw_form=form_connection.servicebw_form,
         is_active=form_connection.is_active,
+        status='draft' if form_connection.published_at is None else 'published',
         updated_at=to_iso_utc(form_connection.updated_at),
     )
 
@@ -251,13 +262,61 @@ def _lock_form_connection(db: Session, form_connection_id: str) -> FormConnectio
     return form_connection
 
 
+def _not_published() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT, detail=NOT_PUBLISHED_DETAIL
+    )
+
+
+def find_published_form_connection(
+    db: Session, form_connection_id: str
+) -> FormConnection:
+    """Return a published form connection that isn't deleted.
+
+    Answers 404 like `find_form_connection`, and 409 `not_published` for a draft.
+    """
+    form_connection = find_form_connection(db, form_connection_id)
+    if form_connection.published_at is None:
+        raise _not_published()
+    return form_connection
+
+
+def _lock_published_form_connection(
+    db: Session, form_connection_id: str
+) -> FormConnection:
+    """Lock a published form connection's row and read it again.
+
+    Answers 404 like `_lock_form_connection`, and 409 `not_published` for a draft,
+    after releasing the lock.
+    """
+    form_connection = _lock_form_connection(db, form_connection_id)
+    if form_connection.published_at is None:
+        db.rollback()
+        raise _not_published()
+    return form_connection
+
+
+def _published_revision(form_connection: FormConnection) -> int:
+    """The revision new requests use; a draft has none and answers 409."""
+    if form_connection.current_revision is None:
+        raise _not_published()
+    return form_connection.current_revision
+
+
+def _published_rule_set(form_connection: FormConnection) -> int:
+    """The rule set new requests use; a draft has none and answers 409."""
+    if form_connection.current_rule_set is None:
+        raise _not_published()
+    return form_connection.current_rule_set
+
+
 def _current_revision(
     db: Session, form_connection: FormConnection
 ) -> FormConnectionRevision:
     return db.scalars(
         select(FormConnectionRevision).where(
             FormConnectionRevision.form_connection_id == form_connection.id,
-            FormConnectionRevision.revision == form_connection.current_revision,
+            FormConnectionRevision.revision == _published_revision(form_connection),
         )
     ).one()
 
@@ -352,6 +411,7 @@ def create_form_connection(
         name=name,
         servicebw_form=servicebw_form,
         is_active=True,
+        published_at=datetime.now(tz=timezone.utc),
         current_revision=1,
         current_rule_set=1,
         next_rule_number=1,
@@ -453,11 +513,12 @@ def create_revision(
     `EudiploError` reaches the caller. If the rules are refused under the lock, or
     the last commit fails, the configuration is deleted again, and the previous
     revision and rule set stay current (FR-028). A form connection that is or gets
-    deleted answers 404. The new configuration uses the current settings, and the
-    revision stores the current REQUEST_LIFETIME_SECONDS.
+    deleted answers 404, and a draft 409 `not_published`. The new configuration
+    uses the current settings, and the revision stores the current
+    REQUEST_LIFETIME_SECONDS.
     """
     changes = changes or {}
-    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection = _lock_published_form_connection(db, form_connection_id)
     latest = db.scalar(
         select(func.max(FormConnectionRevision.revision)).where(
             FormConnectionRevision.form_connection_id == form_connection_id
@@ -491,13 +552,13 @@ def create_revision(
         raise
 
     try:
-        form_connection = _lock_form_connection(db, form_connection_id)
+        form_connection = _lock_published_form_connection(db, form_connection_id)
     except HTTPException:
         # Deleted meanwhile; the worker cleans up the revision's configuration too
         _delete_unsaved_config(body['id'])
         raise
     try:
-        if number > form_connection.current_revision:
+        if number > _published_revision(form_connection):
             form_connection.current_revision = number
         if save is not None:
             rules.save_rule_set(db, form_connection, save)
@@ -546,7 +607,7 @@ def update_form_connection(
     and the serviceBW form; rules equal to the current ones create no rule set.
     Deactivated form connections can be changed too.
     """
-    form_connection = find_form_connection(db, form_connection_id)
+    form_connection = find_published_form_connection(db, form_connection_id)
     changed = data.model_fields_set
     changes: dict[str, str] = {}
     if 'name' in changed:
@@ -577,7 +638,7 @@ def update_form_connection(
 
     if documents is None:
         if save is not None:
-            form_connection = _lock_form_connection(db, form_connection_id)
+            form_connection = _lock_published_form_connection(db, form_connection_id)
             rules.save_rule_set(db, form_connection, save)
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
@@ -602,7 +663,7 @@ def deactivate_form_connection(
     Its open requests become unavailable in the same transaction. EUDIPLO isn't
     called: the worker deletes their sessions in its next cycle.
     """
-    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection = _lock_published_form_connection(db, form_connection_id)
     form_connection.is_active = False
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()
@@ -618,7 +679,7 @@ def activate_form_connection(
     db: Session, form_connection_id: str
 ) -> FormConnectionView:
     """Activate a form connection again: its URLs work again, unchanged."""
-    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection = _lock_published_form_connection(db, form_connection_id)
     form_connection.is_active = True
     db.commit()
     logger.info('Form connection %s activated', form_connection_id)
@@ -631,7 +692,7 @@ def delete_form_connection(db: Session, form_connection_id: str) -> None:
     The row stays, marked deleted, so that the URLs can still say "unavailable".
     Open requests are cancelled as for deactivating, and EUDIPLO isn't called.
     """
-    form_connection = _lock_form_connection(db, form_connection_id)
+    form_connection = _lock_published_form_connection(db, form_connection_id)
     form_connection.deleted_at = datetime.now(tz=timezone.utc)
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()
@@ -652,10 +713,15 @@ def resync_config(db: Session, form_connection_id: str) -> bool:
     EUDIPLO_TRUST_LIST_ID and REQUEST_LIFETIME_SECONDS, not the revision's stored
     lifetime. When its hash differs from the stored one, the same documents become a
     new revision (`create_revision`), which new requests use at once. Returns whether
-    it created one. A deleted form connection is left alone.
+    it created one. A deleted form connection is left alone, and so is a draft,
+    which has nothing set up with EUDIPLO (spec 005, FR-005).
     """
     form_connection = db.get(FormConnection, form_connection_id)
-    if form_connection is None or form_connection.deleted_at is not None:
+    if (
+        form_connection is None
+        or form_connection.deleted_at is not None
+        or form_connection.published_at is None
+    ):
         return False
     revision = _current_revision(db, form_connection)
     documents = _documents_of(revision)

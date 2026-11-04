@@ -278,18 +278,22 @@ def _delete_session(request_id: str) -> None:
 def resync_configs() -> None:
     """Renew the configurations whose settings changed (R7, step 6).
 
-    After each start, every form connection that isn't deleted is checked once
-    (`form_connections.resync_config`, research R2): a changed trust list, request
-    lifetime or catalog gives its documents a new revision. The checks run in the
-    pool; a failed one is tried again in the next cycle, and the step stops once all
-    have succeeded.
+    After each start, every published form connection that isn't deleted is checked
+    once (`form_connections.resync_config`, research R2): a changed trust list,
+    request lifetime or catalog gives its documents a new revision. Drafts are left
+    out: nothing is set up with EUDIPLO for a draft (spec 005, FR-005, research R8).
+    The checks run in the pool; a failed one is tried again in the next cycle, and
+    the step stops once all have succeeded.
     """
     global _resync_done
     if _resync_done:
         return
     with SessionLocal() as db:
         form_connection_ids = db.scalars(
-            select(FormConnection.id).where(FormConnection.deleted_at.is_(None))
+            select(FormConnection.id).where(
+                FormConnection.deleted_at.is_(None),
+                FormConnection.published_at.is_not(None),
+            )
         ).all()
     with _resynced_lock:
         unchecked = [id_ for id_ in form_connection_ids if id_ not in _resynced]
@@ -341,6 +345,8 @@ def delete_unused_configs() -> None:
             .where(
                 FormConnectionRevision.eudiplo_config_deleted_at.is_(None),
                 or_(
+                    # A draft's current_revision is null, so this never holds for
+                    # a revision that a publish in flight has reserved (spec 005)
                     FormConnectionRevision.revision < FormConnection.current_revision,
                     FormConnection.deleted_at.is_not(None),
                 ),

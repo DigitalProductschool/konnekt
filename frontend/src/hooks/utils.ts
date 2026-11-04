@@ -61,6 +61,7 @@ export function optionSetsReducer(
 
 export const INITIAL_FORM_CONNECTION_STATE: FormConnectionState = { status: 'loading', attempt: 0 };
 
+/** The `loaded` state holds a published connection or a draft, as the API answered it */
 export function formConnectionReducer(
   state: FormConnectionState,
   action: FormConnectionAction

@@ -38,6 +38,7 @@ const STANDARD: Branch = {
 };
 
 const LOADED: FormConnection = {
+  status: 'published',
   id: 'fc',
   name: 'Passenger transport licence',
   servicebw_form: 'PT-1',

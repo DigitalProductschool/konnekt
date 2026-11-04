@@ -31,6 +31,16 @@ export default function FormConnectionEditPage() {
   if (state.status !== 'loaded') {
     return <FormConnectionLoadState state={state} onRetry={retry} />;
   }
+  // Only a published connection is edited here: a draft is not found, until drafts are routed to
+  // the editor
+  if (state.formConnection.status !== 'published') {
+    return (
+      <FormConnectionLoadState
+        state={{ status: 'notFound', attempt: state.attempt }}
+        onRetry={retry}
+      />
+    );
+  }
   return (
     <FormConnectionEditorPage
       key={`${state.formConnection.id}:${state.attempt}`}

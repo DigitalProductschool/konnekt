@@ -775,15 +775,28 @@ def _rule_set(
     ).one_or_none()
 
 
+def _current_rule_set(form_connection: FormConnection) -> int:
+    """The rule set version new requests use (spec 005, research R8).
+
+    A draft has none. Only published connections reach the readers of the current
+    rules, since their callers refuse drafts first, so a draft here is a bug.
+    """
+    if form_connection.current_rule_set is None:
+        raise LookupError(f'Form connection {form_connection.id} is a draft')
+    return form_connection.current_rule_set
+
+
 def current_branches(
     db: Session, form_connection: FormConnection
 ) -> list[SnapshotBranch]:
-    """The branches of a form connection's current rule set, main branch first."""
-    rule_set = _rule_set(db, form_connection.id, form_connection.current_rule_set)
+    """The branches of a published form connection's current rule set, main branch
+    first. A draft has none and raises `LookupError`.
+    """
+    version = _current_rule_set(form_connection)
+    rule_set = _rule_set(db, form_connection.id, version)
     if rule_set is None:
         raise LookupError(
-            f'Form connection {form_connection.id} has no rule set '
-            f'{form_connection.current_rule_set}'
+            f'Form connection {form_connection.id} has no rule set {version}'
         )
     return RULE_SET_SNAPSHOT.validate_python(rule_set.branches)
 
@@ -805,7 +818,7 @@ def _loaded_branches(
     current: list[SnapshotBranch],
 ) -> list[SnapshotBranch]:
     """The branches of the rule set the editor loaded; the current ones by default."""
-    if base_version is None or base_version == form_connection.current_rule_set:
+    if base_version is None or base_version == _current_rule_set(form_connection):
         return current
     rule_set = _rule_set(db, form_connection.id, base_version)
     return RULE_SET_SNAPSHOT.validate_python(rule_set.branches) if rule_set else []
@@ -849,9 +862,10 @@ def check_rules_version(
     bring back with a new pull URL (the save's ones that another save deleted).
     It runs before the rules are checked, so that a stale editor meets this answer
     and not a refusal that its staleness causes, such as "Unknown variant.", and
-    again under the row lock (research R9).
+    again under the row lock (research R9). A draft has no rules to be stale
+    against and raises `LookupError`: its callers refuse drafts first.
     """
-    if rules.replace or rules.base_version == form_connection.current_rule_set:
+    if rules.replace or rules.base_version == _current_rule_set(form_connection):
         return
     current = current_branches(db, form_connection)
     saved_ids = {branch.id for branch in rules.branches if branch.id is not None}

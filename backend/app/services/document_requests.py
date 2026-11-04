@@ -405,12 +405,20 @@ def _usable_form_connection(
     """The form connection behind a connection URL (research R12).
 
     Answers 404 with `not_found` when it doesn't exist, and 409 "unavailable" while
-    it is deactivated or after it was deleted (FR-006).
+    it is deactivated, after it was deleted, and while it is a draft (FR-006; spec
+    005, research R8). A draft answers exactly as a deactivated connection does, so
+    a caller can't tell them apart, and the check comes before anything reads a
+    revision: a draft has none. On a branch's pull URL it is step 2 of spec 002's
+    "Order of the checks", before the branch is looked at.
     """
     form_connection = db.get(FormConnection, form_connection_id)
     if form_connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=not_found)
-    if form_connection.deleted_at is not None or not form_connection.is_active:
+    if (
+        form_connection.deleted_at is not None
+        or not form_connection.is_active
+        or form_connection.published_at is None
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=UNAVAILABLE_DETAIL
         )
@@ -454,24 +462,32 @@ def trigger(db: Session, form_connection_id: str) -> TriggerResponse:
     The request also keeps the current rule set, read from the same row as the
     revision, so that it is evaluated with the rules saved together with its
     documents (spec 002, FR-028). Answers 404 for an unknown form connection and
-    409 for a deactivated or deleted one. EUDIPLO errors reach the caller as
-    `EudiploError`, which includes an offer
+    409 for a deactivated or deleted one, or a draft (spec 005, FR-006). EUDIPLO
+    errors reach the caller as `EudiploError`, which includes an offer
     without a cross-device link (research R19, user). Nothing is stored then: the
     EUDIPLO session of a request that can't be saved is deleted again.
     """
     form_connection = _usable_form_connection(
         db, form_connection_id, FORM_CONNECTION_NOT_FOUND
     )
+    # Past the check above the connection is published, so both are set
+    # (data-model.md); this narrows them from `int | None` to `int`
+    current_revision = form_connection.current_revision
+    current_rule_set = form_connection.current_rule_set
+    if current_revision is None or current_rule_set is None:
+        raise LookupError(
+            f'Published form connection {form_connection.id} has no current revision'
+        )
     revision = db.scalars(
         select(FormConnectionRevision).where(
             FormConnectionRevision.form_connection_id == form_connection.id,
-            FormConnectionRevision.revision == form_connection.current_revision,
+            FormConnectionRevision.revision == current_revision,
         )
     ).one()
     rule_set_id = db.scalars(
         select(FormConnectionRuleSet.id).where(
             FormConnectionRuleSet.form_connection_id == form_connection.id,
-            FormConnectionRuleSet.version == form_connection.current_rule_set,
+            FormConnectionRuleSet.version == current_rule_set,
         )
     ).one()
     triggered_at = _now()
@@ -577,8 +593,9 @@ def pull(
     `branch_id` is None for the main branch's pull URL, and names the branch of
     every other one (spec 002, contracts/integration-api.md "Order of the checks").
     Answers 404 for an unknown form connection, and 409 for a deactivated or
-    deleted one. A branch's pull URL then answers 404 for a branch the form
-    connection doesn't have besides its main branch, and 409 for a deleted one.
+    deleted one, or a draft (spec 005, FR-006). A branch's pull URL then answers
+    404 for a branch the form connection doesn't have besides its main branch, and
+    409 for a deleted one.
     Then come 404 for a reference that the form connection doesn't know, and 409
     `branch_added_later` for a branch added after the request was triggered.
 

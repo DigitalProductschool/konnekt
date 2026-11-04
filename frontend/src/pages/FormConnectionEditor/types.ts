@@ -1,7 +1,7 @@
 import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
-import type { FormConnection, RequestedDocument } from '../../types/form-connections';
+import type { EditorStep, FormConnection, RequestedDocument } from '../../types/form-connections';
 import type { FindingTone, RuleChecks } from '../../utils/rules/checks/types';
 import type { RulesBranch } from './RulesStep/types';
 
@@ -24,7 +24,8 @@ export interface FormConnectionEditorPageProps {
 /** What the wizard does: make a connection, the first one, or edit one */
 export type EditorMode = 'create' | 'first' | 'edit';
 
-export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
+/** Moved to the API types, as drafts store it; re-exported for the editor's imports */
+export type { EditorStep };
 
 /**
  * The rules step's button to go on (spec 004, S2; W2; FR-001): "Test rules" while any branch has

@@ -31,6 +31,16 @@ export default function FormConnectionDetailPage() {
   if (state.status !== 'loaded') {
     return <FormConnectionLoadState state={state} onRetry={retry} footer={<DetailFooter />} />;
   }
+  // A draft has no details yet: not found here, until drafts are routed to the editor
+  if (state.formConnection.status !== 'published') {
+    return (
+      <FormConnectionLoadState
+        state={{ status: 'notFound', attempt: state.attempt }}
+        onRetry={retry}
+        footer={<DetailFooter />}
+      />
+    );
+  }
   return (
     <ConnectionDetails formConnection={state.formConnection} arrival={arrival} onChange={replace} />
   );
