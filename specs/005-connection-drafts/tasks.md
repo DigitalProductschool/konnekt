@@ -100,10 +100,14 @@ pure modules with their tests, the hooks, the editor, the pages, and the documen
 **Purpose**: A known starting point. No dependency, setting or environment variable is added
 (plan "Constitution Check", IV).
 
-- [ ] T001 Record the baseline before any change, in `backend/` and `frontend/`.
+- [X] T001 Record the baseline before any change, in `backend/` and `frontend/`.
   - In `backend/`: `uv sync`, `uv run alembic heads` shows `d5a4c9462af7` as the only head, and `uv run alembic upgrade head` succeeds on the development database (port 5435). Run Ruff, mypy and pytest (with the `_test` database).
   - In `frontend/`: `npm run lint`, `npm test` and `npm run build`.
   - Note any failure that already exists, so that later tasks don't take the blame for it. Change no file.
+  - **Baseline (2026-11-04)**: no failures.
+    - Backend: the only head is `d5a4c9462af7`, `alembic check` finds no difference, Ruff and mypy pass (62 files), and pytest passes 1282 tests in about 4 minutes.
+    - Frontend: lint has 0 problems, Vitest passes 2447 tests in 53 files, and the build passes.
+    - Warnings that predate this feature: the main chunk is 620 kB, over Vite's 500 kB limit; Vite warns "ESM syntax in a file loaded as CommonJS (vite.config.ts:2:1)"; and `npm audit` reports 8 vulnerabilities in the lockfile (one high, in `zod` < 4.6.6).
 
 ---
 
