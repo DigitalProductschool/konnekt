@@ -1,12 +1,14 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { listFormConnections } from '../../api/form-connections';
 import FeedbackLoader from '../../components/FeedbackLoader';
+import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageTitle from '../../components/PageTitle';
 import { LIVE_REGION_DELAY_MS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useLocalDrafts } from '../../hooks/useLocalDrafts';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import type { OverviewLocationState } from '../../types/routing';
 import { INITIAL_LIST_STATE, LIST_COPY } from './constants';
@@ -17,7 +19,9 @@ import { hintOf, listReducer } from './utils';
 /**
  * The overview at "/" (Figma "S3 Your connections"): every connection that isn't deleted,
  * drafts included. After "Save and exit" it confirms the saved draft in a polite status (W1),
- * which mounts empty so that screen readers announce the text.
+ * which mounts empty so that screen readers announce the text. Above the list, also while it
+ * loads, is empty or failed, it offers the unsaved work on this device (S4), which counts for the
+ * hint (S3).
  */
 export default function FormConnectionListPage() {
   useDocumentTitle(LIST_COPY.pageTitle);
@@ -25,6 +29,8 @@ export default function FormConnectionListPage() {
   const handleUnauthorized = useSignOutOnUnauthorized();
   const location = useLocation();
   const navigate = useNavigate();
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const { drafts: localDrafts } = useLocalDrafts();
   // Read once: the router state is cleared below, so the status goes at the next navigation
   const [draftSaved] = useState(
     () => (location.state as OverviewLocationState | null)?.draftSaved ?? null
@@ -63,8 +69,9 @@ export default function FormConnectionListPage() {
   return (
     <>
       <PageTitle
+        ref={titleRef}
         title={LIST_COPY.title}
-        hint={state.status === 'loaded' ? hintOf(state.formConnections) : LIST_COPY.hint}
+        hint={hintOf(state.status === 'loaded' ? state.formConnections : [], localDrafts.length)}
       />
       <p
         role="status"
@@ -78,6 +85,8 @@ export default function FormConnectionListPage() {
           <span className="kern-label">{LIST_COPY.newConnection}</span>
         </Link>
       </div>
+
+      <LocalDraftsOffer emptyFocusRef={titleRef} />
 
       {state.status === 'loading' && <FeedbackLoader label={LIST_COPY.loading} />}
 

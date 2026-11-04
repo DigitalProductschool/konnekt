@@ -8,7 +8,9 @@ import type {
   FormConnection,
   FormConnectionDraft,
 } from '../../types/form-connections';
-import type { LocalDraftContent } from '../../utils/localDrafts/types';
+import { emptyContent, sameContent } from '../../utils/localDrafts/content';
+import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
+import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { BranchCheck, BranchNotice, ItemFinding } from '../../utils/rules/checks/types';
 import { mainBranch, US1_RULES } from '../../utils/rules/testData';
 import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
@@ -23,14 +25,17 @@ import {
   droppedDataOf,
   droppedRemovalOf,
   editorReducer,
+  entryOf,
   findingLinesOf,
   firstBranchWithFindings,
   initialEditorState,
   initialStatesFromDraft,
+  initialStatesFromLocal,
   isRulesChanged,
   localContentOf,
   offeredFieldsOf,
   openingStepOf,
+  originOfRecord,
   pageTitleOf,
   problemPlaceOf,
   publishErrorNotice,
@@ -39,6 +44,8 @@ import {
   rulesChanged,
   rulesCheckingRemoval,
   rulesNextActionOf,
+  startOfEntry,
+  startOfOrigin,
   stepForDroppedData,
 } from './utils';
 
@@ -907,6 +914,253 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
       rules: { branches: DRAFT.branches, numbering_base: { rule: 4, group: 2 } },
       step: 'test',
     });
+  });
+});
+
+const DRAFT_ID = '0b6f1c2e-3d4a-4b5c-8d9e-0f1a2b3c4d5e';
+const NEW_KEY = newFlowKey('7c9e6679-7425-40de-944b-e07fc1f90ae7');
+const DRAFT_KEY = flowKeyOfDraft(DRAFT_ID);
+
+/** A record of a new connection, at the rules step: Standard and Taxi with rules, Ambulance empty */
+function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecord {
+  return {
+    format: 1,
+    flowKey: NEW_KEY,
+    draftId: null,
+    draftVersion: null,
+    changedAt: '2026-11-04T14:32:00Z',
+    step: 'rules',
+    content: {
+      name: 'Passenger transport licence',
+      servicebwForm: '',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+      branches: [
+        mainBranch(US1_RULES),
+        { ...mainBranch(US1_RULES), name: 'Taxi', origin: 'based' },
+        { ...mainBranch([]), name: 'Ambulance', origin: 'empty' },
+      ],
+      numberingBase: { rule: 1, group: 1 },
+      counters: { rule: 4, group: 2 },
+    },
+    ...overrides,
+  };
+}
+
+describe('initialStatesFromLocal (FR-017; R10)', () => {
+  it('takes the name, the form ID and the documents, at the record’s step', () => {
+    const { editor } = initialStatesFromLocal(localRecord());
+    expect(editor).toEqual({
+      ...INITIAL_EDITOR_STATE,
+      step: 'rules',
+      name: 'Passenger transport licence',
+      servicebwForm: '',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+    });
+  });
+
+  it('opens the test step with a rule, and the rules step without any', () => {
+    expect(initialStatesFromLocal(localRecord({ step: 'test' })).editor.step).toBe('test');
+    const record = localRecord({ step: 'test' });
+    const empty = { ...record, content: { ...record.content, branches: [mainBranch([])] } };
+    expect(initialStatesFromLocal(empty).editor.step).toBe('rules');
+  });
+
+  it('gives the variants the editor’s keys in order, Standard open, without a rule set', () => {
+    const record = localRecord();
+    const { rules } = initialStatesFromLocal(record);
+    expect(rules.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2']);
+    expect(rules.branches.map(({ key: _key, ...branch }) => branch)).toEqual(
+      record.content.branches
+    );
+    expect(rules.openBranch).toBe('main');
+    expect(rules.ruleSetVersion).toBeNull();
+  });
+
+  it('takes the counters and the numbering base from the record', () => {
+    const { rules } = initialStatesFromLocal(localRecord());
+    expect(rules.counters).toEqual({ rule: 4, group: 2 });
+    expect(rules.numberingBase).toEqual({ rule: 1, group: 1 });
+  });
+
+  it('starts states that make the record’s content again', () => {
+    for (const record of [localRecord(), localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID })]) {
+      const { editor, rules } = initialStatesFromLocal(record);
+      expect(sameContent(localContentOf(editor, rules), record.content)).toBe(true);
+    }
+  });
+});
+
+describe('originOfRecord (R10)', () => {
+  it('makes a new connection’s record a new flow under its key', () => {
+    expect(originOfRecord(localRecord())).toEqual({ kind: 'new', flowKey: NEW_KEY });
+  });
+
+  it('makes a stored draft’s record a draft flow at the version it loaded', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    expect(originOfRecord(record)).toEqual({
+      kind: 'draft',
+      draftId: DRAFT_ID,
+      draftVersion: 3,
+      flowKey: DRAFT_KEY,
+    });
+  });
+
+  it('gives a stored draft’s record without a version one that no draft has', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: null });
+    expect(originOfRecord(record)).toEqual({
+      kind: 'draft',
+      draftId: DRAFT_ID,
+      draftVersion: 0,
+      flowKey: DRAFT_KEY,
+    });
+  });
+});
+
+describe('entryOf (contracts/local-drafts.md, rule 1; R10)', () => {
+  it('starts a fresh flow without a parameter, also when a record is passed', () => {
+    expect(entryOf(null, null)).toEqual({ kind: 'fresh' });
+    expect(entryOf(null, localRecord())).toEqual({ kind: 'fresh' });
+  });
+
+  it('starts a fresh flow for a parameter that is no flow key', () => {
+    for (const param of ['', 'new-', 'new-1', 'draft-abc', 'published-' + DRAFT_ID, DRAFT_ID]) {
+      expect(entryOf(param, null)).toEqual({ kind: 'fresh' });
+    }
+    expect(entryOf('new-1', localRecord())).toEqual({ kind: 'fresh' });
+  });
+
+  it('opens the record of a new connection’s key', () => {
+    const record = localRecord();
+    expect(entryOf(NEW_KEY, record)).toEqual({ kind: 'local', record });
+  });
+
+  it('opens the record of a stored draft’s key, without going to its edit route', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    expect(entryOf(DRAFT_KEY, record)).toEqual({ kind: 'local', record });
+  });
+
+  it('goes to the stored draft for a draft key without a record', () => {
+    expect(entryOf(DRAFT_KEY, null)).toEqual({ kind: 'missingDraft', draftId: DRAFT_ID });
+  });
+
+  it('starts empty under a new connection’s key without a record', () => {
+    expect(entryOf(NEW_KEY, null)).toEqual({ kind: 'empty', flowKey: NEW_KEY });
+  });
+});
+
+describe('startOfEntry (contracts/local-drafts.md, rule 1; R10; data-model.md section 6)', () => {
+  const UUID = '9f1d2c3b-4a5e-4f60-8a7b-1c2d3e4f5a6b';
+
+  it('starts a fresh flow empty under a new key, which goes into the URL', () => {
+    const start = startOfEntry({ kind: 'fresh' }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: newFlowKey(UUID) },
+      initialStates: {
+        editor: initialEditorState({ initialStep: 'connection' }),
+        rules: initialRulesState(),
+      },
+      baseline: emptyContent(),
+      urlFlowKey: newFlowKey(UUID),
+    });
+  });
+
+  it('starts empty under a new connection’s key without a record, leaving the URL alone', () => {
+    const start = startOfEntry({ kind: 'empty', flowKey: NEW_KEY }, () => UUID);
+    expect(start).toMatchObject({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: NEW_KEY },
+      baseline: emptyContent(),
+      urlFlowKey: null,
+    });
+  });
+
+  it('asks for a new key only for a fresh flow', () => {
+    const record = localRecord();
+    const newUuid = () => {
+      throw new Error('no new key expected');
+    };
+    expect(() => startOfEntry({ kind: 'empty', flowKey: NEW_KEY }, newUuid)).not.toThrow();
+    expect(() => startOfEntry({ kind: 'local', record }, newUuid)).not.toThrow();
+    expect(() => startOfEntry({ kind: 'missingDraft', draftId: DRAFT_ID }, newUuid)).not.toThrow();
+  });
+
+  it('resumes a new connection’s record against the empty flow, not its own content', () => {
+    const record = localRecord();
+    const start = startOfEntry({ kind: 'local', record }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: NEW_KEY },
+      initialStates: initialStatesFromLocal(record),
+      baseline: emptyContent(),
+      urlFlowKey: null,
+    });
+  });
+
+  it('resumes a stored draft’s record as a draft flow without a baseline', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    const start = startOfEntry({ kind: 'local', record }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'draft', draftId: DRAFT_ID, draftVersion: 3, flowKey: DRAFT_KEY },
+      initialStates: initialStatesFromLocal(record),
+      baseline: null,
+      urlFlowKey: null,
+    });
+  });
+
+  it('sends a stored draft’s key without a record to the draft', () => {
+    expect(startOfEntry({ kind: 'missingDraft', draftId: DRAFT_ID }, () => UUID)).toEqual({
+      kind: 'missingDraft',
+      draftId: DRAFT_ID,
+    });
+  });
+
+  it('opens a fresh flow at the step asked for', () => {
+    const start = startOfEntry({ kind: 'fresh' }, () => UUID, 'documents');
+    expect(start.kind === 'open' && start.initialStates.editor.step).toBe('documents');
+  });
+});
+
+describe('startOfOrigin (data-model.md section 6)', () => {
+  const DRAFT_ORIGIN = {
+    kind: 'draft',
+    draftId: DRAFT_ID,
+    draftVersion: 3,
+    flowKey: DRAFT_KEY,
+  } as const;
+
+  it('takes a stored draft as loaded for its baseline', () => {
+    const states = initialStatesFromLocal(localRecord());
+    const start = startOfOrigin({ origin: DRAFT_ORIGIN, initialStates: states });
+    expect(start.initialStates).toBe(states);
+    expect(start.baseline).toEqual(localContentOf(states.editor, states.rules));
+    expect(start.urlFlowKey).toBeNull();
+  });
+
+  it('takes the baseline given, as after “Restore changes”', () => {
+    const states = initialStatesFromLocal(localRecord());
+    const loaded = { ...emptyContent(), name: 'Stored' };
+    const start = startOfOrigin({ origin: DRAFT_ORIGIN, initialStates: states, baseline: loaded });
+    expect(start.baseline).toBe(loaded);
+  });
+
+  it('gives a published connection its states and no baseline', () => {
+    const start = startOfOrigin({
+      origin: { kind: 'published', formConnection: LOADED },
+      initialStep: 'rules',
+    });
+    expect(start.initialStates).toEqual({
+      editor: initialEditorState({ formConnection: LOADED, initialStep: 'rules' }),
+      rules: initialRulesState(LOADED),
+    });
+    expect(start.baseline).toBeNull();
+  });
+
+  it('gives a new connection the empty flow', () => {
+    const start = startOfOrigin({ origin: { kind: 'new', flowKey: NEW_KEY } });
+    expect(start.baseline).toEqual(emptyContent());
+    expect(start.initialStates.editor.step).toBe('connection');
   });
 });
 

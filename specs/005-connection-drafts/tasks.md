@@ -441,7 +441,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
 
 ### Pure modules (each with its test)
 
-- [ ] T031 [P] [US2] Write `localDrafts/constants.ts` and `localDrafts/keys.ts` with `localDrafts/keys.test.ts` (contracts/local-drafts.md "Format"; research R9, R10; data-model.md section 6). Depends on T008.
+- [X] T031 [P] [US2] Write `localDrafts/constants.ts` and `localDrafts/keys.ts` with `localDrafts/keys.test.ts` (contracts/local-drafts.md "Format"; research R9, R10; data-model.md section 6). Depends on T008.
   - `constants.ts`: `LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:'`, `LOCAL_DRAFT_FORMAT = 1`, `LOCAL_DRAFT_MAX_AGE_MS` (30 days), `LOCAL_DRAFT_WRITE_INTERVAL_MS = 1000` and `LOCAL_DRAFT_PARAM = 'local'`, each with its reason in a comment.
   - `keys.ts`:
     - `storageKeyOf(username, flowKey)` gives `connection-portal:local-draft:v1:<username>:<flowKey>`;
@@ -449,12 +449,12 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - `isFlowKey(value)` accepts exactly those two forms (UUID-shaped);
     - `parseStorageKey(key): { username; flowKey } | null` reads a key back, for listing. A username may contain `:`, so split at the last `:`.
   - Tests: round trips, a username with `:`, rejected flow keys (empty, `new-`, `draft-`, other prefixes), and keys of other apps.
-- [ ] T032 [P] [US2] Write `localDrafts/content.ts` with `localDrafts/content.test.ts` (contracts/local-drafts.md). Depends on T008 and T021: its test checks `emptyContent()` against the editor's `localContentOf`.
+- [X] T032 [P] [US2] Write `localDrafts/content.ts` with `localDrafts/content.test.ts` (contracts/local-drafts.md). Depends on T008 and T021: its test checks `emptyContent()` against the editor's `localContentOf`.
   - `emptyContent()`: the content of a fresh create flow. Its name and form ID are empty, it has no documents, and its branches are what `initialRulesState()` gives for a new connection: Standard, `main`, AND, no items, with numbering base and counters `{ rule: 1, group: 1 }`. Build it without importing the editor, and pin it with a test against `localContentOf(initialEditorState(...), initialRulesState())`, so that the two can't drift.
   - `sameContent(a, b)`: a structural comparison that ignores key order and treats `undefined` and a missing key alike.
   - `displayNameOf(content)`: the trimmed name, or `'Untitled connection'`.
   - Tests for each, including nested rule trees in different key order.
-- [ ] T033 [US2] Write `localDrafts/format.ts` with `localDrafts/format.test.ts` (contracts/local-drafts.md "Accepted records"). Depends on T031.
+- [X] T033 [US2] Write `localDrafts/format.ts` with `localDrafts/format.test.ts` (contracts/local-drafts.md "Accepted records"). Depends on T031.
   - `serializeRecord(record): string` is `JSON.stringify`.
   - `parseRecord(raw, flowKey): LocalDraftRecord | null` never throws. It returns `null` when any of these fails:
     - the JSON parses;
@@ -466,7 +466,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - `step` is one of the four steps;
     - `content` has every field of `LocalDraftContent` with its type: documents as `{ document_type: string; fields: string[] }[]`, and branches with `name`, `origin` (`main` / `based` / `empty`), `operator` and `items`, each tree item with `type`, `id` and `name`, groups with `operator` and `items`, and `target` / `condition` as `object | null`. The server checks the rest on save.
   - Tests: a valid record round-trips. Each broken field gives `null`: bad JSON, another format, a mismatched flow key, a wrong type at each level, a tree item without `type`, `__proto__` keys. No input throws.
-- [ ] T034 [US2] Write `localDrafts/store.ts` with `localDrafts/store.test.ts` (contracts/local-drafts.md `createLocalDraftStore`; research R9, R11; FR-015, FR-018, FR-019, FR-021). Depends on T031, T033.
+- [X] T034 [US2] Write `localDrafts/store.ts` with `localDrafts/store.test.ts` (contracts/local-drafts.md `createLocalDraftStore`; research R9, R11; FR-015, FR-018, FR-019, FR-021). Depends on T031, T033.
   - `createLocalDraftStore(storage: StorageLike | null, now: () => Date): LocalDraftStore`, with `available` (false without storage: everything is a no-op), `list`, `read`, `write`, `remove`, `removeAll`, `close` and `reopen`, as in the contract. Every storage access is in `try/catch`, and a failing storage reads as empty (FR-021).
     - `list(username)` returns the account's valid, unexpired records, newest first. It removes expired records (`changedAt` older than `LOCAL_DRAFT_MAX_AGE_MS`) and invalid ones that carry this app's prefix for this account. It never touches other prefixes or other accounts' entries.
     - `read` validates the record, and removes it when it is invalid or expired.
@@ -490,12 +490,12 @@ the draft and no longer offers the local draft (quickstart V6–V9).
 
 ### Hooks
 
-- [ ] T035 [US2] Write `frontend/src/hooks/useLocalDraftStore.ts`, the only code that touches `window.localStorage` (contracts/local-drafts.md "Hooks"; FR-019, FR-021). Depends on T034.
+- [X] T035 [US2] Write `frontend/src/hooks/useLocalDraftStore.ts`, the only code that touches `window.localStorage` (contracts/local-drafts.md "Hooks"; FR-019, FR-021). Depends on T034.
   - It returns `{ store, username }`. The store is one module-level instance, created lazily from `window.localStorage` inside `try/catch` (`createLocalDraftStore(null, …)` when the storage can't be reached). Every caller therefore shares the closed accounts of `close()`.
   - `username` comes from `useCurrentUser()` (`user?.username ?? null`).
   - An effect calls `store.reopen(username)` when the account signs in (the username changes from `null`).
   - Docstring: why it is the only binding, and that an expired session never removes anything.
-- [ ] T036 [P] [US2] Write `frontend/src/hooks/useLocalDraft.ts`, the editor's autosave (contracts/local-drafts.md `useLocalDraft`; research R9; FR-014, FR-015, FR-018, SC-004). Depends on T032, T035.
+- [X] T036 [P] [US2] Write `frontend/src/hooks/useLocalDraft.ts`, the editor's autosave (contracts/local-drafts.md `useLocalDraft`; research R9; FR-014, FR-015, FR-018, SC-004). Depends on T032, T035.
   - Signature: `useLocalDraft({ flowKey, draftId, draftVersion, baseline, content, step, enabled }): { flush(): void; forget(): void }`, with `baseline: LocalDraftContent | null`: what is already safe elsewhere, or `null` when the flow doesn't know it (T039; data-model.md section 6).
   - **Writing**: after the first change in the flow, while `enabled` and the content differs from the baseline (on every change with `null`), it writes the record. The first write is at once, and later ones at most once per `LOCAL_DRAFT_WRITE_INTERVAL_MS`, trailing. `changedAt` is the time of the change. Mounting writes nothing, so a resumed record keeps its time of last change.
   - **Removing**: with a baseline, it removes the record when a change brings the content back to the baseline. With `null`, only `forget()` removes it. Mounting never removes a record.
@@ -504,14 +504,14 @@ the draft and no longer offers the local draft (quickstart V6–V9).
   - **`forget()`**: it cancels pending writes, removes the record, and stops writing until `flowKey` changes.
   - **`flush()`**: it writes now. The hook registers it with `registerFlush` while mounted.
   - No `console.*`, no `fetch` or `apiFetch`.
-- [ ] T037 [P] [US2] Write `frontend/src/hooks/useLocalDrafts.ts`, the offers' list (contracts/local-drafts.md `useLocalDrafts`; FR-016, FR-018). Depends on T035.
+- [X] T037 [P] [US2] Write `frontend/src/hooks/useLocalDrafts.ts`, the offers' list (contracts/local-drafts.md `useLocalDrafts`; FR-016, FR-018). Depends on T035.
   - `useLocalDrafts(exceptFlowKey?: string): { drafts: LocalDraftRecord[]; discard(flowKey: string): void }`.
   - It holds `store.list(username)` without `exceptFlowKey`, and refreshes on `storage` events and after `discard`. Without a username or an available store, the list is empty.
   - No `console.*`.
 
 ### The editor and the screens
 
-- [ ] T038 [US2] Extend the editor's model for local drafts in `editor/types.ts` and `editor/utils.ts`, with tests in `editor/utils.test.ts` (contracts/local-drafts.md "Rules for callers" 1; research R10). Depends on T021, T031.
+- [X] T038 [US2] Extend the editor's model for local drafts in `editor/types.ts` and `editor/utils.ts`, with tests in `editor/utils.test.ts` (contracts/local-drafts.md "Rules for callers" 1; research R10). Depends on T021, T031.
   - `EditorOrigin`'s `new` and `draft` kinds gain `flowKey: string`. Update T025's and T029's construction sites: the edit route builds `flowKeyOfDraft(draft.id)`.
   - `initialStatesFromLocal(record: LocalDraftRecord): { editor: EditorState; rules: RulesState }`: the content, at `openingStepOf(record.step, rules)`. The variants get the editor's keys (`MAIN_BRANCH_KEY`, then `newBranchKey()`). `counters` and `numberingBase` come from the record.
   - `originOfRecord(record): EditorOrigin`: `{ kind: 'draft', draftId, draftVersion, flowKey }` when `draftId` is set, and otherwise `{ kind: 'new', flowKey }`.
@@ -521,7 +521,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - a `draft-<id>` key without a record: go to the draft's edit route;
     - a `new-` key without a record: start empty under that key.
   - Tests for each branch and for both origins of a record.
-- [ ] T039 [US2] Wire local drafts into `editor/index.tsx` (S0, S1; FR-014, FR-017, FR-018; research R10, R16). Depends on T036, T038.
+- [X] T039 [US2] Wire local drafts into `editor/index.tsx` (S0, S1; FR-014, FR-017, FR-018; research R10, R16). Depends on T036, T038.
   - **Origin and flow key**:
     - On the `new` routes (`/form-connections/new` and `/get-started`), read `?local=` once with `useSearchParams` in a `useState` initializer, read the record through `useLocalDraftStore`, and apply `entryOf`.
     - A record opens with `initialStatesFromLocal` and `originOfRecord`. `missingDraft` navigates to `generatePath(ROUTES.editFormConnection, { id })` with `replace`.
@@ -537,7 +537,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
   - **Badge**: a resumed `draft-` record shows the "Draft" badge.
   - **First-connection screen**: `/get-started` uses the same logic, so a reload or the sign-in round trip returns into the flow (R10).
   - Update the page's docstring: local drafts and the `?local=` parameter.
-- [ ] T040 [P] [US2] Write `frontend/src/components/LocalDraftsOffer/` (S4, W5; FR-016, FR-018, FR-021; SC-004, SC-005). Depends on T032, T037.
+- [X] T040 [P] [US2] Write `frontend/src/components/LocalDraftsOffer/` (S4, W5; FR-016, FR-018, FR-021; SC-004, SC-005). Depends on T032, T037.
   - `index.tsx`: `LocalDraftsOffer({ exceptFlowKey?: string })`. It uses `useLocalDrafts(exceptFlowKey)`, and renders nothing while the list is empty or the storage is unavailable.
   - **Section**: an `h2` "Unsaved work on this device" with the text "These changes weren’t saved. Resume to go on, or discard them.", then a `ul` of `LocalDraftItem`.
   - **`LocalDraftItem.tsx`**:
@@ -552,11 +552,11 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - the focus moves to the next item's "Resume", or else to the section's heading (`tabIndex={-1}`).
   - **Sibling files**: `constants.ts` (the copy of contracts/ui-screens.md "Copy": `localTitle`, `localText`, `localNew(date)`, `localDraft(date)`, `resume`, `discard`, `discardTitle`, `discardText(name)`, `discarded`, `untitled`), `types.ts`, and `utils.ts` with `metaLineOf(record)` and `formatChangedAt(iso)` (the overview's date format with the 24-hour time, in the browser's time zone) and `utils.test.ts`.
   - No `console.*`.
-- [ ] T041 [US2] Offer local drafts on the overview and the first-connection screen (S3, S4; FR-016; US2-AS1, AS5). Depends on T027, T039, T040.
+- [X] T041 [US2] Offer local drafts on the overview and the first-connection screen (S3, S4; FR-016; US2-AS1, AS5). Depends on T027, T039, T040.
   - `frontend/src/pages/FormConnectionList/index.tsx`: `<LocalDraftsOffer />` above the connections list, also while the list is loading, empty or failed. The hint becomes `hintOf(formConnections, drafts.length)`, through `useLocalDrafts()`.
   - `editor/index.tsx`: when `firstConnection` and on step 1, render `<LocalDraftsOffer exceptFlowKey={flowKey} />` above step 1's card, so the flow's own local draft isn't offered.
   - `frontend/src/pages/FirstConnection/index.tsx`: its docstring mentions the offer. Its check that drafts count as connections is unchanged.
-- [ ] T042 [US2] Ask to restore a stored draft's unsaved changes on the edit route (S5, W6; FR-016, US2-AS6; contracts/local-drafts.md "Rules for callers" 2 and 3). Depends on T039.
+- [X] T042 [US2] Ask to restore a stored draft's unsaved changes on the edit route (S5, W6; FR-016, US2-AS6; contracts/local-drafts.md "Rules for callers" 2 and 3). Depends on T039.
   - `frontend/src/pages/FormConnectionEdit/utils.ts`: `restoreChoiceOf(record: LocalDraftRecord | null, draft: FormConnectionDraft): 'none' | 'ask' | 'same'`. It compares `record.content` with `localContentOf(initialStatesFromDraft(draft))` through `sameContent`. Add tests in `utils.test.ts`.
   - New `frontend/src/pages/FormConnectionEdit/RestoreDialog.tsx`, in the wizard frame with the "Draft" badge, before the editor mounts. It is a native modal dialog with the focus inside:
     - title "Restore your unsaved changes?";
@@ -568,7 +568,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - for a draft, read the record of `flowKeyOfDraft(id)`. `'ask'` shows the dialog, `'same'` removes the record silently, and `'none'` opens the editor;
     - for a published connection, remove any `draft-<id>` record (rule 3).
     - Keep the copy in a sibling `constants.ts`.
-- [ ] T043 [P] [US2] Warn before logging out with local drafts in `frontend/src/components/UserMenu/` (S7, W8; FR-019; research R11). Depends on T035.
+- [X] T043 [P] [US2] Warn before logging out with local drafts in `frontend/src/components/UserMenu/` (S7, W8; FR-019; research R11). Depends on T035.
   - `index.tsx`, `handleSignOut`:
     1. call `flushPendingLocalDrafts()`;
     2. read `store.list(username)`. Without records, sign out at once, as today;

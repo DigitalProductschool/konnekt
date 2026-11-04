@@ -11,7 +11,8 @@ import type { FirstConnectionState } from './types';
 /**
  * The first-connection screen at /get-started, where a sign-in without a requested route
  * lands. While no connection exists it is the create wizard, headed "Create your first
- * connection". Otherwise the overview opens instead, and so it does when the check fails,
+ * connection", and above step 1's card it offers the unsaved work on this device, except the
+ * flow's own (S4). Otherwise the overview opens instead, and so it does when the check fails,
  * because the overview reports that with "Try again". The check runs once: a connection
  * that a teammate saves meanwhile doesn't take the wizard away.
  */

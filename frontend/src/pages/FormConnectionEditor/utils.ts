@@ -7,11 +7,14 @@ import type {
   FormConnection,
   FormConnectionCreate,
   FormConnectionDraft,
+  NumberingBase,
   RequestedDocument,
   RequestedDocumentView,
   RuleItem,
 } from '../../types/form-connections';
-import type { LocalDraftContent } from '../../utils/localDrafts/types';
+import { emptyContent } from '../../utils/localDrafts/content';
+import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
+import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import { sameValue } from '../../utils/rules/branches';
 import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
@@ -37,11 +40,16 @@ import type {
   DraftSaveError,
   DroppedData,
   EditorAction,
+  EditorEntry,
   EditorErrors,
+  EditorFlow,
   EditorMode,
+  EditorOrigin,
+  EditorStart,
   EditorState,
   EditorStep,
   FindingLine,
+  FormConnectionEditorPageProps,
   PendingRemoval,
   RemovedDataRule,
   RulesNextAction,
@@ -722,19 +730,8 @@ export function initialStatesFromDraft(
   draft: FormConnectionDraft,
   step: EditorStep = draft.step
 ): { editor: EditorState; rules: RulesState } {
-  const empty = initialRulesState();
-  const branches = draft.branches.reduce<RulesBranch[]>(
-    (keyed, branch) => [
-      ...keyed,
-      { ...branch, key: branch.origin === 'main' ? MAIN_BRANCH_KEY : newBranchKey(keyed) },
-    ],
-    []
-  );
   const counters = { rule: draft.next_rule_number, group: draft.next_group_number };
-  const rules: RulesState =
-    branches.length > 0
-      ? { ...empty, branches, openBranch: branches[0].key, counters, numberingBase: counters }
-      : { ...empty, counters, numberingBase: counters };
+  const rules = rulesStateOf(draft.branches, counters, counters);
   const editor: EditorState = {
     ...INITIAL_EDITOR_STATE,
     step: openingStepOf(step, rules),
@@ -743,6 +740,170 @@ export function initialStatesFromDraft(
     documents: requestedDocumentsOf(draft.documents),
   };
   return { editor, rules };
+}
+
+/**
+ * The reducers' starting states for a local draft (R10): its content, at its step through
+ * `openingStepOf()`; its variants with the editor's keys, as a stored draft's get them. Its
+ * counters and numbering base are the record's own, since a flow that was never saved numbers
+ * from its start, not from its next numbers.
+ */
+export function initialStatesFromLocal(record: LocalDraftRecord): {
+  editor: EditorState;
+  rules: RulesState;
+} {
+  const { content } = record;
+  const rules = rulesStateOf(content.branches, content.counters, content.numberingBase);
+  const editor: EditorState = {
+    ...INITIAL_EDITOR_STATE,
+    step: openingStepOf(record.step, rules),
+    name: content.name,
+    servicebwForm: content.servicebwForm,
+    documents: content.documents,
+  };
+  return { editor, rules };
+}
+
+/**
+ * The rules step's starting state for stored or local branches, without a rule set: the main
+ * variant keyed `main`, the others `newBranchKey()` in order, the first one open. Without
+ * branches, the empty Standard alone.
+ */
+function rulesStateOf(
+  branches: BranchInput[],
+  counters: NumberingBase,
+  numberingBase: NumberingBase
+): RulesState {
+  const empty = initialRulesState();
+  const keyed = branches.reduce<RulesBranch[]>(
+    (done, branch) => [
+      ...done,
+      { ...branch, key: branch.origin === 'main' ? MAIN_BRANCH_KEY : newBranchKey(done) },
+    ],
+    []
+  );
+  return keyed.length > 0
+    ? { ...empty, branches: keyed, openBranch: keyed[0].key, counters, numberingBase }
+    : { ...empty, counters, numberingBase };
+}
+
+/**
+ * The origin of a flow resumed from a local draft (R10): the stored draft it belongs to, at the
+ * version the flow loaded, or a new connection, under the record's flow key either way.
+ */
+export function originOfRecord(record: LocalDraftRecord): EditorOrigin {
+  if (record.draftId === null) {
+    return { kind: 'new', flowKey: record.flowKey };
+  }
+  return {
+    kind: 'draft',
+    draftId: record.draftId,
+    // A record without the version it loaded is never written; were one read, version 0, which
+    // no draft has, makes its save meet the conflict (FR-022) rather than overwrite unseen work
+    draftVersion: record.draftVersion ?? 0,
+    flowKey: record.flowKey,
+  };
+}
+
+/**
+ * What `/form-connections/new?local=<param>` opens (contracts/local-drafts.md "Rules for callers"
+ * 1; R10), `record` being the account's record of that key: a fresh flow without a valid key, the
+ * record when there is one, and otherwise the stored draft's edit route for a `draft-<id>` key, or
+ * an empty flow under a `new-` key.
+ */
+export function entryOf(param: string | null, record: LocalDraftRecord | null): EditorEntry {
+  if (param === null || !isFlowKey(param)) {
+    return { kind: 'fresh' };
+  }
+  if (record) {
+    return { kind: 'local', record };
+  }
+  const draftId = draftIdOfFlowKey(param);
+  return draftId === null ? { kind: 'empty', flowKey: param } : { kind: 'missingDraft', draftId };
+}
+
+/**
+ * How the create routes, /form-connections/new and /get-started, open (contracts/local-drafts.md
+ * "Rules for callers" 1; R10), from `entryOf()`:
+ * - a record resumes from its content under its own origin (`originOfRecord()`), a stored
+ *   draft's with the "Draft" badge;
+ * - an empty flow starts under its key, and a fresh one under a new key from `newUuid()`, which
+ *   the page then writes into the URL;
+ * - a `draft-<id>` key without a record opens the stored draft's edit route instead.
+ *
+ * The baseline (data-model.md section 6) is the empty flow for a new connection, fresh or resumed,
+ * and none for a stored draft's record, since this flow doesn't read the stored draft. It is never
+ * the record's own content: that copy exists only on the device, and a change undone after
+ * resuming would remove it.
+ */
+export function startOfEntry(
+  entry: EditorEntry,
+  newUuid: () => string,
+  initialStep: EditorStep = 'connection'
+): EditorStart {
+  switch (entry.kind) {
+    case 'missingDraft':
+      return entry;
+    case 'local': {
+      const origin = originOfRecord(entry.record);
+      return {
+        kind: 'open',
+        origin,
+        initialStates: initialStatesFromLocal(entry.record),
+        baseline: origin.kind === 'new' ? emptyContent() : null,
+        urlFlowKey: null,
+      };
+    }
+    case 'empty':
+      return newConnectionFlow(entry.flowKey, initialStep, false);
+    case 'fresh':
+      return newConnectionFlow(newFlowKey(newUuid()), initialStep, true);
+  }
+}
+
+/** An empty new connection under `flowKey`, which a fresh flow writes into the URL. */
+function newConnectionFlow(flowKey: string, initialStep: EditorStep, fresh: boolean): EditorFlow {
+  return {
+    kind: 'open',
+    origin: { kind: 'new', flowKey },
+    initialStates: { editor: initialEditorState({ initialStep }), rules: initialRulesState() },
+    baseline: emptyContent(),
+    urlFlowKey: fresh ? flowKey : null,
+  };
+}
+
+/**
+ * How a flow with a given origin opens, such as a stored draft or a published connection on its
+ * edit route: from `initialStates`, or else empty or from the published connection at
+ * `initialStep`. The baseline (data-model.md section 6) is `baseline` when given, as after
+ * "Restore changes", and otherwise the starting states' content for a stored draft, the stored
+ * draft as loaded, or the empty flow for a new connection. A published connection has none, as
+ * it never has a local draft (FR-014).
+ */
+export function startOfOrigin({
+  origin,
+  initialStates,
+  initialStep = 'connection',
+  baseline,
+}: Pick<FormConnectionEditorPageProps, 'initialStates' | 'initialStep' | 'baseline'> & {
+  origin: EditorOrigin;
+}): EditorFlow {
+  const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
+  const states = initialStates ?? {
+    editor: initialEditorState({ formConnection, initialStep }),
+    rules: initialRulesState(formConnection),
+  };
+  return {
+    kind: 'open',
+    origin,
+    initialStates: states,
+    baseline:
+      origin.kind === 'published'
+        ? null
+        : (baseline ??
+          (origin.kind === 'new' ? emptyContent() : localContentOf(states.editor, states.rules))),
+    urlFlowKey: null,
+  };
 }
 
 /**

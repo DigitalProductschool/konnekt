@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { generatePath, useNavigate } from 'react-router';
+import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
 
 import {
   createDraft,
@@ -10,6 +10,7 @@ import {
   updateFormConnection,
 } from '../../api/form-connections';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
+import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
@@ -17,6 +18,8 @@ import WizardProgress from '../../components/WizardProgress';
 import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
+import { useLocalDraft } from '../../hooks/useLocalDraft';
+import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { useOptionSets } from '../../hooks/useOptionSets';
 import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
@@ -24,6 +27,7 @@ import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
 import type { DetailLocationState, OverviewLocationState } from '../../types/routing';
+import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
 import { requestedRuleDocuments } from '../../utils/rules/conditions';
 import { firstProblem } from '../../utils/rules/validation';
 import ConnectionStep from './ConnectionStep';
@@ -36,16 +40,16 @@ import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
 import RulesDialogs from './RulesStep/RulesDialogs';
 import type { LeaveEditorAction, RulesCatalog, RulesState } from './RulesStep/types';
-import {
-  focusSoon,
-  hasUnsavedChanges,
-  initialRulesState,
-  neighbourOf,
-  rulesReducer,
-} from './RulesStep/utils';
+import { focusSoon, hasUnsavedChanges, neighbourOf, rulesReducer } from './RulesStep/utils';
 import SaveDraftAlert from './SaveDraftAlert';
 import TestStep from './TestStep';
-import type { EditorErrors, FormConnectionEditorPageProps, PendingRemoval } from './types';
+import type {
+  ConnectionWizardProps,
+  EditorErrors,
+  EditorStart,
+  FormConnectionEditorPageProps,
+  PendingRemoval,
+} from './types';
 import {
   createPayload,
   documentLines,
@@ -55,12 +59,12 @@ import {
   droppedDataOf,
   droppedRemovalOf,
   editorReducer,
+  entryOf,
   fieldLabelOf,
   firstBranchWithFindings,
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
-  initialEditorState,
   isRulesChanged,
   labelOf,
   localContentOf,
@@ -71,6 +75,8 @@ import {
   ruleLines,
   rulesCheckingRemoval,
   rulesNextActionOf,
+  startOfEntry,
+  startOfOrigin,
   stepForDroppedData,
   validateConnection,
   validateDocuments,
@@ -82,10 +88,10 @@ import {
  * checks (spec 004, FR-001 to FR-003). Where its content comes from is its origin (spec 005,
  * research R12):
  * - `new`, at /form-connections/new and at /get-started (the first-connection screen, with its
- *   own heading for step 1): the wizard starts empty. "Publish" creates the connection with its
- *   rules in one call and opens its details.
- * - `draft`, a stored draft: the wizard starts from the draft's content (`initialStates`) and
- *   shows the "Draft" badge (S0). "Publish" publishes the draft through its own endpoint, at the
+ *   own heading for step 1): the wizard starts empty, or from the local draft it resumes.
+ *   "Publish" creates the connection with its rules in one call and opens its details.
+ * - `draft`, a stored draft: the wizard starts from the draft's content (`initialStates`), or
+ *   from its local draft resumed through `?local=`, and shows the "Draft" badge (S0). "Publish" publishes the draft through its own endpoint, at the
  *   version the wizard opened, and opens the connection's details.
  * - `published`, at /form-connections/:id/edit: the wizard edits the connection as before
  *   (FR-026). "Save" changes it with one call, and changes apply to new requests only (FR-005,
@@ -99,6 +105,22 @@ import {
  * (W1). A failed save keeps the team member in the flow with their work, and says why above the
  * step's content (FR-013; W3).
  *
+ * Local drafts (FR-014 to FR-018; R9, R10): a new connection and a stored draft keep their unsaved
+ * work on this device, in the signed-in account's local draft of their flow key (`new-<uuid>` or
+ * `draft-<id>`), written within a second of a change and on leaving the page. It holds only what
+ * isn't safe elsewhere: it goes when the work comes back to the baseline (the empty flow, or the
+ * stored draft as loaded on its edit route), and after a successful "Save and exit" or publish.
+ * A stored draft's local draft resumed through `?local=` has no baseline, as that flow doesn't
+ * read the stored draft, so only a save or a publish removes it. Leaving the flow otherwise, or a
+ * failed save, keeps it. The published edit flow never has one.
+ * - The create routes name their flow in the URL, as `?local=<flow key>`, read once when the page
+ *   mounts. A key with the account's local draft resumes it at its step, a stored draft's under
+ *   its own origin, with the "Draft" badge; a `draft-<id>` key without one opens the stored
+ *   draft's edit route; a `new-` key without one starts empty under that key. Without a valid
+ *   key, the flow gets a new one and writes it into the URL, replacing the history entry without
+ *   remounting, so that a reload or the sign-in after an expired session comes back to the work.
+ * - With an `origin`, such as a stored draft on its edit route, the page doesn't read `?local=`.
+ *
  * Data the catalog no longer offers is listed in a note on the documents step, with "Remove it"
  * (S8; W10). A flow that opens at another step moves there once per opening, as soon as the
  * catalog has loaded, and the note takes the focus. "Save and exit" and publishing are refused
@@ -107,25 +129,72 @@ import {
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
-  origin = { kind: 'new' },
+  origin,
   initialStates,
   initialStep = 'connection',
+  baseline,
   onReload,
   reloaded = false,
 }: FormConnectionEditorPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { store, username } = useLocalDraftStore();
+  // Read once, the URL and the record included: what the flow opens, its origin and its baseline
+  // stay as they started, also when the fresh flow's key enters the URL (R10)
+  const [start] = useState<EditorStart>(() => {
+    if (origin) {
+      return startOfOrigin({ origin, initialStates, initialStep, baseline });
+    }
+    const param = searchParams.get(LOCAL_DRAFT_PARAM);
+    // Nobody signed in can't happen behind RequireSignIn; it would read as no record
+    const record = param !== null && username !== null ? store.read(username, param) : null;
+    return startOfEntry(entryOf(param, record), () => crypto.randomUUID(), initialStep);
+  });
+  const urlWritten = useRef(false);
+
+  // A fresh flow names its key in the URL, in place of the current history entry. The route
+  // stays the same, so the wizard stays mounted with its state (R10, R16)
+  useEffect(() => {
+    if (start.kind === 'open' && start.urlFlowKey !== null && !urlWritten.current) {
+      urlWritten.current = true;
+      setSearchParams({ [LOCAL_DRAFT_PARAM]: start.urlFlowKey }, { replace: true });
+    }
+  }, [start, setSearchParams]);
+
+  if (start.kind === 'missingDraft') {
+    return <Navigate to={generatePath(ROUTES.editFormConnection, { id: start.draftId })} replace />;
+  }
+  return (
+    <ConnectionWizard
+      flow={start}
+      firstConnection={firstConnection}
+      onReload={onReload}
+      reloaded={reloaded}
+    />
+  );
+}
+
+/** The wizard of the flow the page opened, with its autosave into the local draft. */
+function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: ConnectionWizardProps) {
+  const { origin } = flow;
   // The connection being edited, only for the published origin (FR-026)
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
-  const [state, dispatch] = useReducer(
-    editorReducer,
-    { formConnection, initialStep },
-    (start) => initialStates?.editor ?? initialEditorState(start)
-  );
-  const [rules, dispatchRules] = useReducer(
-    rulesReducer,
-    formConnection,
-    (loaded) => initialStates?.rules ?? initialRulesState(loaded)
-  );
+  const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
+  const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
   const editing = origin.kind === 'published';
+  // The flow's local draft, for a new connection and a stored draft only (FR-014). Its content is
+  // what "Save and exit" would store now (R9)
+  const flowKey = origin.kind === 'published' ? null : origin.flowKey;
+  const localContent = useMemo(() => localContentOf(state, rules), [state, rules]);
+  const { forget } = useLocalDraft({
+    // A published connection's flow writes nothing, so its key is never used
+    flowKey: flowKey ?? '',
+    draftId: origin.kind === 'draft' ? origin.draftId : null,
+    draftVersion: origin.kind === 'draft' ? origin.draftVersion : null,
+    baseline: flow.baseline,
+    content: localContent,
+    step: state.step,
+    enabled: flowKey !== null,
+  });
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const { status: optionSetsStatus, optionSets, retry: retryOptionSets } = useOptionSets();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -394,6 +463,8 @@ export default function FormConnectionEditorPage({
       } else {
         await createDraft(payload);
       }
+      // Stored: the local draft has no unsaved work left (FR-018)
+      forget();
       const locationState: OverviewLocationState = { draftSaved: payload.name };
       navigate(ROUTES.overview, { state: locationState });
     } catch (error) {
@@ -450,6 +521,10 @@ export default function FormConnectionEditorPage({
           : formConnection
             ? await updateFormConnection(formConnection.id, payload)
             : await createFormConnection(payload);
+      // Published: the local draft has no unsaved work left (FR-018)
+      if (!editing) {
+        forget();
+      }
       const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
       navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
     } catch (error) {
@@ -796,6 +871,10 @@ export default function FormConnectionEditorPage({
         retrying={state.savingDraft}
         onRetry={handleSaveAndExit}
       />
+      {/* On /get-started, the unsaved work on this device except this flow's own (S4; FR-016) */}
+      {firstConnection && state.step === 'connection' && (
+        <LocalDraftsOffer exceptFlowKey={flowKey ?? undefined} emptyFocusRef={titleRef} />
+      )}
       {renderStep()}
     </WizardLayout>
   );

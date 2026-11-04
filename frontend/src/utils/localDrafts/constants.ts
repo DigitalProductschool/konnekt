@@ -1,0 +1,30 @@
+// The local drafts' fixed values (specs/005-connection-drafts/contracts/local-drafts.md "Format";
+// research R9, R10)
+
+/**
+ * What every key of this app's local drafts starts with. The app's name keeps them apart from
+ * other apps' entries on the same origin, and `v1` lets a later format use keys of its own
+ */
+export const LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:';
+
+/** The record's `format`: a record of another format is invalid and removed (R9) */
+export const LOCAL_DRAFT_FORMAT = 1;
+
+/**
+ * How long a record without a change is kept: 30 days (FR-018). Long enough to come back after a
+ * holiday, short enough that forgotten work doesn't pile up on a shared device
+ */
+export const LOCAL_DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * The longest gap between two writes of a flow's record. Serialising on every keystroke would
+ * make the editor stutter at spec 002's limits; one second keeps the loss well under the spec's
+ * 5 seconds (SC-004)
+ */
+export const LOCAL_DRAFT_WRITE_INTERVAL_MS = 1000;
+
+/**
+ * The query parameter that names the flow's local draft (`?local=<flowKey>`). A search parameter
+ * survives the sign-in round trip after an expired session, which router state doesn't (R10)
+ */
+export const LOCAL_DRAFT_PARAM = 'local';

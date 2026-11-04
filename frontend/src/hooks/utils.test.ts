@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RuleTreeItem } from '../types/form-connections';
+import { emptyContent } from '../utils/localDrafts/content';
 import { buildCheckedBranch } from '../utils/rules/checks/checkedTree';
 import type { BranchCheck } from '../utils/rules/checks/types';
 import { CONTEXT, mainBranch, US1_RULES } from '../utils/rules/testData';
 import { renameItem } from '../utils/rules/tree';
 import type { CheckableBranch } from './types';
-import { actionOf, byBranchFor, causeOf, runBranchesOf, sameRunBranches } from './utils';
+import {
+  actionOf,
+  byBranchFor,
+  causeOf,
+  isLocalDraftChange,
+  localDraftActionOf,
+  runBranchesOf,
+  sameRunBranches,
+  writeDelayOf,
+} from './utils';
 
 const TODAY = '2026-10-29';
 const CHECKED_TREE = { buildCheckedBranch };
@@ -127,5 +137,66 @@ describe('byBranchFor', () => {
         gone: check('gone'),
       })
     ).toEqual({ 'b-main': check('b-main'), 'b-2': null });
+  });
+});
+
+describe('isLocalDraftChange', () => {
+  it('ignores a content with a new identity but the same structure', () => {
+    expect(
+      isLocalDraftChange(
+        { content: emptyContent(), step: 'connection' },
+        { content: emptyContent(), step: 'connection' }
+      )
+    ).toBe(false);
+  });
+
+  it('counts a changed content', () => {
+    expect(
+      isLocalDraftChange(
+        { content: emptyContent(), step: 'connection' },
+        { content: { ...emptyContent(), name: 'Parking permit' }, step: 'connection' }
+      )
+    ).toBe(true);
+  });
+
+  it('counts a changed step alone', () => {
+    expect(
+      isLocalDraftChange(
+        { content: emptyContent(), step: 'connection' },
+        { content: emptyContent(), step: 'documents' }
+      )
+    ).toBe(true);
+  });
+});
+
+describe('localDraftActionOf', () => {
+  const changed = { ...emptyContent(), servicebwForm: 'F-1' };
+
+  it('writes a content that differs from the baseline', () => {
+    expect(localDraftActionOf(changed, emptyContent())).toBe('write');
+  });
+
+  it('removes the record when the content is back at the baseline', () => {
+    expect(localDraftActionOf(emptyContent(), emptyContent())).toBe('remove');
+  });
+
+  it('always writes without a baseline, even an empty content', () => {
+    expect(localDraftActionOf(changed, null)).toBe('write');
+    expect(localDraftActionOf(emptyContent(), null)).toBe('write');
+  });
+});
+
+describe('writeDelayOf', () => {
+  it('writes the first time at once', () => {
+    expect(writeDelayOf(null, 5000, 1000)).toBe(0);
+  });
+
+  it('waits for the rest of the interval after a write', () => {
+    expect(writeDelayOf(5000, 5300, 1000)).toBe(700);
+  });
+
+  it('writes at once once the interval has passed', () => {
+    expect(writeDelayOf(5000, 6000, 1000)).toBe(0);
+    expect(writeDelayOf(5000, 9000, 1000)).toBe(0);
   });
 });

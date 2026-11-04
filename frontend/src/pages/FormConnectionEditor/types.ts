@@ -4,21 +4,71 @@ import type { ToastContent } from '../../components/Toast/types';
 import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type { EditorStep, FormConnection, RequestedDocument } from '../../types/form-connections';
+import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { FindingTone, RuleChecks } from '../../utils/rules/checks/types';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 
 /**
  * Where the flow's content comes from (research R12): a new connection, a stored draft, or a
- * published connection, whose edit flow stays as it is (FR-026). T038 adds `flowKey` to the first
- * two kinds
+ * published connection, whose edit flow stays as it is (FR-026). A new connection and a stored
+ * draft carry their flow key, which names their local draft (`new-<uuid>` or `draft-<id>`; R10).
+ * A published connection has none, since it never has a local draft (FR-014)
  */
 export type EditorOrigin =
   /** /form-connections/new and /get-started */
-  | { kind: 'new' }
+  | { kind: 'new'; flowKey: string }
   /** A stored draft, at the version the flow opened (or last saved) */
-  | { kind: 'draft'; draftId: string; draftVersion: number }
+  | { kind: 'draft'; draftId: string; draftVersion: number; flowKey: string }
   /** The connection to edit, at /form-connections/:id/edit */
   | { kind: 'published'; formConnection: FormConnection };
+
+/**
+ * What `/form-connections/new?local=<flowKey>` opens (contracts/local-drafts.md "Rules for
+ * callers" 1; R10)
+ */
+export type EditorEntry =
+  /** No or an invalid `?local=`: a fresh flow under a new flow key */
+  | { kind: 'fresh' }
+  /** The account's record of that key: the flow resumes from it */
+  | { kind: 'local'; record: LocalDraftRecord }
+  /** A `draft-<id>` key without a record: the stored draft's edit route */
+  | { kind: 'missingDraft'; draftId: string }
+  /** A `new-` key without a record: an empty flow under that key */
+  | { kind: 'empty'; flowKey: string };
+
+/**
+ * A flow the editor opens, decided once when the page mounts (R10, R12; data-model.md section 6),
+ * from `startOfEntry()` or `startOfOrigin()`
+ */
+export interface EditorFlow {
+  kind: 'open';
+  origin: EditorOrigin;
+  /** The reducers' starting states */
+  initialStates: { editor: EditorState; rules: RulesState };
+  /**
+   * What is already safe elsewhere, so that the local draft holds only unsaved work: the empty
+   * flow for a new connection, the stored draft as loaded on its edit route, and null for a stored
+   * draft's record resumed through `?local=`, or a published connection. Never the record's own
+   * content
+   */
+  baseline: LocalDraftContent | null;
+  /** A fresh flow's key, which the page writes into the URL as `?local=`; null otherwise */
+  urlFlowKey: string | null;
+}
+
+/**
+ * How the page opens: a flow, or, for a `draft-<id>` key without a record, the stored draft's
+ * edit route instead (contracts/local-drafts.md "Rules for callers" 1)
+ */
+export type EditorStart = EditorFlow | { kind: 'missingDraft'; draftId: string };
+
+/** The wizard itself, once the page has decided what it opens */
+export interface ConnectionWizardProps {
+  flow: EditorFlow;
+  firstConnection: boolean;
+  onReload?: () => void;
+  reloaded: boolean;
+}
 
 /** A refused or failed draft save (data-model.md section 7; S1.5) */
 export interface DraftSaveError {
@@ -30,10 +80,22 @@ export interface DraftSaveError {
 export interface FormConnectionEditorPageProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
-  /** Where the content comes from; `{ kind: 'new' }` when left out */
+  /**
+   * Where the content comes from, such as a stored draft on its edit route. Left out, the page is
+   * a create route (/form-connections/new, /get-started): it reads `?local=` and resumes the
+   * account's local draft of that key, or starts a new connection under a new flow key (R10)
+   */
   origin?: EditorOrigin;
   /** The reducers' starting states, such as a stored draft's (`initialStatesFromDraft()`) */
   initialStates?: { editor: EditorState; rules: RulesState };
+  /**
+   * With `origin`: what is already safe elsewhere, when it isn't `initialStates`' content (which
+   * it is by default). "Restore changes" opens the editor from the local draft
+   * (`initialStatesFromLocal()`) and passes the stored draft as loaded: the record goes when the
+   * content comes back to the stored draft, never when it comes back to the restored changes,
+   * which exist only on the device (data-model.md section 6). Never the record's own content
+   */
+  baseline?: LocalDraftContent;
   /** The step the wizard opens at */
   initialStep?: EditorStep;
   /**
@@ -41,7 +103,10 @@ export interface FormConnectionEditorPageProps {
    * dropping the unsaved changes (W9)
    */
   onReload?: () => void;
-  /** Opened anew by `onReload`: the focus starts on the page title */
+  /**
+   * Opened anew, by `onReload` or after the restore question of a stored draft (S5): the focus
+   * starts on the page title
+   */
   reloaded?: boolean;
 }
 
