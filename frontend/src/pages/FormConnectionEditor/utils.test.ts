@@ -1032,7 +1032,7 @@ const DRAFT_KEY = flowKeyOfDraft(DRAFT_ID);
 /** A record of a new connection, at the rules step: Standard and Taxi with rules, Ambulance empty */
 function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: NEW_KEY,
     draftId: null,
     draftVersion: null,

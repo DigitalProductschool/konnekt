@@ -18,7 +18,7 @@ const FLOW_DRAFT = flowKeyOfDraft(DRAFT_ID);
 function recordOf(flowKey: string, ageMs = 0, name = 'Parking permit'): LocalDraftRecord {
   const draftId = flowKey === FLOW_DRAFT ? DRAFT_ID : null;
   return {
-    format: 1,
+    format: 2,
     flowKey,
     draftId,
     draftVersion: draftId === null ? null : 2,
@@ -43,6 +43,17 @@ function recordOf(flowKey: string, ageMs = 0, name = 'Parking permit'): LocalDra
       counters: { rule: 1, group: 1 },
     },
   };
+}
+
+/** The JSON of a format-1 record, holding `servicebwForm` as the app wrote it before spec 006 */
+function formatOneEntryOf(flowKey: string): string {
+  const { content, ...record } = recordOf(flowKey);
+  const { description, ...rest } = content;
+  return JSON.stringify({
+    ...record,
+    format: 1,
+    content: { ...rest, servicebwForm: description },
+  });
 }
 
 /** A store over a fresh in-memory storage, with NOW as the time */
@@ -164,7 +175,25 @@ describe('invalid records', () => {
 
   it('removes an invalid entry on read', () => {
     const { storage, store } = setUp();
-    storage.setItem(storageKeyOf('alice', FLOW_A), JSON.stringify({ format: 2 }));
+    storage.setItem(storageKeyOf('alice', FLOW_A), JSON.stringify({ format: 3 }));
+    expect(store.read('alice', FLOW_A)).toBeNull();
+    expect(storage.length).toBe(0);
+  });
+
+  it('skips and removes a format-1 entry on list', () => {
+    const { storage, store } = setUp();
+    const record = recordOf(FLOW_A);
+    storage.setItem(storageKeyOf('alice', FLOW_A), serializeRecord(record));
+    storage.setItem(storageKeyOf('alice', FLOW_B), formatOneEntryOf(FLOW_B));
+    expect(store.list('alice')).toEqual([record]);
+    expect(storage.getItem(storageKeyOf('alice', FLOW_B))).toBeNull();
+    expect(storage.getItem(storageKeyOf('alice', FLOW_A))).toBe(serializeRecord(record));
+    expect(storage.length).toBe(1);
+  });
+
+  it('removes a format-1 entry on read', () => {
+    const { storage, store } = setUp();
+    storage.setItem(storageKeyOf('alice', FLOW_A), formatOneEntryOf(FLOW_A));
     expect(store.read('alice', FLOW_A)).toBeNull();
     expect(storage.length).toBe(0);
   });

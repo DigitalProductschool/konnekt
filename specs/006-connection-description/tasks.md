@@ -147,15 +147,15 @@ overview.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T039 [P] [US3] In `frontend/src/utils/localDrafts/format.test.ts`: change the fixtures to `format: 2` (lines 37, 76) so that a format-2 record with `description` round-trips; extend "rejects another format" (line 173) with a format-1 record holding `servicebwForm` instead of `description`; add that a format-2 record with `servicebwForm` and no `description` is refused; keep "a description that is not text" in the content cases (line 285)
-- [ ] T040 [P] [US3] In `frontend/src/utils/localDrafts/store.test.ts`: change the fixture to `format: 2` (line 21), and add under `describe('invalid records')` that `list()` skips and removes a format-1 entry with `servicebwForm` under the account's key, and that `read()` gives `null` and removes it
-- [ ] T041 [P] [US3] In `frontend/src/utils/localDrafts/content.test.ts`: assert `emptyContent().description === ''` (line 117), and that `sameContent` notices a changed description (line 218, "notices a changed name, description, numbering base or counter")
+- [X] T039 [P] [US3] In `frontend/src/utils/localDrafts/format.test.ts`: change the fixtures to `format: 2` (lines 37, 76) so that a format-2 record with `description` round-trips; extend "rejects another format" (line 173) with a format-1 record holding `servicebwForm` instead of `description`; add that a format-2 record with `servicebwForm` and no `description` is refused; keep "a description that is not text" in the content cases (line 285)
+- [X] T040 [P] [US3] In `frontend/src/utils/localDrafts/store.test.ts`: change the fixture to `format: 2` (line 21), and add under `describe('invalid records')` that `list()` skips and removes a format-1 entry with `servicebwForm` under the account's key, and that `read()` gives `null` and removes it
+- [X] T041 [P] [US3] In `frontend/src/utils/localDrafts/content.test.ts`: assert `emptyContent().description === ''` (line 117), and that `sameContent` notices a changed description (line 218, "notices a changed name, description, numbering base or counter")
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Bump the format (R5): `LOCAL_DRAFT_FORMAT = 2` in `frontend/src/utils/localDrafts/constants.ts`, with its comment saying that format 1 held the form ID and is removed, not converted (spec 006, FR-009); `format: 2` in `LocalDraftRecord` in `frontend/src/utils/localDrafts/types.ts` (line 24). Keep `LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:'`: a new prefix would leave the old entries unread and never removed
-- [ ] T043 [P] [US3] Change the remaining local draft fixtures from `format: 1` to `format: 2`: `frontend/src/pages/FormConnectionEditor/utils.test.ts` (line 1033), `frontend/src/pages/FormConnectionEdit/utils.test.ts` (lines 141, 214), `frontend/src/components/LocalDraftsOffer/utils.test.ts` (line 27) and `frontend/src/components/UserMenu/utils.test.ts` (line 10)
-- [ ] T044 [US3] Checkpoint: `npm run lint && npm test && npm run build` pass, and T039–T041 pass
+- [X] T042 [US3] Bump the format (R5): `LOCAL_DRAFT_FORMAT = 2` in `frontend/src/utils/localDrafts/constants.ts`, with its comment saying that format 1 held the form ID and is removed, not converted (spec 006, FR-009); `format: 2` in `LocalDraftRecord` in `frontend/src/utils/localDrafts/types.ts` (line 24). Keep `LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:'`: a new prefix would leave the old entries unread and never removed
+- [X] T043 [P] [US3] Change the remaining local draft fixtures from `format: 1` to `format: 2`: `frontend/src/pages/FormConnectionEditor/utils.test.ts` (line 1033), `frontend/src/pages/FormConnectionEdit/utils.test.ts` (lines 141, 214), `frontend/src/components/LocalDraftsOffer/utils.test.ts` (line 27) and `frontend/src/components/UserMenu/utils.test.ts` (line 10)
+- [X] T044 [US3] Checkpoint: `npm run lint && npm test && npm run build` pass, and T039–T041 pass
 
 **Checkpoint**: Old local drafts are dropped; stored drafts and connections keep their values.
 

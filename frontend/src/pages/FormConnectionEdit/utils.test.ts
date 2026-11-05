@@ -138,7 +138,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
   function recordOf(content: LocalDraftContent): LocalDraftRecord {
     return {
-      format: 1,
+      format: 2,
       flowKey: 'draft-draft-1',
       draftId: 'draft-1',
       draftVersion: 2,
@@ -211,7 +211,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
 describe('the restore question (S5)', () => {
   const RECORD: LocalDraftRecord = {
-    format: 1,
+    format: 2,
     flowKey: 'draft-draft-1',
     draftId: 'draft-1',
     draftVersion: 2,

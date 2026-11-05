@@ -7,7 +7,7 @@ import { initialsOf, signOutNamesOf, userMenuReducer } from './utils';
 
 function record(name: string, index = 0): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: `new-${index}`,
     draftId: null,
     draftVersion: null,

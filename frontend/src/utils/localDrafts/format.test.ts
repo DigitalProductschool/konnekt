@@ -34,7 +34,7 @@ const GROUP: GroupItem = {
 /** A valid record of a stored draft with nested groups */
 function draftRecord(): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: DRAFT_KEY,
     draftId: DRAFT_ID,
     draftVersion: 3,
@@ -73,7 +73,7 @@ function draftRecord(): LocalDraftRecord {
 /** A valid record of a new connection */
 function newRecord(): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: NEW_KEY,
     draftId: null,
     draftVersion: null,
@@ -171,7 +171,7 @@ describe('invalid records', () => {
   });
 
   it('rejects another format', () => {
-    for (const format of [2, 0, '1', null]) {
+    for (const format of [1, 3, 0, '2', null]) {
       expect(
         parseRecord(
           rawWith((record) => (record.format = format)),
@@ -185,6 +185,23 @@ describe('invalid records', () => {
         DRAFT_KEY
       )
     ).toBeNull();
+  });
+
+  it('rejects a format-1 record with the form ID, without converting it', () => {
+    const raw = rawWith((record) => {
+      record.format = 1;
+      contentIn(record).servicebwForm = 'F-123';
+      delete contentIn(record).description;
+    });
+    expect(parseRecord(raw, DRAFT_KEY)).toBeNull();
+  });
+
+  it('rejects a format-2 record with the form ID instead of a description', () => {
+    const raw = rawWith((record) => {
+      contentIn(record).servicebwForm = 'F-123';
+      delete contentIn(record).description;
+    });
+    expect(parseRecord(raw, DRAFT_KEY)).toBeNull();
   });
 
   it("rejects a flow key that doesn't match the key's", () => {
