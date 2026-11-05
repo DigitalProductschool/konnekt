@@ -45,8 +45,8 @@ guidance comes from one source as server instructions, MCP skills and a Claude C
 ## Technical Context
 
 **Language/Version**: Python 3.13 (backend); TypeScript 6.0 in every Node package; React 19.2
-in `frontend/`; Node 22+ for the MCP server (`node:26-alpine` in its image, `node:22` in
-development, as the frontend's images; the workspace root works with the team's Node 20 too).
+in `frontend/`; Node 22+ for the MCP server (`node:26-alpine` in its images, development and production, as
+the frontend's images; the workspace root works with the team's Node 20 too).
 
 **Primary Dependencies**:
 - **Backend**: unchanged (FastAPI, SQLAlchemy 2 sync, Alembic, psycopg 3, Pydantic 2, `httpx2`

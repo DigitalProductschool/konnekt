@@ -691,7 +691,7 @@ requests as any other.
   serving and bundling the linked packages' sources, and code-splitting the dynamic
   `import('@connection-portal/rules/checks/checkedTree')` as it splits the relative one today.
 - `npm ci -w frontend` installing the workspace's dependencies without the root's, with the
-  frontend's Node 20 and the images' Node 22 and 26.
+  frontend's Node 20 and the images' Node 26.
 - How Claude Code, Cursor and Codex react to `403 insufficient_scope` on a tool call (R5): the
   step-up through `request_access` is designed to be harmless either way.
 - `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16); otherwise the

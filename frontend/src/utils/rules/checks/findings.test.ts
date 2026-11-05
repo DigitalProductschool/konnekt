@@ -732,34 +732,41 @@ const SEEDS = 300;
 /** The AND-context sets of up to this many items are searched whole within the budget */
 const SEARCHED_WHOLE = 6;
 
+/** Time for the whole loop: about 4 s alone on eight cores, more on a shared machine */
+const SEEDS_TIMEOUT_MS = 60_000;
+
 describe(`checkBranch against the oracle, for ${SEEDS} seeded branches`, () => {
-  it('reports exactly the conflicts and the notices, with smallest reasons, and true redundancies', () => {
-    const reasons = new Map<string, number>();
-    let incomplete = 0;
-    for (let seed = 1; seed <= SEEDS; seed += 1) {
-      const branch = randomBranch(seed);
-      const checked = checkedBranchOf(branch);
-      const result = checkBranch(checked, IN_TIME);
-      withSeed(seed, () => compareWithOracle(checked, oracleOf(branch), result));
-      for (const finding of result.findings) {
-        const key = `${finding.reason?.type ?? finding.kind}${finding.today ? ', today' : ''}`;
-        reasons.set(key, (reasons.get(key) ?? 0) + 1);
+  it(
+    'reports exactly the conflicts and the notices, with smallest reasons, and true redundancies',
+    () => {
+      const reasons = new Map<string, number>();
+      let incomplete = 0;
+      for (let seed = 1; seed <= SEEDS; seed += 1) {
+        const branch = randomBranch(seed);
+        const checked = checkedBranchOf(branch);
+        const result = checkBranch(checked, IN_TIME);
+        withSeed(seed, () => compareWithOracle(checked, oracleOf(branch), result));
+        for (const finding of result.findings) {
+          const key = `${finding.reason?.type ?? finding.kind}${finding.today ? ', today' : ''}`;
+          reasons.set(key, (reasons.get(key) ?? 0) + 1);
+        }
+        if (result.notice) {
+          reasons.set(result.notice.kind, (reasons.get(result.notice.kind) ?? 0) + 1);
+        }
+        incomplete += result.complete ? 0 : 1;
+        // Deterministic: the same branch again
+        expect(checkBranch(checkedBranchOf(branch), IN_TIME)).toEqual(result);
       }
-      if (result.notice) {
-        reasons.set(result.notice.kind, (reasons.get(result.notice.kind) ?? 0) + 1);
+      // Every reason occurs, and the text theory's 'unknown' is rare
+      const occurring = ['with', 'with, today', 'members', 'condition'];
+      occurring.push('always_met', 'all_meet', 'same', 'implied_by', 'implies');
+      for (const key of occurring) {
+        expect(reasons.get(key) ?? 0, key).toBeGreaterThan(0);
       }
-      incomplete += result.complete ? 0 : 1;
-      // Deterministic: the same branch again
-      expect(checkBranch(checkedBranchOf(branch), IN_TIME)).toEqual(result);
-    }
-    // Every reason occurs, and the text theory's 'unknown' is rare
-    const occurring = ['with', 'with, today', 'members', 'condition'];
-    occurring.push('always_met', 'all_meet', 'same', 'implied_by', 'implies');
-    for (const key of occurring) {
-      expect(reasons.get(key) ?? 0, key).toBeGreaterThan(0);
-    }
-    expect(incomplete).toBeLessThan(SEEDS / 20);
-  });
+      expect(incomplete).toBeLessThan(SEEDS / 20);
+    },
+    SEEDS_TIMEOUT_MS
+  );
 });
 
 /** An item of a checked tree with its AND-context and its members */
