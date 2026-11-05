@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { FormConnectionSummary } from '../../types/form-connections';
 import { LIST_COPY } from './constants';
-import { formIdLineOf, hintOf } from './utils';
+import { descriptionOf, hintOf } from './utils';
 
 function summary(overrides: Partial<FormConnectionSummary> = {}): FormConnectionSummary {
   return {
@@ -35,13 +35,14 @@ describe('hintOf', () => {
   });
 });
 
-describe('formIdLineOf', () => {
-  it('shows the form ID', () => {
-    expect(formIdLineOf(summary())).toBe('Form ID 12345');
-    expect(formIdLineOf(summary({ status: 'draft' }))).toBe('Form ID 12345');
+describe('descriptionOf (FR-005)', () => {
+  it('returns the description as written, without a prefix', () => {
+    expect(descriptionOf(summary())).toBe('12345');
+    expect(descriptionOf(summary({ status: 'draft' }))).toBe('12345');
   });
 
-  it('says "No form ID yet" for an empty form ID', () => {
-    expect(formIdLineOf(summary({ status: 'draft', description: '' }))).toBe('No form ID yet');
+  it('returns null for an empty description', () => {
+    expect(descriptionOf(summary({ description: '' }))).toBeNull();
+    expect(descriptionOf(summary({ status: 'draft', description: '' }))).toBeNull();
   });
 });

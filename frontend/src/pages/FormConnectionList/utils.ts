@@ -27,7 +27,7 @@ export function hintOf(formConnections: FormConnectionSummary[], localDraftCount
   return hasDraft || localDraftCount > 0 ? LIST_COPY.hintWithDrafts : LIST_COPY.hint;
 }
 
-/** The line under a row's name: its form ID, or "No form ID yet" for a draft without one (W2). */
-export function formIdLineOf(summary: FormConnectionSummary): string {
-  return summary.description === '' ? LIST_COPY.noFormId : LIST_COPY.formId(summary.description);
+/** The line under a row's name: its description as written, or `null` when it is empty (FR-005). */
+export function descriptionOf(summary: FormConnectionSummary): string | null {
+  return summary.description === '' ? null : summary.description;
 }
