@@ -69,7 +69,7 @@ Groups (`group_items`, `delete_item` with `keep_members`) are described in `cond
 - every `SKILL.md` has frontmatter with `name` equal to its folder and a non-empty
   `description`;
 - `instructions.md` names the three access levels and the five approval actions, and is at
-  most 500 words;
+  most 500 words (the target is 400; the gate leaves room for wording);
 - `.mcp.json` names the server `connection-portal`, and `marketplace.json` lists the plugin.
 
 It runs with `npm test` in `mcp/`, one of the MCP server's gates.

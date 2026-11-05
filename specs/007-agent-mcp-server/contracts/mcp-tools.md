@@ -13,7 +13,7 @@
 | Server info | `name: 'connection-portal'`, the deployment's version |
 | Capabilities | `tools`, `resources`, `extensions: { 'io.modelcontextprotocol/skills': {} }` |
 | Instructions | `mcp/plugin/instructions.md`, at most about 400 words (FR-036) |
-| Authorization | Bearer token (an access token or a personal access token). Without a valid one: `401` with `WWW-Authenticate: Bearer resource_metadata="{MCP_URL}/.well-known/oauth-protected-resource"` and no body |
+| Authorization | Bearer token (an access token or a personal access token). Without a valid one: `401` with `WWW-Authenticate: Bearer resource_metadata="{MCP origin}/.well-known/oauth-protected-resource/mcp"` (RFC 9728's path form for the resource `{origin}/mcp`) and no body |
 | Protected resource metadata | `GET {MCP origin}/.well-known/oauth-protected-resource` and `…/oauth-protected-resource/mcp`: `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read','drafts','manage'], bearer_methods_supported: ['header'], resource_name: 'Connection Portal' }` |
 | Health | `GET {MCP origin}/health` → `{ status: 'ok' }`, for the container's health check |
 
@@ -41,7 +41,7 @@ ToolError { code, message, needs_access_level?: 'drafts' | 'manage', candidates?
 | `code` | When | Message pattern |
 |---|---|---|
 | `insufficient_access` | The level doesn't allow the tool (FR-003) | "Your access is read only. Changing drafts needs the access level 'Read and edit drafts'. Ask for it with request_access, or the team member raises it on their user page." |
-| `published_read_only` | A change to a published connection's content (FR-018) | "The content of a published connection is changed in the management interface. Agents can only change drafts." |
+| `published_read_only` | A change to a published connection's content (FR-018) | "The content of a published connection is changed in the Connection Portal. Agents can only change drafts." |
 | `not_found` | No such connection, variant, rule or group, or a draft deleted since (FR-031) | "This variant no longer exists." / "This draft has been deleted." |
 | `ambiguous_name` | A name that matches several (FR-019); `candidates` lists them | "Two variants are called 'Ambulance'. Name one by its link: …" |
 | `foreign_link` | A link to another address (FR-030) | "This link doesn't belong to this Connection Portal." |
@@ -62,7 +62,7 @@ ToolError { code, message, needs_access_level?: 'drafts' | 'manage', candidates?
 | Tool | Level | Input | Output |
 |---|---|---|---|
 | `search_connections` | read | `query?: string` (part of a name or description, case-insensitive), `status?: 'draft' \| 'live' \| 'deactivated'`, `cursor?: string` | `{ items: { ...ConnectionRef, description?: string, updated_at }[], next_cursor: string \| null }`, at most 25 (FR-007). The description is left out when empty |
-| `get_connection` | read | `connection` | `{ ...ConnectionRef, description?, documents: { document_type, label, fields: { key, label, kind }[] }[], variants: { ...VariantRef, description?, origin: 'main' \| 'based' \| 'empty', rules: number, groups: number }[], urls: ConnectionUrls \| null, urls_note: string, draft?: { version, step, updated_at } }`. `urls` is null for a draft; `urls_note` says "The connection URLs exist once the draft is published." or, for a deactivated connection, that they answer "unavailable" until it is reactivated (FR-010) |
+| `get_connection` | read | `connection` | `{ ...ConnectionRef, description?, documents: { document_type, label, fields: { key, label, kind }[] }[], variants: { ...VariantRef, description?, origin: 'main' \| 'based' \| 'empty', rules: number, groups: number }[], urls: ConnectionUrls \| null, urls_note: string, dropped: { document_type, field: string \| null, label }[], draft?: { version, step, updated_at } }`. `dropped` lists data the draft requests that the catalog no longer offers, as the editor's documents step notes it (spec 005), for the agent to remove with `set_document` before publishing; `urls` is null for a draft; `urls_note` says "The connection URLs exist once the draft is published." or, for a deactivated connection, that they answer "unavailable" until it is reactivated (FR-010) |
 | `get_variant` | read | `connection`, `variant` | `{ connection: ConnectionRef, variant: { ...VariantRef, description?, origin, operator: 'and' \| 'or', operator_mark }, items: ItemView[], applicant_fields: ApplicantField[], unrequested_rules: ItemRef[] }` (FR-008). `ItemView` is the structured item with `statement` (the readable sentence, `statementOf()`), `mark`, `link`, and for a group its `operator`, `message` and `items`; one variant per answer, never more |
 | `get_item` | read | `connection`, `variant`, `item` | `{ connection, variant: VariantRef, item: ItemView, in_group: ItemRef \| null }` |
 | `get_catalog` | read | `document_type?` | Without: `{ document_types: { key, label, fields: number }[] }`. With: `{ key, label, fields: { key, label, kind, option_set?, multiple_values, parts?: { key, label, kind, option_set?, per_licence_class, multiple_values }[], conditions: { operator, words, input }[] }[] }` (FR-009; the operators per kind from `OPERATORS`) |
@@ -98,17 +98,17 @@ date?, years?, amount?, unit? }`. `target.field` takes `field`, `field.part` or
 
 | Tool | Level | Input | Output |
 |---|---|---|---|
-| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The preconditions are checked first (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared URL-mode elicitation, the server also sends `elicitation/create` `{ mode: 'url', elicitationId: request.id, url: link, message: "Approve publishing 'Parking permit' in the Connection Portal." }` |
+| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The tool checks the action's level before any call (a "Read only" caller asking to deactivate gets the message naming 'Read, edit drafts and manage live connections', FR-003), then the preconditions (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared URL-mode elicitation, the server also sends `elicitation/create` `{ mode: 'url', elicitationId: request.id, url: link, message: "Approve publishing 'Parking permit' in the Connection Portal." }` |
 | `check_approval` | drafts | `request_id` | `{ request: { id, action, connection, link, expires_at, status, outcome: 'waiting' \| 'done' \| 'declined' \| 'expired' \| 'replaced' \| 'cancelled' \| 'failed', reason?: string, error_id? }, urls: ConnectionUrls \| null }`; `urls` once the connection is published or reactivated |
 
 ### Checks and tests (FR-032 to FR-035)
 
 | Tool | Level | Input | Output |
 |---|---|---|---|
-| `check_rules` | read | `connection`, `variant?` | `{ connection, day: 'YYYY-MM-DD', variants: { variant: VariantRef, checked_completely: boolean, rules_checked: number, notice: { kind: 'none_can_meet' \| 'all_meet', text, at_the_moment: boolean } \| null, findings: Finding[], not_covered: { item: ItemRef, reason: 'no_data' \| 'data_not_requested' \| 'condition_incomplete' \| 'unreadable', text }[] }[] }` (FR-033) |
+| `check_rules` | read | `connection`, `variant?` | `{ connection, day: 'YYYY-MM-DD', variants: { variant: VariantRef, checked_completely: boolean, rules_checked: number, notice: { kind: 'none_can_meet' \| 'all_meet', text, at_the_moment: boolean, resolution: string } \| null, findings: Finding[], not_covered: { item: ItemRef, reason: 'no_data' \| 'data_not_requested' \| 'condition_incomplete' \| 'unreadable', text }[] }[] }` (FR-033) |
 | `test_applicants` | read | `connection`, `variant`, `applicants: { name?, values: Record<string, unknown> }[]` (1 to 10), `day?: 'YYYY-MM-DD'` | `{ connection, variant, day, results: { applicant, met, items: { item: ItemRef, outcome: 'met' \| 'not_met' \| 'not_checked', reason?: string, in_group: string \| null }[], messages: { item: ItemRef, message }[] }[] }`, exactly `evaluateBranch()`'s outcome. A value that doesn't fit is refused for the whole call with `validation`: "Applicant 'Anna': 'pid.birthdate' expects a date as YYYY-MM-DD." |
 
-`Finding`: `{ item: ItemRef, kind: 'conflicting' \| 'redundant' \| 'always_met', involves: ItemRef[], why: string, at_the_moment: boolean, resolution: string }`, with `why` from `noteOf()` and `resolution` from `resolutionOf()`.
+`Finding`: `{ item: ItemRef, kind: 'conflicting' \| 'redundant' \| 'always_met', involves: ItemRef[], why: string, at_the_moment: boolean, resolution: string }`, with `why` from `noteOf()` and `resolution` from `resolutionOf()`. A notice's `text` comes from `noticeText()` and its `resolution` from `resolutionOf()` too, since FR-032 asks for one for every kind.
 
 ### Guidance and access (FR-003, FR-037)
 

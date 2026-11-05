@@ -183,7 +183,7 @@ With an agent that may edit drafts, give the independent test of User Story 2:
    nothing, the page says what changed. Ask to deactivate an already deactivated connection:
    refused at once with its status, no link made.
 5. At every level, ask the agent to change a rule of the live connection: refused, "changed in
-   the management interface".
+   the Connection Portal".
 
 ### V11. Two clients end to end (SC-010)
 

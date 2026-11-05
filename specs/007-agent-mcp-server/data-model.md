@@ -128,8 +128,8 @@ Principal { user: UserAccount, authorization: AgentAuthorization | None }
 A bearer resolves through `agent_tokens.token_hash` with `expires_at` in the future and, for
 `personal`, the authorization's `expires_at` too; an unknown, expired or replaced token answers
 `401`. `require_level(level)` answers `403 insufficient_access` naming the level needed;
-`require_browser_session()` answers `403` to any bearer ("This action is done in the management
-interface.").
+`require_browser_session()` answers `403` to any bearer ("This action is done in the Connection
+Portal.").
 
 ## 5. `approval_requests` (R12)
 
@@ -269,5 +269,5 @@ against these before anything is evaluated.
 | `AGENT_DRAFTS_PER_HOUR` | `20` | Drafts one agent connection or token may create per hour |
 
 MCP server (environment, `mcp/src/config.ts`): `PORT` (`3100`), `BACKEND_URL`,
-`PORTAL_URL`, `MCP_URL`, with the development defaults above and no defaults when
-`NODE_ENV=production`.
+`PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` (`http://localhost:3000` in development), with the
+development defaults above and no defaults when `NODE_ENV=production`.

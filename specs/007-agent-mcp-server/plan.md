@@ -23,7 +23,7 @@ guidance comes from one source as server instructions, MCP skills and a Claude C
 - **An npm workspace of four packages**: the API types and the pure rules logic leave the SPA
   for packages of their own, `api-types/` and `rules/`, consumed as source by `frontend/` and by
   the new `mcp/`, the MCP server, a Node service in its own container behind nginx's `/mcp`
-  (R1, R3). This replaces the constitution's single-package rule (Complexity Tracking).
+  (R1, R3), which constitution 1.2.0 allows (Complexity Tracking).
 - **The backend is the OAuth 2.1 authorization server**, the MCP server the protected resource:
   PKCE, Client ID Metadata Documents with dynamic registration as fallback, resource indicators,
   one-hour access tokens, rotating 30-day refresh tokens, personal access tokens; a bearer
@@ -138,7 +138,8 @@ second Node service, the MCP server, and two shared TypeScript packages, in one 
 - **`api-types/`**: the new mirrors (agent access, approvals, OAuth, search page, URLs).
 - **Documentation**: ARCHITECTURE (the workspace, the packages, a section on agent access and
   the MCP server), README (structure, setup, commands, variables, dependencies, the plugin),
-  CLAUDE.md (paths, rules and commands), `.env.example` files, the constitution amendment.
+  CLAUDE.md (paths, rules and commands), `.env.example` files (the constitution is already
+  at 1.2.0).
 
 **Open points**: none in the design. The points to check while coding are research R20 (the SDK
 package and its skills support, TypeScript and Vite resolving the packages' `.ts` exports,
@@ -153,18 +154,19 @@ Checked against constitution v1.1.0 (`.specify/memory/constitution.md`).
 
 | Principle or rule | How the plan complies | Result |
 |---|---|---|
-| **I. Contract parity** | Every new schema (`FormConnectionPage`, `AgentAccessItem`, `TokenCreate`, `TokenCreated`, `ApprovalRequest`, `ApprovalPreview`, `ConnectionUrls`, `AgentMe`, the OAuth bodies) is mirrored by hand in the same change; **the mirror moves from `frontend/src/types/` to `api-types/src/`**, one package that both consumers import, which the principle's text has to name. Every error is an `HTTPException` with `{error, message}`; the OAuth endpoints answer RFC 6749 bodies, the one documented exception, and the well-known documents are plain JSON by their RFCs | PASS once the amendment names `api-types/`; the protocol bodies are recorded in [contracts/oauth.md](contracts/oauth.md) |
+| **I. Contract parity** | Every new schema (`FormConnectionPage`, `AgentAccessItem`, `TokenCreate`, `TokenCreated`, `ApprovalRequest`, `ApprovalPreview`, `ConnectionUrls`, `AgentMe`, the OAuth bodies) is mirrored by hand in the same change; **the mirror moves from `frontend/src/types/` to `api-types/src/`**, one package that both consumers import, which the principle's text has to name. Every error is an `HTTPException` with `{error, message}`; the OAuth endpoints answer RFC 6749 bodies, the one documented exception, and the well-known documents are plain JSON by their RFCs | PASS: constitution 1.2.0 names `api-types/` and the protocol bodies as the one exception; they are recorded in [contracts/oauth.md](contracts/oauth.md) |
 | **II. Sync persistence (NON-NEGOTIABLE)** | New handlers are plain `def` with the sync `Session`, 2.0-style queries and `with_for_update()` row locks; fetching a metadata document and calling EUDIPLO happen with no transaction held (R4, R12) | PASS |
-| **III. Quality gates** | Formatting, linting, type-checking and tests stay tooling-enforced, per package, from one root ESLint and Prettier config; Vitest in `node` in `rules/` (`vitest.config.ts`, the right file where no Vite build exists), `frontend/` and `mcp/` (the `test` block of each `vite.config.ts`, no `vitest.config.ts` beside it); no `pytest.ini`; Ruff, mypy and pytest for the backend. **The principle names only `frontend/`'s gates and configuration files**, so the amendment lists the packages and their gates | PASS once amended |
-| **IV. Dependencies and config** | One lockfile at the root; each package declares what it imports, the images install with `npm ci -w <package>`; README's table gets the SDK and zod with their reason; eight new backend settings as `Settings` fields, in README, ARCHITECTURE and `.env.example`; the MCP server's four variables likewise; no secret committed | PASS |
+| **III. Quality gates** | Formatting, linting, type-checking and tests stay tooling-enforced, per package, from one root ESLint and Prettier config; Vitest in `node` in `rules/` (`vitest.config.ts`, the right file where no Vite build exists), `frontend/` and `mcp/` (the `test` block of each `vite.config.ts`, no `vitest.config.ts` beside it); no `pytest.ini`; Ruff, mypy and pytest for the backend. Constitution 1.2.0 names the packages and their gates | PASS |
+| **IV. Dependencies and config** | One lockfile at the root; each package declares what it imports, the images install with `npm ci -w <package>`; README's table gets the SDK and zod with their reason; eight new backend settings as `Settings` fields, in README, ARCHITECTURE and `.env.example`; the MCP server's five variables likewise; no secret committed | PASS |
 | **V. Schema evolution** | One migration, autogenerated then corrected by hand for the partial unique index and the backfill of draft branch ids; no committed migration edited; `Mapped` / `mapped_column`, UUID4 keys, indexes on every looked-up column, `datetime.now(tz=timezone.utc)` | PASS |
-| **Technology and structure: stack and layout** | The backend keeps its layout. The SPA keeps its folders, small components, sibling `types.ts` / `constants.ts` / `utils.ts`, reducers, Tailwind only, no `any`. **An npm workspace with a root `package.json` and four Node packages (`api-types/`, `rules/`, `frontend/`, `mcp/`), the rules logic and the API types out of `frontend/src/`, and a second Node service**, which the constitution's fixed stack ("React SPA + FastAPI"), "Node tooling is scoped to `frontend/`, a root `package.json` MUST NOT be introduced" and the prescribed `src/` folders rule out | **VIOLATION**, justified in Complexity Tracking; amendment proposed |
+| **Technology and structure: stack and layout** | The backend keeps its layout. The SPA keeps its folders, small components, sibling `types.ts` / `constants.ts` / `utils.ts`, reducers, Tailwind only, no `any`. **An npm workspace with a root `package.json` and four Node packages (`api-types/`, `rules/`, `frontend/`, `mcp/`), the rules logic and the API types out of `frontend/src/`, and a second Node service**, which constitution 1.1.0 ruled out (the fixed stack, "Node tooling is scoped to `frontend/`, a root `package.json` MUST NOT be introduced", the prescribed `src/` folders); constitution 1.2.0, amended on 2026-11-05 with the text under Complexity Tracking, allows exactly this | PASS |
 | **Logging** | `logging` only; ids, never tokens, codes, content, applicants or findings (R18). The MCP server logs method, tool, status and duration through `mcp/src/log.ts`; nothing in `rules/` logs | PASS |
 | **Security (CLAUDE.md "Auth")** | Management routers depend on the principal (cookie or bearer); writes on `require_json`; the endpoints that only the browser may call refuse bearers; the OAuth endpoints are the only new open ones, by the protocol, with PKCE, exact redirect URIs, hashed codes and tokens, rotation with reuse detection, and resource binding (R4) | PASS |
-| **Workflow and documentation** | Backend: model → schemas → migration → services → routers → `include_router` → settings → tests. Frontend: types (`api-types/`) → API → pure modules (`rules/`) → hooks → pages. The last task applies the checklist: ARCHITECTURE (the workspace and packages, agent access, the MCP server, approvals, links, the `mcp` container), README (structure, setup, commands, variables, dependencies, the plugin), CLAUDE.md (paths, rules, commands), `.env.example`, and the constitution amendment with its sync impact report | PASS |
+| **Workflow and documentation** | Backend: model → schemas → migration → services → routers → `include_router` → settings → tests. Frontend: types (`api-types/`) → API → pure modules (`rules/`) → hooks → pages. The last task applies the checklist: ARCHITECTURE (the workspace and packages, agent access, the MCP server, approvals, links, the `mcp` container), README (structure, setup, commands, variables, dependencies, the plugin), CLAUDE.md (paths, rules, commands) and `.env.example`; the constitution is already at 1.2.0 | PASS |
 
-**Gate result (before research)**: one violation, justified below and resolved by an amendment
-that the feature carries as its first task; research proceeded on that basis.
+**Gate result (before research)**: one violation against 1.1.0, justified below; the amendment
+was ratified as constitution 1.2.0 on 2026-11-05, before implementation, and research proceeded
+on that basis.
 
 ## Project Structure
 
@@ -244,13 +246,13 @@ mcp/                             # @connection-portal/mcp: the MCP server (R1)
 ├── Dockerfile                   # context: repo root; npm ci -w mcp; node dist/main.js
 ├── src/
 │   ├── main.ts                  # http server: /mcp, /.well-known/oauth-protected-resource, /health
-│   ├── config.ts                # PORT, BACKEND_URL, PORTAL_URL, MCP_URL
+│   ├── config.ts                # PORT, BACKEND_URL, PORTAL_URL, MCP_URL, OAUTH_ISSUER
 │   ├── backend.ts               # fetch with the bearer; 401/403/409/429 mapping; catalog cache
 │   ├── auth.ts                  # GET /api/agent/me per request; 401 with resource_metadata; step-up 403
 │   ├── links.ts (+test)         # build and parse links (R11)
 │   ├── resolve.ts (+test)       # connection / variant / item by id, link or name; candidates
 │   ├── draftEdit.ts (+test)     # the read-apply-save loop over @connection-portal/rules/edits (R8)
-│   ├── tools/                   # read.ts, drafts.ts, approvals.ts, checks.ts, guide.ts, access.ts; registry.ts
+│   ├── tools/                   # read.ts, catalog.ts, drafts.ts, items.ts, approvals.ts, checks.ts, guide.ts, access.ts; registry.ts
 │   ├── views.ts (+test)         # ItemView, statements, ApplicantField lists
 │   ├── findings.ts (+test)      # BranchCheck → agent findings with involves, why, resolution
 │   ├── applicants.ts (+test)    # value checks per kind; Applicant from values
@@ -276,10 +278,10 @@ frontend/                        # the SPA; depends on @connection-portal/api-ty
     │   ├── Approval/                # S3: ApprovalSummary per action, ApprovalFindings, ApprovalOutcome, ApprovalUrls
     │   ├── FormConnectionEdit/      # S5: step, variant, item from the search parameters; link notices
     │   └── FormConnectionEditor/RulesStep/   # reducer over edits.ts; keys = ids; "Copy link" in RuleMenu, GroupMenu, BranchMenu; LinkNotice
-    └── hooks/useLocalDraft.ts       # branches without ids get them on load
+    └── pages/FormConnectionEditor/utils.ts   # initialStatesFromLocal() gives a local record's branches ids where they have none
 
 docs/ARCHITECTURE.md, README.md, CLAUDE.md, backend/.env.example, frontend/.env.example,
-.specify/memory/constitution.md (amendment 1.2.0)
+.specify/memory/constitution.md (1.2.0, amended 2026-11-05)
 ```
 
 **Structure Decision**: the repository becomes an npm workspace (research R1). The shared
@@ -294,8 +296,9 @@ pages and one shared component, and its rules reducer gives its content logic to
 ## Rules for `/speckit-tasks`
 
 - **Order**:
-  1. **The constitution amendment** (v1.2.0: the workspace, the four packages, their gates and
-     boundaries, `api-types/` as the mirror), first, so that every later task is compliant.
+  1. **The constitution check** first: the constitution is at 1.2.0 (the workspace, the four
+     packages, their gates and boundaries, `api-types/` as the mirror; amended 2026-11-05), so
+     every later task is compliant; the first task confirms it and changes nothing.
   2. **The move**, as one task without any change of behaviour: the root files, `api-types/`,
      `rules/`, the Worker entries, the import rewrites, the fixtures script's path, Dockerfiles,
      compose, pre-commit, `.dockerignore`, and the path updates in CLAUDE.md, README and
@@ -358,7 +361,7 @@ pages and one shared component, and its rules reducer gives its content logic to
   [contracts/oauth.md](contracts/oauth.md), [contracts/mcp-tools.md](contracts/mcp-tools.md)):
   every shape the frontend or the MCP server reads has its mirror in `api-types/`; errors keep
   the `{error, message}` envelope, with the OAuth endpoints' RFC bodies and the well-known
-  documents as the documented exceptions (I, once amended). `/api/connect/` is untouched
+  documents as the exception Principle I names (I). `/api/connect/` is untouched
   (FR-041).
 - **Data model** ([data-model.md](data-model.md)): one migration, reviewed, with cascades,
   indexes and a partial unique index; secrets stored as hashes only; no new column on existing
@@ -367,14 +370,13 @@ pages and one shared component, and its rules reducer gives its content logic to
   `with_for_update()` and hold no transaction over EUDIPLO or a metadata fetch (II).
 - **The packages** ([research R1](research.md#r1-where-the-code-lives-an-npm-workspace-with-four-packages)):
   pure modules with tests in `node`, one owner per package, one lockfile, boundaries enforced
-  by ESLint, no `any`, no `require()` (III and IV, once amended); the MCP server adds two pinned
+  by ESLint, no `any`, no `require()` (III and IV); the MCP server adds two pinned
   runtime dependencies with reasons.
 - **UI** ([contracts/ui-screens.md](contracts/ui-screens.md)): reuses `ConfirmDialog`,
   `TextField`, `PageTitle`, `ErrorNoticeText`, `LinkCard`, the summaries and the menus, with
   every list item as a sub-component, `useReducer` for the dialogs' state (structure).
 
-**Gate result (after design)**: PASS with the one justified violation, resolved by the
-amendment that the first task delivers.
+**Gate result (after design)**: PASS under constitution 1.2.0.
 
 ## Complexity Tracking
 
@@ -382,8 +384,9 @@ amendment that the first task delivers.
 |-----------|------------|-------------------------------------|
 | An npm workspace with a root `package.json`, four Node packages (`api-types/`, `rules/`, `frontend/`, `mcp/`), the API types and the rules logic out of `frontend/src/`, and a second Node service in its own container; the constitution fixes the stack as "React SPA + FastAPI", scopes Node tooling to `frontend/`, forbids a root `package.json` and prescribes the SPA's `src/` folders | The spec's binding decision 2: the agents' tools must reuse the editor's TypeScript rules logic so that there is one implementation; that logic runs only in Node or a browser; an MCP server is a backend service, which belongs beside `backend/`; and code with two consumers belongs to neither, so it becomes a package, which the workspace links without copying, with one lockfile | A Python port of the rules logic: a second implementation of propagation, which the spec rules out. The server inside `frontend/`: a backend service under the SPA's tooling. A top-level `mcp/` importing `../frontend/src/utils/rules/` by relative path: ownership stays with the SPA while another package compiles it, held only by a lint rule. `file:` links without a root: three lockfiles and installs that drift (R1) |
 
-**Proposed amendment** (constitution 1.1.0 → 1.2.0, MINOR; delivered by the feature's first
-task with its sync impact report):
+**Amendment** (constitution 1.1.0 → 1.2.0, MINOR; ratified on 2026-11-05 with its sync impact
+report, before implementation; it also names the OAuth endpoints' RFC bodies as Principle I's
+one exception to the envelopes):
 - **Technology and Structure Constraints**: the repository is an npm workspace with a root
   `package.json` whose only contents are the workspaces, scripts over them and the pre-commit
   `prepare`; the Node packages are `api-types/` (the TypeScript mirrors of

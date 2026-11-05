@@ -81,7 +81,7 @@ backend/              # unchanged
   `api-types/` has `lint` and `typecheck`; `frontend/` and `mcp/` keep `lint`, `test` (in the
   `test` block of their `vite.config.ts`) and `build` (`tsc --noEmit && vite build`). `cd
   frontend && npm test` keeps working, since Node resolves the hoisted `node_modules` upwards.
-- **The move** is the feature's first code task after the amendment, mechanical and without
+- **The move** is the feature's first code task, mechanical and without
   any change of behaviour: `git mv frontend/src/types api-types/src`, `git mv
   frontend/src/utils/rules rules/src`, the two Worker entries to `frontend/src/workers/checks.ts`
   and `frontend/src/workers/personas.ts` (they are browser code: `self`, `MessageEvent`), the
@@ -115,9 +115,9 @@ package: one owner of its tests, lint and types, imported by name rather than by
 path across directories. The API types are the same case: both consumers mirror the backend's
 schemas, so the mirror is one package. npm workspaces are the standard way to hold several
 Node packages in one repository with one lockfile and no copying, and need no further tool
-at this size. This replaces the constitution's "Node tooling is scoped to `frontend/`, no root
-`package.json`", a rule from the template's single-SPA days; the plan's Complexity Tracking
-carries the amendment.
+at this size. Constitution 1.2.0 (amended 2026-11-05) replaced its earlier "Node tooling is
+scoped to `frontend/`, no root `package.json`", a rule from the template's single-SPA days; the
+plan's Complexity Tracking records the justification.
 
 **Alternatives considered**:
 - The MCP server inside `frontend/` as a second build target: one package and one `npm test`,
@@ -154,7 +154,11 @@ belongs in a spec of its own.
   are registered as custom handlers with their zod schemas. Decided on the first task (R20).
 - Transport: Streamable HTTP in **stateless** mode at `POST /mcp` (no session id, one process),
   which 2026-07-28 makes the norm anyway. A URL-mode elicitation is sent on the response stream
-  of the tool call that needs it, so stateless mode supports it.
+  of the tool call that needs it. Whether the SDK lets a stateless server do that is checked on
+  the first MCP task (R20): if it doesn't, the server runs in session mode (the SDK's
+  `Mcp-Session-Id`, sessions in memory, one replica) and the main module, the compose files and
+  nginx follow. The approval link is in the tool's result in every case, so the elicitation is
+  an addition, never the only path (spec decision 3).
 - Tool inputs are validated with zod schemas that the SDK publishes as JSON Schema; every tool
   returns `structuredContent` (the JSON the contract names) and a text block that summarises
   it, so clients without structured content still read the answer.
@@ -253,7 +257,8 @@ the protected resource.
   session as today, or `Authorization: Bearer` resolved to the agent connection or personal
   access token (R6) through its hash, with the account, the current access level, and
   `last_used_at` touched at most once a minute. A missing or invalid bearer answers `401` with
-  `WWW-Authenticate: Bearer resource_metadata="{MCP_URL}/.well-known/…"` from the MCP server,
+  `WWW-Authenticate: Bearer resource_metadata="{origin}/.well-known/oauth-protected-resource/mcp"`
+  (RFC 9728's path form for the resource `{origin}/mcp`) from the MCP server,
   and plain `401` from the backend (the MCP server translates). Every management router depends
   on the principal; `get_current_user` stays as the cookie-only dependency where a browser
   session is required (the user page, the consent page, approving).
@@ -566,7 +571,10 @@ holds only at the moment, and what would resolve it: a new `resolutionOf(finding
 `checks/findingMessages.ts` (the one place where finding texts are written), worded for an LLM
 ("Change or delete one of Rule 02 and Rule 03; they can't be met together", "You can delete the
 rule; Rule 05 already covers it", "The group's condition is always met; delete it or make it
-stricter"). Nothing is stored or logged (FR-035).
+stricter"). The variant's notice gets a resolution the same way (`resolutionOf(notice)`: "Loosen
+or delete one of the rules that no applicant can meet together", "Add a rule or make one
+stricter; as it is, the variant accepts every applicant"), since FR-032 asks for one for every
+kind. Nothing is stored or logged (FR-035).
 
 **Rationale**: the same checks, the same checked tree, the same deadline, so SC-007 holds by
 construction. A worker thread keeps a 5-second solver run off the server's event loop, which
@@ -675,7 +683,9 @@ requests as any other.
 
 - The SDK package to use (R2): v2's `@modelcontextprotocol/server` and its Node adapter, or
   1.x; whether it ships `skills/list` and `skills/get` or they are custom handlers; the exact
-  client capability that announces URL-mode elicitation in 2025-11-25.
+  client capability that announces URL-mode elicitation in 2025-11-25; whether a stateless
+  Streamable HTTP server can send `elicitation/create` on a call's response stream (if not:
+  session mode, R2).
 - TypeScript resolving a workspace package's `exports` to `.ts` sources under
   `moduleResolution: bundler` (R1); the fallback is `paths` in `tsconfig.base.json`. Vite
   serving and bundling the linked packages' sources, and code-splitting the dynamic

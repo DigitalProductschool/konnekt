@@ -419,8 +419,9 @@ variant with three fictitious applicants and check the outcomes against the test
    deliver them to serviceBW on that day (spec 002, FR-010 to FR-014).
 4. **Given** a test without a day, **When** the agent runs it, **Then** the day of sharing is today in
    Germany. The agent can name another day.
-5. **Given** a value that doesn't fit its field's kind, **When** the agent tests, **Then** that
-   applicant is refused with a message that names the field and the kind of value it expects.
+5. **Given** a value that doesn't fit its field's kind, **When** the agent tests, **Then** the test
+   is refused before anything is evaluated, with a message that names the applicant, the field
+   and the kind of value it expects.
 6. **Given** any check or test, **Then** neither the applicants, nor the results, nor the findings are
    stored or logged.
 
@@ -777,8 +778,8 @@ change a rule of the live connection and check that it is refused.
   today in Germany unless they name another day. For each applicant, the answer MUST give whether
   they meet the variant, each rule's and group's outcome (met, not met, or not checked with the
   reason), and the messages the citizen would see, exactly as the evaluation would (spec 002, FR-010
-  to FR-014). A value that doesn't fit its field's kind MUST be refused with the field and the kind
-  it expects.
+  to FR-014). A value that doesn't fit its field's kind MUST refuse the test before anything is
+  evaluated, with a message that names the applicant, the field and the kind it expects.
 - **FR-035**: Findings, applicants, their values and the test results MUST NOT be stored or logged,
   MUST NOT reach serviceBW, and MUST NOT change any evaluation. The personas of the test step (spec
   004) MUST NOT be sent to agents. This supersedes spec 003, FR-020 and spec 004, FR-021 for agents

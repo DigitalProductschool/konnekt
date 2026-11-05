@@ -88,7 +88,7 @@ one's level and resets its 30-day clock.
 - A bearer on an endpoint reserved to the browser (`PUT /api/form-connections/{id}`, the
   direct publish, draft delete, deactivate, activate and delete endpoints, the user page's and
   the approval page's endpoints, `/api/auth/*`): `403 { error: 'browser_only', message: 'This
-  action is done in the management interface.' }`.
+  action is done in the Connection Portal.' }`.
 - `require_json` applies to bearer `POST`, `PUT` and `DELETE` as well (the MCP server sends
   JSON); the token and registration endpoints are exempt.
 
