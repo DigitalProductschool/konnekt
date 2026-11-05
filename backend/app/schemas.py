@@ -303,7 +303,7 @@ class DraftContent(BaseModel):
 
 
 # form_connections.draft (spec 005, data-model.md section 2). The name and the
-# serviceBW form live in their columns. Personas, findings, the open tab and the
+# description live in their columns. Personas, findings, the open tab and the
 # rule editor's position are never stored
 DRAFT_CONTENT = TypeAdapter(DraftContent)
 
@@ -314,7 +314,7 @@ class FormConnectionSummary(BaseModel):
     id: str
     name: str
     # '' possible for a draft
-    servicebw_form: str
+    description: str
     # true for a draft; means nothing until it is published
     is_active: bool
     # Whether it is a draft or a published connection (spec 005)
@@ -334,7 +334,7 @@ class FormConnection(BaseModel):
     status: Literal['published'] = 'published'
     id: str
     name: str
-    servicebw_form: str
+    description: str
     is_active: bool
     documents: list[RequestedDocumentView]
     trigger_url: str
@@ -354,16 +354,20 @@ class FormConnectionCreate(BaseModel):
     """A new form connection. Without rules, it gets a main branch "Standard"."""
 
     name: str
-    servicebw_form: str
+    # Optional, '' when there is none (spec 006, research R3)
+    description: str = ''
     documents: list[RequestedDocument]
     rules: RulesInput | None = None
 
 
 class FormConnectionUpdate(BaseModel):
-    """Changes to a form connection. An absent field stays unchanged."""
+    """Changes to a form connection. An absent field stays unchanged.
+
+    The description: absent leaves it unchanged; null or '' clears it.
+    """
 
     name: str | None = None
-    servicebw_form: str | None = None
+    description: str | None = None
     documents: list[RequestedDocument] | None = None
     rules: RulesInput | None = None
 
@@ -380,7 +384,7 @@ class FormConnectionDraft(BaseModel):
     id: str
     name: str
     # '' possible
-    servicebw_form: str
+    description: str
     # May be empty, and a document's fields may be empty. A type or field the
     # catalog dropped keeps its key as its label
     documents: list[RequestedDocumentView]
@@ -417,8 +421,8 @@ class DraftCreate(BaseModel):
     """A new draft (spec 005). The service layer checks its structure (FR-003)."""
 
     name: str
-    # '' possible
-    servicebw_form: str
+    # Optional, '' when there is none (spec 006, research R3)
+    description: str = ''
     documents: list[RequestedDocument]
     rules: DraftRules
     # The step the draft is saved in

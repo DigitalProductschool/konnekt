@@ -330,7 +330,7 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
   }
 
   function handleContinue() {
-    const errors = validateConnection(state.name, state.servicebwForm);
+    const errors = validateConnection(state.name, state.description);
     if (hasErrors(errors)) {
       refuse(errors);
       return;
@@ -854,10 +854,10 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
           <ConnectionStep
             name={state.name}
             note={editing ? EDITOR_COPY.editNote : EDITOR_COPY.formCardNote}
-            servicebwForm={state.servicebwForm}
+            description={state.description}
             errors={state.errors}
             onChangeName={(value) => dispatch({ type: 'changeName', value })}
-            onChangeServicebwForm={(value) => dispatch({ type: 'changeServicebwForm', value })}
+            onChangeDescription={(value) => dispatch({ type: 'changeDescription', value })}
             onSubmit={handleContinue}
           />
         );

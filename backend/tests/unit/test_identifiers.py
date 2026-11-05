@@ -68,7 +68,7 @@ def _create(
         FormConnection(
             id=form_connection_id,
             name='Test',
-            servicebw_form='FS-1',
+            description='FS-1',
             published_at=datetime.now(tz=timezone.utc),
             current_revision=1,
             current_rule_set=len(versions),
@@ -383,7 +383,7 @@ def test_a_new_form_connections_rules_are_numbered_from_1() -> None:
         form_connection = FormConnection(
             id=str(uuid.uuid4()),
             name='Test',
-            servicebw_form='FS-1',
+            description='FS-1',
             published_at=datetime.now(tz=timezone.utc),
             current_revision=1,
             current_rule_set=1,

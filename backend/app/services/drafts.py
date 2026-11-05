@@ -68,7 +68,7 @@ def draft_view(form_connection: FormConnection) -> FormConnectionDraft:
     return FormConnectionDraft(
         id=form_connection.id,
         name=form_connection.name,
-        servicebw_form=form_connection.servicebw_form,
+        description=form_connection.description,
         documents=form_connections.documents_view(content.documents),
         branches=content.branches,
         next_rule_number=form_connection.next_rule_number,
@@ -134,12 +134,10 @@ def _clean_draft(
 ) -> tuple[str, str, list[RequestedDocument], rules.RulesSave]:
     """The structural checks of a draft (FR-003, research R3), or a 400.
 
-    Returns the name, the serviceBW form, the documents and the checked rules.
+    Returns the name, the description, the documents and the checked rules.
     """
     name = form_connections.clean_name(data.name)
-    servicebw_form = form_connections.clean_servicebw_form(
-        data.servicebw_form, complete=False
-    )
+    description = form_connections.clean_description(data.description)
     documents = form_connections.clean_documents(data.documents, complete=False)
     save = rules.clean_rules(
         RulesInput(
@@ -150,7 +148,7 @@ def _clean_draft(
         main_branch_id=None,
         complete=False,
     )
-    return name, servicebw_form, documents, save
+    return name, description, documents, save
 
 
 def _content(
@@ -172,12 +170,12 @@ def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
     revision, rule set or branch row (FR-005). Answers 400 when the structure is
     broken.
     """
-    name, servicebw_form, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(data)
     numbering = rules.number_draft(save, (1, 1))
     form_connection = FormConnection(
         id=str(uuid.uuid4()),
         name=name,
-        servicebw_form=servicebw_form,
+        description=description,
         is_active=True,
         published_at=None,
         current_revision=None,
@@ -196,7 +194,7 @@ def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
 def save_draft(
     db: Session, form_connection_id: str, data: DraftUpdate
 ) -> FormConnectionDraft:
-    """Replace a draft's content, name and serviceBW form, and raise its version.
+    """Replace a draft's content, name and description, and raise its version.
 
     1. Read the row: 404 if it's missing, 409 `draft_published` if it's
        published (also with `data.replace`), and 409 `draft_changed` if
@@ -214,14 +212,14 @@ def save_draft(
         data.version,
         data.replace,
     )
-    name, servicebw_form, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(data)
 
     form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
     numbering = rules.number_draft(
         save, (form_connection.next_rule_number, form_connection.next_group_number)
     )
     form_connection.name = name
-    form_connection.servicebw_form = servicebw_form
+    form_connection.description = description
     form_connection.draft = _content(documents, numbering, data)
     form_connection.next_rule_number = max(
         form_connection.next_rule_number, numbering.next_rule_number
@@ -260,7 +258,7 @@ def publish_draft(
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_state(form_connection, data.version, data.replace)
     name = form_connections.clean_name(data.name)
-    servicebw_form = form_connections.clean_servicebw_form(data.servicebw_form)
+    description = form_connections.clean_description(data.description)
     documents = form_connections.clean_documents(data.documents)
     save: rules.RulesSave | None = None
     if data.rules is not None:
@@ -279,7 +277,7 @@ def publish_draft(
         db,
         form_connection_id,
         documents,
-        changes={'name': name, 'servicebw_form': servicebw_form},
+        changes={'name': name, 'description': description},
         save=save,
         guard=DraftGuard(version=data.version, replace=data.replace),
     )

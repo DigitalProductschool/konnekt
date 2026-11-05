@@ -140,7 +140,7 @@ def update_form_connection(
     data: FormConnectionUpdate,
     db: Session = Depends(get_db),
 ) -> ApiResponse[FormConnection]:
-    """Change a form connection's name, serviceBW form, documents or rules.
+    """Change a form connection's name, description, documents or rules.
 
     Changed documents become a new revision with its own EUDIPLO configuration, and
     changed rules a new rule set, saved together or not at all; requests in progress

@@ -170,7 +170,7 @@ describe('isLocalDraftChange', () => {
 });
 
 describe('localDraftActionOf', () => {
-  const changed = { ...emptyContent(), servicebwForm: 'F-1' };
+  const changed = { ...emptyContent(), description: 'F-1' };
 
   it('writes a content that differs from the baseline', () => {
     expect(localDraftActionOf(changed, emptyContent())).toBe('write');

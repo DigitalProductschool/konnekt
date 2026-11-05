@@ -20,8 +20,8 @@ export interface StorageLike {
 
 /** One local draft, stored as JSON under `connection-portal:local-draft:v1:<username>:<flowKey>` */
 export interface LocalDraftRecord {
-  /** The record's format */
-  format: 1;
+  /** The record's format (`LOCAL_DRAFT_FORMAT`) */
+  format: 2;
   /** Repeated, so a record is self-describing */
   flowKey: string;
   /** The stored draft it belongs to; null for a new connection */
@@ -42,7 +42,7 @@ export interface LocalDraftRecord {
 export interface LocalDraftContent {
   /** May be empty: shown as "Untitled connection" */
   name: string;
-  servicebwForm: string;
+  description: string;
   documents: RequestedDocument[];
   /** As the rules step holds them, the open rule kept (R9) */
   branches: BranchInput[];

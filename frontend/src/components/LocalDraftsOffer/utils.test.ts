@@ -24,7 +24,7 @@ function localTextOf(iso: string): string {
 
 function record(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: 'new-00000000-0000-4000-8000-000000000001',
     draftId: null,
     draftVersion: null,

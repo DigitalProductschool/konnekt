@@ -216,13 +216,13 @@ def test_renaming_with_new_documents_names_the_new_configuration(
         signed_in_client,
         form_connection_id,
         name=' Renamed ',
-        servicebw_form='FS-1',
+        description='FS-1',
         documents=EDITED_DOCUMENTS,
     )
 
     assert response.status_code == 200
     assert response.json()['data']['name'] == 'Renamed'
-    assert response.json()['data']['servicebw_form'] == 'FS-1'
+    assert response.json()['data']['description'] == 'FS-1'
     config = fake_eudiplo.configs[_config_id(form_connection_id, 2)]
     assert config['description'] == 'Renamed'
 

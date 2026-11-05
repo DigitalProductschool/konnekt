@@ -343,7 +343,7 @@ drafts:
 - **Revisions**: each set of documents is an immutable revision with its own EUDIPLO
   presentation configuration, `fc-<id>-r<n>`. Creating a form connection stores
   revision 1; changing its documents stores the next one, which only requests
-  triggered afterwards use. The name and the serviceBW form create no revision, and
+  triggered afterwards use. The name and the description create no revision, and
   the connection URLs never change.
 - **Creating a revision** (`create_revision`) holds no transaction while EUDIPLO
   answers. Under the form connection's row lock it takes the next number and inserts
@@ -358,10 +358,10 @@ drafts:
   JSONB column `draft`, and a `draft_version` that is 1 when created and goes up by one
   with every save. It has no revision, rule set, branch rows or EUDIPLO configuration, so
   `current_revision` and `current_rule_set` are null. Its name is required, its
-  serviceBW form may be `''`, and `is_active` means nothing until it is published. The
-  CHECK constraint `ck_form_connections_draft_or_published` holds the two states:
-  `published_at`, `current_revision` and `current_rule_set` all set and `draft` and
-  `draft_version` null, or the other way round. The migration
+  description may be `''` like a published connection's, and `is_active` means nothing
+  until it is published. The CHECK constraint `ck_form_connections_draft_or_published`
+  holds the two states: `published_at`, `current_revision` and `current_rule_set` all
+  set and `draft` and `draft_version` null, or the other way round. The migration
   (`d2b97ba4a2c7_connection_drafts`) published every existing row as of its
   `created_at`, and its downgrade deletes the drafts first.
 - **The draft endpoints**: `POST /api/form-connections/drafts` stores a new draft,
@@ -383,19 +383,20 @@ drafts:
   Saving and publishing check the version once before the content is checked, so that a
   stale editor meets the conflict, and again under the row lock.
 - **The `complete` switch**: a draft save runs the same validators as publishing with
-  `complete=False` (`clean_servicebw_form`, `clean_documents`, `rules.clean_rules`):
-  the structure is checked (unknown document types and fields, duplicates, the limits,
-  identifiers, groups, marks), the completeness is not (a form ID, at least one
-  document and field, variant, rule and group names being present, unique and not
-  reserved, a rule's data, check and message). The connection's name is required in a
-  draft too. Publishing a draft runs the checks of `POST /api/form-connections`
-  unchanged, with the same messages.
+  `complete=False` (`clean_documents`, `rules.clean_rules`): the structure is checked
+  (unknown document types and fields, duplicates, the limits, identifiers, groups,
+  marks), the completeness is not (at least one document and field, variant, rule and
+  group names being present, unique and not reserved, a rule's data, check and
+  message). The connection's name is required in a draft too. `clean_description`
+  runs the same way on every path: it trims, allows `''` and refuses more than 500
+  code points ("The description can have at most 500 characters."). Publishing a draft
+  runs the checks of `POST /api/form-connections` unchanged, with the same messages.
 - **Publishing goes through `create_revision()`**, with a `DraftGuard(version,
   replace)` instead of a second save path. The guard is checked under both row locks,
   before the revision is reserved and before it becomes current. Under the last lock,
   `_publish()` makes the reserved revision current, writes rule set 1 and the branch
   rows (`rules.first_rule_set()` with the row's counters), applies the name and the
-  serviceBW form, sets `published_at` and clears `draft` and `draft_version`, in one
+  description, sets `published_at` and clears `draft` and `draft_version`, in one
   commit. If EUDIPLO fails, the row stays a draft. If the guard refuses under the last
   lock (another publish won, or a save raised the version and this publish has no
   `replace`), the configuration is deleted and the revision removed again.
@@ -642,11 +643,12 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
 - **Key and format**: one entry per flow, under
   `connection-portal:local-draft:v1:<username>:<flowKey>`. The flow key is `new-<uuid>` for a
   connection never saved and `draft-<id>` for a stored draft. The value is a
-  `LocalDraftRecord` as JSON, `format: 1`: the flow key, the stored draft's id and the version
+  `LocalDraftRecord` as JSON, `format: 2`: the flow key, the stored draft's id and the version
   the flow loaded, `changedAt`, the step and the content, which is what "Save and exit" would
-  send (name, form ID, documents, branches with an open rule editor's rule kept,
+  send (name, description, documents, branches with an open rule editor's rule kept,
   `numberingBase` and the counters). Every read validates the record; one that doesn't match
-  its key or format is skipped and removed.
+  its key or format is skipped and removed. Records of format 1, which held the form ID
+  before spec 006, are removed this way, not converted; the key prefix stays `v1`.
 - **Pure modules, one binding hook**: `utils/localDrafts/` is pure: `keys.ts`,
   `format.ts`, `content.ts` and `store.ts`, each with its `*.test.ts`, beside
   `constants.ts` and `types.ts`. The store takes an injected `StorageLike`, which the tests
@@ -885,7 +887,7 @@ class ApiError extends Error {
   declares the shared columns once, as the annotated types `UuidPk`, `CreatedAt`
   and `UpdatedAt`
 - Timestamps: `created_at` / `updated_at`, both `DateTime(timezone=True)` with `server_default=func.now()`
-- Column and table names: `snake_case` (`servicebw_form`, `form_connections`)
+- Column and table names: `snake_case` (`published_at`, `form_connections`)
 - Unique constraints: `unique=True` on `mapped_column`
 - Optional fields: `Mapped[str | None]`, which SQLAlchemy maps to a nullable column
 - Indexes on every column used for lookups, plus partial indexes

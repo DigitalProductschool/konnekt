@@ -3,8 +3,6 @@ import type { EditLocationState } from '../../types/routing';
 import type { ActionsState, DraftDeleteState } from './types';
 
 export const DETAIL_COPY = {
-  // Figma "App/Header" on "22 Published": the form before the user
-  formId: (form: string) => `Form ID ${form}`,
   // Figma "App/Footer" on "22 Published"; "Home" while the connection isn't there
   home: 'Home',
   editDocuments: 'Edit documents',
@@ -67,7 +65,6 @@ export const DETAIL_COPY = {
   activated: 'Connection reactivated',
   saved: 'Changes saved',
   // A draft's details (spec 005: S6, W2, W7), which the design has no frames for
-  noFormId: 'No form ID yet',
   draftNotLive: 'This draft isn’t live. Its connection links appear once you publish it.',
   noDocumentsYet: 'No documents yet',
   noDataYet: 'No data chosen yet',

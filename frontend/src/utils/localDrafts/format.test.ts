@@ -34,7 +34,7 @@ const GROUP: GroupItem = {
 /** A valid record of a stored draft with nested groups */
 function draftRecord(): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: DRAFT_KEY,
     draftId: DRAFT_ID,
     draftVersion: 3,
@@ -42,7 +42,7 @@ function draftRecord(): LocalDraftRecord {
     step: 'rules',
     content: {
       name: 'Parking permit',
-      servicebwForm: 'F-123',
+      description: 'F-123',
       documents: [{ document_type: 'pid', fields: ['given_name', 'birth_date'] }],
       branches: [
         {
@@ -73,7 +73,7 @@ function draftRecord(): LocalDraftRecord {
 /** A valid record of a new connection */
 function newRecord(): LocalDraftRecord {
   return {
-    format: 1,
+    format: 2,
     flowKey: NEW_KEY,
     draftId: null,
     draftVersion: null,
@@ -81,7 +81,7 @@ function newRecord(): LocalDraftRecord {
     step: 'connection',
     content: {
       name: '',
-      servicebwForm: '',
+      description: '',
       documents: [],
       branches: [
         {
@@ -171,7 +171,7 @@ describe('invalid records', () => {
   });
 
   it('rejects another format', () => {
-    for (const format of [2, 0, '1', null]) {
+    for (const format of [1, 3, 0, '2', null]) {
       expect(
         parseRecord(
           rawWith((record) => (record.format = format)),
@@ -185,6 +185,23 @@ describe('invalid records', () => {
         DRAFT_KEY
       )
     ).toBeNull();
+  });
+
+  it('rejects a format-1 record with the form ID, without converting it', () => {
+    const raw = rawWith((record) => {
+      record.format = 1;
+      contentIn(record).servicebwForm = 'F-123';
+      delete contentIn(record).description;
+    });
+    expect(parseRecord(raw, DRAFT_KEY)).toBeNull();
+  });
+
+  it('rejects a format-2 record with the form ID instead of a description', () => {
+    const raw = rawWith((record) => {
+      contentIn(record).servicebwForm = 'F-123';
+      delete contentIn(record).description;
+    });
+    expect(parseRecord(raw, DRAFT_KEY)).toBeNull();
   });
 
   it("rejects a flow key that doesn't match the key's", () => {
@@ -269,7 +286,7 @@ describe('invalid records', () => {
     }
     for (const field of [
       'name',
-      'servicebwForm',
+      'description',
       'documents',
       'branches',
       'numberingBase',
@@ -282,7 +299,7 @@ describe('invalid records', () => {
 
   it.each<[string, (content: Record<string, unknown>) => void]>([
     ['a name that is not text', (content) => (content.name = null)],
-    ['a form ID that is not text', (content) => (content.servicebwForm = 7)],
+    ['a description that is not text', (content) => (content.description = 7)],
     ['documents that are not a list', (content) => (content.documents = {})],
     ['a document that is not an object', (content) => (content.documents = ['pid'])],
     ['a document without a type', (content) => (content.documents = [{ fields: ['given_name'] }])],

@@ -22,6 +22,7 @@ import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
 import type { RulesProblem } from '../../utils/rules/types';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
+  DESCRIPTION_MAX_LENGTH,
   DRAFT_CHANGED_ERROR,
   DRAFT_COPY,
   DRAFT_PUBLISHED_ERROR,
@@ -32,7 +33,6 @@ import {
   PUBLISH_COPY,
   REMOVE_DATA_COPY,
   RULES_CHANGED_ERROR,
-  SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
 import { MAIN_BRANCH_KEY, RULES_COPY } from './RulesStep/constants';
@@ -73,7 +73,7 @@ export function initialEditorState({
     ...INITIAL_EDITOR_STATE,
     step: initialStep,
     name: formConnection.name,
-    servicebwForm: formConnection.servicebw_form,
+    description: formConnection.description,
     documents: requestedDocumentsOf(formConnection.documents),
   };
 }
@@ -305,11 +305,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   switch (action.type) {
     case 'changeName':
       return { ...state, name: action.value, errors: { ...state.errors, name: undefined } };
-    case 'changeServicebwForm':
+    case 'changeDescription':
       return {
         ...state,
-        servicebwForm: action.value,
-        errors: { ...state.errors, servicebwForm: undefined },
+        description: action.value,
+        errors: { ...state.errors, description: undefined },
       };
     case 'showErrors':
       return { ...state, errors: action.errors };
@@ -468,8 +468,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   }
 }
 
-/** Step 1: the name and the form ID, with the API's rules and messages. */
-export function validateConnection(name: string, servicebwForm: string): EditorErrors {
+/** Step 1: the name, required, and the optional description, with the API's rules and messages. */
+export function validateConnection(name: string, description: string): EditorErrors {
   const errors: EditorErrors = {};
   const trimmedName = name.trim();
   if (!trimmedName) {
@@ -477,11 +477,8 @@ export function validateConnection(name: string, servicebwForm: string): EditorE
   } else if (trimmedName.length > NAME_MAX_LENGTH) {
     errors.name = VALIDATION_MESSAGES.nameTooLong;
   }
-  const trimmedForm = servicebwForm.trim();
-  if (!trimmedForm) {
-    errors.servicebwForm = VALIDATION_MESSAGES.servicebwFormRequired;
-  } else if (trimmedForm.length > SERVICEBW_FORM_MAX_LENGTH) {
-    errors.servicebwForm = VALIDATION_MESSAGES.servicebwFormTooLong;
+  if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
+    errors.description = VALIDATION_MESSAGES.descriptionTooLong;
   }
   return errors;
 }
@@ -508,7 +505,7 @@ export function validateDocuments(
 export function hasErrors(errors: EditorErrors): boolean {
   return Boolean(
     errors.name ||
-    errors.servicebwForm ||
+    errors.description ||
     errors.documents ||
     Object.keys(errors.fields ?? {}).length > 0
   );
@@ -521,7 +518,7 @@ export function firstInvalidElementId(
   documentTypes: DocumentType[]
 ): string | null {
   if (errors.name) return ELEMENT_IDS.name;
-  if (errors.servicebwForm) return ELEMENT_IDS.servicebwForm;
+  if (errors.description) return ELEMENT_IDS.description;
   if (errors.documents && documentTypes.length > 0) {
     return ELEMENT_IDS.pickerButton(documentTypes[0].key);
   }
@@ -655,7 +652,7 @@ export function createPayload(
 ): FormConnectionCreate {
   const payload: FormConnectionCreate = {
     name: state.name.trim(),
-    servicebw_form: state.servicebwForm.trim(),
+    description: state.description.trim(),
     documents: state.documents,
   };
   if (loaded && !rulesChanged(rules, loaded)) {
@@ -719,15 +716,15 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
 
 /**
  * What "Save and exit" would store at this moment, apart from the step and the version (FR-002,
- * FR-015): the name and the form ID as typed, the documents, and the branches with the counters.
- * A rule open in the rule editor counts as kept, complete or not, as "Save changes" would keep it
- * (R9, FR-012).
+ * FR-015): the name and the description as typed, the documents, and the branches with the
+ * counters. A rule open in the rule editor counts as kept, complete or not, as "Save changes"
+ * would keep it (R9, FR-012).
  */
 export function localContentOf(state: EditorState, rules: RulesState): LocalDraftContent {
   const kept = rules.editing ? rulesReducer(rules, { type: 'saveRule' }) : rules;
   return {
     name: state.name,
-    servicebwForm: state.servicebwForm,
+    description: state.description,
     documents: state.documents,
     branches: branchInputs(kept.branches),
     numberingBase: kept.numberingBase,
@@ -735,11 +732,13 @@ export function localContentOf(state: EditorState, rules: RulesState): LocalDraf
   };
 }
 
-/** The body of "Save and exit" (R12): the content, the name and the form ID trimmed, the step. */
+/**
+ * The body of "Save and exit" (R12): the content, the name and the description trimmed, the step.
+ */
 export function draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate {
   return {
     name: content.name.trim(),
-    servicebw_form: content.servicebwForm.trim(),
+    description: content.description.trim(),
     documents: content.documents,
     rules: { branches: content.branches, numbering_base: content.numberingBase },
     step,
@@ -755,7 +754,7 @@ export function openingStepOf(step: EditorStep, rules: RulesState): EditorStep {
 }
 
 /**
- * The reducers' starting states for a stored draft (R12): its name, form ID and documents, a
+ * The reducers' starting states for a stored draft (R12): its name, description and documents, a
  * type or field the catalog dropped included; its variants with the editor's keys (`main` for the
  * main variant, `newBranchKey()` for the others, in order), numbering from the draft's counters,
  * without a rule set; at `step` (the draft's own by default), through `openingStepOf()`.
@@ -770,7 +769,7 @@ export function initialStatesFromDraft(
     ...INITIAL_EDITOR_STATE,
     step: openingStepOf(step, rules),
     name: draft.name,
-    servicebwForm: draft.servicebw_form,
+    description: draft.description,
     documents: requestedDocumentsOf(draft.documents),
   };
   return { editor, rules };
@@ -792,7 +791,7 @@ export function initialStatesFromLocal(record: LocalDraftRecord): {
     ...INITIAL_EDITOR_STATE,
     step: openingStepOf(record.step, rules),
     name: content.name,
-    servicebwForm: content.servicebwForm,
+    description: content.description,
     documents: content.documents,
   };
   return { editor, rules };
@@ -940,10 +939,7 @@ export function startOfOrigin({
   };
 }
 
-/**
- * The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them,
- * so that a draft never needs a form ID.
- */
+/** The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them. */
 export function draftNameErrors(name: string): EditorErrors {
   const errors = validateConnection(name, '');
   return errors.name ? { name: errors.name } : {};

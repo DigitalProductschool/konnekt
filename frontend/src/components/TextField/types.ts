@@ -8,6 +8,8 @@ export interface TextFieldProps extends Omit<
   label: string;
   /** Shown next to the label, such as an InfoTooltip */
   labelAddon?: ReactNode;
+  /** Marks the field as optional after its label, as KERN does */
+  optional?: boolean;
   /** The error message, shown under the field and linked to it */
   error?: ReactNode;
   /** "alert" to announce the error as it appears, also while the field keeps the focus */

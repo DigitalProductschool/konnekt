@@ -7,7 +7,10 @@ export interface TopBarProps {
   titleAsHeading?: boolean;
   /** Shown after the title, such as the connection's status badge */
   badge?: ReactNode;
-  /** Shown before the user's menu in muted text, such as the form ID; hidden on phones */
+  /**
+   * Shown before the user's menu in muted text, such as the connection's description; one line,
+   * cut with '…'
+   */
   meta?: ReactNode;
   /** Makes the logo a link to this route, as on the signed-in screens */
   logoTo?: string;

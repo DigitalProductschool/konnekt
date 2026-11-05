@@ -7,13 +7,13 @@ import type { LocalDraftContent } from './types';
 const UNTITLED_NAME = 'Untitled connection';
 
 /**
- * The content of a fresh create flow, its baseline: no name, no form ID, no documents, and the
+ * The content of a fresh create flow, its baseline: no name, no description, no documents, and the
  * main variant "Standard" alone, AND, without items, numbered from 1.
  */
 export function emptyContent(): LocalDraftContent {
   return {
     name: '',
-    servicebwForm: '',
+    description: '',
     documents: [],
     branches: [
       {

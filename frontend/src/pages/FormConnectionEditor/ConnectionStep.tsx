@@ -4,7 +4,7 @@ import documentBlueIcon from '../../assets/icons/document-blue.svg';
 import IconTile from '../../components/IconTile';
 import InfoTooltip from '../../components/InfoTooltip';
 import TextField from '../../components/TextField';
-import { EDITOR_COPY, ELEMENT_IDS, NAME_MAX_LENGTH, SERVICEBW_FORM_MAX_LENGTH } from './constants';
+import { DESCRIPTION_MAX_LENGTH, EDITOR_COPY, ELEMENT_IDS, NAME_MAX_LENGTH } from './constants';
 import type { ConnectionStepProps } from './types';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
@@ -16,10 +16,10 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
 export default function ConnectionStep({
   name,
   note,
-  servicebwForm,
+  description,
   errors,
   onChangeName,
-  onChangeServicebwForm,
+  onChangeDescription,
   onSubmit,
 }: ConnectionStepProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -66,23 +66,22 @@ export default function ConnectionStep({
           </div>
           <div className="w-full md:w-320 md:shrink-0">
             <TextField
-              id={ELEMENT_IDS.servicebwForm}
-              label={EDITOR_COPY.formIdLabel}
+              id={ELEMENT_IDS.description}
+              label={EDITOR_COPY.descriptionLabel}
+              optional
               labelAddon={
                 <InfoTooltip
-                  label={EDITOR_COPY.formIdInfoLabel}
-                  text={EDITOR_COPY.formIdInfo}
+                  label={EDITOR_COPY.descriptionInfoLabel}
+                  text={EDITOR_COPY.descriptionInfo}
                   arrow="end"
                 />
               }
-              placeholder={EDITOR_COPY.formIdPlaceholder}
-              value={servicebwForm}
-              maxLength={SERVICEBW_FORM_MAX_LENGTH}
-              required
+              placeholder={EDITOR_COPY.descriptionPlaceholder}
+              value={description}
+              maxLength={DESCRIPTION_MAX_LENGTH}
               autoComplete="off"
-              spellCheck={false}
-              error={errors.servicebwForm}
-              onChange={(event) => onChangeServicebwForm(event.target.value)}
+              error={errors.description}
+              onChange={(event) => onChangeDescription(event.target.value)}
             />
           </div>
         </div>

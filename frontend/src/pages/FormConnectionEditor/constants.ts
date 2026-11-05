@@ -1,7 +1,7 @@
 import type { EditorState, EditorStep } from './types';
 
 export const NAME_MAX_LENGTH = 200;
-export const SERVICEBW_FORM_MAX_LENGTH = 500;
+export const DESCRIPTION_MAX_LENGTH = 500;
 
 export const EDITOR_COPY = {
   headerTitle: 'New connection',
@@ -18,11 +18,11 @@ export const EDITOR_COPY = {
   nameInfoLabel: 'About the form name',
   nameInfo:
     'Use the official name of the form so your team can find it easily. Applicants never see this name.',
-  formIdLabel: 'Form ID',
-  formIdPlaceholder: 'e.g. PK-30051',
-  formIdInfoLabel: 'About the form ID',
-  formIdInfo:
-    'Copy the ID from your form management system. It makes sure the verified data reaches the right form. Applicants never see it.',
+  descriptionLabel: 'Description',
+  descriptionPlaceholder: 'e.g. serviceBW form PK-30051',
+  descriptionInfoLabel: 'About the description',
+  descriptionInfo:
+    'A note for your team, such as the form’s ID in your form management system. Applicants never see it.',
   // V2 says "Starts as a draft." first; connections have no drafts
   formCardNote: 'Nothing goes live until you publish.',
   continue: 'Continue',
@@ -57,7 +57,7 @@ export const EDITOR_COPY = {
   publishErrorText: 'Nothing went live. Check your connection and try again.',
   // Editing a connection (no frames): the same steps, saving instead of publishing (FR-005)
   editConnectionTitle: 'Edit the connection',
-  editConnectionHint: 'Change the form’s name or ID, or go on to the documents.',
+  editConnectionHint: 'Change the form name or description, or go on to the documents.',
   editDocumentsTitle: 'Edit documents',
   editNote: 'Requests already in progress keep their previous data.',
   save: 'Save',
@@ -78,7 +78,6 @@ export const DRAFT_COPY = {
   tryAgain: 'Try again',
   draftBadge: 'Draft',
   untitled: 'Untitled connection',
-  noFormId: 'No form ID yet',
   draftSaved: (name: string) => `Draft ${name} saved.`,
   // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
   // whole document by its key, since the catalog has no label for it any more
@@ -171,8 +170,7 @@ export const DRAFT_PUBLISHED_ERROR = 'draft_published';
 export const VALIDATION_MESSAGES = {
   nameRequired: 'Enter a name.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
-  servicebwFormRequired: 'Enter the form ID.',
-  servicebwFormTooLong: `The form ID can have at most ${SERVICEBW_FORM_MAX_LENGTH} characters.`,
+  descriptionTooLong: `The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
   noDocuments: 'Add at least one document.',
   noFields: (document: string) => `Select at least one field for '${document}'.`,
 };
@@ -203,7 +201,7 @@ export const ELEMENT_IDS = {
   branchPanel: (branchKey: string) => `branch-panel-${branchKey}`,
   addVariant: 'add-variant',
   name: 'connection-name',
-  servicebwForm: 'connection-form-id',
+  description: 'connection-description',
   documentsError: 'documents-error',
   pickerButton: (documentType: string) => `document-picker-${documentType}`,
   allData: (documentType: string) => `document-${documentType}-all`,
@@ -226,7 +224,7 @@ export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules', 'te
 export const INITIAL_EDITOR_STATE: EditorState = {
   step: 'connection',
   name: '',
-  servicebwForm: '',
+  description: '',
   documents: [],
   errors: {},
   publishError: null,

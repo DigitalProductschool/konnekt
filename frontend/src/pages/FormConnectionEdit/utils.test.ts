@@ -16,7 +16,7 @@ const DRAFT: FormConnectionDraft = {
   status: 'draft',
   id: 'draft-1',
   name: 'Passenger transport licence',
-  servicebw_form: '',
+  description: '',
   documents: [],
   branches: [],
   next_rule_number: 1,
@@ -119,7 +119,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
   const STORED: FormConnectionDraft = {
     ...DRAFT,
-    servicebw_form: 'PT-1',
+    description: 'PT-1',
     documents: [{ document_type: 'pid', label: 'Personal ID', fields: [field('birthdate')] }],
     branches: [MAIN],
     next_rule_number: 2,
@@ -129,7 +129,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
   /** The stored draft's content, written out as the record holds it */
   const STORED_CONTENT: LocalDraftContent = {
     name: 'Passenger transport licence',
-    servicebwForm: 'PT-1',
+    description: 'PT-1',
     documents: [{ document_type: 'pid', fields: ['birthdate'] }],
     branches: [MAIN],
     numberingBase: { rule: 2, group: 1 },
@@ -138,7 +138,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
   function recordOf(content: LocalDraftContent): LocalDraftRecord {
     return {
-      format: 1,
+      format: 2,
       flowKey: 'draft-draft-1',
       draftId: 'draft-1',
       draftVersion: 2,
@@ -193,7 +193,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
   it.each<[string, Partial<LocalDraftContent>]>([
     ['the name', { name: 'Taxi licence' }],
-    ['the form ID', { servicebwForm: 'PT-2' }],
+    ['the description', { description: 'PT-2' }],
     ['the documents', { documents: [{ document_type: 'pid', fields: [] }] }],
     ['the rules', { branches: [{ ...MAIN, items: [] }] }],
     ['a variant', { branches: [MAIN, { ...MAIN, name: 'Taxi', origin: 'empty', items: [] }] }],
@@ -211,7 +211,7 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
 
 describe('the restore question (S5)', () => {
   const RECORD: LocalDraftRecord = {
-    format: 1,
+    format: 2,
     flowKey: 'draft-draft-1',
     draftId: 'draft-1',
     draftVersion: 2,
@@ -219,7 +219,7 @@ describe('the restore question (S5)', () => {
     step: 'rules',
     content: {
       name: 'Passenger transport licence',
-      servicebwForm: '',
+      description: '',
       documents: [],
       branches: [],
       numberingBase: { rule: 1, group: 1 },
