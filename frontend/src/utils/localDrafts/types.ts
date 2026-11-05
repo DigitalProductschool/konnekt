@@ -8,7 +8,7 @@ import type {
   RequestedDocument,
 } from '../../types/form-connections';
 
-/** The part of the Web Storage API the store uses; `window.localStorage` or an in-memory fake */
+/** The part of the Web Storage API the store uses: local storage or an in-memory fake */
 export interface StorageLike {
   readonly length: number;
   key(index: number): string | null;

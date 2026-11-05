@@ -660,7 +660,7 @@ second's version whole (quickstart V10–V12).
 **Purpose**: The documentation checklist, the privacy and structure checks, accessibility, and the
 final gates.
 
-- [ ] T052 [P] Update `docs/ARCHITECTURE.md` (plan "Rules for /speckit-tasks", last bullet; CLAUDE.md "Documentation checklist").
+- [X] T052 [P] Update `docs/ARCHITECTURE.md` (plan "Rules for /speckit-tasks", last bullet; CLAUDE.md "Documentation checklist").
   - Section "Form connections":
     - drafts and the two states (`published_at`, `draft`, `draft_version`, the CHECK constraint);
     - the draft endpoints and their refusals (`not_published`, `draft_published`, `draft_changed`);
@@ -678,25 +678,25 @@ final gates.
     - expiry, account scope and the sign-out discard;
     - the known limit of R11;
     - "never holds personas, findings or citizen data".
-- [ ] T053 [P] Add one-line rules to `CLAUDE.md`, each pointing to `docs/ARCHITECTURE.md` (plan "Rules for /speckit-tasks"): "drafts are never live: their URLs answer `409 unavailable` and they set nothing up with EUDIPLO"; "publishing a draft goes through `create_revision()` with a `DraftGuard`, never a second save path"; "only `hooks/useLocalDraftStore.ts` touches `localStorage`"; "local drafts never hold personas, findings or citizen data, and nothing in `utils/localDrafts/` or its hooks logs". Keep the file's style: a short bullet under a new "Drafts and local drafts (spec 005)" heading, or added to "Rules, rule checks and test personas".
-- [ ] T054 [P] Mark the superseded decisions (contracts/ui-screens.md "Superseded decisions"; plan "Constitution Check", Workflow).
+- [X] T053 [P] Add one-line rules to `CLAUDE.md`, each pointing to `docs/ARCHITECTURE.md` (plan "Rules for /speckit-tasks"): "drafts are never live: their URLs answer `409 unavailable` and they set nothing up with EUDIPLO"; "publishing a draft goes through `create_revision()` with a `DraftGuard`, never a second save path"; "only `hooks/useLocalDraftStore.ts` touches `localStorage`"; "local drafts never hold personas, findings or citizen data, and nothing in `utils/localDrafts/` or its hooks logs". Keep the file's style: a short bullet under a new "Drafts and local drafts (spec 005)" heading, or added to "Rules, rule checks and test personas".
+- [X] T054 [P] Mark the superseded decisions (contracts/ui-screens.md "Superseded decisions"; plan "Constitution Check", Workflow).
   - Add a "Superseded by spec 005 (connection drafts) for the create flow" note to:
     - `specs/001-servicebw-eudi-middleware/design-notes.md` §6 ("Create") and §8, where it says there are no drafts and no "Save and exit";
     - `specs/002-connection-rules/contracts/ui-screens.md`, rows F28 and F23;
     - `specs/004-rule-test-personas/contracts/ui-screens.md`, row O3.
   - Never delete the old text.
   - `README.md` lists no form-connection endpoints, so it needs no change. Confirm that and record it in the commit message. No new dependency or environment variable exists, so `.env.example` files are unchanged.
-- [ ] T055 Check the privacy and structure rules by search, and fix any hit (FR-015, FR-020; plan "Rules for /speckit-tasks").
+- [X] T055 Check the privacy and structure rules by search, and fix any hit (FR-015, FR-020; plan "Rules for /speckit-tasks").
   - `grep -rn "console\." frontend/src/utils/localDrafts frontend/src/hooks/useLocalDraft*.ts frontend/src/components/LocalDraftsOffer frontend/src/components/UserMenu` finds nothing.
   - `grep -rn "localStorage" frontend/src --include=*.ts --include=*.tsx` finds only `hooks/useLocalDraftStore.ts`.
   - `grep -rn "fetch\|apiFetch" frontend/src/utils/localDrafts frontend/src/hooks/useLocalDraft*.ts` finds nothing.
   - No `dark:`, no `focus:` (only `focus-visible:`), no inline `style=` and no `any` in the new frontend files.
   - The backend's new log lines carry ids only: `grep -n "logger\." backend/app/services/drafts.py`.
-- [ ] T056 Check accessibility: run `specs/005-connection-drafts/quickstart.md` V14 (FR-028, SC-008).
+- [X] T056 Check accessibility: run `specs/005-connection-drafts/quickstart.md` V14 (FR-028, SC-008).
   - Use the keyboard only, a screen reader (NVDA + Firefox or VoiceOver + Safari), 320 px width and 200 % zoom, on: "Save and exit" and "Saving…", the badge, the offer, the restore question, the conflict dialogs, the draft details, the delete confirmation and the sign-out warning.
   - Run axe DevTools on: the overview with drafts and an offer, a draft's details, and the create flow of a stored draft.
   - Fix every WCAG 2.1 AA finding in the task's files, and record the run in the commit message.
-- [ ] T057 Run the final gates and the full quickstart.
+- [X] T057 Run the final gates and the full quickstart.
   - Backend: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy app/ scripts/ tests/`, pytest with the `_test` database, and `uv run alembic check`.
   - Frontend: `npm run lint`, `npm test`, `npm run build`.
   - Then `specs/005-connection-drafts/quickstart.md` V1–V14, once, end to end. Compare with T001's baseline: no new failure.

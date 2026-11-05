@@ -1,7 +1,7 @@
 // An in-memory StorageLike for the tests of the local drafts; never imported by the app
 import type { StorageLike } from './types';
 
-/** A Map-backed fake of `window.localStorage`, in insertion order */
+/** A Map-backed fake of the browser's local storage, in insertion order */
 export class MemoryStorage implements StorageLike {
   readonly entries = new Map<string, string>();
 

@@ -1,4 +1,3 @@
-import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useReducer } from 'react';
 import { generatePath, useNavigate } from 'react-router';
 
@@ -29,9 +28,10 @@ import {
  * A stored draft's details (spec 005, S6, W7) in the wizard's frame: the header names it (the
  * page's h1) with the "Draft" badge and its form ID, or that it has none yet; the steps up to the
  * one it was saved in are reached and lead to its flow there. The draft isn't live, so it shows no
- * connection URL anywhere (FR-006): an info alert says so, then the documents and rules it holds,
- * incomplete parts included, and the draft card. "Delete draft" asks first and returns to the
- * overview; if the draft was published meanwhile, "Open the connection" loads the details again.
+ * connection URL anywhere (FR-006): an info note in KERN's alert style, which isn't a live
+ * region, says so, then the documents and rules it holds, incomplete parts included, and the
+ * draft card. "Delete draft" asks first and returns to the overview; if the draft was published
+ * meanwhile, "Open the connection" loads the details again.
  */
 export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const [state, dispatch] = useReducer(draftDeleteReducer, INITIAL_DRAFT_DELETE_STATE);
@@ -110,7 +110,14 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       }
     >
       <div className="mx-auto flex w-full max-w-900 flex-col gap-32">
-        <KernAlert variant="info" title={DETAIL_COPY.draftNotLive} className="w-full" />
+        {/* KERN's info alert, built from its classes: `KernAlert` is always role="alert", which
+            would interrupt the page's announcement with a note that never changes */}
+        <div className="kern-alert kern-alert--info w-full">
+          <div className="kern-alert__header">
+            <span aria-hidden="true" className="kern-icon kern-icon--info kern-icon--small" />
+            <p className="kern-title">{DETAIL_COPY.draftNotLive}</p>
+          </div>
+        </div>
         <DocumentsSummary documents={draft.documents} draft />
         <RulesSummary
           formConnectionId={id}

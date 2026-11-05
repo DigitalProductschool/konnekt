@@ -137,6 +137,10 @@ a 1455 px window.
     only the area below it scrolls; shorter or narrower windows scroll the head with the step.
     Where the column is centred (windows from 1197 px), the scrolling area keeps a scrollbar
     gutter on both sides, so that its column stays lined up with the footer bar's.
+    *Amended by spec 005 (connection drafts, T056): in windows under 480 px tall the whole
+    wizard frame scrolls with the window, header and bar included, because at 400 % zoom the
+    header and the wrapped bar left the step no room (WCAG 1.4.10). See
+    [spec 005](../005-connection-drafts/spec.md), FR-028.*
 - **Top bar ("App/Top bar", `141:959`)**: 64 px, white, 1 px neutral-100 bottom border (inside
   the 64 px), padding 0 32, gap 16. Logo (V2): a 16 px text-default square with radius 2 (V1:
   20 px, radius 4), 8 px gap, then the product name (16/24, 600); the logo sits at y = 19.5, the
@@ -165,7 +169,9 @@ a 1455 px window.
   e.g. `2131:4385`). It replaces V2's header on the wizard's 1120 px column (logo at x = 160).
   `TopBar` draws it with `title`; `WizardLayout` adds the 1120 px column below it and the
   footer bar. The title is "New connection", and from the documents step the form name. V2's
-  status badge and meta are left out of the wizard, since there are no drafts. The details
+  status badge and meta are left out of the wizard, since there are no drafts (*superseded by
+  spec 005 (connection drafts) for the create flow: the wizard shows the "Draft" badge, as in
+  spec 002's F28 nodes; see [spec 005](../005-connection-drafts/spec.md)*). The details
   screen shows them (§7): `TopBar`'s `badge` and `meta`, and there the title is the page's `h1`
   (`titleAsHeading`).
   - **Decision (2026-10-19, accessibility review; narrow screens)**: below `lg` (992 px), which
@@ -262,6 +268,9 @@ signing in, it opens only when a connection exists; otherwise sign-in opens the 
 screen (section 6). The logo always leads here.
 - Page title "Your connections" with the hint "Open a connection to copy its links, or connect
   another form." (S3: "Pick up your draft or connect another form."; there are no drafts).
+  *Superseded by spec 005 (connection drafts) for the create flow: S3's "Pick up your draft or
+  connect another form." shows while any stored or local draft exists, and the old hint
+  otherwise. See [spec 005](../005-connection-drafts/spec.md).*
 - "New connection" (primary, add icon, 203×48), 24 px below the title; then "Connections (n)"
   ("Text/Caption", 16/24 muted) and the rows, gap 8.
 - Row ("UseCase/Row", `141:1595`), 1040×76: white card, padding 12/12/12/16, gap 16; the name
@@ -283,6 +292,11 @@ screen (section 6). The logo always leads here.
 the connection with the one `POST` the API has, after the dialog "Is this all the data you
 need?". The API has no drafts, so "Save and exit" (S1/S2), the "Draft" badge and "Starts as a
 draft." are left out.
+
+*Superseded by spec 005 (connection drafts) for the create flow: drafts, "Save and exit" and the
+"Draft" badge are now built for new connections and stored drafts (spec 005's S0, S1). See
+[spec 005](../005-connection-drafts/spec.md).*
+
 - **Progress ("App/Progress" style B, `2006:8022`)**: "Connection", "Documents", "Publish";
   current = blue circle and 16/24 600 name, done = darkblue-050 circle with a 16 px tick and a
   blue name that leads back, todo = 1.5 px decorative-border circle and a muted name; 4 px bars,
@@ -477,7 +491,9 @@ links, the benefit wording and the logged-out alert.
 open before Phase 3):
 1. **Field catalog**: the full catalog with the design's wording; adding selects no field.
 2. **Wizard**: three steps; the first two stay in the browser, and "Publish" saves (no drafts,
-   no "Save and exit").
+   no "Save and exit"). *Superseded by spec 005 (connection drafts) for the create flow: drafts
+   and "Save and exit" are now built for new connections and stored drafts (spec 005's S0, S1).
+   See [spec 005](../005-connection-drafts/spec.md).*
 3. **Drafts, versions, publishing**: none in the API. "Published"/"live" stand for a saved
    connection; the active/deactivated badge comes with US4.
 4. **Create layout**: the wizard at `/form-connections/new`, opened by S3's "New connection".

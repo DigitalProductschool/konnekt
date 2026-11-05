@@ -6,7 +6,7 @@ task touches its subject.
 
 | Document | Read it when |
 |---|---|
-| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
+| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
@@ -119,6 +119,17 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   module with its `*.test.ts`, and are never stored, sent or logged: no `console.*` in
   `personas/`, its worker, `usePersonas` or `useTodayInGermany`. The evaluator and the checked
   trees reach the page only through `usePersonas`'s dynamic `import()`.
+
+## Drafts and local drafts (spec 005)
+
+- Drafts are never live: their URLs answer `409 unavailable` and they set nothing up with
+  EUDIPLO (ARCHITECTURE, "Form connections" and "serviceBW's connection URLs").
+- Publishing a draft goes through `create_revision()` with a `DraftGuard`, never a second save
+  path (ARCHITECTURE, "Form connections").
+- Only `hooks/useLocalDraftStore.ts` touches `localStorage`; `utils/localDrafts/` stays pure
+  and takes a `StorageLike` (ARCHITECTURE, "Local drafts (spec 005)").
+- Local drafts never hold personas, findings or citizen data, and nothing in
+  `utils/localDrafts/` or its hooks logs (ARCHITECTURE, "Local drafts (spec 005)").
 
 ## Code style
 

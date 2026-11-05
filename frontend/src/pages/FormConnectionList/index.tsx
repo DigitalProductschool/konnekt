@@ -73,9 +73,11 @@ export default function FormConnectionListPage() {
         title={LIST_COPY.title}
         hint={hintOf(state.status === 'loaded' ? state.formConnections : [], localDrafts.length)}
       />
+      {/* Empty, it leaves the flow (no gap) but stays rendered: `display: none` would take it out
+          of the accessibility tree, and its text would then appear with it, unannounced */}
       <p
         role="status"
-        className="text-kern-static-medium text-kern-layout-text-default empty:hidden"
+        className="text-kern-static-medium text-kern-layout-text-default empty:absolute"
       >
         {announced && draftSaved !== null && LIST_COPY.draftSaved(draftSaved)}
       </p>
