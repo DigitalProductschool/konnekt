@@ -247,6 +247,23 @@ def test_creating_a_draft_keeps_its_content_and_step(
     assert rows(data['id']) == (0, 0, 0)
 
 
+def without_description(body: dict[str, Any]) -> dict[str, Any]:
+    """`body` without its `description` key."""
+    return {key: value for key, value in body.items() if key != 'description'}
+
+
+def test_creating_a_draft_without_a_description_stores_an_empty_one(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 006, FR-002: the description is optional."""
+    response = signed_in_client.post(
+        f'{BASE}/drafts', json=without_description(draft_body())
+    )
+
+    assert response.status_code == 201, response.json()
+    assert response.json()['data']['description'] == ''
+
+
 def test_creating_a_draft_refuses_a_broken_structure(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
@@ -365,6 +382,21 @@ def test_saving_a_draft_replaces_its_content_and_raises_its_version(
     assert rows(draft_id) == (0, 0, 0)
 
 
+def test_saving_a_draft_without_a_description_stores_an_empty_one(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 006, FR-002: a save without the field clears the description."""
+    draft_id = create_draft(signed_in_client, description='FS-20417')
+
+    response = signed_in_client.put(
+        f'{BASE}/{draft_id}/draft', json=without_description(draft_body(version=1))
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['data']['description'] == ''
+    assert get(signed_in_client, draft_id)['description'] == ''
+
+
 INCOMPLETE_RULE = rule(1, None, None, '', name='')
 
 
@@ -372,7 +404,7 @@ INCOMPLETE_RULE = rule(1, None, None, '', name='')
 @pytest.mark.parametrize(
     'changes',
     [
-        pytest.param({'description': ''}, id='no form ID'),
+        pytest.param({'description': ''}, id='no description'),
         pytest.param({'documents': []}, id='no documents'),
         pytest.param(
             {'documents': [{'document_type': 'pid', 'fields': []}]},
@@ -562,8 +594,8 @@ def test_saving_accepts_incomplete_content(
         pytest.param({'name': ''}, 'Enter a name.', id='no name'),
         pytest.param(
             {'description': 'x' * 501},
-            'The form ID can have at most 500 characters.',
-            id='a form ID of 501 characters',
+            'The description can have at most 500 characters.',
+            id='a description of 501 characters',
         ),
     ],
 )
@@ -792,6 +824,23 @@ def test_publishing_a_draft_answers_the_published_connection(
     assert config_hash(fake_eudiplo.configs[revision.eudiplo_config_id]) == (
         revision.config_hash
     )
+
+
+def test_publishing_without_a_description_publishes_an_empty_one(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 006, US1-AS2: the description is optional when publishing too."""
+    draft_id = create_draft(signed_in_client)
+
+    response = signed_in_client.post(
+        f'{BASE}/{draft_id}/publish', json=without_description(publish_body(1))
+    )
+
+    assert response.status_code == 200, response.json()
+    data = response.json()['data']
+    assert data['status'] == 'published'
+    assert data['description'] == ''
+    assert trigger(signed_in_client, draft_id)['status'] == 'pending'
 
 
 def test_publishing_without_rules_gives_the_main_variant(
@@ -1108,7 +1157,13 @@ PARITY_CASES = [
     ),
     pytest.param({}, None, id='valid without rules'),
     pytest.param({'name': ''}, 'Enter a name.', id='missing name'),
-    pytest.param({'description': ''}, 'Enter the form ID.', id='missing form ID'),
+    # Spec 006, US1-AS2: a complete draft without a description is published
+    pytest.param({'description': ''}, None, id='no description'),
+    pytest.param(
+        {'description': 'x' * 501},
+        'The description can have at most 500 characters.',
+        id='a description of 501 characters',
+    ),
     pytest.param({'documents': []}, 'Add at least one document.', id='no documents'),
     pytest.param(
         {'documents': [{'document_type': 'pid', 'fields': []}]},

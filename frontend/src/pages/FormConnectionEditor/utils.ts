@@ -468,7 +468,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   }
 }
 
-/** Step 1: the name and the form ID, with the API's rules and messages. */
+/** Step 1: the name, required, and the optional description, with the API's rules and messages. */
 export function validateConnection(name: string, description: string): EditorErrors {
   const errors: EditorErrors = {};
   const trimmedName = name.trim();
@@ -477,11 +477,8 @@ export function validateConnection(name: string, description: string): EditorErr
   } else if (trimmedName.length > NAME_MAX_LENGTH) {
     errors.name = VALIDATION_MESSAGES.nameTooLong;
   }
-  const trimmedDescription = description.trim();
-  if (!trimmedDescription) {
-    errors.description = VALIDATION_MESSAGES.servicebwFormRequired;
-  } else if (trimmedDescription.length > DESCRIPTION_MAX_LENGTH) {
-    errors.description = VALIDATION_MESSAGES.servicebwFormTooLong;
+  if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
+    errors.description = VALIDATION_MESSAGES.descriptionTooLong;
   }
   return errors;
 }
@@ -942,10 +939,7 @@ export function startOfOrigin({
   };
 }
 
-/**
- * The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them,
- * so that a draft never needs a form ID.
- */
+/** The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them. */
 export function draftNameErrors(name: string): EditorErrors {
   const errors = validateConnection(name, '');
   return errors.name ? { name: errors.name } : {};

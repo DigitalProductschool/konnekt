@@ -116,7 +116,11 @@ def _create(client: TestClient, **changes: Any) -> dict[str, Any]:
     return data
 
 
-def _count(model: type[FormConnection] | type[FormConnectionRevision]) -> int:
+def _count(
+    model: type[FormConnection]
+    | type[FormConnectionRevision]
+    | type[FormConnectionRuleSet],
+) -> int:
     with SessionLocal() as db:
         return db.scalar(select(func.count()).select_from(model)) or 0
 
@@ -426,6 +430,44 @@ def test_texts_are_trimmed(
     assert data['description'] == 'FS-20417'
 
 
+# Spec 006, US1-AS1 and the edge case "Only spaces": the description is optional
+@pytest.mark.parametrize(
+    'description',
+    [
+        pytest.param(None, id='absent'),
+        pytest.param('', id='empty'),
+        pytest.param('   ', id='only spaces'),
+    ],
+)
+def test_creating_without_a_description_stores_an_empty_one(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    description: str | None,
+) -> None:
+    payload = {
+        key: value for key, value in NEW_FORM_CONNECTION.items() if key != 'description'
+    }
+    if description is not None:
+        payload['description'] = description
+
+    response = signed_in_client.post('/api/form-connections', json=payload)
+
+    assert response.status_code == 201, response.json()
+    data = response.json()['data']
+    assert data['description'] == ''
+    assert data['status'] == 'published'
+    reopened = signed_in_client.get(f'/api/form-connections/{data["id"]}')
+    assert reopened.json()['data']['description'] == ''
+
+
+def test_a_description_of_500_characters_is_accepted(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    data = _create(signed_in_client, description='x' * 500)
+
+    assert data['description'] == 'x' * 500
+
+
 PID = 'pid'
 FAMILY_NAME = ['family_name']
 
@@ -475,10 +517,9 @@ FAMILY_NAME = ['family_name']
         ({'name': ''}, 'Enter a name.'),
         ({'name': '   '}, 'Enter a name.'),
         ({'name': 'x' * 201}, 'The name can have at most 200 characters.'),
-        ({'description': ''}, 'Enter the form ID.'),
         (
             {'description': 'x' * 501},
-            'The form ID can have at most 500 characters.',
+            'The description can have at most 500 characters.',
         ),
     ],
 )
@@ -508,6 +549,22 @@ def test_the_first_problem_in_form_order_is_reported(
 
     assert response.status_code == 400
     assert response.json()['message'] == 'Enter a name.'
+
+
+def test_the_description_is_checked_after_the_name(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    response = signed_in_client.post(
+        '/api/form-connections',
+        json=NEW_FORM_CONNECTION | {'name': 'x' * 201, 'description': 'x' * 501},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'The name can have at most 200 characters.',
+    }
+    assert _count(FormConnection) == 0
 
 
 def test_a_payload_of_the_wrong_shape_is_refused(
@@ -720,6 +777,27 @@ def test_renaming_changes_only_what_is_sent_and_creates_no_revision(
     assert len(_revisions(created['id'])) == 1
     assert len(fake_eudiplo.calls) == calls_before
 
+    # Spec 006, US1-AS3 and FR-010: clearing the description is the same
+    calls = list(fake_eudiplo.calls)
+    rule_sets = _count(FormConnectionRuleSet)
+
+    cleared = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}', json={'description': None}
+    )
+
+    assert cleared.status_code == 200, cleared.json()
+    data = cleared.json()['data']
+    assert data['name'] == 'Renamed'
+    assert data['description'] == ''
+    assert data['documents'] == created['documents']
+    assert data['trigger_url'] == created['trigger_url']
+    assert data['pull_url'] == created['pull_url']
+    assert data['branches'] == created['branches']
+    assert data['rule_set_version'] == created['rule_set_version']
+    assert len(_revisions(created['id'])) == 1
+    assert _count(FormConnectionRuleSet) == rule_sets
+    assert fake_eudiplo.calls == calls
+
 
 def test_an_empty_update_changes_nothing(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
@@ -737,7 +815,14 @@ def test_an_empty_update_changes_nothing(
     [
         ({'name': ''}, 'Enter a name.'),
         ({'name': None}, 'Enter a name.'),
-        ({'description': '  '}, 'Enter the form ID.'),
+        (
+            {'description': 'x' * 501},
+            'The description can have at most 500 characters.',
+        ),
+        (
+            {'name': 'x' * 201, 'description': 'x' * 501},
+            'The name can have at most 200 characters.',
+        ),
     ],
 )
 def test_updating_applies_the_same_validation(
@@ -756,6 +841,40 @@ def test_updating_applies_the_same_validation(
     assert response.json() == {'error': 'Validation error', 'message': message}
     unchanged = signed_in_client.get(f'/api/form-connections/{created["id"]}')
     assert unchanged.json()['data'] == created
+
+
+# Spec 006, FR-002: null, '' and spaces clear the description
+@pytest.mark.parametrize(
+    'description', [None, '', '  '], ids=['null', 'empty', 'spaces']
+)
+def test_updating_clears_the_description(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    description: str | None,
+) -> None:
+    created = _create(signed_in_client)
+
+    response = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}', json={'description': description}
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['data']['description'] == ''
+    reopened = signed_in_client.get(f'/api/form-connections/{created["id"]}')
+    assert reopened.json()['data']['description'] == ''
+
+
+def test_an_update_without_the_description_leaves_it_unchanged(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client)
+
+    response = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}', json={'name': 'Renamed'}
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['data']['description'] == 'FS-20417'
 
 
 def test_a_deactivated_form_connection_can_be_updated(

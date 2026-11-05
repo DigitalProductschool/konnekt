@@ -163,7 +163,7 @@ export interface FormConnection {
 /** Without rules, the form connection gets a main branch "Standard" */
 export interface FormConnectionCreate {
   name: string;
-  description: string;
+  description?: string;
   documents: RequestedDocument[];
   rules?: RulesInput;
 }
@@ -218,7 +218,7 @@ export interface DraftRules {
 /** Stores a new draft. Empty texts and lists and incomplete rules are accepted */
 export interface DraftCreate {
   name: string;
-  description: string;
+  description?: string;
   documents: RequestedDocument[];
   rules: DraftRules;
   /** The step the draft is saved in */

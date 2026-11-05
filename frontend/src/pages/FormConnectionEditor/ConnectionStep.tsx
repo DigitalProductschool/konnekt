@@ -67,20 +67,19 @@ export default function ConnectionStep({
           <div className="w-full md:w-320 md:shrink-0">
             <TextField
               id={ELEMENT_IDS.description}
-              label={EDITOR_COPY.formIdLabel}
+              label={EDITOR_COPY.descriptionLabel}
+              optional
               labelAddon={
                 <InfoTooltip
-                  label={EDITOR_COPY.formIdInfoLabel}
-                  text={EDITOR_COPY.formIdInfo}
+                  label={EDITOR_COPY.descriptionInfoLabel}
+                  text={EDITOR_COPY.descriptionInfo}
                   arrow="end"
                 />
               }
-              placeholder={EDITOR_COPY.formIdPlaceholder}
+              placeholder={EDITOR_COPY.descriptionPlaceholder}
               value={description}
               maxLength={DESCRIPTION_MAX_LENGTH}
-              required
               autoComplete="off"
-              spellCheck={false}
               error={errors.description}
               onChange={(event) => onChangeDescription(event.target.value)}
             />

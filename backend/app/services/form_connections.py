@@ -2,8 +2,8 @@
 
 Creating a form connection stores revision 1 and creates its EUDIPLO presentation
 configuration; changing its documents stores the next revision with a configuration of
-its own (data-model.md, "Creating a revision"). Changing the name or the serviceBW
-form creates no revision. A form connection's branches and rules are saved with it, as
+its own (data-model.md, "Creating a revision"). Changing the name or the description
+creates no revision. A form connection's branches and rules are saved with it, as
 rule sets (spec 002, research R9): checked first, then saved in the transaction that
 makes the documents current, so documents and rules change together or not at all
 (FR-028). Without rules, a new form connection gets its main branch, "Standard" without
@@ -102,26 +102,18 @@ def clean_name(value: str | None) -> str:
     )
 
 
-def clean_description(value: str | None, *, complete: bool = True) -> str:
-    """Trim the description, free text of 1-500 characters.
+def clean_description(value: str | None) -> str:
+    """Trim the description, optional free text of 0-500 characters.
 
-    The UI calls it "Form ID", so the messages do too. With ``complete=False``
-    (saving a draft, spec 005 research R3), an empty form ID is allowed and stored
-    as ``''``; the length limit still applies.
+    A note for the team, such as the form's ID in their form management system;
+    nothing reads it. ``None``, empty and space-only values are stored as ``''``.
     """
-    if not complete:
-        text = (value or '').strip()
-        if len(text) > DESCRIPTION_MAX_LENGTH:
-            raise _validation_error(
-                f'The form ID can have at most {DESCRIPTION_MAX_LENGTH} characters.'
-            )
-        return text
-    return _required_text(
-        value,
-        DESCRIPTION_MAX_LENGTH,
-        'Enter the form ID.',
-        f'The form ID can have at most {DESCRIPTION_MAX_LENGTH} characters.',
-    )
+    text = (value or '').strip()
+    if len(text) > DESCRIPTION_MAX_LENGTH:
+        raise _validation_error(
+            f'The description can have at most {DESCRIPTION_MAX_LENGTH} characters.'
+        )
+    return text
 
 
 def clean_documents(
@@ -610,8 +602,8 @@ def create_revision(
     3. Lock the row again, make the revision current, unless a later one became
        current meanwhile, save the rules of `save` (spec 002, research R9), which
        are refused if another team member saved rules meanwhile and `save` doesn't
-       replace them (FR-028), and apply `changes` (the name or the serviceBW
-       form), in one commit.
+       replace them (FR-028), and apply `changes` (the name or the
+       description), in one commit.
 
     Requests already in progress keep their revision and rule set, and the URLs
     never change. If EUDIPLO fails, the revision is removed again and the

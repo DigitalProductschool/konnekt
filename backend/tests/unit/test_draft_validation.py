@@ -5,6 +5,7 @@ content is accepted, malformed content is refused with the create path's message
 Its identifiers come from its own counters (`number_draft`).
 """
 
+import inspect
 from collections.abc import Callable
 from typing import Any
 
@@ -109,9 +110,24 @@ def test_a_document_without_fields_is_accepted() -> None:
     assert documents == [RequestedDocument(document_type='pid', fields=[])]
 
 
-@pytest.mark.parametrize('value', ['', '   ', None])
-def test_an_empty_form_id_is_accepted(value: str | None) -> None:
-    assert clean_description(value, complete=False) == ''
+# The description is optional on every path (spec 006: FR-002, FR-003; R2)
+
+
+@pytest.mark.parametrize('value', [None, '', '   ', '  \n'])
+def test_an_empty_description_is_accepted_as_empty(value: str | None) -> None:
+    assert clean_description(value) == ''
+
+
+def test_a_description_is_trimmed() -> None:
+    assert clean_description(' FS-1 ') == 'FS-1'
+
+
+def test_a_description_of_500_characters_is_accepted() -> None:
+    assert clean_description('x' * 500) == 'x' * 500
+
+
+def test_the_description_check_has_no_complete_switch() -> None:
+    assert list(inspect.signature(clean_description).parameters) == ['value']
 
 
 @pytest.mark.parametrize(
@@ -425,10 +441,10 @@ def test_a_name_of_201_characters_is_refused() -> None:
     assert message == 'The name can have at most 200 characters.'
 
 
-def test_a_form_id_of_501_characters_is_refused() -> None:
-    message = _problem(lambda: clean_description('x' * 501, complete=False))
+def test_a_description_of_501_characters_is_refused() -> None:
+    message = _problem(lambda: clean_description('x' * 501))
 
-    assert message == 'The form ID can have at most 500 characters.'
+    assert message == 'The description can have at most 500 characters.'
 
 
 def test_a_long_message_on_an_unnamed_rule_names_its_identifier() -> None:

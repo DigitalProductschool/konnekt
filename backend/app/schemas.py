@@ -354,13 +354,17 @@ class FormConnectionCreate(BaseModel):
     """A new form connection. Without rules, it gets a main branch "Standard"."""
 
     name: str
-    description: str
+    # Optional, '' when there is none (spec 006, research R3)
+    description: str = ''
     documents: list[RequestedDocument]
     rules: RulesInput | None = None
 
 
 class FormConnectionUpdate(BaseModel):
-    """Changes to a form connection. An absent field stays unchanged."""
+    """Changes to a form connection. An absent field stays unchanged.
+
+    The description: absent leaves it unchanged; null or '' clears it.
+    """
 
     name: str | None = None
     description: str | None = None
@@ -417,8 +421,8 @@ class DraftCreate(BaseModel):
     """A new draft (spec 005). The service layer checks its structure (FR-003)."""
 
     name: str
-    # '' possible
-    description: str
+    # Optional, '' when there is none (spec 006, research R3)
+    description: str = ''
     documents: list[RequestedDocument]
     rules: DraftRules
     # The step the draft is saved in

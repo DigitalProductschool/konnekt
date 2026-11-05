@@ -18,11 +18,11 @@ export const EDITOR_COPY = {
   nameInfoLabel: 'About the form name',
   nameInfo:
     'Use the official name of the form so your team can find it easily. Applicants never see this name.',
-  formIdLabel: 'Form ID',
-  formIdPlaceholder: 'e.g. PK-30051',
-  formIdInfoLabel: 'About the form ID',
-  formIdInfo:
-    'Copy the ID from your form management system. It makes sure the verified data reaches the right form. Applicants never see it.',
+  descriptionLabel: 'Description',
+  descriptionPlaceholder: 'e.g. serviceBW form PK-30051',
+  descriptionInfoLabel: 'About the description',
+  descriptionInfo:
+    'A note for your team, such as the form’s ID in your form management system. Applicants never see it.',
   // V2 says "Starts as a draft." first; connections have no drafts
   formCardNote: 'Nothing goes live until you publish.',
   continue: 'Continue',
@@ -78,7 +78,6 @@ export const DRAFT_COPY = {
   tryAgain: 'Try again',
   draftBadge: 'Draft',
   untitled: 'Untitled connection',
-  noFormId: 'No form ID yet',
   draftSaved: (name: string) => `Draft ${name} saved.`,
   // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
   // whole document by its key, since the catalog has no label for it any more
@@ -171,8 +170,7 @@ export const DRAFT_PUBLISHED_ERROR = 'draft_published';
 export const VALIDATION_MESSAGES = {
   nameRequired: 'Enter a name.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
-  servicebwFormRequired: 'Enter the form ID.',
-  servicebwFormTooLong: `The form ID can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
+  descriptionTooLong: `The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
   noDocuments: 'Add at least one document.',
   noFields: (document: string) => `Select at least one field for '${document}'.`,
 };

@@ -137,7 +137,7 @@ def _clean_draft(
     Returns the name, the description, the documents and the checked rules.
     """
     name = form_connections.clean_name(data.name)
-    description = form_connections.clean_description(data.description, complete=False)
+    description = form_connections.clean_description(data.description)
     documents = form_connections.clean_documents(data.documents, complete=False)
     save = rules.clean_rules(
         RulesInput(

@@ -35,6 +35,7 @@ import {
   entryOf,
   findingLinesOf,
   firstBranchWithFindings,
+  firstInvalidElementId,
   initialEditorState,
   initialStatesFromDraft,
   initialStatesFromLocal,
@@ -54,6 +55,7 @@ import {
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
+  validateConnection,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -1270,6 +1272,33 @@ describe('startOfOrigin (data-model.md section 6)', () => {
   });
 });
 
+describe('validateConnection (FR-002, FR-003)', () => {
+  const NAME = 'Passenger transport licence';
+
+  it('takes an empty or space-only description', () => {
+    expect(validateConnection(NAME, '')).toEqual({});
+    expect(validateConnection(NAME, '   ')).toEqual({});
+  });
+
+  it('takes 500 characters and refuses 501', () => {
+    expect(validateConnection(NAME, 'a'.repeat(500))).toEqual({});
+    expect(validateConnection(NAME, ` ${'a'.repeat(500)} `)).toEqual({});
+    const errors = validateConnection(NAME, 'a'.repeat(501));
+    expect(errors).toEqual({ description: 'The description can have at most 500 characters.' });
+    expect(firstInvalidElementId(errors, [], [])).toBe('connection-description');
+  });
+
+  it('still gives the name’s error first', () => {
+    expect(validateConnection('', '')).toEqual({ name: 'Enter a name.' });
+    const errors = validateConnection('  ', 'a'.repeat(501));
+    expect(errors).toEqual({
+      name: 'Enter a name.',
+      description: 'The description can have at most 500 characters.',
+    });
+    expect(firstInvalidElementId(errors, [], [])).toBe('connection-name');
+  });
+});
+
 describe('draftNameErrors (R12)', () => {
   it('asks for a name', () => {
     expect(draftNameErrors('')).toEqual({ name: 'Enter a name.' });
@@ -1283,7 +1312,7 @@ describe('draftNameErrors (R12)', () => {
     });
   });
 
-  it('never asks for the form ID', () => {
+  it('never asks for a description', () => {
     expect(draftNameErrors('Passenger transport licence')).toEqual({});
   });
 });
