@@ -1,7 +1,10 @@
+import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type {
+  BranchInput,
+  FormConnectionDraft,
+} from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
-import type { DocumentField } from '../../types/document-types';
-import type { BranchInput, FormConnectionDraft } from '../../types/form-connections';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import {
   draftFlowReducer,

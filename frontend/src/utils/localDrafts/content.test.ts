@@ -1,8 +1,8 @@
+import type { GroupItem, RuleItem } from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { initialRulesState } from '../../pages/FormConnectionEditor/RulesStep/utils';
 import { initialEditorState, localContentOf } from '../../pages/FormConnectionEditor/utils';
-import type { GroupItem, RuleItem } from '../../types/form-connections';
 import { displayNameOf, emptyContent, sameContent } from './content';
 import type { LocalDraftContent } from './types';
 

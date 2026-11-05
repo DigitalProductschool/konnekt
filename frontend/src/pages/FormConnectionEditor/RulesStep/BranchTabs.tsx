@@ -1,7 +1,7 @@
+import { namesOf, tabFindingsOf } from '@connection-portal/rules/checks/findingMessages';
 import type { KeyboardEvent } from 'react';
 
 import InfoTooltip from '../../../components/InfoTooltip';
-import { namesOf, tabFindingsOf } from '../../../utils/rules/checks/findingMessages';
 import { ELEMENT_IDS } from '../constants';
 import BranchTab from './BranchTab';
 import { RULES_COPY } from './constants';

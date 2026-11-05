@@ -1,6 +1,7 @@
+import { bannerOf } from '@connection-portal/rules/checks/findingMessages';
+
 import expandLessIcon from '../../../assets/icons/expand-less-action-small.svg';
 import expandMoreIcon from '../../../assets/icons/expand-more-action-small.svg';
-import { bannerOf } from '../../../utils/rules/checks/findingMessages';
 import { BANNER_LOOKS, findingsListId, RULES_COPY } from './constants';
 import FindingsBannerLine from './FindingsBannerLine';
 import type { FindingsBannerProps } from './types';

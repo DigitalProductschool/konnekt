@@ -1,8 +1,5 @@
-import type { Ref } from 'react';
-
-import type { ToastContent } from '../../components/Toast/types';
-import type { ErrorNotice } from '../../types/api';
-import type { DocumentType } from '../../types/document-types';
+import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   Branch,
   BranchInput,
@@ -11,8 +8,11 @@ import type {
   FormConnectionDraft,
   RequestedDocumentView,
   RuleTreeItem,
-} from '../../types/form-connections';
-import type { RuleContext } from '../../utils/rules/types';
+} from '@connection-portal/api-types/form-connections';
+import type { RuleContext } from '@connection-portal/rules/types';
+import type { Ref } from 'react';
+
+import type { ToastContent } from '../../components/Toast/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
 export type Arrival = 'published' | 'saved' | null;

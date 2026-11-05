@@ -1,5 +1,6 @@
-import { RULES_MESSAGES } from '../../../utils/rules/constants';
-import { checkedInBranch, checksUnrequestedData } from '../../../utils/rules/validation';
+import { RULES_MESSAGES } from '@connection-portal/rules/constants';
+import { checkedInBranch, checksUnrequestedData } from '@connection-portal/rules/validation';
+
 import { ELEMENT_IDS } from '../constants';
 import GroupListItem from './GroupListItem';
 import RuleListItem from './RuleListItem';

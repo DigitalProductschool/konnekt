@@ -1,4 +1,5 @@
-import type { OptionSet } from '../../types/option-sets';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+
 import type { ValueChoice } from './types';
 
 /** A value set's options for the values menu; licence classes show code and description. */

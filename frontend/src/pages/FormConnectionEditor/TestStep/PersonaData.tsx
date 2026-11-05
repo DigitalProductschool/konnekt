@@ -1,4 +1,5 @@
-import { shownFieldsOf } from '../../../utils/rules/personas/values';
+import { shownFieldsOf } from '@connection-portal/rules/personas/values';
+
 import DocumentValues from './DocumentValues';
 import type { PersonaDataProps } from './types';
 import { documentGroupsOf } from './utils';

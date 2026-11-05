@@ -1,7 +1,3 @@
-import type { KeyboardEvent, ReactNode } from 'react';
-
-import type { ShownFinding } from '../../../components/FindingNote/types';
-import type { ToastContent } from '../../../components/Toast/types';
 import type {
   BranchInput,
   Combinator,
@@ -9,9 +5,8 @@ import type {
   NumberingBase,
   RuleItem,
   RuleTreeItem,
-} from '../../../types/form-connections';
-import type { OptionSet } from '../../../types/option-sets';
-import type { PopupPlacement } from '../../../utils/popupPlacement';
+} from '@connection-portal/api-types/form-connections';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import type {
   BannerPart,
   BranchCheck,
@@ -19,8 +14,13 @@ import type {
   ItemNames,
   ItemReference,
   TabFindings,
-} from '../../../utils/rules/checks/types';
-import type { RuleContext, RuleDocument, RulesProblem } from '../../../utils/rules/types';
+} from '@connection-portal/rules/checks/types';
+import type { RuleContext, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
+import type { KeyboardEvent, ReactNode } from 'react';
+
+import type { ShownFinding } from '../../../components/FindingNote/types';
+import type { ToastContent } from '../../../components/Toast/types';
+import type { PopupPlacement } from '../../../utils/popupPlacement';
 
 /** A branch in the rules step. `key` stays the same while the branch has no id yet */
 export interface RulesBranch extends BranchInput {

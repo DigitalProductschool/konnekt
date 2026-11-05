@@ -1,9 +1,9 @@
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { GenerationRun, Persona, PersonaField } from '@connection-portal/rules/personas/types';
+import { ageOn } from '@connection-portal/rules/personas/values';
+import { mainBranch } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
-import type { OptionSet } from '../../../types/option-sets';
-import type { GenerationRun, Persona, PersonaField } from '../../../utils/rules/personas/types';
-import { ageOn } from '../../../utils/rules/personas/values';
-import { mainBranch } from '../../../utils/rules/testData';
 import type { RulesBranch } from '../RulesStep/types';
 import {
   ageDraftKey,

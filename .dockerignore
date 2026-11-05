@@ -19,8 +19,9 @@ htmlcov/
 venv/
 env/
 
-# Node
+# Node (the workspace root's and every package's)
 node_modules/
+**/node_modules/
 frontend/dist/
 npm-debug.log*
 

@@ -1,18 +1,22 @@
-import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
-
-import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
+import type {
+  Condition,
+  RuleItem,
+  RuleTarget,
+} from '@connection-portal/api-types/form-connections';
 import {
   changeOperator,
   conditionProblem,
   operatorDefinition,
   optionsOf,
   resolveTarget,
-} from '../../../../utils/rules/conditions';
-import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
-import { todayInGermany } from '../../../../utils/rules/dates';
-import { ruleFieldLabel } from '../../../../utils/rules/statements';
-import type { RuleContext } from '../../../../utils/rules/types';
-import { ruleProblem } from '../../../../utils/rules/validation';
+} from '@connection-portal/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+import { todayInGermany } from '@connection-portal/rules/dates';
+import { ruleFieldLabel } from '@connection-portal/rules/statements';
+import type { RuleContext } from '@connection-portal/rules/types';
+import { ruleProblem } from '@connection-portal/rules/validation';
+import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
+
 import ChoicePicker from './ChoicePicker';
 import ConditionFields from './ConditionFields';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';

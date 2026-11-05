@@ -1,6 +1,5 @@
+import type { TabFindings } from '@connection-portal/rules/checks/types';
 import type { ReactNode } from 'react';
-
-import type { TabFindings } from '../../utils/rules/checks/types';
 
 export interface BranchNameProps {
   /** The branch's name, as written */

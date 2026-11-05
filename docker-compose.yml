@@ -51,6 +51,9 @@ services:
     volumes:
       - ./frontend/src:/app/frontend/src
       - ./frontend/index.html:/app/frontend/index.html
+      - ./api-types:/app/api-types
+      - ./rules:/app/rules
+      - ./tsconfig.base.json:/app/tsconfig.base.json
     depends_on:
       - backend
 

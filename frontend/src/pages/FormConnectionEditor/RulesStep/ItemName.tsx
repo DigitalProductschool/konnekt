@@ -1,6 +1,6 @@
+import { nameProblem } from '@connection-portal/rules/validation';
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
 
-import { nameProblem } from '../../../utils/rules/validation';
 import { NAME_SIZES, RULES_COPY } from './constants';
 import type { ItemNameProps } from './types';
 import { renameReducer } from './utils';

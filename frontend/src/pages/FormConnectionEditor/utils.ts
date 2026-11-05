@@ -1,6 +1,5 @@
-import { ApiError, errorNoticeOf } from '../../api/client';
-import type { ErrorNotice } from '../../types/api';
-import type { DocumentType } from '../../types/document-types';
+import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
   DraftCreate,
@@ -11,16 +10,18 @@ import type {
   RequestedDocument,
   RequestedDocumentView,
   RuleItem,
-} from '../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
+import { sameValue } from '@connection-portal/rules/branches';
+import { dialogLineOf } from '@connection-portal/rules/checks/findingMessages';
+import type { BranchCheck, FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
+import { countRules, flattenItems, hasAnyRule } from '@connection-portal/rules/tree';
+import type { RulesProblem } from '@connection-portal/rules/types';
+import { rulesCheckingData } from '@connection-portal/rules/validation';
+
+import { ApiError, errorNoticeOf } from '../../api/client';
 import { emptyContent } from '../../utils/localDrafts/content';
 import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import { sameValue } from '../../utils/rules/branches';
-import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
-import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
-import type { RulesProblem } from '../../utils/rules/types';
-import { rulesCheckingData } from '../../utils/rules/validation';
 import {
   DESCRIPTION_MAX_LENGTH,
   DRAFT_CHANGED_ERROR,

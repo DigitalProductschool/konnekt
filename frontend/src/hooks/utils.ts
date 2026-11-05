@@ -1,8 +1,6 @@
-import type { EditorStep } from '../types/form-connections';
-import { sameContent } from '../utils/localDrafts/content';
-import type { LocalDraftContent } from '../utils/localDrafts/types';
-import { namesOf } from '../utils/rules/checks/findingMessages';
-import type { LiteralContext } from '../utils/rules/checks/literals';
+import type { EditorStep } from '@connection-portal/api-types/form-connections';
+import { namesOf } from '@connection-portal/rules/checks/findingMessages';
+import type { LiteralContext } from '@connection-portal/rules/checks/literals';
 import type {
   BranchCheck,
   ChangeCause,
@@ -10,7 +8,10 @@ import type {
   RunAction,
   RunBranch,
   WorkerMessage,
-} from '../utils/rules/checks/types';
+} from '@connection-portal/rules/checks/types';
+
+import { sameContent } from '../utils/localDrafts/content';
+import type { LocalDraftContent } from '../utils/localDrafts/types';
 import type {
   CheckableBranch,
   CheckedTreeModule,

@@ -11,10 +11,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
-    "prepare": "cd ../backend && uv run pre-commit install || exit 0"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@connection-portal/api-types": "*",
+    "@connection-portal/rules": "*",
     "@digitalservicebund/kern-ux-tailwind-theme": "4.0.0",
     "@kern-ux-annex/kern-react-kit": "2.40.0",
     "@kern-ux/native": "2.8.2",

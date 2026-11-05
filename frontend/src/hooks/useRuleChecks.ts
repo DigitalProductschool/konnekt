@@ -3,6 +3,19 @@
 // `checks/runState.ts`; this hook does what touches the browser: the dynamic import of the checked
 // tree, the clock, today in Germany, the worker, its messages and the watchdog. Nothing about the
 // findings is stored, sent or logged (FR-018 to FR-020)
+import type { LiteralContext } from '@connection-portal/rules/checks/literals';
+import {
+  checkMessageOf,
+  initialRunState,
+  runStateReducer,
+  watchdogAt,
+} from '@connection-portal/rules/checks/runState';
+import type {
+  CheckMessage,
+  RuleChecks,
+  RunAction,
+  WorkerMessage,
+} from '@connection-portal/rules/checks/types';
 import {
   type Dispatch,
   type RefObject,
@@ -13,19 +26,6 @@ import {
   useState,
 } from 'react';
 
-import type { LiteralContext } from '../utils/rules/checks/literals';
-import {
-  checkMessageOf,
-  initialRunState,
-  runStateReducer,
-  watchdogAt,
-} from '../utils/rules/checks/runState';
-import type {
-  CheckMessage,
-  RuleChecks,
-  RunAction,
-  WorkerMessage,
-} from '../utils/rules/checks/types';
 import type { ActiveRun, CheckableBranch, CheckedTreeModule, SentChange } from './types';
 import { useTodayInGermany } from './useTodayInGermany';
 import { actionOf, byBranchFor, causeOf, runBranchesOf, sameRunBranches } from './utils';
@@ -48,7 +48,7 @@ function useCheckedTree(ready: boolean): CheckedTreeModule | null {
       return;
     }
     let ignore = false;
-    import('../utils/rules/checks/checkedTree').then(
+    import('@connection-portal/rules/checks/checkedTree').then(
       ({ buildCheckedBranch }) => {
         if (!ignore) setCheckedTree({ buildCheckedBranch });
       },
@@ -76,7 +76,7 @@ function startRun(
   const { runId } = message;
   let worker: Worker;
   try {
-    worker = new Worker(new URL('../utils/rules/checks/worker.ts', import.meta.url), {
+    worker = new Worker(new URL('../workers/checks.ts', import.meta.url), {
       type: 'module',
     });
   } catch {

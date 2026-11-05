@@ -39,7 +39,7 @@ template.
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
 | `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
-| `vitest` | frontend, `devDependencies` | Runs the frontend's unit tests (`npm test`). Some pure logic runs only in the browser, such as the rules' propagation between the variants of a form connection, so its tests in Node are a quality gate (constitution v1.1.0). Configured in the `test` block of `vite.config.ts`, in the `node` environment, without a DOM. Version 4, because Vitest 5 needs Node 22.12, and the frontend still supports Node 20 |
+| `vitest` | frontend and rules, `devDependencies` | Runs the unit tests of `frontend/` and `rules/` (`npm test`). Some pure logic runs only in the browser, such as the rules' propagation between the variants of a form connection, so its tests in Node are a quality gate (constitution v1.1.0). Configured in the `test` block of `frontend/vite.config.ts` and in `rules/vitest.config.ts`, in the `node` environment, without a DOM. Version 4, because Vitest 5 needs Node 22.12, and the frontend still supports Node 20 |
 
 The three KERN packages and `react-router` are pinned to exact versions; for KERN, a version
 mismatch between the packages is the most likely cause of visual breakage.
@@ -47,7 +47,17 @@ mismatch between the packages is the most likely cause of visual breakage.
 ## Project Structure
 
 ```
+├── package.json           # npm workspace root (api-types, rules, frontend): scripts over the packages
+├── package-lock.json      # One lockfile for every Node package
+├── eslint.config.mjs      # ESLint 9 flat config, one block per package
+├── tsconfig.base.json     # Compiler options every package extends
+├── .prettierrc            # Prettier settings (frontend/.prettierrc adds the Tailwind plugin)
+├── api-types/             # @connection-portal/api-types: TypeScript mirrors of the backend's schemas
+│   └── src/
+├── rules/                 # @connection-portal/rules: the pure rules logic, rule checks and test
+│   └── src/               # personas, with their tests (vitest.config.ts)
 ├── frontend/              # React SPA (Vite + TypeScript): the DO.IT management UI
+│   └── src/workers/       # The browser Worker entries of the rule checks and test personas
 ├── backend/               # FastAPI API (Python + SQLAlchemy)
 │   ├── app/              # Application source code
 │   │   ├── routers/      # API route handlers, one module per resource
@@ -141,11 +151,10 @@ uv run python -m app.cli create-user <username>
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 ```
 
-5. In another terminal, set up frontend
+5. In another terminal, set up frontend, from the repository root
 ```bash
-cd frontend
 npm install
-npm run dev
+npm run dev -w frontend
 ```
 
 #### Option 3: Full Local Development (No Docker)
@@ -234,12 +243,12 @@ neither EUDIPLO credentials nor a wallet.
 
 The Rules step checks the rules for conflicts and redundancies in the browser (spec 003), and
 judges each condition as the backend's evaluator (`app/services/evaluation.py`) does. Two
-generated files keep the checks in step with it: `frontend/src/utils/rules/checks/caseFolding.ts`,
-Python's `str.casefold()` table, and `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json`,
+generated files keep the checks in step with it: `rules/src/checks/caseFolding.ts`,
+Python's `str.casefold()` table, and `rules/src/checks/fixtures/evaluator-vectors.json`,
 Python's results for the evaluator's text normalisation, date arithmetic and rule outcomes, which
-the frontend's Vitest tests replay. Its `rule_outcomes` vectors pin single rules, and its
+the `rules/` package's Vitest tests replay. Its `rule_outcomes` vectors pin single rules, and its
 `branch_evaluations` vectors (spec 004) whole branches, with their groups and inherited items, for
-the browser's evaluator `frontend/src/utils/rules/evaluation.ts`, which the test step uses to
+the browser's evaluator `rules/src/evaluation.ts`, which the test step uses to
 evaluate its sample applicants. `scripts/export_check_fixtures` writes both from the current
 interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
 
@@ -257,28 +266,36 @@ write and exits with 1. The backend tests run the same check
 (`tests/unit/test_check_fixtures.py`), so stale fixtures fail `uv run pytest`. The script adds no
 dependency and no environment variable.
 
-### Frontend (React + Vite)
+### Frontend and packages (React + Vite, npm workspace)
+
+`api-types/`, `rules/` and `frontend/` are the packages of one npm workspace. From the
+repository root, each script runs in every package that has it:
 
 ```bash
-cd frontend
-
-# Install dependencies
+# Install the dependencies of every package (one lockfile, package-lock.json)
 npm install
 
-# Run development server
-npm run dev
+# Run the frontend's development server
+npm run dev -w frontend
 
-# Build for production
+# Type-check api-types and rules, then build the frontend for production
 npm run build
 
-# Run the unit tests once, without watching
+# Run the unit tests once, without watching (rules and frontend)
 npm test
 
 # Linting/formatting
 npm run lint          # ESLint
-npm run lint:fix      # ESLint with --fix
 npm run format        # Prettier, writes changes
 npm run format:check  # Prettier, reports without writing
+```
+
+For one package, name it with `-w` (or run the script inside its directory):
+
+```bash
+npm test -w rules                 # the rules' unit tests alone
+npm run typecheck -w api-types    # tsc --noEmit
+npm run lint:fix -w frontend      # ESLint with --fix
 ```
 
 ### Docker
@@ -312,24 +329,27 @@ Linting and code formatting is set up for both parts of the stack. The tools are
 - **Backend** — [Ruff](https://docs.astral.sh/ruff/) both lints (rule sets `E`, `F`, `I`
   — pycodestyle, pyflakes, isort) and formats (88 columns, single quotes). mypy handles
   type checking. All three are configured in `backend/pyproject.toml`.
-- **Frontend** — ESLint 9 (flat config, `frontend/eslint.config.mjs`) handles code rules:
-  React, React Hooks, react-refresh, and `simple-import-sort` for import ordering.
-  Prettier (`frontend/.prettierrc`) handles formatting: single quotes, semicolons, 100
-  columns, 2-space indent, ES5 trailing commas, and Tailwind class sorting via
-  `prettier-plugin-tailwindcss`. Vitest runs the unit tests, the `*.test.ts` files next to the
-  modules they test, in Node; `npm run build` type-checks them with the rest of `src/`.
+- **Frontend and packages** — ESLint 9 (flat config, `eslint.config.mjs` at the root, one
+  block per package) handles code rules: React, React Hooks and react-refresh in `frontend/`,
+  and `simple-import-sort` for import ordering everywhere. Prettier (`.prettierrc` at the root,
+  `frontend/.prettierrc` in `frontend/`) handles formatting: single quotes, semicolons, 100
+  columns, 2-space indent, ES5 trailing commas, and in `frontend/` Tailwind class sorting via
+  `prettier-plugin-tailwindcss`. Vitest runs the unit tests of `rules/` and `frontend/`, the
+  `*.test.ts` files next to the modules they test, in Node; `npm run build` type-checks them
+  with the rest of each package's `src/`.
 
 ### Git hooks (pre-commit)
 
 The hooks in `.pre-commit-config.yaml` run on every `git commit`:
 
 - `ruff check --fix` and `ruff format` on Python files
-- `prettier --write` and `eslint --fix` on `frontend/` files
+- `prettier --write` and `eslint --fix` on `api-types/`, `rules/` and `frontend/` files, run
+  from the repository root
 - trailing whitespace, end-of-file newline, merge conflict markers, large files
 
-Installation is automatic — `npm install` in `frontend/` runs a `prepare` script that
-calls `uv run pre-commit install` in `backend/`, so the frontend install is what wires up
-the hooks for the whole repo. It needs `uv` on your PATH; if `uv` was missing at install
+Installation is automatic — `npm install` at the repository root runs a `prepare` script
+that calls `uv run pre-commit install` in `backend/`, so the workspace install is what wires
+up the hooks for the whole repo. It needs `uv` on your PATH; if `uv` was missing at install
 time the script exits quietly and you must install the hooks yourself:
 
 ```bash
@@ -357,8 +377,7 @@ uv run pre-commit autoupdate
 
    ```json
    {
-     "eslint.workingDirectories": ["frontend"],
-     "prettier.prettierPath": "frontend/node_modules/prettier",
+     "prettier.prettierPath": "node_modules/prettier",
      "python.defaultInterpreterPath": "backend/.venv/bin/python",
      "editor.codeActionsOnSave": {
        "source.fixAll.eslint": "explicit"
@@ -398,11 +417,9 @@ uv run pre-commit autoupdate
    }
    ```
 
-Two things to watch for, both caused by this repository having no root `package.json`:
+ESLint and Prettier find their configuration at the repository root, the workspace root.
+One thing to watch for:
 
-- `eslint.workingDirectories` is required. The flat config lives in `frontend/`, so
-  without it ESLint reports "could not find config file" for every file when you open the
-  workspace at the repository root.
 - Select `backend/.venv` as your Python interpreter (**Python: Select Interpreter** in the
   command palette). The Ruff extension resolves `pyproject.toml` from the interpreter's
   project, and picks up the wrong defaults without it.
@@ -412,8 +429,8 @@ Two things to watch for, both caused by this repository having no root `package.
 Open settings with `⌘,` on macOS or `Ctrl+Alt+S` on Windows/Linux.
 
 1. **Prettier** — *Languages & Frameworks > JavaScript > Prettier*. Set **Prettier
-   package** to `frontend/node_modules/prettier`, set **Run for files** to
-   `frontend/**/*.{js,mjs,cjs,ts,tsx,jsx,css,json,md}`, and tick **On save**.
+   package** to `node_modules/prettier`, set **Run for files** to
+   `{api-types,rules,frontend}/**/*.{js,mjs,cjs,ts,tsx,jsx,css,json,md}`, and tick **On save**.
 2. **ESLint** — *Languages & Frameworks > JavaScript > Code Quality Tools > ESLint*.
    Choose **Automatic ESLint configuration** and tick **Run eslint --fix on save**.
 3. **Ruff** — install the *Ruff* plugin from *Plugins > Marketplace*, then open

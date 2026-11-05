@@ -1,5 +1,5 @@
 // The test step's fixed copy (specs/004-rule-test-personas, contracts/ui-screens.md "Copy";
-// design-notes.md §3–§9). Texts that depend on data are built in `utils/rules/personas/messages.ts`.
+// design-notes.md §3–§9). Texts that depend on data are built in `rules/src/personas/messages.ts`.
 // Apostrophes are typographic (’)
 
 export const TEST_STEP_COPY = {

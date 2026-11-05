@@ -1,8 +1,8 @@
+import { shownItems } from '@connection-portal/rules/tree';
 import { useId } from 'react';
 
 import BranchName from '../../components/BranchName';
 import Connector from '../../components/Connector';
-import { shownItems } from '../../utils/rules/tree';
 import { DETAIL_COPY } from './constants';
 import SummaryItem from './SummaryItem';
 import type { SummaryBranchProps } from './types';

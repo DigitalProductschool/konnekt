@@ -1,11 +1,15 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type {
+  EditorStep,
+  FormConnection,
+  RequestedDocument,
+} from '@connection-portal/api-types/form-connections';
+import type { FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
 import type { Ref } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
-import type { ErrorNotice } from '../../types/api';
-import type { DocumentType } from '../../types/document-types';
-import type { EditorStep, FormConnection, RequestedDocument } from '../../types/form-connections';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import type { FindingTone, RuleChecks } from '../../utils/rules/checks/types';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 
 /**

@@ -1,6 +1,7 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
+import type { FindingTone } from '@connection-portal/rules/checks/types';
+
 import type { PopupPlacement } from '../../../utils/popupPlacement';
-import type { FindingTone } from '../../../utils/rules/checks/types';
 import type { ItemNameSize } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */

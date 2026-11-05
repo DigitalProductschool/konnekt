@@ -1,10 +1,9 @@
-import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
 import type {
   FormConnection,
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '../../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
 import {
   addRuleToBranch,
   changeItem,
@@ -22,12 +21,20 @@ import {
   restoreItem,
   setBranchOperator,
   ungroupInBranch,
-} from '../../../utils/rules/branches';
-import { kindTextOf } from '../../../utils/rules/checks/findingMessages';
-import type { FindingsBanner } from '../../../utils/rules/checks/types';
-import { MAX_BRANCHES, RULES_MESSAGES } from '../../../utils/rules/constants';
-import { deleteItem, findItem, flattenItems, newRule, numberOfId } from '../../../utils/rules/tree';
-import { variantNameProblem } from '../../../utils/rules/validation';
+} from '@connection-portal/rules/branches';
+import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
+import type { FindingsBanner } from '@connection-portal/rules/checks/types';
+import { MAX_BRANCHES, RULES_MESSAGES } from '@connection-portal/rules/constants';
+import {
+  deleteItem,
+  findItem,
+  flattenItems,
+  newRule,
+  numberOfId,
+} from '@connection-portal/rules/tree';
+import { variantNameProblem } from '@connection-portal/rules/validation';
+
+import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
 import { ELEMENT_IDS } from '../constants';
 import { MAIN_BRANCH_KEY, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
 import type {

@@ -1,4 +1,5 @@
-import type { Combinator } from '../../types/form-connections';
+import type { Combinator } from '@connection-portal/api-types/form-connections';
+
 import type { PopupPlacement } from '../../utils/popupPlacement';
 
 // Figma "Rules/Connector": the pill's label

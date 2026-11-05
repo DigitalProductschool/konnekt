@@ -1,3 +1,7 @@
+import { namesOf, noteOf } from '@connection-portal/rules/checks/findingMessages';
+import { groupIdOf, ruleIdOf, shownItems } from '@connection-portal/rules/tree';
+import type { RuleContext } from '@connection-portal/rules/types';
+import { unrequestedRules } from '@connection-portal/rules/validation';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -5,10 +9,6 @@ import { flushSync } from 'react-dom';
 import Connector from '../../../components/Connector';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import type { ShownFinding } from '../../../components/FindingNote/types';
-import { namesOf, noteOf } from '../../../utils/rules/checks/findingMessages';
-import { groupIdOf, ruleIdOf, shownItems } from '../../../utils/rules/tree';
-import type { RuleContext } from '../../../utils/rules/types';
-import { unrequestedRules } from '../../../utils/rules/validation';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';

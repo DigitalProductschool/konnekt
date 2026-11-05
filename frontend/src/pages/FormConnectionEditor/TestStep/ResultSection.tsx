@@ -1,5 +1,6 @@
-import { noticeText } from '../../../utils/rules/checks/findingMessages';
-import { noRulesNoteOf } from '../../../utils/rules/personas/messages';
+import { noticeText } from '@connection-portal/rules/checks/findingMessages';
+import { noRulesNoteOf } from '@connection-portal/rules/personas/messages';
+
 import ResultTable from './ResultTable';
 import type { ResultSectionProps } from './types';
 

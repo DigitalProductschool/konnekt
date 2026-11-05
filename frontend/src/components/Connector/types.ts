@@ -1,4 +1,5 @@
-import type { Combinator, Mark } from '../../types/form-connections';
+import type { Combinator, Mark } from '@connection-portal/api-types/form-connections';
+
 import type { PopupPlacement } from '../../utils/popupPlacement';
 
 export interface ConnectorProps {

@@ -1,4 +1,8 @@
-import { editedHiddenText, failingValueHiddenText } from '../../../utils/rules/personas/messages';
+import {
+  editedHiddenText,
+  failingValueHiddenText,
+} from '@connection-portal/rules/personas/messages';
+
 import { TEST_STEP_COPY } from './constants';
 import type { ValueRowProps } from './types';
 

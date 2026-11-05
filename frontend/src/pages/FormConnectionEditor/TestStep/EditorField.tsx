@@ -1,4 +1,5 @@
-import { LICENCE_CLASSES_SET } from '../../../utils/rules/constants';
+import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+
 import ChoiceField from './ChoiceField';
 import DateOfBirthField from './DateOfBirthField';
 import type { EditorFieldProps } from './types';

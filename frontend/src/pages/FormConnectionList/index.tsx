@@ -1,3 +1,4 @@
+import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -10,7 +11,6 @@ import { LIVE_REGION_DELAY_MS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useLocalDrafts } from '../../hooks/useLocalDrafts';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import type { OverviewLocationState } from '../../types/routing';
 import { INITIAL_LIST_STATE, LIST_COPY } from './constants';
 import EmptyConnections from './EmptyConnections';
 import FormConnectionRow from './FormConnectionRow';

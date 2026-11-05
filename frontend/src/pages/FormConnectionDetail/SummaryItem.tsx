@@ -1,6 +1,7 @@
+import { shownItems } from '@connection-portal/rules/tree';
+
 import GroupFrame from '../../components/GroupFrame';
 import RuleRow from '../../components/RuleRow';
-import { shownItems } from '../../utils/rules/tree';
 import type { SummaryItemProps } from './types';
 
 /**

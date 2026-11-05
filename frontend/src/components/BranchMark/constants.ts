@@ -1,4 +1,4 @@
-import type { Mark } from '../../types/form-connections';
+import type { Mark } from '@connection-portal/api-types/form-connections';
 
 // Figma "Rules/Variant status" (U17 6134:9009, 6134:9064; U18 6163:5856): the mark's text, so
 // that it never rests on colour alone (FR-023)

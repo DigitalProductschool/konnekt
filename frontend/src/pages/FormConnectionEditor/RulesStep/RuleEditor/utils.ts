@@ -1,8 +1,10 @@
-import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
-import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
-import type { DocumentField } from '../../../../types/document-types';
-import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
-import type { OptionSet } from '../../../../types/option-sets';
+import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type {
+  Condition,
+  RuleItem,
+  RuleTarget,
+} from '@connection-portal/api-types/form-connections';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import {
   conditionProblem,
   operatorDefinition,
@@ -10,19 +12,22 @@ import {
   optionsOf,
   resolveTarget,
   suffixOf,
-} from '../../../../utils/rules/conditions';
-import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
-import { boundaryOf, boundaryPhrase, formatDate } from '../../../../utils/rules/dates';
-import { lowerFirst, proposedMessage } from '../../../../utils/rules/messages';
-import { ruleFieldLabel } from '../../../../utils/rules/statements';
+} from '@connection-portal/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+import { boundaryOf, boundaryPhrase, formatDate } from '@connection-portal/rules/dates';
+import { lowerFirst, proposedMessage } from '@connection-portal/rules/messages';
+import { ruleFieldLabel } from '@connection-portal/rules/statements';
 import type {
   ConditionKind,
   OperatorDefinition,
   ResolvedTarget,
   RuleContext,
   RuleDocument,
-} from '../../../../utils/rules/types';
-import { ruleProblem } from '../../../../utils/rules/validation';
+} from '@connection-portal/rules/types';
+import { ruleProblem } from '@connection-portal/rules/validation';
+
+import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
+import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
 import {
   CHECK_SYMBOLS,
   INITIAL_RULE_EDITOR_STATE,

@@ -1,7 +1,7 @@
+import type { Mark, RuleItem } from '@connection-portal/api-types/form-connections';
+import type { PredicateParts, RuleContext, StatementParts } from '@connection-portal/rules/types';
 import type { ReactNode } from 'react';
 
-import type { Mark, RuleItem } from '../../types/form-connections';
-import type { PredicateParts, RuleContext, StatementParts } from '../../utils/rules/types';
 import type { ShownFinding } from '../FindingNote/types';
 
 export interface RuleRowProps {

@@ -1,4 +1,5 @@
-import { tabLabelOf } from '../../utils/rules/checks/findingMessages';
+import { tabLabelOf } from '@connection-portal/rules/checks/findingMessages';
+
 import InfoTooltip from '../InfoTooltip';
 import { BRANCH_NAME_COPY, FINDINGS_ICONS } from './constants';
 import FindingsSegment from './FindingsSegment';

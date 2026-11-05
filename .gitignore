@@ -1,5 +1,6 @@
-# Dependencies
-/frontend/node_modules/
+# Dependencies: the workspace's, and a package's own (Vitest keeps its cache in rules/node_modules/)
+/node_modules/
+/*/node_modules/
 
 # Build outputs
 dist/

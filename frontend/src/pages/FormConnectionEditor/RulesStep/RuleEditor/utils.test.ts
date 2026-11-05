@@ -1,8 +1,8 @@
+import { resolveTarget } from '@connection-portal/rules/conditions';
+import { CONTEXT, MDL, PID, target } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { matchesSearch } from '../../../../components/ValuesPicker/utils';
-import { resolveTarget } from '../../../../utils/rules/conditions';
-import { CONTEXT, MDL, PID, target } from '../../../../utils/rules/testData';
 import type { MissingControlInput } from './types';
 import { checkSections, dataSections, hintsOf, missingControl } from './utils';
 

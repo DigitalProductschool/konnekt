@@ -1,18 +1,18 @@
-import { describe, expect, it } from 'vitest';
-
-import { ApiError, handleResponse } from '../../api/client';
-import type { DocumentField, DocumentType } from '../../types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   Branch,
   BranchInput,
   FormConnection,
   FormConnectionDraft,
-} from '../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
+import type { BranchCheck, BranchNotice, ItemFinding } from '@connection-portal/rules/checks/types';
+import { mainBranch, US1_RULES } from '@connection-portal/rules/testData';
+import { describe, expect, it } from 'vitest';
+
+import { ApiError, handleResponse } from '../../api/client';
 import { emptyContent, sameContent } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import type { BranchCheck, BranchNotice, ItemFinding } from '../../utils/rules/checks/types';
-import { mainBranch, US1_RULES } from '../../utils/rules/testData';
 import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';

@@ -1,8 +1,8 @@
+import type { LoginRequest } from '@connection-portal/api-types/auth';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 import { getMe, login, logout } from '../../api/auth';
 import { CurrentUserContext } from '../../hooks/useCurrentUser';
-import type { LoginRequest } from '../../types/auth';
 import { INITIAL_STATE } from './constants';
 import type { CurrentUserProviderProps } from './types';
 import { currentUserReducer } from './utils';

@@ -1,6 +1,6 @@
+import type { PersonaSlot } from '@connection-portal/rules/personas/types';
 import { useEffect, useRef } from 'react';
 
-import type { PersonaSlot } from '../../../utils/rules/personas/types';
 import { ELEMENT_IDS } from '../constants';
 import ApplicantsRow from './ApplicantsRow';
 import { LOADING_STATUS_ID } from './constants';

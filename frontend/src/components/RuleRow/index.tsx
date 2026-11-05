@@ -1,4 +1,5 @@
-import { statementOf, statementPartsOf } from '../../utils/rules/statements';
+import { statementOf, statementPartsOf } from '@connection-portal/rules/statements';
+
 import BranchMark from '../BranchMark';
 import { BRANCH_MARK_TINTS, INACTIVE_OPACITY } from '../BranchMark/constants';
 import FindingNote from '../FindingNote';

@@ -1,6 +1,7 @@
+import { shownItems } from '@connection-portal/rules/tree';
+
 import GroupFrame from '../../../components/GroupFrame';
 import type { GroupFrameMember } from '../../../components/GroupFrame/types';
-import { shownItems } from '../../../utils/rules/tree';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import GroupMenu from './GroupMenu';

@@ -21,7 +21,7 @@ citizens' wallets.
                         └──────────────────────┘
 ```
 
-Types are **not** shared at build time. The interfaces in `frontend/src/types/`
+Types are **not** shared at build time. The interfaces in `api-types/src/`
 mirror the Pydantic schemas in `backend/app/schemas.py` by hand — when you
 change one, change the other.
 
@@ -66,9 +66,15 @@ See [Rule consistency checks](#rule-consistency-checks-spec-003).
 
 ```
 dps-react-python-template/
-├── frontend/              # React SPA (Vite)
-│   ├── eslint.config.mjs  # ESLint 9 flat config
-│   └── .prettierrc        # Prettier formatting rules
+├── package.json           # npm workspace root: api-types, rules, frontend; scripts over them
+├── package-lock.json      # One lockfile for every Node package
+├── eslint.config.mjs      # ESLint 9 flat config, one block per package
+├── tsconfig.base.json     # Compiler options every package extends
+├── .prettierrc            # Prettier formatting rules
+├── api-types/             # @connection-portal/api-types: the TypeScript mirrors of the schemas
+├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/
+├── frontend/              # React SPA (Vite), depends on api-types and rules
+│   └── .prettierrc        # The root's rules plus the Tailwind plugin
 ├── backend/               # FastAPI API (SQLAlchemy + Alembic)
 ├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
 ├── specs/                 # Feature specification, plan, contracts and tasks (Spec Kit)
@@ -77,14 +83,23 @@ dps-react-python-template/
 └── docker-compose.yml     # Local development
 ```
 
-Node tooling is scoped to `frontend/` — there is no root `package.json` — while the
-backend uses Ruff and mypy. Git hooks, however, are repository-wide: they are defined in
-the root `.pre-commit-config.yaml` and cover both stacks, running `ruff check --fix` and
-`ruff format` on Python files and `prettier --write` and `eslint --fix` on `frontend/`
+The Node code is one npm workspace with three packages, `api-types/`, `rules/` and
+`frontend/`, while the backend uses Ruff and mypy. `npm install` at the root installs every
+package's dependencies into the root `node_modules/` and links the two shared packages
+there, so that the frontend imports them by name (`@connection-portal/api-types/<name>`,
+`@connection-portal/rules/<path>`). `api-types` and `rules` export their TypeScript source
+(`"./*": "./src/*.ts"`) and build nothing; Vite compiles them into the frontend. `rules/`
+imports only `api-types` and itself, `api-types` nothing, and neither imports `frontend/`
+(`no-restricted-imports` in the root `eslint.config.mjs`). The root scripts `lint`, `test`,
+`build`, `format` and `format:check` run each package's script of that name.
+
+Git hooks are repository-wide: they are defined in the root `.pre-commit-config.yaml` and
+cover both stacks, running `ruff check --fix` and `ruff format` on Python files and, from
+the root, `prettier --write` and `eslint --fix` on `api-types/`, `rules/` and `frontend/`
 files, plus the usual whitespace and merge-conflict checks.
 
-The hooks are installed by `frontend/package.json`'s `prepare` script, which runs
-`uv run pre-commit install` in `backend/` — so `npm install` in the frontend is what wires
+The hooks are installed by the root `package.json`'s `prepare` script, which runs
+`uv run pre-commit install` in `backend/` — so `npm install` at the root is what wires
 up the backend's hooks. `pre-commit` itself is a `dev` dependency in
 `backend/pyproject.toml` and lives in `backend/.venv`, which is why the `prepare` script
 has to `cd` there. The script ends in `|| exit 0` so a machine without `uv` can still
@@ -122,14 +137,12 @@ frontend/
 │   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
 │   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
 │   │                     # FormConnectionDetail
-│   ├── types/            # TypeScript interfaces mirroring backend schemas
 │   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon),
 │   │                     # menuNavigation.ts (arrow keys in menus), popupPlacement.ts
-│   │                     # (the side a popup opens to), and rules/: the pure rules logic,
-│   │                     # each module with its *.test.ts, with rules/checks/: the rule
-│   │                     # checks, their worker's entry worker.ts, and the generated
-│   │                     # caseFolding.ts and fixtures/; localDrafts/: the local drafts'
+│   │                     # (the side a popup opens to); localDrafts/: the local drafts'
 │   │                     # pure modules (spec 005)
+│   ├── workers/          # The browser Worker entries: checks.ts (the rule checks) and
+│   │                     # personas.ts (the test personas)
 │   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
@@ -212,11 +225,12 @@ frontend/
   in the create flow, in its local draft (see [Local drafts](#local-drafts-spec-005)). The
   details open the edit wizard at a step through the router state `EditLocationState.step`
   (`'connection'`, `'documents'` or `'rules'`)
-- **Vitest** tests the pure logic in Node, without a DOM: the modules of
-  `src/utils/rules/` and the sibling `utils.ts` of components, each with its `*.test.ts`
-  beside it. `npm test` is a gate (constitution III), because the rules' propagation
-  between branches runs only in the browser. It is configured in the `test` block of
-  `vite.config.ts`; a `vitest.config.ts` would silently replace that block
+- **Vitest** tests the pure logic in Node, without a DOM: the modules of `rules/src/`
+  and the sibling `utils.ts` of components, each with its `*.test.ts` beside it. `npm test`
+  is a gate (constitution III), because the rules' propagation between branches runs only
+  in the browser. In `frontend/` it is configured in the `test` block of `vite.config.ts`,
+  which a `vitest.config.ts` would silently replace; `rules/`, which has no Vite build, has
+  its own `rules/vitest.config.ts`
 - The **rule checks** (spec 003) run in the browser, in a module Web Worker that the
   editor page starts through `useRuleChecks()`; Vite builds the worker into a chunk of
   its own. See [Rule consistency checks](#rule-consistency-checks-spec-003)
@@ -466,7 +480,7 @@ to R10 in `specs/002-connection-rules/`, the tables its
   than two active members counts as dissolved there; that is derived from the tree,
   not stored (`effective_items` in `evaluation.py`, and `tree.ts` in the browser).
 - **Propagation runs only in the browser**: when the main branch changes in the Rules
-  step, `propagateMain` in `frontend/src/utils/rules/branches.ts` updates every based
+  step, `propagateMain` in `rules/src/branches.ts` updates every based
   branch (data-model.md, "Propagation from the main branch"), so the step shows each
   branch's rules at once. The server doesn't propagate: it checks every saved snapshot
   against the invariants that a correct propagation satisfies (every main-branch item
@@ -479,7 +493,7 @@ to R10 in `specs/002-connection-rules/`, the tables its
   name and the documents, then the rules against the documents the save leaves current,
   before anything is written or EUDIPLO is called; a refusal is a `400` whose message
   names the problem, the rule and its branch, in the words of the Rules step's own
-  checks (`utils/rules/validation.ts`). Rules alone are saved in one transaction under
+  checks (`rules/src/validation.ts`). Rules alone are saved in one transaction under
   the form connection's row lock. With changed documents, `create_revision` runs as
   before, and its final locked transaction, which makes the revision current, also
   saves the rule set (`save_rule_set()`). Creating a form connection saves its branch
@@ -528,11 +542,11 @@ The checks have no endpoint, table, setting or dependency of their own.
 - **In the browser, in a module Web Worker**: `useRuleChecks()`
   (`frontend/src/hooks/useRuleChecks.ts`), in the editor page
   (`pages/FormConnectionEditor/index.tsx`), builds each branch's checked tree on the main
-  thread after every change (`checks/checkedTree.ts`, with a fingerprint, so an unchanged
-  branch reuses its cached result) and starts a module worker,
-  `new Worker(new URL('../utils/rules/checks/worker.ts', import.meta.url), { type: 'module' })`,
+  thread after every change (`checks/checkedTree.ts` in `rules/src/`, with a fingerprint, so
+  an unchanged branch reuses its cached result) and starts a module worker,
+  `new Worker(new URL('../workers/checks.ts', import.meta.url), { type: 'module' })`,
   for the others: the shown branch first, then the rest in tab order. The worker
-  (`checks/worker.ts`) runs the solver and the findings (`checks/solver.ts`,
+  (`frontend/src/workers/checks.ts`) runs the solver and the findings (`checks/solver.ts`,
   `checks/findings.ts`, the theories per kind) and posts each branch's result as it
   finishes. A change during a run terminates the worker and starts a new one. A run has
   5 seconds from the change; branches it can't finish count as not checked completely,
@@ -540,8 +554,8 @@ The checks have no endpoint, table, setting or dependency of their own.
   editing goes on. Vite builds the worker into a
   chunk of its own under `assets/`, so the solver and the case-folding table stay out of
   the main bundle. The run state is the pure reducer of `checks/runState.ts`; the modules
-  of `src/utils/rules/checks/` are pure, and only `worker.ts` and the hook touch browser
-  APIs.
+  of `rules/src/checks/` are pure, and only `frontend/src/workers/checks.ts` and the hook
+  touch browser APIs.
 - **Shown in two places only**: the Rules step (notes under rules and groups through
   `FindingNote`, the findings banner, the variant tab's icon and tooltip, and a polite
   status region, `FindingsAnnouncer`) and the publish and save dialog, which lists the
@@ -553,14 +567,14 @@ The checks have no endpoint, table, setting or dependency of their own.
   browser doesn't log them. Nothing changes for serviceBW or the server.
 - **The catalog's `multiple_values`**: whether a field or part can hold several values
   comes from `app/catalog.py` through `GET /api/document-types`
-  (`frontend/src/types/document-types.ts` mirrors it), so that a rule set requiring two
+  (`api-types/src/document-types.ts` mirrors it), so that a rule set requiring two
   nationalities isn't reported as a conflict.
 - **In step with `evaluation.py`**: the checks judge each condition as the evaluator
   does: text trimmed, NFC-normalised and case-folded with Python's `str.casefold()`,
   dates by the evaluator's calendar arithmetic. Two files are generated from the
   interpreter and the evaluator by `backend/scripts/export_check_fixtures.py`:
-  `checks/caseFolding.ts` (Python's case-folding table, which `checks/text.ts` uses) and
-  `checks/fixtures/evaluator-vectors.json` (Python's results for text normalisation,
+  `rules/src/checks/caseFolding.ts` (Python's case-folding table, which `checks/text.ts` uses) and
+  `rules/src/checks/fixtures/evaluator-vectors.json` (Python's results for text normalisation,
   `years_after()`, `months_after()`, day numbers and rule outcomes), which the Vitest
   tests replay against `checks/text.ts`, `checks/calendar.ts` and the test evaluator. They
   are never edited by hand; after a Python upgrade or a change to the evaluator's
@@ -568,7 +582,7 @@ The checks have no endpoint, table, setting or dependency of their own.
   commit the result. Its `--check` writes nothing and fails on stale files, and
   `backend/tests/unit/test_check_fixtures.py` runs it. A brute-force oracle
   (`checks/testOracle.ts`, test-only) checks the solver's answers against an evaluator
-  ported from `evaluation.py` (`utils/rules/evaluation.ts`, since spec 004 production code
+  ported from `evaluation.py` (`rules/src/evaluation.ts`, since spec 004 production code
   that the test step shares; see "The test step and the test personas").
 
 ### The test step and the test personas (spec 004)
@@ -590,10 +604,10 @@ endpoint, table, setting or dependency of its own.
   the test step, is the unchanged one; its "Check rules again" goes back to the Rules
   step, to the first variant with findings or the one that was open.
 - **Generation in a module worker**: `usePersonas()`
-  (`hooks/usePersonas.ts`) starts `personas/worker.ts`
-  (`new Worker(new URL(...), { type: 'module' })`) with a `generate` message: the checked
+  (`hooks/usePersonas.ts`) starts `frontend/src/workers/personas.ts`
+  (`new Worker(new URL('../workers/personas.ts', import.meta.url), { type: 'module' })`) with a `generate` message: the checked
   trees, the slots to generate and a deadline. The worker runs `generatePersonas()`
-  (`personas/generation.ts`: the branches' outcome vectors found with spec 003's solver,
+  (`rules/src/personas/generation.ts`: the branches' outcome vectors found with spec 003's solver,
   then values per rule target, research R6 to R8) and posts one `generated` message. The
   run stops searching at `GENERATION_STOP_MS` (4.5 s from the start) and delivers the best
   personas so far; a watchdog fails the run at `GENERATION_WATCHDOG_MS` (5.5 s), and a worker
@@ -603,10 +617,10 @@ endpoint, table, setting or dependency of its own.
   `MAX_QUESTIONS_BELOW_UNKNOWN` (14) questions, so that an unsolvable corner can't use up
   the deadline.
 - **Evaluation on the main thread**: the personas' results are computed in the page, on
-  every change, by `utils/rules/evaluation.ts`, the port of `evaluation.py` (spec 003's
+  every change, by `rules/src/evaluation.ts`, the port of `evaluation.py` (spec 003's
   test evaluator promoted to production code, so that the step shows exactly what the real
   evaluation answers). It and the checked trees are loaded by `usePersonas`'s one dynamic
-  `import()` of `personas/results.ts`, so the main bundle doesn't hold them (the step shows
+  `import()` of `@connection-portal/rules/personas/results`, so the main bundle doesn't hold them (the step shows
   its loading state meanwhile). The vectors of `export_check_fixtures`, `rule_outcomes` and
   `branch_evaluations` (whole-branch outcomes), pin it to Python.
 - **The day**: the test day is today in Germany, from `useTodayInGermany()`

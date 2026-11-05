@@ -1,8 +1,8 @@
+import type { LoginLocationState } from '@connection-portal/api-types/routing';
 import { Navigate, useLocation } from 'react-router';
 
 import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
-import type { LoginLocationState } from '../../types/routing';
 import PageLoader from '../PageLoader';
 import type { RequireSignInProps } from './types';
 

@@ -1,4 +1,5 @@
-import type { LoginRequest, UserView } from '../types/auth';
+import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
+
 import { apiFetch } from './client';
 
 export function login(credentials: LoginRequest): Promise<UserView> {

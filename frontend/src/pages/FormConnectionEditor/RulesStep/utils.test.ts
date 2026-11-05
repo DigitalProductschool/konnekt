@@ -1,9 +1,9 @@
+import type { GroupItem, RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import type { BannerLine, FindingsBanner } from '@connection-portal/rules/checks/types';
+import { rule } from '@connection-portal/rules/testData';
+import { findItem, flattenItems } from '@connection-portal/rules/tree';
 import { describe, expect, it } from 'vitest';
 
-import type { GroupItem, RuleTreeItem } from '../../../types/form-connections';
-import type { BannerLine, FindingsBanner } from '../../../utils/rules/checks/types';
-import { rule } from '../../../utils/rules/testData';
-import { findItem, flattenItems } from '../../../utils/rules/tree';
 import type { RulesAction, RulesState } from './types';
 import {
   bannerViewOf,

@@ -1,4 +1,4 @@
-import type { FindingTone } from '../../utils/rules/checks/types';
+import type { FindingTone } from '@connection-portal/rules/checks/types';
 
 export const BRANCH_NAME_COPY = {
   // The (i)'s accessible name

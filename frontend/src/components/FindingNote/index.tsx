@@ -1,4 +1,5 @@
-import { kindTextOf } from '../../utils/rules/checks/findingMessages';
+import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
+
 import { FINDING_LOOKS } from './constants';
 import type { FindingNoteProps } from './types';
 

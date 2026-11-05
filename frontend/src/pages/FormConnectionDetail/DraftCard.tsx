@@ -1,6 +1,6 @@
+import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { Link } from 'react-router';
 
-import type { EditLocationState } from '../../types/routing';
 import { DETAIL_COPY } from './constants';
 import type { DraftCardProps } from './types';
 import { savedLineOf } from './utils';

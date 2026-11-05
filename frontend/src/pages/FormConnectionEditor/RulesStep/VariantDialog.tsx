@@ -1,9 +1,9 @@
+import { DESCRIPTION_MAX_LENGTH } from '@connection-portal/rules/constants';
 import { useEffect, useId, useReducer, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import TextField from '../../../components/TextField';
-import { DESCRIPTION_MAX_LENGTH } from '../../../utils/rules/constants';
 import { ELEMENT_IDS } from '../constants';
 import { RULES_COPY } from './constants';
 import StartWithOption from './StartWithOption';

@@ -1,5 +1,6 @@
-import type { FormConnectionDraft } from '../../types/form-connections';
-import type { EditLocationState } from '../../types/routing';
+import type { FormConnectionDraft } from '@connection-portal/api-types/form-connections';
+import type { EditLocationState } from '@connection-portal/api-types/routing';
+
 import { sameContent } from '../../utils/localDrafts/content';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { EditorStep } from '../FormConnectionEditor/types';

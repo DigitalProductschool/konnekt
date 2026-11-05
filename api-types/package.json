@@ -1,0 +1,20 @@
+{
+  "name": "@connection-portal/api-types",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write . --ignore-path ../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../.prettierignore",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3"
+  }
+}

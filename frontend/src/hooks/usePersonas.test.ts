@@ -1,6 +1,6 @@
+import type { Persona } from '@connection-portal/rules/personas/types';
 import { describe, expect, it } from 'vitest';
 
-import type { Persona } from '../utils/rules/personas/types';
 import { lacksUnrequestedValue } from './usePersonas';
 
 const FIELDS = [{ key: 'a' }, { key: 'b' }];

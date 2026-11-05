@@ -1,3 +1,11 @@
+import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type {
+  DetailLocationState,
+  EditLocationState,
+  OverviewLocationState,
+} from '@connection-portal/api-types/routing';
+import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
+import { firstProblem } from '@connection-portal/rules/validation';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
@@ -25,15 +33,7 @@ import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
-import type { DocumentType } from '../../types/document-types';
-import type {
-  DetailLocationState,
-  EditLocationState,
-  OverviewLocationState,
-} from '../../types/routing';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
-import { requestedRuleDocuments } from '../../utils/rules/conditions';
-import { firstProblem } from '../../utils/rules/validation';
 import ConnectionStep from './ConnectionStep';
 import { DRAFT_COPY, EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';

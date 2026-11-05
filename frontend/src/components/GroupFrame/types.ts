@@ -1,6 +1,6 @@
+import type { Combinator, GroupItem, Mark } from '@connection-portal/api-types/form-connections';
 import type { ReactNode } from 'react';
 
-import type { Combinator, GroupItem, Mark } from '../../types/form-connections';
 import type { ShownFinding } from '../FindingNote/types';
 
 /** A member of a group, already rendered, with its React key */

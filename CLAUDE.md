@@ -22,6 +22,11 @@ EUDI Wallet, through EUDIPLO.
 - `backend/`: FastAPI (Python 3.13), SQLAlchemy 2 (**sync**), Alembic, psycopg 3, PostgreSQL, a
   background worker thread and a client for the EUDIPLO management API
 - `frontend/`: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
+- `api-types/` (`@connection-portal/api-types`): the TypeScript mirrors of the backend's schemas
+- `rules/` (`@connection-portal/rules`): the pure rules logic, its checks and test personas
+
+`api-types/`, `rules/` and `frontend/` are the packages of one npm workspace at the root, imported
+by name (`@connection-portal/api-types/<name>`, `@connection-portal/rules/<path>`).
 
 The UI says "connection" for form connection and "variant" for branch, and calls the main branch
 "Standard" until it is renamed.
@@ -58,7 +63,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `UpdatedAt` columns, and index the fields used in queries. Never `datetime.utcnow()`; use
   `datetime.now(tz=timezone.utc)`.
 - **Schemas**: Pydantic v2, separate Create, Update and Response models, `from_attributes=True`
-  for ORM objects. `frontend/src/types/` mirrors them field for field (snake_case): change both.
+  for ORM objects. `api-types/src/` mirrors them field for field (snake_case): change both.
 - **Settings**: a new environment variable is a field on `Settings` in `app/config.py`.
 - **Developer scripts** (`backend/scripts/`) never ship: `app/` never imports them, and they
   never import `app.config`.
@@ -68,7 +73,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 ## Frontend rules
 
 - **API**: call the backend only through `apiFetch` (`src/api/client.ts`), one module per
-  resource in `src/api/`, types in `src/types/`. A page passes failures through
+  resource in `src/api/`, types in `api-types/src/`. A page passes failures through
   `useSignOutOnUnauthorized()` and shows them with `errorNoticeOf(error, '<fallback>')` and
   `ErrorNoticeText`, so that a `5xx`'s `error_id` appears.
 - **Components** stay small; extract new functionality into new components. Next to a
@@ -94,31 +99,33 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Popups** (menus, popovers, tooltips) pick their side with `placementFrom()`
   (`src/utils/popupPlacement.ts`); never anchor a fixed-width popup with `left-0` or `right-0`
   alone.
-- No `any` without a justification, no `require()`. Never add a `vitest.config.ts`: it would
-  replace the `test` block of `vite.config.ts`.
+- No `any` without a justification, no `require()`. Never add a `vitest.config.ts` to
+  `frontend/`: it would replace the `test` block of `vite.config.ts`.
 
 ## Rules, rule checks and test personas (specs 002, 003, 004)
 
-- The pure rules logic lives in `src/utils/rules/`, every module with its `*.test.ts`.
-- **Propagation** of the main branch's changes lives only in `utils/rules/branches.ts`
+- The pure rules logic lives in `rules/src/`, every module with its `*.test.ts`; the two browser
+  Worker entries are `frontend/src/workers/checks.ts` and `frontend/src/workers/personas.ts`.
+- **Propagation** of the main branch's changes lives only in `rules/src/branches.ts`
   (`propagateMain`); the server only checks the invariants (`backend/app/services/rules.py`).
   Every change to `branches.ts` comes with a case in `branches.test.ts`, and a change to a
   propagation rule or mark transition also updates the server's checks.
-- `utils/rules/validation.ts` uses the server's messages word for word.
-- **Rule checks** (`utils/rules/checks/`) judge conditions as `backend/app/services/evaluation.py`
-  does. `checks/caseFolding.ts` and `checks/fixtures/evaluator-vectors.json` are generated:
-  never edit them by hand. After a Python upgrade or a change to the evaluator's comparisons,
-  run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the result.
-- **Findings** are never stored, sent or logged (no `console.*` in `checks/`, the worker or
-  `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the Rules
-  step passes the `finding` / `findings` props. Only `checks/worker.ts` and the hook touch
-  browser APIs.
+- `rules/src/validation.ts` uses the server's messages word for word.
+- **Rule checks** (`rules/src/checks/`) judge conditions as `backend/app/services/evaluation.py`
+  does. `rules/src/checks/caseFolding.ts` and `rules/src/checks/fixtures/evaluator-vectors.json`
+  are generated: never edit them by hand. After a Python upgrade or a change to the evaluator's
+  comparisons, run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the
+  result.
+- **Findings** are never stored, sent or logged (no `console.*` in `checks/`, `workers/checks.ts`
+  or `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the
+  Rules step passes the `finding` / `findings` props. Only `frontend/src/workers/checks.ts` and
+  the hook touch browser APIs.
 - **Test personas** (spec 004; ARCHITECTURE, "The test step and the test personas"): the evaluator
-  is `utils/rules/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
-  (`rule_outcomes`, `branch_evaluations`). Personas live in `utils/rules/personas/`, pure, every
+  is `rules/src/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
+  (`rule_outcomes`, `branch_evaluations`). Personas live in `rules/src/personas/`, pure, every
   module with its `*.test.ts`, and are never stored, sent or logged: no `console.*` in
-  `personas/`, its worker, `usePersonas` or `useTodayInGermany`. The evaluator and the checked
-  trees reach the page only through `usePersonas`'s dynamic `import()`.
+  `personas/`, `workers/personas.ts`, `usePersonas` or `useTodayInGermany`. The evaluator and the
+  checked trees reach the page only through `usePersonas`'s dynamic `import()`.
 
 ## Drafts and local drafts (spec 005)
 
@@ -159,28 +166,29 @@ uv run alembic revision --autogenerate -m "msg"   # review the file, then:
 uv run alembic upgrade head
 uv run python -m scripts.export_check_fixtures [--check]
 
-# frontend/
+# the root (api-types/, rules/, frontend/)
+npm install
 npm run lint && npm test && npm run build
 npm run format
 ```
 
 Before you finish: Ruff and mypy pass for backend changes (run pytest too), and `npm run lint`,
-`npm test` and `npm run build` for frontend changes. Everything else is in `README.md`, "Common
-Commands".
+`npm test` and `npm run build` from the root for changes in `api-types/`, `rules/` or
+`frontend/`. Everything else is in `README.md`, "Common Commands".
 
 ## Adding a feature
 
 - **Backend**: model (`app/models.py`) → schemas (`app/schemas.py`) → migration → services
   (`app/services/`) → router (`app/routers/`) → `app.include_router()` in `app/main.py` →
   settings → tests (`tests/api/`, `tests/unit/`).
-- **Frontend**: types (`src/types/`) → API functions (`src/api/`) → page in
+- **Frontend**: types (`api-types/src/`) → API functions (`src/api/`) → page in
   `src/pages/<Name>/`, reusing `src/components/` → route in `App.tsx` and `ROUTES`.
 
 ## Never
 
 - Commit `.env` files (use `.env.example`) or any secret.
-- Edit generated files: Alembic migrations after creation, `caseFolding.ts`,
-  `evaluator-vectors.json`.
+- Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
+  `rules/src/checks/fixtures/evaluator-vectors.json`.
 
 ## Documentation checklist
 

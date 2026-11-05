@@ -1,6 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
-import { ApiError } from '../../api/client';
 import type {
   Branch,
   BranchInput,
@@ -8,8 +5,11 @@ import type {
   GroupItem,
   Mark,
   RuleTreeItem,
-} from '../../types/form-connections';
-import { mainBranch, MDL, PID, rule } from '../../utils/rules/testData';
+} from '@connection-portal/api-types/form-connections';
+import { mainBranch, MDL, PID, rule } from '@connection-portal/rules/testData';
+import { describe, expect, it } from 'vitest';
+
+import { ApiError } from '../../api/client';
 import { INITIAL_DRAFT_DELETE_STATE } from './constants';
 import {
   deleteDraftDialogOf,

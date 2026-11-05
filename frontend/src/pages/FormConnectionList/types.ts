@@ -1,4 +1,4 @@
-import type { FormConnectionSummary } from '../../types/form-connections';
+import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
 
 export type ListState =
   | { status: 'loading'; attempt: number }

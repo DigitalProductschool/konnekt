@@ -1,10 +1,10 @@
+import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
 import { useId, useMemo, useState } from 'react';
 import { generatePath, Link } from 'react-router';
 
 import expandLessIcon from '../../assets/icons/expand-less.svg';
 import expandMoreIcon from '../../assets/icons/expand-more.svg';
 import { ROUTES } from '../../constants';
-import { ruleDocumentsOf } from '../../utils/rules/conditions';
 import { DETAIL_COPY, EDIT_RULES_STATE } from './constants';
 import RulesSummaryContent from './RulesSummaryContent';
 import type { RulesSummaryProps } from './types';

@@ -8,7 +8,8 @@ import type {
   NumberingBase,
   RequestedDocument,
   RuleTreeItem,
-} from '../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
+
 import { LOCAL_DRAFT_FORMAT } from './constants';
 import { draftIdOfFlowKey, isFlowKey } from './keys';
 import type { LocalDraftContent, LocalDraftRecord } from './types';
