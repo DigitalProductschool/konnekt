@@ -1,6 +1,6 @@
 # Feature Specification: Agent Access through an MCP Server
 
-**Feature Branch**: `006-agent-mcp-server`
+**Feature Branch**: `007-agent-mcp-server`
 
 **Created**: 2026-11-04
 
@@ -12,56 +12,63 @@ through agents, with sign-in, approval and skills
 ## Context
 DO.IT team members want to use LLM agents that run on their own machine (Claude Code, Cursor, Codex
 and other MCP clients) to create, change and inspect form connections through an MCP server, at the
-granularity of the UI: create a connection, set its name and serviceBW form, add a document, choose
+granularity of the UI: create a connection, set its name and description, add a document, choose
 its fields, add a variant, add, edit, group and delete rules, and so on. The agent must be able to
 take a connection from nothing to live, and to retrieve its connection URLs. This builds on spec 005
-(connection drafts, treated as implemented): agents work on drafts, which may be incomplete between
-calls.
+(connection drafts) and spec 006 (an optional description in place of the serviceBW form), both
+treated as implemented: agents work on drafts, which may be incomplete between calls.
 
-Decisions taken in a discussion on 2026-11-04 (binding for this spec):
+Decisions from the discussions on 2026-11-04 and 2026-11-05 (binding for this spec):
 
-1. **What agents may change (option A)**: agents create and edit drafts only. Published connections
-   are read-only for agents, except deactivating, reactivating and deleting them, which need
-   approval (point 3). "Pending changes" on published connections stay out of scope, as in spec 005.
-   An agent given the link of a rule in a published connection can read it but not change it.
+1. **What agents may change**: agents create and edit drafts. The content of a published connection
+   (its name, description, documents, variants and rules) is read-only for agents at every access
+   level. Agents with the access level "Read, edit drafts and manage live connections" (point 4)
+   can also deactivate, reactivate and delete published connections, each with approval (point 3).
+   "Pending changes" on published connections stay out of scope, as in spec 005. An agent given the
+   link of a rule in a published connection can read it but not change it.
 
 2. **One implementation of the rules logic**: the MCP server is a TypeScript service that reuses the
    pure rules logic of `frontend/src/utils/rules/` (the propagation from Standard to the variants
    based on it, `propagateMain`; the validation with the server's own messages; the rule checks of
    spec 003; the evaluator of spec 004) and calls the backend's management API on behalf of the
-   person. Each write tool reads the draft, applies the same pure function the UI applies, and
-   saves the whole draft with its version (spec 005's draft save). The server's existing checks
+   person. Each tool that changes a draft reads it, applies the same pure function the UI applies,
+   and saves the whole draft with its version (spec 005's draft save). The server's existing checks
    stay the safety net. There must not be a second implementation of propagation. (Where the
    service lives and the constitution amendment it needs, a third deployable with Node outside
    `frontend/` or a second build target inside it, are for the plan.)
 
 3. **Approval for outward-facing and destructive actions, enforced by the server**: publishing a
-   draft, deactivating, reactivating and deleting a published connection, and deleting a draft.
+   draft, deleting a draft, and deactivating, reactivating and deleting a published connection.
    Such a tool doesn't act: it creates a pending action and returns a link to an approval page in
    the Connection Portal (sent as an MCP URL-mode elicitation when the client supports it, in the
    tool's result otherwise). The action runs only when the same signed-in team member who
    authorized the agent approves it there. The page shows exactly what will happen: for
    publishing, the summary and the findings, as the wizard's Publish step does; for deactivating
-   or deleting, which connection URLs stop working. The link expires after a few minutes; a
-   declined or expired action does nothing. Every other write, anything that only changes a draft,
-   needs no approval. Out of scope: an agent that controls the person's browser and approves on its
-   own.
+   or deleting a published connection, which connection URLs stop working; for reactivating, which
+   work again; for deleting a draft, that its content is gone for good. The link expires after a
+   few minutes; a declined or expired action does nothing. Every other write, anything that only
+   changes a draft, needs no approval. Out of scope: an agent that controls the person's browser
+   and approves on its own.
 
 4. **Sign-in for agents**: standard MCP authorization (OAuth 2.1, authorization code with PKCE). The
    backend is the authorization server and the MCP server the protected resource (protected
    resource metadata, resource indicators; Client ID Metadata Documents preferred, dynamic client
    registration as fallback). The MCP client opens the browser, the team member signs in to the
    Connection Portal (or uses their session) and sees a consent page that names the client and
-   offers a choice of access: read only, or read and write. Access tokens are short-lived, with
-   rotating refresh tokens. A read-only agent can ask for write access later (the protocol's
-   insufficient_scope step-up), which needs a new consent. For clients without OAuth, a team member
-   can create a personal access token on their user page, with the same choice of access. Accounts
-   are still managed with the CLI, and there are no roles.
+   offers three access levels, each including the one before: "Read only"; "Read and edit drafts";
+   and "Read, edit drafts and manage live connections", which also lets the agent deactivate,
+   reactivate and delete published connections (point 1). Access tokens are short-lived, with
+   rotating refresh tokens. An agent can ask for a higher access level later (the protocol's
+   insufficient_scope step-up), which needs a new consent, and the team member can change it on
+   their user page (point 5). For clients without OAuth, a team member can create a personal access
+   token on their user page, with the same choice of access. Accounts are still managed with the
+   CLI, and there are no roles.
 
 5. **User page**: a new page, reached from the user menu at the top right, lists the team member's
    active agent authorizations (client name, access level, when connected, when last used) and
-   personal access tokens, and lets them revoke each one. An activity log or audit trail is out of
-   scope for now.
+   personal access tokens, and lets them change the access level of each one, higher or lower, or
+   revoke it. A new access level applies from the agent's next call, without connecting it again.
+   An activity log or audit trail is out of scope for now.
 
 6. **Links to connections, variants and rules**: a draft's variants get a stable identifier when
    they are created, which they keep when the draft is published (today a draft's variants have no
@@ -78,12 +85,12 @@ Decisions taken in a discussion on 2026-11-04 (binding for this spec):
    value sets (countries) are searched, never listed whole. Tools whose parameters overlap are
    merged (for example one tool updates a rule's name, condition and message; one updates a
    variant), aiming at about 20 tools. The tools cover everything the create flow and the details
-   do today: name and serviceBW form; documents and their fields; variants (add based on Standard
+   do today: name and description; documents and their fields; variants (add based on Standard
    or empty, rename, describe, delete, the top-level AND/OR and resetting it); rules and groups
    (add, edit target, condition, message and name, duplicate, delete, group, ungroup, sub-groups, a
    group's AND/OR and message, copy to a variant, reset to Standard, remove from a variant,
-   restore); publishing; deactivating, reactivating and deleting; deleting a draft; and the
-   connection URLs.
+   restore); publishing; deactivating, reactivating and deleting a published connection; deleting
+   a draft; and the connection URLs.
 
 8. **Rule checks and tests for agents**: a tool returns the findings of spec 003 for one variant or
    all of them, as explicit as possible for an LLM (which rule or group, what kind of finding, why,
@@ -99,8 +106,8 @@ Decisions taken in a discussion on 2026-11-04 (binding for this spec):
    Claude Code plugin (MCP configuration plus skills) that other agents can also use. The skills
    are written as part of this feature (topics: the workflow from draft to live, variants and
    propagation, conditions per kind of data including Germany's calendar day, documents and the
-   catalog, publishing and approval, links). Every change to the MCP tools must update the skills
-   in the same change, and CLAUDE.md gets that rule.
+   catalog, access levels, publishing, managing live connections and approval, links). Every change
+   to the MCP tools must update the skills in the same change, and CLAUDE.md gets that rule.
 
 10. **Other decisions**:
 - The UI doesn't say that an agent changed a draft: another team member could too, and spec 005's
@@ -112,35 +119,41 @@ Decisions taken in a discussion on 2026-11-04 (binding for this spec):
 - A limit on how many drafts one agent can create per hour, configurable in the backend's settings
   (environment variable) with a sane default.
 - Out of scope: serviceBW's connection URLs themselves (`/api/connect/`), document requests,
-  citizens' data, account management, an activity log, pending changes on published connections.
-- The connection set-up (names, form IDs, rules, messages) reaches the LLM provider the team member
-  uses; it holds no citizens' data (assumption to confirm with DO.IT)."
-
-**Corrected while specifying (2026-11-04)**: published connections are read-only for agents without
-exception. Agents can't deactivate, reactivate or delete them, so points 1, 3 and 7 above no longer
-include those three actions (Clarifications).
+  citizens' data, account management, an activity log, changes to a published connection's
+  content, pending changes on published connections.
+- The connection set-up (names, descriptions, rules, messages) reaches the LLM provider the team
+  member uses; it holds no citizens' data, and DO.IT has approved this."
 
 ## Clarifications
 
-### Session 2026-11-04
+### Sessions 2026-11-04 and 2026-11-05
 
-Decisions from the discussion before this spec was written, and one correction made while it was
-written:
+Decisions from the discussions on 2026-11-04 and 2026-11-05:
 
-- Q: What may agents change? → A: Drafts only (spec 005). Published connections are read-only for
-  agents: no change to their content, and no deactivating, reactivating or deleting (corrected while
-  specifying; the input above still lists those three actions with approval). Changes to a
-  published connection that are stored but not yet live stay out of scope, as in spec 005.
-- Q: Which agent actions need the team member's approval? → A: Publishing a draft and deleting a
-  draft. The approval is given in the management interface, by the team member the agent acts for,
-  on a page that shows what will happen. An agent that controls the team member's browser and
-  approves by itself is out of scope.
+- Q: What may agents change? → A: Drafts (spec 005), with "Read and edit drafts" or higher. The
+  content of a published connection (its name, description, documents, variants and rules) is
+  read-only for agents at every access level. Changes to a published connection that are stored
+  but not yet live stay out of scope, as in spec 005.
+- Q: Can agents deactivate, reactivate or delete a live connection? → A: Yes, with the access level
+  "Read, edit drafts and manage live connections", and each action needs the team member's
+  approval. The other two access levels can't.
+- Q: Which agent actions need the team member's approval? → A: Publishing a draft, deleting a
+  draft, and deactivating, reactivating and deleting a published connection. The approval is given
+  in the management interface, by the team member the agent acts for, on a page that shows what
+  will happen. An agent that controls the team member's browser and approves by itself is out of
+  scope.
 - Q: How do agents sign in? → A: With the protocol's standard authorization in the browser: the
-  team member signs in to the management interface and consents, choosing "Read only" or "Read and
-  edit drafts". A personal access token from the user page is the fallback for clients that can't
-  do this.
+  team member signs in to the management interface and consents, choosing one of three access
+  levels: "Read only", "Read and edit drafts", or "Read, edit drafts and manage live connections".
+  A personal access token from the user page, with the same choice, is the fallback for clients
+  that can't do this.
+- Q: Can a team member change an agent's access after connecting it? → A: Yes. On the user page,
+  they can raise or lower the access level of each agent connection and personal access token, or
+  revoke it. The new level applies from the agent's next call, without connecting it again.
+  Revoking, or lowering the level, cancels the agent's waiting approval requests that it could no
+  longer make.
 - Q: Is there an activity log? → A: Not in this feature. The user page lists the team member's
-  connected agents and tokens and lets them revoke each one.
+  connected agents and tokens and lets them change or revoke each one.
 - Q: May agents receive the findings of the rule checks and test applicants against the rules? →
   A: Yes, as explicitly as possible. This supersedes spec 003, FR-020 and spec 004, FR-021 for
   agents only. The agent supplies its own fictitious applicants; the personas of the test step are
@@ -157,11 +170,9 @@ written:
   deployment's address.
 - Q: How are runaway agents contained? → A: A limit on the drafts one agent connection creates per
   hour, set in the middleware's settings, with a default.
-- Q: May a connection's set-up (names, serviceBW forms, rules, messages) reach the LLM provider that
+- Q: May a connection's set-up (names, descriptions, rules, messages) reach the LLM provider that
   a team member's agent uses? → A: Yes. DO.IT has approved the MCP server, which sends no data about
   citizens.
-- Q: Should a third access level let agents change live connections? → A: No. The two access levels
-  stay, and published connections stay read-only for agents.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -170,11 +181,12 @@ written:
 A team member wants an LLM agent on their own machine to help with form connections. They add the
 middleware's MCP server to their agent. The first time the agent connects, the browser opens the
 management interface. The team member signs in if needed, sees which program asks for access,
-chooses whether it may only read or may also edit drafts, and allows it. From then on the agent acts
-on their behalf: it can find connections by name or serviceBW form, read a connection, its variants
-and its rules, and read the catalog of documents, without loading everything at once. On their user
-page, reached from the user menu, the team member sees every agent connected to their account and
-can revoke each one.
+chooses how much it may do (only read; also edit drafts; or also manage live connections), and
+allows it. From then on the agent acts on their behalf: it can find connections by name or
+description, read a connection, its variants and its rules, and read the catalog of documents,
+without loading everything at once. On their user page, reached from the user menu, the team
+member sees every agent connected to their account, and can change the access level of each one or
+revoke it.
 
 **Why this priority**: Nothing else works without a connected agent, and reading alone is already
 useful: an agent can explain a connection's rules, compare connections or answer questions about
@@ -182,27 +194,29 @@ them.
 
 **Independent Test**: Connect an MCP client with "Read only". Check that the agent finds a connection
 among many by part of its name, reads its documents and one variant's rules, and is refused when it
-tries to change a draft. Check that the user page lists the client with read-only access, revoke it,
-and check that the agent's next call is refused.
+tries to change a draft. Check that the user page lists the client with read-only access. Raise it
+to "Read and edit drafts" and check that the agent can now change a draft without connecting again;
+lower it to "Read only" and check that the next change is refused. Revoke it, and check that the
+agent's next call is refused.
 
 **Acceptance Scenarios**:
 
 1. **Given** a team member whose MCP client knows the middleware's MCP address, **When** the client
    connects for the first time, **Then** the browser opens the management interface, which shows,
-   after a sign-in if needed, a consent page with the client's name and the choice between "Read
-   only" and "Read and edit drafts"; after "Allow", the client is connected without the team member
-   copying anything.
+   after a sign-in if needed, a consent page with the client's name and the choice of "Read only",
+   "Read and edit drafts" or "Read, edit drafts and manage live connections", each with what it
+   allows; after "Allow", the client is connected without the team member copying anything.
 2. **Given** that consent page, **When** the team member denies access, **Then** the client gets no
    access.
 3. **Given** an agent with "Read only", **When** it tries to change a draft, **Then** the change is
-   refused with a message that its access is read only, and the client can ask for more access,
-   which shows the consent page again.
+   refused with a message that its access is read only and that changing drafts needs "Read and
+   edit drafts", and the client can ask for more access, which shows the consent page again.
 4. **Given** 1,000 stored connections, **When** the agent searches for part of a name or of a
-   serviceBW form, optionally only among drafts or only among published connections, **Then** it
-   receives one page of short entries (name, serviceBW form, status, last change, link) and can ask
+   description, optionally only among drafts or only among published connections, **Then** it
+   receives one page of short entries (name, description, status, last change, link) and can ask
    for the next page.
 5. **Given** a connection, **When** the agent reads it, **Then** it first receives an overview (name,
-   serviceBW form, status, documents with their fields, variants with their origin and number of
+   description, status, documents with their fields, variants with their origin and number of
    rules, links), and receives the rules of one variant, or one rule, only when it asks for them.
 6. **Given** a published connection, **When** the agent asks for its connection URLs, **Then** it
    receives the trigger URL and the pull URL of each variant, labelled with the variant's name. For
@@ -212,11 +226,15 @@ and check that the agent's next call is refused.
    used) and each of their personal access tokens, and nobody else's.
 8. **Given** a connected agent, **When** the team member revokes it on the user page and confirms,
    **Then** the agent's next call is refused, and it has to be connected again.
-9. **Given** a client that can't use the browser sign-in, **When** the team member creates a
-   personal access token on the user page with a name, an access level and an expiry, **Then** the
-   token is shown once, the client can use it instead of the browser sign-in, and the token is
-   listed and can be revoked like an agent connection.
-10. **Given** a team member whose account is deleted with the account tool, **When** any of their
+9. **Given** a connected agent, **When** the team member changes its access level on the user page,
+   choosing among the three levels shown as on the consent page, **Then** the new level applies from
+   the agent's next call, without connecting it again: a lower level refuses what it no longer
+   allows (FR-003), and a higher level allows more without the consent page.
+10. **Given** a client that can't use the browser sign-in, **When** the team member creates a
+    personal access token on the user page with a name, an access level and an expiry, **Then** the
+    token is shown once, the client can use it instead of the browser sign-in, and the token is
+    listed, its access level can be changed, and it can be revoked, like an agent connection.
+11. **Given** a team member whose account is deleted with the account tool, **When** any of their
     agents calls, **Then** the call is refused (spec 001, FR-007).
 
 ---
@@ -225,7 +243,7 @@ and check that the agent's next call is refused.
 
 The team member describes a form's requirements to the agent: the documents it needs, the
 conditions for applicants, the variants. The agent creates a draft and builds it up one change at a
-time, as a team member does in the create flow: name and serviceBW form, documents and fields,
+time, as a team member does in the create flow: name and description, documents and fields,
 variants, rules and groups. Each change is stored at once, as "Save and exit" stores a draft, so the
 draft may be incomplete between calls. Changes to Standard reach the variants based on it exactly as
 they do in the editor. The team member can open the draft in the management interface at any time
@@ -240,13 +258,14 @@ documents and choose their fields, add a variant based on Standard and one that 
 rules to Standard and group two of them, change one of Standard's rules in the based variant, and
 delete another of Standard's rules. Open the draft in the management interface and check that it
 shows exactly what the same actions in the editor would have produced, marks included. Try to change
-a published connection and check that it is refused.
+a rule of a published connection and check that it is refused, also with "Read, edit drafts and
+manage live connections".
 
 **Acceptance Scenarios**:
 
-1. **Given** an agent that may edit drafts, **When** it creates a connection with a name, **Then** a
-   draft is stored (spec 005), the overview lists it as a draft, and the result gives the draft's
-   link in the management interface.
+1. **Given** an agent that may edit drafts, **When** it creates a connection with a name, and
+   optionally a description, **Then** a draft is stored (spec 005), the overview lists it as a
+   draft, and the result gives the draft's link in the management interface.
 2. **Given** a draft, **When** the agent makes any change the create flow offers (FR-012), one per
    call, **Then** each change is stored at once, and a draft that is incomplete in between (no
    documents, a rule without a condition or on data that isn't requested, a variant without rules)
@@ -266,12 +285,17 @@ a published connection and check that it is refused.
    team member saves, **Then** spec 005's conflict applies ("Reload" or "Replace their changes"), and
    its message doesn't say whether an agent or a person saved in between. **When** the agent next
    changes the draft, **Then** its change applies to the draft as stored then.
-7. **Given** a published connection, **When** the agent tries to change it in any way, including
-   deactivating, reactivating or deleting it, **Then** the call is refused with a message that
-   published connections are changed in the management interface, and nothing changes.
+7. **Given** a published connection, **When** an agent at any access level tries to change its
+   content (its name, description, documents, variants or rules), **Then** the call is refused
+   with a message that a published connection's content is changed in the management interface,
+   and nothing changes.
 8. **Given** an agent connection that has created as many drafts in the past hour as the limit
    allows, **When** it creates another, **Then** it is refused with a message that says when it can
    create drafts again. Changes to existing drafts aren't limited by this.
+9. **Given** a draft, **When** the agent sets a description longer than 500 characters, **Then** it
+   is refused with a message that names the limit, as the editor refuses it (spec 006, FR-003).
+   **When** the agent clears the description, **Then** the draft has none, and that blocks neither
+   continuing the draft in the management interface nor publishing it (spec 006, FR-002).
 
 ---
 
@@ -302,7 +326,7 @@ member opening the link, and a deletion of a draft.
    request is refused at once with the messages that publishing gives (spec 005, FR-009), and no
    approval link is made.
 3. **Given** an approval link, **When** the team member the agent acts for opens it, **Then** the page
-   shows what will go live, as the publish step shows it: the name, the serviceBW form, the documents
+   shows what will go live, as the publish step shows it: the name, the description, the documents
    and their fields, each variant with its rules, and the findings of the rule checks; and it offers
    to approve or decline.
 4. **Given** that page, **When** the team member approves, **Then** the draft is published exactly as
@@ -422,8 +446,9 @@ changing the guidance and check that the quality gates fail.
 **Acceptance Scenarios**:
 
 1. **Given** an agent that connects, **Then** it receives short instructions: what connections,
-   drafts, variants and Standard are, the order of work from a draft to a live connection, that
-   published connections are read-only for it, and that publishing and deleting a draft need the
+   drafts, variants and Standard are, the order of work from a draft to a live connection, the three
+   access levels, that a published connection's content is read-only for it, and that publishing
+   or deleting a draft, and deactivating, reactivating or deleting a published connection, need the
    team member's approval.
 2. **Given** a client that supports the protocol's skills, **When** the agent lists them, **Then** it
    finds the skills by topic and can read each. **Given** a client that doesn't, **When** the agent
@@ -432,10 +457,72 @@ changing the guidance and check that the quality gates fail.
    the skills are added in one step.
 4. **Given** the guidance, **Then** it covers at least: the workflow from a description to a live
    connection; variants, Standard, and how Standard's changes reach based variants; conditions per
-   kind of data, including dates on Germany's calendar day; documents and the catalog; publishing and
-   approval; links; and checks and tests, with the rule never to use real people's data.
+   kind of data, including dates on Germany's calendar day; documents and the catalog; the access
+   levels; publishing, deactivating, reactivating and deleting, and approval; links; and checks and
+   tests, with the rule never to use real people's data.
 5. **Given** a change to a tool, **When** the guidance doesn't describe the changed tool, **Then** the
    quality gates fail.
+
+---
+
+### User Story 7 - Deactivate, reactivate or delete a live connection with approval (Priority: P7)
+
+A serviceBW form is paused or retired, and the team member asks the agent to deactivate its
+connection, to reactivate it later, or to delete it. These actions change what serviceBW's forms can
+do, so they need more than editing drafts: the team member gives the agent "Read, edit drafts and
+manage live connections" when connecting it, or later, when the agent asks for it or on the user
+page. Even then the agent can't act alone: as for publishing, it receives a link to an approval page
+that shows which connection URLs stop or start working, and the team member approves or declines.
+The agent never
+changes a published connection's content: its name, description, documents, variants and rules
+are changed in the management interface.
+
+**Why this priority**: It lets the agent look after a connection after it went live, but the team
+member can deactivate, reactivate and delete in the management interface, which still works, and
+every other story is useful without it.
+
+**Independent Test**: Connect an agent with "Read and edit drafts" and ask it to deactivate a live
+connection: check that it is refused and that its client can ask for the higher access level, which
+shows the consent page. Allow "Read, edit drafts and manage live connections", ask again, check that
+nothing has changed yet, open the link the agent gives, check the page, approve, and check that the
+connection's URLs answer "unavailable". Repeat with reactivating and deleting, with a decline, and
+with a connection deactivated in the management interface while the request waits. Ask the agent to
+change a rule of the live connection and check that it is refused.
+
+**Acceptance Scenarios**:
+
+1. **Given** an agent with "Read only" or "Read and edit drafts", **When** it asks to deactivate,
+   reactivate or delete a published connection, **Then** it is refused with a message that its
+   access doesn't include managing live connections, and no approval link is made. The client can
+   ask for "Read, edit drafts and manage live connections", which shows the consent page again, or
+   the team member can raise the agent's access level on the user page.
+2. **Given** an agent with "Read, edit drafts and manage live connections" and a live connection,
+   **When** the agent asks to deactivate it, **Then** nothing changes yet, and the agent receives
+   the link to an approval page and the time it expires, as for publishing (User Story 3).
+3. **Given** that approval link, **When** the team member the agent acts for opens it, **Then** the
+   page names the connection and shows its description, lists the connection URLs that will answer
+   "unavailable" until the connection is reactivated, says that requests in progress are cancelled,
+   and offers to approve or decline.
+4. **Given** that page, **When** the team member approves, **Then** the connection is deactivated
+   exactly as from the management interface (spec 001, FR-006), the page says so, and the agent
+   learns the outcome.
+5. **Given** a deactivated connection, **When** the agent asks to reactivate it and the team member
+   approves on the page, which lists the connection URLs that will work again, **Then** the
+   connection works again with the same URLs, and the agent can read them.
+6. **Given** a published connection, live or deactivated, **When** the agent asks to delete it,
+   **Then** the approval page names the connection, lists the connection URLs that will stop working
+   for good, and says that requests in progress are cancelled and that deleting can't be undone.
+   **When** the team member approves, **Then** the connection is deleted exactly as from the
+   management interface (spec 001, FR-006).
+7. **Given** a connection, **When** the agent asks to deactivate it while it is already
+   deactivated, or to reactivate it while it is live, **Then** it is refused at once with a message
+   that gives the connection's status, and no approval link is made.
+8. **Given** an approval request for a published connection, **When** the connection is
+   deactivated, reactivated or deleted in the management interface before the team member approves,
+   **Then** approving does nothing, and the page says what changed.
+9. **Given** an agent with "Read, edit drafts and manage live connections", **When** it tries to
+   change a published connection's content, **Then** it is refused as at every other access level
+   (User Story 2, scenario 7).
 
 ---
 
@@ -444,6 +531,12 @@ changing the guidance and check that the quality gates fail.
 - **An ambiguous name**: A draft may hold two variants or rules with the same name (spec 005,
   FR-004). An agent that names one by name only, when two match, is refused with the candidates and
   their links (FR-019).
+- **A connection without a description**: Allowed at every step, publishing included (spec 006,
+  FR-002). Answers leave the description out, a search by description doesn't find it, and the
+  approval page shows nothing in its place (FR-023).
+- **A connection's description and a variant's description**: Two different things. The first
+  replaces the serviceBW form (spec 006); the second belongs to a variant (spec 002). Tools name
+  which one they read or change.
 - **A link from another deployment**: A link whose address isn't this management interface's, such
   as a preview deployment's, is refused as not belonging to it (FR-030).
 - **The same rule in several variants**: A rule of Standard and its copy in a based variant share an
@@ -459,10 +552,24 @@ changing the guidance and check that the quality gates fail.
   new request for the same draft and action replaces the older one.
 - **The draft is published in the management interface while an approval is waiting**: Approving does
   nothing, and the page says that the draft has been published.
+- **A published connection deactivated, reactivated or deleted in the management interface while an
+  approval is waiting**: Approving does nothing, and the page says what changed (FR-024). A change
+  to the connection's content in the management interface doesn't affect the request, which applies
+  to the connection's status.
+- **Deactivating or reactivating a draft**: Refused, since a draft has nothing live (spec 005,
+  FR-007). Deleting a draft needs "Read and edit drafts" and approval (FR-021).
+- **Deleting a deactivated connection**: Allowed with "Read, edit drafts and manage live
+  connections" and approval. The approval page says that its URLs, which already answer
+  "unavailable", will do so for good.
 - **An approval link opened while signed out**: The team member signs in and returns to the page. If
   they sign in as someone else, they can't approve (FR-025).
 - **Signing out of the browser**: Ends the browser session only. Agent connections and tokens stay
   until they are revoked or expire, or the account is deleted (FR-005).
+- **Access changed on the user page while the agent works**: The agent's next call has the new
+  level, without connecting again. A call already running finishes with the level it started with.
+- **Access lowered or revoked while an approval is waiting**: A request that the new level doesn't
+  allow, or any request of a revoked agent connection or token, is cancelled. Approving it does
+  nothing, and the page says that the agent's access has changed (FR-006).
 - **A read-only agent that asks for findings or tests applicants**: Allowed, since nothing changes.
 - **Findings and tests on a published connection**: Allowed: the agent reads them as it reads the
   rules.
@@ -488,13 +595,21 @@ changing the guidance and check that the quality gates fail.
   without one.
 - **FR-002**: A team member MUST be able to connect an MCP client by signing in to the management
   interface in the browser, with the protocol's standard authorization, without copying codes or
-  secrets by hand. The consent page MUST name the client as it identifies itself and MUST offer the
-  access levels "Read only" and "Read and edit drafts". Denying MUST give no access.
-- **FR-003**: "Read only" MUST allow every tool that reads, checks or tests, and MUST refuse every
-  change. "Read and edit drafts" MUST also allow the changes to drafts (FR-012) and requests for
-  approval (FR-021). A read-only agent that tries a change MUST be refused with a message that says
-  so, and its client MUST be able to ask for the higher access level, which needs the team member's
-  consent again.
+  secrets by hand. The consent page MUST name the client as it identifies itself and MUST offer
+  three access levels, each with a short description of what it allows: "Read only", "Read and edit
+  drafts", and "Read, edit drafts and manage live connections" (FR-003). Denying MUST give no
+  access.
+- **FR-003**: Each access level MUST allow everything the one before it allows, and more:
+  - "Read only" MUST allow every tool that reads, checks or tests, and MUST refuse every change.
+  - "Read and edit drafts" MUST also allow the changes to drafts (FR-012) and requests to publish
+    or delete a draft (FR-021).
+  - "Read, edit drafts and manage live connections" MUST also allow requests to deactivate,
+    reactivate or delete a published connection (FR-021).
+
+  Every access level MUST refuse changes to a published connection's content (FR-018). An agent
+  that tries something its access level doesn't allow MUST be refused with a message that names the
+  access level it needs, and its client MUST be able to ask for that level, which needs the team
+  member's consent again. The team member can also change the level on their user page (FR-006).
 - **FR-004**: A team member MUST be able to create a personal access token on their user page, with a
   name, an access level as in FR-002, and an expiry of at most 90 days. The token MUST be shown once,
   when it is created, and MUST NOT be retrievable afterwards.
@@ -504,35 +619,44 @@ changing the guidance and check that the quality gates fail.
   (spec 001, FR-007). Signing out of the browser MUST NOT end them.
 - **FR-006**: The user menu MUST lead to a user page that lists the signed-in team member's active
   agent connections (client name, access level, when connected, when last used) and personal access
-  tokens (name, access level, when created, when it expires, when last used), and only theirs. The
-  team member MUST be able to revoke each one after confirming, and the agent's next call MUST then
-  be refused.
+  tokens (name, access level, when created, when it expires, when last used), and only theirs. For
+  each one, the team member MUST be able to:
+  - change its access level, higher or lower, choosing among the three levels, each shown with what
+    it allows, as on the consent page. The new level MUST apply from the agent's next call, without
+    connecting the agent again, and a token MUST keep its secret and its expiry;
+  - revoke it after confirming. The agent's next call MUST then be refused.
+
+  Revoking an agent connection or a token MUST cancel its waiting approval requests, and lowering
+  its access level MUST cancel those that the new level doesn't allow (FR-026).
 
 #### Reading (User Story 1)
 
-- **FR-007**: Agents MUST be able to find connections by part of their name or serviceBW form,
-  filtered by status (draft, published and active, deactivated), in pages of at most 25 short
-  entries (name, serviceBW form, status, last change, link), and to ask for the next page. A tool
-  MUST NOT list more than one page of connections at once.
-- **FR-008**: Agents MUST be able to read a connection in layers: an overview (name, serviceBW form,
+- **FR-007**: Agents MUST be able to find connections by part of their name or description,
+  filtered by status (draft; live, that is published and active; deactivated), in pages of at most
+  25 short entries (name, description, status, last change, link), and to ask for the next page.
+  A tool MUST NOT list more than one page of connections at once.
+- **FR-008**: Agents MUST be able to read a connection in layers: an overview (name, description,
   status, documents and their fields, each variant with its name, description, origin and number of
   rules, and the links); the rules of one variant, as readable statements and in a structured form
   with identifiers and marks; and one rule or group. Every connection that a team member can see,
-  draft or published (spec 005, FR-027), MUST be readable.
+  draft or published (spec 005, FR-027), MUST be readable. Wherever an answer gives a connection's
+  description, it MUST give it in full, never cut, and MUST leave it out when it is empty.
 - **FR-009**: Agents MUST be able to read the catalog in layers: the document types; for one type,
   its fields, their kinds, parts and whether they can hold several values, and the conditions each
   kind offers; and the values of a value set, searched by text and in pages.
 - **FR-010**: For a published connection, agents MUST be able to read its connection URLs: the
   trigger URL and the pull URL of each variant, labelled with the variant's name (spec 002, FR-025
-  and FR-026). For a draft, the answer MUST say that it has none until it is published.
+  and FR-026). For a deactivated connection, the answer MUST say that the URLs answer "unavailable"
+  until it is reactivated. For a draft, the answer MUST say that it has none until it is published.
 - **FR-011**: Every tool's answer MUST contain the links of the connections, variants, rules and
   groups it read or changed (FR-028).
 
 #### Changing drafts (User Story 2)
 
-- **FR-012**: Agents with "Read and edit drafts" MUST be able to make, on drafts, one change per call,
-  every change that the create flow offers:
-  - create a draft with a name; change its name and its serviceBW form;
+- **FR-012**: Agents with "Read and edit drafts" or "Read, edit drafts and manage live connections"
+  MUST be able to make, on drafts, one change per call, every change that the create flow offers:
+  - create a draft with a name and, optionally, a description; change its name; set, change and
+    clear its description;
   - add and remove documents, and choose their fields;
   - add a variant, based on Standard or empty; rename it and change its description; delete it;
     switch its top-level AND/OR, and reset a based variant's AND/OR to Standard's;
@@ -558,13 +682,18 @@ changing the guidance and check that the quality gates fail.
   say whether an agent or a team member made it.
 - **FR-016**: A change that the editor would refuse, or that breaks the structure (spec 005, FR-003),
   MUST be refused with a message that names the problem, the item and its variant, in the editor's or
-  the server's words, and says what the agent can do instead. The draft MUST stay as it was.
+  the server's words, and says what the agent can do instead. The draft MUST stay as it was. A
+  description longer than 500 characters, for example, MUST be refused with a message that names
+  the limit (spec 006, FR-003).
 - **FR-017**: A draft that an agent created or changed MUST open, when a team member continues it, at
   the furthest step its content reaches: the rules step once it has a rule, the documents step once
   it has a document, and the connection step otherwise.
-- **FR-018**: Published connections MUST be read-only for agents at every access level: no change to
-  their content, and no deactivating, reactivating or deleting. Such a call MUST be refused with a
-  message that published connections are changed in the management interface.
+- **FR-018**: The content of a published connection (its name, description, documents, variants
+  and rules) MUST be read-only for agents at every access level. Such a change MUST be refused with
+  a message that a published connection's content is changed in the management interface.
+  Deactivating, reactivating and deleting a published connection don't change its content: agents
+  with "Read, edit drafts and manage live connections" MUST be able to ask for them, with approval
+  (FR-021), and agents with another access level MUST be refused as FR-003 says.
 - **FR-019**: Tools MUST let agents name connections, variants, rules and groups by identifier or by
   link. Where a tool also accepts a name, a name that matches more than one item MUST be refused with
   the candidates and their links.
@@ -572,31 +701,49 @@ changing the guidance and check that the quality gates fail.
   than a limit set in the middleware's settings, 20 unless set otherwise. A refusal MUST say when it
   can create drafts again. Changes to existing drafts MUST NOT count towards the limit.
 
-#### Approval (User Story 3)
+#### Approval (User Stories 3 and 7)
 
-- **FR-021**: Publishing a draft and deleting a draft MUST need the approval of the team member the
-  agent acts for, given in the management interface. The tool MUST NOT act itself: it MUST create an
-  approval request and answer with the link to its approval page and the time it expires. Where the
-  client supports it, the client MUST be asked to show the link to the team member.
-- **FR-022**: Before an approval request to publish is created, the draft MUST pass publishing's
-  checks, with publishing's messages (spec 005, FR-009). A draft that fails them MUST be refused
-  without an approval request.
-- **FR-023**: The approval page MUST show what will happen. For publishing: the name, the serviceBW
-  form, the documents and their fields, each variant with its rules, and the findings of the rule
-  checks, as the publish step shows them. For deleting: the draft's name, its last change, and that
-  its content will be gone for good. It MUST offer to approve or to decline.
-- **FR-024**: An approval MUST apply to the draft's content as it was when the request was made. If
-  the draft has changed, been published or been deleted since, approving MUST do nothing, and the
-  page MUST say why. A new request for the same draft and action MUST replace an older one.
+- **FR-021**: Publishing a draft, deleting a draft, and deactivating, reactivating and deleting a
+  published connection MUST need the approval of the team member the agent acts for, given in the
+  management interface. The tool MUST NOT act itself: it MUST create an approval request and answer
+  with the link to its approval page and the time it expires. Where the client supports it, the
+  client MUST be asked to show the link to the team member.
+- **FR-022**: Before an approval request is created, the action MUST be possible: a draft to publish
+  MUST pass publishing's checks, with publishing's messages (spec 005, FR-009), for which the
+  description is optional (spec 006, FR-002); a connection to deactivate MUST be live, and one to
+  reactivate MUST be deactivated; a draft can't be deactivated or reactivated (spec 005, FR-007).
+  Otherwise the request MUST be refused without an approval request, with a message that says why.
+- **FR-023**: The approval page MUST show what will happen, and MUST offer to approve or to decline:
+  - publishing: the name, the description, the documents and their fields, each variant with its
+    rules, and the findings of the rule checks, as the publish step shows them;
+  - deleting a draft: the draft's name, its last change, and that its content will be gone for
+    good;
+  - deactivating: the connection's name and description, the connection URLs that will answer
+    "unavailable" until it is reactivated, and that requests in progress are cancelled;
+  - reactivating: the connection's name and description, and the connection URLs that will work
+    again;
+  - deleting a published connection: the connection's name and description, the connection URLs
+    that will stop working for good, that requests in progress are cancelled, and that deleting
+    can't be undone.
+
+  The description MUST appear as on the connection's details page (spec 006, FR-005 and FR-006): as
+  written, on one line cut with "…" where it doesn't fit, and not at all when it is empty.
+- **FR-024**: An approval MUST apply to the connection as it was when the request was made: for a
+  draft, its content; for a published connection, its status (live or deactivated). If the draft has
+  changed, been published or been deleted since, or the published connection has been deactivated,
+  reactivated or deleted since, approving MUST do nothing, and the page MUST say why. A new request
+  for the same connection and action MUST replace an older one.
 - **FR-025**: Only the team member the agent acts for MUST be able to approve. Another team member
   MUST see that they can't. A signed-out team member MUST sign in first and then return to the page.
 - **FR-026**: An approval request MUST expire 10 minutes after it was made. An expired, declined,
-  replaced or already used request MUST do nothing, and an approved request MUST act once.
-- **FR-027**: Publishing or deleting on approval MUST go through the same publishing and deleting as
-  the management interface (spec 005, FR-009 and FR-010). If publishing fails, the draft MUST stay a
-  draft, and the team member MUST be able to try again from the page while the request is valid. The
-  agent MUST be able to learn the outcome (waiting, done, declined, expired, replaced, failed) and,
-  once the draft is published, read its connection URLs.
+  replaced, cancelled (FR-006) or already used request MUST do nothing, and its page MUST say why.
+  An approved request MUST act once.
+- **FR-027**: An approved action MUST go through the same publishing, deactivating, reactivating and
+  deleting as the management interface (spec 001, FR-006; spec 005, FR-009 and FR-010). If it fails,
+  the connection MUST stay as it was (a draft stays a draft), the page MUST say so, and the team
+  member MUST be able to try again from the page while the request is valid. The agent MUST be able
+  to learn the outcome (waiting, done, declined, expired, replaced, cancelled, failed) and, once the
+  connection is published or reactivated, read its connection URLs.
 
 #### Links (User Story 4)
 
@@ -655,7 +802,7 @@ changing the guidance and check that the quality gates fail.
   serviceBW's connection URLs, or accounts.
 - **FR-040**: Tokens MUST NOT be shown after they are created, and MUST NOT be logged. What agents
   send as content (rules, messages, applicants) MUST NOT be logged.
-- **FR-041**: Everything that specs 001 to 005 deliver MUST keep working as it does: the editor, the
+- **FR-041**: Everything that specs 001 to 006 deliver MUST keep working as it does: the editor, the
   published connections, and their URLs for serviceBW.
 - **FR-042**: The new parts of the management interface (the consent page, the user page, the
   approval page, "Copy link" and opening a link) MUST meet WCAG 2.1 level AA, as the rest of the
@@ -666,15 +813,19 @@ changing the guidance and check that the quality gates fail.
 - **Agent**: An MCP client, such as an LLM tool on the team member's machine, that acts on behalf of
   one team member.
 - **Agent connection**: A team member's consent for one agent: the client's name as the client gives
-  it, the access level, when it was connected and when it was last used. It lasts until it is
-  revoked or unused for 30 days, or the account is deleted.
+  it, the access level, which the team member can change, when it was connected and when it was last
+  used. It lasts until it is revoked or unused for 30 days, or the account is deleted.
 - **Personal access token**: A secret that a team member creates for an agent that can't use the
-  browser sign-in: a name, an access level, an expiry, and when it was last used. Shown once.
-- **Access level**: "Read only" or "Read and edit drafts". Neither allows changing published
-  connections.
-- **Approval request**: An agent's request to publish or delete one draft: the draft, the draft
-  version it was made for, the action, the team member, its expiry, and its outcome (waiting, done,
-  declined, expired, replaced, failed).
+  browser sign-in: a name, an access level, which the team member can change, an expiry, and when it
+  was last used. Shown once.
+- **Access level**: "Read only", "Read and edit drafts", or "Read, edit drafts and manage live
+  connections", each allowing everything the one before it allows. Only the third allows asking to
+  deactivate, reactivate or delete a published connection, live or deactivated. None allows changing
+  a published connection's content.
+- **Approval request**: An agent's request to publish or delete a draft, or to deactivate,
+  reactivate or delete a published connection: the connection, the action, what it was made for
+  (the draft's version, or the published connection's status), the team member, its expiry, and its
+  outcome (waiting, done, declined, expired, replaced, cancelled, failed).
 - **Link**: An address in the management interface that names a connection and, optionally, a variant
   and a rule or group, by identifiers only.
 - **Variant identifier** (spec 002): Now also given to a draft's variants when they are added, and
@@ -692,10 +843,13 @@ changing the guidance and check that the quality gates fail.
   FR-012, checked against the editor's actions.
 - **SC-003**: For every action in the editor's tests of propagation and marks, the agents' tools store
   the same content as the editor: 100% of the compared cases.
-- **SC-004**: In the acceptance tests, agents change 0 published connections, and 0 drafts are
-  published or deleted without the approval of the team member the agent acts for.
+- **SC-004**: In the acceptance tests, agents change the content of 0 published connections; 0
+  drafts are published or deleted, and 0 published connections are deactivated, reactivated or
+  deleted, without the approval of the team member the agent acts for; and 0 agents without "Read,
+  edit drafts and manage live connections" get an approval request for a published connection.
 - **SC-005**: Revoking an agent connection or a token, or deleting the account, refuses the agent's
-  next call in 100% of the tests.
+  next call in 100% of the tests, and changing its access level on the user page applies the new
+  level from the agent's next call in 100% of the tests.
 - **SC-006**: With 1,000 stored connections, an agent finds a connection by part of its name in one
   call, and no answer lists more than 25 connections or the rules of more than one variant.
 - **SC-007**: The findings that agents receive equal those of the rules step in 100% of spec 003's
@@ -711,16 +865,20 @@ changing the guidance and check that the quality gates fail.
 
 ## Assumptions
 
-- **Builds on specs 001 to 005**: Every requirement of
+- **Builds on specs 001 to 006**: Every requirement of
   [spec 001](../001-servicebw-eudi-middleware/spec.md),
   [spec 002](../002-connection-rules/spec.md),
   [spec 003](../003-rule-consistency-checks/spec.md),
-  [spec 004](../004-rule-test-personas/spec.md) and
-  [spec 005](../005-connection-drafts/spec.md) still applies, except where this spec supersedes it:
-  spec 003, FR-020 and spec 004, FR-021 for agents (FR-035), and the drafts of spec 005, whose
-  variants now get identifiers (FR-029). Spec 005 is treated as implemented. The spec says
-  "variant" where spec 002 says "branch", as the UI does, and the main variant is "Standard" until
-  renamed.
+  [spec 004](../004-rule-test-personas/spec.md),
+  [spec 005](../005-connection-drafts/spec.md) and
+  [spec 006](../006-connection-description/spec.md) still applies, except where this spec
+  supersedes it: spec 003, FR-020 and spec 004, FR-021 for agents (FR-035), and the drafts of spec
+  005, whose variants now get identifiers (FR-029). Specs 005 and 006 are treated as implemented.
+  The spec says "variant" where spec 002 says "branch", as the UI does, and the main variant is
+  "Standard" until renamed.
+- **Description, not serviceBW form** (spec 006): A connection has an optional description of at
+  most 500 characters in place of the serviceBW form ("Form ID"). Agents search by it, read it and
+  set it as they do the name; it never affects requests, URLs or the wallet-communication service.
 - **Agents run locally**: MCP clients run on the team member's machine and reach the MCP server at
   the deployment's address. Clients hosted by an LLM provider aren't a target.
 - **Standard authorization**: The protocol's authorization (OAuth 2.1, authorization code with
@@ -733,8 +891,9 @@ changing the guidance and check that the quality gates fail.
   evaluator each have one implementation; the server's checks stay the safety net, as for the
   editor. Where the MCP server lives, and the amendment of the constitution it may need, are for
   the plan.
-- **No roles**: Every team member can see, continue and delete every draft (spec 005, FR-027). Their
-  agents can do what the access level allows within that.
+- **No roles**: Every team member can see, continue and delete every draft (spec 005, FR-027), and
+  deactivate, reactivate and delete every published connection (spec 001, FR-006). Their agents can
+  do what the access level allows within that.
 - **Defaults**: Approval requests expire after 10 minutes, agent connections end after 30 days
   without use, personal access tokens expire after at most 90 days, and an agent connection creates
   at most 20 drafts per hour unless the setting says otherwise. They are reasonable starting values;
@@ -742,11 +901,12 @@ changing the guidance and check that the quality gates fail.
 - **No activity log**: Who changed what isn't recorded by this feature (Clarifications).
 - **Browser-controlling agents**: Out of scope. Approval protects against agents that act only
   through the MCP server.
-- **Data protection**: A connection's set-up (names, serviceBW forms, rules, messages) reaches the LLM
+- **Data protection**: A connection's set-up (names, descriptions, rules, messages) reaches the LLM
   provider that the team member's agent uses. It holds no data about citizens. DO.IT has approved
   this (Clarifications).
 - **Language**: The tools, their messages and the guidance are in English, as the management
   interface is.
-- **Out of scope**: Changes to published connections by agents, including deactivating, reactivating
-  and deleting; changes to a published connection that are stored but not yet live; an activity log;
-  account management; document requests and citizens' data.
+- **Out of scope**: Changes to a published connection's content by agents (its name, description,
+  documents, variants and rules), at every access level; changes to a published connection that are
+  stored but not yet live; an activity log; account management; document requests and citizens'
+  data.
