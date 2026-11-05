@@ -1,8 +1,8 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { PUBLISH_COPY } from './constants';
+import { DRAFT_COPY, PUBLISH_COPY } from './constants';
 import PublishFindingLine from './PublishFindingLine';
 import PublishSummaryRow from './PublishSummaryRow';
-import type { PublishDialogProps } from './types';
+import type { DraftConflict, PublishDialogProps } from './types';
 import { findingLinesOf } from './utils';
 
 /**
@@ -20,6 +20,10 @@ import { findingLinesOf } from './utils';
  * line would be (research R11), one line per branch with findings, in tab order. "Check rules
  * again" then leads back to them. Without findings nothing is added (US4-AS4), and findings never
  * disable "Publish" or "Save" nor ask anything more (US4-AS5).
+ *
+ * Spec 005 (S2, W4; FR-022 to FR-024): if publishing a draft met another team member's save, the
+ * same alert shows the conflict's title, message and hint, and its buttons replace "Publish". A
+ * conflict wins over a stale `error` or `rulesChanged`; without one, nothing changes (FR-026).
  */
 export default function PublishDialog({
   open,
@@ -37,6 +41,9 @@ export default function PublishDialog({
   onConfirm,
   onReload,
   onReplace,
+  conflict,
+  onOpenConnection,
+  onSaveAsNew,
 }: PublishDialogProps) {
   const title = withoutRules
     ? editing
@@ -62,6 +69,9 @@ export default function PublishDialog({
       : PUBLISH_COPY.checkRulesAgain;
   // Publishing without rules has no rules to have findings
   const findingLines = withoutRules ? [] : findingLinesOf(branches, checks);
+  const actions = conflict
+    ? conflictActionsOf(conflict, { onReload, onReplace, onOpenConnection, onSaveAsNew })
+    : null;
   return (
     <ConfirmDialog
       open={open}
@@ -69,15 +79,30 @@ export default function PublishDialog({
       text={intro}
       textClassName="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
       confirmLabel={editing ? PUBLISH_COPY.save : PUBLISH_COPY.publish}
-      cancelLabel={cancelLabel}
-      busyLabel={editing ? PUBLISH_COPY.saving : PUBLISH_COPY.publishing}
+      cancelLabel={actions ? DRAFT_COPY.cancel : cancelLabel}
+      busyLabel={
+        // "Save as new draft" saves a draft and publishes nothing (S0's "Saving…")
+        conflict?.kind === 'draft_deleted'
+          ? DRAFT_COPY.saving
+          : editing
+            ? PUBLISH_COPY.saving
+            : PUBLISH_COPY.publishing
+      }
       busy={publishing}
-      error={error}
-      errorTitle={errorTitle}
-      retryLabel={rulesChanged ? PUBLISH_COPY.replaceTheirChanges : PUBLISH_COPY.retry}
-      onCancel={rulesChanged ? onReload : onCancel}
+      error={actions ? { message: actions.message } : error}
+      errorTitle={actions ? actions.title : errorTitle}
+      retryLabel={
+        actions
+          ? actions.confirmLabel
+          : rulesChanged
+            ? PUBLISH_COPY.replaceTheirChanges
+            : PUBLISH_COPY.retry
+      }
+      secondaryLabel={actions?.secondary?.label}
+      onSecondary={actions?.secondary?.onClick}
+      onCancel={actions ? onClose : rulesChanged ? onReload : onCancel}
       onClose={onClose}
-      onConfirm={rulesChanged ? onReplace : onConfirm}
+      onConfirm={actions ? actions.onConfirm : rulesChanged ? onReplace : onConfirm}
     >
       {/* "Dialog content/Publish · summary": a two-column table, documents then rules */}
       <dl className="rounded-kern-large flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)">
@@ -93,4 +118,53 @@ export default function PublishDialog({
       )}
     </ConfirmDialog>
   );
+}
+
+interface ConflictHandlers {
+  onReload: () => void;
+  onReplace: () => void;
+  onOpenConnection: () => void;
+  onSaveAsNew: () => void;
+}
+
+interface ConflictActions {
+  title: string;
+  /** The conflict's message, then its hint (S2) */
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  /** "Reload", only in `draft_changed` */
+  secondary?: { label: string; onClick: () => void };
+}
+
+/**
+ * The alert and the buttons of a draft conflict (S2): "Cancel" closes the dialog, and in
+ * `draft_changed` it turns tertiary beside "Reload"
+ */
+function conflictActionsOf(conflict: DraftConflict, handlers: ConflictHandlers): ConflictActions {
+  switch (conflict.kind) {
+    case 'draft_changed':
+      return {
+        title: DRAFT_COPY.draftChangedTitle,
+        message: `${conflict.message} ${DRAFT_COPY.draftChangedHint}`,
+        confirmLabel: DRAFT_COPY.replaceTheirChanges,
+        onConfirm: handlers.onReplace,
+        secondary: { label: DRAFT_COPY.reload, onClick: handlers.onReload },
+      };
+    case 'draft_published':
+      return {
+        title: DRAFT_COPY.draftPublishedTitle,
+        message: `${conflict.message} ${DRAFT_COPY.draftPublishedHint}`,
+        confirmLabel: DRAFT_COPY.openConnection,
+        onConfirm: handlers.onOpenConnection,
+      };
+    case 'draft_deleted':
+      // Its message already is the deleted text
+      return {
+        title: DRAFT_COPY.draftDeletedTitle,
+        message: conflict.message,
+        confirmLabel: DRAFT_COPY.saveAsNewDraft,
+        onConfirm: handlers.onSaveAsNew,
+      };
+  }
 }

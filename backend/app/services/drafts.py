@@ -36,7 +36,11 @@ from ..schemas import (
 )
 from ..schemas import FormConnection as FormConnectionView
 from . import form_connections, rules
-from .form_connections import DRAFT_PUBLISHED_DETAIL, DraftGuard
+from .form_connections import (
+    DRAFT_CHANGED_DETAIL,
+    DRAFT_PUBLISHED_DETAIL,
+    DraftGuard,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,12 @@ logger = logging.getLogger(__name__)
 def _draft_published() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_409_CONFLICT, detail=DRAFT_PUBLISHED_DETAIL
+    )
+
+
+def _draft_changed() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT, detail=DRAFT_CHANGED_DETAIL
     )
 
 
@@ -83,20 +93,36 @@ def get_form_connection_or_draft(
     return form_connections.get_form_connection(db, form_connection_id)
 
 
-def _check_state(form_connection: FormConnection) -> None:
-    """Answer 409 `draft_published` if the row is no longer a draft (FR-023)."""
+def _check_state(
+    form_connection: FormConnection, version: int | None, replace: bool
+) -> None:
+    """Refuse a row that is no longer the draft the editor loaded (research R6).
+
+    409 `draft_published` if it is published, first and also with `replace`
+    (FR-023), then 409 `draft_changed` if `version` isn't the stored version and
+    `replace` is false (FR-022). Without a `version` (deleting a draft), only the
+    state is checked. `DraftGuard.check()` makes the same comparison when
+    publishing.
+    """
     if form_connection.published_at is not None:
         raise _draft_published()
+    if version is not None and not replace and version != form_connection.draft_version:
+        raise _draft_changed()
 
 
-def _lock_draft(db: Session, form_connection_id: str) -> FormConnection:
-    """Lock a draft's row and check its state, or answer 404 or 409.
+def _lock_draft(
+    db: Session,
+    form_connection_id: str,
+    version: int | None = None,
+    replace: bool = False,
+) -> FormConnection:
+    """Lock a draft's row and check it with `_check_state`, or answer 404 or 409.
 
     A refusal releases the lock.
     """
     form_connection = form_connections._lock_form_connection(db, form_connection_id)
     try:
-        _check_state(form_connection)
+        _check_state(form_connection, version, replace)
     except HTTPException:
         db.rollback()
         raise
@@ -173,19 +199,24 @@ def save_draft(
     """Replace a draft's content, name and serviceBW form, and raise its version.
 
     1. Read the row: 404 if it's missing, 409 `draft_published` if it's
-       published, before the content is checked.
+       published (also with `data.replace`), and 409 `draft_changed` if
+       `data.version` is outdated and `data.replace` is false, before the content
+       is checked, so that a stale editor meets the conflict (research R6).
     2. Check the structure (FR-003): 400 before anything is written.
-    3. Lock the row and check its state again, number new identifiers from the
-       row's counters (research R4), write the content, raise the counters (never
-       lower them) and add 1 to the version, in one commit (FR-002, FR-022).
+    3. Lock the row and repeat step 1, number new identifiers from the row's
+       counters (research R4), write the content, raise the counters (never lower
+       them) and add 1 to the version, in one commit (FR-002, FR-022).
 
-    `data.version` and `data.replace` are accepted; comparing the version comes
-    with the conflicts of US3. No EUDIPLO call.
+    A refusal stores nothing. No EUDIPLO call.
     """
-    _check_state(form_connections.find_form_connection(db, form_connection_id))
+    _check_state(
+        form_connections.find_form_connection(db, form_connection_id),
+        data.version,
+        data.replace,
+    )
     name, servicebw_form, documents, save = _clean_draft(data)
 
-    form_connection = _lock_draft(db, form_connection_id)
+    form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
     numbering = rules.number_draft(
         save, (form_connection.next_rule_number, form_connection.next_group_number)
     )
@@ -210,21 +241,24 @@ def publish_draft(
     """Publish a draft: the first revision, rule set 1 and the URLs (FR-009).
 
     1. Read the row: 404 if it's missing, 409 `draft_published` if it's
-       published.
+       published (also with `data.replace`), and 409 `draft_changed` if
+       `data.version` is outdated and `data.replace` is false, before the content
+       is checked (research R6).
     2. The checks of creating a form connection, unchanged and in its order, and
        the rules' identifiers against the draft's counters: 400 before anything is
        written.
-    3. `form_connections.create_revision()` with a `DraftGuard`, which reserves
-       the revision, creates the EUDIPLO configuration with no transaction held,
-       and publishes the row in one commit (research R5).
+    3. `form_connections.create_revision()` with a `DraftGuard`, which repeats
+       step 1 under both of its row locks, reserves the revision, creates the
+       EUDIPLO configuration with no transaction held, and publishes the row in
+       one commit (research R5).
 
     An `EudiploError` reaches the caller, and the draft stays a draft. A draft
-    deleted meanwhile answers 404, and one published meanwhile 409
-    `draft_published`. `data.version` and `data.replace` reach the guard;
-    comparing the version comes with the conflicts of US3.
+    deleted meanwhile answers 404, one published meanwhile 409 `draft_published`,
+    and one saved meanwhile 409 `draft_changed` unless `data.replace`; the
+    configuration is then deleted again and the draft keeps its stored content.
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
-    _check_state(form_connection)
+    _check_state(form_connection, data.version, data.replace)
     name = form_connections.clean_name(data.name)
     servicebw_form = form_connections.clean_servicebw_form(data.servicebw_form)
     documents = form_connections.clean_documents(data.documents)
@@ -256,10 +290,10 @@ def publish_draft(
 def delete_draft(db: Session, form_connection_id: str) -> None:
     """Remove a draft for good (FR-010, research R7).
 
-    Answers 404 if it's missing and 409 `draft_published` if it's published.
-    Otherwise deletes any revision that a publish in flight reserved, then the row,
-    in one commit; that publish then finds no row, answers 404 and deletes its own
-    configuration. No EUDIPLO call.
+    Answers 404 if it's missing and 409 `draft_published` if it's published; it
+    compares no version. Otherwise deletes any revision that a publish in flight
+    reserved, then the row, in one commit; that publish then finds no row, answers
+    404 and deletes its own configuration. No EUDIPLO call.
     """
     form_connection = _lock_draft(db, form_connection_id)
     db.execute(

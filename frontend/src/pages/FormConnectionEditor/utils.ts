@@ -22,7 +22,9 @@ import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
 import type { RulesProblem } from '../../utils/rules/types';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
+  DRAFT_CHANGED_ERROR,
   DRAFT_COPY,
+  DRAFT_PUBLISHED_ERROR,
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
@@ -37,6 +39,7 @@ import { MAIN_BRANCH_KEY, RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 import { initialRulesState, newBranchKey, rulesReducer } from './RulesStep/utils';
 import type {
+  DraftConflict,
   DraftSaveError,
   DroppedData,
   EditorAction,
@@ -457,6 +460,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, savingDraft: true, draftError: null };
     case 'saveDraftFailed':
       return { ...state, savingDraft: false, draftError: action.error };
+    case 'draftConflict':
+      // The conflict dialog, or the publish dialog, shows it in place of a message (S2)
+      return { ...state, savingDraft: false, publishing: false, conflict: action.conflict };
+    case 'closeConflict':
+      return { ...state, conflict: null };
   }
 }
 
@@ -669,6 +677,32 @@ export function isRulesChanged(error: unknown): error is ApiError {
   return (
     error instanceof ApiError && error.status === 409 && error.data.error === RULES_CHANGED_ERROR
   );
+}
+
+/**
+ * The conflict a draft's save or publish met (S2; R6; contracts/local-drafts.md): `409
+ * draft_changed` or `draft_published` with the server's message, or a `404` while the flow edits a
+ * stored draft, which another team member deleted. Anything else, and every failure of a new or a
+ * published origin, is null, so the existing handling applies (`rules_changed` among them).
+ */
+export function conflictOf(
+  error: unknown,
+  origin: EditorOrigin,
+  during: 'save' | 'publish'
+): DraftConflict | null {
+  if (origin.kind !== 'draft' || !(error instanceof ApiError)) {
+    return null;
+  }
+  if (
+    error.status === 409 &&
+    (error.data.error === DRAFT_CHANGED_ERROR || error.data.error === DRAFT_PUBLISHED_ERROR)
+  ) {
+    return { kind: error.data.error, during, message: error.data.message };
+  }
+  if (error.status === 404) {
+    return { kind: 'draft_deleted', during, message: DRAFT_COPY.draftDeletedText };
+  }
+  return null;
 }
 
 /**

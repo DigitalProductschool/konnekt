@@ -24,6 +24,12 @@ export interface ConfirmDialogProps {
   errorTitle?: string;
   /** The confirm button's label after a failure */
   retryLabel?: string;
+  /**
+   * A third action between cancel and confirm, such as "Reload". With it, the cancel button
+   * turns tertiary and this one is the secondary button; without it, nothing changes
+   */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   /** The cancel button */
   onCancel: () => void;
   /** The close button and Escape, when they do something else than the cancel button */

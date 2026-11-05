@@ -77,6 +77,18 @@ export interface DraftSaveError {
   retryable: boolean;
 }
 
+/**
+ * A draft save or publish refused because another team member saved, published or deleted the
+ * draft meanwhile (data-model.md section 7; S2; R6), from `conflictOf()`
+ */
+export interface DraftConflict {
+  kind: 'draft_changed' | 'draft_published' | 'draft_deleted';
+  /** What "Replace their changes" resends */
+  during: 'save' | 'publish';
+  /** The server's message, or the deleted text */
+  message: string;
+}
+
 export interface FormConnectionEditorPageProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
@@ -100,7 +112,9 @@ export interface FormConnectionEditorPageProps {
   initialStep?: EditorStep;
   /**
    * When editing: fetches the connection again and opens the wizard anew at the Rules step,
-   * dropping the unsaved changes (W9)
+   * dropping the unsaved changes (W9). For a stored draft on its edit route, a conflict's
+   * "Reload": fetches the draft again and opens it at its stored step (S2); without it, the flow
+   * opens the draft's edit route
    */
   onReload?: () => void;
   /**
@@ -190,6 +204,8 @@ export interface EditorState {
   savingDraft: boolean;
   /** A refused or failed draft save, shown above the step until the step changes (FR-013) */
   draftError: DraftSaveError | null;
+  /** The dialog after a refused draft save or publish (S2; R6); `rulesChanged` stays for edits */
+  conflict: DraftConflict | null;
 }
 
 export type EditorAction =
@@ -214,7 +230,11 @@ export type EditorAction =
   | { type: 'publishFailed'; error: ErrorNotice; rulesChanged: boolean }
   /** "Save and exit" starts storing the draft */
   | { type: 'saveDraft' }
-  | { type: 'saveDraftFailed'; error: DraftSaveError };
+  | { type: 'saveDraftFailed'; error: DraftSaveError }
+  /** A draft save or publish met another team member's save: the conflict dialog opens (S2) */
+  | { type: 'draftConflict'; conflict: DraftConflict }
+  /** The conflict dialog's "Cancel", or its answer starting */
+  | { type: 'closeConflict' };
 
 export interface ConnectionStepProps {
   name: string;
@@ -319,8 +339,37 @@ export interface PublishDialogProps {
   onConfirm: () => void;
   /** "Reload", after `rulesChanged` */
   onReload: () => void;
-  /** "Replace their changes", after `rulesChanged`: the same save, replacing their rules */
+  /**
+   * "Replace their changes", after `rulesChanged` (the same save, replacing their rules) or
+   * `draft_changed` (the same publish with `replace: true`)
+   */
   onReplace: () => void;
+  /**
+   * The last publish of a draft met another team member's save (S2): the dialog shows its
+   * message and buttons in place of "Publish"
+   */
+  conflict: DraftConflict | null;
+  /** "Open the connection", after `draft_published` */
+  onOpenConnection: () => void;
+  /** "Save as new draft", after `draft_deleted` */
+  onSaveAsNew: () => void;
+}
+
+export interface DraftConflictDialogProps {
+  /** The conflict after "Save and exit"; the dialog is open while there is one */
+  conflict: DraftConflict | null;
+  /** An answer, such as "Replace their changes", is running */
+  busy: boolean;
+  /** "Reload", after `draft_changed` */
+  onReload: () => void;
+  /** "Replace their changes", after `draft_changed`: the same save with `replace: true` */
+  onReplace: () => void;
+  /** "Open the connection", after `draft_published` */
+  onOpenConnection: () => void;
+  /** "Save as new draft", after `draft_deleted` */
+  onSaveAsNew: () => void;
+  /** "Cancel" and Escape: the team member stays in the flow with their work */
+  onCancel: () => void;
 }
 
 export interface RemoveDataDialogProps {

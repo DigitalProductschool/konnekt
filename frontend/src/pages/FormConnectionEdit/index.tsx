@@ -22,6 +22,7 @@ import {
   draftFlowReducer,
   initialDraftFlowState,
   initialStepOf,
+  reloadedOf,
   restoreChoiceOf,
   storedContentOf,
 } from './utils';
@@ -39,7 +40,10 @@ import {
  *   its details asked for, the test step included, or else at the step it was saved in (FR-008;
  *   S0, research R10). Its saves and its publishing send the version it was loaded at. If this
  *   device holds unsaved changes to it (its `draft-<id>` local draft), the page first asks
- *   whether to restore them (S5, W6; FR-016; "Rules for callers" 2).
+ *   whether to restore them (S5, W6; FR-016; "Rules for callers" 2). "Reload", after another
+ *   team member saved the draft (S2; R6), drops that local draft, fetches the draft again and
+ *   opens a new wizard at the step it was stored in, not at the one its details asked for, with
+ *   the focus on the page title.
  */
 export default function FormConnectionEditPage() {
   const { id = '' } = useParams();
@@ -47,7 +51,8 @@ export default function FormConnectionEditPage() {
   // Read once, so that going back to step 1 isn't undone by a re-render
   const [requested] = useState<unknown>(() => location.state);
   const [initialStep, setInitialStep] = useState<EditorStep>(() => initialStepOf(requested));
-  const [reloaded, setReloaded] = useState(false);
+  // A draft conflict's "Reload" from a resumed local draft opens this page as reloaded (S2)
+  const [reloaded, setReloaded] = useState(() => reloadedOf(requested));
   const { state, retry } = useFormConnection(id);
   const { store, username } = useLocalDraftStore();
   const publishedId =
@@ -68,6 +73,13 @@ export default function FormConnectionEditPage() {
     retry();
   }
 
+  // A draft's conflict (S2): its local draft is already gone, so the flow opens the draft as now
+  // stored, at its stored step
+  function handleDraftReload() {
+    setReloaded(true);
+    retry();
+  }
+
   if (state.status !== 'loaded') {
     return <FormConnectionLoadState state={state} onRetry={retry} />;
   }
@@ -77,7 +89,10 @@ export default function FormConnectionEditPage() {
       <DraftEditFlow
         key={`${loaded.id}:${state.attempt}`}
         draft={loaded}
-        initialStep={initialStepOf(requested, loaded)}
+        // After a reload, the step the details asked for no longer applies
+        initialStep={initialStepOf(reloaded ? null : requested, loaded)}
+        onReload={handleDraftReload}
+        reloaded={reloaded}
       />
     );
   }
@@ -98,7 +113,7 @@ export default function FormConnectionEditPage() {
  * brings the restore question before the editor mounts, so that the editor's autosave can't write
  * over it until the team member has answered.
  */
-function DraftEditFlow({ draft, initialStep }: DraftEditFlowProps) {
+function DraftEditFlow({ draft, initialStep, onReload, reloaded }: DraftEditFlowProps) {
   const { store, username } = useLocalDraftStore();
   const navigate = useNavigate();
   const flowKey = flowKeyOfDraft(draft.id);
@@ -146,9 +161,9 @@ function DraftEditFlow({ draft, initialStep }: DraftEditFlowProps) {
       />
     );
   }
-  // After an answer to the question, the dialog that had the focus is gone: as after Reload, the
-  // focus starts on the page title
-  const answered = stored.choice === 'ask';
+  // After an answer to the question, or after a conflict's Reload, the dialog that had the focus
+  // is gone: the focus starts on the page title
+  const answered = stored.choice === 'ask' || reloaded;
   if (flow.restored) {
     // At the version the record was loaded at, so a save meets the conflict if the draft changed
     // since (US3); the stored draft as loaded stays the baseline (data-model.md section 6)
@@ -157,6 +172,7 @@ function DraftEditFlow({ draft, initialStep }: DraftEditFlowProps) {
         origin={originOfRecord(flow.restored)}
         initialStates={initialStatesFromLocal(flow.restored)}
         baseline={storedContentOf(draft)}
+        onReload={onReload}
         reloaded={answered}
       />
     );
@@ -170,6 +186,7 @@ function DraftEditFlow({ draft, initialStep }: DraftEditFlowProps) {
         flowKey,
       }}
       initialStates={stored.states}
+      onReload={onReload}
       reloaded={answered}
     />
   );

@@ -19,6 +19,11 @@ export interface EditLocationState {
    * card's "Edit rules" the rules (FR-030); a draft's details may also open the test step
    */
   step?: 'connection' | 'documents' | 'rules' | 'test';
+  /**
+   * Opened by a draft conflict's "Reload" from a resumed local draft (spec 005, S2): the draft
+   * opens at its stored step, with the focus on the page title
+   */
+  reloaded?: boolean;
 }
 
 /** Router state that the overview reads */

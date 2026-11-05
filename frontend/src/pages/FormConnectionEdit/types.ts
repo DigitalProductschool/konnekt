@@ -24,6 +24,10 @@ export interface DraftEditFlowProps {
   draft: FormConnectionDraft;
   /** The step the stored draft opens at, from `initialStepOf()` */
   initialStep: EditorStep;
+  /** A conflict's "Reload" (S2): fetches the draft again and opens it at its stored step */
+  onReload: () => void;
+  /** Opened anew by `onReload`: the focus starts on the page title */
+  reloaded: boolean;
 }
 
 export interface RestoreDialogProps {

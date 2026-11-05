@@ -16,8 +16,15 @@ import { mainBranch, US1_RULES } from '../../utils/rules/testData';
 import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
-import type { DraftSaveError, DroppedData, PendingRemoval } from './types';
+import type {
+  DraftConflict,
+  DraftSaveError,
+  DroppedData,
+  EditorOrigin,
+  PendingRemoval,
+} from './types';
 import {
+  conflictOf,
   createPayload,
   draftNameErrors,
   draftPayload,
@@ -281,6 +288,105 @@ describe('editorReducer and saving a draft (FR-013, S1.5)', () => {
     expect(editorReducer(failed, { type: 'goToStep', step: 'connection' })).toMatchObject({
       step: 'connection',
       draftError: null,
+    });
+  });
+});
+
+describe('conflictOf (S2; R6)', () => {
+  const draftOrigin: EditorOrigin = {
+    kind: 'draft',
+    draftId: 'd1',
+    draftVersion: 3,
+    flowKey: 'draft-d1',
+  };
+  const newOrigin: EditorOrigin = { kind: 'new', flowKey: 'new-1' };
+  const publishedOrigin: EditorOrigin = { kind: 'published', formConnection: LOADED };
+  const changed = new ApiError(409, {
+    error: 'draft_changed',
+    message: 'Kim saved this draft at 14:32.',
+  });
+  const published = new ApiError(409, {
+    error: 'draft_published',
+    message: 'Kim published this draft at 14:32.',
+  });
+  const deleted = new ApiError(404, { error: 'not_found', message: 'Draft not found.' });
+
+  it('gives draft_changed with the server message and what was running', () => {
+    expect(conflictOf(changed, draftOrigin, 'save')).toEqual({
+      kind: 'draft_changed',
+      during: 'save',
+      message: 'Kim saved this draft at 14:32.',
+    });
+    expect(conflictOf(changed, draftOrigin, 'publish')?.during).toBe('publish');
+  });
+
+  it('gives draft_published with the server message', () => {
+    expect(conflictOf(published, draftOrigin, 'publish')).toEqual({
+      kind: 'draft_published',
+      during: 'publish',
+      message: 'Kim published this draft at 14:32.',
+    });
+  });
+
+  it('gives draft_deleted with the deleted text for a 404 of a stored draft', () => {
+    expect(conflictOf(deleted, draftOrigin, 'save')).toEqual({
+      kind: 'draft_deleted',
+      during: 'save',
+      message: DRAFT_COPY.draftDeletedText,
+    });
+  });
+
+  it('is null for any other answer of a stored draft', () => {
+    const other409 = new ApiError(409, { error: 'rules_changed', message: 'Changed.' });
+    const badRequest = new ApiError(400, { error: 'draft_changed', message: 'Invalid.' });
+    const serverError = new ApiError(500, { error: 'server_error', message: 'Failed.' });
+    expect(conflictOf(other409, draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(badRequest, draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(serverError, draftOrigin, 'publish')).toBeNull();
+    expect(conflictOf(new TypeError('Failed to fetch'), draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(undefined, draftOrigin, 'save')).toBeNull();
+  });
+
+  it('is null for a new or a published origin', () => {
+    for (const origin of [newOrigin, publishedOrigin]) {
+      expect(conflictOf(changed, origin, 'save')).toBeNull();
+      expect(conflictOf(published, origin, 'publish')).toBeNull();
+      expect(conflictOf(deleted, origin, 'publish')).toBeNull();
+    }
+  });
+});
+
+describe('editorReducer and draft conflicts (S2)', () => {
+  const conflict: DraftConflict = {
+    kind: 'draft_changed',
+    during: 'save',
+    message: 'Kim saved this draft at 14:32.',
+  };
+
+  it('starts with no conflict', () => {
+    expect(INITIAL_EDITOR_STATE.conflict).toBeNull();
+  });
+
+  it('draftConflict shows the conflict and ends the save and the publish', () => {
+    const running = {
+      ...INITIAL_EDITOR_STATE,
+      savingDraft: true,
+      publishing: true,
+      dialogOpen: true,
+    };
+    expect(editorReducer(running, { type: 'draftConflict', conflict })).toMatchObject({
+      conflict,
+      savingDraft: false,
+      publishing: false,
+      dialogOpen: true,
+    });
+  });
+
+  it('closeConflict takes the conflict away and keeps the work', () => {
+    const shown = { ...INITIAL_EDITOR_STATE, name: 'Parking permit', conflict };
+    expect(editorReducer(shown, { type: 'closeConflict' })).toMatchObject({
+      conflict: null,
+      name: 'Parking permit',
     });
   });
 });

@@ -63,6 +63,11 @@ DRAFT_PUBLISHED_DETAIL = {
     'error': 'draft_published',
     'message': 'This draft has been published since you opened it.',
 }
+# No variant of a draft has a pull URL, so the message names none (spec 005, R6)
+DRAFT_CHANGED_DETAIL = {
+    'error': 'draft_changed',
+    'message': 'Another team member saved this draft after you opened it.',
+}
 
 
 def _validation_error(message: str) -> HTTPException:
@@ -334,10 +339,19 @@ class DraftGuard:
     replace: bool
 
     def check(self, form_connection: FormConnection) -> None:
-        """Answer 409 `draft_published` if the row is no longer a draft."""
+        """Refuse a row that is no longer the draft the editor loaded.
+
+        409 `draft_published` if it is published, also with `replace` (FR-023),
+        then 409 `draft_changed` if another save raised its version and `replace`
+        is false (FR-022).
+        """
         if form_connection.published_at is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail=DRAFT_PUBLISHED_DETAIL
+            )
+        if not self.replace and self.version != form_connection.draft_version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=DRAFT_CHANGED_DETAIL
             )
 
 
@@ -612,9 +626,10 @@ def create_revision(
     `guard.check()` runs under both row locks, before the revision is reserved
     (revision 1 on a draft without revisions, or 2 if a concurrent attempt still
     holds 1) and before it becomes current. A draft that is deleted meanwhile
-    answers 404, and one published meanwhile 409 `draft_published`; either way the
-    configuration is deleted again, and a refusal under the last lock also removes
-    the revision. Otherwise the last commit makes the revision current, writes
+    answers 404, one published meanwhile 409 `draft_published` (also with
+    `replace`), and one saved meanwhile 409 `draft_changed` unless `replace`; either
+    way the configuration is deleted again, and a refusal under the last lock also
+    removes the revision. Otherwise the last commit makes the revision current, writes
     rule set 1, the branch rows and the counters (`rules.first_rule_set()` with the
     row's counters, from `save` or the main branch "Standard" without rules),
     applies `changes`, sets `published_at`, and clears `draft` and `draft_version`.

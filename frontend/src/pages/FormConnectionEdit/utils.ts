@@ -20,6 +20,14 @@ export function initialStepOf(state: unknown, draft?: FormConnectionDraft): Edit
 }
 
 /**
+ * Whether a draft conflict's "Reload" opened the page, from a draft resumed through `?local=`
+ * (spec 005, S2): then the focus starts on the page title, as after the page's own reload.
+ */
+export function reloadedOf(state: unknown): boolean {
+  return (state as EditLocationState | null)?.reloaded === true;
+}
+
+/**
  * The stored draft as loaded, as a local draft's content (data-model.md section 6): what the
  * editor would hold on opening it, and the baseline after "Restore changes".
  */

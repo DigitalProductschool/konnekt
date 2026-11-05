@@ -2,8 +2,9 @@
 
 Part 1 (T016): the draft lifecycle. Creating, reading, listing, saving, numbering,
 publishing and deleting drafts, the boundaries between draft and published
-endpoints, and authentication. The publish parity table (T017) and the
-concurrency tests (T018) follow below and reuse the helpers at the top.
+endpoints, and authentication. The publish parity table (T017), the
+concurrency tests (T018) and the conflicts of two team members (T046) follow
+below and reuse the helpers at the top.
 """
 
 import json
@@ -27,11 +28,12 @@ from app.models import (
     FormConnectionRuleSet,
 )
 from app.routers.form_connections import CONFIG_FAILED
-from app.schemas import DraftPublish
+from app.schemas import DraftPublish, DraftUpdate
 from app.schemas import FormConnection as FormConnectionView
 from app.services import drafts
 from app.services.dcql import config_hash
 from app.services.form_connections import (
+    DRAFT_CHANGED_DETAIL,
     DRAFT_PUBLISHED_DETAIL,
     NOT_PUBLISHED_DETAIL,
 )
@@ -1398,3 +1400,301 @@ def test_a_draft_deleted_during_its_publish_is_not_published(
     assert fake_eudiplo.configs == {}
     assert deleted_configs(fake_eudiplo) == created_configs
     assert signed_in_client.get(f'{BASE}/{draft_id}').status_code == 404
+
+
+# Conflicts of two team members (T046, research R6, SC-006)
+
+
+def their_save(client: TestClient, draft_id: str) -> dict[str, Any]:
+    """The first team member saves version 1; return the draft as they stored it."""
+    response = save(
+        client,
+        draft_id,
+        1,
+        name='Führerschein (their name)',
+        servicebw_form='FS-1',
+        step='documents',
+    )
+    assert response.status_code == 200, response.json()
+    data: dict[str, Any] = response.json()['data']
+    assert data['version'] == 2
+    return data
+
+
+# The second team member's version of the whole draft: other documents, a rule
+# that raises the counters, and another step
+OUR_DRAFT: dict[str, Any] = {
+    'name': 'Führerschein (our name)',
+    'servicebw_form': 'FS-2',
+    'documents': FORM_CONNECTION['documents'],
+    'rules': draft_rules([main_branch([AGE_RULE, CLASS_RULE])]),
+    'step': 'rules',
+}
+
+
+def test_saving_an_outdated_version_answers_draft_changed(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US3-AS1: refused before anything is stored."""
+    draft_id = create_draft(signed_in_client)
+    theirs = their_save(signed_in_client, draft_id)
+
+    response = save(signed_in_client, draft_id, 1, **OUR_DRAFT)
+
+    assert response.status_code == 409
+    assert response.json() == DRAFT_CHANGED_DETAIL
+    assert response.json()['message'] == (
+        'Another team member saved this draft after you opened it.'
+    )
+    # Content, version and counters as the first team member saved them
+    assert get(signed_in_client, draft_id) == theirs
+    assert fake_eudiplo.calls == []
+
+
+def test_an_outdated_save_meets_the_conflict_before_the_structure_check(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """A stale editor meets the conflict, not a refusal its staleness causes."""
+    draft_id = create_draft(signed_in_client)
+    theirs = their_save(signed_in_client, draft_id)
+
+    response = save(signed_in_client, draft_id, 1, name='  ')
+
+    assert response.status_code == 409
+    assert response.json() == DRAFT_CHANGED_DETAIL
+    assert get(signed_in_client, draft_id) == theirs
+
+
+def test_replacing_their_changes_stores_the_whole_draft(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US3-AS3: the whole draft is stored, and their next old save is refused."""
+    draft_id = create_draft(signed_in_client)
+    their_save(signed_in_client, draft_id)
+
+    response = save(signed_in_client, draft_id, 1, replace=True, **OUR_DRAFT)
+
+    assert response.status_code == 200, response.json()
+    data = response.json()['data']
+    assert data['version'] == 3
+    assert data['name'] == OUR_DRAFT['name']
+    assert data['servicebw_form'] == OUR_DRAFT['servicebw_form']
+    assert [document['document_type'] for document in data['documents']] == [
+        'pid',
+        'mdl',
+    ]
+    assert data['branches'] == OUR_DRAFT['rules']['branches']
+    assert data['step'] == 'rules'
+    assert data['next_rule_number'] == 3
+    assert get(signed_in_client, draft_id) == data
+
+    # The first team member's next save of their version 2 meets the same 409
+    again = save(signed_in_client, draft_id, 2, name='Führerschein (their name)')
+
+    assert again.status_code == 409
+    assert again.json() == DRAFT_CHANGED_DETAIL
+    assert get(signed_in_client, draft_id) == data
+    assert fake_eudiplo.calls == []
+
+
+@pytest.mark.parametrize(
+    'changes',
+    [
+        pytest.param({}, id='complete'),
+        # Also refused by the create path's checks, but the conflict comes first
+        pytest.param({'documents': []}, id='incomplete'),
+        pytest.param({'name': '  '}, id='no name'),
+    ],
+)
+def test_publishing_an_outdated_version_answers_draft_changed(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    changes: dict[str, Any],
+) -> None:
+    """US3-AS1: refused before the content is checked, and nothing is stored."""
+    draft_id = create_draft(signed_in_client)
+    theirs = their_save(signed_in_client, draft_id)
+
+    response = publish(signed_in_client, draft_id, 1, **changes)
+
+    assert response.status_code == 409
+    assert response.json() == DRAFT_CHANGED_DETAIL
+    assert get(signed_in_client, draft_id) == theirs
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []
+
+
+def test_publishing_with_replace_publishes_over_their_save(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US3-AS3: "Replace their changes" while publishing publishes."""
+    draft_id = create_draft(signed_in_client)
+    their_save(signed_in_client, draft_id)
+
+    response = publish(
+        signed_in_client,
+        draft_id,
+        1,
+        replace=True,
+        rules=rules_input([main_branch([AGE_RULE])]),
+    )
+
+    assert response.status_code == 200, response.json()
+    data = response.json()['data']
+    assert data['status'] == 'published'
+    assert data['name'] == FORM_CONNECTION['name']
+    assert data['servicebw_form'] == FORM_CONNECTION['servicebw_form']
+    row = stored(draft_id)
+    assert row is not None
+    assert row.published_at is not None
+    assert row.draft_version is None
+    assert draft_is_sql_null(draft_id)
+    assert rows(draft_id) == (1, 1, 1)
+    assert len(fake_eudiplo.configs) == 1
+
+
+@pytest.mark.parametrize(
+    ('method', 'suffix', 'body'),
+    [
+        pytest.param('PUT', '/draft', draft_body(version=1), id='save'),
+        pytest.param(
+            'PUT', '/draft', draft_body(version=1, replace=True), id='save replace'
+        ),
+        pytest.param('POST', '/publish', publish_body(1), id='publish'),
+        pytest.param(
+            'POST', '/publish', publish_body(1, replace=True), id='publish replace'
+        ),
+    ],
+)
+def test_a_draft_published_since_answers_draft_published(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    method: str,
+    suffix: str,
+    body: dict[str, Any],
+) -> None:
+    """US3-AS4, FR-023: also with replace, and the published connection stays."""
+    draft_id = create_draft(signed_in_client)
+    assert publish(signed_in_client, draft_id, 1).status_code == 200
+    before = get(signed_in_client, draft_id)
+    calls = len(fake_eudiplo.calls)
+    configs = dict(fake_eudiplo.configs)
+
+    response = signed_in_client.request(method, f'{BASE}/{draft_id}{suffix}', json=body)
+
+    assert response.status_code == 409
+    assert response.json() == DRAFT_PUBLISHED_DETAIL
+    assert get(signed_in_client, draft_id) == before
+    assert len(fake_eudiplo.calls) == calls
+    assert fake_eudiplo.configs == configs
+    assert rows(draft_id) == (1, 1, 1)
+    row = stored(draft_id)
+    assert row is not None
+    assert row.draft_version is None
+    assert draft_is_sql_null(draft_id)
+
+
+@pytest.mark.parametrize(
+    ('method', 'suffix', 'body'),
+    [
+        pytest.param('PUT', '/draft', draft_body(version=1), id='save'),
+        pytest.param(
+            'PUT', '/draft', draft_body(version=1, replace=True), id='save replace'
+        ),
+        pytest.param('POST', '/publish', publish_body(1), id='publish'),
+        pytest.param(
+            'POST', '/publish', publish_body(1, replace=True), id='publish replace'
+        ),
+    ],
+)
+def test_a_draft_deleted_since_answers_404(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    method: str,
+    suffix: str,
+    body: dict[str, Any],
+) -> None:
+    """US3-AS5, FR-024: the editor turns the 404 into "deleted since"."""
+    draft_id = create_draft(signed_in_client)
+    deleted = signed_in_client.request('DELETE', f'{BASE}/{draft_id}/draft', json={})
+    assert deleted.status_code == 200
+
+    response = signed_in_client.request(method, f'{BASE}/{draft_id}{suffix}', json=body)
+
+    assert response.status_code == 404
+    assert response.json() == NOT_FOUND
+    assert stored(draft_id) is None
+    assert fake_eudiplo.calls == []
+
+
+@pytest.mark.parametrize('replace', [False, True])
+def test_a_draft_saved_during_its_publish(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    replace: bool,
+) -> None:
+    """R5: the publish's last lock sees the new version; replace publishes."""
+    draft_id = create_draft(signed_in_client)
+    create_config = fake_eudiplo._create_config
+    created_configs: list[str] = []
+    saves: list[object] = []
+    their_data = DraftUpdate.model_validate(
+        draft_body(version=1, name='Führerschein (their name)', step='documents')
+    )
+
+    def save_draft() -> object:
+        with SessionLocal() as db:
+            return drafts.save_draft(db, draft_id, their_data)
+
+    def create_config_then_save(request: Request) -> Response:
+        response = create_config(request)
+        created_configs.append(json.loads(request.content)['id'])
+        # Another team member saves the draft while EUDIPLO answers. In a thread
+        # of its own: a lock the publish held would fail the test, not hang it
+        try:
+            saves.extend(run_in_threads(save_draft))
+        except Exception as error:  # checked after the publish
+            saves.append(error)
+        return response
+
+    monkeypatch.setattr(fake_eudiplo, '_create_config', create_config_then_save)
+
+    response = publish(
+        signed_in_client,
+        draft_id,
+        1,
+        replace=replace,
+        rules=rules_input([main_branch([AGE_RULE]), variant([AGE_RULE])]),
+    )
+
+    [saved] = saves
+    assert not isinstance(saved, Exception), saved
+    assert created_configs == [f'fc-{draft_id}-r1']
+    row = stored(draft_id)
+    assert row is not None
+    if not replace:
+        assert response.status_code == 409
+        assert response.json() == DRAFT_CHANGED_DETAIL
+        # The draft keeps the saved content, as a draft
+        assert row.published_at is None
+        assert row.draft_version == 2
+        data = get(signed_in_client, draft_id)
+        assert data['status'] == 'draft'
+        assert data['name'] == 'Führerschein (their name)'
+        assert data['step'] == 'documents'
+        # The configuration is deleted and the revision removed
+        assert rows(draft_id) == (0, 0, 0)
+        assert fake_eudiplo.configs == {}
+        assert deleted_configs(fake_eudiplo) == created_configs
+    else:
+        assert response.status_code == 200, response.json()
+        data = response.json()['data']
+        assert data['status'] == 'published'
+        assert data['name'] == FORM_CONNECTION['name']
+        assert row.published_at is not None
+        assert row.draft_version is None
+        assert draft_is_sql_null(draft_id)
+        assert rows(draft_id) == (1, 1, 2)
+        assert set(fake_eudiplo.configs) == set(created_configs)
+        assert deleted_configs(fake_eudiplo) == []

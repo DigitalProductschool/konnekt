@@ -91,8 +91,9 @@ def save_draft(
 ) -> ApiResponse[FormConnectionDraft]:
     """Replace a draft's content and add 1 to its version, without calling EUDIPLO.
 
-    Refuses a broken structure with 400, an unknown or deleted draft with 404, and
-    a published connection with 409 `draft_published`.
+    Refuses a broken structure with 400, an unknown or deleted draft with 404, a
+    published connection with 409 `draft_published` (also with `replace`), and an
+    outdated `version` with 409 `draft_changed` unless `replace`.
     """
     return ApiResponse(
         data=drafts.save_draft(db, form_connection_id, data), message='Draft saved'
@@ -108,9 +109,10 @@ def publish_draft(
     """Publish a draft with its first revision, configuration, rules and URLs.
 
     Refuses with the 400 of creating a form connection, 404 for an unknown or
-    deleted draft, and 409 `draft_published` for a published connection. If
-    EUDIPLO can't create the configuration, it answers 502 or 503 and the draft
-    stays a draft.
+    deleted draft, 409 `draft_published` for a published connection (also with
+    `replace`), and 409 `draft_changed` for an outdated `version` unless
+    `replace`. If EUDIPLO can't create the configuration, it answers 502 or 503
+    and the draft stays a draft.
     """
     try:
         form_connection = drafts.publish_draft(db, form_connection_id, data)

@@ -26,13 +26,18 @@ import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
-import type { DetailLocationState, OverviewLocationState } from '../../types/routing';
+import type {
+  DetailLocationState,
+  EditLocationState,
+  OverviewLocationState,
+} from '../../types/routing';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
 import { requestedRuleDocuments } from '../../utils/rules/conditions';
 import { firstProblem } from '../../utils/rules/validation';
 import ConnectionStep from './ConnectionStep';
 import { DRAFT_COPY, EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';
+import DraftConflictDialog from './DraftConflictDialog';
 import EditorFooter from './EditorFooter';
 import FindingsAnnouncer from './FindingsAnnouncer';
 import PublishDialog from './PublishDialog';
@@ -45,12 +50,14 @@ import SaveDraftAlert from './SaveDraftAlert';
 import TestStep from './TestStep';
 import type {
   ConnectionWizardProps,
+  DraftConflict,
   EditorErrors,
   EditorStart,
   FormConnectionEditorPageProps,
   PendingRemoval,
 } from './types';
 import {
+  conflictOf,
   createPayload,
   documentLines,
   draftNameErrors,
@@ -104,6 +111,23 @@ import {
  * nothing. Otherwise the flow is stored as a draft, with its step, and the overview confirms it
  * (W1). A failed save keeps the team member in the flow with their work, and says why above the
  * step's content (FR-013; W3).
+ *
+ * Two team members on one stored draft (S2; FR-022 to FR-024; R6): a save or a publish that meets
+ * another team member's save, publish or deletion of the draft is refused before anything is
+ * stored. After "Save and exit" the conflict dialog says so, and after publishing the publish
+ * dialog does, in place of "Publish":
+ * - "Reload" drops the local draft and the unsaved work: on the edit route the page fetches the
+ *   draft again and opens it at its stored step, with the focus on the page title; a draft
+ *   resumed through `?local=` opens its edit route instead.
+ * - "Replace their changes" sends the same save or publish over their changes; another conflict
+ *   shows in its place.
+ * - "Open the connection", after it was published, drops the local draft and opens its details.
+ * - "Save as new draft", after it was deleted, stores the work as a new draft, drops the old local
+ *   draft, and the overview confirms it as after "Save and exit".
+ * - "Cancel" closes the dialog, and the work stays in the flow and in the local draft.
+ *
+ * An answer that fails otherwise shows as its save's alert or in the publish dialog, as any
+ * failed save or publish does.
  *
  * Local drafts (FR-014 to FR-018; R9, R10): a new connection and a stored draft keep their unsaved
  * work on this device, in the signed-in account's local draft of their flow key (`new-<uuid>` or
@@ -243,6 +267,10 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
   });
   // A rule being edited counts as a rule (FR-006)
   const rulesNextAction = rulesNextActionOf(rules);
+  // A conflict shows where it was met: after "Save and exit" in its own dialog, after publishing
+  // in the publish dialog (S2)
+  const saveConflict = state.conflict?.during === 'save' ? state.conflict : null;
+  const publishConflict = state.conflict?.during === 'publish' ? state.conflict : null;
   const pageTitle = pageTitleOf(
     state.step,
     editing ? 'edit' : firstConnection ? 'first' : 'create'
@@ -440,9 +468,11 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
    * overview, which confirms it (S1; R12; W1). A missing or too long name opens step 1, shows its
    * message under "Form name" and focuses the field, and nothing is stored (S1.2). A failure
    * keeps the team member in the flow with their work, and the alert above the step says why
-   * (FR-013; W3).
+   * (FR-013; W3). Another team member's save, publish or deletion of the stored draft opens the
+   * conflict dialog instead (S2). `replace`, its "Replace their changes", sends the same save over
+   * their changes.
    */
-  async function saveDraftAndExit(current: RulesState) {
+  async function saveDraftAndExit(current: RulesState, replace = false) {
     const errors = draftNameErrors(state.name);
     if (hasErrors(errors)) {
       if (state.step !== 'connection') {
@@ -455,23 +485,116 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
     const payload = draftPayload(localContentOf(state, current), state.step);
     try {
       if (origin.kind === 'draft') {
-        await saveDraft(origin.draftId, {
-          ...payload,
-          version: origin.draftVersion,
-          replace: false,
-        });
+        await saveDraft(origin.draftId, { ...payload, version: origin.draftVersion, replace });
       } else {
         await createDraft(payload);
       }
-      // Stored: the local draft has no unsaved work left (FR-018)
-      forget();
-      const locationState: OverviewLocationState = { draftSaved: payload.name };
-      navigate(ROUTES.overview, { state: locationState });
+      exitWithSavedDraft(payload.name);
     } catch (error) {
-      if (!handleUnauthorized(error)) {
-        // A new object each time, so that the alert takes the focus again
-        dispatch({ type: 'saveDraftFailed', error: draftSaveErrorOf(error) });
+      if (handleUnauthorized(error)) {
+        return;
       }
+      const conflict = conflictOf(error, origin, 'save');
+      if (conflict) {
+        dispatch({ type: 'draftConflict', conflict });
+        return;
+      }
+      showDraftSaveFailure(error);
+    }
+  }
+
+  /** A stored draft: the local draft has no unsaved work left (FR-018), and the overview says so. */
+  function exitWithSavedDraft(name: string) {
+    forget();
+    const locationState: OverviewLocationState = { draftSaved: name };
+    navigate(ROUTES.overview, { state: locationState });
+  }
+
+  /**
+   * A failed draft save, also an answer of the conflict dialog: the dialog closes first, returning
+   * the focus to "Save and exit", and then the alert above the step takes it (S1.5).
+   */
+  function showDraftSaveFailure(error: unknown) {
+    if (state.conflict) {
+      flushSync(() => dispatch({ type: 'closeConflict' }));
+    }
+    // A new object each time, so that the alert takes the focus again
+    dispatch({ type: 'saveDraftFailed', error: draftSaveErrorOf(error) });
+  }
+
+  /** A failed publish, also an answer of a conflict in the publish dialog, which shows why. */
+  function showPublishFailure(error: unknown) {
+    if (state.conflict) {
+      dispatch({ type: 'closeConflict' });
+    }
+    dispatch({
+      type: 'publishFailed',
+      error: publishErrorNotice(error, editing),
+      rulesChanged: isRulesChanged(error),
+    });
+  }
+
+  /**
+   * A conflict's "Reload" (S2; R6), after `draft_changed`: the unsaved work goes with the local
+   * draft. On the edit route, the page fetches the draft again and opens it at its stored step;
+   * a draft resumed through `?local=` opens its edit route, which does the same. After spec 002's
+   * `rules_changed`, the published connection's reload is as before (W9).
+   */
+  function handleReload() {
+    if (origin.kind !== 'draft') {
+      onReload?.();
+      return;
+    }
+    forget();
+    if (onReload) {
+      onReload();
+      return;
+    }
+    // The edit route then starts with the focus on its page title, as its own reload does
+    const locationState: EditLocationState = { reloaded: true };
+    navigate(generatePath(ROUTES.editFormConnection, { id: origin.draftId }), {
+      replace: true,
+      state: locationState,
+    });
+  }
+
+  /** A conflict's "Open the connection", after `draft_published` (S2; FR-023). */
+  function handleOpenConnection() {
+    if (origin.kind !== 'draft') {
+      return;
+    }
+    // The connection is published, and its edit flow has no local draft (rule 3)
+    forget();
+    navigate(generatePath(ROUTES.formConnection, { id: origin.draftId }));
+  }
+
+  /**
+   * A conflict's "Save as new draft", after `draft_deleted` (S2; FR-024): the work becomes a new
+   * draft, the old flow's local draft goes, and the overview confirms it as after "Save and exit".
+   * A failure shows as the save's or the publish's own failure, which the conflict started from.
+   */
+  async function handleSaveAsNew(during: DraftConflict['during']) {
+    dispatch({ type: during === 'save' ? 'saveDraft' : 'publish' });
+    const payload = draftPayload(localContentOf(state, rules), state.step);
+    try {
+      await createDraft(payload);
+      exitWithSavedDraft(payload.name);
+    } catch (error) {
+      if (handleUnauthorized(error)) {
+        return;
+      }
+      if (during === 'save') {
+        showDraftSaveFailure(error);
+      } else {
+        showPublishFailure(error);
+      }
+    }
+  }
+
+  /** "Cancel", Escape and the close button: the team member stays in the flow with their work. */
+  function handleCloseConflict() {
+    if (!state.savingDraft && !state.publishing) {
+      dispatch({ type: 'closeConflict' });
     }
   }
 
@@ -503,7 +626,11 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
     continueWith(dialog.next, after);
   }
 
-  /** Publishes or saves; `replace` saves over the rules another team member saved meanwhile. */
+  /**
+   * Publishes or saves; `replace` saves over the rules another team member saved meanwhile, or,
+   * for a stored draft, publishes over the draft they saved (S2). Another team member's save,
+   * publish or deletion of the stored draft shows as a conflict in the dialog.
+   */
   async function handleConfirm(replace = false) {
     dispatch({ type: 'publish' });
     try {
@@ -516,7 +643,7 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
           ? await publishDraft(origin.draftId, {
               ...createPayload(state, rules),
               version: origin.draftVersion,
-              replace: false,
+              replace,
             })
           : formConnection
             ? await updateFormConnection(formConnection.id, payload)
@@ -528,14 +655,28 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
       const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
       navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
     } catch (error) {
-      if (!handleUnauthorized(error)) {
-        dispatch({
-          type: 'publishFailed',
-          error: publishErrorNotice(error, editing),
-          rulesChanged: isRulesChanged(error),
-        });
+      if (handleUnauthorized(error)) {
+        return;
       }
+      const conflict = conflictOf(error, origin, 'publish');
+      if (conflict) {
+        dispatch({ type: 'draftConflict', conflict });
+        return;
+      }
+      showPublishFailure(error);
     }
+  }
+
+  /**
+   * The publish dialog's close button and Escape, and its "Cancel" after a conflict: the dialog
+   * closes, and the conflict with it, so that it doesn't show at the next opening.
+   */
+  function handleCloseDialog() {
+    if (state.publishing) {
+      return;
+    }
+    dispatch({ type: 'closeDialog' });
+    dispatch({ type: 'closeConflict' });
   }
 
   /**
@@ -821,10 +962,23 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
             error={state.publishError}
             rulesChanged={state.rulesChanged}
             onCancel={handleDialogCancel}
-            onClose={() => dispatch({ type: 'closeDialog' })}
+            onClose={handleCloseDialog}
             onConfirm={() => handleConfirm()}
-            onReload={() => onReload?.()}
+            onReload={handleReload}
             onReplace={() => handleConfirm(true)}
+            conflict={publishConflict}
+            onOpenConnection={handleOpenConnection}
+            onSaveAsNew={() => void handleSaveAsNew('publish')}
+          />
+          {/* Always rendered: closing it, not unmounting it, returns the focus to "Save and exit" */}
+          <DraftConflictDialog
+            conflict={saveConflict}
+            busy={state.savingDraft}
+            onReload={handleReload}
+            onReplace={() => void saveDraftAndExit(rules, true)}
+            onOpenConnection={handleOpenConnection}
+            onSaveAsNew={() => void handleSaveAsNew('save')}
+            onCancel={handleCloseConflict}
           />
           <RemoveDataDialog
             removal={state.pendingRemoval}

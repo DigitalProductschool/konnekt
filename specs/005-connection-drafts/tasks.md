@@ -582,7 +582,7 @@ the draft and no longer offers the local draft (quickstart V6–V9).
     - "Log out" (danger) and "Cancel".
   - `utils.ts`: `signOutNamesOf(records)` joins at most 5 display names as "a, b and c", then "and 3 more". Add tests in a new `utils.test.ts`, with 0, 1, 2, 5 and 8 records and untitled ones. The copy goes in `constants.ts`.
   - No `console.*`.
-- [ ] T044 [US2] Validate User Story 2: run `specs/005-connection-drafts/quickstart.md` V6–V9, with the gates of the frontend green. Fix what fails in the task that owns it.
+- [X] T044 [US2] Validate User Story 2: run `specs/005-connection-drafts/quickstart.md` V6–V9, with the gates of the frontend green. Fix what fails in the task that owns it.
 
 **Checkpoint**: User Stories 1 and 2 work. Unsaved work in the create flow survives a crash, a
 reload, a closed tab and an expired session. It is offered only to its account and discarded at
@@ -603,13 +603,13 @@ second's version whole (quickstart V10–V12).
 
 ### Backend
 
-- [ ] T045 [US3] Compare draft versions in `backend/app/services/drafts.py` and `DraftGuard.check()` in `backend/app/services/form_connections.py` (research R6; FR-022–FR-024; contracts/management-api.md "Errors"). Depends on T013.
+- [X] T045 [US3] Compare draft versions in `backend/app/services/drafts.py` and `DraftGuard.check()` in `backend/app/services/form_connections.py` (research R6; FR-022–FR-024; contracts/management-api.md "Errors"). Depends on T013.
   - `DRAFT_CHANGED_DETAIL = {'error': 'draft_changed', 'message': 'Another team member saved this draft after you opened it.'}`. The message names no variant, since no variant of a draft has a pull URL.
   - `_check_state(form_connection, version, replace)`: `409 draft_published` first, even with `replace` (FR-023), then `409 draft_changed` when `version != form_connection.draft_version` and not `replace`. `save_draft` and `publish_draft` call it in step 1, before the content is checked, so a stale editor meets the conflict and not a refusal that its staleness causes. `save_draft` calls it again under the lock.
   - `DraftGuard.check()` does the same comparison under both of `create_revision()`'s locks. A refusal there deletes the configuration and removes the revision, as T012 set up.
   - A deleted draft keeps answering `404 Not found`, which the editor turns into "This draft has been deleted since you opened it." (FR-024).
   - Update the docstrings.
-- [ ] T046 [US3] Test the conflicts in `backend/tests/api/test_form_connection_drafts.py` (research R14; SC-006). Depends on T045.
+- [X] T046 [US3] Test the conflicts in `backend/tests/api/test_form_connection_drafts.py` (research R14; SC-006). Depends on T045.
   - **Save with an outdated version**: `409 draft_changed` with its message, and nothing is stored (content, version and counters unchanged). The same with `replace: true` stores the whole draft and adds 1 to the version. The first team member's next save of their old version meets the same `409` (US3-AS3).
   - **Publish with an outdated version**: `409 draft_changed` before validation. Content that would also be refused for completeness still gives `draft_changed`, not `400`. With `replace: true`, it publishes.
   - **Published since**: save and publish give `409 draft_published`, also with `replace: true`, and the published connection is unchanged (FR-023).
@@ -618,7 +618,7 @@ second's version whole (quickstart V10–V12).
 
 ### Frontend
 
-- [ ] T047 [US3] Add the editor's conflict model in `editor/types.ts`, `editor/utils.ts` and `editor/constants.ts`, with tests in `editor/utils.test.ts` (data-model.md section 7; contracts/local-drafts.md `conflictOf`). Depends on T020.
+- [X] T047 [US3] Add the editor's conflict model in `editor/types.ts`, `editor/utils.ts` and `editor/constants.ts`, with tests in `editor/utils.test.ts` (data-model.md section 7; contracts/local-drafts.md `conflictOf`). Depends on T020.
   - `DraftConflict = { kind: 'draft_changed' | 'draft_published' | 'draft_deleted'; during: 'save' | 'publish'; message: string }`. `EditorState` gains `conflict: DraftConflict | null`. `EditorAction` gains `{ type: 'draftConflict'; conflict }` (it also clears `savingDraft` and `publishing`) and `{ type: 'closeConflict' }`. `rulesChanged` stays for the published edit flow.
   - `conflictOf(error: unknown, origin: EditorOrigin, during: 'save' | 'publish'): DraftConflict | null` gives:
     - `409` with `error: 'draft_changed'` or `'draft_published'` → that kind, with the server's message;
@@ -627,18 +627,18 @@ second's version whole (quickstart V10–V12).
   - The props, so that T048 and T049 touch only their component files: `DraftConflictDialogProps { conflict: DraftConflict | null; busy: boolean; onReload; onReplace; onOpenConnection; onSaveAsNew; onCancel }`, and `PublishDialogProps` gains `conflict: DraftConflict | null`, `onOpenConnection` and `onSaveAsNew`. Pass `conflict={null}` and no-op handlers from `editor/index.tsx` until T050 wires them, so that the build passes.
   - `DRAFT_COPY` gains `draftChangedTitle`, `draftChangedHint`, `draftPublishedTitle`, `draftPublishedHint`, `draftDeletedTitle`, `draftDeletedText`, `reload`, `replaceTheirChanges`, `openConnection`, `saveAsNewDraft`, `cancel`, word for word from contracts/ui-screens.md "Copy".
   - Tests: every branch of `conflictOf`, and the two reducer cases.
-- [ ] T048 [P] [US3] Write `editor/DraftConflictDialog.tsx`, the conflict dialog after "Save and exit" (S2, W4; FR-022–FR-024). Depends on T047.
+- [X] T048 [P] [US3] Write `editor/DraftConflictDialog.tsx`, the conflict dialog after "Save and exit" (S2, W4; FR-022–FR-024). Depends on T047.
   - `ConfirmDialog`-based, with the props that T047 declared.
   - Per kind, as in the S2 table:
     - `draft_changed`: title "This draft has changed", the server's message, then the hint, and the buttons "Reload" (secondary), "Replace their changes" (primary) and "Cancel" (tertiary);
     - `draft_published`: title "This draft has been published", the message and its hint, and "Open the connection" (primary) and "Cancel";
     - `draft_deleted`: title "This draft has been deleted", the text "This draft has been deleted since you opened it. Save your work as a new draft to keep it.", and "Save as new draft" (primary) and "Cancel".
   - It is a native modal with the focus inside. Escape is "Cancel", and the focus returns to "Save and exit".
-- [ ] T049 [P] [US3] Show draft conflicts in `editor/PublishDialog.tsx` (S2, W4; as spec 002's W9 for `rules_changed`). Depends on T047.
+- [X] T049 [P] [US3] Show draft conflicts in `editor/PublishDialog.tsx` (S2, W4; as spec 002's W9 for `rules_changed`). Depends on T047.
   - Use the props that T047 added to `PublishDialogProps`.
   - With a `conflict`, the dialog shows its message and buttons in place of "Publish", as it does for `rulesChanged`. In `draft_changed`, "Replace their changes" publishes (`onReplace`).
   - Without a conflict, the dialog is unchanged.
-- [ ] T050 [US3] Wire the conflicts into `editor/index.tsx` and `frontend/src/pages/FormConnectionEdit/index.tsx` (S2; FR-022–FR-024; research R6; contracts/local-drafts.md "Rules for callers" 3). Depends on T039, T048, T049.
+- [X] T050 [US3] Wire the conflicts into `editor/index.tsx` and `frontend/src/pages/FormConnectionEdit/index.tsx` (S2; FR-022–FR-024; research R6; contracts/local-drafts.md "Rules for callers" 3). Depends on T039, T048, T049.
   - A failed "Save and exit" or publish first tries `conflictOf(error, origin, during)`. A conflict dispatches `draftConflict`, and otherwise the existing handling applies.
   - **"Replace their changes"** resends the same request with `replace: true`: `saveDraft` for a save, `publishDraft` for a publish. If it meets another conflict, that conflict shows (US3-AS3).
   - **"Reload"**:
@@ -649,7 +649,7 @@ second's version whole (quickstart V10–V12).
   - **"Save as new draft"** calls `createDraft(draftPayload(localContentOf(state, rules), state.step))`, then `forget()` on the old flow key, then continues as S1's success: the overview with "Draft <name> saved.".
   - **"Cancel"** closes the dialog and keeps the team member in the flow with their work, so the local draft keeps it.
   - On the edit route, `FormConnectionEditPage.handleReload` keeps today's published behaviour. For a draft, it opens at the stored step instead of `'rules'`.
-- [ ] T051 [US3] Validate User Story 3: run `specs/005-connection-drafts/quickstart.md` V10–V12 with two browsers and two accounts, with the gates of both sides green. Fix what fails in the task that owns it.
+- [X] T051 [US3] Validate User Story 3: run `specs/005-connection-drafts/quickstart.md` V10–V12 with two browsers and two accounts, with the gates of both sides green. Fix what fails in the task that owns it.
 
 **Checkpoint**: All three stories work. No save of a draft silently replaces another's (SC-006).
 

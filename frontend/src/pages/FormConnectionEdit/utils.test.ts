@@ -7,6 +7,7 @@ import {
   draftFlowReducer,
   initialDraftFlowState,
   initialStepOf,
+  reloadedOf,
   restoreChoiceOf,
   storedContentOf,
 } from './utils';
@@ -63,6 +64,23 @@ describe('initialStepOf', () => {
   ])('opens a draft at the step it was saved in for %s', (_name, state) => {
     expect(initialStepOf(state, DRAFT)).toBe('documents');
     expect(initialStepOf(state, { ...DRAFT, step: 'test' })).toBe('test');
+  });
+});
+
+describe('reloadedOf (spec 005, S2)', () => {
+  it("is true after a draft conflict's Reload from a resumed local draft", () => {
+    expect(reloadedOf({ reloaded: true })).toBe(true);
+  });
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['an empty state', {}],
+    ['a step only', { step: 'rules' }],
+    ['reloaded false', { reloaded: false }],
+    ['a reloaded that is not a boolean', { reloaded: 'yes' }],
+  ])('is false for %s', (_name, state) => {
+    expect(reloadedOf(state)).toBe(false);
   });
 });
 
