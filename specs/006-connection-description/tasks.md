@@ -37,8 +37,8 @@ find the place.
 **Purpose**: Make sure later failures belong to this change. No dependency, setting or
 environment variable is added (plan, constitution IV).
 
-- [ ] T001 Confirm the backend baseline in `backend/`: `uv run alembic heads` prints exactly `d2b97ba4a2c7` (the new migration's `down_revision`), and `uv run ruff check . && uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest` pass
-- [ ] T002 [P] Confirm the frontend baseline in `frontend/`: `npm run lint && npm test && npm run build` pass
+- [X] T001 Confirm the backend baseline in `backend/`: `uv run alembic heads` prints exactly `d2b97ba4a2c7` (the new migration's `down_revision`), and `uv run ruff check . && uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest` pass
+- [X] T002 [P] Confirm the frontend baseline in `frontend/`: `npm run lint && npm test && npm run build` pass
 
 ---
 
