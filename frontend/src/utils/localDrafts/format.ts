@@ -95,8 +95,8 @@ function contentOf(value: unknown): LocalDraftContent | null {
   if (!isObject(value)) {
     return null;
   }
-  const { name, servicebwForm, documents, branches, numberingBase, counters } = value;
-  if (typeof name !== 'string' || typeof servicebwForm !== 'string') {
+  const { name, description, documents, branches, numberingBase, counters } = value;
+  if (typeof name !== 'string' || typeof description !== 'string') {
     return null;
   }
   if (!Array.isArray(documents) || !documents.every(isDocument)) {
@@ -108,7 +108,7 @@ function contentOf(value: unknown): LocalDraftContent | null {
   if (!isNumbering(numberingBase) || !isNumbering(counters)) {
     return null;
   }
-  return { name, servicebwForm, documents, branches, numberingBase, counters };
+  return { name, description, documents, branches, numberingBase, counters };
 }
 
 function isDocument(value: unknown): value is RequestedDocument {

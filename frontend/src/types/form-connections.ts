@@ -129,7 +129,7 @@ export interface FormConnectionSummary {
   id: string;
   name: string;
   /** '' possible for a draft */
-  servicebw_form: string;
+  description: string;
   /** True for a draft; means nothing until it is published */
   is_active: boolean;
   /** Draft or published */
@@ -143,7 +143,7 @@ export interface FormConnection {
   status: 'published';
   id: string;
   name: string;
-  servicebw_form: string;
+  description: string;
   is_active: boolean;
   documents: RequestedDocumentView[];
   trigger_url: string;
@@ -163,7 +163,7 @@ export interface FormConnection {
 /** Without rules, the form connection gets a main branch "Standard" */
 export interface FormConnectionCreate {
   name: string;
-  servicebw_form: string;
+  description: string;
   documents: RequestedDocument[];
   rules?: RulesInput;
 }
@@ -171,7 +171,7 @@ export interface FormConnectionCreate {
 /** An absent field stays unchanged */
 export interface FormConnectionUpdate {
   name?: string;
-  servicebw_form?: string;
+  description?: string;
   documents?: RequestedDocument[];
   rules?: RulesInput;
 }
@@ -185,7 +185,7 @@ export interface FormConnectionDraft {
   id: string;
   name: string;
   /** '' possible */
-  servicebw_form: string;
+  description: string;
   /**
    * May be empty, and a document's fields may be empty; a type or field the catalog dropped keeps
    * its key as its label
@@ -218,7 +218,7 @@ export interface DraftRules {
 /** Stores a new draft. Empty texts and lists and incomplete rules are accepted */
 export interface DraftCreate {
   name: string;
-  servicebw_form: string;
+  description: string;
   documents: RequestedDocument[];
   rules: DraftRules;
   /** The step the draft is saved in */

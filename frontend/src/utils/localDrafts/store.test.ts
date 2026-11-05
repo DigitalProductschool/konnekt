@@ -26,7 +26,7 @@ function recordOf(flowKey: string, ageMs = 0, name = 'Parking permit'): LocalDra
     step: 'documents',
     content: {
       name,
-      servicebwForm: '',
+      description: '',
       documents: [],
       branches: [
         {

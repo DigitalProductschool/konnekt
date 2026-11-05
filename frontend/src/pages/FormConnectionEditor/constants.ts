@@ -1,7 +1,7 @@
 import type { EditorState, EditorStep } from './types';
 
 export const NAME_MAX_LENGTH = 200;
-export const SERVICEBW_FORM_MAX_LENGTH = 500;
+export const DESCRIPTION_MAX_LENGTH = 500;
 
 export const EDITOR_COPY = {
   headerTitle: 'New connection',
@@ -172,7 +172,7 @@ export const VALIDATION_MESSAGES = {
   nameRequired: 'Enter a name.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
   servicebwFormRequired: 'Enter the form ID.',
-  servicebwFormTooLong: `The form ID can have at most ${SERVICEBW_FORM_MAX_LENGTH} characters.`,
+  servicebwFormTooLong: `The form ID can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
   noDocuments: 'Add at least one document.',
   noFields: (document: string) => `Select at least one field for '${document}'.`,
 };
@@ -203,7 +203,7 @@ export const ELEMENT_IDS = {
   branchPanel: (branchKey: string) => `branch-panel-${branchKey}`,
   addVariant: 'add-variant',
   name: 'connection-name',
-  servicebwForm: 'connection-form-id',
+  description: 'connection-description',
   documentsError: 'documents-error',
   pickerButton: (documentType: string) => `document-picker-${documentType}`,
   allData: (documentType: string) => `document-${documentType}-all`,
@@ -226,7 +226,7 @@ export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules', 'te
 export const INITIAL_EDITOR_STATE: EditorState = {
   step: 'connection',
   name: '',
-  servicebwForm: '',
+  description: '',
   documents: [],
   errors: {},
   publishError: null,

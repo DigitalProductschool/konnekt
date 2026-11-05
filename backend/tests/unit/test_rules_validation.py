@@ -1089,7 +1089,7 @@ def _stored_connection() -> dict[str, str]:
                 FormConnection(
                     id=connection_id,
                     name='Test',
-                    servicebw_form='FS-1',
+                    description='FS-1',
                     published_at=datetime.now(tz=timezone.utc),
                     current_revision=1,
                     current_rule_set=1,

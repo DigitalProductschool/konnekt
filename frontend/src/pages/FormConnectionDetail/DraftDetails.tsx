@@ -83,7 +83,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       title={name}
       titleAsHeading
       badge={<ConnectionStatusBadge isActive draft />}
-      meta={draft.servicebw_form ? DETAIL_COPY.formId(draft.servicebw_form) : DETAIL_COPY.noFormId}
+      meta={draft.description ? DETAIL_COPY.formId(draft.description) : DETAIL_COPY.noFormId}
       head={
         // The details are the Publish step's summary, so Publish is current whichever step the
         // draft was saved in

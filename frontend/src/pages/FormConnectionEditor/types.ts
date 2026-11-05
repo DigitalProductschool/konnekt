@@ -139,7 +139,7 @@ export type RulesNextAction = 'test' | 'publishWithoutRules';
 /** Validation messages, each shown next to what it is about */
 export interface EditorErrors {
   name?: string;
-  servicebwForm?: string;
+  description?: string;
   /** No document was added */
   documents?: string;
   /** By document type: a document without a selected field */
@@ -185,7 +185,7 @@ export interface RemovedDataRule {
 export interface EditorState {
   step: EditorStep;
   name: string;
-  servicebwForm: string;
+  description: string;
   /** The documents added so far, in catalog order, with the keys of their selected fields */
   documents: RequestedDocument[];
   errors: EditorErrors;
@@ -210,7 +210,7 @@ export interface EditorState {
 
 export type EditorAction =
   | { type: 'changeName'; value: string }
-  | { type: 'changeServicebwForm'; value: string }
+  | { type: 'changeDescription'; value: string }
   | { type: 'showErrors'; errors: EditorErrors }
   | { type: 'goToStep'; step: EditorStep }
   | { type: 'addDocument'; documentType: string; catalogOrder: string[] }
@@ -240,10 +240,10 @@ export interface ConnectionStepProps {
   name: string;
   /** The card's closing note */
   note: string;
-  servicebwForm: string;
+  description: string;
   errors: EditorErrors;
   onChangeName: (value: string) => void;
-  onChangeServicebwForm: (value: string) => void;
+  onChangeDescription: (value: string) => void;
   onSubmit: () => void;
 }
 

@@ -43,7 +43,7 @@ function connection(branches: Branch[]): FormConnection {
     status: 'published',
     id: 'fc',
     name: 'Passenger transport licence',
-    servicebw_form: 'PT-1',
+    description: 'PT-1',
     is_active: true,
     documents: [],
     trigger_url: 'https://connect.example/api/connect/fc/requests',

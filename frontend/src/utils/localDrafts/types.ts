@@ -42,7 +42,7 @@ export interface LocalDraftRecord {
 export interface LocalDraftContent {
   /** May be empty: shown as "Untitled connection" */
   name: string;
-  servicebwForm: string;
+  description: string;
   documents: RequestedDocument[];
   /** As the rules step holds them, the open rule kept (R9) */
   branches: BranchInput[];

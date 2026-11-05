@@ -14,7 +14,7 @@ from tests.fake_eudiplo import FakeEudiplo
 # quickstart.md V1: four fields of the ID and three of the driving licence
 FORM_CONNECTION: dict[str, Any] = {
     'name': 'Führerscheinantrag Test',
-    'servicebw_form': 'FS-20417',
+    'description': 'FS-20417',
     'documents': [
         {
             'document_type': 'pid',

@@ -52,7 +52,7 @@ from .eudiplo import EudiploError, get_eudiplo_client
 logger = logging.getLogger(__name__)
 
 NAME_MAX_LENGTH = 200
-SERVICEBW_FORM_MAX_LENGTH = 500
+DESCRIPTION_MAX_LENGTH = 500
 
 NOT_FOUND = FORM_CONNECTION_NOT_FOUND
 NOT_PUBLISHED_DETAIL = {
@@ -102,8 +102,8 @@ def clean_name(value: str | None) -> str:
     )
 
 
-def clean_servicebw_form(value: str | None, *, complete: bool = True) -> str:
-    """Trim the serviceBW form, free text of 1-500 characters.
+def clean_description(value: str | None, *, complete: bool = True) -> str:
+    """Trim the description, free text of 1-500 characters.
 
     The UI calls it "Form ID", so the messages do too. With ``complete=False``
     (saving a draft, spec 005 research R3), an empty form ID is allowed and stored
@@ -111,16 +111,16 @@ def clean_servicebw_form(value: str | None, *, complete: bool = True) -> str:
     """
     if not complete:
         text = (value or '').strip()
-        if len(text) > SERVICEBW_FORM_MAX_LENGTH:
+        if len(text) > DESCRIPTION_MAX_LENGTH:
             raise _validation_error(
-                f'The form ID can have at most {SERVICEBW_FORM_MAX_LENGTH} characters.'
+                f'The form ID can have at most {DESCRIPTION_MAX_LENGTH} characters.'
             )
         return text
     return _required_text(
         value,
-        SERVICEBW_FORM_MAX_LENGTH,
+        DESCRIPTION_MAX_LENGTH,
         'Enter the form ID.',
-        f'The form ID can have at most {SERVICEBW_FORM_MAX_LENGTH} characters.',
+        f'The form ID can have at most {DESCRIPTION_MAX_LENGTH} characters.',
     )
 
 
@@ -238,7 +238,7 @@ def _view(
     return FormConnectionView(
         id=form_connection.id,
         name=form_connection.name,
-        servicebw_form=form_connection.servicebw_form,
+        description=form_connection.description,
         is_active=form_connection.is_active,
         documents=documents_view(documents),
         trigger_url=trigger_url_of(form_connection.id),
@@ -259,7 +259,7 @@ def _summary(form_connection: FormConnection) -> FormConnectionSummary:
     return FormConnectionSummary(
         id=form_connection.id,
         name=form_connection.name,
-        servicebw_form=form_connection.servicebw_form,
+        description=form_connection.description,
         is_active=form_connection.is_active,
         status='draft' if form_connection.published_at is None else 'published',
         updated_at=to_iso_utc(form_connection.updated_at),
@@ -464,7 +464,7 @@ def create_form_connection(
     the form connection, the configuration is deleted again.
     """
     name = clean_name(data.name)
-    servicebw_form = clean_servicebw_form(data.servicebw_form)
+    description = clean_description(data.description)
     documents = clean_documents(data.documents)
     save: rules.RulesSave | None = None
     if data.rules is not None:
@@ -488,7 +488,7 @@ def create_form_connection(
     form_connection = FormConnection(
         id=form_connection_id,
         name=name,
-        servicebw_form=servicebw_form,
+        description=description,
         is_active=True,
         published_at=datetime.now(tz=timezone.utc),
         current_revision=1,
@@ -712,7 +712,7 @@ def create_revision(
 def update_form_connection(
     db: Session, form_connection_id: str, data: FormConnectionUpdate
 ) -> FormConnectionView:
-    """Change the name, the serviceBW form, the documents or the rules.
+    """Change the name, the description, the documents or the rules.
 
     An absent field stays unchanged. Everything is checked before anything is
     written or EUDIPLO is called (research R9): the rules against the documents the
@@ -729,7 +729,7 @@ def update_form_connection(
     alone are saved in one transaction under the row lock. Requests in progress keep
     their revision and rule set, and the URLs stay the same (FR-005, FR-028).
     Documents equal to the current ones create no revision, and neither do the name
-    and the serviceBW form; rules equal to the current ones create no rule set.
+    and the description; rules equal to the current ones create no rule set.
     Deactivated form connections can be changed too.
     """
     form_connection = find_published_form_connection(db, form_connection_id)
@@ -737,8 +737,8 @@ def update_form_connection(
     changes: dict[str, str] = {}
     if 'name' in changed:
         changes['name'] = clean_name(data.name)
-    if 'servicebw_form' in changed:
-        changes['servicebw_form'] = clean_servicebw_form(data.servicebw_form)
+    if 'description' in changed:
+        changes['description'] = clean_description(data.description)
     current_documents = _current_documents(db, form_connection)
     documents: list[RequestedDocument] | None = None
     if 'documents' in changed:

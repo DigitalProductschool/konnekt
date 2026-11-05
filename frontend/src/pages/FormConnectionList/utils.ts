@@ -29,7 +29,5 @@ export function hintOf(formConnections: FormConnectionSummary[], localDraftCount
 
 /** The line under a row's name: its form ID, or "No form ID yet" for a draft without one (W2). */
 export function formIdLineOf(summary: FormConnectionSummary): string {
-  return summary.servicebw_form === ''
-    ? LIST_COPY.noFormId
-    : LIST_COPY.formId(summary.servicebw_form);
+  return summary.description === '' ? LIST_COPY.noFormId : LIST_COPY.formId(summary.description);
 }

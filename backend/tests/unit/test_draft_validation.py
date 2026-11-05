@@ -13,9 +13,9 @@ from fastapi import HTTPException
 
 from app.schemas import RequestedDocument, RulesInput
 from app.services.form_connections import (
+    clean_description,
     clean_documents,
     clean_name,
-    clean_servicebw_form,
 )
 from app.services.rules import (
     DraftNumbering,
@@ -111,7 +111,7 @@ def test_a_document_without_fields_is_accepted() -> None:
 
 @pytest.mark.parametrize('value', ['', '   ', None])
 def test_an_empty_form_id_is_accepted(value: str | None) -> None:
-    assert clean_servicebw_form(value, complete=False) == ''
+    assert clean_description(value, complete=False) == ''
 
 
 @pytest.mark.parametrize(
@@ -426,7 +426,7 @@ def test_a_name_of_201_characters_is_refused() -> None:
 
 
 def test_a_form_id_of_501_characters_is_refused() -> None:
-    message = _problem(lambda: clean_servicebw_form('x' * 501, complete=False))
+    message = _problem(lambda: clean_description('x' * 501, complete=False))
 
     assert message == 'The form ID can have at most 500 characters.'
 

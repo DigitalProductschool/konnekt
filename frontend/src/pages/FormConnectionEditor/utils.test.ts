@@ -72,7 +72,7 @@ const LOADED: FormConnection = {
   status: 'published',
   id: 'fc',
   name: 'Passenger transport licence',
-  servicebw_form: 'PT-1',
+  description: 'PT-1',
   is_active: true,
   documents: [],
   trigger_url: 'https://connect.example/api/connect/fc/requests',
@@ -132,7 +132,7 @@ describe('createPayload (FR-028)', () => {
 
     expect(payload).toEqual({
       name: 'Passenger transport licence',
-      servicebw_form: 'PT-1',
+      description: 'PT-1',
       documents: [],
     });
     expect('rules' in payload).toBe(false);
@@ -781,15 +781,15 @@ describe('localContentOf (FR-002, FR-015; R9)', () => {
     ...INITIAL_EDITOR_STATE,
     step: 'rules' as const,
     name: '  Passenger transport licence ',
-    servicebwForm: ' PT-1',
+    description: ' PT-1',
     documents: [{ document_type: 'pid', fields: ['birthdate'] }],
   };
 
-  it('takes the name and the form ID as typed, the documents, the branches and the counters', () => {
+  it('takes the name and the description as typed, the documents, the branches and the counters', () => {
     const rules = initialRulesState(LOADED);
     expect(localContentOf(state, rules)).toEqual({
       name: '  Passenger transport licence ',
-      servicebwForm: ' PT-1',
+      description: ' PT-1',
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
       branches: [{ ...mainBranch(US1_RULES), id: 'main' }],
       numberingBase: { rule: 4, group: 1 },
@@ -842,26 +842,26 @@ describe('localContentOf (FR-002, FR-015; R9)', () => {
 describe('draftPayload (R12)', () => {
   const content: LocalDraftContent = {
     name: '  Passenger transport licence ',
-    servicebwForm: ' PT-1 ',
+    description: ' PT-1 ',
     documents: [{ document_type: 'pid', fields: [] }],
     branches: [mainBranch()],
     numberingBase: { rule: 1, group: 1 },
     counters: { rule: 4, group: 2 },
   };
 
-  it('trims the name and the form ID, and sends the branches, the numbering base and the step', () => {
+  it('trims the name and the description, and sends the branches, the numbering base and the step', () => {
     expect(draftPayload(content, 'documents')).toEqual({
       name: 'Passenger transport licence',
-      servicebw_form: 'PT-1',
+      description: 'PT-1',
       documents: [{ document_type: 'pid', fields: [] }],
       rules: { branches: [mainBranch()], numbering_base: { rule: 1, group: 1 } },
       step: 'documents',
     });
   });
 
-  it('sends an empty form ID as empty', () => {
-    expect(draftPayload({ ...content, servicebwForm: '   ' }, 'connection')).toMatchObject({
-      servicebw_form: '',
+  it('sends an empty description as empty', () => {
+    expect(draftPayload({ ...content, description: '   ' }, 'connection')).toMatchObject({
+      description: '',
       step: 'connection',
     });
   });
@@ -917,7 +917,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     status: 'draft',
     id: 'draft-1',
     name: 'Passenger transport licence',
-    servicebw_form: 'PT-1',
+    description: 'PT-1',
     documents: [
       {
         document_type: 'pid',
@@ -934,21 +934,21 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     updated_at: '2026-11-04T10:30:00Z',
   };
 
-  it('takes the name, the form ID and the documents by key, at the saved step', () => {
+  it('takes the name, the description and the documents by key, at the saved step', () => {
     const { editor } = initialStatesFromDraft(DRAFT);
     expect(editor).toEqual({
       ...INITIAL_EDITOR_STATE,
       step: 'test',
       name: 'Passenger transport licence',
-      servicebwForm: 'PT-1',
+      description: 'PT-1',
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
     });
   });
 
-  it('keeps an empty form ID, and a document with a field the catalog dropped', () => {
+  it('keeps an empty description, and a document with a field the catalog dropped', () => {
     const draft = {
       ...DRAFT,
-      servicebw_form: '',
+      description: '',
       documents: [
         {
           document_type: 'pid',
@@ -959,7 +959,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
       ],
     };
     const { editor } = initialStatesFromDraft(draft, 'documents');
-    expect(editor.servicebwForm).toBe('');
+    expect(editor.description).toBe('');
     expect(editor.step).toBe('documents');
     expect(editor.documents).toEqual([
       { document_type: 'pid', fields: ['birthdate', 'shoe_size'] },
@@ -1015,7 +1015,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     const { editor, rules } = initialStatesFromDraft(DRAFT);
     expect(draftPayload(localContentOf(editor, rules), editor.step)).toEqual({
       name: DRAFT.name,
-      servicebw_form: DRAFT.servicebw_form,
+      description: DRAFT.description,
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
       rules: { branches: DRAFT.branches, numbering_base: { rule: 4, group: 2 } },
       step: 'test',
@@ -1038,7 +1038,7 @@ function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecor
     step: 'rules',
     content: {
       name: 'Passenger transport licence',
-      servicebwForm: '',
+      description: '',
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
       branches: [
         mainBranch(US1_RULES),
@@ -1053,13 +1053,13 @@ function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecor
 }
 
 describe('initialStatesFromLocal (FR-017; R10)', () => {
-  it('takes the name, the form ID and the documents, at the record’s step', () => {
+  it('takes the name, the description and the documents, at the record’s step', () => {
     const { editor } = initialStatesFromLocal(localRecord());
     expect(editor).toEqual({
       ...INITIAL_EDITOR_STATE,
       step: 'rules',
       name: 'Passenger transport licence',
-      servicebwForm: '',
+      description: '',
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
     });
   });

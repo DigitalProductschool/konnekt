@@ -28,7 +28,7 @@ NOT_FOUND = {'error': 'Not found', 'message': 'Form connection not found'}
 # quickstart.md V1
 NEW_FORM_CONNECTION: dict[str, Any] = {
     'name': 'Führerscheinantrag Test',
-    'servicebw_form': 'FS-20417',
+    'description': 'FS-20417',
     'documents': [
         {
             'document_type': 'pid',
@@ -275,7 +275,7 @@ def test_creating_returns_the_form_connection_with_its_urls(
     assert data == {
         'id': form_connection_id,
         'name': 'Führerscheinantrag Test',
-        'servicebw_form': 'FS-20417',
+        'description': 'FS-20417',
         'is_active': True,
         # Fields in catalog order: expiry_date comes before document_number
         'documents': [PID_VIEW, MDL_VIEW],
@@ -419,11 +419,11 @@ def test_texts_are_trimmed(
     data = _create(
         signed_in_client,
         name='  Führerscheinantrag Test ',
-        servicebw_form=' FS-20417\n',
+        description=' FS-20417\n',
     )
 
     assert data['name'] == 'Führerscheinantrag Test'
-    assert data['servicebw_form'] == 'FS-20417'
+    assert data['description'] == 'FS-20417'
 
 
 PID = 'pid'
@@ -475,9 +475,9 @@ FAMILY_NAME = ['family_name']
         ({'name': ''}, 'Enter a name.'),
         ({'name': '   '}, 'Enter a name.'),
         ({'name': 'x' * 201}, 'The name can have at most 200 characters.'),
-        ({'servicebw_form': ''}, 'Enter the form ID.'),
+        ({'description': ''}, 'Enter the form ID.'),
         (
-            {'servicebw_form': 'x' * 501},
+            {'description': 'x' * 501},
             'The form ID can have at most 500 characters.',
         ),
     ],
@@ -503,7 +503,7 @@ def test_the_first_problem_in_form_order_is_reported(
 ) -> None:
     response = signed_in_client.post(
         '/api/form-connections',
-        json={'name': '', 'servicebw_form': '', 'documents': []},
+        json={'name': '', 'description': '', 'documents': []},
     )
 
     assert response.status_code == 400
@@ -654,7 +654,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
         {
             'id': second['id'],
             'name': 'Second',
-            'servicebw_form': 'FS-20417',
+            'description': 'FS-20417',
             'is_active': True,
             'status': 'published',
             'updated_at': second['updated_at'],
@@ -662,7 +662,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
         {
             'id': first['id'],
             'name': 'First',
-            'servicebw_form': 'FS-20417',
+            'description': 'FS-20417',
             'is_active': True,
             'status': 'published',
             'updated_at': first['updated_at'],
@@ -705,14 +705,14 @@ def test_renaming_changes_only_what_is_sent_and_creates_no_revision(
 
     response = signed_in_client.put(
         f'/api/form-connections/{created["id"]}',
-        json={'name': ' Renamed ', 'servicebw_form': 'FS-1'},
+        json={'name': ' Renamed ', 'description': 'FS-1'},
     )
 
     assert response.status_code == 200
     assert response.json()['message'] == 'Form connection updated'
     data = response.json()['data']
     assert data['name'] == 'Renamed'
-    assert data['servicebw_form'] == 'FS-1'
+    assert data['description'] == 'FS-1'
     assert data['documents'] == created['documents']
     assert data['trigger_url'] == created['trigger_url']
     assert data['pull_url'] == created['pull_url']
@@ -737,7 +737,7 @@ def test_an_empty_update_changes_nothing(
     [
         ({'name': ''}, 'Enter a name.'),
         ({'name': None}, 'Enter a name.'),
-        ({'servicebw_form': '  '}, 'Enter the form ID.'),
+        ({'description': '  '}, 'Enter the form ID.'),
     ],
 )
 def test_updating_applies_the_same_validation(

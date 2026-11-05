@@ -63,7 +63,7 @@ DRAFT_KEYS = {
     'status',
     'id',
     'name',
-    'servicebw_form',
+    'description',
     'documents',
     'branches',
     'next_rule_number',
@@ -95,7 +95,7 @@ def draft_body(**changes: Any) -> dict[str, Any]:
     """
     body: dict[str, Any] = {
         'name': 'Führerscheinantrag Entwurf',
-        'servicebw_form': '',
+        'description': '',
         'documents': [],
         'rules': draft_rules([main_branch([])]),
         'step': 'connection',
@@ -204,7 +204,7 @@ def test_creating_a_draft_stores_version_1_without_eudiplo(
     assert data['version'] == 1
     assert data['step'] == 'connection'
     assert data['name'] == 'Führerscheinantrag Entwurf'
-    assert data['servicebw_form'] == ''
+    assert data['description'] == ''
     assert data['documents'] == []
     assert data['next_rule_number'] == 1
     assert data['next_group_number'] == 1
@@ -227,7 +227,7 @@ def test_creating_a_draft_keeps_its_content_and_step(
     response = signed_in_client.post(
         f'{BASE}/drafts',
         json=draft_body(
-            servicebw_form='FS-20417',
+            description='FS-20417',
             documents=[{'document_type': 'pid', 'fields': ['birthdate']}],
             rules=draft_rules(branches),
             step='rules',
@@ -236,7 +236,7 @@ def test_creating_a_draft_keeps_its_content_and_step(
 
     assert response.status_code == 201, response.json()
     data = response.json()['data']
-    assert data['servicebw_form'] == 'FS-20417'
+    assert data['description'] == 'FS-20417'
     assert data['step'] == 'rules'
     assert [document['document_type'] for document in data['documents']] == ['pid']
     assert [field['key'] for field in data['documents'][0]['fields']] == ['birthdate']
@@ -303,7 +303,7 @@ def test_drafts_are_listed_with_published_connections_by_last_save(
         (published_id, 'published'),
     ]
     assert summaries[0]['name'] == 'Erster Entwurf'
-    assert summaries[0]['servicebw_form'] == ''
+    assert summaries[0]['description'] == ''
     assert summaries[0]['updated_at'] == get(signed_in_client, draft_id)['updated_at']
     updated = [s['updated_at'] for s in summaries]
     assert updated == sorted(updated, reverse=True)
@@ -339,7 +339,7 @@ def test_saving_a_draft_replaces_its_content_and_raises_its_version(
         draft_id,
         1,
         name='  Führerschein Klasse B  ',
-        servicebw_form='FS-20417',
+        description='FS-20417',
         documents=FORM_CONNECTION['documents'],
         rules=draft_rules(branches),
         step='rules',
@@ -350,7 +350,7 @@ def test_saving_a_draft_replaces_its_content_and_raises_its_version(
     data = response.json()['data']
     assert data['version'] == 2
     assert data['name'] == 'Führerschein Klasse B'
-    assert data['servicebw_form'] == 'FS-20417'
+    assert data['description'] == 'FS-20417'
     assert [
         (document['document_type'], [field['key'] for field in document['fields']])
         for document in data['documents']
@@ -372,7 +372,7 @@ INCOMPLETE_RULE = rule(1, None, None, '', name='')
 @pytest.mark.parametrize(
     'changes',
     [
-        pytest.param({'servicebw_form': ''}, id='no form ID'),
+        pytest.param({'description': ''}, id='no form ID'),
         pytest.param({'documents': []}, id='no documents'),
         pytest.param(
             {'documents': [{'document_type': 'pid', 'fields': []}]},
@@ -561,7 +561,7 @@ def test_saving_accepts_incomplete_content(
         ),
         pytest.param({'name': ''}, 'Enter a name.', id='no name'),
         pytest.param(
-            {'servicebw_form': 'x' * 501},
+            {'description': 'x' * 501},
             'The form ID can have at most 500 characters.',
             id='a form ID of 501 characters',
         ),
@@ -759,7 +759,7 @@ def test_publishing_a_draft_answers_the_published_connection(
     assert data['status'] == 'published'
     assert data['id'] == draft_id
     assert data['name'] == FORM_CONNECTION['name']
-    assert data['servicebw_form'] == FORM_CONNECTION['servicebw_form']
+    assert data['description'] == FORM_CONNECTION['description']
     assert data['is_active'] is True
     assert data['trigger_url'] == f'{BASE_URL}/api/connect/{draft_id}/requests'
     assert data['rule_set_version'] == 1
@@ -1108,7 +1108,7 @@ PARITY_CASES = [
     ),
     pytest.param({}, None, id='valid without rules'),
     pytest.param({'name': ''}, 'Enter a name.', id='missing name'),
-    pytest.param({'servicebw_form': ''}, 'Enter the form ID.', id='missing form ID'),
+    pytest.param({'description': ''}, 'Enter the form ID.', id='missing form ID'),
     pytest.param({'documents': []}, 'Add at least one document.', id='no documents'),
     pytest.param(
         {'documents': [{'document_type': 'pid', 'fields': []}]},
@@ -1412,7 +1412,7 @@ def their_save(client: TestClient, draft_id: str) -> dict[str, Any]:
         draft_id,
         1,
         name='Führerschein (their name)',
-        servicebw_form='FS-1',
+        description='FS-1',
         step='documents',
     )
     assert response.status_code == 200, response.json()
@@ -1425,7 +1425,7 @@ def their_save(client: TestClient, draft_id: str) -> dict[str, Any]:
 # that raises the counters, and another step
 OUR_DRAFT: dict[str, Any] = {
     'name': 'Führerschein (our name)',
-    'servicebw_form': 'FS-2',
+    'description': 'FS-2',
     'documents': FORM_CONNECTION['documents'],
     'rules': draft_rules([main_branch([AGE_RULE, CLASS_RULE])]),
     'step': 'rules',
@@ -1478,7 +1478,7 @@ def test_replacing_their_changes_stores_the_whole_draft(
     data = response.json()['data']
     assert data['version'] == 3
     assert data['name'] == OUR_DRAFT['name']
-    assert data['servicebw_form'] == OUR_DRAFT['servicebw_form']
+    assert data['description'] == OUR_DRAFT['description']
     assert [document['document_type'] for document in data['documents']] == [
         'pid',
         'mdl',
@@ -1543,7 +1543,7 @@ def test_publishing_with_replace_publishes_over_their_save(
     data = response.json()['data']
     assert data['status'] == 'published'
     assert data['name'] == FORM_CONNECTION['name']
-    assert data['servicebw_form'] == FORM_CONNECTION['servicebw_form']
+    assert data['description'] == FORM_CONNECTION['description']
     row = stored(draft_id)
     assert row is not None
     assert row.published_at is not None

@@ -42,7 +42,7 @@ function draftRecord(): LocalDraftRecord {
     step: 'rules',
     content: {
       name: 'Parking permit',
-      servicebwForm: 'F-123',
+      description: 'F-123',
       documents: [{ document_type: 'pid', fields: ['given_name', 'birth_date'] }],
       branches: [
         {
@@ -81,7 +81,7 @@ function newRecord(): LocalDraftRecord {
     step: 'connection',
     content: {
       name: '',
-      servicebwForm: '',
+      description: '',
       documents: [],
       branches: [
         {
@@ -269,7 +269,7 @@ describe('invalid records', () => {
     }
     for (const field of [
       'name',
-      'servicebwForm',
+      'description',
       'documents',
       'branches',
       'numberingBase',
@@ -282,7 +282,7 @@ describe('invalid records', () => {
 
   it.each<[string, (content: Record<string, unknown>) => void]>([
     ['a name that is not text', (content) => (content.name = null)],
-    ['a form ID that is not text', (content) => (content.servicebwForm = 7)],
+    ['a description that is not text', (content) => (content.description = 7)],
     ['documents that are not a list', (content) => (content.documents = {})],
     ['a document that is not an object', (content) => (content.documents = ['pid'])],
     ['a document without a type', (content) => (content.documents = [{ fields: ['given_name'] }])],

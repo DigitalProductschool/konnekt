@@ -90,7 +90,7 @@ export default function ConnectionDetails({
       title={formConnection.name}
       titleAsHeading
       badge={<ConnectionStatusBadge isActive={isActive} />}
-      meta={DETAIL_COPY.formId(formConnection.servicebw_form)}
+      meta={DETAIL_COPY.formId(formConnection.description)}
       head={
         <WizardProgress
           steps={CONNECTION_STEPS}

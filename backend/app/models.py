@@ -103,7 +103,7 @@ class FormConnection(Base):
     # Required for drafts too
     name: Mapped[str] = mapped_column(String(200))
     # May be '' in a draft
-    servicebw_form: Mapped[str] = mapped_column(String(500))
+    description: Mapped[str] = mapped_column(String(500))
     # Stays true on a draft and means nothing until it is published
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true()

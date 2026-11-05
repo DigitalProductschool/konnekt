@@ -98,7 +98,7 @@ function contentWith(items: LocalDraftContent['branches'][number]['items']): Loc
   return {
     ...content,
     name: 'Parking permit',
-    servicebwForm: 'F-1',
+    description: 'F-1',
     documents: [{ document_type: 'pid', fields: ['birth_date', 'family_name'] }],
     branches: [{ ...content.branches[0], items }],
     counters: { rule: 4, group: 3 },
@@ -111,10 +111,10 @@ describe('emptyContent', () => {
     expect(emptyContent()).toEqual(localContentOf(editor, initialRulesState()));
   });
 
-  it('has no name, form ID or documents, and the main variant alone, numbered from 1', () => {
+  it('has no name, description or documents, and the main variant alone, numbered from 1', () => {
     expect(emptyContent()).toEqual({
       name: '',
-      servicebwForm: '',
+      description: '',
       documents: [],
       branches: [
         {
@@ -159,7 +159,7 @@ describe('sameContent', () => {
       numberingBase: content.numberingBase,
       branches: content.branches,
       documents: content.documents,
-      servicebwForm: content.servicebwForm,
+      description: content.description,
       name: content.name,
     };
     expect(sameContent(content, reordered)).toBe(true);
@@ -212,10 +212,10 @@ describe('sameContent', () => {
     expect(sameContent(contentWith([]), contentWith([rule('rule-1')]))).toBe(false);
   });
 
-  it('notices a changed name, form ID, numbering base or counter', () => {
+  it('notices a changed name, description, numbering base or counter', () => {
     const base = contentWith([]);
     expect(sameContent(base, { ...base, name: 'Other' })).toBe(false);
-    expect(sameContent(base, { ...base, servicebwForm: 'F-2' })).toBe(false);
+    expect(sameContent(base, { ...base, description: 'F-2' })).toBe(false);
     expect(sameContent(base, { ...base, numberingBase: { rule: 2, group: 1 } })).toBe(false);
     expect(sameContent(base, { ...base, counters: { rule: 4, group: 4 } })).toBe(false);
   });

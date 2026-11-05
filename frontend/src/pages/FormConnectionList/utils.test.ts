@@ -8,7 +8,7 @@ function summary(overrides: Partial<FormConnectionSummary> = {}): FormConnection
   return {
     id: 'c1',
     name: 'Parking permit',
-    servicebw_form: '12345',
+    description: '12345',
     is_active: true,
     status: 'published',
     updated_at: '2026-11-04T13:32:00Z',
@@ -42,6 +42,6 @@ describe('formIdLineOf', () => {
   });
 
   it('says "No form ID yet" for an empty form ID', () => {
-    expect(formIdLineOf(summary({ status: 'draft', servicebw_form: '' }))).toBe('No form ID yet');
+    expect(formIdLineOf(summary({ status: 'draft', description: '' }))).toBe('No form ID yet');
   });
 });
