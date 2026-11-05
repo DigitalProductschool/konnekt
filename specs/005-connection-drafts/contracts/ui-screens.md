@@ -171,8 +171,9 @@ a dialog opens before the flow (W6), in the wizard frame with the "Draft" badge:
 `/form-connections/:id` for a draft (W7):
 - **Header**: the name as the page's `h1` (`titleAsHeading`), the "Draft" badge, and the meta
   "Form ID …" or "No form ID yet".
-- **Progress**: every step up to and including the stored step is shown as reached. A reached step
-  leads to the flow at that step.
+- **Progress**: Publish is the current step, since the details are its summary. Every step up to
+  and including the stored step is shown as reached. A reached step leads to the flow at that
+  step. The steps between are to do and aren't links (an interim look until Figma has a design).
 - **An info alert**: "This draft isn't live. Its connection links appear once you publish it." No
   connection URLs anywhere (FR-006).
 - **Documents and rules**: spec 001's documents card and spec 002's rules card, showing what the

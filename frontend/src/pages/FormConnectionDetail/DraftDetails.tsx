@@ -26,8 +26,9 @@ import {
 
 /**
  * A stored draft's details (spec 005, S6, W7) in the wizard's frame: the header names it (the
- * page's h1) with the "Draft" badge and its form ID, or that it has none yet; the steps up to the
- * one it was saved in are reached and lead to its flow there. The draft isn't live, so it shows no
+ * page's h1) with the "Draft" badge and its form ID, or that it has none yet; Publish is the
+ * current step, and the steps up to the one it was saved in are reached and lead to its flow
+ * there, while the steps between are to do. The draft isn't live, so it shows no
  * connection URL anywhere (FR-006): an info note in KERN's alert style, which isn't a live
  * region, says so, then the documents and rules it holds, incomplete parts included, and the
  * draft card. "Delete draft" asks first and returns to the overview; if the draft was published
@@ -84,9 +85,12 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       badge={<ConnectionStatusBadge isActive draft />}
       meta={draft.servicebw_form ? DETAIL_COPY.formId(draft.servicebw_form) : DETAIL_COPY.noFormId}
       head={
+        // The details are the Publish step's summary, so Publish is current whichever step the
+        // draft was saved in
         <WizardProgress
           steps={CONNECTION_STEPS}
-          current={reachedStepsOf(draft.step)}
+          current={CONNECTION_STEPS.length - 1}
+          reached={reachedStepsOf(draft.step)}
           onSelect={continueAt}
         />
       }

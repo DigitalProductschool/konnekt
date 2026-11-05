@@ -150,7 +150,8 @@ export function draftRuleDocumentsOf(
 
 /**
  * How many of the wizard's steps a draft has reached: every step up to and including the one it
- * was saved in (S6), which `WizardProgress` shows as done and leading to the flow there.
+ * was saved in (S6), which `WizardProgress` (as `reached`) shows as done and leading to the flow
+ * there.
  */
 export function reachedStepsOf(step: EditorStep): number {
   return DRAFT_STEPS.indexOf(step) + 1;
