@@ -57,7 +57,7 @@ export const EDITOR_COPY = {
   publishErrorText: 'Nothing went live. Check your connection and try again.',
   // Editing a connection (no frames): the same steps, saving instead of publishing (FR-005)
   editConnectionTitle: 'Edit the connection',
-  editConnectionHint: 'Change the form’s name or ID, or go on to the documents.',
+  editConnectionHint: 'Change the form name or description, or go on to the documents.',
   editDocumentsTitle: 'Edit documents',
   editNote: 'Requests already in progress keep their previous data.',
   save: 'Save',

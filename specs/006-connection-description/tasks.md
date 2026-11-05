@@ -163,11 +163,11 @@ overview.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T045 [P] Update `docs/ARCHITECTURE.md`: line 346 ("The name and the description create no revision"); line 361 (a draft's description may be `''`, now like a published connection's); lines 386–388 (remove `clean_servicebw_form` from the `complete` switch's list and "a form ID" from what completeness checks; `clean_description` runs the same on every path); line 398 (publishing applies the name and the description); lines 645–647 (local drafts: `format: 2`, content "name, description, documents, …"; format-1 records are removed); line 888 (replace the column example `servicebw_form` with an existing one, such as `published_at`)
-- [ ] T046 [P] Search for leftovers from the repository root: `grep -rn -i "servicebw_\?form\|formid\|form id" backend/app backend/tests frontend/src docs`. Only the committed migrations and this feature's migration may still name the old column (FR-008, SC-003)
-- [ ] T047 Run the backend gates in `backend/`: `uv run ruff check --fix . && uv run ruff format .`, `uv run mypy app/ scripts/ tests/`, and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest`
-- [ ] T048 Run the frontend gates in `frontend/`: `npm run format`, then `npm run lint && npm test && npm run build`
-- [ ] T049 Walk through the manual scenarios V1–V6 of `specs/006-connection-description/quickstart.md` (V5 needs a database at `d2b97ba4a2c7` with `PK-30051`, `FS-20417` and a local draft made on a checkout without this change), and note any deviation
+- [X] T045 [P] Update `docs/ARCHITECTURE.md`: line 346 ("The name and the description create no revision"); line 361 (a draft's description may be `''`, now like a published connection's); lines 386–388 (remove `clean_servicebw_form` from the `complete` switch's list and "a form ID" from what completeness checks; `clean_description` runs the same on every path); line 398 (publishing applies the name and the description); lines 645–647 (local drafts: `format: 2`, content "name, description, documents, …"; format-1 records are removed); line 888 (replace the column example `servicebw_form` with an existing one, such as `published_at`)
+- [X] T046 [P] Search for leftovers from the repository root: `grep -rn -i "servicebw_\?form\|formid\|form id" backend/app backend/tests frontend/src docs`. Only the committed migrations and this feature's migration may still name the old column (FR-008, SC-003)
+- [X] T047 Run the backend gates in `backend/`: `uv run ruff check --fix . && uv run ruff format .`, `uv run mypy app/ scripts/ tests/`, and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest`
+- [X] T048 Run the frontend gates in `frontend/`: `npm run format`, then `npm run lint && npm test && npm run build`
+- [X] T049 Walk through the manual scenarios V1–V6 of `specs/006-connection-description/quickstart.md` (V5 needs a database at `d2b97ba4a2c7` with `PK-30051`, `FS-20417` and a local draft made on a checkout without this change), and note any deviation
 
 ---
 
