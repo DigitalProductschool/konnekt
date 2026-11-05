@@ -882,6 +882,65 @@ def test_a_reactivated_form_connection_answers_again(
     trigger(signed_in_client, form_connection_id)
 
 
+# A draft's URLs (spec 005, contracts/integration-api.md "A draft's URLs")
+
+
+def _create_draft(client: TestClient) -> str:
+    """Save a new draft with US1's rules through the management API; its id.
+
+    A draft has no URLs in its answer: its URLs are built from its id, as a
+    published connection's are.
+    """
+    rules = {
+        'branches': US1_RULES['branches'],
+        'numbering_base': {'rule': 1, 'group': 1},
+    }
+    response = client.post(
+        '/api/form-connections/drafts',
+        json=FORM_CONNECTION | {'rules': rules, 'step': 'rules'},
+    )
+    assert response.status_code == 201, response.json()
+    draft_id: str = response.json()['data']['id']
+    return draft_id
+
+
+def test_a_drafts_urls_answer_unavailable_and_start_nothing(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = _create_draft(signed_in_client)
+
+    trigger_response = signed_in_client.post(requests_url(draft_id))
+    pull_response = signed_in_client.get(pull_url(draft_id, 'made-up-reference'))
+
+    for response in (trigger_response, pull_response):
+        assert response.status_code == 409
+        # Word for word a deactivated connection's answer (FR-006)
+        assert response.json() == document_requests.UNAVAILABLE_DETAIL
+    assert _count_requests() == 0
+    # Saving the draft and calling its URLs never reached EUDIPLO (SC-002)
+    assert fake_eudiplo.calls == []
+
+
+def test_a_deleted_drafts_urls_are_not_found(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = _create_draft(signed_in_client)
+    deleted = signed_in_client.request(
+        'DELETE', f'/api/form-connections/{draft_id}/draft', json={}
+    )
+    assert deleted.status_code == 200, deleted.json()
+
+    trigger_response = signed_in_client.post(requests_url(draft_id))
+    pull_response = signed_in_client.get(pull_url(draft_id, 'made-up-reference'))
+
+    assert trigger_response.status_code == 404
+    assert trigger_response.json() == FORM_CONNECTION_NOT_FOUND
+    assert pull_response.status_code == 404
+    assert pull_response.json() == REQUEST_NOT_FOUND
+    assert _count_requests() == 0
+    assert fake_eudiplo.calls == []
+
+
 # The evaluation of the rules (spec 002, contracts/integration-api.md "evaluation")
 
 

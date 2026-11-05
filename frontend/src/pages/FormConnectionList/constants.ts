@@ -17,6 +17,11 @@ export const LIST_COPY = {
   edited: (date: string) => `Edited ${date}`,
   edit: 'Edit',
   view: 'View',
+  saved: (date: string) => `Saved ${date}`,
+  noFormId: 'No form ID yet',
+  continue: 'Continue',
+  hintWithDrafts: 'Pick up your draft or connect another form.',
+  draftSaved: (name: string) => `Draft ${name} saved.`,
 };
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };

@@ -39,6 +39,12 @@ import type { CheckedItem } from './types';
 /** The seeds the survey of generated branches reads */
 const SEEDS = 1000;
 
+/**
+ * The time limit of the test that builds the survey: it checks all `SEEDS` branches, 2 to 3 s
+ * alone and over Vitest's 5 s default while the full suite runs in parallel
+ */
+const SURVEY_TIMEOUT_MS = 30_000;
+
 /** Characters the cases need, written as code points */
 const SHARP_S = String.fromCodePoint(0xdf);
 const COMBINING_DOT_ABOVE = String.fromCodePoint(0x307);
@@ -271,11 +277,18 @@ describe('randomBranch()', () => {
     expect(distinct.size).toBeGreaterThan(95);
   });
 
-  it('builds branches of two to eight complete rules that are checked whole', () => {
-    // surveyOne() checks each: checkedBranchOf() leaves nothing out, and the checked tree's items
-    // are the oracle's items
-    expect(surveyed().operators.size).toBeGreaterThan(0);
-  });
+  // The first to read the survey, so it builds it
+  it(
+    'builds branches of two to eight complete rules that are checked whole',
+    {
+      timeout: SURVEY_TIMEOUT_MS,
+    },
+    () => {
+      // surveyOne() checks each: checkedBranchOf() leaves nothing out, and the checked tree's items
+      // are the oracle's items
+      expect(surveyed().operators.size).toBeGreaterThan(0);
+    }
+  );
 
   it('covers every operator of every kind, both letter-case settings and decimals', () => {
     const { operators, targets, matchCases, decimals } = surveyed();

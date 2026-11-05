@@ -209,6 +209,38 @@ def test_a_deactivated_or_deleted_form_connection_answers_unavailable(
         assert response.json() == UNAVAILABLE
 
 
+def test_a_drafts_branch_pull_url_answers_unavailable_for_any_branch(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    # A draft with a variant: its branches have no rows, so no ids (spec 005)
+    published = _create(signed_in_client, AMBULANCE)
+    rules = {
+        'branches': [main_branch(US1_ITEMS), AMBULANCE],
+        'numbering_base': {'rule': 1, 'group': 1},
+    }
+    response = signed_in_client.post(
+        '/api/form-connections/drafts',
+        json=FORM_CONNECTION | {'rules': rules, 'step': 'rules'},
+    )
+    assert response.status_code == 201, response.json()
+    draft_id = response.json()['data']['id']
+    calls = len(fake_eudiplo.calls)
+
+    # The form connection is checked first (step 2), before the branch is looked at
+    for branch_id in (
+        str(uuid.uuid4()),
+        'not-a-uuid',
+        # A published connection's variant
+        _branch(published, 'Ambulance')['id'],
+    ):
+        response = signed_in_client.get(
+            branch_pull_url(draft_id, branch_id, 'made-up-reference')
+        )
+        assert response.status_code == 409, branch_id
+        assert response.json() == UNAVAILABLE
+    assert len(fake_eudiplo.calls) == calls
+
+
 def test_an_unknown_branch_or_the_main_branch_is_not_found(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:

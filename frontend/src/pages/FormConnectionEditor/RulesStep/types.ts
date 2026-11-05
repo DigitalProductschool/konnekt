@@ -46,7 +46,9 @@ export type LeaveEditorAction =
   | { type: 'documents' }
   | { type: 'publish' }
   /** "Test rules" (spec 004, S2): the pre-checks of publishing, then the test step */
-  | { type: 'test' };
+  | { type: 'test' }
+  /** "Save and exit" closes the rule editor through "Save changes to Rule 01?" first (FR-012) */
+  | { type: 'saveAndExit' };
 
 export type RulesDialog =
   /** "Delete Rule 03?" (U14; in Standard with variants, U23 and F14) */

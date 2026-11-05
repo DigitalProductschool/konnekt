@@ -1,4 +1,5 @@
-import { EDITED_DATE_FORMAT } from './constants';
+import type { FormConnectionSummary } from '../../types/form-connections';
+import { EDITED_DATE_FORMAT, LIST_COPY } from './constants';
 import type { ListAction, ListState } from './types';
 
 export function listReducer(state: ListState, action: ListAction): ListState {
@@ -15,4 +16,20 @@ export function listReducer(state: ListState, action: ListAction): ListState {
 /** "5 Oct 2026" for an ISO timestamp from the API. */
 export function formatEditedDate(timestamp: string): string {
   return EDITED_DATE_FORMAT.format(new Date(timestamp));
+}
+
+/**
+ * The overview's hint: it points to the drafts while any stored draft is listed or a local
+ * draft is offered (S3).
+ */
+export function hintOf(formConnections: FormConnectionSummary[], localDraftCount = 0): string {
+  const hasDraft = formConnections.some((summary) => summary.status === 'draft');
+  return hasDraft || localDraftCount > 0 ? LIST_COPY.hintWithDrafts : LIST_COPY.hint;
+}
+
+/** The line under a row's name: its form ID, or "No form ID yet" for a draft without one (W2). */
+export function formIdLineOf(summary: FormConnectionSummary): string {
+  return summary.servicebw_form === ''
+    ? LIST_COPY.noFormId
+    : LIST_COPY.formId(summary.servicebw_form);
 }

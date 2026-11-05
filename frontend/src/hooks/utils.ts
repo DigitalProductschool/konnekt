@@ -1,3 +1,6 @@
+import type { EditorStep } from '../types/form-connections';
+import { sameContent } from '../utils/localDrafts/content';
+import type { LocalDraftContent } from '../utils/localDrafts/types';
 import { namesOf } from '../utils/rules/checks/findingMessages';
 import type { LiteralContext } from '../utils/rules/checks/literals';
 import type {
@@ -61,6 +64,7 @@ export function optionSetsReducer(
 
 export const INITIAL_FORM_CONNECTION_STATE: FormConnectionState = { status: 'loading', attempt: 0 };
 
+/** The `loaded` state holds a published connection or a draft, as the API answered it */
 export function formConnectionReducer(
   state: FormConnectionState,
   action: FormConnectionAction
@@ -153,4 +157,45 @@ export function byBranchFor(
   byBranch: Readonly<Record<string, BranchCheck | null>>
 ): Record<string, BranchCheck | null> {
   return Object.fromEntries(branches.map(({ key }) => [key, byBranch[key] ?? null]));
+}
+
+// useLocalDraft() (specs/005-connection-drafts, contracts/local-drafts.md "useLocalDraft";
+// research R9): what it decides without React
+
+/** What a flow's autosave compares: its content and its step */
+export interface LocalDraftSnapshot {
+  content: LocalDraftContent;
+  step: EditorStep;
+}
+
+/**
+ * Whether the flow changed between two renders: its content, structurally, since the memoised
+ * content may get a new identity without a real change, or its step, which the record carries so
+ * that a resume reopens there
+ */
+export function isLocalDraftChange(
+  previous: LocalDraftSnapshot,
+  next: LocalDraftSnapshot
+): boolean {
+  return previous.step !== next.step || !sameContent(previous.content, next.content);
+}
+
+/**
+ * What a change does to the flow's record: `'remove'` when it brings the content back to the
+ * baseline, what is already safe elsewhere, and `'write'` otherwise. Without a baseline every
+ * change writes, and only `forget()` removes the record (data-model.md, section 6)
+ */
+export function localDraftActionOf(
+  content: LocalDraftContent,
+  baseline: LocalDraftContent | null
+): 'write' | 'remove' {
+  return baseline !== null && sameContent(content, baseline) ? 'remove' : 'write';
+}
+
+/**
+ * How long a write waits, in milliseconds: 0 for the flow's first write and once `interval` has
+ * passed since the last one, and otherwise the rest of the interval (trailing throttle)
+ */
+export function writeDelayOf(lastWriteAt: number | null, now: number, interval: number): number {
+  return lastWriteAt === null ? 0 : Math.max(0, lastWriteAt + interval - now);
 }

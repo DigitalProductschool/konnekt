@@ -9,7 +9,8 @@ import type { RulesSummaryContentProps } from './types';
 /**
  * The open summary: one section per variant, main variant first. The statements read enum values
  * by their label, so the value sets load first (FR-005), as the rest of the page says when
- * loading fails.
+ * loading fails. A draft's variants have no id, and a draft may have none yet: it then reads as a
+ * variant without rules does.
  */
 export default function RulesSummaryContent({ branches, context }: RulesSummaryContentProps) {
   const { status, optionSets, retry } = useOptionSets();
@@ -29,10 +30,22 @@ export default function RulesSummaryContent({ branches, context }: RulesSummaryC
       </div>
     );
   }
+  if (branches.length === 0) {
+    return (
+      <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
+        {DETAIL_COPY.noRules}
+      </p>
+    );
+  }
   return (
     <>
-      {branches.map((branch) => (
-        <SummaryBranch key={branch.id} branch={branch} context={{ ...context, optionSets }} />
+      {branches.map((branch, index) => (
+        <SummaryBranch
+          // A draft's variants have no id yet, and don't move on this read-only page
+          key={branch.id ?? `draft-${index}`}
+          branch={branch}
+          context={{ ...context, optionSets }}
+        />
       ))}
     </>
   );

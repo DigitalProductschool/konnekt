@@ -29,12 +29,17 @@ export default function ConfirmDialog({
   onCancel,
   onClose = onCancel,
   onConfirm,
+  secondaryLabel = '',
+  onSecondary,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const titleId = `${id}-title`;
   const errorId = `${id}-error`;
   const textId = `${id}-text`;
+  // Three buttons don't fit two halves: they share the row, and wrap where they don't fit
+  const threeButtons = onSecondary !== undefined;
+  const buttonWidth = threeButtons ? 'w-full sm:w-auto' : 'w-full sm:w-[calc(50%-8px)]';
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -110,15 +115,25 @@ export default function ConfirmDialog({
           type="button"
           onClick={onCancel}
           aria-disabled={busy}
-          className="kern-btn kern-btn--secondary w-full sm:w-[calc(50%-8px)]"
+          className={`kern-btn ${threeButtons ? 'kern-btn--tertiary' : 'kern-btn--secondary'} ${buttonWidth}`}
         >
           <span className="kern-label">{cancelLabel}</span>
         </button>
+        {threeButtons && (
+          <button
+            type="button"
+            onClick={busy ? undefined : onSecondary}
+            aria-disabled={busy}
+            className={`kern-btn kern-btn--secondary ${buttonWidth}`}
+          >
+            <span className="kern-label">{secondaryLabel}</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={busy ? undefined : onConfirm}
           aria-disabled={busy}
-          className={`kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)] ${danger ? 'kern-btn--danger' : ''}`}
+          className={`kern-btn kern-btn--primary ${buttonWidth} ${danger ? 'kern-btn--danger' : ''}`}
         >
           <span className="kern-label">{busy ? busyLabel : error ? retryLabel : confirmLabel}</span>
         </button>

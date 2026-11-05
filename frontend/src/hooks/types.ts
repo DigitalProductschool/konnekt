@@ -1,6 +1,6 @@
 import type { LoginRequest, UserView } from '../types/auth';
 import type { DocumentType } from '../types/document-types';
-import type { FormConnection } from '../types/form-connections';
+import type { FormConnectionOrDraft } from '../types/form-connections';
 import type { OptionSet } from '../types/option-sets';
 import type { buildCheckedBranch, KeyedBranch } from '../utils/rules/checks/checkedTree';
 import type { RunBranch } from '../utils/rules/checks/types';
@@ -36,15 +36,15 @@ export interface CurrentUserContextValue {
   signOut: () => Promise<void>;
 }
 
-/** One form connection from GET /api/form-connections/:id, as a page loads it */
+/** One form connection or draft from GET /api/form-connections/:id, as a page loads it */
 export type FormConnectionState =
   | { status: 'loading'; attempt: number }
   | { status: 'notFound'; attempt: number }
   | { status: 'failed'; attempt: number }
-  | { status: 'loaded'; attempt: number; formConnection: FormConnection };
+  | { status: 'loaded'; attempt: number; formConnection: FormConnectionOrDraft };
 
 export type FormConnectionAction =
-  | { type: 'loaded'; formConnection: FormConnection }
+  | { type: 'loaded'; formConnection: FormConnectionOrDraft }
   | { type: 'notFound' }
   | { type: 'failed' }
   | { type: 'retry' };

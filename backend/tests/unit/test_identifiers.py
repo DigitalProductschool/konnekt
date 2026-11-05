@@ -6,6 +6,7 @@ meanwhile, so that no identifier is ever reused within a form connection.
 """
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -68,6 +69,7 @@ def _create(
             id=form_connection_id,
             name='Test',
             servicebw_form='FS-1',
+            published_at=datetime.now(tz=timezone.utc),
             current_revision=1,
             current_rule_set=len(versions),
             next_rule_number=next_rule_number,
@@ -125,6 +127,7 @@ def _state(form_connection_id: str) -> tuple[int, int, int]:
     """The current rule set, and the next rule and group numbers."""
     with SessionLocal() as db:
         form_connection = db.get_one(FormConnection, form_connection_id)
+        assert form_connection.current_rule_set is not None
         return (
             form_connection.current_rule_set,
             form_connection.next_rule_number,
@@ -381,6 +384,7 @@ def test_a_new_form_connections_rules_are_numbered_from_1() -> None:
             id=str(uuid.uuid4()),
             name='Test',
             servicebw_form='FS-1',
+            published_at=datetime.now(tz=timezone.utc),
             current_revision=1,
             current_rule_set=1,
             next_rule_number=1,

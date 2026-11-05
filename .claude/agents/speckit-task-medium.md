@@ -1,7 +1,7 @@
 ---
 name: speckit-task-medium
 description: Implements one or a few straightforward tasks of a speckit tasks.md (glue code, tests of existing behaviour, small components). Use only when the coordinator of /speckit-implement delegates tasks to it.
-model: claude-sonnet-5-5
+model: inherit
 effort: medium
 ---
 

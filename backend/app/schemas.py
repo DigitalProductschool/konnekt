@@ -285,14 +285,41 @@ class Branch(SnapshotBranch):
 # first (research R2)
 RULE_SET_SNAPSHOT = TypeAdapter(list[SnapshotBranch])
 
+# A form connection is a draft until it is published (spec 005, research R1)
+ConnectionStatus = Literal['draft', 'published']
+# The editor's steps; a draft remembers the one it was saved in (spec 005, FR-002)
+EditorStep = Literal['connection', 'documents', 'rules', 'test']
+
+
+class DraftContent(BaseModel):
+    """A draft's content, as form_connections.draft stores it (spec 005)."""
+
+    # Catalog order; may be empty, and a document may have no fields
+    documents: list[RequestedDocument]
+    # Main branch first; every id is null, since a draft has no branch rows
+    branches: list[BranchInput]
+    # The step the draft was saved in, where "Continue" opens it
+    step: EditorStep
+
+
+# form_connections.draft (spec 005, data-model.md section 2). The name and the
+# serviceBW form live in their columns. Personas, findings, the open tab and the
+# rule editor's position are never stored
+DRAFT_CONTENT = TypeAdapter(DraftContent)
+
 
 class FormConnectionSummary(BaseModel):
-    """A form connection as the overview lists it."""
+    """A form connection as the overview lists it, draft or published."""
 
     id: str
     name: str
+    # '' possible for a draft
     servicebw_form: str
+    # true for a draft; means nothing until it is published
     is_active: bool
+    # Whether it is a draft or a published connection (spec 005)
+    status: ConnectionStatus
+    # For a draft: its last save (FR-007)
     updated_at: str
 
 
@@ -303,6 +330,8 @@ class FormConnection(BaseModel):
     branch's, as in spec 001.
     """
 
+    # Always 'published': tells it apart from a FormConnectionDraft (spec 005)
+    status: Literal['published'] = 'published'
     id: str
     name: str
     servicebw_form: str
@@ -337,6 +366,85 @@ class FormConnectionUpdate(BaseModel):
     servicebw_form: str | None = None
     documents: list[RequestedDocument] | None = None
     rules: RulesInput | None = None
+
+
+class FormConnectionDraft(BaseModel):
+    """A draft as the API returns it (spec 005).
+
+    No URLs, no rule set version and no is_active: a draft isn't live (FR-006,
+    FR-007).
+    """
+
+    # Always 'draft': tells it apart from a FormConnection
+    status: Literal['draft'] = 'draft'
+    id: str
+    name: str
+    # '' possible
+    servicebw_form: str
+    # May be empty, and a document's fields may be empty. A type or field the
+    # catalog dropped keeps its key as its label
+    documents: list[RequestedDocumentView]
+    # Main branch first; every id is null
+    branches: list[BranchInput]
+    # The next free identifier numbers, the draft's numbering (research R4)
+    next_rule_number: int
+    next_group_number: int
+    # Where "Continue" opens it (FR-008)
+    step: EditorStep
+    # The draft version, sent back on save and publish (FR-022, research R6)
+    version: int
+    created_at: str
+    # The last save (FR-007)
+    updated_at: str
+
+
+# What GET /api/form-connections/{id} answers (spec 005, research R2)
+FormConnectionOrDraft = Annotated[
+    FormConnection | FormConnectionDraft, Field(discriminator='status')
+]
+
+
+class DraftRules(BaseModel):
+    """A draft's branches and rules, as the editor sends them (spec 005)."""
+
+    # Main branch first; every id is null
+    branches: list[BranchInput]
+    # The counters the editor started numbering from (research R4)
+    numbering_base: NumberingBase
+
+
+class DraftCreate(BaseModel):
+    """A new draft (spec 005). The service layer checks its structure (FR-003)."""
+
+    name: str
+    # '' possible
+    servicebw_form: str
+    documents: list[RequestedDocument]
+    rules: DraftRules
+    # The step the draft is saved in
+    step: EditorStep
+
+
+class DraftUpdate(DraftCreate):
+    """A save of a draft: its whole content, replacing the stored one (spec 005)."""
+
+    # The draft version the editor loaded (FR-022, research R6)
+    version: int
+    # Save over another team member's save
+    replace: bool = False
+
+
+class DraftPublish(FormConnectionCreate):
+    """Publishing a draft: the body of POST /api/form-connections plus its version.
+
+    `rules.base_version` and `rules.replace` are ignored: a draft has no rule set
+    yet (spec 005, research R5).
+    """
+
+    # The draft version the editor loaded (FR-022, research R6)
+    version: int
+    # Publish over another team member's save
+    replace: bool = False
 
 
 # The trigger URL and the pull URL, which serviceBW calls

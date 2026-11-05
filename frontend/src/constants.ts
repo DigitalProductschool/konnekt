@@ -26,3 +26,10 @@ export const KERN_TRANSLATIONS = {
   loading: 'Loading…',
   closeDialog: 'Close',
 };
+
+/**
+ * How long a status region that has just appeared stays empty before it shows its text, so that
+ * screen readers know the region before its text changes and announce it (as live-region
+ * libraries do, about 100 ms)
+ */
+export const LIVE_REGION_DELAY_MS = 100;

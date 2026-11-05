@@ -101,6 +101,7 @@ def _current_revision(form_connection_id: str) -> int:
     with SessionLocal() as db:
         form_connection = db.get(FormConnection, form_connection_id)
         assert form_connection is not None
+        assert form_connection.current_revision is not None
         return form_connection.current_revision
 
 

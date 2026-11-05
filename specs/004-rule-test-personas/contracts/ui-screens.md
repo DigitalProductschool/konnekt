@@ -302,7 +302,7 @@ from the nearest frame or KERN pattern named, and the K items as designed.
 |---|---|
 | O1 | The redesign's page chrome: app header, breadcrumb, Draft, Live and "Unpublished changes" badges, footer styling, colours, typography, spacing, the arrow on "Publish changes" |
 | O2 | The compact step header "Step 4 of 4" |
-| O3 | "Save and exit" in the action bar (left out on purpose, `EditorFooter.tsx`) |
+| O3 | "Save and exit" in the action bar (left out on purpose, `EditorFooter.tsx`). *Superseded by spec 005 (connection drafts) for the create flow: "Save and exit" is now built (spec 005's S0). See [spec 005](../../005-connection-drafts/spec.md).* |
 | O4 | The Standard tab's info icon and "What is a variant" tooltip of the redesign (the tabs keep today's description (i)) |
 | O5 | U10's clickable step bar |
 | O6 | The publish dialog's redesign beyond F4 |

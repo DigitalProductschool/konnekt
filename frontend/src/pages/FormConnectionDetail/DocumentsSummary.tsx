@@ -2,8 +2,11 @@ import { DETAIL_COPY } from './constants';
 import SummaryDocument from './SummaryDocument';
 import type { DocumentsSummaryProps } from './types';
 
-/** The configuration summary, which the design has no frame for: the requested documents. */
-export default function DocumentsSummary({ documents }: DocumentsSummaryProps) {
+/**
+ * The configuration summary, which the design has no frame for: the requested documents. A
+ * draft's may have none yet, or a document without fields (S6).
+ */
+export default function DocumentsSummary({ documents, draft = false }: DocumentsSummaryProps) {
   return (
     <section
       aria-labelledby="documents-title"
@@ -20,11 +23,17 @@ export default function DocumentsSummary({ documents }: DocumentsSummaryProps) {
           {DETAIL_COPY.documentsHint}
         </p>
       </div>
-      <ul>
-        {documents.map((document) => (
-          <SummaryDocument key={document.document_type} document={document} />
-        ))}
-      </ul>
+      {draft && documents.length === 0 ? (
+        <p className="text-kern-static-medium text-kern-layout-text-muted px-24 py-16">
+          {DETAIL_COPY.noDocumentsYet}
+        </p>
+      ) : (
+        <ul>
+          {documents.map((document) => (
+            <SummaryDocument key={document.document_type} document={document} draft={draft} />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

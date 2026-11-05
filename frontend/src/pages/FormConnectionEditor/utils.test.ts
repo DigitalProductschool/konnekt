@@ -1,20 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError } from '../../api/client';
-import type { Branch, FormConnection } from '../../types/form-connections';
+import { ApiError, handleResponse } from '../../api/client';
+import type { DocumentField, DocumentType } from '../../types/document-types';
+import type {
+  Branch,
+  BranchInput,
+  FormConnection,
+  FormConnectionDraft,
+} from '../../types/form-connections';
+import { emptyContent, sameContent } from '../../utils/localDrafts/content';
+import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
+import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { BranchCheck, BranchNotice, ItemFinding } from '../../utils/rules/checks/types';
-import { US1_RULES } from '../../utils/rules/testData';
-import { INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
+import { mainBranch, US1_RULES } from '../../utils/rules/testData';
+import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
-import type { PendingRemoval } from './types';
+import type {
+  DraftConflict,
+  DraftSaveError,
+  DroppedData,
+  EditorOrigin,
+  PendingRemoval,
+} from './types';
 import {
+  conflictOf,
   createPayload,
+  draftNameErrors,
+  draftPayload,
+  draftSaveErrorOf,
+  droppedDataOf,
+  droppedRemovalOf,
   editorReducer,
+  entryOf,
   findingLinesOf,
   firstBranchWithFindings,
   initialEditorState,
+  initialStatesFromDraft,
+  initialStatesFromLocal,
   isRulesChanged,
+  localContentOf,
+  offeredFieldsOf,
+  openingStepOf,
+  originOfRecord,
   pageTitleOf,
   problemPlaceOf,
   publishErrorNotice,
@@ -23,6 +51,9 @@ import {
   rulesChanged,
   rulesCheckingRemoval,
   rulesNextActionOf,
+  startOfEntry,
+  startOfOrigin,
+  stepForDroppedData,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -38,6 +69,7 @@ const STANDARD: Branch = {
 };
 
 const LOADED: FormConnection = {
+  status: 'published',
   id: 'fc',
   name: 'Passenger transport licence',
   servicebw_form: 'PT-1',
@@ -226,6 +258,136 @@ describe('editorReducer and the toast on leaving a step (B4)', () => {
     expect(removed.toast).not.toBeNull();
     const left = editorReducer(removed, { type: 'goToStep', step: 'rules' });
     expect(left).toMatchObject({ step: 'rules', toast: null, removed: null });
+  });
+});
+
+describe('editorReducer and saving a draft (FR-013, S1.5)', () => {
+  const failure: DraftSaveError = {
+    notice: { message: DRAFT_COPY.saveNetworkError, error_id: 'abc123' },
+    retryable: true,
+  };
+
+  it('saveDraft starts the save and clears the last failure', () => {
+    const state = { ...INITIAL_EDITOR_STATE, draftError: failure };
+    expect(editorReducer(state, { type: 'saveDraft' })).toMatchObject({
+      savingDraft: true,
+      draftError: null,
+    });
+  });
+
+  it('saveDraftFailed ends the save and keeps the failure', () => {
+    const saving = { ...INITIAL_EDITOR_STATE, savingDraft: true };
+    expect(editorReducer(saving, { type: 'saveDraftFailed', error: failure })).toMatchObject({
+      savingDraft: false,
+      draftError: failure,
+    });
+  });
+
+  it('goToStep takes the alert away', () => {
+    const failed = { ...INITIAL_EDITOR_STATE, step: 'documents' as const, draftError: failure };
+    expect(editorReducer(failed, { type: 'goToStep', step: 'connection' })).toMatchObject({
+      step: 'connection',
+      draftError: null,
+    });
+  });
+});
+
+describe('conflictOf (S2; R6)', () => {
+  const draftOrigin: EditorOrigin = {
+    kind: 'draft',
+    draftId: 'd1',
+    draftVersion: 3,
+    flowKey: 'draft-d1',
+  };
+  const newOrigin: EditorOrigin = { kind: 'new', flowKey: 'new-1' };
+  const publishedOrigin: EditorOrigin = { kind: 'published', formConnection: LOADED };
+  const changed = new ApiError(409, {
+    error: 'draft_changed',
+    message: 'Kim saved this draft at 14:32.',
+  });
+  const published = new ApiError(409, {
+    error: 'draft_published',
+    message: 'Kim published this draft at 14:32.',
+  });
+  const deleted = new ApiError(404, { error: 'not_found', message: 'Draft not found.' });
+
+  it('gives draft_changed with the server message and what was running', () => {
+    expect(conflictOf(changed, draftOrigin, 'save')).toEqual({
+      kind: 'draft_changed',
+      during: 'save',
+      message: 'Kim saved this draft at 14:32.',
+    });
+    expect(conflictOf(changed, draftOrigin, 'publish')?.during).toBe('publish');
+  });
+
+  it('gives draft_published with the server message', () => {
+    expect(conflictOf(published, draftOrigin, 'publish')).toEqual({
+      kind: 'draft_published',
+      during: 'publish',
+      message: 'Kim published this draft at 14:32.',
+    });
+  });
+
+  it('gives draft_deleted with the deleted text for a 404 of a stored draft', () => {
+    expect(conflictOf(deleted, draftOrigin, 'save')).toEqual({
+      kind: 'draft_deleted',
+      during: 'save',
+      message: DRAFT_COPY.draftDeletedText,
+    });
+  });
+
+  it('is null for any other answer of a stored draft', () => {
+    const other409 = new ApiError(409, { error: 'rules_changed', message: 'Changed.' });
+    const badRequest = new ApiError(400, { error: 'draft_changed', message: 'Invalid.' });
+    const serverError = new ApiError(500, { error: 'server_error', message: 'Failed.' });
+    expect(conflictOf(other409, draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(badRequest, draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(serverError, draftOrigin, 'publish')).toBeNull();
+    expect(conflictOf(new TypeError('Failed to fetch'), draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(undefined, draftOrigin, 'save')).toBeNull();
+  });
+
+  it('is null for a new or a published origin', () => {
+    for (const origin of [newOrigin, publishedOrigin]) {
+      expect(conflictOf(changed, origin, 'save')).toBeNull();
+      expect(conflictOf(published, origin, 'publish')).toBeNull();
+      expect(conflictOf(deleted, origin, 'publish')).toBeNull();
+    }
+  });
+});
+
+describe('editorReducer and draft conflicts (S2)', () => {
+  const conflict: DraftConflict = {
+    kind: 'draft_changed',
+    during: 'save',
+    message: 'Kim saved this draft at 14:32.',
+  };
+
+  it('starts with no conflict', () => {
+    expect(INITIAL_EDITOR_STATE.conflict).toBeNull();
+  });
+
+  it('draftConflict shows the conflict and ends the save and the publish', () => {
+    const running = {
+      ...INITIAL_EDITOR_STATE,
+      savingDraft: true,
+      publishing: true,
+      dialogOpen: true,
+    };
+    expect(editorReducer(running, { type: 'draftConflict', conflict })).toMatchObject({
+      conflict,
+      savingDraft: false,
+      publishing: false,
+      dialogOpen: true,
+    });
+  });
+
+  it('closeConflict takes the conflict away and keeps the work', () => {
+    const shown = { ...INITIAL_EDITOR_STATE, name: 'Parking permit', conflict };
+    expect(editorReducer(shown, { type: 'closeConflict' })).toMatchObject({
+      conflict: null,
+      name: 'Parking permit',
+    });
   });
 });
 
@@ -610,6 +772,729 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
     expect(problemPlaceOf(rules.branches, problem)).toEqual({
       branchKey: null,
       focusIds: ['rules-problem'],
+    });
+  });
+});
+
+describe('localContentOf (FR-002, FR-015; R9)', () => {
+  const state = {
+    ...INITIAL_EDITOR_STATE,
+    step: 'rules' as const,
+    name: '  Passenger transport licence ',
+    servicebwForm: ' PT-1',
+    documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+  };
+
+  it('takes the name and the form ID as typed, the documents, the branches and the counters', () => {
+    const rules = initialRulesState(LOADED);
+    expect(localContentOf(state, rules)).toEqual({
+      name: '  Passenger transport licence ',
+      servicebwForm: ' PT-1',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+      branches: [{ ...mainBranch(US1_RULES), id: 'main' }],
+      numberingBase: { rule: 4, group: 1 },
+      counters: { rule: 4, group: 1 },
+    });
+  });
+
+  it('leaves out the step’s keys and pull URLs', () => {
+    const [branch] = localContentOf(state, initialRulesState(LOADED)).branches;
+    expect(branch).not.toHaveProperty('key');
+    expect(branch).not.toHaveProperty('pull_url');
+    expect(branch).not.toHaveProperty('is_main');
+  });
+
+  it('keeps a new rule open in the editor, incomplete as it is', () => {
+    const empty = initialRulesState();
+    const editing = rulesReducer(empty, { type: 'addRule', branchKey: 'main', parentId: null });
+    const content = localContentOf(state, editing);
+    expect(content.branches[0].items).toEqual([
+      {
+        type: 'rule',
+        id: 'rule-1',
+        name: 'Rule 01',
+        mark: null,
+        target: null,
+        condition: null,
+        message: '',
+      },
+    ]);
+    expect(content.counters).toEqual({ rule: 2, group: 1 });
+    expect(content.numberingBase).toEqual({ rule: 1, group: 1 });
+    // The step's own state is left as it is: the rule stays open
+    expect(editing.editing).not.toBeNull();
+  });
+
+  it('keeps the changes to a saved rule open in the editor', () => {
+    const rules = rulesReducer(initialRulesState(LOADED), {
+      type: 'editRule',
+      branchKey: 'main',
+      ruleId: 'rule-2',
+    });
+    const draft = { ...US1_RULES[1], message: 'You need a class B licence.', condition: null };
+    const changed = rulesReducer(rules, { type: 'changeDraft', draft });
+    const content = localContentOf(state, changed);
+    expect(content.branches[0].items).toEqual([US1_RULES[0], draft, US1_RULES[2]]);
+    expect(content.counters).toEqual({ rule: 4, group: 1 });
+  });
+});
+
+describe('draftPayload (R12)', () => {
+  const content: LocalDraftContent = {
+    name: '  Passenger transport licence ',
+    servicebwForm: ' PT-1 ',
+    documents: [{ document_type: 'pid', fields: [] }],
+    branches: [mainBranch()],
+    numberingBase: { rule: 1, group: 1 },
+    counters: { rule: 4, group: 2 },
+  };
+
+  it('trims the name and the form ID, and sends the branches, the numbering base and the step', () => {
+    expect(draftPayload(content, 'documents')).toEqual({
+      name: 'Passenger transport licence',
+      servicebw_form: 'PT-1',
+      documents: [{ document_type: 'pid', fields: [] }],
+      rules: { branches: [mainBranch()], numbering_base: { rule: 1, group: 1 } },
+      step: 'documents',
+    });
+  });
+
+  it('sends an empty form ID as empty', () => {
+    expect(draftPayload({ ...content, servicebwForm: '   ' }, 'connection')).toMatchObject({
+      servicebw_form: '',
+      step: 'connection',
+    });
+  });
+});
+
+describe('openingStepOf (FR-008; R12)', () => {
+  const withRules = initialRulesState(LOADED);
+  const withoutRules = initialRulesState();
+
+  it('opens the connection, documents and rules steps as saved', () => {
+    for (const step of ['connection', 'documents', 'rules'] as const) {
+      expect(openingStepOf(step, withRules)).toBe(step);
+      expect(openingStepOf(step, withoutRules)).toBe(step);
+    }
+  });
+
+  it('opens the test step with a rule, and the rules step without any', () => {
+    expect(openingStepOf('test', withRules)).toBe('test');
+    expect(openingStepOf('test', withoutRules)).toBe('rules');
+  });
+
+  it('counts a rule in any variant', () => {
+    const rules = {
+      ...withoutRules,
+      branches: [
+        withoutRules.branches[0],
+        { ...mainBranch(US1_RULES), key: 'new-1', name: 'Taxi', origin: 'empty' as const },
+      ],
+    };
+    expect(openingStepOf('test', rules)).toBe('test');
+  });
+});
+
+describe('initialStatesFromDraft (FR-008; R12)', () => {
+  function variant(name: string, items: BranchInput['items'] = []): BranchInput {
+    return { ...mainBranch(items), name, origin: 'based' };
+  }
+
+  /** A field as the API shows it; one the catalog dropped has its key as its label */
+  function field(key: string, label: string = key): DocumentField {
+    return {
+      key,
+      label,
+      kind: 'text',
+      option_set: null,
+      date_of_birth: false,
+      parts: null,
+      multiple_values: false,
+    };
+  }
+
+  const DRAFT: FormConnectionDraft = {
+    status: 'draft',
+    id: 'draft-1',
+    name: 'Passenger transport licence',
+    servicebw_form: 'PT-1',
+    documents: [
+      {
+        document_type: 'pid',
+        label: 'Personal ID',
+        fields: [field('birthdate', 'Date of birth')],
+      },
+    ],
+    branches: [mainBranch()],
+    next_rule_number: 4,
+    next_group_number: 2,
+    step: 'test',
+    version: 3,
+    created_at: '2026-11-04T10:00:00Z',
+    updated_at: '2026-11-04T10:30:00Z',
+  };
+
+  it('takes the name, the form ID and the documents by key, at the saved step', () => {
+    const { editor } = initialStatesFromDraft(DRAFT);
+    expect(editor).toEqual({
+      ...INITIAL_EDITOR_STATE,
+      step: 'test',
+      name: 'Passenger transport licence',
+      servicebwForm: 'PT-1',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+    });
+  });
+
+  it('keeps an empty form ID, and a document with a field the catalog dropped', () => {
+    const draft = {
+      ...DRAFT,
+      servicebw_form: '',
+      documents: [
+        {
+          document_type: 'pid',
+          label: 'Personal ID',
+          fields: [field('birthdate', 'Date of birth'), field('shoe_size')],
+        },
+        { document_type: 'gone', label: 'gone', fields: [] },
+      ],
+    };
+    const { editor } = initialStatesFromDraft(draft, 'documents');
+    expect(editor.servicebwForm).toBe('');
+    expect(editor.step).toBe('documents');
+    expect(editor.documents).toEqual([
+      { document_type: 'pid', fields: ['birthdate', 'shoe_size'] },
+      { document_type: 'gone', fields: [] },
+    ]);
+  });
+
+  it('gives Standard alone the main key, the draft’s counters and no rule set', () => {
+    const { rules } = initialStatesFromDraft(DRAFT);
+    expect(rules).toEqual({
+      ...initialRulesState(),
+      branches: [{ ...mainBranch(), key: 'main' }],
+      openBranch: 'main',
+      counters: { rule: 4, group: 2 },
+      numberingBase: { rule: 4, group: 2 },
+      ruleSetVersion: null,
+    });
+  });
+
+  it('gives one variant beside Standard the editor’s next key', () => {
+    const draft = { ...DRAFT, branches: [mainBranch(), variant('Taxi')] };
+    const { rules } = initialStatesFromDraft(draft);
+    expect(rules.branches.map((branch) => [branch.key, branch.name])).toEqual([
+      ['main', 'Standard'],
+      ['new-1', 'Taxi'],
+    ]);
+    expect(rules.openBranch).toBe('main');
+  });
+
+  it('keys three variants beside Standard in order, keeping their content', () => {
+    const variants = [variant('Taxi'), variant('Ambulance', US1_RULES), variant('Limousine')];
+    const draft = { ...DRAFT, branches: [mainBranch(), ...variants] };
+    const { rules } = initialStatesFromDraft(draft);
+    expect(rules.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2', 'new-3']);
+    expect(rules.branches.slice(1).map(({ key: _key, ...branch }) => branch)).toEqual(variants);
+  });
+
+  it('opens a test step without any rule at the rules step', () => {
+    const draft = { ...DRAFT, branches: [mainBranch([]), variant('Taxi')] };
+    expect(initialStatesFromDraft(draft).editor.step).toBe('rules');
+    expect(initialStatesFromDraft(draft, 'documents').editor.step).toBe('documents');
+  });
+
+  it('falls back to an empty Standard for a draft without branches', () => {
+    const { rules, editor } = initialStatesFromDraft({ ...DRAFT, branches: [] });
+    expect(rules.branches).toEqual(initialRulesState().branches);
+    expect(rules.openBranch).toBe('main');
+    expect(rules.counters).toEqual({ rule: 4, group: 2 });
+    expect(editor.step).toBe('rules');
+  });
+
+  it('starts states that make the draft’s content again', () => {
+    const { editor, rules } = initialStatesFromDraft(DRAFT);
+    expect(draftPayload(localContentOf(editor, rules), editor.step)).toEqual({
+      name: DRAFT.name,
+      servicebw_form: DRAFT.servicebw_form,
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+      rules: { branches: DRAFT.branches, numbering_base: { rule: 4, group: 2 } },
+      step: 'test',
+    });
+  });
+});
+
+const DRAFT_ID = '0b6f1c2e-3d4a-4b5c-8d9e-0f1a2b3c4d5e';
+const NEW_KEY = newFlowKey('7c9e6679-7425-40de-944b-e07fc1f90ae7');
+const DRAFT_KEY = flowKeyOfDraft(DRAFT_ID);
+
+/** A record of a new connection, at the rules step: Standard and Taxi with rules, Ambulance empty */
+function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecord {
+  return {
+    format: 1,
+    flowKey: NEW_KEY,
+    draftId: null,
+    draftVersion: null,
+    changedAt: '2026-11-04T14:32:00Z',
+    step: 'rules',
+    content: {
+      name: 'Passenger transport licence',
+      servicebwForm: '',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+      branches: [
+        mainBranch(US1_RULES),
+        { ...mainBranch(US1_RULES), name: 'Taxi', origin: 'based' },
+        { ...mainBranch([]), name: 'Ambulance', origin: 'empty' },
+      ],
+      numberingBase: { rule: 1, group: 1 },
+      counters: { rule: 4, group: 2 },
+    },
+    ...overrides,
+  };
+}
+
+describe('initialStatesFromLocal (FR-017; R10)', () => {
+  it('takes the name, the form ID and the documents, at the record’s step', () => {
+    const { editor } = initialStatesFromLocal(localRecord());
+    expect(editor).toEqual({
+      ...INITIAL_EDITOR_STATE,
+      step: 'rules',
+      name: 'Passenger transport licence',
+      servicebwForm: '',
+      documents: [{ document_type: 'pid', fields: ['birthdate'] }],
+    });
+  });
+
+  it('opens the test step with a rule, and the rules step without any', () => {
+    expect(initialStatesFromLocal(localRecord({ step: 'test' })).editor.step).toBe('test');
+    const record = localRecord({ step: 'test' });
+    const empty = { ...record, content: { ...record.content, branches: [mainBranch([])] } };
+    expect(initialStatesFromLocal(empty).editor.step).toBe('rules');
+  });
+
+  it('gives the variants the editor’s keys in order, Standard open, without a rule set', () => {
+    const record = localRecord();
+    const { rules } = initialStatesFromLocal(record);
+    expect(rules.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2']);
+    expect(rules.branches.map(({ key: _key, ...branch }) => branch)).toEqual(
+      record.content.branches
+    );
+    expect(rules.openBranch).toBe('main');
+    expect(rules.ruleSetVersion).toBeNull();
+  });
+
+  it('takes the counters and the numbering base from the record', () => {
+    const { rules } = initialStatesFromLocal(localRecord());
+    expect(rules.counters).toEqual({ rule: 4, group: 2 });
+    expect(rules.numberingBase).toEqual({ rule: 1, group: 1 });
+  });
+
+  it('starts states that make the record’s content again', () => {
+    for (const record of [localRecord(), localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID })]) {
+      const { editor, rules } = initialStatesFromLocal(record);
+      expect(sameContent(localContentOf(editor, rules), record.content)).toBe(true);
+    }
+  });
+});
+
+describe('originOfRecord (R10)', () => {
+  it('makes a new connection’s record a new flow under its key', () => {
+    expect(originOfRecord(localRecord())).toEqual({ kind: 'new', flowKey: NEW_KEY });
+  });
+
+  it('makes a stored draft’s record a draft flow at the version it loaded', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    expect(originOfRecord(record)).toEqual({
+      kind: 'draft',
+      draftId: DRAFT_ID,
+      draftVersion: 3,
+      flowKey: DRAFT_KEY,
+    });
+  });
+
+  it('gives a stored draft’s record without a version one that no draft has', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: null });
+    expect(originOfRecord(record)).toEqual({
+      kind: 'draft',
+      draftId: DRAFT_ID,
+      draftVersion: 0,
+      flowKey: DRAFT_KEY,
+    });
+  });
+});
+
+describe('entryOf (contracts/local-drafts.md, rule 1; R10)', () => {
+  it('starts a fresh flow without a parameter, also when a record is passed', () => {
+    expect(entryOf(null, null)).toEqual({ kind: 'fresh' });
+    expect(entryOf(null, localRecord())).toEqual({ kind: 'fresh' });
+  });
+
+  it('starts a fresh flow for a parameter that is no flow key', () => {
+    for (const param of ['', 'new-', 'new-1', 'draft-abc', 'published-' + DRAFT_ID, DRAFT_ID]) {
+      expect(entryOf(param, null)).toEqual({ kind: 'fresh' });
+    }
+    expect(entryOf('new-1', localRecord())).toEqual({ kind: 'fresh' });
+  });
+
+  it('opens the record of a new connection’s key', () => {
+    const record = localRecord();
+    expect(entryOf(NEW_KEY, record)).toEqual({ kind: 'local', record });
+  });
+
+  it('opens the record of a stored draft’s key, without going to its edit route', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    expect(entryOf(DRAFT_KEY, record)).toEqual({ kind: 'local', record });
+  });
+
+  it('goes to the stored draft for a draft key without a record', () => {
+    expect(entryOf(DRAFT_KEY, null)).toEqual({ kind: 'missingDraft', draftId: DRAFT_ID });
+  });
+
+  it('starts empty under a new connection’s key without a record', () => {
+    expect(entryOf(NEW_KEY, null)).toEqual({ kind: 'empty', flowKey: NEW_KEY });
+  });
+});
+
+describe('startOfEntry (contracts/local-drafts.md, rule 1; R10; data-model.md section 6)', () => {
+  const UUID = '9f1d2c3b-4a5e-4f60-8a7b-1c2d3e4f5a6b';
+
+  it('starts a fresh flow empty under a new key, which goes into the URL', () => {
+    const start = startOfEntry({ kind: 'fresh' }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: newFlowKey(UUID) },
+      initialStates: {
+        editor: initialEditorState({ initialStep: 'connection' }),
+        rules: initialRulesState(),
+      },
+      baseline: emptyContent(),
+      urlFlowKey: newFlowKey(UUID),
+    });
+  });
+
+  it('starts empty under a new connection’s key without a record, leaving the URL alone', () => {
+    const start = startOfEntry({ kind: 'empty', flowKey: NEW_KEY }, () => UUID);
+    expect(start).toMatchObject({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: NEW_KEY },
+      baseline: emptyContent(),
+      urlFlowKey: null,
+    });
+  });
+
+  it('asks for a new key only for a fresh flow', () => {
+    const record = localRecord();
+    const newUuid = () => {
+      throw new Error('no new key expected');
+    };
+    expect(() => startOfEntry({ kind: 'empty', flowKey: NEW_KEY }, newUuid)).not.toThrow();
+    expect(() => startOfEntry({ kind: 'local', record }, newUuid)).not.toThrow();
+    expect(() => startOfEntry({ kind: 'missingDraft', draftId: DRAFT_ID }, newUuid)).not.toThrow();
+  });
+
+  it('resumes a new connection’s record against the empty flow, not its own content', () => {
+    const record = localRecord();
+    const start = startOfEntry({ kind: 'local', record }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'new', flowKey: NEW_KEY },
+      initialStates: initialStatesFromLocal(record),
+      baseline: emptyContent(),
+      urlFlowKey: null,
+    });
+  });
+
+  it('resumes a stored draft’s record as a draft flow without a baseline', () => {
+    const record = localRecord({ flowKey: DRAFT_KEY, draftId: DRAFT_ID, draftVersion: 3 });
+    const start = startOfEntry({ kind: 'local', record }, () => UUID);
+    expect(start).toEqual({
+      kind: 'open',
+      origin: { kind: 'draft', draftId: DRAFT_ID, draftVersion: 3, flowKey: DRAFT_KEY },
+      initialStates: initialStatesFromLocal(record),
+      baseline: null,
+      urlFlowKey: null,
+    });
+  });
+
+  it('sends a stored draft’s key without a record to the draft', () => {
+    expect(startOfEntry({ kind: 'missingDraft', draftId: DRAFT_ID }, () => UUID)).toEqual({
+      kind: 'missingDraft',
+      draftId: DRAFT_ID,
+    });
+  });
+
+  it('opens a fresh flow at the step asked for', () => {
+    const start = startOfEntry({ kind: 'fresh' }, () => UUID, 'documents');
+    expect(start.kind === 'open' && start.initialStates.editor.step).toBe('documents');
+  });
+});
+
+describe('startOfOrigin (data-model.md section 6)', () => {
+  const DRAFT_ORIGIN = {
+    kind: 'draft',
+    draftId: DRAFT_ID,
+    draftVersion: 3,
+    flowKey: DRAFT_KEY,
+  } as const;
+
+  it('takes a stored draft as loaded for its baseline', () => {
+    const states = initialStatesFromLocal(localRecord());
+    const start = startOfOrigin({ origin: DRAFT_ORIGIN, initialStates: states });
+    expect(start.initialStates).toBe(states);
+    expect(start.baseline).toEqual(localContentOf(states.editor, states.rules));
+    expect(start.urlFlowKey).toBeNull();
+  });
+
+  it('takes the baseline given, as after “Restore changes”', () => {
+    const states = initialStatesFromLocal(localRecord());
+    const loaded = { ...emptyContent(), name: 'Stored' };
+    const start = startOfOrigin({ origin: DRAFT_ORIGIN, initialStates: states, baseline: loaded });
+    expect(start.baseline).toBe(loaded);
+  });
+
+  it('gives a published connection its states and no baseline', () => {
+    const start = startOfOrigin({
+      origin: { kind: 'published', formConnection: LOADED },
+      initialStep: 'rules',
+    });
+    expect(start.initialStates).toEqual({
+      editor: initialEditorState({ formConnection: LOADED, initialStep: 'rules' }),
+      rules: initialRulesState(LOADED),
+    });
+    expect(start.baseline).toBeNull();
+  });
+
+  it('gives a new connection the empty flow', () => {
+    const start = startOfOrigin({ origin: { kind: 'new', flowKey: NEW_KEY } });
+    expect(start.baseline).toEqual(emptyContent());
+    expect(start.initialStates.editor.step).toBe('connection');
+  });
+});
+
+describe('draftNameErrors (R12)', () => {
+  it('asks for a name', () => {
+    expect(draftNameErrors('')).toEqual({ name: 'Enter a name.' });
+    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name.' });
+  });
+
+  it('takes 200 characters and refuses 201', () => {
+    expect(draftNameErrors('a'.repeat(200))).toEqual({});
+    expect(draftNameErrors('a'.repeat(201))).toEqual({
+      name: 'The name can have at most 200 characters.',
+    });
+  });
+
+  it('never asks for the form ID', () => {
+    expect(draftNameErrors('Passenger transport licence')).toEqual({});
+  });
+});
+
+describe('draftSaveErrorOf (S1.5, W3)', () => {
+  const NETWORK = 'Couldn’t save. Check your internet connection and try again.';
+
+  it('shows a 400’s message, without "Try again"', () => {
+    const error = new ApiError(400, {
+      error: 'validation_error',
+      message: 'The name can have at most 200 characters.',
+    });
+    expect(draftSaveErrorOf(error)).toEqual({
+      notice: { message: 'The name can have at most 200 characters.' },
+      retryable: false,
+    });
+  });
+
+  it('shows a 404’s message, without "Try again"', () => {
+    const error = new ApiError(404, { error: 'not_found', message: 'Draft not found.' });
+    expect(draftSaveErrorOf(error)).toEqual({
+      notice: { message: 'Draft not found.' },
+      retryable: false,
+    });
+  });
+
+  it('shows U28’s text with a 500’s error ID, and "Try again"', () => {
+    const error = new ApiError(500, {
+      error: 'internal_error',
+      message: 'Something went wrong.',
+      error_id: 'abc123',
+    });
+    expect(draftSaveErrorOf(error)).toEqual({
+      notice: { message: NETWORK, error_id: 'abc123' },
+      retryable: true,
+    });
+  });
+
+  it('shows U28’s text for a 502 without a JSON body, and "Try again"', async () => {
+    const response = new Response('<html>502 Bad Gateway</html>', { status: 502 });
+    const error: unknown = await handleResponse(response).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(draftSaveErrorOf(error)).toEqual({ notice: { message: NETWORK }, retryable: true });
+  });
+
+  it('shows U28’s text for a network failure, and "Try again"', () => {
+    expect(draftSaveErrorOf(new TypeError('Failed to fetch'))).toEqual({
+      notice: { message: NETWORK },
+      retryable: true,
+    });
+  });
+});
+
+describe('data the catalog dropped (S8; FR-003 edge case)', () => {
+  function catalogField(key: string, label: string): DocumentField {
+    return {
+      key,
+      label,
+      kind: 'text',
+      option_set: null,
+      date_of_birth: false,
+      parts: null,
+      multiple_values: false,
+    };
+  }
+
+  const CATALOG: DocumentType[] = [
+    {
+      key: 'pid',
+      label: 'Personal ID',
+      fields: [
+        catalogField('birthdate', 'Date of birth'),
+        catalogField('nationalities', 'Nationalities'),
+      ],
+    },
+    {
+      key: 'mdl',
+      label: 'Driving licence',
+      fields: [catalogField('driving_privileges', 'Driving privileges')],
+    },
+  ];
+  const documents = [
+    { document_type: 'pid', fields: ['eye_colour', 'birthdate', 'shoe_size'] },
+    { document_type: 'residence_permit', fields: ['valid_until'] },
+    { document_type: 'mdl', fields: ['driving_privileges'] },
+  ];
+  const EYE_COLOUR: DroppedData = {
+    documentType: 'pid',
+    field: 'eye_colour',
+    label: 'Personal ID – eye_colour',
+  };
+  const SHOE_SIZE: DroppedData = {
+    documentType: 'pid',
+    field: 'shoe_size',
+    label: 'Personal ID – shoe_size',
+  };
+  const PERMIT: DroppedData = {
+    documentType: 'residence_permit',
+    field: null,
+    label: 'residence_permit',
+  };
+
+  it('lists a dropped field with its document’s label, and a dropped document by its key', () => {
+    expect(droppedDataOf(documents, CATALOG)).toEqual([EYE_COLOUR, SHOE_SIZE, PERMIT]);
+  });
+
+  it('lists nothing while the catalog offers everything', () => {
+    expect(droppedDataOf([{ document_type: 'pid', fields: ['birthdate'] }], CATALOG)).toEqual([]);
+    expect(droppedDataOf([], CATALOG)).toEqual([]);
+  });
+
+  it('lists a dropped document once, even without fields', () => {
+    expect(droppedDataOf([{ document_type: 'gone', fields: [] }], CATALOG)).toEqual([
+      { documentType: 'gone', field: null, label: 'gone' },
+    ]);
+  });
+
+  it('shows a card only the fields the catalog offers', () => {
+    expect(offeredFieldsOf(documents[0].fields, CATALOG[0])).toEqual(['birthdate']);
+  });
+
+  it('moves a flow that opens elsewhere to the documents step, only with dropped data', () => {
+    expect(stepForDroppedData('connection', [PERMIT])).toBe('documents');
+    expect(stepForDroppedData('rules', [EYE_COLOUR])).toBe('documents');
+    expect(stepForDroppedData('test', [EYE_COLOUR])).toBe('documents');
+    expect(stepForDroppedData('documents', [EYE_COLOUR])).toBeNull();
+    expect(stepForDroppedData('rules', [])).toBeNull();
+  });
+
+  it('removes every dropped document and field at once, without a toast', () => {
+    const state = {
+      ...INITIAL_EDITOR_STATE,
+      step: 'documents' as const,
+      documents,
+      errors: { fields: { residence_permit: 'x', mdl: 'y' } },
+    };
+    const removal = droppedRemovalOf([EYE_COLOUR, SHOE_SIZE, PERMIT]);
+    expect(removalAction(removal)).toEqual({
+      type: 'removeDropped',
+      items: [EYE_COLOUR, SHOE_SIZE, PERMIT],
+    });
+    const removed = editorReducer(state, removalAction(removal));
+    expect(removed.documents).toEqual([
+      { document_type: 'pid', fields: ['birthdate'] },
+      { document_type: 'mdl', fields: ['driving_privileges'] },
+    ]);
+    expect(removed.errors).toEqual({ fields: { mdl: 'y' } });
+    expect(removed.toast).toBeNull();
+    expect(removed.removed).toBeNull();
+    expect(droppedDataOf(removed.documents, CATALOG)).toEqual([]);
+  });
+
+  it('applies the removal once the dialog is confirmed', () => {
+    const state = { ...INITIAL_EDITOR_STATE, documents };
+    const removal = droppedRemovalOf([PERMIT]);
+    const asked = editorReducer(state, { type: 'askRemoval', removal });
+    const confirmed = editorReducer(asked, { type: 'confirmRemoval' });
+    expect(confirmed.pendingRemoval).toBeNull();
+    expect(confirmed.documents.map((document) => document.document_type)).toEqual(['pid', 'mdl']);
+  });
+
+  describe('the rules that check it, named first', () => {
+    const rules = initialRulesState(LOADED);
+    const named = (items: DroppedData[], requested = documents) =>
+      rulesCheckingRemoval(droppedRemovalOf(items), rules.branches, requested).map(
+        ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
+      );
+
+    it('names the rules of a dropped field, and nothing for unchecked data', () => {
+      const birthdate: DroppedData = { ...EYE_COLOUR, field: 'birthdate' };
+      expect(named([birthdate])).toEqual(['Rule 01 in Standard']);
+      expect(named([EYE_COLOUR, PERMIT])).toEqual([]);
+    });
+
+    it('names a dropped document’s rules on its requested fields, in tree order', () => {
+      const mdl: DroppedData = { documentType: 'mdl', field: null, label: 'mdl' };
+      const birthdate: DroppedData = { ...EYE_COLOUR, field: 'birthdate' };
+      expect(named([mdl, birthdate])).toEqual([
+        'Rule 01 in Standard',
+        'Rule 02 in Standard',
+        'Rule 03 in Standard',
+      ]);
+      expect(named([mdl], [{ document_type: 'mdl', fields: [] }])).toEqual([]);
+    });
+
+    it('names each rule once per variant', () => {
+      const twice = [
+        rules.branches[0],
+        { ...rules.branches[0], key: 'ambulance', name: 'Ambulance' },
+      ];
+      const mdl: DroppedData = { documentType: 'mdl', field: null, label: 'mdl' };
+      const keys = rulesCheckingRemoval(droppedRemovalOf([mdl]), twice, documents).map(
+        ({ key }) => key
+      );
+      expect(keys).toHaveLength(4);
+      expect(new Set(keys).size).toBe(4);
+    });
+  });
+
+  it('words the dialog with every dropped item', () => {
+    const removal = droppedRemovalOf([EYE_COLOUR, PERMIT]);
+    expect(removal).toEqual({
+      type: 'dropped',
+      items: [EYE_COLOUR, PERMIT],
+      label: 'Personal ID – eye_colour, residence_permit',
+    });
+    expect(removalCopyOf(removal, 2, false)).toEqual({
+      title: 'Stop requesting Personal ID – eye_colour, residence_permit?',
+      text: '2 rules check this data:',
+      after: 'After this, edit or delete these rules before you publish.',
+      confirmLabel: 'Stop requesting',
     });
   });
 });

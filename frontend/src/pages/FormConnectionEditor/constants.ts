@@ -68,6 +68,39 @@ export const EDITOR_COPY = {
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
+// Drafts (spec 005, contracts/ui-screens.md "Copy")
+export const DRAFT_COPY = {
+  saveAndExit: 'Save and exit',
+  saving: 'Saving…',
+  savingStatus: 'Saving draft…',
+  saveErrorTitle: 'Couldn’t save your draft',
+  saveNetworkError: 'Couldn’t save. Check your internet connection and try again.',
+  tryAgain: 'Try again',
+  draftBadge: 'Draft',
+  untitled: 'Untitled connection',
+  noFormId: 'No form ID yet',
+  draftSaved: (name: string) => `Draft ${name} saved.`,
+  // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
+  // whole document by its key, since the catalog has no label for it any more
+  catalogDroppedTitle: 'The wallet no longer offers some data of this draft',
+  droppedField: (document: string, field: string) => `${document} – ${field}`,
+  removeIt: 'Remove it',
+  // The conflict dialog after "Save and exit", and the publish dialog's conflicts (S2; W4)
+  draftChangedTitle: 'This draft has changed',
+  draftChangedHint:
+    'Reload shows the draft as they saved it and drops your changes. Replace their changes saves your version of the whole draft.',
+  draftPublishedTitle: 'This draft has been published',
+  draftPublishedHint: 'Your changes weren’t saved. Open the connection to see it.',
+  draftDeletedTitle: 'This draft has been deleted',
+  draftDeletedText:
+    'This draft has been deleted since you opened it. Save your work as a new draft to keep it.',
+  reload: 'Reload',
+  replaceTheirChanges: 'Replace their changes',
+  openConnection: 'Open the connection',
+  saveAsNewDraft: 'Save as new draft',
+  cancel: 'Cancel',
+};
+
 // The publish and save dialog (S5): U33 6376:25536, U35 6376:27178, U36 6376:27630, and
 // design-notes.md §6
 export const PUBLISH_COPY = {
@@ -129,6 +162,10 @@ export const REMOVE_DATA_COPY = {
 
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';
+
+/** The API's answers to a draft save or publish over another team member's save (S2; R6) */
+export const DRAFT_CHANGED_ERROR = 'draft_changed';
+export const DRAFT_PUBLISHED_ERROR = 'draft_published';
 
 // Validation messages; the API answers with the same ones (data-model.md, FR-003)
 export const VALIDATION_MESSAGES = {
@@ -199,4 +236,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   removed: null,
   pendingRemoval: null,
   toast: null,
+  savingDraft: false,
+  draftError: null,
+  conflict: null,
 };

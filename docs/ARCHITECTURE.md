@@ -113,10 +113,11 @@ frontend/
 │   │                     # and the read-only rules display that the Rules step and the
 │   │                     # details share: RuleRow, GroupFrame, Connector, BranchMark,
 │   │                     # BranchName; FindingNote, the note under a rule or group with a
-│   │                     # finding of the rule checks
+│   │                     # finding of the rule checks; LocalDraftsOffer (spec 005)
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
 │   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
-│   │                     # useRuleChecks (the rule checks' run and their worker)
+│   │                     # useRuleChecks (the rule checks' run and their worker),
+│   │                     # useLocalDraftStore, useLocalDraft, useLocalDrafts (spec 005)
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
 │   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
@@ -127,7 +128,8 @@ frontend/
 │   │                     # (the side a popup opens to), and rules/: the pure rules logic,
 │   │                     # each module with its *.test.ts, with rules/checks/: the rule
 │   │                     # checks, their worker's entry worker.ts, and the generated
-│   │                     # caseFolding.ts and fixtures/
+│   │                     # caseFolding.ts and fixtures/; localDrafts/: the local drafts'
+│   │                     # pure modules (spec 005)
 │   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
@@ -151,7 +153,9 @@ frontend/
   requested route, where `/` counts as none, goes to `/get-started`, which opens the
   create wizard while no form connection exists and the overview otherwise (FR-022);
   the logo still leads to the overview. `/form-connections/:id/edit` opens the same
-  wizard, filled in with the connection. nginx already falls back to `index.html` for
+  wizard, filled in with the connection; for a draft (spec 005), the create flow at the
+  draft's stored step. The create routes carry the flow's local draft in `?local=` (see
+  [Local drafts](#local-drafts-spec-005)). nginx already falls back to `index.html` for
   client-side routes. Passwords are reset with the account CLI, so `/forgot-password`
   only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
@@ -164,7 +168,9 @@ frontend/
   errors included: a header with a title, a 1120 px column and an action bar. It fills the
   window and scrolls only the step between header and action bar; from the `split:` variant
   (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays put
-  too. Modal dialogs and toasts render in its `overlay`, outside the scrolling area. The
+  too. In windows under 480 px tall (`[@media(height<30rem)]`) the whole frame scrolls with
+  the window instead, so that the step stays reachable at 400 % zoom (WCAG 1.4.10, spec 005
+  FR-028). Modal dialogs and toasts render in its `overlay`, outside the scrolling area. The
   signed-out screens (`/login`, `/forgot-password`) render inside `RequireSignedOut` and
   `AuthLayout`
 - **Titles**: every page sets its tab title with `useDocumentTitle()` and has one `h1`:
@@ -200,9 +206,12 @@ frontend/
   in `src/constants.ts`), in create and in edit; once a rule exists, the Test step (spec 004)
   stands between Rules and Publish. The editor's reducer keeps the connection
   and its documents, the Rules step's own reducer the branches, the open tab, select mode
-  and its dialogs, and the rule editor a third one; nothing reaches the API before Publish
-  or Save. The details open the edit wizard at a step through the router state
-  `EditLocationState.step` (`'connection'`, `'documents'` or `'rules'`)
+  and its dialogs, and the rule editor a third one. Nothing reaches the API before Publish
+  or Save, or, in the create flow, "Save and exit", which stores the work as a draft (see
+  [Form connections](#form-connections)); until then the work lives in the page's state and,
+  in the create flow, in its local draft (see [Local drafts](#local-drafts-spec-005)). The
+  details open the edit wizard at a step through the router state `EditLocationState.step`
+  (`'connection'`, `'documents'` or `'rules'`)
 - **Vitest** tests the pure logic in Node, without a DOM: the modules of
   `src/utils/rules/` and the sibling `utils.ts` of components, each with its `*.test.ts`
   beside it. `npm test` is a gate (constitution III), because the rules' propagation
@@ -224,8 +233,9 @@ backend/
 │   │                     # connect.py
 │   ├── services/         # Domain logic shared by routers and worker:
 │   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), dcql.py,
-│   │                     # form_connections.py, rules.py (branches, rule sets and
-│   │                     # their checks), document_requests.py (trigger, pull,
+│   │                     # form_connections.py, drafts.py (spec 005: saving,
+│   │                     # publishing and deleting drafts), rules.py (branches, rule
+│   │                     # sets and their checks), document_requests.py (trigger, pull,
 │   │                     # statuses), documents.py (field extraction),
 │   │                     # evaluation.py (the rules on the shared documents),
 │   │                     # qr.py, worker.py
@@ -325,8 +335,10 @@ and commits, calls EUDIPLO, then locks again to make it current (see
 ### Form connections
 
 `app/routers/form_connections.py` is the management API
-(`specs/001-servicebw-eudi-middleware/contracts/management-api.md`), and
-`app/services/form_connections.py` holds its logic:
+(`specs/001-servicebw-eudi-middleware/contracts/management-api.md`, and for drafts
+`specs/005-connection-drafts/contracts/management-api.md`), and
+`app/services/form_connections.py` holds its logic, `app/services/drafts.py` that of
+drafts:
 
 - **Revisions**: each set of documents is an immutable revision with its own EUDIPLO
   presentation configuration, `fc-<id>-r<n>`. Creating a form connection stores
@@ -338,10 +350,63 @@ and commits, calls EUDIPLO, then locks again to make it current (see
   the revision, not yet current; then it creates the configuration; then it locks the
   row again and makes the revision current. Two edits at the same time therefore get
   distinct numbers, and if EUDIPLO fails, the revision is removed again.
+- **Drafts** (spec 005; research R1 to R8 in `specs/005-connection-drafts/`, the columns
+  in its [data-model.md](../specs/005-connection-drafts/data-model.md)): a row of
+  `form_connections` is a draft or a published connection, never both, and a published
+  connection never becomes a draft again. A draft has `published_at` null, its content
+  (documents, branches and the editor's step; `DRAFT_CONTENT` in `schemas.py`) in the
+  JSONB column `draft`, and a `draft_version` that is 1 when created and goes up by one
+  with every save. It has no revision, rule set, branch rows or EUDIPLO configuration, so
+  `current_revision` and `current_rule_set` are null. Its name is required, its
+  serviceBW form may be `''`, and `is_active` means nothing until it is published. The
+  CHECK constraint `ck_form_connections_draft_or_published` holds the two states:
+  `published_at`, `current_revision` and `current_rule_set` all set and `draft` and
+  `draft_version` null, or the other way round. The migration
+  (`d2b97ba4a2c7_connection_drafts`) published every existing row as of its
+  `created_at`, and its downgrade deletes the drafts first.
+- **The draft endpoints**: `POST /api/form-connections/drafts` stores a new draft,
+  `PUT …/{id}/draft` replaces its content and raises its version, `POST …/{id}/publish`
+  publishes it, and `DELETE …/{id}/draft` removes it. Only publishing calls EUDIPLO.
+  `GET /api/form-connections` lists drafts with the published connections, each with its
+  `status`, and `GET …/{id}` answers a draft's content and version, without URLs. The
+  refusals, all `409` with the `{error, message}` detail:
+  - `draft_changed`: a save or publish with a `version` that another save has since
+    raised, unless the body says `replace: true`. The editor offers "Reload" or
+    "Replace their changes";
+  - `draft_published`: a draft endpoint on a published connection, also with
+    `replace`;
+  - `not_published`: an endpoint of published connections (`PUT …/{id}`,
+    `…/deactivate`, `…/activate`, `DELETE …/{id}`) on a draft. Their reads go through
+    `find_published_form_connection()` and `_lock_published_form_connection()`, which
+    also narrow `current_revision` and `current_rule_set` to `int`.
+
+  Saving and publishing check the version once before the content is checked, so that a
+  stale editor meets the conflict, and again under the row lock.
+- **The `complete` switch**: a draft save runs the same validators as publishing with
+  `complete=False` (`clean_servicebw_form`, `clean_documents`, `rules.clean_rules`):
+  the structure is checked (unknown document types and fields, duplicates, the limits,
+  identifiers, groups, marks), the completeness is not (a form ID, at least one
+  document and field, variant, rule and group names being present, unique and not
+  reserved, a rule's data, check and message). The connection's name is required in a
+  draft too. Publishing a draft runs the checks of `POST /api/form-connections`
+  unchanged, with the same messages.
+- **Publishing goes through `create_revision()`**, with a `DraftGuard(version,
+  replace)` instead of a second save path. The guard is checked under both row locks,
+  before the revision is reserved and before it becomes current. Under the last lock,
+  `_publish()` makes the reserved revision current, writes rule set 1 and the branch
+  rows (`rules.first_rule_set()` with the row's counters), applies the name and the
+  serviceBW form, sets `published_at` and clears `draft` and `draft_version`, in one
+  commit. If EUDIPLO fails, the row stays a draft. If the guard refuses under the last
+  lock (another publish won, or a save raised the version and this publish has no
+  `replace`), the configuration is deleted and the revision removed again.
+- **Deleting a draft removes its row**, with any revision that a publish in flight has
+  reserved, in one commit, and calls no EUDIPLO; that publish then finds no row, answers
+  `404` and deletes its own configuration. Its URLs answer `404` from then on, unlike a
+  deleted published connection's.
 - **Deactivating and deleting** cancel the open requests in the same transaction,
   and call no EUDIPLO: the worker deletes the sessions and, once no request needs
-  them, the configurations. A deleted form connection keeps its row, so its URLs
-  keep answering `409 unavailable`; the management API answers `404` for it.
+  them, the configurations. A deleted published form connection keeps its row, so its
+  URLs keep answering `409 unavailable`; the management API answers `404` for it.
 - **Clearing everything** (`python -m app.cli clear-connections`) deletes the rows of
   every form connection, with its revisions, branches, rule sets and requests. It
   first deletes the EUDIPLO session of every request that
@@ -382,6 +447,16 @@ to R10 in `specs/002-connection-rules/`, the tables its
   go down. An identifier never changes and is never reused, because serviceBW may key
   on it. The editor numbers new items from the counters it loaded; the server checks
   them and shifts them past numbers another save took meanwhile.
+- **Identifiers in a draft** (spec 005, research R4) come from the same counters of the
+  draft's row (`number_draft()`: (1, 1) for a new draft, the row's under its lock for a
+  save). The editor sends `numbering_base`, the counters it started from. An identifier
+  below it counts as loaded and keeps its number; one at or above it is new and moves up
+  past the numbers another save took meanwhile, the same way in every variant (a default
+  name follows its new number). Each save raises the counters and never lowers them.
+  Publishing checks the identifiers against the row's counters (`check_first_save()`)
+  and writes rule set 1 with them (`first_rule_set()`), so a rule keeps the identifier
+  that a draft save gave it. A draft's variants have no id, since a draft has no branch
+  rows; any id is refused ("Unknown variant.").
 - **Marks**: a branch based on the main branch is stored as its full tree, and each
   item carries a mark: none (follows the main branch, a copy of its item), `changed`,
   `removed` (shown, not evaluated) or `added`; `operator_mark` says that the top
@@ -555,6 +630,73 @@ endpoint, table, setting or dependency of its own.
   `useTodayInGermany`). Publishing and saving don't change; serviceBW and the server don't
   know about the personas.
 
+### Local drafts (spec 005)
+
+The create flow keeps its unsaved work in the browser's `localStorage`, so that a closed tab,
+a crash or an expired session loses at most the last second. A local draft is not a stored
+draft: it never leaves the device by itself, and only "Save and exit" or publishing sends its
+content, as the body of that request (see [Form connections](#form-connections)). The
+decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes in its
+`contracts/local-drafts.md`. Local drafts have no endpoint, table, setting or dependency.
+
+- **Key and format**: one entry per flow, under
+  `connection-portal:local-draft:v1:<username>:<flowKey>`. The flow key is `new-<uuid>` for a
+  connection never saved and `draft-<id>` for a stored draft. The value is a
+  `LocalDraftRecord` as JSON, `format: 1`: the flow key, the stored draft's id and the version
+  the flow loaded, `changedAt`, the step and the content, which is what "Save and exit" would
+  send (name, form ID, documents, branches with an open rule editor's rule kept,
+  `numberingBase` and the counters). Every read validates the record; one that doesn't match
+  its key or format is skipped and removed.
+- **Pure modules, one binding hook**: `utils/localDrafts/` is pure: `keys.ts`,
+  `format.ts`, `content.ts` and `store.ts`, each with its `*.test.ts`, beside
+  `constants.ts` and `types.ts`. The store takes an injected `StorageLike`, which the tests
+  fake in memory (`testStorage.ts`).
+  `hooks/useLocalDraftStore.ts` is the only code that touches `window.localStorage`: it
+  creates the page's one store, inside `try/catch`, and every hook shares it. Every storage
+  access in the store is in `try/catch`: blocked, full or missing storage makes local drafts
+  silently unavailable, and the flow works without them.
+- **The hooks**: `useLocalDraft()` is the editor's autosave, for a new connection and a
+  stored draft only, with its decisions in pure helpers of `hooks/utils.ts`
+  (`isLocalDraftChange`, `localDraftActionOf`, `writeDelayOf`). A published connection's
+  edit flow never reads, writes or offers a local draft, and the edit page removes a
+  `draft-<id>` record once that connection loads as published. `useLocalDrafts()` lists
+  the account's records for the offers on the overview and the first-connection screen
+  (`components/LocalDraftsOffer/`), and refreshes on `storage` events from other tabs.
+- **`?local=`**: the create routes (`/form-connections/new`, `/get-started`) name the flow's
+  local draft in the search parameter `local` (`LOCAL_DRAFT_PARAM`). A fresh flow writes its
+  new key there with `replace`, on the same route, so the wizard stays mounted. A URL whose
+  key has a record opens from it; a search parameter survives the sign-in round trip after an
+  expired session, which router state doesn't. "Resume" on an offer leads there too. A
+  `draft-<id>` key without a record goes to the draft's edit route. On
+  `/form-connections/:id/edit`, a draft's local draft that differs from the stored draft
+  brings the "Restore" or "Discard" question before the editor mounts; an equal one is
+  removed silently.
+- **Writing and flushing**: after the first change, while the content differs from what the
+  flow started with (the empty flow, or the stored draft as loaded), the record is written at
+  once and then at most once per `LOCAL_DRAFT_WRITE_INTERVAL_MS` (1 s), the last change
+  always. Mounting writes nothing, and a change back to the starting point removes the
+  record; a stored draft's record resumed through `?local=` has no starting point the flow
+  knows, so only `forget()` removes it. Pending writes are flushed on `pagehide`, on
+  `visibilitychange` to hidden, on unmount or a new flow key, and before the sign-out
+  warning (`flushPendingLocalDrafts()`); `localStorage` writes synchronously, so the flush
+  completes before the page goes. A successful save or publish, "Reload" and "Open the
+  connection" call `forget()`, which removes the record. If another tab removes the record
+  while this flow holds unsaved work, the flow writes it again at once.
+- **Expiry, account and sign-out**: a record without a change for 30 days
+  (`LOCAL_DRAFT_MAX_AGE_MS`) is removed when the account's records are listed or read.
+  Records belong to the signed-in username: the flow writes and the offers list only that
+  account's. "Log out" in `UserMenu` flushes, lists the account's records and, if there are
+  any, warns; confirming removes them (`store.removeAll()`) and closes the account
+  (`store.close()`), so that an editor's flush on unmount can't bring one back until the
+  account signs in again (`reopen()` in `useLocalDraftStore`). An expired session (a `401`)
+  keeps them.
+- **Known limit** (research R11): another tab of the same account, in which the team member
+  goes on editing after logging out elsewhere, writes its record again until its next API
+  call signs it out. The record is then offered at the next sign-in.
+- **Never personas, findings or citizen data**: a record holds the connection's set-up only,
+  not the open variant tab, the rule editor's position, personas or findings. Nothing in
+  `utils/localDrafts/` or its hooks logs (no `console.*`) or calls the API.
+
 ### Background worker
 
 `app/services/worker.py` runs a daemon thread, started and stopped by the FastAPI
@@ -586,13 +728,17 @@ Implemented steps, in the order of research R7 in the spec folder:
    other than `completed`, when a pull's 60-second repeat window ends, and for
    documents never delivered 30 minutes less a minute after the citizen shared. A
    `404` counts as deleted; another failure is tried again in the next cycle.
-5. **Re-sync configurations**, once after each start: a form connection whose
-   current configuration, built again with the current trust list, request lifetime
-   and catalog, has a different hash gets a new revision with the same documents.
-   The checks run in the pool, and a failed one is tried again in the next cycle.
+5. **Re-sync configurations**, once after each start: a published form connection
+   whose current configuration, built again with the current trust list, request
+   lifetime and catalog, has a different hash gets a new revision with the same
+   documents. Drafts are skipped, in the step's query and in `resync_config()`: nothing
+   is set up with EUDIPLO for a draft (spec 005). The checks run in the pool, and a
+   failed one is tried again in the next cycle.
 6. **Delete unused EUDIPLO configurations**: those of revisions that a later one
    replaced, or whose form connection was deleted, once no request on them still
-   has an EUDIPLO session. A `404` counts as deleted.
+   has an EUDIPLO session. A `404` counts as deleted. A revision that a draft's publish
+   in flight has reserved is never one of them, since a draft's `current_revision` is
+   null.
 7. **Delete expired sign-in sessions.**
 8. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
    ended.
@@ -607,6 +753,10 @@ locks keep the steps correct if that changes.
 branches and the evaluation `specs/002-connection-rules/contracts/integration-api.md`),
 and `app/services/document_requests.py` holds their logic:
 
+- **Drafts** (spec 005, research R8): a draft's URLs answer `409 unavailable`, exactly
+  as a deactivated connection's, so serviceBW can't tell them apart, and the check comes
+  before anything reads a revision (`_usable_form_connection()`). A deleted draft has no
+  row, so its URLs answer `404`. Neither calls EUDIPLO.
 - **Trigger**, `POST /api/connect/{id}/requests`: creates a EUDIPLO request
   (`POST /api/verifier/offer`) on the form connection's current revision, and
   answers with the same-device wallet link, a QR code of the link for another
@@ -625,8 +775,8 @@ and `app/services/document_requests.py` holds their logic:
   branch's evaluation. The delivery belongs to the request, not the branch: the first
   delivery through any pull URL starts the repeat window for all of them. Its checks
   run in this order:
-  1. unknown form connection: `404`;
-  2. deactivated or deleted form connection: `409 unavailable`;
+  1. unknown form connection, or a deleted draft: `404`;
+  2. deactivated or deleted form connection, or a draft: `409 unavailable`;
   3. unknown branch, another form connection's, or the main branch (whose pull URL is
      the one above): `404`;
   4. deleted branch: `409 unavailable`, for good;
@@ -748,9 +898,11 @@ class ApiError extends Error {
 The tables and their rules are described in
 [data-model.md](../specs/001-servicebw-eudi-middleware/data-model.md), and those of
 the rules and branches in
-[spec 002's data-model.md](../specs/002-connection-rules/data-model.md). A rule set's
-tree is one JSONB column, since it is always read and written whole. No table holds
-a citizen's documents or an evaluation.
+[spec 002's data-model.md](../specs/002-connection-rules/data-model.md), and the drafts
+in [spec 005's data-model.md](../specs/005-connection-drafts/data-model.md). A rule set's
+tree and a draft's content are one JSONB column each, since they are always read and
+written whole. Autogenerate emits no CHECK constraint or backfill, so the drafts
+migration adds them by hand. No table holds a citizen's documents or an evaluation.
 
 ## Environment Variables
 

@@ -16,6 +16,10 @@ Only the rules step propagates the main branch's changes to the branches based o
 it. The server checks that every saved based branch is what a correct propagation
 gives, through the invariants of its marks (research R4), so that a propagation bug
 can't reach serviceBW.
+
+A draft (specs/005-connection-drafts, research R3 and R4) runs the same checks with
+`complete=False`: its structure only, so that a draft may be incomplete but never
+malformed. Its identifiers come from its own counters (`number_draft`).
 """
 
 import logging
@@ -209,17 +213,25 @@ def clean_rules(
     rules: RulesInput,
     documents: Sequence[RequestedDocument],
     main_branch_id: str | None,
+    *,
+    complete: bool = True,
 ) -> RulesSave:
     """Check a save's branches and rules against the documents it leaves current.
 
     `main_branch_id` is the form connection's main branch, or None while it has
-    none (on create). The branches come back as they are stored, with names,
-    descriptions and messages trimmed and each condition reduced to its
+    none (on create, and for a draft). The branches come back as they are stored,
+    with names, descriptions and messages trimmed and each condition reduced to its
     operator's keys. On the first problem, answers 400 with a message that names
     it, the rule and its branch (FR-005, FR-006).
+
+    With `complete=False` (saving a draft, spec 005 research R3), only the
+    structure is checked, as `clean_branches` describes; a rule's data and check
+    are kept as sent.
     """
     return RulesSave(
-        branches=clean_branches(rules.branches, documents, main_branch_id),
+        branches=clean_branches(
+            rules.branches, documents, main_branch_id, complete=complete
+        ),
         numbering_base=rules.numbering_base,
         base_version=rules.base_version,
         replace=rules.replace,
@@ -230,6 +242,8 @@ def clean_branches(
     branches: Sequence[BranchInput],
     documents: Sequence[RequestedDocument],
     main_branch_id: str | None,
+    *,
+    complete: bool = True,
 ) -> list[BranchInput]:
     """`clean_rules` for a list of branches, such as the current rule set's.
 
@@ -238,6 +252,19 @@ def clean_branches(
 
     The main branch is checked first, so a problem in an item that the branches
     based on it inherit unchanged is reported once, for the main branch (FR-006).
+
+    With `complete=False` (a draft, spec 005 FR-003 and FR-004), the checks of the
+    structure still apply: at most 20 variants; exactly one main variant, first,
+    whose id is `main_branch_id`; variant names of at most 100 characters and
+    descriptions of at most 500; at most 200 rules and groups per variant; valid
+    identifiers, unique in their variant; sub-groups that hold rules only; groups
+    (not dissolved) with at least two members; the marks; rule and group names of
+    at most 100 characters and messages of at most 500. The completeness checks
+    are skipped: names being present, unique and not reserved, a rule's data and
+    check, and its message being present. A rule's `target` and `condition` are
+    kept as sent. Names, descriptions and messages are still trimmed. A message
+    that would name an unnamed variant names its position ("Variant 3", Standard
+    being 1), one that would name an unnamed rule or group its identifier.
     """
     if len(branches) > MAX_BRANCHES:
         raise _validation_error(
@@ -254,21 +281,41 @@ def clean_branches(
     requested = _requested_fields(documents)
     cleaned: list[BranchInput] = []
     names: set[str] = set()
-    for branch in branches:
-        name = _branch_name(branch.name, names)
+    for position, branch in enumerate(branches, start=1):
+        name = _branch_name(branch.name, names, complete=complete)
         main = cleaned[0] if cleaned else None
-        cleaned.append(_clean_branch(branch, name, requested, main))
+        cleaned.append(
+            _clean_branch(
+                branch,
+                name,
+                _variant_label(name, position),
+                requested,
+                main,
+                complete=complete,
+            )
+        )
     return cleaned
 
 
-def _branch_name(value: str, earlier_names: set[str]) -> str:
+def _variant_label(name: str, position: int) -> str:
+    """How a message names a variant: its name, or "Variant <n>" while it has none.
+
+    Only a draft's variant can be unnamed (spec 005, data-model.md "Validation").
+    """
+    return name or f'Variant {position}'
+
+
+def _branch_name(value: str, earlier_names: set[str], *, complete: bool) -> str:
     name = value.strip()
-    if not name:
+    if complete and not name:
         raise _validation_error('Enter a name for every variant.')
     if len(name) > NAME_MAX_LENGTH:
         raise _validation_error(
             f'A variant’s name can have at most {NAME_MAX_LENGTH} characters.'
         )
+    if not complete:
+        # A draft's variants may be unnamed or share a name (spec 005, FR-004)
+        return name
     if _folded(name) in earlier_names:
         raise _validation_error(
             f'Two variants are called {name}. Give each variant its own name.'
@@ -290,6 +337,7 @@ class _TakenName:
 class _BranchCheck:
     """What the checks of one branch's items need."""
 
+    # How messages name the branch (`_variant_label`)
     name: str
     requested: dict[tuple[str, str], _RequestedField]
     # Taken names by their folded form, filled while the items are checked
@@ -298,25 +346,33 @@ class _BranchCheck:
     # identifier, with their nouns there. None in every other branch
     inherited: dict[str, tuple[TreeItem, ItemNoun]] | None
     out_of_step: HTTPException
+    # False for a draft: the structure only (spec 005, research R3)
+    complete: bool
 
 
 def _clean_branch(
     branch: BranchInput,
     name: str,
+    label: str,
     requested: dict[tuple[str, str], _RequestedField],
     main: BranchInput | None,
+    *,
+    complete: bool,
 ) -> BranchInput:
-    """Check one branch. `main` is the checked main branch, or None for itself."""
+    """Check one branch. `main` is the checked main branch, or None for itself.
+
+    `name` is the branch's trimmed name, `label` how messages name it.
+    """
     description = (branch.description or '').strip() or None
     if description is not None and len(description) > DESCRIPTION_MAX_LENGTH:
         raise _validation_error(
-            f'The description of {name} can have at most {DESCRIPTION_MAX_LENGTH} '
+            f'The description of {label} can have at most {DESCRIPTION_MAX_LENGTH} '
             'characters.'
         )
     entries = list(walk(branch.items))
     if len(entries) > MAX_ITEMS_PER_BRANCH:
         raise _validation_error(
-            f'{name} can have at most {MAX_ITEMS_PER_BRANCH} rules and groups.'
+            f'{label} can have at most {MAX_ITEMS_PER_BRANCH} rules and groups.'
         )
     identifiers: set[str] = set()
     for item, _depth in entries:
@@ -325,7 +381,7 @@ def _clean_branch(
             raise _validation_error(INVALID_IDENTIFIER)
         identifiers.add(item.id)
 
-    out_of_step = _out_of_step(name, main.name if main else name)
+    out_of_step = _out_of_step(label, _variant_label(main.name, 1) if main else label)
     inherited: dict[str, tuple[TreeItem, ItemNoun]] | None = None
     if branch.origin == 'based' and main is not None:
         inherited = {
@@ -339,11 +395,12 @@ def _clean_branch(
         raise out_of_step
 
     check = _BranchCheck(
-        name=name,
+        name=label,
         requested=requested,
         names=_names_taken_by_undo(entries, inherited),
         inherited=inherited,
         out_of_step=out_of_step,
+        complete=complete,
     )
     return branch.model_copy(
         update={
@@ -399,7 +456,8 @@ def _names_taken_by_undo(
 def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
     noun = _noun(item, depth)
     name = _item_name(item, noun, check)
-    subject = f'{name} in {check.name}'
+    # An unnamed item of a draft is named by its identifier (spec 005)
+    subject = f'{name or item.id} in {check.name}'
     if isinstance(item, GroupItem):
         _check_members(item, depth, subject, check)
         message = (item.message or '').strip() or None
@@ -417,12 +475,15 @@ def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
                 ]
             }
         )
-    target, kind, entry = _clean_target(item.target, subject, check.requested)
-    if item.condition is None:
-        raise _validation_error(f'{subject}: choose a check.')
-    condition = _clean_condition(item.condition, kind, entry, target, subject)
+    condition = item.condition
+    if check.complete:
+        target, kind, entry = _clean_target(item.target, subject, check.requested)
+        if item.condition is None:
+            raise _validation_error(f'{subject}: choose a check.')
+        condition = _clean_condition(item.condition, kind, entry, target, subject)
+    # A draft's rule keeps its data and check as sent (spec 005, FR-004)
     message = item.message.strip()
-    if not message:
+    if check.complete and not message:
         raise _validation_error(f'{subject} has no error message.')
     if len(message) > MESSAGE_MAX_LENGTH:
         raise _validation_error(
@@ -487,16 +548,20 @@ def _item_name(item: TreeItem, noun: ItemNoun, check: _BranchCheck) -> str:
     """Check a rule's or group's name against the names taken in its branch.
 
     Those are the names of the items checked before it, and in a based branch the
-    main branch's names of the items changed there (FR-005).
+    main branch's names of the items changed there (FR-005). A draft's names are
+    only trimmed and limited in length: they may be empty, shared or reserved
+    (spec 005, research R3).
     """
     name = item.name.strip()
-    if not name:
+    if check.complete and not name:
         raise _validation_error(f'Enter a name for every {noun} in {check.name}.')
     if len(name) > NAME_MAX_LENGTH:
         raise _validation_error(
             f'A {noun} in {check.name} has a name longer than {NAME_MAX_LENGTH} '
             'characters.'
         )
+    if not check.complete:
+        return name
     earlier = check.names.get(_folded(name))
     if earlier is not None and earlier.owner_id != item.id:
         raise _validation_error(
@@ -775,15 +840,28 @@ def _rule_set(
     ).one_or_none()
 
 
+def _current_rule_set(form_connection: FormConnection) -> int:
+    """The rule set version new requests use (spec 005, research R8).
+
+    A draft has none. Only published connections reach the readers of the current
+    rules, since their callers refuse drafts first, so a draft here is a bug.
+    """
+    if form_connection.current_rule_set is None:
+        raise LookupError(f'Form connection {form_connection.id} is a draft')
+    return form_connection.current_rule_set
+
+
 def current_branches(
     db: Session, form_connection: FormConnection
 ) -> list[SnapshotBranch]:
-    """The branches of a form connection's current rule set, main branch first."""
-    rule_set = _rule_set(db, form_connection.id, form_connection.current_rule_set)
+    """The branches of a published form connection's current rule set, main branch
+    first. A draft has none and raises `LookupError`.
+    """
+    version = _current_rule_set(form_connection)
+    rule_set = _rule_set(db, form_connection.id, version)
     if rule_set is None:
         raise LookupError(
-            f'Form connection {form_connection.id} has no rule set '
-            f'{form_connection.current_rule_set}'
+            f'Form connection {form_connection.id} has no rule set {version}'
         )
     return RULE_SET_SNAPSHOT.validate_python(rule_set.branches)
 
@@ -805,7 +883,7 @@ def _loaded_branches(
     current: list[SnapshotBranch],
 ) -> list[SnapshotBranch]:
     """The branches of the rule set the editor loaded; the current ones by default."""
-    if base_version is None or base_version == form_connection.current_rule_set:
+    if base_version is None or base_version == _current_rule_set(form_connection):
         return current
     rule_set = _rule_set(db, form_connection.id, base_version)
     return RULE_SET_SNAPSHOT.validate_python(rule_set.branches) if rule_set else []
@@ -849,9 +927,10 @@ def check_rules_version(
     bring back with a new pull URL (the save's ones that another save deleted).
     It runs before the rules are checked, so that a stale editor meets this answer
     and not a refusal that its staleness causes, such as "Unknown variant.", and
-    again under the row lock (research R9).
+    again under the row lock (research R9). A draft has no rules to be stale
+    against and raises `LookupError`: its callers refuse drafts first.
     """
-    if rules.replace or rules.base_version == form_connection.current_rule_set:
+    if rules.replace or rules.base_version == _current_rule_set(form_connection):
         return
     current = current_branches(db, form_connection)
     saved_ids = {branch.id for branch in rules.branches if branch.id is not None}
@@ -1051,24 +1130,52 @@ def save_rule_set(
     return saved
 
 
-def _first_numbering(save: RulesSave) -> _Numbering:
+def _first_numbering(
+    save: RulesSave, counters: tuple[int, int] | None = None
+) -> _Numbering:
+    """Check and renumber the identifiers of rules that have no rule set yet.
+
+    Without `counters`, a new form connection's: the counters start at (1, 1) and
+    no identifier counts as loaded. With them, a draft's (spec 005, research R4):
+    the counters are the row's, and an identifier below `save.numbering_base`
+    counts as loaded and keeps its number; one at or above it is new and moves up
+    past the numbers taken meanwhile. Every branch id is refused, since neither
+    has branch rows.
+    """
     _check_branch_ids(save.branches, set(), {})
-    return _allocate(save.branches, save.numbering_base, set(), set(), (1, 1))
+    if counters is None:
+        return _allocate(save.branches, save.numbering_base, set(), set(), (1, 1))
+    bases = {'rule': save.numbering_base.rule, 'group': save.numbering_base.group}
+    loaded: set[str] = set()
+    for item_id in _identifiers(save.branches):
+        number = number_of(item_id)
+        kind = 'rule' if item_id.startswith('rule-') else 'group'
+        if number is not None and number < bases[kind]:
+            loaded.add(item_id)
+    return _allocate(save.branches, save.numbering_base, loaded, loaded, counters)
 
 
-def check_first_save(save: RulesSave) -> None:
-    """Refuse a new form connection's rules that `first_rule_set` would refuse."""
-    _first_numbering(save)
+def check_first_save(save: RulesSave, counters: tuple[int, int] | None = None) -> None:
+    """Refuse a new form connection's rules that `first_rule_set` would refuse.
+
+    Publishing a draft passes the row's counters (`_first_numbering`).
+    """
+    _first_numbering(save, counters)
 
 
 def first_rule_set(
-    db: Session, form_connection: FormConnection, save: RulesSave | None
+    db: Session,
+    form_connection: FormConnection,
+    save: RulesSave | None,
+    counters: tuple[int, int] | None = None,
 ) -> list[SnapshotBranch]:
     """Add a new form connection's branch rows and rule set 1 (FR-018, research R9).
 
     Without `save`, the form connection gets the main branch "Standard" without
-    rules. Its counters start at 1. The caller has added the form connection, and
-    commits.
+    rules. Its counters start at 1, or stay at `counters`. Publishing a draft
+    passes the row's counters, so that its rules keep the numbers they had in the
+    draft and the counters never go down (spec 005, research R4). The caller has
+    added the form connection, and commits.
     """
     if save is None:
         saved = [main_branch_snapshot(str(uuid.uuid4()))]
@@ -1077,9 +1184,14 @@ def first_rule_set(
                 id=saved[0].id, form_connection_id=form_connection.id, is_main=True
             )
         )
-        numbering = _Numbering(renumbered={}, next_rule_number=1, next_group_number=1)
+        next_rule_number, next_group_number = counters or (1, 1)
+        numbering = _Numbering(
+            renumbered={},
+            next_rule_number=next_rule_number,
+            next_group_number=next_group_number,
+        )
     else:
-        numbering = _first_numbering(save)
+        numbering = _first_numbering(save, counters)
         saved = _saved_branches(db, form_connection.id, save.branches, numbering)
     db.add(
         FormConnectionRuleSet(
@@ -1092,3 +1204,35 @@ def first_rule_set(
     form_connection.next_rule_number = numbering.next_rule_number
     form_connection.next_group_number = numbering.next_group_number
     return saved
+
+
+@dataclass(frozen=True)
+class DraftNumbering:
+    """A draft's branches with their final identifiers, and its counters after."""
+
+    branches: list[BranchInput]
+    next_rule_number: int
+    next_group_number: int
+
+
+def number_draft(save: RulesSave, counters: tuple[int, int]) -> DraftNumbering:
+    """Number a draft's rules and groups from its counters (spec 005, research R4).
+
+    `counters` are (1, 1) when a draft is created, and the row's, read under its
+    lock, when one is saved. An identifier below `save.numbering_base` keeps its
+    number; one at or above it is new and moves up past the numbers taken
+    meanwhile, the same way in every variant, and a default name follows its new
+    number. A branch id is refused ("Unknown variant."). The counters end above
+    every identifier and never go down. Writes nothing.
+    """
+    numbering = _first_numbering(save, counters)
+    return DraftNumbering(
+        branches=[
+            branch.model_copy(
+                update={'items': _renumber_items(branch.items, numbering.renumbered)}
+            )
+            for branch in save.branches
+        ],
+        next_rule_number=numbering.next_rule_number,
+        next_group_number=numbering.next_group_number,
+    )

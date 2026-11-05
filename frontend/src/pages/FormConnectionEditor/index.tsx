@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { generatePath, useNavigate } from 'react-router';
+import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
 
-import { createFormConnection, updateFormConnection } from '../../api/form-connections';
+import {
+  createDraft,
+  createFormConnection,
+  publishDraft,
+  saveDraft,
+  updateFormConnection,
+} from '../../api/form-connections';
+import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
+import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
@@ -10,18 +18,26 @@ import WizardProgress from '../../components/WizardProgress';
 import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
+import { useLocalDraft } from '../../hooks/useLocalDraft';
+import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { useOptionSets } from '../../hooks/useOptionSets';
 import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import type { DocumentType } from '../../types/document-types';
-import type { DetailLocationState } from '../../types/routing';
+import type {
+  DetailLocationState,
+  EditLocationState,
+  OverviewLocationState,
+} from '../../types/routing';
+import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
 import { requestedRuleDocuments } from '../../utils/rules/conditions';
 import { firstProblem } from '../../utils/rules/validation';
 import ConnectionStep from './ConnectionStep';
-import { EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
+import { DRAFT_COPY, EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
 import DocumentsStep from './DocumentsStep';
+import DraftConflictDialog from './DraftConflictDialog';
 import EditorFooter from './EditorFooter';
 import FindingsAnnouncer from './FindingsAnnouncer';
 import PublishDialog from './PublishDialog';
@@ -29,27 +45,36 @@ import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
 import RulesDialogs from './RulesStep/RulesDialogs';
 import type { LeaveEditorAction, RulesCatalog, RulesState } from './RulesStep/types';
-import {
-  focusSoon,
-  hasUnsavedChanges,
-  initialRulesState,
-  neighbourOf,
-  rulesReducer,
-} from './RulesStep/utils';
+import { focusSoon, hasUnsavedChanges, neighbourOf, rulesReducer } from './RulesStep/utils';
+import SaveDraftAlert from './SaveDraftAlert';
 import TestStep from './TestStep';
-import type { EditorErrors, FormConnectionEditorPageProps, PendingRemoval } from './types';
+import type {
+  ConnectionWizardProps,
+  DraftConflict,
+  EditorErrors,
+  EditorStart,
+  FormConnectionEditorPageProps,
+  PendingRemoval,
+} from './types';
 import {
+  conflictOf,
   createPayload,
   documentLines,
+  draftNameErrors,
+  draftPayload,
+  draftSaveErrorOf,
+  droppedDataOf,
+  droppedRemovalOf,
   editorReducer,
+  entryOf,
   fieldLabelOf,
   firstBranchWithFindings,
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
-  initialEditorState,
   isRulesChanged,
   labelOf,
+  localContentOf,
   pageTitleOf,
   problemPlaceOf,
   publishErrorNotice,
@@ -57,43 +82,161 @@ import {
   ruleLines,
   rulesCheckingRemoval,
   rulesNextActionOf,
+  startOfEntry,
+  startOfOrigin,
+  stepForDroppedData,
   validateConnection,
   validateDocuments,
 } from './utils';
 
 /**
- * The create screen at /form-connections/new: a wizard with the form's details, the documents
- * and the rules. Everything stays in the browser until "Publish", which creates the connection
- * with its rules in one call (the API has no drafts) and opens its details. The first-connection
- * screen at /get-started is the same wizard, with its own heading for step 1. Given a
- * connection, the wizard edits it (/form-connections/:id/edit): it starts with its details,
- * documents and rules, and "Save" changes them with one call. Changes apply to new requests
- * only (FR-005, FR-028). If another team member saved the rules after the wizard loaded them,
- * the team member reloads the connection or replaces their rules (W9). Rules are published or
- * saved from the test step, which "Test rules" opens through publishing's checks (spec 004,
- * FR-001 to FR-003).
+ * The connection wizard: the form's details, the documents, the rules and the test step. Rules
+ * are published or saved from the test step, which "Test rules" opens through publishing's
+ * checks (spec 004, FR-001 to FR-003). Where its content comes from is its origin (spec 005,
+ * research R12):
+ * - `new`, at /form-connections/new and at /get-started (the first-connection screen, with its
+ *   own heading for step 1): the wizard starts empty, or from the local draft it resumes.
+ *   "Publish" creates the connection with its rules in one call and opens its details.
+ * - `draft`, a stored draft: the wizard starts from the draft's content (`initialStates`), or
+ *   from its local draft resumed through `?local=`, and shows the "Draft" badge (S0). "Publish" publishes the draft through its own endpoint, at the
+ *   version the wizard opened, and opens the connection's details.
+ * - `published`, at /form-connections/:id/edit: the wizard edits the connection as before
+ *   (FR-026). "Save" changes it with one call, and changes apply to new requests only (FR-005,
+ *   FR-028). If another team member saved the rules after the wizard loaded them, the team member
+ *   reloads the connection or replaces their rules (W9).
+ *
+ * A new connection and a stored draft offer "Save and exit" on every step (S1; FR-001): an open
+ * rule editor with changes asks "Save changes to Rule 01?" first, and closing that question
+ * cancels (FR-012). A missing or too long name sends the team member to step 1 and stores
+ * nothing. Otherwise the flow is stored as a draft, with its step, and the overview confirms it
+ * (W1). A failed save keeps the team member in the flow with their work, and says why above the
+ * step's content (FR-013; W3).
+ *
+ * Two team members on one stored draft (S2; FR-022 to FR-024; R6): a save or a publish that meets
+ * another team member's save, publish or deletion of the draft is refused before anything is
+ * stored. After "Save and exit" the conflict dialog says so, and after publishing the publish
+ * dialog does, in place of "Publish":
+ * - "Reload" drops the local draft and the unsaved work: on the edit route the page fetches the
+ *   draft again and opens it at its stored step, with the focus on the page title; a draft
+ *   resumed through `?local=` opens its edit route instead.
+ * - "Replace their changes" sends the same save or publish over their changes; another conflict
+ *   shows in its place.
+ * - "Open the connection", after it was published, drops the local draft and opens its details.
+ * - "Save as new draft", after it was deleted, stores the work as a new draft, drops the old local
+ *   draft, and the overview confirms it as after "Save and exit".
+ * - "Cancel" closes the dialog, and the work stays in the flow and in the local draft.
+ *
+ * An answer that fails otherwise shows as its save's alert or in the publish dialog, as any
+ * failed save or publish does.
+ *
+ * Local drafts (FR-014 to FR-018; R9, R10): a new connection and a stored draft keep their unsaved
+ * work on this device, in the signed-in account's local draft of their flow key (`new-<uuid>` or
+ * `draft-<id>`), written within a second of a change and on leaving the page. It holds only what
+ * isn't safe elsewhere: it goes when the work comes back to the baseline (the empty flow, or the
+ * stored draft as loaded on its edit route), and after a successful "Save and exit" or publish.
+ * A stored draft's local draft resumed through `?local=` has no baseline, as that flow doesn't
+ * read the stored draft, so only a save or a publish removes it. Leaving the flow otherwise, or a
+ * failed save, keeps it. The published edit flow never has one.
+ * - The create routes name their flow in the URL, as `?local=<flow key>`, read once when the page
+ *   mounts. A key with the account's local draft resumes it at its step, a stored draft's under
+ *   its own origin, with the "Draft" badge; a `draft-<id>` key without one opens the stored
+ *   draft's edit route; a `new-` key without one starts empty under that key. Without a valid
+ *   key, the flow gets a new one and writes it into the URL, replacing the history entry without
+ *   remounting, so that a reload or the sign-in after an expired session comes back to the work.
+ * - With an `origin`, such as a stored draft on its edit route, the page doesn't read `?local=`.
+ *
+ * Data the catalog no longer offers is listed in a note on the documents step, with "Remove it"
+ * (S8; W10). A flow that opens at another step moves there once per opening, as soon as the
+ * catalog has loaded, and the note takes the focus. "Save and exit" and publishing are refused
+ * with the server's message while such data remains. The published edit flow has no such note,
+ * as it stays as it is (FR-026).
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
-  formConnection,
+  origin,
+  initialStates,
   initialStep = 'connection',
+  baseline,
   onReload,
   reloaded = false,
 }: FormConnectionEditorPageProps) {
-  const [state, dispatch] = useReducer(
-    editorReducer,
-    { formConnection, initialStep },
-    initialEditorState
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { store, username } = useLocalDraftStore();
+  // Read once, the URL and the record included: what the flow opens, its origin and its baseline
+  // stay as they started, also when the fresh flow's key enters the URL (R10)
+  const [start] = useState<EditorStart>(() => {
+    if (origin) {
+      return startOfOrigin({ origin, initialStates, initialStep, baseline });
+    }
+    const param = searchParams.get(LOCAL_DRAFT_PARAM);
+    // Nobody signed in can't happen behind RequireSignIn; it would read as no record
+    const record = param !== null && username !== null ? store.read(username, param) : null;
+    return startOfEntry(entryOf(param, record), () => crypto.randomUUID(), initialStep);
+  });
+  const urlWritten = useRef(false);
+
+  // A fresh flow names its key in the URL, in place of the current history entry. The route
+  // stays the same, so the wizard stays mounted with its state (R10, R16)
+  useEffect(() => {
+    if (start.kind === 'open' && start.urlFlowKey !== null && !urlWritten.current) {
+      urlWritten.current = true;
+      setSearchParams({ [LOCAL_DRAFT_PARAM]: start.urlFlowKey }, { replace: true });
+    }
+  }, [start, setSearchParams]);
+
+  if (start.kind === 'missingDraft') {
+    return <Navigate to={generatePath(ROUTES.editFormConnection, { id: start.draftId })} replace />;
+  }
+  return (
+    <ConnectionWizard
+      flow={start}
+      firstConnection={firstConnection}
+      onReload={onReload}
+      reloaded={reloaded}
+    />
   );
-  const [rules, dispatchRules] = useReducer(rulesReducer, formConnection, initialRulesState);
-  const editing = formConnection !== undefined;
+}
+
+/** The wizard of the flow the page opened, with its autosave into the local draft. */
+function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: ConnectionWizardProps) {
+  const { origin } = flow;
+  // The connection being edited, only for the published origin (FR-026)
+  const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
+  const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
+  const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
+  const editing = origin.kind === 'published';
+  // The flow's local draft, for a new connection and a stored draft only (FR-014). Its content is
+  // what "Save and exit" would store now (R9)
+  const flowKey = origin.kind === 'published' ? null : origin.flowKey;
+  const localContent = useMemo(() => localContentOf(state, rules), [state, rules]);
+  const { forget } = useLocalDraft({
+    // A published connection's flow writes nothing, so its key is never used
+    flowKey: flowKey ?? '',
+    draftId: origin.kind === 'draft' ? origin.draftId : null,
+    draftVersion: origin.kind === 'draft' ? origin.draftVersion : null,
+    baseline: flow.baseline,
+    content: localContent,
+    step: state.step,
+    enabled: flowKey !== null,
+  });
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const { status: optionSetsStatus, optionSets, retry: retryOptionSets } = useOptionSets();
   const handleUnauthorized = useSignOutOnUnauthorized();
   const navigate = useNavigate();
   const titleRef = useRef<HTMLHeadingElement>(null);
   const shownStep = useRef(state.step);
+  const droppedNoteRef = useRef<HTMLElement>(null);
+  // Whether this opening has looked for dropped data once the catalog loaded (S8)
+  const droppedChecked = useRef(false);
+  // The flow moved to the documents step for dropped data: the note takes the focus there (S8)
+  const focusDroppedNote = useRef(false);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
+  // Data the catalog dropped, once it has loaded; never in the published edit flow (FR-026)
+  const dropped = useMemo(
+    () =>
+      catalogStatus === 'loaded' && !editing ? droppedDataOf(state.documents, documentTypes) : [],
+    [catalogStatus, editing, state.documents, documentTypes]
+  );
   // The Rules step needs the catalog and the value sets
   const rulesStatus =
     catalogStatus === 'failed' || optionSetsStatus === 'failed'
@@ -124,6 +267,10 @@ export default function FormConnectionEditorPage({
   });
   // A rule being edited counts as a rule (FR-006)
   const rulesNextAction = rulesNextActionOf(rules);
+  // A conflict shows where it was met: after "Save and exit" in its own dialog, after publishing
+  // in the publish dialog (S2)
+  const saveConflict = state.conflict?.during === 'save' ? state.conflict : null;
+  const publishConflict = state.conflict?.during === 'publish' ? state.conflict : null;
   const pageTitle = pageTitleOf(
     state.step,
     editing ? 'edit' : firstConnection ? 'first' : 'create'
@@ -145,6 +292,28 @@ export default function FormConnectionEditorPage({
       shownStep.current = state.step;
       dispatchRules({ type: 'dismissToast' });
       titleRef.current?.focus();
+    }
+  }, [state.step]);
+
+  // Once per opening, when the catalog has loaded: a flow that opened elsewhere with dropped data
+  // moves to the documents step, so that the note is seen before a save is refused (S0, S8)
+  useEffect(() => {
+    if (droppedChecked.current || catalogStatus !== 'loaded') {
+      return;
+    }
+    droppedChecked.current = true;
+    const step = stepForDroppedData(state.step, dropped);
+    if (step !== null) {
+      focusDroppedNote.current = true;
+      dispatch({ type: 'goToStep', step });
+    }
+  }, [catalogStatus, dropped, state.step]);
+
+  // After the step change above has focused the page title, the note takes the focus (S8)
+  useEffect(() => {
+    if (focusDroppedNote.current && state.step === 'documents') {
+      focusDroppedNote.current = false;
+      droppedNoteRef.current?.focus();
     }
   }, [state.step]);
 
@@ -243,6 +412,10 @@ export default function FormConnectionEditorPage({
   }
 
   function handlePublish() {
+    // The flow is being stored as a draft: publishing as well would make a second connection
+    if (state.savingDraft) {
+      return;
+    }
     if (state.step === 'documents') {
       // "Publish without rules", offered while no branch has any rule (FR-001)
       if (documentsAreValid()) {
@@ -273,6 +446,155 @@ export default function FormConnectionEditorPage({
       case 'test':
         testRules(current);
         return;
+      case 'saveAndExit':
+        void saveDraftAndExit(current);
+        return;
+    }
+  }
+
+  /**
+   * "Save and exit", or the alert's "Try again": through the rule editor's question first, whose
+   * either answer goes on with the save, and closing it cancels the save (S1; FR-012).
+   */
+  function handleSaveAndExit() {
+    if (state.savingDraft || state.publishing) {
+      return;
+    }
+    leaveEditor({ type: 'saveAndExit' });
+  }
+
+  /**
+   * Stores the flow as a draft, with the rules as they are now and the step, then opens the
+   * overview, which confirms it (S1; R12; W1). A missing or too long name opens step 1, shows its
+   * message under "Form name" and focuses the field, and nothing is stored (S1.2). A failure
+   * keeps the team member in the flow with their work, and the alert above the step says why
+   * (FR-013; W3). Another team member's save, publish or deletion of the stored draft opens the
+   * conflict dialog instead (S2). `replace`, its "Replace their changes", sends the same save over
+   * their changes.
+   */
+  async function saveDraftAndExit(current: RulesState, replace = false) {
+    const errors = draftNameErrors(state.name);
+    if (hasErrors(errors)) {
+      if (state.step !== 'connection') {
+        flushSync(() => dispatch({ type: 'goToStep', step: 'connection' }));
+      }
+      refuse(errors);
+      return;
+    }
+    dispatch({ type: 'saveDraft' });
+    const payload = draftPayload(localContentOf(state, current), state.step);
+    try {
+      if (origin.kind === 'draft') {
+        await saveDraft(origin.draftId, { ...payload, version: origin.draftVersion, replace });
+      } else {
+        await createDraft(payload);
+      }
+      exitWithSavedDraft(payload.name);
+    } catch (error) {
+      if (handleUnauthorized(error)) {
+        return;
+      }
+      const conflict = conflictOf(error, origin, 'save');
+      if (conflict) {
+        dispatch({ type: 'draftConflict', conflict });
+        return;
+      }
+      showDraftSaveFailure(error);
+    }
+  }
+
+  /** A stored draft: the local draft has no unsaved work left (FR-018), and the overview says so. */
+  function exitWithSavedDraft(name: string) {
+    forget();
+    const locationState: OverviewLocationState = { draftSaved: name };
+    navigate(ROUTES.overview, { state: locationState });
+  }
+
+  /**
+   * A failed draft save, also an answer of the conflict dialog: the dialog closes first, returning
+   * the focus to "Save and exit", and then the alert above the step takes it (S1.5).
+   */
+  function showDraftSaveFailure(error: unknown) {
+    if (state.conflict) {
+      flushSync(() => dispatch({ type: 'closeConflict' }));
+    }
+    // A new object each time, so that the alert takes the focus again
+    dispatch({ type: 'saveDraftFailed', error: draftSaveErrorOf(error) });
+  }
+
+  /** A failed publish, also an answer of a conflict in the publish dialog, which shows why. */
+  function showPublishFailure(error: unknown) {
+    if (state.conflict) {
+      dispatch({ type: 'closeConflict' });
+    }
+    dispatch({
+      type: 'publishFailed',
+      error: publishErrorNotice(error, editing),
+      rulesChanged: isRulesChanged(error),
+    });
+  }
+
+  /**
+   * A conflict's "Reload" (S2; R6), after `draft_changed`: the unsaved work goes with the local
+   * draft. On the edit route, the page fetches the draft again and opens it at its stored step;
+   * a draft resumed through `?local=` opens its edit route, which does the same. After spec 002's
+   * `rules_changed`, the published connection's reload is as before (W9).
+   */
+  function handleReload() {
+    if (origin.kind !== 'draft') {
+      onReload?.();
+      return;
+    }
+    forget();
+    if (onReload) {
+      onReload();
+      return;
+    }
+    // The edit route then starts with the focus on its page title, as its own reload does
+    const locationState: EditLocationState = { reloaded: true };
+    navigate(generatePath(ROUTES.editFormConnection, { id: origin.draftId }), {
+      replace: true,
+      state: locationState,
+    });
+  }
+
+  /** A conflict's "Open the connection", after `draft_published` (S2; FR-023). */
+  function handleOpenConnection() {
+    if (origin.kind !== 'draft') {
+      return;
+    }
+    // The connection is published, and its edit flow has no local draft (rule 3)
+    forget();
+    navigate(generatePath(ROUTES.formConnection, { id: origin.draftId }));
+  }
+
+  /**
+   * A conflict's "Save as new draft", after `draft_deleted` (S2; FR-024): the work becomes a new
+   * draft, the old flow's local draft goes, and the overview confirms it as after "Save and exit".
+   * A failure shows as the save's or the publish's own failure, which the conflict started from.
+   */
+  async function handleSaveAsNew(during: DraftConflict['during']) {
+    dispatch({ type: during === 'save' ? 'saveDraft' : 'publish' });
+    const payload = draftPayload(localContentOf(state, rules), state.step);
+    try {
+      await createDraft(payload);
+      exitWithSavedDraft(payload.name);
+    } catch (error) {
+      if (handleUnauthorized(error)) {
+        return;
+      }
+      if (during === 'save') {
+        showDraftSaveFailure(error);
+      } else {
+        showPublishFailure(error);
+      }
+    }
+  }
+
+  /** "Cancel", Escape and the close button: the team member stays in the flow with their work. */
+  function handleCloseConflict() {
+    if (!state.savingDraft && !state.publishing) {
+      dispatch({ type: 'closeConflict' });
     }
   }
 
@@ -304,27 +626,57 @@ export default function FormConnectionEditorPage({
     continueWith(dialog.next, after);
   }
 
-  /** Publishes or saves; `replace` saves over the rules another team member saved meanwhile. */
+  /**
+   * Publishes or saves; `replace` saves over the rules another team member saved meanwhile, or,
+   * for a stored draft, publishes over the draft they saved (S2). Another team member's save,
+   * publish or deletion of the stored draft shows as a conflict in the dialog.
+   */
   async function handleConfirm(replace = false) {
     dispatch({ type: 'publish' });
     try {
       // Editing sends the name and the documents, which create no revision when unchanged, and
-      // the rules only when they changed (FR-028)
+      // the rules only when they changed (FR-028). A stored draft is published at the version
+      // the flow opened (R12)
       const payload = createPayload(state, rules, { loaded: formConnection, replace });
-      const saved = formConnection
-        ? await updateFormConnection(formConnection.id, payload)
-        : await createFormConnection(payload);
+      const saved =
+        origin.kind === 'draft'
+          ? await publishDraft(origin.draftId, {
+              ...createPayload(state, rules),
+              version: origin.draftVersion,
+              replace,
+            })
+          : formConnection
+            ? await updateFormConnection(formConnection.id, payload)
+            : await createFormConnection(payload);
+      // Published: the local draft has no unsaved work left (FR-018)
+      if (!editing) {
+        forget();
+      }
       const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
       navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
     } catch (error) {
-      if (!handleUnauthorized(error)) {
-        dispatch({
-          type: 'publishFailed',
-          error: publishErrorNotice(error, editing),
-          rulesChanged: isRulesChanged(error),
-        });
+      if (handleUnauthorized(error)) {
+        return;
       }
+      const conflict = conflictOf(error, origin, 'publish');
+      if (conflict) {
+        dispatch({ type: 'draftConflict', conflict });
+        return;
+      }
+      showPublishFailure(error);
     }
+  }
+
+  /**
+   * The publish dialog's close button and Escape, and its "Cancel" after a conflict: the dialog
+   * closes, and the conflict with it, so that it doesn't show at the next opening.
+   */
+  function handleCloseDialog() {
+    if (state.publishing) {
+      return;
+    }
+    dispatch({ type: 'closeDialog' });
+    dispatch({ type: 'closeConflict' });
   }
 
   /**
@@ -443,6 +795,28 @@ export default function FormConnectionEditorPage({
     removeOrAsk({ type: 'allFields', documentType, label: labelOf(documentType, documentTypes) });
   }
 
+  /**
+   * The note's "Remove it" (S8): every dropped item at once, after the removal dialog when rules
+   * check any of it. The note goes, so the focus moves to the page title.
+   */
+  function handleRemoveDropped() {
+    flushSync(() => removeOrAsk(droppedRemovalOf(dropped)));
+    // Removed without a question: the note has gone with its button
+    if (!droppedNoteRef.current) {
+      titleRef.current?.focus();
+    }
+  }
+
+  /** Confirms the removal dialog; after the note's removal, the note has gone with its button. */
+  function handleConfirmRemoval() {
+    const fromNote = state.pendingRemoval?.type === 'dropped';
+    dispatch({ type: 'confirmRemoval' });
+    if (fromNote) {
+      // After the dialog has closed, which returns the focus to a button that is gone
+      requestAnimationFrame(() => titleRef.current?.focus());
+    }
+  }
+
   function handleUndo() {
     const restored = state.removed?.document_type;
     flushSync(() => dispatch({ type: 'undoRemove', catalogOrder }));
@@ -494,6 +868,9 @@ export default function FormConnectionEditorPage({
             documentTypes={documentTypes}
             documents={state.documents}
             errors={state.errors}
+            dropped={dropped}
+            droppedNoteRef={droppedNoteRef}
+            onRemoveDropped={handleRemoveDropped}
             onRetryCatalog={retry}
             onAdd={(documentType) =>
               dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder })
@@ -545,6 +922,7 @@ export default function FormConnectionEditorPage({
   return (
     <WizardLayout
       title={headerTitleOf(state, formConnection)}
+      badge={origin.kind === 'draft' ? <ConnectionStatusBadge isActive draft /> : undefined}
       head={
         <>
           <WizardProgress
@@ -565,6 +943,9 @@ export default function FormConnectionEditorPage({
           onAddRules={handleAddRules}
           onTestRules={() => leaveEditor({ type: 'test' })}
           onPublish={handlePublish}
+          canSaveDraft={origin.kind !== 'published'}
+          savingDraft={state.savingDraft}
+          onSaveAndExit={handleSaveAndExit}
         />
       }
       overlay={
@@ -581,10 +962,23 @@ export default function FormConnectionEditorPage({
             error={state.publishError}
             rulesChanged={state.rulesChanged}
             onCancel={handleDialogCancel}
-            onClose={() => dispatch({ type: 'closeDialog' })}
+            onClose={handleCloseDialog}
             onConfirm={() => handleConfirm()}
-            onReload={() => onReload?.()}
+            onReload={handleReload}
             onReplace={() => handleConfirm(true)}
+            conflict={publishConflict}
+            onOpenConnection={handleOpenConnection}
+            onSaveAsNew={() => void handleSaveAsNew('publish')}
+          />
+          {/* Always rendered: closing it, not unmounting it, returns the focus to "Save and exit" */}
+          <DraftConflictDialog
+            conflict={saveConflict}
+            busy={state.savingDraft}
+            onReload={handleReload}
+            onReplace={() => void saveDraftAndExit(rules, true)}
+            onOpenConnection={handleOpenConnection}
+            onSaveAsNew={() => void handleSaveAsNew('save')}
+            onCancel={handleCloseConflict}
           />
           <RemoveDataDialog
             removal={state.pendingRemoval}
@@ -595,7 +989,7 @@ export default function FormConnectionEditorPage({
             }
             editing={editing}
             onCancel={() => dispatch({ type: 'cancelRemoval' })}
-            onConfirm={() => dispatch({ type: 'confirmRemoval' })}
+            onConfirm={handleConfirmRemoval}
           />
           <RulesDialogs
             state={rules}
@@ -618,9 +1012,23 @@ export default function FormConnectionEditorPage({
           )}
           {/* Outside the steps, so that it stays across a change of step (FR-015) */}
           <FindingsAnnouncer announcement={ruleChecks.announcement} />
+          {/* "Save and exit" in progress (S1.3): always in the page, so that its text is read */}
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {state.savingDraft ? DRAFT_COPY.savingStatus : ''}
+          </div>
         </>
       }
     >
+      {/* Under the page title, above the step's content (S1.5; W3) */}
+      <SaveDraftAlert
+        error={state.draftError}
+        retrying={state.savingDraft}
+        onRetry={handleSaveAndExit}
+      />
+      {/* On /get-started, the unsaved work on this device except this flow's own (S4; FR-016) */}
+      {firstConnection && state.step === 'connection' && (
+        <LocalDraftsOffer exceptFlowKey={flowKey ?? undefined} emptyFocusRef={titleRef} />
+      )}
       {renderStep()}
     </WizardLayout>
   );

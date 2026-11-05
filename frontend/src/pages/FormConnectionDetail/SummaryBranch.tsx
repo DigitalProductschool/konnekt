@@ -11,7 +11,9 @@ import type { SummaryBranchProps } from './types';
  * One variant's rules, read-only, in the layout of the Rules step (F26): its name with the (i)
  * of its description (F31), then its rules card with its rules and groups and the AND or OR
  * between them, or that it has none. A variant based on Standard shows its marks and removed
- * items, a group dissolved there as removed, and a switched top-level AND/OR (FR-023, W4).
+ * items, a group dissolved there as removed, and a switched top-level AND/OR (FR-023, W4). A
+ * draft's variant may hold incomplete rules, which read as far as they go, as in the Rules step;
+ * no variant shows its pull URL here (spec 005, S6).
  */
 export default function SummaryBranch({ branch, context }: SummaryBranchProps) {
   const headingId = useId();

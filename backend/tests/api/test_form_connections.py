@@ -294,6 +294,7 @@ def test_creating_returns_the_form_connection_with_its_urls(
                 'pull_url': pull_url,
             }
         ],
+        'status': 'published',
         'rule_set_version': 1,
         'next_rule_number': 1,
         'next_group_number': 1,
@@ -655,6 +656,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'name': 'Second',
             'servicebw_form': 'FS-20417',
             'is_active': True,
+            'status': 'published',
             'updated_at': second['updated_at'],
         },
         {
@@ -662,6 +664,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'name': 'First',
             'servicebw_form': 'FS-20417',
             'is_active': True,
+            'status': 'published',
             'updated_at': first['updated_at'],
         },
     ]

@@ -3,17 +3,28 @@ import type { ErrorNotice } from '../../types/api';
 import type { DocumentType } from '../../types/document-types';
 import type {
   BranchInput,
+  DraftCreate,
   FormConnection,
   FormConnectionCreate,
+  FormConnectionDraft,
+  NumberingBase,
   RequestedDocument,
+  RequestedDocumentView,
+  RuleItem,
 } from '../../types/form-connections';
+import { emptyContent } from '../../utils/localDrafts/content';
+import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
+import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import { sameValue } from '../../utils/rules/branches';
 import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import { countRules, hasAnyRule } from '../../utils/rules/tree';
+import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
 import type { RulesProblem } from '../../utils/rules/types';
 import { rulesCheckingData } from '../../utils/rules/validation';
 import {
+  DRAFT_CHANGED_ERROR,
+  DRAFT_COPY,
+  DRAFT_PUBLISHED_ERROR,
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
@@ -24,15 +35,24 @@ import {
   SERVICEBW_FORM_MAX_LENGTH,
   VALIDATION_MESSAGES,
 } from './constants';
-import { RULES_COPY } from './RulesStep/constants';
+import { MAIN_BRANCH_KEY, RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
+import { initialRulesState, newBranchKey, rulesReducer } from './RulesStep/utils';
 import type {
+  DraftConflict,
+  DraftSaveError,
+  DroppedData,
   EditorAction,
+  EditorEntry,
   EditorErrors,
+  EditorFlow,
   EditorMode,
+  EditorOrigin,
+  EditorStart,
   EditorState,
   EditorStep,
   FindingLine,
+  FormConnectionEditorPageProps,
   PendingRemoval,
   RemovedDataRule,
   RulesNextAction,
@@ -54,11 +74,16 @@ export function initialEditorState({
     step: initialStep,
     name: formConnection.name,
     servicebwForm: formConnection.servicebw_form,
-    documents: formConnection.documents.map((document) => ({
-      document_type: document.document_type,
-      fields: document.fields.map((field) => field.key),
-    })),
+    documents: requestedDocumentsOf(formConnection.documents),
   };
+}
+
+/** The API's documents as the editor holds them: by key, with the keys of their fields. */
+function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocument[] {
+  return documents.map((document) => ({
+    document_type: document.document_type,
+    fields: document.fields.map((field) => field.key),
+  }));
 }
 
 /** The page title of a step: the heading, its hint and the tab title. */
@@ -155,26 +180,75 @@ export function removalAction(removal: PendingRemoval): EditorAction {
       };
     case 'allFields':
       return { type: 'setAllFields', documentType: removal.documentType, fields: [] };
+    case 'dropped':
+      return { type: 'removeDropped', items: removal.items };
   }
+}
+
+/** The fields a document requests, in its order. */
+function fieldsOf(documents: RequestedDocument[], documentType: string): string[] {
+  return documents.find((document) => document.document_type === documentType)?.fields ?? [];
+}
+
+/**
+ * Whether a removal takes away the data a rule checks: a whole document's requested fields, or
+ * one field; for "All data", those still selected. Data already not requested doesn't count.
+ */
+function removalTakes(
+  removal: PendingRemoval,
+  target: { document_type: string; field: string },
+  documents: RequestedDocument[]
+): boolean {
+  if (removal.type === 'dropped') {
+    return removal.items.some((item) =>
+      removalTakes(
+        item.field === null
+          ? { type: 'document', documentType: item.documentType, label: item.label }
+          : {
+              type: 'field',
+              documentType: item.documentType,
+              field: item.field,
+              label: item.label,
+            },
+        target,
+        documents
+      )
+    );
+  }
+  if (target.document_type !== removal.documentType) {
+    return false;
+  }
+  return removal.type === 'field'
+    ? target.field === removal.field
+    : fieldsOf(documents, removal.documentType).includes(target.field);
 }
 
 /**
  * The rules, in every branch, that check the data a removal takes away (FR-029): a document's
- * rules, a field's, or for "All data" those of the fields still selected. Rules on data the
- * connection already doesn't request are flagged by the Rules step (F11) and not named again.
+ * rules, a field's, or for "All data" those of the fields still selected; for the data the
+ * catalog dropped (S8), those of every dropped document and field, each rule once, in branch and
+ * tree order. Rules on data the connection already doesn't request are flagged by the Rules step
+ * (F11) and not named again.
  */
 export function rulesCheckingRemoval(
   removal: PendingRemoval,
   branches: RulesBranch[],
   documents: RequestedDocument[]
 ): RemovedDataRule[] {
-  const selected =
-    documents.find((document) => document.document_type === removal.documentType)?.fields ?? [];
   const found =
-    removal.type === 'field'
-      ? rulesCheckingData(branches, removal.documentType, removal.field)
-      : rulesCheckingData(branches, removal.documentType).filter(
-          ({ rule }) => rule.target !== null && selected.includes(rule.target.field)
+    removal.type === 'dropped'
+      ? branches.flatMap((branch, branchIndex) =>
+          flattenItems(branch.items)
+            .filter((item): item is RuleItem => item.type === 'rule')
+            .filter(({ target }) => target !== null && removalTakes(removal, target, documents))
+            .map((rule) => ({ branchIndex, rule }))
+        )
+      : rulesCheckingData(
+          branches,
+          removal.documentType,
+          removal.type === 'field' ? removal.field : undefined
+        ).filter(
+          ({ rule }) => rule.target !== null && removalTakes(removal, rule.target, documents)
         );
   return found.map(({ branchIndex, rule }) => ({
     key: `${branches[branchIndex].key}-${rule.id}`,
@@ -195,6 +269,15 @@ export function removalCopyOf(
 ): { title: string; text: string; after: string; confirmLabel: string } {
   if (!removal) {
     return { title: '', text: '', after: '', confirmLabel: '' };
+  }
+  if (removal.type === 'dropped') {
+    // Spec 002's words for data that stops being requested, naming every dropped item
+    return {
+      title: REMOVE_DATA_COPY.fieldTitle(removal.label),
+      text: REMOVE_DATA_COPY.allFieldsText(count),
+      after: REMOVE_DATA_COPY.fieldAfter(count, editing),
+      confirmLabel: REMOVE_DATA_COPY.stopRequesting,
+    };
   }
   if (removal.type === 'document') {
     return {
@@ -230,7 +313,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
     case 'showErrors':
       return { ...state, errors: action.errors };
-    // Leaving a step drops its toast and the toast's Undo (B4)
+    // Leaving a step drops its toast and the toast's Undo (B4), and a failed draft save's alert
+    // (S1.5)
     case 'goToStep':
       return {
         ...state,
@@ -240,6 +324,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         rulesChanged: false,
         removed: null,
         toast: null,
+        draftError: null,
       };
     case 'addDocument': {
       if (state.documents.some((document) => document.document_type === action.documentType)) {
@@ -328,6 +413,30 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const closed = { ...state, pendingRemoval: null };
       return pendingRemoval ? editorReducer(closed, removalAction(pendingRemoval)) : closed;
     }
+    case 'removeDropped': {
+      // Without a toast or Undo: the catalog can't offer the data again (S8)
+      const goneTypes = action.items
+        .filter((item) => item.field === null)
+        .map((item) => item.documentType);
+      const documents = state.documents
+        .filter((document) => !goneTypes.includes(document.document_type))
+        .map((document) => {
+          const goneFields = action.items
+            .filter((item) => item.documentType === document.document_type)
+            .map((item) => item.field);
+          return goneFields.length > 0
+            ? {
+                ...document,
+                fields: document.fields.filter((field) => !goneFields.includes(field)),
+              }
+            : document;
+        });
+      return {
+        ...state,
+        documents,
+        errors: goneTypes.reduce(withoutFieldError, state.errors),
+      };
+    }
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
     case 'closeDialog':
@@ -346,6 +455,16 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         publishError: action.error,
         rulesChanged: action.rulesChanged,
       };
+    case 'saveDraft':
+      // A retry takes the old alert away, so that a new failure is announced again
+      return { ...state, savingDraft: true, draftError: null };
+    case 'saveDraftFailed':
+      return { ...state, savingDraft: false, draftError: action.error };
+    case 'draftConflict':
+      // The conflict dialog, or the publish dialog, shows it in place of a message (S2)
+      return { ...state, savingDraft: false, publishing: false, conflict: action.conflict };
+    case 'closeConflict':
+      return { ...state, conflict: null };
   }
 }
 
@@ -412,6 +531,53 @@ export function firstInvalidElementId(
 
 export function labelOf(documentType: string, documentTypes: DocumentType[]): string {
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
+}
+
+/**
+ * The data the flow requests that the catalog no longer offers (S8; FR-003 edge case), in
+ * document order: a document type the catalog lacks is one item, labelled with its key, since
+ * the catalog has no label for it any more; a field a known document lacks is "Personal ID –
+ * eye_colour", with the field's key. Empty when the catalog offers everything.
+ */
+export function droppedDataOf(
+  documents: RequestedDocument[],
+  documentTypes: DocumentType[]
+): DroppedData[] {
+  return documents.flatMap((document): DroppedData[] => {
+    const documentType = documentTypes.find((type) => type.key === document.document_type);
+    if (!documentType) {
+      return [{ documentType: document.document_type, field: null, label: document.document_type }];
+    }
+    return document.fields
+      .filter((field) => !documentType.fields.some((offered) => offered.key === field))
+      .map((field) => ({
+        documentType: documentType.key,
+        field,
+        label: DRAFT_COPY.droppedField(documentType.label, field),
+      }));
+  });
+}
+
+/** The note's "Remove it" (S8): every dropped item at once, named in the removal dialog. */
+export function droppedRemovalOf(items: DroppedData[]): PendingRemoval {
+  return { type: 'dropped', items, label: items.map((item) => item.label).join(', ') };
+}
+
+/**
+ * Where a flow that opens with data the catalog dropped goes once the catalog has loaded (S0,
+ * S8): the documents step, where the note points the data out, unless it is there already; null
+ * without dropped data.
+ */
+export function stepForDroppedData(step: EditorStep, dropped: DroppedData[]): EditorStep | null {
+  return dropped.length > 0 && step !== 'documents' ? 'documents' : null;
+}
+
+/**
+ * A document card's selected fields (S8): only those the catalog offers, so that "3 of 7 shared"
+ * and "All data" leave out a field it dropped, which the note lists.
+ */
+export function offeredFieldsOf(fields: string[], documentType: DocumentType): string[] {
+  return fields.filter((field) => documentType.fields.some((offered) => offered.key === field));
 }
 
 /** A field's label, such as "Date of birth", for the removal dialog's title (F18). */
@@ -514,6 +680,32 @@ export function isRulesChanged(error: unknown): error is ApiError {
 }
 
 /**
+ * The conflict a draft's save or publish met (S2; R6; contracts/local-drafts.md): `409
+ * draft_changed` or `draft_published` with the server's message, or a `404` while the flow edits a
+ * stored draft, which another team member deleted. Anything else, and every failure of a new or a
+ * published origin, is null, so the existing handling applies (`rules_changed` among them).
+ */
+export function conflictOf(
+  error: unknown,
+  origin: EditorOrigin,
+  during: 'save' | 'publish'
+): DraftConflict | null {
+  if (origin.kind !== 'draft' || !(error instanceof ApiError)) {
+    return null;
+  }
+  if (
+    error.status === 409 &&
+    (error.data.error === DRAFT_CHANGED_ERROR || error.data.error === DRAFT_PUBLISHED_ERROR)
+  ) {
+    return { kind: error.data.error, during, message: error.data.message };
+  }
+  if (error.status === 404) {
+    return { kind: 'draft_deleted', during, message: DRAFT_COPY.draftDeletedText };
+  }
+  return null;
+}
+
+/**
  * The API's message, which says what went wrong, with the error ID of a 5xx answer, or a general
  * message without them. After `409 rules_changed`, the message, which names the variants that
  * replacing deletes or brings back, says what Reload and replacing do (W9).
@@ -523,6 +715,256 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
     return { message: `${error.data.message} ${PUBLISH_COPY.rulesChangedHint}` };
   }
   return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
+}
+
+/**
+ * What "Save and exit" would store at this moment, apart from the step and the version (FR-002,
+ * FR-015): the name and the form ID as typed, the documents, and the branches with the counters.
+ * A rule open in the rule editor counts as kept, complete or not, as "Save changes" would keep it
+ * (R9, FR-012).
+ */
+export function localContentOf(state: EditorState, rules: RulesState): LocalDraftContent {
+  const kept = rules.editing ? rulesReducer(rules, { type: 'saveRule' }) : rules;
+  return {
+    name: state.name,
+    servicebwForm: state.servicebwForm,
+    documents: state.documents,
+    branches: branchInputs(kept.branches),
+    numberingBase: kept.numberingBase,
+    counters: kept.counters,
+  };
+}
+
+/** The body of "Save and exit" (R12): the content, the name and the form ID trimmed, the step. */
+export function draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate {
+  return {
+    name: content.name.trim(),
+    servicebw_form: content.servicebwForm.trim(),
+    documents: content.documents,
+    rules: { branches: content.branches, numbering_base: content.numberingBase },
+    step,
+  };
+}
+
+/**
+ * The step a draft opens at (FR-008; R12): the step it was saved in, except the test step without
+ * any rule in any variant, which can't open, and becomes the rules step.
+ */
+export function openingStepOf(step: EditorStep, rules: RulesState): EditorStep {
+  return step === 'test' && !hasAnyRule(rules.branches) ? 'rules' : step;
+}
+
+/**
+ * The reducers' starting states for a stored draft (R12): its name, form ID and documents, a
+ * type or field the catalog dropped included; its variants with the editor's keys (`main` for the
+ * main variant, `newBranchKey()` for the others, in order), numbering from the draft's counters,
+ * without a rule set; at `step` (the draft's own by default), through `openingStepOf()`.
+ */
+export function initialStatesFromDraft(
+  draft: FormConnectionDraft,
+  step: EditorStep = draft.step
+): { editor: EditorState; rules: RulesState } {
+  const counters = { rule: draft.next_rule_number, group: draft.next_group_number };
+  const rules = rulesStateOf(draft.branches, counters, counters);
+  const editor: EditorState = {
+    ...INITIAL_EDITOR_STATE,
+    step: openingStepOf(step, rules),
+    name: draft.name,
+    servicebwForm: draft.servicebw_form,
+    documents: requestedDocumentsOf(draft.documents),
+  };
+  return { editor, rules };
+}
+
+/**
+ * The reducers' starting states for a local draft (R10): its content, at its step through
+ * `openingStepOf()`; its variants with the editor's keys, as a stored draft's get them. Its
+ * counters and numbering base are the record's own, since a flow that was never saved numbers
+ * from its start, not from its next numbers.
+ */
+export function initialStatesFromLocal(record: LocalDraftRecord): {
+  editor: EditorState;
+  rules: RulesState;
+} {
+  const { content } = record;
+  const rules = rulesStateOf(content.branches, content.counters, content.numberingBase);
+  const editor: EditorState = {
+    ...INITIAL_EDITOR_STATE,
+    step: openingStepOf(record.step, rules),
+    name: content.name,
+    servicebwForm: content.servicebwForm,
+    documents: content.documents,
+  };
+  return { editor, rules };
+}
+
+/**
+ * The rules step's starting state for stored or local branches, without a rule set: the main
+ * variant keyed `main`, the others `newBranchKey()` in order, the first one open. Without
+ * branches, the empty Standard alone.
+ */
+function rulesStateOf(
+  branches: BranchInput[],
+  counters: NumberingBase,
+  numberingBase: NumberingBase
+): RulesState {
+  const empty = initialRulesState();
+  const keyed = branches.reduce<RulesBranch[]>(
+    (done, branch) => [
+      ...done,
+      { ...branch, key: branch.origin === 'main' ? MAIN_BRANCH_KEY : newBranchKey(done) },
+    ],
+    []
+  );
+  return keyed.length > 0
+    ? { ...empty, branches: keyed, openBranch: keyed[0].key, counters, numberingBase }
+    : { ...empty, counters, numberingBase };
+}
+
+/**
+ * The origin of a flow resumed from a local draft (R10): the stored draft it belongs to, at the
+ * version the flow loaded, or a new connection, under the record's flow key either way.
+ */
+export function originOfRecord(record: LocalDraftRecord): EditorOrigin {
+  if (record.draftId === null) {
+    return { kind: 'new', flowKey: record.flowKey };
+  }
+  return {
+    kind: 'draft',
+    draftId: record.draftId,
+    // A record without the version it loaded is never written; were one read, version 0, which
+    // no draft has, makes its save meet the conflict (FR-022) rather than overwrite unseen work
+    draftVersion: record.draftVersion ?? 0,
+    flowKey: record.flowKey,
+  };
+}
+
+/**
+ * What `/form-connections/new?local=<param>` opens (contracts/local-drafts.md "Rules for callers"
+ * 1; R10), `record` being the account's record of that key: a fresh flow without a valid key, the
+ * record when there is one, and otherwise the stored draft's edit route for a `draft-<id>` key, or
+ * an empty flow under a `new-` key.
+ */
+export function entryOf(param: string | null, record: LocalDraftRecord | null): EditorEntry {
+  if (param === null || !isFlowKey(param)) {
+    return { kind: 'fresh' };
+  }
+  if (record) {
+    return { kind: 'local', record };
+  }
+  const draftId = draftIdOfFlowKey(param);
+  return draftId === null ? { kind: 'empty', flowKey: param } : { kind: 'missingDraft', draftId };
+}
+
+/**
+ * How the create routes, /form-connections/new and /get-started, open (contracts/local-drafts.md
+ * "Rules for callers" 1; R10), from `entryOf()`:
+ * - a record resumes from its content under its own origin (`originOfRecord()`), a stored
+ *   draft's with the "Draft" badge;
+ * - an empty flow starts under its key, and a fresh one under a new key from `newUuid()`, which
+ *   the page then writes into the URL;
+ * - a `draft-<id>` key without a record opens the stored draft's edit route instead.
+ *
+ * The baseline (data-model.md section 6) is the empty flow for a new connection, fresh or resumed,
+ * and none for a stored draft's record, since this flow doesn't read the stored draft. It is never
+ * the record's own content: that copy exists only on the device, and a change undone after
+ * resuming would remove it.
+ */
+export function startOfEntry(
+  entry: EditorEntry,
+  newUuid: () => string,
+  initialStep: EditorStep = 'connection'
+): EditorStart {
+  switch (entry.kind) {
+    case 'missingDraft':
+      return entry;
+    case 'local': {
+      const origin = originOfRecord(entry.record);
+      return {
+        kind: 'open',
+        origin,
+        initialStates: initialStatesFromLocal(entry.record),
+        baseline: origin.kind === 'new' ? emptyContent() : null,
+        urlFlowKey: null,
+      };
+    }
+    case 'empty':
+      return newConnectionFlow(entry.flowKey, initialStep, false);
+    case 'fresh':
+      return newConnectionFlow(newFlowKey(newUuid()), initialStep, true);
+  }
+}
+
+/** An empty new connection under `flowKey`, which a fresh flow writes into the URL. */
+function newConnectionFlow(flowKey: string, initialStep: EditorStep, fresh: boolean): EditorFlow {
+  return {
+    kind: 'open',
+    origin: { kind: 'new', flowKey },
+    initialStates: { editor: initialEditorState({ initialStep }), rules: initialRulesState() },
+    baseline: emptyContent(),
+    urlFlowKey: fresh ? flowKey : null,
+  };
+}
+
+/**
+ * How a flow with a given origin opens, such as a stored draft or a published connection on its
+ * edit route: from `initialStates`, or else empty or from the published connection at
+ * `initialStep`. The baseline (data-model.md section 6) is `baseline` when given, as after
+ * "Restore changes", and otherwise the starting states' content for a stored draft, the stored
+ * draft as loaded, or the empty flow for a new connection. A published connection has none, as
+ * it never has a local draft (FR-014).
+ */
+export function startOfOrigin({
+  origin,
+  initialStates,
+  initialStep = 'connection',
+  baseline,
+}: Pick<FormConnectionEditorPageProps, 'initialStates' | 'initialStep' | 'baseline'> & {
+  origin: EditorOrigin;
+}): EditorFlow {
+  const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
+  const states = initialStates ?? {
+    editor: initialEditorState({ formConnection, initialStep }),
+    rules: initialRulesState(formConnection),
+  };
+  return {
+    kind: 'open',
+    origin,
+    initialStates: states,
+    baseline:
+      origin.kind === 'published'
+        ? null
+        : (baseline ??
+          (origin.kind === 'new' ? emptyContent() : localContentOf(states.editor, states.rules))),
+    urlFlowKey: null,
+  };
+}
+
+/**
+ * The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them,
+ * so that a draft never needs a form ID.
+ */
+export function draftNameErrors(name: string): EditorErrors {
+  const errors = validateConnection(name, '');
+  return errors.name ? { name: errors.name } : {};
+}
+
+/**
+ * The alert after a failed "Save and exit" (S1.5; W3; FR-013). A `5xx`, nginx's `502` or `503`
+ * without JSON included, or a network failure gets U28's text, the error ID the server sent, and
+ * "Try again". Any other answer, such as a `400`, shows the server's message, without "Try again".
+ */
+export function draftSaveErrorOf(error: unknown): DraftSaveError {
+  if (!(error instanceof ApiError) || error.status >= 500) {
+    const errorId = error instanceof ApiError ? error.data.error_id : undefined;
+    return {
+      notice: errorId
+        ? { message: DRAFT_COPY.saveNetworkError, error_id: errorId }
+        : { message: DRAFT_COPY.saveNetworkError },
+      retryable: true,
+    };
+  }
+  return { notice: errorNoticeOf(error, DRAFT_COPY.saveNetworkError), retryable: false };
 }
 
 /**

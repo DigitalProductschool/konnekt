@@ -4,22 +4,20 @@ import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import { ROUTES } from '../../constants';
 import { LIST_COPY } from './constants';
 import type { FormConnectionRowProps } from './types';
-import { formatEditedDate } from './utils';
+import { formatEditedDate, formIdLineOf } from './utils';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
 
 /**
  * Figma "UseCase/Row": name and form ID, whether the connection is live or deactivated, and
- * its last change, with "Edit" and "View" to the details.
+ * its last change, with "Edit" and "View" to the details. A draft (S3) shows the "Draft" badge,
+ * when it was saved and "No form ID yet" without one, with "Continue" to the editor instead of
+ * "Edit".
  */
 export default function FormConnectionRow({ formConnection }: FormConnectionRowProps) {
-  const {
-    id,
-    name,
-    servicebw_form: servicebwForm,
-    is_active: isActive,
-    updated_at: updatedAt,
-  } = formConnection;
+  const { id, name, is_active: isActive, status, updated_at: updatedAt } = formConnection;
+  const draft = status === 'draft';
+  const date = formatEditedDate(updatedAt);
   return (
     <li className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex flex-wrap items-center gap-x-16 gap-y-8 border py-12 pr-12 pl-16">
       <div className="flex w-full min-w-0 flex-col gap-2 sm:w-260 sm:shrink-0">
@@ -27,14 +25,14 @@ export default function FormConnectionRow({ formConnection }: FormConnectionRowP
           {name}
         </p>
         <p className={`${SMALL_TEXT} text-kern-layout-text-muted truncate`}>
-          {LIST_COPY.formId(servicebwForm)}
+          {formIdLineOf(formConnection)}
         </p>
       </div>
       <div className="flex sm:w-130 sm:shrink-0">
-        <ConnectionStatusBadge isActive={isActive} />
+        <ConnectionStatusBadge isActive={isActive} draft={draft} />
       </div>
       <p className={`${SMALL_TEXT} text-kern-layout-text-muted whitespace-nowrap`}>
-        {LIST_COPY.edited(formatEditedDate(updatedAt))}
+        {draft ? LIST_COPY.saved(date) : LIST_COPY.edited(date)}
       </p>
       <div className="flex-1" />
       {/* The actions wrap together on narrow screens */}
@@ -44,7 +42,7 @@ export default function FormConnectionRow({ formConnection }: FormConnectionRowP
           className="kern-btn kern-btn--tertiary kern-btn--small"
         >
           <span className="kern-label underline">
-            {LIST_COPY.edit}
+            {draft ? LIST_COPY.continue : LIST_COPY.edit}
             <span className="sr-only"> {name}</span>
           </span>
         </Link>
