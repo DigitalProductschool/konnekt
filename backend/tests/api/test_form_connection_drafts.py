@@ -1526,7 +1526,7 @@ def test_saving_an_outdated_version_answers_draft_changed(
     assert response.status_code == 409
     assert response.json() == DRAFT_CHANGED_DETAIL
     assert response.json()['message'] == (
-        'Another team member saved this draft after you opened it.'
+        'This draft has been modified since you opened it.'
     )
     # Content, version and counters as the first team member saved them
     assert get(signed_in_client, draft_id) == theirs

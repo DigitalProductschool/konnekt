@@ -2,13 +2,18 @@
 // FR-012 to FR-017): add a rule, change, delete, reset or copy an item, group items. Each makes one
 // change and stores it at once through `editDraft()`, the read-apply-save loop, with the editor's
 // own actions of `@connection-portal/rules/edits`, so Standard's changes reach the based variants
-// with the editor's marks. The answers describe the items as saved
+// with the editor's marks. A condition is checked against the rule's data as the editor's check
+// menu limits it (research R8; FR-016). The answers describe the items as saved
 import type {
   BranchInput,
+  Condition,
   FormConnectionDraft,
+  RuleItem,
   RuleTarget,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
+import { kindOfTarget, operatorDefinition, withTarget } from '@connection-portal/rules/conditions';
+import { OPERATORS } from '@connection-portal/rules/constants';
 import {
   addRule,
   changeGroup,
@@ -21,11 +26,12 @@ import {
   restoreItem,
 } from '@connection-portal/rules/edits';
 import { findItem, isDissolved } from '@connection-portal/rules/tree';
-import type { GroupChanges, RuleChanges } from '@connection-portal/rules/types';
+import type { ConditionKind, GroupChanges, RuleChanges } from '@connection-portal/rules/types';
 import { z } from 'zod';
 
 import {
   applied,
+  type ApplyRefusal,
   draftContentOf,
   type DraftEdited,
   draftLineOf,
@@ -37,6 +43,7 @@ import { resolveField, resolveItem, resolveVariant } from '../resolve';
 import {
   connectionLineOf,
   connectionRefOf,
+  fieldKeyOf,
   itemLineOf,
   type ItemRef,
   itemRefOf,
@@ -81,7 +88,10 @@ const TARGET = z
   .describe('The data the rule checks; get_catalog lists it');
 const CONDITION = z
   .object({
-    operator: z.string().min(1).describe('One of the operators get_catalog lists for the field'),
+    operator: z
+      .string()
+      .min(1)
+      .describe('One of the operators get_catalog lists for the field; another is refused'),
     value: z.union([z.number(), z.string()]).nullable().optional(),
     match_case: z.boolean().nullable().optional(),
     values: z
@@ -95,6 +105,18 @@ const CONDITION = z
   })
   .describe('The check on the data; the conditions skill lists the operators per kind');
 
+/** The operators of a kind, as `get_catalog` lists them: "includes_one_of, includes_none_of". */
+function checksOf(kind: ConditionKind): string {
+  return OPERATORS[kind].map((definition) => definition.operator).join(', ');
+}
+
+/** The operators of every kind: "number: greater_than, …; text: …; enum: …; date: …". */
+function checksPerKind(): string {
+  return (Object.keys(OPERATORS) as ConditionKind[])
+    .map((kind) => `${kind}: ${checksOf(kind)}`)
+    .join('; ');
+}
+
 export const ITEM_TOOL_MESSAGES = {
   nothingToChange: (what: string) => `Give ${what} to change.`,
   groupHasNoData: (group: string, variant: string) =>
@@ -102,7 +124,64 @@ export const ITEM_TOOL_MESSAGES = {
   ruleHasNoOperator: (rule: string, variant: string) =>
     `${rule} in ${variant} is a rule: it has no AND/OR. Switch the AND/OR of the group it sits ` +
     'in, or of the top level with update_variant.',
+  // A condition's operator the rule's data doesn't offer (FR-016)
+  operatorNotOffered: (
+    rule: string,
+    variant: string,
+    operator: string,
+    field: string,
+    kind: ConditionKind
+  ) =>
+    `${rule} in ${variant}: '${operator}' isn't a check of ${field} (kind ${kind}). ` +
+    `Its checks: ${checksOf(kind)}.`,
+  operatorOfNoKind: (rule: string, variant: string, operator: string) =>
+    `${rule} in ${variant}: '${operator}' isn't a check of any kind of data. The checks per ` +
+    `kind: ${checksPerKind()}.`,
+  // The text line after `update_item` dropped a condition that no longer fits (FR-014)
+  droppedCondition: (field: string, kind: ConditionKind | null) =>
+    `Its condition was dropped: it doesn't fit ${field}` +
+    (kind === null ? '.' : ` (kind ${kind}). Its checks: ${checksOf(kind)}.`),
 } as const;
+
+/** A condition `update_item` dropped because the rule's new data doesn't fit it (FR-014). */
+interface DroppedCondition {
+  condition: Condition;
+  /** The new data, as tools name it, and its kind */
+  field: string;
+  kind: ConditionKind | null;
+}
+
+/**
+ * The refusal of a condition whose operator the rule's data doesn't offer, or null (FR-016): the
+ * editor's check menu offers only the operators of the data's kind, so the tools refuse any
+ * other, naming the data's checks as `get_catalog` lists them. The kind is looked up in the whole
+ * catalog, since a rule may check data that isn't requested yet. A rule without data, or on data
+ * the catalog no longer offers, refuses only an operator that no kind offers.
+ */
+function conditionRefusal(
+  rule: RuleItem,
+  variantName: string,
+  context: ToolRuleContext
+): ApplyRefusal | null {
+  if (rule.condition === null) {
+    return null;
+  }
+  const { operator } = rule.condition;
+  const names = [rule.name.trim(), variantName.trim()] as const;
+  const kind = kindOfTarget(rule.target, context.allDocuments);
+  if (kind === null || rule.target === null) {
+    const known = Object.values(OPERATORS).some((definitions) =>
+      definitions.some((definition) => definition.operator === operator)
+    );
+    return known ? null : refusalOf(ITEM_TOOL_MESSAGES.operatorOfNoKind(...names, operator));
+  }
+  if (operatorDefinition(operator, kind) !== undefined) {
+    return null;
+  }
+  return refusalOf(
+    ITEM_TOOL_MESSAGES.operatorNotOffered(...names, operator, fieldKeyOf(rule.target), kind)
+  );
+}
 
 /** The rule's data from the catalog's keys, as `target.field` names it (data-model §8). */
 function targetOf(
@@ -187,15 +266,18 @@ registerTool({
         ...(input.condition === undefined ? {} : { condition: input.condition }),
         ...(input.message === undefined ? {} : { message: input.message }),
       };
-      return applied(
-        content,
-        addRule(content, branchId, parentId, rule),
-        ({ item, propagatedTo }) => ({
-          branchId,
-          itemId: item.id,
-          propagatedTo,
-        })
-      );
+      const added = addRule(content, branchId, parentId, rule);
+      if (added.ok && input.condition !== undefined) {
+        const refusal = conditionRefusal(added.item, branch.name, context);
+        if (refusal) {
+          return refusal;
+        }
+      }
+      return applied(content, added, ({ item, propagatedTo }) => ({
+        branchId,
+        itemId: item.id,
+        propagatedTo,
+      }));
     });
     if (!outcome.ok) {
       return outcome.error;
@@ -253,10 +335,11 @@ registerTool({
       const { item } = resolveItem(branch, input.item, read.id);
       const content = draftContentOf(read);
       const names = [item.name.trim(), branch.name.trim()] as const;
-      const result = (edit: { item: RuleTreeItem; propagatedTo: string[] }) => ({
+      const answerOf = (edit: { item: RuleTreeItem; propagatedTo: string[] }) => ({
         branchId,
         itemId: edit.item.id,
         propagatedTo: edit.propagatedTo,
+        dropped: null as DroppedCondition | null,
       });
       if (item.type === 'group') {
         if (input.target !== undefined || input.condition !== undefined) {
@@ -270,7 +353,7 @@ registerTool({
         if (Object.keys(changes).length === 0) {
           return refusalOf(ITEM_TOOL_MESSAGES.nothingToChange('a name, an operator or a message'));
         }
-        return applied(content, changeGroup(content, branchId, item.id, changes), result);
+        return applied(content, changeGroup(content, branchId, item.id, changes), answerOf);
       }
       if (input.operator !== undefined) {
         return refusalOf(ITEM_TOOL_MESSAGES.ruleHasNoOperator(...names));
@@ -287,7 +370,28 @@ registerTool({
           ITEM_TOOL_MESSAGES.nothingToChange('a name, a target, a condition or a message')
         );
       }
-      return applied(content, changeRule(content, branchId, item.id, changes), result);
+      // New data without a new condition keeps or drops the condition as the editor does
+      let dropped: DroppedCondition | null = null;
+      if (changes.target !== undefined && changes.condition === undefined) {
+        const target = changes.target;
+        const moved = withTarget(item, target, context.allDocuments);
+        if (moved.condition !== item.condition && item.condition !== null && target !== null) {
+          changes.condition = null;
+          dropped = {
+            condition: item.condition,
+            field: fieldKeyOf(target),
+            kind: kindOfTarget(target, context.allDocuments),
+          };
+        }
+      }
+      const changed = changeRule(content, branchId, item.id, changes);
+      if (changed.ok && (input.condition !== undefined || input.target !== undefined)) {
+        const refusal = conditionRefusal(changed.item, branch.name, context);
+        if (refusal) {
+          return refusal;
+        }
+      }
+      return applied(content, changed, (edit) => ({ ...answerOf(edit), dropped }));
     });
     if (!outcome.ok) {
       return outcome.error;
@@ -297,14 +401,22 @@ registerTool({
     const variant = savedVariantRef(draft, result.branchId);
     const item = savedItemView(outcome, result.branchId, result.itemId);
     const propagatedTo = result.propagatedTo.map((id) => savedVariantRef(draft, id));
+    const { dropped } = result;
     return toolResult(
-      { connection, variant, item, propagated_to: propagatedTo },
+      {
+        connection,
+        variant,
+        item,
+        propagated_to: propagatedTo,
+        ...(dropped === null ? {} : { dropped_condition: dropped.condition }),
+      },
       summaryTextOf(
         connectionLineOf(connection),
         variantLineOf(variant),
         'Changed:',
         ...itemViewLinesOf([item]),
         item.message !== undefined && item.message !== '' && `Message: ${item.message}`,
+        dropped !== null && ITEM_TOOL_MESSAGES.droppedCondition(dropped.field, dropped.kind),
         propagatedLineOf(propagatedTo),
         draftLineOf(draft)
       )

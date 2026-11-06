@@ -74,7 +74,7 @@ DRAFT_PUBLISHED_DETAIL = {
 # No variant of a draft has a pull URL, so the message names none (spec 005, R6)
 DRAFT_CHANGED_DETAIL = {
     'error': 'draft_changed',
-    'message': 'Another team member saved this draft after you opened it.',
+    'message': 'This draft has been modified since you opened it.',
 }
 # An approved approval request finds the status it was made for changed (spec 007,
 # research R12); the approval page says which change instead

@@ -1595,6 +1595,54 @@ describe('the item tools', () => {
       expect(structured.message).toContain("Personal ID has no field 'shoe_size'");
       expect(storedDraft().version).toBe(1);
     });
+
+    it("refuses a check the data doesn't offer, with the data's checks (FR-016)", async () => {
+      const { isError, structured, text } = await onDraft('add_rule', {
+        variant: 'Standard',
+        target: { document_type: 'mdl', field: 'driving_privileges.classes' },
+        condition: { operator: 'contains_any', values: ['B'] },
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message:
+          "Rule 03 in Standard: 'contains_any' isn't a check of driving_privileges.classes " +
+          '(kind enum). Its checks: includes_one_of, includes_none_of.',
+      });
+      expect(text).toBe(structured.message);
+      expect(itemOf(0, 'rule-3')).toBeUndefined();
+      expect(storedDraft()).toMatchObject({ version: 1, next_rule_number: 3 });
+    });
+
+    it('without data, accepts a check of some kind as incomplete and refuses one of no kind', async () => {
+      const accepted = await onDraft('add_rule', {
+        variant: 'Pilot',
+        condition: { operator: 'before', date: '2030-01-01' },
+      });
+      expect(accepted.isError).toBe(false);
+      expect(accepted.structured.item).toMatchObject({
+        id: 'rule-3',
+        statement: null,
+        condition: { operator: 'before', date: '2030-01-01' },
+      });
+
+      const refused = await onDraft('add_rule', {
+        variant: 'Pilot',
+        condition: { operator: 'contains_any', values: ['B'] },
+      });
+      expect(refused.isError).toBe(true);
+      expect(refused.structured).toEqual({
+        code: 'validation',
+        message:
+          "Rule 04 in Pilot: 'contains_any' isn't a check of any kind of data. The checks per " +
+          'kind: number: greater_than, less_than, equal_to, not_equal_to; text: equal_to, ' +
+          'not_equal_to, contains, not_contains; enum: includes_one_of, includes_none_of; date: ' +
+          'before, after, on, at_least_years_ago, less_than_years_ago, exactly_years_ago, ' +
+          'at_least_from_now, less_than_from_now.',
+      });
+      expect(itemOf(2, 'rule-4')).toBeUndefined();
+      expect(storedDraft()).toMatchObject({ version: 2, next_rule_number: 4 });
+    });
   });
 
   describe('update_item', () => {
@@ -1650,6 +1698,88 @@ describe('the item tools', () => {
         message: 'Another rule in Ambulance is already called Night.',
       });
       expect(itemOf(0, 'rule-1')?.name).toBe('Rule 01');
+    });
+
+    it("refuses a condition whose operator the rule's data doesn't offer (FR-016)", async () => {
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-2',
+        condition: { operator: 'greater_than', value: 3 },
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message:
+          "Rule 02 in Standard: 'greater_than' isn't a check of address_locality (kind text). " +
+          'Its checks: equal_to, not_equal_to, contains, not_contains.',
+      });
+      expect(itemOf(0, 'rule-2')).toMatchObject({ condition: { operator: 'equal_to' } });
+      expect(storedDraft().version).toBe(1);
+    });
+
+    it("drops the condition when the rule's new data is of another kind, and says so", async () => {
+      const { isError, structured, text } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-1',
+        target: { document_type: 'mdl', field: 'driving_privileges.classes' },
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({
+        id: 'rule-1',
+        statement: null,
+        target: { document_type: 'mdl', field: 'driving_privileges.classes' },
+      });
+      expect(structured.item).not.toHaveProperty('condition');
+      expect(structured.dropped_condition).toEqual({ operator: 'at_least_years_ago', years: 18 });
+      expect(text).toContain(
+        "Its condition was dropped: it doesn't fit driving_privileges.classes (kind enum). " +
+          'Its checks: includes_one_of, includes_none_of.'
+      );
+      expect(structured.propagated_to).toEqual([variantRef(IDS.draftBased, 'Ambulance')]);
+      expect(itemOf(0, 'rule-1')).toMatchObject({ condition: null });
+      expect(itemOf(1, 'rule-1')).toMatchObject({ condition: null, mark: null });
+    });
+
+    it('keeps the condition for new data of the same kind, as the editor does (FR-014)', async () => {
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-1',
+        target: { document_type: 'mdl', field: 'issue_date' },
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({
+        target: { document_type: 'mdl', field: 'issue_date' },
+        condition: { operator: 'at_least_years_ago', years: 18 },
+        statement: expect.any(String),
+      });
+      expect(structured).not.toHaveProperty('dropped_condition');
+    });
+
+    it('checks a condition given with new data against that data', async () => {
+      const condition = { operator: 'includes_one_of', values: ['B'] };
+      const accepted = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-1',
+        target: { document_type: 'mdl', field: 'driving_privileges.classes' },
+        condition,
+      });
+      expect(accepted.isError).toBe(false);
+      expect(accepted.structured.item).toMatchObject({ condition, statement: expect.any(String) });
+      expect(accepted.structured).not.toHaveProperty('dropped_condition');
+
+      const refused = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-2',
+        target: { document_type: 'pid', field: 'birthdate' },
+        condition: { operator: 'equal_to', value: 'Stuttgart' },
+      });
+      expect(refused.isError).toBe(true);
+      expect(refused.structured.message).toBe(
+        "Rule 02 in Standard: 'equal_to' isn't a check of birthdate (kind date). Its checks: " +
+          'before, after, on, at_least_years_ago, less_than_years_ago, exactly_years_ago, ' +
+          'at_least_from_now, less_than_from_now.'
+      );
+      expect(itemOf(0, 'rule-2')).toMatchObject({ target: target('pid', 'address_locality') });
     });
 
     it('refuses a change to a published connection, also at manage level', async () => {

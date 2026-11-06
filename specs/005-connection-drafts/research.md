@@ -244,7 +244,7 @@ The answer is the published `FormConnection`, with its URLs (FR-009).
 
   | Situation | Answer | Message |
   |---|---|---|
-  | Version outdated, `replace` false | `409 draft_changed` | "Another team member saved this draft after you opened it." It names no variants, since no variant of a draft has a pull URL (FR-022) |
+  | Version outdated, `replace` false | `409 draft_changed` | "This draft has been modified since you opened it." It names no variants, since no variant of a draft has a pull URL (FR-022) |
   | The draft was published since | `409 draft_published` | "This draft has been published since you opened it." Also with `replace`: a published connection never becomes a draft again (FR-023) |
   | The draft was deleted since | `404 Not found` | The editor knows it opened a draft, so it turns the 404 into "This draft has been deleted since you opened it." (FR-024) |
 

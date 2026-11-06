@@ -37,6 +37,13 @@ Each call makes one change, stored at once in the draft; published connections c
   changes. In a based variant the item becomes `changed`; a change in Standard reaches the based
   variants where the item still follows Standard. A name another rule or group of the variant has
   is refused, in Standard also when a based variant has it.
+- A `condition` must use one of the operators of the data's kind (the table below; `get_catalog`
+  lists them per field as `conditions`). Another is refused, naming the rule, the variant and the
+  data's operators, and nothing changes; without data, an operator that no kind offers is refused
+  likewise. Changing a rule's `target` to data of another kind, or of another value set, without
+  a new `condition` drops the old condition, as the editor does: the answer says so, with the
+  dropped condition as `dropped_condition` and the new data's operators. Give the new condition
+  in the same call to replace it at once; data of the same kind and value set keeps it.
 
 ## Groups
 

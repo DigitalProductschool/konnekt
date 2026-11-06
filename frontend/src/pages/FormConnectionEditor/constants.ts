@@ -86,7 +86,7 @@ export const DRAFT_COPY = {
   // The conflict dialog after "Save and exit", and the publish dialog's conflicts (S2; W4)
   draftChangedTitle: 'This draft has changed',
   draftChangedHint:
-    'Reload shows the draft as they saved it and drops your changes. Replace their changes saves your version of the whole draft.',
+    'Reload shows the draft as it was last saved and drops your changes. Replace their changes saves your version of the whole draft.',
   draftPublishedTitle: 'This draft has been published',
   draftPublishedHint: 'Your changes weren’t saved. Open the connection to see it.',
   draftDeletedTitle: 'This draft has been deleted',

@@ -112,6 +112,11 @@ With an agent that may edit drafts, give the independent test of User Story 2:
    editor's message naming the item and the variant; the draft is unchanged.
 7. Create drafts in a loop until the 21st in an hour: refused with the time it can continue.
    Changes to existing drafts still work.
+8. Ask for a rule on the licence classes held with the check `contains_any`: refused, naming the
+   rule, the variant, the field and its checks (`includes_one_of`, `includes_none_of`); the draft
+   is unchanged. Change a rule's data from the date of birth to the licence classes without a new
+   check: the answer says the check was dropped and lists the field's checks; change it to another
+   date: the check stays.
 
 ### V6. Publish with approval (US3; FR-021 to FR-027, SC-004)
 

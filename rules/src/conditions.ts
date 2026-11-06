@@ -5,6 +5,7 @@ import type {
   Condition,
   RequestedDocument,
   RequestedDocumentView,
+  RuleItem,
   RuleTarget,
 } from '@connection-portal/api-types/form-connections';
 import type { Option, OptionSet } from '@connection-portal/api-types/option-sets';
@@ -185,6 +186,31 @@ export function changeOperator(
       }
       return previous.input === 'years' ? { ...next, amount: condition.years } : next;
   }
+}
+
+/**
+ * The rule with a new target, as the editor's data choice sets it (spec 007, FR-014). Its
+ * condition stays when the new target compares the same kind of value from the same value set
+ * and offers the condition's operator; otherwise the check is chosen again (`condition` null).
+ * `documents` are what targets are looked up in: the requested documents in the editor, the whole
+ * catalog for the agents' tools, which may check data that isn't requested yet.
+ */
+export function withTarget<R extends Pick<RuleItem, 'target' | 'condition'>>(
+  rule: R,
+  target: RuleTarget | null,
+  documents: RuleDocument[]
+): R {
+  const before = resolveTarget(rule.target, documents);
+  const after = resolveTarget(target, documents);
+  const keep =
+    before !== null &&
+    after !== null &&
+    after.kind !== null &&
+    before.kind === after.kind &&
+    before.optionSet === after.optionSet &&
+    rule.condition !== null &&
+    operatorDefinition(rule.condition.operator, after.kind) !== undefined;
+  return { ...rule, target, condition: keep ? rule.condition : null };
 }
 
 /** The options of a value set, or null when the sets haven't loaded it. */

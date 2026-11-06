@@ -174,6 +174,14 @@ Decisions from the discussions on 2026-11-04 and 2026-11-05:
   a team member's agent uses? → A: Yes. DO.IT has approved the MCP server, which sends no data about
   citizens.
 
+### Session 2026-11-06
+
+- Q: What happens when an agent gives a rule a check that its data doesn't offer, such as a text
+  check on a value list? → A: The change is refused with the data's checks, as the editor offers
+  only those; a rule without a condition is still stored as incomplete. Changing a rule's data to
+  data of another kind without a new check drops the check, as the editor does, and the answer
+  says so.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Connect an agent and let it read the connections (Priority: P1)
@@ -274,10 +282,12 @@ manage live connections".
    the agent adds, changes or deletes rules of Standard, **Then** the variant follows as it does in
    the editor (spec 002, FR-021 to FR-024): new rules appear in it, unchanged rules follow, and the
    rule it changed keeps the variant's version.
-4. **Given** a change that the editor would refuse, such as a rename that clashes in a variant, or a
-   change that breaks the structure, such as a document type the catalog doesn't know, **When** the
-   agent makes it, **Then** it is refused with a message that names the problem, the item and its
-   variant, and the draft stays as it was.
+4. **Given** a change that the editor would refuse or doesn't offer, such as a rename that clashes
+   in a variant or a condition with a check that the rule's data doesn't offer, or a change that
+   breaks the structure, such as a document type the catalog doesn't know, **When** the agent makes
+   it, **Then** it is refused with a message that names the problem, the item and its variant, and
+   says what the agent can do instead (for a check, the data's checks), and the draft stays as it
+   was.
 5. **Given** a draft that an agent built, **When** a team member continues it in the management
    interface, **Then** the create flow opens at the furthest step that the draft's content reaches,
    with everything the agent stored.
@@ -296,6 +306,11 @@ manage live connections".
    is refused with a message that names the limit, as the editor refuses it (spec 006, FR-003).
    **When** the agent clears the description, **Then** the draft has none, and that blocks neither
    continuing the draft in the management interface nor publishing it (spec 006, FR-002).
+10. **Given** a rule with a condition, **When** the agent changes its data to data of another kind,
+    or of another value set, without giving a new condition, **Then** the condition is dropped, as
+    the editor drops it, and the answer says so and names the new data's checks; data of the same
+    kind and value set keeps the condition. **When** the agent gives the new condition in the same
+    call, **Then** it is checked against the new data.
 
 ---
 
@@ -676,9 +691,11 @@ change a rule of the live connection and check that it is refused.
   (spec 005, FR-002 to FR-005): incomplete content is accepted, the structure is checked, and nothing
   is set up with the wallet-communication service.
 - **FR-014**: Each change MUST store the same content as the same action in the editor, including how
-  Standard's changes reach the based variants, the marks (spec 002, FR-021 to FR-024), and the
-  identifiers of new rules and groups (spec 002, FR-010). The editor and the agents' tools MUST use
-  one implementation of that logic.
+  Standard's changes reach the based variants, the marks (spec 002, FR-021 to FR-024), the
+  identifiers of new rules and groups (spec 002, FR-010), and which condition survives a change of
+  a rule's data: the editor keeps it only when the new data has the same kind and value set and
+  offers its check, and drops it otherwise. The editor and the agents' tools MUST use one
+  implementation of that logic. A tool that drops a condition MUST say so in its answer.
 - **FR-015**: Each change MUST apply to the draft as stored when it is made, and MUST NOT silently undo
   a change that another agent or a team member saved in between. A change counts as a save of the
   draft for spec 005's conflict handling (spec 005, FR-022), and the management interface MUST NOT
@@ -687,7 +704,10 @@ change a rule of the live connection and check that it is refused.
   MUST be refused with a message that names the problem, the item and its variant, in the editor's or
   the server's words, and says what the agent can do instead. The draft MUST stay as it was. A
   description longer than 500 characters, for example, MUST be refused with a message that names
-  the limit (spec 006, FR-003).
+  the limit (spec 006, FR-003). A condition whose check the rule's data doesn't offer MUST be
+  refused with the data's checks, as the catalog lists them, although a draft stores a rule
+  without a condition (spec 005, FR-004): the editor offers only the data's checks. Without data,
+  a check that no kind of data offers MUST be refused likewise, with the checks per kind.
 - **FR-017**: A draft that an agent created or changed MUST open, when a team member continues it, at
   the furthest step its content reaches: the rules step once it has a rule, the documents step once
   it has a document, and the connection step otherwise.

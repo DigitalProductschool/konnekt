@@ -181,7 +181,7 @@ team member's version whole.
 
 1. **Given** two team members who opened the same draft, **When** the first saves it and the
    second then saves it or publishes it, **Then** the second's save is refused before anything is
-   stored, with a message that another team member saved the draft after they opened it, and the
+   stored, with a message that the draft has been modified since they opened it, and the
    choice "Reload" or "Replace their changes".
 2. **Given** that refusal, **When** the second team member chooses "Reload", **Then** the flow
    shows the draft as the first team member saved it, and the second's unsaved changes are
@@ -356,7 +356,7 @@ team member's version whole.
 - **FR-022**: Every stored draft MUST carry a version, which every save of the draft changes.
   Saving or publishing a draft MUST compare the version the team member loaded with the stored
   one. If another save has changed the draft since, the system MUST refuse before storing
-  anything, say that another team member saved the draft after they opened it, and offer:
+  anything, say that the draft has been modified since they opened it, and offer:
   - "Reload": the flow shows the draft as stored, and the team member's unsaved changes are
     dropped;
   - "Replace their changes": the team member's version of the whole draft is stored, or published

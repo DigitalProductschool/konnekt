@@ -170,7 +170,7 @@ publish. Expected: everything works, with no offer, no error and no console mess
 1. `anna` and `ben` open the same draft in two browsers.
 2. `anna` changes the name and chooses "Save and exit".
 3. `ben` changes a rule and chooses "Save and exit". Expected: "This draft has changed", with
-   "Another team member saved this draft after you opened it." and "Reload" / "Replace their
+   "This draft has been modified since you opened it." and "Reload" / "Replace their
    changes". No variant is named.
 4. "Reload": `anna`'s name, and `ben`'s rule change is gone.
 5. Repeat steps 1–3, and choose "Replace their changes": `ben`'s version is stored whole,

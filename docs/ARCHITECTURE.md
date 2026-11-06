@@ -922,6 +922,12 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   `rules/src/edits.ts` (see [Rules and branches](#rules-and-branches-spec-002)) to the draft
   as stored, and save the whole content with the version read; on `409 draft_changed` the
   change is applied again to the newer draft, up to 3 attempts. Nothing is kept between calls.
+  What the editor's forms limit, the tools check on their input: a target is resolved against
+  the catalog (`mcp/src/resolve.ts`), and a condition's operator must be one of the data's
+  kind, as the rule editor's check menu offers only those (`mcp/src/tools/items.ts`, with the
+  field's operators in the refusal). A rule's new data keeps or drops its condition through
+  `withTarget()` in `rules/src/conditions.ts`, which the rule editor uses too; a tool that
+  drops one says so in its answer.
 - **Checks and tests for agents** (research R14, R15): `check_rules` builds each variant's
   checked tree as the editor does and runs `checkBranch()` in a `node:worker_threads` worker
   (`mcp/src/checksWorker.ts`, built to `dist/checksWorker.js` beside `dist/main.js`) with the

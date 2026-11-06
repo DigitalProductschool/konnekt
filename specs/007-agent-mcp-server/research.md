@@ -441,6 +441,17 @@ them has to know about.
 - Deleting a document that rules check mirrors the editor's confirmation: the tool refuses and
   names the rules unless `also_remove_rules: true`, and then removes them as
   `rulesCheckingRemoval()` does (that helper moves to `edits.ts` with the rest).
+- A condition's operator is checked against the rule's data before the change is saved
+  (FR-016): the editor's check menu offers only the data's kind's operators (`OPERATORS` in
+  `rules/src/constants.ts`), so `add_rule` and `update_item` refuse any other with `validation`,
+  naming the rule, the variant, the field and its kind, and listing the field's operators as
+  `get_catalog` does; a rule without data refuses an operator that no kind offers, with the
+  operators per kind. This check belongs to the tools, as the target's resolution does: it is the
+  rule editor form's job in the SPA, not the reducer's, so it isn't an `edits.ts` action. What the
+  form does when the data changes, keeping the condition only for data of the same kind and value
+  set that offers its operator (`withTarget()`), moves from the rule editor's utilities to
+  `rules/src/conditions.ts`, so that `update_item` with a new `target` and no `condition` keeps or
+  drops the condition exactly as the editor does, and says so in its answer (`dropped_condition`).
 
 **Rationale**: FR-014 asks for one implementation of propagation, marks and identifiers between
 the editor and the tools. Reusing `branches.ts` alone would leave the second composition of

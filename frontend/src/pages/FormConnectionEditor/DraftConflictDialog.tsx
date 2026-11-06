@@ -3,11 +3,12 @@ import { DRAFT_COPY } from './constants';
 import type { DraftConflictDialogProps } from './types';
 
 /**
- * The conflict dialog after "Save and exit" (S2, W4; FR-022 to FR-024): another team member
- * changed, published or deleted the draft since it was opened. `ConfirmDialog`, so it is a
- * native modal with the focus inside, Escape is "Cancel", and closing it returns the focus to
- * "Save and exit". While an answer runs, its actions do nothing and it can't be closed.
- * A conflict while publishing shows in the publish dialog instead.
+ * The conflict dialog after "Save and exit" (S2, W4; FR-022 to FR-024): the draft was saved,
+ * published or deleted since it was opened, by a team member or an agent (spec 007, FR-015), and
+ * its texts name neither. `ConfirmDialog`, so it is a native modal with the focus inside, Escape
+ * is "Cancel", and closing it returns the focus to "Save and exit". While an answer runs, its
+ * actions do nothing and it can't be closed. A conflict while publishing shows in the publish
+ * dialog instead.
  */
 export default function DraftConflictDialog({
   conflict,

@@ -15,6 +15,7 @@ import {
   resolveTarget,
   ruleDocumentsOf,
   suffixOf,
+  withTarget,
 } from './conditions';
 import { CONTEXT, MDL, OPTION_SETS, PID, target } from './testData';
 import type { ConditionKind } from './types';
@@ -253,6 +254,50 @@ describe('changeOperator', () => {
     expect(
       changeOperator({ operator: 'at_least_years_ago', years: 2 }, definition('on', 'date'))
     ).toEqual({ operator: 'on', date: null });
+  });
+});
+
+describe('withTarget', () => {
+  const age = {
+    target: target('pid', 'birthdate'),
+    condition: { operator: 'at_least_years_ago', years: 18 } as Condition,
+  };
+  const nationality = {
+    target: target('pid', 'nationalities'),
+    condition: { operator: 'includes_one_of', values: ['DE'] } as Condition,
+  };
+
+  it('keeps the condition for data of the same kind and value set', () => {
+    const issued = withTarget(age, target('mdl', 'issue_date'), DOCUMENTS);
+    expect(issued.target).toEqual(target('mdl', 'issue_date'));
+    expect(issued.condition).toBe(age.condition);
+    const residence = withTarget(nationality, target('pid', 'address_country'), DOCUMENTS);
+    expect(residence.condition).toBe(nationality.condition);
+  });
+
+  it('drops it for data of another kind, or of another value set', () => {
+    const classes = target('mdl', 'driving_privileges', 'classes');
+    expect(withTarget(age, classes, DOCUMENTS)).toEqual({ target: classes, condition: null });
+    expect(withTarget(nationality, target('pid', 'sex'), DOCUMENTS).condition).toBeNull();
+  });
+
+  it('drops it without data, from unknown data, and when the kind lacks its operator', () => {
+    expect(withTarget(age, null, DOCUMENTS)).toEqual({ target: null, condition: null });
+    const unknown = { target: target('pid', 'shoe_size'), condition: age.condition };
+    expect(withTarget(unknown, target('pid', 'birthdate'), DOCUMENTS).condition).toBeNull();
+    const mismatched = {
+      target: target('pid', 'birthdate'),
+      condition: { operator: 'contains', value: 'x' } as Condition,
+    };
+    expect(withTarget(mismatched, target('mdl', 'issue_date'), DOCUMENTS).condition).toBeNull();
+  });
+
+  it('leaves a rule without a condition without one', () => {
+    const empty = { target: target('pid', 'birthdate'), condition: null };
+    expect(withTarget(empty, target('mdl', 'issue_date'), DOCUMENTS)).toEqual({
+      target: target('mdl', 'issue_date'),
+      condition: null,
+    });
   });
 });
 

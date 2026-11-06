@@ -266,6 +266,7 @@ approval:    {PORTAL_URL}/approvals/{requestId}
 | `item` / `rule` / `group` | `rule-n` or `group-n`, a link that names one, or its name in the variant; a duplicate name is refused likewise |
 | `document_type` | A catalog key (`pid`, `mdl`) |
 | `field` | A catalog field key; parts as `field.part` (`place_of_birth.country`), a licence class's date as `driving_privileges.issue_date#B` |
+| `condition.operator` | A check of the field's kind, as `get_catalog`'s `conditions` lists them (`OPERATORS`); any other is refused with the field's checks. Without data, a check that no kind offers is refused with the checks per kind |
 
 Matching names ignores letter case and surrounding spaces, as the editor compares them.
 

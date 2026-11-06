@@ -9,6 +9,7 @@ import {
   operatorDefinition,
   optionsOf,
   resolveTarget,
+  withTarget,
 } from '@connection-portal/rules/conditions';
 import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
 import { todayInGermany } from '@connection-portal/rules/dates';
@@ -44,7 +45,6 @@ import {
   ruleEditorReducer,
   targetOfPart,
   withProposal,
-  withTarget,
 } from './utils';
 
 /**
@@ -148,13 +148,13 @@ export default function RuleEditor({
     dispatch({ type: 'chooseDocument', document: key });
     if (key !== draft.target?.document_type) {
       dispatch({ type: 'resetValues' });
-      change(withTarget(draft, null, context));
+      change(withTarget(draft, null, context.documents));
     }
     open('data');
   }
 
   function chooseTarget(next: RuleTarget, then: MenuKey | null) {
-    const changed = withTarget(draft, next, context);
+    const changed = withTarget(draft, next, context.documents);
     if (changed.condition !== draft.condition) {
       dispatch({ type: 'resetValues' });
     }

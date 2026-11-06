@@ -10,7 +10,6 @@ import {
   operatorDefinition,
   operatorsFor,
   optionsOf,
-  resolveTarget,
   suffixOf,
 } from '@connection-portal/rules/conditions';
 import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
@@ -243,28 +242,6 @@ export function withProposal(draft: RuleItem, context: RuleContext, edited: bool
     return draft;
   }
   return { ...draft, message: proposedMessage(draft, context) ?? '' };
-}
-
-/**
- * The rule with a new target. Its condition stays when the new target compares the same kind of
- * value from the same set, otherwise the check is chosen again.
- */
-export function withTarget(
-  draft: RuleItem,
-  target: RuleTarget | null,
-  context: RuleContext
-): RuleItem {
-  const before = resolveTarget(draft.target, context.documents);
-  const after = resolveTarget(target, context.documents);
-  const keep =
-    before !== null &&
-    after !== null &&
-    after.kind !== null &&
-    before.kind === after.kind &&
-    before.optionSet === after.optionSet &&
-    draft.condition !== null &&
-    operatorDefinition(draft.condition.operator, after.kind) !== undefined;
-  return { ...draft, target, condition: keep ? draft.condition : null };
 }
 
 /** Whether every part of the rule is there: its target, a complete check and a message. */
