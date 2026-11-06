@@ -57,11 +57,11 @@ decided (C items below).
 
 The baseline is the `contracts/ui-screens.md` of each earlier spec, read with the Clarifications of
 its `spec.md`. An item of the baseline is cited with the spec's number as prefix: `002-S3`,
-`005-FR-016`, `007-S2`.
+`005-FR-016`, `007-S2`; the audit's index refines a section into its items, `002-S3.4`.
 
 | Spec | Contract | Screens it fixes |
 |---|---|---|
-| 001 | `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` | sign in, forgot password, overview, first connection, create and edit, details, the sign-in guard, accessibility |
+| 001 | `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` | sign in (S1), forgot password (S2), overview (S3), first connection (S4), create and edit (S5), details (S6), accessibility (S7), the sign-in guard; the contract carries no section ids, so its sections are numbered in document order |
 | 002 | `specs/002-connection-rules/contracts/ui-screens.md` | the wizard shell (S0), documents (S1), rules (S2), rule editor (S3), variants (S4), publish and save dialog (S5), details (S6), edit flow (S7) |
 | 003 | `specs/003-rule-consistency-checks/contracts/ui-screens.md` | findings in the rules step, the editor, the variants, the publish dialog and the details |
 | 004 | `specs/004-rule-test-personas/contracts/ui-screens.md` | the test step (S8) and its effect on the shell, the rules step and the publish dialog |
@@ -98,8 +98,8 @@ and sees the connections, the drafts and the unsaved work of this device, all in
 
 **Screens**: `/login`, `/forgot-password`, `/` (overview), `/get-started` (first connection), with
 the signed-out frame around the first two and the signed-in frame (product name, user menu, sign
-out) around the rest. **Baseline**: 001 sign in, forgot password, overview, first connection;
-005-S3, 005-S4, 005-S7; 006 overview row; 007-S6.
+out) around the rest. **Baseline**: 001-S1 to 001-S4; 005-S3, 005-S4, 005-S7; 006 overview row;
+007-S6.
 
 **Why this priority**: it is the entry to everything, and it exercises the two layouts and the
 shared components every later flow reuses.
@@ -136,8 +136,8 @@ A team member starts a connection, names and describes it, adds documents and ch
 fields, saves and exits, and comes back to the draft, in the new wizard.
 
 **Screens**: `/form-connections/new` and `/get-started`, steps 1 and 2, with the wizard shell
-(progress, "Save and exit", the draft badge). **Baseline**: 001 create and edit; 002-S0, 002-S1;
-004-S0, 004-S1; 005-S0, 005-S1, 005-S2, 005-S5, 005-S8; 006 step 1.
+(progress, "Save and exit", the draft badge). **Baseline**: 001-S5; 002-S0, 002-S1; 004-S0, 004-S1;
+005-S0, 005-S1, 005-S2, 005-S5, 005-S8; 006 step 1.
 
 **Why this priority**: the shell carries every later step, and these two steps are the simplest
 place to settle the form components, the validation pattern and the save-and-exit behaviour.
@@ -204,7 +204,7 @@ A team member publishes a connection, copies its connection URLs, reads its deta
 reactivates or deletes it, and edits it into a new revision, in the new design.
 
 **Screens**: step 5 (publish), the publish and save dialog, the details (published, deactivated,
-draft), `/form-connections/:id/edit`. **Baseline**: 001 details; 002-S5, 002-S6, 002-S7; 003-S5,
+draft), `/form-connections/:id/edit`. **Baseline**: 001-S5, 001-S6; 002-S5, 002-S6, 002-S7; 003-S5,
 003-S6, 003-S7; 004-S5, 004-S7; 005-S6; 006 details header; 007-S6.
 
 **Why this priority**: it closes the create flow and carries the destructive actions, whose dialogs

@@ -9,8 +9,12 @@ Where the design's decisions are recorded:
   form connections' screens.
 - `specs/002-connection-rules/design-notes.md`: those of the rules and variants. Figma is out of step
   with spec 002, so its `contracts/ui-screens.md` lists the decided deviations (F#, W#).
-- The active feature's `figma-audit/report.md`: sections "Figma must change (decided)" (F#) and
-  "Build without frames (decided)" (W#).
+- The active feature's `figma-audit/report.md`: sections "Figma must change (decided)" (F#),
+  "Build without frames (decided)" (W#) and "Copy from outside the frontend (decided)" (C#).
+- `specs/008-kern-revamp-redesign/`: the port of the redesign on the KERN Revamp. Its `brief.md` is the
+  plan of record, its `spec.md` says what decides what (Figma: layout, styling and wording; specs
+  001–007: behaviour), and its `design-notes.md` (from pass C on) holds the token overlay, the
+  component decisions and the verification tables.
 - SVG glyphs from the design go into `frontend/src/assets/icons/`, decorative SVGs into
   `frontend/src/assets/illustrations/`; KERN's own icons use the `kern-icon` classes.
 
@@ -22,6 +26,11 @@ If its output contains UNCERTAIN items, ask me before implementing.
 ## 2. Tokens (once)
 Call `get_variable_defs` on the ROOT node. Map Figma variables to existing project tokens.
 If a value has no matching token, list it and ask. Do not invent tokens.
+Since spec 008 (2026-11-06) the Figma files carry the KERN Revamp's values, and those values are the
+target: a KERN variable whose Revamp value differs from KERN 2.8's is set in the overlay block of
+`frontend/src/index.css` under KERN's own name, as the token map in
+`specs/008-kern-revamp-redesign/design-notes.md` records; only a Figma variable with no KERN name
+becomes a new `@theme` token.
 
 ## 3. Implementation (per node, in the returned order)
 1. Check the active feature's `figma-audit/report.md`, sections "Figma must change (decided)" (F#)
@@ -59,8 +68,10 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Never implement nodes outside the current task.
 - A difference from Figma that an F# or W# item prescribes is not a mismatch: list it with its item
   number in the verification table instead of fixing it.
-- Spec 002's Figma file (`s8mU9oJDq3411e8bxMjQO9`) binds KERN's variable names with the values of
-  an unreleased KERN ("Revamp"): other colours, radii and type sizes than KERN 2.8. Use the KERN
-  2.8 token of the same name, and list a value that differs only for that reason as "KERN 2.8 vs
-  Revamp" instead of fixing it (decision 2026-10-25, `specs/002-connection-rules/design-notes.md`
-  §9).
+- History, superseded by spec 008 on 2026-11-06: until then, the Figma file
+  (`s8mU9oJDq3411e8bxMjQO9`) bound KERN's variable names to the values of the unreleased KERN
+  "Revamp" while the app kept KERN 2.8's values, and a visual check listed such a value as "KERN 2.8
+  vs Revamp" instead of fixing it (decision 2026-10-25, `specs/002-connection-rules/design-notes.md`
+  §9). Spec 008 reversed this (its `brief.md`, decision 2): the Revamp value is the target, a
+  difference from it is a mismatch to fix, and "KERN 2.8 vs Revamp" is no longer a reason to leave
+  one. Spec 002's verification tables keep their old entries as history.

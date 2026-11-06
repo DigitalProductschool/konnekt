@@ -1,8 +1,9 @@
 # Brief: porting the redesigned UI (KERN Revamp) — plan of record
 
-**Written**: 2026-11-06, in the planning chat. **Status**: pass A in progress: `spec.md` written
-and this file moved here from `specs/redesign-brief.md` on 2026-11-06; the tooling edits of §4 and
-`/speckit-clarify` are still to do.
+**Written**: 2026-11-06, in the planning chat. **Status**: pass A in progress: `spec.md` written,
+this file moved here from `specs/redesign-brief.md` and the tooling edits of §4 done, all on
+2026-11-06 (the kit's two mapper runs are driven by `/figma-audit kit <file link>`); `/speckit-clarify`
+is still to do.
 It is the record every chat and both machines can read until pass C's `plan.md` and `tasks.md`
 absorb it; after that it is history.
 
