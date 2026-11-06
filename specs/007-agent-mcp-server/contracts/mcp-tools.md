@@ -8,10 +8,10 @@
 
 | | |
 |---|---|
-| Endpoint | `POST {MCP_URL}` (`https://<domain>/mcp`), Streamable HTTP, stateless; `GET` answers `405` |
-| Protocol | 2025-11-25 (2026-07-28 where the SDK negotiates it) |
+| Endpoint | `{MCP_URL}` (`https://<domain>/mcp`), Streamable HTTP: 2026-07-28 stateless (`POST`); 2025-era clients in a session (`Mcp-Session-Id`, in memory, bound to the bearer that opened it; `GET` and `DELETE` for a known session; another bearer or an unknown session → `404`). `GET` without a session answers `405` (research R2) |
+| Protocol | 2026-07-28 and 2025-11-25 (with 2025-06-18, 2025-03-26), as SDK 2.4.0 negotiates them |
 | Server info | `name: 'connection-portal'`, the deployment's version |
-| Capabilities | `tools`, `resources`, `extensions: { 'io.modelcontextprotocol/skills': {} }` |
+| Capabilities | `tools`, `resources`, `extensions: { 'io.modelcontextprotocol/skills': { directoryRead: true } }` (declared by the SDK's Skills extension) |
 | Instructions | `mcp/plugin/instructions.md`, at most about 400 words (FR-036) |
 | Authorization | Bearer token (an access token or a personal access token). Without a valid one: `401` with `WWW-Authenticate: Bearer resource_metadata="{MCP origin}/.well-known/oauth-protected-resource/mcp"` (RFC 9728's path form for the resource `{origin}/mcp`) and no body |
 | Protected resource metadata | `GET {MCP origin}/.well-known/oauth-protected-resource` and `…/oauth-protected-resource/mcp`: `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read','drafts','manage'], bearer_methods_supported: ['header'], resource_name: 'Connection Portal' }` |
@@ -98,7 +98,7 @@ date?, years?, amount?, unit? }`. `target.field` takes `field`, `field.part` or
 
 | Tool | Level | Input | Output |
 |---|---|---|---|
-| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The tool checks the action's level before any call (a "Read only" caller asking to deactivate gets the message naming 'Read, edit drafts and manage live connections', FR-003), then the preconditions (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared URL-mode elicitation, the server also sends `elicitation/create` `{ mode: 'url', elicitationId: request.id, url: link, message: "Approve publishing 'Parking permit' in the Connection Portal." }` |
+| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The tool checks the action's level before any call (a "Read only" caller asking to deactivate gets the message naming 'Read, edit drafts and manage live connections', FR-003), then the preconditions (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared the `elicitation.url` capability, the first round returns `inputRequired` with `inputRequired.elicitUrl({ url: link, message: "Approve publishing 'Parking permit' in the Connection Portal." })` and the request's id as `requestState`; the client (2026-07-28) or the SDK's shim (2025-era session, a real `elicitation/create` with `mode: 'url'`) shows the URL, and the re-entered call reads the request by that id and answers the result above, whatever the elicitation's outcome (research R2) |
 | `check_approval` | drafts | `request_id` | `{ request: { id, action, connection, link, expires_at, status, outcome: 'waiting' \| 'done' \| 'declined' \| 'expired' \| 'replaced' \| 'cancelled' \| 'failed', reason?: string, error_id? }, urls: ConnectionUrls \| null }`; `urls` once the connection is published or reactivated |
 
 ### Checks and tests (FR-032 to FR-035)
@@ -119,7 +119,7 @@ date?, years?, amount?, unit? }`. `target.field` takes `field`, `field.part` or
 
 ## Skills (SEP-2640; FR-037)
 
-- `skills/list` → the eight skills: `{ name, description, uri: 'skill://<name>/SKILL.md', files: [{ uri, name, mimeType: 'text/markdown' }] }`.
+- `skills/list` → the eight skills, as the SDK's Skills extension lists them: `{ uri: 'skill://<name>/SKILL.md', frontmatter: { name, description }, resources: [{ uri, digest, size }] }`.
 - `skills/get` `{ uri }` → one entry.
 - `resources/list` lists the same files; `resources/read` answers the text. No other resource.
 

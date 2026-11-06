@@ -84,6 +84,8 @@ specs/*/figma-audit/*
 
 resume.sh
 .mcp.json
+# The plugin's server configuration ships with it (spec 007, research R16)
+!mcp/plugin/.mcp.json
 
 # Playwright MCP snapshots and console logs
 .playwright-mcp/

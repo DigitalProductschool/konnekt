@@ -57,5 +57,27 @@ services:
     depends_on:
       - backend
 
+  # The MCP server for agents (spec 007). One replica: 2025-era MCP sessions live in
+  # its memory (research R2)
+  mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile.dev
+    ports:
+      - '3100:3100'
+    environment:
+      PORT: 3100
+      BACKEND_URL: http://backend:3000
+      PORTAL_URL: http://localhost:5173
+      MCP_URL: http://localhost:3100/mcp
+      OAUTH_ISSUER: http://localhost:3000
+    volumes:
+      - ./mcp/src:/app/mcp/src
+      - ./mcp/plugin:/app/mcp/plugin
+      - ./api-types:/app/api-types
+      - ./rules:/app/rules
+    depends_on:
+      - backend
+
 volumes:
   postgres-data:

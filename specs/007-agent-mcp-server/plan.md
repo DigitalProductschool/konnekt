@@ -57,10 +57,11 @@ the frontend's images; the workspace root works with the team's Node 20 too).
 - **`api-types/`, `rules/`**: no runtime dependency; dev: `typescript`, `eslint`, `prettier`,
   and for `rules/` `vitest`, at the frontend's versions, hoisted by the workspace.
 - **`frontend/`**: unchanged (React Router 7, KERN, Tailwind 4) plus the two workspace packages.
-- **`mcp/`**: the official TypeScript SDK, pinned (`@modelcontextprotocol/server` v2 with its
-  Node `http` adapter, or `@modelcontextprotocol/sdk` 1.x; R2, R20), `zod`, the two workspace
-  packages; dev: `typescript`, `vite`, `vitest`, `eslint`, `prettier`, `@types/node`, `vite-node`
-  or `tsx`. README's dependency table gets the runtime ones with their reason.
+- **`mcp/`**: the official TypeScript SDK v2, pinned (`@modelcontextprotocol/server` 2.4.0 and
+  its Node adapter `@modelcontextprotocol/node` 2.1.2; R2), `zod` 4.6.7, the two workspace
+  packages; dev: `@modelcontextprotocol/client` 2.4.0 (the tests' client), `typescript`, `vite`,
+  `vitest`, `eslint`, `prettier`, `@types/node`, `vite-node` 6.0.0. README's dependency table
+  gets the runtime ones with their reason.
 
 **Storage**:
 - **PostgreSQL**: five new tables (`oauth_clients`, `oauth_codes`, `agent_authorizations`,

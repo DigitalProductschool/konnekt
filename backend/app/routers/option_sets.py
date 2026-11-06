@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 
 from ..option_sets import OPTION_SETS
 from ..schemas import ApiResponse, Option, OptionSet
-from ..services.auth import get_current_user
+from ..services.auth import get_current_principal
 
 router = APIRouter(
     prefix='/api/option-sets',
     tags=['option-sets'],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_principal)],
 )
 
 

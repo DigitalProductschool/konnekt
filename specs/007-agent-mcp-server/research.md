@@ -143,36 +143,76 @@ belongs in a spec of its own.
 ## R2. Protocol version, SDK and transport
 
 **Decision**:
-- The server implements MCP **2025-11-25** (and negotiates 2026-07-28 where the SDK supports
-  it): Streamable HTTP, the authorization chapter with protected resource metadata and resource
-  indicators, URL-mode elicitation, and the Skills extension SEP-2640
-  (`io.modelcontextprotocol/skills`: `skills/list`, `skills/get`, files under `skill://` read
-  with `resources/read`).
-- The SDK is the official TypeScript SDK, pinned: `@modelcontextprotocol/server` (SDK v2, with
-  its Node `http` adapter) if its current release has what the server needs; otherwise
-  `@modelcontextprotocol/sdk` 1.x. Request handlers the SDK lacks (`skills/list`, `skills/get`)
-  are registered as custom handlers with their zod schemas. Decided on the first task (R20).
-- Transport: Streamable HTTP in **stateless** mode at `POST /mcp` (no session id, one process),
-  which 2026-07-28 makes the norm anyway. A URL-mode elicitation is sent on the response stream
-  of the tool call that needs it. Whether the SDK lets a stateless server do that is checked on
-  the first MCP task (R20): if it doesn't, the server runs in session mode (the SDK's
-  `Mcp-Session-Id`, sessions in memory, one replica) and the main module, the compose files and
-  nginx follow. The approval link is in the tool's result in every case, so the elicitation is
-  an addition, never the only path (spec decision 3).
+- The server speaks both protocol eras the SDK implements: **2026-07-28** (the per-request
+  `_meta` envelope, no `initialize` handshake, `server/discover`) and **2025-11-25** (with
+  2025-06-18 and 2025-03-26, the `initialize` handshake), with Streamable HTTP, the
+  authorization chapter with protected resource metadata and resource indicators, URL-mode
+  elicitation, and the Skills extension SEP-2640 (`io.modelcontextprotocol/skills`:
+  `skills/list`, `skills/get`, files under `skill://` read with `resources/read`). Both eras
+  matter: the official client SDK still connects with the 2025 handshake unless told to probe.
+- The SDK is the official TypeScript SDK v2, pinned to exact versions:
+  `@modelcontextprotocol/server` **2.4.0** (the server, `createMcpHandler`, `inputRequired`,
+  and the Skills extension at `@modelcontextprotocol/server/ext/skills`),
+  `@modelcontextprotocol/node` **2.1.2** (`toNodeHandler`, `toWebRequest`,
+  `NodeStreamableHTTPServerTransport` for `node:http`), and `zod` **4.6.7** (the SDK needs
+  zod 4); the tests use `@modelcontextprotocol/client` **2.4.0** as a dev dependency. The v1
+  package `@modelcontextprotocol/sdk` is not used. The SDK's published types reference
+  `Buffer`, so `mcp/tsconfig.json` sets `types: ["node"]`.
+- **Skills come from the SDK**, with no custom handlers: `SkillCatalog.load(memorySkillFiles({
+  '<name>/SKILL.md': text, … }))` once at start, from the texts `guidance.ts` embeds, then
+  `catalog.attach(server)` on every server instance. It registers `skills/list`, `skills/get`,
+  the `skill://{+path}` resource template and the files in `resources/list`, and declares
+  `extensions: { 'io.modelcontextprotocol/skills': { directoryRead: true } }` itself. The
+  extension is marked experimental in 2.4.0; the exact pin covers that.
+- **URL-mode elicitation** is announced by the client capability `elicitation.url` (an object;
+  `elicitation: {}` alone means form mode only). The server reads it per request: on 2026-07-28
+  from the request's envelope (`ctx.mcpReq.envelope.clientCapabilities`), on 2025-11-25 from
+  the session's `initialize` (`server.getClientCapabilities()`). A tool asks for it by
+  *returning* `inputRequired({ inputRequests: { approval: inputRequired.elicitUrl({ url,
+  message }) }, requestState })`, written once for both eras: a 2026-07-28 client shows the URL
+  and retries the call with `inputResponses` and the echoed `requestState`; on a 2025-era
+  session the SDK's shim sends a real `elicitation/create` (`mode: 'url'`, with an
+  `elicitationId` the SDK assigns) on the call's response stream and re-enters the handler. So
+  `request_approval` creates the request in the first round and puts its id in `requestState`;
+  on re-entry it reads that request (`GET /api/approval-requests/{id}`, which the backend
+  limits to the caller's own authorization, so the client-held state needs no signature) and
+  answers the ordinary result, whatever the elicitation's outcome. The link is in that result
+  in every case, so the elicitation is an addition, never the only path (spec decision 3).
+- **Transport: one endpoint `/mcp`, one process**. 2026-07-28 requests are served
+  **stateless** by `createMcpHandler(factory, { legacy: 'reject' })` behind `toNodeHandler` (a
+  fresh server instance per request). 2025-era requests (`isLegacyRequest()`) are served in
+  **session mode**, because the SDK's stateless 2025 fallback can't elicit: a per-request
+  instance never saw the client's `initialize`, so it knows no capabilities, and the client's
+  answer to a server request would reach another instance. An `initialize` opens a session
+  (`NodeStreamableHTTPServerTransport` with `sessionIdGenerator: randomUUID`, the
+  `Mcp-Session-Id` header). Sessions live in memory, so the server runs as **one replica**.
+  `GET /mcp` (the session's stream) and `DELETE /mcp` (its end) are served for a known session
+  only; `GET` without one answers `405`. A session is bound to the SHA-256 of the bearer that
+  opened it: a request with another bearer, or with an unknown or ended session id, answers
+  `404`, on which the client starts a new session (as it does after refreshing its token).
+  Sessions idle for 30 minutes are closed. The bearer is resolved on every request, in both
+  eras, before the SDK sees it (R5).
 - Tool inputs are validated with zod schemas that the SDK publishes as JSON Schema; every tool
   returns `structuredContent` (the JSON the contract names) and a text block that summarises
   it, so clients without structured content still read the answer.
+- `npm run dev` in `mcp/` runs **`vite-node` 6.0.0** (`vite-node src/main.ts`, on Vite 8):
+  `guidance.ts` imports the skills with `import.meta.glob` and `?raw`, which only Vite's
+  transform understands, so `tsx` can't run it. The build is Vite's SSR build (R1).
 
 **Rationale**: the spec names the protocol's standard authorization, URL-mode elicitation and
-the Skills extension; all three exist in 2025-11-25 or as a Final SEP on it. Stateless transport
-keeps nginx and the single-process deployment simple. Sources: the 2025-11-25 elicitation page
-(URL mode: `mode: 'url'`, `elicitationId`, `url`, the client shows the domain and asks consent),
-SEP-2640 (Final; `skills/list`, `skills/get`, resources), the SDK's releases (v2.4.0 of October
-2026 targets 2025-11-25 and 2026-07-28).
+the Skills extension; SDK 2.4.0 ships all three for both eras. Stateless serving of 2026-07-28
+keeps the deployment simple; the sessions exist only so that clients still on the 2025
+handshake get the elicitation, and binding them to the bearer keeps one caller from using
+another's session. Checked on 2026-11-05 against npm (`@modelcontextprotocol/server` 2.4.0 and
+`@modelcontextprotocol/node` 2.1.2, both of 2026-10-23) with a spike that served one tool to
+SDK clients of both eras, with and without `elicitation.url`: the URL reached both declaring
+clients, each call answered after one re-entry, and `skills/list` worked in both eras. With the
+stateless 2025 fallback instead, the 2025 client got no elicitation.
 
 **Alternatives considered**: stdio (the server runs at the deployment, not on the team member's
-machine); SSE transport (deprecated); a stateful session per client (nothing in the tools needs
-state between calls).
+machine); SSE transport (deprecated); the v1 package (no 2026-07-28, no Skills extension);
+stateless serving of both eras (2025-era clients would never see the elicitation); sessions for
+both eras (2026-07-28 needs none).
 
 ## R3. Topology and addresses
 
@@ -301,7 +341,11 @@ cheap and authoritative.
   error_description="…"` on the MCP request, which is the protocol's signal for a client to
   run the authorization again with that scope; the consent page then shows the requested level
   preselected. After the new consent the client retries the call, which now succeeds and says
-  so. A tool refused for lack of access answers a normal tool error (so the LLM reads the
+  so. The `403` comes from the SDK's per-tool `scopeChallenge` option of `registerTool()`
+  (returning the level's scopes and the `error_description`), which runs before dispatch in
+  both eras (R2): a 2025-era session has already sent its stream's headers when a handler
+  runs, so a handler can't answer an HTTP status there. A tool refused for lack of access
+  answers a normal tool error (so the LLM reads the
   message), naming the level and the two ways to get it: `request_access`, or the team member
   on their user page.
 
@@ -681,11 +725,9 @@ requests as any other.
 
 ## R20. Points to check while coding
 
-- The SDK package to use (R2): v2's `@modelcontextprotocol/server` and its Node adapter, or
-  1.x; whether it ships `skills/list` and `skills/get` or they are custom handlers; the exact
-  client capability that announces URL-mode elicitation in 2025-11-25; whether a stateless
-  Streamable HTTP server can send `elicitation/create` on a call's response stream (if not:
-  session mode, R2).
+- The SDK (R2): `@modelcontextprotocol/server` 2.4.0 with `@modelcontextprotocol/node`
+  2.1.2; the Skills extension from the SDK; `elicitation.url`; 2026-07-28 stateless beside
+  2025-era sessions, because the stateless 2025 fallback can't elicit. Settled on 2026-11-05.
 - TypeScript resolving a workspace package's `exports` to `.ts` sources under
   `moduleResolution: bundler` (R1); the fallback is `paths` in `tsconfig.base.json`. Vite
   serving and bundling the linked packages' sources, and code-splitting the dynamic
@@ -698,7 +740,7 @@ requests as any other.
   plugin ships the production address and the README says how to change it.
 - `RequireSignIn` keeping the search parameters through the sign-in round trip (R11).
 - Vite's SSR build of `mcp/src/main.ts` bundling `import.meta.glob` raw imports and the worker
-  thread's entry as a second output file (R1, R14); `vite-node` or `tsx` for `npm run dev` in
-  `mcp/`.
+  thread's entry as a second output file (R1, R14). `npm run dev` in `mcp/` uses `vite-node`
+  6.0.0 (R2).
 - The size of a `FormConnectionDraft` with 20 variants × 200 items in a tool result: the
   layered reads keep one variant per answer; `get_connection`'s overview carries counts only.

@@ -531,31 +531,6 @@ export function labelOf(documentType: string, documentTypes: DocumentType[]): st
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
 }
 
-/**
- * The data the flow requests that the catalog no longer offers (S8; FR-003 edge case), in
- * document order: a document type the catalog lacks is one item, labelled with its key, since
- * the catalog has no label for it any more; a field a known document lacks is "Personal ID –
- * eye_colour", with the field's key. Empty when the catalog offers everything.
- */
-export function droppedDataOf(
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): DroppedData[] {
-  return documents.flatMap((document): DroppedData[] => {
-    const documentType = documentTypes.find((type) => type.key === document.document_type);
-    if (!documentType) {
-      return [{ documentType: document.document_type, field: null, label: document.document_type }];
-    }
-    return document.fields
-      .filter((field) => !documentType.fields.some((offered) => offered.key === field))
-      .map((field) => ({
-        documentType: documentType.key,
-        field,
-        label: DRAFT_COPY.droppedField(documentType.label, field),
-      }));
-  });
-}
-
 /** The note's "Remove it" (S8): every dropped item at once, named in the removal dialog. */
 export function droppedRemovalOf(items: DroppedData[]): PendingRemoval {
   return { type: 'dropped', items, label: items.map((item) => item.label).join(', ') };

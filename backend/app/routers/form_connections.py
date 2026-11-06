@@ -15,7 +15,12 @@ from ..schemas import (
     FormConnectionUpdate,
 )
 from ..services import drafts, form_connections
-from ..services.auth import get_current_user, require_json
+from ..services.auth import (
+    get_current_principal,
+    require_browser_session,
+    require_json,
+    require_level,
+)
 from ..services.eudiplo import EudiploError, http_error_for
 
 # The answer when EUDIPLO can't store a revision's request configuration
@@ -24,10 +29,15 @@ CONFIG_FAILED = (
     'saved. Try again in a moment.'
 )
 
+# A team member's browser session or an agent's bearer token; every GET is open to
+# every access level. Agents change drafts from the level 'drafts' on, and nothing
+# else here: publishing, deleting a draft, a published connection's content and its
+# status are done in the Connection Portal (spec 007, contracts/management-api.md
+# "Who may call what")
 router = APIRouter(
     prefix='/api/form-connections',
     tags=['form-connections'],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_principal)],
 )
 
 
@@ -40,7 +50,9 @@ def list_form_connections(
 
 
 @router.post(
-    '', status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_json)]
+    '',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def create_form_connection(
     data: FormConnectionCreate, db: Session = Depends(get_db)
@@ -59,7 +71,9 @@ def create_form_connection(
 
 
 @router.post(
-    '/drafts', status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_json)]
+    '/drafts',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_level('drafts')), Depends(require_json)],
 )
 def create_draft(
     data: DraftCreate, db: Session = Depends(get_db)
@@ -83,7 +97,10 @@ def get_form_connection(
     return ApiResponse(data=drafts.get_form_connection_or_draft(db, form_connection_id))
 
 
-@router.put('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+@router.put(
+    '/{form_connection_id}/draft',
+    dependencies=[Depends(require_level('drafts')), Depends(require_json)],
+)
 def save_draft(
     form_connection_id: str,
     data: DraftUpdate,
@@ -100,7 +117,10 @@ def save_draft(
     )
 
 
-@router.post('/{form_connection_id}/publish', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/publish',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def publish_draft(
     form_connection_id: str,
     data: DraftPublish,
@@ -121,7 +141,10 @@ def publish_draft(
     return ApiResponse(data=form_connection, message='Form connection published')
 
 
-@router.delete('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+@router.delete(
+    '/{form_connection_id}/draft',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def delete_draft(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[None]:
@@ -134,7 +157,10 @@ def delete_draft(
     return ApiResponse(data=None, message='Draft deleted')
 
 
-@router.put('/{form_connection_id}', dependencies=[Depends(require_json)])
+@router.put(
+    '/{form_connection_id}',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def update_form_connection(
     form_connection_id: str,
     data: FormConnectionUpdate,
@@ -156,7 +182,10 @@ def update_form_connection(
     return ApiResponse(data=form_connection, message='Form connection updated')
 
 
-@router.post('/{form_connection_id}/deactivate', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/deactivate',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def deactivate_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[FormConnection]:
@@ -170,7 +199,10 @@ def deactivate_form_connection(
     )
 
 
-@router.post('/{form_connection_id}/activate', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/activate',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def activate_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[FormConnection]:
@@ -181,7 +213,10 @@ def activate_form_connection(
     )
 
 
-@router.delete('/{form_connection_id}', dependencies=[Depends(require_json)])
+@router.delete(
+    '/{form_connection_id}',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def delete_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[None]:

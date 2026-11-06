@@ -1,0 +1,13 @@
+{
+  "name": "connection-portal",
+  "owner": {
+    "name": "DO.IT, City of Stuttgart"
+  },
+  "plugins": [
+    {
+      "name": "connection-portal",
+      "source": "./mcp/plugin",
+      "description": "The Connection Portal's MCP server and its skills for agents."
+    }
+  ]
+}

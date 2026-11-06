@@ -79,7 +79,10 @@ export type RuleTreeItem = RuleItem | GroupItem;
 
 /** A branch ("variant" in the UI) with its rules, as the editor sends it */
 export interface BranchInput {
-  /** Null for a branch added in this save */
+  /**
+   * Null or a client UUID for a branch added in this save; a stored draft's branches always carry
+   * one (spec 007, research R10)
+   */
   id: string | null;
   name: string;
   description: string | null;
@@ -138,6 +141,13 @@ export interface FormConnectionSummary {
   updated_at: string;
 }
 
+/** A page of the search's results (spec 007, research R9) */
+export interface FormConnectionPage {
+  items: FormConnectionSummary[];
+  /** Null on the last page */
+  next_cursor: string | null;
+}
+
 export interface FormConnection {
   /** Always 'published': a draft is a FormConnectionDraft */
   status: 'published';
@@ -191,7 +201,7 @@ export interface FormConnectionDraft {
    * its key as its label
    */
   documents: RequestedDocumentView[];
-  /** Main branch first; every id is null */
+  /** Main branch first; a stored draft's branches always carry an id (spec 007, research R10) */
   branches: BranchInput[];
   /** The next free identifier numbers, the draft's numbering */
   next_rule_number: number;
@@ -209,7 +219,10 @@ export type FormConnectionOrDraft = FormConnection | FormConnectionDraft;
 
 /** A draft's branches and rules */
 export interface DraftRules {
-  /** Main branch first; every id is null */
+  /**
+   * Main branch first; a branch's id may be null (the server assigns one) or a client UUID. A
+   * stored draft's branches always carry an id (spec 007, research R10)
+   */
   branches: BranchInput[];
   /** The counters the editor started from */
   numbering_base: NumberingBase;
@@ -242,4 +255,19 @@ export interface DraftPublish extends FormConnectionCreate {
   version: number;
   /** Publish over another team member's save; false by default */
   replace?: boolean;
+}
+
+// Connection URLs (specs/007-agent-mcp-server/contracts/management-api.md "Schemas")
+
+/** A variant's pull URL; contains the placeholder `{reference}` literally */
+export interface VariantUrl {
+  id: string;
+  name: string;
+  pull_url: string;
+}
+
+/** The URLs to copy into serviceBW */
+export interface ConnectionUrls {
+  trigger_url: string;
+  variants: VariantUrl[];
 }

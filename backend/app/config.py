@@ -4,6 +4,8 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_CONNECTION_BASE_URL = 'http://localhost:3000'
+DEVELOPMENT_PORTAL_URL = 'http://localhost:5173'
+DEVELOPMENT_MCP_URL = 'http://localhost:3100/mcp'
 
 
 class Settings(BaseSettings):
@@ -39,6 +41,17 @@ class Settings(BaseSettings):
     worker_enabled: bool = True
     login_session_hours: int = 8
 
+    # Agent access and the MCP server (spec 007, data-model §10); the three URLs
+    # are resolved by resolve_agent_urls
+    portal_url: str | None = None
+    mcp_url: str | None = None
+    oauth_issuer: str | None = None
+    agent_access_token_minutes: int = 60
+    agent_connection_idle_days: int = 30
+    agent_token_max_days: int = 90
+    approval_request_minutes: int = 10
+    agent_drafts_per_hour: int = 20
+
     @model_validator(mode='after')
     def check_connection_base_url(self) -> 'Settings':
         """Default the connection base URL in development, require it elsewhere.
@@ -64,6 +77,29 @@ class Settings(BaseSettings):
                 '(http:// only with ALLOW_PLAIN_HTTP=true)'
             )
         self.connection_base_url = value
+        return self
+
+    @model_validator(mode='after')
+    def resolve_agent_urls(self) -> 'Settings':
+        """Default the portal URL, the MCP URL and the OAuth issuer (spec 007).
+
+        Runs after check_connection_base_url, so the connection base URL is set:
+        in development the portal and the MCP server have their local ports, and
+        elsewhere both live behind the connection base URL. The issuer is the
+        connection base URL unless set.
+        """
+        base = self.connection_base_url or DEVELOPMENT_CONNECTION_BASE_URL
+        development = self.app_env == 'development'
+        portal_url = (self.portal_url or '').strip().rstrip('/')
+        mcp_url = (self.mcp_url or '').strip().rstrip('/')
+        oauth_issuer = (self.oauth_issuer or '').strip().rstrip('/')
+        self.portal_url = portal_url or (
+            DEVELOPMENT_PORTAL_URL if development else base
+        )
+        self.mcp_url = mcp_url or (
+            DEVELOPMENT_MCP_URL if development else f'{base}/mcp'
+        )
+        self.oauth_issuer = oauth_issuer or base
         return self
 
 

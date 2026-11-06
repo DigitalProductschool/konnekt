@@ -1,0 +1,40 @@
+---
+name: access-levels
+description: The three access levels an agent can have in the Connection Portal, what each allows, how to ask for more, the team member's user page and personal access tokens.
+---
+
+# Access levels
+
+The team member chooses your access level when they connect you, on the Connection Portal's
+consent page. Each level includes the one before it:
+
+| Level                                           | Allows                                                                                  |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| "Read only"                                     | Reading connections, variants, rules, the catalog, the rule checks and the tests        |
+| "Read and edit drafts"                          | Also creating and changing drafts, and asking for approval to publish or delete a draft |
+| "Read, edit drafts and manage live connections" | Also asking for approval to deactivate, reactivate or delete a published connection     |
+
+At every level, a published connection's content (its name, description, documents, variants and
+rules) is read-only for agents: the team member changes it in the Connection Portal. Publishing,
+deleting, deactivating and reactivating never happen without the team member's approval.
+
+## When a level isn't enough
+
+A call that needs a higher level is refused with a message that names the level it needs. You can
+ask for it: your client then opens the consent page again, with the requested level selected, and
+the team member decides. Or the team member raises the level on their user page.
+
+## The user page
+
+The team member's user page in the Connection Portal lists the agents they connected and their
+personal access tokens. There they can raise or lower each one's access level, which applies from
+your next call without connecting again, or revoke it, after which your calls are refused until
+you are connected again. Lowering or revoking cancels the approval requests the new level doesn't
+allow.
+
+## Personal access tokens
+
+Clients that can't open a browser to sign in use a personal access token instead: the team member
+creates it on their user page, with the same choice of access level and an expiry, and gives it to
+the client as its bearer token. The token is shown once, when it is created; never repeat it,
+write it down or log it.

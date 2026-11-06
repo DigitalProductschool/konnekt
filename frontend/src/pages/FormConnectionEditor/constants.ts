@@ -79,10 +79,9 @@ export const DRAFT_COPY = {
   draftBadge: 'Draft',
   untitled: 'Untitled connection',
   draftSaved: (name: string) => `Draft ${name} saved.`,
-  // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
-  // whole document by its key, since the catalog has no label for it any more
+  // The note on data the catalog no longer offers (S8; W10); its labels come from
+  // `droppedDataOf()` in @connection-portal/rules/dropped
   catalogDroppedTitle: 'The wallet no longer offers some data of this draft',
-  droppedField: (document: string, field: string) => `${document} – ${field}`,
   removeIt: 'Remove it',
   // The conflict dialog after "Save and exit", and the publish dialog's conflicts (S2; W4)
   draftChangedTitle: 'This draft has changed',

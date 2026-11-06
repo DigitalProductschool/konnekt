@@ -8,7 +8,9 @@ A row is in one of two states, draft or published, and a published connection ne
 becomes a draft again. Its URLs answer as unavailable while it is a draft.
 
 Saving a draft checks its structure only (`complete=False`, research R3) and numbers
-new rules and groups from the row's counters (R4). Publishing runs the checks of
+new rules and groups from the row's counters (R4). Its variants keep their ids, which
+the server assigns where a request sends none, and which their branch rows take when
+the draft is published (spec 007, research R10, FR-029). Publishing runs the checks of
 creating a connection and then `form_connections.create_revision()` with a
 `DraftGuard`, so there is no second save path (R5). Nothing here calls EUDIPLO
 except through publishing.
@@ -60,7 +62,8 @@ def _draft_changed() -> HTTPException:
 def draft_view(form_connection: FormConnection) -> FormConnectionDraft:
     """A draft as the API returns it: its content and version, without URLs.
 
-    Answers 409 `draft_published` for a published row.
+    Its branches carry their ids (spec 007, research R10). Answers 409
+    `draft_published` for a published row.
     """
     if form_connection.draft is None or form_connection.draft_version is None:
         raise _draft_published()
@@ -130,11 +133,14 @@ def _lock_draft(
 
 
 def _clean_draft(
-    data: DraftCreate,
+    db: Session, data: DraftCreate, form_connection_id: str | None
 ) -> tuple[str, str, list[RequestedDocument], rules.RulesSave]:
     """The structural checks of a draft (FR-003, research R3), or a 400.
 
-    Returns the name, the description, the documents and the checked rules.
+    Returns the name, the description, the documents and the checked rules, whose
+    branches all have ids: a null one gets a UUID, and a UUID the request sends is
+    kept unless another form connection's branch has it (`form_connection_id` is
+    the draft's, None while it is created; spec 007, research R10).
     """
     name = form_connections.clean_name(data.name)
     description = form_connections.clean_description(data.description)
@@ -148,6 +154,7 @@ def _clean_draft(
         main_branch_id=None,
         complete=False,
     )
+    rules.check_draft_branch_ids(db, form_connection_id, save.branches)
     return name, description, documents, save
 
 
@@ -170,7 +177,7 @@ def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
     revision, rule set or branch row (FR-005). Answers 400 when the structure is
     broken.
     """
-    name, description, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(db, data, None)
     numbering = rules.number_draft(save, (1, 1))
     form_connection = FormConnection(
         id=str(uuid.uuid4()),
@@ -212,7 +219,7 @@ def save_draft(
         data.version,
         data.replace,
     )
-    name, description, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(db, data, form_connection_id)
 
     form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
     numbering = rules.number_draft(
@@ -242,8 +249,9 @@ def publish_draft(
        published (also with `data.replace`), and 409 `draft_changed` if
        `data.version` is outdated and `data.replace` is false, before the content
        is checked (research R6).
-    2. The checks of creating a form connection, unchanged and in its order, and
-       the rules' identifiers against the draft's counters: 400 before anything is
+    2. The checks of creating a form connection, unchanged and in its order, the
+       rules' identifiers against the draft's counters, and the variants' ids,
+       which their branch rows take (spec 007, FR-029): 400 before anything is
        written.
     3. `form_connections.create_revision()` with a `DraftGuard`, which repeats
        step 1 under both of its row locks, reserves the revision, creates the
@@ -270,6 +278,9 @@ def publish_draft(
                 form_connection.next_group_number,
             ),
         )
+        # The branch rows take the draft's ids (FR-029); `first_rule_set` repeats
+        # this under the row lock
+        rules.check_draft_branch_ids(db, form_connection_id, save.branches)
 
     # End the read transaction: the revision path locks the row itself
     db.rollback()

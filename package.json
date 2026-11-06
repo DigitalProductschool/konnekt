@@ -4,7 +4,8 @@
   "workspaces": [
     "api-types",
     "rules",
-    "frontend"
+    "frontend",
+    "mcp"
   ],
   "scripts": {
     "lint": "npm run lint --workspaces --if-present",

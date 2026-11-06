@@ -1,0 +1,26 @@
+# Development Dockerfile for the MCP server: vite-node runs the TypeScript sources
+FROM node:26-alpine
+
+# The npm workspace: the root manifest and lockfile, and the four packages' manifests
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY api-types/package.json api-types/
+COPY rules/package.json rules/
+COPY frontend/package.json frontend/
+COPY mcp/package.json mcp/
+
+# Install dependencies; no .git in the image: skip the root's `prepare`
+# (the pre-commit hook install)
+RUN npm install -w mcp --ignore-scripts
+
+# Copy application code (in dev, the sources are overridden by volume mounts)
+# The packages' tsconfig.json files extend the root's
+COPY tsconfig.base.json ./
+COPY api-types ./api-types
+COPY rules ./rules
+COPY mcp ./mcp
+
+EXPOSE 3100
+
+CMD ["npm", "run", "dev", "-w", "mcp"]

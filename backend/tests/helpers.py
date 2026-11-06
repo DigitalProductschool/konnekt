@@ -1,14 +1,28 @@
-"""Form connections, triggered requests and shared documents for the request tests."""
+"""Form connections, triggered requests and shared documents for the request tests.
+
+Also agents' access to an account (spec 007): an authorization with its token,
+and a client that sends the token as a bearer.
+"""
 
 import copy
-from datetime import datetime, timezone
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select, update
 
+from app.config import settings
 from app.db import SessionLocal
-from app.models import DocumentRequest, FormConnection
+from app.models import (
+    AgentAuthorization,
+    AgentToken,
+    DocumentRequest,
+    FormConnection,
+    OauthClient,
+)
+from app.schemas import AccessLevel, AgentAccessKind
 from tests.fake_eudiplo import FakeEudiplo
 
 # quickstart.md V1: four fields of the ID and three of the driving licence
@@ -380,3 +394,80 @@ def fail_in_wallet(fake: FakeEudiplo, reference: str, failure_code: str | None) 
         failure_code=failure_code,
         error_reason='Missing required claims' if failure_code is None else None,
     )
+
+
+# Agents (spec 007, data-model.md sections 1, 3 and 4)
+
+
+def create_agent_authorization(
+    user_account_id: str,
+    access_level: AccessLevel,
+    kind: AgentAccessKind = 'token',
+    name: str = 'test',
+    client_name: str | None = None,
+) -> tuple[str, str]:
+    """Give an agent access to the account directly in the database.
+
+    `token`: a personal access token called `name`, valid for 30 days, with its
+    `personal` token. `oauth`: an agent connection of a dynamically registered
+    client called `client_name` ("Test agent" by default), with an `access` token
+    valid for AGENT_ACCESS_TOKEN_MINUTES. Returns the authorization's id and the
+    plain token (`cp_pat_` or `cp_at_` and 43 characters); only its SHA-256 is
+    stored.
+    """
+    issued_at = now()
+    with SessionLocal() as db:
+        if kind == 'oauth':
+            client = OauthClient(
+                client_id=f'cp_client_{secrets.token_urlsafe(24)}',
+                kind='dcr',
+                client_name=client_name or 'Test agent',
+                redirect_uris=['http://127.0.0.1/callback'],
+            )
+            db.add(client)
+            db.flush()
+            authorization = AgentAuthorization(
+                user_account_id=user_account_id,
+                kind='oauth',
+                client_id=client.id,
+                name='',
+                access_level=access_level,
+            )
+            token = f'cp_at_{secrets.token_urlsafe(32)}'
+            token_kind = 'access'
+            expires_at = issued_at + timedelta(
+                minutes=settings.agent_access_token_minutes
+            )
+        else:
+            expires_at = issued_at + timedelta(days=30)
+            authorization = AgentAuthorization(
+                user_account_id=user_account_id,
+                kind='token',
+                name=name,
+                access_level=access_level,
+                expires_at=expires_at,
+            )
+            token = f'cp_pat_{secrets.token_urlsafe(32)}'
+            token_kind = 'personal'
+        db.add(authorization)
+        db.flush()
+        authorization_id = authorization.id
+        db.add(
+            AgentToken(
+                authorization_id=authorization_id,
+                kind=token_kind,
+                token_hash=hashlib.sha256(token.encode()).hexdigest(),
+                expires_at=expires_at,
+            )
+        )
+        db.commit()
+    return authorization_id, token
+
+
+def bearer_client(client: TestClient, token: str) -> TestClient:
+    """Send `token` as `Authorization: Bearer` with every request of the client.
+
+    It doesn't touch the client's cookies: clear them for a bearer-only caller.
+    """
+    client.headers['Authorization'] = f'Bearer {token}'
+    return client

@@ -29,6 +29,9 @@ FROM nginx:alpine AS runner
 # resolving ${BACKEND_HOST}. Overridden per environment (Coolify previews get
 # a suffixed backend service name); defaults to the compose service name.
 ENV BACKEND_HOST=backend
+# Likewise ${MCP_HOST}, the MCP server's service name, for /mcp and its protected
+# resource metadata (spec 007, research R3)
+ENV MCP_HOST=mcp
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 # Writes the /api/connect/ allow-list and the trusted proxies at container start,
 # from SERVICEBW_ALLOWED_CIDRS and TRUSTED_PROXY_CIDRS (research R13)

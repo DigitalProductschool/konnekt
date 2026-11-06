@@ -6,6 +6,7 @@ Its identifiers come from its own counters (`number_draft`).
 """
 
 import inspect
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -327,33 +328,40 @@ def test_a_main_variant_that_isnt_first_is_refused() -> None:
 
 
 @pytest.mark.parametrize(
-    ('branches', 'expected'),
+    'branches',
     [
-        (
-            [main_branch([], branch_id='00000000-0000-0000-0000-000000000001')],
-            ONE_MAIN_BRANCH,
-        ),
-        (
-            [
-                main_branch([]),
-                variant(
-                    [],
-                    origin='empty',
-                    branch_id='00000000-0000-0000-0000-000000000002',
-                ),
-            ],
-            'Unknown variant.',
-        ),
+        [main_branch([], branch_id='variant-1')],
+        [main_branch([]), variant([], origin='empty', branch_id='variant-2')],
     ],
     ids=['main variant', 'other variant'],
 )
-def test_a_variant_with_an_id_is_refused_as_the_create_path_refuses_it(
-    branches: list[dict[str, Any]], expected: str
+def test_a_variant_whose_id_isnt_a_uuid_is_refused_as_the_create_path_refuses_it(
+    branches: list[dict[str, Any]],
 ) -> None:
     payload = rules_input(branches)
 
-    assert _problem(lambda: _create_rules(payload)) == expected
-    assert _draft_problem(payload) == expected
+    assert _problem(lambda: _create_rules(payload)) == 'Unknown variant.'
+    assert _draft_problem(payload) == 'Unknown variant.'
+
+
+def test_a_variants_uuid_is_kept_as_the_create_path_keeps_it() -> None:
+    """Spec 007, research R10: a UUID is kept, and a null id gets one."""
+    main_id = '00000000-0000-0000-0000-000000000001'
+    variant_id = '00000000-0000-0000-0000-000000000002'
+    payload = rules_input(
+        [
+            main_branch([], branch_id=main_id),
+            variant([], origin='empty', branch_id=variant_id),
+            variant([], origin='empty', name='Taxi'),
+        ]
+    )
+
+    _create_rules(payload)
+    numbering = _draft_rules(payload)
+
+    ids = [branch.id for branch in numbering.branches]
+    assert ids[:2] == [main_id, variant_id]
+    assert ids[2] is not None and str(uuid.UUID(ids[2])) == ids[2]
 
 
 @pytest.mark.parametrize('identifier', ['rule-x', 'rule-0', 'rule-01', 'group-1'])

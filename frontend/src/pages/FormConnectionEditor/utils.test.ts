@@ -6,6 +6,7 @@ import type {
   FormConnectionDraft,
 } from '@connection-portal/api-types/form-connections';
 import type { BranchCheck, BranchNotice, ItemFinding } from '@connection-portal/rules/checks/types';
+import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { mainBranch, US1_RULES } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
@@ -29,7 +30,6 @@ import {
   draftNameErrors,
   draftPayload,
   draftSaveErrorOf,
-  droppedDataOf,
   droppedRemovalOf,
   editorReducer,
   entryOf,
@@ -1414,21 +1414,6 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
     field: null,
     label: 'residence_permit',
   };
-
-  it('lists a dropped field with its document’s label, and a dropped document by its key', () => {
-    expect(droppedDataOf(documents, CATALOG)).toEqual([EYE_COLOUR, SHOE_SIZE, PERMIT]);
-  });
-
-  it('lists nothing while the catalog offers everything', () => {
-    expect(droppedDataOf([{ document_type: 'pid', fields: ['birthdate'] }], CATALOG)).toEqual([]);
-    expect(droppedDataOf([], CATALOG)).toEqual([]);
-  });
-
-  it('lists a dropped document once, even without fields', () => {
-    expect(droppedDataOf([{ document_type: 'gone', fields: [] }], CATALOG)).toEqual([
-      { documentType: 'gone', field: null, label: 'gone' },
-    ]);
-  });
 
   it('shows a card only the fields the catalog offers', () => {
     expect(offeredFieldsOf(documents[0].fields, CATALOG[0])).toEqual(['birthdate']);

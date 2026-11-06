@@ -462,6 +462,9 @@ def create_form_connection(
     if data.rules is not None:
         save = rules.clean_rules(data.rules, documents, main_branch_id=None)
         rules.check_first_save(save)
+        # A variant id the editor chose must be free (spec 007, research R10);
+        # `first_rule_set` checks it again before the rows are written
+        rules.check_draft_branch_ids(db, None, save.branches)
 
     form_connection_id = str(uuid.uuid4())
     lifetime_seconds = settings.request_lifetime_seconds

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "connection-portal": {
+      "type": "http",
+      "url": "${CONNECTION_PORTAL_MCP_URL}"
+    }
+  }
+}

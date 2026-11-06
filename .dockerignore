@@ -23,6 +23,7 @@ env/
 node_modules/
 **/node_modules/
 frontend/dist/
+mcp/dist/
 npm-debug.log*
 
 # Environment variables — never bake secrets into an image

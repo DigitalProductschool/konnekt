@@ -50,7 +50,7 @@ The SPA route (signed in; a sign-in round trip keeps the query string). It calls
 
 | Endpoint | Auth | Body / answer |
 |---|---|---|
-| `GET /api/oauth/clients/{client_id}` | cookie | `{ data: { client_id, client_name, kind } }`; fetches a CIMD when needed; `404 { error: 'invalid_client' }` |
+| `GET /api/oauth/clients/{client_id}` | cookie | `{ data: { client_id, client_name, kind, current_access_level } }` (`OauthClientView`; `current_access_level`: the signed-in account's existing agent connection's level for this client, `null` without one, for the consent page's step-up line); fetches a CIMD when needed; `404 { error: 'invalid_client' }` |
 | `POST /api/oauth/authorize` | cookie, `require_json` | `{ client_id, redirect_uri, code_challenge, code_challenge_method, state, scope, resource, decision: 'allow' \| 'deny', access_level?: 'read' \| 'drafts' \| 'manage' }` → `{ data: { redirect_to } }`: for `allow`, `{redirect_uri}?code=…&state=…`; for `deny`, `{redirect_uri}?error=access_denied&state=…`. A bad request (unknown client, redirect URI mismatch, missing or non-S256 challenge, `resource` ≠ `MCP_URL`, unknown scope) answers `400 { error: 'invalid_request', message }` and the page shows it without redirecting |
 
 The requested `scope` picks the preselected level (`read drafts manage` → "Read, edit drafts

@@ -265,6 +265,14 @@ def clean_branches(
     kept as sent. Names, descriptions and messages are still trimmed. A message
     that would name an unnamed variant names its position ("Variant 3", Standard
     being 1), one that would name an unnamed rule or group its identifier.
+
+    A branch's id (spec 007, research R10) is null or a UUID, unique in the save:
+    a non-UUID or a repeated one answers "Unknown variant.". A null id gets a new
+    UUID, so the branches come back with ids. With `main_branch_id`, the main
+    branch's id must be it; without (on create, and for a draft), it may be null or
+    a UUID like the others. Whether a UUID is free is the caller's check, with the
+    database: `check_draft_branch_ids`, or `_check_branch_ids` for a published
+    connection's save.
     """
     if len(branches) > MAX_BRANCHES:
         raise _validation_error(
@@ -274,9 +282,11 @@ def clean_branches(
     if (
         len(mains) != 1
         or branches[0].origin != 'main'
-        or branches[0].id != main_branch_id
+        or (main_branch_id is not None and branches[0].id != main_branch_id)
     ):
         raise _validation_error('The rules need exactly one main branch.')
+    # The main branch's id is checked already when the form connection has one
+    _check_id_format(branches[1:] if main_branch_id is not None else branches)
 
     requested = _requested_fields(documents)
     cleaned: list[BranchInput] = []
@@ -295,6 +305,25 @@ def clean_branches(
             )
         )
     return cleaned
+
+
+def _is_uuid(value: str) -> bool:
+    """Whether `value` is a UUID in its canonical form, as pull URLs carry it."""
+    try:
+        return str(uuid.UUID(value)) == value
+    except ValueError:
+        return False
+
+
+def _check_id_format(branches: Sequence[BranchInput]) -> None:
+    """Every branch id is null or a UUID, once in the save (research R10)."""
+    seen: set[str] = set()
+    for branch in branches:
+        if branch.id is None:
+            continue
+        if not _is_uuid(branch.id) or branch.id in seen:
+            raise _validation_error(UNKNOWN_BRANCH)
+        seen.add(branch.id)
 
 
 def _variant_label(name: str, position: int) -> str:
@@ -404,6 +433,8 @@ def _clean_branch(
     )
     return branch.model_copy(
         update={
+            # A branch added without an id gets one now (spec 007, research R10)
+            'id': branch.id or str(uuid.uuid4()),
             'name': name,
             'description': description,
             'items': [_clean_item(item, 0, check) for item in branch.items],
@@ -900,6 +931,37 @@ def _live_branch_ids(db: Session, form_connection_id: str) -> set[str]:
     )
 
 
+def _taken_branch_ids(
+    db: Session, branches: Sequence[BranchInput], form_connection_id: str | None
+) -> set[str]:
+    """The save's branch ids that have a row: any form connection's but
+    `form_connection_id`'s, deleted or not."""
+    ids = {branch.id for branch in branches if branch.id is not None}
+    if not ids:
+        return set()
+    query = select(FormConnectionBranch.id).where(FormConnectionBranch.id.in_(ids))
+    if form_connection_id is not None:
+        query = query.where(
+            FormConnectionBranch.form_connection_id != form_connection_id
+        )
+    return set(db.scalars(query))
+
+
+def check_draft_branch_ids(
+    db: Session, form_connection_id: str | None, branches: Sequence[BranchInput]
+) -> None:
+    """Refuse a branch id that another form connection's branch has (research R10).
+
+    For the branches of a draft, or of a form connection without branch rows yet
+    (`form_connection_id` is None while it has no id): such a branch's id becomes
+    its row's when it is published (FR-029), and a branch's id is never reused,
+    also not a deleted one's. `clean_branches` has checked that every id is a UUID,
+    once in the save. Answers 400 "Unknown variant.".
+    """
+    if _taken_branch_ids(db, branches, form_connection_id):
+        raise _validation_error(UNKNOWN_BRANCH)
+
+
 def _returning_ids(
     branches: Sequence[BranchInput],
     loaded: Sequence[SnapshotBranch],
@@ -984,6 +1046,8 @@ class _Plan:
     numbering: _Numbering
     # The save's branches, with the id of a branch that comes back dropped
     branches: list[BranchInput]
+    # The form connection's branches that aren't deleted
+    live_ids: set[str]
 
 
 def _plan(db: Session, form_connection: FormConnection, save: RulesSave) -> _Plan:
@@ -1009,31 +1073,41 @@ def _plan(db: Session, form_connection: FormConnection, save: RulesSave) -> _Pla
             for branch in save.branches
         ]
     _check_branch_ids(
-        branches, live_ids, {branch.id: branch.origin for branch in current}
+        branches,
+        live_ids,
+        {branch.id: branch.origin for branch in current},
+        _taken_branch_ids(db, branches, None) - live_ids,
     )
-    return _Plan(current=current, numbering=numbering, branches=branches)
+    return _Plan(
+        current=current, numbering=numbering, branches=branches, live_ids=live_ids
+    )
 
 
 def _check_branch_ids(
     branches: Sequence[BranchInput],
     live_ids: set[str],
     origins: Mapping[str, str],
+    taken: set[str],
 ) -> None:
     """A saved branch keeps its id and its origin (FR-019, FR-025).
 
-    The id must be a live branch of this form connection's, once in the save:
-    another form connection's branch and a deleted one are unknown. `origins` are
-    the current branches' origins, which are fixed when a branch is added.
+    An id is a live branch of this form connection's, or a new branch's (spec 007,
+    research R10): one that no branch row has, which `clean_branches` assigned or
+    the editor chose. Once in the save. `taken` are the ids that have a row and
+    aren't live branches of this form connection's: another form connection's
+    branch and a deleted one are unknown, since a branch's id is never reused.
+    `origins` are the current branches' origins, which are fixed when a branch is
+    added.
     """
     main_name = branches[0].name if branches else ''
     seen: set[str] = set()
     for branch in branches:
         if branch.id is None:
             continue
-        if branch.id not in live_ids or branch.id in seen:
+        if branch.id in taken or branch.id in seen:
             raise _validation_error(UNKNOWN_BRANCH)
         seen.add(branch.id)
-        if origins.get(branch.id) != branch.origin:
+        if branch.id in live_ids and origins.get(branch.id) != branch.origin:
             raise _out_of_step(branch.name, main_name)
 
 
@@ -1042,17 +1116,18 @@ def _saved_branches(
     form_connection_id: str,
     branches: Sequence[BranchInput],
     numbering: _Numbering,
+    live_ids: set[str],
 ) -> list[SnapshotBranch]:
     """The branches as stored, with their final identifiers (FR-025, research R5).
 
-    A branch without an id is new: it gets a UUID4, which its pull URL names for
-    good, and its row.
+    A branch whose id isn't one of `live_ids` is new: it gets its row with that id,
+    the draft's or the editor's (spec 007, research R10), or a new UUID4 if it has
+    none; its pull URL names it for good.
     """
     saved: list[SnapshotBranch] = []
     for branch in branches:
-        branch_id = branch.id
-        if branch_id is None:
-            branch_id = str(uuid.uuid4())
+        branch_id = branch.id or str(uuid.uuid4())
+        if branch_id not in live_ids:
             db.add(
                 FormConnectionBranch(
                     id=branch_id,
@@ -1096,7 +1171,9 @@ def save_rule_set(
     from the current one. Returns the branches as saved.
     """
     plan = _plan(db, form_connection, save)
-    saved = _saved_branches(db, form_connection.id, plan.branches, plan.numbering)
+    saved = _saved_branches(
+        db, form_connection.id, plan.branches, plan.numbering, plan.live_ids
+    )
 
     kept = {branch.id for branch in saved}
     now = datetime.now(tz=timezone.utc)
@@ -1139,10 +1216,10 @@ def _first_numbering(
     no identifier counts as loaded. With them, a draft's (spec 005, research R4):
     the counters are the row's, and an identifier below `save.numbering_base`
     counts as loaded and keeps its number; one at or above it is new and moves up
-    past the numbers taken meanwhile. Every branch id is refused, since neither
-    has branch rows.
+    past the numbers taken meanwhile. Branch ids are kept: `clean_branches` checked
+    their form, and `first_rule_set` checks that no other form connection has them
+    (spec 007, research R10).
     """
-    _check_branch_ids(save.branches, set(), {})
     if counters is None:
         return _allocate(save.branches, save.numbering_base, set(), set(), (1, 1))
     bases = {'rule': save.numbering_base.rule, 'group': save.numbering_base.group}
@@ -1156,7 +1233,9 @@ def _first_numbering(
 
 
 def check_first_save(save: RulesSave, counters: tuple[int, int] | None = None) -> None:
-    """Refuse a new form connection's rules that `first_rule_set` would refuse.
+    """Refuse a new form connection's rules whose identifiers `first_rule_set`
+    would refuse; whether its branch ids are free needs the database
+    (`check_draft_branch_ids`).
 
     Publishing a draft passes the row's counters (`_first_numbering`).
     """
@@ -1174,8 +1253,10 @@ def first_rule_set(
     Without `save`, the form connection gets the main branch "Standard" without
     rules. Its counters start at 1, or stay at `counters`. Publishing a draft
     passes the row's counters, so that its rules keep the numbers they had in the
-    draft and the counters never go down (spec 005, research R4). The caller has
-    added the form connection, and commits.
+    draft and the counters never go down (spec 005, research R4). The branch rows
+    take the branches' ids, so a draft's variants keep theirs (spec 007, FR-029);
+    an id that another form connection's branch has answers 400 "Unknown variant."
+    The caller has added the form connection, and commits.
     """
     if save is None:
         saved = [main_branch_snapshot(str(uuid.uuid4()))]
@@ -1192,7 +1273,8 @@ def first_rule_set(
         )
     else:
         numbering = _first_numbering(save, counters)
-        saved = _saved_branches(db, form_connection.id, save.branches, numbering)
+        check_draft_branch_ids(db, form_connection.id, save.branches)
+        saved = _saved_branches(db, form_connection.id, save.branches, numbering, set())
     db.add(
         FormConnectionRuleSet(
             form_connection_id=form_connection.id,
@@ -1222,8 +1304,8 @@ def number_draft(save: RulesSave, counters: tuple[int, int]) -> DraftNumbering:
     lock, when one is saved. An identifier below `save.numbering_base` keeps its
     number; one at or above it is new and moves up past the numbers taken
     meanwhile, the same way in every variant, and a default name follows its new
-    number. A branch id is refused ("Unknown variant."). The counters end above
-    every identifier and never go down. Writes nothing.
+    number. The branches keep their ids (spec 007, research R10). The counters end
+    above every identifier and never go down. Writes nothing.
     """
     numbering = _first_numbering(save, counters)
     return DraftNumbering(

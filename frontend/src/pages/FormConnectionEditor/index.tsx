@@ -5,6 +5,7 @@ import type {
   OverviewLocationState,
 } from '@connection-portal/api-types/routing';
 import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
+import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { firstProblem } from '@connection-portal/rules/validation';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -63,7 +64,6 @@ import {
   draftNameErrors,
   draftPayload,
   draftSaveErrorOf,
-  droppedDataOf,
   droppedRemovalOf,
   editorReducer,
   entryOf,

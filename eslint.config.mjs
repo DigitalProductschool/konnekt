@@ -102,6 +102,33 @@ export default defineConfig([
     },
   },
 
+  // The MCP server and its integration tests: Node globals. It logs only through src/log.ts,
+  // which writes the method, tool, status and duration and nothing else (research R18)
+  {
+    files: ['mcp/src/**/*.ts', 'mcp/test/**/*.ts'],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    languageOptions: { globals: globals.node },
+    plugins: { 'simple-import-sort': simpleImportSort },
+    rules: {
+      ...importOrder,
+      ...unusedVars,
+      'no-console': 'error',
+      // The SPA and the MCP server never import each other
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/frontend/**'], message: 'mcp/ imports nothing from frontend/.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['mcp/src/log.ts'],
+    rules: { 'no-console': 'off' },
+  },
+
   // Build and test configs (vite.config.ts, vitest.config.ts, eslint.config.mjs): Node globals.
   // `*` does not cross directories, so these match only a package's root and the workspace root
   {

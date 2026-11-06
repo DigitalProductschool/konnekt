@@ -1,20 +1,30 @@
-"""DO.IT sign-in: password hashes, sign-in sessions and request checks (R14)."""
+"""DO.IT sign-in: password hashes, sign-in sessions and request checks (R14).
+
+Spec 007 adds the bearer principal: an agent calls the management API with an
+agent connection's access token or a personal access token, at the access level
+stored on its authorization (data-model.md section 4.1, contracts/oauth.md
+"Bearer access"). Nothing here logs: no token, hash or header value, and nothing
+on a refused bearer but the status of the answer.
+"""
 
 import hashlib
 import re
 import secrets
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import cache
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
-from fastapi import Cookie, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from fastapi import Cookie, Depends, Header, HTTPException, Request, Response, status
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..db import get_db
-from ..models import LoginSession, UserAccount
+from ..db import SessionLocal, get_db
+from ..models import AgentAuthorization, AgentToken, LoginSession, UserAccount
+from ..schemas import AccessLevel, AccessLevelInfo
 
 SESSION_COOKIE = 'session'
 SESSION_COOKIE_PATH = '/api'
@@ -24,6 +34,50 @@ MIN_PASSWORD_LENGTH = 12
 STATE_CHANGING_METHODS = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
 
 UNAUTHORIZED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}
+BROWSER_ONLY = {
+    'error': 'browser_only',
+    'message': 'This action is done in the Connection Portal.',
+}
+
+# The three access levels in order, each including the ones before it
+# (data-model.md section 3.1; the texts of contracts/ui-screens.md S1)
+ACCESS_LEVELS: tuple[AccessLevelInfo, ...] = (
+    AccessLevelInfo(
+        level='read',
+        name='Read only',
+        allows=(
+            'Find and read connections, variants and rules, run the rule checks '
+            'and test fictitious applicants. Nothing changes.'
+        ),
+    ),
+    AccessLevelInfo(
+        level='drafts',
+        name='Read and edit drafts',
+        allows=(
+            'Also create and change drafts, and ask you to publish or delete a '
+            'draft. Published connections stay read-only.'
+        ),
+    ),
+    AccessLevelInfo(
+        level='manage',
+        name='Read, edit drafts and manage live connections',
+        allows=(
+            'Also ask you to deactivate, reactivate or delete published '
+            'connections. Each of these needs your approval here.'
+        ),
+    ),
+)
+_LEVEL_ORDER: tuple[str, ...] = tuple(info.level for info in ACCESS_LEVELS)
+# What a level is needed for, in the message of a 403 insufficient_access
+_NEEDED_FOR: dict[str, str] = {
+    'read': 'Reading connections',
+    'drafts': 'Changing drafts',
+    'manage': 'Deactivating, reactivating and deleting published connections',
+}
+# The tokens a bearer may send. A refresh token is only for the token endpoint
+BEARER_TOKEN_KINDS = ('access', 'personal')
+# last_used_at is written at most this often per authorization
+LAST_USED_INTERVAL = timedelta(minutes=1)
 
 # Argon2id with the library's default parameters (RFC 9106, low memory)
 _password_hasher = PasswordHasher()
@@ -131,6 +185,18 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
+def _login_session_of(db: Session, session_token: str | None) -> LoginSession | None:
+    """The sign-in session a cookie token belongs to, unless unknown or expired."""
+    if not session_token:
+        return None
+    return db.scalars(
+        select(LoginSession).where(
+            LoginSession.token_hash == _hash_token(session_token),
+            LoginSession.expires_at > datetime.now(tz=timezone.utc),
+        )
+    ).first()
+
+
 def get_current_login_session(
     session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE),
     db: Session = Depends(get_db),
@@ -139,29 +205,227 @@ def get_current_login_session(
 
     A missing, unknown or expired session answers 401.
     """
-    if session_token:
-        login_session = db.scalars(
-            select(LoginSession).where(
-                LoginSession.token_hash == _hash_token(session_token),
-                LoginSession.expires_at > datetime.now(tz=timezone.utc),
-            )
-        ).first()
-        if login_session is not None:
-            return login_session
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED)
+    login_session = _login_session_of(db, session_token)
+    if login_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED
+        )
+    return login_session
 
 
 def get_current_user(
     login_session: LoginSession = Depends(get_current_login_session),
     db: Session = Depends(get_db),
 ) -> UserAccount:
-    """Return the signed-in user, or answer 401."""
+    """Return the user of the cookie session, or answer 401.
+
+    Cookie only: a bearer token is never looked at here (`get_current_principal`
+    is the dependency that accepts one).
+    """
     user = db.get(UserAccount, login_session.user_account_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED
         )
     return user
+
+
+# The bearer principal (spec 007, data-model.md section 4.1, research R4 to R6)
+
+
+def level_allows(have: str, need: AccessLevel) -> bool:
+    """Whether the access level `have` includes `need` (read < drafts < manage).
+
+    A value that isn't one of the three levels allows nothing.
+    """
+    if have not in _LEVEL_ORDER:
+        return False
+    return _LEVEL_ORDER.index(have) >= _LEVEL_ORDER.index(need)
+
+
+def _level_name(level: str) -> str:
+    return next(info.name for info in ACCESS_LEVELS if info.level == level)
+
+
+def insufficient_access(level: AccessLevel) -> HTTPException:
+    """The 403 for an agent whose access level is below `level`.
+
+    The answer names the level needed, so that the agent can ask for it.
+    """
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            'error': 'insufficient_access',
+            'message': (
+                f"{_NEEDED_FOR[level]} needs the access level '{_level_name(level)}'."
+            ),
+            'needs_access_level': level,
+        },
+    )
+
+
+@dataclass(frozen=True)
+class Principal:
+    """Who makes a call to the management API.
+
+    `authorization` is None for a team member's browser session (the cookie), which
+    may do everything the interface offers. Otherwise it is the agent connection or
+    personal access token whose bearer token was sent, loaded at this call, so its
+    `access_level` is the one stored now (FR-006); `user` is its account.
+    """
+
+    user: UserAccount
+    authorization: AgentAuthorization | None
+
+
+def _bearer_token(authorization: str | None) -> str | None:
+    """The token of an `Authorization: Bearer` header, or None for no bearer.
+
+    The scheme is matched ignoring case (RFC 7235). A header with another scheme
+    isn't a bearer: the call is judged by its cookie, as without the header. A
+    bearer header without a token answers '' and is refused like a wrong token.
+    """
+    if authorization is None:
+        return None
+    parts = authorization.strip().split(None, 1)
+    if not parts or parts[0].lower() != 'bearer':
+        return None
+    return parts[1].strip() if len(parts) == 2 else ''
+
+
+def _authorization_is_current(
+    token_kind: str, authorization: AgentAuthorization, now: datetime
+) -> bool:
+    """Whether a matched token's authorization still grants access.
+
+    A personal access token lasts until its authorization's `expires_at`, which it
+    must have; any authorization past its `expires_at` grants nothing, and neither
+    does an access level that isn't one of the three.
+    """
+    expires_at = authorization.expires_at
+    if expires_at is None:
+        if token_kind == 'personal':
+            return False
+    elif expires_at <= now:
+        return False
+    return authorization.access_level in _LEVEL_ORDER
+
+
+def _touch_last_used(authorization: AgentAuthorization, now: datetime) -> None:
+    """Record the authorization's use, unless that was done less than a minute ago.
+
+    One UPDATE in a session of its own, committed at once, so the request's session
+    and transaction stay as they were. The condition is repeated in the UPDATE, so
+    concurrent calls write it once.
+    """
+    cutoff = now - LAST_USED_INTERVAL
+    if authorization.last_used_at is not None and authorization.last_used_at >= cutoff:
+        return
+    with SessionLocal() as db:
+        db.execute(
+            update(AgentAuthorization)
+            .where(
+                AgentAuthorization.id == authorization.id,
+                or_(
+                    AgentAuthorization.last_used_at.is_(None),
+                    AgentAuthorization.last_used_at < cutoff,
+                ),
+            )
+            .values(last_used_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        db.commit()
+
+
+def _bearer_principal(db: Session, token: str) -> Principal:
+    """Resolve a bearer token through its SHA-256 hash, or answer 401.
+
+    Accepted: an access or personal access token whose own `expires_at` is ahead
+    and whose authorization is current (`_authorization_is_current`). An unknown,
+    expired, refresh or revoked token answers the 401 of a missing sign-in.
+    """
+    refused = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED
+    )
+    if not token:
+        raise refused
+    now = datetime.now(tz=timezone.utc)
+    row = db.execute(
+        select(AgentToken.kind, AgentAuthorization, UserAccount)
+        .join(AgentAuthorization, AgentToken.authorization_id == AgentAuthorization.id)
+        .join(UserAccount, AgentAuthorization.user_account_id == UserAccount.id)
+        .where(
+            AgentToken.token_hash == _hash_token(token),
+            AgentToken.kind.in_(BEARER_TOKEN_KINDS),
+            AgentToken.expires_at > now,
+        )
+    ).first()
+    if row is None:
+        raise refused
+    token_kind, authorization, user = row._tuple()
+    if not _authorization_is_current(token_kind, authorization, now):
+        raise refused
+    _touch_last_used(authorization, now)
+    return Principal(user=user, authorization=authorization)
+
+
+def get_current_principal(
+    authorization: str | None = Header(default=None),
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE),
+    db: Session = Depends(get_db),
+) -> Principal:
+    """Return the caller: an agent's bearer token, or else the cookie session.
+
+    With an `Authorization: Bearer` header only the token counts, the cookie is
+    never looked at: a token that isn't current answers 401 even beside a valid
+    cookie. Without one, the cookie session is judged as `get_current_user` does.
+    Every refusal is the same 401.
+    """
+    token = _bearer_token(authorization)
+    if token is not None:
+        return _bearer_principal(db, token)
+    login_session = _login_session_of(db, session_token)
+    user = (
+        db.get(UserAccount, login_session.user_account_id)
+        if login_session is not None
+        else None
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED
+        )
+    return Principal(user=user, authorization=None)
+
+
+def require_level(level: AccessLevel) -> Callable[[Principal], None]:
+    """A dependency that refuses an agent below `level` with 403.
+
+    The answer is `insufficient_access` with `needs_access_level`. A browser
+    session passes at every level.
+    """
+
+    def check_level(principal: Principal = Depends(get_current_principal)) -> None:
+        authorization = principal.authorization
+        if authorization is not None and not level_allows(
+            authorization.access_level, level
+        ):
+            raise insufficient_access(level)
+
+    return check_level
+
+
+def require_browser_session(
+    principal: Principal = Depends(get_current_principal),
+) -> UserAccount:
+    """Refuse every agent with 403 `browser_only`, and return the signed-in user.
+
+    For the endpoints that only a team member uses in the Connection Portal: the
+    direct status changes, which agents reach through approval requests, and a
+    published connection's content (FR-018, FR-021).
+    """
+    if principal.authorization is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=BROWSER_ONLY)
+    return principal.user
 
 
 def require_json(request: Request) -> None:

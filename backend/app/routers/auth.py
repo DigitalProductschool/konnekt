@@ -11,6 +11,7 @@ from ..services.auth import (
     end_login_session,
     get_current_login_session,
     get_current_user,
+    require_browser_session,
     require_json,
     set_session_cookie,
 )
@@ -39,19 +40,27 @@ def login(
     return ApiResponse(data=UserView.model_validate(user))
 
 
-@router.post('/logout', dependencies=[Depends(require_json)])
+@router.post(
+    '/logout', dependencies=[Depends(require_browser_session), Depends(require_json)]
+)
 def logout(
     response: Response,
     login_session: LoginSession = Depends(get_current_login_session),
     db: Session = Depends(get_db),
 ) -> ApiResponse[None]:
-    """Sign out: delete the sign-in session and clear the cookie."""
+    """Sign out: delete the sign-in session and clear the cookie.
+
+    Browser session only: an agent's bearer token answers 403 `browser_only`.
+    """
     end_login_session(db, login_session)
     clear_session_cookie(response)
     return ApiResponse(data=None, message='Signed out')
 
 
-@router.get('/me')
+@router.get('/me', dependencies=[Depends(require_browser_session)])
 def get_me(user: UserAccount = Depends(get_current_user)) -> ApiResponse[UserView]:
-    """Return the signed-in user."""
+    """Return the signed-in user.
+
+    Browser session only: an agent's bearer token answers 403 `browser_only`.
+    """
     return ApiResponse(data=UserView.model_validate(user))
