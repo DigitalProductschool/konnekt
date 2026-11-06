@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from .config import settings
 from .errors import register_exception_handlers
 from .routers.agent_access import router as agent_access_router
+from .routers.approval_requests import router as approval_requests_router
 from .routers.auth import router as auth_router
 from .routers.connect import router as connect_router
 from .routers.document_types import router as document_types_router
@@ -120,6 +121,7 @@ def oauth_authorization_server() -> JSONResponse:
 
 
 app.include_router(agent_access_router)
+app.include_router(approval_requests_router)
 app.include_router(auth_router)
 app.include_router(document_types_router)
 app.include_router(form_connections_router)

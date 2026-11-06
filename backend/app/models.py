@@ -428,25 +428,35 @@ class AgentToken(Base):
 class ApprovalRequest(Base):
     """An agent's request that a team member approve an action on a connection.
 
-    Spec 007, data-model.md section 5, research R12. Expiry and staleness are
-    computed at every read; only the reasons revoked and access_changed are stored.
+    Spec 007, data-model.md section 5, research R7 and R12. Expiry and staleness
+    are computed at every read; only the reasons revoked and access_changed are
+    stored. A request outlives the authorization that made it: revoking stores
+    `revoked` and deleting the authorization sets `authorization_id` to null, so the
+    approval page can still say why; a waiting request whose authorization went any
+    other way (the worker's sweep, a retired refresh token used again) reads as
+    cancelled with the computed reason `access_ended`. It outlives its draft too,
+    whose deletion removes the row: the request then reads as `draft_deleted`.
     """
 
     __tablename__ = 'approval_requests'
 
     id: Mapped[UuidPk]
-    # Plain: a connection's deletion is a soft delete
-    form_connection_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey('form_connections.id'), index=True
-    )
+    # No foreign key: deleting a draft removes its row (spec 005), and the request
+    # stays to read as draft_deleted; a published connection's deletion is a soft
+    # delete
+    form_connection_id: Mapped[str] = mapped_column(String(36), index=True)
     # publish, delete_draft, deactivate, reactivate or delete
     action: Mapped[str] = mapped_column(String(16))
-    # The agent that asked
-    authorization_id: Mapped[str] = mapped_column(
+    # The agent that asked; null once its access was revoked or has ended, which a
+    # waiting request reads as cancelled, access_ended
+    authorization_id: Mapped[str | None] = mapped_column(
         String(36),
-        ForeignKey('agent_authorizations.id', ondelete='CASCADE'),
+        ForeignKey('agent_authorizations.id', ondelete='SET NULL'),
         index=True,
     )
+    # The agent's name when it asked: the OAuth client's client_name, or the
+    # personal access token's name. Kept after the authorization is gone
+    requested_by: Mapped[str] = mapped_column(String(200))
     # The team member who may approve
     user_account_id: Mapped[str] = mapped_column(
         String(36), ForeignKey('user_accounts.id', ondelete='CASCADE'), index=True
@@ -457,7 +467,9 @@ class ApprovalRequest(Base):
     was_active: Mapped[bool | None] = mapped_column(Boolean)
     # waiting, done, declined, expired, replaced or cancelled
     status: Mapped[str] = mapped_column(String(16), index=True)
-    # revoked or access_changed; the computed reasons are never stored
+    # revoked or access_changed; the computed reasons (access_ended, draft_changed,
+    # draft_published, draft_deleted, connection_changed, connection_deleted) are
+    # never stored
     cancel_reason: Mapped[str | None] = mapped_column(String(32))
     # APPROVAL_REQUEST_MINUTES after creation
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

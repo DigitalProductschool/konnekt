@@ -2,10 +2,11 @@
 
 First the level table of contracts/management-api.md "Who may call what": every
 management endpoint × {no credentials, cookie, read, drafts, manage} → the status
-it answers. US1, US3 and US7 add their endpoints to ENDPOINTS. Then the bearer's
-own rules (contracts/oauth.md "Bearer access", data-model.md section 4.1): the
-tokens that are refused, `last_used_at`, the level read at every call, and that a
-bearer is judged alone, never together with a cookie.
+it answers. US1, US3 and US7 add their endpoints to ENDPOINTS; US3's approval
+requests are the bearer's own, so the request is made once the caller is known.
+Then the bearer's own rules (contracts/oauth.md "Bearer access", data-model.md
+section 4.1): the tokens that are refused, `last_used_at`, the level read at every
+call, and that a bearer is judged alone, never together with a cookie.
 """
 
 import base64
@@ -25,6 +26,7 @@ from app.db import SessionLocal, engine
 from app.models import (
     AgentAuthorization,
     AgentToken,
+    ApprovalRequest,
     FormConnection,
     LoginSession,
     UserAccount,
@@ -150,10 +152,19 @@ def _stored_state() -> list[tuple[Any, ...]]:
         ).all()
         tokens = db.scalar(select(func.count()).select_from(AgentToken))
         sign_ins = db.scalar(select(func.count()).select_from(LoginSession))
+        approvals = db.execute(
+            select(
+                ApprovalRequest.id,
+                ApprovalRequest.status,
+                ApprovalRequest.decided_at,
+                ApprovalRequest.failed_at,
+            ).order_by(ApprovalRequest.id)
+        ).all()
     return (
         [tuple(row) for row in connections]
         + [tuple(row) for row in authorizations]
         + [('tokens', tokens), ('sign-ins', sign_ins)]
+        + [tuple(row) for row in approvals]
     )
 
 
@@ -185,6 +196,46 @@ def _agent_connection(_client: TestClient) -> str | None:
     return create_agent_authorization(user_id, 'drafts', kind='oauth')[0]
 
 
+def _publishable_draft(client: TestClient) -> str | None:
+    """A draft that publishing accepts, for approval requests to name."""
+    response = client.post(
+        f'{BASE}/drafts',
+        json=DRAFT | {'documents': FORM_CONNECTION['documents']},
+    )
+    assert response.status_code == 201, response.json()
+    draft_id: str = response.json()['data']['id']
+    return draft_id
+
+
+def _approval_request(draft_id: str | None, authorization_id: str | None) -> str:
+    """A waiting request to publish the draft, made by the bearer that calls.
+
+    For the callers without a bearer, by another agent of the signed-in account.
+    """
+    assert draft_id is not None
+    with SessionLocal() as db:
+        user_id = db.scalar(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        )
+    assert user_id is not None
+    if authorization_id is None:
+        authorization_id = create_agent_authorization(user_id, 'drafts')[0]
+    with SessionLocal() as db:
+        request = ApprovalRequest(
+            form_connection_id=draft_id,
+            action='publish',
+            authorization_id=authorization_id,
+            requested_by='test',
+            user_account_id=user_id,
+            draft_version=1,
+            status='waiting',
+            expires_at=now() + timedelta(minutes=10),
+        )
+        db.add(request)
+        db.commit()
+        return request.id
+
+
 def _deactivated(client: TestClient) -> str | None:
     form_connection_id = create_form_connection(client)
     response = client.post(f'{BASE}/{form_connection_id}/deactivate', json={})
@@ -212,6 +263,9 @@ EVERY_LEVEL = (NO_SIGN_IN, SUCCESS, SUCCESS, SUCCESS, SUCCESS)
 FROM_DRAFTS = (NO_SIGN_IN, SUCCESS, TOO_LOW, SUCCESS, SUCCESS)
 BROWSER_SESSION = (NO_SIGN_IN, SUCCESS, IN_THE_PORTAL, IN_THE_PORTAL, IN_THE_PORTAL)
 AGENTS_ONLY = (NO_SIGN_IN, FOR_AGENTS, SUCCESS, SUCCESS, SUCCESS)
+# Asking for approval: agents from 'drafts' on; a browser session answers
+# browser_only (contracts/management-api.md)
+AGENTS_FROM_DRAFTS = (NO_SIGN_IN, IN_THE_PORTAL, TOO_LOW, SUCCESS, SUCCESS)
 
 Caller = Literal['none', 'cookie', 'read', 'drafts', 'manage']
 CALLERS: tuple[Caller, ...] = ('none', 'cookie', 'read', 'drafts', 'manage')
@@ -226,9 +280,12 @@ BEARER_LEVELS: dict[Caller, AccessLevel] = {
 class Endpoint:
     """A management endpoint and who may call it.
 
-    `{id}` in the path is the row that `setup` creates for the signed-in client (a
-    connection, or an agent connection on the user page); `success` is the status
-    a permitted call answers.
+    `{id}` in the path, and a body value '{id}', is the row that `setup` creates
+    for the signed-in client (a connection, or an agent connection on the user
+    page); `then`, if given, runs once the caller is set up, with that row and the
+    caller's authorization (None without a bearer), and its row replaces it (an
+    approval request, which is the bearer's own). `success` is the status a
+    permitted call answers.
     """
 
     method: str
@@ -237,12 +294,21 @@ class Endpoint:
     setup: Callable[[TestClient], str | None] = _nothing
     body: dict[str, Any] | None = None
     success: int = 200
+    then: Callable[[str | None, str | None], str] | None = None
 
     def __str__(self) -> str:
         return f'{self.method} {self.path}'
 
     def url(self, row_id: str | None) -> str:
         return self.path.replace('{id}', row_id or '')
+
+    def payload(self, row_id: str | None) -> dict[str, Any] | None:
+        if self.body is None:
+            return None
+        return {
+            key: row_id if value == '{id}' else value
+            for key, value in self.body.items()
+        }
 
 
 ENDPOINTS = [
@@ -315,16 +381,53 @@ ENDPOINTS = [
         success=201,
     ),
     Endpoint('GET', '/api/agent/me', AGENTS_ONLY),
+    Endpoint(
+        'POST',
+        '/api/approval-requests',
+        AGENTS_FROM_DRAFTS,
+        setup=_publishable_draft,
+        body={'form_connection_id': '{id}', 'action': 'publish'},
+        success=201,
+    ),
+    Endpoint(
+        'GET',
+        '/api/approval-requests/{id}',
+        EVERY_LEVEL,
+        setup=_publishable_draft,
+        then=_approval_request,
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests/{id}/approve',
+        BROWSER_SESSION,
+        setup=_publishable_draft,
+        body={},
+        then=_approval_request,
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests/{id}/decline',
+        BROWSER_SESSION,
+        setup=_publishable_draft,
+        body={},
+        then=_approval_request,
+    ),
 ]
 
 
-def _call_as(client: TestClient, user_id: str, caller: Caller) -> None:
-    """Make the signed-in client call as `caller`: a bearer has no cookie."""
+def _call_as(client: TestClient, user_id: str, caller: Caller) -> str | None:
+    """Make the signed-in client call as `caller`: a bearer has no cookie.
+
+    Returns the bearer's authorization, None for the other callers.
+    """
     if caller != 'cookie':
         client.cookies.clear()
     level = BEARER_LEVELS.get(caller)
-    if level is not None:
-        bearer_client(client, create_agent_authorization(user_id, level)[1])
+    if level is None:
+        return None
+    authorization_id, token = create_agent_authorization(user_id, level)
+    bearer_client(client, token)
+    return authorization_id
 
 
 @pytest.mark.parametrize('caller', CALLERS)
@@ -337,10 +440,14 @@ def test_who_may_call_what(
 ) -> None:
     user_id = _sign_in(client)
     row_id = endpoint.setup(client)
-    _call_as(client, user_id, caller)
+    authorization_id = _call_as(client, user_id, caller)
+    if endpoint.then is not None:
+        row_id = endpoint.then(row_id, authorization_id)
     before = _stored_state()
 
-    response = client.request(endpoint.method, endpoint.url(row_id), json=endpoint.body)
+    response = client.request(
+        endpoint.method, endpoint.url(row_id), json=endpoint.payload(row_id)
+    )
 
     outcome = endpoint.access[CALLERS.index(caller)]
     if outcome is SUCCESS:

@@ -22,6 +22,7 @@ from ..errors import describe_error
 from ..models import (
     AgentAuthorization,
     AgentToken,
+    ApprovalRequest,
     DocumentRequest,
     FormConnection,
     FormConnectionRevision,
@@ -59,6 +60,8 @@ SYNC_MAX_PAGES = 50
 RETIRED_REFRESH_TOKEN_KEPT = timedelta(days=1)
 # A dynamically registered client that no authorization uses is deleted after this
 UNUSED_CLIENT_KEPT = timedelta(hours=1)
+# An approval request that ended or expired is kept this long (spec 007, R12)
+APPROVAL_REQUEST_KEPT = timedelta(days=1)
 
 Step = Callable[[], None]
 
@@ -455,8 +458,10 @@ def _delete_authorizations(*conditions: ColumnElement[bool]) -> list[str]:
 
     The rows are locked first and the conditions checked again in a second
     statement, which sees what committed while it waited for a lock: a consent
-    that renews an agent connection at the same time keeps it. Their tokens and
-    approval requests cascade.
+    that renews an agent connection at the same time keeps it. Their tokens
+    cascade; their approval requests stay with `authorization_id` null, and a
+    waiting one then reads as `cancelled` with `access_ended` (computed by
+    `approvals`, data-model.md section 5.2), so no `cancel_for` is needed here.
     """
     with SessionLocal() as db:
         candidates = db.scalars(
@@ -545,6 +550,32 @@ def delete_unused_oauth_clients() -> None:
         logger.info('Deleted unused OAuth client %s', client_id)
 
 
+def delete_old_approval_requests() -> None:
+    """Delete the approval requests that ended or expired a day ago (research R12).
+
+    A request that left `waiting` (`decided_at`) or whose `expires_at` passed more
+    than APPROVAL_REQUEST_KEPT ago goes; one that reads as cancelled by computation
+    (its draft moved on, its access ended) goes with its expiry. Its approval page
+    then answers 404.
+    """
+    cutoff = datetime.now(tz=timezone.utc) - APPROVAL_REQUEST_KEPT
+    with SessionLocal() as db:
+        deleted = db.scalars(
+            delete(ApprovalRequest)
+            .where(
+                or_(
+                    ApprovalRequest.decided_at < cutoff,
+                    ApprovalRequest.expires_at < cutoff,
+                )
+            )
+            .returning(ApprovalRequest.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+        db.commit()
+    if deleted:
+        logger.info('Deleted %d old approval requests', len(deleted))
+
+
 # The steps of one cycle, in the order of research R7 (step 4 was removed with
 # webhook mode), then those of agents' access (spec 007)
 STEPS: tuple[Step, ...] = (
@@ -561,6 +592,7 @@ STEPS: tuple[Step, ...] = (
     delete_idle_agent_connections,
     delete_expired_personal_tokens,
     delete_unused_oauth_clients,
+    delete_old_approval_requests,
 )
 
 

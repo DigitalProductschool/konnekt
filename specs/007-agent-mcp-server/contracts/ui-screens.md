@@ -73,9 +73,10 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
   team member. Only they can approve it."; `404` (an unknown id, or a request the worker has
   swept) shows the not-found screen.
 - **Title** (`h1`) by action: "Publish '{name}'?", "Delete the draft '{name}'?", "Deactivate
-  '{name}'?", "Reactivate '{name}'?", "Delete '{name}'?". Subtitle: "Requested by {requested_by}
-  · expires at {time}" (`requested_by` from the request: the client's or the token's name when
-  the agent asked, kept after its access is gone).
+  '{name}'?", "Reactivate '{name}'?", "Delete '{name}'?"; once a deleted draft's row is gone
+  (`connection_name` is ''), "Publish the draft?" and "Delete the draft?". Subtitle: "Requested
+  by {requested_by} · expires at {time}" (`requested_by` from the request: the client's or the
+  token's name when the agent asked, kept after its access is gone).
 - **Body** by action:
   - `publish`: the description line (as the details header shows it: one line, cut with "…",
     absent when empty), `DocumentsSummary` (documents and fields), `RulesSummaryContent` per

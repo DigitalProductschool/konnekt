@@ -60,6 +60,7 @@ ApprovalRequest    { id, action, form_connection_id, connection_name: str, reque
                      link: str, expires_at, created_at, decided_at: str | None,
                      failed_at: str | None, error_id: str | None, mine: bool }
                      # requested_by: the agent's name when it asked, kept after its access is gone
+                     # connection_name: '' once a deleted draft's row is gone
                      # mine: the signed-in account's
                      # cancel_reason: revoked, access_changed, access_ended, draft_changed,
                      #   draft_published, draft_deleted, connection_changed, connection_deleted

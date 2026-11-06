@@ -556,6 +556,8 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
         worker.delete_idle_agent_connections,
         worker.delete_expired_personal_tokens,
         worker.delete_unused_oauth_clients,
+        # Approval requests (spec 007; tests/api/test_approval_requests.py)
+        worker.delete_old_approval_requests,
     )
 
 

@@ -24,10 +24,12 @@ a draft is stored at once, may be incomplete between calls, and is never live.
    must be met, and add variants when the same form has other rules for some cases.
 5. **Check and test.** Run the rule checks and test the rules with fictitious applicants; resolve
    what they find before publishing.
-6. **Publish with approval.** Publishing needs the team member's approval through a link (see the
-   skill `publishing-and-live-connections`).
+6. **Publish with approval.** Publishing needs the team member's approval through a link:
+   `request_approval` with `action: 'publish'` answers it, and `check_approval` tells the outcome
+   once the team member says they decided (see the skill `publishing-and-live-connections`).
 7. **The connection URLs.** Once published, the connection has a trigger URL and one pull URL per
-   variant, which the team member copies into serviceBW.
+   variant, which the team member copies into serviceBW: `check_approval` answers them after the
+   approved publish, and `get_connection` at any time.
 
 ## Reading what is there
 
@@ -77,6 +79,11 @@ requested, the connection step otherwise. Each answer's text says the draft's ve
   can open them in the Connection Portal.
 - What is still missing before the draft can be published: documents without fields, incomplete
   rules, missing messages, findings of the rule checks.
-- For approval: the link, what will happen when they approve, and that the link expires after a few
-  minutes. Never claim that something was published, deactivated or deleted before the outcome
-  says so.
+- For approval: the link that `request_approval` answers, what will happen when they approve (its
+  `what_happens`), and that the link expires after about ten minutes. Then wait until they say
+  they decided, and call `check_approval` once: `done` (with the connection URLs after publishing),
+  `declined`, `expired`, `replaced`, `cancelled` with its `reason`, or `failed` with an `error_id`
+  to pass on. Never claim that something was published, deactivated or deleted before the outcome
+  says `done`.
+- Deleting a draft works the same way (`action: 'delete_draft'`): its content is gone for good
+  once the team member approves, so ask only when they want it.

@@ -27,22 +27,51 @@ rule complete (field, condition and message), every variant named once. A draft 
 is refused at once with the editor's message, before any link is made. Run the rule checks and the
 tests first: the team member sees the same findings on the approval page.
 
-## The approval link
+## Asking for approval: `request_approval`
 
-Asking answers a link to the approval page. Nothing has happened yet: hand the link to the team
-member, say what will happen when they approve, and that the link expires after about ten minutes.
-A newer request for the same connection and action replaces a waiting one. When the team member
-says they decided, check the outcome:
+`request_approval` takes the `connection` (its id or link) and the `action`. It checks your access
+level for that action first, then whether the action applies: publishing a published connection,
+or deactivating a connection that is already deactivated, is refused with `not_allowed`, and a
+draft that publishing would refuse is refused with `validation` and publishing's message. Nothing
+is made then; fix what the message says and ask again.
 
-| Outcome     | Meaning                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| `waiting`   | Not decided yet                                                                                         |
-| `done`      | Approved and carried out                                                                                |
-| `declined`  | The team member declined; nothing happened                                                              |
-| `expired`   | Nobody decided in time; nothing happened. Ask again if still wanted                                     |
-| `replaced`  | A newer request for the same action replaced it                                                         |
-| `cancelled` | The draft or connection changed meanwhile, or your access was lowered or revoked; the reason says which |
-| `failed`    | The approval was tried but couldn't be carried out; the error ID helps the team                         |
+Otherwise it answers `request` (its `id`, `action`, `connection`, `link`, `expires_at` and
+`status: 'waiting'`) and `what_happens`, which says what the team member will see and the time
+by which they must decide. Nothing has happened yet:
+
+- Hand the `link` to the team member, say what will happen when they approve (`what_happens`),
+  and that the link expires after about ten minutes, at the time it names.
+- A client that can show links to the user opens or offers the link itself; the link is in the
+  answer either way, so always pass it on.
+- Don't change the draft while the request waits: any change to it cancels the request, and the
+  team member would approve what you no longer meant.
+- Never say that something was published, deleted, deactivated or reactivated before
+  `check_approval` says `done`.
+
+A newer request for the same connection and action replaces a waiting one, so ask once and keep
+the `id`.
+
+## Learning the outcome: `check_approval`
+
+When the team member says they decided, call `check_approval` with the request's `id` (or its
+link). Don't call it in a loop while they decide. It answers the `request` with its `status` and
+its `outcome`, and `urls` once a draft is published or a connection reactivated:
+
+| Outcome     | Meaning                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `waiting`   | Not decided yet                                                                                                           |
+| `done`      | Approved and carried out; after publishing or reactivating, `urls` holds the connection URLs                              |
+| `declined`  | The team member declined; nothing happened                                                                                |
+| `expired`   | Nobody decided in time; nothing happened. Ask again if still wanted                                                       |
+| `replaced`  | A newer request for the same action replaced it                                                                           |
+| `cancelled` | Nothing happened: `reason` says why (below)                                                                               |
+| `failed`    | The team member approved, but it couldn't be carried out; pass the `error_id` on. They can try again while the link works |
+
+The `reason` of a cancelled request: `draft_changed` (the draft changed after you asked: ask
+again for the draft as it is now), `draft_published` or `draft_deleted` (someone published or
+deleted it meanwhile), `connection_changed` or `connection_deleted` (the connection was
+deactivated, reactivated or deleted meanwhile), `revoked`, `access_changed` or `access_ended`
+(your access was revoked, lowered or ended).
 
 ## The connection URLs
 

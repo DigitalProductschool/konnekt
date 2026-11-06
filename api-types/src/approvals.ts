@@ -23,11 +23,13 @@ export interface ApprovalRequest {
   action: ApprovalAction;
   form_connection_id: string;
   connection_name: string;
+  /** The agent's name when it asked, kept after its access is gone */
+  requested_by: string;
   status: ApprovalStatus;
   outcome: ApprovalOutcome;
   /**
-   * revoked, access_changed, draft_changed, draft_published, draft_deleted, connection_changed or
-   * connection_deleted
+   * revoked, access_changed, access_ended, draft_changed, draft_published, draft_deleted,
+   * connection_changed or connection_deleted
    */
   cancel_reason: string | null;
   /** The approval page's link */

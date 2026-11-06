@@ -667,10 +667,12 @@ class ApprovalRequest(BaseModel):
     action: ApprovalAction
     form_connection_id: str
     connection_name: str
+    # The agent's name when it asked, kept after its access is gone
+    requested_by: str
     status: ApprovalStatus
     outcome: ApprovalOutcome
-    # revoked, access_changed, draft_changed, draft_published, draft_deleted,
-    # connection_changed or connection_deleted
+    # revoked, access_changed, access_ended, draft_changed, draft_published,
+    # draft_deleted, connection_changed or connection_deleted
     cancel_reason: str | None
     # The approval page's link
     link: str

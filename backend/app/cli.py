@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from .db import Base, SessionLocal
 from .models import (
+    ApprovalRequest,
     DocumentRequest,
     FormConnection,
     FormConnectionBranch,
@@ -94,8 +95,10 @@ def delete_user(db: Session, username: str) -> str:
 
 
 # Children first, so that no foreign key blocks a deletion: requests name a revision
-# and a rule set, and everything else names its form connection
+# and a rule set, and everything else names its form connection (approval requests
+# by id only, spec 007)
 CONNECTION_MODELS: tuple[type[Base], ...] = (
+    ApprovalRequest,
     DocumentRequest,
     FormConnectionRevision,
     FormConnectionRuleSet,
@@ -155,10 +158,11 @@ def _delete_eudiplo_sessions(db: Session) -> int:
 def clear_connections(db: Session, confirmed: bool) -> str:
     """Delete every form connection with everything that belongs to it.
 
-    That is its revisions, branches, rule sets and requests. The EUDIPLO sessions of
-    the requests go first, and the rows only once they are all gone. The accounts and
-    their sign-in sessions stay, and so do the EUDIPLO configurations. Without
-    `confirmed`, the operator sees the row counts and has to type "yes".
+    That is its revisions, branches, rule sets, document requests and agents'
+    approval requests. The EUDIPLO sessions of the document requests go first, and
+    the rows only once they are all gone. The accounts and their sign-in sessions
+    stay, and so do the EUDIPLO configurations. Without `confirmed`, the operator
+    sees the row counts and has to type "yes".
     """
     counts = {
         model.__tablename__: db.scalar(select(func.count()).select_from(model)) or 0

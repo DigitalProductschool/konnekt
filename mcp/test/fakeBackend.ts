@@ -583,6 +583,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       action,
       form_connection_id: fc.id,
       connection_name: fc.name,
+      requested_by: me.client_name ?? 'Personal access token',
       status: 'waiting',
       outcome: 'waiting',
       cancel_reason: null,

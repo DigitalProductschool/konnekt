@@ -30,7 +30,7 @@ citizen's data.**
 user_accounts 1 ──< agent_authorizations 1 ──< agent_tokens
 oauth_clients 1 ──< agent_authorizations (oauth kind)
 oauth_clients 1 ──< oauth_codes >── 1 user_accounts
-agent_authorizations 0..1 ──< approval_requests >── 1 form_connections
+agent_authorizations 0..1 ──< approval_requests >·· 1 form_connections (by id, no foreign key)
 user_accounts 1 ──< approval_requests
 ```
 
@@ -39,8 +39,9 @@ connections, tokens and approval requests at once (FR-005). `agent_tokens.author
 cascades too: revoking an authorization deletes its tokens with it. An approval request outlives
 its authorization: `approval_requests.authorization_id` is nullable with `ON DELETE SET NULL`, so
 the row stays readable for the approval page after the agent's access was revoked or has ended
-(§5.2, R7), until the worker sweeps it. Foreign keys to `form_connections` are plain: a
-connection's deletion is a soft delete.
+(§5.2, R7), until the worker sweeps it. `approval_requests.form_connection_id` has no foreign
+key: deleting a draft removes its row (spec 005) while its requests stay to read as
+`draft_deleted` (§5.2), and a published connection's deletion is a soft delete.
 
 ---
 
@@ -141,7 +142,7 @@ Portal.").
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `String(36)` PK | Part of the approval page's link |
-| `form_connection_id` | FK → `form_connections.id`, indexed | |
+| `form_connection_id` | `String(36)`, indexed, no foreign key | The connection; once a deleted draft's row is gone, the request reads as `draft_deleted` (§5.2) |
 | `action` | `String(16)` | `publish`, `delete_draft`, `deactivate`, `reactivate` or `delete` |
 | `authorization_id` | FK → `agent_authorizations.id` (set null), nullable, indexed | The agent that asked; null once its access was revoked or has ended (§5.2) |
 | `requested_by` | `String(200)` | The agent's name when it asked: the client's `client_name` for an `oauth` authorization, the token's `name` for a `token` one. Shown on the approval page ("Requested by …") and kept after the authorization is gone |
@@ -216,10 +217,11 @@ one. `first_rule_set()` creates the branch rows with these ids when the draft is
 the five tables of §1–§5 and backfills `form_connections.draft` for every row whose `draft` is
 not null, setting each branch's `id` to a new UUID where it is null (a Python loop over the rows,
 since autogenerate emits no data migration). Downgrade drops the tables; the ids in drafts stay.
-`<rev>_approval_requests_outlive_revocation.py`, `down_revision = '60d71d73af6d'`: gives
-`approval_requests.authorization_id` its `ON DELETE SET NULL` rule and its nullability, and adds
-`requested_by` (§5). Downgrade deletes the rows whose `authorization_id` is null, restores the
-cascade and drops the column.
+`ba334922c5ee_approval_requests_outlive_revocation.py`, `down_revision = '60d71d73af6d'`: gives
+`approval_requests.authorization_id` its `ON DELETE SET NULL` rule and its nullability, adds
+`requested_by` (§5) and drops the foreign key of `form_connection_id`. Downgrade deletes the rows
+whose `authorization_id` is null or whose form connection is gone, restores the cascade and the
+foreign key, and drops the column.
 
 ### 6.2 `form_connections`: no new column
 

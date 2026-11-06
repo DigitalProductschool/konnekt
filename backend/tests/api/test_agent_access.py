@@ -8,7 +8,6 @@ is answered once; deleting the account ends every agent's access (FR-005); an
 agent creates at most AGENT_DRAFTS_PER_HOUR drafts an hour (research R17, FR-020).
 """
 
-from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -108,6 +107,7 @@ def _waiting_request(authorization_id: str, action: str, **values: Any) -> str:
                 'form_connection_id': _draft_row(),
                 'action': action,
                 'authorization_id': authorization_id,
+                'requested_by': 'Test agent',
                 'user_account_id': authorization.user_account_id,
                 'draft_version': 1,
                 'status': 'waiting',
@@ -126,6 +126,11 @@ def _request_state(request_id: str) -> tuple[str, str | None, datetime | None] |
         if request is None:
             return None
         return request.status, request.cancel_reason, request.decided_at
+
+
+def _stored_request(request_id: str) -> ApprovalRequest | None:
+    with SessionLocal() as db:
+        return db.get(ApprovalRequest, request_id)
 
 
 def _tokens_of(authorization_id: str) -> list[AgentToken]:
@@ -306,9 +311,7 @@ def test_an_unknown_level_is_refused(signed_in_client: TestClient) -> None:
 # Revoking
 
 
-def test_revoking_ends_the_agents_access(
-    signed_in_client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_revoking_ends_the_agents_access(signed_in_client: TestClient) -> None:
     user_id = _user_id()
     authorization_id, token = create_agent_authorization(
         user_id, 'manage', kind='oauth'
@@ -319,38 +322,30 @@ def test_revoking_ends_the_agents_access(
     others = _waiting_request(other_id, 'publish')
     agent = _agent(token)
     assert agent.get('/api/form-connections').status_code == 200
-
-    # The requests are cancelled before the row goes, and their rows with it
-    seen: list[tuple[str, str | None]] = []
-    cancel_for: Callable[..., int] = approvals.cancel_for
-
-    def spy(db: Any, cancelled_id: str, **options: Any) -> int:
-        count = cancel_for(db, cancelled_id, **options)
-        seen.extend(
-            (request.status, request.cancel_reason)
-            for request in db.scalars(
-                select(ApprovalRequest)
-                .where(ApprovalRequest.authorization_id == cancelled_id)
-                .execution_options(populate_existing=True)
-            )
-        )
-        return count
-
-    monkeypatch.setattr(approvals, 'cancel_for', spy)
+    before = now()
 
     response = signed_in_client.request('DELETE', f'{BASE}/{authorization_id}', json={})
 
     assert response.status_code == 200, response.json()
     assert response.json() == {'data': None, 'message': 'Access revoked'}
-    assert seen == [('cancelled', 'revoked'), ('cancelled', 'revoked')]
-    assert _request_state(deactivate) is None
-    assert _request_state(publish) is None
+    # The requests are cancelled and stay, for the approval page (research R7)
+    for request_id in (deactivate, publish):
+        request = _stored_request(request_id)
+        assert request is not None
+        assert (request.status, request.cancel_reason) == ('cancelled', 'revoked')
+        assert request.decided_at is not None
+        assert before <= request.decided_at <= now()
+        assert request.authorization_id is None
+        assert request.requested_by == 'Test agent'
     assert _tokens_of(authorization_id) == []
     response = agent.get('/api/form-connections')
     assert response.status_code == 401
     assert response.json() == SIGN_IN_REQUIRED
     # The account's other token is untouched
     assert _request_state(others) == ('waiting', None, None)
+    other_request = _stored_request(others)
+    assert other_request is not None
+    assert other_request.authorization_id == other_id
     assert _agent(other_token).get('/api/form-connections').status_code == 200
     assert [
         item['id'] for item in signed_in_client.get(BASE).json()['data']['items']

@@ -1,8 +1,10 @@
 // The MCP server against the fake backend, over Streamable HTTP with the SDK's client (research
 // R2, R19): the bearer, the two protocol eras, the sessions, the skills, and the tools. The tool
 // tests of later phases add to this file
+import type { ApprovalRequest } from '@connection-portal/api-types/approvals';
 import type {
   Condition,
+  FormConnection,
   FormConnectionDraft,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
@@ -1951,5 +1953,383 @@ describe('the item tools', () => {
       ['mdl', ['expiry_date', 'driving_privileges']],
     ]);
     expect(stored.step).toBe('rules');
+  });
+});
+
+describe('the approval tools', () => {
+  type ElicitParams = { mode?: string; url?: string; message?: string };
+
+  beforeAll(async () => {
+    links = await import('../src/links');
+  });
+
+  afterEach(() => fake.reset());
+
+  const NAME = 'Resident parking permit';
+
+  /** The time the team member reads, on Germany's clock. */
+  function timeOf(iso: string): string {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Berlin',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date(iso));
+  }
+
+  function approvalPosts() {
+    return fake.calls.filter(
+      (call) => call.method === 'POST' && call.path === '/api/approval-requests'
+    );
+  }
+
+  /** A client of `era` that declares URL-mode elicitation and records what it is shown. */
+  async function elicitingClient(era: Era, seen: ElicitParams[]): Promise<Client> {
+    const capabilities = { elicitation: { url: {} } };
+    const client = new Client(
+      { name: 'server-test', version: '1.0.0' },
+      era === 'modern' ? { capabilities, versionNegotiation: { mode: 'auto' } } : { capabilities }
+    );
+    client.setRequestHandler('elicitation/create', async (request) => {
+      seen.push(request.params as ElicitParams);
+      return { action: 'accept' };
+    });
+    const transport = new StreamableHTTPClientTransport(mcpUrl, {
+      requestInit: { headers: { Authorization: `Bearer ${BEARERS.drafts}` } },
+    });
+    await client.connect(transport);
+    clients.push(client);
+    return client;
+  }
+
+  /** A request stored in the fake, changed by `change`, for check_approval. */
+  async function storedRequest(change: (request: ApprovalRequest) => ApprovalRequest) {
+    const { structured } = await callTool(
+      'request_approval',
+      { connection: IDS.draft, action: 'publish' },
+      BEARERS.drafts
+    );
+    const id = structured.request.id as string;
+    const stored = fake.store.approvals.get(id);
+    if (!stored) throw new Error('The fake stored no request');
+    stored.request = change(stored.request);
+    return id;
+  }
+
+  describe('request_approval', () => {
+    it("answers the request's link and expiry, and what happens next; nothing is published", async () => {
+      const { isError, structured, text } = await callTool(
+        'request_approval',
+        { connection: links.connectionLink(IDS.draft), action: 'publish' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      const [stored] = [...fake.store.approvals.values()];
+      const { request } = stored;
+      expect(structured).toEqual({
+        request: {
+          id: request.id,
+          action: 'publish',
+          connection: {
+            id: IDS.draft,
+            name: NAME,
+            status: 'draft',
+            link: links.connectionLink(IDS.draft),
+          },
+          link: `http://localhost:5173/approvals/${request.id}`,
+          expires_at: request.expires_at,
+          status: 'waiting',
+        },
+        what_happens:
+          "Nothing is published yet. The team member opens the link, sees the draft's content " +
+          "and the rule checks' findings, and approves or declines before " +
+          `${timeOf(request.expires_at)}.`,
+      });
+      expect(new Date(request.expires_at).getTime() - Date.now()).toBeGreaterThan(9 * 60_000);
+      expect(text).toContain(request.link);
+      expect(text).toContain('check_approval');
+      expect(storedDraft().status).toBe('draft');
+    });
+
+    it('says that deleting a draft is for good', async () => {
+      const { structured } = await callTool(
+        'request_approval',
+        { connection: IDS.draft, action: 'delete_draft' },
+        BEARERS.drafts
+      );
+      expect(structured.request.action).toBe('delete_draft');
+      expect(structured.what_happens).toMatch(/^Nothing is deleted yet\. /);
+      expect(structured.what_happens).toContain('its content will be gone for good.');
+      expect(fake.store.connections.has(IDS.draft)).toBe(true);
+    });
+
+    it.each([
+      [
+        'publish',
+        IDS.draft,
+        'drafts',
+        "Your access is read only. Changing drafts needs the access level 'Read and edit " +
+          "drafts'. Ask for it with request_access, or the team member raises it on their user " +
+          'page.',
+      ],
+      [
+        'deactivate',
+        IDS.live,
+        'manage',
+        'Your access is read only. Deactivating, reactivating and deleting published ' +
+          "connections needs the access level 'Read, edit drafts and manage live connections'. " +
+          'Ask for it with request_access, or the team member raises it on their user page.',
+      ],
+    ])(
+      'refuses the read caller asking to %s with the level it needs, and makes no request',
+      async (action, connection, level, message) => {
+        const { isError, structured } = await callTool(
+          'request_approval',
+          { connection, action },
+          BEARERS.read
+        );
+        expect(isError).toBe(true);
+        expect(structured).toEqual({
+          code: 'insufficient_access',
+          message,
+          needs_access_level: level,
+        });
+        expect(approvalPosts()).toEqual([]);
+        expect(fake.store.approvals.size).toBe(0);
+      }
+    );
+
+    it('refuses the drafts caller asking to deactivate with the manage level, no request made', async () => {
+      const { structured } = await callTool(
+        'request_approval',
+        { connection: IDS.live, action: 'deactivate' },
+        BEARERS.drafts
+      );
+      expect(structured).toMatchObject({
+        code: 'insufficient_access',
+        needs_access_level: 'manage',
+      });
+      expect(approvalPosts()).toEqual([]);
+    });
+
+    it("refuses a draft that publishing would refuse with publishing's message", async () => {
+      const created = await callTool('create_draft', { name: 'Empty' }, BEARERS.drafts);
+      const { isError, structured } = await callTool(
+        'request_approval',
+        { connection: created.structured.connection.id, action: 'publish' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({ code: 'validation', message: 'Add at least one document.' });
+      expect(fake.store.approvals.size).toBe(0);
+    });
+
+    it('refuses publishing a published connection with not_allowed', async () => {
+      const { structured } = await callTool(
+        'request_approval',
+        { connection: IDS.live, action: 'publish' },
+        BEARERS.drafts
+      );
+      expect(structured).toEqual({
+        code: 'not_allowed',
+        message: 'This connection is already published.',
+      });
+    });
+
+    it('answers not_found for an unknown connection', async () => {
+      const { structured } = await callTool(
+        'request_approval',
+        { connection: '44444444-4444-4444-8444-444444444444', action: 'publish' },
+        BEARERS.drafts
+      );
+      expect(structured.code).toBe('not_found');
+      expect(approvalPosts()).toEqual([]);
+    });
+
+    it.each<Era>(['modern', 'legacy'])(
+      '%s: a client that declares elicitation.url is shown the link; one request is made',
+      async (era) => {
+        const seen: ElicitParams[] = [];
+        const client = await elicitingClient(era, seen);
+        const answer = await client.callTool({
+          name: 'request_approval',
+          arguments: { connection: IDS.draft, action: 'publish' },
+        });
+        expect(answer.isError).not.toBe(true);
+        expect(fake.store.approvals.size).toBe(1);
+        expect(approvalPosts()).toHaveLength(1);
+        const [{ request }] = [...fake.store.approvals.values()];
+        expect(seen).toEqual([
+          expect.objectContaining({
+            mode: 'url',
+            url: request.link,
+            message: `Approve publishing '${NAME}' in the Connection Portal.`,
+          }),
+        ]);
+        // The re-entered call read the request back and answers the ordinary result
+        const structured = answer.structuredContent as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+        expect(structured.request).toMatchObject({
+          id: request.id,
+          link: request.link,
+          expires_at: request.expires_at,
+          status: 'waiting',
+          connection: { id: IDS.draft, name: NAME, status: 'draft' },
+        });
+        expect(structured.what_happens).toMatch(/^Nothing is published yet\. /);
+        expect(fake.calls).toContainEqual(
+          expect.objectContaining({ method: 'GET', path: `/api/approval-requests/${request.id}` })
+        );
+      }
+    );
+
+    it.each<Era>(['modern', 'legacy'])(
+      '%s: a client without elicitation.url gets the link in the result only',
+      async (era) => {
+        const { structured } = await callTool(
+          'request_approval',
+          { connection: IDS.draft, action: 'publish' },
+          BEARERS.drafts,
+          era
+        );
+        const [{ request }] = [...fake.store.approvals.values()];
+        expect(structured.request.link).toBe(request.link);
+        expect(approvalPosts()).toHaveLength(1);
+        // No round trip: the request isn't read back
+        expect(fake.calls.map((call) => call.path)).not.toContain(
+          `/api/approval-requests/${request.id}`
+        );
+      }
+    );
+  });
+
+  describe('check_approval', () => {
+    it('answers a waiting request, by its link too', async () => {
+      const id = await storedRequest((request) => request);
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: links.approvalLink(id) },
+        BEARERS.drafts
+      );
+      const { request } = fake.store.approvals.get(id) ?? {};
+      expect(structured).toEqual({
+        request: {
+          id,
+          action: 'publish',
+          connection: {
+            id: IDS.draft,
+            name: NAME,
+            status: 'draft',
+            link: links.connectionLink(IDS.draft),
+          },
+          link: request?.link,
+          expires_at: request?.expires_at,
+          status: 'waiting',
+          outcome: 'waiting',
+        },
+        urls: null,
+      });
+      expect(text).toContain("hasn't decided yet");
+    });
+
+    it('answers a done publish with the connection URLs', async () => {
+      const id = await storedRequest((request) => ({
+        ...request,
+        status: 'done',
+        outcome: 'done',
+        decided_at: new Date().toISOString(),
+      }));
+      const live = fake.store.connections.get(IDS.live) as FormConnection;
+      fake.store.connections.set(IDS.draft, { ...live, id: IDS.draft, name: NAME });
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.drafts
+      );
+      expect(structured.request).toMatchObject({
+        status: 'done',
+        outcome: 'done',
+        connection: { id: IDS.draft, status: 'live' },
+      });
+      expect(structured.urls).toEqual({
+        trigger_url: live.trigger_url,
+        variants: [
+          {
+            id: IDS.liveStandard,
+            name: 'Standard',
+            link: links.variantLink(IDS.draft, IDS.liveStandard),
+            pull_url: live.branches[0].pull_url,
+          },
+        ],
+      });
+      expect(text).toContain('the draft is published');
+      expect(text).toContain(`Trigger URL: ${live.trigger_url}`);
+    });
+
+    it.each<[string, Partial<ApprovalRequest>, Record<string, unknown>, string]>([
+      ['declined', { status: 'declined', outcome: 'declined' }, {}, 'declined'],
+      ['expired', { status: 'expired', outcome: 'expired' }, {}, 'expired at'],
+      [
+        'cancelled',
+        { status: 'cancelled', outcome: 'cancelled', cancel_reason: 'draft_changed' },
+        { reason: 'draft_changed' },
+        'The draft changed after you asked',
+      ],
+      [
+        'failed',
+        {
+          status: 'waiting',
+          outcome: 'failed',
+          failed_at: '2026-11-06T10:00:00Z',
+          error_id: 'E-42',
+        },
+        { error_id: 'E-42' },
+        'Error ID: E-42',
+      ],
+    ])('answers a %s request', async (_case, change, extra, sentence) => {
+      const id = await storedRequest((request) => ({ ...request, ...change }));
+      const { isError, structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      const expected = {
+        status: change.status,
+        outcome: change.outcome,
+        ...extra,
+      };
+      expect(structured.request).toMatchObject(expected);
+      if (!('reason' in extra)) expect(structured.request).not.toHaveProperty('reason');
+      if (!('error_id' in extra)) expect(structured.request).not.toHaveProperty('error_id');
+      expect(structured.urls).toBeNull();
+      expect(text).toContain(sentence);
+    });
+
+    it("answers not_found for another caller's request", async () => {
+      const id = await storedRequest((request) => request);
+      const { structured } = await callTool('check_approval', { request_id: id }, BEARERS.manage);
+      expect(structured.code).toBe('not_found');
+    });
+
+    it('refuses the read caller with insufficient_access', async () => {
+      const { structured } = await callTool(
+        'check_approval',
+        { request_id: '44444444-4444-4444-8444-444444444444' },
+        BEARERS.read
+      );
+      expect(structured).toMatchObject({
+        code: 'insufficient_access',
+        needs_access_level: 'drafts',
+      });
+    });
+
+    it("refuses a connection's link, which names no approval request", async () => {
+      const { structured } = await callTool(
+        'check_approval',
+        { request_id: links.connectionLink(IDS.draft) },
+        BEARERS.drafts
+      );
+      expect(structured.code).toBe('validation');
+    });
   });
 });

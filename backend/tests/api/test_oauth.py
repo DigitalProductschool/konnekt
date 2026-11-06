@@ -1300,7 +1300,8 @@ def _ids(model: type[Any]) -> set[str]:
 
 
 def test_worker_steps_are_registered() -> None:
-    assert worker.STEPS[-5:] == (
+    # The approval requests' step follows them (test_approval_requests.py)
+    assert worker.STEPS[-6:-1] == (
         worker.delete_expired_oauth_codes,
         worker.delete_expired_agent_tokens,
         worker.delete_idle_agent_connections,

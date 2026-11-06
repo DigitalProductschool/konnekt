@@ -136,8 +136,9 @@ def revoke(db: Session, user: UserAccount, authorization_id: str) -> None:
     """Revoke an agent connection or token; 404 for another account's.
 
     Its waiting approval requests are cancelled with `revoked`, then the row is
-    deleted with its tokens (and, by the same cascade, its requests' rows). The
-    agent's next call answers 401.
+    deleted with its tokens. The cancelled requests stay, with `authorization_id`
+    null (`ON DELETE SET NULL`), so the approval page still says why (research
+    R7). The agent's next call answers 401.
     """
     authorization = _lock_own(db, user, authorization_id)
     approvals.cancel_for(db, authorization.id, reason='revoked')

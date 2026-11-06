@@ -2212,3 +2212,178 @@ def test_the_migration_gives_every_drafts_branches_an_id(
     with engine.begin() as connection:
         backfill_branch_ids(connection)
     assert stored_draft(old_id) == (content, version, updated_at)
+
+
+# Spec 007: approval requests check and publish the stored draft (research R12,
+# FR-022). `check_publishable` runs publishing's checks on the stored content, and
+# `publish_stored_draft` publishes it through `publish_draft`
+
+
+def editor_publish_body(draft: dict[str, Any], documents: Any) -> dict[str, Any]:
+    """What the editor sends to publish a draft it loaded without changing it.
+
+    The stored branches, with their ids, numbered from the draft's counters.
+    """
+    return {
+        'name': draft['name'],
+        'description': draft['description'],
+        'documents': documents,
+        'rules': rules_input(
+            draft['branches'],
+            rule_base=draft['next_rule_number'],
+            group_base=draft['next_group_number'],
+        ),
+        'version': draft['version'],
+    }
+
+
+def check_publishable_refusal(draft_id: str) -> HTTPException:
+    """The refusal of `check_publishable` for the stored draft."""
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None
+        with pytest.raises(HTTPException) as refused:
+            drafts.check_publishable(db, row)
+    return refused.value
+
+
+@pytest.mark.parametrize(
+    ('documents', 'branches'),
+    [
+        pytest.param([], [main_branch([])], id='no documents'),
+        pytest.param(
+            FORM_CONNECTION['documents'],
+            [main_branch([AGE_RULE | {'condition': None}])],
+            id='a rule without a condition',
+        ),
+        pytest.param(
+            FORM_CONNECTION['documents'],
+            [main_branch([AGE_RULE]), variant([AGE_RULE], name=' ')],
+            id='an unnamed variant',
+        ),
+    ],
+)
+def test_check_publishable_refuses_as_publishing_does(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    documents: list[dict[str, Any]],
+    branches: list[dict[str, Any]],
+) -> None:
+    draft_id = create_draft(
+        signed_in_client, documents=documents, rules=draft_rules(branches)
+    )
+    draft = get(signed_in_client, draft_id)
+
+    refusal = check_publishable_refusal(draft_id)
+    published = signed_in_client.post(
+        f'{BASE}/{draft_id}/publish', json=editor_publish_body(draft, documents)
+    )
+
+    assert published.status_code == refusal.status_code == 400
+    assert published.json()['error'] == 'Validation error'
+    assert refusal.detail == published.json()
+    # Nothing is written
+    assert get(signed_in_client, draft_id) == draft
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []
+
+
+def test_check_publishable_passes_a_complete_draft(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = create_draft(
+        signed_in_client,
+        description='  FS-20417 ',
+        documents=FORM_CONNECTION['documents'],
+        rules=draft_rules([main_branch([AGE_RULE, CLASS_RULE])]),
+    )
+
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None
+        name, description, documents, save = drafts.check_publishable(db, row)
+
+    assert (name, description) == ('Führerscheinantrag Entwurf', 'FS-20417')
+    assert [document.document_type for document in documents] == ['pid', 'mdl']
+    assert save is not None
+    assert [branch.id for branch in save.branches] == [
+        branch['id'] for branch in get(signed_in_client, draft_id)['branches']
+    ]
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []
+
+
+def test_check_publishable_refuses_a_published_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client)
+
+    refusal = check_publishable_refusal(form_connection_id)
+
+    assert refusal.status_code == 409
+    assert refusal.detail == DRAFT_PUBLISHED_DETAIL
+
+
+def test_publish_stored_draft_publishes_as_the_editor_does(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Two drafts with the same content: the editor publishes one, the approval
+    path the other, and both answer the same connection."""
+    content = {
+        'documents': FORM_CONNECTION['documents'],
+        'rules': draft_rules(
+            [
+                main_branch(us2_items(group_message='You are too young.')),
+                variant(us2_items(group_message='You are too young.')),
+                variant([AGE_RULE, CLASS_RULE], name='Taxi', origin='empty'),
+            ]
+        ),
+        'step': 'test',
+    }
+    edited_id = create_draft(signed_in_client, **content)
+    approved_id = create_draft(signed_in_client, **content)
+    edited = get(signed_in_client, edited_id)
+    approved = get(signed_in_client, approved_id)
+    published = signed_in_client.post(
+        f'{BASE}/{edited_id}/publish',
+        json=editor_publish_body(edited, content['documents']),
+    )
+    assert published.status_code == 200, published.json()
+
+    with SessionLocal() as db:
+        view = drafts.publish_stored_draft(db, approved_id, approved['version'])
+
+    data = view.model_dump(mode='json')
+    assert data['id'] == approved_id
+    assert published_shape(data) == published_shape(published.json()['data'])
+    # The variants keep the draft's ids (FR-029)
+    assert [branch['id'] for branch in data['branches']] == [
+        branch['id'] for branch in approved['branches']
+    ]
+    assert get(signed_in_client, approved_id) == data
+    assert rows(approved_id) == (1, 1, 3)
+    assert trigger(signed_in_client, approved_id)['status'] == 'pending'
+
+
+def test_publish_stored_draft_publishes_only_its_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = create_draft(signed_in_client)
+    saved = save(
+        signed_in_client,
+        draft_id,
+        1,
+        name='Geändert',
+        documents=FORM_CONNECTION['documents'],
+    )
+    assert saved.status_code == 200, saved.json()
+    before = get(signed_in_client, draft_id)
+
+    with SessionLocal() as db, pytest.raises(HTTPException) as refused:
+        drafts.publish_stored_draft(db, draft_id, 1)
+
+    assert refused.value.status_code == 409
+    assert refused.value.detail == DRAFT_CHANGED_DETAIL
+    assert get(signed_in_client, draft_id) == before
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []

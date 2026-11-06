@@ -727,8 +727,11 @@ def refresh(db: Session, params: Mapping[str, str]) -> TokenResponse:
     Under the refresh token's row lock: an unknown or expired one, or another
     client than the connection's, answers `invalid_grant`; a `resource` other than
     `MCP_URL`, `invalid_target`. A retired (replaced) refresh token used again
-    deletes its agent connection, whose tokens cascade, and answers `invalid_grant`.
-    The answer's scope is the connection's level as stored now.
+    deletes its agent connection, whose tokens cascade, and answers `invalid_grant`;
+    its approval requests stay with `authorization_id` null, and a waiting one
+    reads as `cancelled` with `access_ended` (computed by `approvals`, data-model.md
+    section 5.2; no `cancel_for` here). The answer's scope is the connection's
+    level as stored now.
     """
     refresh_token = _required(params, 'refresh_token')
     client_id = _required(params, 'client_id')
