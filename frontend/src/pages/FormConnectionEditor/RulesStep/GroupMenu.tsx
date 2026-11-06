@@ -1,9 +1,10 @@
 import groupIcon from '../../../assets/icons/group-brackets.svg';
 import renameIcon from '../../../assets/icons/rename.svg';
 import resetIcon from '../../../assets/icons/reset-restore.svg';
-import ActionMenu from './ActionMenu';
+import ActionMenu from '../../../components/ActionMenu';
+import type { MenuAction } from '../../../components/ActionMenu/types';
 import { RULES_COPY } from './constants';
-import type { GroupMenuProps, MenuAction } from './types';
+import type { GroupMenuProps } from './types';
 
 /**
  * The ⋯ menu of a group or sub-group (W6, W8; design-notes §5), built like the rule menu (U14

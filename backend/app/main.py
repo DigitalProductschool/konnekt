@@ -7,15 +7,19 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import settings
 from .errors import register_exception_handlers
+from .routers.agent_access import router as agent_access_router
 from .routers.auth import router as auth_router
 from .routers.connect import router as connect_router
 from .routers.document_types import router as document_types_router
 from .routers.form_connections import router as form_connections_router
+from .routers.oauth import router as oauth_router
 from .routers.option_sets import router as option_sets_router
 from .schemas import to_iso_utc
+from .services import oauth
 from .services.worker import Worker
 
 # The reference in a pull URL, /api/connect/<id>/requests/<reference>, also in a
@@ -103,8 +107,22 @@ def health_check() -> dict[str, dict[str, str]]:
     }
 
 
+@app.get('/.well-known/oauth-authorization-server')
+def oauth_authorization_server() -> JSONResponse:
+    """The authorization server's metadata (RFC 8414; spec 007, research R4).
+
+    Open, outside `/api` as the RFC places it, and plain JSON, not the `{data}`
+    envelope; clients may cache it for an hour.
+    """
+    return JSONResponse(
+        content=oauth.metadata(), headers={'Cache-Control': 'max-age=3600'}
+    )
+
+
+app.include_router(agent_access_router)
 app.include_router(auth_router)
 app.include_router(document_types_router)
 app.include_router(form_connections_router)
+app.include_router(oauth_router)
 app.include_router(option_sets_router)
 app.include_router(connect_router)

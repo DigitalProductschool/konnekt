@@ -22,7 +22,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, event, func, select, update
 
 from app.db import SessionLocal, engine
-from app.models import AgentAuthorization, AgentToken, FormConnection, LoginSession
+from app.models import (
+    AgentAuthorization,
+    AgentToken,
+    FormConnection,
+    LoginSession,
+    UserAccount,
+)
 from app.schemas import AccessLevel
 from app.services.auth import (
     ACCESS_LEVELS,
@@ -51,6 +57,7 @@ NEEDS_DRAFTS = {
     'message': "Changing drafts needs the access level 'Read and edit drafts'.",
     'needs_access_level': 'drafts',
 }
+BEARER_ONLY = {'error': 'bearer_only', 'message': 'This endpoint is for agents.'}
 NEEDS_MANAGE = {
     'error': 'insufficient_access',
     'message': (
@@ -116,7 +123,11 @@ def _last_used_at(authorization_id: str) -> datetime | None:
 
 
 def _stored_state() -> list[tuple[Any, ...]]:
-    """What a refused call must leave as it was: the connections and sign-ins."""
+    """What a refused call must leave as it was.
+
+    The connections, the agents' access with its levels and tokens, and the
+    sign-ins.
+    """
     with SessionLocal() as db:
         connections = db.execute(
             select(
@@ -130,8 +141,20 @@ def _stored_state() -> list[tuple[Any, ...]]:
                 FormConnection.deleted_at,
             ).order_by(FormConnection.id)
         ).all()
+        authorizations = db.execute(
+            select(
+                AgentAuthorization.id,
+                AgentAuthorization.access_level,
+                AgentAuthorization.expires_at,
+            ).order_by(AgentAuthorization.id)
+        ).all()
+        tokens = db.scalar(select(func.count()).select_from(AgentToken))
         sign_ins = db.scalar(select(func.count()).select_from(LoginSession))
-    return [tuple(row) for row in connections] + [('sign-ins', sign_ins)]
+    return (
+        [tuple(row) for row in connections]
+        + [tuple(row) for row in authorizations]
+        + [('tokens', tokens), ('sign-ins', sign_ins)]
+    )
 
 
 # The level table
@@ -150,6 +173,16 @@ def _draft(client: TestClient) -> str | None:
 
 def _published(client: TestClient) -> str | None:
     return create_form_connection(client)
+
+
+def _agent_connection(_client: TestClient) -> str | None:
+    """An agent connection of the signed-in account, for the user page's calls."""
+    with SessionLocal() as db:
+        user_id = db.scalar(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        )
+    assert user_id is not None
+    return create_agent_authorization(user_id, 'drafts', kind='oauth')[0]
 
 
 def _deactivated(client: TestClient) -> str | None:
@@ -171,12 +204,14 @@ SUCCESS = Outcome()
 NO_SIGN_IN = Outcome(401, SIGN_IN_REQUIRED)
 TOO_LOW = Outcome(403, NEEDS_DRAFTS)
 IN_THE_PORTAL = Outcome(403, BROWSER_ONLY)
+FOR_AGENTS = Outcome(403, BEARER_ONLY)
 
 # The rows of contracts/management-api.md "Who may call what", in the order of
 # CALLERS: no credentials, browser session, agent read, drafts, manage
 EVERY_LEVEL = (NO_SIGN_IN, SUCCESS, SUCCESS, SUCCESS, SUCCESS)
 FROM_DRAFTS = (NO_SIGN_IN, SUCCESS, TOO_LOW, SUCCESS, SUCCESS)
 BROWSER_SESSION = (NO_SIGN_IN, SUCCESS, IN_THE_PORTAL, IN_THE_PORTAL, IN_THE_PORTAL)
+AGENTS_ONLY = (NO_SIGN_IN, FOR_AGENTS, SUCCESS, SUCCESS, SUCCESS)
 
 Caller = Literal['none', 'cookie', 'read', 'drafts', 'manage']
 CALLERS: tuple[Caller, ...] = ('none', 'cookie', 'read', 'drafts', 'manage')
@@ -191,8 +226,9 @@ BEARER_LEVELS: dict[Caller, AccessLevel] = {
 class Endpoint:
     """A management endpoint and who may call it.
 
-    `{id}` in the path is the connection that `setup` creates through the signed-in
-    client; `success` is the status a permitted call answers.
+    `{id}` in the path is the row that `setup` creates for the signed-in client (a
+    connection, or an agent connection on the user page); `success` is the status
+    a permitted call answers.
     """
 
     method: str
@@ -205,12 +241,13 @@ class Endpoint:
     def __str__(self) -> str:
         return f'{self.method} {self.path}'
 
-    def url(self, form_connection_id: str | None) -> str:
-        return self.path.replace('{id}', form_connection_id or '')
+    def url(self, row_id: str | None) -> str:
+        return self.path.replace('{id}', row_id or '')
 
 
 ENDPOINTS = [
     Endpoint('GET', BASE, EVERY_LEVEL),
+    Endpoint('GET', f'{BASE}/search', EVERY_LEVEL),
     Endpoint('GET', f'{BASE}/{{id}}', EVERY_LEVEL, setup=_published),
     Endpoint('GET', '/api/document-types', EVERY_LEVEL),
     Endpoint('GET', '/api/option-sets', EVERY_LEVEL),
@@ -255,6 +292,29 @@ ENDPOINTS = [
     Endpoint('DELETE', f'{BASE}/{{id}}', BROWSER_SESSION, setup=_published, body={}),
     Endpoint('GET', '/api/auth/me', BROWSER_SESSION),
     Endpoint('POST', '/api/auth/logout', BROWSER_SESSION, body={}),
+    Endpoint('GET', '/api/agent-access', BROWSER_SESSION),
+    Endpoint(
+        'PUT',
+        '/api/agent-access/{id}',
+        BROWSER_SESSION,
+        setup=_agent_connection,
+        body={'access_level': 'manage'},
+    ),
+    Endpoint(
+        'DELETE',
+        '/api/agent-access/{id}',
+        BROWSER_SESSION,
+        setup=_agent_connection,
+        body={},
+    ),
+    Endpoint(
+        'POST',
+        '/api/agent-access/tokens',
+        BROWSER_SESSION,
+        body={'name': 'CI', 'access_level': 'read', 'expires_in_days': 30},
+        success=201,
+    ),
+    Endpoint('GET', '/api/agent/me', AGENTS_ONLY),
 ]
 
 
@@ -276,13 +336,11 @@ def test_who_may_call_what(
     caller: Caller,
 ) -> None:
     user_id = _sign_in(client)
-    form_connection_id = endpoint.setup(client)
+    row_id = endpoint.setup(client)
     _call_as(client, user_id, caller)
     before = _stored_state()
 
-    response = client.request(
-        endpoint.method, endpoint.url(form_connection_id), json=endpoint.body
-    )
+    response = client.request(endpoint.method, endpoint.url(row_id), json=endpoint.body)
 
     outcome = endpoint.access[CALLERS.index(caller)]
     if outcome is SUCCESS:

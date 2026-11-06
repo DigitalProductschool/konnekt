@@ -10,6 +10,10 @@ export const ROUTES = {
   newFormConnection: '/form-connections/new',
   formConnection: '/form-connections/:id',
   editFormConnection: '/form-connections/:id/edit',
+  // Spec 007: the OAuth consent page, the user page and an approval request
+  authorize: '/authorize',
+  account: '/account',
+  approval: '/approvals/:id',
 } as const;
 
 // The create wizard's steps (Figma "App/Progress"; the Rules step's label from U11 6348:40212;

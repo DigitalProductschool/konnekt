@@ -600,6 +600,14 @@ class AgentAccessItem(BaseModel):
     last_used_at: str | None
 
 
+class AgentAccessList(BaseModel):
+    """The user page's list: the signed-in account's agent access, newest first."""
+
+    items: list[AgentAccessItem]
+    # The three access levels, for the level choice
+    levels: list[AccessLevelInfo]
+
+
 class AgentAccessUpdate(BaseModel):
     """A new access level; applies from the agent's next call."""
 

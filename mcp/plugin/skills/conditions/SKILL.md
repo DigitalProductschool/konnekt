@@ -13,6 +13,14 @@ numbered `rule-1`, `rule-2`, … and groups `group-1`, …; a number never chang
 A rule may be incomplete while you build it (no field, no condition or no message yet), but a
 connection can only be published when every rule is complete.
 
+## Reading a rule or group
+
+`get_item` reads one rule or group of a variant, named by `rule-n` / `group-n`, its link or its
+name: a rule with its data (`target`: the document type and the field, as `field`, `field.part`
+or `field.part#B`), its `condition`, its `message` and its readable `statement`; a group with its
+`operator`, its message and its members; its mark in a based variant, and `in_group`, the group
+it sits in. The statement is empty while the rule is incomplete.
+
 ## Operators per kind of data
 
 | Kind              | Operators                                                        | Takes                                                               |

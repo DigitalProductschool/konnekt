@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -11,6 +11,7 @@ from ..schemas import (
     FormConnectionCreate,
     FormConnectionDraft,
     FormConnectionOrDraft,
+    FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
 )
@@ -47,6 +48,35 @@ def list_form_connections(
 ) -> ApiResponse[list[FormConnectionSummary]]:
     """List the form connections that aren't deleted, most recently updated first."""
     return ApiResponse(data=form_connections.list_form_connections(db))
+
+
+@router.get('/search')
+def search_form_connections(
+    q: str | None = None,
+    connection_status: form_connections.SearchStatus | None = Query(
+        default=None, alias='status'
+    ),
+    cursor: str | None = None,
+    limit: int = Query(
+        default=form_connections.SEARCH_PAGE_SIZE,
+        ge=1,
+        le=form_connections.SEARCH_PAGE_SIZE,
+    ),
+    db: Session = Depends(get_db),
+) -> ApiResponse[FormConnectionPage]:
+    """Search the form connections that aren't deleted, a page at a time (FR-007).
+
+    `q` matches the name or the description, ignoring case; `status` is `draft`,
+    `live` or `deactivated`. At most `limit` (1 to 25) entries, most recently
+    updated first; pass `next_cursor` as `cursor` for the next page. An unknown
+    `status`, a bad `cursor` or `limit` answers 400. Declared before
+    `/{form_connection_id}`, which would otherwise take the path.
+    """
+    return ApiResponse(
+        data=form_connections.search_form_connections(
+            db, q, connection_status, cursor, limit
+        )
+    )
 
 
 @router.post(

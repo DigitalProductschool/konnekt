@@ -57,3 +57,9 @@ export interface AgentMe {
   access_level: AccessLevel;
   levels: AccessLevelInfo[];
 }
+
+/** The user page's list: the signed-in account's agent access, newest first; mirrors AgentAccessList */
+export interface AgentAccessList {
+  items: AgentAccessItem[];
+  levels: AccessLevelInfo[];
+}

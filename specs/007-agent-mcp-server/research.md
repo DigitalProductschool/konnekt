@@ -341,10 +341,13 @@ cheap and authoritative.
   error_description="…"` on the MCP request, which is the protocol's signal for a client to
   run the authorization again with that scope; the consent page then shows the requested level
   preselected. After the new consent the client retries the call, which now succeeds and says
-  so. The `403` comes from the SDK's per-tool `scopeChallenge` option of `registerTool()`
-  (returning the level's scopes and the `error_description`), which runs before dispatch in
-  both eras (R2): a 2025-era session has already sent its stream's headers when a handler
-  runs, so a handler can't answer an HTTP status there. A tool refused for lack of access
+  so. The server answers the `403` itself (`stepUpOf()` in `mcp/src/tools/access.ts`, called
+  from `server.ts`) before the SDK sees the request, in both eras (R2; for a 2025-era session
+  after the session lookup, so an unknown session still answers `404`): a 2025-era session has
+  already sent its stream's headers when a handler runs, so a handler can't answer an HTTP
+  status there. The SDK's per-tool `scopeChallenge` option would run at the same point, but its
+  answer adds a JSON body and orders the header's parameters differently from the contract's,
+  so the server builds the header with `stepUpResponse()` (contracts/mcp-tools.md). A tool refused for lack of access
   answers a normal tool error (so the LLM reads the
   message), naming the level and the two ways to get it: `request_access`, or the team member
   on their user page.
@@ -738,7 +741,11 @@ requests as any other.
   step-up through `request_access` is designed to be harmless either way.
 - `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16); otherwise the
   plugin ships the production address and the README says how to change it.
-- `RequireSignIn` keeping the search parameters through the sign-in round trip (R11).
+- `RequireSignIn` keeping the search parameters through the sign-in round trip (R11, S1): it
+  stores the whole location as `state.from`, and `RequireSignedOut` returns to
+  `from.pathname + from.search + from.hash` (`redirectTarget()`), so `/authorize?…` and the
+  links' `?step=rules&variant=…&item=…` survive the sign-in; `pages/Login` needed no change.
+  Settled on 2026-11-06.
 - Vite's SSR build of `mcp/src/main.ts` bundling `import.meta.glob` raw imports and the worker
   thread's entry as a second output file (R1, R14). `npm run dev` in `mcp/` uses `vite-node`
   6.0.0 (R2).

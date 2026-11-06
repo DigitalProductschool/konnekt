@@ -32,8 +32,10 @@ these too: they would stop publishing.
 
 ## Testing with fictitious applicants
 
-Test a variant's rules with applicants you make up: give each a name and values for the fields
-the variant's rules check, by their keys (`pid.birthdate`, `pid.place_of_birth.country`,
+Test a variant's rules with applicants you make up. `get_variant` lists the variant's
+`applicant_fields`: each field's `key`, `label`, `kind`, its value set (`option_set`) for a value
+list, whether it takes a list (`multiple`) and, for a licence class's date, the `licence_class`.
+Give each applicant a name and values for these fields, by their keys (`pid.birthdate`, `pid.place_of_birth.country`,
 `mdl.driving_privileges.issue_date#B`). A field's kind says what it takes: a number, a text, a code
 from its value set, a list for fields with several values, a date as `YYYY-MM-DD`. Each result
 says per rule and group whether it was met, not met or not checked (a missing value counts as not

@@ -29,6 +29,17 @@ a draft is stored at once, may be incomplete between calls, and is never live.
 7. **The connection URLs.** Once published, the connection has a trigger URL and one pull URL per
    variant, which the team member copies into serviceBW.
 
+## Reading what is there
+
+- `search_connections` finds connections by a part of their name or description (letter case
+  doesn't matter) and by status: `draft`, `live` or `deactivated`. It answers at most 25 at a
+  time, the most recently changed first; pass its `next_cursor` to read the next page. Each
+  connection comes with its id and link.
+- `get_connection` reads one connection: its documents and fields, its variants with how many
+  rules and groups each has (read the rules themselves with `get_variant`), its connection URLs
+  once published, and for a draft its version, its step and `dropped`: requested data the wallet
+  no longer offers, which must be removed before publishing.
+
 ## One change per call
 
 Every change is one call and is stored at once: adding a document, renaming a variant, adding one

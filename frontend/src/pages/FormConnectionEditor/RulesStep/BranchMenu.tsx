@@ -1,7 +1,8 @@
 import renameIcon from '../../../assets/icons/rename.svg';
-import ActionMenu from './ActionMenu';
+import ActionMenu from '../../../components/ActionMenu';
+import type { MenuAction } from '../../../components/ActionMenu/types';
 import { RULES_COPY } from './constants';
-import type { BranchMenuProps, MenuAction } from './types';
+import type { BranchMenuProps } from './types';
 
 /**
  * A variant tab's ⋯ menu (W3; design-notes §4), built like the rule menu (U14 6113:28988), since

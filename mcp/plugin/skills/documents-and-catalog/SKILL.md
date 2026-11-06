@@ -10,6 +10,21 @@ The **catalog** lists what the EUDI Wallet can share: document types such as the
 document types and, for each, only the fields the form needs; the citizen is asked to share exactly
 those.
 
+## Reading the catalog
+
+`get_catalog` without a document type lists the document types with their keys, labels and
+number of fields. With a `document_type` (`pid`, `mdl`), it answers that type's fields: each
+field's `key`, `label`, `kind`, its `option_set` for a value list, whether it holds several values
+(`multiple_values`), its `parts` for a field made of parts (with `per_licence_class` for the dates
+kept per licence class), and the `conditions` a rule can set on it: the `operator`, its `words` as
+the editor shows them, and the `input` it takes (`number`, `text`, `values`, `date`, `years` or
+`amount`). An unknown document type is refused with the known keys.
+
+`search_values` searches a value set by its key (`option_set`, as `get_catalog` names it), with a
+`query` matched on the label and the code, ignoring letter case. It answers 25 values per page
+(`value`, `label` and a `description` where there is one); pass `next_cursor` for the next page.
+Conditions name values by their `value`.
+
 ## Fields and their kinds
 
 Every field has a kind, which decides what a rule can check on it: number, text, date, a value

@@ -2,9 +2,10 @@ import copyToIcon from '../../../assets/icons/copy-to-variant.svg';
 import groupIcon from '../../../assets/icons/group-brackets.svg';
 import renameIcon from '../../../assets/icons/rename.svg';
 import resetIcon from '../../../assets/icons/reset-restore.svg';
-import ActionMenu from './ActionMenu';
+import ActionMenu from '../../../components/ActionMenu';
+import type { MenuAction } from '../../../components/ActionMenu/types';
 import { RULES_COPY } from './constants';
-import type { MenuAction, RuleMenuProps } from './types';
+import type { RuleMenuProps } from './types';
 
 /**
  * The ⋯ menu of a rule (U14 6113:28988; U16 6344:53529; U18 6324:39971), with only what applies:

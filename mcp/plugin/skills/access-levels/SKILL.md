@@ -20,9 +20,14 @@ deleting, deactivating and reactivating never happen without the team member's a
 
 ## When a level isn't enough
 
-A call that needs a higher level is refused with a message that names the level it needs. You can
-ask for it: your client then opens the consent page again, with the requested level selected, and
-the team member decides. Or the team member raises the level on their user page.
+A call that needs a higher level is refused with the error `insufficient_access`, whose message
+names the level it needs (`needs_access_level`). You can ask for it with `request_access`, passing
+`level`: `drafts` for "Read and edit drafts" or `manage` for "Read, edit drafts and manage live
+connections". Your client then opens the consent page again, with the requested level selected,
+and the team member decides; once they agreed, call the refused tool again. If you already have
+the level, `request_access` says so and changes nothing. A client that can't ask again this way
+reports the refusal: then tell the team member which level you need, and they raise it on their
+user page.
 
 ## The user page
 

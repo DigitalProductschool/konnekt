@@ -17,15 +17,17 @@ it. The published paths here refuse a draft with 409 `not_published`, and the
 worker's re-sync leaves it alone.
 """
 
+import base64
+import binascii
 import logging
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, func, null, select, update
+from sqlalchemy import ColumnElement, and_, delete, func, null, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -37,6 +39,7 @@ from ..schemas import (
     Branch,
     DocumentField,
     FormConnectionCreate,
+    FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
     RequestedDocument,
@@ -53,6 +56,11 @@ logger = logging.getLogger(__name__)
 
 NAME_MAX_LENGTH = 200
 DESCRIPTION_MAX_LENGTH = 500
+# The search's page size: the default and the largest `limit` (spec 007, R9)
+SEARCH_PAGE_SIZE = 25
+
+# The search's status filter (spec 007, research R9)
+SearchStatus = Literal['draft', 'live', 'deactivated']
 
 NOT_FOUND = FORM_CONNECTION_NOT_FOUND
 NOT_PUBLISHED_DETAIL = {
@@ -419,6 +427,100 @@ def list_form_connections(db: Session) -> list[FormConnectionSummary]:
         .order_by(FormConnection.updated_at.desc(), FormConnection.id)
     ).all()
     return [_summary(form_connection) for form_connection in form_connections]
+
+
+# The search (spec 007, research R9; FR-007)
+
+_SEARCH_STATUS_FILTERS: dict[SearchStatus, ColumnElement[bool]] = {
+    'draft': FormConnection.published_at.is_(None),
+    'live': and_(
+        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(True)
+    ),
+    'deactivated': and_(
+        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(False)
+    ),
+}
+_CURSOR_SEPARATOR = '|'
+
+
+def _like_pattern(text: str) -> str:
+    """`%text%`, with LIKE's `%`, `_` and the escape character `\\` taken literally."""
+    escaped = text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f'%{escaped}%'
+
+
+def _encode_cursor(form_connection: FormConnection) -> str:
+    """The position after a row: its `updated_at` (ISO) and `id`, base64."""
+    position = (
+        f'{form_connection.updated_at.isoformat()}{_CURSOR_SEPARATOR}'
+        f'{form_connection.id}'
+    )
+    return base64.urlsafe_b64encode(position.encode()).decode('ascii')
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, str]:
+    """The `updated_at` and `id` a cursor holds; anything else answers 400."""
+    try:
+        position = base64.urlsafe_b64decode(cursor.encode('ascii')).decode()
+        updated_at_text, form_connection_id = position.split(_CURSOR_SEPARATOR)
+        updated_at = datetime.fromisoformat(updated_at_text)
+        uuid.UUID(form_connection_id)
+    except (ValueError, UnicodeError, binascii.Error):
+        raise _validation_error('Unknown cursor.') from None
+    if updated_at.tzinfo is None:
+        raise _validation_error('Unknown cursor.')
+    return updated_at, form_connection_id
+
+
+def search_form_connections(
+    db: Session,
+    q: str | None,
+    status: SearchStatus | None,
+    cursor: str | None,
+    limit: int = SEARCH_PAGE_SIZE,
+) -> FormConnectionPage:
+    """A page of the form connections that aren't deleted, for agents (FR-007).
+
+    `q`, trimmed, matches the name or the description case-insensitively and
+    literally; empty, it matches every row. `status` keeps drafts, live or
+    deactivated connections. Ordered by `updated_at` descending, then `id`, with a
+    keyset cursor, so that changes between calls don't shift the pages;
+    `next_cursor` is None on the last page. A cursor this search didn't answer
+    gets 400.
+    """
+    query = select(FormConnection).where(FormConnection.deleted_at.is_(None))
+    text = (q or '').strip()
+    if text:
+        pattern = _like_pattern(text)
+        query = query.where(
+            or_(
+                FormConnection.name.ilike(pattern, escape='\\'),
+                FormConnection.description.ilike(pattern, escape='\\'),
+            )
+        )
+    if status is not None:
+        query = query.where(_SEARCH_STATUS_FILTERS[status])
+    if cursor is not None:
+        updated_at, form_connection_id = _decode_cursor(cursor)
+        query = query.where(
+            or_(
+                FormConnection.updated_at < updated_at,
+                and_(
+                    FormConnection.updated_at == updated_at,
+                    FormConnection.id > form_connection_id,
+                ),
+            )
+        )
+    rows = db.scalars(
+        query.order_by(FormConnection.updated_at.desc(), FormConnection.id).limit(
+            limit + 1
+        )
+    ).all()
+    page = rows[:limit]
+    return FormConnectionPage(
+        items=[_summary(form_connection) for form_connection in page],
+        next_cursor=_encode_cursor(page[-1]) if len(rows) > limit else None,
+    )
 
 
 def get_form_connection(db: Session, form_connection_id: str) -> FormConnectionView:

@@ -50,3 +50,8 @@ A published connection has a trigger URL and one pull URL per variant, with the 
 `{reference}` that serviceBW fills in. The team member copies them into the serviceBW form. A
 draft has no URLs yet; a deactivated connection keeps its URLs, which answer "unavailable" until
 it is reactivated.
+
+`get_connection` answers them as `urls`: the `trigger_url`, and per variant its name, link and
+`pull_url`. For a draft, `urls` is null. `urls_note` always says where the URLs stand: that they
+exist once the draft is published, that the connection is live, or that it is deactivated and its
+URLs answer "unavailable" until it is reactivated. Pass the note on with the URLs.

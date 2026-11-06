@@ -67,6 +67,46 @@ export const RATE_LIMIT_MESSAGE = 'This agent can create drafts again at 15:40.'
 export const DRAFT_CHANGED_MESSAGE = 'Another team member saved this draft after you opened it.';
 export const DRAFT_PUBLISHED_MESSAGE = 'This draft has been published since you opened it.';
 
+/**
+ * The countries value set, long enough for `search_values` to answer two pages, with four names
+ * that contain "ger"
+ */
+export const COUNTRIES: [string, string][] = [
+  ['DE', 'Germany'],
+  ['AT', 'Austria'],
+  ['FR', 'France'],
+  ['DZ', 'Algeria'],
+  ['NE', 'Niger'],
+  ['NG', 'Nigeria'],
+  ['BE', 'Belgium'],
+  ['NL', 'Netherlands'],
+  ['LU', 'Luxembourg'],
+  ['CH', 'Switzerland'],
+  ['IT', 'Italy'],
+  ['ES', 'Spain'],
+  ['PT', 'Portugal'],
+  ['PL', 'Poland'],
+  ['CZ', 'Czechia'],
+  ['DK', 'Denmark'],
+  ['SE', 'Sweden'],
+  ['NO', 'Norway'],
+  ['FI', 'Finland'],
+  ['IE', 'Ireland'],
+  ['GB', 'United Kingdom'],
+  ['GR', 'Greece'],
+  ['HU', 'Hungary'],
+  ['RO', 'Romania'],
+  ['BG', 'Bulgaria'],
+  ['HR', 'Croatia'],
+  ['SI', 'Slovenia'],
+  ['SK', 'Slovakia'],
+  ['EE', 'Estonia'],
+  ['LV', 'Latvia'],
+  ['LT', 'Lithuania'],
+  ['MT', 'Malta'],
+  ['CY', 'Cyprus'],
+];
+
 const LEVEL_ORDER: AccessLevel[] = ['read', 'drafts', 'manage'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SERVICEBW_URL = 'https://portal.example/api/connect';
@@ -272,7 +312,14 @@ export function fixtureStore(): FakeStore {
   return {
     me: new Map(LEVEL_ORDER.map((level) => [BEARERS[level], meOf(level)])),
     documentTypes: catalog,
-    optionSets: OPTION_SETS,
+    optionSets: OPTION_SETS.map((set) =>
+      set.key === 'countries'
+        ? {
+            key: set.key,
+            options: COUNTRIES.map(([value, label]) => ({ value, label, description: null })),
+          }
+        : set
+    ),
     connections: new Map<string, FormConnectionOrDraft>([
       [IDS.draft, draft],
       [

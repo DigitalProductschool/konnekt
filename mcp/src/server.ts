@@ -28,6 +28,7 @@ import { instructions, skills } from './guidance';
 import { logError, logRequest } from './log';
 import { bearerHashOf, SessionStore } from './sessions';
 import { registry as defaultRegistry } from './tools';
+import { stepUpOf } from './tools/access';
 import { BACKEND_ERROR_MESSAGE, type ToolRegistry } from './tools/registry';
 
 /** The paths of the protected resource metadata (RFC 9728: the root and the path form). */
@@ -201,6 +202,17 @@ function createApp(registry: ToolRegistry, catalog: SkillCatalog) {
     if (!transport.sessionId) await server.close();
   }
 
+  /**
+   * Answers the step-up `403` of `request_access` for a level the caller lacks (research R5), for
+   * the whole HTTP request and before the SDK sees it: in a 2025-era session the response has
+   * started by the time a tool's handler runs. Returns whether it answered.
+   */
+  function answeredStepUp(response: ServerResponse, body: unknown, exchange: Exchange): boolean {
+    const answer = stepUpOf(registry, exchange.caller, messagesOf(body));
+    if (answer) sendHttpAnswer(response, answer);
+    return answer !== null;
+  }
+
   // 2025-era: in a session, opened by `initialize` and bound to its bearer (research R2)
   async function serveLegacy(
     request: McpRequest,
@@ -213,6 +225,7 @@ function createApp(registry: ToolRegistry, catalog: SkillCatalog) {
     if (sessionId) {
       const session = sessions.find(sessionId, bearerHash);
       if (!session) return sendRpcError(response, 404, -32001, 'Session not found');
+      if (answeredStepUp(response, body, exchange)) return;
       await session.transport.handleRequest(request, response, body);
       // The bearer ended during the call, after the response had started: the client meets the
       // 401 when it opens a new session
@@ -279,6 +292,7 @@ function createApp(registry: ToolRegistry, catalog: SkillCatalog) {
     if (await isLegacyRequest(await toWebRequest(request, body), body)) {
       return serveLegacy(request, response, body, exchange);
     }
+    if (answeredStepUp(response, body, exchange)) return;
     await serveModern(request, response, body);
   }
 

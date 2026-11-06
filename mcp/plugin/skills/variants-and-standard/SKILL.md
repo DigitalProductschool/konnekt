@@ -9,6 +9,14 @@ A connection can apply different rules to the same form: each set of rules is a 
 serviceBW calls the variant that fits the case through its own pull URL. Every connection has the
 main variant, called **Standard** until it is renamed. It can't be deleted.
 
+## Reading a variant
+
+`get_variant` reads one variant, never more in one call: its `origin` (`main`, `based` or
+`empty`), its top-level `operator` and `operator_mark`, and its rules and groups as a tree, each
+with its readable statement, its mark and its link. It also lists the variant's
+`applicant_fields`, the data its rules check, which is what `test_applicants` takes for each
+applicant, and `unrequested_rules`, the rules that check data the connection no longer requests.
+
 ## Based and empty variants
 
 A new variant is either:

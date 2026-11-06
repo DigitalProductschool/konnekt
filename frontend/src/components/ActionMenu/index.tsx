@@ -1,19 +1,16 @@
 import { Fragment, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
-import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../../utils/menuNavigation';
-import {
-  placementFrom,
-  type PopupPlacement,
-  popupWrapperClass,
-} from '../../../utils/popupPlacement';
+import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../utils/menuNavigation';
+import { placementFrom, type PopupPlacement, popupWrapperClass } from '../../utils/popupPlacement';
 import { ACTION_MENU_PLACEMENTS, ACTION_MENU_WIDTH } from './constants';
 import RuleMenuItem from './RuleMenuItem';
 import type { ActionMenuProps } from './types';
 
 /**
- * A ⋯ button ("Rules/More button") and its menu, built like the rule menu (U14 6113:28988). It
- * follows the WAI-ARIA menu button pattern. Choosing an action gives the focus back to the ⋯
- * first, so that a dialog the action opens returns it there. The menu opens to the left of its
+ * A ⋯ button ("Rules/More button") and its menu, built like the rule menu (U14 6113:28988) and
+ * shared by the rules step's menus and the user page's rows. It follows the WAI-ARIA menu button
+ * pattern. Choosing an action gives the focus back to the ⋯ first, so that a dialog the action
+ * opens returns it there. The menu opens to the left of its
  * ⋯ where it fits, as Figma draws it, otherwise to the right or across the window (WCAG 1.4.10).
  */
 export default function ActionMenu({ label, actions }: ActionMenuProps) {
