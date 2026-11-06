@@ -382,17 +382,31 @@ table and the one bearer path serve both kinds.
 **Decision**: `GET /api/agent-access` lists the signed-in account's agent connections and
 tokens (never another account's: the query filters by `user_account_id`); `PUT
 /api/agent-access/{id}` changes the level; `DELETE /api/agent-access/{id}` revokes (deletes the
-row with its tokens, `ON DELETE CASCADE`). Both writes run `approval_requests.cancel_for(…)`:
-revoking cancels the authorization's waiting approval requests with reason `revoked`; lowering
-cancels those the new level no longer allows (`manage` actions below `manage`; every action
-below `drafts`) with reason `access_changed` (FR-006, FR-026). Deleting an account cascades to
-its authorizations, tokens and approval requests (FR-005). The idle expiry (30 days without a
-refresh) and the token expiry are checked at every use and swept by the worker.
+row with its tokens, `ON DELETE CASCADE`). Both writes run `approvals.cancel_for(…)` in the
+same transaction: revoking cancels the authorization's waiting approval requests with reason
+`revoked`; lowering cancels those the new level no longer allows (`manage` actions below
+`manage`; every action below `drafts`) with reason `access_changed` (FR-006, FR-026). The
+cancelled rows stay: `approval_requests.authorization_id` is nullable with `ON DELETE SET NULL`
+(data-model.md §5), so the approval page reads them with their stored reason after the
+authorization is gone, and `requested_by` keeps the agent's name for the page. Deleting an
+account cascades to its authorizations, tokens and approval requests (FR-005). The idle expiry
+(30 days without a refresh) and the token expiry are checked at every use and swept by the
+worker; a waiting request whose authorization went that way reads as cancelled with
+`access_ended` (R12).
 
 **Rationale**: with the level read at every call (R5), "applies from the next call" needs no
 further mechanism; cancelling eagerly on revoke and lower is what keeps a page that is already
 open from approving with an access the agent no longer has (the approve endpoint re-checks the
-request's status under the row lock anyway, R12).
+request's status under the row lock anyway, R12). The rows stay because FR-026 asks the page to
+say why: a cascade would answer "not found" to the team member who just revoked the agent, and
+`revoked` would be stored only to be deleted in the same transaction.
+
+**Alternatives considered**: a cascade from `agent_authorizations` to `approval_requests` (the
+page loses the request the moment it is cancelled); a soft-deleted authorization with a
+`revoked_at` (every bearer, user-page, reconnect and sweep query would have to filter it, and
+the partial unique index would block reconnecting the same client); `cancel_for` at every place
+an authorization goes (the worker's sweeps, the refresh token's reuse), one more thing each of
+them has to know about.
 
 ## R8. One implementation of the editing logic: `rules/src/edits.ts`
 
@@ -518,13 +532,14 @@ Building the link in the browser from its own origin avoids a frontend setting.
 ## R12. Approval requests
 
 **Decision**:
-- **Model**: `approval_requests` rows (data-model.md §4): the connection, the `action ∈
-  {publish, delete_draft, deactivate, reactivate, delete}`, the authorization that asked, the
-  account, what it was made for (`draft_version` for a draft, `was_active` for a published
-  connection), `expires_at` (`APPROVAL_REQUEST_MINUTES`, 10), `status ∈ {waiting, done,
-  declined, expired, replaced, cancelled}`, a `cancel_reason`, the failure of the last approve
-  attempt (`failed_at`, `error_id`), and `decided_at`. The outcome the agent sees is the status,
-  or `failed` while a waiting request has a failure (FR-027).
+- **Model**: `approval_requests` rows (data-model.md §5): the connection, the `action ∈
+  {publish, delete_draft, deactivate, reactivate, delete}`, the authorization that asked (null
+  once it is gone) and its name as `requested_by`, the account, what it was made for
+  (`draft_version` for a draft, `was_active` for a published connection), `expires_at`
+  (`APPROVAL_REQUEST_MINUTES`, 10), `status ∈ {waiting, done, declined, expired, replaced,
+  cancelled}`, a `cancel_reason`, the failure of the last approve attempt (`failed_at`,
+  `error_id`), and `decided_at`. The outcome the agent sees is the status, or `failed` while a
+  waiting request has a failure (FR-027).
 - **Creating** (`POST /api/approval-requests`, bearer): the level is checked (publish and
   delete_draft need `drafts`, the other three `manage`); the action's preconditions are checked
   without writing (FR-022): for `publish`, the publishing checks of spec 005 run on the stored
@@ -545,8 +560,11 @@ Building the link in the browser from its own origin avoids a frontend setting.
   deleted since, a published connection whose `is_active` moved or that was deleted since.
   Such a request reads as `cancelled` with the reason (`draft_changed`, `draft_published`,
   `draft_deleted`, `connection_changed`, `connection_deleted`), and approving it does nothing
-  but say so. `expired` is `expires_at` in the past. Revoking or lowering access cancels
-  eagerly (R7).
+  but say so. `expired` is `expires_at` in the past. A waiting request whose authorization is
+  gone (`authorization_id` null: the worker swept an expired token or an idle connection, or a
+  retired refresh token was reused) reads as `cancelled` with `access_ended`, so no deletion
+  path needs to know about approvals. Revoking or lowering access on the user page cancels
+  eagerly, with `revoked` or `access_changed` stored before the change (R7).
 - **Approving** (`POST /api/approval-requests/{id}/approve`, cookie, `require_json`): the
   signed-in account must be the request's (`403` otherwise, FR-025); under the row lock the
   status must be `waiting`, not expired and not stale; then the action runs through the
@@ -560,7 +578,8 @@ Building the link in the browser from its own origin avoids a frontend setting.
   `draft_published`, `not_published`) can only come from a race with the staleness check and
   are answered as the stale reasons.
 - **Declining** sets `declined`. The page refuses anything but `waiting` with the reason.
-- The worker deletes requests that ended more than a day ago.
+- The worker deletes requests that ended (`decided_at`) or expired more than a day ago; a row
+  that reads as cancelled by computation goes with its expiry.
 
 **Rationale**: the tool must not act (FR-021), the action must be checked first (FR-022), the
 request must apply to what it was made for (FR-024), and the approved action must be the

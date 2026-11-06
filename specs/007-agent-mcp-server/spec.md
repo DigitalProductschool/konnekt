@@ -570,7 +570,9 @@ change a rule of the live connection and check that it is refused.
   level, without connecting again. A call already running finishes with the level it started with.
 - **Access lowered or revoked while an approval is waiting**: A request that the new level doesn't
   allow, or any request of a revoked agent connection or token, is cancelled. Approving it does
-  nothing, and the page says that the agent's access has changed (FR-006).
+  nothing, and the page says that the agent's access has changed (FR-006). An agent connection or
+  token that ends while its request is waiting (FR-005) cancels it likewise, and the page says
+  that the agent's access has ended.
 - **A read-only agent that asks for findings or tests applicants**: Allowed, since nothing changes.
 - **Findings and tests on a published connection**: Allowed: the agent reads them as it reads the
   rules.
@@ -824,9 +826,10 @@ change a rule of the live connection and check that it is refused.
   deactivate, reactivate or delete a published connection, live or deactivated. None allows changing
   a published connection's content.
 - **Approval request**: An agent's request to publish or delete a draft, or to deactivate,
-  reactivate or delete a published connection: the connection, the action, what it was made for
-  (the draft's version, or the published connection's status), the team member, its expiry, and its
-  outcome (waiting, done, declined, expired, replaced, cancelled, failed).
+  reactivate or delete a published connection: the connection, the action, the agent that asked,
+  what it was made for (the draft's version, or the published connection's status), the team
+  member, its expiry, and its outcome (waiting, done, declined, expired, replaced, cancelled,
+  failed).
 - **Link**: An address in the management interface that names a connection and, optionally, a variant
   and a rule or group, by identifiers only.
 - **Variant identifier** (spec 002): Now also given to a draft's variants when they are added, and

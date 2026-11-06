@@ -126,7 +126,8 @@ With an agent that may edit drafts, give the independent test of User Story 2:
    10 minutes (expired); the draft changed in the Portal after the request (the page says the
    draft changed, nothing is published); another team member opening the link (can't approve);
    a draft that publishing would refuse (the agent is refused at once, with publishing's
-   message, and no link is made).
+   message, and no link is made); the agent revoked on the user page while a request waits (the
+   page says the agent's access was revoked, nothing is published).
 5. Stop EUDIPLO (or set a wrong `EUDIPLO_URL`) and approve: the page shows the failure with the
    error ID and "Try again"; the draft stays a draft; restore EUDIPLO and try again: published.
 6. Ask the agent to delete a draft: the approval page names the draft and says its content will

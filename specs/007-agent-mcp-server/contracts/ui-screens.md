@@ -70,10 +70,12 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
 ## S3. The approval page (`/approvals/:id`; FR-023 to FR-027)
 
 - **Loading and errors**: `PageLoader`; `403 not_yours` shows "This request was made for another
-  team member. Only they can approve it."; `404` shows the not-found screen.
+  team member. Only they can approve it."; `404` (an unknown id, or a request the worker has
+  swept) shows the not-found screen.
 - **Title** (`h1`) by action: "Publish '{name}'?", "Delete the draft '{name}'?", "Deactivate
-  '{name}'?", "Reactivate '{name}'?", "Delete '{name}'?". Subtitle: "Requested by {client_name}
-  · expires at {time}" (`client_name` from the request; the agent's authorization name).
+  '{name}'?", "Reactivate '{name}'?", "Delete '{name}'?". Subtitle: "Requested by {requested_by}
+  · expires at {time}" (`requested_by` from the request: the client's or the token's name when
+  the agent asked, kept after its access is gone).
 - **Body** by action:
   - `publish`: the description line (as the details header shows it: one line, cut with "…",
     absent when empty), `DocumentsSummary` (documents and fields), `RulesSummaryContent` per
@@ -98,12 +100,14 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
   - `declined`: "You declined this request. Nothing has changed.";
   - `expired`: "This request expired at {time}. Nothing has changed. The agent can ask again.";
   - `replaced`: "The agent made a newer request for this action.";
-  - `cancelled`: by reason: "The draft has changed since the agent asked. Nothing has changed;
-    the agent has to ask again." / "The draft has been published since the agent asked." / "The
-    draft has been deleted since the agent asked." / "The connection was {deactivated |
-    reactivated} in the meantime." / "The connection has been deleted in the meantime." / "The
-    agent's access has changed, so this request was cancelled." / "The agent's access was
-    revoked, so this request was cancelled.";
+  - `cancelled`, by `cancel_reason`: `draft_changed` "The draft has changed since the agent asked.
+    Nothing has changed; the agent has to ask again." / `draft_published` "The draft has been
+    published since the agent asked." / `draft_deleted` "The draft has been deleted since the
+    agent asked." / `connection_changed` "The connection was {deactivated | reactivated} in the
+    meantime." / `connection_deleted` "The connection has been deleted in the meantime." /
+    `access_changed` "The agent's access has changed, so this request was cancelled." /
+    `revoked` "The agent's access was revoked, so this request was cancelled." / `access_ended`
+    "The agent's access has ended, so this request was cancelled.";
   - `failed` (status waiting with a failure): an error alert with the service's message and the
     error ID (`ErrorNoticeText`), the body as before, and "Try again" in place of "Approve",
     while the request is valid.

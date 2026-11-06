@@ -55,10 +55,14 @@ ApprovalAction     = 'publish' | 'delete_draft' | 'deactivate' | 'reactivate' | 
 ApprovalStatus     = 'waiting' | 'done' | 'declined' | 'expired' | 'replaced' | 'cancelled'
 ApprovalOutcome    = ApprovalStatus | 'failed'
 ApprovalCreate     { form_connection_id: str, action: ApprovalAction }
-ApprovalRequest    { id, action, form_connection_id, connection_name: str, status: ApprovalStatus,
-                     outcome: ApprovalOutcome, cancel_reason: str | None, link: str,
-                     expires_at, created_at, decided_at: str | None, failed_at: str | None,
-                     error_id: str | None, mine: bool }          # mine: the signed-in account's
+ApprovalRequest    { id, action, form_connection_id, connection_name: str, requested_by: str,
+                     status: ApprovalStatus, outcome: ApprovalOutcome, cancel_reason: str | None,
+                     link: str, expires_at, created_at, decided_at: str | None,
+                     failed_at: str | None, error_id: str | None, mine: bool }
+                     # requested_by: the agent's name when it asked, kept after its access is gone
+                     # mine: the signed-in account's
+                     # cancel_reason: revoked, access_changed, access_ended, draft_changed,
+                     #   draft_published, draft_deleted, connection_changed, connection_deleted
 ApprovalPreview    { request: ApprovalRequest,
                      draft: FormConnectionDraft | None,          # publish, delete_draft (while the draft exists)
                      connection: FormConnection | None,          # the other actions (while it exists)
@@ -87,7 +91,7 @@ and `DraftPublish` are unchanged in shape.
 |---|---|---|---|
 | `GET /api/agent-access` | none | `200 { data: { items: AgentAccessItem[], levels: AccessLevelInfo[] } }` | The signed-in account's only, newest first |
 | `PUT /api/agent-access/{id}` | `AgentAccessUpdate` | `200 { data: AgentAccessItem, message: 'Access level changed' }` | Applies from the agent's next call. Lowering cancels the waiting approval requests the new level doesn't allow (`cancelled`, `access_changed`). `404` for another account's row |
-| `DELETE /api/agent-access/{id}` | none | `200 { data: null, message: 'Access revoked' }` | Deletes the row and its tokens; cancels its waiting requests (`revoked`). The agent's next call answers `401` |
+| `DELETE /api/agent-access/{id}` | none | `200 { data: null, message: 'Access revoked' }` | Cancels its waiting requests (`revoked`; their rows stay, for the approval page), then deletes the row and its tokens. The agent's next call answers `401` |
 | `POST /api/agent-access/tokens` | `TokenCreate` | `201 { data: TokenCreated, message: 'Token created' }` | `expires_in_days` above the maximum or below 1 → `400 Validation error` ("A token can be valid for at most 90 days.") |
 
 ### Agent principal
@@ -107,7 +111,7 @@ again at 15:40.' }`. Browser sessions aren't limited. `PUT …/draft` never coun
 | Method and path | Body | Success | Effects |
 |---|---|---|---|
 | `POST /api/approval-requests` | `ApprovalCreate` | `201 { data: ApprovalRequest, message: 'Approval requested' }` | Level checked (data-model §5.3); preconditions checked without writing: `409 { error: 'not_allowed', message }` ("This connection is already deactivated.", "This connection is a draft: it has nothing live yet.") or, for `publish`, `400 Validation error` with publishing's message; `404` for an unknown or deleted connection. Under the row lock, a waiting request of the same connection and action becomes `replaced`; the new row is `waiting` |
-| `GET /api/approval-requests/{id}` | none | `200 { data: ApprovalPreview }` | Browser: the request's account's only (`403 { error: 'not_yours', message: "This request was made for another team member." }` otherwise, with no preview). Bearer: the authorization's own only (`404` otherwise). Staleness and expiry computed (data-model §5.2): the status in the answer is what the row reads as now |
+| `GET /api/approval-requests/{id}` | none | `200 { data: ApprovalPreview }` | Browser: the request's account's only (`403 { error: 'not_yours', message: "This request was made for another team member." }` otherwise, with no preview). Bearer: the authorization's own only (`404` otherwise; a request whose authorization is gone is no bearer's). Staleness, expiry and an ended access computed (data-model §5.2): the status in the answer is what the row reads as now |
 | `POST /api/approval-requests/{id}/approve` | `{}` | `200 { data: ApprovalPreview, message: 'Published' / 'Draft deleted' / 'Connection deactivated' / 'Connection reactivated' / 'Connection deleted' }` | Browser session of the request's account only (`403 not_yours`). Under the row lock: not `waiting`, expired or stale → `409 { error: 'approval_<status>', message }` with the page's reason, nothing done. Otherwise the action runs through the existing service (research R12); success → `done`. An `EudiploError` → `502`/`503` as spec 001 answers them, the row stays `waiting` with `failed_at` and the `error_id` |
 | `POST /api/approval-requests/{id}/decline` | `{}` | `200 { data: ApprovalPreview, message: 'Declined' }` | Same ownership and state rules; → `declined` |
 

@@ -30,14 +30,17 @@ citizen's data.**
 user_accounts 1 ──< agent_authorizations 1 ──< agent_tokens
 oauth_clients 1 ──< agent_authorizations (oauth kind)
 oauth_clients 1 ──< oauth_codes >── 1 user_accounts
-agent_authorizations 1 ──< approval_requests >── 1 form_connections
+agent_authorizations 0..1 ──< approval_requests >── 1 form_connections
 user_accounts 1 ──< approval_requests
 ```
 
-Every foreign key to `user_accounts` and `agent_authorizations` is `ON DELETE CASCADE`:
-deleting an account ends its agent connections, tokens and approval requests at once (FR-005),
-and revoking an authorization deletes its tokens and its requests' rows are cancelled first
-(R7). Foreign keys to `form_connections` are plain: a connection's deletion is a soft delete.
+Every foreign key to `user_accounts` is `ON DELETE CASCADE`: deleting an account ends its agent
+connections, tokens and approval requests at once (FR-005). `agent_tokens.authorization_id`
+cascades too: revoking an authorization deletes its tokens with it. An approval request outlives
+its authorization: `approval_requests.authorization_id` is nullable with `ON DELETE SET NULL`, so
+the row stays readable for the approval page after the agent's access was revoked or has ended
+(§5.2, R7), until the worker sweeps it. Foreign keys to `form_connections` are plain: a
+connection's deletion is a soft delete.
 
 ---
 
@@ -89,8 +92,10 @@ Expired rows are deleted by the worker.
 | `drafts_in_window` | `Integer`, default 0 | Drafts created in the window |
 | `created_at`, `updated_at` | | "When connected" / "when created" on the user page |
 
-Revoking deletes the row (its tokens cascade). "Unused for 30 days" is the refresh token's
-expiry (§4): an `oauth` row whose last refresh token has expired is deleted by the worker.
+Revoking cancels the row's waiting approval requests (`revoked`, §5), then deletes the row: its
+tokens cascade, its requests keep their rows. "Unused for 30 days" is the refresh token's expiry
+(§4): an `oauth` row whose last refresh token has expired is deleted by the worker, as is a
+`token` row past its `expires_at`; a waiting request of either then reads as cancelled (§5.2).
 
 ### 3.1 Access levels
 
@@ -138,12 +143,13 @@ Portal.").
 | `id` | `String(36)` PK | Part of the approval page's link |
 | `form_connection_id` | FK → `form_connections.id`, indexed | |
 | `action` | `String(16)` | `publish`, `delete_draft`, `deactivate`, `reactivate` or `delete` |
-| `authorization_id` | FK → `agent_authorizations.id` (cascade), indexed | The agent that asked |
+| `authorization_id` | FK → `agent_authorizations.id` (set null), nullable, indexed | The agent that asked; null once its access was revoked or has ended (§5.2) |
+| `requested_by` | `String(200)` | The agent's name when it asked: the client's `client_name` for an `oauth` authorization, the token's `name` for a `token` one. Shown on the approval page ("Requested by …") and kept after the authorization is gone |
 | `user_account_id` | FK → `user_accounts.id` (cascade), indexed | The team member who may approve |
 | `draft_version` | `Integer`, nullable | `publish` and `delete_draft`: the draft's version when the request was made |
 | `was_active` | `Boolean`, nullable | `deactivate`, `reactivate`, `delete`: the connection's `is_active` when the request was made |
 | `status` | `String(16)`, indexed | `waiting`, `done`, `declined`, `expired`, `replaced`, `cancelled` |
-| `cancel_reason` | `String(32)`, nullable | `revoked`, `access_changed` (stored); `draft_changed`, `draft_published`, `draft_deleted`, `connection_changed`, `connection_deleted` (computed, §5.2) |
+| `cancel_reason` | `String(32)`, nullable | `revoked`, `access_changed` (stored); `access_ended`, `draft_changed`, `draft_published`, `draft_deleted`, `connection_changed`, `connection_deleted` (computed, §5.2) |
 | `expires_at` | `DateTime(timezone=True)`, indexed | `APPROVAL_REQUEST_MINUTES` (10) after creation |
 | `failed_at` | `DateTime(timezone=True)`, nullable | The last approve attempt that failed (EUDIPLO), while `waiting` |
 | `error_id` | `String(36)`, nullable | Its `error_id`, shown on the page |
@@ -160,6 +166,7 @@ Portal.").
                      revoke / lower the agent's access ─────────────────────▶ cancelled (reason)
                      expires_at passes ──────────────────────────────────────▶ expired   (computed)
                      the connection moved on (§5.2) ─────────────────────────▶ cancelled (computed)
+                     the agent's access ended otherwise (§5.2) ──────────────▶ cancelled (computed)
 ```
 
 `done`, `declined`, `replaced`, `cancelled` and `expired` are final. The outcome an agent reads
@@ -171,9 +178,14 @@ is the status, or `failed` when the status is `waiting` and `failed_at` is set (
 |---|---|---|
 | `publish`, `delete_draft` | the row is a draft and `draft_version` equals the stored one | `cancelled`: `draft_changed`, `draft_published` (published since) or `draft_deleted` (no row) |
 | `deactivate`, `reactivate`, `delete` | the row is published, not deleted, and `is_active` equals `was_active` | `cancelled`: `connection_changed` or `connection_deleted` |
+| any | the authorization that asked still exists (`authorization_id` not null) | `cancelled`: `access_ended` |
 
-A change to a published connection's content (a new revision or rule set) doesn't affect a
-request on its status (spec, edge cases).
+The rules apply to a `waiting` row; a stored final status stays what it is. `access_ended` covers
+every way an authorization goes other than the user page's revoke: the worker's sweep of an
+expired token or an idle connection (§3) and a retired refresh token used again (§4). Revoking
+stores `revoked` and lowering the access stores `access_changed` before the change (R7), so no
+deletion path needs to know about approvals. A change to a published connection's content (a
+new revision or rule set) doesn't affect a request on its status (spec, edge cases).
 
 ### 5.3 Preconditions at creation (FR-022)
 
@@ -200,10 +212,14 @@ accepts a UUID that isn't another connection's branch id; a draft's stored conte
 one. `first_rule_set()` creates the branch rows with these ids when the draft is published, so
 `form_connection_branches.id` equals the draft's id for every variant the draft had.
 
-**Migration** `<rev>_agent_mcp_server.py`, `down_revision = 'f17f604c6cbb'`: creates the five
-tables of §1–§5 and backfills `form_connections.draft` for every row whose `draft` is not null,
-setting each branch's `id` to a new UUID where it is null (a Python loop over the rows, since
-autogenerate emits no data migration). Downgrade drops the tables; the ids in drafts stay.
+**Migrations**. `60d71d73af6d_agent_mcp_server.py`, `down_revision = 'f17f604c6cbb'`: creates
+the five tables of §1–§5 and backfills `form_connections.draft` for every row whose `draft` is
+not null, setting each branch's `id` to a new UUID where it is null (a Python loop over the rows,
+since autogenerate emits no data migration). Downgrade drops the tables; the ids in drafts stay.
+`<rev>_approval_requests_outlive_revocation.py`, `down_revision = '60d71d73af6d'`: gives
+`approval_requests.authorization_id` its `ON DELETE SET NULL` rule and its nullability, and adds
+`requested_by` (§5). Downgrade deletes the rows whose `authorization_id` is null, restores the
+cascade and drops the column.
 
 ### 6.2 `form_connections`: no new column
 
