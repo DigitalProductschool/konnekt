@@ -1,12 +1,15 @@
-"""Approval requests for drafts (spec 007, user story 3, SC-004).
+"""Approval requests (spec 007, user stories 3 and 7, SC-004).
 
 contracts/management-api.md "Approval requests", data-model.md section 5, research
-R7 and R12: an agent with "Read and edit drafts" asks to publish or delete a draft
-and gets the approval page's link; nothing happens until the team member it acts
-for approves, in their browser session, the request as it was made: a draft that
-changed, was published or deleted since, an expired request, an agent whose access
-ended, and another team member get nothing done. An approved publish runs the
-editor's publish, and a failure of EUDIPLO keeps the request waiting for another
+R7 and R12: an agent with "Read and edit drafts" asks to publish or delete a draft,
+one with "Read, edit drafts and manage live connections" also to deactivate,
+reactivate or delete a published connection, and gets the approval page's link;
+nothing happens until the team member it acts for approves, in their browser
+session, the request as it was made: a draft that changed, was published or deleted
+since, a connection deactivated, reactivated or deleted since, an expired request,
+an agent whose access ended, and another team member get nothing done. An approved
+publish runs the editor's publish, an approved status change the management
+interface's, and a failure of EUDIPLO keeps the request waiting for another
 attempt. The level table of every endpoint is in test_agent_principal.py.
 """
 
@@ -30,7 +33,7 @@ from app.models import (
 )
 from app.routers.form_connections import CONFIG_FAILED
 from app.schemas import AccessLevel, AgentAccessKind
-from app.services import approvals, drafts, worker
+from app.services import approvals, drafts, form_connections, worker
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
 from app.services.evaluation import GERMANY
 from tests.api.test_form_connection_drafts import editor_publish_body, published_shape
@@ -41,10 +44,15 @@ from tests.helpers import (
     CLASS_RULE,
     FORM_CONNECTION,
     bearer_client,
+    branch_pull_url,
     create_agent_authorization,
     create_form_connection,
     main_branch,
     now,
+    pull_url,
+    requests_url,
+    rules_input,
+    stored_request,
     trigger,
     variant,
 )
@@ -1037,3 +1045,659 @@ def test_the_worker_deletes_requests_that_ended_a_day_ago(
 
 def test_the_worker_step_is_registered() -> None:
     assert worker.STEPS[-1] is worker.delete_old_approval_requests
+
+
+# Deactivating, reactivating and deleting a published connection (user story 7)
+
+NEEDS_MANAGE = {
+    'error': 'insufficient_access',
+    'message': (
+        'Deactivating, reactivating and deleting published connections needs the '
+        "access level 'Read, edit drafts and manage live connections'."
+    ),
+    'needs_access_level': 'manage',
+}
+IS_A_DRAFT = {
+    'error': 'not_allowed',
+    'message': 'This connection is a draft: it has nothing live yet.',
+}
+ALREADY_DEACTIVATED = {
+    'error': 'not_allowed',
+    'message': 'This connection is already deactivated.',
+}
+ALREADY_LIVE = {'error': 'not_allowed', 'message': 'This connection is already live.'}
+UNAVAILABLE = {
+    'error': 'unavailable',
+    'message': 'This form connection is deactivated or deleted',
+}
+# The approval page's reasons for a connection that moved on
+# (contracts/ui-screens.md S3 "Outcome states")
+CONNECTION_TEXTS = {
+    'deactivated': 'The connection was deactivated in the meantime.',
+    'reactivated': 'The connection was reactivated in the meantime.',
+    'deleted': 'The connection has been deleted in the meantime.',
+}
+STATUS_ACTIONS = ('deactivate', 'reactivate', 'delete')
+# Standard and a variant, so that the URLs hold two pull URLs
+LIVE_RULES = rules_input(
+    [main_branch([AGE_RULE, CLASS_RULE]), variant([AGE_RULE, CLASS_RULE])]
+)
+# A pid field more: a new revision
+EDITED_DOCUMENTS: list[dict[str, Any]] = [
+    {
+        'document_type': 'pid',
+        'fields': [
+            'family_name',
+            'given_name',
+            'birthdate',
+            'nationalities',
+            'address_locality',
+        ],
+    },
+    FORM_CONNECTION['documents'][1],
+]
+# What the management interface's status endpoints run
+PORTAL_SERVICES: dict[str, Callable[..., Any]] = {
+    'deactivate': form_connections.deactivate_form_connection,
+    'activate': form_connections.activate_form_connection,
+    'delete': form_connections.delete_form_connection,
+}
+
+
+def _live(client: TestClient) -> str:
+    """A published, live connection with Standard and a variant."""
+    return create_form_connection(client, rules=LIVE_RULES)
+
+
+def _in_the_portal(client: TestClient, form_connection_id: str, change: str) -> None:
+    """Deactivate, activate or delete the connection in the management interface."""
+    if change == 'delete':
+        response = client.request(
+            'DELETE', f'{CONNECTIONS}/{form_connection_id}', json={}
+        )
+    else:
+        response = client.post(f'{CONNECTIONS}/{form_connection_id}/{change}', json={})
+    assert response.status_code == 200, response.json()
+
+
+def _deactivated(client: TestClient) -> str:
+    """A published connection with Standard and a variant, deactivated."""
+    form_connection_id = _live(client)
+    _in_the_portal(client, form_connection_id, 'deactivate')
+    return form_connection_id
+
+
+# The connection each action applies to; delete takes a deactivated one too
+SETUPS: dict[str, Callable[[TestClient], str]] = {
+    'deactivate': _live,
+    'reactivate': _deactivated,
+    'delete': _live,
+}
+
+
+def _urls(connection: dict[str, Any]) -> dict[str, Any]:
+    """The trigger URL and each variant's pull URL, as ConnectionUrls."""
+    return {
+        'trigger_url': connection['trigger_url'],
+        'variants': [
+            {'id': branch['id'], 'name': branch['name'], 'pull_url': branch['pull_url']}
+            for branch in connection['branches']
+        ],
+    }
+
+
+def _ignoring_updated_at(connection: dict[str, Any], **changes: Any) -> dict[str, Any]:
+    """`connection` with `changes`, without `updated_at`."""
+    changed = connection | changes
+    return {key: value for key, value in changed.items() if key != 'updated_at'}
+
+
+def _stored_connection(form_connection_id: str) -> FormConnection:
+    with SessionLocal() as db:
+        form_connection = db.get(FormConnection, form_connection_id)
+    assert form_connection is not None
+    return form_connection
+
+
+def _unavailable(client: TestClient, form_connection_id: str, reference: str) -> None:
+    """The trigger URL and both pull URLs answer 409 unavailable."""
+    connection_variant = _stored_variant_id(form_connection_id)
+    triggered = client.post(requests_url(form_connection_id))
+    assert triggered.status_code == 409
+    assert triggered.json() == UNAVAILABLE
+    for path in (
+        pull_url(form_connection_id, reference),
+        branch_pull_url(form_connection_id, connection_variant, reference),
+    ):
+        response = client.get(path)
+        assert response.status_code == 409, path
+        assert response.json() == UNAVAILABLE
+
+
+def _stored_variant_id(form_connection_id: str) -> str:
+    """The id of the connection's variant, the branch that isn't Standard."""
+    with SessionLocal() as db:
+        form_connection = db.get(FormConnection, form_connection_id)
+        assert form_connection is not None
+        view = form_connections._current_view(db, form_connection)
+    return next(branch.id for branch in view.branches if not branch.is_main)
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'was_active'),
+    [
+        pytest.param('deactivate', _live, True, id='deactivate'),
+        pytest.param('reactivate', _deactivated, False, id='reactivate'),
+        pytest.param('delete', _live, True, id='delete-live'),
+        pytest.param('delete', _deactivated, False, id='delete-deactivated'),
+    ],
+)
+def test_a_status_request_answers_its_link_and_changes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    action: str,
+    setup: Callable[[TestClient], str],
+    was_active: bool,
+) -> None:
+    """US7-AS2: nothing changes yet; the request remembers the connection's status."""
+    user_id = _user_id()
+    form_connection_id = setup(signed_in_client)
+    connection = _connection(signed_in_client, form_connection_id)
+    authorization_id, agent = _agent(user_id, 'manage')
+    calls = len(fake_eudiplo.calls)
+
+    request = _ask(agent, form_connection_id, action)
+
+    assert request.keys() == REQUEST_KEYS
+    assert request['action'] == action
+    assert request['form_connection_id'] == form_connection_id
+    assert request['connection_name'] == FORM_CONNECTION['name']
+    assert request['status'] == request['outcome'] == 'waiting'
+    assert request['link'] == f'{settings.portal_url}/approvals/{request["id"]}'
+    assert _connection(signed_in_client, form_connection_id) == connection
+    assert len(fake_eudiplo.calls) == calls
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert (stored.was_active, stored.draft_version) == (was_active, None)
+    assert stored.authorization_id == authorization_id
+    assert stored.user_account_id == user_id
+
+
+@pytest.mark.parametrize('action', STATUS_ACTIONS)
+@pytest.mark.parametrize('level', ['read', 'drafts'])
+def test_only_the_manage_level_asks_for_a_status_action(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    level: AccessLevel,
+    action: str,
+) -> None:
+    """US7-AS1, SC-004: refused with the level that allows it, and no request."""
+    form_connection_id = SETUPS[action](signed_in_client)
+    connection = _connection(signed_in_client, form_connection_id)
+    _, agent = _agent(_user_id(), level)
+
+    response = agent.post(
+        BASE, json={'form_connection_id': form_connection_id, 'action': action}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == NEEDS_MANAGE
+    assert _count() == 0
+    assert _connection(signed_in_client, form_connection_id) == connection
+
+
+@pytest.mark.parametrize('action', STATUS_ACTIONS)
+def test_a_draft_cant_be_asked_for_a_status_action(
+    signed_in_client: TestClient, action: str
+) -> None:
+    """FR-022: a draft has nothing live; deleting it is delete_draft."""
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+
+    response = agent.post(BASE, json={'form_connection_id': draft_id, 'action': action})
+
+    assert response.status_code == 409
+    assert response.json() == IS_A_DRAFT
+    assert _count() == 0
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'refusal'),
+    [
+        pytest.param('deactivate', _deactivated, ALREADY_DEACTIVATED, id='deactivate'),
+        pytest.param('reactivate', _live, ALREADY_LIVE, id='reactivate'),
+    ],
+)
+def test_a_status_the_connection_has_already_is_refused_at_once(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    action: str,
+    setup: Callable[[TestClient], str],
+    refusal: dict[str, str],
+) -> None:
+    """US7-AS7: the message gives the connection's status, and no request."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+
+    response = agent.post(
+        BASE, json={'form_connection_id': form_connection_id, 'action': action}
+    )
+
+    assert response.status_code == 409
+    assert response.json() == refusal
+    assert _count() == 0
+
+
+@pytest.mark.parametrize('action', STATUS_ACTIONS)
+def test_a_deleted_connection_cant_be_asked_for(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, action: str
+) -> None:
+    form_connection_id = _live(signed_in_client)
+    _in_the_portal(signed_in_client, form_connection_id, 'delete')
+    _, agent = _agent(_user_id(), 'manage')
+
+    response = agent.post(
+        BASE, json={'form_connection_id': form_connection_id, 'action': action}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == CONNECTION_NOT_FOUND
+    assert _count() == 0
+
+
+@pytest.mark.parametrize(
+    ('action', 'change', 'refusal', 'was_active'),
+    [
+        pytest.param(
+            'deactivate',
+            'deactivate',
+            (409, ALREADY_DEACTIVATED),
+            None,
+            id='deactivate-deactivated',
+        ),
+        pytest.param(
+            'reactivate', 'activate', (409, ALREADY_LIVE), None, id='reactivate-live'
+        ),
+        pytest.param(
+            'delete', 'delete', (404, CONNECTION_NOT_FOUND), None, id='delete-deleted'
+        ),
+        pytest.param('delete', 'deactivate', None, False, id='delete-deactivated'),
+    ],
+)
+def test_a_connection_changed_while_asking_is_checked_again_under_the_lock(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+    change: str,
+    refusal: tuple[int, dict[str, str]] | None,
+    was_active: bool | None,
+) -> None:
+    """A change in the management interface between the first check and the row
+    lock: the request is checked, and made, for the connection as it is then."""
+    form_connection_id = SETUPS[action](signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    portal = PORTAL_SERVICES[change]
+    agent_name = approvals._agent_name
+
+    def changed_meanwhile(db: Any, authorization: Any) -> str:
+        with SessionLocal() as other:
+            portal(other, form_connection_id)
+        return agent_name(db, authorization)
+
+    monkeypatch.setattr(approvals, '_agent_name', changed_meanwhile)
+
+    response = agent.post(
+        BASE, json={'form_connection_id': form_connection_id, 'action': action}
+    )
+
+    if refusal is not None:
+        assert (response.status_code, response.json()) == refusal
+        assert _count() == 0
+    else:
+        assert response.status_code == 201, response.json()
+        stored = _stored(response.json()['data']['id'])
+        assert stored is not None
+        assert stored.was_active is was_active
+
+
+@pytest.mark.parametrize('action', STATUS_ACTIONS)
+def test_the_page_reads_a_status_request_with_the_connection_and_its_urls(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, action: str
+) -> None:
+    """US7-AS3, AS5, AS6: the connection, and the URLs that stop or work again."""
+    form_connection_id = SETUPS[action](signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, action)
+    connection = _connection(signed_in_client, form_connection_id)
+
+    preview = _preview(signed_in_client, request['id'])
+
+    assert preview == {
+        'request': request,
+        'draft': None,
+        'connection': connection,
+        'urls': _urls(connection),
+    }
+    assert len(preview['urls']['variants']) == 2
+    assert _preview(agent, request['id']) == preview
+
+
+@pytest.mark.parametrize(
+    ('action', 'change', 'text'),
+    [
+        pytest.param('deactivate', 'deactivate', 'deactivated', id='deactivate-off'),
+        pytest.param('deactivate', 'delete', 'deleted', id='deactivate-deleted'),
+        pytest.param('reactivate', 'activate', 'reactivated', id='reactivate-on'),
+        pytest.param('reactivate', 'delete', 'deleted', id='reactivate-deleted'),
+        pytest.param('delete', 'deactivate', 'deactivated', id='delete-off'),
+        pytest.param('delete', 'delete', 'deleted', id='delete-deleted'),
+    ],
+)
+def test_a_connection_that_moved_on_cancels_the_request(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    action: str,
+    change: str,
+    text: str,
+) -> None:
+    """US7-AS8, FR-024: approving does nothing, and the page says what changed."""
+    form_connection_id = SETUPS[action](signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, action)
+    _in_the_portal(signed_in_client, form_connection_id, change)
+    before = _stored_connection(form_connection_id)
+    calls = len(fake_eudiplo.calls)
+
+    preview = _preview(signed_in_client, request['id'])
+
+    reason = 'connection_deleted' if text == 'deleted' else 'connection_changed'
+    assert preview['request']['status'] == preview['request']['outcome'] == 'cancelled'
+    assert preview['request']['cancel_reason'] == reason
+    assert preview['request']['connection_name'] == FORM_CONNECTION['name']
+    assert preview['draft'] is None
+    if text == 'deleted':
+        assert (preview['connection'], preview['urls']) == (None, None)
+    else:
+        connection = _connection(signed_in_client, form_connection_id)
+        assert preview['connection'] == connection
+        assert preview['urls'] == _urls(connection)
+    assert _preview(agent, request['id'])['request']['cancel_reason'] == reason
+    for call in (_approve, _decline):
+        response = call(signed_in_client, request['id'])
+        assert response.status_code == 409
+        assert response.json() == {
+            'error': 'approval_cancelled',
+            'message': CONNECTION_TEXTS[text],
+        }
+    # Nothing is done, and the stored status stays waiting
+    after = _stored_connection(form_connection_id)
+    assert (after.is_active, after.deleted_at) == (before.is_active, before.deleted_at)
+    assert len(fake_eudiplo.calls) == calls
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert stored.status == 'waiting'
+
+
+def test_a_change_of_the_connections_content_doesnt_cancel_a_status_request(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """A new revision and a new name: the request applies to the status only."""
+    form_connection_id = _live(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, 'deactivate')
+
+    response = signed_in_client.put(
+        f'{CONNECTIONS}/{form_connection_id}',
+        json={'name': 'Geändert', 'documents': EDITED_DOCUMENTS},
+    )
+    assert response.status_code == 200, response.json()
+
+    read = _preview(signed_in_client, request['id'])
+    assert read['request']['status'] == 'waiting'
+    assert read['request']['connection_name'] == 'Geändert'
+    assert read['connection'] == _connection(signed_in_client, form_connection_id)
+    response = _approve(signed_in_client, request['id'])
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection deactivated'
+    assert _connection(signed_in_client, form_connection_id)['is_active'] is False
+
+
+def test_approving_deactivates_the_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US7-AS4: as the management interface deactivates (spec 001, FR-006)."""
+    form_connection_id = _live(signed_in_client)
+    connection = _connection(signed_in_client, form_connection_id)
+    started = trigger(signed_in_client, form_connection_id)['reference']
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, 'deactivate')
+    calls = len(fake_eudiplo.calls)
+    before = now()
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection deactivated'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'done'
+    decided_at = datetime.fromisoformat(preview['request']['decided_at'])
+    assert before <= decided_at <= now()
+    deactivated = _connection(signed_in_client, form_connection_id)
+    assert _ignoring_updated_at(deactivated) == _ignoring_updated_at(
+        connection, is_active=False
+    )
+    assert preview['draft'] is None
+    assert preview['connection'] == deactivated
+    assert preview['urls'] == _urls(connection)
+    # Its URLs answer unavailable, and the request in progress is cancelled
+    _unavailable(signed_in_client, form_connection_id, started)
+    assert stored_request(started).status == 'unavailable'
+    # No EUDIPLO call: the worker deletes the session later
+    assert len(fake_eudiplo.calls) == calls
+    # The agent reads the outcome, and approving again does nothing
+    assert _preview(agent, request['id']) == preview
+    response = _approve(signed_in_client, request['id'])
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_done',
+        'message': 'Connection deactivated.',
+    }
+
+
+def test_approving_reactivates_the_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US7-AS5: the same URLs work again, and the agent can read them."""
+    form_connection_id = _deactivated(signed_in_client)
+    connection = _connection(signed_in_client, form_connection_id)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, 'reactivate')
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection reactivated'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'done'
+    reactivated = _connection(signed_in_client, form_connection_id)
+    assert _ignoring_updated_at(reactivated) == _ignoring_updated_at(
+        connection, is_active=True
+    )
+    assert preview['connection'] == reactivated
+    assert preview['urls'] == _urls(connection)
+    reference = trigger(signed_in_client, form_connection_id)['reference']
+    for path in (
+        pull_url(form_connection_id, reference),
+        branch_pull_url(
+            form_connection_id, _stored_variant_id(form_connection_id), reference
+        ),
+    ):
+        response = signed_in_client.get(path)
+        assert response.status_code == 200, path
+    read = _preview(agent, request['id'])
+    assert read['request']['outcome'] == 'done'
+    assert read['urls'] == preview['urls']
+
+
+def test_approving_deletes_the_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """US7-AS6: as the management interface deletes; the page keeps the name."""
+    form_connection_id = _live(signed_in_client)
+    started = trigger(signed_in_client, form_connection_id)['reference']
+    _, agent = _agent(_user_id(), 'manage')
+    deactivating = _ask(agent, form_connection_id, 'deactivate')
+    request = _ask(agent, form_connection_id, 'delete')
+    calls = len(fake_eudiplo.calls)
+    before = now()
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection deleted'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'done'
+    assert preview['request']['connection_name'] == FORM_CONNECTION['name']
+    assert (preview['draft'], preview['connection'], preview['urls']) == (
+        None,
+        None,
+        None,
+    )
+    deleted_at = _stored_connection(form_connection_id).deleted_at
+    assert deleted_at is not None
+    assert before <= deleted_at <= now()
+    response = signed_in_client.get(f'{CONNECTIONS}/{form_connection_id}')
+    assert response.status_code == 404
+    assert response.json() == CONNECTION_NOT_FOUND
+    _unavailable(signed_in_client, form_connection_id, started)
+    assert stored_request(started).status == 'unavailable'
+    assert len(fake_eudiplo.calls) == calls
+    # The agent reads the outcome; the other request no longer applies
+    assert _preview(agent, request['id']) == preview
+    read = _preview(signed_in_client, deactivating['id'])['request']
+    assert (read['status'], read['cancel_reason']) == (
+        'cancelled',
+        'connection_deleted',
+    )
+    assert read['connection_name'] == FORM_CONNECTION['name']
+
+
+@pytest.mark.parametrize('action', STATUS_ACTIONS)
+def test_declining_a_status_request_changes_nothing(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, action: str
+) -> None:
+    form_connection_id = SETUPS[action](signed_in_client)
+    connection = _connection(signed_in_client, form_connection_id)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, action)
+
+    response = _decline(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Declined'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'declined'
+    assert preview['connection'] == connection
+    assert preview['urls'] == _urls(connection)
+    assert _connection(signed_in_client, form_connection_id) == connection
+    assert _preview(agent, request['id'])['request']['outcome'] == 'declined'
+
+
+def test_lowering_the_agents_access_to_drafts_cancels_its_status_requests(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """research R7: 'Read and edit drafts' still allows the draft actions."""
+    user_id = _user_id()
+    form_connection_id = _live(signed_in_client)
+    draft_id = _draft(signed_in_client)
+    authorization_id, agent = _agent(user_id, 'manage')
+    deactivating = _ask(agent, form_connection_id, 'deactivate')
+    deleting = _ask(agent, form_connection_id, 'delete')
+    publishing = _ask(agent, draft_id)
+
+    response = signed_in_client.put(
+        f'/api/agent-access/{authorization_id}', json={'access_level': 'drafts'}
+    )
+    assert response.status_code == 200, response.json()
+
+    for request_id in (deactivating['id'], deleting['id']):
+        read = _preview(signed_in_client, request_id)['request']
+        assert (read['status'], read['cancel_reason']) == (
+            'cancelled',
+            'access_changed',
+        )
+        assert read['decided_at'] is not None
+        response = _approve(signed_in_client, request_id)
+        assert response.status_code == 409
+        assert response.json() == {
+            'error': 'approval_cancelled',
+            'message': CANCELLED_TEXTS['access_changed'],
+        }
+    assert _preview(signed_in_client, publishing['id'])['request']['status'] == (
+        'waiting'
+    )
+    assert _connection(signed_in_client, form_connection_id)['is_active'] is True
+    # Nor can the agent ask again
+    response = agent.post(
+        BASE, json={'form_connection_id': form_connection_id, 'action': 'deactivate'}
+    )
+    assert response.status_code == 403
+    assert response.json() == NEEDS_MANAGE
+
+
+@pytest.mark.parametrize(
+    ('action', 'change', 'text'),
+    [
+        pytest.param('deactivate', 'deactivate', 'deactivated', id='deactivate-off'),
+        pytest.param('deactivate', 'delete', 'deleted', id='deactivate-deleted'),
+        pytest.param('reactivate', 'activate', 'reactivated', id='reactivate-on'),
+        pytest.param('delete', 'deactivate', 'deactivated', id='delete-off'),
+        pytest.param('delete', 'delete', 'deleted', id='delete-deleted'),
+    ],
+)
+def test_a_status_changed_while_the_approval_runs_isnt_changed_again(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+    change: str,
+    text: str,
+) -> None:
+    """A change in the management interface between the approval's check and
+    the service: the service compares the status under its own row lock, so the
+    approval acts on nothing it wasn't made for, and says what changed."""
+    form_connection_id = SETUPS[action](signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask(agent, form_connection_id, action)
+    service_name = {
+        'deactivate': 'deactivate_form_connection',
+        'reactivate': 'activate_form_connection',
+        'delete': 'delete_form_connection',
+    }[action]
+    service = getattr(form_connections, service_name)
+    portal = PORTAL_SERVICES[change]
+
+    def changed_meanwhile(db: Any, changed_id: str, **options: Any) -> Any:
+        with SessionLocal() as other:
+            portal(other, changed_id)
+        return service(db, changed_id, **options)
+
+    monkeypatch.setattr(form_connections, service_name, changed_meanwhile)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_cancelled',
+        'message': CONNECTION_TEXTS[text],
+    }
+    # The connection is as the management interface left it
+    stored = _stored_connection(form_connection_id)
+    if change == 'delete':
+        assert stored.deleted_at is not None
+    else:
+        assert (stored.is_active, stored.deleted_at) == (change == 'activate', None)
+    read = _preview(signed_in_client, request['id'])['request']
+    reason = 'connection_deleted' if text == 'deleted' else 'connection_changed'
+    assert (read['status'], read['cancel_reason']) == ('cancelled', reason)

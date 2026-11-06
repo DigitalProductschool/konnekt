@@ -198,8 +198,10 @@ new revision or rule set) doesn't affect a request on its status (spec, edge cas
 | `reactivate` | `manage` | Published, not deleted, not `is_active` |
 | `delete` | `manage` | Published, not deleted (live or deactivated) |
 
-A draft refused for `deactivate` or `reactivate` gets "This connection is a draft: it has
-nothing live yet." The same connection and action replace a waiting request (`replaced`).
+A draft refused for `deactivate`, `reactivate` or `delete` gets "This connection is a draft: it
+has nothing live yet."; a deactivated connection refused for `deactivate` "This connection is
+already deactivated.", a live one refused for `reactivate` "This connection is already live."
+The same connection and action replace a waiting request (`replaced`).
 
 ---
 

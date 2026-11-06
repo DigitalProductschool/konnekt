@@ -1,6 +1,9 @@
 import type { ApprovalPreview, ApprovalRequest } from '@connection-portal/api-types/approvals';
 import type { DocumentField } from '@connection-portal/api-types/document-types';
-import type { FormConnectionDraft } from '@connection-portal/api-types/form-connections';
+import type {
+  FormConnection,
+  FormConnectionDraft,
+} from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';
@@ -12,9 +15,12 @@ import {
   approvalReducer,
   busyTextOf,
   callFailureOf,
+  cancelledTextOf,
   checkedBranchesOf,
+  doneShowsUrls,
   failureOfPreview,
   finalOutcomeOf,
+  isStatusAction,
   lastSavedLineOf,
   loadFailureActionOf,
   outcomeOfError,
@@ -100,6 +106,26 @@ const DRAFT: FormConnectionDraft = {
   updated_at: '2026-11-05T12:30:00Z',
 };
 
+/** A published connection as the preview holds it, live or deactivated */
+function connectionOf(isActive: boolean): FormConnection {
+  return {
+    status: 'published',
+    id: 'fc-1',
+    name: 'Parking permit',
+    description: '',
+    is_active: isActive,
+    documents: [],
+    trigger_url: 'https://portal.example/api/connect/fc-1',
+    pull_url: 'https://portal.example/api/connect/fc-1/result/{reference}',
+    branches: [],
+    rule_set_version: 2,
+    next_rule_number: 1,
+    next_group_number: 1,
+    created_at: '2026-11-04T09:00:00Z',
+    updated_at: '2026-11-05T12:30:00Z',
+  };
+}
+
 function previewOf(request: Partial<ApprovalRequest> = {}): ApprovalPreview {
   return {
     request: { ...REQUEST, ...request },
@@ -120,6 +146,15 @@ describe('titleOf', () => {
   it('names the connection by action', () => {
     expect(titleOf('publish', 'Parking permit')).toBe('Publish ‘Parking permit’?');
     expect(titleOf('delete_draft', 'Parking permit')).toBe('Delete the draft ‘Parking permit’?');
+  });
+
+  it('names the connection for the actions on a published one', () => {
+    expect(titleOf('deactivate', 'Parking permit')).toBe('Deactivate ‘Parking permit’?');
+    expect(titleOf('reactivate', 'Parking permit')).toBe('Reactivate ‘Parking permit’?');
+    expect(titleOf('delete', 'Parking permit')).toBe('Delete ‘Parking permit’?');
+    expect(titleOf('deactivate', '')).toBe('Deactivate the connection?');
+    expect(titleOf('reactivate', '')).toBe('Reactivate the connection?');
+    expect(titleOf('delete', '')).toBe('Delete the connection?');
   });
 
   it('leaves the name out once a deleted draft’s row is gone', () => {
@@ -155,6 +190,11 @@ describe('outcomeTextOf', () => {
     expect(
       outcomeTextOf({ ...REQUEST, action: 'delete_draft', status: 'done', outcome: 'done' })
     ).toBe('Draft deleted.');
+    const done = (action: ApprovalRequest['action']) =>
+      outcomeTextOf({ ...REQUEST, action, status: 'done', outcome: 'done' });
+    expect(done('deactivate')).toBe('Connection deactivated.');
+    expect(done('reactivate')).toBe('Connection reactivated.');
+    expect(done('delete')).toBe('Connection deleted.');
   });
 
   it('words declined, expired and replaced', () => {
@@ -188,7 +228,50 @@ describe('outcomeTextOf', () => {
     expect(cancelled('access_ended')).toBe(
       'The agent’s access has ended, so this request was cancelled.'
     );
+    expect(cancelled('connection_deleted')).toBe(
+      'The connection has been deleted in the meantime.'
+    );
     expect(cancelled(null)).toBe('This request was cancelled.');
+  });
+
+  it('words a changed connection by whether it is live now', () => {
+    const changed = { ...REQUEST, action: 'deactivate' as const, status: 'cancelled' as const };
+    expect(
+      outcomeTextOf({ ...changed, cancel_reason: 'connection_changed' }, connectionOf(false))
+    ).toBe('The connection was deactivated in the meantime.');
+    expect(
+      outcomeTextOf(
+        { ...changed, action: 'reactivate', cancel_reason: 'connection_changed' },
+        connectionOf(true)
+      )
+    ).toBe('The connection was reactivated in the meantime.');
+  });
+});
+
+describe('cancelledTextOf', () => {
+  it('falls back to the general sentence without the connection', () => {
+    expect(cancelledTextOf('connection_changed', null)).toBe('This request was cancelled.');
+    expect(cancelledTextOf('connection_deleted', null)).toBe(
+      'The connection has been deleted in the meantime.'
+    );
+  });
+});
+
+describe('isStatusAction and doneShowsUrls', () => {
+  it('tells the actions on a published connection', () => {
+    expect(isStatusAction('deactivate')).toBe(true);
+    expect(isStatusAction('reactivate')).toBe(true);
+    expect(isStatusAction('delete')).toBe(true);
+    expect(isStatusAction('publish')).toBe(false);
+    expect(isStatusAction('delete_draft')).toBe(false);
+  });
+
+  it('shows the URLs after publishing and reactivating only', () => {
+    expect(doneShowsUrls('publish')).toBe(true);
+    expect(doneShowsUrls('reactivate')).toBe(true);
+    expect(doneShowsUrls('deactivate')).toBe(false);
+    expect(doneShowsUrls('delete')).toBe(false);
+    expect(doneShowsUrls('delete_draft')).toBe(false);
   });
 });
 
@@ -215,6 +298,17 @@ describe('outcomeOfError', () => {
     expect(
       outcomeOfError(new ApiError(409, { error: 'approval_cancelled', message: 'Cancelled.' }))
     ).toEqual({ status: 'cancelled', text: 'Cancelled.' });
+  });
+
+  it('keeps the server’s sentence for a status action cancelled in the meantime', () => {
+    const changed = 'The connection was reactivated in the meantime.';
+    expect(
+      outcomeOfError(new ApiError(409, { error: 'approval_cancelled', message: changed }))
+    ).toEqual({ status: 'cancelled', text: changed });
+    const deleted = 'The connection has been deleted in the meantime.';
+    expect(
+      outcomeOfError(new ApiError(409, { error: 'approval_cancelled', message: deleted }))
+    ).toEqual({ status: 'cancelled', text: deleted });
   });
 
   it('ignores every other failure', () => {
@@ -419,6 +513,23 @@ describe('outcomeViewOf', () => {
     expect(outcomeViewOf({ ...waiting, conflict })).toEqual({ kind: 'final', outcome: conflict });
   });
 
+  it('words a changed connection from the preview’s connection', () => {
+    const preview = {
+      ...previewOf({
+        action: 'deactivate',
+        status: 'cancelled',
+        outcome: 'cancelled',
+        cancel_reason: 'connection_changed',
+      }),
+      draft: null,
+      connection: connectionOf(false),
+    };
+    expect(outcomeViewOf({ ...waiting, preview })).toEqual({
+      kind: 'final',
+      outcome: { status: 'cancelled', text: 'The connection was deactivated in the meantime.' },
+    });
+  });
+
   it('titles a failed call by what failed', () => {
     const notice = { message: 'Nothing has changed.', error_id: 'e2' };
     expect(outcomeViewOf({ ...waiting, failure: { call: 'approve', notice } })).toEqual({
@@ -440,6 +551,9 @@ describe('busyTextOf and callFailureOf', () => {
     expect(busyTextOf('publish', 'approve')).toBe('Publishing…');
     expect(busyTextOf('publish', 'decline')).toBe('Working…');
     expect(busyTextOf('delete_draft', 'approve')).toBe('Working…');
+    expect(busyTextOf('deactivate', 'approve')).toBe('Working…');
+    expect(busyTextOf('reactivate', 'approve')).toBe('Working…');
+    expect(busyTextOf('delete', 'approve')).toBe('Working…');
   });
 
   it('keeps a 5xx answer’s message and error ID, and words any other failure', () => {

@@ -20,6 +20,11 @@ deleting, deactivating and reactivating never happen without the team member's a
 
 ## When a level isn't enough
 
+Asking for approval to deactivate, reactivate or delete a published connection needs the third
+level, "Read, edit drafts and manage live connections", even when you can edit drafts:
+`request_approval` refuses it at "Read only" and at "Read and edit drafts" with
+`insufficient_access`, and makes no request.
+
 A call that needs a higher level is refused with the error `insufficient_access`, whose message
 names the level it needs (`needs_access_level`). You can ask for it with `request_access`, passing
 `level`: `drafts` for "Read and edit drafts" or `manage` for "Read, edit drafts and manage live

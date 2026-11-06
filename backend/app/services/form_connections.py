@@ -76,6 +76,12 @@ DRAFT_CHANGED_DETAIL = {
     'error': 'draft_changed',
     'message': 'Another team member saved this draft after you opened it.',
 }
+# An approved approval request finds the status it was made for changed (spec 007,
+# research R12); the approval page says which change instead
+STATUS_CHANGED_DETAIL = {
+    'error': 'status_changed',
+    'message': 'This connection was deactivated or reactivated in the meantime.',
+}
 
 
 def _validation_error(message: str) -> HTTPException:
@@ -877,15 +883,37 @@ def update_form_connection(
 # Deactivating, activating and deleting (FR-006)
 
 
+def _lock_for_status_change(
+    db: Session, form_connection_id: str, expected_active: bool | None
+) -> FormConnection:
+    """Lock a published form connection's row to change its status.
+
+    Answers 404 and 409 `not_published` like `_lock_published_form_connection`.
+    With `expected_active`, the `is_active` an approved approval request was made
+    for (spec 007, research R12), also 409 `status_changed` when the row's is
+    another one by now, after releasing the lock: the connection was deactivated
+    or reactivated since the approval's check. The management interface passes
+    none and changes the status whatever it is.
+    """
+    form_connection = _lock_published_form_connection(db, form_connection_id)
+    if expected_active is not None and form_connection.is_active != expected_active:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=STATUS_CHANGED_DETAIL
+        )
+    return form_connection
+
+
 def deactivate_form_connection(
-    db: Session, form_connection_id: str
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
 ) -> FormConnectionView:
     """Deactivate a form connection: its URLs answer 409 from the next call on.
 
     Its open requests become unavailable in the same transaction. EUDIPLO isn't
-    called: the worker deletes their sessions in its next cycle.
+    called: the worker deletes their sessions in its next cycle. `expected_active`
+    as `_lock_for_status_change` says.
     """
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.is_active = False
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()
@@ -898,23 +926,29 @@ def deactivate_form_connection(
 
 
 def activate_form_connection(
-    db: Session, form_connection_id: str
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
 ) -> FormConnectionView:
-    """Activate a form connection again: its URLs work again, unchanged."""
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    """Activate a form connection again: its URLs work again, unchanged.
+
+    `expected_active` as `_lock_for_status_change` says.
+    """
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.is_active = True
     db.commit()
     logger.info('Form connection %s activated', form_connection_id)
     return _current_view(db, form_connection)
 
 
-def delete_form_connection(db: Session, form_connection_id: str) -> None:
+def delete_form_connection(
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
+) -> None:
     """Delete a form connection: its URLs answer 409 for good.
 
     The row stays, marked deleted, so that the URLs can still say "unavailable".
     Open requests are cancelled as for deactivating, and EUDIPLO isn't called.
+    `expected_active` as `_lock_for_status_change` says.
     """
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.deleted_at = datetime.now(tz=timezone.utc)
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()

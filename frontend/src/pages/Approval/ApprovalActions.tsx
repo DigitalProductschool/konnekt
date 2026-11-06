@@ -3,9 +3,9 @@ import type { ApprovalActionsProps } from './types';
 import { busyTextOf } from './utils';
 
 /**
- * "Approve" and "Decline" (S3 "Actions"). Approving deletes for `delete_draft`, so its button is
- * KERN's danger variant there. After a failed approve it says "Try again". While a call runs,
- * both are `aria-disabled` and ignore clicks, and the status region under them says
+ * "Approve" and "Decline" (S3 "Actions"). Approving deletes for `delete_draft` and `delete`, so
+ * its button is KERN's danger variant there. After a failed approve it says "Try again". While a
+ * call runs, both are `aria-disabled` and ignore clicks, and the status region under them says
  * "Publishing…" or "Working…"; it stays rendered, so that its text is announced.
  */
 export default function ApprovalActions({

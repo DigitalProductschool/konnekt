@@ -6,6 +6,7 @@ import type {
 } from '@connection-portal/api-types/approvals';
 import type {
   ConnectionUrls,
+  FormConnection,
   FormConnectionDraft,
 } from '@connection-portal/api-types/form-connections';
 
@@ -13,6 +14,18 @@ import type { LinkCardLink } from '../FormConnectionDetail/types';
 
 /** The calls the page makes on the request */
 export type ApprovalCall = 'approve' | 'decline';
+
+/** The actions on a published connection, whose body shows its URLs */
+export type StatusAction = Exclude<ApprovalAction, 'publish' | 'delete_draft'>;
+
+/** A status action's body: what becomes of the URLs, and the sentences under them */
+export interface StatusBody {
+  lead: string;
+  /** "Requests in progress are cancelled.", or null */
+  cancelsRequests: string | null;
+  /** "Deleting can’t be undone.", or null */
+  final: string | null;
+}
 
 /** The statuses a request ends in */
 export type FinalStatus = Exclude<ApprovalStatus, 'waiting'>;
@@ -74,6 +87,16 @@ export interface ApprovalSummaryProps {
   action: ApprovalAction;
   /** The draft while it exists */
   draft: FormConnectionDraft | null;
+  /** The published connection while it exists (the status actions) */
+  connection: FormConnection | null;
+  /** Its URLs while it exists (the status actions) */
+  urls: ConnectionUrls | null;
+}
+
+export interface StatusSummaryProps {
+  action: StatusAction;
+  connection: FormConnection;
+  urls: ConnectionUrls | null;
 }
 
 export interface PublishSummaryProps {
@@ -103,9 +126,13 @@ export type OutcomeView =
 
 export interface ApprovalOutcomeProps {
   view: OutcomeView;
-  /** After publishing: the connection URLs, and the connection to open */
+  /** After publishing or reactivating: the connection URLs, and the connection to open */
   urls?: ConnectionUrls | null;
   formConnectionId?: string;
+}
+
+export interface ApprovalLinkCardsProps {
+  urls: ConnectionUrls;
 }
 
 export interface ApprovalUrlsProps {

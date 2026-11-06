@@ -189,6 +189,20 @@ export function approvalUrlsOf(
   };
 }
 
+/** The actions whose done request answers the connection URLs: those that made them work. */
+const URL_ACTIONS: ReadonlySet<ApprovalAction> = new Set(['publish', 'reactivate']);
+
+/**
+ * The URLs `check_approval` answers: once a draft is published or a connection reactivated
+ * (contracts/mcp-tools.md). The backend answers a published connection's URLs in every status,
+ * also while a deactivate waits or after it is done, where they don't (or no longer) work
+ */
+function checkedUrlsOf(preview: ApprovalPreview): ConnectionUrls | null {
+  const { request } = preview;
+  if (request.outcome !== 'done' || !URL_ACTIONS.has(request.action)) return null;
+  return approvalUrlsOf(preview.urls, request.form_connection_id);
+}
+
 /**
  * Whether the client declared URL-mode elicitation (`elicitation.url`, an object; research R2):
  * on 2026-07-28 in the request's envelope, in a 2025-era session in its `initialize`
@@ -353,7 +367,7 @@ registerTool({
     const preview = await backend.get<ApprovalPreview>(`/api/approval-requests/${id}`);
     const { request } = preview;
     const connection = approvalConnectionRefOf(request, preview);
-    const urls = approvalUrlsOf(preview.urls, request.form_connection_id);
+    const urls = checkedUrlsOf(preview);
     return toolResult(
       {
         request: {

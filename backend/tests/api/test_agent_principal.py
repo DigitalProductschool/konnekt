@@ -236,6 +236,38 @@ def _approval_request(draft_id: str | None, authorization_id: str | None) -> str
         return request.id
 
 
+def _status_request(
+    form_connection_id: str | None, authorization_id: str | None
+) -> str:
+    """A waiting request to deactivate the live connection, made by the bearer
+    that calls (user story 7).
+
+    For the callers without a bearer, by another agent of the signed-in account.
+    """
+    assert form_connection_id is not None
+    with SessionLocal() as db:
+        user_id = db.scalar(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        )
+    assert user_id is not None
+    if authorization_id is None:
+        authorization_id = create_agent_authorization(user_id, 'manage')[0]
+    with SessionLocal() as db:
+        request = ApprovalRequest(
+            form_connection_id=form_connection_id,
+            action='deactivate',
+            authorization_id=authorization_id,
+            requested_by='test',
+            user_account_id=user_id,
+            was_active=True,
+            status='waiting',
+            expires_at=now() + timedelta(minutes=10),
+        )
+        db.add(request)
+        db.commit()
+        return request.id
+
+
 def _deactivated(client: TestClient) -> str | None:
     form_connection_id = create_form_connection(client)
     response = client.post(f'{BASE}/{form_connection_id}/deactivate', json={})
@@ -254,6 +286,7 @@ class Outcome:
 SUCCESS = Outcome()
 NO_SIGN_IN = Outcome(401, SIGN_IN_REQUIRED)
 TOO_LOW = Outcome(403, NEEDS_DRAFTS)
+TOO_LOW_TO_MANAGE = Outcome(403, NEEDS_MANAGE)
 IN_THE_PORTAL = Outcome(403, BROWSER_ONLY)
 FOR_AGENTS = Outcome(403, BEARER_ONLY)
 
@@ -266,6 +299,14 @@ AGENTS_ONLY = (NO_SIGN_IN, FOR_AGENTS, SUCCESS, SUCCESS, SUCCESS)
 # Asking for approval: agents from 'drafts' on; a browser session answers
 # browser_only (contracts/management-api.md)
 AGENTS_FROM_DRAFTS = (NO_SIGN_IN, IN_THE_PORTAL, TOO_LOW, SUCCESS, SUCCESS)
+# Asking to deactivate, reactivate or delete a published connection: 'manage' only
+AGENTS_WITH_MANAGE = (
+    NO_SIGN_IN,
+    IN_THE_PORTAL,
+    TOO_LOW_TO_MANAGE,
+    TOO_LOW_TO_MANAGE,
+    SUCCESS,
+)
 
 Caller = Literal['none', 'cookie', 'read', 'drafts', 'manage']
 CALLERS: tuple[Caller, ...] = ('none', 'cookie', 'read', 'drafts', 'manage')
@@ -285,7 +326,7 @@ class Endpoint:
     page); `then`, if given, runs once the caller is set up, with that row and the
     caller's authorization (None without a bearer), and its row replaces it (an
     approval request, which is the bearer's own). `success` is the status a
-    permitted call answers.
+    permitted call answers. `label` tells rows of the same endpoint apart.
     """
 
     method: str
@@ -295,9 +336,11 @@ class Endpoint:
     body: dict[str, Any] | None = None
     success: int = 200
     then: Callable[[str | None, str | None], str] | None = None
+    label: str = ''
 
     def __str__(self) -> str:
-        return f'{self.method} {self.path}'
+        endpoint = f'{self.method} {self.path}'
+        return f'{endpoint} ({self.label})' if self.label else endpoint
 
     def url(self, row_id: str | None) -> str:
         return self.path.replace('{id}', row_id or '')
@@ -411,6 +454,60 @@ ENDPOINTS = [
         setup=_publishable_draft,
         body={},
         then=_approval_request,
+    ),
+    # User story 7: deactivating, reactivating and deleting a published connection
+    Endpoint(
+        'POST',
+        '/api/approval-requests',
+        AGENTS_WITH_MANAGE,
+        setup=_published,
+        body={'form_connection_id': '{id}', 'action': 'deactivate'},
+        success=201,
+        label='deactivate',
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests',
+        AGENTS_WITH_MANAGE,
+        setup=_deactivated,
+        body={'form_connection_id': '{id}', 'action': 'reactivate'},
+        success=201,
+        label='reactivate',
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests',
+        AGENTS_WITH_MANAGE,
+        setup=_published,
+        body={'form_connection_id': '{id}', 'action': 'delete'},
+        success=201,
+        label='delete',
+    ),
+    Endpoint(
+        'GET',
+        '/api/approval-requests/{id}',
+        EVERY_LEVEL,
+        setup=_published,
+        then=_status_request,
+        label='deactivate',
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests/{id}/approve',
+        BROWSER_SESSION,
+        setup=_published,
+        body={},
+        then=_status_request,
+        label='deactivate',
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests/{id}/decline',
+        BROWSER_SESSION,
+        setup=_published,
+        body={},
+        then=_status_request,
+        label='deactivate',
     ),
 ]
 

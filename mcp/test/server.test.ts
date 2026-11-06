@@ -2130,7 +2130,11 @@ describe('the approval tools', () => {
   }
 
   /** A client of `era` that declares URL-mode elicitation and records what it is shown. */
-  async function elicitingClient(era: Era, seen: ElicitParams[]): Promise<Client> {
+  async function elicitingClient(
+    era: Era,
+    seen: ElicitParams[],
+    token: string = BEARERS.drafts
+  ): Promise<Client> {
     const capabilities = { elicitation: { url: {} } };
     const client = new Client(
       { name: 'server-test', version: '1.0.0' },
@@ -2141,7 +2145,7 @@ describe('the approval tools', () => {
       return { action: 'accept' };
     });
     const transport = new StreamableHTTPClientTransport(mcpUrl, {
-      requestInit: { headers: { Authorization: `Bearer ${BEARERS.drafts}` } },
+      requestInit: { headers: { Authorization: `Bearer ${token}` } },
     });
     await client.connect(transport);
     clients.push(client);
@@ -2149,12 +2153,13 @@ describe('the approval tools', () => {
   }
 
   /** A request stored in the fake, changed by `change`, for check_approval. */
-  async function storedRequest(change: (request: ApprovalRequest) => ApprovalRequest) {
-    const { structured } = await callTool(
-      'request_approval',
-      { connection: IDS.draft, action: 'publish' },
-      BEARERS.drafts
-    );
+  async function storedRequest(
+    change: (request: ApprovalRequest) => ApprovalRequest,
+    connection: string = IDS.draft,
+    action: string = 'publish',
+    token: string = BEARERS.drafts
+  ) {
+    const { structured } = await callTool('request_approval', { connection, action }, token);
     const id = structured.request.id as string;
     const stored = fake.store.approvals.get(id);
     if (!stored) throw new Error('The fake stored no request');
@@ -2280,6 +2285,144 @@ describe('the approval tools', () => {
         code: 'not_allowed',
         message: 'This connection is already published.',
       });
+    });
+
+    describe('the status actions (US7)', () => {
+      const MANAGE_NEEDED =
+        'Deactivating, reactivating and deleting published connections needs the access level ' +
+        "'Read, edit drafts and manage live connections'. Ask for it with request_access, or the " +
+        'team member raises it on their user page.';
+
+      it.each([
+        ['read', 'read only', 'deactivate', IDS.live],
+        ['read', 'read only', 'reactivate', IDS.deactivated],
+        ['read', 'read only', 'delete', IDS.live],
+        ['drafts', 'read and edit drafts', 'deactivate', IDS.live],
+        ['drafts', 'read and edit drafts', 'reactivate', IDS.deactivated],
+        ['drafts', 'read and edit drafts', 'delete', IDS.live],
+      ] as const)(
+        'refuses the %s caller (%s) asking to %s with the manage message, no request made',
+        async (level, current, action, connection) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action },
+            BEARERS[level]
+          );
+          expect(isError).toBe(true);
+          expect(structured).toEqual({
+            code: 'insufficient_access',
+            message: `Your access is ${current}. ${MANAGE_NEEDED}`,
+            needs_access_level: 'manage',
+          });
+          expect(approvalPosts()).toEqual([]);
+          expect(fake.store.approvals.size).toBe(0);
+        }
+      );
+
+      it.each([
+        [
+          'deactivate',
+          IDS.live,
+          'Fishing licence',
+          'live',
+          (time: string) =>
+            'Nothing changes yet. The team member sees which connection URLs will answer ' +
+            "'unavailable' until the connection is reactivated and that requests in progress " +
+            `are cancelled, and approves or declines before ${time}.`,
+        ],
+        [
+          'reactivate',
+          IDS.deactivated,
+          'Dog licence',
+          'deactivated',
+          (time: string) =>
+            'Nothing changes yet. The team member sees which connection URLs will work again, ' +
+            `and approves or declines before ${time}.`,
+        ],
+        [
+          'delete',
+          IDS.live,
+          'Fishing licence',
+          'live',
+          (time: string) =>
+            'Nothing changes yet. The team member sees which connection URLs stop working for ' +
+            "good, that requests in progress are cancelled and that deleting can't be undone, " +
+            `and approves or declines before ${time}.`,
+        ],
+      ] as const)(
+        'makes a %s request for the manage caller and says what happens next; nothing changes',
+        async (action, connection, name, status, whatHappens) => {
+          const before = fake.store.connections.get(connection);
+          const { isError, structured, text } = await callTool(
+            'request_approval',
+            { connection: links.connectionLink(connection), action },
+            BEARERS.manage
+          );
+          expect(isError).toBe(false);
+          expect(approvalPosts()).toHaveLength(1);
+          const [{ request }] = [...fake.store.approvals.values()];
+          expect(request).toMatchObject({ action, form_connection_id: connection });
+          expect(structured).toEqual({
+            request: {
+              id: request.id,
+              action,
+              connection: { id: connection, name, status, link: links.connectionLink(connection) },
+              link: `http://localhost:5173/approvals/${request.id}`,
+              expires_at: request.expires_at,
+              status: 'waiting',
+            },
+            what_happens: whatHappens(timeOf(request.expires_at)),
+          });
+          expect(text).toContain(request.link);
+          expect(fake.store.connections.get(connection)).toBe(before);
+        }
+      );
+
+      it.each([
+        ['deactivate', IDS.live, 'Fishing licence', 'deactivating'],
+        ['reactivate', IDS.deactivated, 'Dog licence', 'reactivating'],
+        ['delete', IDS.live, 'Fishing licence', 'deleting'],
+      ] as const)(
+        'shows a client that declares elicitation.url the %s link with its own message',
+        async (action, connection, name, verb) => {
+          const seen: ElicitParams[] = [];
+          const client = await elicitingClient('modern', seen, BEARERS.manage);
+          const answer = await client.callTool({
+            name: 'request_approval',
+            arguments: { connection, action },
+          });
+          expect(answer.isError).not.toBe(true);
+          expect(approvalPosts()).toHaveLength(1);
+          const [{ request }] = [...fake.store.approvals.values()];
+          expect(seen).toEqual([
+            expect.objectContaining({
+              mode: 'url',
+              url: request.link,
+              message: `Approve ${verb} '${name}' in the Connection Portal.`,
+            }),
+          ]);
+        }
+      );
+
+      it.each([
+        ['deactivate', IDS.deactivated, 'This connection is already deactivated.'],
+        ['reactivate', IDS.live, 'This connection is already live.'],
+        ['deactivate', IDS.draft, 'This connection is a draft: it has nothing live yet.'],
+        ['reactivate', IDS.draft, 'This connection is a draft: it has nothing live yet.'],
+        ['delete', IDS.draft, 'This connection is a draft: it has nothing live yet.'],
+      ] as const)(
+        "refuses to %s a connection the action doesn't apply to with not_allowed",
+        async (action, connection, message) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action },
+            BEARERS.manage
+          );
+          expect(isError).toBe(true);
+          expect(structured).toEqual({ code: 'not_allowed', message });
+          expect(fake.store.approvals.size).toBe(0);
+        }
+      );
     });
 
     it('answers not_found for an unknown connection', async () => {
@@ -2447,6 +2590,99 @@ describe('the approval tools', () => {
       expect(structured.request).toMatchObject(expected);
       if (!('reason' in extra)) expect(structured.request).not.toHaveProperty('reason');
       if (!('error_id' in extra)) expect(structured.request).not.toHaveProperty('error_id');
+      expect(structured.urls).toBeNull();
+      expect(text).toContain(sentence);
+    });
+
+    it('answers a done reactivate with the connection URLs, which work again', async () => {
+      const id = await storedRequest(
+        (request) => ({ ...request, status: 'done', outcome: 'done' }),
+        IDS.deactivated,
+        'reactivate',
+        BEARERS.manage
+      );
+      const dog = fake.store.connections.get(IDS.deactivated) as FormConnection;
+      fake.store.connections.set(IDS.deactivated, { ...dog, is_active: true });
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.manage
+      );
+      expect(structured.request).toMatchObject({
+        action: 'reactivate',
+        outcome: 'done',
+        connection: { id: IDS.deactivated, status: 'live' },
+      });
+      expect(structured.urls).toEqual({
+        trigger_url: dog.trigger_url,
+        variants: [
+          {
+            id: IDS.deactivatedStandard,
+            name: 'Standard',
+            link: links.variantLink(IDS.deactivated, IDS.deactivatedStandard),
+            pull_url: dog.branches[0].pull_url,
+          },
+        ],
+      });
+      expect(text).toContain('the connection is live again');
+      expect(text).toContain(`Trigger URL: ${dog.trigger_url}`);
+    });
+
+    it.each<[string, string, string, Partial<ApprovalRequest>, boolean]>([
+      ['a done deactivate', IDS.live, 'deactivate', { status: 'done', outcome: 'done' }, false],
+      ['a waiting reactivate', IDS.deactivated, 'reactivate', {}, false],
+      [
+        'a declined reactivate',
+        IDS.deactivated,
+        'reactivate',
+        { status: 'declined', outcome: 'declined' },
+        false,
+      ],
+      ['a waiting delete', IDS.live, 'delete', {}, true],
+    ])(
+      'answers no URLs for %s, although the backend gives them',
+      async (_case, connection, action, change, active) => {
+        const id = await storedRequest(
+          (request) => ({ ...request, ...change }),
+          connection,
+          action,
+          BEARERS.manage
+        );
+        const fc = fake.store.connections.get(connection) as FormConnection;
+        fake.store.connections.set(connection, { ...fc, is_active: active });
+        const { isError, structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(isError).toBe(false);
+        expect(structured.request).toMatchObject({ action, connection: { id: connection } });
+        expect(structured.urls).toBeNull();
+        expect(text).not.toContain('Trigger URL');
+      }
+    );
+
+    it.each([
+      ['connection_changed', 'The connection was deactivated or reactivated since you asked'],
+      ['connection_deleted', 'The connection has been deleted since you asked.'],
+    ])('answers a status action cancelled with %s', async (reason, sentence) => {
+      const id = await storedRequest(
+        (request) => ({
+          ...request,
+          status: 'cancelled',
+          outcome: 'cancelled',
+          cancel_reason: reason,
+        }),
+        IDS.live,
+        'deactivate',
+        BEARERS.manage
+      );
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.manage
+      );
+      expect(structured.request).toMatchObject({ outcome: 'cancelled', reason });
       expect(structured.urls).toBeNull();
       expect(text).toContain(sentence);
     });

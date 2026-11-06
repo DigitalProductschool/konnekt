@@ -1,23 +1,26 @@
 """Approval requests: an agent asks, a team member approves (spec 007, research R12).
 
 data-model.md section 5. An agent with the action's access level asks for an action
-on a connection (`create_request`): the action's preconditions are checked without
-writing, and the request remembers what it was made for (a draft's version). The
-team member it was made for opens its page (`get_request`) and approves or declines
-it there, in their browser session. Expiry, staleness and an ended access are
-computed at every read and again under the row locks at approval (section 5.2), so
-nothing that deletes or changes a connection or an authorization needs to know
-about approvals. Approving runs the existing services with the locks released, so
-that no transaction is held while EUDIPLO answers; a failure keeps the request
-waiting, with its error id, for "Try again" (FR-027). `cancel_for` is what the user
-page runs when it lowers or revokes an agent's access (research R7).
-
-This covers the actions `publish` and `delete_draft`; `deactivate`, `reactivate`
-and `delete` follow with user story 7. Nothing here logs more than ids and counts.
+on a connection (`create_request`): `publish` or `delete_draft` of a draft (level
+`drafts`), `deactivate`, `reactivate` or `delete` of a published connection (level
+`manage`). The action's preconditions are checked without writing, and the request
+remembers what it was made for: the draft's version, or the connection's
+`is_active` (`was_active`). The team member it was made for opens its page
+(`get_request`) and approves or declines it there, in their browser session.
+Expiry, staleness and an ended access are computed at every read and again under
+the row locks at approval (section 5.2), so nothing that deletes or changes a
+connection or an authorization needs to know about approvals. Approving runs the
+existing services with the locks released, so that no transaction is held while
+EUDIPLO answers, and each service compares what the request was made for again
+under its own row lock; a failure keeps the request waiting, with its error id, for
+"Try again" (FR-027). `cancel_for` is what the user page runs when it lowers or
+revokes an agent's access (research R7). Nothing here logs more than ids and
+counts.
 """
 
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Literal, cast
@@ -83,10 +86,19 @@ PUBLISHED_ALREADY = {
     'error': 'not_allowed',
     'message': 'This connection is published already.',
 }
-# Until user story 7 brings deactivate, reactivate and delete (T082)
-NOT_AVAILABLE_YET = {
+# deactivate, reactivate and delete need a published connection, deactivate a live
+# one and reactivate a deactivated one (data-model.md section 5.3)
+IS_A_DRAFT = {
     'error': 'not_allowed',
-    'message': 'Approval requests for this action are not available yet.',
+    'message': 'This connection is a draft: it has nothing live yet.',
+}
+ALREADY_DEACTIVATED = {
+    'error': 'not_allowed',
+    'message': 'This connection is already deactivated.',
+}
+ALREADY_LIVE = {
+    'error': 'not_allowed',
+    'message': 'This connection is already live.',
 }
 
 # The answers' messages when an approved action ran, and when declined
@@ -118,6 +130,7 @@ CANCELLED_TEXTS: dict[str, str] = {
     ),
     'draft_published': 'The draft has been published since the agent asked.',
     'draft_deleted': 'The draft has been deleted since the agent asked.',
+    'connection_deleted': 'The connection has been deleted in the meantime.',
     'access_changed': (
         "The agent's access has changed, so this request was cancelled."
     ),
@@ -125,6 +138,9 @@ CANCELLED_TEXTS: dict[str, str] = {
     'access_ended': "The agent's access has ended, so this request was cancelled.",
 }
 CANCELLED_TEXT = 'This request was cancelled.'
+# connection_changed names the change: a request made while the connection was
+# live finds it deactivated, one made while it was deactivated finds it reactivated
+CONNECTION_CHANGED_TEXT = 'The connection was {change} in the meantime.'
 
 
 def cancel_for(
@@ -187,20 +203,33 @@ def _stale_reason(
     """Why a waiting request no longer applies to its connection, or None.
 
     For `publish` and `delete_draft`: the row is gone (`draft_deleted`), published
-    (`draft_published`) or at another draft version (`draft_changed`). A change of
-    a published connection's content doesn't matter (spec, edge cases).
+    (`draft_published`) or at another draft version (`draft_changed`). For
+    `deactivate`, `reactivate` and `delete`: the connection is deleted
+    (`connection_deleted`), or its `is_active` is no longer the request's
+    `was_active` (`connection_changed`). A change of a published connection's
+    content (a new revision or rule set) doesn't matter (spec, edge cases).
     """
-    if request.action not in DRAFT_ACTIONS:
+    if request.action in DRAFT_ACTIONS:
+        if form_connection is None:
+            return 'draft_deleted'
+        if form_connection.published_at is not None:
+            return 'draft_published'
+        if (
+            request.draft_version is None
+            or form_connection.draft_version != request.draft_version
+        ):
+            return 'draft_changed'
         return None
-    if form_connection is None:
-        return 'draft_deleted'
-    if form_connection.published_at is not None:
-        return 'draft_published'
+    # A published connection's row stays when it is deleted, and never becomes a
+    # draft again
+    if form_connection is None or form_connection.deleted_at is not None:
+        return 'connection_deleted'
     if (
-        request.draft_version is None
-        or form_connection.draft_version != request.draft_version
+        form_connection.published_at is None
+        or request.was_active is None
+        or form_connection.is_active != request.was_active
     ):
-        return 'draft_changed'
+        return 'connection_changed'
     return None
 
 
@@ -240,6 +269,9 @@ def state_text(request: ApprovalRequest, state: RequestState) -> str:
         return EXPIRED_TEXT.format(time=f'{expired_at:%H:%M}')
     if state.status == 'replaced':
         return REPLACED_TEXT
+    if state.cancel_reason == 'connection_changed':
+        change = 'deactivated' if request.was_active else 'reactivated'
+        return CONNECTION_CHANGED_TEXT.format(change=change)
     return CANCELLED_TEXTS.get(state.cancel_reason or '', CANCELLED_TEXT)
 
 
@@ -321,8 +353,14 @@ def _preview(
     now: datetime,
     connection_name: str | None = None,
 ) -> ApprovalPreview:
-    """A request with what it acts on: the stored draft while it is one, and the
-    connection URLs once a publish is done and the connection isn't deleted."""
+    """A request with what it acts on, as the connection is now.
+
+    `publish` and `delete_draft`: the stored draft while it is one, and the
+    connection URLs once a publish is done and the connection isn't deleted.
+    `deactivate`, `reactivate` and `delete`: the connection and its URLs while it
+    is published and not deleted, in every status (after a done reactivate, the
+    URLs that work again); neither once it is deleted.
+    """
     view = request_view(
         request,
         form_connection,
@@ -331,8 +369,11 @@ def _preview(
         connection_name=connection_name,
     )
     draft = None
+    connection = None
     urls = None
-    if form_connection is not None and request.action in DRAFT_ACTIONS:
+    if form_connection is None:
+        pass
+    elif request.action in DRAFT_ACTIONS:
         if form_connection.published_at is None:
             draft = drafts.draft_view(form_connection)
         elif (
@@ -343,7 +384,12 @@ def _preview(
             urls = _urls_of(
                 form_connections.get_form_connection(db, form_connection.id)
             )
-    return ApprovalPreview(request=view, draft=draft, connection=None, urls=urls)
+    elif (
+        form_connection.published_at is not None and form_connection.deleted_at is None
+    ):
+        connection = form_connections.get_form_connection(db, form_connection.id)
+        urls = _urls_of(connection)
+    return ApprovalPreview(request=view, draft=draft, connection=connection, urls=urls)
 
 
 # Rows and locks
@@ -426,20 +472,44 @@ def _check_preconditions(
 ) -> None:
     """Refuse an action that doesn't apply to the connection, writing nothing.
 
-    `publish` and `delete_draft` need a draft (409 `not_allowed` for a published
-    connection), and `publish` one that publishing accepts as stored
+    A deleted connection answers 404, as the callers' reads do. `publish` and
+    `delete_draft` need a draft (409 `not_allowed` for a published connection),
+    and `publish` one that publishing accepts as stored
     (`drafts.check_publishable()`, whose 400 passes through; FR-022).
+    `deactivate`, `reactivate` and `delete` need a published connection (409
+    `not_allowed`: a draft has nothing live yet), `deactivate` a live one and
+    `reactivate` a deactivated one (409 `not_allowed` with its status); `delete`
+    takes either (data-model.md section 5.3).
     """
-    if action not in DRAFT_ACTIONS:
+    if form_connection.deleted_at is not None:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=NOT_AVAILABLE_YET
+            status_code=status.HTTP_404_NOT_FOUND, detail=form_connections.NOT_FOUND
         )
-    if form_connection.published_at is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=PUBLISHED_ALREADY
-        )
-    if action == 'publish':
-        drafts.check_publishable(db, form_connection)
+    if action in DRAFT_ACTIONS:
+        if form_connection.published_at is not None:
+            raise _not_allowed(PUBLISHED_ALREADY)
+        if action == 'publish':
+            drafts.check_publishable(db, form_connection)
+        return
+    if form_connection.published_at is None:
+        raise _not_allowed(IS_A_DRAFT)
+    if action == 'deactivate' and not form_connection.is_active:
+        raise _not_allowed(ALREADY_DEACTIVATED)
+    if action == 'reactivate' and form_connection.is_active:
+        raise _not_allowed(ALREADY_LIVE)
+
+
+def _not_allowed(detail: dict[str, str]) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+
+
+def _checked(form_connection: FormConnection) -> tuple[object, ...]:
+    """What the preconditions read of a connection's row, to tell a change."""
+    return (
+        form_connection.published_at,
+        form_connection.draft_version,
+        form_connection.is_active,
+    )
 
 
 def _lock_authorization(
@@ -477,14 +547,18 @@ def create_request(
     2. The connection must exist and not be deleted (404), and the action apply
        to it, checked without writing (`_check_preconditions`): 409
        `not_allowed`, or publishing's 400.
-    3. Under the connection's row lock: the checks again if the row changed
-       meanwhile, and the authorization, held until the commit
-       (`_lock_authorization`); then every waiting, unexpired request for the
-       same connection and action becomes `replaced`, and the new request is
-       inserted, `waiting` for APPROVAL_REQUEST_MINUTES with the draft's version,
-       the agent's authorization and name, and the account, in one commit.
+    3. Under the connection's row lock (404 once deleted): the checks again if
+       the row changed meanwhile (saved, published, deactivated or reactivated),
+       and the authorization, held until the commit (`_lock_authorization`);
+       then every waiting, unexpired request for the same connection and action
+       becomes `replaced`, and the new request is inserted, `waiting` for
+       APPROVAL_REQUEST_MINUTES with what it is made for as read under the lock
+       (the draft's version for `publish` and `delete_draft`, the connection's
+       `is_active` as `was_active` for the other actions), the agent's
+       authorization and name, and the account, in one commit.
 
-    Answers the request with its page's link. Nothing is published or deleted.
+    Answers the request with its page's link. Nothing is published, deactivated,
+    reactivated or deleted.
     """
     authorization = principal.authorization
     if authorization is None:
@@ -495,15 +569,15 @@ def create_request(
     form_connection_id = data.form_connection_id
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_preconditions(db, form_connection, data.action)
-    checked = (form_connection.published_at, form_connection.draft_version)
+    checked = _checked(form_connection)
     authorization_id = authorization.id
     user_account_id = principal.user.id
     requested_by = _agent_name(db, authorization)
 
     form_connection = form_connections._lock_form_connection(db, form_connection_id)
     try:
-        if (form_connection.published_at, form_connection.draft_version) != checked:
-            # Saved or published since the check: check the row as it is now
+        if _checked(form_connection) != checked:
+            # Changed since the check: check the row as it is now
             _check_preconditions(db, form_connection, data.action)
         _lock_authorization(db, authorization_id, needed)
     except HTTPException:
@@ -521,6 +595,7 @@ def create_request(
         .values(status='replaced', decided_at=now)
         .execution_options(synchronize_session=False)
     )
+    on_draft = data.action in DRAFT_ACTIONS
     request = ApprovalRequest(
         id=str(uuid.uuid4()),
         form_connection_id=form_connection_id,
@@ -528,7 +603,8 @@ def create_request(
         authorization_id=authorization_id,
         requested_by=requested_by,
         user_account_id=user_account_id,
-        draft_version=form_connection.draft_version,
+        draft_version=form_connection.draft_version if on_draft else None,
+        was_active=None if on_draft else form_connection.is_active,
         status='waiting',
         expires_at=now + timedelta(minutes=settings.approval_request_minutes),
     )
@@ -592,11 +668,28 @@ def _record_failure(db: Session, request_id: str, error_id: str | None) -> None:
     )
 
 
-# A service's refusal after the approval's check: the reason it means
-_RACE_REASONS: dict[str, str] = {
+# A draft service's 409 after the approval's check: the reason it means
+_DRAFT_RACE_REASONS: dict[str, str] = {
     'draft_published': 'draft_published',
     'draft_changed': 'draft_changed',
 }
+
+
+def _race_reason(action: str, refusal: HTTPException) -> str:
+    """The stale reason a service's 404 or 409 after the approval's check means.
+
+    For `publish` and `delete_draft`: the draft was deleted (404), published or
+    saved (409). For the other actions: the connection was deleted (404), or
+    deactivated or reactivated (409 `status_changed`; `not_published` can't
+    happen, since a published connection never becomes a draft again).
+    """
+    if action in DRAFT_ACTIONS:
+        if refusal.status_code == status.HTTP_404_NOT_FOUND:
+            return 'draft_deleted'
+        return _DRAFT_RACE_REASONS.get(_detail_of(refusal, 'error'), 'draft_changed')
+    if refusal.status_code == status.HTTP_404_NOT_FOUND:
+        return 'connection_deleted'
+    return 'connection_changed'
 
 
 def _race_refusal(
@@ -605,9 +698,10 @@ def _race_refusal(
     """The answer when the service refused what the check let through.
 
     Only a race with the check does that: the draft was published, saved or
-    deleted, or another approval ran, after the locks were released. The request
-    is read again and answered as it reads now; if it still reads as waiting, as
-    cancelled with the reason the service's refusal means.
+    deleted, the connection deactivated, reactivated or deleted, or another
+    approval ran, after the locks were released. The request is read again and
+    answered as it reads now; if it still reads as waiting, as cancelled with the
+    reason the service's refusal means for its action (`_race_reason`).
     """
     db.rollback()
     request = db.get(ApprovalRequest, request_id)
@@ -616,13 +710,48 @@ def _race_refusal(
     form_connection = db.get(FormConnection, form_connection_id)
     state = state_of(request, form_connection, _now())
     if state.status == 'waiting':
-        reason = (
-            'draft_deleted'
-            if refusal.status_code == status.HTTP_404_NOT_FOUND
-            else _RACE_REASONS.get(_detail_of(refusal, 'error'), 'draft_changed')
-        )
-        state = RequestState('cancelled', reason)
+        state = RequestState('cancelled', _race_reason(request.action, refusal))
     return _not_waiting(request, state)
+
+
+def _service_call(request: ApprovalRequest) -> Callable[[Session], object] | None:
+    """What approving `request` runs: its action's service, given what the request
+    was made for, which the service compares again under its own row lock.
+
+    `drafts.publish_stored_draft()` (the draft at the request's version, through
+    the `DraftGuard`) or `drafts.delete_draft()` (with the request's version);
+    `form_connections.deactivate_form_connection()`, `activate_form_connection()`
+    or `delete_form_connection()` with the request's `was_active` as
+    `expected_active` (409 `status_changed` if it moved). None when the request
+    lacks its snapshot, which a waiting request never does: it reads as stale.
+    """
+    form_connection_id = request.form_connection_id
+    action = request.action
+    if action in DRAFT_ACTIONS:
+        version = request.draft_version
+        if version is None:
+            return None
+        if action == 'publish':
+            return lambda db: drafts.publish_stored_draft(
+                db, form_connection_id, version
+            )
+        return lambda db: drafts.delete_draft(db, form_connection_id, version)
+    was_active = request.was_active
+    if was_active is None:
+        return None
+    if action == 'deactivate':
+        return lambda db: form_connections.deactivate_form_connection(
+            db, form_connection_id, expected_active=was_active
+        )
+    if action == 'reactivate':
+        return lambda db: form_connections.activate_form_connection(
+            db, form_connection_id, expected_active=was_active
+        )
+    if action == 'delete':
+        return lambda db: form_connections.delete_form_connection(
+            db, form_connection_id, expected_active=was_active
+        )
+    return None
 
 
 def approve(
@@ -634,10 +763,12 @@ def approve(
     2. Under the connection's row lock and the request's: it must read as
        `waiting`, neither expired nor stale nor with its access ended; otherwise
        409 `approval_<status>` with the page's reason, and nothing is done.
-    3. The locks are released, and `drafts.publish_stored_draft()` (the draft at
-       the request's version, through the `DraftGuard`) or `drafts.delete_draft()`
-       (with the request's version, compared under its row lock) runs, with no
-       transaction held while EUDIPLO answers.
+    3. The locks are released, and the action's service runs (`_service_call`):
+       publishing or deleting the draft at the request's version, or
+       deactivating, reactivating or deleting the connection if its `is_active`
+       is still the request's `was_active`, each compared again under the
+       service's own row lock, with no transaction held while EUDIPLO answers.
+       Deactivating, reactivating and deleting call no EUDIPLO.
     4. Success: the request's row is locked again and becomes `done`.
 
     An `EudiploError` becomes `http_error_for(error, upstream_message)`'s answer,
@@ -652,26 +783,18 @@ def approve(
     if state.status != 'waiting':
         db.rollback()
         raise _not_waiting(request, state)
-    action = request.action
-    draft_version = request.draft_version
-    if action not in DRAFT_ACTIONS or form_connection is None:
+    run = _service_call(request)
+    if form_connection is None or run is None:
+        # Never for a waiting request, which reads as stale then
+        reason = _stale_reason(request, form_connection)
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=NOT_AVAILABLE_YET
-        )
-    if draft_version is None:
-        # Never for a waiting draft request, which reads as draft_changed then
-        db.rollback()
-        raise _not_waiting(request, RequestState('cancelled', 'draft_changed'))
+        raise _not_waiting(request, RequestState('cancelled', reason))
     connection_name = form_connection.name
 
     # Release both locks: the service locks the connection's row itself
     db.rollback()
     try:
-        if action == 'publish':
-            drafts.publish_stored_draft(db, form_connection_id, draft_version)
-        else:
-            drafts.delete_draft(db, form_connection_id, draft_version)
+        run(db)
     except EudiploError as error:
         failure = http_error_for(error, upstream_message)
         _record_failure(db, request_id, _detail_of(failure, 'error_id') or None)

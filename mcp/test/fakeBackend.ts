@@ -578,7 +578,9 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     ) {
       throw validation('Unknown action.');
     }
-    if (!allows(me, 'drafts')) throw insufficient('drafts', 'Asking for approval');
+    // As the backend: each action's own level, so that a read caller asking to deactivate reads
+    // the manage level's message
+    if (draftAction && !allows(me, 'drafts')) throw insufficient('drafts', 'Asking for approval');
     if (!draftAction && !allows(me, 'manage')) {
       throw insufficient('manage', 'Deactivating, reactivating and deleting published connections');
     }
@@ -594,7 +596,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       throw notAllowed('This connection is already deactivated.');
     }
     if (action === 'reactivate' && fc.status === 'published' && fc.is_active) {
-      throw notAllowed('This connection is already active.');
+      throw notAllowed('This connection is already live.');
     }
     for (const stored of fake.store.approvals.values()) {
       const waiting = stored.request;
@@ -637,8 +639,10 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       request: stored.request,
       draft: fc?.status === 'draft' ? fc : null,
       connection: fc?.status === 'published' ? fc : null,
+      // As the backend: a published connection's URLs in every status (a done publish's too),
+      // so that check_approval's own filtering shows
       urls:
-        fc?.status === 'published' && stored.request.status === 'done'
+        fc?.status === 'published'
           ? {
               trigger_url: fc.trigger_url,
               variants: fc.branches.map((branch) => ({

@@ -51,6 +51,29 @@ by which they must decide. Nothing has happened yet:
 A newer request for the same connection and action replaces a waiting one, so ask once and keep
 the `id`.
 
+## Deactivating, reactivating and deleting a published connection
+
+These three act on a published connection, never on a draft, and need "Read, edit drafts and
+manage live connections". At a lower level, `request_approval` refuses them with
+`insufficient_access` before anything is made; ask for the level with `request_access`, or the
+team member raises it on their user page. A draft is refused with `not_allowed` ("This connection
+is a draft: it has nothing live yet."), as are deactivating a deactivated connection and
+reactivating a live one.
+
+The approval page shows the team member the connection's URLs, the trigger URL and each
+variant's pull URL, and what approving does to them:
+
+- `deactivate`: the URLs answer "unavailable" until the connection is reactivated, and requests
+  in progress are cancelled. The connection, its content and its URLs stay.
+- `reactivate`: the same URLs work again; serviceBW's form needs no change.
+- `delete`: the URLs stop working for good, requests in progress are cancelled, and deleting
+  can't be undone. Make sure the team member means it before you ask.
+
+`what_happens` says this too: pass it on with the link. While the request waits, a deactivation,
+reactivation or deletion made in the Connection Portal cancels it (`connection_changed`,
+`connection_deleted`). Their content, the name, description, documents, variants and rules, stays
+read-only for agents at every level: a change to it is refused with `published_read_only`.
+
 ## Learning the outcome: `check_approval`
 
 When the team member says they decided, call `check_approval` with the request's `id` (or its
@@ -78,7 +101,8 @@ deactivated, reactivated or deleted meanwhile), `revoked`, `access_changed` or `
 A published connection has a trigger URL and one pull URL per variant, with the placeholder
 `{reference}` that serviceBW fills in. The team member copies them into the serviceBW form. A
 draft has no URLs yet; a deactivated connection keeps its URLs, which answer "unavailable" until
-it is reactivated.
+it is reactivated; a deleted connection has none. `check_approval` answers the URLs only after a
+done `publish` or `reactivate`: after deactivating or deleting, it answers `urls: null`.
 
 `get_connection` answers them as `urls`: the `trigger_url`, and per variant its name, link and
 `pull_url`. For a draft, `urls` is null. `urls_note` always says where the URLs stand: that they

@@ -8,10 +8,11 @@ import type { ApprovalOutcomeProps } from './types';
 
 /**
  * The outcome alert (S3 "Outcome states"). A final state replaces the actions under the title:
- * "Published." with the connection URLs after publishing, "Draft deleted.", declined, expired,
- * replaced, or cancelled with its reason. A failed call keeps the body and the actions, and shows
- * the service's message with the error ID. The alert takes the focus when it appears and again
- * for a new text; `KernAlert` takes no ref, so the wrapper holds it.
+ * "Published." or "Connection reactivated." with the connection URLs (the caller passes them only
+ * then), the other actions' words, declined, expired, replaced, or cancelled with its reason. A
+ * failed call keeps the body and the actions, and shows the service's message with the error ID.
+ * The alert takes the focus when it appears and again for a new text; `KernAlert` takes no ref,
+ * so the wrapper holds it.
  */
 export default function ApprovalOutcome({ view, urls, formConnectionId }: ApprovalOutcomeProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);

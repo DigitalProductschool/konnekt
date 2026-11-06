@@ -5,6 +5,7 @@ import type {
 } from '@connection-portal/api-types/approvals';
 import type {
   ConnectionUrls,
+  FormConnection,
   FormConnectionDraft,
   RequestedDocument,
   RequestedDocumentView,
@@ -14,7 +15,14 @@ import { ApiError, errorNoticeOf } from '../../api/client';
 import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
 import type { RulesBranch } from '../FormConnectionEditor/RulesStep/types';
 import { formatEditedDate } from '../FormConnectionList/utils';
-import { APPROVAL_COPY, CANCELLED_TEXTS, DONE_TEXTS, FINAL_STATUSES, TITLES } from './constants';
+import {
+  APPROVAL_COPY,
+  CANCELLED_TEXTS,
+  DONE_TEXTS,
+  DONE_WITH_URLS,
+  FINAL_STATUSES,
+  TITLES,
+} from './constants';
 import type {
   ApprovalCall,
   ApprovalPageAction,
@@ -24,6 +32,7 @@ import type {
   FinalStatus,
   LoadedApprovalState,
   OutcomeView,
+  StatusAction,
   UrlsLinks,
 } from './types';
 
@@ -54,11 +63,43 @@ export function lastSavedLineOf(updatedAt: string): string {
   return APPROVAL_COPY.lastSaved(`${formatEditedDate(updatedAt)}, ${timeOf(updatedAt)}`);
 }
 
+/** Whether the action acts on a published connection: `deactivate`, `reactivate` or `delete` */
+export function isStatusAction(action: ApprovalAction): action is StatusAction {
+  return action === 'deactivate' || action === 'reactivate' || action === 'delete';
+}
+
+/**
+ * Whether a done request shows the connection URLs and "Open the connection" (S3 `done`): after
+ * publishing and reactivating only. The API also sends the URLs after a done deactivate, so the
+ * action decides, not whether they are there
+ */
+export function doneShowsUrls(action: ApprovalAction): boolean {
+  return DONE_WITH_URLS.includes(action);
+}
+
+/**
+ * A cancellation's sentence by its reason. `connection_changed` says which way the connection
+ * changed, from whether it is live now: the request doesn't say whether it was; without the
+ * connection, the general sentence
+ */
+export function cancelledTextOf(reason: string | null, connection: FormConnection | null): string {
+  if (reason === 'connection_changed') {
+    return connection
+      ? APPROVAL_COPY.connectionChanged(connection.is_active)
+      : APPROVAL_COPY.cancelled;
+  }
+  return CANCELLED_TEXTS[reason ?? ''] ?? APPROVAL_COPY.cancelled;
+}
+
 /**
  * The sentence of a request that isn't waiting (S3 "Outcome states"), the same as the server's
- * `409 approval_<status>` message; null while it waits, failed or not
+ * `409 approval_<status>` message; null while it waits, failed or not. A cancellation for
+ * `connection_changed` takes its word from the connection the preview holds
  */
-export function outcomeTextOf(request: ApprovalRequest): string | null {
+export function outcomeTextOf(
+  request: ApprovalRequest,
+  connection: FormConnection | null = null
+): string | null {
   switch (request.status) {
     case 'waiting':
       return null;
@@ -71,13 +112,16 @@ export function outcomeTextOf(request: ApprovalRequest): string | null {
     case 'replaced':
       return APPROVAL_COPY.replaced;
     case 'cancelled':
-      return CANCELLED_TEXTS[request.cancel_reason ?? ''] ?? APPROVAL_COPY.cancelled;
+      return cancelledTextOf(request.cancel_reason, connection);
   }
 }
 
 /** A request's final state with its sentence; null while it waits */
-export function finalOutcomeOf(request: ApprovalRequest): FinalOutcome | null {
-  const text = outcomeTextOf(request);
+export function finalOutcomeOf(
+  request: ApprovalRequest,
+  connection: FormConnection | null = null
+): FinalOutcome | null {
+  const text = outcomeTextOf(request, connection);
   return request.status === 'waiting' || text === null ? null : { status: request.status, text };
 }
 
@@ -87,7 +131,9 @@ function isFinalStatus(value: string): value is FinalStatus {
 
 /**
  * The final state a `409 approval_<status>` answers to approving or declining (S3: a page left
- * open past the expiry), with the answer's message as its sentence; null for any other failure
+ * open past the expiry, a connection changed or deleted in the meantime), with the answer's
+ * message as its sentence, which words `connection_changed` from the request; null for any other
+ * failure
  */
 export function outcomeOfError(error: unknown): FinalOutcome | null {
   if (!(error instanceof ApiError) || error.status !== 409) {
@@ -118,7 +164,7 @@ export function loadFailureActionOf(error: unknown): ApprovalPageAction {
 }
 
 /**
- * The link cards' URLs after publishing (S3 `done`), by the details page's rule
+ * The link cards' URLs (S3: after publishing or reactivating, and the status actions' body), by the details page's rule
  * (`resultLinksOf()`): the trigger URL once, and every variant's pull URL as the API answers it,
  * labelled with the variant's name; with Standard only, its URL unlabelled (W2)
  */
@@ -227,7 +273,7 @@ export function approvalReducer(
  * failed call, with the body and the actions kept; null while it simply waits
  */
 export function outcomeViewOf(state: LoadedApprovalState): OutcomeView | null {
-  const outcome = state.conflict ?? finalOutcomeOf(state.preview.request);
+  const outcome = state.conflict ?? finalOutcomeOf(state.preview.request, state.preview.connection);
   if (outcome) {
     return { kind: 'final', outcome };
   }

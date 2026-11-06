@@ -19,6 +19,7 @@ import type { ApprovalCall, ApprovalScreenProps } from './types';
 import {
   approvalReducer,
   callFailureOf,
+  doneShowsUrls,
   loadFailureActionOf,
   outcomeOfError,
   outcomeViewOf,
@@ -108,13 +109,18 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
       {view?.kind === 'final' ? (
         <ApprovalOutcome
           view={view}
-          urls={preview.urls}
+          urls={doneShowsUrls(action) ? preview.urls : null}
           formConnectionId={preview.request.form_connection_id}
         />
       ) : (
         <div className="flex flex-col gap-32">
           {view && <ApprovalOutcome view={view} />}
-          <ApprovalSummary action={action} draft={preview.draft} />
+          <ApprovalSummary
+            action={action}
+            draft={preview.draft}
+            connection={preview.connection}
+            urls={preview.urls}
+          />
           {action === 'publish' && preview.draft && <ApprovalFindings draft={preview.draft} />}
           <ApprovalActions
             action={action}
