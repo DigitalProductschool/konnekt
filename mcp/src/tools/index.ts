@@ -8,5 +8,6 @@ import './drafts';
 import './items';
 import './approvals';
 import './checks';
+import './guide';
 
 export { registry, tools } from './registry';

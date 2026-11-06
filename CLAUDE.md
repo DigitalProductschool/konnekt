@@ -138,6 +138,12 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - Local drafts never hold personas, findings or citizen data, and nothing in
   `utils/localDrafts/` or its hooks logs (ARCHITECTURE, "Local drafts (spec 005)").
 
+## The MCP server and its guidance (spec 007)
+
+- Every change to the MCP tools updates the skills in `mcp/plugin/skills/` in the same change;
+  `npm test` in `mcp/` fails when a tool isn't described (`mcp/src/guidance.test.ts`; details in
+  `specs/007-agent-mcp-server/contracts/guidance.md`).
+
 ## Code style
 
 - **Python**: Ruff (88 columns, single quotes, isort) and mypy; docstrings for public modules,

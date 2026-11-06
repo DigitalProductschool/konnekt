@@ -953,6 +953,68 @@ describe('request_access', () => {
   });
 });
 
+describe('the guidance (get_guide and the Skills extension)', () => {
+  it.each<Era>(['modern', 'legacy'])(
+    '%s: get_guide without a topic lists the eight topics with their descriptions',
+    async (era) => {
+      const { skills } = await import('../src/guidance');
+      const { isError, structured, text } = await callTool('get_guide', {}, BEARERS.read, era);
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        topics: skills().map(({ name, description }) => ({ name, description })),
+      });
+      expect(structured.topics.map((topic: { name: string }) => topic.name)).toEqual(SKILL_NAMES);
+      expect(text).toContain('- conditions: ');
+    }
+  );
+
+  it.each<Era>(['modern', 'legacy'])(
+    '%s: skills/get and resources/read answer the text of get_guide(topic)',
+    async (era) => {
+      const { client } = await connect(era);
+      const skillsClient = new SkillsClient(client);
+      for (const name of SKILL_NAMES) {
+        const uri = `skill://${name}/SKILL.md`;
+        const { structured, text } = await callTool(
+          'get_guide',
+          { topic: name },
+          BEARERS.read,
+          era
+        );
+        expect(structured.topic).toBe(name);
+        expect(text).toBe(structured.text);
+        const { skill } = await skillsClient.get(uri);
+        expect(skill.uri).toBe(uri);
+        expect(skill.frontmatter.name).toBe(name);
+        expect((await skillsClient.read(skill)).text).toBe(structured.text);
+        const read = await client.readResource({ uri });
+        expect(read.contents).toEqual([
+          expect.objectContaining({ uri, mimeType: 'text/markdown', text: structured.text }),
+        ]);
+      }
+    }
+  );
+
+  it.each<Era>(['modern', 'legacy'])(
+    '%s: resources/list lists the eight SKILL.md files and nothing else',
+    async (era) => {
+      const { client } = await connect(era);
+      const { resources } = await client.listResources();
+      expect(resources.map((resource) => resource.uri).sort()).toEqual(
+        SKILL_NAMES.map((name) => `skill://${name}/SKILL.md`)
+      );
+    }
+  );
+
+  it('get_guide answers an unknown topic with validation and the list of topics', async () => {
+    const { isError, structured, text } = await callTool('get_guide', { topic: 'publishing' });
+    expect(isError).toBe(true);
+    const message = `The guide has no topic 'publishing'. Its topics: ${SKILL_NAMES.join(', ')}.`;
+    expect(structured).toEqual({ code: 'validation', message });
+    expect(text).toBe(message);
+  });
+});
+
 describe('the draft tools', () => {
   beforeAll(async () => {
     links = await import('../src/links');

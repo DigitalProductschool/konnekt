@@ -10,6 +10,23 @@ the citizen to share (the Personal ID, the driving licence, …), which of their
 rules the shared data must meet before serviceBW accepts it. Agents build connections as drafts:
 a draft is stored at once, may be incomplete between calls, and is never live.
 
+## From a description to a plan
+
+The team member describes the form in their words: who may apply, what must be proven, which cases
+differ. Before the first change, turn the description into a plan:
+
+- **Documents and fields**: what each requirement needs to see, such as the date of birth for an
+  age or the licence classes for a driving permit. Request nothing the rules don't need, unless
+  the form itself needs it.
+- **Rules**: one rule per requirement, each with the message the citizen reads when it isn't met.
+  Requirements of which one is enough become a group with OR.
+- **Variants**: cases with other requirements for the same form, such as another age limit for
+  another kind of permit.
+
+Ask the team member about what the description leaves open (an exact age, which licence classes,
+which countries) rather than guessing. Read the guide's topics before working on their subject:
+`conditions` before writing rules, `variants-and-standard` before adding variants.
+
 ## The order of work
 
 1. **Find or create.** Look for an existing connection first, by a part of its name or
@@ -87,3 +104,10 @@ requested, the connection step otherwise. Each answer's text says the draft's ve
   says `done`.
 - Deleting a draft works the same way (`action: 'delete_draft'`): its content is gone for good
   once the team member approves, so ask only when they want it.
+
+## The guide
+
+`get_guide` reads this guidance for clients that don't load the server's skills. Without a
+`topic`, it lists the topics with what each covers; with one (`connection-workflow`, `conditions`,
+…), it answers that topic's full text, the same as the skill. An unknown topic is refused with
+`validation` and the list of topics.

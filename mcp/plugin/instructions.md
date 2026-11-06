@@ -46,5 +46,9 @@ wherever it takes a connection, variant, rule or group.
 
 ## Never real data
 
-Never use real people's data in tests: invent fictitious applicants. `get_guide` explains each
-topic in detail.
+Never use real people's data in tests: invent fictitious applicants.
+
+## More
+
+This server's skills explain each topic in detail. Without them, `get_guide` lists the topics and
+reads each one.

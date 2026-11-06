@@ -765,8 +765,11 @@ requests as any other.
   frontend's Node 20 and the images' Node 26.
 - How Claude Code, Cursor and Codex react to `403 insufficient_scope` on a tool call (R5): the
   step-up through `request_access` is designed to be harmless either way.
-- `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16); otherwise the
-  plugin ships the production address and the README says how to change it.
+- `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16): Claude Code
+  2.1.319, with the plugin loaded through `--plugin-dir`, lists the server at the variable's
+  value, and without the variable reports "Missing environment variables:
+  CONNECTION_PORTAL_MCP_URL" and doesn't connect; the plugin keeps the variable, and the README
+  says to set it. Settled on 2026-11-06.
 - `RequireSignIn` keeping the search parameters through the sign-in round trip (R11, S1): it
   stores the whole location as `state.from`, and `RequireSignedOut` returns to
   `from.pathname + from.search + from.hash` (`redirectTarget()`), so `/authorize?…` and the
