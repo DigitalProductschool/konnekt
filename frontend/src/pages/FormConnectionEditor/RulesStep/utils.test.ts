@@ -15,6 +15,8 @@ import {
   findingTargetIdsOf,
   initialRulesState,
   joinNames,
+  linkNoticeOf,
+  linkOf,
   neighbourOf,
   rulesReducer,
   selectionText,
@@ -862,6 +864,92 @@ function replay(start: EditState, ...steps: ((content: EditState) => EditResult)
     return result.state;
   }, start);
 }
+
+describe('linkOf (spec 007, S4; FR-028, FR-029)', () => {
+  const ORIGIN = 'https://portal.example.org';
+  const CONNECTION = '0b6f2c8e-6a3d-4e0e-9a4c-6f2d7c1e5b10';
+  const VARIANT = '5d1f9a2b-3c4e-4f60-8a7b-9c0d1e2f3a4b';
+
+  it("names a variant's connection and variant, at the rules step", () => {
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT)).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}`
+    );
+  });
+
+  it('adds the item for a rule or a group', () => {
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT, 'rule-3')).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}&item=rule-3`
+    );
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT, 'group-12')).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}&item=group-12`
+    );
+  });
+
+  it('takes the origin it is given, such as a preview deployment’s', () => {
+    expect(linkOf('http://localhost:5173', CONNECTION, VARIANT, 'rule-1')).toMatch(
+      /^http:\/\/localhost:5173\/form-connections\//
+    );
+  });
+
+  it('holds identifiers only, never names (FR-029)', () => {
+    const state = stateWith([rule(1, null, null)]);
+    const link = linkOf(ORIGIN, CONNECTION, state.branches[0].key, 'rule-1');
+    // Standard and Rule 01 by name, in any encoding
+    expect(decodeURIComponent(link.replace(/\+/g, ' '))).not.toMatch(/Standard|Rule 01/);
+    expect([...new URL(link).searchParams.keys()]).toEqual(['step', 'variant', 'item']);
+  });
+});
+
+describe('showToast (spec 007, S4)', () => {
+  it('shows "Link copied." without an action, and keeps the Undo for Ctrl/Cmd+Z', () => {
+    const deleted = run(
+      stateWith(FLAT),
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete' }
+    );
+    const copied = run(deleted, { type: 'showToast', message: 'Link copied.' });
+    expect(copied.toast).toEqual({ id: (deleted.toast?.id ?? 0) + 1, message: 'Link copied.' });
+    expect(copied.undo).toEqual(deleted.undo);
+    expect(copied.branches).toBe(deleted.branches);
+  });
+
+  it('drops a copy’s Show, which belongs to the toast it replaces', () => {
+    const withVariant = run(stateWith(FLAT), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'empty',
+    });
+    const shown = run(
+      withVariant,
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: [withVariant.branches[1].key] }
+    );
+    expect(shown.showBranch).not.toBeNull();
+    expect(run(shown, { type: 'showToast', message: 'Link copied.' }).showBranch).toBeNull();
+  });
+});
+
+describe('linkNoticeOf (spec 007, S5; FR-031)', () => {
+  let state: RulesState;
+  beforeEach(() => {
+    state = stateWith([rule(1, null, null), group(1, [rule(2, null, null)])]);
+  });
+
+  it('finds the variant and its rule or group, also in a group', () => {
+    expect(linkNoticeOf(state, BRANCH, null)).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'rule-1')).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'group-1')).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'rule-2')).toBeNull();
+  });
+
+  it('names a variant that isn’t there', () => {
+    expect(linkNoticeOf(state, 'gone', 'rule-1')).toBe('variant');
+  });
+
+  it('names an item that isn’t there in the variant', () => {
+    expect(linkNoticeOf(state, BRANCH, 'rule-7')).toBe('item');
+  });
+});
 
 describe('the cases above, replayed through edits.ts (SC-003)', () => {
   const ITEMS = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];

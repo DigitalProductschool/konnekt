@@ -199,7 +199,32 @@ export const RULES_COPY = {
   // The findings banner's chevron (spec 003, S2; A1, W19)
   showFindings: 'Show findings',
   hideFindings: 'Hide findings',
+  // Links (spec 007, contracts/ui-screens.md S4, S5; FR-028, FR-031): the ⋯ menus' entry, its
+  // toasts, and the notice of a link to what no longer exists
+  copyLink: 'Copy link',
+  linkCopied: 'Link copied.',
+  linkNotCopied:
+    'The link couldn’t be copied. Copy it from the address bar after opening the item.',
+  missingVariant: 'This link points to a variant that no longer exists.',
+  missingItem: 'This link points to a rule or group that no longer exists.',
+  dismiss: 'Dismiss',
 };
+
+/**
+ * The search parameters of a link to a variant, rule or group (spec 007, research R11):
+ * `?step=rules&variant={variantId}&item={itemId}`, identifiers only (FR-029)
+ */
+export const LINK_PARAMS = {
+  step: 'step',
+  variant: 'variant',
+  item: 'item',
+} as const;
+
+/** The `step` a link opens: the rules step */
+export const LINK_STEP = 'rules';
+
+/** The link notice's id, which takes the focus when an opened link names what isn't there (S5) */
+export const LINK_NOTICE_ID = 'link-notice';
 
 /**
  * The findings banner's looks by kind (spec 003, S2; A1; design-notes.md §7, "Banner"): the

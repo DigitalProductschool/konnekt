@@ -1,20 +1,30 @@
-import type { FormConnectionDraft } from '@connection-portal/api-types/form-connections';
+import type {
+  BranchInput,
+  FormConnectionDraft,
+} from '@connection-portal/api-types/form-connections';
 import type { EditLocationState } from '@connection-portal/api-types/routing';
+import { findItem } from '@connection-portal/rules/tree';
 
 import { sameContent } from '../../utils/localDrafts/content';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
+import { LINK_PARAMS, LINK_STEP } from '../FormConnectionEditor/RulesStep/constants';
 import type { EditorStep } from '../FormConnectionEditor/types';
 import { initialStatesFromDraft, localContentOf } from '../FormConnectionEditor/utils';
-import type { DraftFlowAction, DraftFlowState, RestoreChoice } from './types';
+import type { DraftFlowAction, DraftFlowState, LinkTarget, RestoreChoice } from './types';
 
 /**
  * The step to open at. For a published connection: the documents when the details' "Edit
  * documents" asked for them, the rules when their rules card's "Edit rules" did (FR-030), and
  * otherwise the connection. For a draft: the step its details asked for, the test step included,
- * and otherwise the step it was saved in (FR-008).
+ * and otherwise the step it was saved in (FR-008). The URL's `?step=`, as a link's
+ * `?step=rules` (spec 007, S5), wins over the router state, which the details' buttons pass.
  */
-export function initialStepOf(state: unknown, draft?: FormConnectionDraft): EditorStep {
-  const step = (state as EditLocationState | null)?.step;
+export function initialStepOf(
+  state: unknown,
+  draft?: FormConnectionDraft,
+  searchStep: string | null = null
+): EditorStep {
+  const step = searchStep ?? (state as EditLocationState | null)?.step;
   if (step === 'documents' || step === 'rules') return step;
   if (!draft) return 'connection';
   return step === 'connection' || step === 'test' ? step : draft.step;
@@ -90,4 +100,49 @@ export function draftFlowReducer(state: DraftFlowState, action: DraftFlowAction)
     case 'discard':
       return { kind: 'open', restored: null };
   }
+}
+
+/** No link, or one that names nothing to open */
+const NO_LINK: LinkTarget = { variantId: null, itemId: null, notice: null };
+
+/**
+ * What a link names in the content the page loaded (spec 007, S5; research R11; FR-030, FR-031),
+ * from its search parameters `?step=rules&variant={variantId}&item={itemId}`: the variant by its id
+ * and, given one, its rule or group. A variant that isn't there names nothing to open, and the
+ * notice says so (the first variant is shown); an item that isn't there in the variant leaves the
+ * variant, and the notice says so. Never another item in its place. Without `step=rules` or a
+ * variant, nothing.
+ */
+export function linkTargetOf(
+  searchParams: URLSearchParams,
+  branches: readonly Pick<BranchInput, 'id' | 'items'>[]
+): LinkTarget {
+  const variantId = searchParams.get(LINK_PARAMS.variant);
+  if (searchParams.get(LINK_PARAMS.step) !== LINK_STEP || variantId === null) {
+    return NO_LINK;
+  }
+  const branch = branches.find((candidate) => candidate.id === variantId);
+  if (!branch) {
+    return { ...NO_LINK, notice: 'variant' };
+  }
+  const itemId = searchParams.get(LINK_PARAMS.item);
+  if (itemId === null) {
+    return { ...NO_LINK, variantId };
+  }
+  return findItem(branch.items, itemId)
+    ? { variantId, itemId, notice: null }
+    : { variantId, itemId: null, notice: 'item' };
+}
+
+/**
+ * The page's search parameters without a link's (S5), once the team member has moved from what it
+ * opened to another step or variant: the address is the editor's own again, and a reload opens the
+ * editor as it would without the link
+ */
+export function withoutLinkParams(searchParams: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(searchParams);
+  for (const name of Object.values(LINK_PARAMS)) {
+    next.delete(name);
+  }
+  return next;
 }

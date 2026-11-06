@@ -243,6 +243,44 @@ describe('resolveItem', () => {
   });
 });
 
+describe('links to something deleted since (FR-031)', () => {
+  it("answers not_found for a deleted variant's link and its items' links, never another variant", () => {
+    const remaining = [STANDARD_BRANCH];
+    for (const reference of [
+      variantLink(CONNECTION, AMBULANCE),
+      itemLink(CONNECTION, AMBULANCE, 'rule-1'),
+    ]) {
+      const error = refusalOf(() => resolveVariant(remaining, reference, CONNECTION));
+      expect(error).toBeInstanceOf(ReferenceNotFound);
+      expect(error).toMatchObject({ code: 'not_found', message: 'This variant no longer exists.' });
+    }
+  });
+
+  it("answers not_found for a deleted rule's or group's link, never another item", () => {
+    const linked = itemLink(CONNECTION, STANDARD, 'rule-1');
+    expect(resolveItem(STANDARD_BRANCH, linked, CONNECTION).item.id).toBe('rule-1');
+    // rule-1 deleted; rule-3 is still called "Age" as rule-1 was
+    const withoutRule = { ...STANDARD_BRANCH, items: STANDARD_BRANCH.items.slice(1) };
+    // The group deleted with its members
+    const withoutGroup = {
+      ...STANDARD_BRANCH,
+      items: STANDARD_BRANCH.items.filter((item) => item.id !== 'group-1'),
+    };
+    for (const [branch, reference] of [
+      [withoutRule, linked],
+      [withoutGroup, itemLink(CONNECTION, STANDARD, 'group-1')],
+      [withoutGroup, itemLink(CONNECTION, STANDARD, 'rule-2')],
+    ] as const) {
+      const error = refusalOf(() => resolveItem(branch, reference, CONNECTION));
+      expect(error).toBeInstanceOf(ReferenceNotFound);
+      expect(error).toMatchObject({
+        code: 'not_found',
+        message: 'This rule or group no longer exists.',
+      });
+    }
+  });
+});
+
 describe('resolveField', () => {
   const CATALOG = [PID, MDL];
   const resolve = (documentType: string, key: string) =>

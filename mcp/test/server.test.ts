@@ -22,7 +22,7 @@ import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { RunningServer } from '../src/server';
-import { BEARERS, type FakeBackend, IDS, startFakeBackend } from './fakeBackend';
+import { BEARERS, type FakeBackend, IDS, publishedOf, startFakeBackend } from './fakeBackend';
 
 const SKILL_NAMES = [
   'access-levels',
@@ -1563,6 +1563,85 @@ describe('the item tools', () => {
       expect(isError).toBe(false);
       expect(structured.item).toMatchObject({ id: 'rule-3', name: 'Residence' });
       expect(itemOf(0, 'rule-3')).toMatchObject({ message: 'You must live in Stuttgart.' });
+    });
+  });
+
+  describe('links (FR-028 to FR-031)', () => {
+    /** Ambulance's rule-2, which the based variant changed: Standard has a rule-2 too */
+    function ruleLink(): string {
+      return links.itemLink(IDS.draft, IDS.draftBased, 'rule-2');
+    }
+
+    it("update_item given a rule's link changes that rule in that variant", async () => {
+      const { isError, structured } = await onDraft('update_item', {
+        connection: ruleLink(),
+        variant: ruleLink(),
+        item: ruleLink(),
+        message: 'You must live in Esslingen or Plochingen.',
+      });
+      expect(isError).toBe(false);
+      expect(structured.variant).toEqual(variantRef(IDS.draftBased, 'Ambulance'));
+      expect(structured.item).toMatchObject({
+        id: 'rule-2',
+        message: 'You must live in Esslingen or Plochingen.',
+        link: ruleLink(),
+      });
+      expect(itemOf(1, 'rule-2')).toMatchObject({
+        message: 'You must live in Esslingen or Plochingen.',
+      });
+      // Standard's rule-2 and the other variants stay as they were
+      expect(itemOf(0, 'rule-2')).toMatchObject({ message: 'You must live in Stuttgart.' });
+      expect(itemsOf(2)).toEqual([]);
+    });
+
+    it("still resolves a rule's link after the variant is renamed and the draft published (the same ids)", async () => {
+      const renamed = await onDraft('update_variant', {
+        variant: 'Ambulance',
+        name: 'Rescue service',
+      });
+      expect(renamed.isError).toBe(false);
+      await onDraft('update_item', { variant: 'Rescue service', item: 'rule-2', name: 'Town' });
+
+      const afterRename = await onDraft('update_item', {
+        variant: ruleLink(),
+        item: ruleLink(),
+        message: 'You must live in Esslingen.',
+      });
+      expect(afterRename.isError).toBe(false);
+      expect(afterRename.structured.variant).toEqual(variantRef(IDS.draftBased, 'Rescue service'));
+      expect(afterRename.structured.item).toMatchObject({ id: 'rule-2', name: 'Town' });
+
+      fake.store.connections.set(IDS.draft, publishedOf(storedDraft()));
+      const afterPublish = await callTool('get_item', {
+        connection: ruleLink(),
+        variant: ruleLink(),
+        item: ruleLink(),
+      });
+      expect(afterPublish.isError).toBe(false);
+      expect(afterPublish.structured.connection).toMatchObject({ id: IDS.draft, status: 'live' });
+      expect(afterPublish.structured.variant).toEqual(variantRef(IDS.draftBased, 'Rescue service'));
+      expect(afterPublish.structured.item).toMatchObject({
+        id: 'rule-2',
+        name: 'Town',
+        message: 'You must live in Esslingen.',
+        link: ruleLink(),
+      });
+    });
+
+    it('refuses a link from another origin with foreign_link, and changes nothing', async () => {
+      const foreign = ruleLink().replace(/^https?:\/\/[^/]+/, 'https://preview.example.org');
+      expect(foreign).not.toBe(ruleLink());
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Ambulance',
+        item: foreign,
+        message: 'Changed',
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'foreign_link',
+        message: "This link doesn't belong to this Connection Portal.",
+      });
+      expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
     });
   });
 

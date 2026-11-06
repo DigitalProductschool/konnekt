@@ -22,6 +22,7 @@ export default function BranchTab({
   onKeyDown,
   onRename,
   onDelete,
+  onCopyLink,
 }: BranchTabProps) {
   const text = selected
     ? 'text-kern-layout-text-default font-semibold'
@@ -51,6 +52,7 @@ export default function BranchTab({
               deletable={deletable}
               onRename={onRename}
               onDelete={onDelete}
+              onCopyLink={onCopyLink}
             />
           </div>
         )}

@@ -45,9 +45,22 @@ import FindingsAnnouncer from './FindingsAnnouncer';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
+import { LINK_NOTICE_ID } from './RulesStep/constants';
 import RulesDialogs from './RulesStep/RulesDialogs';
-import type { LeaveEditorAction, RulesCatalog, RulesState } from './RulesStep/types';
-import { focusSoon, hasUnsavedChanges, neighbourOf, rulesReducer } from './RulesStep/utils';
+import type {
+  LeaveEditorAction,
+  LinkNoticeKind,
+  RulesCatalog,
+  RulesState,
+} from './RulesStep/types';
+import {
+  focusSoon,
+  goToItem,
+  hasUnsavedChanges,
+  linkNoticeOf,
+  neighbourOf,
+  rulesReducer,
+} from './RulesStep/utils';
 import SaveDraftAlert from './SaveDraftAlert';
 import TestStep from './TestStep';
 import type {
@@ -151,6 +164,15 @@ import {
  * catalog has loaded, and the note takes the focus. "Save and exit" and publishing are refused
  * with the server's message while such data remains. The published edit flow has no such note,
  * as it stays as it is (FR-026).
+ *
+ * Links (spec 007, S5; FR-030, FR-031): the edit page opens a link's stored draft or published
+ * connection at the rules step with `initialVariant` and `initialItem`. Once the rules step has
+ * rendered, the variant's tab opens and the item is brought into view and focused (`goToItem()`),
+ * or the variant's tab is focused for a variant's link. What the link names that isn't there, also
+ * in unsaved changes restored on this device, shows the rules step's notice, which takes the focus;
+ * the first variant, or the link's variant, is shown. A link applies once per opening, and stays in
+ * the address while its variant is shown in the rules step: moving to another step or variant
+ * calls `onLinkLeft`, and the edit page takes it out of the address.
  */
 export default function FormConnectionEditorPage({
   firstConnection = false,
@@ -160,6 +182,10 @@ export default function FormConnectionEditorPage({
   baseline,
   onReload,
   reloaded = false,
+  initialVariant = null,
+  initialItem = null,
+  linkNotice = null,
+  onLinkLeft,
 }: FormConnectionEditorPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { store, username } = useLocalDraftStore();
@@ -194,21 +220,61 @@ export default function FormConnectionEditorPage({
       firstConnection={firstConnection}
       onReload={onReload}
       reloaded={reloaded}
+      initialVariant={initialVariant}
+      initialItem={initialItem}
+      linkNotice={linkNotice}
+      onLinkLeft={onLinkLeft}
     />
   );
 }
 
 /** The wizard of the flow the page opened, with its autosave into the local draft. */
-function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: ConnectionWizardProps) {
+function ConnectionWizard({
+  flow,
+  firstConnection,
+  onReload,
+  reloaded,
+  initialVariant = null,
+  initialItem = null,
+  linkNotice: requestedNotice = null,
+  onLinkLeft,
+}: ConnectionWizardProps) {
   const { origin } = flow;
   // The connection being edited, only for the published origin (FR-026)
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
   const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
   const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
+  // An opened link's notice (S5; FR-031), checked again against the rules the wizard opens, until
+  // it is dismissed
+  const [linkNotice, setLinkNotice] = useState<LinkNoticeKind | null>(() =>
+    requestedNotice === null && initialVariant !== null
+      ? linkNoticeOf(flow.initialStates.rules, initialVariant, initialItem)
+      : requestedNotice
+  );
+  // What the link opens once the rules step has rendered, applied once per opening (S5)
+  const linkTarget = useRef(
+    initialVariant !== null || linkNotice !== null
+      ? {
+          variantId: linkNotice === 'variant' ? null : initialVariant,
+          itemId: linkNotice === null ? initialItem : null,
+          notice: linkNotice,
+        }
+      : null
+  );
+  // The variant shown once the link was applied, until the team member moves from it (S5)
+  const linkShown = useRef<string | null>(null);
   const editing = origin.kind === 'published';
   // The flow's local draft, for a new connection and a stored draft only (FR-014). Its content is
   // what "Save and exit" would store now (R9)
   const flowKey = origin.kind === 'published' ? null : origin.flowKey;
+  // What the rules step's links name (S4; FR-028): the stored draft's or the published
+  // connection's id; a new connection has none until it is stored
+  const connectionId =
+    origin.kind === 'draft'
+      ? origin.draftId
+      : origin.kind === 'published'
+        ? origin.formConnection.id
+        : null;
   const localContent = useMemo(() => localContentOf(state, rules), [state, rules]);
   const { forget } = useLocalDraft({
     // A published connection's flow writes nothing, so its key is never used
@@ -317,6 +383,44 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
       droppedNoteRef.current?.focus();
     }
   }, [state.step]);
+
+  // An opened link (S5; FR-030), once the rules step has rendered with its rules: its variant's
+  // tab opens first; then its item, or else its tab, takes the focus, or the notice does when the
+  // link names what isn't there. A flow that opened elsewhere for dropped data (S8) applies it when
+  // the rules step first shows
+  useEffect(() => {
+    const target = linkTarget.current;
+    if (target === null || state.step !== 'rules' || rulesStatus !== 'loaded') {
+      return;
+    }
+    if (target.variantId !== null && rules.openBranch !== target.variantId) {
+      // Runs again once the variant is shown
+      dispatchRules({ type: 'selectBranch', branchKey: target.variantId });
+      return;
+    }
+    linkTarget.current = null;
+    linkShown.current = rules.openBranch;
+    const { variantId, itemId, notice } = target;
+    requestAnimationFrame(() => {
+      if (notice !== null) {
+        document.getElementById(LINK_NOTICE_ID)?.focus();
+      } else if (variantId !== null && itemId !== null) {
+        goToItem(variantId, itemId);
+      } else if (variantId !== null) {
+        document.getElementById(ELEMENT_IDS.branchTab(variantId))?.focus();
+      }
+    });
+  }, [state.step, rulesStatus, rules.openBranch]);
+
+  // Once the team member moves to another step or variant, the link no longer names what is
+  // shown, and the edit page takes it out of the address (S5)
+  useEffect(() => {
+    const shown = linkShown.current;
+    if (shown !== null && (state.step !== 'rules' || rules.openBranch !== shown)) {
+      linkShown.current = null;
+      onLinkLeft?.();
+    }
+  }, [state.step, rules.openBranch, onLinkLeft]);
 
   const dismissToast = useCallback(() => dispatch({ type: 'dismissToast' }), []);
   const dismissRulesToast = useCallback(() => dispatchRules({ type: 'dismissToast' }), []);
@@ -893,6 +997,9 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
             catalog={ruleCatalog}
             checks={ruleChecks.byBranch}
             editing={editing}
+            connectionId={connectionId}
+            linkNotice={linkNotice}
+            onDismissLinkNotice={() => setLinkNotice(null)}
             dispatch={dispatchRules}
             onAddRule={(branchKey, parentId) => leaveEditor({ type: 'add', branchKey, parentId })}
             onEditRule={(branchKey, ruleId) => leaveEditor({ type: 'edit', branchKey, ruleId })}

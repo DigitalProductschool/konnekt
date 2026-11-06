@@ -2,7 +2,10 @@ import type { DocumentField } from '@connection-portal/api-types/document-types'
 import type {
   BranchInput,
   FormConnectionDraft,
+  GroupItem,
+  RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
+import { rule } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
@@ -10,9 +13,11 @@ import {
   draftFlowReducer,
   initialDraftFlowState,
   initialStepOf,
+  linkTargetOf,
   reloadedOf,
   restoreChoiceOf,
   storedContentOf,
+  withoutLinkParams,
 } from './utils';
 
 const DRAFT: FormConnectionDraft = {
@@ -67,6 +72,119 @@ describe('initialStepOf', () => {
   ])('opens a draft at the step it was saved in for %s', (_name, state) => {
     expect(initialStepOf(state, DRAFT)).toBe('documents');
     expect(initialStepOf(state, { ...DRAFT, step: 'test' })).toBe('test');
+  });
+
+  it("opens a link's rules step, which wins over the router state (spec 007, S5)", () => {
+    expect(initialStepOf({ step: 'documents' }, undefined, 'rules')).toBe('rules');
+    expect(initialStepOf(null, undefined, 'rules')).toBe('rules');
+    expect(initialStepOf({ step: 'documents' }, DRAFT, 'rules')).toBe('rules');
+    expect(initialStepOf(null, { ...DRAFT, step: 'test' }, 'rules')).toBe('rules');
+  });
+
+  it('keeps the router state without a step in the URL', () => {
+    expect(initialStepOf({ step: 'documents' }, undefined, null)).toBe('documents');
+    expect(initialStepOf({ step: 'test' }, DRAFT, null)).toBe('test');
+  });
+});
+
+function group(number: number, items: RuleTreeItem[]): GroupItem {
+  return {
+    type: 'group',
+    id: `group-${number}`,
+    name: `Group 0${number}`,
+    mark: null,
+    operator: 'and',
+    message: null,
+    items,
+  };
+}
+
+describe('linkTargetOf (spec 007, S5; FR-030, FR-031)', () => {
+  const MAIN = '5d1f9a2b-3c4e-4f60-8a7b-9c0d1e2f3a4b';
+  const AMBULANCE = '7e2a0b3c-4d5f-4a61-9b8c-0d1e2f3a4b5c';
+  const BRANCHES: Pick<BranchInput, 'id' | 'items'>[] = [
+    { id: MAIN, items: [rule(1, null, null), group(1, [rule(2, null, null)])] },
+    { id: AMBULANCE, items: [rule(3, null, null)] },
+  ];
+
+  function params(query: string): URLSearchParams {
+    return new URLSearchParams(query);
+  }
+
+  it("opens a rule's variant and the rule", () => {
+    expect(linkTargetOf(params(`step=rules&variant=${AMBULANCE}&item=rule-3`), BRANCHES)).toEqual({
+      variantId: AMBULANCE,
+      itemId: 'rule-3',
+      notice: null,
+    });
+  });
+
+  it('finds a group, and a rule in a group', () => {
+    expect(linkTargetOf(params(`step=rules&variant=${MAIN}&item=group-1`), BRANCHES)).toEqual({
+      variantId: MAIN,
+      itemId: 'group-1',
+      notice: null,
+    });
+    expect(linkTargetOf(params(`step=rules&variant=${MAIN}&item=rule-2`), BRANCHES).itemId).toBe(
+      'rule-2'
+    );
+  });
+
+  it("opens a variant's link without an item", () => {
+    expect(linkTargetOf(params(`step=rules&variant=${AMBULANCE}`), BRANCHES)).toEqual({
+      variantId: AMBULANCE,
+      itemId: null,
+      notice: null,
+    });
+  });
+
+  it('says that the variant no longer exists, and opens nothing in its place', () => {
+    const gone = '9f8e7d6c-5b4a-4321-8fed-cba987654321';
+    expect(linkTargetOf(params(`step=rules&variant=${gone}&item=rule-1`), BRANCHES)).toEqual({
+      variantId: null,
+      itemId: null,
+      notice: 'variant',
+    });
+  });
+
+  it('says that the rule or group no longer exists, and shows the variant', () => {
+    expect(linkTargetOf(params(`step=rules&variant=${MAIN}&item=rule-3`), BRANCHES)).toEqual({
+      variantId: MAIN,
+      itemId: null,
+      notice: 'item',
+    });
+    expect(linkTargetOf(params(`step=rules&variant=${MAIN}&item=group-4`), BRANCHES)).toEqual({
+      variantId: MAIN,
+      itemId: null,
+      notice: 'item',
+    });
+  });
+
+  it('names nothing without step=rules or a variant', () => {
+    const none = { variantId: null, itemId: null, notice: null };
+    expect(linkTargetOf(params(''), BRANCHES)).toEqual(none);
+    expect(linkTargetOf(params(`variant=${MAIN}&item=rule-1`), BRANCHES)).toEqual(none);
+    expect(linkTargetOf(params(`step=documents&variant=${MAIN}`), BRANCHES)).toEqual(none);
+    expect(linkTargetOf(params('step=rules&item=rule-1'), BRANCHES)).toEqual(none);
+  });
+
+  it('matches no variant without an id, such as one added but not yet saved', () => {
+    expect(
+      linkTargetOf(params(`step=rules&variant=${MAIN}`), [{ id: null, items: [] }]).notice
+    ).toBe('variant');
+  });
+});
+
+describe('withoutLinkParams (spec 007, S5)', () => {
+  it("takes the link's step, variant and item out, and keeps any other parameter", () => {
+    const params = new URLSearchParams('step=rules&variant=v-1&item=rule-2&other=kept');
+    expect(withoutLinkParams(params).toString()).toBe('other=kept');
+  });
+
+  it('leaves the parameters it was given unchanged', () => {
+    const params = new URLSearchParams('step=rules&variant=v-1');
+    withoutLinkParams(params);
+    expect(params.toString()).toBe('step=rules&variant=v-1');
   });
 });
 

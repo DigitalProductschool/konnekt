@@ -512,8 +512,11 @@ sequential ids like `variant-{n}` (a new counter, and the pull URLs already use 
   the rules step ("This link points to a variant that no longer exists.") and opens the first
   variant; a connection that isn't there is the existing not-found screen. A signed-out team
   member goes through the sign-in and returns with the query string (`RequireSignIn` keeps the
-  location, checked in R20).
-- **Copy link** (FR-028): a "Copy link" entry in `RuleMenu`, `GroupMenu` and `BranchMenu`,
+  location, checked in R20). The parameters stay in the address while the link's variant is
+  shown in the rules step, and go (the history entry replaced) once the team member moves to
+  another step or variant, so the address never names what isn't shown.
+- **Copy link** (FR-028): a "Copy link" entry in `RuleMenu`, `GroupMenu` and `BranchMenu`
+  (also for a rule or group removed in a based variant, which an agent can still read and restore),
   which writes the link with `navigator.clipboard.writeText()` and shows the step's existing
   toast ("Link copied."); on a failure (no secure context, permission), the toast says the link
   couldn't be copied. The step receives the connection's id and `PORTAL_URL`-free relative paths

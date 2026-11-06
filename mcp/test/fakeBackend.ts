@@ -345,6 +345,36 @@ export function fixtureStore(): FakeStore {
   };
 }
 
+/**
+ * The draft as publishing it stores it (spec 005's `publish_draft`): the same id, the same
+ * variants with the same ids, rules and names, live, with its connection URLs. The fake has no
+ * publish endpoint; tests put this into the store
+ */
+export function publishedOf(draft: FormConnectionDraft): FormConnection {
+  const pullUrlOf = (branchId: string) =>
+    `${SERVICEBW_URL}/${draft.id}/branches/${branchId}/{reference}`;
+  const branches: Branch[] = draft.branches.map((branch) => {
+    const id = branch.id ?? randomUUID();
+    return { ...branch, id, is_main: branch.origin === 'main', pull_url: pullUrlOf(id) };
+  });
+  return {
+    status: 'published',
+    id: draft.id,
+    name: draft.name,
+    description: draft.description,
+    is_active: true,
+    documents: draft.documents,
+    trigger_url: `${SERVICEBW_URL}/${draft.id}`,
+    pull_url: branches[0].pull_url,
+    branches,
+    rule_set_version: 1,
+    next_rule_number: draft.next_rule_number,
+    next_group_number: draft.next_group_number,
+    created_at: draft.created_at,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 function summaryOf(fc: FormConnectionOrDraft): FormConnectionSummary {
   return {
     id: fc.id,

@@ -10,7 +10,7 @@ import type { Ref } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import type { RulesBranch, RulesState } from './RulesStep/types';
+import type { LinkNoticeKind, RulesBranch, RulesState } from './RulesStep/types';
 
 /**
  * Where the flow's content comes from (research R12): a new connection, a stored draft, or a
@@ -66,8 +66,26 @@ export interface EditorFlow {
  */
 export type EditorStart = EditorFlow | { kind: 'missingDraft'; draftId: string };
 
+/**
+ * The variant, rule or group an opened link names (spec 007, S5; FR-030, FR-031), as the edit page
+ * resolved it against the content it loaded (`linkTargetOf()`)
+ */
+export interface EditorLinkProps {
+  /** The variant whose tab opens; null for none, or for a variant that isn't there */
+  initialVariant?: string | null;
+  /** The rule or group in that variant brought into view and focused; null for none */
+  initialItem?: string | null;
+  /** What the link names that isn't there, which the rules step's notice says */
+  linkNotice?: LinkNoticeKind | null;
+  /**
+   * Called once the team member moves from what the link opened to another step or variant: the
+   * edit page then takes the link out of the address
+   */
+  onLinkLeft?: () => void;
+}
+
 /** The wizard itself, once the page has decided what it opens */
-export interface ConnectionWizardProps {
+export interface ConnectionWizardProps extends EditorLinkProps {
   flow: EditorFlow;
   firstConnection: boolean;
   onReload?: () => void;
@@ -93,7 +111,7 @@ export interface DraftConflict {
   message: string;
 }
 
-export interface FormConnectionEditorPageProps {
+export interface FormConnectionEditorPageProps extends EditorLinkProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
   /**
@@ -112,7 +130,7 @@ export interface FormConnectionEditorPageProps {
    * which exist only on the device (data-model.md section 6). Never the record's own content
    */
   baseline?: LocalDraftContent;
-  /** The step the wizard opens at */
+  /** The step the wizard opens at; the rules step for a link (S5), with `EditorLinkProps` */
   initialStep?: EditorStep;
   /**
    * When editing: fetches the connection again and opens the wizard anew at the Rules step,

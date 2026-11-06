@@ -155,6 +155,8 @@ export type RulesAction =
   | { type: 'closeDialog' }
   | { type: 'undo' }
   | { type: 'dismissToast' }
+  /** A toast without an action that changes nothing, such as "Link copied." (S4) */
+  | { type: 'showToast'; message: string }
   | { type: 'showProblem'; problem: RulesProblem }
   | { type: 'clearProblem' }
   | { type: 'selectBranch'; branchKey: string }
@@ -218,6 +220,17 @@ export interface RulesStepProps {
   checks: Record<string, BranchCheck | null>;
   /** Whether the connection is being edited, which some wording follows */
   editing: boolean;
+  /**
+   * The stored draft's or the published connection's id, which its links name (spec 007, S4;
+   * FR-028); null for a new, unsaved connection, whose menus then don't offer "Copy link"
+   */
+  connectionId: string | null;
+  /**
+   * The notice of a link to a variant, rule or group that no longer exists (S5; FR-031), from
+   * opening the link, until it is dismissed; null without one
+   */
+  linkNotice: LinkNoticeKind | null;
+  onDismissLinkNotice: () => void;
   dispatch: (action: RulesAction) => void;
   /**
    * Opens the rule editor for a new rule, at the end of a group or of the top level (null), or
@@ -271,6 +284,11 @@ export interface RulesTreeView {
   onRemove: (itemId: string) => void;
   onRestore: (itemId: string) => void;
   onReset: (itemId: string) => void;
+  /**
+   * "Copy link" (S4; FR-028): copies the link of a rule or group of the open branch; null for a
+   * new, unsaved connection, whose menus don't offer it
+   */
+  onCopyLink: ((itemId: string) => void) | null;
 }
 
 export interface TreeItemProps {
@@ -337,6 +355,8 @@ export interface RuleMenuProps {
   /** "Delete rule", or for an inherited rule "Remove from this variant" */
   onDelete: () => void;
   onRestore: () => void;
+  /** "Copy link" (S4); null hides it: a new, unsaved connection has no link */
+  onCopyLink: (() => void) | null;
 }
 
 export interface GroupMenuProps {
@@ -354,6 +374,8 @@ export interface GroupMenuProps {
   /** "Delete group", or for an inherited group "Remove from this variant" */
   onDelete: () => void;
   onRestore: () => void;
+  /** "Copy link" (S4); null hides it: a new, unsaved connection has no link */
+  onCopyLink: (() => void) | null;
 }
 
 export interface LinkStripProps {
@@ -493,6 +515,8 @@ export interface BranchTabsProps {
   /** The rule checks' result per branch key, as `RulesStepProps.checks`, for the tab icons */
   checks: Record<string, BranchCheck | null>;
   dispatch: (action: RulesAction) => void;
+  /** "Copy link" of a variant, by its key (S4); null for a new, unsaved connection */
+  onCopyLink: ((branchKey: string) => void) | null;
 }
 
 export interface BranchTabProps {
@@ -507,6 +531,8 @@ export interface BranchTabProps {
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
   onRename: () => void;
   onDelete: () => void;
+  /** "Copy link" of the variant (S4); null for a new, unsaved connection */
+  onCopyLink: (() => void) | null;
 }
 
 export interface BranchMenuProps {
@@ -514,6 +540,8 @@ export interface BranchMenuProps {
   deletable: boolean;
   onRename: () => void;
   onDelete: () => void;
+  /** "Copy link" (S4); null hides it: a new, unsaved connection has no link */
+  onCopyLink: (() => void) | null;
 }
 
 /** The Add variant and Edit variant dialogs' fields, and why the name was refused */
@@ -556,6 +584,18 @@ export interface CopyPopoverProps {
   /** Cancel, Escape or a click elsewhere */
   onClose: () => void;
   /** The focus left it, with Tab: it closes, and the focus stays where it went */
+  onDismiss: () => void;
+}
+
+/**
+ * What a link names that isn't there (S5; FR-031): its variant, so that the first variant is
+ * shown, or its rule or group in the variant, which is shown
+ */
+export type LinkNoticeKind = 'variant' | 'item';
+
+export interface LinkNoticeProps {
+  kind: LinkNoticeKind;
+  /** "Dismiss" */
   onDismiss: () => void;
 }
 

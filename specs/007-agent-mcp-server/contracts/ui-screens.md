@@ -119,7 +119,9 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
 
 - `RuleMenu`, `GroupMenu` (groups and sub-groups) and `BranchMenu` (the variant tab's ⋯) get
   "Copy link" as their last entry before the destructive ones, with the existing menu's
-  keyboard behaviour.
+  keyboard behaviour. A rule or group removed in a based variant, whose menu otherwise offers
+  only "Restore", gets it after "Restore": it is still in the variant, and an agent can read and
+  restore it through its link.
 - The link is built in `RulesStep/utils.ts` (`linkOf(origin, connectionId, variantId,
   itemId?)`, pure, tested) from `window.location.origin`.
 - Success shows the step's toast: "Link copied." Failure: "The link couldn't be copied. Copy it
@@ -138,6 +140,9 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
   isn't there in the variant: "This link points to a rule or group that no longer exists.", the
   variant is shown. The notice has a "Dismiss" button and is announced.
 - A connection that isn't there: the existing not-found screen, unchanged.
+- The link's parameters stay in the address while its variant is shown in the rules step, so a
+  reload opens it again. Moving to another step or variant takes them out of the address, in
+  place of the current history entry: the address is the editor's own again.
 - The `?step=` parameter also serves the details page's buttons, which may keep router state.
 
 ## S6. The overview and details: unchanged

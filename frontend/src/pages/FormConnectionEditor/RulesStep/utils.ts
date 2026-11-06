@@ -18,14 +18,17 @@ import {
 } from '@connection-portal/rules/tree';
 import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { variantNameProblem } from '@connection-portal/rules/validation';
+import { generatePath } from 'react-router';
 
 import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
+import { ROUTES } from '../../../constants';
 import { ELEMENT_IDS } from '../constants';
-import { MAIN_BRANCH_NAME, RULES_COPY } from './constants';
+import { LINK_PARAMS, LINK_STEP, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
 import type {
   BannerItem,
   BannerView,
   ItemStanding,
+  LinkNoticeKind,
   RenameAction,
   RenameField,
   RenamingItem,
@@ -176,6 +179,48 @@ export function goToItem(branchKey: string, itemId: string) {
   }
   element.focus({ preventScroll: true });
   element.scrollIntoView({ block: 'nearest' });
+}
+
+/**
+ * The link of a variant, or of a rule or group in it (spec 007, S4; research R11; FR-028, FR-029):
+ * `{origin}/form-connections/{connectionId}/edit?step=rules&variant={variantId}`, and
+ * `&item={itemId}` for a rule or group. Identifiers only, never names, so that it leads to the same
+ * item after renaming and after publishing. `origin` is the page's own, so that previews and
+ * production get their own links.
+ */
+export function linkOf(
+  origin: string,
+  connectionId: string,
+  variantId: string,
+  itemId?: string
+): string {
+  const params = new URLSearchParams({
+    [LINK_PARAMS.step]: LINK_STEP,
+    [LINK_PARAMS.variant]: variantId,
+  });
+  if (itemId !== undefined) {
+    params.set(LINK_PARAMS.item, itemId);
+  }
+  const path = generatePath(ROUTES.editFormConnection, { id: connectionId });
+  return `${origin}${path}?${params.toString()}`;
+}
+
+/**
+ * What an opened link names that the step's branches don't hold (S5; FR-031): its variant, or its
+ * rule or group in the variant; null when both are there. The page resolves the link against the
+ * content it loaded (`linkTargetOf()`); this checks it again against what the wizard opens, such as
+ * a stored draft's unsaved changes restored on this device.
+ */
+export function linkNoticeOf(
+  state: RulesState,
+  variantId: string,
+  itemId: string | null
+): LinkNoticeKind | null {
+  const branch = branchOf(state, variantId);
+  if (!branch) {
+    return 'variant';
+  }
+  return itemId !== null && !findItem(branch.items, itemId) ? 'item' : null;
 }
 
 /** The items of a level of a branch: a group's members, or the top level for null. */
@@ -785,6 +830,14 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
     // Ctrl/Cmd+Z, while its Show goes with it
     case 'dismissToast':
       return { ...state, toast: null, showBranch: null };
+    // A toast that changes nothing, such as "Link copied.": no action, and Undo stays for
+    // Ctrl/Cmd+Z, since the rules haven't changed
+    case 'showToast':
+      return {
+        ...state,
+        toast: { id: nextToastId(state), message: action.message },
+        showBranch: null,
+      };
     case 'clearProblem':
       return { ...state, problem: null };
     case 'showProblem':
