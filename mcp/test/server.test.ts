@@ -8,6 +8,10 @@ import type {
   FormConnectionDraft,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
+import { dayNumber } from '@connection-portal/rules/checks/calendar';
+import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
+import { checkBranch } from '@connection-portal/rules/checks/findings';
+import { todayInGermany } from '@connection-portal/rules/dates';
 import {
   addRule,
   addVariant,
@@ -15,7 +19,8 @@ import {
   deleteItem,
   groupItems,
 } from '@connection-portal/rules/edits';
-import { target } from '@connection-portal/rules/testData';
+import { evaluateBranch } from '@connection-portal/rules/evaluation';
+import { rule, target } from '@connection-portal/rules/testData';
 import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
@@ -2409,6 +2414,319 @@ describe('the approval tools', () => {
         BEARERS.drafts
       );
       expect(structured.code).toBe('validation');
+    });
+  });
+});
+
+describe('the checks and tests', () => {
+  type Findings = typeof import('../src/findings');
+  type Views = typeof import('../src/views');
+  let findings: Findings;
+  let views: Views;
+
+  beforeAll(async () => {
+    links = await import('../src/links');
+    findings = await import('../src/findings');
+    views = await import('../src/views');
+  });
+
+  afterEach(() => fake.reset());
+
+  /** The checks' draft: its own id, beside the fixtures */
+  const CHECKS_ID = '44444444-4444-4444-8444-444444444444';
+  const CHECKS_STANDARD = '44444444-4444-4444-8444-4444444444a1';
+  const CHECKS_PILOT = '44444444-4444-4444-8444-4444444444a2';
+  const AGE: Condition = { operator: 'at_least_years_ago', years: 18 };
+
+  /**
+   * A draft that requests the fixture's data (pid: birthdate, address_locality). Standard: Rule 01
+   * and its duplicate Rule 02, Rule 03 without a condition, Rule 04 on data not requested, Rule 07
+   * without data. Pilot, started empty: Rule 05 and Rule 06 on the city, which conflict, so that
+   * no applicant can meet it
+   */
+  function checksDraft(): FormConnectionDraft {
+    const base = storedDraft();
+    const city = (number: number, value: string) =>
+      rule(number, target('pid', 'address_locality'), { operator: 'equal_to', value });
+    const draft: FormConnectionDraft = {
+      ...base,
+      id: CHECKS_ID,
+      name: 'Checked permit',
+      branches: [
+        {
+          ...base.branches[0],
+          id: CHECKS_STANDARD,
+          items: [
+            rule(1, target('pid', 'birthdate'), AGE),
+            rule(2, target('pid', 'birthdate'), AGE),
+            rule(3, target('pid', 'address_locality'), null),
+            rule(4, target('pid', 'family_name'), { operator: 'equal_to', value: 'Muster' }),
+            rule(7, null, null),
+          ],
+        },
+        {
+          ...base.branches[2],
+          id: CHECKS_PILOT,
+          items: [city(5, 'Stuttgart'), city(6, 'Esslingen')],
+        },
+      ],
+      next_rule_number: 8,
+    };
+    fake.store.connections.set(CHECKS_ID, draft);
+    return draft;
+  }
+
+  function contextOf(draft: FormConnectionDraft) {
+    return views.ruleContextOf(draft.documents, fake.store.documentTypes, fake.store.optionSets);
+  }
+
+  /** check_rules' answer for one variant, from checkBranch() directly, in time */
+  function directCheck(draft: FormConnectionDraft, index: number, day: string) {
+    const branch = draft.branches[index];
+    const context = contextOf(draft);
+    const checked = buildCheckedBranch(
+      {
+        key: branch.id ?? '',
+        origin: branch.origin,
+        operator: branch.operator,
+        items: branch.items,
+      },
+      context,
+      day
+    );
+    const check = checkBranch(checked, { deadline: Number.POSITIVE_INFINITY, now: () => 0 });
+    return findings.variantCheckOf(check, branch, context, draft);
+  }
+
+  function itemRef(connectionId: string, variantId: string, id: string, name: string) {
+    return {
+      id,
+      type: id.startsWith('rule-') ? 'rule' : 'group',
+      name,
+      link: links.itemLink(connectionId, variantId, id),
+    };
+  }
+
+  describe('check_rules', () => {
+    it("equals checkBranch()'s findings mapped directly, for every variant, as the read caller", async () => {
+      const draft = checksDraft();
+      const { isError, structured, text } = await callTool(
+        'check_rules',
+        { connection: CHECKS_ID },
+        BEARERS.read
+      );
+      expect(isError).toBe(false);
+      const day = structured.day as string;
+      expect(day).toBe(todayInGermany());
+      expect(structured.connection).toEqual({
+        id: CHECKS_ID,
+        name: 'Checked permit',
+        status: 'draft',
+        link: links.connectionLink(CHECKS_ID),
+      });
+      expect(structured.variants).toEqual([directCheck(draft, 0, day), directCheck(draft, 1, day)]);
+
+      const [standard, pilot] = structured.variants;
+      expect(standard.checked_completely).toBe(true);
+      expect(standard.findings).toEqual([
+        expect.objectContaining({
+          item: itemRef(CHECKS_ID, CHECKS_STANDARD, 'rule-2', 'Rule 02'),
+          kind: 'redundant',
+          involves: [itemRef(CHECKS_ID, CHECKS_STANDARD, 'rule-1', 'Rule 01')],
+          resolution: 'You can delete Rule 02; Rule 01 already covers it.',
+        }),
+      ]);
+      expect(pilot.notice).toEqual(
+        expect.objectContaining({ kind: 'none_can_meet', resolution: expect.any(String) })
+      );
+      expect(pilot.findings).toContainEqual(
+        expect.objectContaining({ kind: 'conflicting', resolution: expect.any(String) })
+      );
+      expect(text).toContain("Variant 'Pilot'");
+    });
+
+    it('lists a rule without a condition and one on unrequested data in not_covered, with why', async () => {
+      checksDraft();
+      const { structured } = await callTool('check_rules', {
+        connection: CHECKS_ID,
+        variant: 'standard',
+      });
+      expect(structured.variants).toHaveLength(1);
+      const notCovered = structured.variants[0].not_covered;
+      expect(notCovered).toEqual([
+        {
+          item: itemRef(CHECKS_ID, CHECKS_STANDARD, 'rule-3', 'Rule 03'),
+          reason: 'condition_incomplete',
+          text: expect.stringMatching(/^Rule 03 in Standard: /),
+        },
+        {
+          item: itemRef(CHECKS_ID, CHECKS_STANDARD, 'rule-4', 'Rule 04'),
+          reason: 'data_not_requested',
+          text: 'Rule 04 in Standard checks data that’s no longer requested.',
+        },
+        {
+          item: itemRef(CHECKS_ID, CHECKS_STANDARD, 'rule-7', 'Rule 07'),
+          reason: 'no_data',
+          text: 'Rule 07 in Standard: choose the data to check.',
+        },
+      ]);
+    });
+
+    it('answers not_found for a variant the connection lacks', async () => {
+      checksDraft();
+      const { isError, structured } = await callTool('check_rules', {
+        connection: CHECKS_ID,
+        variant: 'Nowhere',
+      });
+      expect(isError).toBe(true);
+      expect(structured.code).toBe('not_found');
+    });
+  });
+
+  describe('test_applicants', () => {
+    const ANNA = {
+      name: 'Anna',
+      values: { 'pid.birthdate': '2000-01-01', 'pid.address_locality': 'Stuttgart' },
+    };
+    const BEN = {
+      name: 'Ben',
+      values: { 'pid.birthdate': '2000-01-01', 'pid.address_locality': 'Esslingen' },
+    };
+    const UNNAMED = { values: { 'pid.address_locality': 'Stuttgart' } };
+
+    /** What evaluateBranch() decides for the fixture draft's Standard, as the tool answers it */
+    function expectedResult(
+      label: string,
+      documents: Record<string, Record<string, unknown>>,
+      day: string
+    ) {
+      const draft = storedDraft();
+      const branch = draft.branches[0];
+      const evaluation = evaluateBranch(branch, documents, dayNumber(day), contextOf(draft));
+      const ref = (item: RuleTreeItem) => itemRef(IDS.draft, IDS.draftStandard, item.id, item.name);
+      return {
+        applicant: label,
+        met: evaluation.met,
+        items: evaluation.items.map(({ item, outcome, group }) =>
+          expect.objectContaining({ item: ref(item), outcome, in_group: group })
+        ),
+        messages: evaluation.messages.map(({ id, message }) => {
+          const item = branch.items.find((entry) => entry.id === id) as RuleTreeItem;
+          return { item: ref(item), message };
+        }),
+      };
+    }
+
+    it('equals evaluateBranch() for three applicants, today in Germany, as the read caller', async () => {
+      const { isError, structured } = await callTool(
+        'test_applicants',
+        { connection: IDS.draft, variant: 'Standard', applicants: [ANNA, BEN, UNNAMED] },
+        BEARERS.read
+      );
+      expect(isError).toBe(false);
+      const day = todayInGermany();
+      expect(structured.day).toBe(day);
+      expect(structured.variant).toEqual({
+        id: IDS.draftStandard,
+        name: 'Standard',
+        link: links.variantLink(IDS.draft, IDS.draftStandard),
+      });
+      expect(structured.results).toEqual([
+        expectedResult(
+          'Anna',
+          { pid: { birthdate: '2000-01-01', address_locality: 'Stuttgart' } },
+          day
+        ),
+        expectedResult(
+          'Ben',
+          { pid: { birthdate: '2000-01-01', address_locality: 'Esslingen' } },
+          day
+        ),
+        expectedResult('Applicant 3', { pid: { address_locality: 'Stuttgart' } }, day),
+      ]);
+      const [anna, ben, unnamed] = structured.results;
+      expect(anna.met).toBe(true);
+      expect(anna.messages).toEqual([]);
+      expect(ben.met).toBe(false);
+      expect(ben.messages.map((entry: { message: string }) => entry.message)).toEqual([
+        'You must live in Stuttgart.',
+      ]);
+      expect(unnamed.items[0]).toEqual({
+        item: itemRef(IDS.draft, IDS.draftStandard, 'rule-1', 'Rule 01'),
+        outcome: 'not_checked',
+        reason: "The applicant has no value for 'pid.birthdate'.",
+        in_group: null,
+      });
+    });
+
+    it('uses the day given', async () => {
+      const day = '2017-12-31';
+      const { structured } = await callTool('test_applicants', {
+        connection: IDS.draft,
+        variant: IDS.draftStandard,
+        applicants: [ANNA],
+        day,
+      });
+      expect(structured.day).toBe(day);
+      expect(structured.results).toEqual([
+        expectedResult(
+          'Anna',
+          { pid: { birthdate: '2000-01-01', address_locality: 'Stuttgart' } },
+          day
+        ),
+      ]);
+      expect(structured.results[0].met).toBe(false);
+      expect(structured.results[0].items[0].outcome).toBe('not_met');
+    });
+
+    it('refuses a bad date with validation, naming the applicant, the field and the kind', async () => {
+      const { isError, structured } = await callTool('test_applicants', {
+        connection: IDS.draft,
+        variant: 'Standard',
+        applicants: [BEN, { name: 'Anna', values: { 'pid.birthdate': '01.01.2000' } }],
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message: "Applicant 'Anna': 'pid.birthdate' expects a date as YYYY-MM-DD.",
+      });
+    });
+
+    it('refuses a day that is no date with validation', async () => {
+      const { isError, structured } = await callTool('test_applicants', {
+        connection: IDS.draft,
+        variant: 'Standard',
+        applicants: [ANNA],
+        day: '2026-02-30',
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message: "'day' expects a date as YYYY-MM-DD.",
+      });
+    });
+
+    it('refuses a variant whose rules the evaluation can’t take, with the first problem', async () => {
+      checksDraft();
+      const { isError, structured } = await callTool('test_applicants', {
+        connection: CHECKS_ID,
+        variant: 'Standard',
+        applicants: [{ values: {} }],
+      });
+      expect(isError).toBe(true);
+      expect(structured.code).toBe('validation');
+      expect(structured.message).toMatch(
+        /^Rule 03 in Standard: .* The variant can be tested once its rules are complete\.$/
+      );
+    });
+
+    it('takes at most 10 applicants', async () => {
+      const { isError } = await callTool('test_applicants', {
+        connection: IDS.draft,
+        variant: 'Standard',
+        applicants: Array.from({ length: 11 }, () => ANNA),
+      });
+      expect(isError).toBe(true);
     });
   });
 });

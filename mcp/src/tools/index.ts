@@ -7,5 +7,6 @@ import './access';
 import './drafts';
 import './items';
 import './approvals';
+import './checks';
 
 export { registry, tools } from './registry';

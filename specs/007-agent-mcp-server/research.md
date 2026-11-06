@@ -630,8 +630,9 @@ the page to one call.
 published), builds each variant's checked tree with `buildCheckedBranch()` (the requested
 documents' fields from the catalog, the value sets, today in Germany from `todayInGermany()`),
 runs `checkBranch()` in a `node:worker_threads` worker (entry `mcp/src/checksWorker.ts`, a Node
-counterpart of the SPA's `workers/checks.ts` over `parentPort`) with the editor's deadline (5 s from the
-call) and terminates it at the watchdog (5.5 s), and answers per variant: `complete`, the
+counterpart of the SPA's `workers/checks.ts` over `parentPort`, built to `dist/checksWorker.js`
+beside `dist/main.js`) with the editor's deadline (5 s from the call) and terminates it at the
+watchdog (5.5 s), and answers per variant: `complete`, the
 notice, the findings and the rules left out with why (`leftOut`, with the reason derived as the
 editor's `UnrequestedBanner` and `ProblemNote` derive it: no data chosen, data not requested,
 condition incomplete). Each finding gives the variant, the item (id, name, link), the kind, the
@@ -647,7 +648,10 @@ kind. Nothing is stored or logged (FR-035).
 
 **Rationale**: the same checks, the same checked tree, the same deadline, so SC-007 holds by
 construction. A worker thread keeps a 5-second solver run off the server's event loop, which
-serves other agents meanwhile. New texts go where the project keeps finding texts.
+serves other agents meanwhile. From the sources (`vite-node` in `npm run dev`, and Vitest), Node
+can't load the worker's TypeScript entry, whose `rules/` imports have no extensions, so the same
+checks run on the main thread with the same deadline; a build without the worker's file reports
+every variant as not checked completely. New texts go where the project keeps finding texts.
 
 ## R15. Test applicants
 
@@ -769,7 +773,10 @@ requests as any other.
   links' `?step=rules&variant=…&item=…` survive the sign-in; `pages/Login` needed no change.
   Settled on 2026-11-06.
 - Vite's SSR build of `mcp/src/main.ts` bundling `import.meta.glob` raw imports and the worker
-  thread's entry as a second output file (R1, R14). `npm run dev` in `mcp/` uses `vite-node`
-  6.0.0 (R2).
+  thread's entry as a second output file (R1, R14): it bundles the skills' raw text, writes
+  `dist/checksWorker.js` beside `dist/main.js`, and keeps `new URL('./checksWorker.js',
+  import.meta.url)` as written, neither hashed nor inlined; the image ships both files.
+  `npm run dev` in `mcp/` uses `vite-node` 6.0.0 (R2), which runs the checks on the main thread
+  (R14). Settled on 2026-11-06.
 - The size of a `FormConnectionDraft` with 20 variants × 200 items in a tool result: the
   layered reads keep one variant per answer; `get_connection`'s overview carries counts only.

@@ -1,14 +1,15 @@
 // The texts of the rule checks' findings (specs/003-rule-consistency-checks, research R12;
 // contracts/ui-screens.md "Copy"; design-notes.md §1–§6): the notes on rules and groups, the
 // findings banner, the counts row, the tab's icon and tooltip, the publish and save dialog's
-// lines, and the announcements. This module is the only place where finding texts are written.
-// Every function is pure.
+// lines, the announcements, and what would resolve a finding, for agents (spec 007, research R14).
+// This module is the only place where finding texts are written. Every function is pure.
 //
 // Conventions (design-notes.md §1): apostrophes are typographic (’); rules, groups and variants
 // are named by their current names (FR-011), lists follow the display order and read "Rule 02,
 // Rule 03 and Rule 04" (W3); notes and lines carry no visible kind, which only the icon's hidden
 // text gives (`kindTextOf()`, A3); a finding that holds only for applicants who share today ends
-// "at the moment" (FR-008, A7); no text words a finding as something to change (FR-016).
+// "at the moment" (FR-008, A7); no text words a finding as something to change (FR-016), except
+// `resolutionOf()`'s, which tell agents what would resolve a finding (spec 007, research R14).
 import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
 
 import { flattenItems } from '../tree';
@@ -261,6 +262,121 @@ export function noteOf(finding: ItemFinding, names: ItemNames): string {
       return redundantNote(finding, names);
     case 'always_met':
       return `Every applicant meets this ${nounOf(finding.itemId)}.`;
+  }
+}
+
+// Resolutions for agents (spec 007, FR-032; research R14): what would resolve each finding and
+// notice, worded for an LLM. The one place where texts word a finding as something to change
+
+/** The item's current name, or "the rule" / "the group" while it has none, such as a deleted one. */
+function nameOrNoun(id: string, names: ItemNames): string {
+  return names.get(id) ?? `the ${nounOf(id)}`;
+}
+
+/**
+ * The current names of `ids` in display order, with "other rules" at the end while some of them
+ * have no name any more, such as deleted ones, so that no text shows an id.
+ */
+function namesOrOthers(ids: readonly string[], names: ItemNames): string[] {
+  const named = namesInOrder(ids, names);
+  return named.length < new Set(ids).size ? [...named, 'other rules'] : named;
+}
+
+/**
+ * A conflict's resolution: one of the items that can't be met together changes or goes. A group
+ * that can't be met because of one member, or a rule that can't be met on its own, changes or
+ * goes; so does one member of an OR group none of whose members can be met, or the group.
+ */
+function conflictingResolution(finding: ConflictingFinding, names: ItemNames): string {
+  const { itemId, reason, today } = finding;
+  const suffix = atTheMoment(today);
+  switch (reason.type) {
+    case 'with':
+      return (
+        `Change or delete one of ${listOf(namesOrOthers([itemId, ...reason.items], names))}; ` +
+        `they can’t be met together${suffix}.`
+      );
+    case 'members': {
+      if (reason.items.length < 2 || namesInOrder(reason.items, names).length === 0) {
+        const single = reason.items.length === 1 ? names.get(reason.items[0]) : undefined;
+        return `Change or delete ${single ?? nameOrNoun(itemId, names)}; it can’t be met${suffix}.`;
+      }
+      const members = namesOrOthers(reason.items, names);
+      if (reason.operator === 'and') {
+        return `Change or delete one of ${listOf(members)}; they can’t be met together${suffix}.`;
+      }
+      return (
+        `Change one of ${listOf(members)} so that it can be met, or delete ` +
+        `${nameOrNoun(itemId, names)}; none of them can be met${suffix}.`
+      );
+    }
+    case 'condition':
+      return `Change or delete ${nameOrNoun(itemId, names)}; no applicant can meet it${suffix}.`;
+  }
+}
+
+/**
+ * A redundant item's resolution: its deletion, since the items its reason names already cover
+ * it. For a covered item, they are every item the reason names, an enclosing level's included,
+ * such as the group that is the alternative of an item covered through an OR level.
+ */
+function redundantResolution(finding: RedundantFinding, names: ItemNames): string {
+  const { itemId, reason } = finding;
+  const item = nameOrNoun(itemId, names);
+  if (reason.type === 'same') {
+    const other = names.get(reason.item) ?? `another ${nounOf(reason.item)}`;
+    return `You can delete ${item}; ${other} already covers it.`;
+  }
+  const extra = reason.type === 'implied_by' ? reason.orItems : reason.givenItems;
+  const ids = [...reason.items, ...extra];
+  const covering = ids.length > 0 ? namesOrOthers(ids, names) : ['other rules'];
+  const verb = covering.length === 1 && covering[0] !== 'other rules' ? 'covers' : 'cover';
+  return `You can delete ${item}; ${listOf(covering)} already ${verb} it.`;
+}
+
+/** A branch notice's resolution: loosen the rules no applicant can meet, or check something. */
+function noticeResolution(notice: BranchNotice): string {
+  switch (notice.kind) {
+    case 'none_can_meet':
+      return (
+        'Loosen or delete one of the rules that no applicant can meet together' +
+        `${atTheMoment(notice.today)}.`
+      );
+    case 'all_meet':
+      return 'Add a rule or make one stricter; as it is, the variant accepts every applicant.';
+  }
+}
+
+/**
+ * What would resolve a finding on a rule or group, for agents (spec 007, FR-032; research R14):
+ * "Change or delete one of Rule 02 and Rule 03; they can’t be met together.", "You can delete
+ * Rule 06; Rule 03 already covers it.", "Rule 05’s condition is always met; delete it or make it
+ * stricter.". `names` are the current names of the branch's items, from `namesOf()`, as
+ * `noteOf()` takes them.
+ */
+export function resolutionOf(finding: ItemFinding, names: ItemNames): string;
+/**
+ * What would resolve a variant's notice, for agents (spec 007, FR-032; research R14): "Loosen or
+ * delete one of the rules that no applicant can meet together.", "Add a rule or make one
+ * stricter; as it is, the variant accepts every applicant."
+ */
+export function resolutionOf(notice: BranchNotice): string;
+export function resolutionOf(
+  subject: ItemFinding | BranchNotice,
+  names: ItemNames = new Map()
+): string {
+  if (!('itemId' in subject)) {
+    return noticeResolution(subject);
+  }
+  switch (subject.kind) {
+    case 'conflicting':
+      return conflictingResolution(subject, names);
+    case 'redundant':
+      return redundantResolution(subject, names);
+    case 'always_met': {
+      const item = names.get(subject.itemId) ?? `The ${nounOf(subject.itemId)}`;
+      return `${item}’s condition is always met; delete it or make it stricter.`;
+    }
   }
 }
 

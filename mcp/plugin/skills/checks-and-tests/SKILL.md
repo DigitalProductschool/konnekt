@@ -5,42 +5,83 @@ description: The rule checks' findings and their kinds, what resolves them, what
 
 # Rule checks and tests
 
-Before asking to publish, check a variant's rules for mistakes and test them with applicants you
-invent. Neither stores anything: findings, applicants and results are never saved or logged.
+Before asking to publish, check the rules for mistakes with `check_rules` and test them with
+applicants you invent with `test_applicants`. Both work on drafts and published connections, at
+every access level. Neither stores anything: findings, applicants and results are never saved or
+logged.
 
-## Findings
+## Findings: `check_rules`
 
-The rule checks look at a variant's rules together, as the editor's Rules step does, on today's
-calendar day in Germany. Each finding names the rule or group, its kind, why, and what would
-resolve it:
+`check_rules` takes the `connection` and, optionally, one `variant` (without it, every variant).
+It runs the same checks as the editor's Rules step, on today's calendar day in Germany, which the
+answer gives as `day`. Per variant, it answers:
+
+- `checked_completely`: whether the checks finished in time and decided every question. When it
+  is false, the findings listed are certain, but others may be missing: say so, and don't present
+  the variant as free of mistakes.
+- `rules_checked`: how many rules the checks read.
+- `notice`: a statement about the whole variant, or null. `none_can_meet`: no applicant can meet
+  its rules; `all_meet`: every applicant meets them, so they check nothing.
+- `findings`: one per rule or group at most, each with the `item`, its `kind`, the other items it
+  `involves`, `why` it holds and a `resolution`.
+- `not_covered`: the rules the checks leave out, with why.
 
 | Kind          | Meaning                                                                           |
 | ------------- | --------------------------------------------------------------------------------- |
 | `conflicting` | The rule can't be met together with the others it is combined with: nobody passes |
 | `redundant`   | Another rule already demands as much: the rule never decides anything             |
-| `always_met`  | Every possible value meets the rule: it checks nothing                            |
+| `always_met`  | Every possible value meets the rule or group: it checks nothing                   |
 
-A variant can also get a notice that nobody can meet its rules at all, or that everybody meets
-them. A finding "at the moment" depends on today's date and may go away later, for example a date
-condition that can't be met yet.
+Each finding and notice comes with a `resolution` worded for you, such as "Change or delete one
+of Rule 02 and Rule 03; they can't be met together" or "You can delete Rule 06; Rule 03 already
+covers it". Propose the change to the team member, or make it with the draft tools, then run
+`check_rules` again. A finding or notice with `at_the_moment: true` holds for applicants who share
+today but not on every later day, for example a date condition that can't be met yet: point that
+out rather than calling the rule wrong.
 
 ## What the checks don't cover
 
-Some rules can't be checked; the answer lists them with the reason: the rule has no data yet, its
-data isn't requested by the connection, its condition is incomplete, or it can't be read. Resolve
-these too: they would stop publishing.
+`not_covered` lists each rule the checks left out, with a `reason` and the Rules step's `text`:
 
-## Testing with fictitious applicants
+| Reason                 | What to do                                                      |
+| ---------------------- | --------------------------------------------------------------- |
+| `no_data`              | Choose the data the rule checks (`update_item` with a `target`) |
+| `data_not_requested`   | Request the data with `set_document`, or delete the rule        |
+| `condition_incomplete` | Complete the condition (`update_item` with a `condition`)       |
+| `unreadable`           | Fix what the text names, such as a part the field doesn't have  |
 
-Test a variant's rules with applicants you make up. `get_variant` lists the variant's
-`applicant_fields`: each field's `key`, `label`, `kind`, its value set (`option_set`) for a value
-list, whether it takes a list (`multiple`) and, for a licence class's date, the `licence_class`.
-Give each applicant a name and values for these fields, by their keys (`pid.birthdate`, `pid.place_of_birth.country`,
-`mdl.driving_privileges.issue_date#B`). A field's kind says what it takes: a number, a text, a code
-from its value set, a list for fields with several values, a date as `YYYY-MM-DD`. Each result
-says per rule and group whether it was met, not met or not checked (a missing value counts as not
-met), and which messages the citizen would read. Pick a day to see how the rules judge on another
-date.
+Resolve these too: they would stop publishing. An answer without findings is only "no mistakes"
+when `checked_completely` is true and `not_covered` is empty.
+
+## Testing with fictitious applicants: `test_applicants`
+
+`test_applicants` takes the `connection`, one `variant`, 1 to 10 `applicants` and, optionally, a
+`day` of sharing as `YYYY-MM-DD` (without it, today in Germany). Pick a day to see how the rules
+judge on another date, such as the day an applicant turns 18.
+
+`get_variant` lists the variant's `applicant_fields`: each field's `key`, `label`, `kind`, its
+value set (`option_set`) for a value list, whether it takes a list (`multiple`) and, for a licence
+class's date, the `licence_class`. Give each applicant a `name` and `values` for these fields, by
+their keys (`pid.birthdate`, `pid.place_of_birth.country`, `mdl.driving_privileges.issue_date#B`).
+A field's kind says what it takes: a number, a non-empty text, a code from its value set (a list of
+codes for a field with several values, such as the licence classes), a date as `YYYY-MM-DD`. A
+value that doesn't fit, or a key the variant's rules don't check, refuses the whole test before
+anything is evaluated, naming the applicant, the field and what it expects. A key left out, `null`
+or an empty list is missing data.
+
+Per applicant, the answer gives whether they meet the variant (`met`), every rule's and group's
+`outcome` in the evaluation's order with the group it sits in (`in_group`), and the `messages` the
+citizen would read, exactly as the evaluation decides:
+
+- `met` and `not_met`: the value meets the condition or doesn't. A rule on a licence class's date
+  is `not_met` when the applicant doesn't hold that class.
+- `not_checked`: the rule's value is missing, and its `reason` says which key. A missing value
+  never counts as met: a rule not checked fails an AND, and under an OR another item must be met.
+  When the variant isn't met, its message is reported as a rule's not met is.
+
+A variant whose rules are incomplete (no data chosen, an incomplete condition, data no longer
+requested, a group with fewer than two rules) can't be tested: the test is refused with the first
+problem. Fix it first, as `check_rules`' `not_covered` shows.
 
 Cover each rule's edges: just meeting and just missing the condition, a missing value, and each
 branch of an OR.

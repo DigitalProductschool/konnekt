@@ -12,6 +12,7 @@ import {
   namesOf,
   noteOf,
   noticeText,
+  resolutionOf,
   tabFindingsOf,
   tabLabelOf,
   textOf,
@@ -1167,6 +1168,168 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
         STANDARD.key
       )
     ).toBe('');
+  });
+});
+
+describe('resolutionOf (spec 007, FR-032; research R14)', () => {
+  it('says which of the items that can’t be met together to change or delete', () => {
+    expect(resolutionOf(withItems('rule-3', ['rule-2']), NAMES)).toBe(
+      'Change or delete one of Rule 02 and Rule 03; they can’t be met together.'
+    );
+    expect(resolutionOf(withItems('rule-1', ['rule-4', 'rule-2']), NAMES)).toBe(
+      'Change or delete one of Rule 01, Rule 02 and Rule 04; they can’t be met together.'
+    );
+    expect(resolutionOf(withItems('rule-1', ['rule-2'], true), NAMES)).toBe(
+      'Change or delete one of Rule 01 and Rule 02; they can’t be met together at the moment.'
+    );
+  });
+
+  it('words a group’s own conflict by its members and its combination', () => {
+    const and = conflicting('group-3', {
+      type: 'members',
+      operator: 'and',
+      items: ['rule-4', 'rule-5'],
+    });
+    expect(resolutionOf(and, NAMES)).toBe(
+      'Change or delete one of Rule 04 and Rule 05; they can’t be met together.'
+    );
+    const or = conflicting('group-1', {
+      type: 'members',
+      operator: 'or',
+      items: ['rule-2', 'rule-3'],
+    });
+    expect(resolutionOf(or, NAMES)).toBe(
+      'Change one of Rule 02 and Rule 03 so that it can be met, or delete Group 01; none of ' +
+        'them can be met.'
+    );
+    const single = conflicting(
+      'group-2',
+      { type: 'members', operator: 'and', items: ['group-3'] },
+      true
+    );
+    expect(resolutionOf(single, NAMES)).toBe(
+      'Change or delete Sub-group 01; it can’t be met at the moment.'
+    );
+  });
+
+  it('says to change or delete a rule that no applicant can meet on its own', () => {
+    expect(resolutionOf(conflicting('rule-3', { type: 'condition' }), NAMES)).toBe(
+      'Change or delete Rule 03; no applicant can meet it.'
+    );
+    expect(resolutionOf(conflicting('rule-3', { type: 'condition' }, true), NAMES)).toBe(
+      'Change or delete Rule 03; no applicant can meet it at the moment.'
+    );
+  });
+
+  it('offers the deletion of a redundant item, naming what covers it', () => {
+    expect(resolutionOf(same('rule-6', 'rule-3'), NAMES)).toBe(
+      'You can delete Rule 06; Rule 03 already covers it.'
+    );
+    expect(resolutionOf(impliedBy('group-1', ['rule-1']), NAMES)).toBe(
+      'You can delete Group 01; Rule 01 already covers it.'
+    );
+    expect(resolutionOf(impliedBy('rule-6', ['rule-4', 'rule-1']), NAMES)).toBe(
+      'You can delete Rule 06; Rule 01 and Rule 04 already cover it.'
+    );
+    expect(resolutionOf(implies('rule-3', ['rule-2']), NAMES)).toBe(
+      'You can delete Rule 03; Rule 02 already covers it.'
+    );
+  });
+
+  it('names an enclosing level’s items too, such as the covering group (research R8, step 4)', () => {
+    expect(resolutionOf(impliedBy('rule-4', ['rule-2'], ['group-1']), NAMES)).toBe(
+      'You can delete Rule 04; Group 01 and Rule 02 already cover it.'
+    );
+    expect(resolutionOf(impliedBy('rule-4', [], ['group-1']), NAMES)).toBe(
+      'You can delete Rule 04; Group 01 already covers it.'
+    );
+    expect(resolutionOf(implies('rule-6', ['rule-1'], ['rule-5']), NAMES)).toBe(
+      'You can delete Rule 06; Rule 01 and Rule 05 already cover it.'
+    );
+  });
+
+  it('says to delete an always-met item or make it stricter', () => {
+    expect(resolutionOf(alwaysMet('rule-5'), NAMES)).toBe(
+      'Rule 05’s condition is always met; delete it or make it stricter.'
+    );
+    expect(resolutionOf(alwaysMet('group-1'), NAMES)).toBe(
+      'Group 01’s condition is always met; delete it or make it stricter.'
+    );
+  });
+
+  it('gives a variant’s notice its resolution (FR-032: one for every kind)', () => {
+    expect(resolutionOf(NONE_CAN_MEET)).toBe(
+      'Loosen or delete one of the rules that no applicant can meet together.'
+    );
+    expect(resolutionOf(NONE_CAN_MEET_TODAY)).toBe(
+      'Loosen or delete one of the rules that no applicant can meet together at the moment.'
+    );
+    expect(resolutionOf(ALL_MEET)).toBe(
+      'Add a rule or make one stricter; as it is, the variant accepts every applicant.'
+    );
+  });
+
+  it('shows the current names, so that a rename shows at once (FR-011)', () => {
+    const renamed = namesOf([rule(1, null, null), rule(2, null, null, 'x', 'Minimum age')]);
+    expect(resolutionOf(withItems('rule-1', ['rule-2']), renamed)).toBe(
+      'Change or delete one of Rule 01 and Minimum age; they can’t be met together.'
+    );
+    expect(resolutionOf(alwaysMet('rule-2'), renamed)).toBe(
+      'Minimum age’s condition is always met; delete it or make it stricter.'
+    );
+  });
+
+  it('never shows an id for an item without a current name', () => {
+    expect(resolutionOf(withItems('rule-1', ['rule-9']), NAMES)).toBe(
+      'Change or delete one of Rule 01 and other rules; they can’t be met together.'
+    );
+    expect(resolutionOf(same('rule-6', 'rule-9'), NAMES)).toBe(
+      'You can delete Rule 06; another rule already covers it.'
+    );
+    expect(resolutionOf(impliedBy('rule-6', ['rule-9']), NAMES)).toBe(
+      'You can delete Rule 06; other rules already cover it.'
+    );
+    expect(resolutionOf(alwaysMet('group-9'), NAMES)).toBe(
+      'The group’s condition is always met; delete it or make it stricter.'
+    );
+    expect(resolutionOf(conflicting('rule-9', { type: 'condition' }), NAMES)).toBe(
+      'Change or delete the rule; no applicant can meet it.'
+    );
+    const unnamedMembers = conflicting('group-1', {
+      type: 'members',
+      operator: 'and',
+      items: ['rule-8', 'rule-9'],
+    });
+    expect(resolutionOf(unnamedMembers, NAMES)).toBe('Change or delete Group 01; it can’t be met.');
+  });
+
+  it('use typographic apostrophes and never show an id (design-notes.md §1)', () => {
+    const reasons: ConflictingReason[] = [
+      { type: 'with', items: ['rule-2', 'rule-3'] },
+      { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] },
+      { type: 'members', operator: 'or', items: ['rule-4', 'rule-5', 'rule-6'] },
+      { type: 'members', operator: 'and', items: ['group-3'] },
+      { type: 'condition' },
+    ];
+    const findings: ItemFinding[] = [
+      ...reasons.flatMap((reason) => [
+        conflicting('group-2', reason),
+        conflicting('group-2', reason, true),
+      ]),
+      same('rule-6', 'rule-3'),
+      impliedBy('group-1', ['rule-1']),
+      impliedBy('rule-4', [], ['group-1']),
+      implies('rule-6', ['rule-1'], ['rule-5']),
+      alwaysMet('group-1'),
+    ];
+    const texts = [
+      ...findings.map((finding) => resolutionOf(finding, NAMES)),
+      ...[NONE_CAN_MEET, NONE_CAN_MEET_TODAY, ALL_MEET].map((notice) => resolutionOf(notice)),
+    ];
+    expect(texts.filter((text) => text.length === 0)).toEqual([]);
+    expect(texts.filter((text) => text.includes("'") || /\b(rule|group)-\d/.test(text))).toEqual(
+      []
+    );
   });
 });
 
