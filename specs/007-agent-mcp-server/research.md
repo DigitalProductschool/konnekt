@@ -727,8 +727,12 @@ content. Validation errors from the token endpoint are answered as RFC 6749 erro
 logged as their `error` code only. The MCP server logs one line per request with the method,
 the tool name, the status and the duration, never arguments or results, through a minimal
 logger of its own (`console.error` is forbidden in `checks/` and `personas/`, which the server
-imports, so the rule stays: nothing in those modules logs). The nginx access log shows `/mcp`
-requests as any other.
+imports, so the rule stays: nothing in those modules logs). The client chooses the method and
+the tool name, so the line shows `other` for a method that isn't a method name's shape and
+`unknown` for a tool the server doesn't have. The nginx access log shows `/mcp` requests as any
+other. The OAuth endpoints read no query, so uvicorn's and nginx's access logs show
+`/api/oauth/…?<redacted>` in place of any query a client sends there, as they show
+`<reference>` in pull URLs.
 
 ## R19. Testing
 
@@ -751,18 +755,43 @@ requests as any other.
 - **Manual**: quickstart.md's scenarios with Claude Code, Cursor and Codex (SC-010 asks for two
   clients), the consent, user and approval pages, "Copy link", and an accessibility pass of the
   new pages.
+- **Accessibility review, 2026-11-06 (T087, quickstart V12)**, in headless Chromium against the
+  local stack:
+  - **Automated scan**: axe-core 4.12.1 (WCAG 2.0 and 2.1, A and AA) at 1280, 640 (200 %) and
+    320 px finds no violation on the consent page (valid, step-up, unknown client, missing
+    parameter, refused `resource`), the user page with its four dialogs, the approval page
+    (publish, delete draft, deactivate, reactivate and delete, each waiting and done; declined,
+    expired, replaced, cancelled for a changed draft, a changed or deleted connection and a
+    revoked agent; another account's request and failed, both from the backend's documented
+    answers; an unknown id), "Copy link" with a menu open, and S5's three notices. Nothing
+    scrolls sideways at 320 px. The contrast axe leaves undecided measures 7.01:1 (muted text)
+    and 18:1 (the "≥" badges).
+  - **Keyboard**: every stop shows the 4 px ring for keyboard focus only; dialogs keep the focus
+    and return it on Escape, Cancel and Done; menus open on their first item and return to ⋯;
+    the outcome alerts and S5's notices take the focus. Three fixes: the token-shown dialog
+    opens with the focus on the token, so its name, warning and the token are read in that
+    order (`TokenCreatedDialog`); the open variant tab of the rules step shows its ring
+    (`BranchTab`, as `VariantTab`); a clicked access-level radio keeps its border and shows no
+    ring (`index.css`, beside the checkbox rule).
+  - **Left for a person**: NVDA and VoiceOver over the live regions, the focused alerts, the
+    radio descriptions, the menus and the token-shown dialog (whose warning is read twice, as
+    the dialog's description and the field's); real 200 % and text-only zoom; forced colours.
 
 ## R20. Points to check while coding
 
 - The SDK (R2): `@modelcontextprotocol/server` 2.4.0 with `@modelcontextprotocol/node`
   2.1.2; the Skills extension from the SDK; `elicitation.url`; 2026-07-28 stateless beside
   2025-era sessions, because the stateless 2025 fallback can't elicit. Settled on 2026-11-05.
-- TypeScript resolving a workspace package's `exports` to `.ts` sources under
-  `moduleResolution: bundler` (R1); the fallback is `paths` in `tsconfig.base.json`. Vite
-  serving and bundling the linked packages' sources, and code-splitting the dynamic
-  `import('@connection-portal/rules/checks/checkedTree')` as it splits the relative one today.
-- `npm ci -w frontend` installing the workspace's dependencies without the root's, with the
-  frontend's Node 20 and the images' Node 26.
+- TypeScript resolving a workspace package's `exports` (`"./*": "./src/*.ts"`) to the `.ts`
+  sources under `moduleResolution: bundler` (R1): it does, in all four packages, so
+  `tsconfig.base.json` has no `paths`. Vite serves and bundles the linked packages' sources,
+  and splits the dynamic `import('@connection-portal/rules/checks/checkedTree')` into a chunk
+  of its own (`checkedTree-<hash>.js`), as it split the relative one. Settled on 2026-11-06.
+- `npm ci -w frontend --ignore-scripts` installs the frontend's dependencies from the
+  workspace's lockfile without the root's, also when the image copies no `mcp/package.json`:
+  on Node 20.19 and in the images' `node:26-alpine`, where `docker compose build` and
+  `docker compose -f docker-compose.prod.yml build` also run `npm ci -w mcp` (`npm install` in
+  the development images). Settled on 2026-11-06.
 - How Claude Code, Cursor and Codex react to `403 insufficient_scope` on a tool call (R5): the
   step-up through `request_access` is designed to be harmless either way.
 - `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16): Claude Code
@@ -781,5 +810,12 @@ requests as any other.
   import.meta.url)` as written, neither hashed nor inlined; the image ships both files.
   `npm run dev` in `mcp/` uses `vite-node` 6.0.0 (R2), which runs the checks on the main thread
   (R14). Settled on 2026-11-06.
-- The size of a `FormConnectionDraft` with 20 variants × 200 items in a tool result: the
-  layered reads keep one variant per answer; `get_connection`'s overview carries counts only.
+- The size of tool results at the editor's limits, a draft with 20 variants of 200 rules each,
+  built through the tools against the backend (2026-11-06): `get_connection` 9.6 KiB (counts
+  only), `get_variant` 137 KiB (one variant; its text block 47 KiB), `get_item` 1.6 KiB,
+  `check_rules` 11 KiB for all 20 variants, `test_applicants` with 10 applicants 1.2 MiB (178
+  KiB of text: every item's outcome for every applicant). The draft itself, 968 KiB, is read only
+  by the MCP server. With 200 rules on one field, `check_rules` on the development server
+  reaches `RUN_DEADLINE_MS` (5 s) and answers `checked_completely: false`, the answer the
+  deadline is there for; `test_applicants` takes 0.3 s. How each client caps a large result
+  (Claude Code, Cursor, Codex) is checked with V11.

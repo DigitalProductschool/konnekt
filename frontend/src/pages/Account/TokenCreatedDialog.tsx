@@ -8,7 +8,9 @@ import type { TokenCreatedDialogProps } from './types';
  * The new personal access token, shown once (S2; FR-004): in a read-only input with "Copy", never
  * in a toast. KERN's dialog in `ConfirmDialog`'s frame, with one button, since there is nothing
  * to confirm or cancel: "Done", the close button and Escape all close it, and the list keeps the
- * token without its secret.
+ * token without its secret. The dialog opens with the focus on the token, not on the close
+ * button (FR-042): a screen reader reads the dialog's title and warning, then the field's label,
+ * the token and the warning again, and the token is selected, ready to copy.
  */
 export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -24,6 +26,8 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
     }
     if (open && !element.open) {
       element.showModal();
+      // showModal() focused the close button, the first control; the token is the one to read
+      element.querySelector<HTMLInputElement>('input')?.focus();
     } else if (!open && element.open) {
       element.close();
     }

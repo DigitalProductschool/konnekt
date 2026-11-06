@@ -121,7 +121,9 @@ that approval requests run (FR-018, FR-021).
 | `replaced_by_id` | `String(36)`, nullable | `refresh` only: the token issued when this one was used (rotation). Using a replaced token again revokes the authorization |
 | `created_at`, `updated_at` | | |
 
-The worker deletes expired `access` rows and replaced or expired `refresh` rows.
+The worker deletes expired `access` rows, expired `refresh` rows, and `refresh` rows replaced
+more than a day ago (`RETIRED_REFRESH_TOKEN_KEPT`): for that day, using a replaced token again
+still finds the row and revokes the authorization.
 
 ### 4.1 The bearer principal (`services/auth.py`)
 
@@ -232,8 +234,9 @@ existing columns (`name`, `description`, `published_at`, `is_active`, `deleted_a
 
 ### 6.3 The rules step's keys (frontend)
 
-`RulesBranch.key` becomes the branch's id; `newBranchKey()` goes, and `addVariant` in
-`rules/src/edits.ts` assigns `crypto.randomUUID()`. The main variant of a new connection gets an id when
+`RulesBranch.key` becomes the branch's id; `newBranchKey()` goes. `addVariant` in
+`rules/src/edits.ts` takes the id from its caller, which makes it with `crypto.randomUUID()` (the
+SPA and the MCP server), so `rules/` stays pure. The main variant of a new connection gets an id when
 the flow starts. A local draft record (format 2) whose branches have null ids gets ids when the
 flow loads it.
 

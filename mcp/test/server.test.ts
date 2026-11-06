@@ -24,7 +24,16 @@ import { rule, target } from '@connection-portal/rules/testData';
 import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from 'vitest';
 
 import type { RunningServer } from '../src/server';
 import { BEARERS, type FakeBackend, IDS, publishedOf, startFakeBackend } from './fakeBackend';
@@ -48,10 +57,12 @@ let metadata: () => unknown;
 let metadataUrl: () => string;
 let previousBackendUrl: string | undefined;
 const clients: Client[] = [];
+// The server's log lines, kept for the log line's tests
+let errorLog: MockInstance<typeof console.error>;
 
 beforeAll(async () => {
   // The server's log lines would only clutter the test output
-  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   fake = await startFakeBackend();
   // `config` reads the environment once, when first imported: the server's modules are imported
   // after BACKEND_URL points at the fake
@@ -143,6 +154,47 @@ describe('the HTTP endpoints', () => {
 
   it('answers 404 elsewhere', async () => {
     expect((await fetch(new URL('/elsewhere', running.url))).status).toBe(404);
+  });
+});
+
+describe('the log line (research R18)', () => {
+  /** The request log lines written since `mark`, parsed. */
+  function linesSince(mark: number): Record<string, unknown>[] {
+    return errorLog.mock.calls
+      .slice(mark)
+      .map(([line]) => JSON.parse(String(line)) as Record<string, unknown>)
+      .filter((line) => 'durationMs' in line);
+  }
+
+  it('names a tool the server lacks unknown, never with the text the client sent', async () => {
+    const mark = errorLog.mock.calls.length;
+    const { client } = await connect('modern');
+    await expect(
+      client.callTool({ name: 'Erika Mustermann', arguments: { birthdate: '1984-01-26' } })
+    ).rejects.toThrow();
+
+    await vi.waitFor(() =>
+      expect(linesSince(mark)).toContainEqual(
+        expect.objectContaining({ method: 'tools/call', tool: 'unknown' })
+      )
+    );
+    const written = JSON.stringify(errorLog.mock.calls.slice(mark));
+    expect(written).not.toContain('Erika');
+    expect(written).not.toContain('1984-01-26');
+    expect(written).not.toContain(BEARERS.read);
+  });
+
+  it('logs a method that is no method name as other', async () => {
+    const mark = errorLog.mock.calls.length;
+    await rpc(
+      { jsonrpc: '2.0', id: 1, method: 'Erika Mustermann, 1984-01-26' },
+      { Authorization: `Bearer ${BEARERS.read}` }
+    );
+
+    await vi.waitFor(() =>
+      expect(linesSince(mark)).toContainEqual(expect.objectContaining({ method: 'other' }))
+    );
+    expect(JSON.stringify(errorLog.mock.calls.slice(mark))).not.toContain('Erika');
   });
 });
 

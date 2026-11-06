@@ -18,10 +18,10 @@ repos:
       - id: prettier
         name: prettier (workspace)
         language: system
-        files: ^(api-types|rules|frontend)/.*\.(js|jsx|ts|tsx|css|json|md)$
+        files: ^(api-types|rules|frontend|mcp)/.*\.(js|jsx|ts|tsx|css|json|md)$
         entry: npx prettier --write
       - id: eslint
         name: eslint (workspace)
         language: system
-        files: ^(api-types|rules|frontend)/.*\.(js|jsx|ts|tsx)$
+        files: ^(api-types|rules|frontend|mcp)/.*\.(js|jsx|ts|tsx)$
         entry: npx eslint --fix

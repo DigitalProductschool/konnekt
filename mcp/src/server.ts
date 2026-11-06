@@ -142,19 +142,32 @@ function messagesOf(body: unknown): Record<string, unknown>[] {
   );
 }
 
-/** The JSON-RPC method for the log line: one message's, or `batch`. */
+/** A method name of the protocol's shape (`tools/call`, `notifications/initialized`). */
+const METHOD_NAME = /^[a-z]+(?:\/[a-zA-Z_]+)*$/;
+const METHOD_NAME_MAX_LENGTH = 64;
+
+/**
+ * The JSON-RPC method for the log line: one message's, or `batch`. The client chooses the text,
+ * so anything that isn't a method name's shape is logged as `other` (research R18)
+ */
 function methodOf(body: unknown): string {
   const [message, ...rest] = messagesOf(body);
   if (!message || rest.length > 0) return 'batch';
-  return typeof message.method === 'string' ? message.method : 'response';
+  if (typeof message.method !== 'string') return 'response';
+  const { method } = message;
+  return method.length <= METHOD_NAME_MAX_LENGTH && METHOD_NAME.test(method) ? method : 'other';
 }
 
-/** The tool a single `tools/call` names, for the log line; never its arguments. */
-function toolOf(body: unknown): string | null {
+/**
+ * The tool a single `tools/call` names, for the log line; never its arguments. A name the server
+ * doesn't serve is logged as `unknown`, since the client chooses the text (research R18)
+ */
+function toolOf(body: unknown, registry: ToolRegistry): string | null {
   const [message, ...rest] = messagesOf(body);
   if (!message || rest.length > 0 || message.method !== 'tools/call') return null;
   const params = message.params as { name?: unknown } | undefined;
-  return typeof params?.name === 'string' ? params.name : null;
+  if (typeof params?.name !== 'string') return null;
+  return registry.has(params.name) ? params.name : 'unknown';
 }
 
 /** The HTTP side of the server: its request listener and what closes it. */
@@ -288,7 +301,7 @@ function createApp(registry: ToolRegistry, catalog: SkillCatalog) {
         : sendRpcError(response, 400, -32700, 'Parse error: Invalid JSON');
     }
     method = methodOf(body);
-    tool = toolOf(body);
+    tool = toolOf(body, registry);
     if (await isLegacyRequest(await toWebRequest(request, body), body)) {
       return serveLegacy(request, response, body, exchange);
     }

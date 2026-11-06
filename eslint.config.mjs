@@ -73,7 +73,8 @@ export default defineConfig([
     },
   },
 
-  // The shared packages: pure TypeScript, no globals
+  // The shared packages: pure TypeScript, no globals. Nothing in them logs: the checks, the
+  // personas and the evaluator run on findings and applicants (research R18)
   {
     files: ['{api-types,rules}/src/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.recommended],
@@ -81,6 +82,7 @@ export default defineConfig([
     rules: {
       ...importOrder,
       ...unusedVars,
+      'no-console': 'error',
       'no-restricted-imports': ['error', { patterns: [NOT_THE_APPS] }],
     },
   },

@@ -31,17 +31,27 @@ _REFERENCE_IN_PATH = re.compile(
 )
 
 
+# The query of an OAuth endpoint's URL. The endpoints read none, but a client that
+# puts a code, a verifier or a token there would have it logged (spec 007, R18)
+_OAUTH_QUERY = re.compile(r'(/api/oauth/[^?#\s"]*)\?[^#\s"]*', re.IGNORECASE)
+
+
 def redact_references(text: str) -> str:
-    """Replace the request reference in pull URLs with `<reference>` (research R13)."""
+    """Replace the request reference in pull URLs with `<reference>` (research R13).
+
+    Also replaces the query of an OAuth endpoint's URL with `<redacted>` (spec 007,
+    research R18).
+    """
+    text = _OAUTH_QUERY.sub(r'\1?<redacted>', text)
     return _REFERENCE_IN_PATH.sub(r'\1<reference>', text)
 
 
 class RedactReferencesFilter(logging.Filter):
-    """Keeps request references out of uvicorn's access log.
+    """Keeps request references and OAuth queries out of uvicorn's access log.
 
     A reference is the key to a request's documents in pull mode, so it must never
-    be logged (FR-019). uvicorn passes the path, with its query, as an argument of
-    the log record.
+    be logged (FR-019), and neither may a code or a token (spec 007, FR-040).
+    uvicorn passes the path, with its query, as an argument of the log record.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:

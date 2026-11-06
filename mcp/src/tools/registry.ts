@@ -177,6 +177,11 @@ export class ToolRegistry {
     this.#tools.set(definition.name, definition as unknown as ToolDefinition);
   }
 
+  /** Whether a tool of this name is registered. */
+  has(name: string): boolean {
+    return this.#tools.has(name);
+  }
+
   /** The registered tools, in registration order. */
   tools(): ToolDefinition[] {
     return [...this.#tools.values()];

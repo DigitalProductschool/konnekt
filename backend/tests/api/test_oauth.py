@@ -8,6 +8,7 @@ unused registrations (research R7).
 """
 
 import json
+import logging
 from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
 from typing import Any
@@ -21,7 +22,7 @@ from sqlalchemy import func, select, update
 
 from app.config import settings
 from app.db import SessionLocal
-from app.main import app
+from app.main import RedactReferencesFilter, app
 from app.models import (
     AgentAuthorization,
     AgentToken,
@@ -1204,6 +1205,50 @@ def test_nothing_secret_is_logged(
     ):
         assert secret not in text
     assert 'invalid_grant' in text
+
+
+def _access_record(method: str, path: str, status: int) -> logging.LogRecord:
+    """A record as uvicorn's access logger makes it."""
+    return logging.LogRecord(
+        'uvicorn.access',
+        logging.INFO,
+        __file__,
+        1,
+        '%s - "%s %s HTTP/%s" %d',
+        ('10.0.0.5:51234', method, path, '1.1', status),
+        None,
+    )
+
+
+@pytest.mark.parametrize(
+    ('path', 'logged'),
+    [
+        (f'/api/oauth/token?code=c0de&code_verifier={VERIFIER}', '/api/oauth/token'),
+        ('/api/oauth/token?refresh_token=cp_rt_secret', '/api/oauth/token'),
+        ('/API/OAuth/authorize?access_token=cp_at_secret', '/API/OAuth/authorize'),
+        (
+            f'/api/oauth/clients/{quote(METADATA_URL, safe="")}?code=c0de',
+            f'/api/oauth/clients/{quote(METADATA_URL, safe="")}',
+        ),
+    ],
+)
+def test_the_access_log_shows_no_oauth_query(path: str, logged: str) -> None:
+    record = _access_record('POST', path, 400)
+
+    assert RedactReferencesFilter().filter(record) is True
+
+    message = record.getMessage()
+    assert message == f'10.0.0.5:51234 - "POST {logged}?<redacted> HTTP/1.1" 400'
+    for secret in ('c0de', VERIFIER, 'cp_rt_secret', 'cp_at_secret'):
+        assert secret not in message
+
+
+def test_the_access_log_keeps_other_queries() -> None:
+    path = '/api/form-connections/search?status=draft'
+    record = _access_record('GET', path, 200)
+
+    assert RedactReferencesFilter().filter(record) is True
+    assert path in record.getMessage()
 
 
 # The worker's steps (research R7)

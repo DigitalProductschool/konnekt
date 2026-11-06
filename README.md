@@ -18,10 +18,18 @@ form connections, [002-connection-rules/](specs/002-connection-rules/) for their
 variants. The code base started from the Digital Product School React + FastAPI + PostgreSQL
 template.
 
+Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
+Codex, through the middleware's MCP server ([007-agent-mcp-server/](specs/007-agent-mcp-server/)):
+the agent finds and reads connections, builds drafts, checks their rules and tests them with
+fictitious applicants, and asks the team member's approval, on a page of the management UI, to
+publish a draft or to deactivate, reactivate or delete a live connection. See
+[Agents and the MCP server](#agents-and-the-mcp-server).
+
 ## Tech Stack
 
 - **Frontend**: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
+- **MCP server**: Node, TypeScript, the official MCP TypeScript SDK 2, zod 4, Vite (build)
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
 - **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
@@ -54,7 +62,7 @@ Skills extension is marked experimental in 2.4.0.
 ## Project Structure
 
 ```
-├── package.json           # npm workspace root (api-types, rules, frontend): scripts over the packages
+├── package.json           # npm workspace root (api-types, rules, frontend, mcp): scripts over the packages
 ├── package-lock.json      # One lockfile for every Node package
 ├── eslint.config.mjs      # ESLint 9 flat config, one block per package
 ├── tsconfig.base.json     # Compiler options every package extends
@@ -65,6 +73,10 @@ Skills extension is marked experimental in 2.4.0.
 │   └── src/               # personas, with their tests (vitest.config.ts)
 ├── frontend/              # React SPA (Vite + TypeScript): the DO.IT management UI
 │   └── src/workers/       # The browser Worker entries of the rule checks and test personas
+├── mcp/                   # @connection-portal/mcp: the MCP server for agents (Node + TypeScript)
+│   ├── src/               # Server, tools, links, checks; tests beside the modules
+│   ├── test/              # Integration tests against a fake backend
+│   └── plugin/            # Guidance for agents: instructions, skills, the Claude Code plugin
 ├── backend/               # FastAPI API (Python + SQLAlchemy)
 │   ├── app/              # Application source code
 │   │   ├── routers/      # API route handlers, one module per resource
@@ -85,8 +97,11 @@ Skills extension is marked experimental in 2.4.0.
 │   └── uv.lock          # Lock file for dependencies
 ├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
 ├── specs/                 # Specification, plan and tasks (Spec Kit)
+├── .claude-plugin/
+│   └── marketplace.json   # Claude Code marketplace that lists mcp/plugin
 ├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint)
-└── docker-compose.yml     # Local development
+├── docker-compose.yml     # Local development
+└── docker-compose.prod.yml # Production and previews (Coolify)
 ```
 
 ## Quick Start
@@ -118,7 +133,7 @@ pip install uv
 # Settings for the backend, such as the EUDIPLO credentials (optional for a first start)
 cp backend/.env.example backend/.env
 
-# Start all services (PostgreSQL, backend, frontend)
+# Start all services (PostgreSQL, backend, frontend, MCP server)
 docker compose up
 
 # In another terminal: create your sign-in account (see Accounts below)
@@ -130,9 +145,12 @@ This starts everything with hot reload:
   the CORS setting depend on the host name
 - Backend API: http://localhost:3000
 - API Docs: http://localhost:3000/docs
+- MCP server for agents: http://localhost:3100/mcp (see
+  [Agents and the MCP server](#agents-and-the-mcp-server))
 
 The backend container reads `backend/.env` if it exists; the values set in
-`docker-compose.yml` take precedence.
+`docker-compose.yml` take precedence. The `mcp` service gets its settings from
+`docker-compose.yml` alone.
 
 #### Option 2: Run Locally with Docker Database
 
@@ -162,6 +180,13 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 ```bash
 npm install
 npm run dev -w frontend
+```
+
+6. In another terminal, start the MCP server, from the repository root (optional: only
+   agents need it). Its development defaults point at the backend on port 3000 and the
+   frontend on port 5173
+```bash
+npm run dev -w mcp
 ```
 
 #### Option 3: Full Local Development (No Docker)
@@ -275,7 +300,7 @@ dependency and no environment variable.
 
 ### Frontend and packages (React + Vite, npm workspace)
 
-`api-types/`, `rules/` and `frontend/` are the packages of one npm workspace. From the
+`api-types/`, `rules/`, `frontend/` and `mcp/` are the packages of one npm workspace. From the
 repository root, each script runs in every package that has it:
 
 ```bash
@@ -285,10 +310,13 @@ npm install
 # Run the frontend's development server
 npm run dev -w frontend
 
-# Type-check api-types and rules, then build the frontend for production
+# Run the MCP server from its sources (vite-node, port 3100; restart it after a change)
+npm run dev -w mcp
+
+# Type-check every package, then build the frontend and the MCP server (mcp/dist/) for production
 npm run build
 
-# Run the unit tests once, without watching (rules and frontend)
+# Run the unit tests once, without watching (rules, frontend and mcp)
 npm test
 
 # Linting/formatting
@@ -301,9 +329,13 @@ For one package, name it with `-w` (or run the script inside its directory):
 
 ```bash
 npm test -w rules                 # the rules' unit tests alone
+npm test -w mcp                   # the MCP server's tests, the guidance gate included
 npm run typecheck -w api-types    # tsc --noEmit
 npm run lint:fix -w frontend      # ESLint with --fix
 ```
+
+`npm test -w mcp` fails when an MCP tool isn't described in any of the skills in
+`mcp/plugin/skills/` (`mcp/src/guidance.test.ts`).
 
 ### Docker
 
@@ -323,6 +355,9 @@ docker compose down -v
 # Rebuild containers
 docker compose build
 
+# Restart the MCP server after changing its sources or skills
+docker compose restart mcp
+
 # View logs
 docker compose logs -f
 ```
@@ -341,18 +376,19 @@ Linting and code formatting is set up for both parts of the stack. The tools are
   and `simple-import-sort` for import ordering everywhere. Prettier (`.prettierrc` at the root,
   `frontend/.prettierrc` in `frontend/`) handles formatting: single quotes, semicolons, 100
   columns, 2-space indent, ES5 trailing commas, and in `frontend/` Tailwind class sorting via
-  `prettier-plugin-tailwindcss`. Vitest runs the unit tests of `rules/` and `frontend/`, the
-  `*.test.ts` files next to the modules they test, in Node; `npm run build` type-checks them
-  with the rest of each package's `src/`.
+  `prettier-plugin-tailwindcss`. Vitest runs the unit tests of `rules/`, `frontend/` and
+  `mcp/`, the `*.test.ts` files next to the modules they test, in Node, and the MCP server's
+  integration tests in `mcp/test/`; `npm run build` type-checks them with the rest of each
+  package's sources.
 
 ### Git hooks (pre-commit)
 
 The hooks in `.pre-commit-config.yaml` run on every `git commit`:
 
 - `ruff check --fix` and `ruff format` on Python files
-- `prettier --write` and `eslint --fix` on `api-types/`, `rules/` and `frontend/` files, run
-  from the repository root
-- trailing whitespace, end-of-file newline, merge conflict markers, large files
+- `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and `mcp/`
+  files, run from the repository root
+- trailing whitespace, merge conflict markers, large files
 
 Installation is automatic — `npm install` at the repository root runs a `prepare` script
 that calls `uv run pre-commit install` in `backend/`, so the workspace install is what wires
@@ -437,7 +473,7 @@ Open settings with `⌘,` on macOS or `Ctrl+Alt+S` on Windows/Linux.
 
 1. **Prettier** — *Languages & Frameworks > JavaScript > Prettier*. Set **Prettier
    package** to `node_modules/prettier`, set **Run for files** to
-   `{api-types,rules,frontend}/**/*.{js,mjs,cjs,ts,tsx,jsx,css,json,md}`, and tick **On save**.
+   `{api-types,rules,frontend,mcp}/**/*.{js,mjs,cjs,ts,tsx,jsx,css,json,md}`, and tick **On save**.
 2. **ESLint** — *Languages & Frameworks > JavaScript > Code Quality Tools > ESLint*.
    Choose **Automatic ESLint configuration** and tick **Run eslint --fix on save**.
 3. **Ruff** — install the *Ruff* plugin from *Plugins > Marketplace*, then open
@@ -475,6 +511,14 @@ The middleware's own settings:
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development. Only for a closed network | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread (the tests switch it off) | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+| `PORTAL_URL` | Public origin of the management UI: the links agents get and the OAuth consent page (`{PORTAL_URL}/authorize`) are built from it | `http://localhost:5173` in development, `CONNECTION_BASE_URL` otherwise |
+| `MCP_URL` | Public URL of the MCP endpoint, which agents' tokens are bound to | `http://localhost:3100/mcp` in development, `CONNECTION_BASE_URL` + `/mcp` otherwise |
+| `OAUTH_ISSUER` | Issuer of the OAuth authorization server that signs agents in | `CONNECTION_BASE_URL` |
+| `AGENT_ACCESS_TOKEN_MINUTES` | Lifetime of an agent's access token | `60` |
+| `AGENT_CONNECTION_IDLE_DAYS` | An agent connection unused this many days ends | `30` |
+| `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
+| `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
+| `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
 
 See `backend/.env.example` for the authoritative list. Settings are loaded by
 `app/config.py` via pydantic-settings; add a field there before adding a new
@@ -483,6 +527,25 @@ variable, or it will be ignored.
 `EUDIPLO_ISSUER_CLIENT_ID` and `EUDIPLO_ISSUER_CLIENT_SECRET` are read only by the
 developer script that issues test documents ([Test credentials](#test-credentials-for-a-test-wallet));
 the backend ignores them.
+
+### MCP server (`mcp/.env`)
+
+The MCP server reads its settings from the environment when it starts. `mcp/.env.example`
+lists them with their development defaults, which apply whenever `NODE_ENV` isn't
+`production`, so `npm run dev -w mcp` needs none of them. The server doesn't read a `.env`
+file by itself: export the file's variables in the shell that starts it
+(`set -a; . mcp/.env; set +a`). The compose files set them on the `mcp` service.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` | Port the server listens on | `3100` |
+| `BACKEND_URL` | The backend's address, which every tool call goes to | `http://localhost:3000` (`http://backend:3000` in Docker) |
+| `PORTAL_URL` | Public origin of the management UI, for the links; the same as the backend's | `http://localhost:5173` |
+| `MCP_URL` | Public URL of the MCP endpoint; the same as the backend's | `http://localhost:3100/mcp` |
+| `OAUTH_ISSUER` | The authorization server, the backend; the same as the backend's | `http://localhost:3000` |
+
+With `NODE_ENV=production`, as in `docker-compose.prod.yml`, the four URLs have no defaults:
+the server doesn't start without them and logs which one is missing.
 
 ### Frontend (`frontend/.env`)
 
@@ -500,6 +563,7 @@ apply to local development, where the backend's port 3000 is reachable directly.
 | `BACKEND_HOST` | Host name of the backend container, which nginx forwards `/api/` to | `backend` (`${SERVICE_NAME_BACKEND}` in Coolify) |
 | `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx | empty: `/api/connect/` answers `403` to everyone |
 | `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Coolify's Traefik). Only requests from there may give the client's address in `X-Forwarded-For`, which the allow-list then checks | empty: the connecting address counts |
+| `MCP_HOST` | Host name of the MCP server container, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to | `mcp` (`${SERVICE_NAME_MCP}` in Coolify) |
 
 At container start, `frontend/nginx/40-servicebw-access.sh` turns the two lists into nginx
 `allow` and `set_real_ip_from` rules. An entry that isn't an address or a range stops the
@@ -606,6 +670,70 @@ Good to know:
   environment accepts these test documents. Take the entity off the trust list before real
   citizens use the service.
 
+## Agents and the MCP server
+
+The MCP server (`mcp/`) lets team members work with an LLM agent on their own machine. It is
+public at `https://<domain>/mcp` (Streamable HTTP), next to the management UI, and
+`http://localhost:3100/mcp` in development. An agent signs in through the browser, with OAuth:
+the first call opens the Connection Portal's consent page, where the team member signs in and
+chooses one of three access levels:
+
+| Access level | Allows |
+|---|---|
+| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious applicants |
+| Read and edit drafts | Also creating and changing drafts, and asking for approval to publish or delete a draft |
+| Read, edit drafts and manage live connections | Also asking for approval to deactivate, reactivate or delete a published connection |
+
+No level lets an agent change a published connection's content, and an agent never publishes,
+deletes, deactivates or reactivates by itself: it hands the team member a link to an approval
+page, valid for `APPROVAL_REQUEST_MINUTES`, where they approve or decline. The user page
+("Your account" in the user menu) lists the connected agents and personal access tokens, and
+changes an access level or revokes access, from the agent's next call. Every answer carries
+links into the Connection Portal, and the rules step's menus copy a variant's, a rule's or a
+group's link ("Copy link"), which agents accept wherever they take an identifier.
+
+The guidance agents get, the server's instructions and eight skills, lives in `mcp/plugin/`
+and is embedded in the server when it is built. Every change to the MCP tools updates the
+skills in the same change; `npm test -w mcp` fails otherwise. Details:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Agent access and the MCP server (spec 007)",
+and [mcp/plugin/README.md](mcp/plugin/README.md).
+
+### Installing the plugin
+
+**Claude Code**: the plugin in `mcp/plugin/` adds the MCP server `connection-portal` and the
+skills in one step.
+
+1. Set `CONNECTION_PORTAL_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
+   the environment Claude Code starts from (for example in your shell profile); a preview
+   deployment has its own domain. The plugin's `.mcp.json` reads the address from it: without
+   it, Claude Code doesn't connect to the server.
+
+   ```bash
+   export CONNECTION_PORTAL_MCP_URL=https://<domain>/mcp
+   ```
+
+2. Add the marketplace, the repository (as `owner/repo`, a git URL or a local checkout), and
+   install the plugin. The marketplace is called `connection-portal`, after
+   `.claude-plugin/marketplace.json`:
+
+   ```bash
+   claude plugin marketplace add <repository>
+   claude plugin install connection-portal@connection-portal
+   ```
+
+3. Start Claude Code. The first call to the server opens the browser on the consent page.
+
+**Other MCP clients**: add the HTTP (Streamable HTTP) server `https://<domain>/mcp`; the client
+signs in through the browser on the first call. The skills reach the agent through the
+protocol's Skills extension or, for clients without it, the `get_guide` tool. Clients that read
+skills from files can use the folders in `mcp/plugin/skills/`: copy them where the client looks
+for skills.
+
+**Clients without browser sign-in**: create a personal access token on the user page, with its
+access level and expiry (at most `AGENT_TOKEN_MAX_DAYS`), and give it to the client as its
+bearer token (`Authorization: Bearer <token>`). The token is shown once; keep it out of files
+that are committed or shared.
+
 ## Spec-Driven Development with Spec Kit
 
 This template supports [GitHub Spec Kit](https://github.com/github/spec-kit). Spec Kit is **not pre-installed in this repo**. Basic constitution is included, update it regularly after changing README.md and CLAUDE.md.
@@ -626,11 +754,14 @@ The installer will ask which **AI agent** you use — pick the one you actually 
 
 ### Deploy to Coolify
 
-The whole stack (frontend + backend + PostgreSQL) deploys as a **single
+The whole stack (frontend + backend + PostgreSQL + MCP server) deploys as a **single
 docker-compose resource** defined in `docker-compose.prod.yml`. Only the
 frontend gets a public domain: its nginx serves the SPA and proxies `/api`
 (plus `/docs` and `/openapi.json`) to the backend over the internal network, so
 there is no CORS configuration and no API URL baked into the frontend build.
+For agents, it also proxies `/mcp` and `/.well-known/oauth-protected-resource` to the
+MCP server and `/.well-known/oauth-authorization-server` to the backend, so the MCP
+endpoint is `https://<domain>/mcp`.
 
 #### 1. Create the resource
 
@@ -638,8 +769,8 @@ there is no CORS configuration and no API URL baked into the frontend build.
    **Docker Compose** build pack
 2. Set the compose file location to `docker-compose.prod.yml`
 3. After Coolify parses the file, assign a domain to the **frontend** service
-   (e.g., `https://my-team.dpschool.app`); leave backend and postgres without a
-   domain — they stay internal
+   (e.g., `https://my-team.dpschool.app`); leave backend, mcp and postgres without
+   a domain — they stay internal
 4. Coolify auto-generates `SERVICE_PASSWORD_POSTGRES` (the database password)
    and `SERVICE_FQDN_FRONTEND`. Set the middleware's variables in the Coolify
    environment: `CONNECTION_BASE_URL` (the `https://` address serviceBW uses;
@@ -647,7 +778,12 @@ there is no CORS configuration and no API URL baked into the frontend build.
    For the frontend, set `SERVICEBW_ALLOWED_CIDRS` (serviceBW's address ranges)
    and `TRUSTED_PROXY_CIDRS` (Traefik's network): until then, the connection
    URLs answer `403` to everyone. The others have defaults (see
-   [Environment Variables](#environment-variables))
+   [Environment Variables](#environment-variables)). For agents, the compose
+   file sets `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the
+   MCP server from `CONNECTION_BASE_URL`, which therefore must be the frontend's
+   public domain; `AGENT_ACCESS_TOKEN_MINUTES`, `AGENT_CONNECTION_IDLE_DAYS`,
+   `AGENT_TOKEN_MAX_DAYS`, `APPROVAL_REQUEST_MINUTES` and `AGENT_DRAFTS_PER_HOUR`
+   can be set in the Coolify environment to change their defaults
 5. Deploy
 6. Create the first account in the backend container (Coolify: the backend
    service's terminal): `uv run python -m app.cli create-user <username>`
@@ -675,12 +811,13 @@ isolated, empty database — that is created on PR open and removed on close.
 2. In the resource, open **Preview Deployments** and enable them; the default
    URL template `{{pr_id}}.{{domain}}` gives previews like
    `https://123.my-team.dpschool.app`
-3. Mind server capacity: every open PR runs three extra containers, including
-   its own PostgreSQL
+3. Mind server capacity: every open PR runs four extra containers, including
+   its own PostgreSQL and MCP server
 4. Previews run with `APP_ENV=production` too, so set `CONNECTION_BASE_URL` in
    the preview environment variables as well, or the preview backend won't start.
    Their connection URLs stay closed (`403`) unless `SERVICEBW_ALLOWED_CIDRS` is
-   set for them too
+   set for them too. A preview's MCP endpoint is `https://<preview domain>/mcp`:
+   point `CONNECTION_PORTAL_MCP_URL` at it to work with the preview
 
 Preview databases start empty (schema only, via migrations on startup), so a
 preview needs its own account, created as in step 6 above.
