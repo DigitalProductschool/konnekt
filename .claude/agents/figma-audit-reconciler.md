@@ -2,7 +2,7 @@
 name: figma-audit-reconciler
 description: Merges the per-unit Figma audit files into one deduplicated, prioritised discrepancy report. Use only when invoked by /figma-audit.
 tools: Read, Glob, Grep
-model: inherit
+model: claude-opus-5-5
 effort: xhigh
 ---
 

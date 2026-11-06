@@ -1,7 +1,7 @@
 ---
 name: speckit-task-xhigh
 description: Implements one or a few tasks of a speckit tasks.md where a mistake is costly and tests written alongside the code are unlikely to catch it (authentication and authorization, concurrency and row locks, wide behaviour-preserving refactors). Use only when the coordinator of /speckit-implement delegates tasks to it.
-model: inherit
+model: claude-opus-5-5
 effort: xhigh
 ---
 

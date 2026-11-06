@@ -2,7 +2,7 @@
 name: spec-requirements-indexer
 description: Builds a compact index of the active speckit spec's requirements for the Figma audit. Use only when invoked by /figma-audit.
 tools: Read, Write, Glob, Grep
-model: inherit
+model: claude-opus-5-5
 effort: high
 ---
 
