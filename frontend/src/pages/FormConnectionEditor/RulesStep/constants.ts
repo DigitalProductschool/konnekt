@@ -6,8 +6,6 @@ import type { ItemNameSize } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */
 export const MAIN_BRANCH_NAME = 'Standard';
-/** Its key until the save gives it an id */
-export const MAIN_BRANCH_KEY = 'main';
 
 /** The type of names (U14): label/small for a rule, title/default and title/small for groups */
 export const NAME_SIZES: Record<ItemNameSize, string> = {

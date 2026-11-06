@@ -49,8 +49,8 @@ import {
   publishErrorNotice,
   removalAction,
   removalCopyOf,
+  removedDataRulesOf,
   rulesChanged,
-  rulesCheckingRemoval,
   rulesNextActionOf,
   startOfEntry,
   startOfOrigin,
@@ -87,6 +87,10 @@ const LOADED: FormConnection = {
   updated_at: '2026-10-25T10:00:00Z',
 };
 
+/** Ids of variants, as `crypto.randomUUID()` makes them */
+const MAIN_ID = '5d1e2f3a-4b5c-4d6e-8f70-8192a3b4c5d6';
+const VARIANT_ID = 'c8a2f1e0-1b2c-4d3e-8f40-5a6b7c8d9e0f';
+
 const RULES_CHANGED_MESSAGE =
   'Another team member saved the rules of this connection after you opened it. Replacing their ' +
   'changes deletes the variant School transport.';
@@ -108,13 +112,14 @@ function withMessage(message: string) {
 describe('createPayload (FR-028)', () => {
   const state = initialEditorState({ formConnection: LOADED, initialStep: 'rules' });
 
-  it('always sends the rules of a new connection', () => {
-    const payload = createPayload(INITIAL_EDITOR_STATE, initialRulesState());
+  it('always sends the rules of a new connection, Standard with the id it was keyed by', () => {
+    const rules = initialRulesState();
+    const payload = createPayload(INITIAL_EDITOR_STATE, rules);
 
     expect(payload.rules).toEqual({
       branches: [
         {
-          id: null,
+          id: rules.branches[0].key,
           name: 'Standard',
           description: null,
           origin: 'main',
@@ -159,6 +164,18 @@ describe('createPayload (FR-028)', () => {
       'operator_mark',
       'origin',
     ]);
+  });
+
+  it('sends a variant added in the step with its key as its id (spec 007, R10)', () => {
+    const added = rulesReducer(initialRulesState(LOADED), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+      id: VARIANT_ID,
+    });
+    expect(added.branches[1]).toMatchObject({ key: VARIANT_ID, id: null });
+    const payload = createPayload(state, added, { loaded: LOADED });
+    expect(payload.rules?.branches.map((branch) => branch.id)).toEqual(['main', VARIANT_ID]);
   });
 
   it('replaces the other team member’s rules on request', () => {
@@ -414,7 +431,7 @@ describe('removing data that rules check (FR-029, F18)', () => {
 
   it('names the rules of a document, a field and "All data", with their variants', () => {
     const named = (removal: PendingRemoval) =>
-      rulesCheckingRemoval(removal, rules.branches, documents).map(
+      removedDataRulesOf(removal, rules.branches, documents).map(
         ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
       );
     expect(named(DOCUMENT)).toEqual(['Rule 02 in Standard', 'Rule 03 in Standard']);
@@ -425,9 +442,9 @@ describe('removing data that rules check (FR-029, F18)', () => {
 
   it('leaves out rules on data already not requested, which the Rules step flags', () => {
     const withoutBirthdate = [{ document_type: 'pid', fields: ['nationalities'] }];
-    expect(rulesCheckingRemoval(ALL, rules.branches, withoutBirthdate)).toEqual([]);
+    expect(removedDataRulesOf(ALL, rules.branches, withoutBirthdate)).toEqual([]);
     expect(
-      rulesCheckingRemoval({ ...DOCUMENT, documentType: 'pid' }, rules.branches, withoutBirthdate)
+      removedDataRulesOf({ ...DOCUMENT, documentType: 'pid' }, rules.branches, withoutBirthdate)
     ).toEqual([]);
   });
 
@@ -436,7 +453,7 @@ describe('removing data that rules check (FR-029, F18)', () => {
       ...rules,
       branches: [rules.branches[0], { ...rules.branches[0], key: 'ambulance', name: 'Ambulance' }],
     };
-    const keys = rulesCheckingRemoval(FIELD, twice.branches, documents).map(({ key }) => key);
+    const keys = removedDataRulesOf(FIELD, twice.branches, documents).map(({ key }) => key);
     expect(new Set(keys).size).toBe(2);
   });
 
@@ -808,8 +825,13 @@ describe('localContentOf (FR-002, FR-015; R9)', () => {
 
   it('keeps a new rule open in the editor, incomplete as it is', () => {
     const empty = initialRulesState();
-    const editing = rulesReducer(empty, { type: 'addRule', branchKey: 'main', parentId: null });
+    const editing = rulesReducer(empty, {
+      type: 'addRule',
+      branchKey: empty.branches[0].key,
+      parentId: null,
+    });
     const content = localContentOf(state, editing);
+    expect(content.branches[0].id).toBe(empty.branches[0].key);
     expect(content.branches[0].items).toEqual([
       {
         type: 'rule',
@@ -899,7 +921,7 @@ describe('openingStepOf (FR-008; R12)', () => {
 
 describe('initialStatesFromDraft (FR-008; R12)', () => {
   function variant(name: string, items: BranchInput['items'] = []): BranchInput {
-    return { ...mainBranch(items), name, origin: 'based' };
+    return { ...mainBranch(items), id: crypto.randomUUID(), name, origin: 'based' };
   }
 
   /** A field as the API shows it; one the catalog dropped has its key as its label */
@@ -927,7 +949,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
         fields: [field('birthdate', 'Date of birth')],
       },
     ],
-    branches: [mainBranch()],
+    branches: [{ ...mainBranch(), id: MAIN_ID }],
     next_rule_number: 4,
     next_group_number: 2,
     step: 'test',
@@ -969,34 +991,40 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     ]);
   });
 
-  it('gives Standard alone the main key, the draft’s counters and no rule set', () => {
+  it('keys Standard by its stored id, with the draft’s counters and no rule set', () => {
     const { rules } = initialStatesFromDraft(DRAFT);
     expect(rules).toEqual({
       ...initialRulesState(),
-      branches: [{ ...mainBranch(), key: 'main' }],
-      openBranch: 'main',
+      branches: [{ ...mainBranch(), id: MAIN_ID, key: MAIN_ID }],
+      openBranch: MAIN_ID,
       counters: { rule: 4, group: 2 },
       numberingBase: { rule: 4, group: 2 },
       ruleSetVersion: null,
     });
   });
 
-  it('gives one variant beside Standard the editor’s next key', () => {
-    const draft = { ...DRAFT, branches: [mainBranch(), variant('Taxi')] };
+  it('keys the variants by their stored ids, in order, keeping their content', () => {
+    const variants = [variant('Taxi'), variant('Ambulance', US1_RULES), variant('Limousine')];
+    const draft = { ...DRAFT, branches: [DRAFT.branches[0], ...variants] };
     const { rules } = initialStatesFromDraft(draft);
-    expect(rules.branches.map((branch) => [branch.key, branch.name])).toEqual([
-      ['main', 'Standard'],
-      ['new-1', 'Taxi'],
-    ]);
-    expect(rules.openBranch).toBe('main');
+    expect(rules.branches.map((branch) => branch.key)).toEqual(
+      draft.branches.map((branch) => branch.id)
+    );
+    expect(rules.branches.slice(1).map(({ key: _key, ...branch }) => branch)).toEqual(variants);
+    expect(rules.openBranch).toBe(MAIN_ID);
   });
 
-  it('keys three variants beside Standard in order, keeping their content', () => {
-    const variants = [variant('Taxi'), variant('Ambulance', US1_RULES), variant('Limousine')];
-    const draft = { ...DRAFT, branches: [mainBranch(), ...variants] };
+  it('gives a variant without a usable id a new one, which a save then sends', () => {
+    const variants = [
+      { ...variant('Taxi'), id: null },
+      { ...variant('Bus'), id: MAIN_ID },
+    ];
+    const draft = { ...DRAFT, branches: [DRAFT.branches[0], ...variants] };
     const { rules } = initialStatesFromDraft(draft);
-    expect(rules.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2', 'new-3']);
-    expect(rules.branches.slice(1).map(({ key: _key, ...branch }) => branch)).toEqual(variants);
+    const [main, taxi, bus] = rules.branches.map((branch) => branch.key);
+    expect(main).toBe(MAIN_ID);
+    expect(new Set([main, taxi, bus]).size).toBe(3);
+    expect(rules.branches.map((branch) => branch.id)).toEqual([MAIN_ID, null, MAIN_ID]);
   });
 
   it('opens a test step without any rule at the rules step', () => {
@@ -1007,8 +1035,10 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
 
   it('falls back to an empty Standard for a draft without branches', () => {
     const { rules, editor } = initialStatesFromDraft({ ...DRAFT, branches: [] });
-    expect(rules.branches).toEqual(initialRulesState().branches);
-    expect(rules.openBranch).toBe('main');
+    expect(rules.branches).toEqual([
+      { ...initialRulesState().branches[0], key: rules.branches[0].key },
+    ]);
+    expect(rules.openBranch).toBe(rules.branches[0].key);
     expect(rules.counters).toEqual({ rule: 4, group: 2 });
     expect(editor.step).toBe('rules');
   });
@@ -1026,6 +1056,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
 });
 
 const DRAFT_ID = '0b6f1c2e-3d4a-4b5c-8d9e-0f1a2b3c4d5e';
+const LOCAL_VARIANT_ID = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const NEW_KEY = newFlowKey('7c9e6679-7425-40de-944b-e07fc1f90ae7');
 const DRAFT_KEY = flowKeyOfDraft(DRAFT_ID);
 
@@ -1043,9 +1074,9 @@ function localRecord(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecor
       description: '',
       documents: [{ document_type: 'pid', fields: ['birthdate'] }],
       branches: [
-        mainBranch(US1_RULES),
-        { ...mainBranch(US1_RULES), name: 'Taxi', origin: 'based' },
-        { ...mainBranch([]), name: 'Ambulance', origin: 'empty' },
+        { ...mainBranch(US1_RULES), id: MAIN_ID },
+        { ...mainBranch(US1_RULES), id: VARIANT_ID, name: 'Taxi', origin: 'based' },
+        { ...mainBranch([]), id: LOCAL_VARIANT_ID, name: 'Ambulance', origin: 'empty' },
       ],
       numberingBase: { rule: 1, group: 1 },
       counters: { rule: 4, group: 2 },
@@ -1073,15 +1104,54 @@ describe('initialStatesFromLocal (FR-017; R10)', () => {
     expect(initialStatesFromLocal(empty).editor.step).toBe('rules');
   });
 
-  it('gives the variants the editor’s keys in order, Standard open, without a rule set', () => {
+  it('keys the variants by their ids in order, Standard open, without a rule set', () => {
     const record = localRecord();
     const { rules } = initialStatesFromLocal(record);
-    expect(rules.branches.map((branch) => branch.key)).toEqual(['main', 'new-1', 'new-2']);
+    expect(rules.branches.map((branch) => branch.key)).toEqual([
+      MAIN_ID,
+      VARIANT_ID,
+      LOCAL_VARIANT_ID,
+    ]);
     expect(rules.branches.map(({ key: _key, ...branch }) => branch)).toEqual(
       record.content.branches
     );
-    expect(rules.openBranch).toBe('main');
+    expect(rules.openBranch).toBe(MAIN_ID);
     expect(rules.ruleSetVersion).toBeNull();
+  });
+
+  it('gives a record saved before variants had ids new ones, which its next write keeps', () => {
+    const record = localRecord();
+    const older = {
+      ...record,
+      content: {
+        ...record.content,
+        branches: record.content.branches.map((branch) => ({ ...branch, id: null })),
+      },
+    };
+    const { editor, rules } = initialStatesFromLocal(older);
+    const keys = rules.branches.map((branch) => branch.key);
+    expect(new Set(keys).size).toBe(3);
+    expect(rules.openBranch).toBe(keys[0]);
+    const content = localContentOf(editor, rules);
+    expect(content.branches.map((branch) => branch.id)).toEqual(keys);
+    expect(content.branches.map(({ id: _id, ...branch }) => branch)).toEqual(
+      older.content.branches.map(({ id: _id, ...branch }) => branch)
+    );
+    expect(draftPayload(content, 'rules').rules.branches.map((branch) => branch.id)).toEqual(keys);
+  });
+
+  it('gives a repeated or malformed id a new one', () => {
+    const record = localRecord();
+    const [main, taxi, ambulance] = record.content.branches;
+    const content = {
+      ...record.content,
+      branches: [main, { ...taxi, id: MAIN_ID }, { ...ambulance, id: 'ambulance' }],
+    };
+    const { rules } = initialStatesFromLocal({ ...record, content });
+    const keys = rules.branches.map((branch) => branch.key);
+    expect(keys[0]).toBe(MAIN_ID);
+    expect(new Set(keys).size).toBe(3);
+    expect(keys[2]).not.toBe('ambulance');
   });
 
   it('takes the counters and the numbering base from the record', () => {
@@ -1161,24 +1231,40 @@ describe('startOfEntry (contracts/local-drafts.md, rule 1; R10; data-model.md se
 
   it('starts a fresh flow empty under a new key, which goes into the URL', () => {
     const start = startOfEntry({ kind: 'fresh' }, () => UUID);
+    const mainKey = start.kind === 'open' ? start.initialStates.rules.branches[0].key : '';
+    const empty = initialRulesState();
     expect(start).toEqual({
       kind: 'open',
       origin: { kind: 'new', flowKey: newFlowKey(UUID) },
       initialStates: {
         editor: initialEditorState({ initialStep: 'connection' }),
-        rules: initialRulesState(),
+        rules: {
+          ...empty,
+          branches: [{ ...empty.branches[0], key: mainKey }],
+          openBranch: mainKey,
+        },
       },
-      baseline: emptyContent(),
+      baseline: emptyContent(mainKey),
       urlFlowKey: newFlowKey(UUID),
     });
   });
 
+  it('takes the fresh flow’s own content for its baseline, its Standard’s id included', () => {
+    const start = startOfEntry({ kind: 'fresh' }, () => UUID);
+    if (start.kind !== 'open') {
+      throw new Error('not open');
+    }
+    const { editor, rules } = start.initialStates;
+    expect(start.baseline).toEqual(localContentOf(editor, rules));
+  });
+
   it('starts empty under a new connection’s key without a record, leaving the URL alone', () => {
     const start = startOfEntry({ kind: 'empty', flowKey: NEW_KEY }, () => UUID);
+    const mainKey = start.kind === 'open' ? start.initialStates.rules.branches[0].key : '';
     expect(start).toMatchObject({
       kind: 'open',
       origin: { kind: 'new', flowKey: NEW_KEY },
-      baseline: emptyContent(),
+      baseline: emptyContent(mainKey),
       urlFlowKey: null,
     });
   });
@@ -1200,7 +1286,7 @@ describe('startOfEntry (contracts/local-drafts.md, rule 1; R10; data-model.md se
       kind: 'open',
       origin: { kind: 'new', flowKey: NEW_KEY },
       initialStates: initialStatesFromLocal(record),
-      baseline: emptyContent(),
+      baseline: emptyContent(MAIN_ID),
       urlFlowKey: null,
     });
   });
@@ -1267,7 +1353,7 @@ describe('startOfOrigin (data-model.md section 6)', () => {
 
   it('gives a new connection the empty flow', () => {
     const start = startOfOrigin({ origin: { kind: 'new', flowKey: NEW_KEY } });
-    expect(start.baseline).toEqual(emptyContent());
+    expect(start.baseline).toEqual(emptyContent(start.initialStates.rules.branches[0].key));
     expect(start.initialStates.editor.step).toBe('connection');
   });
 });
@@ -1462,7 +1548,7 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
   describe('the rules that check it, named first', () => {
     const rules = initialRulesState(LOADED);
     const named = (items: DroppedData[], requested = documents) =>
-      rulesCheckingRemoval(droppedRemovalOf(items), rules.branches, requested).map(
+      removedDataRulesOf(droppedRemovalOf(items), rules.branches, requested).map(
         ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
       );
 
@@ -1489,7 +1575,7 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
         { ...rules.branches[0], key: 'ambulance', name: 'Ambulance' },
       ];
       const mdl: DroppedData = { documentType: 'mdl', field: null, label: 'mdl' };
-      const keys = rulesCheckingRemoval(droppedRemovalOf([mdl]), twice, documents).map(
+      const keys = removedDataRulesOf(droppedRemovalOf([mdl]), twice, documents).map(
         ({ key }) => key
       );
       expect(keys).toHaveLength(4);

@@ -4,5 +4,7 @@
 import './read';
 import './catalog';
 import './access';
+import './drafts';
+import './items';
 
 export { registry, tools } from './registry';

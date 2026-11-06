@@ -2,9 +2,19 @@
 // R2, R19): the bearer, the two protocol eras, the sessions, the skills, and the tools. The tool
 // tests of later phases add to this file
 import type {
+  Condition,
   FormConnectionDraft,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
+import {
+  addRule,
+  addVariant,
+  changeRule,
+  deleteItem,
+  groupItems,
+} from '@connection-portal/rules/edits';
+import { target } from '@connection-portal/rules/testData';
+import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -933,5 +943,1013 @@ describe('request_access', () => {
   it('the manage caller asking for drafts has it already', async () => {
     const { structured } = await callTool('request_access', { level: 'drafts' }, BEARERS.manage);
     expect(structured.access_level).toBe('manage');
+  });
+});
+
+describe('the draft tools', () => {
+  beforeAll(async () => {
+    links = await import('../src/links');
+  });
+
+  afterEach(() => fake.reset());
+
+  const PUBLISHED_READ_ONLY = {
+    code: 'published_read_only',
+    message:
+      'The content of a published connection is changed in the Connection Portal. Agents can ' +
+      'only change drafts.',
+  };
+
+  function variantNames(): string[] {
+    return storedDraft().branches.map((branch) => branch.name);
+  }
+
+  describe('create_draft', () => {
+    it('creates a draft with Standard and no documents, at the connection step', async () => {
+      const { isError, structured, text } = await callTool(
+        'create_draft',
+        { name: 'Fishing permit', description: 'Form 4711' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      const id = structured.connection.id as string;
+      const draft = fake.store.connections.get(id) as FormConnectionDraft;
+      expect(draft).toMatchObject({
+        status: 'draft',
+        name: 'Fishing permit',
+        description: 'Form 4711',
+        documents: [],
+        step: 'connection',
+        version: 1,
+      });
+      expect(draft.branches).toEqual([
+        {
+          id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          name: 'Standard',
+          description: null,
+          origin: 'main',
+          operator: 'and',
+          operator_mark: null,
+          items: [],
+        },
+      ]);
+      const standardId = draft.branches[0].id ?? '';
+      expect(structured).toEqual({
+        connection: {
+          id,
+          name: 'Fishing permit',
+          status: 'draft',
+          link: links.connectionLink(id),
+        },
+        variants: [{ id: standardId, name: 'Standard', link: links.variantLink(id, standardId) }],
+      });
+      expect(text).toContain(links.connectionLink(id));
+      expect(text).toContain('at the connection step');
+    });
+
+    it("answers rate_limited with the backend's message once the hourly limit is reached", async () => {
+      fake.store.draftsCreated.set(BEARERS.drafts, 20);
+      const { isError, structured } = await callTool(
+        'create_draft',
+        { name: 'Fishing permit' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'rate_limited',
+        message: 'This agent can create drafts again at 15:40.',
+      });
+    });
+
+    it.each(['create_draft', 'add_variant'])(
+      "refuses the read caller %s, naming 'Read and edit drafts'",
+      async (tool) => {
+        const { isError, structured } = await callTool(
+          tool,
+          { connection: IDS.draft, name: 'Night shift', origin: 'empty' },
+          BEARERS.read
+        );
+        expect(isError).toBe(true);
+        expect(structured).toEqual({
+          code: 'insufficient_access',
+          message:
+            "Your access is read only. Changing drafts needs the access level 'Read and edit " +
+            "drafts'. Ask for it with request_access, or the team member raises it on their " +
+            'user page.',
+          needs_access_level: 'drafts',
+        });
+        expect(fake.calls.filter((call) => call.method !== 'GET')).toEqual([]);
+      }
+    );
+  });
+
+  describe('update_connection', () => {
+    it('renames the draft and clears its description', async () => {
+      const { isError, structured, text } = await callTool(
+        'update_connection',
+        { connection: links.connectionLink(IDS.draft), name: 'Parking permit', description: null },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: {
+          id: IDS.draft,
+          name: 'Parking permit',
+          status: 'draft',
+          link: links.connectionLink(IDS.draft),
+        },
+      });
+      expect(storedDraft()).toMatchObject({
+        name: 'Parking permit',
+        description: '',
+        version: 2,
+        step: 'rules',
+      });
+      expect(text).toContain('Saved as draft version 2, at the rules step.');
+    });
+
+    it("refuses a description over 500 characters with the server's message", async () => {
+      const { isError, structured } = await callTool(
+        'update_connection',
+        { connection: IDS.draft, description: 'x'.repeat(600) },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message: 'The description can have at most 500 characters.',
+      });
+      expect(storedDraft().version).toBe(1);
+    });
+
+    it('refuses a published connection, also at manage level', async () => {
+      const { isError, structured } = await callTool(
+        'update_connection',
+        { connection: IDS.live, name: 'Renamed' },
+        BEARERS.manage
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual(PUBLISHED_READ_ONLY);
+      expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
+    });
+
+    it('applies the change to the draft another save stored in between', async () => {
+      fake.beforeNextDraftSave((draft) => {
+        fake.store.connections.set(draft.id, {
+          ...draft,
+          description: 'Changed in the Portal',
+          version: draft.version + 1,
+        });
+      });
+      const { isError } = await callTool(
+        'update_connection',
+        { connection: IDS.draft, name: 'Parking permit' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(storedDraft()).toMatchObject({
+        name: 'Parking permit',
+        description: 'Changed in the Portal',
+        version: 3,
+      });
+    });
+  });
+
+  describe('set_document', () => {
+    it('adds a document with its fields in catalog order, at the documents step', async () => {
+      const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+      const id = created.structured.connection.id as string;
+      const { isError, structured, text } = await callTool(
+        'set_document',
+        { connection: id, document_type: 'pid', fields: ['nationalities', 'birthdate'] },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured.documents).toEqual([
+        {
+          document_type: 'pid',
+          label: 'Personal ID',
+          fields: [
+            { key: 'birthdate', label: 'Date of birth', kind: 'date' },
+            { key: 'nationalities', label: 'Nationality', kind: 'enum' },
+          ],
+        },
+      ]);
+      expect(structured.removed_rules).toEqual([]);
+      expect((fake.store.connections.get(id) as FormConnectionDraft).step).toBe('documents');
+      expect(text).toContain('at the documents step');
+    });
+
+    it('refuses an unknown field with the known ones', async () => {
+      const { isError, structured } = await callTool(
+        'set_document',
+        { connection: IDS.draft, document_type: 'pid', fields: ['eye_colour'] },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured.code).toBe('validation');
+      expect(structured.message).toMatch(/^Unknown field 'eye_colour' for 'Personal ID'\. /);
+    });
+
+    it('refuses to stop requesting data that rules check, then removes them with also_remove_rules', async () => {
+      const input = { connection: IDS.draft, document_type: 'pid', fields: ['birthdate'] };
+      const refused = await callTool('set_document', input, BEARERS.drafts);
+      expect(refused.isError).toBe(true);
+      expect(refused.structured).toEqual({
+        code: 'validation',
+        message:
+          '2 rules check City or town: Rule 02 in Standard, Rule 02 in Ambulance. Pass ' +
+          'also_remove_rules: true to remove these rules in every variant too, or change these ' +
+          'rules first.',
+      });
+      expect(storedDraft().version).toBe(1);
+
+      const { isError, structured } = await callTool(
+        'set_document',
+        { ...input, also_remove_rules: true },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured.removed_rules).toEqual([
+        {
+          id: 'rule-2',
+          type: 'rule',
+          name: 'Rule 02',
+          link: links.itemLink(IDS.draft, IDS.draftStandard, 'rule-2'),
+        },
+        {
+          id: 'rule-2',
+          type: 'rule',
+          name: 'Rule 02',
+          link: links.itemLink(IDS.draft, IDS.draftBased, 'rule-2'),
+        },
+      ]);
+      const draft = storedDraft();
+      expect(draft.documents[0].fields.map((field) => field.key)).toEqual(['birthdate']);
+      expect(
+        draft.branches.map((branch) => branch.items.map((item: RuleTreeItem) => item.id))
+      ).toEqual([['rule-1'], ['rule-1'], []]);
+      expect(draft.step).toBe('rules');
+    });
+
+    it('removes a document the catalog dropped, which the server refuses to save', async () => {
+      const draft = storedDraft();
+      fake.store.connections.set(IDS.draft, {
+        ...draft,
+        documents: [
+          ...draft.documents,
+          { document_type: 'eye_test', label: 'eye_test', fields: [] },
+        ],
+      });
+      const refused = await callTool(
+        'add_variant',
+        { connection: IDS.draft, name: 'Night shift', origin: 'empty' },
+        BEARERS.drafts
+      );
+      expect(refused.structured).toEqual({
+        code: 'validation',
+        message: "Unknown document type 'eye_test'.",
+      });
+      const { isError, structured } = await callTool(
+        'set_document',
+        { connection: IDS.draft, document_type: 'eye_test', fields: null },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(
+        structured.documents.map((document: { document_type: string }) => document.document_type)
+      ).toEqual(['pid']);
+    });
+  });
+
+  describe('add_variant', () => {
+    it('adds a variant based on Standard with an id of its own', async () => {
+      const { isError, structured } = await callTool(
+        'add_variant',
+        { connection: IDS.draft, name: 'Night shift', origin: 'based', description: 'At night' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      const added = storedDraft().branches[3];
+      expect(added).toMatchObject({
+        name: 'Night shift',
+        description: 'At night',
+        origin: 'based',
+        items: storedDraft().branches[0].items,
+      });
+      expect(structured.variant).toEqual({
+        id: added.id,
+        name: 'Night shift',
+        link: links.variantLink(IDS.draft, added.id ?? ''),
+      });
+    });
+
+    it("refuses a name taken with the editor's message and leaves the draft unchanged", async () => {
+      const { isError, structured } = await callTool(
+        'add_variant',
+        { connection: IDS.draft, name: ' ambulance ', origin: 'empty' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message: 'Another variant is already called Ambulance.',
+      });
+      expect(storedDraft().version).toBe(1);
+      expect(variantNames()).toEqual(['Standard', 'Ambulance', 'Pilot']);
+    });
+
+    it('refuses a change to a published connection', async () => {
+      const { structured } = await callTool(
+        'add_variant',
+        { connection: IDS.deactivated, name: 'Night shift', origin: 'empty' },
+        BEARERS.manage
+      );
+      expect(structured).toEqual(PUBLISHED_READ_ONLY);
+    });
+  });
+
+  describe('update_variant', () => {
+    it("renames a variant and switches its top level's AND/OR", async () => {
+      const { isError, structured, text } = await callTool(
+        'update_variant',
+        { connection: IDS.draft, variant: 'Ambulance', name: 'Rescue service', operator: 'or' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: expect.objectContaining({ id: IDS.draft }),
+        variant: {
+          id: IDS.draftBased,
+          name: 'Rescue service',
+          link: links.variantLink(IDS.draft, IDS.draftBased),
+        },
+      });
+      expect(storedDraft().branches[1]).toMatchObject({
+        name: 'Rescue service',
+        operator: 'or',
+        operator_mark: 'changed',
+      });
+      expect(text).toContain("Top level: OR (changed from Standard's).");
+    });
+
+    it("resets a based variant's AND/OR to Standard's", async () => {
+      await callTool(
+        'update_variant',
+        { connection: IDS.draft, variant: IDS.draftBased, operator: 'or' },
+        BEARERS.drafts
+      );
+      const { isError } = await callTool(
+        'update_variant',
+        { connection: IDS.draft, variant: IDS.draftBased, reset_operator: true },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(storedDraft().branches[1]).toMatchObject({ operator: 'and', operator_mark: null });
+    });
+
+    it("refuses resetting a variant that isn't based on Standard", async () => {
+      const { structured } = await callTool(
+        'update_variant',
+        { connection: IDS.draft, variant: 'Pilot', reset_operator: true },
+        BEARERS.drafts
+      );
+      expect(structured).toEqual({
+        code: 'validation',
+        message: 'Pilot isn’t based on Standard, so it has nothing to reset or restore.',
+      });
+    });
+
+    it('answers not_found for a variant the draft lacks', async () => {
+      const { structured } = await callTool(
+        'update_variant',
+        { connection: IDS.draft, variant: 'Night shift', name: 'Day shift' },
+        BEARERS.drafts
+      );
+      expect(structured).toEqual({ code: 'not_found', message: 'This variant no longer exists.' });
+    });
+  });
+
+  describe('delete_variant', () => {
+    it('deletes a variant with its rules', async () => {
+      const { isError, structured } = await callTool(
+        'delete_variant',
+        { connection: IDS.draft, variant: links.variantLink(IDS.draft, IDS.draftEmpty) },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured.deleted).toEqual({
+        id: IDS.draftEmpty,
+        name: 'Pilot',
+        link: links.variantLink(IDS.draft, IDS.draftEmpty),
+      });
+      expect(variantNames()).toEqual(['Standard', 'Ambulance']);
+    });
+
+    it('refuses the main variant with not_allowed', async () => {
+      const { isError, structured } = await callTool(
+        'delete_variant',
+        { connection: IDS.draft, variant: 'Standard' },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'not_allowed',
+        message: 'Standard is the main variant and can’t be deleted.',
+      });
+      expect(storedDraft().version).toBe(1);
+    });
+  });
+});
+
+describe('the item tools', () => {
+  beforeAll(async () => {
+    links = await import('../src/links');
+  });
+
+  afterEach(() => fake.reset());
+
+  /** Calls a tool on the fixture draft as the `drafts` caller. */
+  function onDraft(name: string, args: Record<string, unknown>, token: string = BEARERS.drafts) {
+    return callTool(name, { connection: IDS.draft, ...args }, token);
+  }
+
+  function itemsOf(branchIndex: number): RuleTreeItem[] {
+    return storedDraft().branches[branchIndex].items;
+  }
+
+  function itemOf(branchIndex: number, id: string): RuleTreeItem | undefined {
+    const find = (items: RuleTreeItem[]): RuleTreeItem | undefined =>
+      items
+        .map((item) =>
+          item.id === id ? item : item.type === 'group' ? find(item.items) : undefined
+        )
+        .find((item) => item !== undefined);
+    return find(itemsOf(branchIndex));
+  }
+
+  function variantRef(id: string, name: string) {
+    return { id, name, link: links.variantLink(IDS.draft, id) };
+  }
+
+  function itemRef(variantId: string, id: string, name: string) {
+    return {
+      id,
+      type: id.startsWith('rule-') ? 'rule' : 'group',
+      name,
+      link: links.itemLink(IDS.draft, variantId, id),
+    };
+  }
+
+  describe('add_rule', () => {
+    it("adds a rule to Standard on a licence class's date, passed on to the based variant", async () => {
+      const condition = { operator: 'at_least_years_ago', years: 2 };
+      const { isError, structured, text } = await onDraft('add_rule', {
+        variant: 'standard',
+        name: 'Licence B',
+        target: { document_type: 'mdl', field: 'driving_privileges.issue_date#b' },
+        condition,
+        message: 'You must have held licence B for two years.',
+      });
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: expect.objectContaining({ id: IDS.draft, status: 'draft' }),
+        variant: variantRef(IDS.draftStandard, 'Standard'),
+        item: {
+          id: 'rule-3',
+          type: 'rule',
+          name: 'Licence B',
+          statement: expect.any(String),
+          mark: null,
+          link: links.itemLink(IDS.draft, IDS.draftStandard, 'rule-3'),
+          target: { document_type: 'mdl', field: 'driving_privileges.issue_date#B' },
+          condition,
+          message: 'You must have held licence B for two years.',
+        },
+        propagated_to: [variantRef(IDS.draftBased, 'Ambulance')],
+      });
+      // The data isn't requested yet: an incomplete draft is stored all the same (FR-013)
+      expect(itemOf(0, 'rule-3')).toMatchObject({
+        target: target('mdl', 'driving_privileges', 'issue_date', 'B'),
+      });
+      expect(itemOf(1, 'rule-3')).toMatchObject({ name: 'Licence B', mark: null });
+      expect(itemsOf(2)).toEqual([]);
+      expect(storedDraft()).toMatchObject({ version: 2, next_rule_number: 4 });
+      expect(text).toContain('Also in the variants based on Standard: Ambulance.');
+    });
+
+    it('adds an incomplete rule to a group of a based variant, marked added', async () => {
+      await onDraft('group_items', { variant: 'Standard', items: ['rule-1', 'rule-2'] });
+      const { isError, structured } = await onDraft('add_rule', {
+        variant: 'Ambulance',
+        group: 'Group 01',
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toEqual({
+        id: 'rule-3',
+        type: 'rule',
+        name: 'Rule 03',
+        statement: null,
+        mark: 'added',
+        link: links.itemLink(IDS.draft, IDS.draftBased, 'rule-3'),
+        message: '',
+      });
+      expect(structured.propagated_to).toEqual([]);
+      const group = itemOf(1, 'group-1');
+      expect(group?.type === 'group' && group.items.map((item) => item.id)).toEqual([
+        'rule-1',
+        'rule-2',
+        'rule-3',
+      ]);
+      expect(itemOf(0, 'rule-3')).toBeUndefined();
+    });
+
+    it('refuses data the catalog lacks, with the known fields', async () => {
+      const { isError, structured } = await onDraft('add_rule', {
+        variant: 'Standard',
+        target: { document_type: 'pid', field: 'shoe_size' },
+      });
+      expect(isError).toBe(true);
+      expect(structured.code).toBe('validation');
+      expect(structured.message).toContain("Personal ID has no field 'shoe_size'");
+      expect(storedDraft().version).toBe(1);
+    });
+  });
+
+  describe('update_item', () => {
+    it("changes Standard's rule in the based variant, which marks it changed there", async () => {
+      const condition = { operator: 'at_least_years_ago', years: 21 };
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Ambulance',
+        item: 'rule-1',
+        condition,
+        message: 'You must be at least 21 years old.',
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({
+        id: 'rule-1',
+        mark: 'changed',
+        condition,
+        message: 'You must be at least 21 years old.',
+        link: links.itemLink(IDS.draft, IDS.draftBased, 'rule-1'),
+      });
+      expect(structured.propagated_to).toEqual([]);
+      expect(itemOf(0, 'rule-1')).toMatchObject({ condition: { years: 18 }, mark: null });
+    });
+
+    it("switches a group's AND/OR and removes its own message", async () => {
+      await onDraft('group_items', {
+        variant: 'Standard',
+        items: ['rule-1', 'rule-2'],
+        message: 'Adults of Stuttgart only.',
+      });
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'group-1',
+        operator: 'or',
+        message: null,
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({ id: 'group-1', type: 'group', operator: 'or' });
+      expect(structured.item).not.toHaveProperty('message');
+      expect(structured.propagated_to).toEqual([variantRef(IDS.draftBased, 'Ambulance')]);
+      expect(itemOf(1, 'group-1')).toMatchObject({ operator: 'or', message: null, mark: null });
+    });
+
+    it('refuses a rename in Standard that clashes in a based variant, as the editor does', async () => {
+      await onDraft('add_rule', { variant: 'Ambulance', name: 'Night' });
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: 'rule-1',
+        name: 'night',
+      });
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'validation',
+        message: 'Another rule in Ambulance is already called Night.',
+      });
+      expect(itemOf(0, 'rule-1')?.name).toBe('Rule 01');
+    });
+
+    it('refuses a change to a published connection, also at manage level', async () => {
+      const { isError, structured } = await callTool(
+        'update_item',
+        { connection: IDS.live, variant: 'Standard', item: 'rule-1', message: 'Changed' },
+        BEARERS.manage
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual({
+        code: 'published_read_only',
+        message:
+          'The content of a published connection is changed in the Connection Portal. Agents ' +
+          'can only change drafts.',
+      });
+      expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
+    });
+
+    it.each([
+      ['its id', () => 'rule-3'],
+      ['its link', () => links.itemLink(IDS.draft, IDS.draftStandard, 'rule-3')],
+      ['its name', () => ' residence '],
+    ])('names a rule by %s', async (_case, reference) => {
+      await onDraft('add_rule', { variant: 'Standard', name: 'Residence' });
+      const { isError, structured } = await onDraft('update_item', {
+        variant: 'Standard',
+        item: reference(),
+        message: 'You must live in Stuttgart.',
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({ id: 'rule-3', name: 'Residence' });
+      expect(itemOf(0, 'rule-3')).toMatchObject({ message: 'You must live in Stuttgart.' });
+    });
+  });
+
+  describe('delete_item', () => {
+    it("removes Standard's rule from the based variant instead of deleting it", async () => {
+      const { isError, structured } = await onDraft('delete_item', {
+        variant: 'Ambulance',
+        item: 'Rule 01',
+      });
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: expect.objectContaining({ id: IDS.draft }),
+        variant: variantRef(IDS.draftBased, 'Ambulance'),
+        action: 'removed',
+        item: itemRef(IDS.draftBased, 'rule-1', 'Rule 01'),
+        effects: [],
+      });
+      expect(itemOf(1, 'rule-1')?.mark).toBe('removed');
+      expect(itemOf(0, 'rule-1')?.mark).toBeNull();
+    });
+
+    it('deletes in Standard and reports the changed rule the based variant keeps', async () => {
+      const { isError, structured } = await onDraft('delete_item', {
+        variant: 'Standard',
+        item: 'rule-2',
+      });
+      expect(isError).toBe(false);
+      expect(structured.action).toBe('deleted');
+      expect(structured.effects).toEqual([
+        {
+          variant: variantRef(IDS.draftBased, 'Ambulance'),
+          kept: [itemRef(IDS.draftBased, 'rule-2', 'Rule 02')],
+          dissolved: [],
+        },
+      ]);
+      expect(itemsOf(0).map((item) => item.id)).toEqual(['rule-1']);
+      expect(itemOf(1, 'rule-2')?.mark).toBe('added');
+    });
+
+    it('ungroups a group with keep_members', async () => {
+      await onDraft('group_items', { variant: 'Standard', items: ['rule-1', 'rule-2'] });
+      const { isError, structured } = await onDraft('delete_item', {
+        variant: 'Standard',
+        item: 'group-1',
+        keep_members: true,
+      });
+      expect(isError).toBe(false);
+      expect(structured.action).toBe('ungrouped');
+      expect(itemsOf(0).map((item) => item.id)).toEqual(['rule-1', 'rule-2']);
+      expect(itemsOf(1).map((item) => item.id)).toEqual(['rule-1', 'rule-2']);
+    });
+  });
+
+  describe('reset_item', () => {
+    it("resets the based variant's changed rule to follow Standard", async () => {
+      const { isError, structured } = await onDraft('reset_item', {
+        variant: 'Ambulance',
+        item: 'rule-2',
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({
+        id: 'rule-2',
+        mark: null,
+        condition: { operator: 'equal_to', value: 'Stuttgart' },
+        message: 'You must live in Stuttgart.',
+      });
+      expect(itemOf(1, 'rule-2')).toEqual(itemOf(0, 'rule-2'));
+    });
+
+    it('restores a removed rule', async () => {
+      await onDraft('delete_item', { variant: 'Ambulance', item: 'rule-1' });
+      const { isError, structured, text } = await onDraft('reset_item', {
+        variant: 'Ambulance',
+        item: 'rule-1',
+      });
+      expect(isError).toBe(false);
+      expect(structured.item).toMatchObject({ id: 'rule-1', mark: null });
+      expect(itemOf(1, 'rule-1')?.mark).toBeNull();
+      expect(text).toContain('Restored:');
+    });
+
+    it("refuses an item that isn't changed, in the editor's words", async () => {
+      const { structured } = await onDraft('reset_item', { variant: 'Ambulance', item: 'rule-1' });
+      expect(structured).toEqual({
+        code: 'validation',
+        message: 'Rule 01 in Ambulance isn’t changed: it follows Standard already.',
+      });
+    });
+  });
+
+  describe('copy_rule', () => {
+    it('duplicates a rule beside it without to_variants', async () => {
+      const { isError, structured } = await onDraft('copy_rule', {
+        variant: 'Standard',
+        rule: 'rule-1',
+      });
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: expect.objectContaining({ id: IDS.draft }),
+        copies: [
+          {
+            variant: variantRef(IDS.draftStandard, 'Standard'),
+            item: itemRef(IDS.draftStandard, 'rule-3', 'Rule 03'),
+          },
+        ],
+      });
+      expect(itemOf(0, 'rule-3')).toMatchObject({ condition: { years: 18 } });
+      expect(itemOf(1, 'rule-3')?.mark).toBeNull();
+    });
+
+    it('copies a rule to the empty variant', async () => {
+      const { isError, structured } = await onDraft('copy_rule', {
+        variant: 'Ambulance',
+        rule: 'rule-2',
+        to_variants: ['Pilot'],
+      });
+      expect(isError).toBe(false);
+      expect(structured.copies).toEqual([
+        {
+          variant: variantRef(IDS.draftEmpty, 'Pilot'),
+          item: itemRef(IDS.draftEmpty, 'rule-3', 'Rule 03'),
+        },
+      ]);
+      expect(itemsOf(2)).toEqual([
+        expect.objectContaining({
+          id: 'rule-3',
+          mark: null,
+          condition: { operator: 'equal_to', value: 'Esslingen' },
+        }),
+      ]);
+    });
+  });
+
+  describe('group_items', () => {
+    it('groups two of Standard’s rules with a name and OR, passed on to the based variant', async () => {
+      const { isError, structured } = await onDraft('group_items', {
+        variant: 'Standard',
+        items: ['Rule 01', links.itemLink(IDS.draft, IDS.draftStandard, 'rule-2')],
+        name: 'Age or city',
+        operator: 'or',
+      });
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: expect.objectContaining({ id: IDS.draft }),
+        variant: variantRef(IDS.draftStandard, 'Standard'),
+        item: expect.objectContaining({
+          id: 'group-1',
+          type: 'group',
+          name: 'Age or city',
+          operator: 'or',
+          mark: null,
+          link: links.itemLink(IDS.draft, IDS.draftStandard, 'group-1'),
+          items: [
+            expect.objectContaining({ id: 'rule-1' }),
+            expect.objectContaining({ id: 'rule-2' }),
+          ],
+        }),
+      });
+      expect(itemOf(1, 'group-1')).toMatchObject({ name: 'Age or city', operator: 'or' });
+    });
+
+    it("refuses a single rule with the editor's message", async () => {
+      const { structured } = await onDraft('group_items', {
+        variant: 'Standard',
+        items: ['rule-1'],
+      });
+      expect(structured).toEqual({
+        code: 'validation',
+        message:
+          'Choose two or more rules of one level in Standard to group. A sub-group can’t hold ' +
+          'groups.',
+      });
+      expect(storedDraft().version).toBe(1);
+    });
+  });
+
+  it('applies the change to the draft another save stored in between (FR-015)', async () => {
+    fake.beforeNextDraftSave((draft) => {
+      // Another save added rule-3 to Standard meanwhile
+      const state: EditState = {
+        branches: draft.branches,
+        counters: { rule: draft.next_rule_number, group: draft.next_group_number },
+      };
+      const other = addRule(state, IDS.draftStandard, null, { name: 'Other save' });
+      if (!other.ok) throw new Error(other.refusal.message);
+      fake.store.connections.set(draft.id, {
+        ...draft,
+        branches: other.state.branches,
+        next_rule_number: other.state.counters.rule,
+        version: draft.version + 1,
+      });
+    });
+    const { isError, structured } = await onDraft('add_rule', {
+      variant: 'Standard',
+      name: 'Mine',
+    });
+    expect(isError).toBe(false);
+    expect(structured.item).toMatchObject({ id: 'rule-4', name: 'Mine' });
+    expect(itemsOf(0).map((item) => [item.id, item.name])).toEqual([
+      ['rule-1', 'Rule 01'],
+      ['rule-2', 'Rule 02'],
+      ['rule-3', 'Other save'],
+      ['rule-4', 'Mine'],
+    ]);
+    expect(itemsOf(1).map((item) => item.id)).toEqual(['rule-1', 'rule-2', 'rule-3', 'rule-4']);
+    expect(storedDraft().version).toBe(3);
+    expect(fake.calls.filter((call) => call.method === 'PUT')).toHaveLength(2);
+  });
+
+  it("builds User Story 2's draft exactly as the editor's actions do (SC-002, SC-003)", async () => {
+    const AGE: Condition = { operator: 'at_least_years_ago', years: 18 };
+    const NATIONALITY: Condition = { operator: 'includes_one_of', values: ['DE', 'AT'] };
+    const CLASS_B: Condition = { operator: 'includes_one_of', values: ['B'] };
+    const CLASS_C: Condition = { operator: 'includes_one_of', values: ['C'] };
+    const VALID: Condition = { operator: 'at_least_from_now', amount: 6, unit: 'months' };
+
+    // Through the tools, one change per call
+    const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+    const id = created.structured.connection.id as string;
+    const standardId = created.structured.variants[0].id as string;
+    async function call(tool: string, args: Record<string, unknown>) {
+      const answer = await callTool(tool, { connection: id, ...args }, BEARERS.drafts);
+      expect(answer.isError, answer.text).toBe(false);
+      return answer.structured;
+    }
+    await call('set_document', { document_type: 'pid', fields: ['nationalities', 'birthdate'] });
+    await call('set_document', {
+      document_type: 'mdl',
+      fields: ['expiry_date', 'driving_privileges'],
+    });
+    const basedId = (await call('add_variant', { name: 'Ambulance', origin: 'based' })).variant
+      .id as string;
+    const emptyId = (
+      await call('add_variant', { name: 'Pilot', origin: 'empty', description: 'A trial' })
+    ).variant.id as string;
+    await call('add_rule', {
+      variant: 'Standard',
+      name: 'Adult',
+      target: { document_type: 'pid', field: 'birthdate' },
+      condition: AGE,
+      message: 'You must be at least 18 years old.',
+    });
+    await call('add_rule', {
+      variant: 'Standard',
+      target: { document_type: 'pid', field: 'nationalities' },
+      condition: NATIONALITY,
+      message: 'You must be German or Austrian.',
+    });
+    await call('add_rule', {
+      variant: standardId,
+      target: { document_type: 'mdl', field: 'driving_privileges.classes' },
+      condition: CLASS_B,
+      message: 'You need licence B.',
+    });
+    await call('add_rule', {
+      variant: 'Standard',
+      target: { document_type: 'mdl', field: 'expiry_date' },
+      condition: VALID,
+      message: 'Your licence must be valid for six more months.',
+    });
+    await call('group_items', {
+      variant: 'Standard',
+      items: ['Adult', 'rule-2'],
+      name: 'Age or nationality',
+      operator: 'or',
+    });
+    await call('update_item', {
+      variant: 'Ambulance',
+      item: 'rule-3',
+      condition: CLASS_C,
+      message: 'You need licence C.',
+    });
+    await call('delete_item', { variant: 'Standard', item: 'rule-4' });
+
+    // The same actions through edits.ts directly, with the ids the tools answered
+    let state: EditState = {
+      branches: [
+        {
+          id: standardId,
+          name: 'Standard',
+          description: null,
+          origin: 'main',
+          operator: 'and',
+          operator_mark: null,
+          items: [],
+        },
+      ],
+      counters: { rule: 1, group: 1 },
+    };
+    function apply<T extends object>(result: EditResult<T>): void {
+      if (!result.ok) throw new Error(result.refusal.message);
+      state = result.state;
+    }
+    apply(addVariant(state, { name: 'Ambulance', description: null }, 'based', basedId));
+    apply(addVariant(state, { name: 'Pilot', description: 'A trial' }, 'empty', emptyId));
+    apply(
+      addRule(state, standardId, null, {
+        name: 'Adult',
+        target: target('pid', 'birthdate'),
+        condition: AGE,
+        message: 'You must be at least 18 years old.',
+      })
+    );
+    apply(
+      addRule(state, standardId, null, {
+        target: target('pid', 'nationalities'),
+        condition: NATIONALITY,
+        message: 'You must be German or Austrian.',
+      })
+    );
+    apply(
+      addRule(state, standardId, null, {
+        target: target('mdl', 'driving_privileges', 'classes'),
+        condition: CLASS_B,
+        message: 'You need licence B.',
+      })
+    );
+    apply(
+      addRule(state, standardId, null, {
+        target: target('mdl', 'expiry_date'),
+        condition: VALID,
+        message: 'Your licence must be valid for six more months.',
+      })
+    );
+    apply(
+      groupItems(state, standardId, ['rule-1', 'rule-2'], {
+        name: 'Age or nationality',
+        operator: 'or',
+      })
+    );
+    apply(
+      changeRule(state, basedId, 'rule-3', { condition: CLASS_C, message: 'You need licence C.' })
+    );
+    apply(deleteItem(state, standardId, 'rule-4'));
+
+    const stored = fake.store.connections.get(id) as FormConnectionDraft;
+    expect(stored.branches).toEqual(state.branches);
+    expect({ rule: stored.next_rule_number, group: stored.next_group_number }).toEqual(
+      state.counters
+    );
+    // What the comparison covers, spelled out: the marks and the tree of each variant
+    const shape = (items: RuleTreeItem[]): unknown[] =>
+      items.map((item) =>
+        item.type === 'group' ? [item.id, item.mark, shape(item.items)] : [item.id, item.mark]
+      );
+    expect(
+      stored.branches.map((branch) => [branch.name, branch.origin, shape(branch.items)])
+    ).toEqual([
+      [
+        'Standard',
+        'main',
+        [
+          [
+            'group-1',
+            null,
+            [
+              ['rule-1', null],
+              ['rule-2', null],
+            ],
+          ],
+          ['rule-3', null],
+        ],
+      ],
+      [
+        'Ambulance',
+        'based',
+        [
+          [
+            'group-1',
+            null,
+            [
+              ['rule-1', null],
+              ['rule-2', null],
+            ],
+          ],
+          ['rule-3', 'changed'],
+        ],
+      ],
+      ['Pilot', 'empty', []],
+    ]);
+    expect(
+      stored.documents.map((document) => [
+        document.document_type,
+        document.fields.map((field) => field.key),
+      ])
+    ).toEqual([
+      ['pid', ['birthdate', 'nationalities']],
+      ['mdl', ['expiry_date', 'driving_privileges']],
+    ]);
+    expect(stored.step).toBe('rules');
   });
 });

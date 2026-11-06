@@ -108,7 +108,8 @@ function contentWith(items: LocalDraftContent['branches'][number]['items']): Loc
 describe('emptyContent', () => {
   it('is the content of a fresh create flow, as the editor gives it', () => {
     const editor = initialEditorState({ initialStep: 'connection' });
-    expect(emptyContent()).toEqual(localContentOf(editor, initialRulesState()));
+    const rules = initialRulesState();
+    expect(emptyContent(rules.branches[0].key)).toEqual(localContentOf(editor, rules));
   });
 
   it('has no name, description or documents, and the main variant alone, numbered from 1', () => {
@@ -129,6 +130,14 @@ describe('emptyContent', () => {
       ],
       numberingBase: { rule: 1, group: 1 },
       counters: { rule: 1, group: 1 },
+    });
+  });
+
+  it('carries the id of the flow’s main variant, none by default (spec 007, R10)', () => {
+    const id = 'c8a2f1e0-1b2c-4d3e-8f40-5a6b7c8d9e0f';
+    expect(emptyContent(id)).toEqual({
+      ...emptyContent(),
+      branches: [{ ...emptyContent().branches[0], id }],
     });
   });
 

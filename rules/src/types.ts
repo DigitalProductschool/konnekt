@@ -2,8 +2,13 @@
 // api-types/src/; these describe what the modules derive from them
 import type { DocumentField, FieldPart } from '@connection-portal/api-types/document-types';
 import type {
+  BranchInput,
+  Combinator,
+  Condition,
   GroupItem,
+  NumberingBase,
   RuleItem,
+  RuleTarget,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
@@ -218,3 +223,80 @@ export interface ShownItem {
    */
   dissolved: boolean;
 }
+
+// The editor's actions (edits.ts; spec 007, research R8)
+
+/**
+ * What the editor's actions change: every branch, the main branch first, in tab order, and the
+ * numbers the next new rule and group get. An action names a branch by its id, which every branch
+ * has here: the rules step's keys, or a stored draft's ids
+ */
+export interface EditState {
+  branches: BranchInput[];
+  counters: NumberingBase;
+}
+
+/** Why an action was refused: the editor's message, with the variant and the item it names */
+export type EditRefusal = RulesProblem;
+
+/** What an action answers: the new state and what changed (`T`), or why it was refused */
+export type EditResult<T extends object = object> =
+  ({ ok: true; state: EditState } & T) | { ok: false; refusal: EditRefusal };
+
+/** A rule's content as an action sets it: what is left out stays as it is */
+export interface RuleChanges {
+  name?: string;
+  target?: RuleTarget | null;
+  condition?: Condition | null;
+  message?: string;
+}
+
+/** A group's content as an action sets it: what is left out stays as it is */
+export interface GroupChanges {
+  name?: string;
+  operator?: Combinator;
+  /** Null removes the group's own message */
+  message?: string | null;
+}
+
+/**
+ * A new rule's content. `id` is the rule editor's, which numbered the rule when it opened (the
+ * rules step); without it, the rule is numbered from the counters
+ */
+export interface NewRule extends RuleChanges {
+  id?: string;
+}
+
+/** A variant's name and description, as the Add variant and Edit variant dialogs give them */
+export interface VariantChanges {
+  name?: string;
+  /** Null, or a blank one, removes it */
+  description?: string | null;
+}
+
+/**
+ * What a deletion or an ungrouping in the main branch does to a branch based on it (F14;
+ * `deletionEffects`): the items it changed and keeps as its own, and the groups it changed that
+ * dissolve all the same
+ */
+export interface EditEffect {
+  branchId: string;
+  kept: RuleTreeItem[];
+  dissolved: GroupItem[];
+}
+
+/** A rule in a branch, by their ids */
+export interface RuleInBranch {
+  branchId: string;
+  ruleId: string;
+}
+
+/**
+ * Data that stops being requested (the documents step's question, FR-029; F18): a document, one of
+ * its fields, all its fields, or the data the catalog dropped (S8)
+ */
+export type DataRemoval =
+  | { type: 'document'; documentType: string }
+  | { type: 'field'; documentType: string; field: string }
+  | { type: 'allFields'; documentType: string }
+  | { type: 'dropped'; items: { documentType: string; field: string | null }[] };

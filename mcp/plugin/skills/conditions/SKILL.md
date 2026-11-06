@@ -21,6 +21,32 @@ or `field.part#B`), its `condition`, its `message` and its readable `statement`;
 `operator`, its message and its members; its mark in a based variant, and `in_group`, the group
 it sits in. The statement is empty while the rule is incomplete.
 
+## Adding and changing rules
+
+Each call makes one change, stored at once in the draft; published connections can't be changed.
+
+- `add_rule` adds a rule to a `variant`, at the end of its top level, or of a group or sub-group
+  with `group`. It takes an optional `name` (Rule 01, Rule 02, … by default), the data as
+  `target: { document_type, field }` (`field` is a catalog key, `field.part` such as
+  `place_of_birth.country`, or `field.part#class` such as `driving_privileges.issue_date#B`), a
+  `condition` (below) and the citizen's `message`. Any of them may come in a later call: an
+  incomplete rule is stored. A rule added to Standard appears in every variant based on it
+  (`propagated_to`); one added to a based variant is marked `added` there.
+- `update_item` changes a rule's `name`, `target`, `condition` or `message`, or a group's `name`,
+  `operator` (`and` or `or`) or `message` (`null` removes the group's own message). Give only what
+  changes. In a based variant the item becomes `changed`; a change in Standard reaches the based
+  variants where the item still follows Standard. A name another rule or group of the variant has
+  is refused, in Standard also when a based variant has it.
+
+## Groups
+
+`group_items` puts two or more `items` of one level of a variant into a new group in the first
+one's place: a group at the top level, or a sub-group inside a group. A sub-group holds only
+rules, so groups go no deeper. It takes an optional `name` (Group 01, … by default), `operator`
+(`and` by default: all must be met; `or`: one must be met) and `message`. A group's AND/OR and
+message change later with `update_item`; ungrouping is `delete_item` with `keep_members`
+(variants-and-standard).
+
 ## Operators per kind of data
 
 | Kind              | Operators                                                        | Takes                                                               |

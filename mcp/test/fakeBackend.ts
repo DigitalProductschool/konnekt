@@ -111,6 +111,9 @@ const LEVEL_ORDER: AccessLevel[] = ['read', 'drafts', 'manage'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SERVICEBW_URL = 'https://portal.example/api/connect';
 const APPROVAL_MINUTES = 10;
+// The server's limits on a connection's name and description (form_connections.py)
+const NAME_MAX_LENGTH = 200;
+const DESCRIPTION_MAX_LENGTH = 500;
 
 /** An approval request and the bearer that made it (a bearer reads only its own). */
 export interface StoredApproval {
@@ -400,6 +403,45 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     });
   }
 
+  /**
+   * The server's checks of a draft's name, description and documents (`clean_name`,
+   * `clean_description`, `clean_documents(complete=False)`), with its messages: the documents
+   * and their fields in catalog order
+   */
+  function cleanDraft(body: DraftCreate): {
+    name: string;
+    description: string;
+    documents: RequestedDocument[];
+  } {
+    const name = (body.name ?? '').trim();
+    if (!name) throw validation('Enter a name.');
+    if (name.length > NAME_MAX_LENGTH) {
+      throw validation(`The name can have at most ${NAME_MAX_LENGTH} characters.`);
+    }
+    const description = (body.description ?? '').trim();
+    if (description.length > DESCRIPTION_MAX_LENGTH) {
+      throw validation(`The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`);
+    }
+    const catalog = fake.store.documentTypes;
+    for (const document of body.documents) {
+      const type = catalog.find((each) => each.key === document.document_type);
+      if (!type) throw validation(`Unknown document type '${document.document_type}'.`);
+      const unknown = document.fields.find((key) => !type.fields.some((each) => each.key === key));
+      if (unknown !== undefined) {
+        throw validation(`Unknown field '${unknown}' for '${type.label}'.`);
+      }
+    }
+    const documents = catalog.flatMap((type) => {
+      const requested = body.documents.find((each) => each.document_type === type.key);
+      if (!requested) return [];
+      const fields = type.fields
+        .filter((field) => requested.fields.includes(field.key))
+        .map((field) => field.key);
+      return [{ document_type: type.key, fields }];
+    });
+    return { name, description, documents };
+  }
+
   function draftOf(
     id: string,
     body: DraftCreate,
@@ -407,16 +449,15 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     created: string,
     previous?: FormConnectionDraft
   ): FormConnectionDraft {
+    const { name, description, documents } = cleanDraft(body);
     const branches = branchesOf(body.rules.branches);
     const items = branches.flatMap((branch) => branch.items);
     return {
       status: 'draft',
       id,
-      name: body.name,
-      description: body.description ?? '',
-      documents: body.documents.map((document) =>
-        documentViewOf(fake.store.documentTypes, document)
-      ),
+      name,
+      description,
+      documents: documents.map((document) => documentViewOf(fake.store.documentTypes, document)),
       branches,
       next_rule_number: Math.max(
         previous?.next_rule_number ?? 1,

@@ -38,10 +38,25 @@ export function storedContentOf(draft: FormConnectionDraft): LocalDraftContent {
 }
 
 /**
+ * A record's content with the stored draft's variant ids where it has none, place by place: a
+ * record saved before variants had ids (spec 007, research R10). Only the ids are taken, so a
+ * record with other changes still differs.
+ */
+function withStoredIds(content: LocalDraftContent, stored: LocalDraftContent): LocalDraftContent {
+  return {
+    ...content,
+    branches: content.branches.map((branch, index) =>
+      typeof branch.id === 'string' ? branch : { ...branch, id: stored.branches[index]?.id ?? null }
+    ),
+  };
+}
+
+/**
  * What the record of `draft-<id>` means when the edit route loads the draft (contracts/
  * local-drafts.md "Rules for callers" 2; FR-016): `'none'` without a record, `'same'` when its
  * content is the stored draft's, which the page removes silently, and `'ask'` when it holds
- * changes, which the page offers to restore.
+ * changes, which the page offers to restore. A record saved before variants had ids is the same
+ * when it differs only by them.
  */
 export function restoreChoiceOf(
   record: LocalDraftRecord | null,
@@ -50,7 +65,8 @@ export function restoreChoiceOf(
   if (record === null) {
     return 'none';
   }
-  return sameContent(record.content, storedContentOf(draft)) ? 'same' : 'ask';
+  const stored = storedContentOf(draft);
+  return sameContent(withStoredIds(record.content, stored), stored) ? 'same' : 'ask';
 }
 
 /** Where the draft's flow starts: the question for `'ask'`, and otherwise the stored draft. */

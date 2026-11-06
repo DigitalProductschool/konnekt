@@ -5,8 +5,9 @@ function sees the signed-in account's rows only; another account's row answers
 404, as an unknown one does. A changed level applies from the agent's next call,
 since the bearer principal reads it at every call; lowering or revoking cancels the
 waiting approval requests the agent may no longer make. A personal access token's
-secret is answered once and stored only as its SHA-256. Nothing here logs more than
-ids.
+secret is answered once and stored only as its SHA-256. The draft limit (research
+R17) counts an agent's new drafts in a fixed window of an hour. Nothing here logs
+more than ids.
 """
 
 import logging
@@ -28,7 +29,8 @@ from ..schemas import (
     to_iso_utc,
 )
 from . import approvals
-from .auth import ACCESS_LEVELS, Principal
+from .auth import ACCESS_LEVELS, UNAUTHORIZED, Principal
+from .evaluation import GERMANY
 from .oauth import new_secret, token_hash
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,9 @@ TOKEN_NAME_MAX_LENGTH = 100
 
 NOT_FOUND = {'error': 'Not found', 'message': 'Agent access not found'}
 BEARER_ONLY = {'error': 'bearer_only', 'message': 'This endpoint is for agents.'}
+
+# The draft limit's fixed window (research R17)
+DRAFT_WINDOW = timedelta(hours=1)
 
 
 def _validation_error(message: str) -> HTTPException:
@@ -207,3 +212,46 @@ def agent_me(db: Session, principal: Principal) -> AgentMe:
             'levels': list(ACCESS_LEVELS),
         }
     )
+
+
+def count_draft_creation(db: Session, authorization_id: str) -> None:
+    """Count a new draft in the authorization's window, or answer 429 (FR-020).
+
+    Under the authorization row's lock: a window that started an hour ago or more,
+    or never, restarts now with a count of 1; a count below AGENT_DRAFTS_PER_HOUR
+    goes up by one; otherwise `rate_limited` with the window's end in Germany's
+    time zone. The count is flushed, not committed: the draft's own commit stores
+    it, so a creation the server refuses doesn't count, and the lock is held until
+    then. A refusal releases the lock. An authorization revoked since the call's
+    sign-in answers 401, as its token now would. Saves of a draft never come here.
+    """
+    authorization = db.scalars(
+        select(AgentAuthorization)
+        .where(AgentAuthorization.id == authorization_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    if authorization is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=UNAUTHORIZED
+        )
+    now = datetime.now(tz=timezone.utc)
+    started_at = authorization.drafts_window_started_at
+    if started_at is None or started_at + DRAFT_WINDOW <= now:
+        authorization.drafts_window_started_at = now
+        authorization.drafts_in_window = 1
+    elif authorization.drafts_in_window < settings.agent_drafts_per_hour:
+        authorization.drafts_in_window += 1
+    else:
+        db.rollback()
+        logger.info('Agent authorization %s reached the draft limit', authorization_id)
+        again_at = (started_at + DRAFT_WINDOW).astimezone(GERMANY)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                'error': 'rate_limited',
+                'message': f'This agent can create drafts again at {again_at:%H:%M}.',
+            },
+        )
+    db.flush()

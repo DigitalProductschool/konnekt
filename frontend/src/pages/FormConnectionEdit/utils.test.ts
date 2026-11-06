@@ -100,8 +100,9 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
     };
   }
 
+  /** A stored draft's variants have ids (spec 007, research R10) */
   const MAIN: BranchInput = {
-    id: null,
+    id: '5d1e2f3a-4b5c-4d6e-8f70-8192a3b4c5d6',
     name: 'Standard',
     description: null,
     origin: 'main',
@@ -204,6 +205,13 @@ describe('restoreChoiceOf (contracts/local-drafts.md "Rules for callers" 2; FR-0
     ['the numbering base', { numberingBase: { rule: 1, group: 1 } }],
   ])('asks when the record changes %s', (_name, change) => {
     expect(restoreChoiceOf(recordOf({ ...STORED_CONTENT, ...change }), STORED)).toBe('ask');
+  });
+
+  it('finds a record saved before variants had ids the same, unless it holds changes', () => {
+    const withoutIds = { ...STORED_CONTENT, branches: [{ ...MAIN, id: null }] };
+    expect(restoreChoiceOf(recordOf(withoutIds), STORED)).toBe('same');
+    const changed = { ...withoutIds, branches: [{ ...MAIN, id: null, items: [] }] };
+    expect(restoreChoiceOf(recordOf(changed), STORED)).toBe('ask');
   });
 
   it("asks when the record holds changes to a draft that changed since, as it can't tell", () => {

@@ -6,6 +6,7 @@ import type {
 } from '@connection-portal/api-types/routing';
 import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { droppedDataOf } from '@connection-portal/rules/dropped';
+import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
 import { firstProblem } from '@connection-portal/rules/validation';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -79,8 +80,8 @@ import {
   problemPlaceOf,
   publishErrorNotice,
   removalAction,
+  removedDataRulesOf,
   ruleLines,
-  rulesCheckingRemoval,
   rulesNextActionOf,
   startOfEntry,
   startOfOrigin,
@@ -762,7 +763,7 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
    * a dialog that names them (FR-029; F18).
    */
   function removeOrAsk(removal: PendingRemoval) {
-    if (rulesCheckingRemoval(removal, rules.branches, state.documents).length > 0) {
+    if (rulesCheckingRemoval(rules.branches, removal, state.documents).length > 0) {
       dispatch({ type: 'askRemoval', removal });
       return;
     }
@@ -984,7 +985,7 @@ function ConnectionWizard({ flow, firstConnection, onReload, reloaded }: Connect
             removal={state.pendingRemoval}
             rules={
               state.pendingRemoval
-                ? rulesCheckingRemoval(state.pendingRemoval, rules.branches, state.documents)
+                ? removedDataRulesOf(state.pendingRemoval, rules.branches, state.documents)
                 : []
             }
             editing={editing}

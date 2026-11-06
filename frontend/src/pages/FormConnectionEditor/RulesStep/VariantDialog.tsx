@@ -12,7 +12,6 @@ import {
   branchOf,
   focusSoon,
   initialVariantForm,
-  newBranchKey,
   variantFormProblem,
   variantFormReducer,
 } from './utils';
@@ -51,12 +50,13 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
       return;
     }
     const variant = { name: form.name, description: form.description };
-    // The new variant's tab, or the edited one's, takes the focus once the dialog is closed
-    const key = editing?.key ?? newBranchKey(state.branches);
+    // The new variant's tab, or the edited one's, takes the focus once the dialog is closed. A
+    // new variant's key is its id, made here (spec 007, research R10)
+    const key = editing?.key ?? crypto.randomUUID();
     dispatch(
       editing
         ? { type: 'editVariant', branchKey: key, variant }
-        : { type: 'addVariant', variant, origin: form.origin }
+        : { type: 'addVariant', variant, origin: form.origin, id: key }
     );
     focusSoon(ELEMENT_IDS.branchTab(key));
   }

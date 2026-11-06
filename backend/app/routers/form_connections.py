@@ -15,8 +15,9 @@ from ..schemas import (
     FormConnectionSummary,
     FormConnectionUpdate,
 )
-from ..services import drafts, form_connections
+from ..services import agent_access, drafts, form_connections
 from ..services.auth import (
+    Principal,
     get_current_principal,
     require_browser_session,
     require_json,
@@ -106,12 +107,18 @@ def create_form_connection(
     dependencies=[Depends(require_level('drafts')), Depends(require_json)],
 )
 def create_draft(
-    data: DraftCreate, db: Session = Depends(get_db)
+    data: DraftCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnectionDraft]:
     """Store a new draft, version 1, without calling EUDIPLO (spec 005).
 
-    Refuses a broken structure with 400; an incomplete draft is accepted.
+    Refuses a broken structure with 400; an incomplete draft is accepted. An
+    agent's new draft counts towards its draft limit, 429 beyond it (spec 007,
+    FR-020); a browser session isn't limited.
     """
+    if principal.authorization is not None:
+        agent_access.count_draft_creation(db, principal.authorization.id)
     return ApiResponse(data=drafts.create_draft(db, data), message='Draft saved')
 
 

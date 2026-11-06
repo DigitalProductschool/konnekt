@@ -212,6 +212,30 @@ export const RULES_MESSAGES = {
   nameTooLong: 'A name can have at most 100 characters.',
 };
 
+// The refusals of the editor's actions (edits.ts) in a state where the rules step doesn't offer
+// them, so that the agents' tools can say why and what to do instead (spec 007, FR-016). An item
+// and a variant by their names as written, trimmed; `main` is the main variant's
+export const EDIT_MESSAGES = {
+  unknownVariant: 'Unknown variant.',
+  unknownItem: (id: string, variant: string) => `${variant} has no rule or group ${id}.`,
+  notRule: (item: string, variant: string) => `${item} in ${variant} is a group, not a rule.`,
+  notGroup: (item: string, variant: string) => `${item} in ${variant} is a rule, not a group.`,
+  removed: (item: string, variant: string) => `${item} is removed in ${variant}. Restore it first.`,
+  alreadyRemoved: (item: string, variant: string) => `${item} is already removed in ${variant}.`,
+  notRemoved: (item: string, variant: string) =>
+    `${item} in ${variant} isn’t removed, so there is nothing to restore.`,
+  notChanged: (item: string, variant: string, main: string) =>
+    `${item} in ${variant} isn’t changed: it follows ${main} already.`,
+  notBased: (variant: string, main: string) =>
+    `${variant} isn’t based on ${main}, so it has nothing to reset or restore.`,
+  inheritedGroup: (group: string, variant: string, main: string) =>
+    `${group} in ${variant} follows ${main}, so it can only be ungrouped in ${main}. Remove it from ${variant} instead.`,
+  cantGroup: (variant: string) =>
+    `Choose two or more rules of one level in ${variant} to group. A sub-group can’t hold groups.`,
+  mainVariant: (main: string) => `${main} is the main variant and can’t be deleted.`,
+  noCopyTarget: (rule: string) => `Choose another variant to copy ${rule} to.`,
+};
+
 // The part after "{rule} in {branch}: " of each incomplete condition's message
 export const CONDITION_PROBLEM_MESSAGES = {
   choose_check: 'choose a check.',

@@ -8,16 +8,17 @@ const UNTITLED_NAME = 'Untitled connection';
 
 /**
  * The content of a fresh create flow, its baseline: no name, no description, no documents, and the
- * main variant "Standard" alone, AND, without items, numbered from 1.
+ * main variant "Standard" alone, AND, without items, numbered from 1. `mainId` is the flow's main
+ * variant's id, which its content carries (spec 007, research R10).
  */
-export function emptyContent(): LocalDraftContent {
+export function emptyContent(mainId: string | null = null): LocalDraftContent {
   return {
     name: '',
     description: '',
     documents: [],
     branches: [
       {
-        id: null,
+        id: mainId,
         name: 'Standard',
         description: null,
         origin: 'main',

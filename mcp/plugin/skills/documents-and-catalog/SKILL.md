@@ -42,12 +42,25 @@ An enum field or part takes its values from a **value set**: countries, sexes, l
 eye colours. Long value sets such as the countries are searched, never listed whole; a rule names
 the values by their codes (`DE`, `B`).
 
+## Choosing documents and fields
+
+`set_document` sets one document type of a draft: `document_type` is its catalog key, and
+`fields` lists the keys of every field to request, replacing the fields requested so far (they
+are stored in catalog order). A document type not yet requested is added; `fields: []` adds it
+without fields, to choose them later; `fields: null` removes the document. An unknown document
+type or field is refused with the known keys. The answer lists the draft's documents with their
+fields.
+
 ## Removing a document or a field
 
 Rules can only check data the connection requests. Removing a document, or a field that rules
-check, would leave those rules without their data, so it is refused with the names of the rules
-concerned, unless you also remove those rules, in every variant. Tell the team member which rules
-went with it.
+check, would leave those rules without their data, so `set_document` refuses it with the names of
+the rules concerned ("Rule 02 in Standard, Rule 02 in Ambulance"), unless you pass
+`also_remove_rules: true`: then those rules are removed too, in every variant, and the answer
+lists them in `removed_rules`. Tell the team member which rules went with it.
 
 When the catalog no longer offers a document type or field that a draft requests, the draft still
-shows it, labelled by its key; remove it before publishing.
+shows it, labelled by its key (`get_connection` lists it in `dropped`), and the Connection Portal
+refuses to store the draft until it is gone: every change answers `validation` with "Unknown
+document type …". Remove it with `set_document` before anything else: `fields: null` for a
+document type, or the document's remaining fields for a dropped field.

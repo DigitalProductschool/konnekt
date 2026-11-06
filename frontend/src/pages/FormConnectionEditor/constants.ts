@@ -184,6 +184,12 @@ export const UPCOMING_DOCUMENTS = [
   'Vehicle registration',
 ];
 
+/**
+ * A branch id as the server takes it (spec 007, research R10): a UUID in its canonical form, as
+ * `crypto.randomUUID()` makes it. A loaded branch whose id isn't one gets a new id
+ */
+export const BRANCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 // Element ids that validation moves the focus to
 export const ELEMENT_IDS = {
   form: 'connection-form',

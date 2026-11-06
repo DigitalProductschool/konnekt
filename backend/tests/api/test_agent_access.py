@@ -4,7 +4,8 @@ contracts/management-api.md "Agent access" and "Agent principal", research R6 an
 R7: an account sees and changes its own agent connections and tokens only; a new
 level applies from the agent's next call; lowering and revoking cancel the waiting
 approval requests the agent may no longer make; a personal access token's secret
-is answered once; deleting the account ends every agent's access (FR-005).
+is answered once; deleting the account ends every agent's access (FR-005); an
+agent creates at most AGENT_DRAFTS_PER_HOUR drafts an hour (research R17, FR-020).
 """
 
 from collections.abc import Callable
@@ -16,6 +17,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.cli import delete_user
+from app.config import settings
 from app.db import SessionLocal
 from app.main import app
 from app.models import (
@@ -28,6 +30,7 @@ from app.models import (
 from app.schemas import AccessLevel
 from app.services import approvals
 from app.services.auth import ACCESS_LEVELS
+from app.services.evaluation import GERMANY
 from app.services.oauth import token_hash
 from tests.conftest import TEST_USERNAME, create_user
 from tests.helpers import bearer_client, create_agent_authorization, main_branch, now
@@ -527,3 +530,122 @@ def test_deleting_the_account_ends_its_agents_access(
     with SessionLocal() as db:
         assert db.scalars(select(AgentAuthorization)).all() == []
         assert db.scalars(select(AgentToken)).all() == []
+
+
+# The draft limit (research R17, FR-020)
+
+
+def _draft_window(authorization_id: str) -> tuple[datetime | None, int]:
+    with SessionLocal() as db:
+        authorization = db.get(AgentAuthorization, authorization_id)
+        assert authorization is not None
+        return authorization.drafts_window_started_at, authorization.drafts_in_window
+
+
+def _draft_count() -> int:
+    with SessionLocal() as db:
+        return len(db.scalars(select(FormConnection.id)).all())
+
+
+@pytest.fixture
+def two_drafts_an_hour(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, 'agent_drafts_per_hour', 2)
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_the_draft_beyond_the_limit_answers_when_the_agent_can_again(
+    client: TestClient,
+) -> None:
+    authorization_id, token = create_agent_authorization(create_user(), 'drafts')
+    agent = _agent(token)
+    before = now()
+
+    for _ in range(2):
+        assert agent.post(DRAFTS, json=DRAFT).status_code == 201
+    refused = agent.post(DRAFTS, json=DRAFT)
+
+    started_at, count = _draft_window(authorization_id)
+    assert started_at is not None
+    assert before <= started_at <= now()
+    assert count == 2
+    again_at = (started_at + timedelta(hours=1)).astimezone(GERMANY)
+    assert refused.status_code == 429
+    assert refused.json() == {
+        'error': 'rate_limited',
+        'message': f'This agent can create drafts again at {again_at:%H:%M}.',
+    }
+    assert _draft_count() == 2
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_saving_a_draft_never_counts(client: TestClient) -> None:
+    authorization_id, token = create_agent_authorization(create_user(), 'drafts')
+    agent = _agent(token)
+    draft_ids = [agent.post(DRAFTS, json=DRAFT).json()['data']['id'] for _ in range(2)]
+    assert agent.post(DRAFTS, json=DRAFT).status_code == 429
+
+    saved = agent.put(
+        f'/api/form-connections/{draft_ids[0]}/draft',
+        json=DRAFT | {'name': 'Geändert', 'version': 1},
+    )
+
+    assert saved.status_code == 200, saved.json()
+    assert saved.json()['data']['version'] == 2
+    assert _draft_window(authorization_id)[1] == 2
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_a_refused_creation_doesnt_count(client: TestClient) -> None:
+    authorization_id, token = create_agent_authorization(create_user(), 'drafts')
+    agent = _agent(token)
+
+    assert agent.post(DRAFTS, json=DRAFT | {'name': ' '}).status_code == 400
+    assert _draft_window(authorization_id) == (None, 0)
+    for _ in range(2):
+        assert agent.post(DRAFTS, json=DRAFT).status_code == 201
+    assert _draft_window(authorization_id)[1] == 2
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_the_window_restarts_after_an_hour(client: TestClient) -> None:
+    authorization_id, token = create_agent_authorization(create_user(), 'drafts')
+    agent = _agent(token)
+    for _ in range(2):
+        assert agent.post(DRAFTS, json=DRAFT).status_code == 201
+    assert agent.post(DRAFTS, json=DRAFT).status_code == 429
+    with SessionLocal() as db:
+        authorization = db.get(AgentAuthorization, authorization_id)
+        assert authorization is not None
+        assert authorization.drafts_window_started_at is not None
+        authorization.drafts_window_started_at -= timedelta(hours=1)
+        db.commit()
+    before = now()
+
+    assert agent.post(DRAFTS, json=DRAFT).status_code == 201
+
+    started_at, count = _draft_window(authorization_id)
+    assert started_at is not None
+    assert before <= started_at <= now()
+    assert count == 1
+    assert agent.post(DRAFTS, json=DRAFT).status_code == 201
+    assert agent.post(DRAFTS, json=DRAFT).status_code == 429
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_each_agent_has_its_own_limit(client: TestClient) -> None:
+    user_id = create_user()
+    _, first = create_agent_authorization(user_id, 'drafts', name='first')
+    _, second = create_agent_authorization(user_id, 'drafts', kind='oauth')
+    for _ in range(2):
+        assert _agent(first).post(DRAFTS, json=DRAFT).status_code == 201
+    assert _agent(first).post(DRAFTS, json=DRAFT).status_code == 429
+
+    assert _agent(second).post(DRAFTS, json=DRAFT).status_code == 201
+
+
+@pytest.mark.usefixtures('two_drafts_an_hour')
+def test_a_browser_session_isnt_limited(signed_in_client: TestClient) -> None:
+    for _ in range(3):
+        response = signed_in_client.post(DRAFTS, json=DRAFT)
+        assert response.status_code == 201, response.json()
+    assert _draft_count() == 3

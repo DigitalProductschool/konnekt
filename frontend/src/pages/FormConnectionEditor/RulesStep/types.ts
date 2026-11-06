@@ -22,7 +22,11 @@ import type { ShownFinding } from '../../../components/FindingNote/types';
 import type { ToastContent } from '../../../components/Toast/types';
 import type { PopupPlacement } from '../../../utils/popupPlacement';
 
-/** A branch in the rules step. `key` stays the same while the branch has no id yet */
+/**
+ * A branch in the rules step. `key` is its id (spec 007, research R10): a stored branch's, or the
+ * one it got when it was added or, without one, when the step loaded it; a save sends it as the
+ * branch's id. `id` is the id the step loaded it with, null for a branch added in the step
+ */
 export interface RulesBranch extends BranchInput {
   key: string;
 }
@@ -167,7 +171,11 @@ export type RulesAction =
   /** Adds (with ''), changes or removes (with null) a group's own message */
   | { type: 'setGroupMessage'; branchKey: string; groupId: string; message: string | null }
   | { type: 'askAddVariant' }
-  | { type: 'addVariant'; variant: VariantFields; origin: 'based' | 'empty' }
+  /**
+   * `id` is the new variant's, which the Add variant dialog makes, so that it can move the focus
+   * to its tab; a new one without it
+   */
+  | { type: 'addVariant'; variant: VariantFields; origin: 'based' | 'empty'; id?: string }
   | { type: 'askEditVariant'; branchKey: string }
   | { type: 'editVariant'; branchKey: string; variant: VariantFields }
   | { type: 'askDeleteVariant'; branchKey: string }

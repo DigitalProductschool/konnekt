@@ -492,7 +492,11 @@ def test_a_bearer_that_isnt_current_answers_401(
 
 @contextmanager
 def _agent_authorization_updates() -> Iterator[list[str]]:
-    """Collect the UPDATE statements on agent_authorizations sent meanwhile."""
+    """Collect the last-use writes on agent_authorizations sent meanwhile.
+
+    An agent's new draft also updates the row (its draft limit's count), which
+    isn't a last-use write.
+    """
     statements: list[str] = []
 
     def collect(
@@ -503,7 +507,10 @@ def _agent_authorization_updates() -> Iterator[list[str]]:
         _context: Any,
         _executemany: bool,
     ) -> None:
-        if statement.lstrip().upper().startswith('UPDATE AGENT_AUTHORIZATIONS'):
+        normalised = statement.lstrip().upper()
+        if normalised.startswith('UPDATE AGENT_AUTHORIZATIONS') and (
+            'LAST_USED_AT' in normalised
+        ):
             statements.append(statement)
 
     event.listen(engine, 'before_cursor_execute', collect)

@@ -40,18 +40,36 @@ a draft is stored at once, may be incomplete between calls, and is never live.
   once published, and for a draft its version, its step and `dropped`: requested data the wallet
   no longer offers, which must be removed before publishing.
 
+## Creating a draft and changing its name
+
+- `create_draft` takes the `name` and an optional `description` and creates a draft with the
+  main variant "Standard", no documents and no rules, at the connection step. It answers the
+  connection and its Standard variant with their links. An agent can create only a limited number
+  of drafts per hour: past it, the call is refused with the time from which it can create drafts
+  again (`rate_limited`), so don't create a draft to try something out.
+- `update_connection` changes a draft's `name` or `description` (at most 500 characters);
+  `description: null` or `''` clears it. The name can't be empty.
+
+Every tool that changes a draft works on drafts only: a published connection's content is changed
+in the Connection Portal, and the tool answers `published_read_only` for it, whatever your access
+level.
+
 ## One change per call
 
 Every change is one call and is stored at once: adding a document, renaming a variant, adding one
 rule, changing one condition. There is no "save" step and nothing to undo in bulk. If another team
 member saves the same draft meanwhile, the change is applied again to their version; if the
-draft keeps changing, try again a little later.
+draft keeps changing, the tool answers `conflict`: try again a little later. A change the editor
+would refuse is refused with the editor's message (`validation`), naming the rule or variant
+concerned, and nothing is stored.
 
 ## The draft's step
 
 A draft remembers how far its content reaches, as the editor's wizard does: the connection step
 (name and description), the documents step, the rules step and the test step. The team member who
-opens the draft in the Connection Portal continues there.
+opens the draft in the Connection Portal continues there. Every change stores the furthest step the
+content reaches: the rules step once any variant has a rule, the documents step once a document is
+requested, the connection step otherwise. Each answer's text says the draft's version and step.
 
 ## What to tell the team member
 
