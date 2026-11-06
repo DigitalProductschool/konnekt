@@ -81,9 +81,27 @@ silently.
 
 | Kind | What it is | Possible decisions |
 |---|---|---|
-| **F item** | the design draws something the baseline lacks: a feature, a control, a state, a screen | **adopt**: it becomes a requirement of this spec; or **drop**: it is not built |
+| **F item** | the design draws something the baseline lacks: a feature, a control, a state, a screen | **adopt**: it becomes a requirement of this spec; **defer**: it would need a change outside the frontend, so the frontend leaves it out and it is recorded as a later feature; or **drop**: it is not built |
 | **W item** | the baseline has something the design does not draw: spec 007's consent, user and approval pages, and states such as loading, server errors, conflicts and the local drafts' offer | **build**: the baseline's behaviour and wording, from the new components and patterns, no frame; or **drop**, only when the design removes it on purpose, which is a behaviour change to record |
 | **C item** | copy the design rewrites that another package provides (the validation and error messages of the backend, the rule statements, the findings' texts, the KERN kit's translations), and a renamed concept (connection, variant, "Standard", rule, group, document, the product name) | **adopt**: the copy or the name changes in every place that provides or repeats it; or **drop**: the current copy stays |
+
+## Clarifications
+
+### Session 2026-11-06
+
+- Q: When the design draws a feature that would need a change outside the frontend (a backend
+  endpoint, a rule capability, an MCP tool), may clarify adopt it with that change, or must it wait
+  for a later spec? → A: Defer: the frontend leaves the feature out, and it is recorded as a later
+  feature; the backend, the rules package and the MCP server never change for a feature the design
+  adds.
+- Q: When a colour pair in the design fails the WCAG AA contrast ratio, should the port adjust it,
+  keep it, or ask per pair? → A: Adjust: the port uses the nearest value that passes AA, records
+  the change in the design notes with the pair it fixes, and the designer is told; no clarify
+  question per pair.
+- Q: Which states must a component's visual verification table cover before it counts as done? →
+  A: Once per component: its default plus the interaction states the kit draws (hover, pressed,
+  focus, disabled); a screen's table then covers its layout and its own states (loading, empty,
+  error, success) with the components in their default state.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -284,8 +302,9 @@ and the design's patterns.
   decide.
 - **Long content** (long names and descriptions, many documents, rules or variants, long URLs): the
   design's wrapping or truncation pattern applies, and nothing becomes unreachable.
-- **A Revamp colour pair that fails the AA contrast**: reported by the audit, decided in clarify,
-  never silently changed or silently kept.
+- **A Revamp colour pair that fails the AA contrast**: the port uses the nearest value that passes,
+  records the change with the pair it fixes, and the designer is told; never silently changed or
+  silently kept.
 - **A screen reached by its address** (bookmark, history, a link from an agent): behaves as the
   baseline says, in the new design.
 
@@ -306,8 +325,8 @@ Sources and governance:
   requests to the backend and the same handling of their answers, the same sign-in guard, drafts
   and local drafts.
 - **FR-004**: Every drift item MUST be found by the Figma audit, decided once in clarify (adopt,
-  build or drop, as the table above allows for its kind), and recorded; no item is ported or left
-  out silently.
+  build, defer or drop, as the table above allows for its kind), and recorded; no item is ported or
+  left out silently.
 - **FR-005**: A screen or state the design does not draw (a W item) MUST be built from the new
   components and the patterns the design establishes elsewhere, with the baseline's behaviour and
   wording.
@@ -316,7 +335,8 @@ Sources and governance:
   place that provides or repeats it, so that the frontend's validation messages stay word for word
   with the server's and the agents' guidance names the same concepts as the UI.
 - **FR-007**: Apart from adopted C items, the backend, the rules package, the MCP server and the
-  API types MUST NOT change.
+  API types MUST NOT change; a feature the design adds that would need them is deferred, never
+  adopted.
 
 Parity:
 
@@ -332,7 +352,8 @@ Parity:
 - **FR-012**: Every route MUST have exactly one main heading and its own tab title.
 - **FR-013**: The accessibility sections of the baseline MUST keep holding: visible labels,
   validation linked to its field, status messages announced, AA contrast with the Revamp's
-  colours.
+  colours. A colour pair of the design that fails AA is set to the nearest passing value, the
+  change is recorded with the pair it fixes, and the designer is told.
 
 Construction and removal:
 
@@ -343,7 +364,9 @@ Construction and removal:
   MUST be marked as history.
 - **FR-016**: Every unit of the audit's inventory (a screen or a component) MUST have a visual
   verification table, one row per frame and state, and a unit is done only when every row matches
-  or cites a decided item.
+  or cites a decided item. A component's table covers its default and the interaction states the
+  kit draws (hover, pressed, focus, disabled), once; a screen's table covers its layout and its own
+  states (loading, empty, error, success) with the components in their default state.
 - **FR-017**: The documentation MUST be updated: the design system guide, the Figma workflow, the
   architecture's frontend section and the agent instructions' UI rules; spec 002's audit files stay
   as history with their references updated.
@@ -386,3 +409,10 @@ Construction and removal:
   it tests and changes only when an adopted drift item changes the behaviour it covers.
 - The passes, their agents and their outputs follow [brief.md](brief.md); the Figma files are
   read through the project's agents only.
+- The kit is a reference: a kit component is built as the screens use it, and one no screen uses
+  is not built.
+- A typeface the design uses is adopted and served by the app itself, as the current one is; a
+  typeface whose licence forbids that is a drift item.
+- "Matches its frame" means within the tolerances of the Figma workflow (`docs/FIGMA-WORKFLOW.md`):
+  exact spacing, borders, radii, colours and typography, one pixel for text box heights.
+- The design defines no motion; transitions stay as the design system provides them.
