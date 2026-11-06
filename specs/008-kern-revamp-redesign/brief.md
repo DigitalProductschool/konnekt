@@ -1,8 +1,8 @@
 # Brief: porting the redesigned UI (KERN Revamp) — plan of record
 
-**Written**: 2026-11-06, in the planning chat. **Status**: plan agreed, pass A not started.
-**Pass A moves this file** into the feature directory as `brief.md`, next to `spec.md`, once
-`/speckit-specify` has created it (speckit ignores loose files in `specs/`, so it is harmless here).
+**Written**: 2026-11-06, in the planning chat. **Status**: pass A in progress: `spec.md` written
+and this file moved here from `specs/redesign-brief.md` on 2026-11-06; the tooling edits of §4 and
+`/speckit-clarify` are still to do.
 It is the record every chat and both machines can read until pass C's `plan.md` and `tasks.md`
 absorb it; after that it is history.
 
