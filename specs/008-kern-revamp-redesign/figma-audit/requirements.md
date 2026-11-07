@@ -1,4 +1,4 @@
-# Requirements index — spec.md mtime 2026-11-07 18:10:03 UTC
+# Requirements index — spec.md mtime 2026-11-07 20:58:30 UTC
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -120,12 +120,13 @@
 | FR-035d | The Test step shows no variant ⓘ; an (i) after "Standard" there is its description icon | P3 | Y | Test step | default | | FR-035; #57 |
 | FR-036a | Every rule, group and variant menu has "Copy link" before its destructive entries, also after "Restore" | P3 | Y | Rules step; Variant tabs | default | W item, copy | FR-036; Q22 |
 | FR-036b | Rule menus carry "Rename" and "Copy to variant", narrowed for linked items in a variant (FR-036e, FR-036f) | P3 | Y | Rules step | default | W item, copy | FR-036; Q22, #53 |
-| FR-036c | Top-level rules and sub-group-free top-level groups offer "Group with other rules" beside a neighbour, starting select mode | P3 | Y | Rules step | default | F item, copy | FR-036; Q22, #48 |
+| FR-036c | Top-level rules, sub-group-free top-level groups and rules in top-level groups offer "Group with other rules" beside a neighbour | P3 | Y | Rules step | default | F item, copy | FR-036; Q22, #48, #60 |
 | FR-036d | A sub-group's menu, a rule inside a sub-group and a group holding a sub-group offer no grouping | P3 | Y | Rules step | default | | FR-036; Q22, #48 |
 | FR-036e | In a variant, a rule or group linked to Standard has no "Rename", "Duplicate" or "Ungroup" | P3 | Y | Rules step | default | F item, amends 002-S2.16, 002-S2.19, 002-S4.10 | FR-036; #53 |
 | FR-036f | "Copy to variant" shows only while some variant could still receive the item | P3 | Y | Rules step | default | F item | FR-036; #53 |
 | FR-036g | Group and sub-group menus carry "Rename", renaming inline on the name with the duplicate check | P3 | Y | Rules step | default | W item, copy | FR-036; #54 |
 | FR-036h | While a group has a message, "Remove message" sits next to "Add message"; otherwise "Add message" alone | P3 | Y | Rules step | default | W item, copy | FR-036; #54 |
+| FR-036i | It starts select mode with that item selected; inside a group, limited to that group's rules, forming a sub-group | P3 | Y | Rules step | default | F item, copy | FR-036; #48, #60 |
 | FR-037a | While a group has its own message, members read "Not shown while this rule is in Group 01. …" | P3 | Y | Rules step | default | F item, copy, supersedes 002-S2.5 (display) | FR-037; Q23c |
 | FR-037b | The member rule keeps its message in the data; the evaluation reports the group's message | P3 | N | Rules step | ? | | FR-037; Q23c |
 | FR-037c | Groups with one member or none dissolve; a sub-group that moves up keeps its name | P3 | Y | Rules step | default | | FR-037; Q23a, Q23b |
@@ -260,7 +261,7 @@
 
 Contracts: 001: `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` (no section ids: the preamble with the routes and the sign-in guard is S0, the `##` sections S1 Sign in, S2 Forgot password, S3 Overview, S4 First connection, S5 Create and edit, S6 Details, S7 Accessibility, as spec.md's table states); 002: `specs/002-connection-rules/contracts/ui-screens.md`; 003: `specs/003-rule-consistency-checks/contracts/ui-screens.md`; 004: `specs/004-rule-test-personas/contracts/ui-screens.md`; 005: `specs/005-connection-drafts/contracts/ui-screens.md`; 006: `specs/006-connection-description/contracts/ui-screens.md` (no section ids: preamble S0, `##` sections S1 Step 1, S2 Overview row, S3 Details page, S4 Accessibility, S5 Copy removed); 007: `specs/007-agent-mcp-server/contracts/ui-screens.md`.
 Unnumbered sections of the other contracts: `R` Routes, `ACC` Accessibility, `CP` Copy (Copy conventions). Items of "Deviations from Figma", "Items from the audit" and "W-items" are numbered within the screen section they belong to; `Spec §` names the item (F#, W#, A#, K#, O#, FYI). Copy tables that repeat texts already in a row are not indexed twice.
-Spec 008's Clarifications (session 2026-11-07, #1–#59) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
+Spec 008's Clarifications (session 2026-11-07, #1–#60) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -885,6 +886,7 @@ variant = branch, Variant, variant tab, tab, "+ Add variant", variant ⓘ
 Standard = main branch, main variant, default variant, Standard tab, Linked to Standard (recommended)
 rule = Rule NN, rule row, condition, check, rule card
 group = Group NN, sub-group, Sub-group NN, rule group, AND/OR group, GroupFrame
+select mode = selection bar, select, Group with other rules, Group rules, "Choose at least one more rule to group with …", "They become a sub-group of Group 01."
 connector = AND/OR, operator, logic toggle, pill, "All rules must be met", "At least one rule must be met"
 document = document type, credential, ID document, Personal ID, Driving licence, catalog item
 data = field, attribute, claim, part, value, data item

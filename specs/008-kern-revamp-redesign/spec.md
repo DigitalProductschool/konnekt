@@ -474,7 +474,9 @@ later `/speckit-specify`.
     sub-group offers no further grouping).
   - Supersedes: no Clarification; 007-S4.1, 007-S4.2, 002-S2.10, 002-S2.16, 002-S2.19 hold.
     "Group with other rules" is extended by #48 (second round, Remap Q3): also on a top-level
-    group without a sub-group, and only with a neighbour on the same level. "Rename" and "Copy
+    group without a sub-group, and only with a neighbour on the same level; and by #60 (third
+    round, Remap 2 Q1): also on a rule inside a top-level group, with another rule of that group
+    on its level. "Rename" and "Copy
     to variant" are narrowed by #53 (Remap Q8): not on items linked to Standard in a variant,
     and "Copy to variant" only while a variant could receive the item. The W list is extended by
     #54 (Remap Q9): "Rename" and "Remove message" on group and sub-group menus.
@@ -911,17 +913,20 @@ Q<n>". The record is the same: the decision, the surfaces, the exact wording, wh
 - Q: Where does the menu entry "Group with other rules" appear beyond a top-level rule's menu:
   also on a top-level group that holds no sub-group, or on rules only? (#48, Remap Q3, F,
   Conflict 3) → A: Two levels only.
-  - Surfaces: built on top-level rules (U34 #26; U36 #15, #28; U39 #27c; U41 #22; U64 #2) and on
-    a top-level group without a sub-group (U58 #20); select mode U36, U40, U64; build note 10
-    U54 6522:33107 (#5). Figma errors, not built: the entry on a rule inside Sub-group 01 (U55
-    6531:39068) and on a group that holds a sub-group (U55 6522:32424); #22's sub-group menu.
+  - Surfaces: built on top-level rules (U36 #15; U39 #27c; U41 #22; U64 #2), on rules inside a
+    top-level group (U34 #26; U36 #28; U55 #24; decided by #60) and on a top-level group without
+    a sub-group (U58 #20); select mode U36, U40, U64; build note 10 U54 6522:33107 (#5). Figma
+    errors, not built: the entry on a rule inside Sub-group 01 (U55 6531:39068) and on a group
+    that holds a sub-group (U55 6522:32424); #22's sub-group menu.
   - Behaviour and wording: "Group with other rules" appears on a top-level rule (FR-036) and on
     a top-level group that holds no sub-group, only when another rule or group is on the same
     level; it starts select mode with that item selected (FR-038). It never appears in a
     sub-group's menu, on a rule inside a sub-group, or on a group that holds a sub-group
     (002-S2.10).
   - Supersedes: #22 is extended (groups) and its "a rule's menu" is narrowed to top-level rules
-    with a neighbour; 002-S2.10 holds.
+    with a neighbour; 002-S2.10 holds. Extended by #60 (third round, Remap 2 Q1): also on a rule
+    inside a top-level group, whether or not the group holds a sub-group, with another rule of
+    that group on its level.
 
 - Q: Should the ⓘ on "Result link" in the details show the design's drawn sentence, the decided
   reference hint, or both? (#49, Remap Q4, F, Partial 1) → A: The design's text only; the
@@ -1075,6 +1080,33 @@ Q<n>". The record is the same: the decision, the surfaces, the exact wording, wh
     "Start with" preselects "Linked to Standard (recommended)", so a variant created without a
     choice is based on Standard (U37 6139:32693; U52 6197:12011; U62 #25).
   - Supersedes: no Clarification; 002-S4's variant dialog gets the default of (8).
+
+Third round, the same day, after the second `/figma-audit remap`: the one clarify question of
+the remapped `figma-audit/report.md` ("Clarify questions", Q1), numbered #60 here and tagged
+"Remap 2 Q1". The record is the same.
+
+- Q: Does a rule inside a top-level group carry "Group with other rules", so that the group's
+  members can form a sub-group from the menu, and also when that group already holds a
+  sub-group? (#60, Remap 2 Q1, F, Conflict 1) → A: On rules in any top-level group.
+  - Surfaces: built as drawn on a rule inside a top-level group: U36 #28 (6344:53657, frame
+    2.18, Group 01 without a sub-group), U55 #24 (6522:32071, frame 10.2, Rule 03 in Group 01)
+    and U34 #26 (6113:28988, frame 2.3, Group 01 already holding Sub-group 01); build note 10
+    U54 #5 (6522:33107); select mode inside a group U36 #30 (6616:44240, frame 2.19).
+    Unchanged: the entry on top-level rules (U36 #15, U39 #27c, U41 #22, U56 #38, U64 #2) and
+    on top-level groups without a sub-group (U57 #22); the Figma errors of #48 (U55
+    6531:39068, 6522:32424); "Remove from group" stays deferred (F7).
+  - Behaviour and wording: "Group with other rules" also appears on a rule inside a top-level
+    group, whether or not the group already holds a sub-group, only when another rule of that
+    group is on its level (build note 10: "only when another rule or group is on the same
+    level"). It starts select mode with that rule selected and limited to that group's rules
+    (no checkboxes on the top-level rows or on the group's sub-groups), the bar reading "Choose
+    at least one more rule to group with Rule 03." (U36 #18's wording) and, at two, "2 rules
+    selected. They become a sub-group of Group 01." (U36 #30); "Group rules" forms "Sub-group
+    01" (002-S2.10), so a group can hold several sub-groups. The entry still never appears in a
+    sub-group's menu, on a rule inside a sub-group or on a group that holds a sub-group
+    (FR-036d).
+  - Supersedes: #48 is extended (its surface list now names the rules inside a group); #22's "a
+    rule's menu" is extended the same way; FR-036 gains the case; 002-S2.10 and FR-036d hold.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -1458,11 +1490,12 @@ Decided drift items (Clarifications, session 2026-11-07):
   in a variant an item linked to Standard has no Rename, Duplicate or Ungroup and "Copy to
   variant" shows only while some variant could still receive the item (#53); group and
   sub-group menus carry "Rename" (inline, with the duplicate check) and, while the group has a
-  message, "Remove message" next to "Add message" (#54); and the menu of a top-level rule or of
-  a top-level group without a sub-group offers "Group with other rules"
-  when another rule or group is on the same level, which starts select mode with that item
-  selected; a sub-group's menu, a rule inside a sub-group and a group holding a sub-group offer
-  no grouping (Q22, #48).
+  message, "Remove message" next to "Add message" (#54); and the menu of a top-level rule, of a
+  top-level group without a sub-group, or of a rule inside a top-level group (whether or not
+  the group already holds a sub-group) offers "Group with other rules" when another rule or
+  group is on the same level, which starts select mode with that item selected, inside a group
+  limited to that group's rules; a sub-group's menu, a rule inside a sub-group and a group
+  holding a sub-group offer no grouping (Q22, #48, #60).
 - **FR-037**: While a group has a message of its own, its member rules show "Not shown while this
   rule is in Group 01. Citizens see the group message instead." in place of their message, keeping
   the message in the data; groups with one member or none are dissolved and a sub-group that
