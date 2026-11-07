@@ -39,7 +39,7 @@ the seven adopted copy items.
   tools; pass I adds the screenshot matrix and the keyboard run (R3).
 - **The flows** are rebuilt story by story (R12), the welcome page with its device memory (R6),
   the documents step as a master-detail with its own reducer (R8), the leave model as a state
-  machine (R9), menus and tooltips in the top layer (R10), the published details running the
+  machine (R9), menus and tooltips placed with class sets (R10), the published details running the
   rule checks in the browser (R7).
 - **Removal** is a grep checklist run as its own pass (R13).
 
@@ -67,7 +67,11 @@ per account, the homepage memory (research R6), beside the local drafts.
   matrix and the keyboard walkthrough (quickstart V10–V11), the removal checklist (V12).
 
 **Target Platform**: unchanged: DO.IT's evergreen desktop browsers, light only; every screen
-usable at 320 px and 200 % zoom (FR-010).
+usable at 320 px and 200 % zoom (FR-010). The browsers are the current releases of the
+Chromium-based ones (Chrome, Edge) and Firefox, which the two Playwright servers of the checks
+cover; Safari is not checked (an assumption of the analysis of 2026-11-07, for the user to
+confirm). A web API that one of them lacks (CSS anchor positioning, the View Transitions API) is
+not used (R5, R10).
 
 **Project Type**: web application (React SPA behind nginx, FastAPI backend, PostgreSQL, the MCP
 server in its own container); this feature is almost entirely in `frontend/`.
@@ -92,11 +96,12 @@ list).
 
 **Scale/Scope**: the whole frontend, about 32 k lines (`pages/` 23 k, of which the editor 16 k;
 `components/` 4.6 k in 35 folders; one `index.css`); 91 screen units with about 230 frames and
-the kit's 26 pages to verify; seven copy items across four packages; about 95 tasks in eleven
-phases over roughly ten chats (brief §3).
+the kit's 26 pages to verify; seven copy items across four packages; 101 tasks in eleven
+phases over about twelve chats (tasks.md; brief §3 estimated ten).
 
 **Open points**: none. All are resolved in [research.md](research.md); the points to check while
-coding are R15's V1–V10.
+coding are R15's V1–V10; the two judgment calls of research R2 are recorded under Complexity
+Tracking.
 
 ## Constitution Check
 
@@ -111,10 +116,10 @@ Checked against constitution v1.2.0 (`.specify/memory/constitution.md`).
 | **III. Quality gates** | Pure helpers with `*.test.ts` beside them in `node`; no jsdom, no `vitest.config.ts`, no `pytest.ini`; `npm run lint`, `npm test` and `npm run build` from the root after every task, Ruff, mypy and pytest for the backend texts; the MCP's `guidance.test.ts` keeps passing because no tool changes | PASS |
 | **IV. Dependencies and config** | No dependency, setting or environment variable; the Revamp is CSS values; the browser checks use the Playwright MCP tools, not a package; the three images are static assets | PASS |
 | **V. Schema evolution** | No migration | PASS |
-| **Technology and structure** | Stack unchanged; `frontend/src/` keeps its folders (`api/`, `components/`, `pages/`, `hooks/`, `utils/`, `workers/`); components rebuilt in place under their names with sibling `types.ts` / `constants.ts` / `utils.ts`; related state in reducers (the documents step, the leave flow, the publish dialog, the details); every list a sub-component; Tailwind classes only, the overlay and the few scoped overrides in `index.css`, tokens in `@theme`; no `any`, no `require()` | PASS |
+| **Technology and structure** | Stack unchanged; `frontend/src/` keeps its folders (`api/`, `components/`, `pages/`, `hooks/`, `utils/`, `workers/`); components rebuilt in place under their names with sibling `types.ts` / `constants.ts` / `utils.ts`; related state in reducers (the documents step, the leave flow, the publish dialog, the details); every list a sub-component; Tailwind classes only, the overlay and the few scoped overrides in `index.css`, tokens in `@theme`; menus, popovers and tooltips are placed with class sets from `placementFrom()`, never with inline coordinates (R10, revised by the analysis of 2026-11-07); no `any`, no `require()` | PASS |
 | **Logging** | Nothing new is logged: no `console.*` in the pages, the hooks, `rules/src/`, `mcp/src/` outside `log.ts` | PASS |
 | **Security (CLAUDE.md "Auth")** | No endpoint changes; the sign-in guard stays as today (W2) | PASS |
-| **Workflow and documentation** | Frontend order: types (none) → API (none) → pure helpers → hooks → components → pages. The documentation checklist is the last phase: `docs/ARCHITECTURE.md` (the frontend section: layouts, scrolling, the four steps, the header, the welcome page, the homepage memory, the details' checks), `docs/KERN-DESIGN-SYSTEM.md` (the overlay), `docs/FIGMA-WORKFLOW.md` (where decisions are recorded), `CLAUDE.md` (the UI rules: the overlay, `useRememberedHomepage`, the top-layer menus, the dialogs' scrim rule), `README.md` (Konnekt), spec 002's notes marked as history | PASS |
+| **Workflow and documentation** | Frontend order: types (none) → API (none) → pure helpers → hooks → components → pages. The documentation checklist is the last phase: `docs/ARCHITECTURE.md` (the frontend section: layouts, scrolling, the four steps, the header, the welcome page, the homepage memory, the details' checks), `docs/KERN-DESIGN-SYSTEM.md` (the overlay), `docs/FIGMA-WORKFLOW.md` (where decisions are recorded), `CLAUDE.md` (the UI rules: the overlay, `useRememberedHomepage`, the class-set placement of menus, the dialogs' scrim rule), `README.md` (Konnekt), spec 002's notes marked as history | PASS |
 
 **Gate result (before research)**: PASS, with no violations to justify.
 
@@ -160,13 +165,13 @@ frontend/
 │   ├── hooks/
 │   │   └── useRememberedHomepage.ts   # new: the homepage memory (research R6)
 │   ├── utils/
-│   │   └── popupPlacement.ts      # + the vertical direction and max height of top-layer menus (R10)
+│   │   └── popupPlacement.ts      # + the vertical direction and the max-height step of menus, as class sets (R10)
 │   ├── components/                # the 35 folders rebuilt in place (design-notes §2), among them:
 │   │   ├── TopBar/, UserMenu/, AppLayout/      # the two-pill header, the account pill and its menu (L2)
 │   │   ├── WizardLayout/, WizardProgress/      # the compact step header, the sticky footer, page scroll (L3)
 │   │   ├── AuthLayout/                         # the sign-in frame with the login art (L1)
 │   │   ├── ConfirmDialog/, Toast/              # the kit's dialog set and the scrim rule; toasts with actions
-│   │   ├── ActionMenu/, InfoTooltip/, Connector/   # top layer, 220 px; hover, focus, touch; the pill menu
+│   │   ├── ActionMenu/, InfoTooltip/, Connector/   # class-set placement, 220 px; hover, focus, touch; the pill menu
 │   │   ├── ConnectionStatusBadge/              # the Status/Connection pill
 │   │   ├── RuleRow/, GroupFrame/, BranchMark/, BranchName/, FindingNote/, ValuesPicker/, Checkbox/
 │   │   ├── CopyableUrl/, LocalDraftsOffer/, TextField/, FormErrorMessage/, ErrorNoticeText/
@@ -281,7 +286,7 @@ change string literals and the guidance only, each with its tests, in the files 
   history), `CLAUDE.md` (one-line rules: "the Revamp's values live in the overlay block of
   `index.css` under KERN's names; a value without a KERN name is a `@theme` token"; "only
   `useLocalDraftStore` and `useRememberedHomepage` touch `localStorage`"; "menus, tooltips and
-  popovers render in the top layer and pick their side with `placementFrom()`"; "a scrim click
+  popovers are placed by `placementFrom()`'s class sets, never with inline coordinates"; "a scrim click
   closes a dialog unless it deletes or publishes"), `README.md` (Konnekt), spec 002's
   `design-notes.md` §9 ("superseded by spec 008"), and `brief.md`'s status line ("history from
   pass C on").
@@ -309,7 +314,8 @@ change string literals and the guidance only, each with its tests, in the files 
 
 ## Complexity Tracking
 
-No constitution violations, so nothing needs justifying here. Two judgment calls are recorded in
-research R2 for the user to confirm: code identifiers (`applicant.ts`, the `applicants` field of
-the MCP tools' answers, the `@connection-portal/*` npm scope) keep their names while every text
-changes; and the duplicate-group message follows the design's rule-message template.
+No constitution violations, so nothing needs justifying here. Two judgment calls of research R2
+are the record, applied by the analysis of 2026-11-07 (the user reverses them by amending the
+spec): code identifiers (`applicant.ts`, the `applicants` field of the MCP tools' answers, the
+`@connection-portal/*` npm scope) keep their names while every text changes (FR-019 and FR-020
+say so); and the duplicate-group message follows the design's rule-message template (C5, T011).

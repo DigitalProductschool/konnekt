@@ -123,6 +123,7 @@ A reducer in the editor (`LeaveFlowState`, actions `askLeave`, `cancel`, `savePr
 | edit of a published connection | the same | `saveAsked` → "Save your changes?" | **Save**: opens "Save changes?" (the save dialog) and leaves to the details once saved; **Discard changes**: leaves without saving; × / Escape: `idle` |
 | any flow with unsaved changes | "Log out" | `logoutAsked` → "Save before you log out?" | **Save and log out**: stores the draft, then logs out; **Log out anyway**: logs out; **Cancel** / ×: `idle`, focus back on the user menu |
 | any flow with unsaved changes | closing or reloading the tab | — | the browser's "Leave site?" (`beforeunload`); the local draft stays the safety net (V9) |
+| any flow with unsaved changes | the browser's back button | — | a forced leave: no dialog (no router blocker, V9); the local draft stays the safety net (005-S4) |
 | an open rule editor | any of the above | — | "Save changes to Rule 01?" first; no editor state is stored |
 
 ### The documents step (FR-031, research R8)
@@ -152,8 +153,9 @@ deactivate, reactivate and publish toasts (FR-051 (42)), the document and varian
 
 ### Menus, tooltips and the connector (research R10)
 
-`MenuPlacement`: `{ side: 'start' | 'end' | 'full', direction: 'down' | 'up', maxHeight }` from
-the trigger's rectangle and the header's and footer's bottom and top edges. `Connector`:
+`MenuPlacement`: `{ side: 'start' | 'end' | 'full', direction: 'down' | 'up', maxHeight: 160 | 240
+| 320 | 400 | 480 }` from the trigger's rectangle and the header's and footer's bottom and top
+edges, each value one Tailwind class set (research R10: no inline styles). `Connector`:
 `{ operator: 'and' | 'or', open }` with the two options "All rules must be met" / "At least one
 rule must be met" and the level in its accessible name (FR-038). A disabled button with an
 explanation: `aria-disabled`, `explanation` (text), the tooltip's `open` on hover, focus and

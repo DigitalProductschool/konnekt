@@ -127,7 +127,7 @@ it (§5).
 | Component | Kit page | Option | KERN class / override | States to verify | Decided |
 |---|---|---|---|---|---|
 | `AccessLevelChoice` | P14 radios, P33 base-radio | a | `kern-form-check__radio`, the fieldset | default, hover, focus, selected, disabled | proposal |
-| `ActionMenu` (+ `RuleMenuItem`) | build note 3 | c | top layer, 220 px, inner scroll (R10) | default, hover, focus, disabled item, open up/down | proposal |
+| `ActionMenu` (+ `RuleMenuItem`) | build note 3 | c | class-set placement (side, direction, max-height step), 220 px, inner scroll (R10) | default, hover, focus, disabled item, open up/down | proposal |
 | `AppLayout` | — | c | the header pills (L2) | default, scrolled (white background) | proposal |
 | `AuthLayout` (+ `AuthIntro`, the art) | L1 | c | the login art and tagline row | 1440, ~1280, <1024, 320 | proposal |
 | `BranchMark` | the rules frames | c | the marks' chips | changed, new, removed | proposal |
@@ -175,7 +175,7 @@ later use.
 | **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem |
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") |
-| **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | top layer, 220 px, 40 px rows with icon, inner scroll with a max height to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
+| **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
 | **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip with its arrow, on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute |
 | **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason) |
 | **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating |

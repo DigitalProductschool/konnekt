@@ -29,7 +29,7 @@ F#, W#, C#). Nothing here re-decides an item; this file says how the decided ite
 | How the welcome page and its device memory work with the routes that stay | R6 |
 | How the published details run the rule checks | R7 |
 | How the documents step, the toasts with actions and the dialogs are structured | R8, R9 |
-| How menus, tooltips and disabled buttons' explanations are built in the top layer | R10 |
+| How menus, tooltips and disabled buttons' explanations are placed without inline styles | R10 |
 | Which parts become own components after the kit's anatomy | R11 |
 | In what order the work runs across the passes, and what each chat produces | R12 |
 | What the removal of the old design covers, and how it is checked | R13 |
@@ -128,7 +128,7 @@ greps texts, not identifiers.
 | **C2** "citizen" | the noun for people who share wallet data | frontend: 34 files, mostly `constants.ts` of the editor, the rules and test steps, `RuleRow`, `GroupFrame`, `BranchName`, `AccessLevelChoice`, the details and overview constants; rules: `src/checks/findingMessages.ts` (every finding text), `src/personas/` (`messages.ts`, `results.ts`, `constants.ts`, `substitute.ts`, `goals.ts`), their tests (`findingMessages.test.ts` alone has 67 mentions); MCP: `plugin/instructions.md`, skills `checks-and-tests`, `variants-and-standard`, `links`, `connection-workflow`, `src/applicants.ts`, `findings.ts`, `views.ts`, `tools/checks.ts`, `tools/read.ts` and their tests; docs: `docs/ARCHITECTURE.md`, `README.md`, `CLAUDE.md` | every text says "citizen(s)" ("Message for citizens:", "sample citizen", "Creating 3 sample citizens…"); the wording per Clarification #2 |
 | **C3** statements | `<document> · <field>[ – <part>] <condition>`, "must be met", the COPY-BRIEF's proposed messages | `rules/src/statements.ts` (" – " between document and data becomes " · "; " – " stays before a part), `rules/src/messages.ts` (the proposed messages, from U09's rule logic table), `frontend/src/components/Connector/constants.ts` and `rules/src/personas/constants.ts` ("must be true" → "must be met"); tests `statements.test.ts`, `messages.test.ts`, `mcp/src/views.test.ts`, `mcp/test/server.test.ts` | the rules package writes the design's form everywhere a statement shows (rules step, editor, publish summary, details, test step, approval page, MCP answers) |
 | **C4** findings | "contradict each other", counts joined by ", and ", one sentence per finding | `rules/src/checks/findingMessages.ts` (the only module that writes finding texts) and its test; `mcp/src/findings.ts` (`resolutionOf()` texts for agents), the `checks-and-tests` skill; the test-step tooltip and the approval page repeat the package's texts | the texts per Clarification #4; the undrawn texts keep their sentences with the two substitutions |
-| **C5** server messages | sign-in, duplicate names, unrequested data, the number check | backend: `routers/auth.py` ("Invalid username or password"), `services/rules.py` (`'Another {noun} in {branch} is already called {name}.'`, the variant's duplicate message, the number check), `services/form_connections.py`; the frontend mirror `rules/src/constants.ts` (word for word, `validation.ts`), `frontend/src/pages/Login/constants.ts`, `RulesStep/constants.ts` (the banner's second sentence "Add the data again in Documents" → "Add it again in Documents", "Add the document again in Documents"); tests: `backend/tests/unit/test_rules_validation.py`, `tests/api/test_form_connection_rules.py`, `test_auth.py`, `test_form_connection_drafts.py`; `mcp/test/fakeBackend.ts` mirrors the messages | "Username or password is wrong. Check both and try again."; "There's already a rule called "Rule 01" in Ambulance." (the group message follows the same template, "There's already a group called "Group 01" in Standard.", a judgment call the task records); "There's already a variant called "Ambulance"."; "Enter a whole number greater than 0."; the unrequested-data fact sentence is already the design's and stays ("Rule 02 in Standard checks data that's no longer requested.") |
+| **C5** server messages | sign-in, duplicate names, unrequested data, the number check | backend: `routers/auth.py` ("Invalid username or password"), `services/rules.py` (`'Another {noun} in {branch} is already called {name}.'`, the variant's duplicate message), `services/form_connections.py`; the editor's own number check in `frontend/src/pages/FormConnectionEditor/RulesStep/RuleEditor/constants.ts` (`enterCount`, "Enter a number greater than 0." → the design's sentence; the server's "enter a number of years of at least 1." messages and their mirror stay); the frontend mirror `rules/src/constants.ts` (word for word, `validation.ts`), `frontend/src/pages/Login/constants.ts`, `RulesStep/constants.ts` (the banner's second sentence "Add the data again in Documents" → "Add it again in Documents", "Add the document again in Documents"); tests: `backend/tests/unit/test_rules_validation.py`, `tests/api/test_form_connection_rules.py`, `test_auth.py`, `test_form_connection_drafts.py`; `mcp/test/fakeBackend.ts` mirrors the messages | "Username or password is wrong. Check both and try again."; "There's already a rule called "Rule 01" in Ambulance." (the group message follows the same template, "There's already a group called "Group 01" in Standard.", a judgment call the task records); "There's already a variant called "Ambulance"."; "Enter a whole number greater than 0."; the unrequested-data fact sentence is already the design's and stays ("Rule 02 in Standard checks data that's no longer requested.") |
 | **C6** test formats | the data card and headings of the test step | `rules/src/personas/messages.ts` (" (age 19)"), `results.ts` ("Result: doesn't meet …", "1 rule and 1 group"), `values.ts` / `fields.ts` (licence classes rows), `frontend/src/pages/FormConnectionEditor/TestStep/utils.ts` (the date and class formatting the step adds, F10's comment) and the tests of each | the Test 1 frames' formats per Clarification #46: "08.07.2007", "B, BE since 02.05.2010" (one row per issue date), "Valid until <date>", "Result: doesn't meet 2 rules", "Tested as if shared today, 01.11.2026."; how unmet rules inside groups are counted is read from U65 and U66 (**V4**) |
 | **C7** "Enter a name for the connection." | the missing connection name | backend: `services/form_connections.py` (the 400 message, shared by connections and drafts); frontend: `pages/FormConnectionEditor/constants.ts` (`nameRequired`); MCP: `mcp/test/fakeBackend.ts`, the `connection-workflow` skill where it passes the message on; backend tests `test_form_connections.py`, `test_form_connection_drafts.py`; docs where quoted | the one text; "Enter a name." stays for the persona name (`TestStep/constants.ts`) and `rules/src/constants.ts`'s rule-name check, and "Enter a name for the variant." is already the design's |
 
@@ -307,19 +307,30 @@ discard (W5) dialogs. The publish dialog keeps its own component (states in
 
 ## R10. Menus, popovers, tooltips and disabled buttons' explanations
 
-**Decision**: every menu renders in the **top layer** with `position: fixed`, placed from the
-trigger's rectangle (build note 3): the side from `placementFrom()` as today (FR-009d), the
-vertical direction downward when the menu fits above the footer and upward otherwise, the max
-height the space to the header or footer minus 8 px with the list scrolling inside while the
-search field and the bottom row stay put, closing on Escape and on a click outside, arrow keys
-between items (`menuNavigation.ts` stays). `ActionMenu`'s width follows the design's 220 px now
-that the Revamp's 14 px `label/small` fits (spec 002's 248 px is history). The copy-to-variant
-popover (FR-040) and the tooltips use the same placement, and a tooltip opens on hover, on focus
-and on touch (FR-052g), with the design's arrow. **Disabled buttons that explain why** (FR-034,
-FR-052b) are rendered `aria-disabled="true"`, focusable, ignoring activation, so that hover and
-focus reach them; the explanation is the same tooltip. **V6**: the Popover API as the top-layer
-mechanism instead of `position: fixed`, if a task finds it simpler and the evergreen browsers
-agree.
+**Decision**: every menu stays positioned from its trigger's wrapper with Tailwind class sets,
+as `popupPlacement.ts` does today, because the constitution forbids inline styles and
+per-instance coordinates have no class (revised 2026-11-07 by the analysis, finding C1: the
+earlier decision, `position: fixed` in the top layer, needed inline `top`, `left` and
+`max-height`). The side comes from `placementFrom()` as today (FR-009d, build note 3); the helper
+gains two more class choices, measured when the menu opens: the vertical direction, `'down'` when
+the menu's height fits between the trigger's bottom and the footer's top (or the viewport's
+bottom) and `'up'` otherwise (`top-full` / `bottom-full` class pairs), and the max-height step,
+the largest of a fixed set (160, 240, 320, 400, 480 px, one `max-h-[…]` class each) that fits in
+the space to the header's bottom or the footer's top minus 8 px, with the list scrolling inside
+while the search field and the bottom row stay put. Nothing between a menu and the page clips or
+makes a containing block (`overflow-visible` on the frames, cards and rows that hold a menu, no
+`transform` or `filter` on them; rounded corners clip only their own background), and a `z-index`
+above the sticky header and footer keeps the menu on top, so the top layer isn't needed. Escape
+and a click outside close it, arrow keys move between items (`menuNavigation.ts` stays).
+`ActionMenu`'s width follows the design's 220 px now that the Revamp's 14 px `label/small` fits
+(spec 002's 248 px is history). The copy-to-variant popover (FR-040) and the tooltips use the
+same placement, and a tooltip opens on hover, on focus and on touch (FR-052g), with the design's
+arrow. **Disabled buttons that explain why** (FR-034, FR-052b) are rendered
+`aria-disabled="true"`, focusable, ignoring activation, so that hover and focus reach them; the
+explanation is the same tooltip. The Popover API is not used: a top-layer element leaves its
+wrapper's coordinate space, so it needs coordinates (inline) or CSS anchor positioning, which the
+browser set (plan, Target Platform) doesn't guarantee. **V6**: no ancestor of a menu clips or
+transforms, checked on every screen that holds one.
 
 ## R11. Own components after the kit's anatomy
 
@@ -409,8 +420,8 @@ machine; no task commits.
 | V3 | The three image exports weigh under about 300 KB each at 2×; otherwise re-export or optimise losslessly | the assets task |
 | V4 | How "Result: doesn't meet 2 rules" counts rules inside unmet groups, read from U65 `7057:58811` and U66 #19/#25 | the C6 task |
 | V5 | The page fade: a CSS animation on the main region, or the View Transitions API if every evergreen browser the team uses supports it | the layouts task |
-| V6 | Top-layer menus with `position: fixed` inside cards with `overflow: hidden`, or the Popover API | the `ActionMenu` task |
+| V6 | No ancestor of a menu clips (`overflow`) or creates a containing block (`transform`, `filter`) between the menu and the page, and a `z-index` keeps it above the sticky header and footer (R10: class-set placement, no inline styles) | the `ActionMenu` task and every screen task that holds a menu |
 | V7 | AA contrast of the Revamp pairs where they are text: `feedback-info` `#0284c7` on `#ffffff` (about 4.1:1) and on `#e0f2fe` (about 3.6:1) fail for normal text, so an info-coloured text (the blue "Draft" label, build note 32) needs the nearest passing value, recorded per Clarification 2026-11-06 #2; icons need 3:1 | the foundations task |
 | V8 | Fira Sans 500 (Medium, used by `heading/display` and `heading/x-large`) is in `@kern-ux/native`'s font files; `document.fonts.check('500 32px "Fira Sans"')` | the foundations task |
-| V9 | `beforeunload` for "Leave site?" with React Router 7's `useBlocker` for in-app navigation in the same flow | the leave-model task |
+| V9 | `beforeunload` for "Leave site?"; no router blocker: React Router's `useBlocker` needs a data router and the app mounts `<BrowserRouter>` (`frontend/src/main.tsx`), which stays, so the browser's back button is a forced leave with the local draft as its safety net (005-S4, FR-026) | the leave-model task |
 | V10 | The Test step's tab tooltip and the details' findings use the same `useRuleChecks()` instance shape as the approval page | the details task |

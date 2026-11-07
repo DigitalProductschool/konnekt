@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-06
 
-**Status**: Draft
+**Status**: Planned (clarified 2026-11-06 and 2026-11-07; plan, tasks and analysis 2026-11-07)
 
 **Input**: User description: "Port the redesigned UI into the frontend and remove the old design.
 The designer redrew every screen and every component in Figma "Middleware – V5" (file
@@ -128,10 +128,12 @@ later `/speckit-specify`.
     reads "{client_name} wants to act on your behalf in Konnekt. Choose what it may do."; 007-S2.5
     reads "No agent is connected yet. Add Konnekt's MCP server to your agent to connect it."
   - Supersedes: no Clarification.
+  - Scope (analysis 2026-11-07, research R2): texts, guidance and docs; code identifiers and the
+    npm scope `@connection-portal/*` keep their names (FR-019).
 
 - Q: Should the people who share wallet data be called "citizens", as the design writes everywhere,
   instead of "applicants"? (Q2, C) → A: Adopt "citizen" in every place; "applicant" remains
-  nowhere.
+  nowhere in a text (code identifiers keep their names: research R2, FR-020; analysis 2026-11-07).
   - Surfaces: step 1 and documents (U18 6793:47711, U20 7290:60373, U26 6701:39917; removal
     dialog U26 6324:40396); the rules step title and intro in every rules frame, "Message for
     citizens:" on every rule row (rules, details, draft details, e.g. U94 7246:52838) and in the
@@ -285,8 +287,10 @@ later `/speckit-specify`.
   invalid, with the one message; the frame's Username-only marking (U10 #13, 6401:28435) is not
   built.
   - Surfaces: the sign-in error state (U10 6401:28435).
-  - Wording: "Username or password is wrong. Check both and try again." (Q5), under both fields,
-    which both get the design's error fill. US1-AS1 and 001-S1.2 hold.
+  - Wording: "Username or password is wrong. Check both and try again." (Q5), in the danger alert
+    above the fields (U10 #12: the first sentence bold), both fields getting the design's error
+    fill (corrected 2026-11-07, analysis I6: an earlier "under both fields" contradicted the
+    frame). US1-AS1 and 001-S1.2 hold.
   - Supersedes: no Clarification.
 
 - Q: Should each overview row offer Delete, and should rows be selectable for one bulk delete, as
@@ -1379,6 +1383,10 @@ and the design's patterns.
 
 ### Functional Requirements
 
+A letter after a requirement's number (`FR-029c`) names one clause of that requirement, in the
+order of [figma-audit/requirements.md](figma-audit/requirements.md), the requirements index, which
+is the record of the letters; the contract, the research and the tasks cite clauses that way.
+
 Sources and governance:
 
 - **FR-001**: Every screen and every component MUST take its layout, styling and wording from
@@ -1446,10 +1454,13 @@ Decided drift items (Clarifications, session 2026-11-07):
 
 - **FR-019**: The product is named "Konnekt" in every screen and tab title, in the consent and
   account texts, in the MCP guidance, in the backend's and the MCP server's texts, and in the
-  README and docs; "Connection Portal" remains nowhere (Q1).
+  README and docs; "Connection Portal" remains nowhere in a text (Q1). Code identifiers and the
+  npm scope `@connection-portal/*` keep their names (research R2).
 - **FR-020**: The people who share wallet data are "citizens" in every screen, in the findings
   texts of the rules package, in its test-step texts and in the MCP guidance; "applicant" remains
-  nowhere (Q2).
+  nowhere in a text (Q2). Code identifiers (`applicant.ts`, `ApplicantsRow.tsx`, the `applicants`
+  field of the MCP tools' answers) keep their names, and the guidance names the concept with the
+  new word (research R2).
 - **FR-021**: Rule statements read `<document> · <field>[ – <part>] <condition>` with "must be
   met", and the editor proposes the COPY-BRIEF's messages, in every place that shows a statement:
   the rules step, the editor, the publish summary, the details, the test step, the approval page
@@ -1460,8 +1471,10 @@ Decided drift items (Clarifications, session 2026-11-07):
   keep their sentences with the same two substitutions (Q4).
 - **FR-023**: The sign-in, duplicate-name and unrequested-data messages read as the design writes
   them, naming the variant where the baseline does, in the backend, in the rules package's
-  validation (word for word) and in the MCP server; the number check keeps "Enter a whole number
-  greater than 0." and the "Add it in Documents" action stays (Q5); the missing connection name
+  validation (word for word) and in the MCP server; the editor's own number check reads "Enter a
+  whole number greater than 0." (today "Enter a number greater than 0."; the server's "enter a
+  number of years of at least 1." messages and their mirror stay) and the "Add it in Documents"
+  action stays (Q5); the missing connection name
   reads "Enter a name for the connection." in the backend, the frontend's step-1 check, the MCP
   server and its guidance (#58).
 - **FR-024**: The test step's data cards and headings read as the Test 1 frames format them, from
@@ -1485,14 +1498,15 @@ Decided drift items (Clarifications, session 2026-11-07):
   an open rule editor is asked "Save changes to Rule 01?" first and no editor state is stored;
   step 1 shows "Starts as a draft. It only becomes active when you publish."; logging out with
   unsaved changes asks "Save before you log out?" with "Save and log out", "Log out anyway" and
-  "Cancel". The local draft of the device remains the safety net after a crash or a forced leave
-  (Q8).
+  "Cancel". The local draft of the device remains the safety net after a crash or a forced leave,
+  the browser's back button included (no in-app navigation blocker, research V9) (Q8).
 - **FR-027**: While no connection or draft exists, the homepage is the welcome page "Welcome to
   Konnekt", shown after a sign-in without a requested route and again after the last connection
   is deleted, and remembered on the device across a reload; "Start from an example" is deferred
   to a later spec and not shown (Q9).
-- **FR-028**: Each overview row offers Delete, which asks the same confirmation as the details
-  (001-S6.11, or 005-S6.10 for a draft) with a per-row accessible name; selecting rows for a bulk
+- **FR-028**: Each overview row offers Delete, which asks the one delete dialog of FR-029c (the
+  details' confirmation, 001-S6.11, or 005-S6.10 for a draft) with a per-row accessible name;
+  selecting rows for a bulk
   delete is deferred to a later spec and its checkboxes and selection bar are not built (Q11).
 - **FR-029**: The overview shows the design's one hint in every state and rows of equal height
   with or without a description; one delete dialog ("Delete connection" / "Keep connection")
@@ -1521,7 +1535,7 @@ Decided drift items (Clarifications, session 2026-11-07):
   modal is shown (Q17).
 - **FR-034**: On the rules step, "Test rules" and, in the edit flow, "Save" are disabled while a
   rule is open, incomplete or in error, or while grouping, with "Save the rule first" / "Finish
-  grouping first" and an explanation that opens on hover and on focus (Q18, #47).
+  grouping first" as their explanation, shown as FR-052b says for every disabled button (Q18, #47).
 - **FR-035**: The Rules step shows an ⓘ after "+ Add variant" that opens on hover and on focus
   and reads "A separate set of rules for citizens with different requirements. Each variant gets
   its own result link."; the Test step shows no variant ⓘ (#57); the Standard tab's (i) shows
@@ -1558,7 +1572,10 @@ Decided drift items (Clarifications, session 2026-11-07):
   the source branch; removed items in a variant keep their message line and "Changed here" text
   (Q28).
 - **FR-041**: A variant tab shows a red problem icon whose tooltip (on hover and on focus) holds
-  the problem text, or a grey ⓘ when there are no findings; the Test step's tabs show only the
+  the problem text, or a grey ⓘ when there are no findings: the baseline's merged icon (003-A6),
+  whose tooltip holds the variant's description or, without one, "No findings." (undrawn, unless
+  the design supplies a text); a variant tab shows it as drawn (Q29a), the Standard tab only with
+  a description (FR-035, Q20); the Test step's tabs show only the
   "no citizen can meet" finding, from the evaluator, and no line is shown above the result
   heading for it (004-S8.6.1 dropped, #50); the names in the findings banner are links to the
   item (Q29).
@@ -1601,8 +1618,9 @@ Decided drift items (Clarifications, session 2026-11-07):
   draft" (Q39, #51); in the restore dialog, Escape, the × and the scrim all open the draft's
   details and keep the local draft (Q39).
 - **FR-050**: Motion follows the design's build notes: 240 ms for a growing pill, 150 ms for
-  colour changes and page fade-in, 150–200 ms for heights, a dialog fade and the 0.5 s publish
-  delay, all turned off when the person's system asks for reduced motion (Q40).
+  colour changes and page fade-in, 150–200 ms for heights and a dialog fade, all turned off when
+  the person's system asks for reduced motion; the 0.5 s publish delay (FR-044) is behaviour, not
+  a transition, and stays under reduced motion (Q40, Q33).
 - **FR-051**: The design's ui-detail items are built as designed (the overview search and count,
   the password toggle, "You're logged out.", the breadcrumb, group subtitles and notes, toast
   actions, editor hints, the ⓘ tooltips, "Discard rule", the per-document data count, the

@@ -369,7 +369,9 @@ and has one `h1`.
   now …" for today-only findings), the counts row "2 rules contradict each other, and 1 rule is a
   duplicate" (C4), the names as links that scroll to and focus the item (F39), each line's kind
   icon; the notes under rules and groups; the outlines; the tab's red error icon with the problem
-  text in its tooltip, the grey ⓘ without findings (FR-041), opening on hover and on focus; the
+  text in its tooltip, the grey ⓘ without findings (FR-041b: the merged icon of 003-A6, its tooltip
+  holding the description or "No findings."; on Standard only with a description, FR-035c), opening
+  on hover and on focus; the
   hidden kind text, a notice without links, update in place, the status region, the tab's
   accessible name, reflow, the undrawn texts (W13).
 - **States**: conflict; redundant only; today-only conflict; duplicates only; no findings; an
@@ -581,7 +583,7 @@ findings per C4. Each page keeps its one `h1`, its tab title and every state of 
 #### Patterns every screen uses
 
 Alerts (title-only vs with a body, F22), toasts (announced; with actions), dialogs (the kit's
-set; the scrim rule FR-052a), menus and tooltips in the top layer (build note 3; on hover, focus
+set; the scrim rule FR-052a), menus and tooltips placed with class sets (build note 3, R10; on hover, focus
 and touch, FR-052g), disabled buttons' explanations (FR-052b, W21), skeletons (U06 #95, U74),
 the status pill (U07 #1–#4), dates as dd.mm.yyyy (cosmetic 3), a page change scrolling to the
 top (FR-052c), the motion rules (FR-050, F62), AA contrast (W1). Their anatomy is in
