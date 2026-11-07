@@ -1,4 +1,4 @@
-# Requirements index — spec.md mtime 2026-11-07 16:00:35 UTC
+# Requirements index — spec.md mtime 2026-11-07 18:10:03 UTC
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -52,17 +52,19 @@
 | FR-023d | The backend, the rules package's validation (word for word) and the MCP server carry these messages | - | N | ? | ? | C item, copy:server | FR-023; Q5 |
 | FR-023e | The number check reads "Enter a whole number greater than 0." | P3 | Y | Rule editor | error | copy:server, amends 002-S3.16 | FR-023; Q5 |
 | FR-023f | The "Add it in Documents" action stays, although the design draws plain text | P3 | Y | Rules step | error | | FR-023; Q5 |
-| FR-024a | A date of birth reads "<date> · <age>" ("08.07.2007 · 19") | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.4.4 | FR-024; Q6 |
+| FR-023g | A missing connection name reads "Enter a name for the connection." | P2 | Y | Step 1 Connection | error | C item, copy:server, amends 005-S1.2, 005-S1.3 | FR-023; #58 |
+| FR-023h | The backend, the frontend's step-1 check, the MCP server and its guidance carry that message | - | N | ? | ? | C item, copy:server | FR-023; #58 |
+| FR-024a | A date of birth reads "<date>" without the age ("08.07.2007") | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.4.4 | FR-024; Q6, #46 |
 | FR-024b | An expiry date reads "Valid until <date>" | P3 | Y | Test step | default | C item, copy:rules | FR-024; Q6 |
-| FR-024c | Licence classes: one row per class, "<class> since <date> · <n> year(s)" | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.4.6 | FR-024; Q6 |
-| FR-024d | The result heading reads "Result: doesn't meet the rules", without a count | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.6.2 | FR-024; Q6 |
+| FR-024c | Licence classes: "<class> since <date>", no years; classes of one issue date share a row ("B, BE since …") | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.4.6 | FR-024; Q6, #46 |
+| FR-024d | The result heading reads "Result: doesn't meet <n> rule(s)", with the count | P3 | Y | Test step | default | C item, copy:rules, amends 004-S8.6.2 | FR-024; Q6, #46 |
 | FR-024e | The test-day line in dd.mm.yyyy: "Tested as if shared today, 01.11.2026." | P3 | Y | Test step | default | C item, copy:rules, amends 004-S8.1.1 | FR-024; Q6 |
 | FR-025a | Wizard header: compact "Step n of 4", four segments, "Next: <step>" / "Last step" | P2 | Y | Wizard shell | default | F item, copy, supersedes 004-S0.1, 004-S0.2, 004-S0.3 | FR-025; Q7 |
 | FR-025b | The header is a progress bar for assistive technology (role="progressbar", aria-valuenow) | P2 | Y | Wizard shell | default | | FR-025; Q7 |
 | FR-025c | The header isn't clickable while creating, and is clickable while editing | P2 | Y | Wizard shell; Edit flow | default | supersedes 004-S7.3 | FR-025; Q7 |
 | FR-025d | Publish is a dialog opened from the test step, not a step | P4 | Y | Publish dialog; Test step | default | | FR-025; Q7 |
 | FR-025e | The details and draft details show no step line | P4 | Y | Details; Draft details | default | supersedes 001-S6.2, 005-S6.2, 005-S6.3 | FR-025; Q7 |
-| FR-026a | In a flow, the product name and the breadcrumb open the leave dialog "Leave this connection?" | P2 | Y | Leave dialog; Wizard shell | default | F item, copy, supersedes 001-S0.6 (in a flow), 005-S4.1 (in-app leaving) | FR-026; Q8a, Q8b |
+| FR-026a | In a create or draft flow, the product name and the breadcrumb open the leave dialog "Leave this connection?" | P2 | Y | Leave dialog; Wizard shell | default | F item, copy, supersedes 001-S0.6 (in a flow), 005-S4.1 (in-app leaving) | FR-026; Q8a, Q8b, #47 |
 | FR-026b | Leave dialog: "If you leave now, you lose all progress. …", "Discard connection", "Save progress", close × | P2 | Y | Leave dialog | default | copy | FR-026; Q8b |
 | FR-026c | "Save progress" runs Save and exit; a validation error keeps the member in the flow | P2 | Y | Leave dialog | error | | FR-026; Q8a, Q16 |
 | FR-026d | "Discard connection" leaves without storing and discards the flow's local draft | P2 | Y | Leave dialog | default | | FR-026; Q8b |
@@ -73,6 +75,9 @@
 | FR-026i | Its buttons: "Save and log out" (primary, stores, then logs out), "Log out anyway", "Cancel", × | P1 | Y | Log out dialog | default | copy | FR-026; Q8e |
 | FR-026j | "Cancel" returns the focus to the user menu | P1 | Y | Log out dialog | default | | FR-026; Q8e |
 | FR-026k | The device's local draft remains the safety net after a crash or a forced leave | P1 | Y | Local drafts offer | default | | FR-026; Q8b |
+| FR-026l | In the edit flow, product name and breadcrumb open "Save your changes?" ("If you leave now, your changes are lost. …") | P4 | Y | Edit flow; Leave dialog | default | F item, copy | FR-026; FR-045; #47 |
+| FR-026m | Its "Save" opens "Save changes?" and leaves to the details once saved; a validation error keeps the member | P4 | Y | Leave dialog; Publish dialog | default | copy | FR-026; #47 |
+| FR-026n | Its "Discard changes" leaves without saving; × and Escape keep the member in the flow | P4 | Y | Leave dialog | default | copy | FR-026; #47 |
 | FR-027a | While no connection or draft exists, the homepage is the welcome page "Welcome to Konnekt" | P1 | Y | Welcome page | empty | F item, copy, supersedes 001-S4.1, 001-S4.2, 001-S4.8 | FR-027; Q9a |
 | FR-027b | It shows after a sign-in without requested route, and again after the last connection is deleted | P1 | Y | Welcome page | empty | amends 001-S0.3, 001-S4.7 | FR-027; Q9a |
 | FR-027c | Once one connection exists, the homepage is the overview "Your connections" | P1 | Y | Overview | default | amends 001-S3.4, 001-S3.6 | FR-027; Q9a |
@@ -93,30 +98,38 @@
 | FR-031d | A document is removed inline from its list item, with an undo toast | P2 | Y | Documents step | success | F item, supersedes 002-S1.9 | FR-031; Q14b |
 | FR-031e | Removing a document no rule checks asks first ("Keep document" / "Remove document"); a checked one opens 002-S1.1's dialog | P2 | Y | Documents step; Removal dialog | default | copy | FR-031; Q14b |
 | FR-031f | A document without chosen data shows an inline red line and "1 document needs data" | P2 | Y | Documents step | error | F item, copy, supersedes 001-S5.5, 001-S5.6, 001-S7.6 (refusal on attempt) | FR-031; Q14c |
-| FR-031g | Going on with such a document opens the dialog "Choose data" / "Remove them and continue" | P2 | Y | Documents step; Choose data dialog | error | copy | FR-031; Q14c |
+| FR-031g | Going on with such a document opens a dialog: "Choose data" / "Remove 1 document" ("Remove <n> documents") | P2 | Y | Documents step; Choose data dialog | error | copy | FR-031; Q14c, #55 |
 | FR-031h | "Set rules →" is disabled with "Add a document first" until a document is added | P2 | Y | Documents step | disabled | copy | FR-031; Q14c |
 | FR-031i | The documents step offers no "Publish without rules" | P2 | Y | Documents step | default | supersedes 002-S1.5, 004-S1.1 | FR-031; Q14d |
 | FR-031j | Documents keep catalog order without a drag handle; fields show no group rows | P2 | Y | Documents step | default | | FR-031; Q14e, Q14f |
+| FR-031k | The dialog reads "No data selected in <n> document(s)", naming them: "Driving licence has no data chosen yet. …" | P2 | Y | Choose data dialog | error | F item, copy | FR-031; #55 |
 | FR-032a | The description in step 1 and in the variant dialog is a multi-line textarea | P2 | Y | Step 1 Connection; Variant dialog | default | F item, supersedes 006-S1.1 | FR-032; Q15 |
 | FR-032b | The textarea isn't required, takes at most 500 characters, and has spell check on | P2 | Y | Step 1 Connection; Variant dialog | default | | FR-032; Q15 |
 | FR-032c | On the overview and in the details' meta the description stays one line, cut with "…" | P1 | Y | Overview; Details | default | | FR-032; Q15 |
 | FR-032d | Its ⓘ keeps "About the description" and the baseline's text, ending "Citizens never see it." | P2 | Y | Step 1 Connection | default | copy, amends 006-S1.5 | FR-032; Q15 |
-| FR-033a | A failed save shows the design's neutral toast with "Retry" and a server error's error ID | P2 | Y | Wizard | error | F item, supersedes 005-S1.7, 005-S1.8 | FR-033; Q17a |
+| FR-033a | A failed save shows the toast "Couldn't save. Check your internet connection and try again.", "Try again", error ID | P2 | Y | Wizard | error | F item, supersedes 005-S1.7, 005-S1.8 | FR-033; Q17a, #55 |
 | FR-033b | The failure toast doesn't take the focus and is announced | P2 | Y | Wizard | error | | FR-033; Q17a |
 | FR-033c | An alert is title-only only when it carries a title alone; otherwise it keeps error ID, list or action | - | Y | all screens | error | | FR-033; Q17b |
 | FR-033d | While saving, "Save and exit" is aria-disabled and reads "Saving…"; a polite status says "Saving draft…" | P2 | Y | Wizard shell | loading | copy | FR-033; Q17c |
 | FR-034a | "Test rules" is disabled while a rule is open, incomplete or in error, or while grouping | P3 | Y | Rules step | disabled | F item, supersedes 004-S2.1, 004-S2.4, 004-S2.6, 004-S2.7, 002-S2.23, 002-S3.11 | FR-034; Q18 |
 | FR-034b | It shows "Save the rule first" / "Finish grouping first"; the explanation opens on hover and focus | P3 | Y | Rules step | disabled | copy | FR-034; Q18 |
-| FR-035a | An ⓘ after "+ Add variant" on the Rules and Test steps opens on hover and focus | P3 | Y | Variant tabs; Test step | default | F item, supersedes 004-S8.2.6 | FR-035; Q20 |
-| FR-035b | It reads "Variants are other versions of these rules." unless the design supplies a text | P3 | Y | Variant tabs; Test step | default | copy | FR-035; Q20 |
+| FR-034c | In the edit flow, "Save" on the rules step is disabled the same way, with the same hints | P4 | Y | Rules step; Edit flow | disabled | F item, copy | FR-034; #47 |
+| FR-035a | An ⓘ after "+ Add variant" on the Rules step only opens on hover and focus | P3 | Y | Variant tabs | default | F item | FR-035; Q20, #57 |
+| FR-035b | It reads "A separate set of rules for citizens with different requirements. Each variant gets its own result link." | P3 | Y | Variant tabs | default | copy | FR-035; #57 |
 | FR-035c | The Standard tab's (i) shows only with a description | P3 | Y | Variant tabs | default | | FR-035; Q20 |
+| FR-035d | The Test step shows no variant ⓘ; an (i) after "Standard" there is its description icon | P3 | Y | Test step | default | | FR-035; #57 |
 | FR-036a | Every rule, group and variant menu has "Copy link" before its destructive entries, also after "Restore" | P3 | Y | Rules step; Variant tabs | default | W item, copy | FR-036; Q22 |
-| FR-036b | Rule menus carry "Rename" and "Copy to variant" | P3 | Y | Rules step | default | W item, copy | FR-036; Q22 |
-| FR-036c | A rule's menu offers "Group with other rules", starting select mode with that rule selected | P3 | Y | Rules step | default | F item, copy | FR-036; Q22 |
-| FR-036d | A sub-group's menu offers no grouping | P3 | Y | Rules step | default | | FR-036; Q22 |
+| FR-036b | Rule menus carry "Rename" and "Copy to variant", narrowed for linked items in a variant (FR-036e, FR-036f) | P3 | Y | Rules step | default | W item, copy | FR-036; Q22, #53 |
+| FR-036c | Top-level rules and sub-group-free top-level groups offer "Group with other rules" beside a neighbour, starting select mode | P3 | Y | Rules step | default | F item, copy | FR-036; Q22, #48 |
+| FR-036d | A sub-group's menu, a rule inside a sub-group and a group holding a sub-group offer no grouping | P3 | Y | Rules step | default | | FR-036; Q22, #48 |
+| FR-036e | In a variant, a rule or group linked to Standard has no "Rename", "Duplicate" or "Ungroup" | P3 | Y | Rules step | default | F item, amends 002-S2.16, 002-S2.19, 002-S4.10 | FR-036; #53 |
+| FR-036f | "Copy to variant" shows only while some variant could still receive the item | P3 | Y | Rules step | default | F item | FR-036; #53 |
+| FR-036g | Group and sub-group menus carry "Rename", renaming inline on the name with the duplicate check | P3 | Y | Rules step | default | W item, copy | FR-036; #54 |
+| FR-036h | While a group has a message, "Remove message" sits next to "Add message"; otherwise "Add message" alone | P3 | Y | Rules step | default | W item, copy | FR-036; #54 |
 | FR-037a | While a group has its own message, members read "Not shown while this rule is in Group 01. …" | P3 | Y | Rules step | default | F item, copy, supersedes 002-S2.5 (display) | FR-037; Q23c |
 | FR-037b | The member rule keeps its message in the data; the evaluation reports the group's message | P3 | N | Rules step | ? | | FR-037; Q23c |
 | FR-037c | Groups with one member or none dissolve; a sub-group that moves up keeps its name | P3 | Y | Rules step | default | | FR-037; Q23a, Q23b |
+| FR-037d | The delete-rule dialog keeps the baseline's body (U47's drawn body for a Standard rule with variants); no effect sentence | P3 | Y | Delete rule dialog | default | copy | FR-037; #56 |
 | FR-038a | The AND/OR connector is a pill opening a menu: "All rules must be met" / "At least one rule must be met" | P3 | Y | Rules step | default | F item, copy, supersedes 002-ACC.2 (control type) | FR-038; Q24a |
 | FR-038b | The connector menu describes its scope: "Applies to every rule in Group 01" | P3 | Y | Rules step | default | copy | FR-038; Q24a |
 | FR-038c | The connector is a menu button whose accessible name says the level | P3 | Y | Rules step | default | | FR-038; Q24a |
@@ -136,12 +149,13 @@
 | FR-041b | A variant tab without findings shows a grey ⓘ | P3 | Y | Variant tabs | default | F item | FR-041; Q29a |
 | FR-041c | The Test step's tabs show only the "no citizen can meet" finding, from the evaluator | P3 | Y | Test step | default | | FR-041; Q29b, Q29d |
 | FR-041d | The names in the findings banner are links that scroll to and focus the item | P3 | Y | Rules step | default | | FR-041; Q29c |
+| FR-041e | No line above the test step's result heading says that no citizen can meet the variant | P3 | Y | Test step | default | supersedes 004-S8.6.1 | FR-041; #50 |
 | FR-042a | "Edit data" opens a dialog: "Change the values to try a particular case. Results update when you save." | P3 | Y | Edit data dialog | default | F item, copy, supersedes 004-S8.5.1, 004-S8.5.2, 004-ACC.4 | FR-042; Q30 |
 | FR-042b | Its buttons are "Cancel" and "Save and test"; a validation error blocks the whole save | P3 | Y | Edit data dialog | error | copy, supersedes 004-S8.5.9, 004-S8.5.10 | FR-042; Q30 |
 | FR-042c | A saved change updates the results; toast, announced: "Results updated. <name> now meets <rule>." | P3 | Y | Test step | success | copy, supersedes 004-S8.10.3 | FR-042; Q30 |
 | FR-042d | Licence classes are picked by code; Nationality and Expiry date have fields; "Class B since" | P3 | Y | Edit data dialog | default | copy | FR-042; Q30 |
 | FR-043a | Result rows keep the statement and "Not met" / "Couldn't be checked" text, with the design's icon and tint | P3 | Y | Test step | default | | FR-043; Q31b |
-| FR-043b | The data card shows the document as a column, its name the row group's accessible heading | P3 | Y | Test step | default | amends 004-S8.4.2 | FR-043; Q31c |
+| FR-043b | The data card is a flat list without visible document column; the document's name stays the row group's accessible heading | P3 | Y | Test step | default | amends 004-S8.4.2 | FR-043; Q31c, #46 |
 | FR-043c | The panel scrolls as a whole, not each card | P3 | Y | Test step | default | | FR-043; Q31c |
 | FR-043d | A met variant shows no success message | P3 | Y | Test step | success | | FR-043; Q31a |
 | FR-044a | The publish dialog offers "Back to test", returning to the test step | P4 | Y | Publish dialog | default | F item, copy, supersedes 004-S5.3 | FR-044; Q33 |
@@ -158,7 +172,7 @@
 | FR-046a | The details' one h1 is the status sentence; the name is the breadcrumb's current item and tab title | P4 | Y | Details | default | F item, copy, supersedes 001-S6.1 | FR-046; Q35c |
 | FR-046b | One "Edit connection" opens step 1, after the entry confirmation | P4 | Y | Details | default | copy, supersedes 002-S6.6, 007-S5.8 (entry), amends 001-S6.8, 007-S6.2 | FR-046; Q35a |
 | FR-046c | Links and Summary are accordions; arriving from "View" opens Summary; one is open at a time | P4 | Y | Details | default | F item, supersedes 002-S6.3 | FR-046; Q35b |
-| FR-046d | The ⓘ on "Result link" holds "serviceBW replaces {reference} with the request reference." (hover, focus) | P4 | Y | Details | default | copy, supersedes 001-S6.5 | FR-046; Q35e |
+| FR-046d | The ⓘ on "Result link" reads "Your service gets the citizen's shared data from this link. Each variant has its own." | P4 | Y | Details | default | copy, supersedes 001-S6.5 (hint dropped) | FR-046; Q35e, #49 |
 | FR-046e | Copy buttons are disabled while the connection is deactivated | P4 | Y | Details | disabled | F item | FR-046; Q35f |
 | FR-046f | A branch ⓘ follows each variant name | P4 | Y | Details | default | W item | FR-046; Q35g |
 | FR-046g | Variants are tabs in the Summary | P4 | Y | Details | default | supersedes 002-S6.4 | FR-046; Q35h |
@@ -170,10 +184,13 @@
 | FR-047d | Findings are never stored, sent or logged | P4 | N | Details | ? | | FR-047; Q36 |
 | FR-048a | A copy button reads "✓ Copied" for 2 s after copying; the copy is announced | P4 | Y | Details; Token dialog | success | F item, copy, amends 002-S6.9 | FR-048; Q37a |
 | FR-048b | Overview rows read "Edited <date>"; the details show no status-date pill | P1 | Y | Overview; Details | default | copy, amends 005-S3.3 | FR-048; Q37c |
-| FR-049a | Draft details show the status band "This connection is a draft" with "Edited <date>" | P4 | Y | Draft details | default | F item, copy, supersedes 005-S6.4, 005-S6.8 | FR-049; Q39 |
-| FR-049b | The status band offers "Edit connection" and "Go to connections" | P4 | Y | Draft details | default | copy, supersedes 005-S6.14 (labels) | FR-049; Q39 |
+| FR-048c | The connection's ⋯ menu ("Deactivate", "Delete") sits at the status band's right end, where the pill was | P4 | Y | Details | default | F item | FR-048; #52 |
+| FR-048d | While deactivated, "Activate again" stands before the ⋯ | P4 | Y | Details | default | copy | FR-048; #52 |
+| FR-049a | "This connection is a draft" is the draft details' one h1, in the status band with "Edited <date>" | P4 | Y | Draft details | default | F item, copy, supersedes 005-S6.1 (heading), 005-S6.4, 005-S6.8 | FR-049; Q39, #51 |
+| FR-049b | The footer offers "Edit connection" (secondary, left) and "Go to connections →" (primary, right) | P4 | Y | Draft details | default | copy, supersedes 005-S6.14 (labels) | FR-049; Q39, #51 |
 | FR-049c | "Delete draft" is visible, the Summary open, and no connection URL shown | P4 | Y | Draft details | default | W item | FR-049; Q39 |
 | FR-049d | In the restore dialog, Escape, × and scrim open the draft's details and keep the local draft | P2 | Y | Restore dialog | default | amends 005-S5.5 | FR-049; Q39 |
+| FR-049e | The name, followed by the Draft badge, is the breadcrumb's current item and the tab title | P4 | Y | Draft details | default | | FR-049; #51 |
 | FR-050a | A growing pill animates in 240 ms; colour changes and the page fade-in take 150 ms | - | Y | all screens | default | F item, supersedes OUT-6 | FR-050; Q40 |
 | FR-050b | Heights animate in 150–200 ms; dialogs fade; a 0.5 s delay follows publishing | - | Y | all screens; Publish dialog | default | F item | FR-050; Q40 |
 | FR-050c | With prefers-reduced-motion, transitions are turned off | - | Y | all screens | default | | FR-050; Q40 |
@@ -185,7 +202,7 @@
 | FR-051f | Group subtitles "At least one rule must be met" / "All rules must be met"; note "Group 01 now needs only one rule…" | P3 | Y | Rules step | default | F item, copy | FR-051; Q45 (32) |
 | FR-051g | Toast actions: "Show" in the copy toast; after deleting a variant, Undo while the left tab opens | P3 | Y | Rules step; Variant tabs | success | F item, copy | FR-051; Q45 (33) |
 | FR-051h | Editor hints: "Licence classes has parts. Choose the part to check.", place of birth, "Citizens who turn 21 …", born-between | P3 | Y | Rule editor | default | F item, copy | FR-051; Q45 (34) |
-| FR-051i | ⓘ tooltips on the trigger-URL label and the name field; full description tooltip on a cut overview row, no title | - | Y | Details; Step 1 Connection; Overview | default | F item, conflicts with Q15 (name-field ⓘ not built) | FR-051; Q45 (35) |
+| FR-051i | ⓘ tooltips on the trigger-URL label and the name field; full description tooltip on a cut overview row, no title | - | Y | Details; Step 1 Connection; Overview | default | F item | FR-051; Q45 (35); Q15 |
 | FR-051j | "Discard rule" in the rule editor | P3 | Y | Rule editor | default | F item, copy | FR-051; Q45 (36) |
 | FR-051k | Per document "6 of 25 data items chosen" / "No data items chosen yet" | P2 | Y | Documents step | default | F item, copy | FR-051; Q45 (37) |
 | FR-051l | The link strip's removed count: "2 of 3 Standard rules are removed here." | P3 | Y | Rules step | default | F item, copy | FR-051; Q45 (38) |
@@ -194,6 +211,15 @@
 | FR-051o | The publish dialog can't be closed while publishing | P4 | Y | Publish dialog | loading | F item | FR-051; Q45 (41) |
 | FR-051p | Toasts after deleting, deactivating, reactivating, publishing and saving ("Changes saved."), announced by the toast's live region | - | Y | all screens | success | F item, copy | FR-051; Q45 (42) |
 | FR-051q | Each such tooltip opens on hover and focus, each field has a visible label, each toast is announced | - | Y | all screens | default | | FR-051; Q45 |
+| FR-052a | A scrim click closes a dialog that doesn't delete or publish; the restore dialog keeps FR-049d | - | Y | dialogs | default | F item | FR-052; #59 (1) |
+| FR-052b | Every disabled button explains why on hover and focus ("Save rule", copy buttons while deactivated, …) | - | Y | all screens | disabled | F item | FR-052; #59 (2) |
+| FR-052c | A page change scrolls to the top | - | Y | all screens | default | F item | FR-052; #59 (3) |
+| FR-052d | A draft row's meta reads "Edited <date> · <step> step" ("Edited 28.10.2026 · Rules step") | P1 | Y | Overview | default | F item, copy, amends 005-S3.3 | FR-052; #59 (4) |
+| FR-052e | The documents search card shows an "Added (n)" group | P2 | Y | Documents step | default | F item, copy | FR-052; #59 (5) |
+| FR-052f | The Links accordion's heading counts "1 request link · 3 result links" | P4 | Y | Details | default | F item, copy | FR-052; #59 (6) |
+| FR-052g | Tooltips also open on touch | - | Y | tooltips | default | F item | FR-052; #59 (7) |
+| FR-052h | The variant dialog's "Start with" preselects "Linked to Standard (recommended)" | P3 | Y | Variant dialog | default | F item, copy, amends 002-S4.1 | FR-052; #59 (8) |
+| FR-052i | Each such tooltip opens on hover and focus; counts are plain text screen readers read; no stored data changes | - | Y | all screens | default | | FR-052; #59 |
 | US1-AS1 | /login matches its frame; a failed sign-in shows the design's one message, both fields invalid, never saying which | P1 | Y | Sign in | error | copy:server | US1; Q10 |
 | US1-AS2 | Forgot password matches its frame, says ask an administrator; back to sign in keeps requested route | P1 | Y | Forgot password | default | | US1 |
 | US1-AS3 | Overview rows show published, deactivated, draft states, baseline actions and row Delete; no checkboxes; empty, loading, error match | P1 | Y | Overview | default | | US1; Q11 |
@@ -201,7 +227,7 @@
 | US1-AS5 | No connection: sign-in shows the welcome page "Welcome to Konnekt", no example; "Create connection" opens step 1 | P1 | Y | Welcome page | empty | | US1; Q9 |
 | US2-AS1 | Wizard shell: compact "Step n of 4" progress bar, clickable only when editing; "Save and exit", draft badge | P2 | Y | Wizard shell | default | | US2; Q7 |
 | US2-AS2 | Step 1 fields, hints and validation messages match; message next to field; focus to first problem | P2 | Y | Step 1 Connection | error | | US2 |
-| US2-AS3 | Documents step: search card, master-detail list, inline remove with undo; "Set rules →" disabled; "1 document needs data" | P2 | Y | Documents step | error | | US2; Q14 |
+| US2-AS3 | Documents step: search card, master-detail list, inline remove with undo; "Set rules →" disabled; "1 document needs data", "Remove 1 document" | P2 | Y | Documents step | error | | US2; Q14, #55 |
 | US2-AS4 | "Save and exit", or product name / breadcrumb then "Save progress": saved status, draft row, restore dialog in new design | P2 | Y | Wizard shell; Leave dialog; Overview; Restore dialog | success | | US2; Q8 |
 | US2-AS5 | A second team member's save shows the conflict (005-S2) with new components, W item if undrawn | P2 | Y | Conflict dialog | error | W item | US2 |
 | US3-AS1 | Rules list, groups, outlines, banner, notes, status region match; menus offer baseline items with "Copy link" | P3 | Y | Rules step | default | | US3 |
@@ -210,10 +236,10 @@
 | US3-AS4 | Test step outcomes per variant match frames, with loading state while the evaluator loads | P3 | Y | Test step | loading | | US3 |
 | US3-AS5 | A link to a rule, group or variant opens the editor at that item, highlighted as designed | P3 | Y | Rules step | default | | US3 |
 | US4-AS1 | Publish dialog from the test step: counts summary, findings lines, "Back to test"; "Published" state, then details with URLs | P4 | Y | Publish dialog | success | | US4; Q33 |
-| US4-AS2 | Details: status sentence as h1, name in breadcrumb, Links and Summary accordions, reference hint in ⓘ; "copied" announced | P4 | Y | Details | success | | US4; Q35 |
+| US4-AS2 | Details: status sentence as h1, name in breadcrumb, Links and Summary accordions, the design's ⓘ text on result links; "copied" announced | P4 | Y | Details | success | | US4; Q35, #49 |
 | US4-AS3 | Deactivate, reactivate and delete dialogs read as the design writes them and do what the baseline says | P4 | Y | Confirmation dialogs | default | | US4; Q38 |
-| US4-AS4 | Draft details: status band with "Edit connection" and "Go to connections", visible "Delete draft", no connection URL | P4 | Y | Draft details | default | | US4; Q39 |
-| US4-AS5 | Editing a published connection: entry confirmation, "Active" badge, Save on every step, "Discard changes", requests note, conflict | P4 | Y | Edit flow | default | | US4; Q34 |
+| US4-AS4 | Draft details: "This connection is a draft" as h1, name in breadcrumb, footer actions, visible "Delete draft", no URL | P4 | Y | Draft details | default | | US4; Q39, #51 |
+| US4-AS5 | Editing a published connection: entry confirmation, "Active" badge, Save every step, "Discard changes", requests note, "Save your changes?" on leaving, conflict | P4 | Y | Edit flow | default | | US4; Q34, #47 |
 | US4-AS6 | A deleted or unknown connection's address shows an error state with the way back to overview | P4 | Y | Details | error | | US4 |
 | US5-AS1 | Consent page: title, three access levels, allow, deny, step-up line, invalid-request error; 007-S1 wording | P5 | Y | Consent page | default | W item | US5 |
 | US5-AS2 | Account page: two sections, menus and dialogs use design list, menu, dialog, copyable-field patterns | P5 | Y | Account page | default | W item | US5 |
@@ -228,13 +254,13 @@
 | EC-7 | Long names, descriptions, lists and URLs follow the design's wrapping or truncation; nothing unreachable | - | Y | all screens | ? | | Edge Cases |
 | EC-8 | A Revamp colour pair failing AA uses nearest passing value, recorded with the pair; designer told | - | Y | all screens | ? | | Edge Cases |
 | EC-9 | A screen reached by its address (bookmark, history, agent link) behaves as the baseline says | - | Y | all screens | ? | | Edge Cases |
-| EC-10 | Leaving a flow with unsaved work follows the save-or-discard model; local drafts are offered only after a crash | P2 | Y | Leave dialog; Wizard | default | | Edge Cases; Q8, FR-026 |
+| EC-10 | Leaving with unsaved work: "Leave this connection?" in create or draft flows, "Save your changes?" in the edit flow; local drafts only after a crash | P2 | Y | Leave dialog; Wizard; Edit flow | default | | Edge Cases; Q8, #47, FR-026 |
 
 ## Behaviour baseline
 
 Contracts: 001: `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` (no section ids: the preamble with the routes and the sign-in guard is S0, the `##` sections S1 Sign in, S2 Forgot password, S3 Overview, S4 First connection, S5 Create and edit, S6 Details, S7 Accessibility, as spec.md's table states); 002: `specs/002-connection-rules/contracts/ui-screens.md`; 003: `specs/003-rule-consistency-checks/contracts/ui-screens.md`; 004: `specs/004-rule-test-personas/contracts/ui-screens.md`; 005: `specs/005-connection-drafts/contracts/ui-screens.md`; 006: `specs/006-connection-description/contracts/ui-screens.md` (no section ids: preamble S0, `##` sections S1 Step 1, S2 Overview row, S3 Details page, S4 Accessibility, S5 Copy removed); 007: `specs/007-agent-mcp-server/contracts/ui-screens.md`.
 Unnumbered sections of the other contracts: `R` Routes, `ACC` Accessibility, `CP` Copy (Copy conventions). Items of "Deviations from Figma", "Items from the audit" and "W-items" are numbered within the screen section they belong to; `Spec §` names the item (F#, W#, A#, K#, O#, FYI). Copy tables that repeat texts already in a row are not indexed twice.
-Spec 008's Clarifications (session 2026-11-07) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
+Spec 008's Clarifications (session 2026-11-07, #1–#59) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -280,7 +306,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 001-S6.2 | The wizard's steps are all done | P4 | Y | Details | default | baseline, superseded by FR-025 | 001 §S6 |
 | 001-S6.3 | An action bar leads to the overview and to a new form connection | P4 | Y | Details | default | baseline, superseded by FR-046 | 001 §S6 |
 | 001-S6.4 | Trigger URL and pull URL, each with a one-action copy button using navigator.clipboard | P4 | Y | Details | default | baseline | 001 §S6; 001-FR-004 |
-| 001-S6.5 | The pull URL shows {reference} literally, with a hint that serviceBW substitutes the request reference | P4 | Y | Details | default | baseline, superseded by FR-046 (hint in ⓘ) | 001 §S6 |
+| 001-S6.5 | The pull URL shows {reference} literally, with a hint that serviceBW substitutes the request reference | P4 | Y | Details | default | baseline, superseded by FR-046 (hint dropped, #49) | 001 §S6 |
 | 001-S6.6 | The URLs never change; reopening the screen shows the same ones | P4 | Y | Details | default | baseline | 001 §S6 |
 | 001-S6.7 | Configuration summary: the requested documents with their selected fields | P4 | Y | Details | default | baseline | 001 §S6 |
 | 001-S6.8 | An "Edit" action opens the edit screen | P4 | Y | Details | default | baseline, copy, amended by FR-046 | 001 §S6 |
@@ -330,10 +356,10 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 002-S2.13 | A group left with fewer than two members dissolves; its member moves up; empty groups never exist | P3 | Y | Rules step | default | baseline | 002 §S2; Deviations S2 F13 |
 | 002-S2.14 | A sub-group that reaches the top level becomes a group, keeping identifier, name, AND/OR and message | P3 | Y | Rules step | default | baseline | 002 §S2 |
 | 002-S2.15 | Rules and groups keep adding order; a new group takes its first member's place; no reordering | P3 | Y | Rules step | default | baseline | 002 §S2 |
-| 002-S2.16 | Rule actions: edit, rename, duplicate, copy to other variants, delete with confirmation and undo | P3 | Y | Rules step | default | baseline | 002 §S2 |
+| 002-S2.16 | Rule actions: edit, rename, duplicate, copy to other variants, delete with confirmation and undo | P3 | Y | Rules step | default | baseline, amended by FR-036 (#53: no rename or duplicate of linked items in a variant) | 002 §S2 |
 | 002-S2.17 | Renaming happens inline | P3 | Y | Rules step | default | baseline | 002 §S2 |
 | 002-S2.18 | A duplicate name is refused inline, naming the branch: "Another rule in Ambulance is already called Rule 01." | P3 | Y | Rules step | error | baseline, copy:server, amended by FR-023 | 002 §S2; Deviations S2 F12 |
-| 002-S2.19 | The same for groups and sub-groups, and a main-branch rename clashing in a based branch names that branch | P3 | Y | Rules step | error | baseline, copy:server, amended by FR-023 | 002 Deviations S2, F12 |
+| 002-S2.19 | The same for groups and sub-groups, and a main-branch rename clashing in a based branch names that branch | P3 | Y | Rules step | error | baseline, copy:server, amended by FR-023, FR-036 (#53: no rename of linked items in a variant) | 002 Deviations S2, F12 |
 | 002-S2.20 | "Rule NN", "Group NN", "Sub-group NN" are kept for that number: "Rule 08 is kept for the rule numbered 08." | P3 | Y | Rules step | error | baseline, copy:server | 002 §S2 |
 | 002-S2.21 | In a based branch, names that an undo or a restore could bring back count as taken | P3 | Y | Rules step | error | baseline | 002 §S2 |
 | 002-S2.22 | Rule checking unrequested data: banner and inline flag, "Rule 02 in Standard checks data that's no longer requested. …" | P3 | Y | Rules step | error | baseline, copy:server, copy, amended by FR-023 | 002 §S2; Deviations S2 F11 |
@@ -360,7 +386,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 002-S3.7 | Text conditions have their own letter-case checkbox ("Match letter case"), unchecked by default | P3 | Y | Rule editor | default | baseline, copy | 002 §S3; Deviations S3 F7 |
 | 002-S3.8 | Date conditions show the counting note and the missing-value note | P3 | Y | Rule editor | default | baseline | 002 §S3 |
 | 002-S3.9 | Error message proposed once the condition is complete, matching it; editable | P3 | Y | Rule editor | default | baseline, copy:rules, amended by FR-021 (COPY-BRIEF messages) | 002 §S3; Deviations S3 F9 |
-| 002-S3.10 | "Save rule" stays disabled until the rule is complete, with inline flags | P3 | Y | Rule editor | disabled | baseline, copy | 002 §S3 |
+| 002-S3.10 | "Save rule" stays disabled until the rule is complete, with inline flags | P3 | Y | Rule editor | disabled | baseline, copy, amended by FR-052 (explains why on hover and focus) | 002 §S3 |
 | 002-S3.11 | The footer's Publish or Save still checks everything | P3 | Y | Rule editor | error | baseline, superseded by FR-034 | 002 §S3 |
 | 002-S3.12 | Date of birth: is at least / is less than / is exactly N years old | P3 | Y | Rule editor | default | baseline, copy:rules | 002 Deviations S3, F3 |
 | 002-S3.13 | Other dates: is before / is after / is <date>; is at least / less than / exactly N years ago | P3 | Y | Rule editor | default | baseline, copy:rules | 002 Deviations S3, F3 |
@@ -392,7 +418,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 002-S3.39 | Chips in the field and saved statements keep the codes only ("B", "BE") | P3 | Y | Values picker; Rules step | default | baseline | 002 Deviations S3, F32 |
 | 002-S3.40 | Option menus of other enums, such as Nationality, keep "Search options" | P3 | Y | Values picker | default | baseline, copy | 002 Deviations S3, F32 |
 | 002-S3.41 | One footer wording in the document menu, recorded in the design notes | P3 | Y | Rule editor | default | baseline, copy | 002 Also from the audit, FYI #20 |
-| 002-S4.1 | Add variant: name, optional description, and "Start with": based on Standard, or empty | P3 | Y | Variant dialog | default | baseline, copy | 002 §S4 Branches; 002-FR-019, 002-FR-020 |
+| 002-S4.1 | Add variant: name, optional description, and "Start with": based on Standard, or empty | P3 | Y | Variant dialog | default | baseline, copy, amended by FR-052 (preselects "Linked to Standard") | 002 §S4 Branches; 002-FR-019, 002-FR-020 |
 | 002-S4.2 | The description shows in a tooltip from an (i) right after the branch's name, on hover and keyboard focus | P3 | Y | Variant tabs | default | baseline | 002 §S4; §Accessibility |
 | 002-S4.3 | No (i) without a description | P3 | Y | Variant tabs | default | baseline | 002 §S4 |
 | 002-S4.4 | Tab menu: "Rename" for every branch opens the same dialog titled "Edit variant", without "Start with" | P3 | Y | Variant tabs; Variant dialog | default | baseline, copy | 002 §S4; Deviations S4 W3 |
@@ -401,7 +427,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 002-S4.7 | Removed items stay visible and can only be restored | P3 | Y | Rules step | default | baseline | 002 §S4 |
 | 002-S4.8 | Undo returns an item to following the main branch; so does an edit making it equal again | P3 | Y | Rules step | default | baseline | 002 §S4 |
 | 002-S4.9 | A switched top-level AND/OR is marked too | P3 | Y | Rules step | default | baseline | 002 §S4 |
-| 002-S4.10 | An inherited group's menu offers "Remove" and "Restore", not "Ungroup" or "Delete group" | P3 | Y | Rules step | default | baseline, copy | 002 §S4; Deviations S2 W8 |
+| 002-S4.10 | An inherited group's menu offers "Remove" and "Restore", not "Ungroup" or "Delete group" | P3 | Y | Rules step | default | baseline, copy, amended by FR-036 (#53: linked items lose Rename, Duplicate, Ungroup) | 002 §S4; Deviations S2 W8 |
 | 002-S4.11 | Changes to the main branch show at once in every based branch | P3 | Y | Rules step | default | baseline | 002 §S4 |
 | 002-S4.12 | Copy to variant: copies a rule to chosen branches as a new rule at the end of their top level | P3 | Y | Copy to variant dialog | default | baseline, amended by FR-040 (popover) | 002 §S4 |
 | 002-S4.13 | Choosing Standard covers the branches based on it: shown as included, not choosable on their own | P3 | Y | Copy to variant dialog | disabled | baseline, amended by FR-040 (popover) | 002 §S4 |
@@ -548,14 +574,14 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 004-S8.2.3 | Its tooltip shows "No applicant can meet the rules of Standard.", on keyboard focus and hover | P3 | Y | Test step | default | baseline, copy:findings, amended by FR-020, FR-022 | 004 §S8.2; F6 |
 | 004-S8.2.4 | The tab uses BranchName, with the description's (i) and this one finding segment | P3 | Y | Test step | default | baseline | 004 §S8.2 |
 | 004-S8.2.5 | Changing the tab keeps the selected persona | P3 | Y | Test step | default | baseline | 004 §S8.2 |
-| 004-S8.2.6 | Not built: the Standard tab's info icon and "What is a variant" tooltip | P3 | Y | Test step; Variant tabs | default | baseline, not built, superseded by FR-035 | 004 Out of scope O4 |
+| 004-S8.2.6 | Not built: the Standard tab's info icon and "What is a variant" tooltip | P3 | Y | Test step; Variant tabs | default | baseline, not built, holds per FR-035 (#57: no variant ⓘ on the Test step) | 004 Out of scope O4 |
 | 004-S8.3.1 | Three chips with name and outcome icon: check circle when met, warning diamond when not | P3 | Y | Test step | default | baseline | 004 §S8.3 |
 | 004-S8.3.2 | Chips show no outcome text; accessible name "Mia Schulz: meets the rules of Standard" / "doesn't meet …" | P3 | Y | Test step | default | baseline, copy:rules | 004 §S8.3 |
 | 004-S8.3.3 | One chip is selected, the first by default | P3 | Y | Test step | default | baseline | 004 §S8.3 |
 | 004-S8.3.4 | "Generate all again": tertiary button with refresh icon at the row's right end | P3 | Y | Test step | default | baseline, copy | 004 §S8.3; W9 |
 | 004-S8.3.5 | With persona changes it asks first (S8.7), without changes it doesn't; while running, S8.8's loading | P3 | Y | Test step | loading | baseline | 004 §S8.3 |
 | 004-S8.4.1 | Head: "Mia's data", with "Edit data" (tertiary, pencil) and "Generate again" (tertiary, refresh) | P3 | Y | Test step | default | baseline, copy | 004 §S8.4 |
-| 004-S8.4.2 | Values grouped under "Personal ID" and "Driving licence", in catalog order | P3 | Y | Test step | default | baseline, copy, amended by FR-043 (document column) | 004 §S8.4; F9 |
+| 004-S8.4.2 | Values grouped under "Personal ID" and "Driving licence", in catalog order | P3 | Y | Test step | default | baseline, copy, amended by FR-043 (flat list; accessible heading only, #46) | 004 §S8.4; F9 |
 | 004-S8.4.3 | Each row: the field's label as the rules name it, without the document ("Date of birth (Age)"), and value | P3 | Y | Test step | default | baseline | 004 §S8.4; F9 |
 | 004-S8.4.4 | A date as dd.mm.yyyy; a date of birth with its age, "08.07.2007 (age 19)" | P3 | Y | Test step | default | baseline, copy:rules, superseded by FR-024 | 004 §S8.4; F10 |
 | 004-S8.4.5 | Enums by their labels | P3 | Y | Test step | default | baseline | 004 §S8.4 |
@@ -579,8 +605,8 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 004-S8.5.12 | Removing class B hides its date rows; its rule reports "Not met" or "Couldn't be checked" | P3 | Y | Test step | default | baseline | 004 §S8.5; W4 |
 | 004-S8.5.13 | Adding class B again brings its earlier dates back | P3 | Y | Test step | default | baseline | 004 §S8.5; W4 |
 | 004-S8.5.14 | Switching persona or variant ends edit mode | P3 | Y | Test step | default | baseline, amended by FR-042 (dialog) | 004 §S8.5 |
-| 004-S8.6.1 | For a variant no applicant can meet, "No applicant can meet the rules of Standard." sits above the heading | P3 | Y | Test step | default | baseline, copy:findings, amended by FR-020 | 004 §S8.6; F6 |
-| 004-S8.6.2 | Heading "Result: meets the rules", or "Result: doesn't meet 2 rules" / "… 1 rule and 1 group" | P3 | Y | Test step | default | baseline, copy:rules, superseded by FR-024 | 004 §S8.6; W10 |
+| 004-S8.6.1 | For a variant no applicant can meet, "No applicant can meet the rules of Standard." sits above the heading | P3 | Y | Test step | default | baseline, copy:findings, superseded by FR-041 (#50) | 004 §S8.6; F6 |
+| 004-S8.6.2 | Heading "Result: meets the rules", or "Result: doesn't meet 2 rules" / "… 1 rule and 1 group" | P3 | Y | Test step | default | baseline, copy:rules, amended by FR-024 (count kept, #46) | 004 §S8.6; W10 |
 | 004-S8.6.3 | An unmet variant has two columns, "Rule" and "Message Mia reads" | P3 | Y | Test step | default | baseline, copy:rules | 004 §S8.6 |
 | 004-S8.6.4 | Reported rules and groups first: name, statement, "Not met" or "Couldn't be checked" with own icon, message | P3 | Y | Test step | default | baseline, copy | 004 §S8.6; F8 |
 | 004-S8.6.5 | Below a reported group, indented, its members not met or not checked, with name, statement, status | P3 | Y | Test step | default | baseline | 004 §S8.6; W10 |
@@ -624,13 +650,13 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 005-S0.10 | If the catalog no longer offers some data, the flow moves to the documents step once loaded | P2 | Y | Wizard | default | baseline | 005 §S0; S8 |
 | 005-S0.11 | On opening, the personas are generated anew and the rule checks run again | P2 | Y | Test step; Rules step | loading | baseline | 005 §S0 |
 | 005-S1.1 | An open rule editor with changes asks "Save changes to Rule 01?" first; closing the dialog cancels the save | P2 | Y | Save changes dialog | default | baseline, copy | 005 §S1 |
-| 005-S1.2 | Name missing or too long: flow goes to step 1, message under "Form name", field focused, nothing stored | P2 | Y | Step 1 Connection | error | baseline, copy | 005 §S1 |
-| 005-S1.3 | Name messages: "Enter a name." / "The name can have at most 200 characters." | P2 | Y | Step 1 Connection | error | baseline, copy:server | 005 §S1 |
+| 005-S1.2 | Name missing or too long: flow goes to step 1, message under "Form name", field focused, nothing stored | P2 | Y | Step 1 Connection | error | baseline, copy, amended by FR-023 (#58 wording) | 005 §S1 |
+| 005-S1.3 | Name messages: "Enter a name." / "The name can have at most 200 characters." | P2 | Y | Step 1 Connection | error | baseline, copy:server, amended by FR-023 (#58: "Enter a name for the connection.") | 005 §S1 |
 | 005-S1.4 | Saving: the button turns aria-disabled and says "Saving…", a polite status says "Saving draft…" | P2 | Y | Wizard shell | loading | baseline, copy | 005 §S1 |
 | 005-S1.5 | Success: the local draft is removed; the overview opens with the polite status "Draft <name> saved." | P2 | Y | Overview | success | baseline, copy | 005 §S1; W1 |
 | 005-S1.6 | Failure: the member stays in the flow with the work, and the local draft keeps it | P2 | Y | Wizard | error | baseline | 005 §S1; 005-FR-013 |
 | 005-S1.7 | 400: KERN danger alert under the page title, "Couldn't save your draft", server's message; focus moves to it | P2 | Y | Wizard | error | baseline, copy, copy:server, superseded by FR-033 | 005 §S1; W3 |
-| 005-S1.8 | Network or 5xx: the alert with "Couldn't save. Check your internet connection and try again.", error ID, "Try again" | P2 | Y | Wizard | error | baseline, copy, supersedes 002 Deviations S2 F23, superseded by FR-033 | 005 §S1; W3 |
+| 005-S1.8 | Network or 5xx: the alert with "Couldn't save. Check your internet connection and try again.", error ID, "Try again" | P2 | Y | Wizard | error | baseline, copy, supersedes 002 Deviations S2 F23, superseded by FR-033 (alert; its sentence and "Try again" kept, #55) | 005 §S1; W3 |
 | 005-S1.9 | 401: spec 001's sign-out, then the sign-in; afterwards the flow's URL brings the work back | P2 | Y | Wizard | error | baseline | 005 §S1 |
 | 005-S1.10 | The alert goes when the member saves again or changes step | P2 | Y | Wizard | error | baseline | 005 §S1 |
 | 005-S2.1 | A conflict after "Save and exit" opens a ConfirmDialog-based conflict dialog | P2 | Y | Conflict dialog | error | baseline | 005 §S2; W4 |
@@ -648,7 +674,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 005-S2.13 | "Cancel" closes the dialog; the member stays in the flow with the work | P2 | Y | Conflict dialog | default | baseline | 005 §S2 |
 | 005-S3.1 | Drafts are listed with the published connections, ordered by their last save | P1 | Y | Overview | default | baseline | 005 §S3 |
 | 005-S3.2 | The status column shows KERN's small info badge "Draft" with its icon | P1 | Y | Overview | default | baseline, copy | 005 §S3 |
-| 005-S3.3 | The date reads "Saved 4 Nov 2026" for a draft, "Edited …" for a published connection | P1 | Y | Overview | default | baseline, copy, amended by FR-048 ("Edited <date>") | 005 §S3 |
+| 005-S3.3 | The date reads "Saved 4 Nov 2026" for a draft, "Edited …" for a published connection | P1 | Y | Overview | default | baseline, copy, amended by FR-048 ("Edited <date>"), FR-052 (draft's step) | 005 §S3 |
 | 005-S3.4 | Draft row actions: "Continue" (edit route, stored step) and "View" (details); no "Edit" for a draft | P1 | Y | Overview | default | baseline, copy | 005 §S3 |
 | 005-S3.5 | Each row action names the connection for screen readers, as "Edit" and "View" do | P1 | Y | Overview | default | baseline | 005 §S3; §Accessibility |
 | 005-S3.6 | Hint "Pick up your draft or connect another form." while a stored or local draft exists | P1 | Y | Overview | default | baseline, copy, superseded by FR-029 | 005 §S3 |
@@ -673,9 +699,9 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 005-S5.3 | "Restore changes" (primary) opens the flow with the local content and step, at its loaded version | P2 | Y | Restore dialog | default | baseline, copy | 005 §S5 |
 | 005-S5.4 | "Discard them" (secondary) removes the local draft and opens the stored draft | P2 | Y | Restore dialog | default | baseline, copy | 005 §S5 |
 | 005-S5.5 | Escape closes the dialog and opens the draft's details, keeping the local draft for next time | P2 | Y | Restore dialog | default | baseline, amended by FR-049 (× and scrim too) | 005 §S5 |
-| 005-S6.1 | Header: the name as the page's h1 and the "Draft" badge | P4 | Y | Draft details | default | baseline, copy | 005 §S6; W7 |
+| 005-S6.1 | Header: the name as the page's h1 and the "Draft" badge | P4 | Y | Draft details | default | baseline, copy, superseded by FR-049 (heading, #51) | 005 §S6; W7 |
 | 005-S6.2 | Progress: Publish current; steps up to the stored step reached and lead to the flow at that step | P4 | Y | Draft details | default | baseline, superseded by FR-025 | 005 §S6 |
-| 005-S6.3 | The steps between are to do and aren't links (interim look until Figma has a design) | P4 | Y | Draft details | default | baseline, superseded by FR-025 (Q41 lists it as built: conflict) | 005 §S6 |
+| 005-S6.3 | The steps between are to do and aren't links (interim look until Figma has a design) | P4 | Y | Draft details | default | baseline, superseded by FR-025 | 005 §S6 |
 | 005-S6.4 | Info alert "This draft isn't live. Its connection links appear once you publish it."; no connection URLs | P4 | Y | Draft details | default | baseline, copy, superseded by FR-049 (alert) | 005 §S6; 005-FR-006 |
 | 005-S6.5 | Documents and rules cards show what the draft holds, incomplete parts included | P4 | Y | Draft details | default | baseline | 005 §S6 |
 | 005-S6.6 | A document without fields reads "No data chosen yet"; no documents reads "No documents yet" | P4 | Y | Draft details | empty | baseline, copy | 005 §S6 |
@@ -701,7 +727,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | 005-S8.6 | "Save and exit" and publishing are refused while it remains, with the server's message | P2 | Y | Wizard; Publish dialog | error | baseline, copy:server | 005 §S8 |
 | 005-S8.7 | The step's cards show only what the catalog offers | P2 | Y | Documents step | default | baseline | 005 §S8 |
 | 005-ACC.1 | Every draft mark is text with an icon (KERN badge), never colour alone | - | Y | Overview; Wizard shell; Draft details | default | baseline | 005 §Accessibility |
-| 005-ACC.2 | Dialogs: native modal, focus inside, Escape closes, focus returns to the opening control | - | Y | dialogs | default | baseline | 005 §Accessibility |
+| 005-ACC.2 | Dialogs: native modal, focus inside, Escape closes, focus returns to the opening control | - | Y | dialogs | default | baseline, amended by FR-052 (a scrim click closes too) | 005 §Accessibility |
 | 005-ACC.3 | Status messages are polite live regions; alerts that refuse something take the focus | - | Y | all screens | ? | baseline | 005 §Accessibility |
 | 005-ACC.4 | At 320 px and 200 % the footer's three actions wrap, and "Save and exit" keeps its label | - | Y | Wizard shell | default | baseline | 005 §Accessibility |
 | 005-CP.1 | Dates use the overview's format ("4 Nov 2026"), with 24-hour browser-time "14:32" where the copy says so | - | Y | all screens | ? | baseline, copy | 005 §Copy |
@@ -820,7 +846,7 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | OUT-17 | The blocking "Saving your draft…" modal (dropped) | FR-033; Q17c |
 | OUT-18 | Marking only Username as invalid after a failed sign-in (Figma error) | Q10 |
 | OUT-19 | Inline variant rename: inline field, "Enter saves · Esc cancels", double-click, ⋯ on the active tab only (dropped) | Q21 |
-| OUT-20 | "Group with other rules" in a sub-group's menu (Figma error) | FR-036; Q22 |
+| OUT-20 | "Group with other rules" in a sub-group's menu, on a rule inside a sub-group, on a group holding one (Figma errors) | FR-036; Q22, #48 |
 | OUT-21 | Single-member and empty groups; a moved-up sub-group renamed "Group NN" (Figma errors) | FR-037; Q23a, Q23b |
 | OUT-22 | No connector between groups, a trailing connector, the link icon on some linked rules only (Figma errors) | FR-038; Q24b |
 | OUT-23 | A fixed-date comparison for the Date of birth (deferred) | Q25 |
@@ -842,13 +868,21 @@ Spec 008's Clarifications (session 2026-11-07) decide drift items against these 
 | OUT-39 | The baseline's "permanently", requests clause and "the URLs work again" added to the confirmation dialogs | Q38 |
 | OUT-40 | The restore dialog's × and scrim doing nothing (not built) | FR-049; Q39 |
 | OUT-41 | The Standard tab's info icon without a description (not built) | FR-035; Q20 |
-| OUT-42 | The ⓘ without text next to "Connection name" (not built; Q45 (35) adopts a name-field ⓘ: conflict) | Q15; FR-051 |
 | OUT-43 | Hiding the variant tab row before the first rule or while a rule is edited | Q19 |
+| OUT-44 | The older Publish frames' data-card formats: document column, "<date> · <age>", "· <n> year(s)", one row per class | FR-024; #46 |
+| OUT-45 | "Leave this connection?" and E5a's "Keep draft and exit" in the edit flow (F5, not built) | FR-026; #47 |
+| OUT-46 | The hint "serviceBW replaces {reference} with the request reference." (dropped; the placeholder stays in the URL) | FR-046; #49 |
+| OUT-47 | "No citizen can meet the rules of Standard." above the test step's result heading (dropped) | FR-041; #50 |
+| OUT-48 | "Change start date" in the connection's ⋯ menu and the scheduled state (F1, not built) | FR-048; #52 |
+| OUT-49 | "Remove from group" in rule and sub-group menus (F7, deferred) | FR-036; #53 |
+| OUT-50 | The build notes' "Retry" on the failed-save toast and "Remove them and continue" (dropped) | FR-031; FR-033; #55 |
+| OUT-51 | An effect sentence in the delete-rule dialog built from the rule's check ("Citizens won't be checked for …") (dropped) | FR-037; #56 |
+| OUT-52 | The variant ⓘ on the Test step and the placeholder "Variants are other versions of these rules." (dropped) | FR-035; #57 |
 
 ## Glossary
 connection = form connection, Connection, Formularverbindung, connection card, live connection, active connection
-variant = branch, Variant, variant tab, tab, "+ Add variant"
-Standard = main branch, main variant, default variant, Standard tab
+variant = branch, Variant, variant tab, tab, "+ Add variant", variant ⓘ
+Standard = main branch, main variant, default variant, Standard tab, Linked to Standard (recommended)
 rule = Rule NN, rule row, condition, check, rule card
 group = Group NN, sub-group, Sub-group NN, rule group, AND/OR group, GroupFrame
 connector = AND/OR, operator, logic toggle, pill, "All rules must be met", "At least one rule must be met"
@@ -856,7 +890,7 @@ document = document type, credential, ID document, Personal ID, Driving licence,
 data = field, attribute, claim, part, value, data item
 check = condition, comparison, predicate, operator
 statement = rule text, condition text, summary line, statement chip
-error message = Message for citizens, message applicants read (former), rule message, citizen message
+error message = Message for citizens, message applicants read (former), rule message, citizen message, Add message, Remove message
 citizen = applicant (former), person who shares wallet data, sample citizen
 draft = Draft badge, stored draft, unpublished, saved draft, "This connection is a draft"
 local draft = unsaved work on this device, unsaved changes, recovered work, safety net
@@ -871,7 +905,7 @@ overview = Your connections, connections list, dashboard, home, Connections
 welcome page = Welcome to Konnekt, homepage without connections, first-time user, hero, empty overview
 first connection = get started, Create your first connection, onboarding
 wizard = editor, create flow, edit flow, stepper, progress, step bar, step line, "Step n of 4"
-leave dialog = Leave this connection?, Save progress, Discard connection, Leave site?
+leave dialog = Leave this connection?, Save progress, Discard connection, Leave site?, Save your changes?
 breadcrumb = Your connections link, crumb, page path
 user pill = user menu, account menu, person icon, Your account
 Copy to variant = copy popover, copy dialog
@@ -887,6 +921,6 @@ approval request = approval, approve request, pending request
 consent page = authorize, Allow access
 user page = account, Your account, profile, user menu
 error ID = error id, reference code, support ID
-toast = snackbar, notification, Retry toast, undo toast
+toast = snackbar, notification, Retry toast, undo toast, Try again toast
 motion = transition, animation, fade, reduced motion
 KERN Revamp = Revamp, Design Kit, KERN 2.8 (current), kit
