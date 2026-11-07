@@ -1,605 +1,380 @@
 # Figma ↔ spec audit — 2026-11-07
 
 ## Summary
-Units audited 100/101 (OUT 1, UNCERTAIN 0, FAILED 0). Figma calls 290 (289 in units + 1 mapper).
+Units audited 100/101 (OUT 1, UNCERTAIN 0, FAILED 0). Figma calls 290 (289 recorded in the unit files + 1 mapper); units.md records 12 calls in this remap (U19 4, U38 3, U70 3, U96 2).
 
-Governance: spec.md says **"Figma decides wording"**. So a pure wording difference is *copy to port* (listed under cosmetic, no question). Only copy that comes from outside the frontend, or a renamed concept, becomes a C question. Each question carries its kind (F, W or C) from the spec's drift table.
+Requirements index: spec.md mtime 2026-11-07 16:00:35 UTC (196 added, 158 changed, 1 removed ID).
 
-The only design decisions are in Clarifications session 2026-11-06:
-- **#1** — defer features that would need a backend, rules-package or MCP change.
-- **#2** — adjust colour pairs that fail AA.
-- **#3** is about verification tables. It settles no item here.
+Governance: spec.md says **"Figma decides wording"**. A pure wording difference is copy to port (listed under cosmetic with `RULE wording`, no question). Copy from outside the frontend and renamed concepts are C items. Every question carries its kind (F, W or C) from the spec's drift table.
+
+Design decisions applied:
+- Session 2026-11-06: #1 (defer what needs a change outside the frontend) and #2 (adjust colour pairs that fail AA). #3 (verification tables) settles nothing here.
+- Session 2026-11-07: #1–#45 (= Q1–Q45 of the previous report). Every answer refers to the design.
+- Two decisions settle the same point differently in two places:
+  - The ⓘ next to "Connection name": #45 is later than #15, so the name-field ⓘ is built as drawn (U19 #11). OUT-42 and FR-051i's conflict note should be removed from the spec.
+  - 005-S6.3: #41 lists it for building, #7 removed it. The row's own interim look applied only "until Figma has a design", and U93 is that design, so the draft details show no step line (W8).
+- Most of the previous report's open items are now settled. They moved to "Figma must change", "Build without frames" and "Copy from outside the frontend". What stays open is new drift that the decisions did not reach, or a decision whose amendment still doesn't match a frame.
 
 | category | count |
 |---|---|
-| Conflicts (open) | 38 |
-| Spec-only (open) | 25 |
-| Figma-only, behavioural (open) | 4 |
-| Partial matches (open) | 21 |
-| Figma-only, cosmetic, copy to port and ui-detail (FYI) | 42 |
-| Figma must change (decided) | 13 |
-| Build without frames (decided) | 1 |
-| Copy from outside the frontend (decided) | 0 |
+| Conflicts (open) | 3 |
+| Spec-only (open) | 1 |
+| Figma-only, behavioural (open) | 1 |
+| Partial matches (open) | 10 |
+| Figma-only, cosmetic: copy to port, layout and ui-detail (FYI) | 35 |
+| Figma must change (decided) | 62 |
+| Build without frames (decided) | 20 |
+| Copy from outside the frontend (decided) | 6 |
 
 Top 5 issues (open items only):
-1. **Compact "Step n of 4" header** with four unlabelled, non-clickable steps, against five labelled progress entries (004-S0.1, 004-S0.3). It is in every wizard frame. Conflict 5, Q7.
-2. **Product name "Konnekt"** replaces "Connection Portal" on every screen, in the consent and account texts and in the MCP guidance. C item, Q1. "citizen" for "applicant" (Q2) also reaches the findings and rules-package texts.
-3. **The documents step is redesigned**: master-detail list, pager, counter, search card, inline remove, undo, nothing-chosen validation and drag reordering. Spec 002 explicitly does not build these (002-S1.8, 002-S1.9). Conflicts 6–10, Q14.
-4. **Leaving the wizard stores a draft.** The product name and breadcrumb run Save and exit, there are leave dialogs, and the log-out dialog asks "Save before you log out?". The baseline keeps the work as a local draft instead (spec 005). Conflicts 1–2, Q8.
-5. **Whole screens and dialogs aren't drawn**: spec 007's consent, account and approval pages, and spec 005's conflict, restore, discard and catalog-dropped-data states (W items). Spec-only 4–8 and 22–24, Q41 and Q43.
+1. **Test-step data card and result heading.** The newer Test 1 frames (U65–U74, U99) draw a flat list, a date of birth without the age, "B since <date>" without the years, merged classes and "Result: doesn't meet 2 rules". CLAR #6 and #31 (c) took the document column and the formats from the older Publish frames (U75–U79). Conflict 1, Q1.
+2. **Leaving and saving in the edit flow of a published connection.** E5b's "Save your changes?" dialog (U99) is undecided. CLAR #8 applies the create flow's Save and exit, which the edit flow doesn't have. It is also open whether "Save" is disabled while a rule is open. Conflict 2, Q2.
+3. **Menus in variants and on groups.** Build note 10 hides Rename and Duplicate on items linked to Standard and limits when "Copy to variant" shows. Group menus have no "Rename" and no "Remove message". Partials 4–5, Q8, Q9.
+4. **Details gaps the decisions left.** These are the draft details' main heading and button placement (Q6), where the connection ⋯ and "Activate again" go once the date pill is gone (Q7), and the drawn text of the "Result link" ⓘ (Q4).
+5. **Grouping depth.** "Group with other rules" appears on a rule inside a sub-group and on a group that already holds one, which would create a third level. Conflict 3, Q3.
 
 ## Conflicts
 | # | req | Figma (unit, node-id) | conflict |
 |---|---|---|---|
-| 1 | 001-S0.6, 005-S0.1, 005-S0.6, 005-S1.1, 005-S4.1, FR-003 | U03 #35 (6703:39311); U05 #41, #43 (6730:40338); U06 #51, #70, #90; U17 #2, #5, #21, #22, #24 (7173:52656, 6890:46052, 7173:52682); U99 #33; strip "Starts as a draft…" U07 #18, U18 #20, U19 #13 | In a flow, the product name and the "Your connections" crumb run Save and exit and store a draft, and validation can block leaving. Leave dialogs say "you lose all progress" and offer "Discard connection" / "Save progress". A beforeunload "Leave site?" warns that changes are lost. An open rule editor is kept in the draft. The baseline navigates, keeps a local draft and offers it on the overview, and asks "Save changes to Rule 01?" first. |
-| 2 | 005-S7.2–S7.5 | U05 #42; U17 #19, #20 (6408:72919); U17 #1 | The design's log-out dialog is "Save before you log out?" with "Save and log out" and "Log out anyway", and has no Cancel. The baseline's is "Log out and discard unsaved work?", lists the names, says "Saved drafts stay as they are.", and has "Log out" (danger) and "Cancel". |
-| 3 | 001-S4.1, 001-S4.2, 001-S4.8, 001-S3.6 | U11 #28 (6699:44481); U18 #4, #5 (6793:47682); U06 #85, #86 | The welcome page "Welcome to Konnekt" is shown to first-time users, and its state is kept in localStorage. The baseline opens step 1 directly on /get-started, stores nothing, and shows the empty overview only through the product name. |
-| 4 | US1-AS1, 001-S1.2 | U10 #13 (6401:28435) | Only the Username field gets the error fill, which hints at which field was wrong. |
-| 5 | 004-S0.1, 004-S0.2, 004-S0.3, 004-S7.3, 001-S6.2, 005-S6.2, US2-AS1 | U02 #1, #2, #4 (6637:36653); U03 #42; U05 #29; U06 #23, #67; header of every wizard frame (e.g. U17 6701:39488, U62 7112:47827, U67 7058:60675, U98 #8, #9, U99 #24, U100 #6); details U63 #27, U80 #27, U83 #37, U86 #32 | The header is a compact "Step n of 4" with four unlabelled segments and "Next: …" / "Last step". It isn't clickable when creating and is clickable when editing. The Published page has no step line. The baseline has five labelled entries whose finished steps lead back, and doesn't build the compact header. |
-| 6 | 002-S1.8, 001-S5.2, 001-S5.3 | U04 #36–#38 (6711:39373); U06 #71; U20 #8, #15–#17, #20; U21 #8, #10, #17, #21–#23; U22 #9, #11, #20, #23, #25; U23 #8, #10, #18; U24 #8, #10, #17; U25 #8, #15; U26 #8, #9, #19 (6324:40326); U27 #8, #14, #20; U28 #9, #13, #21; U98 #20, #22, #27 | The documents step is a master-detail list showing one document at a time. It adds a "Document n of m" pager, an "Added documents (n)" counter, and a search card with suggestions ("Available (n)"). The baseline keeps spec 001's step. |
-| 7 | 002-S1.9, 001-S5.4, 002-S1.1 | U22 #12; U23 #11, #12, #20 (7298:61765); U24 #11, #27 (7298:62374); U25 #10; U26 #11; U28 #14; U98 #22 | The design has an inline trash on the list item, an undo toast after removing a document, and a confirmation for a document no rule checks. The baseline builds none of these. |
-| 8 | 002-S1.9, 001-S5.5, 001-S5.6, 001-S7.6, 002-S1.4, US2-AS3 | U04 #30, #32, #33; U05 #9; U20 #14 (7290:60367); U22 #14; U25 #17, #20, #22–#24 (7298:62636) | The design has nothing-chosen validation: an inline red line, "1 document needs data", and a dialog with "Choose data" / "Remove them and continue". "Set rules →" is disabled with the hint "Add a document first". The baseline keeps going on enabled and refuses an attempt with a message, moving the focus. |
-| 9 | 002-S1.5, 004-S1.1, 005-S0.3 | U04 #34; U28 #25 | The documents step has no "Publish without rules" while no variant has rules. |
-| 10 | FR-009a, 001-S7.2, EC-1 | U04 #42, #43; U08 #2, #3 (7370:55193); U23 #13; U27 #11–#13, #24 (7298:63317); U28 #12 (7298:64157) | Documents are reordered by drag (press and hold on touch) with no keyboard alternative. A stored order may need the API. |
-| 11 | 006-S1.1, 006-S1.3, 006-S1.4, 006-S1.5 | U04 #24 (6703:39321); U18 #18, #19; U19 #11; U98 #13, #14; U52 #26 | The description is a multi-line textarea, and the ⓘ sits next to "Connection name" instead of the description. |
-| 12 | 005-S1.2 | U04 #27 | With an empty name, "Save and exit" just leaves. The baseline sends the flow to step 1 with "Enter a name." |
-| 13 | 005-S1.4, 005-S1.7, 005-S1.8, 005-S0.4, FR-008 | U02 #5, #6 (build note 7); U05 #22; U17 #3, #23; U51 #22; U79 #4 | A failed save shows a neutral toast with Retry. Alerts are title-only, with no error ID, "Try again" or list. Saving is a blocking modal, "Saving your draft…". The baseline uses a KERN danger alert with the error ID and "Try again", moves the focus to it, and shows an aria-disabled "Saving…" button with a polite status. |
-| 14 | 004-S2.1, 004-S2.4, 004-S2.6, 004-S2.7, 002-S2.23, 002-S3.11, 003-S2.22 | U01 #21, #22; U06 #58; U29 #18; U30 #24, #47; U31 #33; U32 #42; U33 #25; U35 #38; U36 #20; U40 #26; U48 #21; U49 #14; U50 #21; U51 #36; U53 #34; U64 #33 | "Test rules" (Publish) is disabled while a rule is open, incomplete or in error, or while grouping. It shows "Save the rule first" / "Finish grouping first" and hover explanations. The baseline keeps it enabled, asks "Save changes to Rule 01?", and refuses with a message. |
-| 15 | 002-S2.1, 002-S2.2, 002-S2.3 | U30 #25; U33 #8; U49 #5; U50 #32; U51 #27, #37; U53 #8 | No variant tab row is drawn before the first rule or while a rule is edited. |
-| 16 | 004-S8.2.6, 002-S4.3, 002-S4.25 | U02 #21; U07 #20; U18 #25 (7344:96402); U30 #26, #29; U31 #11; U32 #10; U34 #10; U35 #10; U36 #9; U37 #10; U40 #35 (6961:56304); U43 #10; U44 #11; U45 #10; U46 #10, #28; U50 #10; U51 #10; U52 #10; U55 #10; U56 #10 (6522:32507); U59 #9; U62 #28 (7112:48689); U64 #15; U65 #10; U67 #10; U68 #10; U72 #10; U75 #19; U78 #15; U79 #19; U98 #31; U99 #27; U100 #9 | The design shows a "What is a variant" ⓘ next to "+ Add variant", and an info icon on the Standard tab even without a description. Both are listed as not built. |
-| 17 | 002-S4.4, 002-S4.22, 002-S2.17 | U59 #13–#15 (6523:37251); U60 #9 (6523:37675); U62 #6 (7112:47821) | Variants are renamed inline in the tab (double-click or ⋯ › Rename, "Enter saves · Esc cancels"), so the description can't be edited. The baseline's "Rename" opens the "Edit variant" dialog. |
-| 18 | 007-S4.1, 007-S4.2, 007-S4.6, 002-S2.16, 002-S2.19, 002-S2.10 | U09 #44; U34 #25; U36 #15, #28; U41 #22; U47 #17, #30, #34; U54 #2, #10 (6522:33105); U55 #27, #30, #33, #34; U56 #25, #29, #30, #40; U57 #18, #19, #22; U58 #23, #28; U59 #11; U61 #25 | The menus lack "Copy link" (also after Restore), "Rename" and "Copy to variant". Removed items get "Restore only". The sub-group menu offers "Group with other rules", although a sub-group offers no further grouping. |
-| 19 | 002-S2.13, 002-S2.14, 002-S4.18 | U35 #21, #40; U47 #35; U51 #21, #24 | A group keeps a single member and an empty group is drawn, but the baseline dissolves both. A sub-group that moves up is renamed "Group 01" instead of keeping its name. |
-| 20 | 002-S2.5 | U35 #28 (+ hints #27, #35) | Rules inside a group that has its own message hide their own messages. |
-| 21 | 002-S2.8, 002-S4.31 | U40 #29, #30 (6961:56291); U62 #19, #21 | A connector is missing between groups and a trailing one is drawn. The link icon is on some linked rules only. |
-| 22 | 002-S3.12–S3.18, 002-S3.30 | U09 #24, #27 (6986:50041); U29 #27; U31 #40, #43; U03 #2; U46 #13; U49 #18; U50 #24; U53 #16, #36 | The design has no "from now" checks for the Date of birth, and its hint drops "the time from now". It shows a fixed date for the Date of birth, "Time passed / Time left", "at most", "on", a unit picker on age checks, and "starts with". |
-| 23 | 002-S2.7, 002-S6.12 | U03 #10; U83 #24 | Saved rules show their identifier in the rules step, and the details lack it. |
-| 24 | 004-S8.5.1, 004-S8.5.2, 004-S8.5.9, 004-S8.5.10, 004-S8.10.2, 004-S8.10.3, 004-ACC.4 | U06 #36, #43, #79; U66 #26, #27, #32 (7058:60514); U67 #26, #27, #35, #36, #39 (7058:60806, 7058:60824) | "Edit data" opens a dialog with "Results update when you save.", "Cancel" and "Save and test". An error blocks the whole save, and a toast says "Results updated. Mia now meets Rule 01." The baseline edits inline, applies valid changes at once and announces per variant. |
-| 25 | 004-S8.6.7 | U06 #32; U65 #28; U70 #22 | A met variant shows a "Message Mia reads" box with "Your wallet data meets the requirements. Other documents are checked separately." |
-| 26 | 004-S8.3.1, 004-S8.3.2 | U63 #8; U76 #11; U77 #21; U79 #21 (+ U75 #20, U78 #16) | The persona cards have an avatar, age · nationality and the text "Meets the rules" / "Doesn't meet the rules". The Test 1 frames (U65–U72) draw the baseline chips. |
-| 27 | 004-S8.9.3 | U74 #24 (7062:51784) | The design shows "Your rules are saved.", which is listed as not built. |
-| 28 | 004-S5.3 | U63 #24; U73 #26; U75 #8 (6376:25536); U76 #32 (6635:36265); U77 #12; U79 #6 (6376:27178) | The publish dialog has "Back to test", which is listed as not built. |
-| 29 | 002-S7.3, 002-S5.10 | U05 #26; U06 #65; U15 #23, #25 (6699:47905); U87 #23, #25 (6396:49030) | The design asks "Edit "<name>"?" on entering the edit flow ("Cancel" / "Edit connection"). The baseline doesn't build this; the save dialog asks instead. |
-| 30 | 004-S2.3, 004-S5.1, 002-S7.1, 004-S0.4, 002-S5.10 | U05 #33; U98 #4, #18, #43; U99 #35; U100 #17 | The edit flow has Save on every step and opens the save dialog from the rules step. It shows an "Active" badge in the header, and its leave dialog has a "Save" that saves directly. |
-| 31 | 002-S6.6, 002-S7.2, 007-S5.8 | U06 #87 | Changing the rules from the details always opens step 1. |
-| 32 | 002-S6.3, 002-S6.9 | U06 #60, #83; U91 #19 | The details are accordions (Links, Summary, Activity). Summary opens first when you arrive from "View", and only one accordion is open at a time. The baseline's rules card is collapsed by default. |
-| 33 | 003-S6.1 | U06 #10; U85 #1, #20, #21 (6760:48437) | The published details show findings lines and tab icons (the designer flagged this). |
-| 34 | 002-S6.9, 001-S7.7 | U06 #81; U81 #25 (6396:47841) | The copy button turns into "✓ Copied" for 2 s, which is listed as not built. |
-| 35 | 002-S6.9 | U07 #28; U58 #40; U63 #36; U80 #18; U81 #21; U82 #15; U83 #17; U84 #21; U85 #17; U86 #20 (6396:48385); U87 #13; U88 #19; U89 #22 (6417:31343); U90 #19; U91 #17; U92 #13; U93 #10; U94 #14; U95 #15; U96 #20; U97 #13; U99 #15 | The details have "Download PDF", which is listed as not built. |
-| 36 | 002-S6.9, 005-S3.3 | details: U58 #31, U63 #28, U80 #7 (7355:61158), U81 #8 (7355:61822), U82 #7, U83 #7, U84 #8, U85 #8, U86 #8, U87 #7, U88 #8, U90 #15, U91 #7, U92 #8, U99 #7; deactivated: U89 #8, U96 #7 (7355:60885), U97 #7; overview: U11 #15, U13 #13, #15, U14 #10, #12, U15 #15, #17, U17 #35, U18 #43, U90 #31 | The design shows status timestamps: "Active since …" (= "Live since", not built) and "Deactivated since …". Overview rows read "Published <date>" / "Deactivated <date>". These may need dates the API doesn't provide. |
-| 37 | 001-S6.9, 001-S6.10 | U05 #24; U89 #26 | A toast with "Undo" follows deactivating. The baseline reverses a deactivation only through Reactivate, and requests in progress are already cancelled. |
-| 38 | OUT-6 | U03 #40; U05 #30; U06 #94, #97, #98, #101; U78 #6 | The design defines motion: a pill grows in 240 ms, colour changes take 150 ms, pages fade in 150 ms, heights animate in 150–200 ms, dialogs fade, a 0.5 s delay follows publishing, and there is a reduced-motion rule. OUT-6 assumes the design defines none. |
+| 1 | FR-024a, FR-024c, FR-024d, FR-043b, 004-S8.4.2, 004-S8.4.3 | CONFLICT: U66 #19, #25; U68 #21, #32; U72 #26 (7058:61750); U73 #13 (7058:62077, 7137:50166). PARTIAL: U65 #15, #16, #18, #21, #26 (7057:58772, 7057:59071, 7057:59079, 7057:58811, 7057:59186); U67 #14–#16, #20 (7058:60746, 7058:60752); U68 #14, #15, #18; U69 #15, #16, #18, #24 (7057:60456, 7057:60779, 7057:60495); U70 #15, #17, #18 (7057:61649); U71 #15, #17, #19, #21 (7058:61436, 7058:61444, 7058:61454); U72 #15, #16, #18, #22 (7058:61720); U73 #12 (7058:62058); U99 #43, #44 (7114:49747, 7114:49766); build note U06 #31 | The Test 1 frames, which CLAR #32 makes the reference for the persona row, draw a different data card and heading from the one CLAR #6 and #31 (c) adopted: a flat list with no document column, "08.07.2007" without " · 19", "B since 20.08.2025" without " · <n> year(s)", "B, BE since 02.05.2010" in one row, "ID valid until" as a label, and "Result: doesn't meet 2 rules" with a count. The decided formats exist only in the older Publish frames (U63, U75–U79). |
+| 2 | FR-026a, FR-045c, FR-045e, 005-S0.7 | U99 #33 (7173:52810), #34, #35 (7173:52836); E5a U99 #22 (6890:46197) | In the edit flow, "Your connections" opens "Save your changes?" ("If you leave now, your changes are lost. Save them, or discard them and keep the active version.") with "Discard changes" and "Save". CLAR #8 (a) lists U99 #33 under "runs Save and exit", but a published connection's edit flow has no Save and exit (005-S0.7, F5). The create flow's "Leave this connection?" wording doesn't fit, and whether "Save" goes through "Save changes?" (FR-045c) is open. |
+| 3 | 002-S2.10, FR-036c, FR-036d, FR-038e | U55 #27 (6531:39068), #30 (6522:32424); U58 #20; build note U54 #5 (6522:33107) | "Group with other rules" is offered on a rule inside a sub-group and on a group that already contains a sub-group. Both would create a third level, which 002-S2.10 forbids. CLAR #22 decided only a rule's menu (adopt) and a sub-group's menu (Figma error). A top-level group's menu, and the build note's condition "only when another rule or group is on the same level", are undecided. |
 
 ## Spec-only (not in Figma)
-A requirement whose only mapping is a CONFLICT is handled under Conflicts; Coverage shows it as CONFLICT.
-
 | # | req | prio | expected surface | note |
 |---|---|---|---|---|
-| 1 | 001-S0.2, 001-S0.4, EC-9 | P1 | Sign-in guard (routing) | Nothing to draw. Built as the baseline. Q44 |
-| 2 | 001-S3.7 | P1 | Overview: error state | No error frame. Q44 |
-| 3 | 001-S4.3, 001-S4.5, 005-S4.11, 005-R.2 | P1 | First connection (/get-started) | Validation as on /form-connections/new, reopening from a bookmark, the flow's own local draft not listed, ?local=. Q41 |
-| 4 | 005-S4.8, 005-S4.10, 005-S4.12, 005-S4.13 | P1 | Local drafts offer: discard dialog, status and focus after discarding, other tabs, no storage | U16 draws the offer and its buttons only. Q41 |
-| 5 | 005-R.1, 005-S0.6, 005-S0.10, 005-S0.11, 005-S1.6, 005-S1.9, 005-S1.10, 001-S5.7, 001-S5.10, 001-S5.11 | P2 | Wizard: flow key in the URL, no badge before the first save, moving to documents for dropped data, checks rerun, failure keeps the work, 401, alert lifetime, the API's 400 message, loading and load errors | Q41 |
-| 6 | 005-S2.1–S2.13, US2-AS5 | P2 | Conflict dialog (draft_changed, draft_published, draft_deleted) | Q41 |
-| 7 | 005-S5.1–S5.4 | P2 | Restore dialog | Only build note U06 #57 touches it. Q41 |
-| 8 | 005-S8.1–S8.6 | P2 | Documents step: alert for data the catalog no longer offers | Build note 7 (Conflict 13) limits alerts to a title. Q41 |
-| 9 | 006-S1.6, 006-S1.8 | P2 | Step 1: description placeholder and too-long error | Q41 |
-| 10 | 002-S2.20, 002-S2.21, 002-S2.24, 002-S2.36 | P3 | Rules step: reserved "Rule NN" names, names an undo could bring back, focus after a refused attempt, Standard's delete-group dialog naming variants | 002-S2.20 is copy:server. Q42 |
-| 11 | 002-S3.31 | P3 | Rules step: saved statement shows the letter-case setting | Q42 |
-| 12 | 002-S4.9, 002-S4.27, 002-S4.28, 002-S4.30 | P3 | Variant marks: switched top-level AND/OR and its badge on the first connector, propagation when Standard removes a rule | Q42 |
-| 13 | 003-S2.5, 003-S2.17, 003-S2.19, 003-S2.20, 003-S2.21, 003-S4.4, 003-ACC.5, 003-ACC.6, 003-CP.3, 003-CP.6, 003-CP.15, 003-CP.17, 003-CP.18 | P3 | Findings: hidden kind text, notice without links, update in place, status region, tab accessible name, reflow, undrawn texts | U03 #22: the Flow draws no findings. Q42 |
-| 14 | 004-S2.5 | P3 | Rules step: "Save changes?" leaves no rule | Q42 |
-| 15 | 004-S8.5, 004-S8.5.8, 004-S8.5.13, 004-S8.6.5, 004-S8.7.3, 004-S8.7.4, 004-S8.10.1, 004-ACC.2, 004-ACC.3 | P3 | Test step: later flow's loading, clearing fields, class dates returning, group members, "all" dialog, name kept, status region, arrow keys, focus | Q42 |
-| 16 | 007-S4.5, 007-S5.1, 007-S5.2, 007-S5.4–S5.8, US3-AS5 | P3 | Deep links into the rules step: notices, focus, history; toast announcement | Q42 |
-| 17 | 002-S5.4, 002-S5.5, 002-S5.6 | P4 | Publish dialog: rules_changed conflict, "Publish without rules?" | Q41 |
-| 18 | 001-S6.14, US4-AS6 | P4 | Details: deleted or unknown connection | Q44 |
-| 19 | 005-S6.3, 005-S6.7, 005-S6.12, 005-S6.13 | P4 | Draft details: steps to do, rule placeholders, delete errors | Q41 |
-| 20 | 003-S7.1, 004-S7.2 | P4 | Edit flow: checks when it opens; failure hint "Try again, or save without testing." | 004-S7.2 is copy:rules. Q41 |
-| 21 | 006-S3.2, 006-S3.3 | P4 | Details: description meta below and at lg | The design draws no meta (U63 #26). Q41 |
-| 22 | US5-AS1, 007-R.1, 007-S1.1–S1.10, 007-S1.12 | P5 | Consent page | W item. Q43 |
-| 23 | US5-AS2, 007-R.2, 007-S2.2–S2.15 | P5 | Account page | W item. Q43 |
-| 24 | US5-AS3, 007-R.3, 007-S3.1–S3.26 | P5 | Approval page | W item. 007-S3.25 is also cited by Conflict 13. Q43 |
-| 25 | FR-002c, FR-005, FR-012b, EC-2, 001-S7.10, 005-ACC.4 | – | All screens | General rules for undrawn states, tab titles, contrast, footer wrap. Q44 |
+| 1 | 004-S8.6.1 | P3 | Test step, result card of a variant no citizen can meet: "No citizen can meet the rules of Standard." above the heading | Build note 29 says "⚠ on the variant tab + hover tooltip, no banner" (U06 #35, 7058:63148), and U71 #21 (7058:61454) draws no line above the heading. No decision names the row (CLAR #42's test-step set doesn't list it). W item, Q5. |
+
+All other spec-only requirements are settled. See W1–W20 and the Coverage table.
 
 ## Figma-only — behavioural
 | # | item | where (units, node-ids) | suggested requirement |
 |---|---|---|---|
-| 1 | Delete from overview rows, row and select-all checkboxes, a selection bar with "N selected" / "Cancel" / "Delete", and a bulk delete dialog listing connections with status badges | U04 #4, #14, #19; U06 #66; U11 #9, #19; U12 #8, #10, #20; U13 #9, #18; U14 #8, #15; U15 #8, #20, #21, #27 (6699:45206), #29; U16 #23, #30; U17 #29; U18 #39, #45; U90 #27, #33 | "Each overview row offers Delete. It asks the same confirmation as the details (001-S6.11) or draft details (005-S6.10), with per-row accessible names (005-S3.5). Selecting rows offers one Delete for all of them." If bulk delete needs a new endpoint, CLAR 2026-11-06 #1 defers it. |
-| 2 | "Start from an example": a dialog creates the draft "Passenger transport licence (example)", with example banners per step and a publish-dialog line "This is still the example…" | U06 #25 (6791:46863), #91; U11 #26, #28; U18 #8, #10–#12, #16, #23, #32; U73 #25 | "The empty overview offers 'Start from an example', which creates a stored draft with 2 documents, 2 rules and a variant through the drafts API and opens step 1." Marking a draft as an example may need a stored attribute (CLAR #1). |
-| 3 | Field groups (Name, Birth, Address, Document, Other details) with tri-state group checkboxes | U28 #17; U98 #25; also U04 #44, #46, U21 #14, U22 #16, U24 #14, U25 #13, U26 #14, U27 #17 | "Fields of a document are grouped; a group checkbox selects or deselects its fields and opens 002-S1.1's dialog for rule-checked ones." The grouping isn't in the catalog: either a frontend mapping, or deferred under CLAR #1. |
-| 4 | "Discard changes" in every edit-flow footer, the dialog "Discard your changes?" ("Keep editing" / "Discard changes": "…goes back to the version that's active now. Citizens aren't affected."), and other items marked "Later" ("Send to your developer") | U98 #17; U100 #15, #20 (7173:52772), #21, #23, #24; U06 #27 | "The edit flow of a published connection offers 'Discard changes', which, after a confirmation, leaves the flow without saving." (Server-side draft changes are deferred, see F5.) |
+| 1 | The variant dialog's "Start with" preselects "Linked to Standard (recommended)" | U37 #23 (6139:32693); U52 #27 (6197:12011); U62 #25 | "The variant dialog preselects 'based on Standard', labelled 'Linked to Standard (recommended)'." A default changes what is stored when the team member doesn't choose, so `RULE ui-detail` doesn't apply. Q14 (8). |
 
 ## Partial matches
 | # | req | where | difference |
 |---|---|---|---|
-| 1 | 001-S0.5, 007-S2.1, 005-S7.1 | Every signed-in frame (#3/#5; e.g. U11 #3, U13 #22, #23, U44 #5, U94 #5); U10 #18 | The user's name isn't visible: the pill shows an icon only. "Your account" is missing from the menu, which also shows an email (the API may not have one). |
-| 2 | 005-S3.6, 005-S3.7, 006-S2.3, 005-S6.10, 001-S6.11 | U11 #5, U12 #5, #12, U13 #5, #11, U14 #4, #18, #19, #23, U15 #5, U16 #5, #25, U17 #26, U18 #36, U90 #24 | One fixed sentence replaces the two conditional hints. A row without a description isn't shorter. One delete dialog serves drafts and deactivated connections ("Delete connection" / "Keep connection"). |
-| 3 | 005-S4.2, 005-S4.3, 005-S4.6 | U16 #7, #11, #18; U07 #13, #14 | A single local draft collapses into the heading with one line and no list. A never-saved item shows "Resume editing" while its frame name says "Discard / Continue". |
-| 4 | 002-S2.8, 002-ACC.2, 002-ACC.4 | U34 #14, #23; chevron pills in U30 #39, U38 #15, U39 #18, U40 #19, U41 #16, U42 #22, U44 #27, U45 #15, U50 #17, U51 #13, U52 #12, U55 #16, U59 #19, U60 #16, U62 #12, U100 #11; read-only U83 #31 | The connector is a pill opening a two-option menu with descriptions, not a button that switches the level. |
-| 5 | 002-S2.9, 002-S2.10 | U40 #13; U64 #22 | In select mode, only top-level rules have checkboxes, so groups can't be selected. |
-| 6 | 002-S4.19, 002-ACC.1, 002-S2.5 | U43 #27; U47 #15, #32; U58 #26 | Removed items hide their message line. A changed rule inside a removed group has no visible "Changed here" text. |
-| 7 | 003-S4.2, 003-S4.3, 003-S2.11, 004-S8.2.2 | U06 #7, #9; U07 #19; U50 #8, #22 | A red error tab icon and tooltip are shown for spec 002 problems, and a grey ⓘ for "no findings". The Test tabs get every finding kind. |
-| 8 | 003-S2.15, 003-S2.16, 003-ACC.3 | U44 #17; U45 #28, #30; U46 #11 | The names in banner lines are plain text, not links, and each expanded line has its own kind icon. |
-| 9 | 002-S3.2, 002-S3.8, 002-S3.10, 002-S3.19, 002-S3.22, 002-S3.33, 002-S3.37, 002-S3.38 | U30 #42, #46; U31 #20; U32 #19, #39, #40; U33 #15; U35 #32; U48 #15, #24; U49 #9; U51 #31; U53 #30, #31, #35 | Rule-editor states aren't drawn or differ: pickers are drawn enabled before their turn, inline flags are missing, notes are absent in 1.11, the part picker is missing in some frames, there is no message placeholder (or a message is shown while incomplete), class options show codes only, and the values picker has a "Done" button. |
-| 10 | 002-S4.1, 002-S4.29, 002-S4.4, 002-S4.5, 002-S4.12, 002-S4.13, 002-S4.14 | U05 #3; U59 #10; U41 #24, #27; U42 #18 | A variant isn't linked when Standard has no rules. The tab ⋯ shows on the active tab only. Copy to variant is a non-modal popover with help text instead of "included, not choosable", and the copy lands unlinked. |
-| 11 | 002-S5.1, 003-S5.1, 002-S5.2, 002-S5.3, FR-008 | U73 #21, #23; U75 #5, #6; U77 #5, #6, #11; U78 #3–#6; U79 #3–#5 | The publish dialog summarises as counts ("7 data items", "Standard · 2 rules"). The warning line comes first, not in tab order. There is an interim "Published" state and "Opening your connection page…". The failure shows no error ID and drops the summary. |
-| 12 | 004-S8.4.2, 004-S8.4.3, 004-S8.4.6, 004-S8.4.11 | U65 #15, #18, #20; U66 #14, #24; U67 #14, #16; U68 #14, #18, #20; U69 #15, #18, #23; U70 #14, #17; U71 #17, #19, #20; U72 #15, #18, #22–#24; U63 #10, #12; U73 #12; U75 #22; U76 #14, #16; U77 #22; U78 #19; U79 #24, #26; U99 #43; U01 #15 | The data card has no "Personal ID" / "Driving licence" headings: the document is a column instead. It shows "Date of birth" without "(Age)" and merges code with class date. Each card scrolls on its own, and build note 4 says only the page scrolls. |
-| 13 | 004-S8.6.2–S8.6.4, 004-S8.6.6, 004-ACC.1 | U65 #23, #24; U66 #21, #22; U67 #22, #23; U68 #23, #24, #33; U69 #26, #27; U71 #23, #24; U72 #28, #29; U73 #15; U63 #13–#15; U75 #24–#26; U76 #19–#21; U77 #25, #26; U78 #22–#24; U79 #30–#32; U99 #46, #47 | Results show no statement and no "Not met" / "Couldn't be checked" text: status is shown by icon, tint and bold only. The older publish frames add "19, needs 21", a "Mia sees" box, and a heading without the count. |
-| 14 | 004-S8.5.3–S8.5.6 | U66 #30, #31; U67 #32–#34 | Licence classes are a plain text input, not a pick list. Nationality and Expiry date have no field. The class date is labelled "Class B since". |
-| 15 | 004-S8.8.4, 004-S8.1.2, 004-S8.3.4, 004-S8.3.5, 004-S8.7.1, 004-S8.2.3 | U74 #16, #21; U63 #9; U75 #21; U76 #13; U78 #18; U79 #23; U06 #37, #80; U05 #15 | The regenerating chip keeps its name with a ring, and no test-day line shows during one persona's regeneration. "Generate again" and "Generate all again" are missing from the publish frames. Generating asks first even without changes. The Test tab's hover tooltip is removed. |
-| 16 | 001-S6.9, 001-S6.10, 001-S6.11, 002-S4.5, US4-AS3 | U04 #17, #18; U14 #18, #20 (6699:44480), #23; U15 #28, #30 (6699:45320); U89 #7, #30; U90 #2 (6417:31599); U06 #17; U60 #34 | Confirmations don't say what happens to URLs and requests: no "permanently", nothing on requests in progress, and the reactivate body doesn't say the URLs work again. The delete-variant body names the broken result link. |
-| 17 | 001-S5.9, US4-AS5, 002-S7.4 | U05 #27; U15 #24; U87 #24; U98 #15 | The edit note reads "Your changes take effect when you save them." (or sits in the entry dialog). It doesn't say that requests in progress keep their configuration. |
-| 18 | 001-S6.1, 001-S6.3, 001-S6.4, 001-S6.5, 002-S6.4, 002-S6.10, 002-S6.11, FR-012a | U58 #30, #37, #39, #42; U63 #26, #27, #31, #34, #38; details U80–U99 (#2, #6, #12–#22); U89 #13, #19; U96 #16; U82 #18; U83 #21; U84 #25; U91 #10, #21; U92 #11; U94 #9, #16; U96 #11, #22; U97 #11 | On the details page, the status sentence ("Your connection is active") is the main heading, with the name in the crumb. There is no action to a new connection. The ⓘ sits on "Result link" and the reference hint isn't visible. Branch ⓘ are missing. Copy buttons are disabled while deactivated. Links are collapsible. Variants are tabs. The summary holds the documents and counts "2 documents · 9 data items · …". |
-| 19 | 005-S6.1, 005-S6.4, 005-S6.8, 005-S6.9, 005-S6.14, US4-AS4 | U93 #3, #6, #7, #9, #17, #20, #21; U07 #23–#25, #27; U02 #16 | On draft details, a status band "This connection is a draft" replaces the draft card and the info alert. "Edit connection" and "Go to connections" replace "Continue" and "Create new connection". The summary is open, and "Delete draft" isn't visible. |
-| 20 | 005-S5.5, 005-ACC.2 | U06 #57 | Dialogs add × and scrim-click closing. Escape means "no change", whereas the restore dialog's Escape opens the draft's details. |
-| 21 | EC-6, FR-010a, 001-S7.11 | U02 #14 | The design defines reflow only down to about 1024 px, with nothing for 320 px or 200 % zoom. |
+| 1 | FR-046d, 001-S6.5, US4-AS2 | U81 #14 (6809:46555, 6809:46590); text not drawn in U80 #13, U85 #13, U87 #10, U88 #15, U90 #17 | The "Result link" ⓘ is drawn with "Your service gets the citizen's shared data from this link. Each variant has its own." CLAR #35 (e) puts "serviceBW replaces {reference} with the request reference." in that ⓘ. The decision may have missed the drawn text. Q4. |
+| 2 | 005-S6.1, FR-049a, FR-049b, FR-012a | U93 #3 (7362:54693), #6 (7362:54697), #20 (7362:54920), #21 (7362:54922, 7362:55154); build notes U07 #23–#27, U02 #16 | "This connection is a draft" is drawn as the page's main heading, with the name and Draft badge in the breadcrumb. 005-S6.1 still makes the name the draft details' h1 (FR-046a moves the h1 only on the published details). "Edit connection" and "Go to connections" sit in the footer, while FR-049b says the status band offers them. Q6. |
+| 3 | 002-S6.7, 001-S6.9–S6.11, FR-048b | U07 #7, #8 (7370:55183); U87 #8; U88 P14/P15 (6417:30900, 6417:31060); U89 #9, #10 (7355:61548, 7355:61549); U90 #7 (7355:61614); U94 #8; U95 #10; U97 #8, #9 (7355:61025, 7355:61094, 7355:61026, 7355:61095) | The connection ⋯ menu sits inside the status-date pill, with "Activate again" next to it. CLAR #37 (c) drops the pill, so both need another place. Q7. |
+| 4 | 002-S2.16, 002-S4.10, FR-036b, FR-040b | build note 10 U54 #3, #4 (6522:33107); U39 #27e, #28b; U56 #40; U57 #18, #19 | Build note 10 hides Rename, Duplicate, Ungroup and "Remove from group" on rules and groups linked to Standard in a variant. It shows "Copy to variant" only while another variant could still receive the item. CLAR #22 builds Rename and Copy to variant "on rule menus" without saying whether that includes linked rules. Q8. |
+| 5 | 002-S2.11, 002-S2.17, 002-S2.19 | U54 #2; U55 #28, #33, #34 (frames 6530:40150, 6522:32038, 6531:39026, 6522:32382); U56 #23, #28, #30; U57 #22; U58 #19; message card with pencil U35 #26 (6324:39411) | Group and sub-group menus have "Add message" but no "Remove message" and no "Rename". U55's frame names still promise "Rename" and "Add error message". CLAR #22's W list names neither. Q9. |
+| 6 | FR-033a, FR-031g | U51 #22 (6197:11098); U25 #19 (7299:52174); build notes U05 #22 (6720:39042), U04 #32 (6711:39375) | The decided labels differ from the drawn frames. CLAR #17 (a) chose "Retry" from a build note, but the one drawn failure toast says "Try again". CLAR #14 (c) chose "Remove them and continue" from a build note, but the drawn dialog says "Remove 1 document" (title "No data selected in 1 document"). Q10. |
+| 7 | 002-S4.15, 002-S4.17 | U34 #29 (6113:29056) | The delete-rule body describes the rule's effect, "Citizens won't be checked for licence classes C or D any more.", which needs a sentence built from each check. It doesn't say that Group 01 dissolves. Q11. |
+| 8 | FR-035a, 004-S8.2.1 | U65 #10 (7057:58718); U67 #10; U68 #10; U72 #10; U75 #19; U79 #19 | FR-035a and CLAR #20 put the variant ⓘ "after '+ Add variant' on the Rules and Test steps", but the Test step has no "+ Add variant". The (i) the Test frames draw after "Standard" is Standard's description icon (F27). Q12. |
+| 9 | 005-S1.3 (copy:server), 005-S1.2 | U19 #17, #17b (6699:45379, 6699:45398) | The name-missing message reads "Enter a name for the connection." The server and the baseline say "Enter a name.", and CLAR #16 quotes that wording. `RULE copy-source`, C item. Q13. |
+| 10 | FR-034a, FR-045c | build note 5 U01 #21 (6637:36652); edit-flow rules step U98 #18, U99 #32c, U100 #17 | Build note 5 disables the primary action while a rule is open or rules are being grouped. CLAR #18 disables only "Test rules", and it is undecided whether the edit flow's "Save" on the rules step is disabled. Q2. |
 
 ## Figma-only — cosmetic (FYI)
-Copy to port follows `RULE wording`: the governance says "Figma decides wording", so no question is needed. Layout and styling follow the design under the spec's governance table. ui-detail items follow `RULE ui-detail`; they are F items and are decided together in Q45.
+Copy to port follows `RULE wording`: under "Figma decides wording" no question is needed. Layout and styling follow the design. Rows 29–35 are `RULE ui-detail` items. They are F items, and Q14 asks whether to adopt them as designed or drop them.
 
 | # | item | where | rule / note |
 |---|---|---|---|
-| 1 | "Create connection" (footer bar, arrow) for "Create form connection" | U11 #20, #25; U12 #22; U13 #19; U14 #16; U15 #22; U16 #31; U17 #40; U18 #7, #46; U90 #34 | RULE wording: copy to port |
-| 2 | Draft rows: "Edit" for "Continue" (opens the stored step, U06 #64) and "Edited <date>" for "Saved <date>" | U04 #8; U06 #64, #89; U11 #18; U12 #16, #19; U13 #14, #17; U14 #11, #26; U15 #16, #19; U16 #27, #29; U17 #34, #36; U18 #43, #44; U90 #31, #32 | RULE wording |
-| 3 | Dates as dd.mm.yyyy and "dd.mm.yyyy, hh:mm" wherever the frontend formats them (build note 8) | U02 #8; U06 #21; U11 #16; U13 #25; U14 #22; U16 #19; U87 #17; U93 #7 | RULE wording. The test-day line is rules copy: Q6 |
-| 4 | Local drafts offer texts ("Unsaved changes in "<name>"", "Unsaved changes in 2 connections", body, "Resume editing", "Discard changes", "Edited · …", "New, never saved · …") | U16 #7, #8, #10–#12, #15, #16; U07 #13, #14 | RULE wording. Structure: Partial 3 |
-| 5 | "Draft saved. You can pick it up any time." as a toast, for "Draft <name> saved." | U06 #56; U17 #4, #39 | RULE wording. It stays polite and announced (001-S7.7) |
-| 6 | Forward labels "Choose documents →" and "Set rules →" | U04 #26; U05 #32; U06 #68; U18 #21; U19 #15; U21 #20; U22 #21; U23 #19; U24 #19; U25 #16; U26 #20; U27 #23; U28 #24; U98 #16, #28 | RULE wording |
-| 7 | Rules-step menu and toast wording: "Add message", "Delete sub-group", "Restore rule/group/sub-group", "Remove from <variant>", "Reset to Standard" (= Undo), "Delete variant", "Discard changes", "Rule 03 deleted.", "Rule 02 and Rule 03 are now in Group 01.", "Ungrouped. Rules 03 to 05 use their own messages again.", "Rule 01 saved.", "Grouped in Ambulance only. Standard stays the same." | U30 #37; U32 #30; U35 #22, #41; U36 #27; U40 #31; U50 #30; U54 #7, #8, #13; U55 #28; U56 #23, #28; U57 #18, #22; U58 #19, #21, #22; U59 #11 | RULE wording |
-| 8 | Marks "Added here" / "Removed here" | U37 #30; U38 #23, #25; U39 #24, #26; U40 #23; U41 #19; U42 #17; U43 #27; U44 #37; U46 #35; U47 #15, #29, #33, #34; U56 #36; U57 #17, #21; U58 #17, #26; U59 #20; U60 #18; U61 #21; U62 #18; U84 #30 | RULE wording. Text plus colour (002-ACC.1) |
-| 9 | Variant dialog: "*", "Description (optional)", helper "Shows when you hover the ⓘ next to the variant name.", "Linked to Standard (recommended)" / "Start empty" with hints | U37 #22, #23; U52 #23, #25, #27; U62 #24, #25 | RULE wording |
-| 10 | Step 1: "Connection name", "Description (optional)" (the marker stays part of the label, 006-S4.3) | U18 #19; U98 #12, #14 | RULE wording |
-| 11 | Rule editor texts: "Not for rules", menu sections, date hint, counting and missing notes, "Search options", "Choose at least one option.", "Need other data? Add it in Documents", nationality hint, placeholder | U29 #21, #24, #27; U30 #16–#19, #45; U31 #23, #24, #27, #40, #41; U32 #20, #24, #25; U48 #14, #16, #23; U50 #25; U53 #14, #16, #22, #23, #29 | RULE wording. "citizen" is Q2, "Konnekt" Q1, from-now Q25 |
-| 12 | Document removal dialog body and "Keep document" / "Remove document" | U23 #21, #22; U26 #24 | RULE wording |
-| 13 | Delete-Standard-rule dialog body (still names the changed variants) | U34 #29; U47 #26 | RULE wording |
-| 14 | Test step title "Test rules with sample citizen data", intro, "Generate all" | U63–U79 (#7, #8, #12, #13); U99 #39 | RULE wording. "citizen" is Q2 |
-| 15 | Publish texts: "Publish connection", "Save changes?", "Publishing… This takes a few seconds.", "Opening your connection page…", the merged "Couldn't publish" sentence | U05 #34; U63 #25; U73 #21, #27; U75 #9; U78 #2, #5; U79 #3; U98 #37 | RULE wording |
-| 16 | Details texts: "Edit connection", "Go to connections", "Activate again", "Request link" / "Result link", "Links for your service", status sentences | U07 #8; U58 #42; U63 #38; U80–U99 | RULE wording |
-| 17 | Draft and status marks as Status/Connection pills with a dot (the text stays, so 005-ACC.1 holds) | U07 #1; #3 of the wizard units; overview badges | layout and styling per design |
-| 18 | "Save and exit" tertiary at the footer's left beside Back; "Test rules" outlined in the edit flow | U06 #69; U18 #21, #30; U19 #14; U20 #13; U23 #19; U25 #16; U26 #20; U28 #23; U33 #24; U36 #17; U38 #27; U42 #29; U43 #18; U52 #18; U70 #24; U76 #23; U100 #16 | layout per design |
-| 19 | Sticky header and footer; pinned step head, tabs and selection bar | U01 #14, #17–#19; U38 #26; U64 #13 | layout per design (002-S0.2, 002-S0.3 hold) |
-| 20 | Inner scroll regions and a documents layout that fills the viewport at ≥ 800 px | U01 #16; U04 #15; U12 #21; U21 #16, #26; U23 #17; U24 #16; U25 #14; U26 #17; U27 #19; U28 #27 | layout per design. FR-010a must hold |
-| 21 | Menus in the top layer, side, max height and inner scroll | U01 #9–#13; U06 #92 | layout. placementFrom stays (FR-009d) |
-| 22 | Footer 72 px with 40 px buttons, check and radio anatomy, dialog widths, × close, skeleton loading, toast types and position | U01 #5, #6, #8, #20; U05 #19; U06 #22, #95, #96; U24 #23; U68 #28 | styling per design / kit |
-| 23 | Statement chips and symbol chips; the same purple for "Changed here" and "New addition" | U06 #12; rules and details units | styling. Symbols stay hidden from AT (002-S2.6), and the text tells marks apart |
-| 24 | Illustrations, hero and tagline, status pictures, highlighted links card, numbered markers, glyphs, scrollbars, backgrounds, heading colours, muted (i), stable button width, Fira Sans preload, decorative alt="" | U02 #12; U03 #28, #39; U05 #10, #11, #16, #25; U06 #20, #99, #100; U10 #3, #10; U11 #24, #27; U15 #33; U18 #6, #9; U42 #32; U55 #19; U81 #19; U84 #19, #38; U99 #9, #10; U80–U97 | cosmetic |
-| 25 | Sample data, not ported: name-like variant URL slugs (the build keeps identifiers, 002-S6.8), row order, stale layer names, a 31-item licence, "Height (cm)" | U63 #33; U81 #17; U84 #17; U89 #18; U91 #15; U96 #17; U11 #21; U13 #24; U16 #32, #33; U17 #38; U04 #47; U53 #27 | OUT-8 |
-| 26 | Process notes: provenance, "Old ·" layers, open-question markers, construction layers | U01 #1; U02 #22; U05 #13, #18; U07 #21; U08 #1; U09 #1, #4; U23 #23 | cosmetic |
-| 27 | Overview search or filter with ×, "n of m connections", no-results message, "Clear search" (it needs a visible label, 001-S7.4) | U04 #3; U11 #7, #29–#33; U12 #7; U13 #7; U14 #6; U15 #7 (6699:47855); U16 #21; U17 #28; U18 #38; U90 #26 | RULE ui-detail (Q45) |
-| 28 | Connection count in the overview toolbar | U04 #2; U11 #6; U12 #6; U13 #6; U14 #5; U15 #6; U16 #20; U17 #27 (6699:47951); U18 #37; U90 #25 | RULE ui-detail (Q45) |
-| 29 | Show/hide password toggle | U10 #7 | RULE ui-detail (Q45) |
-| 30 | "You're logged out." message after signing out | U05 #21; U06 #54; U10 #20 | RULE ui-detail (Q45) |
-| 31 | Breadcrumb link "Your connections" | U28 #2; U30 #2; U79 #11; U81 #2; U82 #2; U84 #2; U91 #2; U93 #2; U98 #2; U99 #2; #2 of the wizard units | RULE ui-detail (Q45). Leaving a flow through it is Q8 |
-| 32 | Group subtitle "At least one rule must be met" / "All rules must be met", and the note "Group 01 now needs only one rule to be true." | U34 #16, #24; U35 #16; U36 #24; U37 #15; U38 #18; U39 #20; U40 #20; U41 #17; U42 #25; U43 #19; U44 #31; U45 #17; U46 #25; U47 #22; U51 #16; U52 #16; U55 #18; U56 #19; U57 #14; U58 #14; U60 #21; U62 #13; U64 #28 | RULE ui-detail (Q45) |
-| 33 | Toast actions: "Show" in the copy toast; after deleting a variant, a toast with Undo and the tab to the left opens | U41 #29; U61 #8, #9 | RULE ui-detail (Q45) |
-| 34 | Hints: "Licence classes has parts. Choose the part to check.", "Place of birth has parts. Choose the part to check.", "Applicants who turn 21 that day count.", born-between hint | U09 #26, #38, #40; U31 #37; U53 #32 | RULE ui-detail (Q45) |
-| 35 | Explanatory ⓘ tooltips on the trigger-URL label and the name field; hover tooltip with the full description on a cut overview row | U04 #12; U13 #20; U80 #10; U81 #12; U82 #11; U84 #12; U85 #12; U86 #34; U98 #13 | RULE ui-detail (Q45). They open on hover and keyboard focus, with no title attribute (006-S4.1) |
-| 36 | "Discard rule" in the rule editor | U06 #75; U29 #16; U30 #21; U31 #28; U33 #16; U35 #37; U48 #18; U49 #11; U50 #28; U53 #18 | RULE ui-detail (Q45) |
-| 37 | Per-document "6 of 25 data items chosen" / "No data items chosen yet" | U04 #31; U21 #12; U22 #14; U23 #14; U24 #12; U25 #11; U26 #12; U27 #15; U28 #15; U98 #23 | RULE ui-detail (Q45) |
-| 38 | Removed count in the link strip, "2 of 3 Standard rules are removed here." | U43 #25; U47 #12; U58 #25 | RULE ui-detail (Q45) |
-| 39 | Connectors faded next to removed items or a single active item | U47 #16; U58 #27 | RULE ui-detail (Q45) |
-| 40 | Documents and rules summary in the reactivate dialog | U89 #31 | RULE ui-detail (Q45) |
-| 41 | The publish dialog can't be closed while publishing | U78 #3 | RULE ui-detail (Q45) |
-| 42 | Toasts after deleting, deactivating, reactivating, publishing and saving ("Changes saved.") | U04 #20; U05 #20, #35; U99 #19 | RULE ui-detail (Q45), announced through the toast's live region (001-S7.7) |
+| 1 | "Create connection" (footer bar, arrow) for "Create form connection" | U11 #20; U12 #22; U13 #19; U14 #16; U15 #22; U16 #31; U17 #40; U18 #46; U90 #34 | RULE wording: copy to port |
+| 2 | Draft rows offer "View" and "Edit" for "Continue" (Edit opens the stored step, U06 #64) | U04 #8; U06 #64; U11 #18; U12 #19; U13 #17; U14 #26; U15 #19; U16 #29; U17 #36; U18 #44; U90 #32 | RULE wording: same action. A draft gets no entry confirmation (FR-045a covers published connections). |
+| 3 | Dates as dd.mm.yyyy and "dd.mm.yyyy, hh:mm" wherever the frontend formats them (005-CP.1) | U02 #8; U06 #21; U11 #16; U13 #25; U14 #22; U15 #16; U16 #19; U17 #34; U18 #43; U30 #16; U32 #24; U53 #22; U87 #17; U93 #7 | RULE wording. Test-step formats are C6 and Q1. |
+| 4 | Local-drafts offer texts: "Unsaved changes in "<name>"", "Unsaved changes in 2 connections", "Saved only on this device when the page closed. Nobody else can see them.", "Resume editing", "Discard changes", "Edited · …", "New, never saved · …" | U07 #13, #14; U16 #8, #11, #12, #15, #16 | RULE wording. Structure per CLAR #12 (d), (e); writes stay continuous (FR-026k). |
+| 5 | "Draft saved. You can pick it up any time." as a toast, for "Draft <name> saved." | U06 #56; U17 #4, #39 | RULE wording. It is still announced (001-S7.7). |
+| 6 | Step 1 and footers: "Connection name", "Description (optional)" (the marker stays in the label, 006-S4.3), placeholder "e.g. For people who live in the area and park on the street", "Choose documents →", "Set rules →", edit-flow step 1 "Connection details" / "Rename this connection or update its description." | U04 #26; U05 #27, #32; U18 #19, #21; U19 #10b, #12b, #12c, #15; U21 #20; U27 #23; U28 #24; U98 #12, #14, #16, #28 | RULE wording |
+| 7 | Documents copy: search no-results "No documents match "…".", removal dialog body, "Keep document" / "Remove document" | U20 #20; U23 #21; U26 #24 | RULE wording |
+| 8 | Rules-step menus, toasts, marks and strip: "Add message", "Delete sub-group", "Restore rule/group/sub-group", "Remove from <variant>", "Reset to Standard" (= Undo), "Delete variant", "Discard changes", "Rule 03 deleted.", "Rule 02 and Rule 03 are now in Group 01.", "Ungrouped. Rules 03 to 05 use their own messages again.", "Rule 01 saved.", "Grouped in Ambulance only. Standard stays the same.", "Added here" / "Removed here", "Linked to Standard", "Group 01 is removed here." | U05 #1; U30 #37; U32 #30; U35 #22, #41; U36 #27; U37 #30; U38 #23, #25; U39 #24, #26, #27b; U40 #23, #31; U41 #19; U42 #17, #18; U43 #27; U44 #37; U46 #35; U47 #12, #15, #29, #33, #34; U50 #30; U54 #7, #8, #13; U56 #23, #28, #36; U57 #17, #18, #21, #22; U58 #17, #19, #21, #22, #26; U59 #11, #20; U60 #18; U61 #21; U62 #18; U84 #30 | RULE wording. Marks keep text plus colour (002-ACC.1). |
+| 9 | Rule-editor texts: "Not for rules", a "Fixed date" section (other dates only), "Search options" in the class menu, "Choose options", "Choose at least one option.", "Need other data? Add it in Documents" (asks "Save changes to Rule 01?" first, 002-S2.25), the nationality hint "… The rule checks all of them.", class-specific counting and missing notes, the boundary sentence | U09 #19, #30, #37; U29 #21; U30 #16, #17; U31 #23, #24, #41; U32 #24, #25; U48 #14, #16, #22, #23; U53 #14, #22, #29 | RULE wording (none of these rows is flagged copy:server or copy:rules) |
+| 10 | Variant dialog: "*", "Description (optional)", helper "Shows when you hover the ⓘ next to the variant name.", "Linked to Standard (recommended)" / "Start empty" with hints, intro sentence | U37 #20, #22, #23; U52 #22, #23, #27; U62 #24, #25 | RULE wording. The preselection is Q14 (8). |
+| 11 | Delete-Standard-rule body: "This deletes it from Standard and from the variants that follow it: Ambulance and School transport. If a variant changed this rule, it keeps its own version." | U47 #26 (6185:8847) | RULE wording. U34's effect sentence is Q11. |
+| 12 | Test step: "Test rules with sample citizen data"; intro "Choose a sample citizen to check that your rules work as intended. See which rules they meet and which message they'd see. The data is made up."; "Generate all" | U63 #6; U65–U79 #7, #8, #12/#13; U74 #13, #19; U99 #39 | RULE wording. "citizen" is C2. |
+| 13 | Publish texts: "Publish connection", "Save changes?", "Publishing… This takes a few seconds.", "Opening your connection page…", "Couldn't publish. Check your internet connection and try again.", the new body sentence | U05 #34; U63 #25; U73 #21, #27; U75 #9; U78 #2; U79 #3 | RULE wording |
+| 14 | Edit-entry dialog body "Your changes only take effect … Started connections don't get interrupted or modified even after saving." | U15 #24; U87 #24 | RULE wording. The flow's own note is F49. |
+| 15 | Details texts: "Edit connection", "Go to connections", "Activate again", "Request link" / "Result link", "Links for your service", "View links" / "Hide links", status sentences and sub-lines, the draft band's sub-line "The links can't be added to your services yet. …", the draft Links card "Created when the connection is published and active." | U07 #8; U58 #42; U63 #38; U80–U99; U88 #7; U93 #6, #17 | RULE wording |
+| 16 | Status marks as Status/Connection pills with a dot instead of KERN's icon badge | #3 of the wizard units; U07 #1; U11 #13; U12 #14; U14 #11; U15 #13; U16 #26; U17 #8, #33; U18 #13, #42; U90 #30; U93 #3 | Styling per design. 005-ACC.1 holds: the text stays, so a mark is never colour alone. |
+| 17 | "Save and exit" tertiary at the footer's left beside Back; "Test rules" outlined beside "Save" in the edit flow | U05 #32; U06 #69; U18 #21, #30; U19 #14; U20 #13; U26 #20; U28 #23; U33 #24; U36 #17; U38 #27; U42 #29; U43 #18; U52 #18; U70 #24; U76 #23; U100 #16 | Layout per design (005-S0.3 allows Figma's order) |
+| 18 | Sticky header and footer; step head, tabs and selection bar pinned | U01 #14, #17–#19; U38 #26; U64 #13 | Layout per design (002-S0.2, 002-S0.3 hold) |
+| 19 | Inner scroll regions; the documents layout fills the viewport at ≥ 800 px | U01 #16; U04 #15; U12 #21; U21 #16, #26; U23 #17; U24 #16; U25 #14; U26 #17; U27 #19; U28 #27 | Layout per design; FR-010a holds (W2) |
+| 20 | Menus in the top layer: side, max height, inner scroll, closing on Esc or a click outside | U01 #9–#13; U06 #92 | Layout. placementFrom() stays (FR-009d). |
+| 21 | Kit anatomy and styling: 72 px footer with 40 px buttons, check and radio anatomy and mixed state, dialog widths, × close, skeleton loading, toast types and position, scroll lock | U01 #5, #6, #8, #20; U05 #19; U06 #22, #95, #96, #98; U24 #23; U68 #28 | Styling per design and kit |
+| 22 | Statement chips, symbol chips, document icons, values as comma text, the same purple for "Changed here" and "New addition" | U06 #12; U32 #34; U42 #32; rules and details units | Styling. Symbols stay hidden from assistive technology (002-S2.6); the text tells the marks apart. |
+| 23 | Pencil as the edit action on rule and group messages | U33 #22; U35 #26; U48 #17 | Styling of the existing edit action. Group menus are Q9. |
+| 24 | Read-only connector pill on the details; rule names in link colour on the details | U83 #31; U84 #38 | Neither is a control or a link (CLAR #24 (a), FR-046b, FR-047c) |
+| 25 | Illustrations, hero and tagline, status pictures, highlighted links card, numbered markers, glyphs, scrollbars, backgrounds, heading colours, muted (i), stable button width, Fira Sans preload, "Your login is encrypted", decorative alt="" | U02 #12; U03 #28, #39; U05 #10, #11, #16, #25; U06 #20, #99, #100; U10 #3, #10; U11 #24, #27; U15 #33; U18 #9; U35 #24; U37 #18; U38 #28; U39 #30; U41 #30; U43 #29; U45 #22; U46 #37; U47 #36; U52 #19; U55 #19, #36; U57 #24; U59 #24; U60 #27; U61 #27; U64 #34; U80 #24–#26; U81 #10, #19; U82 #9; U83 #38–#42; U84 #10, #19; U85 #10; U86 #29–#31; U87 #6, #11; U88 #17, #25; U89 #11, #20; U90 #14; U91 #9; U92 #10; U93 #8; U95 #11; U96 #10; U97 #10; U99 #9, #10 | cosmetic |
+| 26 | Sample data, not ported: name-like variant URL slugs (002-S6.8's identifiers stay), row order, stale layer names, "Height (cm)", Place of birth parts, a reactivate summary listing only Standard, a repeated condition, a disabled "Save rule" under an open menu | U11 #21; U12 #20; U13 #24; U16 #32, #33; U17 #38; U32 #40; U51 #18; U53 #27, #30; U63 #33; U81 #17; U82 #13; U84 #17; U89 #18, #31; U91 #15; U93 #21; U96 #17; U99 #13 | OUT-8 |
+| 27 | Process notes: provenance, "Old ·" layers, open-question markers, construction layers, the note title "Rules", the design's open question on skipping Rules (the baseline stays), "Documents list: no 'x of y'" (the count stays in the document header, FR-051k) | U01 #1; U02 #22; U05 #13, #17, #18; U06 #24; U07 #21; U08 #1; U09 #1, #4; U23 #23; U64 #5 | cosmetic |
+| 28 | The text of the "Leave site?" warning | U05 #43 | The browser writes its own text. FR-026e holds, and the local draft stays the safety net (FR-026k). |
+| 29 | A click on the scrim closes dialogs that don't delete or publish | U06 #57 (7127:49610) | RULE ui-detail, Q14 (1). The restore dialog is F57. |
+| 30 | Disabled buttons explain why on hover, beyond "Test rules" and "Set rules →" | U06 #58 (7127:49610) | RULE ui-detail, Q14 (2). They also open on focus (FR-051q). |
+| 31 | A page change scrolls to the top | U06 #94 (7137:50569) | RULE ui-detail, Q14 (3) |
+| 32 | Draft row meta "Edited 28.10.2026 · Rules step" | U06 #89; U17 #34, #34b (6699:48031) | RULE ui-detail, Q14 (4) |
+| 33 | "Added (n)" group in the documents search card | U21 #24 (7290:62277–7290:62279); U22 #25 (7290:63546) | RULE ui-detail, Q14 (5) |
+| 34 | Links accordion counts "1 request link · 3 result links" | U91 #10 (7203:50843); U92 #11; U94 #9; U95 #12; U96 #11; U97 #11 | RULE ui-detail, Q14 (6) |
+| 35 | Tooltips also open on touch | U08 #4 (7370:55193) | RULE ui-detail, Q14 (7) |
 
 ## Figma must change (decided)
 Build these as the spec says, keeping Figma's layout and styling, until the design is updated.
 
 | # | req | Figma (unit, node-ids) | Figma shows | build instead | decision |
 |---|---|---|---|---|---|
-| F1 | 002-S5.7, 002-S5.8, 002-S6.7 | U02 #9, #10, #17; U05 #34, #38; U06 #19, #49, #65; U07 #2; U13 #12; U14 #13, #21; U58 #33; U63 #21 (7112:48859); U73 #24; U75 #7, #11–#13 (6376:25536); U76 #27, #29–#31, #33, #34 (6635:36265); U77 #7; U86 #4, #10, #11 (7355:61329); U87 #19–#22 (6396:48860); U88 #10; U89 #32 (7173:52959); U94 #3, #6, #7; U95 #4, #7–#9; U98 #38, #40 (6730:39464); U99 #36, #37 | Go-live scheduling: "Active from: Now / On a date", a date field, "Enter a date after today.", "Schedule", the "Scheduled" status, rows and screens, "Active from <date>", "Change start date" (⋯ item, dialog, "Save date"), "from the time you choose" | Publishing goes live at once. The publish and save dialogs have no "Active from" choice and no date, and the save body leaves out "from the time you choose". There is no Scheduled status or screen, and the connection ⋯ menu holds only Deactivate / Reactivate and Delete. | CLAR 2026-11-06 #1 |
-| F2 | 002-S6.9 | U06 #60; U07 #26; U58 #41; U63 #37; U80 #20, #21; U81 #22 (6809:46582); U82 #23; U83 #33, #34; U84 #35; U85 #24; U86 #22–#26; U87 #14; U88 #21, #22; U89 #24, #25; U90 #20 (6417:31520); U91 #26; U92 #14, #15; U93 #18, #19; U94 #20; U95 #17–#19 (7246:54525); U96 #28; U97 #14, #15; U99 #17, #18 | Activity card, "Last edited by", the event log, "View activity" / "Hide activity", "Deactivated by …" | Details without an Activity card and without editor or timestamp lines | CLAR 2026-11-06 #1 |
-| F3 | 002-S1.8 | U04 #39 (6711:39375); U20 #18, #19; U21 #25; U22 #24 | "Coming soon" / "Upcoming" documents | Only the catalog's documents are offered. The all-added state doesn't point to upcoming documents. | CLAR 2026-11-06 #1 |
-| F4 | 001-S6.11, 001-S6.12 | U04 #21; U05 #24 (delete part); U90 #22 | A toast with "Undo" after deleting a connection | Deletion stays permanent: confirmation, then the overview, with no Undo | CLAR 2026-11-06 #1 |
-| F5 | 005-S0.7, 004-S0.4 | U03 #36; U05 #31, #33, #36; U06 #50; U60 #33, #35; U98 #5; U99 #22, #23; U100 #3, #24 | A live connection's pending changes are kept as a draft: "Keep draft and exit", the "Draft changes" badge, "Changes not published", E5a | The published edit flow has no "Save and exit" or "Keep draft and exit" and no draft badge. Changes exist until saved through the save dialog. | CLAR 2026-11-06 #1 |
-| F6 | 001-S7.9 | Header of every frame U10–U100 (e.g. U15 6699:45201, U19 6699:45323, U98 6731:39823); U03 #31 | DE/EN language switch (it needs translated server, rules and findings copy) | No switch: one English UI with lang="en" | CLAR 2026-11-06 #1 |
-| F7 | 002-S2.12, 002-S2.13, 002-S2.15 | U34 #27; U36 #29 (6344:53657); U54 #6, #14 (6522:33107); U55 #25, #26 (6522:32071); U56 #27 (6522:32540) | "Remove from group", "Remove from sub-group", moving a sub-group out (a new edit action in rules/src/edits.ts) | Group menus offer "Ungroup" and "Delete group" only | CLAR 2026-11-06 #1 |
+| F1 | 002-S5.7, 002-S5.8, 002-S6.7 | U02 #9, #10, #17; U05 #34, #38; U06 #19, #49, #65; U07 #2; U13 #12; U14 #13, #21; U58 #33; U63 #21; U73 #24; U75 #7, #11–#13 (6376:25536); U76 #27, #29–#31, #33, #34 (6635:36265); U77 #7; U86 #4, #10, #11; U87 #19–#22 (6396:48860); U88 #10, #33; U89 #32; U94 #3, #6, #7; U95 #4, #7–#9; U98 #38, #40; U99 #36, #37 | Go-live scheduling: "Active from: Now / On a date", a date field, "Enter a date after today.", "Schedule", the "Scheduled" status, rows and screens, "Active from <date>", "Change start date", "from the time you choose" | Publishing goes live at once. There is no "Active from" choice or date, the save body has no "from the time you choose", and there is no Scheduled status or screen. The ⋯ menu holds Deactivate (or Reactivate) and Delete. | CLAR 2026-11-06 #1 |
+| F2 | 002-S6.9, OUT-35 | U06 #60, #82; U07 #26; U58 #41; U63 #37; U80 #20, #21; U81 #22 (6809:46582); U82 #23; U83 #33, #34; U84 #35; U85 #24; U86 #22–#26; U87 #14; U88 #21, #22; U89 #24, #25; U90 #20; U91 #26; U92 #14–#16; U93 #18, #19; U94 #20; U95 #17–#19, #22 (7246:54525); U96 #28; U97 #14, #15; U99 #17, #18 | Activity accordion, "Last edited by", the event log, "View activity" / "Hide activity", "Deactivated by …" | No Activity accordion and no editor or timestamp lines; only Links and Summary | CLAR 2026-11-06 #1; CLAR 2026-11-07 #35 |
+| F3 | 002-S1.8, FR-031c | U04 #39 (6711:39375); U20 #18, #19; U21 #25; U22 #24 | "Coming soon" / "Upcoming" documents | Only the catalog's documents under "Available (n)". The all-added state doesn't point to upcoming documents. | CLAR 2026-11-06 #1 |
+| F4 | 001-S6.11, 001-S6.12 | U04 #21; U05 #24; U90 #22 (6417:31520) | "Undo" in the toast after deleting a connection | Deletion stays permanent; the toast (FR-051p) has no Undo | CLAR 2026-11-06 #1 |
+| F5 | 005-S0.7, 004-S0.4, FR-045b | U03 #36; U05 #31, #33, #36; U06 #50; U60 #33, #35; U98 #5; U99 #22, #23; U100 #3 | A live connection's pending changes kept as a draft: "Keep draft and exit", the "Draft changes" label, "Changes not published", E5a | No Save and exit or "Keep draft and exit" in the edit flow, and only "Active" in the header. Changes exist until saved through "Save changes?" or discarded. | CLAR 2026-11-06 #1; CLAR 2026-11-07 #34 |
+| F6 | 001-S7.9 | Header of every frame U10–U100 (e.g. U15 6699:45201, U19 6699:45323, U98 6731:39823); U03 #31 | DE/EN language switch | No switch: one English UI with lang="en" | CLAR 2026-11-06 #1 |
+| F7 | 002-S2.12, 002-S2.13, 002-S2.15 | U34 #27; U36 #29 (6344:53657); U54 #6, #14 (6522:33107); U55 #25, #26 (6522:32071); U56 #27 (6522:32540) | "Remove from group", "Remove from sub-group", moving a sub-group out | Group menus offer "Ungroup" and "Delete group" (inherited groups: Remove and Restore) | CLAR 2026-11-06 #1 |
 | F8 | 002-S2.16 | U54 #15; U55 #29 (6522:32424); U56 #24; U57 #22 | "Duplicate group" / "Duplicate sub-group" | Duplicate stays a rule action | CLAR 2026-11-06 #1 |
-| F9 | 002-S3.1, 002-S2.9, 002-S2.15, 002-S2.13 | U34 #19; U35 #20; U36 #26; U38 #21; U40 #24; U41 #20; U42 #26; U43 #22; U44 #29; U45 #20; U47 #24; U51 #19, #25; U52 #17; U54 #9; U55 #21; U56 #21; U57 #16; U58 #18; U59 #22; U60 #24; U62 #14 | "+ Add rule" inside a group or sub-group; adding into an empty group | One "+ Add rule" per variant, which adds at the end of the top level. Groups form only by selecting items. | CLAR 2026-11-06 #1 |
-| F10 | 002-S4.14, 002-S4.31, 002-S4.4 | U03 #23 (6648:42016); U05 #4, #5 (6711:39381); U06 #16 (6791:46863); U08 #5 (7370:55195) | "Unlink from Standard", its result and the toast "Unlinked from Standard." | The variant tab menu offers Rename, Delete and Copy link, and based variants stay based | CLAR 2026-11-06 #1 |
-| F11 | 004-S8.6.4 | U06 #40 | Persona generation that makes every rule testable (rules package) | Generation as today; "Couldn't be checked" stays | CLAR 2026-11-06 #1 |
+| F9 | 002-S3.1, 002-S2.9, 002-S2.15 | U34 #19; U35 #20; U36 #26; U38 #21; U39 #25b; U40 #24; U41 #20; U42 #26; U43 #22; U44 #29; U45 #20; U47 #24; U51 #19, #25; U52 #17; U54 #9; U55 #21; U56 #21; U57 #16; U58 #18; U59 #22; U60 #24; U62 #14 | "+ Add rule" inside a group or sub-group | One "+ Add rule" per variant, adding at the end of the top level. Groups form only by selecting items. | CLAR 2026-11-06 #1 |
+| F10 | 002-S4.14, 002-S4.31, 002-S4.4 | U03 #23 (6648:42016); U05 #4, #5, #20 (6711:39381); U06 #16 (6791:46863); U08 #5 (7370:55195) | "Unlink from Standard", its result and the toast "Unlinked from Standard." | The tab menu offers Rename, Delete and Copy link, and based variants stay based | CLAR 2026-11-06 #1 |
+| F11 | 004-S8.6.4 | U06 #40 | Persona generation that makes every rule testable | Generation as today; "Couldn't be checked" stays | CLAR 2026-11-06 #1 |
 | F12 | – (OUT-2) | U06 #27; U07 #29; U08 #6; U93 #22 | View-only users, roles, a view-only draft page | Every team member has the same rights | CLAR 2026-11-06 #1 |
-| F13 | 001-S6.9, US4-AS3 | U88 #28 (6417:31206) | "The connection will be deactivated and its links will stop working. Requests already started still finish. Remember to remove the wallet connection from your service." | "The connection will be deactivated and its links will stop working at once. Requests in progress are cancelled. Remember to remove the wallet connection from your service." (Finishing started requests would need a backend change.) | CLAR 2026-11-06 #1 |
+| F13 | 001-S6.9, US4-AS3 | U88 #28 (6417:31206) | "The connection will be deactivated and its links will stop working. Requests already started still finish. Remember to remove the wallet connection from your service." | "The connection will be deactivated and its links will stop working at once. Requests in progress are cancelled. Remember to remove the wallet connection from your service." | CLAR 2026-11-06 #1; CLAR 2026-11-07 #38 |
+| F14 | FR-028a, US1-AS3, OUT-10 | U04 #4, #14, #19; U06 #66; U11 #9; U12 #8, #10; U13 #9; U14 #8; U15 #8, #21, #27–#31 (6699:45206); U16 #23; U17 #29; U18 #39; U90 #27 | Row and select-all checkboxes; selection bar "N selected · Cancel · Delete"; bulk dialog with "Keep connections" / "Delete connections" | A per-row Delete with the details' dialog; no checkboxes | CLAR 2026-11-07 #11 |
+| F15 | FR-027a, US1-AS5, OUT-9 | U06 #25 (6791:46863), #91; U11 #26; U18 #8, #10–#12, #16, #23, #32; U73 #25 | "Start from an example", the example dialog, example banners, the publish-dialog example line | The welcome page with "Create connection" only | CLAR 2026-11-07 #9 |
+| F16 | US1-AS1, 001-S1.2, OUT-18 | U10 #13 (6401:28435) | Only Username gets the error fill | Both fields invalid, with the one message "Username or password is wrong. Check both and try again." | CLAR 2026-11-07 #10 |
+| F17 | FR-030a, FR-030b, 007-S2.1, OUT-11 | U03 #32; U10 #18; U13 #22, #23 (6699:44358) | A menu with an email line and no "Your account"; a signed-in frame without the pill | The pill on every signed-in screen. Its menu shows the name (bold), "Your account" and "Log out", with no email. | CLAR 2026-11-07 #13 |
+| F18 | 005-S1.2, OUT-16 | U04 #27 (6703:39321) | With no name, "Save and exit" just leaves | Step 1 with the name message under "Connection name" (wording: Q13), the field focused, nothing stored | CLAR 2026-11-07 #16 |
+| F19 | FR-026a, FR-026c, FR-026f, 001-S0.6, OUT-15 | U03 #35 (6703:39311); U05 #41 (6730:40338); U06 #51, #90 (7137:50569); U17 #5, #24 (7173:52656, 6890:46052) | In a create flow, the product name and the breadcrumb save at once ("saving…", "Draft saved"), and an open editor's state is stored with the draft | Both open "Leave this connection?". "Save progress" runs Save and exit, and a validation error keeps the member in the flow. An open rule editor asks "Save changes to Rule 01?" first, and no editor state is stored. | CLAR 2026-11-07 #8 |
+| F20 | FR-026i, FR-026j | U17 #20 (6408:72919) | Log-out dialog with × only | Adds "Cancel", which returns the focus to the user menu | CLAR 2026-11-07 #8 |
+| F21 | FR-033d, 005-S0.4, 005-S1.4, OUT-17 | U17 #3, #23 (6401:71898, 6401:71899) | Blocking modal "Saving your draft…" | No modal: "Save and exit" is aria-disabled and reads "Saving…", and a polite status says "Saving draft…" | CLAR 2026-11-07 #17 |
+| F22 | FR-033c, 005-ACC.3, 005-S8.1–S8.4, 007-S1.11, 007-S3.25, 007-S5.3 | U02 #5, #6 (build note 7) | Every page-level alert title-only | Title-only only for an alert that carries a title alone. The error ID, list, "Try again", "Remove it" and "Dismiss" stay, in the design's alert style. | CLAR 2026-11-07 #17 |
+| F23 | FR-031j, FR-009a, 001-S7.2, OUT-12 | U04 #42, #43; U08 #2, #3 (7370:55193); U23 #13; U27 #11–#13, #24 (7298:63317); U28 #12 (7298:64157); "oldest first" U20 #10, U21 #10, U22 #11, U24 #10 | A drag handle, drop line, drag image and Move up/down; the list ordered "oldest first" | Catalog order with no handle and no reordering | CLAR 2026-11-07 #14 |
+| F24 | FR-031j, 001-S5.3, 002-S1.2, OUT-13 | U04 #44–#47; U21 #14; U22 #16; U23 #16; U24 #14; U25 #13; U26 #14 (6324:40326); U27 #17; U28 #17; U98 #25 | Field groups (Name, Birth, Address, Document, Other details) with tri-state group checkboxes | Fields in catalog order without group rows; select-all per document (002-S1.2) | CLAR 2026-11-07 #14 |
+| F25 | FR-025c, US2-AS1 | U02 #2 (6637:36653); U19 #6b (6716:40931) | The step line is never clickable | Clickable while editing, not while creating | CLAR 2026-11-07 #7 |
+| F26 | 002-S2.1–S2.3, OUT-43 | U30 #25; U33 #8; U49 #5; U50 #32; U51 #27, #37; U53 #8 | No variant tab row before the first rule or while a rule is edited | "Standard" and "+ Add variant" from the start of the step and while editing; "No rules yet" in each variant | CLAR 2026-11-07 #19 |
+| F27 | FR-035a–FR-035c, OUT-41, 004-S8.2.6 | Standard (i) without a description: U30 #26, U59 #9, and the Test frames U65 #10, U67 #10, U68 #10, U72 #10, U75 #19, U79 #19; variant ⓘ missing: U37 #26 (6134:8722, frames 3.2, 3.2b), U46 #28 | An (i) on Standard without a description; the variant ⓘ only while no variant exists | Standard's (i) only with a description. The variant ⓘ follows "+ Add variant" in every state and opens on hover and focus, with the design's text "A separate set of rules for citizens with different requirements. Each variant gets its own result link." (U37 6151:33820). Test step: Q12. | CLAR 2026-11-07 #20 |
+| F28 | 002-S4.4, 002-S4.22, 002-S4.24, FR-023b, OUT-19 | U59 #10, #13–#15 (6523:37251, 6523:37532, 6523:37662, 6523:37665); U60 #9, #10 (6523:37675, 6523:37683); U62 #6 (7112:47821, 7112:48213) | Inline rename in the tab, double-click, "Enter saves · Esc cancels", ⋯ on the active tab only, the duplicate error beside the tab | "Rename" opens "Edit variant" (name, description). The duplicate error "There's already a variant called "Ambulance"." shows in the dialog next to the field. Every tab has its ⋯. | CLAR 2026-11-07 #21 |
+| F29 | 007-S4.1, 007-S4.2, 007-S4.6, 002-S2.16, FR-036a, FR-036b, US3-AS1 | U09 #44; U34 #25; U36 #15, #28; U39 #27e, #28b; U41 #22; U47 #17, #30, #34; U54 #2, #10 (6522:33105); U55 #33; U56 #29; U57 #18, #19, #22; U58 #23, #28; U59 #11; U61 #25 | Menus without "Copy link"; removed items "Restore only"; rule menus without "Rename" and "Copy to variant" | "Copy link" last before the destructive entries in every rule, group and variant menu, also after "Restore". "Rename" and "Copy to variant" in rule menus (linked rules: Q8). | CLAR 2026-11-07 #22 |
+| F30 | FR-036d, 002-S2.10, OUT-20 | U56 #25 | "Group with other rules" in a sub-group's menu | No grouping entry in a sub-group's menu | CLAR 2026-11-07 #22 |
+| F31 | FR-037c, 002-S2.13, 002-S2.14, 002-S4.18, OUT-21 | U35 #21, #40; U47 #35; U51 #21, #24, #25 | A group with one member, an empty group with its own copy, and a sub-group renamed "Group 01" when it moves up | Groups left with one member or none dissolve, and a sub-group that moves up keeps its name | CLAR 2026-11-07 #23 |
+| F32 | FR-037a, 002-S2.5 | U35 #28 (6324:39055, 6324:39062, 6324:39065) | Members of a group with its own message show no message line | Each member's message row reads "Not shown while this rule is in Group 01. Citizens see the group message instead." | CLAR 2026-11-07 #23 |
+| F33 | FR-038d, FR-038e, 002-S2.8, 002-S2.9, 002-S4.31, OUT-22 | U40 #13, #29, #30 (6961:56291); U62 #19, #21; U64 #22 | No connector between groups, a trailing connector, the link icon on some linked rules only, groups without checkboxes in select mode | One connector between items; the link icon on every linked rule or none; groups have checkboxes and are selectable | CLAR 2026-11-07 #24 |
+| F34 | 002-S3.12–S3.18, 002-S3.30, OUT-23, OUT-24 | U03 #2; U09 #22, #24, #27 (6986:50041); U29 #24, #26, #27; U31 #43; U46 #13; U49 #18; U50 #24; U53 #36 | Date-of-birth fixed-date checks, no "from now" for it, "Time passed / Time left", "at most", "on", a unit picker on age checks, "starts with", sections "Age" / "Date of birth" | Date of birth: "Time ago" and "Time from now" checks, with whole years as fixed text. Hint: "Check the time since or until this date, or compare it with a fixed date." | CLAR 2026-11-07 #25 |
+| F35 | 002-S2.7, 002-S6.12, OUT-25 | rules step U03 #10; details U82 #20, U83 #24, U85 #22, U93 #14 | "Saved rules show their ID"; details without identifiers | No identifiers in the rules step. On the details, a read-only identifier (rule-7, group-3) next to each rule, group and sub-group name. | CLAR 2026-11-07 #26 |
+| F36 | FR-040c, 002-S4.19, 002-ACC.1, OUT-27 | U43 #27; U47 #15, #32; U58 #26 | Removed items hide their message line; a changed rule in a removed group has no "Changed here" | The message line and the "Changed here" text stay | CLAR 2026-11-07 #28 |
+| F37 | FR-040d, 002-S4.29, OUT-26 | U05 #3 (6711:39381) | A Standard-based variant shown "not linked" while Standard has no rules | It stays linked | CLAR 2026-11-07 #28 |
+| F38 | FR-041c, 004-S8.2.2, 004-S8.2.3, OUT-28 | U03 #21; U06 #9; U72 #10 (if a finding marker) | Every finding kind on the Test tabs; a ⚠ hard-coded with no logic | Only "no citizen can meet", from the evaluator | CLAR 2026-11-07 #29 |
+| F39 | FR-041d, 003-S2.16, 003-ACC.3 | U44 #17; U45 #28, #34 (6753:40144); U46 #11 | Names in banner lines as plain text | Links that scroll the item into view and focus its row or header | CLAR 2026-11-07 #29 |
+| F40 | FR-042d, 004-S8.5.3–S8.5.5 | U66 #30, #31 (7058:60514); U67 #32, #34 (7058:60806) | Licence classes as a text input; no Nationality or Expiry date field | Classes picked from a list by code; Nationality and Expiry date fields; "Class B since" | CLAR 2026-11-07 #30 |
+| F41 | FR-043d, 004-S8.6.7, OUT-30 | U06 #32; U65 #28 (7057:59533); U70 #22 | "Message Mia reads" box: "Your wallet data meets the requirements. Other documents are checked separately." | No success message for a met variant | CLAR 2026-11-07 #31 |
+| F42 | FR-043a, 004-S8.6.3, 004-S8.6.4, 004-S8.6.6, 004-ACC.1, OUT-31 | U63 #14, #15; U65 #23, #24 (7057:59087, 7057:59096, 7057:59105, 7057:59114); U66 #21, #22, #25; U67 #22, #23; U68 #23, #24, #33; U69 #26, #27; U71 #23, #24; U72 #28, #29; U73 #15; U75 #25, #26; U76 #20, #21; U77 #25, #26; U78 #23, #24; U79 #31, #32; U99 #46, #47 | Result rows without the statement or status text; "19, needs 21"; a "Mia sees" box | Each row has the name, the statement, "Not met" / "Couldn't be checked" as text with the design's icon and tint, and the message. Met rows have the statement and "–". | CLAR 2026-11-07 #31 |
+| F43 | FR-043c, 004-S8.4.11 | U01 #15; U65 #20 (7114:49642, 7114:49643); U66 #18; U67 #24; U68 #20; U69 #23; U70 #20a; U71 #20; U72 #23, #24; U73 #16 | Each card scrolls on its own; "only the page scrolls" | The panel scrolls as a whole; header, step line, tabs, applicants row and footer stay | CLAR 2026-11-07 #31 |
+| F44 | 004-S8.3.1, 004-S8.3.2, OUT-32 | U07 #4; U63 #8; U75 #20; U76 #10, #11; U77 #21; U78 #16; U79 #20, #21 | Persona cards with avatar, age · nationality and "Meets the rules" / "Doesn't meet the rules" | Chips with the name and an outcome icon, no outcome text (U65 7057:58755) | CLAR 2026-11-07 #32 |
+| F45 | 004-S8.1.2, 004-S8.2.3, 004-S8.3.4, 004-S8.3.5, 004-S8.4.1, 004-S8.7.1, 004-S8.9.3, OUT-33 | U05 #15; U06 #37, #80 (7058:63148, 7127:49610); U63 #9; U74 #21, #24 (7062:51784); U75 #21; U76 #13; U77 #22; U78 #18; U79 #23 | Generating always asks first; no test-day line during one persona's regeneration; no "Generate again" / "Generate all again"; the tab tooltip without hover; "Your rules are saved." | Asks only when there are changes. The test-day line shows during one persona's regeneration. Both buttons show in every results state. The tooltip opens on hover and focus. No "Your rules are saved." | CLAR 2026-11-07 #32 |
+| F46 | FR-044e, FR-008, 002-S5.3 | U79 #3–#5 (6376:26984, 6376:27178) | "Couldn't publish" without an error ID, and the summary dropped | The "Couldn't publish" sentence with the error ID, and the summary kept | CLAR 2026-11-07 #33 |
+| F47 | FR-022a, FR-044c, 003-CP.11 | U77 #8 | "1 warning on Ambulance" | "Ambulance: no citizen can meet these rules. 2 rules contradict each other, and 1 rule is a duplicate.", warnings first | CLAR 2026-11-07 #4, #33 |
+| F48 | FR-045a | U87 #23, #25 (6396:49030) | "Edit this active connection?" | "Edit "<name>"?" with "Cancel" / "Edit connection" | CLAR 2026-11-07 #34 |
+| F49 | FR-045f, 001-S5.9 | U05 #27; U98 #15 | "Active. Your changes take effect when you save them." | "Your changes take effect when you save them. Requests already in progress keep their previous configuration." | CLAR 2026-11-07 #34 |
+| F50 | FR-046c | U85 #18; U92 #16; U95 #22 | Links not an accordion and both open; Activity open | Links and Summary accordions, one open at a time; Summary opens on arrival from "View" | CLAR 2026-11-07 #35 |
+| F51 | FR-046f, 002-S6.11, 002-S4.3 | U58 #37; U63 #33; U80 #14; U81 #15; U82 #13; U83 #13; U84 #15; U85 #14; U86 #16; U87 #10; U88 #15; U89 #15; U90 #17; U91 #13, #21; U94 #11; U96 #13; U99 #12 | Variant labels without an ⓘ | A branch ⓘ after each variant name in Links and in the Summary tabs, holding the description (none without one, 002-S4.3) | CLAR 2026-11-07 #35 |
+| F52 | FR-048b, 005-S3.3, OUT-37 | Details U58 #31, U63 #28, U80 #7 (7355:61158), U81 #8 (7355:61822), U82 #7, U83 #7, U84 #8, U85 #8 (7355:61738), U86 #8, U87 #7, U88 #8, U90 #15, U91 #7, U92 #8, U99 #7; deactivated U89 #8 (7355:61546), U96 #7 (7355:60885), U97 #7; overview U11 #15, U12 #16, U13 #13, #15, U14 #10, #12, U15 #15, #17, U16 #27, U17 #35, U18 #43, U90 #31; build note U07 #6 | "Active since …" / "Deactivated since …" pills; rows "Published <date>" / "Deactivated <date>" | No status-date pill, and every row reads "Edited <date>". The placement of the ⋯ is Q7. | CLAR 2026-11-07 #37 |
+| F53 | 002-S6.9, OUT-36 | U07 #28; U58 #40; U63 #36; U80 #18; U81 #21; U82 #15; U83 #17; U84 #21; U85 #17; U86 #20 (6396:48385); U87 #13; U88 #19; U89 #22 (6417:31343); U90 #19; U91 #17; U92 #13; U93 #10; U94 #14; U95 #15; U96 #20; U97 #13; U99 #15 | "Download PDF" | Not built | CLAR 2026-11-07 #37 |
+| F54 | 001-S6.9, 001-S6.10, OUT-38 | U05 #24; U89 #26 | Undo after deactivating | No Undo; a deactivation is reversed through "Activate again" | CLAR 2026-11-07 #37 |
+| F55 | FR-029c, 005-S6.10 | U14 #18 | The draft's delete body "Its documents and rules will be deleted too." | A draft keeps "<name> will be deleted for good. It was never live, …"; title and buttons as drawn ("Delete connection" / "Keep connection") | CLAR 2026-11-07 #12 |
+| F56 | FR-049c, 005-S6.9, US4-AS4 | U93 #20 | No "Delete draft" | A visible "Delete draft" on the draft details | CLAR 2026-11-07 #39 |
+| F57 | FR-049d, 005-S5.5, OUT-40 | U06 #57 (7127:49610) | × and scrim close with no change | In the restore dialog, Escape, × and the scrim open the draft's details and keep the local draft | CLAR 2026-11-07 #39 |
+| F58 | FR-023b, FR-023c, FR-023e, FR-023f | U49 #17, #21 (6196:10710); U50 #11 (6863:47363, 7173:52333) | "Enter a number greater than 0."; "There's already a rule called "Rule 02"."; the banner without "in Standard"; "Add it again in Documents" as plain text | "Enter a whole number greater than 0."; "There's already a rule called "Rule 02" in Standard."; "Rule 02 in Standard checks data that's no longer requested. Add it again in Documents, or edit or delete the rule.", with the "Add it in Documents" action | CLAR 2026-11-07 #5 |
+| F59 | FR-051h, FR-020a | U09 #26 | "Applicants who turn 21 that day count." | "Citizens who turn 21 that day count." | CLAR 2026-11-07 #2, #45 |
+| F60 | FR-032d, 006-S1.4, 006-S1.5, FR-051i, OUT-42 | U18 #18, #19; U19 #11, #11b (6809:46396, 6809:46408); U98 #13, #14 | An ⓘ on "Connection name" only, with "This name helps you … Citizens never see it." | Both ⓘ. The name field's is built as drawn (CLAR #45 is later than #15's "not built"). The description gets "About the description" / "A note for your team, such as the form's ID in your form management system. Citizens never see it." | CLAR 2026-11-07 #15, #45 |
+| F61 | FR-051a, FR-051q, 001-S7.4 | U11 #7; U12 #7; U13 #7; U15 #7 (6699:47855); U16 #21; U17 #28; U90 #26 | Overview search with a placeholder only | A visible label, plus ×, "n of m connections", the no-results message and "Clear search" as in U11 #29–#33 | CLAR 2026-11-07 #45 |
+| F62 | FR-050c | U06 #101 (7137:50569) | "With prefers-reduced-motion: fades only." | Transitions turned off | CLAR 2026-11-07 #40 |
 
 ## Build without frames (decided)
 | # | req | expected surface | build from (nearest frame or KERN pattern) | decision |
 |---|---|---|---|---|
-| W1 | FR-013b, EC-8 | All screens | The design's colour tokens. A pair failing AA gets the nearest passing value, which is recorded in the design notes with the pair, and the designer is told. | CLAR 2026-11-06 #2 |
+| W1 | FR-013b, EC-8 | All screens | The design's colour tokens. A pair that fails AA gets the nearest passing value, recorded in the design notes with the pair, and the designer is told. | CLAR 2026-11-06 #2 |
+| W2 | 001-S0.2, 001-S0.4, EC-9, 001-S3.7, 001-S6.14, US4-AS6, FR-012b, 005-ACC.4, EC-6, FR-010a, 001-S7.11, FR-002c, FR-005, EC-2, 001-S7.10 | Sign-in guard; overview error; deleted or unknown connection; tab titles; footer wrap; reflow | Guard as today. Overview and details errors use the design's alert with the error ID and the way back to the overview (U02 #5 pattern). A tab title for every route, with the product name per C1. The footer wraps and "Save and exit" keeps its label. Reflow below 1024 px down to 320 px and 200 % follows the design's spacing (U02 #14), with nothing hidden. | CLAR 2026-11-07 #44 |
+| W3 | 005-S2.1–S2.13, US2-AS5 | Conflict dialog (draft_changed, draft_published, draft_deleted) | U90's dialog (6417:31453) | CLAR 2026-11-07 #41 |
+| W4 | 005-S5.1–S5.4 | Restore dialog (Escape, ×, scrim: F57) | U17's dialog (7173:52681) | CLAR 2026-11-07 #41 |
+| W5 | 005-S4.8, 005-S4.10–S4.13 | Local-drafts offer: discard dialog, status and focus after discarding, other tabs, no storage | U16's offer (7362:54543) and U14's dialog | CLAR 2026-11-07 #41 |
+| W6 | 005-S8.1–S8.6 | Documents step: data the catalog no longer offers | The design's warning alert with the list and "Remove it" (F22) | CLAR 2026-11-07 #41 |
+| W7 | 002-S5.4–S5.6 | Publish dialog: rules_changed conflict, "Publish without rules?" | U73 / U75's publish dialog | CLAR 2026-11-07 #41 |
+| W8 | 005-S6.7, 005-S6.12, 005-S6.13, 005-S6.3 | Draft details: rule placeholders, delete errors (409, 404) | U93, and U90's dialog for the errors. 005-S6.3's interim step look applied "until Figma has a design", and U93 is that design, so no step line is shown (FR-025e). | CLAR 2026-11-07 #41 (#7 for the step line) |
+| W9 | 003-S7.1, 004-S7.2 | Edit flow: checks when it opens; "Try again, or save without testing." | U98–U99; the test step's failure state (U74) | CLAR 2026-11-07 #41 |
+| W10 | 006-S1.8, 006-S3.1–S3.3, 001-S5.7, 001-S5.10, 001-S5.11 | Step 1 too-long description; the description meta on the details and draft details; wizard loading and load errors; the API's 400 message | U19 #17's field error; the breadcrumb row of U80 / U91 for the meta; skeletons (U06 #95); the design's alert | CLAR 2026-11-07 #41 |
+| W11 | 005-R.1, 005-R.2, 005-S0.6, 005-S0.10, 005-S0.11, 005-S1.6, 005-S1.9, 005-S1.10, 001-S4.3, 001-S4.5, 005-S4.11, 005-S3.9 | Flow key in the URL, no badge before the first save, the move to documents for dropped data, checks re-run, a failure keeps the work, 401, alert lifetime, first-connection validation and reopening; a draft counts as a connection on the homepage | Behaviour only | CLAR 2026-11-07 #41 (#9 for 005-S3.9) |
+| W12 | 002-S2.20, 002-S2.21, 002-S2.24, 002-S2.36, 002-S3.31, 002-S4.9, 002-S4.18, 002-S4.27, 002-S4.28, 002-S4.30, 004-S2.5 | Rules step: reserved "Rule NN" names, names an undo could bring back, focus after a refused attempt, Standard's delete-group dialog naming variants, letter case in the statement, the switched top-level AND/OR and its badge, propagation, an inherited group dissolving in a variant, "Save changes?" leaving no rule | The design's banner, toast and outline patterns (U35, U44–U47) | CLAR 2026-11-07 #42 (#23 for 002-S4.18) |
+| W13 | 003-S2.5, 003-S2.17, 003-S2.19–S2.21, 003-S4.4, 003-ACC.5, 003-ACC.6, 003-CP.3, 003-CP.6, 003-CP.15, 003-CP.17, 003-CP.18, FR-022b | Findings: hidden kind text, a notice without links, update in place, the status region, the tab's accessible name, reflow, the undrawn texts | U44–U46's banner, notes and outlines; texts per C2 and C4 | CLAR 2026-11-07 #42 |
+| W14 | 004-S8.5, 004-S8.5.8, 004-S8.5.13, 004-S8.6.5, 004-S8.7.3, 004-S8.7.4, 004-ACC.2, 004-ACC.3 | Test step: a later flow's loading, clearing fields, class dates returning, group members, the "all" dialog, the name kept, arrow keys, focus | U65–U74 | CLAR 2026-11-07 #42 |
+| W15 | 007-S4.5, 007-S5.1–S5.8, US3-AS5 | Deep links into the rules step: "This link points to a variant that no longer exists." / "This link points to a rule or group that no longer exists." with "Dismiss"; focus; history; the toast announcement | The design's warning alert (F22) and toast | CLAR 2026-11-07 #42 |
+| W16 | US5-AS1–US5-AS4, 007-R.1–R.3, 007-S1.1–S1.12, 007-S2.2–S2.15, 007-S3.1–S3.26, FR-019b | Consent, account and approval pages | The design's card, radio group (AccessLevelChoice), list rows with a ⋯ menu (as the rule menu), dialogs, the copyable field with "✓ Copied", alerts. 007's wording, with the product name per C1, the noun per C2 and findings per C4. 007-S3.25's failure follows CLAR #17. | CLAR 2026-11-07 #43 |
+| W17 | FR-040b, 002-S4.13 | Copy-to-variant popover: choosing Standard covers its based variants, shown as included and not choosable | U41's popover (6344:53928) | CLAR 2026-11-07 #28 |
+| W18 | 002-S4.24, FR-023b | "Edit variant" dialog: duplicate-name error next to the field | U52's error state (6197:12011) | CLAR 2026-11-07 #21, #5 |
+| W19 | FR-039a–FR-039e, 002-S3.2, 002-S3.8, 002-S3.10, 002-S3.19, 002-S3.22, 002-S3.33, 002-S3.37, 002-S3.38 | Rule editor: pickers disabled until the previous one is chosen, inline flags, counting and missing notes next to every date condition, "Choose part" after "Licence classes", the placeholder "Message for citizens: Suggested once you choose a check. You can edit it.", class options "B Cars up to 3.5 t" | U30 #42, #46; U31 #20; U32 #19; U33 #15; U35 #32; U48 #15, #24; U49 #9; U51 #31; U53 #30, #31, #35 | CLAR 2026-11-07 #27 |
+| W20 | FR-033a, FR-033b, FR-033d, 005-S0.4, 005-S1.4 | Wizard footer while saving; the failed-save toast for a server error, with its error ID | U51's toast (6197:11098); the footer button | CLAR 2026-11-07 #17 |
 
 ## Copy from outside the frontend (decided)
-None decided yet. Q1–Q6 are open.
+| # | req | source | Figma shows | current text | decision (CLAR …) |
+|---|---|---|---|---|---|
+| C1 | FR-019a–FR-019c, EC-4, US5-AS4, 001-S0.6, 007-S1.2, 007-S2.5 | Frontend; MCP guidance (`mcp/plugin/skills`); backend and MCP server texts naming the product; README and docs | "Konnekt" (e.g. "Welcome to Konnekt", "… Konnekt checks each rule …") | "Connection Portal" | CLAR 2026-11-07 #1 |
+| C2 | FR-020a–FR-020c | Frontend; `rules/src/checks/findingMessages.ts`; the rules package's test-step texts; the MCP guidance that repeats findings | "citizen(s)", "Message for citizens:", "sample citizen", "Creating 3 sample citizens…" | "applicant(s)", "Error message applicants read", "sample applicant" | CLAR 2026-11-07 #2 |
+| C3 | FR-021a–FR-021c, 002-S2.4, 002-S2.27, 002-S2.29, 002-S3.9 | The rules package (statements, proposed messages); MCP outputs quoting statements | "Personal ID · Date of birth (Age) is at least 21 years old"; "Driving licence · Licence class B – Issue date …"; "must be met"; the COPY-BRIEF messages | "Personal ID – Date of birth (Age) is at least 21 years old"; "must be true" | CLAR 2026-11-07 #3 |
+| C4 | FR-022a–FR-022c, 003-CP.1–CP.18, 004-S8.2.3, 007-S3.8 | `rules/src/checks/findingMessages.ts`; MCP guidance | "Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard."; "2 rules contradict each other, and 1 rule is a duplicate" | "<items> can't be met together."; counts joined by " · " | CLAR 2026-11-07 #4 |
+| C5 | FR-023a–FR-023f, 001-S1.2, 002-S2.18, 002-S2.19, 002-S2.22, 002-S3.16, 002-S4.24 | The backend's auth and rules services; `rules/src/validation.ts` (word for word); MCP server | "Username or password is wrong. Check both and try again."; "There's already a rule called "Rule 01" in Ambulance."; "There's already a variant called "Ambulance"."; "Rule 02 in Standard checks data that's no longer requested. …"; "Enter a whole number greater than 0." | "Invalid username or password"; "Another rule in Ambulance is already called Rule 01."; "Another variant is already called Ambulance." | CLAR 2026-11-07 #5 |
+| C6 | FR-024a–FR-024e | The rules package's persona formatting | "08.07.2007 · 19"; "Valid until <date>"; "B since <date> · <n> year(s)"; "Result: doesn't meet the rules"; "Tested as if shared today, 01.11.2026." | "08.07.2007 (age 19)"; a bare date; "B, BE" plus a row per class date; "Result: doesn't meet 2 rules"; "1 Nov 2026" | CLAR 2026-11-07 #6 (the Test 1 frames reopen part of it: Q1) |
 
 ## Clarify questions
-**Q1. C — Product name.** Figma names the product "Konnekt"; today it is "Connection Portal" (EC-4, 001-S0.6, US5-AS4).
+**Q1. C/F — Test-step data card and result heading (Conflict 1).** CLAR #6 and #31 (c) took their formats and the document column from the Publish frames (U75–U79), which CLAR #32 calls the older design. The newer Test 1 frames draw the card differently.
 - **Impact:**
-  - Header product name in every frame U10–U100 (e.g. U11 6699:44242, U12 6699:45198, U17 6699:47945, U80 6701:40160, U99 6730:39734; sign-in U03 6703:39311).
-  - h1 "Welcome to Konnekt" (U11 6699:44486, U18 6793:47682).
-  - Rules intro "… Konnekt checks each rule and tells your service whether it's met." in every rules frame (e.g. U29 6702:39345, U41 6702:40918, U98 6730:39128, U99 6890:46203).
-  - Rules empty state "Without rules, Konnekt …" (U29 6504:43841, U51 6197:11654).
-  - Missing-value notes "… Konnekt reports it as "couldn't be checked"." (U30 6348:40756, U32 6350:42726, U53 6324:15673).
-  - Edit-flow notes (U05 6730:40340); tab titles (FR-012b).
-  - Undrawn consent text 007-S1.2 and account empty state 007-S2.5.
-  - Outside the frontend: MCP guidance (mcp/plugin/skills), any backend or MCP text naming the product, README and docs.
-- **adopt:** "Konnekt" in all of these. 007-S1.2 reads "{client_name} wants to act on your behalf in Konnekt. Choose what it may do." 007-S2.5 reads "No agent is connected yet. Add Konnekt's MCP server to your agent to connect it." The guidance, backend texts and docs are renamed in the same change.
-- **drop:** "Connection Portal" everywhere. The design's sentences are ported with it: "Welcome to the Connection Portal", "… The Connection Portal checks each rule and tells your service whether it's met.", "Without rules, the Connection Portal …", "… the Connection Portal reports it as "couldn't be checked"."
-- **Supersedes:** no Clarification.
+  - Data card, Test 1 frames: U65 7057:58772, 7057:59071, 7057:59079, 7057:59186; U66 #14, #15, #24; U67 #14, #15, 7058:60746; U68 #14, #15, #18; U69 7057:60456, 7057:60891, 7057:60779; U70 7057:61649 (#15, #17, #18 "Expiry date"); U71 7058:61436, 7058:61444, #19; U72 #15, #16, 7058:61720, #22 ("ID valid until"); U73 7058:62058, 7137:50147; U99 7114:49747.
+  - Result heading: U65 7057:58811; U66 #19, #25; U67 7058:60752; U68 #21, #32; U69 7057:60495, 7057:60930; U71 7058:61454; U72 7058:61750; U73 7058:62077, 7137:50166; U99 7114:49766; build note U06 #31.
+  - Publish frames, already in the decided form: U63 #10, #12, 7112:48790; U75 #22, #24; U76 #15–#17, 6863:47775; U77 #22–#24; U78 #21, #22; U79 #25–#27, 6863:48492.
+  - Edit data dialog: "Age today" (004-S8.5.6), "Class B since" (FR-042d; U66 #30, U67 #33).
+  - Source: the rules package's persona formatting and its tests (C6).
+- **Options:**
+  - **keep as decided:** every data card shows the document as a column whose name is the row group's accessible heading. "Date of birth" reads "08.07.2007 · 19". Each class gets its own row, "B since 20.08.2025 · 1 year" (never "B, BE since …"). "Expiry date" reads "Valid until 19.08.2040" under the rules' label. The heading reads "Result: doesn't meet the rules". Figma must change on U65–U74 and U99.
+  - **follow the Test 1 frames:** a flat list with the rules' labels and no visible document column (the document stays the row group's accessible name). "08.07.2007" without the age, "B since 20.08.2025" without the years, classes with the same issue date merged ("B, BE since 02.05.2010"), and "Result: doesn't meet 2 rules" / "Result: doesn't meet 1 rule". This supersedes CLAR #6 (all formats except "Valid until" and the test-day line) and CLAR #31 (c)'s document column; panel scrolling (F43) stays.
+  - **per point:** decide each of (1) the document column, (2) the age after the date of birth (CLAR #6's "no age where the frame shows none" would then mean no age on the Test step), (3) the years after a class date, (4) one row per class, (5) the count in the heading.
+- **Supersedes or contradicts:** CLAR 2026-11-07 #6 and #31 (c) under the second and third options.
 
-**Q2. C — "citizen" for "applicant".**
+**Q2. F — The edit flow of a published connection: leaving and saving (Conflict 2, Partial 10).**
 - **Impact:**
-  - Step 1 and documents: U18 6793:47711, U20 7290:60373, U26 6701:39917; removal dialog U26 6324:40396.
-  - Rules step: title "Set eligibility rules for citizens" and its intro in every rules frame. "Message for citizens:" on every rule row (rules, details, draft details, e.g. U94 7246:52838) and in the editor placeholder (U30, U31, U32). Counting notes "the citizen shares their data" (U30, U32, U50, U53). Nationality hint (U53 #29). Group-message hints (U35 #27, #35).
-  - Findings (rules package): "no citizen can meet", "Every citizen meets" (U44 6750:40882, U45 6753:40514, U46 6753:41324, U71 7058:61632, U63 7112:48859, U77 6760:47979).
-  - Test step (rules package): title and intro (U63–U79, U99, e.g. U66 7057:59541); "The other two citizens stay as they are." (U68 7058:61334); "Creating 3 sample citizens…" and "Couldn't create sample citizens" (U74 #12, #23); "every citizen meets it" (U70 #23).
-  - Delete dialogs and warnings: U14 6699:44480, U15 6699:45320, U90 6417:31599. Status sub-line: U87 #5.
-  - Undrawn: approval page "Rule checks" (007-S3.8).
-  - Sources: the frontend, rules/src/checks/findingMessages.ts, the rules package's test texts, MCP guidance that repeats findings.
-- **adopt:** "citizen" in every place above, e.g. "No citizen can meet the rules of <variant>.", "Every citizen meets this rule.", "Creating 3 sample citizens…", "Couldn't create sample citizens", "<variant> has no rules yet, so every citizen meets it. …".
-- **drop:** "applicant" everywhere. The design's sentences are ported with it: "Set eligibility rules for applicants", "Message for applicants:", "Test rules with sample applicant data", "Applicants won't be able to use it, and its links stop working.", "Applicants won't share their date of birth any more …".
-- **Supersedes:** no Clarification.
+  - Leaving:
+    - E5b: U99 7173:52810 (frame), 7173:52836 (dialog: title, body, "Discard changes", "Save", ×).
+    - E5a: U99 6890:46197 (F5, not built).
+    - Build notes: U05 #36 (6730:40338), U06 #51.
+    - The product name and "Your connections" in U98–U100.
+  - Saving: "Save" on every step: U98 6731:39850, 7296:52389, 6730:39145; U99 #32c; U100 #17. Build note 5: U01 6637:36652.
+- **Options (a), leaving through the product name or the breadcrumb:**
+  - **adopt E5b:** the dialog reads "Save your changes?" / "If you leave now, your changes are lost. Save them, or discard them and keep the active version.", with "Discard changes" (danger outline) and "Save" (primary). "Save" opens the save dialog "Save changes?" (FR-045c) and leaves once saved; a validation error keeps the member in the flow. "Discard changes" leaves without saving (FR-045e). × and Escape keep the member in the flow. This amends CLAR #8 (a) for the edit flow.
+  - **adopt E5b with a direct save:** as above, but "Save" saves at once, without "Save changes?". This amends CLAR #34 (b) for this path.
+  - **use the create flow's dialog** "Leave this connection?" (CLAR #8 (b)). Its body "you lose all progress … discard the connection" doesn't fit a live connection.
+  - **no leave dialog:** the product name and the breadcrumb ask "Discard your changes?" (FR-045d's dialog) only when there are changes.
+- **Options (b), "Save" on the rules step while a rule is open, incomplete or in error, or while grouping:**
+  - **disabled** with "Save the rule first" / "Finish grouping first", as "Test rules" is (CLAR #18; build note 5).
+  - **enabled:** it first asks "Save changes to Rule 01?" (005-S1.1's pattern).
+- **Supersedes or contradicts:** CLAR 2026-11-07 #8 (a), (b) for the edit flow; #34 (b) under the direct-save option; #18 is extended by (b) "disabled".
 
-**Q3. C — Rule statements (copy:rules, 002-S2.27, 002-S3.9).** Figma separates document and field with "·" plus a document icon ("Personal ID · Date of birth (Age) is at least 21 years old"; parts keep "–": "Driving licence · Licence class B – Issue date …"). It also says "must be met" where the current text says "must be true" (U03 #18), and proposes messages from its COPY-BRIEF (U09 #3).
+**Q3. F — "Group with other rules" beyond a top-level rule (Conflict 3).**
 - **Impact:**
-  - Rule rows in every rules frame (e.g. U30 #31, U41 #11, U55 #11).
-  - Editor proposals.
-  - Publish summary.
-  - Details and draft-details summaries: U82 #20, U83 #25, #26, U84 #27, #29, U85 #22, U91 #22, U93 #14, U94 #17, #19, U96 #23.
-  - Test-step statements.
-  - Approval summary (007-S3.7).
-  - MCP outputs that quote statements.
-- **adopt:** The rules package writes "<document> · <field>[ – <part>] <condition>", "must be met", and the COPY-BRIEF messages, everywhere.
-- **drop:** "Personal ID – Date of birth (Age) is at least 21 years old", "must be true" and today's proposals stay. Chips and icons apply as styling only.
-- **Supersedes:** no Clarification.
+  - Rules step:
+    - U55 6531:39068 (rule inside Sub-group 01) and 6522:32424 (group holding a sub-group).
+    - U58 #20 (group menu).
+    - Build note 10: U54 6522:33107 (#5).
+  - Rule menus with the adopted entry: U34 #26, U36 #15, #28, U39 #27c, U41 #22, U64 #2.
+  - Select mode: U36, U40, U64.
+- **Options:**
+  - **two levels only:** the entry appears on top-level rules (FR-036c) and on top-level groups that hold no sub-group, starting select mode with that item selected (FR-038e). It appears only when another rule or group is on the same level. It never appears in a sub-group's menu, on a rule inside a sub-group, or on a group that holds a sub-group (002-S2.10). This extends CLAR #22.
+  - **rules only:** CLAR #22 as written. Top-level rules carry it when another item is on their level. Groups are grouped through select mode only. A rule inside a sub-group never carries it (002-S2.10).
+- **Supersedes or contradicts:** CLAR 2026-11-07 #22 is extended under the first option.
 
-**Q4. C — Findings texts (copy:findings).**
+**Q4. F — Text of the ⓘ on "Result link" (Partial 1).**
 - **Impact:**
-  - Rules banner: U44 6750:40882, U45 6753:40144, U46 6753:41324, 6758:43067.
-  - Notes: U44 #33, U45 #32, #35, U46 #32.
-  - Tab tooltips: U46 6758:43524, U71 7058:61632.
-  - Publish-dialog lines: U63 7112:48859, U77 6760:47979.
-  - Test-step tab tooltip (004-S8.2.3).
-  - Approval "Rule checks" (007-S3.8).
-  - MCP guidance.
-- **adopt:** The drawn texts become the findings texts:
-  - "Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard." (one sentence; "so right now …" for today-only findings)
-  - "Rule 04 and Rule 05 in this group contradict each other."
-  - "Sub-group 01: Rule 04 and Rule 05 contradict each other."
-  - Counts row "2 rules contradict each other, and 1 rule is a duplicate"
-  - Publish lines "Ambulance: no citizen can meet these rules. 2 rules contradict each other, and 1 rule is a duplicate." and "Standard: 1 rule is a duplicate."
-  - Tooltip "Rule 01 and Rule 02 contradict each other, so no citizen can meet these rules."
-  - Undrawn texts (003-CP.3, CP.5–CP.7, CP.9, CP.10, CP.12–CP.18) keep their sentences with "can't be met together" → "contradict each other" and counts joined by ", and ".
-- **drop:** The current findingMessages texts stay. The noun follows Q2.
-- **Supersedes:** no Clarification.
+  - The drawn text on the details: U81 6809:46555, 6809:46590.
+  - The same ⓘ without drawn text: U80 6396:47723, U85 6760:48480, U87 #10, U88 #15, U90 #17.
+  - Unchanged: the "Request link" ⓘ, U80 6809:46501 (FR-051i).
+  - Not affected: draft details, which show no links.
+- **Options:**
+  - **decided text only:** "serviceBW replaces {reference} with the request reference." (CLAR #35 (e)). Figma must change on U81.
+  - **design text only:** "Your service gets the citizen's shared data from this link. Each variant has its own." The {reference} hint then appears nowhere. This supersedes CLAR #35 (e) and drops 001-S6.5's hint.
+  - **both:** "Your service gets the citizen's shared data from this link. Each variant has its own. serviceBW replaces {reference} with the request reference." This amends CLAR #35 (e).
+- **Supersedes or contradicts:** CLAR 2026-11-07 #35 (e) under the second and third options.
 
-**Q5. C — Server messages (copy:server).**
-- **Sign-in:** Figma has "Username or password is wrong." / "Check both and try again." (U10 6401:28435); the server says "Invalid username or password".
-- **Duplicate rule name:** "There's already a rule called "Rule 02"." (U49 6196:10710); the server says "Another rule in Ambulance is already called Rule 01.".
-- **Duplicate variant name:** "There's already a variant called "Ambulance"." (U60 6523:37808); the server says "Another variant is already called Ambulance.".
-- **Unrequested data:** "Rule 02 checks data that's no longer requested. Add it again in Documents, or edit or delete the rule." and "Rule 03 checks data from Driving licence, which is no longer requested. Add the document again in Documents, or edit or delete the rule." (U50 6863:47363, 7173:52333, tooltip 7375:101551); the server says "Rule 02 in Standard checks data that's no longer requested. …".
-- **Sources:** backend auth and rules services, rules/src/validation.ts (word for word), MCP (agents read these).
-- **adopt:** The design's wording, keeping the variant where the baseline names one (002-S2.18, 002-S2.19):
-  - "Username or password is wrong. Check both and try again."
-  - "There's already a rule called "Rule 01" in Ambulance."
-  - "There's already a variant called "Ambulance"."
-  - "Rule 02 in Standard checks data that's no longer requested. Add it again in Documents, or edit or delete the rule." and "Rule 03 in Standard checks data from Driving licence, which is no longer requested. Add the document again in Documents, or edit or delete the rule."
-- **adopt as drawn:** As above, but without the variant names. This supersedes 002-S2.18 and 002-S2.19's naming of the variant.
-- **drop:** The server's texts stay.
-- **Either way:**
-  - The number check stays whole numbers ≥ 1 (002-S3.16), so U49's "Enter a number greater than 0." reads "Enter a whole number greater than 0.".
-  - The "Add it in Documents" action stays (002-S2.25); the design shows it as plain text.
-- **Supersedes:** no Clarification.
-
-**Q6. C — Test-step texts from the rules package.**
-- **Differences:**
-  - Date of birth: "08.07.2007 · 19" (U63, U75–U79) or no age (U65–U72), where the baseline has "08.07.2007 (age 19)".
-  - Expiry: "Valid until 19.08.2040", where the baseline has a bare date.
-  - Classes: "B since 20.08.2025 · 1 year" in one row, where the baseline has a codes row "B, BE" plus one row per class date.
-  - Result heading: "Result: doesn't meet the rules" without the count (U63, U75–U79), where the baseline has "Result: doesn't meet 2 rules".
-  - Test-day line: "Tested as if shared today, 1 Nov 2026." in dd.mm.yyyy per build note 8.
-- **Impact:** the data cards and headings in U63, U65–U79, U99; the edit form's "Age today".
-- **adopt:** "08.07.2007 · 19", "Valid until <date>", "B since <date> · <n> year(s)", "Result: doesn't meet the rules", "Tested as if shared today, 01.11.2026."
-- **drop:** "08.07.2007 (age 19)", a bare date, codes in one row with each class date in its own row, "Result: doesn't meet 2 rules", "1 Nov 2026".
-- **Supersedes:** no Clarification.
-
-**Q7. F — Compact step header (Conflict 5).**
+**Q5. W — The line above the result heading for a variant no citizen can meet (Spec-only 1).**
 - **Impact:**
-  - Header of every wizard frame: U17 6701:39488, U18 7344:96393, U19–U79 #6, U62 7112:47827, U67 7058:60675, U98 #8, U99 #24, #38, U100 #6.
-  - Build notes: U02 #1–#4, U03 #42, U05 #29, U06 #23, #67.
-  - Details: U63 #27, U80 #27, U83 #37, U86 #32. Draft details: 005-S6.2, 005-S6.3.
-- **adopt:** "Step n of 4" with four segments and "Next: <step>" / "Last step". It is a role="progressbar" with aria-valuenow (U02 #3). It isn't clickable when creating and is clickable when editing. Publish is a dialog, not a step. Details and draft details have no step line. Supersedes 004-S0.1 (labelled entries), 004-S0.2, 004-S0.3, 004-S7.3, 001-S6.2, 005-S6.2, 005-S6.3 and US2-AS1's five steps.
-- **drop:** Five labelled entries (Connection, Documents, Rules, Test, Publish) whose finished steps lead back, in the Revamp's tokens. Details keep the all-done progress.
-- **Supersedes:** no Clarification.
+  - Test step result card: U71 7058:61454.
+  - Build note 29: U06 7058:63148.
+  - Unchanged: the tab ⚠ and its tooltip, U71 7058:61618, 7058:61632 (FR-041c, C4).
+- **Options:**
+  - **build:** "No citizen can meet the rules of Standard." above the heading (004-S8.6.1 with C2's noun), in the design's title-only warning alert.
+  - **drop:** the design removes it on purpose ("no banner"); the tab's ⚠ and tooltip carry the finding. This is a behaviour change recorded against 004-S8.6.1.
+- **Supersedes or contradicts:** no Clarification.
 
-**Q8. F — Leaving the wizard and logging out (Conflicts 1, 2).**
-- **(a) Product name or "Your connections" in a flow:**
-  - adopt: runs Save and exit (stores or updates the stored draft, "Saving…" for at least 600 ms, a validation error keeps the member in the flow). Supersedes 001-S0.6's plain link and 005-S4.1 for this case.
-  - drop: navigates; the local draft keeps the work and the overview offers it.
-- **(b) Leave dialogs (U17 7173:52682) and the "Leave site?" warning:**
-  - adopt: as drawn. Their text must not say the work is lost while a local draft keeps it.
-  - drop: no dialog.
-- **(c) Open rule editor on Save and exit:**
-  - adopt the design's stored editor state. It needs storage outside the frontend, so CLAR 2026-11-06 #1 defers it.
-  - drop: "Save changes to Rule 01?" first (005-S1.1).
-- **(d) "Starts as a draft…" strip (U07 #18, U18 #20, U19 #13):** adopt only with (a)=adopt; otherwise drop.
-- **(e) Log-out dialog:**
-  - adopt "Save before you log out?" with "Save and log out" and "Log out anyway", plus a "Cancel" that returns the focus to the user menu. Supersedes 005-S7.2–S7.5.
-  - drop: "Log out and discard unsaved work?" / "Logging out deletes the unsaved changes on this device to: <name>, … and 3 more." / "Saved drafts stay as they are." / "Log out" (danger) and "Cancel", in the design's dialog.
-- **Supersedes or contradicts:** CLAR 2026-11-06 #1 for (c).
+**Q6. F — Draft details: main heading and the two actions (Partial 2).**
+- **Impact:**
+  - Draft details: U93 7362:54697 (band title and sub-line), 7362:54693 (Draft badge after the breadcrumb's name), 7362:54920 ("Edit connection", footer left), 7362:54922 and 7362:55154 ("Go to connections →", footer right).
+  - Build notes: U07 #23–#27, U02 #16.
+  - The tab title.
+- **Options (a), heading:**
+  - **as on the published details (FR-046a):** "This connection is a draft" is the page's one h1. The name is the breadcrumb's current item, with the Draft badge, and the tab title. This supersedes 005-S6.1.
+  - **keep 005-S6.1:** the name stays the h1 with the badge, and the band title becomes a lower heading. Figma must change on U93.
+- **Options (b), actions:**
+  - **footer as drawn:** "Edit connection" (secondary, left) and "Go to connections →" (primary, right). FR-049b's "the status band offers" then reads "the page offers".
+  - **in the status band:** FR-049b as written. Figma must change on U93.
+  - Either way, "Delete draft" is F56.
+- **Supersedes or contradicts:** CLAR 2026-11-07 #35 (c) is extended to drafts by (a)'s first option; #39's placement words are amended by (b)'s first option.
 
-**Q9. F — First-time page and example (Conflict 3, Figma-only 2).**
-- **Impact:** U11 6699:44481, 6699:44486; U18 6793:47682, #8–#32; U06 #25, #85, #86, #91; U73 #25.
-- **(a) The "Welcome to Konnekt" page:**
-  - adopt as the first page after a sign-in without connections, with its state in localStorage. Supersedes 001-S4.1, 001-S4.2 and 001-S4.8.
-  - adopt as the empty overview only: sign-in still opens step 1; the product name shows it.
-  - drop: the baseline's empty overview, in the design's style.
-- **(b) "Start from an example":**
-  - adopt: creates a stored draft through the drafts API and shows the example banners.
-  - defer, because marking a draft as an example needs a stored attribute (CLAR 2026-11-06 #1).
-  - drop.
-- **Contradicts:** CLAR #1, if (b)=adopt needs a backend field.
+**Q7. F — Where the connection ⋯ and "Activate again" go once the date pill is gone (Partial 3).**
+- **Impact:** U07 7370:55183. Details:
+  - Active: U87 #8; U88 6417:30900, 6417:31060; U90 7355:61614.
+  - Deactivated: U89 7355:61548, 7355:61549; U97 7355:61025, 7355:61094, 7355:61026, 7355:61095; U96 S/L.
+  - Scheduled (F1, not built): U94 7355:60689, U95 #10.
+- **Options:**
+  - **in the status band:** at the band's right end, where the pill was, the ⋯ menu (Deactivate, Delete) and, while deactivated, "Activate again" before it.
+  - **in the breadcrumb row:** at the right, before the user pill.
+  - **split:** "Activate again" in the band, and the ⋯ in the footer beside "Edit connection".
+- **Supersedes or contradicts:** no Clarification. It follows CLAR 2026-11-07 #37 (c).
 
-**Q10. F — Sign-in error marking (Conflict 4, U10 6401:28435).**
-- design error: both fields marked as invalid.
-- design error: neither field marked.
-- adopt Username only. This contradicts US1-AS1 and 001-S1.2.
-- **Supersedes:** no Clarification.
+**Q8. F/W — Menus of rules and groups linked to Standard in a variant (Partial 4).**
+- **Impact:**
+  - Build note 10: U54 6522:33107 (#3, #4).
+  - Changed rule: U39 #27e; U57 #18 (frames 6522:32682, 6522:32774, 6522:32862).
+  - Inherited rule: U39 #28b, U56 #40, U57 #19.
+  - Inherited group: U58 #21, #22.
+  - Copy-to-variant popover: U41 #24 (W17).
+- **Options:**
+  - **adopt build note 10:** a rule or group linked to Standard in a variant has no Rename, Duplicate, Ungroup or "Remove from group". "Copy to variant" shows only while some variant could still receive the item: always for "New addition" and "Changed here", and for a Standard rule only while a variant isn't linked to it or has removed it. "Copy link" stays everywhere (F29). This narrows CLAR #22's "Rename and Copy to variant on rule menus" to unlinked rules.
+  - **keep every rule menu complete:** CLAR #22 as written. Rename and Duplicate also appear on linked rules: a rename marks the rule "Changed here", and a duplicate is a "New addition" in that variant. "Copy to variant" always shows, and the popover shows covered variants as included and not choosable (FR-040b).
+- **Supersedes or contradicts:** CLAR 2026-11-07 #22 is narrowed under the first option.
 
-**Q11. F — Overview row delete and bulk delete (Figma-only 1).**
-- **Impact:** see the Figma-only table.
-- **adopt row delete:** each row's Delete asks the details' confirmation (001-S6.11, or 005-S6.10 for drafts).
-- **adopt bulk delete:** checkboxes and a selection bar "N selected · Cancel · Delete" with one confirmation listing the connections; one call per connection.
-- **defer bulk delete:** if one call per connection isn't acceptable and an endpoint is needed (CLAR 2026-11-06 #1).
-- **drop:** no row checkboxes and no row Delete. Delete stays on the details.
+**Q9. W — Group and sub-group menus: "Rename" and "Remove message" (Partial 5).**
+- **Impact:**
+  - Group menus: U54 6522:33107 (#2); U55 #28, #33, #34 (frames 6530:40150, 6522:32038, 6531:39026, 6522:32382); U56 #23, #28, #30; U57 #22; U58 #19.
+  - Message card with its pencil: U35 6324:39410, 6324:39411.
+- **Options:**
+  - **build both:** in the design's menu and wording, "Rename" (inline on the name, with 002-S2.19's duplicate check) and, while the group has a message, "Remove message" next to "Add message" (002-S2.11, 002-S2.17).
+  - **drop:** a group is renamed only by editing its name in place, and a message is removed by clearing it through the pencil. This is a behaviour change recorded against 002-S2.11 and 002-S2.17.
+- **Supersedes or contradicts:** no Clarification. CLAR #22's W list names neither entry.
 
-**Q12. F/W — Overview and local-drafts details (Partials 2, 3).**
-- **(a) Hint:** adopt the design's one sentence for both states (supersedes 005-S3.6 and 005-S3.7), or keep the two conditional hints "Pick up your draft or connect another form." / "Open a connection to copy its links, or connect another form.".
-- **(b) Row height without a description:** adopt equal heights (supersedes 006-S2.3), or a shorter row.
-- **(c) Delete dialog:** adopt one dialog for draft and deactivated ("Delete connection" / "Keep connection") but with the draft's body "<name> will be deleted for good. It was never live, …". Or keep two dialogs: drafts "Delete this draft?" with "Delete draft" / "Cancel".
-- **(d) A single local draft:** adopt the heading-only layout, keeping the h2 and a one-item list for screen readers. Or show the list.
-- **(e) A never-saved item:** Its button reads "Resume editing", as drawn. The frame name "Discard / Continue" is a slip.
-- **Supersedes:** no Clarification.
+**Q10. F — Two decided labels that a frame draws differently (Partial 6).**
+- **Impact:**
+  - (a) The failed-save toast: U51 6197:11098 draws "Couldn't save. Check your internet connection and try again." with "Try again". Build note U05 6720:39042 says "with Retry". It shows on every wizard step (CLAR #17 (a): U17 #3, #23; U79 #4).
+  - (b) The nothing-chosen dialog: U25 7299:52174 has the title "No data selected in 1 document", the body "Driving licence has no data chosen yet. Choose data for it or remove it." and "Remove 1 document". Build note 19 (U04 6711:39375) says "Remove them and continue".
+- **Options:**
+  - (a) **"Retry"**, as CLAR #17 (a) decided; or **"Try again"**, as drawn, which amends CLAR #17 (a)'s word.
+  - (b) **"Remove them and continue"**, as CLAR #14 (c) decided; or **"Remove 1 document"** / **"Remove 3 documents"** with the count, as the title has, which amends CLAR #14 (c)'s label.
+- **Supersedes or contradicts:** CLAR 2026-11-07 #17 (a) and #14 (c) under the second choices.
 
-**Q13. F/W — Header and user menu (Partial 1).**
-- **Impact:** every signed-in frame #3/#5; U13 #22, #23; U10 #18.
-- **adopt:** an icon-only pill whose menu shows the name, then "Your account" above "Log out" (W: build, 007-S2.1). Supersedes 001-S0.5's visible name. The email shows only if the API provides it; otherwise CLAR 2026-11-06 #1 defers it.
-- **drop:** the name is visible in the pill, the menu has "Your account" and "Log out", and there is no email.
+**Q11. F — Body of the delete-rule dialog (Partial 7).**
+- **Impact:**
+  - U34 6113:29056 (a rule only in Standard): "Citizens won't be checked for licence classes C or D any more."
+  - Copy to port either way: U47 6185:8847 (a Standard rule with variants).
+  - Title: "Delete Rule 03?" (002-S2.33).
+- **Options:**
+  - **adopt the effect sentence:** the body says what citizens no longer have to meet, built from the rule's check for every check kind. That needs a sentence per check in the rules package (copy:rules), so CLAR 2026-11-06 #1 defers it as a later feature. Until then the dialog uses the second option.
+  - **drop:** no effect sentence. A Standard rule with variants gets U47's body. The other dialogs keep the current app's body, plus 002-S4.17's "Ambulance's changes to Group 01 go with it." where a group dissolves.
+- **Supersedes or contradicts:** no Clarification.
 
-**Q14. F — Documents step (Conflicts 6–10, Figma-only 3).**
-- **(a) Master-detail, pager, "Added documents (n)" and the search card with suggestions:** adopt (supersedes 002-S1.8's "spec 001's step stays"), or drop (one card per added document, design styling).
-- **(b) Inline trash, undo toast, and a confirmation for unchecked documents** ("Keep document" / "Remove document"): adopt (supersedes 002-S1.9), or drop. Removal still opens 002-S1.1's dialog when rules check the document.
-- **(c) Nothing-chosen validation:**
-  - adopt the inline line, "1 document needs data", the dialog "Choose data" / "Remove them and continue", and "Set rules →" disabled with "Add a document first". Supersedes 002-S1.9, 001-S5.5, 001-S5.6 and 001-S7.6's refusal on attempt.
-  - drop: going on stays enabled and an attempt is refused with a message naming the problem, moving the focus.
-- **(d) "Publish without rules" on Documents:** W: build (002-S1.5, 004-S1.1), or drop (supersedes them).
-- **(e) Drag reordering:**
-  - adopt with Move up / Move down in a menu as the keyboard way (U08 #3), the order kept in the reducer and sent on save.
-  - defer, if the API must store the order (CLAR 2026-11-06 #1).
-  - drop.
-- **(f) Field groups with group checkboxes:**
-  - adopt with a frontend mapping; the mixed state opens 002-S1.1's dialog for rule-checked fields.
-  - defer, if the grouping must come from the catalog (CLAR #1).
-  - drop.
+**Q12. F — The variant ⓘ on the Test step (Partial 8).**
+- **Impact:**
+  - Test frames: the (i) after "Standard" (U65 7057:58718, U67 #10, U68 #10, U72 #10, U75 #19, U79 #19) is Standard's description icon (F27).
+  - Rules step ⓘ: U18 7344:96402; U37 6151:33809, 6151:33820.
+- **Options:**
+  - **at the end of the Test step's tab row:** hover and focus, with the Rules step's text "A separate set of rules for citizens with different requirements. Each variant gets its own result link."
+  - **not on the Test step:** this amends FR-035a.
+- **Supersedes or contradicts:** CLAR 2026-11-07 #20's "on the Rules and Test steps" under the second option.
 
-**Q15. F — Description field (Conflict 11).**
-- **Impact:** U04 #24; U18 #18, #19; U19 #11; U98 #13, #14; variant dialog U52 #26.
-- **adopt textarea:** multi-line, not required, ≤ 500 characters, spell check on. The overview and meta stay one line, cut with "…". Supersedes 006-S1.1.
-- **drop:** a single-line input, design styling.
-- **ⓘ:**
-  - adopt next to "Connection name" (its text isn't drawn).
-  - keep "About the description" / "A note for your team, such as the form's ID in your form management system. Applicants never see it." on the description (006-S1.4, 006-S1.5).
-- **Supersedes:** no Clarification.
+**Q13. C — "Enter a name for the connection." (Partial 9).**
+- **Impact:**
+  - Step 1: U19 6699:45379, 6699:45398 (after Continue).
+  - The same message on step 1 after "Save and exit", "Save progress" or "Save and log out" with no name (CLAR #8, #16; U04 #27; F18), and in the edit flow's step 1 (U98).
+  - Sources: the backend's validation of the connection and draft name (400 message); the frontend's step-1 check; the MCP server and guidance where they pass the message on to agents that create drafts; docs.
+  - Not affected: "Enter a name for the variant." (already the design's), the persona name's "Enter a name." in Edit data (004-S8.5.11), "The name can have at most 200 characters." (not drawn).
+- **Options:**
+  - **adopt:** "Enter a name for the connection." in every place that provides or repeats it.
+  - **drop:** "Enter a name." stays everywhere.
+- **Supersedes or contradicts:** under adopt, CLAR 2026-11-07 #16's quoted wording and 005-S1.2 / 005-S1.3's text.
 
-**Q16. F — "Save and exit" with an empty name (Conflict 12, U04 #27).**
-- **adopt:** it leaves without storing a draft, and the local draft keeps the work. Supersedes 005-S1.2.
-- **drop:** the flow goes to step 1 with "Enter a name." under "Connection name", the field is focused and nothing is stored.
-
-**Q17. F/W — Save feedback and errors (Conflict 13).**
-- **Impact:** U02 #5, #6; U05 #22; U17 #3, #23; U51 #22; U79 #4. Undrawn: 005-S8.1–S8.4, 007-S1.11, 007-S3.25, 007-S5.3–S5.5.
-- **(a) A failed save:**
-  - adopt the neutral toast with "Retry". It must still show the error ID, and the focus must stay manageable. Supersedes 005-S1.7 and 005-S1.8's alert and focus move.
-  - drop: KERN danger alert "Couldn't save your draft" with the server's message, or "Couldn't save. Check your internet connection and try again." with the error ID and "Try again"; the focus moves to it.
-- **(b) Title-only alerts (build note 7):**
-  - adopt only for alerts that carry a title alone.
-  - drop for alerts with a body: alerts that carry an error ID, a list, "Try again", "Remove it" or "Dismiss" keep those parts in the design's alert style.
-- **(c) Saving:**
-  - adopt the modal "Saving your draft…".
-  - drop: "Save and exit" is aria-disabled and reads "Saving…", with a polite status "Saving draft…" (005-S0.4, 005-S1.4).
-
-**Q18. F — Disabled "Test rules" (Conflict 14).**
-- **adopt:** "Test rules" is disabled while a rule is open, incomplete or in error, or while grouping. It shows "Save the rule first" / "Finish grouping first" and hover explanations that also open on focus. Supersedes 004-S2.1, 004-S2.4, 004-S2.6, 004-S2.7, 002-S2.23 and 002-S3.11.
-- **drop:** it stays enabled; with unsaved changes it asks "Save changes to Rule 01?"; a refusal shows the message and moves the focus.
-
-**Q19. W — Tab row before the first rule (Conflict 15).**
-- **Impact:** U30, U33, U49–U51, U53.
-- **build:** "Standard" and "+ Add variant" show from the start of the step and while a rule is edited (002-S2.2), with the empty state "No rules yet" in each variant.
-- **drop:** the tab row appears only after the first rule. This is a behaviour change to record.
-
-**Q20. F — "What is a variant" ⓘ and Standard's info icon (Conflict 16).**
-- **adopt:** an ⓘ after "+ Add variant" on the Rules and Test steps, opening on hover and focus. Its text isn't drawn: say "Variants are other versions of these rules." if none follows. Standard's (i) only with a description. Supersedes 004-S8.2.6.
-- **drop:** no ⓘ after "+ Add variant". Standard's (i) only with a description (002-S4.25).
-
-**Q21. F — Inline variant rename (Conflict 17, Partial 10 tab ⋯).**
-- **adopt:** double-click or ⋯ › Rename edits the tab name inline (Enter saves, Esc cancels), with the duplicate error beside the tabs. The description is edited elsewhere (say where), and ⋯ shows on the active tab only. Supersedes 002-S4.4 and 002-S4.22's dialog.
-- **drop:** "Rename" opens the "Edit variant" dialog (name, description) and every tab has its ⋯.
-
-**Q22. F/W — Rules-step menus (Conflict 18).**
-- **W: build:**
-  - "Copy link" as the last entry before the destructive ones (007-S4.1).
-  - After "Restore" on removed items (007-S4.2).
-  - "Rename" and "Copy to variant" on rule menus (002-S2.16, 002-S2.19).
-  - Or drop any of them, which is a behaviour change.
-- **F, "Group with other rules" in a rule's menu:** adopt (it starts select mode with that rule selected), or drop.
-- **F, the same entry in a sub-group's menu:** adopt (supersedes 002-S2.10), or Figma error.
-
-**Q23. F — Groups (Conflicts 19, 20).**
-- **(a) Single-member and empty groups (U35 #21, U51 #21, #24, U47 #35):** Figma error (the baseline dissolves groups, 002-S2.13, 002-S4.18), or adopt (supersedes them; needs rules-package changes, so CLAR 2026-11-06 #1 defers it).
-- **(b) A sub-group moving up:** keeps its name (002-S2.14, Figma error), or is renamed "Group NN" (rules package, CLAR #1).
-- **(c) Group message hides members' messages** ("Not shown while this rule is in Group 01. Citizens see the group message instead."):
-  - adopt as display only (supersedes 002-S2.5).
-  - drop: every rule shows its message.
-
-**Q24. F — Connectors and selection (Conflict 21, Partials 4, 5).**
-- **(a) Connector:**
-  - adopt the pill with a two-option menu ("All rules must be met" / "At least one rule must be met", "Applies to every rule in Group 01"), as a menu button whose accessible name says the level. Supersedes 002-ACC.2's toggle.
-  - drop: a button that switches the level.
-- **(b) Missing connector and trailing connector, link icon on some rules only:** Figma errors. The build keeps one connector between items (002-S2.8) and the link icon on every linked rule or none (002-S4.31).
-- **(c) Groups selectable in select mode:** build (002-S2.9), or adopt rules-only selection.
-
-**Q25. F — Date conditions (Conflict 22).**
-- **Date of birth "from now" checks (U09 open question):** keep them (002-S3.14), or drop them for the Date of birth. Dropping is a rules-package change, so CLAR 2026-11-06 #1 defers it.
-- **A fixed date for the Date of birth:** adopt (rules package, CLAR #1 defers), or drop.
-- **"Time passed / Time left", "at most", "on", a unit picker on age, "starts with":** Figma errors. Keep "Time ago" / "Time from now", no "at most", whole years as fixed text, no "starts with".
-- **The date hint:** port the design's wording, keeping "the time from now" if from-now stays: "Check the time since or until this date, or compare it with a fixed date."
-
-**Q26. F — Identifiers (Conflict 23).**
-- Identifiers only on the details, next to each name (002-S2.7, 002-S6.12); U03 #10's "Saved rules show their ID" means the details.
-- Or adopt them in the rules step too, which supersedes 002-S2.7.
-
-**Q27. W/F — Rule-editor states (Partial 9).**
-- **build:**
-  - Pickers unlock in order (disabled until the previous one is chosen).
-  - Inline flags next to incomplete parts.
-  - Counting and missing notes next to every date condition.
-  - The part picker "Choose part" after "Licence classes" in every frame.
-  - The placeholder "Error message applicants read: Suggested once you complete the check. You can edit it." in the design's wording ("Message for … : Suggested once you choose a check. You can edit it.", noun per Q2).
-  - Class options show the code and description ("B Cars up to 3.5 t").
-- **F, the values picker's "Done":** adopt or drop.
-
-**Q28. F — Variants (Partials 6, 10).**
-- **(a) Removed items:** show the message line and the "Changed here" text inside removed groups (002-ACC.1, 002-S4.19), or adopt hiding them.
-- **(b) Linking:** a variant based on Standard stays linked when Standard has no rules (002-S4.29), or adopt "not linked". The latter is a rules-package change, so CLAR 2026-11-06 #1 defers it.
-- **(c) Copy to variant:**
-  - adopt the popover with help text; it must keep the focus inside and return it, or become a dialog.
-  - drop: a dialog showing based variants as included and not choosable (002-S4.13).
-  - Copies to Standard stay linked in the source branch (002-S4.14).
-
-**Q29. F — Tab icons and banner (Partials 7, 8; U03 #21).**
-- **(a) Problem icons:**
-  - adopt a red error icon on the tab with the problem text in its tooltip, and a grey ⓘ when there are no findings. Supersedes 003-S4.2 and 003-S4.3.
-  - drop: finding icons only.
-- **(b) Test tabs:** show only "no applicant can meet" (004-S8.2.2), or all finding kinds.
-- **(c) Banner names:** stay links that scroll to and focus the item (003-S2.16, W build). Per-line kind icons are adopted as styling.
-- **(d)** The test tab's ⚠ comes from the evaluator, not hard-coded (FR-003); U03 #21's "no logic" is not built.
-
-**Q30. F — Test-step "Edit data" (Conflict 24, Partial 14).**
-- **adopt the dialog:** "Change the values to try a particular case. Results update when you save.", "Cancel", "Save and test" (an error blocks saving), and the toast "Results updated. Mia now meets Rule 01.". Supersedes 004-S8.5.1, 004-S8.5.2, 004-S8.5.9, 004-S8.5.10, 004-S8.10.3 and 004-ACC.4.
-- **drop:** inline fields under the same headings, "Edit data" ↔ "Done", every valid change applies at once, and per-variant hidden announcements.
-- **Either way:** licence classes are picked from a list by code; Nationality and Expiry date get fields (004-S8.5.5, 004-S8.5.3).
-
-**Q31. F — Test-step results and data card (Conflict 25, Partials 12, 13).**
-- **(a) Met-variant box:**
-  - adopt "Your wallet data meets the requirements. Other documents are checked separately." as fixed text.
-  - defer, if it should be a stored per-connection message (CLAR 2026-11-06 #1).
-  - drop: no message column and no success message (004-S8.6.7).
-- **(b) Rows:** keep the statement and "Not met" / "Couldn't be checked" as text (004-S8.6.4, 004-ACC.1). Or adopt the icon and tint only, which contradicts 004-ACC.1. The older frames' "19, needs 21" and "Mia sees" box are Figma errors.
-- **(c) Data card:** document headings (004-S8.4.2), or adopt a document column. Panel scrolling (004-S8.4.11), or adopt per-card scrolling.
-
-**Q32. F — Persona cards and details (Conflicts 26, 27, Partial 15).**
-- **Cards:** the Publish frames' cards with avatar, age · nationality and outcome text are an older design; the chips from U65–U72 stay. Or adopt the cards, which supersedes 004-S8.3.1 and 004-S8.3.2.
-- **"Your rules are saved.":** drop (004-S8.9.3), or adopt.
-- **Regeneration:**
-  - The chip becomes a skeleton pill (004-S8.8.4), or keeps its name with a ring.
-  - The test-day line shows during one persona's regeneration (004-S8.1.2).
-  - "Generate again" and "Generate all again" show in every results frame.
-  - Generating asks only with changes (004-S8.3.5).
-  - The tab tooltip opens on hover and focus (004-S8.2.3).
-
-**Q33. F — Publish dialog (Conflict 28, Partial 11).**
-- **"Back to test":** adopt (supersedes 004-S5.3), or drop.
-- **Summary:** adopt counts only (supersedes 002-S5.1), or list the documents with their fields and each variant's rules.
-- **Lines:** in tab order (003-S5.1), or warnings first.
-- **"Published" interim state and 0.5 s delay:** adopt, or go straight to the details.
-- **Failure:** keeps the error ID and the summary (FR-008).
-
-**Q34. F — Edit flow (Conflicts 29, 30, Figma-only 4, Partial 17).**
-- **(a) Entry confirmation** "Edit "<name>"?" with "Cancel" / "Edit connection": adopt (supersedes 002-S7.3), or drop (only the save dialog asks).
-- **(b) Saving:**
-  - adopt Save on every step, with the save dialog opening from the current step, and "Active" in the header. Supersedes 004-S2.3, 004-S5.1, 002-S7.1 and 004-S0.4.
-  - drop: Save only from the test step through the save dialog ("Save without rules" on the documents and rules steps), and no badge.
-- **(c) "Discard changes" with "Discard your changes?":** adopt as leaving without saving, or drop. "Send to your developer" is dropped as "Later".
-- **(d) Note:** keep "Requests already in progress keep their previous configuration." (001-S5.9) in the design's wording, e.g. "Your changes take effect when you save them. Requests already in progress keep their previous configuration."
-
-**Q35. F — Details layout (Conflicts 31, 32, Partial 18).**
-- **(a) Edit:**
-  - adopt one "Edit connection" opening step 1. Supersedes 002-S6.6 and 007-S5.8's rules entry.
-  - keep an entry that opens the Rules step.
-- **(b) Accordions** (Links, Summary; Activity is F2): adopt, with Summary open from "View" and one open at a time. Supersedes 002-S6.3's collapsed rules card and the always-shown URLs. Or drop.
-- **(c) Heading:** the connection's name stays the h1 (001-S6.1, FR-012a), and the status sentence is a heading below it. Or adopt the status as the h1.
-- **(d) "Create new connection":** stays in the action bar (001-S6.3, W build), or drop it.
-- **(e) Reference hint:** visible text "serviceBW replaces {reference} with the request reference." (001-S6.5), or only in the ⓘ.
-- **(f) Copy buttons while deactivated:** stay working, or adopt disabled.
-- **(g) Branch ⓘ** after each variant name: build (002-S6.11).
-- **(h) Variants:** adopt tabs (supersedes 002-S6.4's sections), or keep sections.
-- **(i) Counts:** adopt "2 documents · 9 data items · 3 variants · 4 rules".
-
-**Q36. F — Findings on details (Conflict 33, U85 6760:48437).**
-- Figma error: no findings on the details (003-S6.1).
-- adopt: lines and tab icons on the published summary. Supersedes 003-S6.1.
-
-**Q37. F — Details extras (Conflicts 34–37).**
-- **(a) "✓ Copied" for 2 s:** adopt (frontend only; supersedes 002-S6.9's item; still announced), or drop.
-- **(b) "Download PDF":**
-  - adopt as a client-side PDF (a new dependency).
-  - defer, if a server PDF is needed (CLAR 2026-11-06 #1).
-  - drop.
-- **(c) "Active since …", "Deactivated since …", "Published / Deactivated <date>":**
-  - adopt, if the API already provides publish and deactivation times.
-  - otherwise defer (CLAR #1); then rows read "Edited <date>" and the details show no date pill.
-- **(d) Undo after deactivating:** adopt as an immediate Reactivate (requests already cancelled stay cancelled; supersedes 001-S6.9's sole reversal), or drop.
-
-**Q38. F — Confirmation texts (Partial 16).**
-- **add the spec's facts to the design's sentences:**
-  - Delete active: "This connection is active. Citizens won't be able to use it, and its links stop working for good. Requests in progress are cancelled."
-  - Delete deactivated: "Its links stop working for good."
-  - Reactivate: "Its links will work again."
-  - Delete variant: names the broken result link as drawn.
-  - The noun follows Q2.
-- **adopt as drawn:** supersedes 001-S6.11's "permanently" and US4-AS3's requests clause.
-
-**Q39. F/W — Draft details and restore dialog (Partials 19, 20).**
-- **Draft details:**
-  - adopt the status band "This connection is a draft" with "Edited <date>" and "Edit connection" / "Go to connections", plus a visible "Delete draft" (W build, 005-S6.9). Supersedes 005-S6.8 and 005-S6.14's labels and 005-S6.4's info alert.
-  - drop: draft card, "Continue", "Delete draft", info alert "This draft isn't live. Its connection links appear once you publish it.".
-- **Restore dialog:** Escape opens the draft's details and keeps the local draft (005-S5.5). The × and scrim behave like Escape, or adopt "no change".
-
-**Q40. F — Motion (Conflict 38).**
-- adopt the design's motion (240 ms, 150 ms, 150–200 ms, dialog fade, reduced-motion fallback). Supersedes OUT-6.
-- drop: motion as KERN provides it, and no 0.5 s publish delay.
-
-**Q41. W — Undrawn wizard, drafts, publish and details states (Spec-only 3–9, 17, 19–21).**
-- **build:** each one from the new components (the KERN dialog, alert and form patterns of U14, U23, U51), with baseline behaviour and wording:
-  - 005-S2.1–S2.13, from U90's dialog.
-  - 005-S5.1–S5.4, from U17's dialog.
-  - 005-S4.8–S4.13.
-  - 005-S8.1–S8.6, as a warning alert listing the data, with "Remove it".
-  - 002-S5.4–S5.6, in the publish dialog.
-  - 005-S6.3, S6.7, S6.12, S6.13.
-  - 003-S7.1 and 004-S7.2.
-  - 006-S1.6, 006-S1.8, 006-S3.2, 006-S3.3, 001-S5.7, 001-S5.10, 001-S5.11.
-  - 005-R.1, 005-R.2, 005-S0.6, 005-S0.10, 005-S0.11, 005-S1.6, 005-S1.9, 005-S1.10.
-  - 001-S4.3, 001-S4.5, 005-S4.11.
-- **drop:** only where the design removes a state on purpose.
-
-**Q42. W — Undrawn rules, findings and test-step states (Spec-only 10–16).**
-- **build:** 002-S2.20, S2.21, S2.24, S2.36; 002-S3.31; 002-S4.9, S4.27, S4.28, S4.30; the findings set (003-S2.5, S2.17, S2.19–S2.21, S4.4, ACC.5, ACC.6, CP.3, CP.6, CP.15, CP.17, CP.18; texts per Q2 and Q4); 004-S2.5; the test-step set (004-S8.5 …, ACC.2, ACC.3); the deep-link notices "This link points to a variant that no longer exists." / "This link points to a rule or group that no longer exists." with "Dismiss" (007-S5.x); and the toast announcement (007-S4.5). All in the design's banner, toast and outline patterns.
-- **drop:** per item.
-
-**Q43. W — Spec 007 pages (Spec-only 22–24).**
-- **build:** the consent, account and approval pages from the new components: the design's card, radio group (AccessLevelChoice), list rows with a ⋯ menu (as the rule menu), dialogs, copyable read-only field and alerts. The wording is 007's (product name per Q1).
-- **drop:** not allowed; these pages are baseline features the design doesn't remove.
-
-**Q44. W — Guard, overview error, details error, general rules and narrow widths (Spec-only 1, 2, 18, 25; Partial 21).**
-- **build:**
-  - 001-S0.2 and 001-S0.4 as today.
-  - 001-S3.7 and 001-S6.14 / US4-AS6 as the design's alert with the error ID and the way back.
-  - FR-012b tab titles.
-  - 005-ACC.4: the footer wraps and "Save and exit" keeps its label.
-  - Reflow below 1024 px down to 320 px and 200 % zoom per EC-6 and FR-010a, nothing hidden.
-  - FR-002c, FR-005, EC-2 and 001-S7.10 apply to every W item.
-
-**Q45. F — ui-detail items (cosmetic rows 27–42).**
-- **adopt as designed (all):** each opens on hover and focus where it is a tooltip, has a visible label where it is a field, and is announced where it is a toast.
-- **drop listed rows:** they aren't built.
-- **Neither option supersedes** a Clarification.
+**Q14. F — Small additions the design makes (cosmetic 29–35, Figma-only behavioural 1).**
+- **Impact:**
+  1. A scrim click closes dialogs that don't delete or publish (U06 7127:49610). The restore dialog is F57.
+  2. Disabled buttons explain why on hover, and also on focus (FR-051q), beyond "Test rules" and "Set rules →": e.g. "Save rule", and the copy buttons while deactivated (FR-046e) (U06 7127:49610).
+  3. A page change scrolls to the top (U06 7137:50569).
+  4. Draft row meta "Edited 28.10.2026 · Rules step" (U06 #89; U17 6699:48031).
+  5. An "Added (n)" group in the documents search card (U21 7290:62277–7290:62279; U22 7290:63546).
+  6. Links accordion counts "1 request link · 3 result links" (U91 7203:50843; U92 7246:51546, 7246:52172; U94 7246:52751, 7246:53863; U95 7246:53973, 7246:54601; U96 7246:55182, 7246:56300; U97 7246:56410, 7246:57041).
+  7. Tooltips also open on touch (U08 7370:55193).
+  8. "Start with" preselects "Linked to Standard (recommended)" (U37 6139:32693; U52 6197:12011; U62 #25). This default changes what is stored when the member doesn't choose.
+- **Options:**
+  - **adopt all as designed:** each tooltip opens on hover and focus, each count is plain text that screen readers read, and items 1–7 change no stored data.
+  - **drop listed numbers:** a dropped item isn't built. For 8, no option is preselected, or the current app's default stays.
+- **Supersedes or contradicts:** no Clarification.
 
 ## Coverage
 Shorthand:
@@ -610,249 +385,295 @@ Shorthand:
 - **overview frames** = U04, U11–U18, U90
 - **every frame** = U10–U100
 
+Rows that the merge read as covered (a unit flagged them, but an adopted requirement already holds them):
+- FR-051f, the group subtitle: U35 #16, U36 #24, U38 #18, U40 #20, U42 #25, U43 #19, U44 #31, U46 #25, U51 #16, U55 #18, U56 #19, U57 #14, U58 #14, U64 #28.
+- FR-051j, "Discard rule": U06 #75, U30 #21, U31 #28, U33 #16, U35 #37, U48 #18, U50 #28.
+- FR-051k: U04 #31, U28 #15, U98 #23. FR-051l and FR-051m: U43 #25, U58 #25, #27.
+- FR-031a, FR-031b and FR-031d: U23 #12, U28 #14, U98 #20, #27.
+- FR-036c: U34 #26, U36 #15, U39 #27c, U41 #22, U64 #2.
+- FR-035a: U17 #14b, U32 #10, U40 #35, U62 #28, U99 #27b.
+- FR-025a: U63 #5. FR-025c: U05 #29. FR-045c: U99 #32c, U100 #17.
+- FR-041a and FR-041b: the design's severity icons per CLAR #29 (a), which cites build note U06 #7. Rows: U07 #19, U44 #9, #13, U45 #25, #31, U46 #8, #22, U50 #22, U85 #21.
+- FR-046c and FR-046g: U03 #25, U07 #17, U91 #10, U96 #11, U93 #9, #13. FR-038a, read-only: U83 #31.
+- CLAR #38: U06 #17, U60 #34. FR-023c's removed-document message: U50 #12. FR-029b: U16 #25. FR-051b: U13 #6, U16 #20.
+- FR-051i: U18 #18, U98 #13 (CLAR #45 over #15).
+- The "C item" rows for "Konnekt", "citizen", "·" statements, "Message for citizens:", findings, server wording and the U75–U79 test formats are now C1–C6.
+
 | req-id | status | units |
 |---|---|---|
-| FR-001a | COVERED | U01, U02, U03, U07, U89, U95 |
-| FR-001b | COVERED | U01, U07, U26 |
-| FR-002a | COVERED, PARTIAL | most frames (e.g. U03, U10, U24, U31, U43, U44, U73, U75) |
-| FR-002b | COVERED, PARTIAL | U19, U25, U62 |
-| FR-002c | SPEC-ONLY | (cited U01 #22) |
-| FR-003 | COVERED | U03, U07, U09 |
-| FR-005 | SPEC-ONLY | – |
-| FR-006 | PARTIAL | U03, U09, U10, U26, U29, U34, U39, U44–U46, U48, U49, U59, U60, U71, U74, U77 |
-| FR-008 | COVERED, PARTIAL | U01, U02, U05, U20, U51, U52, U54, U78, U79 |
-| FR-009a | COVERED, PARTIAL, CONFLICT | U01, U08, U20; X U04 |
+| FR-001a, FR-001b | COVERED | U01, U02, U03, U07, U10, U26, U89, U95 |
+| FR-002a | COVERED, PARTIAL (copy to port) | most frames |
+| FR-002b | COVERED | U10, U14, U19, U25 |
+| FR-002c, FR-005 | SPEC-ONLY → W2 | – |
+| FR-003 | COVERED | U03, U07, U09, U26, U62 |
+| FR-006 | COVERED | U10, U26 |
+| FR-008 | COVERED, PARTIAL → F22, F46 | U01, U02, U05, U54; P U79 |
+| FR-009a | COVERED, CONFLICT → F23 | U01; X U04 |
 | FR-009b | COVERED | U01 |
-| FR-009c | COVERED, PARTIAL | U14, U15, U24, U26, U34, U50, U52, U62, U73, U75, U77, U78, U87–U89, U100; P U41 |
-| FR-009d | COVERED, PARTIAL | U01, U06, U07, U13, U34, U39, U41 |
-| FR-010a | PARTIAL | U02, U12 |
+| FR-009c | COVERED | U14, U15, U23, U26, U52, U62, U73, U75, U89, U100 |
+| FR-009d | COVERED, PARTIAL (layout) | U01, U06, U07, U13 |
+| FR-010a | PARTIAL → W2 | U02, U12 |
 | FR-010b | COVERED | U02, U07 |
 | FR-011 | COVERED | U01 |
-| FR-012a | COVERED, PARTIAL | U03, U10, U13, rules frames, details frames |
-| FR-012b | SPEC-ONLY | – |
+| FR-012a | COVERED, PARTIAL open (Q6) | U03, U10, U13, rules and details frames; P U93 |
+| FR-012b | SPEC-ONLY → W2 | – |
 | FR-013a | COVERED | U07, U52 |
 | FR-013b | SPEC-ONLY → W1 | – |
-| EC-1 | COVERED, PARTIAL | U03, U09, U23, U80, U83, U86 |
-| EC-2 | SPEC-ONLY | (cited U03 #22) |
-| EC-3 | COVERED, PARTIAL | U19, U34, U90 |
-| EC-4 | PARTIAL | every frame with the product name |
-| EC-5 | COVERED, PARTIAL | U01, U07 |
-| EC-6 | PARTIAL | U02, U23 |
-| EC-7 | COVERED, PARTIAL | U03, U04, U06, U07, U12, U13, U18, U26, U31, U58, U80, U83, U86, U87, U91, U94, U99 |
-| EC-8 | SPEC-ONLY → W1 | – |
-| EC-9 | SPEC-ONLY | – |
-| US1-AS1 | COVERED, PARTIAL, CONFLICT | U02, U03, U05; P/X U10 |
+| FR-004, FR-007, FR-014a–FR-018, FR-019c, FR-020c, FR-021c, FR-022c, FR-023d, FR-027d, FR-037b, FR-047a, FR-047d | UI = N (not mapped to frames) | – |
+| FR-019a | COVERED → C1 | every frame |
+| FR-019b | SPEC-ONLY → W16, C1 | – |
+| FR-020a, FR-020b | COVERED → C2 | U14, U15, U18, U20, U26, rules and test frames, U44–U46, U63, U77 |
+| FR-021a, FR-021b | COVERED → C3 | U03, U09, rules and details frames |
+| FR-022a | COVERED, PARTIAL → F47, C4 | U44–U46, U63, U71, U85; P U77 |
+| FR-022b | SPEC-ONLY → W13, C4 | – |
+| FR-023a | COVERED → C5 | U10 |
+| FR-023b, FR-023c, FR-023e, FR-023f | COVERED, PARTIAL → F58, F28, C5 | U49, U50, U52, U60 |
+| FR-024a, FR-024c | COVERED, PARTIAL open (Q1) | U63, U75–U79; P U65–U73, U99 |
+| FR-024b, FR-024e | COVERED → C6 | U02, test frames |
+| FR-024d | COVERED, PARTIAL, CONFLICT open (Q1) | U63, U76, U78, U79; P U65, U67, U69, U71, U99; X U66, U68, U72, U73 |
+| FR-025a, FR-025b, FR-025d, FR-025e | COVERED | U02, U06, wizard and details frames |
+| FR-025c | COVERED, PARTIAL → F25 | U06, U17, U26; P U02, U19 |
+| FR-026a | COVERED, CONFLICT → F19; open (Q2) | U17, wizard frames; X U03, U05, U06, U99 |
+| FR-026b–FR-026d, FR-026g, FR-026h, FR-026k | COVERED | U05, U06, U07, U16, U17, U18, U19 |
+| FR-026e | COVERED, PARTIAL (cosmetic 28) | U05, U06 |
+| FR-026f | COVERED, CONFLICT → F19 | U50; X U06 |
+| FR-026i, FR-026j | COVERED, PARTIAL → F20 | U05, U17 |
+| FR-027a–FR-027c, FR-027e | COVERED, CONFLICT → F15 | U02, U04, U06, U11, U18 |
+| FR-028a, FR-028b | COVERED, CONFLICT → F14 | overview frames |
+| FR-029a, FR-029b, FR-029e | COVERED | overview frames, U16 |
+| FR-029c | COVERED, PARTIAL → F55 | U14, U90 |
+| FR-029d | PARTIAL (visual as drawn; list kept for screen readers per CLAR #12) | U07, U16 |
+| FR-030a, FR-030b | COVERED, PARTIAL → F17 | signed-in frames; P U03, U10, U13 |
+| FR-031a–FR-031f, FR-031h, FR-031i | COVERED, PARTIAL → F23 | U04, U06, U20–U28, U98 |
+| FR-031g | COVERED, PARTIAL open (Q10) | U04, U25 |
+| FR-031j | COVERED, CONFLICT → F23, F24 | U08, U20–U28, U98 |
+| FR-032a–FR-032c | COVERED | U04, U12, U18, U19, U52, U98 |
+| FR-032d | PARTIAL → F60 | U18, U19, U98 |
+| FR-033a, FR-033b | COVERED, PARTIAL → W20; open (Q10) | U05; P U02, U51 |
+| FR-033c | PARTIAL → F22 | U02 |
+| FR-033d | PARTIAL → F21, W20 | U17 |
+| FR-034a, FR-034b | COVERED, PARTIAL open (Q2) | rules frames, U06; P U01 |
+| FR-035a | COVERED, PARTIAL → F27; open (Q12) | U02, U07, U18, rules frames; P U37, U46, test frames |
+| FR-035b, FR-035c | COVERED, PARTIAL → F27 | U18, U37, U38, U59 |
+| FR-036a, FR-036b | PARTIAL → F29; open (Q8) | rules frames |
+| FR-036c | COVERED; open (Q3) | U09, U34, U36, U39, U41, U54, U55, U64 |
+| FR-036d | COVERED, CONFLICT → F30; open (Q3) | U54; X U55, U56 |
+| FR-037a | PARTIAL → F32 | U35 |
+| FR-037c | CONFLICT → F31 | U35, U47, U51 |
+| FR-038a–FR-038c | COVERED | rules frames, U83 |
+| FR-038d, FR-038e | COVERED, CONFLICT → F33 | U40, U45; X U40, U62, U64 |
+| FR-039a–FR-039e | PARTIAL → W19 | U30–U33, U35, U48, U49, U51, U53 |
+| FR-039f | COVERED | U32, U48 |
+| FR-040a | COVERED | U41 |
+| FR-040b | PARTIAL → W17 | U41, U42 |
+| FR-040c | CONFLICT, PARTIAL → F36 | U43, U47, U58 |
+| FR-040d | PARTIAL, CONFLICT → F37 | U06; X U05 |
+| FR-041a, FR-041b | COVERED (severity icons, CLAR #29) | U06, U07, U44–U46, U50, U85 |
+| FR-041c | COVERED, PARTIAL, CONFLICT → F38 | U68; P U71, U72; X U06 |
+| FR-041d | COVERED, PARTIAL → F39 | U06; P U44–U46 |
+| FR-042a–FR-042c | COVERED | U06, U66, U67 |
+| FR-042d | PARTIAL → F40 | U66, U67 |
+| FR-043a | PARTIAL → F42 | test frames |
+| FR-043b | COVERED, PARTIAL open (Q1) | U75–U79; P U65–U73, U99 |
+| FR-043c | COVERED, CONFLICT → F43 | U06; X U01, U65–U73 |
+| FR-043d | COVERED, CONFLICT → F41 | U06; X U65, U70 |
+| FR-044a–FR-044d | COVERED | U06, U63, U73, U75–U79 |
+| FR-044e | PARTIAL → F46 | U79 |
+| FR-045a | COVERED, PARTIAL → F48 | U05, U06, U15; P U87 |
+| FR-045b | COVERED, PARTIAL → F5 | U98, U99, U100 |
+| FR-045c–FR-045e | COVERED; open (Q2) | U05, U06, U98–U100 |
+| FR-045f | PARTIAL → F49 | U05, U15, U87, U98 |
+| FR-046a | COVERED, PARTIAL → W10 | details frames; P U63 |
+| FR-046b, FR-046e, FR-046g–FR-046i | COVERED | details frames |
+| FR-046c | COVERED, PARTIAL → F50 | details frames; P U85, U92, U95 |
+| FR-046d | COVERED, PARTIAL open (Q4) | U80, U87; P U81, U88 |
+| FR-046f | PARTIAL → F51 | details frames |
+| FR-047b, FR-047c | COVERED | U06, U85 |
+| FR-048a | COVERED | U06, U81 |
+| FR-048b | COVERED, PARTIAL, CONFLICT → F52 | overview and details frames |
+| FR-049a, FR-049b | COVERED, PARTIAL open (Q6) | U02, U07; P U93 |
+| FR-049c | COVERED, PARTIAL → F56 | U07; P U93 |
+| FR-049d | PARTIAL → F57 | U06 |
+| FR-050a, FR-050b | COVERED, PARTIAL (Q14) | U03, U05, U06, U78 |
+| FR-050c | COVERED, PARTIAL → F62 | U03, U05; P U06 |
+| FR-051a, FR-051q | COVERED, PARTIAL → F61 | overview frames |
+| FR-051b–FR-051g, FR-051j–FR-051p | COVERED | U05, U10, U17, U34, U39, U41, U47, U58, U61, U78, U89, U99 and the rows the merge read as covered |
+| FR-051h | COVERED, PARTIAL → F59 | U31, U53; P U09 |
+| FR-051i | COVERED, CONFLICT settled (CLAR #45 over #15) → F60 | U04, U13, U19, U80, U86; X U18, U98 |
+| US1-AS1 | COVERED, CONFLICT → F16 | U02, U03, U05, U10 |
 | US1-AS2 | COVERED | U02, U10 |
-| US1-AS3 | COVERED, PARTIAL | U02, U04, U05, U11, U12, U15 |
+| US1-AS3 | COVERED, CONFLICT → F14 | U02, U04, U05, U11–U16 |
 | US1-AS4 | COVERED, PARTIAL | U04, U05, U16; P U07 |
-| US1-AS5 | COVERED | U10 |
-| US2-AS1 | COVERED, PARTIAL, CONFLICT | U04, U22, U34, U42, U78; P U06, U21, U100; X wizard frames |
-| US2-AS2 | COVERED, PARTIAL | U02, U18; P U25 |
-| US2-AS3 | COVERED, PARTIAL | U02, U05, U20, U24; P U04, U22, U23, U25 |
-| US2-AS4 | COVERED, PARTIAL | U04; P U13 |
-| US2-AS5 | SPEC-ONLY | – |
-| US3-AS1 | COVERED, PARTIAL | U34, U35, U42, U55, U59, U61; P U41, U43, U54–U57 |
-| US3-AS2 | COVERED, PARTIAL | U49; P U48 |
-| US3-AS3 | COVERED, PARTIAL | U42, U57; P U43 |
-| US3-AS4 | COVERED, PARTIAL | U65, U68–U72, U74 |
-| US3-AS5 | SPEC-ONLY | – |
-| US4-AS1 | COVERED, PARTIAL | U06, U78; P U80, U82, U83, U85, U86, U99 |
-| US4-AS2 | COVERED, PARTIAL | U02, U05, U07, U80, U82–U87, U99; P U81, U92, U95 |
-| US4-AS3 | COVERED, PARTIAL, CONFLICT → F13 | U88–U90, U97; P U04, U07, U14, U15; X U88 |
-| US4-AS4 | COVERED, PARTIAL | U05; P U07, U93 |
-| US4-AS5 | COVERED, PARTIAL | U05; P U15, U87, U98, U99 |
-| US4-AS6 | SPEC-ONLY | – |
-| US5-AS1, US5-AS2, US5-AS3 | SPEC-ONLY | – |
-| US5-AS4 | PARTIAL | every frame with the product name |
-| 001-S0.1 | COVERED | U03 |
-| 001-S0.2 | SPEC-ONLY | – |
-| 001-S0.3 | COVERED | U06, U10 |
-| 001-S0.4 | SPEC-ONLY | – |
-| 001-S0.5 | COVERED, PARTIAL | U06, U10; P every signed-in frame |
-| 001-S0.6 | COVERED, PARTIAL | U03, U17, U33, U47, U55, U72, U74, U78; P every other frame |
-| 001-S1.1, 001-S1.3 | COVERED | U10 |
-| 001-S1.2 | PARTIAL, CONFLICT | U10 |
-| 001-S2.1, 001-S2.2 | COVERED | U10 |
-| 001-S3.1 | COVERED, PARTIAL | overview frames, U07, details frames |
-| 001-S3.2 | COVERED, PARTIAL | U04, U06, U07, U11–U16; P U90 |
-| 001-S3.3 | COVERED, PARTIAL | U06; P overview frames |
-| 001-S3.4 | COVERED, PARTIAL | U04; P U11, U12 |
-| 001-S3.5 | PARTIAL | U06 |
-| 001-S3.6 | COVERED, PARTIAL | U02; P U04, U06, U11 |
-| 001-S3.7 | SPEC-ONLY | – |
-| 001-S4.1, 001-S4.2 | PARTIAL, CONFLICT | U06, U18; X U11 |
-| 001-S4.3 | SPEC-ONLY | – |
-| 001-S4.4 | COVERED, PARTIAL | U04, U06 |
-| 001-S4.5 | SPEC-ONLY | – |
-| 001-S4.6 | COVERED | U06, U10 |
-| 001-S4.7, 001-S4.8 | PARTIAL | U06, U11 |
-| 001-S5.1 | COVERED, PARTIAL | U04; P U18, U98 |
-| 001-S5.2 | COVERED, PARTIAL | U04, U20–U28, U98; P U06 |
-| 001-S5.3 | COVERED, PARTIAL | U04, U06, U09, U21–U28, U98 |
-| 001-S5.4 | COVERED, PARTIAL, CONFLICT | U04, U21, U24, U26; P U23; X U22–U25, U28 |
-| 001-S5.5, 001-S5.6 | COVERED, PARTIAL, CONFLICT | U02, U25; P U04, U23; X U04, U20 |
-| 001-S5.7 | SPEC-ONLY | – |
-| 001-S5.8 | PARTIAL | U05, U78, U99 |
-| 001-S5.9 | PARTIAL | U05, U15, U87, U98 |
-| 001-S5.10, 001-S5.11 | SPEC-ONLY | – |
-| 001-S6.1 | COVERED, PARTIAL | U02, U03, U06, details frames |
-| 001-S6.2 | PARTIAL, CONFLICT | U63, U80, U83, U86; X U02 |
-| 001-S6.3, 001-S6.4, 001-S6.5, 001-S6.7, 001-S6.8 | COVERED, PARTIAL | details frames, U03, U05, U19 |
-| 001-S6.6 | COVERED | U05, U80, U83, U86 |
-| 001-S6.9 | COVERED, PARTIAL, CONFLICT → F13 | U06, details frames; X U05, U88 |
-| 001-S6.10 | COVERED, PARTIAL, CONFLICT | details frames; P U02, U05, U07; X U05 |
-| 001-S6.11 | COVERED, PARTIAL, CONFLICT → F4 | U06, details frames; P U04, U07, U14, U15; X U04, U05, U90 |
-| 001-S6.12 | COVERED, PARTIAL, CONFLICT → F4 | U90; P U04 |
-| 001-S6.13 | PARTIAL | U06 |
-| 001-S6.14 | SPEC-ONLY | – |
-| 001-S7.1 | PARTIAL | U08 |
-| 001-S7.2 | PARTIAL, CONFLICT | U08; X U04 |
-| 001-S7.3 | COVERED, PARTIAL | dialog frames (U14, U24, U26, U37, U47, U50, U52, U62, U73, U75, U78, U87–U89, U100); P U06, U23, U41, U99 |
-| 001-S7.4 | COVERED, PARTIAL | U10, U37; P U18 |
-| 001-S7.5 | COVERED, PARTIAL | U02, U49, U52, U67; P U04, U25, U48, U60 |
-| 001-S7.6 | PARTIAL | U04, U25 |
-| 001-S7.7 | COVERED, PARTIAL, CONFLICT | U41, U80, U83, U86; P U04, U17, U79, U99; X U81 |
-| 001-S7.8 | COVERED | U03, U10, U13 |
-| 001-S7.10 | SPEC-ONLY | – |
-| 001-S7.11 | PARTIAL | U02 |
-| 002-S0.1 | COVERED, PARTIAL | wizard frames |
-| 002-S0.2 | COVERED, PARTIAL | U01, U03, U06, U19, U22, U28; P U23–U27, U65 |
-| 002-S0.3 | COVERED | U01, U36, U40, U56, U57, U64 |
-| 002-S1.1, 002-S1.2 | COVERED, PARTIAL | U01, U04, U06, U21–U28 |
-| 002-S1.3, 002-S1.7 | COVERED | U24, U26 |
-| 002-S1.4 | PARTIAL, CONFLICT | U04–U06, U21–U28; X U20 |
-| 002-S1.5 | COVERED, PARTIAL, CONFLICT | U05, U26; P U22, U24, U28; X U04 |
-| 002-S1.6 | COVERED, PARTIAL | U04, U24, U26; P U23 |
-| 002-S1.8 | COVERED, PARTIAL, CONFLICT → F3 | U06; P U04, U20, U21, U23, U24; X U04, U20–U28, U98 |
-| 002-S1.9 | PARTIAL, CONFLICT | P U22, U24, U26; X U04, U05, U20, U22–U25, U28, U98 |
-| 002-S1.10, 002-S1.11 | COVERED, PARTIAL | U09, U21–U24, U27, U28 |
-| 002-S2.1, 002-S2.4, 002-S2.6, 002-S2.28–S2.30 | COVERED, PARTIAL | rules frames, details frames |
-| 002-S2.2 | COVERED, PARTIAL, CONFLICT | U39, U57; P U33; X U30, U49–U51, U53 |
-| 002-S2.3 | COVERED, CONFLICT | U29, U31, U32, U35, U39, U50, U99, U100; X U51 |
-| 002-S2.5 | COVERED, PARTIAL, CONFLICT | rules frames; X U35 |
-| 002-S2.7 | COVERED, CONFLICT | U34, U35, U38, U42, U43, U56, U57; X U03 |
-| 002-S2.8 | COVERED, PARTIAL, CONFLICT | rules frames; X U40, U62 |
-| 002-S2.9, 002-S2.15 | COVERED, PARTIAL → F9 | rules frames |
-| 002-S2.10 | COVERED, PARTIAL, CONFLICT | rules frames; X U55, U56 |
-| 002-S2.11 | COVERED, PARTIAL | rules frames; P U55–U58 |
-| 002-S2.12 | COVERED, PARTIAL → F7 | rules frames; P U54, U56 |
-| 002-S2.13 | PARTIAL, CONFLICT → F7, F9 | U34; X U35, U47, U51 |
-| 002-S2.14 | CONFLICT | U35 |
-| 002-S2.16 | COVERED, PARTIAL → F8 | rules frames; P U09, U34, U36, U41, U54–U57 |
-| 002-S2.17 | COVERED, PARTIAL, CONFLICT | U29–U35, U48, U49, U51, U53; P U55, U56; X U60 |
-| 002-S2.18 | COVERED, PARTIAL | U49 |
-| 002-S2.19 | PARTIAL | U55, U56 |
-| 002-S2.20, 002-S2.21, 002-S2.24, 002-S2.36 | SPEC-ONLY | – |
-| 002-S2.22 | COVERED, PARTIAL | U50; P U06 |
-| 002-S2.23 | PARTIAL, CONFLICT | U40; X U01, U29–U33, U35, U48–U51, U53 |
-| 002-S2.25 | COVERED, PARTIAL, CONFLICT | U06, U29, U50; P U31, U99; X U01 |
-| 002-S2.26 | COVERED, PARTIAL | U51; P U06, U50, U99 |
-| 002-S2.27 | PARTIAL | rules frames, details frames |
-| 002-S2.31–S2.35 | COVERED, PARTIAL | U05, U06, U34–U36, U40, U47, U55, U57, U64 |
-| 002-S3.1 | COVERED, PARTIAL → F9 | rules frames |
-| 002-S3.2–S3.10, 002-S3.12, 002-S3.13, 002-S3.19–S3.25, 002-S3.27–S3.29, 002-S3.32–S3.41 | COVERED, PARTIAL | U03, U09, U29–U35, U46, U48–U53, U83, U84, U91, U94, U96, U98–U100 |
-| 002-S3.11 | CONFLICT | U49 |
-| 002-S3.14 | COVERED, PARTIAL, CONFLICT | U03, U09, U42, U53; P U31; X U09 |
-| 002-S3.15, 002-S3.16, 002-S3.17, 002-S3.18 | COVERED, PARTIAL, CONFLICT | U03, U09, U29–U32, U49, U50, U53; X U09, U31, U49 |
-| 002-S3.30 | COVERED, CONFLICT | U03, U09, U33; X U53 |
-| 002-S3.31 | SPEC-ONLY | – |
-| 002-S4.1–S4.3, 002-S4.5–S4.8, 002-S4.10–S4.13, 002-S4.15–S4.17, 002-S4.19–S4.21, 002-S4.23–S4.26, 002-S4.29 | COVERED, PARTIAL | rules frames, U05, U06, U08, details frames |
-| 002-S4.4, 002-S4.22 | COVERED, PARTIAL, CONFLICT | rules frames; X U59, U60, U62 |
-| 002-S4.9, 002-S4.27, 002-S4.28, 002-S4.30 | SPEC-ONLY | – |
-| 002-S4.14 | PARTIAL → F10 | U42 |
-| 002-S4.18 | CONFLICT | U47 |
-| 002-S4.31 | COVERED, PARTIAL, CONFLICT → F10 | U42, U43, U57; P U03; X U40, U62 |
-| 002-S5.1–S5.3, 002-S5.9 | COVERED, PARTIAL | U05, U63, U73, U75–U79, U98 |
-| 002-S5.4–S5.6 | SPEC-ONLY | – |
-| 002-S5.7 | COVERED, CONFLICT → F1 | U75, U77; X U02, U13, U63, U73, U75–U77, U86, U87, U94, U95, U98, U99 |
-| 002-S5.8 | CONFLICT → F1 | U02, U05–U07, U13, U14, U58, U63, U75–U77, U86–U89, U94, U95, U98, U99 |
-| 002-S5.10 | COVERED, CONFLICT | U98; X U15, U87, U99 |
-| 002-S6.1, 002-S6.2, 002-S6.4, 002-S6.5, 002-S6.10–S6.13 | COVERED, PARTIAL | U03, U06, U07, details frames |
-| 002-S6.3 | COVERED, PARTIAL, CONFLICT | U06; P details frames; X U06, U91 |
-| 002-S6.6 | PARTIAL, CONFLICT | details frames; X U06 |
-| 002-S6.7 | COVERED, PARTIAL, CONFLICT → F1 | U01, U06, details frames |
-| 002-S6.8 | COVERED, PARTIAL, CONFLICT | U03, U06, U63, U81, U84, U85; X U81, U84, U91, U96 (sample data) |
-| 002-S6.9 | PARTIAL, CONFLICT → F2 (Activity) | U07; X U06, U07, details frames |
-| 002-S7.1 | COVERED, PARTIAL, CONFLICT | U05; P U06; X U100 |
-| 002-S7.2 | COVERED, CONFLICT | U05, U19; X U06 |
-| 002-S7.3 | COVERED, CONFLICT | U98; X U05, U06, U15, U87 |
-| 002-ACC.1–ACC.4 | COVERED, PARTIAL | rules frames, U01, U08, U18, U83 |
-| 003-S2.1–S2.4, 003-S2.6–S2.16, 003-S2.18, 003-S2.22–S2.24 | COVERED, PARTIAL | U06, U07, U34, U37, U38, U42–U46, U50, U51, U77 |
-| 003-S2.5, 003-S2.17, 003-S2.19–S2.21 | SPEC-ONLY | – |
-| 003-S2.12 | COVERED, PARTIAL, CONFLICT | rules frames; X U03 |
-| 003-S3.1 | COVERED | U30 |
-| 003-S4.1, 003-S4.3, 003-S4.5–S4.7 | COVERED, PARTIAL | U06, U18, U39, U42–U47, U58, U61, U71 |
-| 003-S4.2 | COVERED, PARTIAL, CONFLICT | rules frames; X U03 |
-| 003-S4.4 | SPEC-ONLY | – |
-| 003-S5.1–S5.4 | COVERED, PARTIAL | U06, U63, U73, U75–U77 |
-| 003-S6.1 | COVERED, CONFLICT | U03, details frames; X U06, U85 |
-| 003-S7.1 | SPEC-ONLY | – |
-| 003-ACC.1–ACC.4 | COVERED, PARTIAL | U07, U44, U45 |
-| 003-ACC.5, 003-ACC.6 | SPEC-ONLY | – |
-| 003-CP.1, CP.2, CP.4, CP.5, CP.7–CP.14, CP.16 | COVERED, PARTIAL | U44–U46, U51, U63, U77 |
-| 003-CP.3, CP.6, CP.15, CP.17, CP.18 | SPEC-ONLY | – |
-| 004-S0.1, 004-S0.2 | COVERED, PARTIAL, CONFLICT | U04, U06, U18, U99, U100; X wizard frames |
-| 004-S0.3 | PARTIAL, CONFLICT | U06, U99; X wizard frames |
-| 004-S0.4 | CONFLICT → F5 (Draft changes) | U03, U05, U60, U98, U99, U100 |
-| 004-S1.1 | COVERED, PARTIAL, CONFLICT | U05, U06, U26; P U28; X U04 |
-| 004-S2.1–S2.4 | COVERED, PARTIAL, CONFLICT | rules frames; X see Conflict 14 |
-| 004-S2.5 | SPEC-ONLY | – |
-| 004-S2.6, 004-S2.7 | CONFLICT | U29–U31, U48–U50, U53 |
-| 004-S5.1, 004-S5.2, 004-S5.4, 004-S5.5 | COVERED, PARTIAL | U63, U73, U75–U79, U98 |
-| 004-S5.3 | CONFLICT | U63, U73, U75–U77, U79 |
-| 004-S7.1, 004-S7.3 | COVERED, PARTIAL, CONFLICT | U99; X U05, U06, U98 |
-| 004-S7.2 | SPEC-ONLY | – |
-| 004-S8.1–S8.3, 004-S8.1.1, 004-S8.1.2, 004-S8.2.1–S8.2.6, 004-S8.3.1–S8.3.5, 004-S8.4.1–S8.4.11 | COVERED, PARTIAL | test frames, U03, U06, U09 |
-| 004-S8.5 | SPEC-ONLY | – |
-| 004-S8.5.1, S8.5.3–S8.5.7, S8.5.9–S8.5.12, S8.5.14 | COVERED, PARTIAL, CONFLICT | U06, U09, U66–U68, U72; X U06, U66, U67 |
-| 004-S8.5.2 | CONFLICT | U06, U66, U67 |
-| 004-S8.5.8, 004-S8.5.13, 004-S8.6.5, 004-S8.7.3, 004-S8.7.4, 004-S8.10.1 | SPEC-ONLY | – |
-| 004-S8.6.1–S8.6.3, S8.6.6, S8.6.8 | COVERED, PARTIAL | test frames, U06 |
-| 004-S8.6.4 | COVERED, PARTIAL → F11 | test frames, U03, U06, U09 |
-| 004-S8.6.7 | COVERED, CONFLICT | U65; X U06, U65, U70 |
-| 004-S8.7.1, 004-S8.7.2 | COVERED, PARTIAL | U06, U68 |
-| 004-S8.8.1–S8.8.6, 004-S8.9.1, S8.9.2, S8.9.4 | COVERED, PARTIAL | U06, U74 |
-| 004-S8.9.3 | CONFLICT | U74 |
-| 004-S8.10.2, 004-S8.10.3 | CONFLICT | U06, U67 |
-| 004-ACC.1, ACC.5, ACC.6 | COVERED, PARTIAL | test frames |
-| 004-ACC.2, ACC.3 | SPEC-ONLY | – |
-| 004-ACC.4 | CONFLICT | U66 |
-| 005-R.1, 005-R.2 | SPEC-ONLY | – |
-| 005-S0.1–S0.5, S0.8, S0.9 | COVERED, PARTIAL | wizard frames, U05, U06, U100 |
-| 005-S0.6, S0.10, S0.11 | SPEC-ONLY | – |
-| 005-S0.7 | COVERED, CONFLICT → F5 | U99, U100; X U03, U05, U06, U60, U98, U99 |
-| 005-S1.1–S1.5, S1.7, S1.8 | COVERED, PARTIAL, CONFLICT | U02, U04, U06, U17, U50, U51, U98; X U04, U05 |
-| 005-S1.6, S1.9, S1.10 | SPEC-ONLY | – |
-| 005-S2.1–S2.13 | SPEC-ONLY | – |
-| 005-S3.1–S3.9 | COVERED, PARTIAL, CONFLICT | overview frames, U04–U07; X (Edit/date) U11–U18 |
-| 005-S4.1–S4.7, S4.9 | COVERED, PARTIAL | U04, U06, U07, U16 |
-| 005-S4.8, S4.10–S4.13 | SPEC-ONLY | – |
-| 005-S5.1–S5.4 | SPEC-ONLY | – |
-| 005-S5.5 | PARTIAL | U06 |
-| 005-S6.1, S6.4–S6.6, S6.8–S6.11, S6.14 | COVERED, PARTIAL | U02, U04, U06, U07, U14, U15, U24, U28, U93 |
-| 005-S6.2 | CONFLICT | U02 |
-| 005-S6.3, S6.7, S6.12, S6.13 | SPEC-ONLY | – |
-| 005-S7.1, S7.6 | COVERED, PARTIAL | U05, U10, U68; P signed-in frames |
-| 005-S7.2–S7.5 | COVERED, PARTIAL, CONFLICT | U06; P U17; X U05, U17 |
-| 005-S8.1–S8.4 | CONFLICT (build note only) | U02 |
-| 005-S8.5, S8.6 | SPEC-ONLY | – |
-| 005-S8.7 | COVERED | U21, U22, U26, U98 |
-| 005-ACC.1–ACC.3 | COVERED, PARTIAL | wizard frames, dialog frames, U02, U51 |
-| 005-ACC.4 | SPEC-ONLY | – |
-| 005-CP.1 | COVERED, PARTIAL, CONFLICT | U04; P U02, U06, U13, U14, U17, U18, U53, U87, U93; X U11, U12, U15, U16 |
-| 006-S0.1, S1.2, S1.4, S1.5, S1.7, S2.1–S2.3, S3.1, S4.1–S4.3, S5.1 | COVERED, PARTIAL | U04, U07, U11–U19, U63, U90, U98 |
-| 006-S1.1, 006-S1.3 | PARTIAL, CONFLICT | U98; X U04, U18 |
-| 006-S1.6, S1.8, S3.2, S3.3 | SPEC-ONLY | – |
-| 007-R.1–R.3, 007-S1.1–S1.10, S1.12, 007-S2.2–S2.15, 007-S3.1–S3.26 | SPEC-ONLY | – |
-| 007-S1.11, 007-S5.3 | PARTIAL (build note only) | U02 |
-| 007-S2.1 | COVERED, PARTIAL | U68; P signed-in frames |
-| 007-S4.1, S4.2, S4.4, S4.6 | COVERED, PARTIAL, CONFLICT | rules frames, U05, U06, U54; X U54, U58, U59 |
-| 007-S4.5, 007-S5.1, S5.2, S5.4–S5.8 | SPEC-ONLY | – |
-| 007-S6.1, S6.2 | COVERED, PARTIAL | U05, U11, U82, U94; P details frames |
-| 007-CP.1, CP.2 | COVERED, PARTIAL | U14, U15, U62, U87; P rules frames |
-| FR-004, FR-007, FR-014a, FR-014b, FR-015a, FR-015b, FR-016a–c, FR-017a, FR-017b, FR-018, 001-S5.12, 001-S7.9 (→ F6), 002-S3.26, 002-S7.4, 004-S8.4, 007-S4.3 | UI = N | mapped where cited (U01, U05, U09, U15) |
+| US1-AS5 | COVERED, CONFLICT → F15 | U10, U11, U18 |
+| US2-AS1 | COVERED, PARTIAL → F25 | wizard frames; P U02, U19 |
+| US2-AS2, US2-AS3, US2-AS4 | COVERED | U02, U04, U05, U13, U17, U18, U20–U28 |
+| US2-AS5 | SPEC-ONLY → W3 | – |
+| US3-AS1 | COVERED, PARTIAL → F29 | rules frames |
+| US3-AS2 | COVERED, PARTIAL → W19 | U49; P U48 |
+| US3-AS3, US3-AS4 | COVERED | U42, U43, U57, U65, U68–U72, U74 |
+| US3-AS5 | SPEC-ONLY → W15 | – |
+| US4-AS1 | COVERED | U06, U73, U75–U81, U83, U85, U99 |
+| US4-AS2 | COVERED, PARTIAL open (Q4) | U02, U05, U07, details frames; P U81 |
+| US4-AS3 | COVERED → F13 | U04, U06, U07, U14, U15, U60, U88–U90 |
+| US4-AS4 | COVERED, PARTIAL → F56; open (Q6) | U05, U07; P U93 |
+| US4-AS5 | COVERED, PARTIAL → F48, F49 | U05, U15, U87, U98–U100 |
+| US4-AS6 | SPEC-ONLY → W2 | – |
+| US5-AS1, US5-AS2, US5-AS3 | SPEC-ONLY → W16 | – |
+| US5-AS4 | COVERED → C1 | every frame with the product name |
+| EC-1, EC-3, EC-5, EC-7, EC-10 | COVERED | U01, U03, U07, U09, U10, U14, U17, U19, U23, U34 |
+| EC-2, EC-9 | SPEC-ONLY → W2 | – |
+| EC-4 | COVERED → C1, C2 | every frame |
+| EC-6 | PARTIAL → W2 | U02, U23 |
+| EC-8 | SPEC-ONLY → W1 | – |
+| 001-S0.1, 001-S0.3 | COVERED | U03, U06, U10 |
+| 001-S0.2, 001-S0.4 | SPEC-ONLY → W2 | – |
+| 001-S0.5 | COVERED (superseded by FR-030) | signed-in frames |
+| 001-S0.6 | COVERED, CONFLICT → F19, C1 | every frame; X U03, U05 |
+| 001-S1.1, 001-S1.3, 001-S2.1, 001-S2.2 | COVERED | U10 |
+| 001-S1.2 | COVERED → C5, F16 | U10 |
+| 001-S3.1–S3.4, 001-S3.6 | COVERED, PARTIAL (copy) | overview frames, U02 |
+| 001-S3.5, 001-S6.13 | PARTIAL (skeletons, cosmetic 21) | U06 |
+| 001-S3.7, 001-S6.14 | SPEC-ONLY → W2 | – |
+| 001-S4.1, 001-S4.2, 001-S4.8 | superseded by FR-027 (COVERED) | U11, U18 |
+| 001-S4.3, 001-S4.5 | SPEC-ONLY → W11 | – |
+| 001-S4.4, 001-S4.6, 001-S4.7 | COVERED | U06, U10, U11 |
+| 001-S5.1–S5.4, 001-S5.8 | COVERED | U04, U05, U20–U28, U98 |
+| 001-S5.5, 001-S5.6 | superseded by FR-031 (COVERED) | U05, U25 |
+| 001-S5.7, 001-S5.10, 001-S5.11 | SPEC-ONLY → W10 | – |
+| 001-S5.9 | COVERED, PARTIAL → F49 | U05, U15, U87, U98 |
+| 001-S6.1–S6.3, 001-S6.5 | superseded (FR-046, FR-025) | details frames |
+| 001-S6.4, 001-S6.6–S6.8, 001-S6.10 | COVERED | details frames, U02, U05 |
+| 001-S6.9 | COVERED → F13, F54 | U06, U07, U89 |
+| 001-S6.11, 001-S6.12 | COVERED, PARTIAL, CONFLICT → F4 | U14, U90; P U04; X U04, U90 |
+| 001-S7.1, 001-S7.3–S7.5, 001-S7.7, 001-S7.8 | COVERED | dialog and form frames, U03, U10, U13, U25 |
+| 001-S7.2 | CONFLICT → F23 | U04, U08 |
+| 001-S7.6 | superseded by FR-031 | – |
+| 001-S7.9 | COVERED (F6) | U01 |
+| 001-S7.10 | SPEC-ONLY → W2 | – |
+| 001-S7.11 | PARTIAL → W2 | U02 |
+| 002-S0.1–S0.3 | COVERED | wizard frames |
+| 002-S1.1–S1.4, 002-S1.6, 002-S1.7, 002-S1.10, 002-S1.11 | COVERED | U04, U09, U20–U28 |
+| 002-S1.5, 002-S1.8, 002-S1.9 | superseded by FR-031 (F3 for the catalogue) | U04, U20–U28 |
+| 002-S2.1 | COVERED | rules frames |
+| 002-S2.2, 002-S2.3 | COVERED, CONFLICT → F26 | rules frames; X U30, U33, U49–U51, U53 |
+| 002-S2.4–S2.7 | COVERED → C2, C3 | rules frames |
+| 002-S2.8, 002-S2.9 | COVERED, CONFLICT → F33 | rules frames; X U40, U62, U64 |
+| 002-S2.10 | COVERED, CONFLICT → F30; open (Q3) | U03, U36; X U55, U56 |
+| 002-S2.11 | COVERED, PARTIAL open (Q9) | U51; P U54, U55 |
+| 002-S2.12 | COVERED, PARTIAL (copy) → F7 | U51, U55, U57 |
+| 002-S2.13, 002-S2.14 | COVERED, CONFLICT → F31 | X U35, U51 |
+| 002-S2.15 | COVERED → F9 | rules frames |
+| 002-S2.16 | COVERED, PARTIAL → F29; open (Q8) | rules frames |
+| 002-S2.17 | COVERED, PARTIAL open (Q9) | U29–U35, U48, U49, U51, U53; P U55, U56 |
+| 002-S2.18, 002-S2.19, 002-S2.22 | COVERED, PARTIAL → F58, C5 | U49, U50, U55 |
+| 002-S2.20, 002-S2.21, 002-S2.24, 002-S2.36 | SPEC-ONLY → W12 | – |
+| 002-S2.23, 002-S2.27 | superseded (FR-034, FR-021 → C3) | – |
+| 002-S2.25, 002-S2.26, 002-S2.28–S2.35 | COVERED, PARTIAL (copy) | U05, U06, U34, U36, U40, U47, U50, U55, U57, U64, U99 |
+| 002-S3.1, 002-S3.3–S3.7, 002-S3.9, 002-S3.11, 002-S3.20, 002-S3.21, 002-S3.23–S3.29, 002-S3.32, 002-S3.34–S3.36, 002-S3.39–S3.41 | COVERED, PARTIAL (copy) | U01, U03, U09, rules frames |
+| 002-S3.2, 002-S3.8, 002-S3.10, 002-S3.19, 002-S3.22, 002-S3.33, 002-S3.37, 002-S3.38 | COVERED, PARTIAL → W19 | U09, rules frames |
+| 002-S3.12–S3.18, 002-S3.30 | COVERED, PARTIAL, CONFLICT → F34 | U03, U09, U29, U31, U46, U49, U50, U53 |
+| 002-S3.26 | UI = N | – |
+| 002-S3.31 | SPEC-ONLY → W12 | – |
+| 002-S4.1–S4.3, 002-S4.5–S4.8, 002-S4.10–S4.12, 002-S4.14, 002-S4.20, 002-S4.21, 002-S4.23, 002-S4.25, 002-S4.26 | COVERED, PARTIAL (copy) | rules frames |
+| 002-S4.4, 002-S4.22, 002-S4.24 | COVERED, CONFLICT → F28, W18 | U18, U37, U52; X U59, U60, U62 |
+| 002-S4.9, 002-S4.27, 002-S4.28, 002-S4.30 | SPEC-ONLY → W12 | – |
+| 002-S4.13 | PARTIAL → W17 | U41 |
+| 002-S4.15–S4.17 | PARTIAL (copy U47); open (Q11) | U34, U47 |
+| 002-S4.18 | CONFLICT → F31, W12 | U47 |
+| 002-S4.19 | COVERED, CONFLICT → F36 | U39, U57, U58; X U47 |
+| 002-S4.29 | COVERED, CONFLICT → F37 | rules frames; X U05 |
+| 002-S4.31 | COVERED, CONFLICT → F33 | U43; X U40, U62 |
+| 002-S5.1–S5.3, 002-S5.10 | superseded or amended (FR-044, FR-045) | U63, U73, U75–U79 |
+| 002-S5.4–S5.6 | SPEC-ONLY → W7 | – |
+| 002-S5.7, 002-S5.8 | COVERED, CONFLICT → F1 | many |
+| 002-S5.9 | COVERED | U75 |
+| 002-S6.1, 002-S6.11 | COVERED, PARTIAL → F51 | details frames |
+| 002-S6.2, 002-S6.5, 002-S6.8, 002-S6.13 | COVERED, PARTIAL (sample) | U07, U80, U83, U84 |
+| 002-S6.3, 002-S6.4, 002-S6.6, 002-S6.10 | superseded or amended by FR-046 | details frames |
+| 002-S6.7 | COVERED, CONFLICT → F1 | details frames |
+| 002-S6.9 | CONFLICT → F2, F52, F53 | details frames |
+| 002-S6.12 | PARTIAL → F35 | U82, U83, U85, U93 |
+| 002-S7.1, 002-S7.3 | superseded by FR-045 | – |
+| 002-S7.2 | COVERED | U05, U19 |
+| 002-S7.4 | UI = N | – |
+| 002-ACC.1, 002-ACC.3, 002-ACC.4 | COVERED, PARTIAL → F36 | rules frames, U01, U18, U37 |
+| 002-ACC.2 | superseded by FR-038 | – |
+| 003-S2.1–S2.4, 003-S2.6–S2.14, 003-S2.18, 003-S2.22, 003-S2.23, 003-S3.1, 003-S4.1, 003-S4.5–S4.7, 003-S5.2–S5.4 | COVERED | U06, U42–U46, U50, U63, U73, U76, U77 |
+| 003-S2.15, 003-S2.24 | COVERED → C4 | U06, U44–U46 |
+| 003-S2.16, 003-ACC.3 | COVERED, PARTIAL → F39 | U06; P U44–U46 |
+| 003-S2.5, 003-S2.17, 003-S2.19–S2.21, 003-S4.4, 003-ACC.5, 003-ACC.6 | SPEC-ONLY → W13 | – |
+| 003-S4.2, 003-S4.3, 003-S6.1 | superseded (FR-041, FR-047) | – |
+| 003-S5.1 | COVERED (amended by FR-044c) | U06, U63 |
+| 003-S7.1 | SPEC-ONLY → W9 | – |
+| 003-ACC.1, 003-ACC.2, 003-ACC.4 | COVERED | U07, U44–U46 |
+| 003-CP.1, 003-CP.2, 003-CP.4, 003-CP.5, 003-CP.7–CP.14, 003-CP.16 | COVERED, PARTIAL → C4 | U44–U46, U63, U71, U77 |
+| 003-CP.3, 003-CP.6, 003-CP.15, 003-CP.17, 003-CP.18 | SPEC-ONLY → W13, C4 | – |
+| 004-S0.1–S0.4, 004-S1.1, 004-S2.1, 004-S2.3, 004-S2.4, 004-S2.6, 004-S2.7, 004-S5.1, 004-S5.3, 004-S7.3 | superseded (FR-025, FR-031, FR-034, FR-044, FR-045) | – |
+| 004-S2.2, 004-S5.2, 004-S5.4, 004-S5.5, 004-S7.1 | COVERED | U04–U06, U75, U79, U98, U99 |
+| 004-S2.5 | SPEC-ONLY → W12 | – |
+| 004-S7.2 | SPEC-ONLY → W9 | – |
+| 004-S8.1, 004-S8.2, 004-S8.3 | COVERED, PARTIAL (copy) → C2 | test frames |
+| 004-S8.4 | UI = N | – |
+| 004-S8.5, 004-S8.5.8, 004-S8.5.13, 004-S8.6.5, 004-S8.7.3, 004-S8.7.4, 004-ACC.2, 004-ACC.3 | SPEC-ONLY → W14 | – |
+| 004-S8.1.1 | COVERED → C6 | U02, test frames |
+| 004-S8.1.2, 004-S8.3.4, 004-S8.3.5, 004-S8.4.1, 004-S8.7.1 | COVERED, PARTIAL → F45 | test frames |
+| 004-S8.2.1–S8.2.5 | COVERED, CONFLICT → F45, F38 | test frames; X U05 |
+| 004-S8.2.6 | superseded by FR-035 | – |
+| 004-S8.3.1–S8.3.3 | COVERED, CONFLICT → F44 | U65–U72; X U63, U75–U79 |
+| 004-S8.4.2, 004-S8.4.3 | COVERED, PARTIAL open (Q1) | test frames |
+| 004-S8.4.4, 004-S8.4.6 | superseded by FR-024 → C6 | test frames |
+| 004-S8.4.5, 004-S8.4.7–S8.4.10 | COVERED | test frames |
+| 004-S8.4.11 | COVERED → F43 | U03, U06 |
+| 004-S8.5.1, 004-S8.5.2, 004-S8.5.9, 004-S8.5.10, 004-S8.10.3, 004-ACC.4 | superseded by FR-042 | – |
+| 004-S8.5.3–S8.5.7 | COVERED, PARTIAL → F40 | U06, U66, U67 |
+| 004-S8.5.11, 004-S8.5.12, 004-S8.5.14 | COVERED, PARTIAL (copy) | U09, U67 |
+| 004-S8.6.1 | SPEC-ONLY open (Q5) | – |
+| 004-S8.6.2 | superseded by FR-024 → C6 | – |
+| 004-S8.6.3, 004-S8.6.4, 004-S8.6.6, 004-ACC.1 | COVERED, PARTIAL → F42 | test frames |
+| 004-S8.6.7 | COVERED, CONFLICT → F41 | U65; X U06, U65, U70 |
+| 004-S8.6.8, 004-S8.7.2, 004-S8.8.1–S8.8.6, 004-S8.9.1, 004-S8.9.2, 004-S8.9.4, 004-S8.10.1, 004-S8.10.2, 004-ACC.5, 004-ACC.6 | COVERED | U06, U67, U68, U70, U74 |
+| 004-S8.9.3 | CONFLICT → F45 | U74 |
+| 005-R.1, 005-R.2, 005-S0.6, 005-S0.10, 005-S0.11, 005-S1.6, 005-S1.9, 005-S1.10, 005-S3.9 | SPEC-ONLY → W11 | – |
+| 005-S0.1–S0.3, 005-S0.5, 005-S0.8, 005-S0.9, 005-S1.1, 005-S1.5, 005-S3.1–S3.5, 005-S4.4, 005-S4.5, 005-S4.7, 005-S4.9, 005-S6.5, 005-S6.6, 005-S7.1, 005-S7.6, 005-S8.7, 005-ACC.1, 005-ACC.2, 005-CP.1 | COVERED, PARTIAL (copy, styling) | overview, wizard and dialog frames |
+| 005-S0.4, 005-S1.4 | PARTIAL → F21, W20 | U06, U17 |
+| 005-S0.7 | COVERED, CONFLICT → F5 | U98, U100; X U03, U05, U60, U99 |
+| 005-S1.2 | COVERED, CONFLICT → F18 | U02; X U04 |
+| 005-S1.3 | COVERED, PARTIAL open (Q13) | U04; P U19 |
+| 005-S1.7, 005-S1.8 | superseded by FR-033 | – |
+| 005-S2.1–S2.13 | SPEC-ONLY → W3 | – |
+| 005-S3.6, 005-S3.7, 005-S4.1–S4.3, 005-S4.6, 005-S6.2, 005-S6.4, 005-S6.8, 005-S6.10, 005-S6.11, 005-S6.14, 005-S7.2–S7.5 | superseded or amended (FR-025, FR-026, FR-029, FR-049) | overview frames, U16, U93 |
+| 005-S3.8 | PARTIAL (copy, cosmetic 5) | U06, U17 |
+| 005-S4.8, 005-S4.10–S4.13 | SPEC-ONLY → W5 | – |
+| 005-S5.1–S5.4 | SPEC-ONLY → W4 | – |
+| 005-S5.5 | PARTIAL → F57 | U06 |
+| 005-S6.1 | COVERED, PARTIAL open (Q6) | U07; P U93 |
+| 005-S6.3, 005-S6.7, 005-S6.12, 005-S6.13 | SPEC-ONLY → W8 | – |
+| 005-S6.9 | COVERED, PARTIAL → F56 | U07; P U93 |
+| 005-S8.1–S8.4 | PARTIAL → W6 | U02 |
+| 005-S8.5, 005-S8.6 | SPEC-ONLY → W6 | – |
+| 005-ACC.3 | PARTIAL → F22 | U02, U51 |
+| 005-ACC.4 | SPEC-ONLY → W2 | – |
+| 006-S0.1, 006-S2.1, 006-S2.2, 006-S4.1, 006-S4.2, 006-S5.1 | COVERED | overview frames, U13, U19 |
+| 006-S1.1, 006-S2.3 | superseded (FR-032, FR-029) | – |
+| 006-S1.2, 006-S1.3, 006-S1.6, 006-S1.7, 006-S4.3 | COVERED, PARTIAL (copy) | U04, U18, U19, U98 |
+| 006-S1.4, 006-S1.5 | PARTIAL → F60 | U18, U19 |
+| 006-S1.8, 006-S3.2, 006-S3.3 | SPEC-ONLY → W10 | – |
+| 006-S3.1 | PARTIAL → W10 | U63 |
+| 007-R.1–R.3, 007-S1.1–S1.10, 007-S1.12, 007-S2.2–S2.15, 007-S3.1–S3.24, 007-S3.26 | SPEC-ONLY → W16 | – |
+| 007-S1.11, 007-S3.25 | PARTIAL (alert note) → W16, F22 | U02 |
+| 007-S2.1 | COVERED, PARTIAL → F17 | signed-in frames; P U03, U13 |
+| 007-S4.1, 007-S4.2 | COVERED, PARTIAL, CONFLICT → F29 | rules frames |
+| 007-S4.3 | UI = N | – |
+| 007-S4.4, 007-S4.6 | COVERED | U05, U06, U54 |
+| 007-S4.5, 007-S5.1, 007-S5.2, 007-S5.4–S5.7 | SPEC-ONLY → W15 | – |
+| 007-S5.3 | PARTIAL → W15 | U02 |
+| 007-S5.8 | superseded by FR-046 (entry) | – |
+| 007-S6.1, 007-S6.2 | COVERED | U11, details frames |
+| 007-CP.1, 007-CP.2 | COVERED, PARTIAL (copy) | U14, U35, U43, U44, U46, U48, U61, U62, U75, U87, U100 |
 
 ## Not audited
-- U101 "How other tools do it (research)" (6895:46858): OUT, research and inspiration, not app UI.
-- Hidden layers, including the two hidden "Old ·" sections, were skipped by the mapper.
-- No unit is UNCERTAIN, FAILED or RATE_LIMIT.
+| UNIT-ID | node-ids | name | reason |
+|---|---|---|---|
+| U101 | 6895:46858 | How other tools do it (research) | OUT: research and inspiration, not app UI |
+
+No unit is UNCERTAIN, FAILED or RATE_LIMIT.
