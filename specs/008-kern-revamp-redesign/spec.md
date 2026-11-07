@@ -107,7 +107,7 @@ silently.
 
 Pass C: the 45 clarify questions of `figma-audit/report.md` ("Clarify questions"), asked in the
 report's order. Each entry records the decision, the surfaces it reaches (units and node ids as the
-report lists them) and the exact wording to port. Adopted items are FR-019 to FR-051; every
+report lists them) and the exact wording to port. Adopted items are FR-019 to FR-052; every
 deferred item is collected with its frames and wording in [deferred.md](deferred.md), ready for a
 later `/speckit-specify`.
 
@@ -208,7 +208,8 @@ later `/speckit-specify`.
     doesn't meet the rules" (no count); "Tested as if shared today, 01.11.2026." (dd.mm.yyyy).
     Dropped: "08.07.2007 (age 19)", a bare expiry date, the codes row "B, BE" plus one row per
     class date, "Result: doesn't meet 2 rules", "1 Nov 2026".
-  - Supersedes: no Clarification.
+  - Supersedes: no Clarification. Amended by #46 (second round, Remap Q1): the Test 1 frames'
+    formats replace these, except "Valid until <date>" and the test-day line.
 
 - Q: Should the wizard use the design's compact "Step n of 4" header with four unlabelled
   segments and a publish dialog, instead of the baseline's five labelled progress entries? (Q7, F,
@@ -256,7 +257,9 @@ later `/speckit-specify`.
     (and the ×) that returns the focus to the user menu. Supersedes 005-S7.2–S7.5. Dropped: "Log
     out and discard unsaved work?", the list of names, "Saved drafts stay as they are.", "Log out"
     (danger).
-  - Supersedes: 001-S0.6, 005-S4.1 (for in-app leaving), 005-S7.2–S7.5. No Clarification.
+  - Supersedes: 001-S0.6, 005-S4.1 (for in-app leaving), 005-S7.2–S7.5. No Clarification. (a)
+    and (b) are amended by #47 (second round, Remap Q2) for the edit flow of a published
+    connection, which asks "Save your changes?" instead.
 
 - Q: Should the "Welcome to Konnekt" page become the first page after a sign-in without
   connections, with a "Start from an example" that creates an example draft? (Q9, F, Conflict 3,
@@ -345,6 +348,8 @@ later `/speckit-specify`.
     #17, #20, #22–#24 7298:62636): adopt the inline red line, "1 document needs data", the dialog
     "Choose data" / "Remove them and continue", and "Set rules →" disabled with the hint "Add a
     document first"; supersedes 002-S1.9, 001-S5.5, 001-S5.6 and 001-S7.6's refusal on attempt.
+    Amended by #55 (second round, Remap Q10): the button reads "Remove 1 document" / "Remove <n>
+    documents", as U25 draws it.
   - (d) "Publish without rules" on the documents step (U04 #34; U28 #25): drop; supersedes
     002-S1.5 and 004-S1.1, a behaviour change recorded: publishing without rules goes through the
     publish dialog's "Publish without rules?" (002-S5.6, Q41).
@@ -367,7 +372,8 @@ later `/speckit-specify`.
     and the details' meta stay one line, cut with "…". Supersedes 006-S1.1.
   - ⓘ: on the description, "About the description" / "A note for your team, such as the form's ID
     in your form management system. Citizens never see it." (006-S1.4, 006-S1.5, noun per Q2);
-    the design's ⓘ next to "Connection name" has no text and is not built.
+    the design's ⓘ next to "Connection name" is built as drawn, with the frame's text, as #45
+    (35) decides later in this session (U19 #11, U98 #13).
   - Supersedes: 006-S1.1. No Clarification.
 
 - Q: When "Save and exit" is used while the connection has no name, should it just leave (the
@@ -377,7 +383,8 @@ later `/speckit-specify`.
     "Save and log out" (Q8), which run Save and exit.
   - Behaviour and wording: the flow goes to step 1 with "Enter a name." under "Connection name",
     the field is focused and nothing is stored (005-S1.2); a draft is stored only with a name.
-  - Supersedes: no Clarification; 005-S1.2 holds.
+  - Supersedes: no Clarification; 005-S1.2 holds. The message's wording is amended by #58
+    (second round, Remap Q13): "Enter a name for the connection.".
 
 - Q: How should saving and a failed save be shown: the design's neutral toast with "Retry",
   title-only alerts and a blocking "Saving your draft…" modal, or the baseline's danger alert with
@@ -387,8 +394,9 @@ later `/speckit-specify`.
     007-S3.25, 007-S5.3–S5.5): the design's neutral toast with "Retry"; it shows the error ID of a
     5xx and the focus stays manageable (it is not moved into the toast; the toast is announced).
     Supersedes 005-S1.7 and 005-S1.8's danger alert and focus move. Dropped: "Couldn't save your
-    draft" with the server's message, "Couldn't save. Check your internet connection and try
-    again." with "Try again".
+    draft" with the server's message. Amended by #55 (second round, Remap Q10): the toast reads
+    "Couldn't save. Check your internet connection and try again." with "Try again", as U51
+    draws it, not "Retry".
   - (b) Title-only alerts (build note 7, U02 #5, #6): adopted only for alerts that carry a title
     alone; an alert with a body (an error ID, a list, "Try again", "Remove it" or "Dismiss") keeps
     those parts in the design's alert style.
@@ -407,6 +415,7 @@ later `/speckit-specify`.
     explanations also open on focus. Dropped: the enabled button that asks "Save changes to Rule
     01?" and refuses with a message, moving the focus.
   - Supersedes: 004-S2.1, 004-S2.4, 004-S2.6, 004-S2.7, 002-S2.23, 002-S3.11. No Clarification.
+    Extended by #47 (second round, Remap Q2) to the edit flow's "Save" on the rules step.
 
 - Q: Should the variant tab row ("Standard", "+ Add variant") show from the start of the rules
   step and while a rule is edited, as the baseline says, or only after the first rule is saved,
@@ -430,7 +439,8 @@ later `/speckit-specify`.
     hover and on focus; its text isn't drawn, so it reads "Variants are other versions of these
     rules." unless the design supplies one. Standard's (i) shows only with a description
     (002-S4.25); the frames' icon on a Standard without description is not built.
-  - Supersedes: 004-S8.2.6. No Clarification.
+  - Supersedes: 004-S8.2.6. No Clarification. Amended by #57 (second round, Remap Q12): the ⓘ
+    is on the Rules step only, with the design's text (F27).
 
 - Q: Should a variant be renamed inline in its tab (double-click or ⋯ › Rename), with the ⋯
   shown on the active tab only, instead of "Rename" opening the "Edit variant" dialog? (Q21, F,
@@ -463,6 +473,11 @@ later `/speckit-specify`.
   - Figma error: "Group with other rules" in a sub-group's menu is not built (002-S2.10: a
     sub-group offers no further grouping).
   - Supersedes: no Clarification; 007-S4.1, 007-S4.2, 002-S2.10, 002-S2.16, 002-S2.19 hold.
+    "Group with other rules" is extended by #48 (second round, Remap Q3): also on a top-level
+    group without a sub-group, and only with a neighbour on the same level. "Rename" and "Copy
+    to variant" are narrowed by #53 (Remap Q8): not on items linked to Standard in a variant,
+    and "Copy to variant" only while a variant could receive the item. The W list is extended by
+    #54 (Remap Q9): "Rename" and "Remove message" on group and sub-group menus.
 
 - Q: Should groups behave as the design draws them: single-member and empty groups kept, a
   sub-group renamed "Group NN" when it moves up, and members' messages hidden while the group has
@@ -599,7 +614,8 @@ later `/speckit-specify`.
     column, its name the row group's accessible heading (004-S8.4.2 in the new layout); the panel
     scrolls, not each card (004-S8.4.11, build note 4).
   - Supersedes: 004-S8.4.2's visible headings (layout). No Clarification; 004-S8.6.4, 004-S8.6.7,
-    004-ACC.1, 004-S8.4.11 hold.
+    004-ACC.1, 004-S8.4.11 hold. (c) is amended by #46 (second round, Remap Q1): no visible
+    document column; the panel scrolling stays.
 
 - Q: Should the persona chips of the Test frames stay (rather than the older Publish frames'
   avatar cards), should "Your rules are saved." be shown, and how does regeneration look? (Q32,
@@ -672,6 +688,8 @@ later `/speckit-specify`.
   - (d) No "Create new connection" on the details; supersedes 001-S6.3.
   - (e) The reference hint "serviceBW replaces {reference} with the request reference." lives in
     the ⓘ on "Result link" (opens on hover and on focus); supersedes 001-S6.5's visible text.
+    Superseded by #49 (second round, Remap Q4): the ⓘ shows the design's text only and the hint
+    is dropped.
   - (f) Copy buttons are disabled while the connection is deactivated.
   - (g) A branch ⓘ after each variant name (002-S6.11, W build).
   - (h) Variants are tabs; supersedes 002-S6.4's sections.
@@ -704,7 +722,8 @@ later `/speckit-specify`.
     U89 #8, U96 #7 (7355:60885), U97 #7; overview U11 #15, U13 #13, #15, U14 #10, #12, U15 #15,
     #17, U17 #35, U18 #43, U90 #31): deferred; the API carries created and updated times only, so
     the overview rows read "Edited <date>" and the details show no date pill (Clarification
-    2026-11-06 #1).
+    2026-11-06 #1). The ⋯ menu and "Activate again" drawn inside the pill move to the band's
+    right end (#52, second round, Remap Q7).
   - (d) Undo after deactivating (U05 #24; U89 #26): not built; a deactivation is reversed only
     through Reactivate (001-S6.9), as requests already cancelled stay cancelled.
   - Supersedes: 002-S6.9's "Copied" item. Clarification 2026-11-06 #1 applied to (b) and (c).
@@ -733,7 +752,8 @@ later `/speckit-specify`.
     details and keep the local draft (005-S5.5); the design's "no change" for × and scrim is
     not built for this dialog.
   - Supersedes: 005-S6.4, 005-S6.8, 005-S6.14 (labels). No Clarification; 005-S5.5, 005-S6.9
-    hold.
+    hold. Amended by #51 (second round, Remap Q6): the band title is the page's h1 and the two
+    actions sit in the footer.
 
 - Q: Should the port implement the design's motion rules (pill growth 240 ms, colour changes
   150 ms, page fade-in 150 ms, height animations 150–200 ms, dialog fade, the 0.5 s publish
@@ -754,8 +774,8 @@ later `/speckit-specify`.
     U17's dialog; 005-S4.8–S4.13 (the local-drafts offer's discard dialog, status and focus after
     discarding, other tabs, no storage); 005-S8.1–S8.6 (data the catalog no longer offers), as a
     warning alert listing the data, with "Remove it"; 002-S5.4–S5.6 (rules_changed conflict,
-    "Publish without rules?"), in the publish dialog; 005-S6.3, S6.7, S6.12, S6.13 (draft details:
-    steps to do, rule placeholders, delete errors); 003-S7.1 and 004-S7.2 (checks when the edit
+    "Publish without rules?"), in the publish dialog; 005-S6.7, S6.12, S6.13 (draft details: rule
+    placeholders, delete errors; 005-S6.3's step line is not built, #7 and FR-025); 003-S7.1 and 004-S7.2 (checks when the edit
     flow opens; "Try again, or save without testing."); 006-S1.6, 006-S1.8, 006-S3.2, 006-S3.3,
     001-S5.7, 001-S5.10, 001-S5.11 (description placeholder and too-long error, description meta
     below and at lg, loading and load errors, the API's 400 message); 005-R.1, 005-R.2, 005-S0.6,
@@ -834,6 +854,227 @@ later `/speckit-specify`.
     publishing and saving ("Changes saved."), announced through the toast's live region
     (001-S7.7; U04 #20; U05 #20, #35; U99 #19).
   - Supersedes: no Clarification.
+
+Second round, the same day, after `/figma-audit remap`: the 14 clarify questions of the remapped
+`figma-audit/report.md` ("Clarify questions", Q1–Q14), asked in the report's order and numbered
+#46–#59 here so that they stay apart from #1–#45; each entry names its report number as "Remap
+Q<n>". The record is the same: the decision, the surfaces, the exact wording, what it supersedes.
+
+- Q: Should the test step's data card and result heading follow the newer Test 1 frames (flat
+  list, no age or years, classes merged by date, a count in the heading), or keep the formats
+  decided from the older Publish frames (document column, "08.07.2007 · 19", one row per class,
+  no count)? (#46, Remap Q1, C/F, Conflict 1) → A: Follow the Test 1 frames.
+  - Surfaces: data cards U65 7057:58772, 7057:59071, 7057:59079, 7057:59186; U66 #14, #15, #24;
+    U67 #14, #15, 7058:60746; U68 #14, #15, #18; U69 7057:60456, 7057:60891, 7057:60779; U70
+    7057:61649 (#15, #17, #18); U71 7058:61436, 7058:61444, #19; U72 #15, #16, 7058:61720, #22;
+    U73 7058:62058, 7137:50147; U99 7114:49747. Result headings U65 7057:58811; U66 #19, #25; U67
+    7058:60752; U68 #21, #32; U69 7057:60495, 7057:60930; U71 7058:61454; U72 7058:61750; U73
+    7058:62077, 7137:50166; U99 7114:49766; build note U06 #31. Figma must change: the older
+    Publish frames U63 #10, #12, 7112:48790; U75 #22, #24; U76 #15–#17, 6863:47775; U77 #22–#24;
+    U78 #21, #22; U79 #25–#27, 6863:48492. Source: the rules package's persona formatting and its
+    tests (C6). Unchanged: the Edit data dialog's "Age today" (004-S8.5.6) and "Class B since"
+    (FR-042; U66 #30, U67 #33), "Valid until <date>" and the test-day line (#6), the panel
+    scrolling (F43, #31 (c)).
+  - Wording: a flat list under the rules' labels with no visible document column (the document's
+    name stays the row group's accessible heading); "08.07.2007" (no age); "B since 20.08.2025"
+    (no years); classes with the same issue date in one row, "B, BE since 02.05.2010"; the expiry
+    row keeps "Valid until <date>" under the rule's label as drawn ("Expiry date", "ID valid
+    until"); "Result: doesn't meet 2 rules" / "Result: doesn't meet 1 rule" (with the count).
+    Dropped: "08.07.2007 · 19", "B since 20.08.2025 · 1 year", one row per class, the document
+    column, "Result: doesn't meet the rules".
+  - Supersedes: Clarification #6 (every format except "Valid until <date>" and the test-day line)
+    and #31 (c)'s document column; 004-S8.4.2's accessible heading holds.
+
+- Q: When a team member is editing a published connection, what happens when they leave through
+  the product name or the breadcrumb "Your connections" (a), and is "Save" on the rules step
+  disabled while a rule is open, incomplete or in error, or while grouping (b)? (#47, Remap Q2,
+  F, Conflict 2, Partial 10) → A: (a) adopt E5b, with "Save" going through "Save changes?";
+  (b) disabled.
+  - (a) Leaving (E5b U99 7173:52810 (frame), 7173:52836 (dialog); E5a U99 6890:46197 is F5, not
+    built; build notes U05 6730:40338, U06 #51; the product name and "Your connections" in
+    U98–U100): the dialog "Save your changes?" with the body "If you leave now, your changes are
+    lost. Save them, or discard them and keep the active version.", "Discard changes" (danger
+    outline), "Save" (primary) and the close ×. "Save" opens the save dialog "Save changes?"
+    (FR-045) and leaves to the details once saved; a validation error keeps the member in the
+    flow. "Discard changes" leaves without saving, as FR-045's discard does. × and Escape keep
+    the member in the flow. Amends #8 (a) and (b), which from now on apply to the create and
+    draft flows only; #34 (b) holds (no direct save). Dropped: "Leave this connection?" in the
+    edit flow, "Keep draft and exit" (F5).
+  - (b) "Save" on the rules step (U98 6731:39850, 7296:52389, 6730:39145; U99 #32c; U100 #17;
+    build note 5 U01 6637:36652): disabled while a rule is open, incomplete or in error, or while
+    grouping, with "Save the rule first" / "Finish grouping first" opening on hover and on focus,
+    exactly as "Test rules" (#18). Dropped: an enabled "Save" that asks "Save changes to Rule 01?"
+    first.
+  - Supersedes: #8 (a), (b) for the edit flow; #18 is extended to the edit flow's "Save";
+    005-S0.7 holds (no Save and exit in the edit flow).
+
+- Q: Where does the menu entry "Group with other rules" appear beyond a top-level rule's menu:
+  also on a top-level group that holds no sub-group, or on rules only? (#48, Remap Q3, F,
+  Conflict 3) → A: Two levels only.
+  - Surfaces: built on top-level rules (U34 #26; U36 #15, #28; U39 #27c; U41 #22; U64 #2) and on
+    a top-level group without a sub-group (U58 #20); select mode U36, U40, U64; build note 10
+    U54 6522:33107 (#5). Figma errors, not built: the entry on a rule inside Sub-group 01 (U55
+    6531:39068) and on a group that holds a sub-group (U55 6522:32424); #22's sub-group menu.
+  - Behaviour and wording: "Group with other rules" appears on a top-level rule (FR-036) and on
+    a top-level group that holds no sub-group, only when another rule or group is on the same
+    level; it starts select mode with that item selected (FR-038). It never appears in a
+    sub-group's menu, on a rule inside a sub-group, or on a group that holds a sub-group
+    (002-S2.10).
+  - Supersedes: #22 is extended (groups) and its "a rule's menu" is narrowed to top-level rules
+    with a neighbour; 002-S2.10 holds.
+
+- Q: Should the ⓘ on "Result link" in the details show the design's drawn sentence, the decided
+  reference hint, or both? (#49, Remap Q4, F, Partial 1) → A: The design's text only; the
+  {reference} hint appears nowhere.
+  - Surfaces: the drawn ⓘ U81 6809:46555, 6809:46590; the same ⓘ without drawn text U80
+    6396:47723, U85 6760:48480, U87 #10, U88 #15, U90 #17. Unchanged: the "Request link" ⓘ U80
+    6809:46501 (FR-051). Not affected: the draft details, which show no links.
+  - Wording: "Your service gets the citizen's shared data from this link. Each variant has its
+    own." (opens on hover and on focus). Dropped: "serviceBW replaces {reference} with the
+    request reference." (001-S6.5's hint, a behaviour change recorded against 001-S6.5; the
+    placeholder stays in the URL itself).
+  - Supersedes: #35 (e); 001-S6.5's hint is dropped.
+
+- Q: On the test step, when no citizen can meet a variant's rules, is the line "No citizen can
+  meet the rules of Standard." still built above the result heading, or dropped because the
+  design shows the finding on the tab only? (#50, Remap Q5, W, Spec-only 1) → A: Drop; a
+  behaviour change recorded against 004-S8.6.1.
+  - Surfaces: the result card U71 7058:61454 (no line); build note 29 U06 7058:63148 ("no
+    banner"). Unchanged: the tab's ⚠ and its tooltip U71 7058:61618, 7058:61632 (FR-041, C4),
+    which carry the finding on hover and on focus.
+  - Wording: none above the heading. Dropped: "No citizen can meet the rules of Standard."
+    (004-S8.6.1).
+  - Supersedes: 004-S8.6.1 (the design removes the line on purpose). No Clarification.
+
+- Q: On a draft's details, is "This connection is a draft" the page's main heading with the
+  name in the breadcrumb, as on the published details (a), and do "Edit connection" and "Go to
+  connections →" sit in the footer as drawn or in the status band (b)? (#51, Remap Q6, F,
+  Partial 2) → A: (a) as on the published details; (b) footer as drawn.
+  - (a) Heading (U93 7362:54697 band title and sub-line, 7362:54693 Draft badge after the
+    breadcrumb's name; build notes U07 #23–#27, U02 #16; the tab title): "This connection is a
+    draft" is the page's one h1, with "Edited <date>" below it; the connection's name is the
+    breadcrumb's current item, followed by the Draft badge, and the tab title (FR-012). Extends
+    #35 (c) to drafts; supersedes 005-S6.1's name as h1.
+  - (b) Actions (U93 7362:54920 "Edit connection", secondary, footer left; 7362:54922 and
+    7362:55154 "Go to connections →", primary, footer right): in the footer as drawn; FR-049's
+    "the status band offers" reads "the page offers". "Delete draft" stays visible, built without
+    a frame (F56, #39). Amends #39's placement words.
+  - Supersedes: 005-S6.1 (heading); #39's placement; #35 (c) extended.
+
+- Q: On the details, where do the connection's ⋯ menu (Deactivate, Delete) and, while
+  deactivated, "Activate again" sit, now that #37 (c) drops the status-date pill they are drawn
+  inside? (#52, Remap Q7, F, Partial 3) → A: In the status band, at its right end where the
+  pill was.
+  - Surfaces: build note U07 7370:55183; active U87 #8, U88 6417:30900, 6417:31060, U90
+    7355:61614; deactivated U89 7355:61548, 7355:61549, U97 7355:61025, 7355:61094, 7355:61026,
+    7355:61095, U96 S/L; scheduled U94 7355:60689, U95 #10 (F1, not built).
+  - Behaviour and wording: the ⋯ menu sits at the band's right end with the entries the state
+    allows ("Deactivate" while active, "Delete"; "Change start date" is F1, not built); while
+    deactivated, "Activate again" stands before the ⋯. Dropped: the pill as their anchor.
+  - Supersedes: no Clarification; follows #37 (c).
+
+- Q: In a variant, does a rule or group linked to Standard lose Rename, Duplicate, Ungroup and
+  "Remove from group", and does "Copy to variant" show only while some variant could still
+  receive the item, as build note 10 says, or does every rule menu stay complete as #22 built
+  it? (#53, Remap Q8, F/W, Partial 4) → A: Adopt build note 10.
+  - Surfaces: build note 10 U54 6522:33107 (#3, #4); changed rule U39 #27e, U57 #18 (6522:32682,
+    6522:32774, 6522:32862); inherited rule U39 #28b, U56 #40, U57 #19; inherited group U58 #21,
+    #22; the copy-to-variant popover U41 #24 (W17).
+  - Behaviour: in a variant, a rule or group linked to Standard has no "Rename", "Duplicate" or
+    "Ungroup" ("Remove from group" is F7, deferred). "Copy to variant" shows only while some
+    variant could still receive the item: always on a "New addition" or "Changed here" item, and
+    on a Standard rule only while a variant isn't linked to it or has removed it. "Copy link"
+    stays in every menu (F29). The entries' wording is the design's.
+  - Supersedes: #22's "Rename and Copy to variant on rule menus" is narrowed to unlinked items;
+    a behaviour change recorded against 002-S2.16, 002-S2.19 and 002-S4.10 for linked items in a
+    variant (no rename or duplicate of a linked rule there).
+
+- Q: Do a group's and a sub-group's ⋯ menu get the baseline's "Rename" and, while the group has
+  a message, "Remove message", which the frames don't draw, or are both dropped? (#54, Remap Q9,
+  W, Partial 5) → A: Build both.
+  - Surfaces: group menus U54 6522:33107 (#2); U55 #28, #33, #34 (6530:40150, 6522:32038,
+    6531:39026, 6522:32382); U56 #23, #28, #30; U57 #22; U58 #19. Unchanged: the message card
+    with its pencil U35 6324:39410, 6324:39411. Not on a group linked to Standard in a variant
+    (#53).
+  - Behaviour and wording: "Rename" renames the group inline on its name, with 002-S2.19's
+    duplicate check; while the group has a message, "Remove message" sits next to "Add message"
+    (002-S2.11, 002-S2.17), "Add message" alone otherwise; both in the design's menu styling
+    (W build, no frame).
+  - Supersedes: no Clarification; #22's W list is extended; 002-S2.11, 002-S2.17, 002-S2.19 hold.
+
+- Q: Does the failed-save toast's button read "Try again" as the frame draws it or "Retry" as
+  decided from the build note (a), and does the nothing-chosen dialog's button read "Remove 1
+  document" / "Remove 3 documents" with the count as drawn, or "Remove them and continue" as
+  decided from the build note (b)? (#55, Remap Q10, F, Partial 6) → A: (a) "Try again"; (b)
+  the count form. The frames' copy wins over the build notes.
+  - (a) The failed-save toast (U51 6197:11098; build note U05 6720:39042; the toast on every
+    wizard step U17 #3, #23, U79 #4; the undrawn cases of #17 (a)): the toast reads as U51 draws
+    it, "Couldn't save. Check your internet connection and try again.", with the action "Try
+    again"; a server error's error ID stays in the toast and the focus isn't moved (#17 (a)).
+    Dropped: "Retry".
+  - (b) The nothing-chosen dialog (U25 7299:52174; build note 19 U04 6711:39375): title "No data
+    selected in 1 document" / "No data selected in <n> documents"; body "Driving licence has no
+    data chosen yet. Choose data for it or remove it." (the documents named, plural as drawn);
+    buttons "Choose data" and "Remove 1 document" / "Remove <n> documents". Dropped: "Remove
+    them and continue".
+  - Supersedes: #17 (a)'s "Retry" and its dropped sentence; #14 (c)'s "Remove them and continue".
+
+- Q: Does the delete-rule dialog's body describe the rule's effect, as the frame draws it
+  ("Citizens won't be checked for licence classes C or D any more."), which needs a sentence per
+  check kind from the rules package, or does it keep the current app's body? (#56, Remap Q11,
+  F, Partial 7) → A: Drop; no effect sentence, now or later.
+  - Surfaces: U34 6113:29056 (a rule only in Standard; the effect sentence is not built); U47
+    6185:8847 (a Standard rule with variants; its body is copy to port); title 002-S2.33.
+  - Wording: title "Delete Rule 03?"; a Standard rule with variants gets U47's body as drawn;
+    the other dialogs keep the current app's body, plus 002-S4.17's "Ambulance's changes to Group
+    01 go with it." where a group dissolves. Dropped: "Citizens won't be checked for licence
+    classes C or D any more." and any sentence built from the rule's check.
+  - Supersedes: no Clarification; 002-S4.15, 002-S4.17 hold. Not recorded in deferred.md.
+
+- Q: Does the Test step also show the variant ⓘ ("what a variant is"), placed at the end of its
+  tab row since it has no "+ Add variant" to follow, or does the ⓘ stay on the Rules step only?
+  (#57, Remap Q12, F, Partial 8) → A: Not on the Test step.
+  - Surfaces: the Rules step ⓘ U18 7344:96402, U37 6151:33809, 6151:33820 (its text). The Test
+    frames' (i) after "Standard" (U65 7057:58718, U67 #10, U68 #10, U72 #10, U75 #19, U79 #19) is
+    Standard's description icon (F27), shown only with a description (002-S4.25), not this ⓘ.
+  - Behaviour and wording: the ⓘ follows "+ Add variant" on the Rules step only, opens on hover
+    and on focus, and reads the design's text "A separate set of rules for citizens with
+    different requirements. Each variant gets its own result link." (U37 6151:33820, F27);
+    the Test step shows no variant ⓘ. Dropped: "Variants are other versions of these rules."
+    (the placeholder of #20) and the Test-step placement.
+  - Supersedes: #20's "on the Rules and Test steps" and its placeholder text.
+
+- Q: Does the missing-name message become "Enter a name for the connection.", as step 1 draws
+  it, in every place that provides or repeats it, or does "Enter a name." stay everywhere? (#58,
+  Remap Q13, C, Partial 9) → A: Adopt.
+  - Surfaces: step 1 U19 6699:45379, 6699:45398 (after Continue); the same message after "Save
+    and exit", "Save progress" or "Save and log out" with no name (#8, #16; U04 #27; F18) and in
+    the edit flow's step 1 (U98). Sources changed in the same change: the backend's validation
+    of the connection and draft name (the 400 message), the frontend's step-1 check, the MCP
+    server and its guidance where they pass the message on to agents that create drafts, docs.
+    Not affected: "Enter a name for the variant." (already the design's), the persona name's
+    "Enter a name." in Edit data (004-S8.5.11), "The name can have at most 200 characters." (not
+    drawn).
+  - Wording: "Enter a name for the connection." Dropped: "Enter a name." for the connection.
+  - Supersedes: #16's quoted wording; 005-S1.2 and 005-S1.3's text (`copy:server`).
+
+- Q: Are the eight small additions the design makes built as designed, or are some left out?
+  (#59, Remap Q14, F, cosmetic rows 29–35 and Figma-only behavioural 1) → A: Adopt all eight.
+  - Each tooltip opens on hover and on focus, each count is plain text that screen readers read,
+    and items 1–7 change no stored data: (1) a click on the scrim closes a dialog that doesn't
+    delete or publish (U06 7127:49610; the restore dialog keeps #39's rule, F57); (2) a disabled
+    button explains why on hover and on focus, beyond "Test rules" and "Set rules →": "Save
+    rule", the copy buttons while deactivated (FR-046), and the others the frames draw (U06
+    7127:49610); (3) a page change scrolls to the top (U06 7137:50569); (4) a draft row's meta
+    reads "Edited <date> · <step> step", e.g. "Edited 28.10.2026 · Rules step" (U06 #89; U17
+    6699:48031); (5) the documents search card shows an "Added (n)" group (U21
+    7290:62277–7290:62279; U22 7290:63546); (6) the Links accordion's heading counts "1 request
+    link · 3 result links" (U91 7203:50843; U92 7246:51546, 7246:52172; U94 7246:52751,
+    7246:53863; U95 7246:53973, 7246:54601; U96 7246:55182, 7246:56300; U97 7246:56410,
+    7246:57041); (7) tooltips also open on touch (U08 7370:55193); (8) the variant dialog's
+    "Start with" preselects "Linked to Standard (recommended)", so a variant created without a
+    choice is based on Standard (U37 6139:32693; U52 6197:12011; U62 #25).
+  - Supersedes: no Clarification; 002-S4's variant dialog gets the default of (8).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -915,7 +1156,7 @@ against its frame.
    confirmation for an unchecked document), **Then** every state (no document, a document without
    data, data the catalog no longer offers) matches its frame; "Set rules →" stays disabled with
    "Add a document first" until a document is added, and a document without data shows "1 document
-   needs data" and the "Choose data" / "Remove them and continue" dialog (Q14). Documents stay in
+   needs data" and the "Choose data" / "Remove 1 document" dialog (Q14, #55). Documents stay in
    catalog order and fields show no group rows (drag reordering and field groups are deferred).
 4. **Given** a stored draft, **When** "Save and exit" is used, or the product name or the
    breadcrumb is clicked and "Save progress" chosen (Q8), and the draft is continued later,
@@ -983,17 +1224,19 @@ compare each state against its frame.
    (Q33).
 2. **Given** the details frames, **When** a published connection is opened, **Then** the header
    (the status sentence as the main heading, the name in the breadcrumb, the description line,
-   Q35), the Links accordion with the trigger URL and each variant's pull URL with the reference
-   hint in its ⓘ, and the Summary accordion with the documents, the counts and the rules per
+   Q35), the Links accordion with the trigger URL and each variant's pull URL with the design's
+   ⓘ text (#49), and the Summary accordion with the documents, the counts and the rules per
    variant tab match their frames, and "copied" is announced.
 3. **Given** the confirmation frames, **When** deactivate, reactivate or delete is chosen, **Then**
    each dialog reads as the design writes it (Q38) and does what the baseline says.
-4. **Given** a draft's details (005-S6), **When** it is opened, **Then** the status band offers
-   "Edit connection" and "Go to connections", "Delete draft" is visible (Q39), and no connection
-   URL is shown.
+4. **Given** a draft's details (005-S6), **When** it is opened, **Then** "This connection is a
+   draft" is the main heading with the name in the breadcrumb, the footer offers "Edit
+   connection" and "Go to connections →" (#51), "Delete draft" is visible (Q39), and no
+   connection URL is shown.
 5. **Given** the edit flow, **When** a published connection is edited and saved, **Then** the
    entry confirmation, the "Active" badge, Save on every step, "Discard changes", the note on
-   requests in progress (Q34), the new revision and a conflict appear in the new design.
+   requests in progress (Q34), the "Save your changes?" dialog on leaving through the breadcrumb
+   (#47), the new revision and a conflict appear in the new design.
 6. **Given** a deleted or unknown connection, **When** its address is opened, **Then** the error
    state offers the way back to the overview.
 
@@ -1055,8 +1298,9 @@ and the design's patterns.
 - **A screen reached by its address** (bookmark, history, a link from an agent): behaves as the
   baseline says, in the new design.
 - **Leaving a flow with unsaved work** (product name, breadcrumb, log-out, closing the tab): the
-  design's save-or-discard model applies (Q8, FR-026); the local draft is offered only after a
-  crash or a forced leave.
+  design's save-or-discard model applies (Q8, FR-026): "Leave this connection?" in a create or
+  draft flow, "Save your changes?" in the edit flow of a published connection (#47); the local
+  draft is offered only after a crash or a forced leave.
 
 ## Requirements *(mandatory)*
 
@@ -1144,23 +1388,32 @@ Decided drift items (Clarifications, session 2026-11-07):
 - **FR-023**: The sign-in, duplicate-name and unrequested-data messages read as the design writes
   them, naming the variant where the baseline does, in the backend, in the rules package's
   validation (word for word) and in the MCP server; the number check keeps "Enter a whole number
-  greater than 0." and the "Add it in Documents" action stays (Q5).
-- **FR-024**: The test step's data cards and headings read as the design formats them, from the
-  rules package: "<date> · <age>", "Valid until <date>", "<class> since <date> · <n> year(s)",
-  "Result: doesn't meet the rules", and the test-day line in dd.mm.yyyy (Q6).
+  greater than 0." and the "Add it in Documents" action stays (Q5); the missing connection name
+  reads "Enter a name for the connection." in the backend, the frontend's step-1 check, the MCP
+  server and its guidance (#58).
+- **FR-024**: The test step's data cards and headings read as the Test 1 frames format them, from
+  the rules package: a flat list under the rules' labels, "<date>" for the date of birth (no
+  age), "<class> since <date>" (no years) with the classes of one issue date in one row ("B, BE
+  since <date>"), "Valid until <date>" under the expiry rule's label, "Result: doesn't meet <n>
+  rule(s)" with the count, and the test-day line in dd.mm.yyyy (Q6, amended by the second
+  round's Q1, #46).
 - **FR-025**: The wizard's header is the compact "Step n of 4" with four segments and "Next:
   <step>" / "Last step", exposed as a progress bar; it is not clickable while creating and is
   clickable while editing; Publish is a dialog opened from the test step; the details and draft
   details show no step line (Q7).
-- **FR-026**: In a flow, the product name and the breadcrumb open the leave dialog "Leave this
-  connection?" whose "Save progress" runs Save and exit (a validation error keeps the member in
-  the flow) and whose "Discard connection" leaves without storing and discards the flow's local
-  draft; closing or reloading the tab with unsaved changes shows the browser's "Leave site?"
-  warning; an open rule editor is asked "Save changes to Rule 01?" first and no editor state is
-  stored; step 1 shows "Starts as a draft. It only becomes active when you publish."; logging out
-  with unsaved changes asks "Save before you log out?" with "Save and log out", "Log out anyway"
-  and "Cancel". The local draft of the device remains the safety net after a crash or a forced
-  leave (Q8).
+- **FR-026**: In a create or draft flow, the product name and the breadcrumb open the leave
+  dialog "Leave this connection?" whose "Save progress" runs Save and exit (a validation error
+  keeps the member in the flow) and whose "Discard connection" leaves without storing and
+  discards the flow's local draft; in the edit flow of a published connection they open "Save
+  your changes?" ("If you leave now, your changes are lost. Save them, or discard them and keep
+  the active version.") whose "Save" opens "Save changes?" and leaves once saved and whose
+  "Discard changes" leaves without saving, × and Escape keeping the member in the flow (#47);
+  closing or reloading the tab with unsaved changes shows the browser's "Leave site?" warning;
+  an open rule editor is asked "Save changes to Rule 01?" first and no editor state is stored;
+  step 1 shows "Starts as a draft. It only becomes active when you publish."; logging out with
+  unsaved changes asks "Save before you log out?" with "Save and log out", "Log out anyway" and
+  "Cancel". The local draft of the device remains the safety net after a crash or a forced leave
+  (Q8).
 - **FR-027**: While no connection or draft exists, the homepage is the welcome page "Welcome to
   Konnekt", shown after a sign-in without a requested route and again after the last connection
   is deleted, and remembered on the device across a reload; "Start from an example" is deferred
@@ -1179,32 +1432,43 @@ Decided drift items (Clarifications, session 2026-11-07):
   pager, the "Added documents (n)" counter and the search card with suggestions; a document is
   removed inline with an undo toast, after a confirmation when no rule checks it and through
   002-S1.1's dialog when one does; a document without chosen data shows "1 document needs data"
-  and the "Choose data" / "Remove them and continue" dialog, and "Set rules →" is disabled with
+  and the "Choose data" / "Remove 1 document" dialog (the count as drawn, #55), and "Set rules
+  →" is disabled with
   "Add a document first" until a document is added; the step offers no "Publish without rules";
   documents keep catalog order and fields show no groups (drag reordering and field groups are
   deferred) (Q14).
 - **FR-032**: The description in step 1 and in the variant dialog is a multi-line textarea (not
   required, at most 500 characters, spell check on), shown as one cut line on the overview and in
   the details' meta; its ⓘ keeps "About the description" and the baseline's explanation (Q15).
-- **FR-033**: A failed save shows the design's neutral toast with "Retry", carrying the error ID
-  of a server error, without moving the focus; an alert is title-only only when it carries a
+- **FR-033**: A failed save shows the design's neutral toast "Couldn't save. Check your internet
+  connection and try again." with "Try again" (#55), carrying the error ID of a server error,
+  without moving the focus; an alert is title-only only when it carries a
   title alone, and keeps its error ID, list or action otherwise; while saving, "Save and exit" is
   aria-disabled, reads "Saving…" and a polite status says "Saving draft…"; no blocking saving
   modal is shown (Q17).
-- **FR-034**: On the rules step, "Test rules" is disabled while a rule is open, incomplete or in
-  error, or while grouping, with "Save the rule first" / "Finish grouping first" and an
-  explanation that opens on hover and on focus (Q18).
-- **FR-035**: The Rules and Test steps show an ⓘ after "+ Add variant" that opens on hover and
-  on focus and reads "Variants are other versions of these rules." unless the design supplies a
-  text; the Standard tab's (i) shows only with a description (Q20).
+- **FR-034**: On the rules step, "Test rules" and, in the edit flow, "Save" are disabled while a
+  rule is open, incomplete or in error, or while grouping, with "Save the rule first" / "Finish
+  grouping first" and an explanation that opens on hover and on focus (Q18, #47).
+- **FR-035**: The Rules step shows an ⓘ after "+ Add variant" that opens on hover and on focus
+  and reads "A separate set of rules for citizens with different requirements. Each variant gets
+  its own result link."; the Test step shows no variant ⓘ (#57); the Standard tab's (i) shows
+  only with a description (Q20).
 - **FR-036**: Every rule, group and variant menu carries "Copy link" before its destructive
-  entries (also after "Restore"), rule menus carry "Rename" and "Copy to variant", and a rule's
-  menu offers "Group with other rules", which starts select mode with that rule selected; a
-  sub-group's menu offers no grouping (Q22).
+  entries (also after "Restore"); rule menus carry "Rename" and "Copy to variant", except that
+  in a variant an item linked to Standard has no Rename, Duplicate or Ungroup and "Copy to
+  variant" shows only while some variant could still receive the item (#53); group and
+  sub-group menus carry "Rename" (inline, with the duplicate check) and, while the group has a
+  message, "Remove message" next to "Add message" (#54); and the menu of a top-level rule or of
+  a top-level group without a sub-group offers "Group with other rules"
+  when another rule or group is on the same level, which starts select mode with that item
+  selected; a sub-group's menu, a rule inside a sub-group and a group holding a sub-group offer
+  no grouping (Q22, #48).
 - **FR-037**: While a group has a message of its own, its member rules show "Not shown while this
   rule is in Group 01. Citizens see the group message instead." in place of their message, keeping
   the message in the data; groups with one member or none are dissolved and a sub-group that
-  moves up keeps its name, as the baseline says (Q23).
+  moves up keeps its name, as the baseline says (Q23); the delete-rule dialog keeps the
+  baseline's body (U47's drawn body for a Standard rule with variants, and the dissolving
+  group's variant changes named) and builds no effect sentence from the rule's check (#56).
 - **FR-038**: The AND/OR connector is a pill that opens a two-option menu ("All rules must be
   met" / "At least one rule must be met"), exposed as a menu button whose accessible name says
   the level; exactly one connector sits between items, the link icon is on every linked rule or
@@ -1220,17 +1484,18 @@ Decided drift items (Clarifications, session 2026-11-07):
   (Q28).
 - **FR-041**: A variant tab shows a red problem icon whose tooltip (on hover and on focus) holds
   the problem text, or a grey ⓘ when there are no findings; the Test step's tabs show only the
-  "no citizen can meet" finding, from the evaluator; the names in the findings banner are links
-  to the item (Q29).
+  "no citizen can meet" finding, from the evaluator, and no line is shown above the result
+  heading for it (004-S8.6.1 dropped, #50); the names in the findings banner are links to the
+  item (Q29).
 - **FR-042**: On the test step, "Edit data" opens a dialog ("Change the values to try a
   particular case. Results update when you save.", "Cancel", "Save and test"); an error blocks
   the save, and a saved change updates the results and announces "Results updated. <name> now
   meets <rule>." as a toast; licence classes are picked by code, and Nationality and Expiry date
   have fields (Q30).
 - **FR-043**: Test results keep each rule's statement and its "Not met" / "Couldn't be checked"
-  text next to the design's icon and tint; the data card shows the document as a column whose
-  name is the row group's accessible heading, and the panel scrolls as a whole; a met variant
-  shows no success message (Q31).
+  text next to the design's icon and tint; the data card is a flat list with no visible document
+  column, the document's name staying the row group's accessible heading (#46), and the panel
+  scrolls as a whole; a met variant shows no success message (Q31).
 - **FR-044**: The publish dialog offers "Back to test", summarises the connection as counts,
   lists the findings warnings first, shows a "Published" state with "Opening your connection
   page…" for 0.5 s before the details, and on failure keeps the summary and shows the error ID
@@ -1238,22 +1503,28 @@ Decided drift items (Clarifications, session 2026-11-07):
 - **FR-045**: Editing a published connection asks "Edit "<name>"?" first, shows "Active" in the
   header, offers Save on every step (the save dialog opening from the current step) and "Discard
   changes" with its confirmation, and keeps the note "Your changes take effect when you save
-  them. Requests already in progress keep their previous configuration." (Q34).
+  them. Requests already in progress keep their previous configuration." (Q34); leaving it
+  through the product name or the breadcrumb asks "Save your changes?" (FR-026, #47).
 - **FR-046**: The details page has the status sentence as its one main heading, the name in the
   breadcrumb and the tab title, one "Edit connection" opening step 1, Links and Summary as
-  accordions (Summary open from "View", one open at a time), the reference hint in the ⓘ on
-  "Result link", copy buttons disabled while deactivated, a branch ⓘ after each variant name,
-  variants as tabs and the counts line; it offers no "Create new connection" (Q35).
+  accordions (Summary open from "View", one open at a time), the ⓘ on "Result link" reading
+  "Your service gets the citizen's shared data from this link. Each variant has its own." (the
+  {reference} hint of 001-S6.5 is dropped, #49), copy buttons disabled while deactivated, a
+  branch ⓘ after each variant name, variants as tabs and the counts line; it offers no "Create
+  new connection" (Q35).
 - **FR-047**: The published details run the rule checks in the browser and show the findings
   lines in the Summary and the problem icons on the variant tabs, with the findings never
   stored, sent or logged (Q36).
 - **FR-048**: A copy button reads "✓ Copied" for 2 s after copying and the copy is announced;
   the details offer no PDF, show no "Active since" or "Deactivated since" pill (rows read
-  "Edited <date>"), and deactivating offers no Undo (Q37).
-- **FR-049**: A draft's details show the status band "This connection is a draft" with "Edited
-  <date>", "Edit connection", "Go to connections" and a visible "Delete draft"; in the restore
-  dialog, Escape, the × and the scrim all open the draft's details and keep the local draft
-  (Q39).
+  "Edited <date>"), and deactivating offers no Undo (Q37); the connection's ⋯ menu and, while
+  deactivated, "Activate again" before it sit at the status band's right end, where the pill was
+  drawn (#52).
+- **FR-049**: A draft's details have "This connection is a draft" as the page's one main heading,
+  in the status band with "Edited <date>", the name with the Draft badge in the breadcrumb and
+  the tab title, "Edit connection" and "Go to connections →" in the footer and a visible "Delete
+  draft" (Q39, #51); in the restore dialog, Escape, the × and the scrim all open the draft's
+  details and keep the local draft (Q39).
 - **FR-050**: Motion follows the design's build notes: 240 ms for a growing pill, 150 ms for
   colour changes and page fade-in, 150–200 ms for heights, a dialog fade and the 0.5 s publish
   delay, all turned off when the person's system asks for reduced motion (Q40).
@@ -1263,6 +1534,12 @@ Decided drift items (Clarifications, session 2026-11-07):
   removed count, faded connectors, the reactivate summary, the non-closable publishing dialog
   and the action toasts); a tooltip opens on hover and on focus, a field has a visible label, and
   a toast is announced (Q45).
+- **FR-052**: The design's eight small additions are built as designed: a scrim click closes a
+  dialog that doesn't delete or publish (the restore dialog excepted), every disabled button
+  explains why on hover and on focus, a page change scrolls to the top, a draft row's meta reads
+  "Edited <date> · <step> step", the documents search card shows an "Added (n)" group, the Links
+  accordion counts "1 request link · 3 result links", tooltips also open on touch, and the
+  variant dialog preselects "Linked to Standard (recommended)" (#59).
 
 ## Success Criteria *(mandatory)*
 
