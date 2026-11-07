@@ -1,33 +1,36 @@
 # Figma ↔ spec audit — 2026-11-07
 
 ## Summary
-Units audited 100/101 (OUT 1, UNCERTAIN 0, FAILED 0). Figma calls 271 (270 recorded in the unit files + 1 mapper). This remap made no Figma calls: units.md shows calls=0 for all 11 remapped units. Its calls=1 on U72 comes from the previous remap. Some remapped unit files record only their remap's calls. U05, for example, notes the full run's 5.
+Units audited 100/101 (OUT 1, UNCERTAIN 0, FAILED 0). Figma calls 271 (270 recorded in the unit files + 1 mapper). This remap made no Figma calls: units.md shows calls=0 for all 11 remapped units. Its calls=1 on U72 comes from an earlier remap. Some remapped unit files record only their remap's calls (U05, for example, notes the full run's 5). Together, the unit-file headers still add up to 270.
 
-Requirements index: spec.md mtime 2026-11-07 20:58:30 UTC, compared with the baseline of 18:10:03 UTC. changes.md lists 1 changed ID (FR-036c) and 1 added ID (FR-036i). 11 of the 100 audited units were remapped against it: U09, U34, U36, U39, U40, U41, U54, U55, U56, U58 and U64. The other 89 haven't changed since the previous merge.
+Requirements index: spec.md mtime 2026-11-07 21:27:35 UTC, compared with the baseline of 20:58:30 UTC. The index holds 254 items, 232 of them with UI = Y, plus 560 baseline items. changes.md lists 1 changed ID (FR-036c) and 1 added ID (OUT-53). 11 of the 100 audited units were remapped against it: U09, U34, U36, U39, U40, U41, U54, U55, U56, U58 and U64. The other 89 haven't changed since the previous merge.
 
 Governance: spec.md says **"Figma decides wording"**. A pure wording difference is copy to port. It is listed under cosmetic with `RULE wording` and needs no question. Copy from outside the frontend and renamed concepts are C items. Each question carries its kind (F, W or C) from the spec's drift table.
 
 Design decisions applied:
 - Session 2026-11-06: #1 (defer whatever needs a change outside the frontend) and #2 (adjust colour pairs that fail AA). #3 (verification tables) settles nothing here.
-- Session 2026-11-07: #1–#60, all of which refer to the design.
-  - The second round (#46–#59) answered the Q1–Q14 of the report before last:
+- Session 2026-11-07: #1–#61, all of which refer to the design.
+  - The second round (#46–#59) answered the Q1–Q14 of the first remap's report:
     - #46 → F63, C6. It supersedes #6's formats (except "Valid until" and the test-day line) and #31 (c)'s document column.
     - #47 → F64, F65, W21. From now on #8 (a) and (b) apply only to the create and draft flows (F19).
     - #48 → F30. #49 → FR-046d is covered by U81. #50 → 004-S8.6.1 is dropped; the frames already draw no line. #51 → U93 is covered.
     - #52 → F66. #53 → F68, F29. #54 → F69, W22. #55 → F67. #56 → F70. #57 → F27. #58 → C7, F18.
     - #59 → FR-052a–FR-052h are covered; F71, W21.
-  - The third round (#60) answered the previous report's Q1 (Conflict 1):
-    - A rule inside a top-level group carries "Group with other rules", whether or not the group holds a sub-group. U36 #28 and U55 #24 are covered as drawn (FR-036c, FR-036i).
-    - F30 takes #60's restated "never" list and build note 10's level-free condition (U54 #5).
+  - The third round (#60, "Remap 2 Q1") answered Conflict 1 of the second remap's report:
+    - A rule inside a top-level group carries "Group with other rules". U36 #28 and U55 #24 are covered as drawn (FR-036c, FR-036i).
+    - F30 takes #60's restated "never" list.
     - F33 notes #60's select mode inside a group.
-    - U34 #26 stays open (Partial 1, Q1).
-- Four places where the merge had to choose a reading:
-  - **U34 #26.** #60 lists it (frame 2.3) as built as drawn, but in that frame Group 01 holds only Rule 03 (6113:28670) and Sub-group 01 (6113:28674).
-    - #60's wording ("only when another rule of that group is on its level") and its select mode (no checkboxes on the group's sub-groups) leave Rule 03 nothing to group with.
-    - FR-036 and build note 10 say "another rule or group" instead.
-    - The merge keeps the item open (Partial 1, Q1).
-    - U55 #24, which #60 also lists, has two rules in Group 01 (frame 10.2: 6522:32061, 6522:32064) and is covered.
-  - **U58 #20.** #48's surface list still calls it a top-level group without a sub-group, but its Group 01 holds Sub-group 01 (U58 #14, #16). #48's and #60's "never … on a group that holds a sub-group" governs (F30).
+  - The fourth round (#61, "Remap 3 Q1") answered the previous report's Q1 (Partial 1):
+    - Inside a top-level group, the entry needs another rule directly in that group. The group's sub-groups are no neighbour (FR-036c, OUT-53).
+    - U34 #26 (Rule 03 beside Sub-group 01, frame 2.3, 6113:28988) is a Figma error and joins F30. The same Rule 03 carries no entry in U34 2.1, 2.2 and 2.4 or in U55 10.1, 10.2b and 10.3.
+    - Build note 10's "only when another rule or group is on the same level" (U54 #5) holds at the top level only (F30).
+    - #61 moves U58 #20 (whose Group 01 holds Sub-group 01) to #48's Figma errors. The previous report already read it that way under F30.
+    - Nothing is deferred: letting a rule join an existing sub-group isn't a feature of the design.
+- Three places where the merge had to choose a reading:
+  - **U55 #24.** The remap maps it as CONFLICT ? [80%]. It reads frame 10.2's Group 01 as Rule 03 plus Sub-group 01, as in frame 10.1.
+    - Frame 10.2's tree (6522:32038) shows Group 01 (6522:32058) holding two rule rows (6522:32061, 6522:32064) and no sub-group.
+    - The unit's own inventory #25 says "Rule 03 in Group 01 with two members".
+    - #60 and #61 both list U55 #24 as built as drawn. The merge reads it as covered.
   - **U88 #28.** #38 names F13's deactivation body. The remap reads U88 #28 as covered under OUT-39, but F13 stands.
   - **005-S6.3.** #41 lists it for building, but #7 removed it. U93 is the design that row was waiting for, so the draft details show no step line (W8).
 
@@ -36,19 +39,16 @@ Design decisions applied:
 | Conflicts (open) | 0 |
 | Spec-only (open) | 0 |
 | Figma-only, behavioural (open) | 0 |
-| Partial matches (open) | 1 |
+| Partial matches (open) | 0 |
 | Figma-only, cosmetic: copy to port, layout, styling (FYI) | 28 |
 | Figma must change (decided) | 72 |
 | Build without frames (decided) | 22 |
 | Copy from outside the frontend (decided) | 7 |
 
-Top 5 issues (open items only):
-1. **"Group with other rules" on U34's Rule 03, whose only neighbour in Group 01 is Sub-group 01.** CLAR #60 lists U34 #26 as built as drawn. Yet #60's own wording ("only when another rule of that group is on its level") and its select mode (no boxes on the group's sub-groups) leave Rule 03 nothing to group with. FR-036 and build note 10 read "another rule or group". Partial 1, Q1.
-
-No other item is open.
+Top 5 issues (open items only): none. Every item is decided. The previous report's only open item was Partial 1 (U34 #26). Since CLAR 2026-11-07 #61 it is part of F30.
 
 ## Conflicts
-None open. The previous Conflict 1 is decided by CLAR 2026-11-07 #60, except for U34 #26 (Partial 1).
+None open. The remap maps U34 #26 as CONFLICT (OUT-53); CLAR 2026-11-07 #61 decides it (F30). The remap's CONFLICT on U55 #24 misreads frame 10.2 (see Summary), so the row is covered.
 
 ## Spec-only (not in Figma)
 None open. Every UI requirement that no unit covers is settled: see W1–W22 and the Coverage table.
@@ -57,12 +57,10 @@ None open. Every UI requirement that no unit covers is settled: see W1–W22 and
 None open. Everything the design adds is decided: F1–F12 are deferred or not built, and FR-051 and FR-052 are adopted.
 
 ## Partial matches
-| # | req | where | difference |
-|---|---|---|---|
-| 1 | FR-036c, FR-036i | U34 #26 (6113:28988, frame 2.3; Group 01 6113:28667 holds Rule 03 6113:28670 and Sub-group 01 6113:28674) | Rule 03's menu offers "Group with other rules", and CLAR #60's surface list counts it as built as drawn. But Rule 03 is the only rule directly in Group 01, and its one neighbour is Sub-group 01. #60's wording gives the entry "only when another rule of that group is on its level". The select mode it starts puts no checkbox on the group's sub-groups, so Rule 03 could group with nothing. FR-036 and build note 10 (U54 #5) read "another rule or group". Q1. |
+None open. The previous Partial 1 (U34 #26, FR-036c, FR-036i) is part of F30 since CLAR 2026-11-07 #61.
 
 ## Figma-only — cosmetic (FYI)
-Copy to port follows `RULE wording`: under "Figma decides wording" it needs no question. Layout and styling follow the design. The ui-detail rows of the report before last (29–35) are now FR-052a–FR-052g (CLAR #59) and are covered.
+Copy to port follows `RULE wording`: under "Figma decides wording" it needs no question. Layout and styling follow the design. The ui-detail rows of the first remap's report (29–35) have been FR-052a–FR-052g since CLAR #59, and they are covered.
 
 | # | item | where | rule / note |
 |---|---|---|---|
@@ -126,10 +124,10 @@ Build these as the spec says, keeping Figma's layout and styling, until the desi
 | F24 | FR-031j, 001-S5.3, 002-S1.2, OUT-13 | U04 #44–#47; U21 #14; U22 #16; U23 #16; U24 #14; U25 #13; U26 #14 (6324:40326); U27 #17; U28 #17; U98 #25 | Field groups (Name, Birth, Address, Document, Other details) with tri-state group checkboxes | Fields in catalog order without group rows; select-all per document (002-S1.2) | CLAR 2026-11-07 #14 |
 | F25 | FR-025c, US2-AS1 | U02 #2 (6637:36653); U19 #6b (6716:40931) | The step line is never clickable | Clickable while editing, not while creating | CLAR 2026-11-07 #7 |
 | F26 | 002-S2.1–S2.3, OUT-43 | U30 #25; U33 #8; U49 #5; U50 #32; U51 #27, #37; U53 #8 | No variant tab row before the first rule or while a rule is edited | "Standard" and "+ Add variant" from the start of the step and while editing; "No rules yet" in each variant | CLAR 2026-11-07 #19 |
-| F27 | FR-035a–FR-035d, 004-S8.2.6, OUT-41, OUT-52 | Standard (i) without a description: U30 #26, U59 #9, and the Test frames U65 #10, U67 #10, U68 #10, U72 #10, U75 #19, U77 #20, U78 #15, U79 #19; variant ⓘ missing: U37 #10, #26 (6134:8722, frames 3.2, 3.2b), U46 #28 | An (i) on Standard without a description; the variant ⓘ only while no variant exists | Standard's (i) shows only with a description. On the Rules step the variant ⓘ follows "+ Add variant" in every state, opens on hover and on focus, and reads "A separate set of rules for citizens with different requirements. Each variant gets its own result link." (U37 6151:33820). The Test step shows no variant ⓘ: an (i) after "Standard" there is its description icon. | CLAR 2026-11-07 #20, #57 |
+| F27 | FR-035a–FR-035d, 004-S8.2.6, OUT-41, OUT-52 | Standard (i) without a description: U30 #26, U59 #9, and the Test frames U65 #10, U67 #10, U68 #10, U72 #10, U75 #19, U77 #20, U78 #15, U79 #19; variant ⓘ missing: U37 #10, #26 (6134:8722, frames 3.2, 3.2b), U46 #28, U56 #10 (frame 10.5), U64 #15 (frame 12.2) | An (i) on Standard without a description; the variant ⓘ only while no variant exists | Standard's (i) shows only with a description. On the Rules step the variant ⓘ follows "+ Add variant" in every state, opens on hover and on focus, and reads "A separate set of rules for citizens with different requirements. Each variant gets its own result link." (U37 6151:33820). The Test step shows no variant ⓘ: an (i) after "Standard" there is its description icon. | CLAR 2026-11-07 #20, #57 |
 | F28 | 002-S4.4, 002-S4.22, 002-S4.24, FR-023b, OUT-19 | U59 #10, #13–#15 (6523:37251, 6523:37532, 6523:37662, 6523:37665); U60 #9, #10 (6523:37675, 6523:37683); U62 #6 (7112:47821, 7112:48213) | Inline rename in the tab, double-click, "Enter saves · Esc cancels", ⋯ on the active tab only, the duplicate error beside the tab | "Rename" opens "Edit variant" (name, description). The duplicate error "There's already a variant called "Ambulance"." shows in the dialog next to the field. Every tab has its ⋯. | CLAR 2026-11-07 #21 |
 | F29 | 007-S4.1, 007-S4.2, 007-S4.6, 002-S2.16, FR-036a, FR-036b, US3-AS1 | U09 #44; U34 #25; U36 #15, #28; U39 #27e, #28b; U41 #22; U47 #17, #30, #34; U54 #2, #10 (6522:33105); U55 #33; U56 #29, #40; U57 #18, #19, #22; U58 #23, #28; U59 #11; U61 #25 | Menus without "Copy link"; removed items "Restore only"; menus of unlinked rules without "Rename" and "Copy to variant" | "Copy link" is the last entry before the destructive ones in every rule, group and variant menu of a stored draft or a published connection (007-S4.6), and follows "Restore" on removed items. Rule menus carry "Rename" and "Copy to variant", except on items linked to Standard in a variant (F68). "Copy to variant" shows only while some variant could still receive the item (FR-036f). | CLAR 2026-11-07 #22, #53 |
-| F30 | FR-036c, FR-036d, 002-S2.10, OUT-20 | U39 #27f (6324:39971); U55 #27 (6531:39068), #30 (6522:32424); U56 #25 (6522:32540); U58 #20 (6522:33026); build note 10 U54 #5 (6522:33107) | "Group with other rules" in a sub-group's menu, on a rule inside a sub-group, and on a group that holds a sub-group; build note 10 sets no level limit ("only when another rule or group is on the same level") | None of these places has a grouping entry. It appears on top-level rules and on top-level groups without a sub-group, beside a neighbour on the same level. It also appears on a rule inside a top-level group, beside another rule of that group, whether or not the group holds a sub-group (CLAR #60). It starts select mode with that item selected; inside a group, the selection is limited to that group's rules. #48's surface list calls U58 #20 a group without a sub-group, but its Group 01 holds Sub-group 01 (U58 #14, #16). A rule whose only neighbour in its group is a sub-group (U34 #26): Q1. | CLAR 2026-11-07 #22, #48, #60 |
+| F30 | FR-036c, FR-036d, FR-036i, 002-S2.10, OUT-20, OUT-53 | U34 #26 (6113:28988, frame 2.3; Group 01 6113:28667 holds Rule 03 6113:28670 and Sub-group 01 6113:28674); U39 #27f (6324:39971); U55 #27 (6531:39068), #30 (6522:32424); U56 #25 (6522:32540); U58 #20 (6522:33026); build note 10 U54 #5 (6522:33107) | "Group with other rules" in four places: a sub-group's menu; a rule inside a sub-group; a group that holds a sub-group; a rule whose only neighbour in its top-level group is a sub-group (U34's Rule 03 beside Sub-group 01). Build note 10 sets no level limit ("only when another rule or group is on the same level"). | None of these places has a grouping entry. The entry appears on top-level rules and on top-level groups without a sub-group, beside a neighbour on the same level; build note 10's "another rule or group" holds there. On a rule inside a top-level group, it appears only when another rule sits directly in that group, whether or not the group holds a sub-group (#60). The group's sub-groups are no neighbour (#61). It starts select mode with that item selected; inside a group, the selection is limited to that group's rules. In U34 2.3, Rule 03's menu keeps "Edit rule", "Duplicate" and "Delete rule", and gains F29's "Rename", "Copy to variant" and "Copy link". "Remove from group" stays out (F7). The same Rule 03 carries no entry in U34 2.1, 2.2, 2.4 or U55 10.1, 10.2b, 10.3. #61 moves U58 #20 (whose Group 01 holds Sub-group 01) to #48's Figma errors. | CLAR 2026-11-07 #22, #48, #60, #61 |
 | F31 | FR-037c, 002-S2.13, 002-S2.14, 002-S4.18, OUT-21 | U35 #21, #40; U47 #35; U51 #21, #24, #25 | A group with one member, an empty group with its own copy, and a sub-group renamed "Group 01" when it moves up | Groups left with one member or none dissolve, and a sub-group that moves up keeps its name | CLAR 2026-11-07 #23 |
 | F32 | FR-037a, 002-S2.5 | U35 #28 (6324:39055, 6324:39062, 6324:39065) | Members of a group with its own message show no message line | Each member's message row reads "Not shown while this rule is in Group 01. Citizens see the group message instead." | CLAR 2026-11-07 #23 |
 | F33 | FR-038d, FR-038e, 002-S2.8, 002-S2.9, 002-S4.31, OUT-22 | U40 #13, #29, #30 (6961:56291); U62 #19, #21; U64 #22 | No connector between groups, a trailing connector, the link icon on some linked rules only, groups without checkboxes in select mode | One connector between items; the link icon on every linked rule or on none; groups have checkboxes and can be selected. Select mode started inside a group gives boxes to that group's rules only, as U36 2.19 draws (6616:44240). | CLAR 2026-11-07 #24; #60 for select mode inside a group |
@@ -211,42 +209,7 @@ Build these as the spec says, keeping Figma's layout and styling, until the desi
 | C7 | FR-023g, FR-023h, 005-S1.2, 005-S1.3 | The backend's validation of the connection and draft name (the 400 message); the frontend's step-1 check; the MCP server and its guidance where they pass the message on to agents that create drafts; docs | "Enter a name for the connection." (U19 6699:45379, 6699:45398) | "Enter a name." (the persona name's "Enter a name." in Edit data and "Enter a name for the variant." are unaffected) | CLAR 2026-11-07 #58 |
 
 ## Clarify questions
-**Q1. F — "Group with other rules" on a rule whose only neighbour in its group is a sub-group (Partial 1).**
-
-CLAR #60 lists U34 #26 as built as drawn: Rule 03's menu in frame 2.3 (6113:28988). In that frame, though, Group 01 (6113:28667) holds only Rule 03 (6113:28670) and Sub-group 01 (6113:28674), which holds Rule 04 and Rule 05. The two texts that govern the entry disagree here:
-- #60's wording gives the entry "only when another rule of that group is on its level", and its select mode puts no checkbox on the group's sub-groups. Under it, Rule 03 has nothing to group with.
-- FR-036 and build note 10 say "when another rule or group is on the same level". Sub-group 01 is a group, so under them Rule 03 qualifies.
-
-- **Impact:**
-  - Rules step, the menu of a rule inside a top-level group:
-    - U34 6113:28988 (frame 2.3): Rule 03's open menu with the entry (#26). Its other drawn entries are "Edit rule", "Duplicate", "Remove from group" (F7) and "Delete rule". F29 adds "Rename", "Copy to variant" and "Copy link".
-    - The same Group 01 (Rule 03 beside Sub-group 01), with Rule 03's menu closed: U34 frames 2.1, 2.2, 2.4; U55 frames 10.1 (6530:40170), 10.2b (6531:39046) and 10.3 (6522:32402).
-  - Select mode inside a group:
-    - The bar "Choose at least one more rule to group with Rule 02." (U36 6616:44187, #18).
-    - "2 rules selected. They become a sub-group of Group 01." with boxes on the group's rules only (U36 6616:44240, #30).
-    - The sticky-bar note (U64 6524:38722).
-  - Build note 10, U54 6522:33107 (#5): "Group with other rules: only when another rule or group is on the same level."
-  - Spec text: FR-036 ("when another rule or group is on the same level … inside a group limited to that group's rules"), the requirement FR-036c ("beside a neighbour") and FR-036i.
-  - Unchanged under every option:
-    - Rules in a group that holds another rule: U36 #28 (6344:53657, frame 2.18) and U55 #24 (6522:32071, frame 10.2, whose Group 01 has two rules, 6522:32061 and 6522:32064).
-    - Top-level rules (U36 #15, U39 #27c, U41 #22, U56 #38, U64 #2) and top-level groups without a sub-group (U57 #22).
-    - F30's places, which never carry the entry.
-    - "Remove from group", which stays deferred (F7).
-- **Options:**
-  - **Drop it here (#60's wording):** a rule inside a top-level group carries the entry only when another rule sits directly in that group.
-    - U34 frame 2.3: Rule 03's menu has no "Group with other rules", so Figma must change. The same Rule 03 in U34 2.1, 2.2, 2.4 and U55 10.1, 10.2b, 10.3 carries none either.
-    - Select mode (U36, U64): as drawn.
-    - Build note 10: its "another rule or group" holds at the top level. Inside a group, the neighbour must be a rule of that group.
-    - FR-036 reads "… or of a rule inside a top-level group (whether or not the group already holds a sub-group) when another rule of that group is on its level". #60's surface list drops U34 #26.
-  - **Adopt as drawn:** Rule 03 carries the entry, because Sub-group 01 is on its level (FR-036, build note 10).
-    - U34 stays as drawn.
-    - Select mode starts with Rule 03 checked and no other box (#60 gives the group's sub-groups none). The bar keeps "Choose at least one more rule to group with Rule 03.", "Group rules" stays disabled, and "Cancel" is the only way out.
-    - #60's wording "another rule of that group" becomes "another rule or group of that group".
-  - **Defer letting the rule join the sub-group:** a later feature would make Sub-group 01 selectable, so that Rule 03 joins it. That is a new edit action in the rules package (`rules/src/edits.ts`), which CLAR 2026-11-06 #1 defers.
-    - Until then the frontend builds the first option, and U34 must change.
-- **Supersedes or contradicts:**
-  - CLAR 2026-11-07 #60: the first and third options correct its surface list (U34 #26 is no longer "built as drawn"). The second contradicts its wording "only when another rule of that group is on its level".
-  - #48 and #22 hold as #60 extended them. FR-036d and 002-S2.10 hold under every option.
+None open. The previous report's Q1 asked about "Group with other rules" on a rule whose only neighbour in its group is a sub-group (U34 #26). CLAR 2026-11-07 #61 answered it: the entry needs another rule directly in that group, so U34 #26 is a Figma error, and it is part of F30.
 
 ## Coverage
 Shorthand:
@@ -266,14 +229,17 @@ Rows that the merge read as covered (a unit flagged them, but an adopted require
 - FR-036c and FR-036i where the design matches (a unit's PARTIAL on these rows is F29's missing entries):
   - top-level rules: U36 #15, U39 #27c, U41 #22, U56 #38, U64 #2;
   - a top-level group without a sub-group: U57 #22;
-  - rules inside a top-level group that holds another rule (CLAR #60): U36 #28, U55 #24.
+  - rules inside a top-level group that holds another rule (CLAR #60, #61): U36 #28, U55 #24.
+    - The remap maps U55 #24 as CONFLICT ? [80%], reading Group 01 as Rule 03 plus Sub-group 01, as in frame 10.1.
+    - Frame 10.2's tree (6522:32038) shows Group 01 (6522:32058) holding two rule rows (6522:32061, 6522:32064) and no sub-group.
+    - #60 and #61 list U55 #24 as built as drawn.
 - FR-036e: U39 #27e and U58 #22 (CLAR #53 cites U39 #27e).
 - FR-041a and FR-041b: the design's severity icons per CLAR #29 (a), which cites build note U06 #7. Rows: U07 #19, U44 #9, #13, U45 #25, #31, U46 #8, #22, U50 #22, U85 #21.
 - FR-046c and FR-046g: U03 #25, U07 #17. FR-038a, read-only: U83 #31.
 - CLAR #38: U06 #17, U60 #34. FR-023c's removed-document message: U50 #12. FR-029b: U16 #25.
 - FR-052h ("Start with"): U37 #23, U52 #27, U62 #25. CLAR #46's drawn labels: U66 #14, U67 #14, U70 #18, U72 #22 (U72's value is F63).
 - The "C item" rows for "Konnekt", "citizen", "·" statements, "Message for citizens:", findings, server wording and test formats are C1–C7.
-- Read as F13, not as covered: U88 #28.
+- Read as F13, not as covered: U88 #28. Read as F30 (CLAR #61): U34 #26.
 
 | req-id | status | units |
 |---|---|---|
@@ -337,12 +303,12 @@ Rows that the merge read as covered (a unit flagged them, but an adopted require
 | FR-035b, FR-035c | COVERED, PARTIAL → F27 | U18, U37, U38, U59 |
 | FR-035d | COVERED → F27 (Standard's (i) only with a description) | test frames |
 | FR-036a, FR-036b | PARTIAL → F29 | rules frames |
-| FR-036c | COVERED, PARTIAL, CONFLICT → F29, F30; open (Partial 1) | U36, U39, U41, U55, U56, U57, U64; P U09, U34, U54, U58; X U39, U55 |
+| FR-036c | COVERED, PARTIAL, CONFLICT → F29, F30 | U36, U39, U41, U55, U56, U57, U64; P U09, U54; X U34, U39, U55, U58 |
 | FR-036d | COVERED, CONFLICT → F30 | U36, U54; X U39, U55, U56, U58 |
 | FR-036e, FR-036f | COVERED, CONFLICT → F68 | U39, U50, U54, U56–U58, U61; X U57 |
 | FR-036g | PARTIAL → F69 | U54–U57 |
 | FR-036h | COVERED, PARTIAL → W22 | U57, U58; P U35, U54 |
-| FR-036i | COVERED; open (Partial 1) | U36, U55, U56, U64; P U34 |
+| FR-036i | COVERED, CONFLICT → F30 | U36, U55, U56, U64; X U34 |
 | FR-037a | PARTIAL → F32 | U35 |
 | FR-037c | CONFLICT → F31 | U35, U47, U51 |
 | FR-037d | COVERED, CONFLICT → F70 | U47; X U34 |
@@ -451,7 +417,7 @@ Rows that the merge read as covered (a unit flagged them, but an adopted require
 | 002-S2.2, 002-S2.3 | COVERED, CONFLICT → F26 | rules frames; X U30, U33, U49–U51, U53 |
 | 002-S2.4–S2.7 | COVERED → C2, C3 | rules frames |
 | 002-S2.8, 002-S2.9 | COVERED, CONFLICT → F33 | rules frames; X U40, U62, U64 |
-| 002-S2.10 | COVERED, PARTIAL, CONFLICT → F30, F33; open (Partial 1) | U03, U36, U39, U55, U56; P U34, U58; X U39, U40, U55, U56 |
+| 002-S2.10 | COVERED, CONFLICT → F30, F33 | U03, U36, U39, U55, U56; X U34, U39, U40, U55, U56, U58 |
 | 002-S2.11 | COVERED, PARTIAL (copy) → W22 | U51, U58; P U54, U55, U56 |
 | 002-S2.12 | COVERED, PARTIAL (copy) → F7 | U51, U55, U57 |
 | 002-S2.13, 002-S2.14 | COVERED, CONFLICT → F31 | X U35, U47, U51 |

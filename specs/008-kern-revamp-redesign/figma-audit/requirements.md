@@ -1,4 +1,4 @@
-# Requirements index — spec.md mtime 2026-11-07 20:58:30 UTC
+# Requirements index — spec.md mtime 2026-11-07 21:27:35 UTC
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -120,7 +120,7 @@
 | FR-035d | The Test step shows no variant ⓘ; an (i) after "Standard" there is its description icon | P3 | Y | Test step | default | | FR-035; #57 |
 | FR-036a | Every rule, group and variant menu has "Copy link" before its destructive entries, also after "Restore" | P3 | Y | Rules step; Variant tabs | default | W item, copy | FR-036; Q22 |
 | FR-036b | Rule menus carry "Rename" and "Copy to variant", narrowed for linked items in a variant (FR-036e, FR-036f) | P3 | Y | Rules step | default | W item, copy | FR-036; Q22, #53 |
-| FR-036c | Top-level rules, sub-group-free top-level groups and rules in top-level groups offer "Group with other rules" beside a neighbour | P3 | Y | Rules step | default | F item, copy | FR-036; Q22, #48, #60 |
+| FR-036c | Top-level rule or sub-group-free group: "Group with other rules" beside a same-level item; in a group, beside another direct rule | P3 | Y | Rules step | default | F item, copy | FR-036; Q22, #48, #60, #61 |
 | FR-036d | A sub-group's menu, a rule inside a sub-group and a group holding a sub-group offer no grouping | P3 | Y | Rules step | default | | FR-036; Q22, #48 |
 | FR-036e | In a variant, a rule or group linked to Standard has no "Rename", "Duplicate" or "Ungroup" | P3 | Y | Rules step | default | F item, amends 002-S2.16, 002-S2.19, 002-S4.10 | FR-036; #53 |
 | FR-036f | "Copy to variant" shows only while some variant could still receive the item | P3 | Y | Rules step | default | F item | FR-036; #53 |
@@ -261,7 +261,7 @@
 
 Contracts: 001: `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` (no section ids: the preamble with the routes and the sign-in guard is S0, the `##` sections S1 Sign in, S2 Forgot password, S3 Overview, S4 First connection, S5 Create and edit, S6 Details, S7 Accessibility, as spec.md's table states); 002: `specs/002-connection-rules/contracts/ui-screens.md`; 003: `specs/003-rule-consistency-checks/contracts/ui-screens.md`; 004: `specs/004-rule-test-personas/contracts/ui-screens.md`; 005: `specs/005-connection-drafts/contracts/ui-screens.md`; 006: `specs/006-connection-description/contracts/ui-screens.md` (no section ids: preamble S0, `##` sections S1 Step 1, S2 Overview row, S3 Details page, S4 Accessibility, S5 Copy removed); 007: `specs/007-agent-mcp-server/contracts/ui-screens.md`.
 Unnumbered sections of the other contracts: `R` Routes, `ACC` Accessibility, `CP` Copy (Copy conventions). Items of "Deviations from Figma", "Items from the audit" and "W-items" are numbered within the screen section they belong to; `Spec §` names the item (F#, W#, A#, K#, O#, FYI). Copy tables that repeat texts already in a row are not indexed twice.
-Spec 008's Clarifications (session 2026-11-07, #1–#60) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
+Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items against these rows: `superseded by <FR/Q>` means the row no longer holds; `amended by <FR/Q>` means it holds with the wording or detail that FR or answer names.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -879,6 +879,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#60) decide drift items agai
 | OUT-50 | The build notes' "Retry" on the failed-save toast and "Remove them and continue" (dropped) | FR-031; FR-033; #55 |
 | OUT-51 | An effect sentence in the delete-rule dialog built from the rule's check ("Citizens won't be checked for …") (dropped) | FR-037; #56 |
 | OUT-52 | The variant ⓘ on the Test step and the placeholder "Variants are other versions of these rules." (dropped) | FR-035; #57 |
+| OUT-53 | "Group with other rules" on a rule whose only neighbour in its top-level group is a sub-group (U34 #26, Figma error) | FR-036; #48, #60, #61 |
 
 ## Glossary
 connection = form connection, Connection, Formularverbindung, connection card, live connection, active connection
