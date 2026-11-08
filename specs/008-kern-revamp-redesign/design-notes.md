@@ -42,7 +42,7 @@ conflicting between pages) diffed against `@kern-ux/native` 2.8.2's `kern.css` l
 | `--kern-color-action-on-default` | `#ffffff` | `#ffffff` | unchanged, no entry |
 | `--kern-color-action-focus-default` | `#0b1220` | KERN's neutral-700 | the focus ring colour; new in the kit |
 | `--kern-color-form-input-border` | `#22293a` | `#1d2034` | |
-| `--kern-color-feedback-info` | `#0284c7` | `#006b8c` | **AA**: 4.1:1 on white, 3.6:1 on its background: fails for normal text (V7, §1.5) |
+| `--kern-color-feedback-info` | `#0284c7` | `#006b8c` | **AA**: 4.1:1 on white, 3.6:1 on its background: fails for normal text (V7, §1.5); the overlay sets **`#0273ae`** (T002) |
 | `--kern-color-feedback-info-background` | `#e0f2fe` | `#c0f3ff` | |
 | `--kern-color-feedback-success` | `#1d7a2e` | `#007155` | 5.4:1 on white |
 | `--kern-color-feedback-success-background` | `#eaf7e6` | `#cdf2e4` | |
@@ -56,6 +56,18 @@ conflicting between pages) diffed against `@kern-ux/native` 2.8.2's `kern.css` l
 
 Opacities (`action-state-opacity-disabled` 40 %, `-overlay` 72 %, `-hover` an 8 % layer) have the
 same meaning as KERN 2.8's `0.4`, `0.72` and `88 %` shade: no entry.
+
+**V2 (T002, 2026-11-08)**: every `-contextual` alias in `kern.css` 2.8.2 is a `var()` of a plain
+name, set on `body` and `[data-kern-theme]` (level 0) and on `.kern-level-1` / `.kern-level-2`; the
+level-0 aliases derive from the plain names above or from ones the Revamp leaves unchanged
+(`action-on-default`, `action-visited`, `action-state-indicator-*`), so the overlay sets no alias.
+The `.kern-level-1/-2` aliases derive from `*-level-1/-2` names the kit does not define; the app
+uses no `kern-level-*` class. KERN's level-0 `action-state-indicator-default-contextual` is
+misspelt (`--kern-color-color-…`), but neither `kern.css` nor the app reads that alias. Measured on
+`/login`: `layout-text-default-contextual` `#0b1220`, `layout-layer-surface-contextual` `#f2f5fb`,
+`decorative-border-contextual` `#e1e6f0`, `feedback-info-contextual` `#0273ae`,
+`action-default-contextual` `#1d56f0`, `form-input-border-contextual` `#22293a`,
+`action-focus-default-contextual` `#0b1220`.
 
 ### 1.2 Radii, type, metrics
 
@@ -90,11 +102,63 @@ title / label / heading 600, heading-balanced 500, label-subtle 400) and Fira Sa
 | Token | Value | Status |
 |---|---|---|
 | `--default-font-family` | KERN's | stays |
-| `--shadow-card`, `--shadow-menu`, `--shadow-toast` | Figma "Elevation/Card", "Elevation/Menu", the toast's shadow | stay unless the V5 frames' effects changed; the foundations task re-reads them on U11 (the list card), U54 (a menu) and U51 (the toast) |
+| `--shadow-card`, `--shadow-menu`, `--shadow-toast` | Figma "Elevation/Card", "Elevation/Menu", the toast's shadow | stay unless the V5 frames' effects changed; the foundations task re-reads them on U11 (the list card), U54 (a menu) and U51 (the toast). **T003, 2026-11-08**: card and menu unchanged; the toast now uses "Elevation/Menu" (values below) |
 | `--shadow-chip` | the sign-in illustration's chips | **removed** (the new sign-in art is an image, §7) |
 | `--text-step` | the step circle's number | **removed** (the step line has no numbers, §7) |
-| `--color-variant-changed(-background)`, `--color-variant-new(-background)` | warning / violet | cosmetic 22 says both marks use the same purple in the design: the shared-components task reads U57 `6522:32682` and U58 `6522:32977` and sets the two tokens accordingly, recording the hexes here |
-| `--duration-pill` 240ms, `--duration-colour` 150ms, `--duration-height` 200ms, `--duration-page` 150ms | FR-050 | **new** (§4) |
+| `--color-variant-changed(-background)`, `--color-variant-new(-background)` | warning / violet | cosmetic 22 says both marks use the same purple in the design: the shared-components task reads U57 `6522:32682` and U58 `6522:32977` and sets the two tokens accordingly, recording the hexes here. **T003, 2026-11-08**: both purple, `#8a22b5` on `#f8f1fc` (values below) |
+| `--duration-pill` 240ms, `--duration-colour` 150ms, `--duration-height` 200ms, `--duration-page` 150ms | FR-050 | **new** (§4); set by T003 |
+
+**Values set by T003 (2026-11-08)**, read with `get_design_context` on "Middleware – V5"; a Figma
+drop shadow `(x, y), radius r, spread s, #rrggbbaa` is the CSS `box-shadow: x y r s` with the
+colour's alpha:
+
+| Token | Value | Figma source |
+|---|---|---|
+| `--shadow-card` | `0 1px 2px 0 rgb(19 21 37 / 0.05), 0 6px 20px 0 rgb(19 21 37 / 0.05)` | effect style "Elevation/Card": DROP_SHADOW `#1315250d` (0, 1) r 2 s 0 + DROP_SHADOW `#1315250d` (0, 6) r 20 s 0, on U11 `6699:44240` (the header pills `I6699:44242;6688:41393`, `I6699:44242;7341:101654`; the V5 list card `6699:44252` has a border and no shadow); unchanged |
+| `--shadow-menu` | `0 10px 28px 0 rgb(19 21 37 / 0.16)` | effect style "Elevation/Menu": DROP_SHADOW `#13152529` (0, 10) r 28 s 0, as the style list of U51 `6197:11098` gives it; U54 `6522:33105` is the note "All ⋯ menus" and draws no menu (no effect); unchanged |
+| `--shadow-toast` | `0 10px 28px 0 rgb(19 21 37 / 0.16)` | U51 `6197:11098` "Rules/Toast": "Elevation/Menu", as above; was `0 8px 12px 0 rgb(18 20 38 / 0.2)` |
+| `--color-variant-changed` | `#8a22b5` | U57 `6522:32682`, "Changed here" text `I6522:32701;6118:3685;6118:3678` (variable "variant/changed-text (purple, same as new addition)"); U58 `6522:32977`, the group mark `I6522:32999;6162:4871;6118:3678` and the rule mark `I6522:33012;6118:3685;6118:3678` |
+| `--color-variant-changed-background` | `#f8f1fc` | U57 the rule's outline `6522:32700`; U58 the group `6522:32997` and the rule's outline `6522:33011` (variable "variant/changed-background (purple, same as new addition)") |
+| `--color-variant-new` | `#8a22b5` | U57 "Added here" text `I6522:32727;6118:3685;6118:3680`; U58 `I6522:33021;6118:3685;6118:3680` (variable `--kern-color-variant-new`, not a KERN 2.8 name) |
+| `--color-variant-new-background` | `#f8f1fc` | U57 the outline `6522:32726`; U58 `6522:33020` (variable `--kern-color-variant-new-background`) |
+
+The mark's text sits on a white label (`--kern-color-layout-background-default`, radius 4,
+padding 2/8) inside the tinted outline: `#8a22b5` on `#ffffff` is 7.05:1 and on `#f8f1fc`
+6.38:1, both AA, so §1.5 gets no row. The changed group on U58 `6522:32997` keeps a 3 px left
+border in the action blue (`#1d56f0`), not purple.
+
+**Images and glyphs exported by T004 (2026-11-08)** from "Middleware – V5" (research R1 "Icons
+and images", build notes 9 and 14, constitution IV: no icon font). The PNGs are the layers'
+own 2× exports, optimised losslessly with oxipng (pyoxipng 9.1.1; level 6, Zopfli, `optimize_alpha`; run once
+through `uv run --no-project --with pyoxipng`, no project dependency); every visible pixel and
+the alpha channel are unchanged. The SVGs are Figma's exports with the tinted fill replaced by
+`currentColor`. Nothing imports them yet (phases 3–9 wire them); the old icons and
+`illustrations/dot-grid.svg`, `illustrations/success-tick.svg` stay until T091.
+
+| File (`frontend/src/assets/…`) | Pixels | Bytes | Source node | Notes |
+|---|---|---|---|---|
+| `illustrations/login-art@2x.png` | 662 × 1234 | 485,605 | U10 `6401:27994`, layer `7174:55658` "Picture · EUDI Wallet · half star" | shown at 331 × 617; **V3 fails**: 596,192 bytes as exported, 485,605 after lossless optimisation (lossless WebP would be 405,814); under 300 KB only with a lossy step (a 256-colour PNG is about 75 KB): open, for the user (ship 486 KB, or allow a lossy step) |
+| `illustrations/published-art@2x.png` | 434 × 258 | 115,426 | U80 `6396:47648`, layer `7355:61161` "Picture · active" | V3 passes; build note 9 says 454 × 288 shown at 227 × 144, the V5 layer exports 434 × 258 (217 × 129); T006 (coordinator): the V5 layer governs (Figma decides), build note 9’s text is stale, the screens show it at 217 × 129 |
+| `illustrations/published-art-grey@2x.png` | 434 × 258 | 37,117 | U89 `6417:31278`, layer `7355:61552` "Picture · deactivated" | V3 passes; same size note as the colour file; build note 9 names the layer "Picture · deactivated (grey)" |
+| `illustrations/wallet-star@2x.png` | 400 × 386 | 159,094 | U11 `6699:44481`, layer `6699:44509` "Picture · EUDI Wallet · star" (its 2× export setting) | V3 passes; build note 9 says 400 × 385 (Figma rounds the 200 × 192.5 layer up); shown at 200 × 193 (overview) and 128 × 123 (U20 `7290:60367`, the documents' empty panel) |
+| `icons/person.svg` | 24 × 24 | 1,438 | U11 `6699:44242`, `I6699:44242;7351:52637` "Icon · person (Material Symbols, outlined)" | `currentColor` (design: `color/action/default`); the account pill (build note 14) |
+| `icons/expand-more-small.svg` | 20 × 20 | 877 | U11 `6699:44242`, `I6699:44242;7351:52639` "icon-expand_more-small" | `currentColor` (design: `color/action/default`); a KERN Revamp icon that KERN 2.8.2 lacks; same path as the old `expand-more-action-small.svg`, which hard-codes `#1D56F0` |
+| `icons/dot.svg` | 8 × 8 | 228 | U11 `6699:44264` "Status/Connection" (Active), `I6699:44264;7341:101114` "Dot" | `currentColor`: the design tints it per status (Active `#1d7a2e`; Draft and Deactivated in their badge colours) |
+
+Glyphs not exported because KERN 2.8.2 has them (`kern-icon--<name>` in
+`@kern-ux/native/dist/kern.css`):
+
+| Design glyph | Where | KERN 2.8.2 class |
+|---|---|---|
+| trash `icon-delete-small` | U23 `7298:61765`, `I7298:61783;6246:18954;6092:3483` | `kern-icon--delete` |
+| `icon-more_vert-small` (the rows draw ⋮, not ⋯) | U55 `6530:40150`, `6109:3638` in "Rules/More button" | `kern-icon--more-vert` |
+| finding kind `icon-warning-small` (conflict) | U44 `6750:40882`, `6750:40607` "Kind icon" | `kern-icon--warning` |
+| finding kind `icon-info-small` (duplicates only; "Rules/Findings banner" and "Rules/Tooltip" descriptions) | U44 `6750:40882` component | `kern-icon--info` |
+| outcome `icon-emergency_home-small` (doesn't meet) | U65 `7057:58709`, `7057:59056` | `kern-icon--danger` (the same Material diamond with "!") |
+| outcome `icon-check_circle-small` (meets) | U65 `7057:58709`, `7057:59061` | `kern-icon--success` (the same Material check circle) |
+
+Not exported: the **tooltip arrow**. The V5 tooltip (U80 `6809:46501`, "Rules/Tooltip"
+`6139:3739`) draws no arrow; the old `icons/tooltip-arrow.svg` stays until T091.
 
 ### 1.4 Text styles
 
@@ -114,7 +178,19 @@ pass, text at 4.5:1 does not.
 
 | Pair (foreground on background, where) | Ratio | Fixed to | Ratio after | Designer told |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| `feedback-info` `#0284c7` on `#ffffff` (info text and icons; the "Draft" label on white) | 4.10:1 | `#0273ae` | 5.17:1 | |
+| `feedback-info` `#0284c7` on `feedback-info-background` `#e0f2fe` (the "Draft" status pill, info strips) | 3.57:1 | `#0273ae` | 4.50:1 | |
+
+T002, 2026-11-08 (WCAG 2.x relative luminance, unrounded): "nearest" is the passing colour with
+the smallest CIEDE2000 distance from the design's value (ΔE2000 6.6), searched over every sRGB
+colour within ±50 per channel; one value for both pairs, because they share the variable, so the
+stricter background (`#e0f2fe`) decides. The other Revamp text pairs of §1.1 pass and need no fix:
+`feedback-success` `#1d7a2e` 5.42:1 on white, 4.89:1 on `#eaf7e6`; `feedback-danger` `#c4271c`
+5.75:1 on white, 5.22:1 on `#fef1f0`; `feedback-warning` `#9a4a00` 6.26:1 on white, 5.75:1 on
+`#fff4e0`; `feedback-default` `#4a5468` 7.61:1 on white, 6.72:1 on `#eef1f6`; `layout-text-muted`
+`#4a5468` 6.97:1 on `hued` `#f2f5fb` (7.61:1 on white); `action-default` `#1d56f0` 5.77:1 on white
+(5.28:1 on `hued`; white on it, the primary button, 5.77:1); `layout-text-default` `#0b1220`
+17.14:1 on `hued`; white on `feedback-danger` (the danger button) 5.75:1.
 
 ## 2. Component decisions
 
@@ -126,42 +202,48 @@ it (§5).
 
 | Component | Kit page | Option | KERN class / override | States to verify | Decided |
 |---|---|---|---|---|---|
-| `AccessLevelChoice` | P14 radios, P33 base-radio | a | `kern-form-check__radio`, the fieldset | default, hover, focus, selected, disabled | proposal |
-| `ActionMenu` (+ `RuleMenuItem`) | build note 3 | c | class-set placement (side, direction, max-height step), 220 px, inner scroll (R10) | default, hover, focus, disabled item, open up/down | proposal |
-| `AppLayout` | — | c | the header pills (L2) | default, scrolled (white background) | proposal |
-| `AuthLayout` (+ `AuthIntro`, the art) | L1 | c | the login art and tagline row | 1440, ~1280, <1024, 320 | proposal |
-| `BranchMark` | the rules frames | c | the marks' chips | changed, new, removed | proposal |
-| `BranchName` (+ `FindingsSegment`) | P29 tabs | c | the tab with its ⓘ and problem icon | default, selected, hover, focus, with icon | proposal |
-| `Checkbox` | P33 base-checkbox, build note 2 | b | `kern-form-check__checkbox` + the 20 px box, the design's tick and the mixed dash | default, hover, focus, checked, mixed, disabled | proposal |
-| `ConfirmDialog` | P12, P33 dialog-actions | a + c | `kern-dialog` with 1–3 buttons, × and the scrim rule | open, long labels, scrollable, working | proposal |
-| `ConnectionStatusBadge` → status pill | U07 #1 | c | dot + label, tint, radius 8 | active, draft, deactivated | proposal |
-| `Connector` (+ menu) | FR-038 | c | the pill with the chevron and the two-option menu | default, open, read-only, faded | proposal |
-| `CopyableUrl` | U80, U81 | a + c | the button on KERN's button; the one-line URL | default, hover, focus, "✓ Copied", disabled with explanation | proposal |
+| `AccessLevelChoice` | P14 radios, P33 base-radio | a | `kern-form-check__radio`, the fieldset | default, hover, focus, selected, disabled | T006: kept a, it is on `kern-form-check__radio` already; built by T016 |
+| `ActionMenu` (+ `RuleMenuItem`) | build note 3 | c | class-set placement (side, direction, max-height step), 220 px, inner scroll (R10) | default, hover, focus, disabled item, open up/down | T006: kept c, KERN 2.8.2 has no menu component; built by T021 |
+| `AppLayout` | — | c | the header pills (L2) | default, scrolled (white background) | T006: kept c (a page shell); built by T031 |
+| `AuthLayout` (+ `AuthIntro`, the art) | L1 | c | the login art and tagline row | 1440, ~1280, <1024, 320 | T006: kept c (layout and art, no KERN counterpart); built by T034 |
+| `BranchMark` | the rules frames | c | the marks' chips | changed, new, removed | T006: kept c, the marks have no KERN counterpart (the `kern-badge` types are feedback colours); built by T019 |
+| `BranchName` (+ `FindingsSegment`) | P29 tabs | c | the tab with its ⓘ and problem icon | default, selected, hover, focus, with icon | T006: kept c, KERN 2.8.2 ships no tabs CSS (the React kit’s Tabs needs its own styles, not imported); built by T026 |
+| `Checkbox` | P33 base-checkbox, build note 2 | b | `kern-form-check__checkbox` + the 20 px box, the design's tick and the mixed dash | default, hover, focus, checked, mixed, disabled | T006: kept b, `KernCheckbox` stays, the 20 px box, tick and mixed dash are the override; built by T016 |
+| `ConfirmDialog` | P12, P33 dialog-actions | a + c | `kern-dialog` with 1–3 buttons, × and the scrim rule | open, long labels, scrollable, working | T006: kept a + c, on `kern-dialog` already; built by T035 |
+| `ConnectionStatusBadge` → status pill | U07 #1 | c | dot + label, tint, radius 8 | active, draft, deactivated | T006: kept c, replacing today’s `KernBadge`: the pill has a dot, not KERN’s icon, and draft/deactivated are no feedback types; built by T019 |
+| `Connector` (+ menu) | FR-038 | c | the pill with the chevron and the two-option menu | default, open, read-only, faded | T006: kept c; built by T023 |
+| `CopyableUrl` | U80, U81 | a + c | the button on KERN's button; the one-line URL | default, hover, focus, "✓ Copied", disabled with explanation | T006: kept a + c, on `kern-btn` already; built by T028 |
 | `CurrentUserProvider`, `RequireSignIn`, `RequireSignedOut` | — | — | no UI | — | no change |
-| `ErrorNoticeText` | P07 | a | `kern-alert` danger with the error ID line | default | proposal |
-| `FeedbackLoader`, `PageLoader` | P22 | a | `kern-loader`, the 56 px variant | default | proposal |
-| `FindingNote` | U44–U46 | c | the note under a rule or group | warning, info | proposal |
-| `FormConnectionLoadState` (+ `LoadFailed`) | P07, U06 #95 | a + c | the alert; the skeletons | loading, failed | proposal |
-| `FormErrorMessage` | P14 error, build note 7 | a | `kern-form-input__error` under the field | default | proposal |
-| `GroupFrame` (+ header, message) | U34, U35 | c | the group frame, the subtitle, the message card with the pencil | default, with message, removed, faded | proposal |
-| `IconTile` | U10 #17, U74 | c | the icon tile | default | proposal |
-| `InfoTooltip` | U37 `6151:33820`, U07 #16 | c | the tooltip with its arrow; blue ⓘ on blue, muted elsewhere | closed, hover, focus, touch | proposal |
-| `LocalDraftsOffer` (+ item) | U16 | c | the grey banner | one draft, several, discard dialog | proposal |
-| `MenuSearchField` | P26, P33 base-search | a | `kern-search` inside the menu | default, hover, focus, with text | proposal |
-| `NotFound` | P07 | a + c | the alert and the way back | default | proposal |
-| `PageTitle` | P31 | a | `kern-heading-x-large` / `-large` | default | proposal |
-| `RuleRow` (+ name, predicate, sentence, message, problem note, value chip) | U30, U55 | c | the row, the statement chips, the symbol chips | default, hover, open menu, selected, removed, problem, linked | proposal |
-| `TextField` | P14, P33 base-input-field | a | `kern-form-input` text, password, textarea | default, hover, focus, error, disabled, readonly | proposal |
-| `Toast` (+ message) | U10 #20, U51 | c | the dark toast, bottom centre, optional action | neutral, with action, with error ID | proposal |
-| `TopBar` | L2 | c | the two pills, the connection pill | signed out, signed in, in a connection, scrolled | proposal |
-| `UserMenu` (+ `SignOutDialog`) | U13 `6699:44358`, U17 | c + a | the account pill and its menu; the log-out dialog on `ConfirmDialog` | closed, open, focus, the dialog | proposal |
-| `ValuesPicker` (+ option item) | U32 `6357:43090`, U48 | c | the picker with search and "Done" | open, option hover/focus/selected/disabled | proposal |
-| `WizardLayout` | L3 | c | the sticky step header and footer, page scroll | create, edit, saving, loading, failed | proposal |
-| `WizardProgress` (+ step) | U02 #1–#4 | c | the step line, `role="progressbar"` | 1–4, clickable (edit), not clickable | proposal |
-| The pages' own components (research R11): `StatusBand`, `WelcomePage`, the documents list, detail and search card, the persona chips, data card and result rows, the publish dialog, the variant dialog and popover | the frames of their screens | c | — | the screen's states | proposal |
+| `ErrorNoticeText` | P07 | a | `kern-alert` danger with the error ID line | default | T006: kept a, it is text inside `KernAlert` at its call sites; built by T017 |
+| `FeedbackLoader`, `PageLoader` | P22 | a + b | `kern-loader kern-loader--visible`, KERN’s 96 px (the size kit P22 draws); where a screen frame draws it smaller (the 56 px of S1, S6, S14), a scoped size override in `index.css` read from that frame | default | T006: changed a → a + b: kit P22 draws only the 96 px loader, so a smaller size is an override; `FeedbackLoader` moves from its own SVG spinner to `kern-loader`; built by T018 |
+| `FindingNote` | U44–U46 | c | the note under a rule or group | warning, info | T006: kept c; built by T025 |
+| `FormConnectionLoadState` (+ `LoadFailed`) | P07, U06 #95 | a + c | the alert; the skeletons | loading, failed | T006: kept a + c; built by T017 |
+| `FormErrorMessage` | P14 error, build note 7 | a | `kern-error` with its danger `kern-icon` under the field | default | T006: class corrected: KERN 2.8.2 has no `kern-form-input__error`; its field error is `kern-error` (flex row, 8 px gap, the danger-tinted icon); built by T015 |
+| `GroupFrame` (+ header, message) | U34, U35 | c | the group frame, the subtitle, the message card with the pencil | default, with message, removed, faded | T006: kept c; built by T025 |
+| `IconTile` | U10 #17, U74 | c | the icon tile | default | T006: kept c; built by T018 |
+| `InfoTooltip` | U37 `6151:33820`, U07 #16 | c | the tooltip with its arrow; blue ⓘ on blue, muted elsewhere | closed, hover, focus, touch | T006: kept c, KERN 2.8.2 has no tooltip; built by T022 |
+| `LocalDraftsOffer` (+ item) | U16 | c | the grey banner | one draft, several, discard dialog | T006: kept c; built by T029 |
+| `MenuSearchField` | P26, P33 base-search | c | own markup with Tailwind and the overlay’s tokens, the values of P26 / P33 `1067:17092` | default, hover, focus, with text | T006: changed a → c: KERN 2.8.2 ships no search CSS (no `kern-search`, no `type=search` rule); the component is own markup already; built by T015 (T027 uses it) |
+| `NotFound` | P07 | a + c | the alert and the way back | default | T006: kept a + c; built by T037 |
+| `PageTitle` | P31 | a | `kern-heading-display` for the 40/48 page h1 (kit “heading/display”, 2x-large adaptive), `kern-heading-x-large` (32/40) and `kern-heading-large` (24/32) where a frame uses those styles | default | T006: class corrected: the page h1 the frames draw (40/48, weight 500, V1) is the kit’s “heading/display” = KERN’s `kern-heading-display`; `kern-heading-x-large` is 32 px; built by T017 (T043 uses it) |
+| `RuleRow` (+ name, predicate, sentence, message, problem note, value chip) | U30, U55 | c | the row, the statement chips, the symbol chips | default, hover, open menu, selected, removed, problem, linked | T006: kept c; built by T024 |
+| `TextField` | P14, P33 base-input-field | a | `kern-form-input` text, password, textarea | default, hover, focus, error, disabled, readonly | T006: kept a, on `KernInput` already; built by T015 |
+| `Toast` (+ message) | U10 #20, U51 | c | the dark toast, bottom centre, optional action | neutral, with action, with error ID | T006: kept c, KERN has no toast; built by T036 |
+| `TopBar` | L2 | c | the two pills, the connection pill | signed out, signed in, in a connection, scrolled | T006: kept c; built by T031 |
+| `UserMenu` (+ `SignOutDialog`) | U13 `6699:44358`, U17 | c + a | the account pill and its menu; the log-out dialog on `ConfirmDialog` | closed, open, focus, the dialog | T006: kept c + a; built by T031 |
+| `ValuesPicker` (+ option item) | U32 `6357:43090`, U48 | c | the picker with search and "Done" | open, option hover/focus/selected/disabled | T006: kept c; built by T027 |
+| `WizardLayout` | L3 | c | the sticky step header and footer, page scroll | create, edit, saving, loading, failed | T006: kept c; built by T033 |
+| `WizardProgress` (+ step) | U02 #1–#4 | c | the step line, `role="progressbar"` | 1–4, clickable (edit), not clickable | T006: kept c, the kit’s P25 progress is a bar, not the step line; built by T032 |
+| The pages' own components (research R11): `StatusBand`, `WelcomePage`, the documents list, detail and search card, the persona chips, data card and result rows, the publish dialog, the variant dialog and popover | the frames of their screens | c | — | the screen's states | T006: kept c; built by T042 (`WelcomePage`), T051 (documents list, detail, search card), T064 and T067 (variant dialog and popover), T071 and T072 (chips, data card, result rows), T076 (publish dialog), T078 (`StatusBand`) |
 
 Kit components not drawn on any Flow screen are not built (spec Assumptions): P16 Footer, P17
 Grid, P18 Header, P19 Kopfzeile, P28 Table, and the "Not used on Flow" section (U03 #20).
+T006 (2026-11-08) confirmed the list against the Flow frames' components: none of the six is
+used by a screen of `contracts/ui-screens.md`; the three “no change” rows have no UI and stay as
+they are. Two proposals named classes KERN 2.8.2 does not ship (`kern-search`,
+`kern-form-input__error`), one named the 32 px heading for the 40 px page h1, and one assumed a
+56 px loader variant the kit does not draw; those four rows were corrected and their tasks
+(T015, T017, T018) amended.
 
 ## 3. Patterns for the states the design does not draw
 
@@ -201,6 +283,37 @@ later use.
 | Dialogs | fade | opacity on the dialog and the scrim |
 | The "Published" state before the details | 0.5 s | behaviour (Clarification #33): kept under reduced motion |
 | `prefers-reduced-motion: reduce` | — | one rule: `transition: none; animation: none` on the transitioning elements; the pill just appears (U03 #40) |
+
+**The `.motion` contract (T003, 2026-11-08)**: every element that carries a transition or an
+animation of the table above also carries the class `motion`, next to its utilities (for
+example `motion transition-colors duration-(--duration-colour)`, or
+`motion transition-[width] duration-(--duration-pill) ease-out`). `frontend/src/index.css` holds
+the one rule that switches them off:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .motion,
+  .motion::before,
+  .motion::after {
+    transition: none;
+    animation: none;
+  }
+}
+```
+
+- The class reaches only its own element and that element's `::before` and `::after`, not its
+  children: a child that transitions too (the pill's text fading in) carries `motion` itself.
+- The rule is unlayered, so it beats Tailwind's `transition-*`, `duration-*` and `animate-*`
+  utilities (layer `utilities`) without `!important`; don't move it into an `@layer`.
+- Don't use `motion-reduce:` or `motion-safe:` for the design's motion: one rule, one class.
+  (The two existing spinners, `FeedbackLoader` and `TestStep/LoadingRing`, keep
+  `motion-safe:animate-spin`: they are not the design's motion.)
+- Under reduced motion the end state shows at once: write a transition so that the element's
+  resting style is the final one (an animation's keyframes run from the start state to the
+  resting style), so turning it off never leaves it half-shown.
+- The 0.5 s "Published" delay is a timer in the page, not a transition, and stays.
+- The `--duration-*` tokens are emitted only where a utility uses them
+  (`duration-(--duration-colour)`), as Tailwind 4 does with every theme variable.
 
 ## 5. Verification tables
 
@@ -296,3 +409,26 @@ stale.
   page scroll with sticky header and footer (research R4).
 - **Spec 001's and spec 002's `design-notes.md`**: the copy and tokens they record are history;
   the decisions on behaviour they cite stay in force through the baseline.
+
+### 8.1 The port's starting point (T001, 2026-11-08)
+
+The untouched checkout, before any task of this feature changed a file. Node v20.19.2, npm 9.2.0;
+`npm ci` at the root (the lock file is complete) and `uv sync` in `backend/`; `package-lock.json`
+and `backend/uv.lock` unchanged (compared byte for byte). The root's `prepare` script
+(`uv run pre-commit install || exit 0`) printed "git failed" because git is read-only here, and
+exited 0 by design.
+
+| Gate | Result |
+|---|---|
+| `npm run lint` (api-types, rules, frontend, mcp) | pass, no findings |
+| `npm test`: `rules/` | 43 files, 2337 tests passed |
+| `npm test`: `frontend/` | 23 files, 598 tests passed |
+| `npm test`: `mcp/` | 15 files, 408 tests passed |
+| `npm test`: `api-types/` | no test script |
+| `npm run build` (typecheck of api-types, rules, mcp; frontend `tsc -b && vite build`; mcp build) | pass; Vite's warning that `index-*.js` (709.77 kB, 209.20 kB gzip) exceeds 500 kB |
+| `uv run ruff check .` / `uv run ruff format --check .` | pass / 86 files already formatted |
+| `uv run mypy app/ scripts/ tests/` | no issues in 77 source files |
+| `uv run pytest` (`template_db_test` on 5435) | 1998 passed, 0 skipped (9 min 34 s) |
+
+Node total: 3343 tests in 81 files. The closing report (T101, SC-004) compares against these
+counts: a test removed or changed names an adopted item.

@@ -1,5 +1,5 @@
-// The middleware's temporary name, as in the Figma design (2026-10-13)
-export const APP_NAME = 'Connection Portal';
+// The product's name, in every screen and tab title (KERN Revamp design; spec 008, FR-019)
+export const APP_NAME = 'Konnekt';
 
 export const ROUTES = {
   login: '/login',
@@ -16,9 +16,9 @@ export const ROUTES = {
   approval: '/approvals/:id',
 } as const;
 
-// The create wizard's steps (Figma "App/Progress"; the Rules step's label from U11 6348:40212;
-// spec 004's Test step, FR-001, O2). The details screen shows them all done
-export const CONNECTION_STEPS = ['Connection', 'Documents', 'Rules', 'Test', 'Publish'] as const;
+// The wizard's four steps ("Step n of 4"; spec 008, FR-025, Q7). Publish is a dialog opened from
+// the test step, not a step. The details screen shows them all done
+export const CONNECTION_STEPS = ['Connection', 'Documents', 'Rules', 'Test'] as const;
 
 // The KERN React kit's built-in texts, in the UI's language (its defaults are German)
 export const KERN_TRANSLATIONS = {

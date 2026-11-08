@@ -97,8 +97,8 @@ export const INITIAL_DRAFT_DELETE_STATE: DraftDeleteState = {
   failure: null,
 };
 
-// The steps a draft can be saved in, in the wizard's order: the editor's STEP_ORDER. Publish,
-// CONNECTION_STEPS' last, is never reached by a draft
+// The steps a draft can be saved in, in the wizard's order: the editor's STEP_ORDER and
+// CONNECTION_STEPS (Publish is a dialog, not a step: FR-025)
 export const DRAFT_STEPS: readonly EditorStep[] = ['connection', 'documents', 'rules', 'test'];
 
 // "4 Nov 2026, 14:32": the overview's date, with the 24-hour time in the browser's time zone

@@ -223,7 +223,7 @@ export const ELEMENT_IDS = {
   personaField: (personaId: string, fieldKey: string) => `persona-${personaId}-${fieldKey}`,
 };
 
-// The wizard's steps by their place in the progress bar (CONNECTION_STEPS)
+// The wizard's steps by their place in the progress bar (CONNECTION_STEPS; Publish is a dialog)
 export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules', 'test'];
 
 export const INITIAL_EDITOR_STATE: EditorState = {

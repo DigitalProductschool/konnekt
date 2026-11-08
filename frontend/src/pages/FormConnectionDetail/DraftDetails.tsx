@@ -85,11 +85,10 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       badge={<ConnectionStatusBadge isActive draft />}
       meta={draft.description || undefined}
       head={
-        // The details are the Publish step's summary, so Publish is current whichever step the
-        // draft was saved in
+        // No step is current (Publish is a dialog, FR-025): the steps the draft reached are done
         <WizardProgress
           steps={CONNECTION_STEPS}
-          current={CONNECTION_STEPS.length - 1}
+          current={CONNECTION_STEPS.length}
           reached={reachedStepsOf(draft.step)}
           onSelect={continueAt}
         />

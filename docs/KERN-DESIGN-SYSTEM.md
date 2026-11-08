@@ -145,6 +145,41 @@ primitive tokens  →  semantic/theme tokens
   `body/large/regular`, `body/small/regular`, `label/default`, `label/default_subtle`, `label/large`,
   `label/small`.
 
+### 3.1 KERN Revamp overlay and the three build options (spec 008)
+
+The UI follows the designer's **KERN Revamp** (Figma "KERN – Revamp – Design Kit"), a rework of
+KERN's values that has no npm package. The packages stay at `@kern-ux/native` 2.8.2; the Revamp's
+values are laid over them.
+
+- **Where**: one `:root { … }` block in `frontend/src/index.css`, right after the four `@import`s
+  and before `@theme`, headed `/* KERN Revamp overlay (spec 008, design-notes §1) */`. It is the
+  only place a KERN variable gets a new value.
+- **Under KERN's own names**: the overlay sets `--kern-color-…`, `--kern-metric-…` and
+  `--kern-typography-…`, so `kern.css`, the React kit and the Tailwind theme pick the values up
+  without a change to their markup. It sets the plain names; `kern.css` derives the
+  `-contextual` aliases from them. Coming after `kern.css`, it also beats KERN's 768 px
+  `@media` switches of the adaptive type, so the design's single size holds on every width.
+- **A value without a KERN name** (a shadow, a duration, the variants' marks) is a project token
+  in `@theme` (`--shadow-card`, `--duration-pill`, `--color-variant-new` …), never a new
+  `--kern-…` variable.
+- **AA**: a Revamp text colour that fails 4.5:1 is set to the nearest passing value in the
+  overlay, with a comment naming the pair (spec 008's design-notes §1.5).
+- **Motion**: an element that transitions carries the `motion` class next to its utilities; the
+  one `prefers-reduced-motion` rule in `index.css` switches it off (design-notes §4).
+
+Each component is built in one of three ways, recorded per component in spec 008's
+`design-notes.md` §2:
+
+| Option | What | Example |
+|---|---|---|
+| **a** KERN class with the overlay | KERN's markup and classes unchanged; the overlay alone makes it match | `TextField` on `KernInput` / `kern-form-input` |
+| **b** KERN class plus a scoped override | KERN's markup, plus a rule in `index.css` scoped to the component's class for what the overlay can't express | `Checkbox`: `kern-form-check__checkbox` with the design's 20 px box, tick and mixed dash |
+| **c** own markup with Tailwind | KERN has no component for it, or its markup can't take the design's shape; Tailwind utilities on the overlay's tokens | `ActionMenu`, `InfoTooltip`, the status pill |
+
+KERN's CSS beats Tailwind on the same property (it is unlayered, Tailwind's utilities are in a
+layer): to change a property a KERN class sets, use option b, wrap the KERN element (option c
+around it), or, sparingly, the `!` suffix (§7).
+
 ## 4. Component API reference (verified against the installed package)
 
 The authoritative reference is the package's own `COMPONENTS.md` and per-component `.d.ts` files
