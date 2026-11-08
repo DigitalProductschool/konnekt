@@ -34,7 +34,10 @@ function SignedInScreens() {
   );
 }
 
-/** Signed-in screens with a layout of their own: the wizards and the details (WizardLayout) */
+/**
+ * Signed-in screens with a layout of their own: the wizards and the details (WizardLayout), and
+ * the homepage, whose loading page has no AppLayout (U10 6401:28567)
+ */
 function SignedInWizards() {
   return (
     <RequireSignIn>
@@ -70,12 +73,12 @@ function App() {
         <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
       </Route>
       <Route element={<SignedInScreens />}>
-        <Route path={ROUTES.overview} element={<FormConnectionListPage />} />
         <Route path={ROUTES.authorize} element={<AuthorizePage />} />
         <Route path={ROUTES.account} element={<AccountPage />} />
         <Route path={ROUTES.approval} element={<ApprovalPage />} />
       </Route>
       <Route element={<SignedInWizards />}>
+        <Route path={ROUTES.overview} element={<FormConnectionListPage />} />
         <Route path={ROUTES.firstConnection} element={<FirstConnectionPage />} />
         <Route path={ROUTES.newFormConnection} element={<FormConnectionEditorPage />} />
         <Route path={ROUTES.formConnection} element={<FormConnectionDetailPage />} />

@@ -1153,6 +1153,22 @@ tagged "Remap 3 Q1". The record is the same.
     errors, as the report noted under F30; FR-036 states the two conditions; #22, 002-S2.10,
     FR-036d and FR-036i hold.
 
+Fifth round, 2026-11-08, during `/speckit-implement` phase 5 (T044): a gap found while building,
+numbered #62 here and tagged "Implement Q1". The record is the same.
+
+- Q: The overview's draft rows read "Edited <date> · <step> step" (#59, FR-052d, F71), but the
+  list's `FormConnectionSummary` carries no step, and Clarification 2026-11-06 #1 defers an F
+  item that needs the backend. Add the field, defer the step, or drop it? (#62, Implement Q1,
+  F71) → B: Defer.
+  - Surfaces: U11 #15, U12 #16, U13 #14, U14 #11, U15 #16, U16 #27, U18 #43, U17 `6699:48031`
+    (build note U06 #89): draft rows read "Edited <date>" without " · <step> step".
+  - Behaviour and wording: a draft row's meta is "Edited <date>"; the frontend's `rowMetaOf`
+    (`pages/FormConnectionList/utils.ts`, tested) already appends " · <step> step" when a step
+    is given, so the later feature only adds the data. A draft's "Edit" still opens its stored
+    step (cosmetic 2), read by the editor. The item joins `deferred.md` group A.
+  - Supersedes: #59's and FR-052d's step part (FR-052d now names the deferral); F71 in
+    `contracts/ui-screens.md` S4.
+
 ## User Scenarios & Testing *(mandatory)*
 
 Each story is one flow of the app. It is checkable on its own: open its screens in every state,
@@ -1630,7 +1646,7 @@ Decided drift items (Clarifications, session 2026-11-07):
 - **FR-052**: The design's eight small additions are built as designed: a scrim click closes a
   dialog that doesn't delete or publish (the restore dialog excepted), every disabled button
   explains why on hover and on focus, a page change scrolls to the top, a draft row's meta reads
-  "Edited <date> · <step> step", the documents search card shows an "Added (n)" group, the Links
+  "Edited <date>" (its " · <step> step" deferred, #62), the documents search card shows an "Added (n)" group, the Links
   accordion counts "1 request link · 3 result links", tooltips also open on touch, and the
   variant dialog preselects "Linked to Standard (recommended)" (#59).
 

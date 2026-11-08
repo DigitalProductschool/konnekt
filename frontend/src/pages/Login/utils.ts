@@ -1,6 +1,6 @@
-import { ApiError } from '../../api/client';
+import { ApiError, errorNoticeOf } from '../../api/client';
 import { LOGIN_COPY } from './constants';
-import type { LoginFormAction, LoginFormState } from './types';
+import type { LoginFormAction, LoginFormState, SignInFailure } from './types';
 
 export function loginFormReducer(state: LoginFormState, action: LoginFormAction): LoginFormState {
   switch (action.type) {
@@ -16,16 +16,19 @@ export function loginFormReducer(state: LoginFormState, action: LoginFormAction)
       return {
         ...state,
         submitting: false,
-        error: action.message,
+        failure: action.failure,
         failedAttempts: state.failedAttempts + 1,
       };
   }
 }
 
-/** The message for a failed sign-in; it never says which of the two inputs was wrong. */
-export function signInErrorMessage(error: unknown): string {
+/**
+ * Why signing in failed: a 401 is a wrong username or password, never saying which of the two;
+ * anything else keeps the server's message and its error ID (FR-008)
+ */
+export function signInFailureOf(error: unknown): SignInFailure {
   if (error instanceof ApiError && error.status === 401) {
-    return LOGIN_COPY.invalidCredentials;
+    return { kind: 'credentials' };
   }
-  return LOGIN_COPY.signInFailed;
+  return { kind: 'failed', notice: errorNoticeOf(error, LOGIN_COPY.signInFailedText) };
 }

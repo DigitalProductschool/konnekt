@@ -8,9 +8,20 @@ export const LOGIN_COPY = {
   showPassword: 'Show password',
   forgotPassword: 'Forgot password?',
   submit: 'Log in',
-  secureNote: 'Your sign-in is encrypted',
-  invalidCredentials: 'Username or password is wrong. Check both and try again.',
-  signInFailed: 'Signing in failed. Try again in a moment.',
+  // While the request runs (W2, FR-008): the design draws no busy state
+  submitting: 'Logging in…',
+  secureNote: 'Your login is encrypted',
+  /*
+   * The server's 401 message (C5, FR-023a: "Username or password is wrong. Check both and try
+   * again."), split as the design's alert writes it: the first sentence bold (U10 6401:28435)
+   */
+  invalidCredentialsTitle: 'Username or password is wrong.',
+  invalidCredentialsText: 'Check both and try again.',
+  // Any other failure: the title, and the server's message with its error ID or this text
+  signInFailedTitle: 'Logging in failed.',
+  signInFailedText: 'Try again in a moment.',
+  // The toast after "Log out" (FR-051 (30), U10 7128:74220)
+  loggedOut: 'You’re logged out.',
 };
 
 export const INITIAL_LOGIN_FORM: LoginFormState = {
@@ -18,6 +29,6 @@ export const INITIAL_LOGIN_FORM: LoginFormState = {
   password: '',
   showPassword: false,
   submitting: false,
-  error: null,
+  failure: null,
   failedAttempts: 0,
 };

@@ -31,6 +31,7 @@ Updated as `/speckit-clarify` (session 2026-11-07) runs; items Q# come from
 | Q31 (a) | A success message a met citizen reads, shown on the test step as "Message Mia reads" | U06 #32; U65 #28; U70 #22 | "Your wallet data meets the requirements. Other documents are checked separately." | a stored per-connection success message delivered with the evaluation | 004-S8.6.7 (no success message) |
 | Q37 (b) | "Download PDF" of a connection's details (links, documents, rules per variant) | U07 #28; U58 #40; U63 #36; U80 #18; U81 #21; U82 #15; U83 #17; U84 #21; U85 #17; U86 #20 (6396:48385); U87 #13; U88 #19; U89 #22 (6417:31343); U90 #19; U91 #17; U92 #13; U93 #10; U94 #14; U95 #15; U96 #20; U97 #13; U99 #15 | "Download PDF" | a PDF rendered by the server, or a client-side PDF library and its layout | 002-S6.9 |
 | Q37 (c) | Status dates: "Active since <date>" / "Deactivated since <date>" on the details, "Published <date>" / "Deactivated <date>" on overview rows | details U58 #31, U63 #28, U80 #7 (7355:61158), U81 #8 (7355:61822), U82 #7, U83 #7, U84 #8, U85 #8, U86 #8, U87 #7, U88 #8, U90 #15, U91 #7, U92 #8, U99 #7; deactivated U89 #8, U96 #7 (7355:60885), U97 #7; overview U11 #15, U13 #13, #15, U14 #10, #12, U15 #15, #17, U17 #35, U18 #43, U90 #31 | "Active since …", "Deactivated since …", "Published <date>", "Deactivated <date>" | `published_at` and a deactivation time in the form connection responses and api-types | 002-S6.9, 005-S3.3 ("Edited <date>") |
+| F71 | A draft row's step: "Edited <date> · <step> step" (#62) | U11 #15; U12 #16; U13 #14; U14 #11; U15 #16; U16 #27; U18 #43; U17 6699:48031; build note U06 #89 | "Edited 28.10.2026 · Rules step" | `step` (the draft's stored step, null when published) in `FormConnectionSummary` and its api-types mirror; the frontend's `rowMetaOf` already shows it | 005-S3.3 ("Edited <date>") |
 | Q11 | Bulk delete on the overview: row and select-all checkboxes, the selection bar, one dialog listing the connections with status badges | U04 #4, #14, #19; U06 #66; U11 #9, #19; U12 #8, #10, #20; U13 #9, #18; U14 #8, #15; U15 #8, #20, #21, #27 (6699:45206), #29; U16 #23, #30; U17 #29; U18 #39, #45; U90 #27, #33 | "N selected · Cancel · Delete" | one endpoint that deletes several connections atomically | — (row delete is built, Q11) |
 
 `/speckit-specify` description (draft, to complete when the group is scheduled):
@@ -40,7 +41,7 @@ Updated as `/speckit-clarify` (session 2026-11-07) runs; items Q# come from
 > connection kept as a draft, deactivation that lets started requests finish, the example draft,
 > the email line in the user menu, a stored document order with drag reordering, a success
 > message for met citizens on the test step, "Download PDF", the publish and deactivation dates,
-> and bulk delete on the overview. The frames are listed in specs/008-kern-revamp-redesign/deferred.md,
+> a draft row's step on the overview, and bulk delete on the overview. The frames are listed in specs/008-kern-revamp-redesign/deferred.md,
 > group A, with their node ids; the frontend ports them as drawn, and each item adds its backend
 > field or endpoint, its api-types mirror and its MCP tool where agents need it.
 

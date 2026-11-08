@@ -95,7 +95,7 @@ actions (constitution).
 
 | Field | Type | Where |
 |---|---|---|
-| `hasConnections` | boolean, per account | `localStorage` key `<prefix>:<account>:has-connections`, read and written only by `hooks/useRememberedHomepage.ts` |
+| `hasConnections` | boolean, per account | `localStorage` key `<prefix>:<account>:homepage:has-connections` (the `:` in the last part keeps the local drafts' store from listing it, T039), read and written only by `hooks/useRememberedHomepage.ts` |
 
 **Decision** (`pages/FormConnectionList/utils.ts`, pure): `homepageOf(list, remembered)` →
 `'welcome'` when the loaded list (connections and drafts) is empty, `'overview'` when it holds

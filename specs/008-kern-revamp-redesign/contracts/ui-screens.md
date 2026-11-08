@@ -157,7 +157,7 @@ and has one `h1`.
   and "Create connection" with the arrow (cosmetic 1); rows of equal height (FR-029b) with the
   name, the description cut to one line with a hover tooltip holding the full text (FR-032,
   FR-051 (35)), the Status/Connection pill (Active, Draft, Deactivated; "Draft is blue"), "Edited
-  <date>" (a draft adds " · <step> step", F71, FR-052d), the actions "View" / "Edit" (a draft's
+  <date>" (a draft's " · <step> step" deferred: F71, FR-052d, CLAR #62), the actions "View" / "Edit" (a draft's
   "Edit" opens its stored step, cosmetic 2) and "Delete" with a per-row accessible name (FR-028);
   no checkboxes or selection bar (F14); no "Published <date>" (F52); no Undo after deleting (F4).
 - **States**: loading (skeleton rows, 001-S3.5); empty (the welcome page, S3, replaces the empty

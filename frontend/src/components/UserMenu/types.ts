@@ -1,5 +1,3 @@
-import type { LoginLocationState } from '@connection-portal/api-types/routing';
-
 export interface UserMenuProps {
   /**
    * In a flow (FR-026, T048): "Log out" calls this instead of logging out, so that the editor
@@ -8,15 +6,6 @@ export interface UserMenuProps {
    * pill, where the focus goes back on "Cancel" (F20)
    */
   onLogOut?: (logOut: () => void, trigger: HTMLButtonElement | null) => void;
-}
-
-/**
- * Router state of the sign-in screen after "Log out": it shows the toast "You're logged out."
- * (FR-051 (30), U10 7128:74220). `from` stays the page the user logged out of, as the sign-in
- * guard sets it
- */
-export interface LoggedOutLocationState extends LoginLocationState {
-  loggedOut: true;
 }
 
 export interface SignOutDialogProps {

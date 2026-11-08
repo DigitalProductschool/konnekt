@@ -259,18 +259,21 @@ later use.
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
-| **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute |
+| **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute; a cut text's tooltip (T044, the overview's description, U13 `7366:55276`): on hover of a cut text only, on the keyboard focus of the row's name, on a tap, `aria-hidden` since the text is whole in the page |
 | **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason) |
-| **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating |
-| **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037) |
-| **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037) |
+| **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating; the overview's list (T044): the toolbar's 48 px kept empty, the list card with its headers and three skeleton rows 80 high in the rows' columns (name 160 strong + description 220 light, status 72 strong, date 96 light, bars 10 high, radius 4), under a polite status with "Loading your connections…" (`FormConnectionRowSkeleton`) |
+| **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037); built as the welcome page by T042: the card heading (`h2`, `text-kern-adaptive-large font-semibold`) and the four-step illustration (`ol`, `IconTile tone="plain" size={48}`, ink glyphs, lines `bg-kern-action-default opacity-32` sharing the free space; a row from a 640 px text column, stacked below, undrawn) |
+| **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037); on the overview (T043) the alert sits right under the title block and before the local-drafts offer, with the footer bar kept and no toolbar |
 | **Status pill** | U07 #1–#4 | dot + coloured label, tint fill, no border, radius 8; active green, draft blue (AA per §1.5), deactivated grey; used in rows, the header pill and the band |
 | **Status band** | U07 #6–#8, U80, U89, U93 | 32 px icon column, h1 + sub-line 4 px apart, padding 32, picture bottom right (colour / grey), the ⋯ and "Activate again" at the right end; the draft band's gradient from `feedback-info-background` to `layout-background-hued` |
 | **Info strip** | U07 #18, U19 `6699:45346` | blue ⓘ, info background, one sentence |
-| **Card** | P10 (`surface`, `interactive`), U11 (the list card), U21 (the search card) | KERN's card; the kit's `surface` variant as the light blue card where drawn |
+| **Card** | P10 (`surface`, `interactive`), U11 (the list card), U21 (the search card) | KERN's card; the kit's `surface` variant as the light blue card where drawn; the overview's list card (T043): white, 1 px `decorative-border`, radius 12, no shadow (the V5 card `6699:44252` draws none, §1.3), its column headers on `layout-background-hued` 8 24, label/small muted, `aria-hidden` |
 | **Accordion** | P06, U80, U82 | the heading with "View links" / "Hide links" and the count; one open at a time on the details; heights animate (§4) |
 | **Tabs** | P29, U38, U82 | the variant tabs with the ⓘ and the problem icon; pinned under the step head on the rules step |
-| **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6 |
+| **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6; first built on the overview's rows (T044, `formatRowDate`, de-DE 2-digit); `formatEditedDate` ("5 Oct 2026") still serves Account, Approval and the details until their tasks switch |
+| **Search in a list** | U11 `6699:44511`, `6699:44570`, `6692:42636`; FR-051 (27) (T043) | a pure filter in the page (`filterConnections`: name and description, `matchesSearch`'s `toLocaleLowerCase` folding and trim, the order kept; nothing sent); the count above the list as a polite status ("3 connections" → "1 of 3 connections"); KERN's input with the search icon (`kern-form-input__input pl-44! pr-48!`) and a visible `kern-label` 16 px before it (stacked over the field below 640 px; the frames draw no label); the × (`kern-btn--tertiary kern-btn--small`, "Clear search") once something is typed, emptying the field and keeping the focus in it; no results: the message with the typed text (label/default), the hint (body/small muted) and "Clear search" (a `kern-link` button) inside the list card under its headers, moving the focus to the field; T051's documents search card follows it |
+| **List inside a card** | U12 `6699:44915` (T044) | from 768 × 480 the overview's column is capped at the window (`max-h-[calc(100dvh-144px)]`), the card shrinks to fit and its rows scroll inside it under the column headers; below that the page scrolls as a whole; the rows' table layout from a 58rem card (`@container`), wrapped below, the headers hidden then |
+| **Homepage memory** | FR-027, research R6, W11 (T039) | `homepageOf(list, remembered)` in `pages/FormConnectionList/utils.ts` (pure, tested): loaded and empty → welcome; loaded with anything → overview (a draft counts); loading → `remembered ? 'overview' : 'welcome'`; `hooks/useRememberedHomepage.ts` keeps one `localStorage` flag per account, `connection-portal:local-draft:v1:<username>:homepage:has-connections` (`storageKeyOf`, `keys.ts` unchanged; the `:` in the tail keeps the local drafts' store from listing it), `'true'` / `'false'`, written whenever the list's "has anything" is known and changes (load, last deletion), read once per account; blocked storage → `null`, nothing logged; the page shows `PageLoader` only while loading with `remembered === null`; a draft saved on the way to `/` (`draftSaved` in the router state) counts as `remembered === true`; the loading page is the first load's (a retry stays on the overview); a failed load shows the overview's error state whatever the memory says (T042) |
 | **Page change** | FR-052c, U06 #94 (`7137:50569`) | a change of the route's path scrolls the window to the top at once (`App.tsx`, `behavior: 'instant'`: kern.css makes the root scroll smoothly) and the layout's main region fades in over 150 ms (§4); the header pills stay. A change of the query alone or of the editor's step is no page change |
 | **Sticky parts of the wizard** | U01 #14–#19, U03 #42–#43, research R4 | the page scrolls; the header pills stay at the top (64 / 120 below md), the step header under them from 768 × 640 (`wizard-pinned:`), the footer at the bottom from 480 px tall; in smaller windows the step header and footer scroll with the page so that the step keeps room (WCAG 1.4.10, spec 005 FR-028). What they cover is `--wizard-sticky-top` / `--wizard-sticky-bottom`: what scrolls into view stops 16 px clear of them, a menu stays between them, the toast sits 24 above the footer, a pinned bar sticks at `top-(--wizard-sticky-top)`, a part that fills the window takes `100dvh` less both and the content's 40 px bottom padding |
 
@@ -597,7 +600,7 @@ Checked in Chromium (playwright-chrome) at 1455 × 900 (1440 frame, body 1440) o
 | P33 2:2542 | multiline, focus | textarea | ring | 4 `#0b1220` | outline 4px solid rgb(11, 18, 32), offset 0 | match |
 | — | multiline | textarea | spell check, limit | spell check on, ≤ 500 (FR-032) | `spellcheck` true by default; `maxLength` passes through; no counter (the design draws none, 006-S1.3 has none) | match (FR-032: a 500-character limit, no counter drawn; coordinator 2026-11-08) |
 | U19 6699:45403 | multiline | step 1 description as a textarea | element | "Form/Textarea" | step 1 still renders an input (it doesn't pass `multiline`) | deferred to T049 (and T064 for the variant dialog) |
-| U10 #7 | password, trailing slot | toggle | place | inside the field, right end | slot `absolute inset-y-0 right-4`, a 40 px small button centred (4 from top and right), input `padding-right 56` (replica) | match (the toggle itself: T040) |
+| U10 #7 | password, trailing slot | toggle | place | inside the field, right end | slot `absolute inset-y-0 right-4`, a 40 px small button centred (4 from top and right), input `padding-right 56` (replica; 48 since T040: the toggle is 32 px) | match (the toggle itself: T040) |
 | — | hint | hint | place, link | KERN `kern-hint` under the label | `kern-hint` with `id`, in `aria-describedby`; no page passes `hint` yet | deferred to T064 (the variant dialog's helper) |
 | — | with text | input | colour | `#0b1220` 16/24 | rgb(11, 18, 32) 16px/24px ("Neue Verbindung") | match |
 
@@ -1664,12 +1667,16 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 
 | Unit | Screen | Status |
 |---|---|---|
-| U10 | S1, S2 | pending |
-| U11, U12, U13, U15, U17 (`6699:47943`) | S3, S4 | pending |
-| U14, U90 | S17, S4 | pending |
-| U16 | S5 | pending |
+| U10 | S1, S2 | done (T040, T041, 2026-11-08; the loading frame: T042, 2026-11-08) |
+| U11 (`6699:44481`, `6699:44486`) | S3 | done (T042, 2026-11-08) |
+| U11 (`6699:44240`, `6699:44511`, `6699:44570`): title, hint, toolbar, search, list card, footer bar | S4 | done (T043, 2026-11-08) |
+| U11 (`6699:44240`) rows, U12, U13, U17 (`6699:47943`) | S4 | done (T044, 2026-11-08); F71's step deferred (CLAR #62) |
+| U15 (`6699:47845`): toolbar and frame | S4 | done (T043, 2026-11-08); the edit dialog `6699:47905`: S7 |
+| U14, U90 (`6699:44359`, `6699:48039`): the row delete | S4 | done (T044, 2026-11-08) |
+| U14, U90 (the details' dialogs) | S17 | pending (T082) |
+| U16 | S5 | done (T045, 2026-11-08; the list card's minimum height fixed by the coordinator) |
 | U17, U19 | L3, S6, S7 | pending |
-| U18 | S3, S7 | pending |
+| U18 | S3, S7 | S3 done (T042: F15, nothing to build); S7 pending |
 | U20–U28 | S8 | pending |
 | U29, U34, U35, U36, U43, U50, U51, U54–U58, U64 | S9 | pending |
 | U30–U33, U48, U49, U53 (U09) | S10 | pending |
@@ -1684,6 +1691,333 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | (no frames) | S19, S20, S21, S22 | the patterns' tables of §5.1 stand; the states are checked in quickstart V9 |
 
 U01–U09 are annotations and need no table.
+
+### U10 Sign-in and forgot password (S1, S2) — T040, T041, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440) and 320 × 640, signed out
+(cookies cleared), against U10 `6401:27999` (the card, `get_design_context`), `6401:28435` (the
+alert), `6401:28462` (the forgot-password card), `6701:39407` (the loading frame's header) and the
+section's metadata (`6401:27993`: card boxes in every frame; no frame changed since the audit).
+Fonts: `document.fonts.check('600 24px "Fira Sans"')` and `'400 14px "Fira Sans"'` true. The 5xx
+and the running request: `POST /api/auth/login` held or answered `500 {error, message, error_id}`
+by Playwright routing (nothing sent to the backend); the wrong password and "Log out" against the
+real backend (account `designer`). Layout L1 (header, hero, gradient, card slot): the `AuthLayout`
+table (T034) stands.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U10 6401:27999 | default | card | box | 847, 202, 440 × 496 (centred in 900) | 847, 202, 440 × 496 | match |
+| U10 6401:27999 | default | card | fill, radius, shadow, border | white; 12; Elevation/Card `0 1 2 #1315250d`, `0 6 20 #1315250d`; none | oklch(1 0 0); 12px; `rgba(19,21,37,0.05) 0 1px 2px`, `rgba(19,21,37,0.05) 0 6px 20px` (`shadow-card`); 0 (was a 1 px `neutral-100` border) | match |
+| U10 6401:27999 | default | card | padding, gap | 40; 24 | 40px; 24px | match |
+| U10 6401:28001 | default | "Log in" | font, colour, box | heading/large 600 24/32, `#0b1220`; 40, 40 in the card, 32 high | 600 24px/32px, rgb(11, 18, 32); 887, 242 (40, 40), 32 high | match |
+| U10 6401:28001 | default | "Log in" | element | the card's only heading (U10 #4) | `h2`; the page's `h1` is the tagline (T034, ARCHITECTURE "Titles") | match (FR-012: one h1, "Connect to the EUDI Wallet") |
+| U10 I6401:28003;…;2:2110 | default | labels | font, padding, box | label/default 600 16/24 `#0b1220`; baseline padding 6 / 2 (32 high) | 600 16px/24px rgb(11, 18, 32); padding 6px / 2px, 32 high (`[&_label]:pt-6 [&_label]:pb-2` on the form) | match |
+| U10 6401:28003 | default | Username | block, input | block at 96 in the card, 88 high; input 48 at 136, 360 wide | label at 298 (96), input 887, 338 (136) 360 × 48 | match |
+| U10 I…;2:2147 | default | inputs | fill, line, radius, padding, font | `#f2f5fb`, bottom 2 `#22293a`, 4, 0 16, 16/24 | rgb(242, 245, 251), 2px solid rgb(34, 41, 58), 4px, 0 16px, 16px (T015's `TextField`) | match |
+| U10 6401:28003, 6616:40784 | default | labels | required marker, placeholder | none; none | no `requiredMark` (`required` on the inputs), no placeholder | match |
+| U10 6616:40784 | default | Password | block, input | block at 208, 128 high (88 + the 40 link row); input at 248 | label at 410 (208), input 450 (248) | match |
+| U10 I6616:40784;6616:40458 | default | show/hide toggle | size, place | 32 px icon button inside the field (component description), the eye 24, its right edge 8 from the field's | button 1211, 458, 32 × 32 (`TextField` `trailing`, slot `right-4`); eye 1215, 462, 24 × 24, right edge 1239 = field 1247 − 8 | match |
+| U10 I6616:40784;6616:40453 | default (hidden) | toggle icon | glyph, colour | icon-visibility_off (struck-through eye) while hidden, `action-default` `#1d56f0` | `kern-icon--visibility-off` (the same Material glyph), rgb(29, 86, 240); `kern-icon--visibility` while shown | match |
+| — | default | toggle | name, state (FR-051 (29)) | not drawn | `button` "Show password" (`sr-only`), `aria-pressed` false → true, the input `password` → `text` | match |
+| — | keyboard | toggle | reach, ring | not drawn | Tab order username → password → toggle → "Forgot password?" → "Log in"; Space toggles; ring 4px solid rgb(11, 18, 32) on keyboard focus, none after a click | match (FR-009) |
+| — | hover, pressed | toggle | tint | not drawn | none (only the icon; as before) | match |
+| — | password, trailing slot | input | text clear of the toggle | text box ends 48 from the field's edge (8 before the 32 px toggle's icon box) | `padding-right` 48 (`TRAILING_PADDING_CLASS` `pr-48!`, set by the coordinator after T040: the toggle is `trailing`'s only user) | match |
+| U10 I6616:40784;6616:40381 | default | "Forgot password?" | place | 8 under the password field, left, row 40 high | 887, 506 (field bottom 498 + 8), 32 high + 8 = 40 | match |
+| U10 I6616:40784;6616:40381 | default | "Forgot password?" | anatomy | kit P21 link-default: arrow_forward 24 before the text, gap 4, padding 6 / 2, body/default 400 16/24 `#1d56f0`, no underline | `kern-link` + `kern-icon--arrow-forward` 24 × 24, gap 4px, padding 6px 0 2px, 400 16px/24px rgb(29, 86, 240), `text-decoration: none` (underlined on hover, KERN) | match |
+| — | visited | "Forgot password?" | colour | not drawn (always blue) | blue (`kern-link--no-visited-state`) | match |
+| — | default | "Forgot password?" | target, state | /forgot-password, keeping the requested route (001-S2) | `/forgot-password` with `{ from }` (the `loggedOut` flag left out) | match |
+| U10 6401:28005 | default | "Log in" button | box | 360 at 40, 360 in the card, 48 high | 887, 562 (360), 360 × 48 | match |
+| U10 6401:28005 | default | "Log in" button | fill, radius, label | `#1d56f0`, 8; label/default 600 16/24 white | `kern-btn--primary kern-btn--block`: blue, 8px; 600 16px/24px white | match |
+| — | running | "Log in" button | busy (W2, FR-008) | not drawn | `aria-disabled="true"`, label "Logging in…", KERN's 40 % and `not-allowed`, keeps the focus; a second click or Enter sends nothing (1 request) | W2 |
+| U10 6401:28006 | default | encrypted note | box, layout | 432 in the card, 24 high; glyph 16 at 95 / 4, 8 before the text; centred | 887, 634 (432), 360 × 24; glyph 982, 638 (95 / 4) 16 × 16; gap 8 | match |
+| U10 6401:28007 | default | lock glyph | asset, colour | "Icon/Glyph" lock 16 × 16, `#4a5468` | `assets/icons/lock.svg` = the frame's export (16 × 16, `#4A5468`; was the old 24 px `#51577a` file) | match |
+| U10 6401:28008 | default | "Your login is encrypted" | text, font, colour | body/small 400 14/24, `#4a5468` | "Your login is encrypted" (was "Your sign-in is encrypted"), 14px/24px, rgb(74, 84, 104) | match (cosmetic 25) |
+| U10 6401:28088 | filled | fields | values | "lena.weber", the password masked | typed values; the password as dots while hidden | match (FR-002b: sample data) |
+| U10 6401:28187 | failed sign-in | card | box | 847, 146, 440 × 609 | 847, 145.5, 440 × 609 (900 − 609 = 291, halved) | match |
+| U10 6401:28435 | failed sign-in | alert | place, box | 96 in the card (above the fields), 360 × 89 | 887, 241.5 (96), 360 × 89 | match |
+| U10 6401:28435 | failed sign-in | alert | frame, fill, radius | 2 `#c4271c` inside, header `#fef1f0`, 8 | outline 2px rgb(196, 39, 28) offset −2px (the `index.css` alert rule), rgb(254, 241, 240), 8px | match |
+| U10 I6401:28435;1:4099 | failed sign-in | alert icon | size, colour, place | icon-danger 32, `#c4271c`, centred in the header (padding 16) | `kern-icon--danger` 32 × 32 (the overlay's alert icon size), rgb(196, 39, 28), 903, 270 (16 in, centred) | match |
+| U10 I6401:28435;1:4101 | failed sign-in | alert text | content, fonts | one title paragraph: "Username or password is wrong. " title/default 600 18/24 + "Check both and try again." Regular 16/24 | `kern-title` 600 18px/24px, padding 5 8 3, then a span 400 16px/24px; "Username or password is wrong. Check both and try again." (T011's text, C5), 296 × 57 | match |
+| U10 6401:28191 | failed sign-in | Username field | error fill | the error fill (U10 #13) | rgb(254, 241, 240), bottom 2px rgb(196, 39, 28), `aria-invalid="true"` | match |
+| U10 6616:40900 | failed sign-in | Password field | error fill | normal fill (U10 #13: only Username) | the error fill too, `aria-invalid="true"` | F16 (CLAR Q10: both fields) |
+| — | failed sign-in | fields ↔ alert | link, announcement | not drawn | both inputs `aria-describedby="login-error"` (the alert); `role="alert"`, re-mounted on every failure so the same text is announced again; no message under the fields | match (F16, 001-S1.2) |
+| — | failed sign-in | values | kept | kept (U10 #12) | kept | match |
+| — | server error (5xx) | alert | content (FR-008) | not drawn | `KernAlert` danger, title "Logging in failed.", body the server's message and "Error ID: 3f2c9a7e-…" (`ErrorNoticeText`); fields not marked; "Log in" again | W2, F22 |
+| — | network failure | alert | content | not drawn | title "Logging in failed.", body "Try again in a moment." | W2 |
+| U10 6401:28567 | after sign-in | loading block | loader, label, position | 56 px spinner, "Loading your connections…" 600 18/24, block 224 × 96 centred in 1440 × 900 | `PageLoader label={LIST_COPY.loading}` reached from the sign-in (`/login` → `/`, the list held by Playwright, no memory stored): block 608, 402, 224 × 96 at 1455 × 900 (the frame's 608, 402); 320 × 640: 40, 272, 224 × 96, no scroll (scrollWidth 305) | match (T042) |
+| U10 6701:39407 | after sign-in | header | pills (U10 #18) | white Konnekt pill (signed-out style), DE/EN, no account pill | `TopBar signedOut`: the pill 16, 16, 133 × 48, `oklch(1 0 0)`, not a link; no account pill (no `header button`); the page white; the page's one h1 `sr-only` "Your connections" | match (T042; DE/EN: F6) |
+| U10 7128:74204 | logged out | card | content | the default card, empty fields | the default card, empty fields | match |
+| U10 7128:74220 | logged out | toast | box | 647, 820, 146 × 56 (24 above the edge, no footer) | 647.1, 820, 145.9 × 56 (`noFooter`) | match |
+| U10 7128:74220 | logged out | toast | fill, radius, padding, shadow, text | `#0b1220`, 8, 16, Elevation/Menu; "You're logged out." 14/24 white | rgb(11, 18, 32), 8px, 16px, `rgba(19,21,37,0.16) 0 10px 28px`; "You’re logged out." white | match |
+| — | logged out | toast | timing, announcement | 6 s (component description) | in the polite status region 142 ms after `/login` shows; gone after 6 s; not again after a reload or "Back to log in" (the flag dropped from the history entry, `from` kept) | match (FR-051 (30)) |
+| — | logged out | toast | trigger | after "Log out" only | shown for `loggedOut` in the router state (UserMenu); an expired session (`useSignOutOnUnauthorized`) sets none | match |
+| — | default | tab title, headings | FR-012 | — | "Log in · Konnekt"; one `h1` (the tagline) | match |
+| — | 320 × 640 | card | width, scroll (W2) | — | 16, 273 wide; failed sign-in 683 high, the alert's text wraps (163 high); no element past the card's edge; no horizontal scroll | match (W2) |
+| U10 6401:28462 | forgot password | card | box | 847, 330, 440 × 240 | 847, 330, 440 × 240 (was 300, with a lock tile and a primary button) | match |
+| U10 6401:28462 | forgot password | card | fill, radius, shadow, padding, gap | white, 12, Elevation/Card, 40, 24 | the same as the sign-in card | match |
+| U10 6401:28464 | forgot password | heading | text, font, box | "Forgot your password?" heading/large 600 24/32 `#0b1220`, at 40 / 40 | `h2` the same text, 600 24px/32px rgb(11, 18, 32), 887, 370 | match |
+| U10 6401:28465 | forgot password | text | text, font, box | "Ask your admin to reset it. Then come back and log in." body/default 400 16/24 `#4a5468`, 8 under the heading, 360 × 48 | the same text (was "Ask your admin to reset it."), 400 16px/24px rgb(74, 84, 104), 887, 410, 360 × 48 | match |
+| U10 6401:28551 | forgot password | "Back to log in" | box | 40 / 152 in the card, 138 × 48 (40 visible) | `kern-btn--tertiary kern-btn--small`: 887, 486 (40 / 156), 138 × 40 + KERN's 4 / 4 margins = 48 | match |
+| U10 I6401:28551;1914:12733 | forgot password | "Back to log in" | icon | icon-arrow_back 20, `#1d56f0`, padding 0 8 | `kern-icon--arrow-back` 20 × 20 at 895 (8 in), rgb(29, 86, 240) | match |
+| U10 I6401:28551;1914:12735 | forgot password | "Back to log in" | label | label/small 600 14/24 `#1d56f0`, padding 4 8 | 600 14px/24px rgb(29, 86, 240), padding 4px 8px | match |
+| — | forgot password | "Back to log in" | target, state (001-S2) | not drawn | `/login` with `{ from }`: `/form-connections/new?x=1#h` survived the round trip | match |
+| — | forgot password | tab title, headings | FR-012 | — | "Forgot password · Konnekt"; one `h1` (the tagline) | match |
+| — | forgot password, 320 × 640 | card | width, scroll | — | 16, 273 × 296 (the text wraps to three lines); no horizontal scroll | match (W2) |
+
+Notes (T040): `TextField` gets its first callers of `invalid` (both sign-in fields, F16) and `trailing` (the 32 px show/hide button); U10's kit input draws the label with baseline padding 6 / 2 (U19's step 1 draws none), added on the sign-in form with `[&_label]:pt-6 [&_label]:pb-2` rather than a prop. The failed sign-in's alert is KERN's alert markup (`kern-alert kern-alert--danger`) because the design sets its second sentence in regular 16/24 inside the title line and `KernAlert`'s `title` takes a string; the 5xx alert is `KernAlert`. `assets/icons/lock.svg` is now Figma's 16 px glyph (`#4a5468`). Undrawn copy for the designer (T101): "Logging in…" and the 5xx / network alert "Logging in failed." / "Try again in a moment.". No new AA pair (§1.5).
+
+### U11 Welcome page (S3) — T042, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440) and at 1100, 1031, 1000, 800, 767,
+320, signed in as `designer`, against U11 `6699:44481` (`get_design_context` and the metadata of
+`6699:44484`; the frame unchanged since the audit: the same parts as U11 #22–#28). The empty list
+by Playwright routing (`GET /api/form-connections` answered `{data: [], message}`), the 5xx the
+same way (`500 {error, message, error_id}`); the seeded drafts were not touched. The card's values
+of the `NotFound` table (T037, §3 "Empty state") apply; the rows below are the welcome page's own.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U11 6699:44486 | welcome | h1 | text, font, colour, box | "Welcome to Konnekt", heading/x-large 500 32/40 `#0b1220`, at 160, 96 | the same text (`PageTitle size="x-large"`), 500 32px/40px rgb(11, 18, 32), 160, 96 | match (C1) |
+| U11 6699:44487 | welcome | hint | presence | hidden layer | none | match |
+| U11 6699:44488 | welcome | card | box, fill, radius, padding, gap | 160, 152, 1120 × 344; `#f2f5fb`, 12, 48, 48 | 160, 152, 1120 × 344; rgb(242, 245, 251), 12px, 48px, 48px | match |
+| U11 6699:44489 | welcome | text column | box | 208, 200, 776 wide; parts 32 apart | 208, 200, 776 wide; heading block → steps 32, steps → action 32 | match |
+| U11 6699:44491 | welcome | card heading | text, font, box | "Create your first connection", title/large 600 24/32 `#0b1220`, at 208, 200 | `h2` the same text, 600 24px/32px rgb(11, 18, 32), 208, 200, no KERN padding | match (§3 "Empty state": the card heading where the page has its own h1) |
+| U11 6699:44492 | welcome | sentence | text, font, box | "Link your services to the EUDI Wallet. Set your own rules and get verified citizen data.", body/default 400 16/24 `#4a5468`, 8 under the heading, 578 × 48 (two lines) | the same text, 400 16px/24px rgb(74, 84, 104), 208, 240, 578 × 48 | match |
+| U11 6699:44493 | welcome | steps | box, layout | row at 208, 320, 776 × 48; steps 16 from the lines | `ol` 208, 320, 776 × 48, gap 16 | match (cosmetic 25) |
+| U11 6699:44495 | welcome | step tiles | size, fill, shape | 48 round, white (`layout-background-default`) | `IconTile tone="plain" size={48}`: 48 × 48, oklch(1 0 0), radius 9999px; tiles at x 208, 490.9, 699.5, 873.6 (Figma 208, 490.7, 699.3, 874) | match |
+| U11 6699:44496 ff. | welcome | glyphs | asset, size, place | "Icon/Glyph" document, fact_check, science, public, tone ink `#0B1220`, 24 at 12 / 12 | the frame's exports (`*-ink.svg`), 24 × 24 at 12 / 12 in each tile | match |
+| U11 6699:44497 ff. | welcome | step labels | text, font | "Choose documents", "Set rules", "Test", "Publish"; label/default 600 16/24 `#0b1220`, 8 after the tile | the same, 600 16px/24px rgb(11, 18, 32), 8 after the tile | match |
+| U11 6699:44498 ff. | welcome | lines | size, colour | three equal lines 55.7 × 2, `#1d56f0` at 32 %, centred (y 23) | three lines 56.2 × 2 (the labels render 1.6 px narrower in all), rgb(29, 86, 240) at opacity 0.32, y 343 (320 + 23) | match |
+| — | welcome | steps | semantics | not drawn | `ol` "How a connection comes together", four `li`; tiles and lines `aria-hidden` | match (FR-012) |
+| U11 6699:44508 | welcome | action | text, kind, box | "Create connection", primary with the forward arrow, 208, 400, 204 × 48 | `Link` `kern-btn--primary` + `kern-icon--arrow-forward`: 208, 400, 204.7 × 48, rgb(29, 86, 240), radius 8, padding 0 16; arrow 24 × 24 | match |
+| — | welcome | action | target, keyboard | opens step 1 (U11 #25) | `/get-started`; Tab reaches it, ring 4px solid rgb(11, 18, 32), Enter opens the flow | match (FR-027) |
+| U11 6793:47828 | welcome | "Start with an example" | presence | secondary button next to the action | none | F15 (OUT-9) |
+| U11 6699:44509 | welcome | picture | asset, size, place, alt | wallet star 200 × 193 at 1032, 227.5 (centred in the card) | `wallet-star@2x.png` 200 × 193 at 1032, 227.5, `alt=""` | match |
+| — | welcome | tab title, headings | FR-012 | — | "Welcome · Konnekt"; one h1 | match |
+| — | welcome, 1100 / 1031 | steps | layout | not drawn | the row while the text column is 640 wide or more (`@container`, `@min-[640px]`): lines 33.8 at 1100, 10.8 at 1031 | match (W2) |
+| — | welcome, 1000 / 800 | steps | layout | not drawn | stacked, 8 apart, no lines (column 609 / 409 wide); picture still shown | W2 |
+| — | welcome, 767 / 320 | card, picture | padding, display | not drawn | padding 24, picture hidden (its wrapper, kern.css's `img { display: block }`); 767: steps in a row again (column 672); 320: stacked, card 273 wide, no horizontal scroll (scrollWidth 305) | FR-010 |
+| U06 #85 (7137:50569) | first visit, no memory | `/` | page | the first-time homepage 1b | sign-in → `/` → `PageLoader` (U10 frame) → welcome page | match (FR-027) |
+| U06 #85 | loading, memory `false` | `/` | page | — | welcome page at once while the list is held (no loader, no flash) | match (R6) |
+| U06 #85 | loading, memory `true` | `/` | page | — | the overview's loading state (`AppLayout`, h1 "Your connections", the loader; T044's skeleton later) | match (R6) |
+| U06 #85 | after the last deletion | `/` | page | "Deleting the last one shows 1b again" | memory `true`, list answered empty → overview loading, then the welcome page; the flag becomes `false` | match |
+| U06 #85 | a draft exists | `/` | page | "a draft … counts" | the real list (three seeded drafts) → overview; flag `true` | match (W11) |
+| U06 #86 | — | memory | storage | "Keep this in localStorage so a reload keeps it" | `connection-portal:local-draft:v1:designer:homepage:has-connections` = `'true'` / `'false'`, written on every load (T039) | match |
+| — | failed (5xx), memory `false` or none | `/` | page (W2) | not drawn | the overview's error state, whatever the memory says: h1 "Your connections", danger alert "Couldn’t load your connections" with the server's message and "Error ID: 3f2c9a7e-…" (`ErrorNoticeText`), "Try again" (`kern-btn--secondary kern-btn--small`, `mt-10`); the flag not written | W2 |
+| — | "Try again", no memory | `/` | page | — | the overview's loading state (not the U10 loading page again), then the result | W2 |
+| — | `/get-started` loading | page | frame, loader | "with its loading state" | `WizardLayout` (header pills with the account pill, no step header, no footer) and the 56 px loader with "Loading your connections…" centred in the column (block 608, 430); `sr-only` h1 "Create your first connection"; tab "Loading your connections… · Konnekt" | match (T033, T018) |
+| — | `/get-started` loaded | page | step | step 1 | "Step 1 of 4", h1 "Create your first connection", `?local=new-…` written (W11), tab "Create your first connection · Konnekt"; no fade between the loader and step 1 | match |
+| — | sign-in without a requested route | redirect | target | `/` (FR-027) | `redirectTarget()` → `/` (was `/get-started`); `from` kept otherwise (also after "Log out") | match |
+
+### U18 Welcome page in the example section (S3) — T042, 2026-11-08
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U18 6793:47676 | welcome | "Start from an example", the example dialog and banners | presence | drawn | none: S3 is the U11 1b page above | F15 (CLAR 2026-11-07 #9, OUT-9) |
+| U18 6793:47687, 6793:47688, 6793:47689 | welcome | heading, text, steps | content | as U11 1b | as the U11 table | match (no frame read: U18's audit rows #5, #6 match U11's) |
+
+### U11 Overview (S4) — T043, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440), 800 × 400 and 320 × 640, signed
+in as `designer`, against U11 `6699:44240` (`get_metadata` + `get_design_context`), `6699:44511`
+(metadata; the toolbar `6699:44518` by `get_design_context`), `6699:44570` (metadata; the list
+`6699:44582` by `get_design_context`); none changed since the audit (the same parts as U11 #4–#9,
+#20, #29–#33). The list by Playwright routing: the frame's three rows (Fishing licence published
+with its description, Hunting licence draft without, Residents’ parking permit deactivated),
+twelve rows for the long page, a `500 {error, message, error_id}` for the error state, a held
+answer for loading; the seeded drafts for the real list ("anw" → "Anwohnerparkausweis"). The rows'
+own values are T044's table (the rows still render as before, inside the card).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U11 6699:44244 | with rows | title block | box | 160, 96, 1120 × 64 (heading 40 + hint 24) | h1 160, 96, 1120 × 40; hint 160, 136, × 24 | match |
+| U11 6699:44245 | every state | h1 | text, font, colour | "Your connections", heading/x-large 500 32/40 `#0b1220` | `PageTitle size="x-large"`: the same text, 500 32px/40px rgb(11, 18, 32); one h1 | match (C1, FR-012) |
+| U11 6699:44246 | every state | hint | text, font, colour | "Each connection links one of your services to the EUDI Wallet. Open a draft to continue, or view an active connection to get its links.", body/default 400 16/24 `#4a5468` | the same text in loading, error, with rows, searching and no results (`LIST_COPY.hint`), 400 16px/24px rgb(74, 84, 104) | match (FR-029a: `hintOf` and its two sentences removed) |
+| — | every state | tab title | text | "Your connections · Konnekt" | "Your connections · Konnekt" | match |
+| U11 6699:44247 | with rows | toolbar | box, layout | 160, 176 (64 + 112), 1120 × 48; count left, field right | 160, 176, 1120 × 48; `justify-between` | match |
+| U11 6699:44248 | with rows | count | text, font, place | "3 connections", label/default 600 16/24 `#0b1220`, 102 wide at y 12 | "3 connections", 600 16px/24px rgb(11, 18, 32), 101.6 × 24 at 160, 188 | match (FR-051 (28)) |
+| U11 6699:44519 | searching "fish" | count | text, width | "1 of 3 connections", 134 | "1 of 3 connections", 133.3 | match (FR-051 (27)) |
+| U11 6699:44578 | no results "taxi" | count | text | "0 of 3 connections" | "0 of 3 connections" | match |
+| — | searching | count | announcement | not drawn | `role="status"` from the first render, so each new count is announced politely | FR-051 (27) (a field's result announced) |
+| U11 6699:44250 | with rows | search field | box, fill, line, radius | 920 (160 + 760), 176, 360 × 48; `#f2f5fb`; bottom 2 `#22293a`; 4 | 920, 176, 360 × 48; rgb(242, 245, 251); 2px solid rgb(34, 41, 58); 4px (KERN's input, the `MenuSearchField` panel classes) | match |
+| U11 6699:44250 | with rows | icon, placeholder | glyph, place, colour; text | icon-search-small 20 `#1d56f0` at 16, text at 44; "Search connections" 16/24 `#4a5468` | `kern-icon--search kern-icon--small` 20 × 20 at 936, 190, rgb(29, 86, 240); padding-left 44; the same placeholder, muted | match |
+| — | every state with rows | search field | visible label | none drawn (placeholder only, U11 #7 PARTIAL) | `label` "Search" (KERN's `kern-label`, 600 16/24, baseline paddings off) 16 left of the field, 854, 188, 50 × 24; the field's accessible name "Search" | FR-051 (27) (visible label, 001-S7.4) |
+| U11 6699:44521 (6692:42636) | searching "fish" | field | text, × | "fish" 16/24 `#0b1220`; × "button-tertiary-small · Clear search" in a 48 slot at the end, 40 seen, icon-close-small 20 | "fish" rgb(11, 18, 32); `kern-btn--tertiary kern-btn--small` 40 × 40 at 1236, 180 (slot 1232–1280), icon 20 × 20 at 1246, 190, rgb(29, 86, 240); text stops 48 before the end (`pr-48`) | match |
+| 6692:42636 (description) | searching | × | behaviour | "Clicking it empties the field, shows all rows again and keeps focus in the field" | empties, "3 connections", three rows, the focus in the field, the × gone; accessible name "Clear search" | match |
+| — | every state | keyboard focus | ring | not drawn | field: KERN's 4 px `#0b1220` ring (as `MenuSearchField` panel, T015); ×, "Clear search", "Create connection": 4px solid rgb(11, 18, 32) | match (FR-009) |
+| U11 6699:44252 | with rows | list card | box, fill, border, radius, shadow | 160, 240 (64 + 176), 1120; white; 1 `#e1e6f0`; 12; no shadow | 160, 240, 1120; oklch(1 0 0); 1px solid rgb(225, 230, 240); 12px; none | match (the task's "`--shadow-card`": the frame's card has a border and no shadow, as T003 recorded in §1.3) |
+| U11 6699:44583 | no results (no checkbox) | column headers | box, fill, line, padding | 1118 × 41, `#f2f5fb`, bottom 1 `#e1e6f0`, 8 24, gap 24 | 161, 241, 1118 × 41; rgb(242, 245, 251); 1px solid rgb(225, 230, 240); 8px 24px; 24px | match |
+| U11 6699:44585–87 | with rows | column headers | text, font, place | "Name" 280 at 24, "Status" 130 at 328, "Date" 160 at 482; label/small 600 14/24 `#4a5468` | 185 / 489 / 643 (161 + 24 / 328 / 482), 280 / 130 / 160 wide; 600 14px/24px rgb(74, 84, 104) | match |
+| U11 6699:44254 | with rows | select-all checkbox | presence | drawn | none; the headers start at 24 as `6699:44583` draws them without it | F14 (OUT-10) |
+| U15 6699:45206 | — | selection bar | presence | drawn (frames 8, 9) | none | F14 (OUT-10) |
+| — | with rows | column headers | semantics | not drawn | `aria-hidden`: the rows say what each value is (a list, not a table); hidden below 640 px, where the rows wrap | FR-012 |
+| U11 6699:44628 | no results | block | box, padding, gap | at 42 in the card, 1118 × 152, 32 24, 8 | 161, 282, 1118 × 152; the card 195 high (Figma 195); 32px 24px; 8px | match |
+| U11 6699:44629 | no results | message | text, font | "No connections match “taxi”.", label/default 600 16/24 `#0b1220`, at 24, 32 | the same with the typed text (trimmed), 600 16px/24px rgb(11, 18, 32), 185, 314 | match |
+| U11 6699:44630 | no results | hint | text, font | "Check the spelling or try another name.", body/small 400 14/24 `#4a5468`, at 64 | the same, 400 14px/24px rgb(74, 84, 104), 185, 346 | match |
+| U11 6699:44631 | no results | "Clear search" | text, font, colour | label/default 600 16/24 `#1d56f0`, no underline, at 96 | `button.kern-link`, 600 16px/24px rgb(29, 86, 240), no underline (underlined on hover), 185, 378, 24 high | match |
+| U11 #33 | no results | "Clear search" | behaviour | empties the search | empties it, all rows back, the focus moves to the field (the link goes with the result); Enter works from the keyboard | match |
+| U11 6699:44298 | every overview state | footer bar | box, fill, line | "Shell/Footer" 0, 828, 1440 × 72, white, top 1 `#e1e6f0`, padding 16 160 | 0, 828, 1440 × 72 (fixed to the window's bottom from 480 px tall), oklch(1 0 0), inset 0 1px 0 rgb(225, 230, 240), padding 16, action in the 1120 column | match (cosmetic 1) |
+| U11 I6699:44298;6428:31837 | every overview state | "Create connection" | text, kind, box | primary, 40 high, padding 0 16, label + forward arrow 24, right edge 1280 | `Link` `kern-btn--primary` + `kern-icon--arrow-forward`: 1075, 844, 204.7 × 40 (`wizard-footer`'s 40 px buttons), radius 8, label white; right edge 1280; to `/form-connections/new` | match (cosmetic 1) |
+| U04 note 16 (6703:39317) | welcome page | footer bar | presence | "Empty state (1b): … no footer" | the welcome branch renders no footer | match |
+| U11 6699:44243 | long list (12 rows) | page end | space above the footer | 48 under the content (Body's bottom padding), then the 72 bar | the card ends 48 above the bar at the bottom of the scroll (slot `mt-32 -mb-48 h-72` in place of the page's padding) | match (U12's inner scroll: T044) |
+| — | 800 × 400 | footer bar | position | not drawn | in the flow after the list (`static` below 480 px tall, as the wizard's), no horizontal scroll | W2 (R4's rule for short windows) |
+| — | 320 × 640 | toolbar | layout | not drawn | count (16, 248), then "Search" over the field (16, 280 / 16, 312, 273 × 48, the placeholder whole); × at 245, 316; the card's headers hidden; the bar at the bottom, the action 205 × 40 at the right; scrollWidth 305 | FR-010 |
+| — | loading (memory `true` or after "Try again") | page | parts | not drawn | h1, hint, `FeedbackLoader` "Loading your connections…", the footer bar; no toolbar, count or card | match (001-S3.5; T044 replaces the loader with skeleton rows) |
+| — | failed (5xx) | page | parts, order | not drawn | h1, hint, then the danger alert at 160, 176 ("Couldn’t load your connections", the server's message, "Error ID: 3f2c9a7e-…", "Try again"), the footer bar; no toolbar | W2 (§3 "Error state of a page": right under the title block) |
+| — | every state | request | network | — | typing sends nothing: the search filters the loaded list (`filterConnections`) | match (R8) |
+
+### U15 Search (S4) — T043, 2026-11-08
+
+U15 `6699:47845` read as a screenshot (frame 5, the edit dialog over the overview); its page under
+the scrim is the U11 frame: the same title block, hint, toolbar (count "3 connections",
+"Search connections" 360 wide) and card; none changed since the audit (U15 #4–#7, #9). The
+dialog `6699:47905` is S7's (FR-045a); the bulk parts (#8, #21, #27–#31) are F14.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U15 6699:45204, 6699:45205 | with rows | title, hint | text, place | as U11 6699:44244 | as the U11 table | match |
+| U15 6699:47853 | with rows | count | text, place | "3 connections", toolbar left | "3 connections", 160, 188 | match (FR-051 (28)) |
+| U15 6699:47855 | with rows | search field | place, placeholder | 360 wide at the right, "Search connections", search icon | as the U11 table | match |
+| U15 #7 | searching, no results, cleared | search | ×, "n of m", no-results message, "Clear search", visible label | not drawn here | as the U11 table (frames 1c, 1d) | match (FR-051 (27)) |
+| U15 6699:45214, 6699:45219 ff., 6699:45206 | — | checkboxes, selection bar | presence | drawn (frames 8, 9) | none | F14 (OUT-10) |
+| U15 6699:45258 | with rows | footer "Create connection" | label, place | primary with the arrow in the footer bar, right | as the U11 table | match (cosmetic 1) |
+
+Notes (T043): `MenuSearchField`'s `panel` variant has no clear button and takes no visible label, so `SearchToolbar.tsx` repeats its input classes; a `clearable` option with a visible label on `MenuSearchField` would let T051's search card share it. `index.css`'s `.wizard-footer .kern-btn { min-height: 40px }` also serves the overview's footer bar. The task cited U04 `6711:39373` for the toolbar; that node is U04 note 19, the toolbar note #16 is `6703:39317` (a citation slip; its text was used from `U04.md`).
+
+### U12, U13 Overview rows (S4) — T044, 2026-11-08
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U13 6739:40593 | with rows | row | box, padding, gap | 1118 × 80 (first), 81 with the line; 16 24; 24, centred | 161, 282, 1118 × 80; 81 for the next rows; 16px 24px; 24px | match |
+| U13 6739:40536 | with rows | line between rows | width, colour | top 1 `#e1e6f0`, none on the first | 1px rgb(225, 230, 240) on every row but the first (`not-first:border-t`) | match |
+| U13 6739:40549 | draft, no description | row | height, name | 81, the name centred | 81, name at y +29 (472 in a row at 443) | match (FR-029b) |
+| U13 6739:40595 | with description | name block | place, width | x 24 (no checkbox), 280, name 24 + description 24 | 185 (161 + 24), 280; name 185, 298 × 24; description 185, 322, 280 × 24 | match |
+| U13 6739:40596 | any | name | text, font, colour | link, label/small 600 14/24 `#0b1220` | `Link` to the details, 600 14px/24px rgb(11, 18, 32); underline on hover only | match (U13 #21; "no hover colour", 7366:55276 annotation) |
+| U13 7173:52304 | long description | description | font, colour, cut | body/small 400 14/24 `#4a5468`, one line, "…" | 400 14px/24px rgb(74, 84, 104), `truncate` (scrollWidth > clientWidth) | match (FR-032) |
+| U13 6739:40598 | any | status column | place, pill | x 328 (in the row), 130 wide; Status/Connection 24 high | pills at 489 (161 + 328): Active 72.8 × 24, Draft 66.3 × 24, Deactivated 110.5 × 24 | match (T019's pill unchanged) |
+| U13 6739:40615 | scheduled | pill | type | "Scheduled", "Active from 01.12.2026" | built as an active row: "Active", "Edited <date>" | F1 |
+| U13 6739:40543, 6739:40570 | active, deactivated | date | text | "Published 12.09.2026", "Deactivated 20.10.2026" | "Edited 12.09.2026", "Edited 20.10.2026" | F52 |
+| U13 6739:40556 | any | date | place, font, colour, format | x 482, 160 wide; body/small 14/24 `#4a5468`; dd.mm.yyyy | 643 (161 + 482), 160; 400 14px/24px rgb(74, 84, 104); "Edited 03.10.2026" (`formatRowDate`, de-DE 2-digit) | match (cosmetic 3) |
+| U17 6699:48031 | draft with its step | date | text, wrap | "Edited 28.10.2026 · Rules step", wraps in the 160 column | `rowMetaOf` writes "Edited 28.10.2026 · Rules step" when the summary carries the step (tested); the list's `FormConnectionSummary` has no `step`, so the seeded drafts read "Edited 08.11.2026" | F71 deferred (CLAR #62, deferred.md group A) |
+| — | any | numerals | features | `"zero" 1, "lnum" 1, "tnum" 1` | `font-variant-numeric: tabular-nums slashed-zero` (KERN's) | match |
+| U13 6739:40603 | any | "View" | kind, box, icon, label | button-tertiary-small, 82 × 40 visible in a 48 slot at x 871 of the row; icon-visibility-small 20 `#1d56f0`; 600 14/24 `#1d56f0`, no underline | `kern-btn--tertiary kern-btn--small` with `kern-icon--visibility`: 1031.9, 302, 82 × 40 (Figma 1032); icon 20 × 20 rgb(29, 86, 240); 600 14px/24px rgb(29, 86, 240), no underline | match |
+| U13 6739:40604 | any | "Edit" | kind, box, border | button-secondary-small, 77 × 40 at 90; 1 `#1d56f0` inside, radius 8; icon-edit-small | `kern-btn--secondary kern-btn--small px-7!` (KERN draws the border outside its 8 px): 1122, 302, 77 × 40; 1px rgb(29, 86, 240), 8px; `kern-icon--edit` | match |
+| U13 6739:40605 | any | Delete | kind, box, icon | button-tertiary-small icon only, 40 in a 48 slot at 175; icon-delete-small `#C4271C` | `kern-btn--tertiary kern-btn--small` + `kern-sr-only`: 1211, 302, 40 × 40; `kern-icon--delete` rgb(196, 39, 28) (`bg-kern-feedback-danger!`) | match |
+| U13 6739:40605 (layer name) | any | Delete | accessible name | "Delete <name>" | "Delete Passenger transport licence" (per row) | match (FR-028) |
+| — | any | View, Edit | accessible name | not drawn | "View <name>", "Edit <name>" (`sr-only` in the label) | match (FR-028, 001-S3.2) |
+| U13 6739:40560 | draft | actions | which | View, Edit, Delete as every row; no "Continue" | View (details), Edit (the editor at the stored step: the seeded "Führerscheinantrag Stuttgart" opened at "Rules"), Delete | match (cosmetic 2) |
+| U13 6739:40532 | any | checkboxes | presence | select-all and per row | none | F14 |
+| U13 7366:55276 | cut description, hover | tooltip | box, place | 280 × 64 at the description's left, 6 below it; `#0b1220`, radius 8, 8 16, body/small white | 185, 354, 280 × 64 (8 below, §3 "Tooltip"); rgb(11, 18, 32), 8px, 8px 16px, 400 14px/24px white | match (FR-051 (35); 8 vs 6: the tooltip pattern's 8, U81) |
+| U13 #20 | not cut, hover | tooltip | presence | only on a cut description | none on "Annual permit for fishing in public waters." | match |
+| — | name keyboard focus | tooltip | shows | not drawn ("A keyboard trigger isn't drawn") | shows while the name has keyboard focus (cut only); Escape closes it; the name's ring 4px solid rgb(11, 18, 32) offset 2 | FR-051 (35) (on focus), FR-009 |
+| — | touch | tooltip | shows | not drawn | a tap on the cut description toggles it, a tap elsewhere closes it | FR-052g |
+| — | any | tooltip | semantics | — | `aria-hidden` (the description is whole in the page for screen readers); no `title` | FR-051 (35) |
+| U12 6699:44931 | 20 rows | card | box | 160, 240, 1120 × 564 (frame 900); rows area clipped, the next row cut at the bottom | 160, 240, 1120 × 564; rows `overflow-y: auto`, 521 high (Figma 517 with its 45 px checkbox header; ours 41, F14); "Fishing licence" cut at the card's bottom | match |
+| U12 6699:44915 | scrolled | header row, title, toolbar, footer | stay | in place | after scrolling the rows by 300: header 241, h1 96, page `scrollY` 0, document 900 high | match |
+| U12 6699:44915 | 20 rows | card → footer bar | gap | 24 (card ends 804, bar at 828) | card ends 804, bar at 828 (slot `mt-8`; was `mt-32` = 48, T043) | match (T043's "48 under the content" corrected: U12's Body runs 24 under the bar) |
+| U12 6699:45195 | scrolled | scrollbar | look | 4 px thumb inside the card | the browser's own scrollbar of the rows | match (native control) |
+| — | 320 × 640, 3 rows | rows | layout | not drawn | the name on its own line (41, 393, 223 × 48), status and date on the next (41 / 138, 449), the actions on the third (View 41, Edit 131, Delete 220, 485); headers hidden (`@max-[58rem]`); rows 168 high; scrollWidth 305 | W2, FR-010 |
+| — | 320 × 640 | page | scroll | not drawn | the inner scroll applies from 768 × 480 only: below, the page scrolls (document 988), the card ends 24 above the fixed bar at the end | W2 (no box of one row scrolling) |
+| — | 320 × 640 | tooltip | place | not drawn | across the row (33, 417, 239 wide), scrollWidth 305 | FR-010 |
+| — | loading (memory `true` / "Try again") | list | skeleton | U06 #95 "skeletons in the final layout" | `div role=status` "Loading your connections…" (sr-only); the toolbar's 48 kept empty; the card at 160, 240 with its headers and 3 skeleton rows 80 high: name bar 160 × 10 `#e4e8ef` at 24 / 24 in the row, description 220 × 10 `#eff1f5`, status 72 × 10 strong at 328, date 96 × 10 light at 482, radius 4 | match (001-S3.5, §3 "Skeleton") |
+| — | failed (5xx) | page | alert | not drawn | as T043's table (160, 176, "Couldn’t load your connections", the server's message, "Error ID: 3f2c9a7e-…", "Try again"); "Try again" shows the skeleton rows, then the alert again | W2 (UNCERTAIN 4: no separate "way back") |
+
+### U17 After Save and exit (S4) — T044, 2026-11-08
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U17 6699:48002 | arriving from Save and exit | toast | text, kind | "Draft saved. You can pick it up any time.", type=success with the filled check | the same, `kind: 'success'`, rgb(29, 122, 46), the check | match |
+| U17 6699:48002 | arriving from Save and exit | toast | box | 564, 748, 313 × 56 (frame 900, 24 above the footer) | 563, 748, 313 × 56 | match (T036's centring ±0.5) |
+| — | arriving from Save and exit | status paragraph | presence | none drawn | the old polite `p` "Draft <name> saved." is gone; the toast's live region announces | match (W1 by the toast) |
+| — | reload after it | toast | shown again | — | no (the router state is cleared once read) | match |
+| U17 6699:48024 | after Save and exit | draft row | meta | "Edited 28.10.2026 · Rules step" | see the U12/U13 table | F71 deferred (CLAR #62, deferred.md group A) |
+
+### U14, U90 Row delete (S4) — T044, 2026-11-08
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U14 6699:44419 | draft | dialog | title | "Delete “Hunting licence”?" | "Delete “Hunting licence”?" (`DELETE_DIALOG_COPY.title`) | match |
+| U14 6699:44419 | draft | dialog | body | "Its documents and rules will be deleted too." | "Hunting licence will be deleted for good. It was never live, so nothing changes for serviceBW." | F55 |
+| U14 6699:44419 | deactivated | dialog | body | "Its documents and rules will be deleted too." (frame "3 · Delete a draft or deactivated connection?") | the same | match |
+| U14 6699:44480, U90 6417:31599 | active | dialog | body | "This connection is active. Citizens won’t be able to use it, and its links stop working." | the same | match |
+| U14 6872:45929 | scheduled | dialog | body | "This connection will be active from 01.12.2026. …" | not built | F1 |
+| U14 6699:44419 | open | dialog | box, buttons | 480 × 256 centred; "Keep connection" secondary 200 × 48 at 512, "Delete connection" filled danger at 728 | 480, 322, 480 × 256; 512, 498, 200 × 48 transparent; 728, 498, 200 × 48 rgb(196, 39, 28) | match (T035's table) |
+| U14 #17 | open | scrim click | closes | no (FR-052a) | stays open (`dismissOnScrim={false}`) | match |
+| — | open | Escape, ×, "Keep connection" | closes, focus | closes, back on the opener | closes; focus on "Delete <name>" of that row | match (FR-009) |
+| — | open | focus | where | — | on the × when it opens (T035) | match |
+| — | working | buttons | state | not drawn | "Deleting…", every button busy, nothing closes it (T035) | FR-008 |
+| — | failed (5xx, routed) | dialog | alert | not drawn | "Couldn’t delete", the server's message, "Error ID: 3f2c9a7e-…"; confirm reads "Try again"; the row stays | FR-008 |
+| — | failed (404 / 409, routed) | dialog | alert, close | not drawn | the server's message; closing loads the list again (one `GET`) | FR-008 (UNCERTAIN 3) |
+| U90 6699:48039 | after delete | list | row, count | the row gone, "3 connections" | the row gone, "3 connections" (routed `DELETE` of a published row: 200) | match |
+| U90 6699:48098 | after delete | toast | text | "“Passenger transport licence” deleted." + "Undo" | "“Fishing licence” deleted.", no Undo | F4 |
+| U90 6699:48098 | after delete | toast | kind | type=danger, red with the bin | neutral ink rgb(11, 18, 32), 623, 748, 193 × 56 (24 above the bar) | UNCERTAIN (T036: `kind` is neutral / success; the component description lists "deleted" under neutral) |
+| — | after delete | focus | where | not drawn | the page's h1 "Your connections" (the opener is gone) | FR-009 |
+| — | after the last delete (real seeded drafts) | page | view | the welcome page (FR-027) | "Welcome to Konnekt" in the same `AppLayout`, tab title "Welcome · Konnekt", no footer, the focus on its h1, the toast 24 above the window's edge (578, 820); a reload shows the welcome page at once (memory `false`) | match (FR-027, T042) |
+| — | 320 × 640 | dialog | box | not drawn | 16, 88, 273 wide, buttons stacked (T035) | match (FR-010) |
+
+Notes (T044): checked with routed `GET /api/form-connections` answers for the frames' rows, twenty rows (U12), a held answer and a 5xx, routed `DELETE`s for published rows (no EUDIPLO here), and the real delete of the three seeded drafts down to the welcome page (re-seeded; new ids `a15ead2e…`, `b234a1c0…`, `99131ac1…`). The row reuses `InfoTooltip`'s exports (`tooltipReducer`, `isOpen`, `CLOSED`, `TOOLTIP_BOX`, `bubblePlacementClass`, `TOOLTIP_WIDTH`, `TOOLTIP_HEIGHT`) for the description's tooltip because `useTooltip` isn't exported; exporting it (or a `TextTooltip`) would remove the copy in `FormConnectionRow.tsx`. The footer slot's gap is 24 (U12: the card ends 24 above the bar), not T043's 48. No new AA pair (the bin `#c4271c` on white is an icon, 5.4:1).
+
+### U16 Local drafts offer (S5) — T045, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (`scrollbar-gutter: stable`, body 1440),
+1455 × 768 / 700 / 600 / 520 for the capped column, and 335 × 800 (body 320), with the `designer`
+account and the three seeded drafts. Frames read: U16 `7362:54543` (`get_design_context`),
+`7362:54614` (screenshot), U14 `6699:44480` (`get_design_context`); none changed since the audit
+(the inventory of `figma-audit/units/U16.md` and T029's §5.1 table stand). Local drafts were
+written into `localStorage` in the store's format 2 (a stored draft's record
+`draft-b234a1c0…` named "Passenger transport licence", 06.11.2026 13:20 UTC; never-saved records
+`new-2222…` "Taxi licence", an 84-character name, "Written in another tab"), all removed
+afterwards; the server's drafts are untouched. The welcome page and `/get-started` were reached by
+answering `GET /api/form-connections` with `[]` (`page.route`, GET only). The browser's zone is
+UTC, so the times read one hour earlier than the frame's. Fonts: `document.fonts.check` true for
+400 14px and 600 16px "Fira Sans". The banner's own anatomy (fill, border, padding, type, buttons,
+hover, focus ring) is T029's §5.1 table and was re-seen unchanged.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U16 7362:54550 | one, overview | banner | place | under the title block 16, above the toolbar 16 (title 96–160, banner 176–258, toolbar 274) | title 96–160, banner 176 × 1120 × 82, toolbar row 274 | match |
+| U16 7362:54621 | several, overview | banner | place, size | 176–396 (220 high), toolbar 412 | 176, 1120 × 220, toolbar row 412 | match |
+| U16 7362:54550 | one, overview | banner | width | 1120 (the page column) | 1120 at x 160 | match (closes T029's "deferred to T043") |
+| U16 7362:54550 | one | banner | place | between the page title and the toolbar | between `PageTitle` and `SearchToolbar` | match (closes T029's "deferred to T045") |
+| — (U12, T044) | several, overview, short window | banner | height | keeps its height, the list card shrinks and its rows scroll | `flex-shrink: 0` (wrapper `contents [&>section]:shrink-0`); 220 at 900, 768, 700, 600 and 520 | match |
+| — (U12, T044) | several, overview, 1455 × 600 / 520 | list card | height | at least one row | T045 found 28 / 2 (the card `min-h-0` with `overflow-hidden` shrank below its header + a row); the coordinator set `LIST_CARD_CLASSES` `min-h-123` (header 41 + row 80 + border 2): with a 300 px block in the offer's place the card stays 123 high at 1455 × 600 and 520 and the page scrolls (document 775 high) | match (fixed by the coordinator) |
+| — (S3, 005-S4) | several, welcome | banner | place | no frame: above the page (contracts S3 "shows above the page") | 96 (32 under the header area), 1120 × 220; h1 "Welcome to Konnekt" at 348, 32 under the banner (`[&>section]:mb-16` + the column's 16) | UNCERTAIN 1 (spacing and order chosen) |
+| — (S3) | after the last discard, welcome | page | spacing | the welcome page as U11 `6699:44481` draws it | h1 back at 96, no gap left by the empty offer (the status paragraph is `sr-only`, absolutely placed; the dialog closed) | match |
+| — (S3) | after the last discard, overview | page | spacing | toolbar 16 under the title | toolbar row 176 (160 + 16) | match |
+| — (005-S4, 001-S4.5) | `/get-started` | banner | place | above step 1's card | under the step header (216 = 192 + 24), card 32 under it (WizardLayout's `gap-32`), 1120 wide | match |
+| — (005-S4.11) | `/get-started` | offer | own record | the flow's own local draft isn't listed | after typing "Own flow T045" the flow wrote `new-e872…`; the offer still listed the other two | match |
+| U14 6699:44480 | discard dialog | dialog | box | 480 wide, radius 12, 1 `layout-border` #6b7488 | 480 at 480, 310; 12px; `ring-1 ring-inset` rgb(107, 116, 136); 280 high (three body lines with the stored-draft sentence, Figma's two-line sample 256) | match |
+| U14 6699:44480 | discard dialog | title | font, place | `title/large` 600 24/32 #0b1220, 32 from the left, 16 from the top | "Discard unsaved work?" 600 24px/32px, 32 / 16 | match (005-S4.8's copy) |
+| U14 6699:44480 | discard dialog | body | font, copy | `body/large` 400 18/24 #0b1220 | 18px/24px rgb(11, 18, 32); "The unsaved changes to Passenger transport licence will be deleted from this device. This can’t be undone. The saved draft stays as it is." (never-saved: without the last sentence) | match (005-S4.9) |
+| U14 6699:44480 | discard dialog | buttons | look | secondary "Keep connection" and filled danger #c4271c, 200 × 48 each, gap 16, footer divider | "Cancel" 200 × 48, 1px rgb(29, 86, 240); "Discard" 200 × 48 rgb(196, 39, 28) | match (005-S4.9's labels) |
+| — (T035, FR-052a) | discard dialog | scrim click | closes | yes (`dismissOnScrim` default on) | a press on the scrim closed it, focus back on "Discard changes in Passenger transport licence"; a press inside kept it open | match |
+| — (005-S4.7) | discard dialog | Escape | closes | closes, focus back | closed, focus back on the item's "Discard" | match |
+| — (005-S4.10) | after discard, first of two | focus, status | focus moves, status announced | next item's "Resume editing", "Unsaved work discarded." | focus on "Resume editing Taxi licence" (`?local=new-2222…`), now in the one-draft layout; status text "Unsaved work discarded." after `LIVE_REGION_DELAY_MS` | match |
+| — (005-S4.10) | after discard, last of two | focus | the heading | the h2 | focus on h2 "Unsaved changes in “Passenger transport licence”" (welcome page) | match |
+| — (005-S4.10, FR-028) | after discard, the last item | focus | the page's h1 (`emptyFocusRef`) | the overview's h1 / the welcome page's h1 | focus on h1 "Your connections" (overview) and h1 "Welcome to Konnekt" (welcome page); the section gone, the status kept | match |
+| — (005-S4.12) | other tabs, overview | offer | follows writes | a record written in another tab appears | tab 2 (`/account`) wrote `new-2222…`: tab 1's banner turned from "Unsaved changes in “Passenger transport licence”" into "Unsaved changes in 2 connections" | match |
+| — (005-S4.12) | other tabs, overview | offer | follows discards | a discard in another tab removes the item | tab 2 discarded "Taxi licence" through its own offer: tab 1 showed the one-draft banner | match |
+| — (005-S4.12) | other tabs, `/get-started` | offer | follows writes | as on the overview | "Written in another tab" appeared first (newest first): "Unsaved changes in 3 connections" | match |
+| — (W5, FR-021) | blocked storage | offer | hidden, nothing logged | no section, no console output | a tab whose `window.localStorage` getter throws `SecurityError` (init script), with records in the real storage: no offer on `/` (and `/get-started` → overview, connections exist); no console message, no page error | match |
+| — (W11, 005-S4.6, FR-029e) | Resume editing, overview | link | target | `/form-connections/new?local=<flowKey>` | "Resume editing Passenger transport licence" → `/form-connections/new?local=draft-b234a1c0…`, name field "Passenger transport licence" | match |
+| — (W11) | Resume editing, `/get-started` | link | target | as above, also for a never-saved item | "Resume editing Taxi licence" → `/form-connections/new?local=new-5555…`, name "Taxi licence"; no leave dialog, the first-connection flow's own record kept (it is offered again) | match (baseline: the leave dialog covers the product name, breadcrumb, log-out, closing the tab) |
+| — (FR-010) | 320 px, welcome and overview | banner | layout | — | 288 wide; several: name, line, buttons on rows of their own, the 84-character name wrapping; `scrollWidth` 320 on both pages; overview gaps 16 / 16, welcome gap to the h1 32 | match |
+| — (FR-029d) | one | structure | h2 and a one-item list | — | region named by the h2, list of 1 with `sr-only` "Taxi licence" and "New, never saved · 05.11.2026, 08:12"; sub-line "Saved only on this device on 05.11.2026, 08:12, when the page closed. Nobody else can see them." | match |
+
+Notes (T045): the offer sits above the welcome page's h1 (contracts S3, "above the page"; 32 px to the h1, nothing left when hidden), so its h2 comes before the page's h1 in the reading order (for the AA review, T096); between the title and the toolbar on the overview (`shrink-0` in the capped column); above step 1's card on `/get-started` (rendered by `FormConnectionEditor`). The spacing comes from the page through `contents` wrappers (`[&>section]:mb-16`, `[&>section]:shrink-0`) because `LocalDraftsOffer` takes no `className`. Live-region texts checked (quickstart V2's screen-reader step):
+
+- `p[role="status"][aria-live="polite"][aria-atomic="true"]` (sr-only), rendered by
+  `LocalDraftsOffer` before its section: empty until a discard, then empty again and
+  "Unsaved work discarded." after `LIVE_REGION_DELAY_MS`, at every discard (seen after the first
+  of two, the last of two, and the last item on the overview and on the welcome page). It stays
+  in the page after the last item's discard (the section goes), so the status is still read.
+- Focus after a discard, the screen reader's next announcement: the next item's link "Resume
+  editing <name>", else the h2 "Unsaved changes in “<name>”" / "Unsaved changes in <n>
+  connections", else the page's h1 ("Your connections", "Welcome to Konnekt"; on `/get-started`
+  the wizard's title, `titleRef`).
+- Buttons' accessible names: "Discard changes in <name>" and "Resume editing <name>".
+- The dialog: `role="dialog"` modal, named by its title "Discard unsaved work?", described by the
+  body text; the initial focus on "Close".
 
 ## 6. Pass I: the screenshot matrix and the accessibility review
 
@@ -1721,6 +2055,31 @@ Open rows of the phase's §5.1 tables, each carried to its task: `TopBar` descri
 (T078), Geist for "Konnekt" (the user), L3's "Discard changes" (T083), "Active" pill (T084),
 pinned tabs (T056), the details variant (T078, T081), the failed-save toast (T048), the error
 ID of a failed load (T080, T083), the documents step's empty picture (T051).
+
+### 6.2 US1 checkpoint (T046, 2026-11-08)
+
+Quickstart V1 (steps 1–7) and V2 (steps 1–2), by the coordinator with playwright-core 1.48.2 and
+Chromium (`/usr/bin/chromium`) at 1455 × 900 (and 320 × 640 for V1.7), against the dev server.
+Real mutations: only V1.5's three draft deletes (re-seeded with the session's `seed.py`; the
+drafts' ids are new again: `76abafb6…`, `2f46849a…`, `414d27ee…`). Published and deactivated rows,
+the slow list and the 5xx are routed `GET` answers (no EUDIPLO here). No page error in any step.
+
+| step | result |
+|---|---|
+| V1.1 | tab "Log in · Konnekt", one h1 (the tagline); a wrong password → the alert "Username or password is wrong. Check both and try again." above the fields, both inputs `aria-invalid="true"` (F16); Tab from the password reaches "Show password" (`aria-pressed` false), Space → true and the input turns `text`: pass |
+| V1.2 | `/account` signed out → `/login` → "Forgot password?" (tab "Forgot password · Konnekt", the design's text) → "Back to log in" → sign in → back on `/account` (the requested route survived): pass |
+| V1.3 | a device without the memory, the list held 1.5 s: the loading page (white Konnekt pill, no account pill, "Loading your connections…"), then "Welcome to Konnekt" with "Create connection" as its only action (F15); reload with the list held → the welcome page at once (memory `false`, no flash); "Create connection" → `/get-started?local=…`, "Create your first connection", "Step 1 of 4": pass |
+| V1.4 | two routed published rows (active with a long description, deactivated) and the three drafts: rows 80 high (+ the 1 px divider), one-line description with "…", the pills Active / Deactivated / Draft, "Edited dd.mm.yyyy", "View" / "Edit" / bin with per-row names ("Delete Fishing licence"), no checkboxes; search "park" → "2 of 5 connections", 2 rows; "zzz" → "No connections match “zzz”. …" with "Clear search", which empties the field and focuses it; the × clears; a draft's "Edit" → `/form-connections/<id>/edit` (the editor opens the stored step); the draft's " · <step> step" is deferred (CLAR #62); nothing mutated: pass |
+| V1.5 | delete the three drafts from the rows: the dialog "Delete “Neue Verbindung”?" with the draft body, "Keep connection" / "Delete connection"; after the last one the welcome page, the memory `false`: pass |
+| V1.6 | the account pill → "Log out" → `/login`, the live region holds "You’re logged out.": pass (the screen reader's reading: needs a person) |
+| V1.7 | backend stopped: the session check fails and `/` goes to `/login` (baseline guard); a routed 5xx `{error, message, error_id}`: "Your connections", "Couldn’t load your connections", the message, "Error ID: …", "Try again" (the overview is the way back, T044), no horizontal scroll at 320: pass |
+| V2.1 | two never-saved connections left by closing their tabs: "Unsaved changes in 2 connections" with both items; discarding one in a second tab ("Unsaved work discarded." there) turns this tab's offer into "Unsaved changes in “Taxi licence T046”" (heading form); discard here: the dialog "Discard unsaved work?", "Cancel" / "Discard"; after it the status "Unsaved work discarded.", the focus on the h1, the offer gone; nothing sent to the backend: pass (the screen reader's reading: needs a person) |
+| V2.2 | "New, never saved · 08.11.2026, 17:04" with "Resume editing Taxi licence T046" → `/form-connections/new?local=new-…`: pass |
+
+Fixed by the coordinator during the phase: `TextField`'s trailing padding 56 → 48 (U10, the
+toggle is its only user) and the overview's list card `min-h-123` (T045's open row). No frame
+changed since the audit (every task's report). Open for a person: V1.6's and V2.1's
+announcements with NVDA or VoiceOver.
 
 ## 7. Removal checklist (pass H, FR-015, SC-003)
 

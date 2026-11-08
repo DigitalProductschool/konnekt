@@ -246,7 +246,8 @@ route goes to `/` (today it goes to `/get-started`, which stays the first-connec
 (`pages/FormConnectionList/utils.ts`, tested): `welcome` when the loaded list is empty, `overview`
 when it holds anything; while loading, the **remembered state** of the device decides what to
 render, so a reload shows no flash: one `localStorage` flag per account (`<prefix>:<account>:
-has-connections`, written whenever the list loads), read and written by one new hook,
+homepage:has-connections`, written whenever the list loads; the `:` in the last part keeps the
+local drafts' store from taking the flag for a draft, T039), read and written by one new hook,
 `hooks/useRememberedHomepage.ts`. The CLAUDE.md rule "only `useLocalDraftStore` touches
 `localStorage`" is widened to "only `useLocalDraftStore` and `useRememberedHomepage` touch
 `localStorage`" in the documentation task. Deleting the last connection shows the welcome page

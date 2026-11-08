@@ -16,5 +16,8 @@ export const INPUT_CLASS = 'kern-form-input__input placeholder:text-kern-layout-
  */
 export const TEXTAREA_CLASS = `${INPUT_CLASS} h-120! resize-y`;
 
-/** Room for the trailing control (a 40 px small button 4 px from the edge) plus 12 px */
-export const TRAILING_PADDING_CLASS = 'pr-56!';
+/**
+ * Room for the trailing control: U10's 32 px show/hide button 4 px from the edge, with the text
+ * ending 8 px before its icon's box (48 from the field's edge, U10 `6616:40784`)
+ */
+export const TRAILING_PADDING_CLASS = 'pr-48!';

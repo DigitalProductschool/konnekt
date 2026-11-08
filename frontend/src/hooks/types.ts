@@ -84,3 +84,17 @@ export interface ActiveRun {
   /** The watchdog's timer, or null without a worker */
   watchdog: number | null;
 }
+
+// useRememberedHomepage() (spec 008, research R6, FR-027)
+
+/** What the homepage "/" shows: the welcome page or the overview "Your connections" */
+export type Homepage = 'welcome' | 'overview';
+
+/** The homepage memory of the signed-in account on this device */
+export interface RememberedHomepage {
+  /**
+   * Whether the account had connections or drafts when its list last loaded on this device; null
+   * when nothing is remembered (first visit, signed out, blocked storage)
+   */
+  remembered: boolean | null;
+}

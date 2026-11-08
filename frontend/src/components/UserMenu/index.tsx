@@ -1,3 +1,4 @@
+import type { LoginLocationState } from '@connection-portal/api-types/routing';
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
@@ -27,7 +28,7 @@ import {
   YOUR_ACCOUNT_LABEL,
 } from './constants';
 import SignOutDialog from './SignOutDialog';
-import type { LoggedOutLocationState, UserMenuProps } from './types';
+import type { UserMenuProps } from './types';
 import { signOutNamesOf, userMenuReducer } from './utils';
 
 const DIVIDER_CLASSES = 'h-px shrink-0 bg-(--kern-color-decorative-border-default)';
@@ -134,7 +135,7 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
     const { pathname, search, hash } = location;
     await signOut();
     await signInScreenShown();
-    const loggedOut: LoggedOutLocationState = { from: { pathname, search, hash }, loggedOut: true };
+    const loggedOut: LoginLocationState = { from: { pathname, search, hash }, loggedOut: true };
     navigate(ROUTES.login, { replace: true, state: loggedOut });
   }
 
