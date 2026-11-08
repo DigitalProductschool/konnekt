@@ -25,7 +25,7 @@ function textOf(confirm: PersonaConfirm | null, personas: readonly Persona[] | n
  * The question before generating anew (S8.7; W9; FR-012; Figma U04 "dialog" 7058:61334): KERN's
  * dialog, opened from `state.confirm`, which `generateOne()` and `generateAll()` set only when a
  * persona to generate anew has changes. One persona: "Generate new data for Mia?"; all: the same
- * question for all applicants, naming every persona with changes. The buttons are "Cancel" and
+ * question for all citizens, naming every persona with changes. The buttons are "Cancel" and
  * "Generate new data"; the close button and Escape cancel too.
  *
  * It stays mounted while closed, so that closing it returns the focus to the button that opened

@@ -1,6 +1,6 @@
 // What the tools answer about connections, variants, rules and groups (contracts/mcp-tools.md
 // "Results and errors"; data-model §7, §9): the refs with their links, the structured items with
-// their statements, the connection URLs, the applicant fields, and the helpers of the text blocks.
+// their statements, the connection URLs, the citizen fields, and the helpers of the text blocks.
 // Pure: every function derives its answer from the API's shapes and the rules logic of
 // `@connection-portal/rules`, as the editor derives what it shows
 import type { DocumentType } from '@connection-portal/api-types/document-types';
@@ -113,7 +113,7 @@ export function itemRefOf(
 /**
  * The rules modules' context as the editor's rules step builds it (`RulesCatalog`): `documents`
  * are the requested documents with their requested fields, which validation, the checks and the
- * applicant fields read; `allDocuments` the whole catalog, from which statements read, so that a
+ * citizen fields read; `allDocuments` the whole catalog, from which statements read, so that a
  * rule on data no longer requested still reads
  */
 export interface ToolRuleContext extends RuleContext {
@@ -276,13 +276,13 @@ export function urlsNoteOf(fc: Pick<ConnectionLike, 'status' | 'is_active'>): st
   return URLS_NOTES[connectionStateOf(fc)];
 }
 
-// Applicant fields (data-model §9; R15)
+// Citizen fields (data-model §9; R15)
 
-/** A field an applicant of `test_applicants` gives a value for: the variant's rules check it */
+/** A field a citizen of `test_applicants` gives a value for: the variant's rules check it */
 export interface ApplicantField {
   /** Spec 004's persona field key: `pid.birthdate`, `mdl.driving_privileges.issue_date#B` */
   key: string;
-  /** "Personal ID – Date of birth (Age)", "Driving licence – Licence class B – Issue date" */
+  /** "Personal ID · Date of birth (Age)", "Driving licence · Licence class B – Issue date" */
   label: string;
   kind: 'number' | 'text' | 'enum' | 'date';
   option_set?: string;
@@ -302,7 +302,7 @@ export function applicantFieldsOf(
   const keyed = { key: variantIdOf(branch), ...branch };
   return personaFieldsOf([keyed], context).map((field) => ({
     key: field.key,
-    label: `${field.documentLabel} – ${field.label}`,
+    label: `${field.documentLabel} · ${field.label}`,
     kind: field.kind,
     ...(field.optionSet === null ? {} : { option_set: field.optionSet }),
     multiple: field.multiple,
@@ -377,7 +377,7 @@ export function itemLineOf(ref: ItemRef): string {
 
 /**
  * A variant's items as indented lines, members under their group: "- Rule 01 (rule-1): Personal
- * ID – Date of birth (Age) is at least 21 years old. {link}", with the mark when there is one.
+ * ID · Date of birth (Age) is at least 21 years old. {link}", with the mark when there is one.
  */
 export function itemViewLinesOf(items: ItemView[], depth = 0): string[] {
   const indent = '  '.repeat(depth);

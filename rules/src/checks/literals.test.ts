@@ -259,7 +259,7 @@ const FORMULAS: Formula[] = [
   { and: [{ or: [A, false, { and: [B, C] }] }, { or: [] }] },
 ];
 
-/** Whether an applicant with `values` (by variable key), who shares on `day`, meets `formula` */
+/** Whether a citizen with `values` (by variable key), who shares on `day`, meets `formula` */
 function met(formula: Formula, values: ReadonlyMap<string, unknown>, day: number): boolean {
   if (typeof formula === 'boolean') {
     return formula;
@@ -271,7 +271,7 @@ function met(formula: Formula, values: ReadonlyMap<string, unknown>, day: number
     return formula.or.some((member) => met(member, values, day));
   }
   if (!values.has(formula.variable)) {
-    throw new Error(`The applicant has no value for ${formula.variable}`);
+    throw new Error(`The citizen has no value for ${formula.variable}`);
   }
   return literalHolds(formula, values.get(formula.variable), day);
 }
@@ -291,7 +291,7 @@ function literalHolds(of: Literal, value: unknown, day: number): boolean {
   }
 }
 
-/** `_text_holds()` on the applicant's text, against the literal's normalised text */
+/** `_text_holds()` on the citizen's text, against the literal's normalised text */
 function textHolds(of: Literal<TextTest>, value: string): boolean {
   const text = normalisedText(value, of.test.matchCase);
   const expected = of.test.text;
@@ -304,7 +304,7 @@ function textHolds(of: Literal<TextTest>, value: string): boolean {
   return holds !== of.negated;
 }
 
-/** `_date_holds()` on the applicant's date and the day of sharing, both day numbers */
+/** `_date_holds()` on the citizen's date and the day of sharing, both day numbers */
 function dateHolds(of: Literal<DateTest>, value: number, day: number): boolean {
   const { test } = of;
   let holds: boolean;
@@ -359,7 +359,7 @@ function keysOf(items: readonly unknown[], asCodes: boolean): EnumValue[] {
 }
 
 /**
- * The applicant of a vector: each variable's value as the evaluator reads it from the delivered
+ * The citizen of a vector: each variable's value as the evaluator reads it from the delivered
  * value (`_value_of()`). A class's date has a value only when the licence lists the class
  */
 function applicantOf(vector: OutcomeVector, variables: Variable[]): Map<string, unknown> {

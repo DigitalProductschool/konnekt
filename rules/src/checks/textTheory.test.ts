@@ -16,7 +16,7 @@ interface OutcomeVector {
   value: unknown;
 }
 
-/** An applicant's text as the evaluator reads it, with letter case and without */
+/** A citizen's text as the evaluator reads it, with letter case and without */
 interface Forms {
   respecting: string;
   ignoring: string;
@@ -52,7 +52,7 @@ const ASCII_SEPARATORS = '-0123456789_.,:!?#+*/|~^@&%$';
 /** The rules' texts of the seeded comparison: a, A, b, ß, ẞ, s and S */
 const ALPHABET = ['a', 'A', 'b', '\u{df}', '\u{1e9e}', 's', 'S'];
 
-/** The applicants' texts of the seeded comparison: the rules' letters and the first separator */
+/** The citizens' texts of the seeded comparison: the rules' letters and the first separator */
 const APPLICANT_ALPHABET = [...ALPHABET, '-'];
 
 /** A literal as `literals.ts` builds it, with the rule's text normalised as the evaluator does */
@@ -133,7 +133,7 @@ function textsUpTo(alphabet: readonly string[], longest: number): string[] {
   return texts;
 }
 
-/** `_text_holds()` on an applicant's text normalised beforehand, for the seeded comparison */
+/** `_text_holds()` on a citizen's text normalised beforehand, for the seeded comparison */
 function holdsOn(literal: Literal<TextTest>, forms: Forms): boolean {
   const { op, text, matchCase } = literal.test;
   const value = matchCase ? forms.respecting : forms.ignoring;

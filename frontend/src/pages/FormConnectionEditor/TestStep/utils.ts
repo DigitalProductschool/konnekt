@@ -2,14 +2,24 @@
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
 import { optionsOf } from '@connection-portal/rules/conditions';
-import { ageSuffixOf, runStatusOf } from '@connection-portal/rules/personas/messages';
+import {
+  classesSinceOf,
+  displayDateOf,
+  runStatusOf,
+  validUntilOf,
+} from '@connection-portal/rules/personas/messages';
 import type {
   GenerationRun,
   Persona,
   PersonaField,
   PersonaValue,
 } from '@connection-portal/rules/personas/types';
-import { ageOn, isEmptyValue } from '@connection-portal/rules/personas/values';
+import {
+  ageOn,
+  type DataRow,
+  isEmptyValue,
+  isExpiryDate,
+} from '@connection-portal/rules/personas/values';
 
 import type { ValueChoice } from '../../../components/ValuesPicker/types';
 import type { RulesBranch } from '../RulesStep/types';
@@ -23,14 +33,12 @@ import type {
   PickerState,
 } from './types';
 
-/** `YYYY-MM-DD` as the panel writes dates, `dd.mm.yyyy` ("08.07.2007"); anything else unchanged */
+/**
+ * `YYYY-MM-DD` as the panel writes dates, `dd.mm.yyyy` ("08.07.2007"); anything else unchanged
+ * (the rules package's `displayDateOf()`, which the test-day line uses too)
+ */
 export function formatDisplayDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!match) {
-    return iso;
-  }
-  const [, year, month, day] = match;
-  return `${day}.${month}.${year}`;
+  return displayDateOf(iso);
 }
 
 /**
@@ -66,24 +74,28 @@ export function documentGroupsOf(fields: readonly PersonaField[]): DocumentGroup
 }
 
 /**
- * How the panel writes a value (S8.4; design-notes §4.1):
+ * How the panel writes a value (S8.4; design-notes §4.1; spec 008 FR-024, C6):
  * - an empty value, of any kind: "Not shared";
- * - a date as `dd.mm.yyyy`, a date of birth with its age: "08.07.2007 (age 19)" (F10);
+ * - a date as `dd.mm.yyyy`, a date of birth without its age: "08.07.2007"; an expiry date as
+ *   "Valid until 19.08.2040";
  * - an enum by its labels, several in the value set's order: "German", "B, BE" (F11); a value
  *   outside the set as it is, after the others;
  * - text and numbers as stored
+ *
+ * `_today` is no longer read (the age is gone, FR-024); it stays until the data card moves to
+ * `dataRowTextOf()` (T071)
  */
 export function valueTextOf(
   field: PersonaField,
   value: PersonaValue | undefined,
   optionSets: OptionSet[],
-  today: string
+  _today: string
 ): string {
   if (value === undefined || value === null || isEmptyValue(value)) {
     return TEST_STEP_COPY.notShared;
   }
   if (field.kind === 'date' && typeof value === 'string') {
-    return formatDisplayDate(value) + (field.dateOfBirth ? ageSuffixOf(value, today) : '');
+    return isExpiryDate(field) ? validUntilOf(value) : formatDisplayDate(value);
   }
   const values = Array.isArray(value) ? value : [value as string | number];
   if (field.kind !== 'enum') {
@@ -101,9 +113,27 @@ export function valueTextOf(
 }
 
 /**
+ * How the data card writes one of `dataRowsOf()`'s rows (spec 008 FR-024, CLAR #46): a row of
+ * licence classes as "B, BE since 02.05.2010" (the classes by `valueTextOf()`, "B, BE" without a
+ * shown issue date, "Not shared" without a class), any other row as `valueTextOf()` writes its
+ * value
+ */
+export function dataRowTextOf(
+  row: DataRow,
+  values: Persona['values'],
+  optionSets: OptionSet[]
+): string {
+  if (row.classes === null) {
+    return valueTextOf(row.field, values[row.field.key], optionSets, '');
+  }
+  const classes = valueTextOf(row.field, row.classes, optionSets, '');
+  return row.classes.length === 0 ? classes : classesSinceOf(classes, row.since);
+}
+
+/**
  * The loading status of a run (S8.8; design-notes §8), from the personas of its free slots and of
  * its filled slots, in the chips' order: "Creating new data for Mia…", "Adding new data for Mia
- * and Anna…", "Creating 3 sample applicants…" when all three are free; '' without a run, so that
+ * and Anna…", "Creating 3 sample citizens…" when all three are free; '' without a run, so that
  * the next run's text is announced when it starts
  */
 export function runStatusTextOf(run: GenerationRun | null, personas: readonly Persona[]): string {

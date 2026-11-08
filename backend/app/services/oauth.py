@@ -502,9 +502,7 @@ def _checked_request(db: Session, request: AuthorizeRequest) -> OauthClient:
             'The code challenge must be 43 to 128 URL-safe characters.'
         )
     if request.resource != settings.mcp_url:
-        raise _invalid_request(
-            "The resource isn't this Connection Portal's MCP server."
-        )
+        raise _invalid_request("The resource isn't Konnekt's MCP server.")
     if any(word not in SCOPE_WORDS for word in request.scope.split()):
         raise _invalid_request('The scope may only contain read, drafts and manage.')
     return client
@@ -709,9 +707,7 @@ def exchange_code(db: Session, params: Mapping[str, str]) -> TokenResponse:
     if redirect_uri != code.redirect_uri:
         raise _invalid_grant("The redirect URI isn't the authorization request's.")
     if resource != code.resource or resource != settings.mcp_url:
-        raise refusal(
-            'invalid_target', "The resource isn't this Connection Portal's MCP server."
-        )
+        raise refusal('invalid_target', "The resource isn't Konnekt's MCP server.")
     code.used_at = now
     authorization = _agent_connection(db, code, now)
     answer, _refresh_row = _issue_tokens(db, authorization, now)
@@ -775,9 +771,7 @@ def refresh(db: Session, params: Mapping[str, str]) -> TokenResponse:
     ):
         raise _invalid_grant('The refresh token was issued to another client.')
     if resource and resource != settings.mcp_url:
-        raise refusal(
-            'invalid_target', "The resource isn't this Connection Portal's MCP server."
-        )
+        raise refusal('invalid_target', "The resource isn't Konnekt's MCP server.")
     answer, refresh_row = _issue_tokens(db, authorization, now)
     row.replaced_by_id = refresh_row.id
     db.commit()

@@ -1,5 +1,6 @@
-// Rules as readable statements (FR-005; F1, F2, F5, F7, F8, F32), such as "Personal ID – Date of
-// birth (Age) is at least 21 years old", for the rules step, the publish dialog and the details
+// Rules as readable statements (FR-005; F1, F2, F5, F7, F8, F32; spec 008 C3, FR-021), such as
+// "Personal ID · Date of birth (Age) is at least 21 years old", for the rules step, the publish
+// dialog and the details
 import type { DocumentField } from '@connection-portal/api-types/document-types';
 import type {
   Condition,
@@ -41,13 +42,13 @@ export function ruleFieldLabel(field: DocumentField): string {
 }
 
 /**
- * What a resolved target checks, with "–" between the document, the field and the part:
- * "Personal ID – Place of birth – City or town", "Driving licence – Licence class B – Issue date".
- * A part named like its field, such as the classes held, adds nothing: "Driving licence – Licence
- * classes".
+ * What a resolved target checks, with "·" between the document and the data and "–" before a
+ * part (spec 008 C3): "Personal ID · Place of birth – City or town", "Driving licence · Licence
+ * class B – Issue date". A part named like its field, such as the classes held, adds nothing:
+ * "Driving licence · Licence classes".
  */
 export function subjectOfResolved(target: ResolvedTarget): string {
-  return `${target.document.label} – ${dataOfResolved(target)}`;
+  return `${target.document.label} · ${dataOfResolved(target)}`;
 }
 
 /**

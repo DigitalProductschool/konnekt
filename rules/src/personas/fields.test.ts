@@ -43,7 +43,7 @@ function keysOf(fields: PersonaField[]): string[] {
   return fields.map((field) => field.key);
 }
 
-// The spec's example (US1): Standard requires an applicant who is at least 21, lives in Stuttgart,
+// The spec's example (US1): Standard requires a citizen who is at least 21, lives in Stuttgart,
 // holds class B and has held it for at least 2 years; Ambulance, based on it, lowers the age to 19
 const AGE = rule(1, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 21 });
 const CITY = rule(2, target('pid', 'address_locality'), {

@@ -36,7 +36,7 @@ export default function RuleRow({
 }: RuleRowProps) {
   const parts = statementPartsOf(rule, context);
   const text =
-    statementOf(rule, context)?.text ?? (parts ? `${parts.document} – ${parts.data}` : '');
+    statementOf(rule, context)?.text ?? (parts ? `${parts.document} · ${parts.data}` : '');
   const message = rule.message.trim();
   const tint = mark ? BRANCH_MARK_TINTS[mark] : '';
   // A rule with a problem carries no finding (W11)

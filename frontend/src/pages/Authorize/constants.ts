@@ -7,7 +7,7 @@ export const CONSENT_COPY = {
   fallbackTitle: 'Allow access',
   title: (clientName: string) => `Allow access for ${clientName}?`,
   intro: (clientName: string) =>
-    `${clientName} wants to act on your behalf in the Connection Portal. Choose what it may do.`,
+    `${clientName} wants to act on your behalf in Konnekt. Choose what it may do.`,
   levelLegend: 'Access level',
   stepUp: (clientName: string) => `${clientName} is asking for more access than it has.`,
   allow: 'Allow',

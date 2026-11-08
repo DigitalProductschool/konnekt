@@ -23,7 +23,7 @@ import { statementOf, statementPartsOf } from '../statements';
 import type { RuleContext, StatementParts } from '../types';
 import { applicantOf } from './applicant';
 import { GROUP_SUBTITLES } from './constants';
-import { meetsHeadingOf, messageColumnOf, type ResultCounts, resultHeadingOf } from './messages';
+import { meetsHeadingOf, messageColumnOf, resultHeadingOf } from './messages';
 import type {
   Persona,
   PersonaBranchResult,
@@ -50,7 +50,7 @@ const CLASSES_PART = 'classes';
  * reached through `firstProblem()`, so there every branch has its result. Throws a `RangeError`
  * only for a `today` that isn't a date.
  *
- * Linear in personas × branches × items (SC-003): one applicant per persona, one evaluation each
+ * Linear in personas × branches × items (SC-003): one citizen per persona, one evaluation each
  */
 export function testResultsOf(
   personas: readonly Persona[],
@@ -87,9 +87,9 @@ export function testResultsOf(
  *   each with its message and, for a group, its members that aren't met, recursively (F8, W10);
  *   then every other top-level item that counts, in display order, with its outcome and no
  *   message (F14). A group is never `'not_checked'`.
- * - `heading`: the reported items counted by type, one per message, a group as one
- *   (`resultHeadingOf()`, design-notes.md §6.3); `listHeading` under a variant the persona meets,
- *   `messageColumn` under one it doesn't (F3).
+ * - `heading`: "Result: doesn’t meet 2 rules" with the rules not met (`resultHeadingOf()`; spec
+ *   008 FR-024), counted as the rows list them (V4, `unmetRulesOf()`); `listHeading` under a
+ *   variant the persona meets, `messageColumn` under one it doesn't (F3).
  * - `failingFields` (K1): the keys of the fields in `fields` read by the rules the rows show as
  *   failing, in the order of `fields`. A rule fails as shown when it isn't met and no group around
  *   it is met: a rule inside a met group marks nothing. A rule on a licence class's date that the
@@ -116,7 +116,6 @@ export function resultViewOf(
       .filter((member) => member.outcome !== 'met')
       .map((member) => row(member, null, memberRows(member)));
 
-  const counts: ResultCounts = { rules: 0, groups: 0 };
   const reported = new Set<string>();
   const rows: ResultRow[] = [];
   for (const { id, message } of result.messages) {
@@ -125,11 +124,6 @@ export function resultViewOf(
       continue;
     }
     reported.add(id);
-    if (entry.item.type === 'rule') {
-      counts.rules += 1;
-    } else {
-      counts.groups += 1;
-    }
     rows.push(row(entry, message, memberRows(entry)));
   }
   for (const entry of result.items) {
@@ -140,12 +134,34 @@ export function resultViewOf(
 
   return {
     meets: result.met,
-    heading: resultHeadingOf(result.met ? { rules: 0, groups: 0 } : counts),
+    heading: resultHeadingOf(result.met ? 0 : unmetRulesOf(rows)),
     listHeading: result.met ? meetsHeadingOf(persona) : null,
     messageColumn: result.met ? null : messageColumnOf(persona),
     rows,
     failingFields: failingFieldsOf(result.items, persona, fields),
   };
+}
+
+/**
+ * The rules the persona doesn't meet, for the heading (V4; spec 008 FR-024): every reported rule,
+ * and inside every reported group the rules the rows list under it, the members that aren't met,
+ * recursively through the sub-groups that aren't met. A group itself never counts, and a rule
+ * inside a met group doesn't either, as its group isn't listed. U65 (7057:58811) and U66 (#19,
+ * #25) draw no group, so this is the literal reading of "doesn’t meet <n> rules"
+ */
+function unmetRulesOf(rows: readonly ResultRow[]): number {
+  const ids = new Set<string>();
+  const walk = (level: readonly ResultRow[]): void => {
+    for (const row of level) {
+      if (row.type === 'rule') {
+        ids.add(row.itemId);
+      } else {
+        walk(row.members);
+      }
+    }
+  };
+  walk(rows.filter((row) => row.reported));
+  return ids.size;
 }
 
 /** The branch's items at every level, by id */
@@ -215,7 +231,7 @@ function ruleStatementOf(
 ): { statement: string; parts: StatementParts | null } {
   const parts = statementPartsOf(rule, context);
   const statement =
-    statementOf(rule, context)?.text ?? (parts ? `${parts.document} – ${parts.data}` : '');
+    statementOf(rule, context)?.text ?? (parts ? `${parts.document} · ${parts.data}` : '');
   return { statement, parts };
 }
 

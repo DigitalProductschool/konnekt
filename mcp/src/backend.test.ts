@@ -120,7 +120,7 @@ describe('BackendClient', () => {
   });
 
   it('maps 403 browser_only to BrowserOnly', async () => {
-    const message = 'This action is done in the Connection Portal.';
+    const message = 'This action is done in Konnekt.';
     const error = await failureOf(403, { error: 'browser_only', message });
     expect(error).toBeInstanceOf(BrowserOnly);
     expect(error).toMatchObject({ message });

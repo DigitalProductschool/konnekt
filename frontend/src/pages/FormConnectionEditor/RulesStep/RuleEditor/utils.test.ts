@@ -73,23 +73,23 @@ describe('hintsOf', () => {
     ]);
   });
 
-  it('says that applicants who turn N on the day of sharing count (U11)', () => {
+  it('says that citizens who turn N on the day of sharing count (U11)', () => {
     const hints = hintsOf(
       resolved('pid', 'birthdate'),
       { operator: 'at_least_years_ago', years: 21 },
       TODAY
     );
-    expect(hints).toContain('Applicants who turn 21 that day count.');
+    expect(hints).toContain('Citizens who turn 21 that day count.');
     expect(
       hintsOf(resolved('pid', 'birthdate'), { operator: 'less_than_years_ago', years: 21 }, TODAY)
-    ).not.toContain('Applicants who turn 21 that day count.');
+    ).not.toContain('Citizens who turn 21 that day count.');
     expect(
       hintsOf(
         resolved('pid', 'date_of_issuance'),
         { operator: 'at_least_years_ago', years: 2 },
         TODAY
       )
-    ).not.toContain('Applicants who turn 2 that day count.');
+    ).not.toContain('Citizens who turn 2 that day count.');
   });
 });
 

@@ -113,10 +113,10 @@ const notHeight = (number: number, value: number) =>
   on(number, HEIGHT, { operator: 'not_equal_to', value });
 const sexOneOf = (number: number, ...values: number[]) =>
   on(number, SEX, { operator: 'includes_one_of', values });
-/** No applicant meets it: every applicant has one of the set's codes */
+/** No citizen meets it: every citizen has one of the set's codes */
 const noSex = (number: number) =>
   on(number, SEX, { operator: 'includes_none_of', values: [0, 1, 2] });
-/** No applicant meets it: no date is before the first date the evaluator reads */
+/** No citizen meets it: no date is before the first date the evaluator reads */
 const bornBeforeTime = (number: number) =>
   on(number, BIRTH, { operator: 'before', date: '0001-01-01' });
 
@@ -175,8 +175,8 @@ describe('checkBranch: a branch without checked rules (W13)', () => {
   });
 });
 
-describe('checkBranch, step 1: no applicant can meet the branch (FR-004, FR-008)', () => {
-  it('gives the notice when no applicant can meet the top level today, nor later', () => {
+describe('checkBranch, step 1: no citizen can meet the branch (FR-004, FR-008)', () => {
+  it('gives the notice when no citizen can meet the top level today, nor later', () => {
     expect(check([taller(1, 180), shorter(2, 150)]).notice).toEqual({
       kind: 'none_can_meet',
       today: false,
@@ -288,7 +288,7 @@ describe('checkBranch, step 2: conflicts (FR-003)', () => {
   });
 
   it('never marks an item only because something it is combined with can’t be met on its own', () => {
-    // Rule 02 reads the sex, as Rule 01 does, which no applicant can meet
+    // Rule 02 reads the sex, as Rule 01 does, which no citizen can meet
     const result = check([noSex(1), sexOneOf(2, 1), group(1, [noSex(3), taller(4, 100)])]);
     expect(result.notice).toEqual({ kind: 'none_can_meet', today: false });
     expect(result.findings).toEqual([
@@ -368,7 +368,7 @@ describe('checkBranch: the today flag (FR-008)', () => {
 
 const heightIs = (number: number, value: number) =>
   on(number, HEIGHT, { operator: 'equal_to', value });
-/** Every applicant meets it: heights are whole numbers */
+/** Every citizen meets it: heights are whole numbers */
 const anyHeight = (number: number) => notHeight(number, 20.5);
 
 const ALL_MEET = { kind: 'all_meet', today: false };
@@ -393,8 +393,8 @@ function alwaysMet(itemId: string): ItemFinding {
   return { itemId, kind: 'always_met', reason: null, today: false };
 }
 
-describe('checkBranch, step 3: every applicant meets the branch (FR-006, FR-008)', () => {
-  it('gives the notice when no applicant fails the top level on any day from today on', () => {
+describe('checkBranch, step 3: every citizen meets the branch (FR-006, FR-008)', () => {
+  it('gives the notice when no citizen fails the top level on any day from today on', () => {
     const result = check([anyHeight(1)]);
     expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
     expect(result.findings).toEqual([alwaysMet('rule-1')]);
@@ -403,15 +403,15 @@ describe('checkBranch, step 3: every applicant meets the branch (FR-006, FR-008)
   it('gives it for a top level combined with OR that one item makes always met', () => {
     const result = check([taller(1, 180), anyHeight(2)], 'or');
     expect(result.notice).toEqual(ALL_MEET);
-    // Rule 01 makes no difference beside Rule 02, which every applicant meets
+    // Rule 01 makes no difference beside Rule 02, which every citizen meets
     expect(result.findings).toEqual([implies('rule-1', ['rule-2']), alwaysMet('rule-2')]);
   });
 
-  it('gives none while some applicant fails the branch', () => {
+  it('gives none while some citizen fails the branch', () => {
     expect(check([taller(1, 100), anyHeight(2)]).notice).toBeNull();
   });
 
-  it('gives none when every applicant meets the branch today but not on a later day', () => {
+  it('gives none when every citizen meets the branch today but not on a later day', () => {
     // Born before 2024, or less than 5 years ago: everyone today, but from 2029 on, those born in
     // 2024 meet neither
     const result = check([
@@ -429,12 +429,12 @@ describe('checkBranch, step 3: every applicant meets the branch (FR-006, FR-008)
 });
 
 describe('checkBranch, step 4: always met (FR-006)', () => {
-  it('marks a rule that every applicant meets, in a level combined with AND', () => {
+  it('marks a rule that every citizen meets, in a level combined with AND', () => {
     const result = check([taller(1, 100), anyHeight(2)]);
     expect(result.findings).toEqual([alwaysMet('rule-2')]);
   });
 
-  it('marks a group that every applicant meets, and nothing inside it', () => {
+  it('marks a group that every citizen meets, and nothing inside it', () => {
     // Taller than 100 or shorter than 101; Rule 03 would otherwise make no difference beside …
     const result = check([sexOneOf(1, 1), group(1, [taller(2, 100), shorter(3, 101)], 'or')]);
     expect(result.findings).toEqual([alwaysMet('group-1')]);
@@ -445,7 +445,7 @@ describe('checkBranch, step 4: always met (FR-006)', () => {
     expect(result.findings).toEqual([alwaysMet('group-1')]);
   });
 
-  it('marks nothing that every applicant meets today only (FR-008)', () => {
+  it('marks nothing that every citizen meets today only (FR-008)', () => {
     const result = check([
       sexOneOf(1, 1),
       group(
@@ -514,7 +514,7 @@ describe('checkBranch, step 4: redundant (FR-005)', () => {
   });
 
   it('reasons through an enclosing OR level in a level combined with AND (orItems)', () => {
-    // Top OR: Group 01 (AND: sex 1 or 2, sex 1), sex 2. Rule 02 makes no difference: an applicant
+    // Top OR: Group 01 (AND: sex 1 or 2, sex 1), sex 2. Rule 02 makes no difference: a citizen
     // who meets Rule 01 and not Rule 03 has sex 1
     const result = check([group(1, [sexOneOf(1, 1, 2), sexOneOf(2, 1)]), sexOneOf(3, 2)], 'or');
     expect(result.findings).toEqual([impliedBy('rule-2', ['rule-1'], ['rule-3'])]);
@@ -556,7 +556,7 @@ describe('checkBranch, step 4: redundant (FR-005)', () => {
 });
 
 describe('checkBranch, step 4: what isn’t reported (FR-005, W4)', () => {
-  it('reports nothing but conflicts in a branch that no applicant can meet', () => {
+  it('reports nothing but conflicts in a branch that no citizen can meet', () => {
     // Rule 04 has the same check as Rule 03
     const result = check([taller(1, 180), shorter(2, 150), sexOneOf(3, 1), sexOneOf(4, 1)]);
     expect(result.notice).toEqual({ kind: 'none_can_meet', today: false });
@@ -887,7 +887,7 @@ function compareWithOracle(checked: CheckedBranch, oracle: Oracle, result: Branc
 
 /**
  * The always-met and redundant findings hold (FR-005, FR-006): an always-met item is met by every
- * applicant on every day from today on; each redundant item, deleted from the working tree in the
+ * citizen on every day from today on; each redundant item, deleted from the working tree in the
  * order step 4 visits them, changes no outcome on any day from today on; and deleting them all at
  * once changes none either (SC-002). With `complete`, every always-met item that may be reported
  * has its finding

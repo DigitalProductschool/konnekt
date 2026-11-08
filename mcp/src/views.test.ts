@@ -248,7 +248,7 @@ describe('itemViewOf', () => {
       id: 'rule-1',
       type: 'rule',
       name: 'Age',
-      statement: 'Personal ID – Date of birth (Age) is at least 21 years old',
+      statement: 'Personal ID · Date of birth (Age) is at least 21 years old',
       mark: null,
       link: itemLink(CONNECTION, STANDARD, 'rule-1'),
       target: { document_type: 'pid', field: 'birthdate' },
@@ -274,21 +274,21 @@ describe('itemViewOf', () => {
       ['rule-3', itemLink(CONNECTION, AMBULANCE, 'rule-3'), 'driving_privileges.issue_date#B'],
     ]);
     expect(view.items?.[1].statement).toBe(
-      'Driving licence – Licence class B – Issue date is at least 2 years ago'
+      'Driving licence · Licence class B – Issue date is at least 2 years ago'
     );
   });
 
   it('shows a based variant’s marks', () => {
     expect(itemViewOf(CHANGED_AGE, AMBULANCE_BRANCH, VIEW_CONTEXT)).toMatchObject({
       mark: 'changed',
-      statement: 'Personal ID – Date of birth (Age) is at least 18 years old',
+      statement: 'Personal ID · Date of birth (Age) is at least 18 years old',
     });
     expect(itemViewOf(NATIONALITY, AMBULANCE_BRANCH, VIEW_CONTEXT).mark).toBe('added');
   });
 
   it('reads a rule on data no longer requested from the whole catalog', () => {
     expect(itemViewOf(SEX, STANDARD_BRANCH, VIEW_CONTEXT).statement).toBe(
-      'Personal ID – Sex includes one of Female'
+      'Personal ID · Sex includes one of Female'
     );
   });
 
@@ -355,24 +355,24 @@ describe('unrequestedRulesOf', () => {
 
 describe('applicantFieldsOf', () => {
   it('lists the fields Standard’s rules check, in catalog order, with their kinds', () => {
-    // The sex isn't requested: no applicant gives it, and the rule on it isn't checked
+    // The sex isn't requested: no citizen gives it, and the rule on it isn't checked
     expect(applicantFieldsOf(STANDARD_BRANCH, CONTEXT)).toEqual([
       {
         key: 'pid.birthdate',
-        label: 'Personal ID – Date of birth (Age)',
+        label: 'Personal ID · Date of birth (Age)',
         kind: 'date',
         multiple: false,
       },
       {
         key: 'mdl.driving_privileges.classes',
-        label: 'Driving licence – Licence classes',
+        label: 'Driving licence · Licence classes',
         kind: 'enum',
         option_set: 'licence_classes',
         multiple: true,
       },
       {
         key: 'mdl.driving_privileges.issue_date#B',
-        label: 'Driving licence – Licence class B – Issue date',
+        label: 'Driving licence · Licence class B – Issue date',
         kind: 'date',
         multiple: false,
         licence_class: 'B',
@@ -389,7 +389,7 @@ describe('applicantFieldsOf', () => {
     ]);
     expect(applicantFieldsOf(AMBULANCE_BRANCH, CONTEXT)[1]).toEqual({
       key: 'pid.nationalities',
-      label: 'Personal ID – Nationality',
+      label: 'Personal ID · Nationality',
       kind: 'enum',
       option_set: 'countries',
       multiple: true,
@@ -509,12 +509,12 @@ describe('text blocks', () => {
     );
     const link = (id: string) => itemLink(CONNECTION, AMBULANCE, id);
     expect(itemViewLinesOf(views)).toEqual([
-      `- Age (rule-1, changed): Personal ID – Date of birth (Age) is at least 18 years old. ${link('rule-1')}`,
+      `- Age (rule-1, changed): Personal ID · Date of birth (Age) is at least 18 years old. ${link('rule-1')}`,
       `- Licence (group-1; one must be met): ${link('group-1')}`,
-      `  - Rule 02 (rule-2): Driving licence – Licence classes includes one of B. ${link('rule-2')}`,
-      `  - Rule 03 (rule-3): Driving licence – Licence class B – Issue date is at least 2 years ago. ${link('rule-3')}`,
-      `- Rule 05 (rule-5): Personal ID – Sex includes one of Female. ${link('rule-5')}`,
-      `- Rule 04 (rule-4, added): Personal ID – Nationality includes one of Germany. ${link('rule-4')}`,
+      `  - Rule 02 (rule-2): Driving licence · Licence classes includes one of B. ${link('rule-2')}`,
+      `  - Rule 03 (rule-3): Driving licence · Licence class B – Issue date is at least 2 years ago. ${link('rule-3')}`,
+      `- Rule 05 (rule-5): Personal ID · Sex includes one of Female. ${link('rule-5')}`,
+      `- Rule 04 (rule-4, added): Personal ID · Nationality includes one of Germany. ${link('rule-4')}`,
     ]);
   });
 

@@ -7,8 +7,8 @@ export const CONNECTOR_LABELS: Record<Combinator, string> = { and: 'AND', or: 'O
 
 // Figma "Rules/Connector menu" (U14 6094:7052), in the order it lists the operators
 export const CONNECTOR_OPTIONS: { operator: Combinator; description: string }[] = [
-  { operator: 'and', description: 'All rules must be true' },
-  { operator: 'or', description: 'At least one rule must be true' },
+  { operator: 'and', description: 'All rules must be met' },
+  { operator: 'or', description: 'At least one rule must be met' },
 ];
 
 // The menu's width, and where it opens from its pill: to the right as Figma draws it, to the left

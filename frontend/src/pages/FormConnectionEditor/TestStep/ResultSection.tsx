@@ -8,7 +8,7 @@ import type { ResultSectionProps } from './types';
  * The selected persona's results for the shown variant (S8.6; F3, F6, F14, W10; FR-014, FR-015,
  * FR-018; Figma "Result" 7057:58809): white, 1px border, 8px radius, 16px padding, 8px gaps,
  * filling the width beside the data card.
- * - For a variant that no applicant can meet, spec 003's notice "No applicant can meet the rules
+ * - For a variant that no citizen can meet, spec 003's notice "No citizen can meet the rules
  *   of Standard." first, in the findings banner's warning look (F6; no frame).
  * - The heading (U01 7057:58811, U07 7058:61454), title/small in a 48px row: "Result: meets the
  *   rules" or the count of reported items (W10).

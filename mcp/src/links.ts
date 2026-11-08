@@ -1,4 +1,4 @@
-// The Connection Portal's links (research R11; data-model §7): built from `PORTAL_URL`, and parsed
+// Konnekt's links (research R11; data-model §7): built from `PORTAL_URL`, and parsed
 // wherever a tool takes a reference (FR-019, FR-030). Pure apart from reading the settings: the
 // functions take the portal's URL as an optional last argument, which tests pass
 import { GROUP_ID_PATTERN, RULE_ID_PATTERN } from '@connection-portal/rules/constants';
@@ -22,9 +22,9 @@ export class ReferenceRefusal extends Error {
   }
 }
 
-export const FOREIGN_LINK_MESSAGE = "This link doesn't belong to this Connection Portal.";
+export const FOREIGN_LINK_MESSAGE = "This link doesn't belong to Konnekt.";
 export const INVALID_LINK_MESSAGE =
-  "This link doesn't name a connection, variant, rule or group of this Connection Portal.";
+  "This link doesn't name a connection, variant, rule or group in Konnekt.";
 
 /** A link to another address than `PORTAL_URL`'s (FR-030) */
 export class ForeignLink extends ReferenceRefusal {
@@ -34,7 +34,7 @@ export class ForeignLink extends ReferenceRefusal {
   }
 }
 
-/** A link of this Connection Portal that names nothing a tool takes, or names it malformed */
+/** A Konnekt link that names nothing a tool takes, or names it malformed */
 export class InvalidLink extends ReferenceRefusal {
   constructor() {
     super('validation', INVALID_LINK_MESSAGE);

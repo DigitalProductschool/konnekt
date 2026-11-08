@@ -47,12 +47,12 @@ the called branch's rules. See [Rules and branches](#rules-and-branches-spec-002
 Spec 003 ([plan](../specs/003-rule-consistency-checks/plan.md)) adds **rule
 consistency checks**: while the team member edits, the Rules step points out rules and
 groups that conflict, repeat or cover each other, are always met, or make a variant
-that no applicant can meet. They run only in the browser and never reach the server.
+that no citizen can meet. They run only in the browser and never reach the server.
 See [Rule consistency checks](#rule-consistency-checks-spec-003).
 
 Spec 007 ([plan](../specs/007-agent-mcp-server/plan.md)) lets team members connect **LLM
 agents** through an MCP server: the agents find and read connections, build drafts one change
-at a time with the editor's own logic, run the rule checks and test fictitious applicants, and
+at a time with the editor's own logic, run the rule checks and test fictitious citizens, and
 ask for the team member's **approval** to publish or delete a draft or to deactivate,
 reactivate or delete a live connection. See
 [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007).
@@ -603,7 +603,7 @@ to R10 in `specs/002-connection-rules/`, the tables its
 
 While the team member edits, the Rules step checks each variant's rules and shows its
 **findings**: rules and groups that conflict, that are duplicates or covered by others,
-or that are always met, and variants that no applicant can meet or that every applicant
+or that are always met, and variants that no citizen can meet or that every citizen
 meets. The decisions are research R1 to R15 in `specs/003-rule-consistency-checks/`.
 The checks have no endpoint, table, setting or dependency of their own.
 
@@ -659,7 +659,7 @@ The checks have no endpoint, table, setting or dependency of their own.
 
 ### The test step and the test personas (spec 004)
 
-Before publishing, the team member sees how three sample applicants (personas) fare against
+Before publishing, the team member sees how three sample citizens (personas) fare against
 each variant's rules. The decisions are research R1 to R16 in
 `specs/004-rule-test-personas/`, the shapes in its `contracts/personas.md`. The step has no
 endpoint, table, setting or dependency of its own.
@@ -834,7 +834,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   `authorization` is `None` for the browser. It touches the authorization's `last_used_at` at
   most once a minute. `require_level('drafts')` refuses a bearer below that level with
   `403 insufficient_access` and `needs_access_level`; `require_browser_session` refuses every
-  bearer with `403 browser_only` ("This action is done in the Connection Portal."), on the
+  bearer with `403 browser_only` ("This action is done in Konnekt."), on the
   endpoints that agents reach only through approval requests, `PUT /api/form-connections/{id}`,
   the user page's and the approval page's endpoints and `/api/auth/*`. `get_current_user` stays
   the cookie-only dependency. The table of who may call what is in the spec's
@@ -934,9 +934,9 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   editor's budgets from `rules/src/checks/constants.ts`; a variant that doesn't finish comes
   back as not checked completely. Run from the sources (`npm run dev`, Vitest), the checks run
   on the main thread with the same deadline. Each finding carries the items involved, why it
-  holds and `resolutionOf()`'s text. `test_applicants` checks each fictitious applicant's
+  holds and `resolutionOf()`'s text. `test_applicants` checks each fictitious citizen's
   values against the variant's persona fields (`mcp/src/applicants.ts`) and evaluates them with
-  `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, applicants and
+  `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, citizens and
   results are never stored, sent on or logged.
 - **Guidance from one source** (research R16; the spec's `contracts/guidance.md`):
   `mcp/plugin/` holds the server instructions (`instructions.md`), the eight skills
@@ -955,7 +955,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   results, tokens or claims. The client chooses the method and the tool name, so the line
   shows `other` for a method that isn't a method name's shape and `unknown` for a tool the
   server doesn't have. The backend logs ids and counts only, never a token, code, client
-  metadata, applicant, finding or rule content; the token endpoint's refusals are logged as
+  metadata, citizen, finding or rule content; the token endpoint's refusals are logged as
   their error code. The OAuth endpoints read no query, so both access logs, uvicorn's
   (`redact_references()` in `app/main.py`) and nginx's (`$redacted_request_uri`), show
   `/api/oauth/…?<redacted>` in place of any query sent there.
@@ -1187,7 +1187,7 @@ tree and a draft's content are one JSONB column each, since they are always read
 written whole. Autogenerate emits no CHECK constraint, partial unique index or backfill, so
 the drafts migration and spec 007's migration (`uq_agent_authorizations_oauth_client`, the
 variant ids in drafts) add them by hand. No table holds a citizen's documents, an
-evaluation, a finding, a test applicant or a token's secret.
+evaluation, a finding, a test citizen or a token's secret.
 
 ## Environment Variables
 
@@ -1248,7 +1248,7 @@ stops it in any environment. Trailing slashes are removed.
 | `OAUTH_ISSUER` | The authorization server its metadata names; the backend's `OAUTH_ISSUER` | `http://localhost:3000` |
 
 `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` must match the backend's, since tokens are bound to
-`MCP_URL` and links must open the right Connection Portal. `mcp/.env.example` lists them; the
+`MCP_URL` and links must open the right Konnekt installation. `mcp/.env.example` lists them; the
 compose files pass them as `environment:`, and `npm run dev -w mcp` reads them from the shell.
 
 ### Frontend

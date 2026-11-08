@@ -1,10 +1,10 @@
 // The text theory (specs/003-rule-consistency-checks, FR-007, EC "Letter case", EC "Text inside
 // other text"; research R7): whether the literals of one text variable can be met together.
 //
-// `_text_holds()` in backend/app/services/evaluation.py normalises the applicant's text and the
+// `_text_holds()` in backend/app/services/evaluation.py normalises the citizen's text and the
 // rule's text alike with `_normalised_text()` (`normalisedText()`), with the rule's letter-case
 // setting, and compares them with ==, !=, `in` and `not in`. `literals.ts` has normalised the
-// rules' texts already. So an applicant is one text R in the case-respecting form: any text in NFC
+// rules' texts already. So a citizen is one text R in the case-respecting form: any text in NFC
 // without Python's whitespace at either end, and not empty. A case-respecting literal reads R, a
 // case-ignoring one its folded form F = normalisedText(R, false), Python's `str.casefold()` of R
 // in NFC. A negated literal swaps "is equal to" and "is not equal to", "contains" and "doesn't
@@ -116,10 +116,10 @@ const DECOMPOSABLE_BELOW = 0x30000;
 let decompositionPartsBuilt: ReadonlySet<number> | null = null;
 
 /**
- * Whether an applicant whose text is `value`, as delivered, meets the literal, as the evaluator
+ * Whether a citizen whose text is `value`, as delivered, meets the literal, as the evaluator
  * compares: `value` normalised with the literal's letter-case setting, as `_text_holds()` does, so
  * any delivered text can be passed, against the literal's text, which `literals.ts` has
- * normalised; `negated` flips the outcome. An applicant's text is never empty after normalisation,
+ * normalised; `negated` flips the outcome. A citizen's text is never empty after normalisation,
  * where the evaluator counts it as missing, so `value` isn't either
  */
 export function textHolds(literal: Literal<TextTest>, value: string): boolean {

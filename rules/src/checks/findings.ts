@@ -7,7 +7,7 @@
 // The steps of research R8 run in order (`STEPS`), on one `Run` that holds what they found:
 // 1. Can the branch be met today? If not, the notice `none_can_meet` (FR-004).
 // 2. Conflicts (FR-003), for every item, top-down, with a smallest set as the reason.
-// 3. Every applicant meets the branch, on every day from today on? The notice `all_meet` (FR-006).
+// 3. Every citizen meets the branch, on every day from today on? The notice `all_meet` (FR-006).
 // 4. Always met and redundant (FR-005, FR-006), from the last item to the first, each group before
 //    its members, in the working tree: the branch without the items already found redundant.
 // 5. Certainty (FR-010) runs through every step: an 'unknown' answer, or the deadline, makes the
@@ -122,7 +122,7 @@ interface Run {
   /** The days after today: whether a finding holds on later days too (FR-008) */
   readonly later: DayRange;
   /**
-   * Today to 9999-12-31: the days of the always-met, redundant and every-applicant questions,
+   * Today to 9999-12-31: the days of the always-met, redundant and every-citizen questions,
    * which hold on every day from today on or aren't reported (FR-008)
    */
   readonly fromToday: DayRange;
@@ -131,7 +131,7 @@ interface Run {
   notice: BranchNotice | null;
   /**
    * Step 1's answer: whether the branch can be met today, null before step 1 has answered. The
-   * later steps ask about applicants who meet it only when it is 'sat'
+   * later steps ask about citizens who meet it only when it is 'sat'
    */
   meetable: Verdict | null;
   /** Step 2's answer per item id; an item without one wasn't reached */
@@ -207,7 +207,7 @@ function checkpoint(run: Run): void {
 }
 
 /**
- * Whether some applicant meets `formula` on a day of `days`. An 'unknown' answer makes the run
+ * Whether some citizen meets `formula` on a day of `days`. An 'unknown' answer makes the run
  * incomplete (FR-010); it is never taken for 'sat' or 'unsat'. When the deadline caused it, the
  * run stops here (`checkpoint()`), so that nothing more is asked past the deadline
  */
@@ -490,7 +490,7 @@ function branchStep(run: Run): void {
 }
 
 /**
- * Whether some applicant meets `formula` on a day after today, for the `today` of a finding that
+ * Whether some citizen meets `formula` on a day after today, for the `today` of a finding that
  * holds today (FR-008). When that isn't certain, true: the words "who shares today" are true
  * either way
  */
@@ -714,10 +714,10 @@ function conflicting(
   return { itemId: entry.item.id, kind: 'conflicting', reason, today: today() };
 }
 
-// Step 3: does every applicant meet the branch? (FR-006, FR-008)
+// Step 3: does every citizen meet the branch? (FR-006, FR-008)
 
 /**
- * The notice `all_meet` when no applicant fails to meet the branch on any day from today to
+ * The notice `all_meet` when no citizen fails to meet the branch on any day from today to
  * 9999-12-31. Asked only when step 1 found the branch meetable today; the branch has checked
  * rules, or no step runs
  */
@@ -841,7 +841,7 @@ function differenceOf(run: Run, visit: Visit, entry: Entry): 'found' | 'visit' |
     // Not reached: an item is visited before anything inside it can be deleted
     return 'skip';
   }
-  // Always met (FR-006): no applicant fails to meet it on any day from today on, also in a level
+  // Always met (FR-006): no citizen fails to meet it on any day from today on, also in a level
   // combined with OR
   const failed = ask(run, negate(node.formula), run.fromToday);
   if (failed === 'unsat') {
@@ -853,7 +853,7 @@ function differenceOf(run: Run, visit: Visit, entry: Entry): 'found' | 'visit' |
   }
   const level = workLevelOf(run.tree, visit.work, node);
   if (level.nodes.length < 2) {
-    // The top level's only item: deleting it leaves no rules, which every applicant meets, so it
+    // The top level's only item: deleting it leaves no rules, which every citizen meets, so it
     // is redundant only when it is always met, which is reported instead (research R4)
     return 'visit';
   }
@@ -870,9 +870,9 @@ function differenceOf(run: Run, visit: Visit, entry: Entry): 'found' | 'visit' |
 }
 
 /**
- * The applicants for whom deleting the item changes whether the branch is met (research R4):
+ * The citizens for whom deleting the item changes whether the branch is met (research R4):
  * `pivotal(X) ∧ ¬X` in a level combined with AND, `pivotal(X) ∧ X` with OR, where
- * `pivotal(X) = ⋀A(X) ∧ ¬⋁O(X)`. The item is redundant when no applicant meets it
+ * `pivotal(X) = ⋀A(X) ∧ ¬⋁O(X)`. The item is redundant when no citizen meets it
  */
 function redundancyQuestion(node: WorkNode, operator: Combinator, context: WorkContext): Formula {
   return {

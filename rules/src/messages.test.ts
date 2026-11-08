@@ -9,11 +9,11 @@ function message(ruleTarget: RuleTarget | null, condition: Condition | null): st
 }
 
 describe('proposedMessage', () => {
-  it('proposes data-model.md’s messages for US1’s rules', () => {
+  it('proposes the design’s messages for US1’s rules (spec 008 C3)', () => {
     expect(US1_RULES.map((rule) => proposedMessage(rule, CONTEXT))).toEqual([
-      'You must be at least 21 years old.',
-      'You must hold class B.',
-      'You must have held class B for at least 2 years.',
+      'You need to be at least 21 years old.',
+      'You need a class B licence.',
+      'You need to have held a class B driving licence for at least 2 years.',
     ]);
     expect(
       message(target('pid', 'address_locality'), {
@@ -21,7 +21,7 @@ describe('proposedMessage', () => {
         value: 'Stuttgart',
         match_case: false,
       })
-    ).toBe('You must live in Stuttgart.');
+    ).toBe('You need to live in Stuttgart.');
   });
 
   it.each([
@@ -59,7 +59,7 @@ describe('proposedMessage', () => {
           value: 'Köln',
           match_case: false,
         })
-      ).toBe('You must have been born in Köln.');
+      ).toBe('You need to be born in Köln.');
       expect(
         message(target('pid', 'address_locality'), {
           operator: 'contains',
@@ -83,30 +83,33 @@ describe('proposedMessage', () => {
 
     it('names the licence classes by their code', () => {
       const classes = target('mdl', 'driving_privileges', 'classes');
-      expect(message(classes, one(['B', 'BE', 'C']))).toBe(
-        'You must hold one of the classes B, BE or C.'
-      );
-      expect(message(classes, none(['C']))).toBe('You must not hold class C.');
+      expect(message(classes, one(['C']))).toBe('You need a class C licence.');
+      expect(message(classes, one(['B', 'BE']))).toBe('You need a class B or BE licence.');
+      expect(message(classes, one(['B', 'BE', 'C']))).toBe('You need a class B, BE or C licence.');
+      expect(message(classes, none(['C']))).toBe('You must not hold a class C licence.');
       expect(message(classes, none(['C', 'BE']))).toBe(
-        'You must hold none of the classes C or BE.'
+        'You must not hold a class C or BE licence.'
       );
     });
 
     it('names other values by their label', () => {
       expect(message(target('pid', 'nationalities'), one(['DE', 'AT']))).toBe(
-        'You must be a national of Germany or Austria.'
+        'You need the nationality of Germany or Austria.'
       );
       expect(message(target('mdl', 'nationality'), none(['FR']))).toBe(
         'You must not be a national of France.'
       );
       expect(message(target('pid', 'address_country'), one(['DE']))).toBe(
-        'You must live in Germany.'
+        'You need to live in Germany.'
       );
       expect(message(target('pid', 'place_of_birth', 'country'), none(['AT', 'FR']))).toBe(
         'You must not have been born in Austria or France.'
       );
       expect(message(target('pid', 'issuing_country'), one(['DE']))).toBe(
-        'Your personal ID must have been issued in Germany.'
+        'You need a personal ID issued in Germany.'
+      );
+      expect(message(target('pid', 'issuing_country'), none(['FR']))).toBe(
+        'Your personal ID must not have been issued in France.'
       );
       expect(message(target('pid', 'sex'), one([2]))).toBe('Your sex must be Female.');
       expect(message(target('mdl', 'eye_colour'), none(['blue', 'green']))).toBe(
@@ -117,26 +120,46 @@ describe('proposedMessage', () => {
 
   describe('dates', () => {
     it.each([
-      ['at_least_years_ago', 'You must be at least 18 years old.'],
-      ['less_than_years_ago', 'You must be under 18 years old.'],
-      ['exactly_years_ago', 'You must be exactly 18 years old.'],
+      ['at_least_years_ago', 'You need to be at least 18 years old.'],
+      ['less_than_years_ago', 'You need to be under 18 years old.'],
+      ['exactly_years_ago', 'You need to be exactly 18 years old.'],
     ])('words %s on the Date of birth as an age', (operator, expected) => {
       expect(message(target('mdl', 'birth_date'), { operator, years: 18 })).toBe(expected);
     });
 
     it('says when someone was born', () => {
       expect(message(target('pid', 'birthdate'), { operator: 'before', date: '2000-01-01' })).toBe(
-        'You must have been born before 1 Jan 2000.'
+        'You need to be born before 1 Jan 2000.'
       );
       expect(message(target('pid', 'birthdate'), { operator: 'on', date: '2000-01-01' })).toBe(
-        'You must have been born on 1 Jan 2000.'
+        'You need to be born on 1 Jan 2000.'
+      );
+      expect(message(target('pid', 'birthdate'), { operator: 'after', date: '2010-01-01' })).toBe(
+        'You need to be born after 1 Jan 2010.'
       );
     });
 
     it.each([
-      ['at_least_years_ago', 1, 'You must have held class B for at least 1 year.'],
-      ['less_than_years_ago', 3, 'You must have held class B for less than 3 years.'],
-      ['exactly_years_ago', 2, 'You must have held class B for exactly 2 years.'],
+      [
+        'at_least_years_ago',
+        1,
+        'You need to have held a class B driving licence for at least 1 year.',
+      ],
+      [
+        'at_least_years_ago',
+        2,
+        'You need to have held a class B driving licence for at least 2 years.',
+      ],
+      [
+        'less_than_years_ago',
+        3,
+        'You need to have held a class B driving licence for less than 3 years.',
+      ],
+      [
+        'exactly_years_ago',
+        2,
+        'You need to have held a class B driving licence for exactly 2 years.',
+      ],
     ])('words %s on a class’s issue date as holding it', (operator, years, expected) => {
       expect(
         message(target('mdl', 'driving_privileges', 'issue_date', 'B'), { operator, years })
@@ -150,21 +173,28 @@ describe('proposedMessage', () => {
           amount: 6,
           unit: 'months',
         })
-      ).toBe('Your driving licence must be valid for at least 6 months.');
+      ).toBe('You need a driving licence that’s valid for at least 6 more months.');
       expect(
         message(target('pid', 'date_of_expiry'), {
           operator: 'less_than_from_now',
           amount: 1,
           unit: 'years',
         })
-      ).toBe('Your personal ID must expire in less than 1 year.');
+      ).toBe('You need a personal ID that expires in less than 1 year.');
       expect(
         message(target('mdl', 'driving_privileges', 'expiry_date', 'C'), {
           operator: 'at_least_from_now',
           amount: 1,
           unit: 'months',
         })
-      ).toBe('Your class C must be valid for at least 1 month.');
+      ).toBe('You need a class C licence that’s valid for at least 1 more month.');
+      expect(
+        message(target('mdl', 'expiry_date'), {
+          operator: 'at_least_from_now',
+          amount: 12,
+          unit: 'months',
+        })
+      ).toBe('You need a driving licence that’s valid for at least 12 more months.');
     });
 
     it.each([

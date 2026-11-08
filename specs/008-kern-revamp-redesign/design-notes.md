@@ -432,3 +432,28 @@ exited 0 by design.
 
 Node total: 3343 tests in 81 files. The closing report (T101, SC-004) compares against these
 counts: a test removed or changed names an adopted item.
+
+### 8.2 The copy items (T014, 2026-11-08)
+
+The seven C items of research R2 after phase 2 (data-model §1 "Copy item"). Code identifiers keep
+their names (FR-019, FR-020): the `@connection-portal/*` scope, the plugin and marketplace name
+`connection-portal`, the local-draft key `connection-portal:local-draft:v1:`, `applicant.ts`,
+`applicants.ts`, `applicantOf` and its siblings, the MCP tool `test_applicants` and the fields
+`applicants` and `applicant_fields`. The frontend components that show these texts get the design's
+remaining wording in their own screen tasks (for example "Message for citizens:", FR-039, T061).
+
+| id | text (the design's) | sources | tests | done |
+|---|---|---|---|---|
+| C1 | "Konnekt" for "Connection Portal" ("This action is done in Konnekt.", "The resource isn't Konnekt's MCP server.", "This link doesn't belong to Konnekt.") | `backend/app/services/{auth,oauth}.py`, `backend/app/routers/{form_connections,approval_requests}.py`; `mcp/src/{auth,backend,links}.ts`, `mcp/src/tools/{registry,access,approvals,checks,drafts,guide,items,read}.ts`, `mcp/plugin/{instructions.md,README.md,.claude-plugin/plugin.json}`, five skills; `frontend/src/pages/{Authorize,Account}/constants.ts`; `README.md`, `docs/ARCHITECTURE.md`, `.claude-plugin/marketplace.json` | `backend/tests/api/test_{agent_principal,approval_requests}.py`; `mcp/src/{auth,backend,links,draftEdit}.test.ts`, `mcp/src/tools/registry.test.ts`, `mcp/test/server.test.ts` | T005, T007 |
+| C2 | "citizen(s)" for "applicant(s)" in every text ("sample citizens", "Creating 3 sample citizens…") | `rules/src/checks/*` (findingMessages, theories, solver, oracle texts and comments), `rules/src/evaluation.ts`, `rules/src/personas/*`; `mcp/src/{applicants,findings,views}.ts`, `mcp/src/tools/{checks,read}.ts`, `mcp/plugin/instructions.md`, four skills; 35 files under `frontend/src` (constants and comments); `backend/app/models.py`, `backend/app/services/auth.py` (read level text); `docs/ARCHITECTURE.md`, `README.md`, `CLAUDE.md` | the rules package's tests of those modules; `mcp/src/{applicants,findings,views}.test.ts`, `mcp/test/server.test.ts`; `frontend` `utils.test.ts` files; `backend/tests/api/test_agent_principal.py` | T008 |
+| C3 | statements `<document> · <field>[ – <part>] <condition>`; "must be met"; the proposed messages ("You need to be at least 21 years old.", "You need a class B or BE licence.", "You need to live in Stuttgart.") | `rules/src/{statements,messages,types}.ts`, `rules/src/personas/{constants,results}.ts`; `frontend/src/components/Connector/constants.ts`, `frontend/src/components/RuleRow/index.tsx` (fallback); `mcp/src/views.ts`, skill `conditions` | `rules/src/{statements,messages}.test.ts`, `rules/src/personas/{results,scenarios}.test.ts`; `mcp/src/views.test.ts`, `mcp/test/server.test.ts`; `RulesStep/utils.test.ts` | T009 |
+| C4 | findings: "Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard."; "… so right now …"; "2 rules contradict each other, and 1 rule is a duplicate" | `rules/src/checks/{findingMessages,types}.ts`; skill `checks-and-tests` | `rules/src/checks/{findingMessages,scenarios}.test.ts` (U44 `6750:40882`, U45 `6753:40144`, U46 `6753:41324`, `6758:43524`, U63/U77 pinned); `mcp/src/findings.test.ts`; `FormConnectionEditor/utils.test.ts` | T010 |
+| C5 | "Username or password is wrong. Check both and try again."; "There’s already a {noun} called "{name}" in {branch}." (rules, groups, sub-groups); "There’s already a variant called "{name}"." (the editor's check); "Add it again in Documents, or edit or delete the rule."; "Enter a whole number greater than 0." | `backend/app/routers/auth.py`, `backend/app/services/rules.py`; `rules/src/constants.ts` (`nameTaken`, `variantNameTaken`); `frontend/src/pages/Login/constants.ts`, `RulesStep/constants.ts`, `RuleEditor/constants.ts` | `backend/tests/api/test_auth.py`, `backend/tests/unit/test_rules_validation.py`, `backend/tests/api/test_form_connection_rules.py`; `rules/src/{validation,edits}.test.ts`; `mcp/test/server.test.ts`, `mcp/src/draftEdit.test.ts` (V12.1: the duplicate-group and not-requested strings are identical on both sides) | T011 |
+| C6 | "08.07.2007" (no age); "Result: doesn’t meet 2 rules" / "Result: meets the rules"; "B, BE since 02.05.2010"; "Valid until <date>"; "Tested as if shared today, 01.11.2026." | `rules/src/personas/{messages,results,values}.ts`; `frontend/src/pages/FormConnectionEditor/TestStep/utils.ts` | `rules/src/personas/{messages,results,values,scenarios}.test.ts` (V4 in `results.test.ts`); `TestStep/utils.test.ts` | T012 |
+| C7 | "Enter a name for the connection." (connections and drafts; "Enter a name." stays for the persona and the rule name) | `backend/app/services/form_connections.py`; `frontend/src/pages/FormConnectionEditor/constants.ts`; `mcp/test/fakeBackend.ts` | `backend/tests/api/test_form_connections.py`, `test_form_connection_drafts.py`; `FormConnectionEditor/utils.test.ts` | T013 |
+
+Counts after phase 2: rules 2345 tests (was 2337: T012 +7, T009/T010 +1), frontend 603 (was 598: T012
++5), mcp 408, pytest 1998; no test removed. Left for the screen tasks: the data card's rows and
+labels (`DocumentValues.tsx`, `PersonaData.tsx`, "Date of birth" without "(Age)"; T071), the
+`switchedToOr` / `switchedToAnd` toasts' "… to be true" (`RulesStep/constants.ts`; T057/T058),
+the stale comments `TestStep/TestDayLine.tsx:6` and `ValueRow.tsx:15` (T071).

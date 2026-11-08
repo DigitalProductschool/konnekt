@@ -297,7 +297,10 @@ def test_creating_a_draft_refuses_a_broken_structure(
     response = signed_in_client.post(f'{BASE}/drafts', json=draft_body(name='  '))
 
     assert response.status_code == 400
-    assert response.json() == {'error': 'Validation error', 'message': 'Enter a name.'}
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'Enter a name for the connection.',
+    }
     with SessionLocal() as db:
         assert db.scalar(select(func.count()).select_from(FormConnection)) == 0
 
@@ -618,7 +621,7 @@ def test_saving_accepts_incomplete_content(
             'The name can have at most 200 characters.',
             id='a name of 201 characters',
         ),
-        pytest.param({'name': ''}, 'Enter a name.', id='no name'),
+        pytest.param({'name': ''}, 'Enter a name for the connection.', id='no name'),
         pytest.param(
             {'description': 'x' * 501},
             'The description can have at most 500 characters.',
@@ -1183,7 +1186,7 @@ PARITY_CASES = [
         id='valid with rules and variants',
     ),
     pytest.param({}, None, id='valid without rules'),
-    pytest.param({'name': ''}, 'Enter a name.', id='missing name'),
+    pytest.param({'name': ''}, 'Enter a name for the connection.', id='missing name'),
     # Spec 006, US1-AS2: a complete draft without a description is published
     pytest.param({'description': ''}, None, id='no description'),
     pytest.param(

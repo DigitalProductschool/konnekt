@@ -68,7 +68,7 @@ NOT_YOURS = {
 }
 BROWSER_ONLY = {
     'error': 'browser_only',
-    'message': 'This action is done in the Connection Portal.',
+    'message': 'This action is done in Konnekt.',
 }
 NEEDS_DRAFTS = {
     'error': 'insufficient_access',

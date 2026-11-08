@@ -31,12 +31,12 @@ import {
   variantRefOf,
 } from './views';
 
-/** A variant's notice: no applicant can meet its rules, or every applicant does */
+/** A variant's notice: no citizen can meet its rules, or every citizen does */
 export interface CheckNotice {
   kind: BranchNotice['kind'];
-  /** "No applicant can meet the rules of Ambulance." (`noticeText()`) */
+  /** "No citizen can meet the rules of Ambulance." (`noticeText()`) */
   text: string;
-  /** It holds for applicants who share today, but not on every later day (FR-008) */
+  /** It holds for citizens who share today, but not on every later day (FR-008) */
   at_the_moment: boolean;
   /** What would resolve it (`resolutionOf(notice)`) */
   resolution: string;
@@ -50,7 +50,7 @@ export interface Finding {
   involves: ItemRef[];
   /** Why it holds: the rules step's note (`noteOf()`) */
   why: string;
-  /** It holds for applicants who share today, but not on every later day (FR-008) */
+  /** It holds for citizens who share today, but not on every later day (FR-008) */
   at_the_moment: boolean;
   /** What would resolve it (`resolutionOf()`) */
   resolution: string;

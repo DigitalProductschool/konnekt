@@ -189,7 +189,7 @@ export const RULES_MESSAGES = {
   itemNameTooLong: (noun: string, branch: string) =>
     `A ${noun} in ${branch} has a name longer than 100 characters.`,
   nameTaken: (noun: string, branch: string, name: string) =>
-    `Another ${noun} in ${branch} is already called ${name}.`,
+    `There’s already a ${noun} called "${name}" in ${branch}.`,
   nameReserved: (name: string, noun: string, number: string) =>
     `${name} is kept for the ${noun} numbered ${number}.`,
   chooseData: (rule: string, branch: string) => `${rule} in ${branch}: choose the data to check.`,
@@ -206,7 +206,7 @@ export const RULES_MESSAGES = {
     `${group} in ${branch} needs at least two rules.`,
   // The Add variant and Edit variant dialogs (W3; U26 6197:12011; design-notes.md §4)
   variantNameMissing: 'Enter a name for the variant.',
-  variantNameTaken: (name: string) => `Another variant is already called ${name}.`,
+  variantNameTaken: (name: string) => `There’s already a variant called "${name}".`,
   // Inline renaming (`nameProblem`)
   nameMissing: 'Enter a name.',
   nameTooLong: 'A name can have at most 100 characters.',

@@ -16,7 +16,7 @@ registerTool({
   name: 'get_guide',
   level: 'read',
   description:
-    'Reads the guidance on working in the Connection Portal by topic, the same text as the ' +
+    'Reads the guidance on working in Konnekt by topic, the same text as the ' +
     "server's skills: without topic, the topics with what each covers; with one, its full text. " +
     'Read the topic before working on its subject.',
   input: z.object({

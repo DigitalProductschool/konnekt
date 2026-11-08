@@ -9,26 +9,25 @@ export const EDITOR_COPY = {
   connectionTitle: 'Create a connection',
   // Step 1 at /get-started, Figma "02 Create connection"
   firstConnectionTitle: 'Create your first connection',
-  connectionHint:
-    'Connect any form to the EUDI Wallet for applicants to share verified information.',
+  connectionHint: 'Connect any form to the EUDI Wallet for citizens to share verified information.',
   formCardTitle: 'Which form are you connecting?',
   formCardHint: 'You can change these details later.',
   nameLabel: 'Form name',
   namePlaceholder: 'e.g. Residents’ parking permit',
   nameInfoLabel: 'About the form name',
   nameInfo:
-    'Use the official name of the form so your team can find it easily. Applicants never see this name.',
+    'Use the official name of the form so your team can find it easily. Citizens never see this name.',
   descriptionLabel: 'Description',
   descriptionPlaceholder: 'e.g. serviceBW form PK-30051',
   descriptionInfoLabel: 'About the description',
   descriptionInfo:
-    'A note for your team, such as the form’s ID in your form management system. Applicants never see it.',
+    'A note for your team, such as the form’s ID in your form management system. Citizens never see it.',
   // V2 says "Starts as a draft." first; connections have no drafts
   formCardNote: 'Nothing goes live until you publish.',
   continue: 'Continue',
   // Step 2, Figma "03 Documents"
   documentsTitle: 'Add documents',
-  documentsHint: 'Choose which wallet documents applicants share, and which data from each.',
+  documentsHint: 'Choose which wallet documents citizens share, and which data from each.',
   available: 'Available in the wallet',
   add: 'Add',
   added: 'Added',
@@ -64,7 +63,7 @@ export const EDITOR_COPY = {
   // The test step (spec 004, S2, S8; FR-004)
   testRules: 'Test rules',
   testRulesHint:
-    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.',
+    'Choose a sample citizen to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.',
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
@@ -109,7 +108,7 @@ export const PUBLISH_COPY = {
   publishIntro: 'Once you publish, the connection goes live and you can add it to your form.',
   // F27: the message of "Edit this live connection?" (U38) moves here
   saveIntro:
-    'Applicants keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
+    'Citizens keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
   withoutRulesIntro: 'Without rules, anyone who shares these documents can apply.',
   documents: 'Documents',
   rules: 'Rules',
@@ -167,7 +166,7 @@ export const DRAFT_PUBLISHED_ERROR = 'draft_published';
 
 // Validation messages; the API answers with the same ones (data-model.md, FR-003)
 export const VALIDATION_MESSAGES = {
-  nameRequired: 'Enter a name.',
+  nameRequired: 'Enter a name for the connection.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
   descriptionTooLong: `The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
   noDocuments: 'Add at least one document.',

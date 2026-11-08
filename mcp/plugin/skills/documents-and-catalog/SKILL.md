@@ -60,7 +60,7 @@ the rules concerned ("Rule 02 in Standard, Rule 02 in Ambulance"), unless you pa
 lists them in `removed_rules`. Tell the team member which rules went with it.
 
 When the catalog no longer offers a document type or field that a draft requests, the draft still
-shows it, labelled by its key (`get_connection` lists it in `dropped`), and the Connection Portal
+shows it, labelled by its key (`get_connection` lists it in `dropped`), and Konnekt
 refuses to store the draft until it is gone: every change answers `validation` with "Unknown
 document type …". Remove it with `set_document` before anything else: `fields: null` for a
 document type, or the document's remaining fields for a dropped field.

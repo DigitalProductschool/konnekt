@@ -7,7 +7,7 @@ description: Publishing a draft, deleting a draft, and deactivating, reactivatin
 
 Five actions change what citizens and serviceBW see, or delete content for good, so an agent
 never performs them itself. It asks for them, and the team member approves or declines on an
-approval page in the Connection Portal:
+approval page in Konnekt:
 
 | Action         | What happens when approved                                              |
 | -------------- | ----------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ variant's pull URL, and what approving does to them:
   can't be undone. Make sure the team member means it before you ask.
 
 `what_happens` says this too: pass it on with the link. While the request waits, a deactivation,
-reactivation or deletion made in the Connection Portal cancels it (`connection_changed`,
+reactivation or deletion made in Konnekt cancels it (`connection_changed`,
 `connection_deleted`). Their content, the name, description, documents, variants and rules, stays
 read-only for agents at every level: a change to it is refused with `published_read_only`.
 

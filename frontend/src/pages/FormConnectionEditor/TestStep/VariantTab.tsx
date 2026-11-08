@@ -9,10 +9,10 @@ import type { VariantTabProps } from './types';
  * 7057:58717; U07 7058:61618): a label row with the variant's name, label/default and black while
  * selected, body/default and muted otherwise, and its description's (i) 4px after it, then a 2px
  * black underline while selected, under the whole row. There's no ⋯: variants are renamed on the
- * rules step. A variant that no applicant can meet (spec 003's `none_can_meet` notice) shows
+ * rules step. A variant that no citizen can meet (spec 003's `none_can_meet` notice) shows
  * KERN's warning triangle in the (i)'s place, selected or not, named "Standard has findings"
  * (design-notes §2): `BranchName` with this one finding segment, whose tooltip (U07 7058:61632)
- * shows the description, if any, then "No applicant can meet the rules of Standard.", on hover and
+ * shows the description, if any, then "No citizen can meet the rules of Standard.", on hover and
  * on keyboard focus. Spec 003's other findings stay on the rules step. The icon is a button beside
  * the tab, so the tab stays one control. The focus ring shows for keyboard focus only: kern.css,
  * unlayered, does the reverse for `[tabindex]` (a ring on any `:focus`, `outline: 0` on

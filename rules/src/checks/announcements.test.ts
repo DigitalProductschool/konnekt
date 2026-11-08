@@ -144,31 +144,29 @@ describe('announcementsFor', () => {
   });
 
   it('announces an always-met finding that appears and goes (FR-015)', () => {
-    expect(announce(NONE, check([alwaysMet('rule-3')]))).toEqual([
-      'Every applicant meets Rule 03.',
-    ]);
+    expect(announce(NONE, check([alwaysMet('rule-3')]))).toEqual(['Every citizen meets Rule 03.']);
     expect(announce(check([alwaysMet('rule-3')]), NONE)).toEqual([
       'Rule 03 is no longer always met.',
     ]);
     expect(announce(check([alwaysMet('rule-3')]), check([alwaysMet('rule-3')]))).toEqual([]);
   });
 
-  it('announces the notice that no applicant can meet the branch when it appears', () => {
+  it('announces the notice that no citizen can meet the branch when it appears', () => {
     const notice: BranchNotice = { kind: 'none_can_meet', today: false };
     expect(announce(NONE, check([], { notice }))).toEqual([
-      'No applicant can meet the rules of Standard.',
+      'No citizen can meet the rules of Standard.',
     ]);
     expect(announce(check([], { notice }), check([], { notice }))).toEqual([]);
     expect(announce(check([], { notice }), NONE)).toEqual([]);
     expect(
       announce(check([], { notice }), check([], { notice: { kind: 'none_can_meet', today: true } }))
-    ).toEqual(['Right now, no applicant can meet the rules of Standard.']);
+    ).toEqual(['Right now, no citizen can meet the rules of Standard.']);
   });
 
-  it('announces the notice that every applicant meets the branch when it appears', () => {
+  it('announces the notice that every citizen meets the branch when it appears', () => {
     const notice: BranchNotice = { kind: 'all_meet', today: false };
     expect(announce(NONE, check([], { notice }))).toEqual([
-      'Every applicant meets the rules of Standard.',
+      'Every citizen meets the rules of Standard.',
     ]);
     expect(announce(check([], { notice }), check([], { notice }))).toEqual([]);
     expect(announce(check([], { notice }), NONE)).toEqual([]);
@@ -177,7 +175,7 @@ describe('announcementsFor', () => {
         check([], { notice: { kind: 'none_can_meet', today: false } }),
         check([], { notice })
       )
-    ).toEqual(['Every applicant meets the rules of Standard.']);
+    ).toEqual(['Every citizen meets the rules of Standard.']);
   });
 
   it('announces in display order, the going before the appearing, then the notice', () => {
@@ -192,7 +190,7 @@ describe('announcementsFor', () => {
       'Rule 02 is the same as Rule 03.',
       'Rule 03 conflicts with Rule 01.',
       'Rule 04 no longer conflicts with Rule 01.',
-      'No applicant can meet the rules of Standard.',
+      'No citizen can meet the rules of Standard.',
     ]);
   });
 
@@ -247,7 +245,7 @@ describe('announcementsFor', () => {
       expect(announce(ambulance([]), next, IN_AMBULANCE)).toEqual([
         'In Ambulance: Rule 02 conflicts with Rule 05.',
         'In Ambulance: Rule 05 conflicts with Rule 02.',
-        'No applicant can meet the rules of Ambulance.',
+        'No citizen can meet the rules of Ambulance.',
       ]);
       expect(announce(next, ambulance([]), IN_AMBULANCE)).toEqual([
         'In Ambulance: Rule 02 no longer conflicts with Rule 05.',
@@ -264,7 +262,7 @@ describe('announcementsFor', () => {
         'In Ambulance: Rule 01 is no longer always met.',
         'In Ambulance: Rule 02 makes no difference beside Rule 05.',
         'In Ambulance: Rule 04 is no longer redundant.',
-        'Every applicant meets the rules of Ambulance.',
+        'Every citizen meets the rules of Ambulance.',
       ]);
     });
 
@@ -290,7 +288,7 @@ describe('announcementsFor', () => {
       'In Ambulance: Rule 02 conflicts with Rule 01.',
     ]);
     expect(announce(NONE, check([alwaysMet('rule-3')]), context)).toEqual([
-      'In Ambulance: Every applicant meets Rule 03.',
+      'In Ambulance: Every citizen meets Rule 03.',
     ]);
   });
 });

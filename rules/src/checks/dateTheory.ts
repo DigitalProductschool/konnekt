@@ -2,7 +2,7 @@
 // literals of one date variable can be met together, on one day of sharing and over a range of
 // days.
 //
-// An applicant's value is a day from 0001-01-01 to 9999-12-31, as a day number (`calendar.ts`).
+// A citizen's value is a day from 0001-01-01 to 9999-12-31, as a day number (`calendar.ts`).
 // On the day of sharing d, each literal is a set of dates, written here half-open as [from, to),
 // where END, the day after 9999-12-31, ends a set that reaches the calendar's last day:
 // - "before c" is [1, c), "after c" is [c + 1, END) and "on c" is [c, c + 1): strict comparisons;
@@ -63,7 +63,7 @@ interface DaySet {
 type Threshold = (day: number) => number;
 
 /**
- * Whether an applicant whose date is `value` and who shares on `day` (both day numbers) meets the
+ * Whether a citizen whose date is `value` and who shares on `day` (both day numbers) meets the
  * literal, by the comparisons of `_date_holds()` in backend/app/services/evaluation.py, with
  * `negated` flipping the outcome
  */
@@ -100,7 +100,7 @@ export function dateHolds(literal: Literal<DateTest>, value: number, day: number
 }
 
 /**
- * Whether one date meets every literal for an applicant who shares on `day`, with the earliest
+ * Whether one date meets every literal for a citizen who shares on `day`, with the earliest
  * such date as the witness. The variable isn't read: every date variable has the calendar's days.
  * Never `'unknown'`
  */

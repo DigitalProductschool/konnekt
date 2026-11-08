@@ -29,7 +29,7 @@ export class InsufficientAccess extends BackendFailure {
   }
 }
 
-/** `403 browser_only`: an endpoint reserved to the Connection Portal's own pages. */
+/** `403 browser_only`: an endpoint reserved to Konnekt's own pages. */
 export class BrowserOnly extends BackendFailure {
   constructor(message: string) {
     super(message);
@@ -75,7 +75,7 @@ export class Refused extends BackendFailure {
 /** `5xx`, no answer, or an answer that can't be read: never what went wrong. */
 export class BackendError extends BackendFailure {
   constructor(readonly errorId?: string) {
-    super('The Connection Portal could not complete this.');
+    super('Konnekt could not complete this.');
     this.name = 'BackendError';
   }
 }

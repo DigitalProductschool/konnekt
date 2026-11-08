@@ -21,7 +21,7 @@ template.
 Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
 Codex, through the middleware's MCP server ([007-agent-mcp-server/](specs/007-agent-mcp-server/)):
 the agent finds and reads connections, builds drafts, checks their rules and tests them with
-fictitious applicants, and asks the team member's approval, on a page of the management UI, to
+fictitious citizens, and asks the team member's approval, on a page of the management UI, to
 publish a draft or to deactivate, reactivate or delete a live connection. See
 [Agents and the MCP server](#agents-and-the-mcp-server).
 
@@ -281,7 +281,7 @@ Python's results for the evaluator's text normalisation, date arithmetic and rul
 the `rules/` package's Vitest tests replay. Its `rule_outcomes` vectors pin single rules, and its
 `branch_evaluations` vectors (spec 004) whole branches, with their groups and inherited items, for
 the browser's evaluator `rules/src/evaluation.ts`, which the test step uses to
-evaluate its sample applicants. `scripts/export_check_fixtures` writes both from the current
+evaluate its sample citizens. `scripts/export_check_fixtures` writes both from the current
 interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
 
 Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can
@@ -675,12 +675,12 @@ Good to know:
 The MCP server (`mcp/`) lets team members work with an LLM agent on their own machine. It is
 public at `https://<domain>/mcp` (Streamable HTTP), next to the management UI, and
 `http://localhost:3100/mcp` in development. An agent signs in through the browser, with OAuth:
-the first call opens the Connection Portal's consent page, where the team member signs in and
+the first call opens Konnekt's consent page, where the team member signs in and
 chooses one of three access levels:
 
 | Access level | Allows |
 |---|---|
-| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious applicants |
+| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious citizens |
 | Read and edit drafts | Also creating and changing drafts, and asking for approval to publish or delete a draft |
 | Read, edit drafts and manage live connections | Also asking for approval to deactivate, reactivate or delete a published connection |
 
@@ -689,7 +689,7 @@ deletes, deactivates or reactivates by itself: it hands the team member a link t
 page, valid for `APPROVAL_REQUEST_MINUTES`, where they approve or decline. The user page
 ("Your account" in the user menu) lists the connected agents and personal access tokens, and
 changes an access level or revokes access, from the agent's next call. Every answer carries
-links into the Connection Portal, and the rules step's menus copy a variant's, a rule's or a
+links into Konnekt, and the rules step's menus copy a variant's, a rule's or a
 group's link ("Copy link"), which agents accept wherever they take an identifier.
 
 The guidance agents get, the server's instructions and eight skills, lives in `mcp/plugin/`

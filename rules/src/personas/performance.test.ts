@@ -272,7 +272,7 @@ const CONTEXT: RuleContext = {
  * A branch of 200 items built to be hard: each of the six country fields "includes one of" the
  * four allowed countries, and for each of those countries and each pair of the fields, a group
  * "the first includes none of it, or the second does" (186 items), then items joined from the
- * seeds from `fillerSeed` on. No applicant can meet it (the pigeonhole principle)
+ * seeds from `fillerSeed` on. No citizen can meet it (the pigeonhole principle)
  */
 function hardBranch(fillerSeed: number): Branch {
   const numbering: NumberingBase = { rule: 0, group: 0 };

@@ -1,5 +1,7 @@
 // The error message the rule editor proposes once a condition is complete (FR-004; F9), in the
-// design's style: "You must be at least 21 years old.", "You must live in Stuttgart."
+// design's words (spec 008 C3, FR-021): "You need to be at least 21 years old.", "You need to live
+// in Stuttgart.", "You need a class B or BE licence.". A condition the design doesn't word, such
+// as a negation or a plain field, keeps its sentence: "You must not live in Esslingen."
 import type { Condition, RuleItem } from '@connection-portal/api-types/form-connections';
 
 import { conditionProblem, optionsOf, resolveTarget } from './conditions';
@@ -101,10 +103,12 @@ function textMessage(target: ResolvedTarget, condition: Condition): string {
   const negated = condition.operator === 'not_equal_to';
   if (condition.operator === 'equal_to' || negated) {
     if (LIVES_IN_FIELDS.has(keyOf(target))) {
-      return `You must ${negated ? 'not ' : ''}live in ${value}.`;
+      return negated ? `You must not live in ${value}.` : `You need to live in ${value}.`;
     }
     if (keyOf(target) === PLACE_OF_BIRTH_FIELD) {
-      return `You must ${negated ? 'not ' : ''}have been born in ${value}.`;
+      return negated
+        ? `You must not have been born in ${value}.`
+        : `You need to be born in ${value}.`;
     }
   }
   const subject = target.part
@@ -127,22 +131,26 @@ function enumMessage(target: ResolvedTarget, none: boolean, labels: string[]): s
   const not = none ? 'not ' : '';
   const key = keyOf(target);
   if (target.part?.key === 'classes') {
-    if (labels.length === 1) {
-      return `You must ${not}hold class ${values}.`;
-    }
-    return `You must hold ${none ? 'none' : 'one'} of the classes ${values}.`;
+    return none
+      ? `You must not hold a class ${values} licence.`
+      : `You need a class ${values} licence.`;
   }
   if (key === PLACE_OF_BIRTH_FIELD) {
-    return `You must ${not}have been born in ${values}.`;
+    return none ? `You must not have been born in ${values}.` : `You need to be born in ${values}.`;
   }
   if (NATIONALITY_FIELDS.has(key)) {
-    return `You must ${not}be a national of ${values}.`;
+    return none
+      ? `You must not be a national of ${values}.`
+      : `You need the nationality of ${values}.`;
   }
   if (LIVES_IN_COUNTRY_FIELDS.has(key)) {
-    return `You must ${not}live in ${values}.`;
+    return none ? `You must not live in ${values}.` : `You need to live in ${values}.`;
   }
   if (ISSUING_COUNTRY_FIELDS.has(key)) {
-    return `Your ${lowerFirst(target.document.label)} must ${not}have been issued in ${values}.`;
+    const document = lowerFirst(target.document.label);
+    return none
+      ? `Your ${document} must not have been issued in ${values}.`
+      : `You need a ${document} issued in ${values}.`;
   }
   return `Your ${lowerFirst(target.field.label)} must ${not}be ${values}.`;
 }
@@ -151,43 +159,46 @@ function dateMessage(target: ResolvedTarget, condition: Condition): string {
   const { operator } = condition;
   const years = count(condition.years ?? 0, 'years');
   const amount = count(condition.amount ?? 0, condition.unit === 'months' ? 'months' : 'years');
+  // "6 more months", "1 more year": the design's validity (U42, U66)
+  const moreAmount = amount.replace(' ', ' more ');
   const date = condition.date ? formatDate(condition.date) : '';
   const licenceClass = target.part?.per_licence_class ? target.licenceClass : null;
 
   if (target.dateOfBirth) {
     switch (operator) {
       case 'at_least_years_ago':
-        return `You must be at least ${years} old.`;
+        return `You need to be at least ${years} old.`;
       case 'less_than_years_ago':
-        return `You must be under ${years} old.`;
+        return `You need to be under ${years} old.`;
       case 'exactly_years_ago':
-        return `You must be exactly ${years} old.`;
+        return `You need to be exactly ${years} old.`;
       case 'before':
       case 'after':
       case 'on':
-        return `You must have been born ${operator} ${date}.`;
+        return `You need to be born ${operator} ${date}.`;
     }
   }
   if (licenceClass && target.part?.key === 'issue_date') {
+    const held = `You need to have held a class ${licenceClass} ${lowerFirst(target.document.label)}`;
     switch (operator) {
       case 'at_least_years_ago':
-        return `You must have held class ${licenceClass} for at least ${years}.`;
+        return `${held} for at least ${years}.`;
       case 'less_than_years_ago':
-        return `You must have held class ${licenceClass} for less than ${years}.`;
+        return `${held} for less than ${years}.`;
       case 'exactly_years_ago':
-        return `You must have held class ${licenceClass} for exactly ${years}.`;
+        return `${held} for exactly ${years}.`;
     }
   }
   const expiry = target.part?.key === 'expiry_date' || EXPIRY_DATE_FIELDS.has(keyOf(target));
   if (expiry) {
     const holder = licenceClass
-      ? `Your class ${licenceClass}`
-      : `Your ${lowerFirst(target.document.label)}`;
+      ? `You need a class ${licenceClass} licence`
+      : `You need a ${lowerFirst(target.document.label)}`;
     if (operator === 'at_least_from_now') {
-      return `${holder} must be valid for at least ${amount}.`;
+      return `${holder} that’s valid for at least ${moreAmount}.`;
     }
     if (operator === 'less_than_from_now') {
-      return `${holder} must expire in less than ${amount}.`;
+      return `${holder} that expires in less than ${amount}.`;
     }
   }
 

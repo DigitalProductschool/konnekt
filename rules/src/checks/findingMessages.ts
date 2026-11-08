@@ -7,9 +7,13 @@
 // Conventions (design-notes.md §1): apostrophes are typographic (’); rules, groups and variants
 // are named by their current names (FR-011), lists follow the display order and read "Rule 02,
 // Rule 03 and Rule 04" (W3); notes and lines carry no visible kind, which only the icon's hidden
-// text gives (`kindTextOf()`, A3); a finding that holds only for applicants who share today ends
+// text gives (`kindTextOf()`, A3); a finding that holds only for citizens who share today ends
 // "at the moment" (FR-008, A7); no text words a finding as something to change (FR-016), except
 // `resolutionOf()`'s, which tell agents what would resolve a finding (spec 007, research R14).
+// The design's sentences (spec 008 C4, FR-022): items that can't be met together "contradict each
+// other", the counts row joins its phrases with ", and ", and a single conflict and the notice
+// that no citizen can meet the variant's rules make one sentence ("…, so no citizen can meet the
+// rules of Standard."; "…, so right now …" when it holds only for citizens who share today).
 import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
 
 import { flattenItems } from '../tree';
@@ -130,7 +134,10 @@ function nounOf(id: string): string {
 
 // Pieces shared by the notes, the banner and the announcements (FR-008, A7)
 
-/** Ends a conflict's sentence when it holds only for applicants who share today. */
+/** What items that can't be met together do (spec 008 C4): "Rule 01 and Rule 02 contradict each other" */
+const CONTRADICT = ' contradict each other';
+
+/** Ends a conflict's sentence when it holds only for citizens who share today. */
 function atTheMoment(today: boolean): string {
   return today ? ' at the moment' : '';
 }
@@ -138,7 +145,7 @@ function atTheMoment(today: boolean): string {
 /**
  * A group's own conflict, without its full stop (design-notes.md §2.2, §3.1, §5). With `place`,
  * the members are "in" it: "this group" in a note, the group's name in an announcement, as in
- * "Rule 04 and Rule 05 in this group can’t be met together". Without, the sentence follows the
+ * "Rule 04 and Rule 05 in this group contradict each other". Without, the sentence follows the
  * group's name and a colon in a banner line: "neither Rule 02 nor Rule 03 can be met". Empty
  * without a member's name.
  */
@@ -157,7 +164,7 @@ function membersParts(
     return [members[0], ...inPlace, ` can’t be met${suffix}`];
   }
   if (reason.operator === 'and') {
-    return [...listParts(members), ...inPlace, ` can’t be met together${suffix}`];
+    return [...listParts(members), ...inPlace, `${CONTRADICT}${suffix}`];
   }
   const capital = place !== null;
   if (members.length === 2) {
@@ -189,14 +196,14 @@ function conflictingNote(finding: ConflictingFinding, names: ItemNames): string 
       const others = namesInOrder(reason.items, names);
       // Only while an item it names has no name any more, such as a deleted one
       const items = others.length > 0 ? listOf(others) : 'other rules';
-      return `Can’t be met together with ${items}${suffix}.`;
+      return `Contradicts ${items}${suffix}.`;
     }
     case 'members': {
       const parts = membersParts(reason, namesInOrder(reason.items, names), 'this group', today);
       return parts.length > 0 ? `${textOf(parts)}.` : `This group can’t be met${suffix}.`;
     }
     case 'condition':
-      return `No applicant can meet this rule${suffix}.`;
+      return `No citizen can meet this rule${suffix}.`;
   }
 }
 
@@ -205,7 +212,7 @@ function conflictingNote(finding: ConflictingFinding, names: ItemNames): string 
  * `self` is the item: "this rule" in a note, its reference in a banner line; `others` names the
  * reason's items in display order. In an AND level, "Anyone who meets <items> also meets <self>",
  * with an enclosing OR level's alternatives after `self` ("<self> or Group 03"), and "Every
- * applicant meets <self> or Group 03" without items. In an OR level, "Anyone who meets <self> also
+ * citizen meets <self> or Group 03" without items. In an OR level, "Anyone who meets <self> also
  * meets <items>" (one of them, so joined with "or"), with an enclosing AND level's context after
  * `self` ("<self> and Rule 05"). Null when a list the sentence needs has no current name left.
  */
@@ -222,7 +229,7 @@ function coveredParts(
     }
     const met = listParts([self, ...alternatives], 'or');
     return given.length === 0
-      ? ['Every applicant meets ', ...met, '.']
+      ? ['Every citizen meets ', ...met, '.']
       : ['Anyone who meets ', ...listParts(given), ' also meets ', ...met, '.'];
   }
   const met = others(reason.items);
@@ -261,7 +268,7 @@ export function noteOf(finding: ItemFinding, names: ItemNames): string {
     case 'redundant':
       return redundantNote(finding, names);
     case 'always_met':
-      return `Every applicant meets this ${nounOf(finding.itemId)}.`;
+      return `Every citizen meets this ${nounOf(finding.itemId)}.`;
   }
 }
 
@@ -294,7 +301,7 @@ function conflictingResolution(finding: ConflictingFinding, names: ItemNames): s
     case 'with':
       return (
         `Change or delete one of ${listOf(namesOrOthers([itemId, ...reason.items], names))}; ` +
-        `they can’t be met together${suffix}.`
+        `they contradict each other${suffix}.`
       );
     case 'members': {
       if (reason.items.length < 2 || namesInOrder(reason.items, names).length === 0) {
@@ -303,7 +310,7 @@ function conflictingResolution(finding: ConflictingFinding, names: ItemNames): s
       }
       const members = namesOrOthers(reason.items, names);
       if (reason.operator === 'and') {
-        return `Change or delete one of ${listOf(members)}; they can’t be met together${suffix}.`;
+        return `Change or delete one of ${listOf(members)}; they contradict each other${suffix}.`;
       }
       return (
         `Change one of ${listOf(members)} so that it can be met, or delete ` +
@@ -311,7 +318,7 @@ function conflictingResolution(finding: ConflictingFinding, names: ItemNames): s
       );
     }
     case 'condition':
-      return `Change or delete ${nameOrNoun(itemId, names)}; no applicant can meet it${suffix}.`;
+      return `Change or delete ${nameOrNoun(itemId, names)}; no citizen can meet it${suffix}.`;
   }
 }
 
@@ -334,22 +341,22 @@ function redundantResolution(finding: RedundantFinding, names: ItemNames): strin
   return `You can delete ${item}; ${listOf(covering)} already ${verb} it.`;
 }
 
-/** A branch notice's resolution: loosen the rules no applicant can meet, or check something. */
+/** A branch notice's resolution: loosen the rules no citizen can meet, or check something. */
 function noticeResolution(notice: BranchNotice): string {
   switch (notice.kind) {
     case 'none_can_meet':
       return (
-        'Loosen or delete one of the rules that no applicant can meet together' +
+        'Loosen or delete one of the rules that no citizen can meet together' +
         `${atTheMoment(notice.today)}.`
       );
     case 'all_meet':
-      return 'Add a rule or make one stricter; as it is, the variant accepts every applicant.';
+      return 'Add a rule or make one stricter; as it is, the variant accepts every citizen.';
   }
 }
 
 /**
  * What would resolve a finding on a rule or group, for agents (spec 007, FR-032; research R14):
- * "Change or delete one of Rule 02 and Rule 03; they can’t be met together.", "You can delete
+ * "Change or delete one of Rule 02 and Rule 03; they contradict each other.", "You can delete
  * Rule 06; Rule 03 already covers it.", "Rule 05’s condition is always met; delete it or make it
  * stricter.". `names` are the current names of the branch's items, from `namesOf()`, as
  * `noteOf()` takes them.
@@ -357,8 +364,8 @@ function noticeResolution(notice: BranchNotice): string {
 export function resolutionOf(finding: ItemFinding, names: ItemNames): string;
 /**
  * What would resolve a variant's notice, for agents (spec 007, FR-032; research R14): "Loosen or
- * delete one of the rules that no applicant can meet together.", "Add a rule or make one
- * stricter; as it is, the variant accepts every applicant."
+ * delete one of the rules that no citizen can meet together.", "Add a rule or make one
+ * stricter; as it is, the variant accepts every citizen."
  */
 export function resolutionOf(notice: BranchNotice): string;
 export function resolutionOf(
@@ -384,22 +391,22 @@ export function resolutionOf(
 
 /**
  * A branch notice as its own item, or alone, and as an announcement; also the test step's notice
- * and tab tooltip (spec 004, FR-018, research R5, R16): "No applicant can meet the rules of
+ * and tab tooltip (spec 004, FR-018, research R5, R16): "No citizen can meet the rules of
  * Standard."
  */
 export function noticeText(notice: BranchNotice, branchName: string): string {
   switch (notice.kind) {
     case 'none_can_meet':
-      return `${notice.today ? 'Right now, no' : 'No'} applicant can meet the rules of ${branchName}.`;
+      return `${notice.today ? 'Right now, no' : 'No'} citizen can meet the rules of ${branchName}.`;
     case 'all_meet':
-      return `Every applicant meets the rules of ${branchName}.`;
+      return `Every citizen meets the rules of ${branchName}.`;
   }
 }
 
 /** A branch notice appended to a single line or to the counts row. */
 function noticeAppended(notice: BranchNotice, branchName: string): string {
   if (notice.kind === 'none_can_meet' && !notice.today) {
-    return `So no applicant can meet the rules of ${branchName}.`;
+    return `So no citizen can meet the rules of ${branchName}.`;
   }
   return noticeText(notice, branchName);
 }
@@ -425,26 +432,35 @@ const INCOMPLETE_AFTER_COUNTS = ' · couldn’t be checked completely';
 
 // The counts row (A2; design-notes.md §3.4)
 
-/**
- * "2 rules", "1 rule and 1 group": the findings' items, rules before groups. With `adjective`,
- * before each noun: "2 duplicate rules and 1 duplicate group".
- */
-function itemsPhrase(findings: readonly ItemFinding[], adjective = ''): string {
+/** "2 rules", "1 rule and 1 group": the findings' items, rules before groups. */
+function itemsPhrase(findings: readonly ItemFinding[]): string {
   const groups = findings.filter((finding) => isGroupId(finding.itemId)).length;
   const rules = findings.length - groups;
-  const prefix = adjective === '' ? '' : `${adjective} `;
   const phrases = [
-    ...(rules > 0 ? [`${rules} ${prefix}rule${rules === 1 ? '' : 's'}`] : []),
-    ...(groups > 0 ? [`${groups} ${prefix}group${groups === 1 ? '' : 's'}`] : []),
+    ...(rules > 0 ? [`${rules} rule${rules === 1 ? '' : 's'}`] : []),
+    ...(groups > 0 ? [`${groups} group${groups === 1 ? '' : 's'}`] : []),
   ];
   return listOf(phrases);
 }
 
+/** "1 rule is", "2 rules are", "1 rule and 1 group are": the verb after `itemsPhrase()`. */
+function isOrAre(findings: readonly ItemFinding[]): string {
+  return findings.length === 1 ? 'is' : 'are';
+}
+
+/** "A", "A, and B", "A, B, and C": the counts row's phrases (spec 008 C4). */
+function countsList(phrases: readonly string[]): string {
+  if (phrases.length <= 1) {
+    return phrases.join('');
+  }
+  return `${phrases.slice(0, -1).join(', ')}, and ${phrases[phrases.length - 1]}`;
+}
+
 /**
  * The counts row of a branch's findings (§3.4), for the banner, the tab's tooltip and the dialog:
- * one phrase per kind, joined with " · ", such as "2 rules can’t be met together · 1 duplicate
- * rule". A group whose own conflict names its members isn't counted: its members are. '' without
- * a finding to count.
+ * one phrase per kind, joined with ", and " (spec 008 C4), such as "2 rules contradict each other,
+ * and 1 rule is a duplicate". A group whose own conflict names its members isn't counted: its
+ * members are. '' without a finding to count.
  */
 export function countsOf(check: BranchCheck): string {
   const conflicts = check.findings.filter(isConflicting);
@@ -454,13 +470,17 @@ export function countsOf(check: BranchCheck): string {
   const duplicates = redundant.filter((finding) => finding.reason.type === 'same');
   const covered = redundant.filter((finding) => finding.reason.type !== 'same');
   const alwaysMet = check.findings.filter((finding) => finding.kind === 'always_met');
-  return [
-    ...(together.length > 0 ? [`${itemsPhrase(together)} can’t be met together`] : []),
+  const contradict = together.length === 1 ? 'contradicts another' : 'contradict each other';
+  const duplicate = duplicates.length === 1 ? 'a duplicate' : 'duplicates';
+  return countsList([
+    ...(together.length > 0 ? [`${itemsPhrase(together)} ${contradict}`] : []),
     ...(alone.length > 0 ? [`${itemsPhrase(alone)} can’t be met`] : []),
-    ...(duplicates.length > 0 ? [itemsPhrase(duplicates, 'duplicate')] : []),
+    ...(duplicates.length > 0
+      ? [`${itemsPhrase(duplicates)} ${isOrAre(duplicates)} ${duplicate}`]
+      : []),
     ...(covered.length > 0 ? [`${itemsPhrase(covered)} already covered`] : []),
-    ...(alwaysMet.length > 0 ? [`${itemsPhrase(alwaysMet)} every applicant meets`] : []),
-  ].join(' · ');
+    ...(alwaysMet.length > 0 ? [`${itemsPhrase(alwaysMet)} every citizen meets`] : []),
+  ]);
 }
 
 // The banner's lines (A1, A2, W3, W18; design-notes.md §3.1)
@@ -540,8 +560,8 @@ function conflictLines(conflicts: readonly ConflictingFinding[], names: ItemName
     const references = referencesInOrder(ids, names);
     const parts: BannerPart[] =
       findings[0].reason.type === 'condition'
-        ? ['No applicant can meet ', references[0], `${suffix}.`]
-        : [...listParts(references), ` can’t be met together${suffix}.`];
+        ? ['No citizen can meet ', references[0], `${suffix}.`]
+        : [...listParts(references), `${CONTRADICT}${suffix}.`];
     drafts.push({
       position: position(ids[0]),
       line: lineOf('conflicting', parts),
@@ -565,11 +585,7 @@ function otherLine(finding: ItemFinding, names: ItemNames): LineDraft | null {
   if (finding.kind === 'always_met') {
     return {
       position,
-      line: lineOf('always_met', [
-        'Every applicant meets ',
-        self,
-        ', so it doesn’t check anything.',
-      ]),
+      line: lineOf('always_met', ['Every citizen meets ', self, ', so it doesn’t check anything.']),
       label: '1 finding',
     };
   }
@@ -601,23 +617,57 @@ function lineDraftsOf(check: BranchCheck, names: ItemNames): LineDraft[] {
 // The banner (S2; A1, A2, A7, W12, W13, W17; FR-004, FR-010, FR-013; design-notes.md §3)
 
 /**
+ * A line of items that contradict each other and the notice that no citizen can meet the
+ * variant's rules as one sentence (spec 008 C4): "Rule 01 and Rule 02 contradict each other, so
+ * no citizen can meet the rules of Standard.", "…, so right now no citizen can meet …" for a
+ * notice that holds only for citizens who share today, whose "right now" replaces the line's "at
+ * the moment". Null for another line or notice, which keep their own sentences.
+ */
+function conflictWithNotice(
+  line: BannerLine,
+  notice: BranchNotice | null,
+  branchName: string
+): BannerPart[] | null {
+  const last = line.parts[line.parts.length - 1];
+  if (line.kind !== 'conflicting' || notice?.kind !== 'none_can_meet' || typeof last !== 'string') {
+    return null;
+  }
+  const moment = atTheMoment(true);
+  const end = [`${CONTRADICT}.`, `${CONTRADICT}${moment}.`].find((each) => last.endsWith(each));
+  if (end === undefined) {
+    return null;
+  }
+  const kept = last.slice(0, -end.length) + (notice.today ? CONTRADICT : end.slice(0, -1));
+  const rightNow = notice.today ? 'right now ' : '';
+  return [
+    ...line.parts.slice(0, -1),
+    `${kept}, so ${rightNow}no citizen can meet the rules of ${branchName}.`,
+  ];
+}
+
+/**
  * The single banner's text or the collapsed banner's row (§3.2, §3.3): one line, followed by the
- * notice appended and FR-010's sentence; the counts row, " · couldn’t be checked completely" and
- * the notice appended; or the notice and FR-010's sentence alone.
+ * notice appended (in one sentence with a conflict's line) and FR-010's sentence; the counts row,
+ * " · couldn’t be checked completely" and the notice appended; or the notice and FR-010's
+ * sentence alone.
  */
 function headOf(
   lines: readonly BannerLine[],
   counts: string,
   notice: BannerNotice | null,
-  incomplete: string | null
+  incomplete: string | null,
+  merged: BannerPart[] | null
 ): BannerPart[] {
   if (lines.length >= 2) {
     const row = `${counts}${incomplete === null ? '' : INCOMPLETE_AFTER_COUNTS}`;
     return [notice === null ? row : `${row}. ${notice.appended}`];
   }
   const sentences: BannerPart[][] = [
-    ...(lines.length === 1 ? [lines[0].parts] : []),
-    ...(notice === null ? [] : [[lines.length === 1 ? notice.appended : notice.text]]),
+    ...(merged !== null ? [merged] : []),
+    ...(merged === null && lines.length === 1 ? [lines[0].parts] : []),
+    ...(merged !== null || notice === null
+      ? []
+      : [[lines.length === 1 ? notice.appended : notice.text]]),
     ...(incomplete === null ? [] : [[incomplete]]),
   ];
   return joined(sentences.flatMap((parts, index) => (index === 0 ? parts : [' ', ...parts])));
@@ -663,7 +713,13 @@ function bannerWithLabels(
       counts,
       notice,
       incomplete,
-      head: headOf(lines, counts, notice, incomplete),
+      head: headOf(
+        lines,
+        counts,
+        notice,
+        incomplete,
+        lines.length === 1 ? conflictWithNotice(lines[0], check.notice, branch.name) : null
+      ),
     },
     labels: drafts.map(({ label }) => label),
   };
@@ -701,25 +757,34 @@ export function tabFindingsOf(
 
 // The publish and save dialog (S5; FR-017, FR-019; W10; design-notes.md §6)
 
+/** A notice in a dialog line, after "<variant>: ": "no citizen can meet these rules." */
+function dialogNoticeOf(notice: BranchNotice): string {
+  switch (notice.kind) {
+    case 'none_can_meet':
+      return `${notice.today ? 'right now ' : ''}no citizen can meet these rules.`;
+    case 'all_meet':
+      return 'every citizen meets these rules.';
+  }
+}
+
 /**
- * A branch's line in the publish and save dialog (§6): "<variant>: <counts row>", followed by the
- * notice, as in "Ambulance: 2 rules can’t be met together. No applicant can meet the rules of
- * Ambulance."; the notice alone, without "<variant>: ", when the branch has no finding to count.
- * FR-010's sentence isn't repeated in the dialog (§6). Null when the branch has nothing to show:
- * no checked rules (W13), or neither a finding to count nor a notice, such as a check that only
- * couldn't finish.
+ * A branch's line in the publish and save dialog (§6; spec 008 C4): "<variant>: ", the notice,
+ * then the counts row as a sentence, as in "Ambulance: no citizen can meet these rules. 2 rules
+ * contradict each other, and 1 rule is a duplicate." and "Standard: 1 rule is a duplicate.";
+ * the notice alone after "<variant>: " when the branch has no finding to count. FR-010's sentence
+ * isn't repeated in the dialog (§6). Null when the branch has nothing to show: no checked rules
+ * (W13), or neither a finding to count nor a notice, such as a check that only couldn't finish.
  */
 export function dialogLineOf(check: BranchCheck, branchName: string): string | null {
   if (check.checkedRules === 0) {
     return null;
   }
   const counts = countsOf(check);
-  const notice = check.notice ? noticeText(check.notice, branchName) : null;
-  if (counts === '') {
-    return notice;
-  }
-  const line = `${branchName}: ${counts}`;
-  return notice === null ? line : `${line}. ${notice}`;
+  const sentences = [
+    ...(check.notice ? [dialogNoticeOf(check.notice)] : []),
+    ...(counts === '' ? [] : [`${counts}.`]),
+  ];
+  return sentences.length === 0 ? null : `${branchName}: ${sentences.join(' ')}`;
 }
 
 // Announcements (FR-015; W1; design-notes.md §5)
@@ -739,7 +804,7 @@ function conflictAppeared(finding: ConflictingFinding, item: string, names: Item
       return parts.length > 0 ? `${textOf(parts)}.` : '';
     }
     case 'condition':
-      return `${today ? 'Right now, no' : 'No'} applicant can meet ${item}.`;
+      return `${today ? 'Right now, no' : 'No'} citizen can meet ${item}.`;
   }
 }
 
@@ -790,7 +855,7 @@ function findingSentence(change: FindingChange, names: ItemNames): string {
         : `${item} is no longer redundant.`;
     case 'always_met':
       return change.type === 'appeared'
-        ? `Every applicant meets ${item}.`
+        ? `Every citizen meets ${item}.`
         : `${item} is no longer always met.`;
   }
 }

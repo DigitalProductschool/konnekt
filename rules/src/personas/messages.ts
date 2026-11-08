@@ -11,9 +11,7 @@
 // `checks/checkedTree.ts`, `checks/literals.ts`, `checks/text.ts`, `evaluation.ts`,
 // `personas/fields.ts` or `personas/results.ts`, not even through another module.
 import { listOf } from '../checks/findingMessages';
-import { formatDate } from '../dates';
-import type { Persona, PersonaValue } from './types';
-import { ageOn } from './values';
+import type { Persona } from './types';
 
 /** What the texts need of a persona: its name */
 type Named = Pick<Persona, 'name'>;
@@ -22,15 +20,6 @@ type Named = Pick<Persona, 'name'>;
 export interface ConfirmText {
   title: string;
   body: string;
-}
-
-/**
- * The reported items of a result that isn't met, by type (design-notes.md §6.3): one per message
- * of the evaluation, a reported sub-group counting as a group. Both 0 for a result that is met
- */
-export interface ResultCounts {
-  rules: number;
-  groups: number;
 }
 
 // Names (design-notes.md §1.1)
@@ -50,14 +39,26 @@ function firstNamesOf(personas: readonly Named[]): string {
   return listOf(personas.map(firstName));
 }
 
-// The test day (FR-016, W1)
+// Dates (spec 008 FR-024, C6): dd.mm.yyyy, as the Test 1 frames write them
 
-/** "Tested as if shared today, 1 Nov 2026." for `today` as `YYYY-MM-DD` */
-export function testDayLineOf(today: string): string {
-  return `Tested as if shared today, ${formatDate(today)}.`;
+/** `YYYY-MM-DD` as `dd.mm.yyyy` ("08.07.2007"); anything else unchanged */
+export function displayDateOf(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) {
+    return iso;
+  }
+  const [, year, month, day] = match;
+  return `${day}.${month}.${year}`;
 }
 
-// Applicants row (FR-015; design-notes.md §3.1)
+// The test day (FR-016, W1; spec 008 FR-024)
+
+/** "Tested as if shared today, 01.11.2026." for `today` as `YYYY-MM-DD` */
+export function testDayLineOf(today: string): string {
+  return `Tested as if shared today, ${displayDateOf(today)}.`;
+}
+
+// Citizens row (FR-015; design-notes.md §3.1)
 
 /** A chip's accessible name: "Mia Schulz: meets the rules of Standard" */
 export function chipNameOf(persona: Named, branchName: string, meets: boolean): string {
@@ -72,15 +73,20 @@ export function dataHeadingOf(persona: Named): string {
 }
 
 /**
- * What follows a date of birth: " (age 19)"; " (not born yet)" for a date after `today`
- * (design-notes.md §4.1); '' for an empty value or one that isn't a date
+ * An expiry date's value (spec 008 FR-024, U65 7057:59084): "Valid until 19.08.2040" for
+ * `date` as `YYYY-MM-DD`. A date of birth shows no age (FR-024: "08.07.2007")
  */
-export function ageSuffixOf(dateOfBirth: PersonaValue | undefined, today: string): string {
-  const age = ageOn(dateOfBirth, today);
-  if (age === null) {
-    return '';
-  }
-  return age < 0 ? ' (not born yet)' : ` (age ${age})`;
+export function validUntilOf(date: string): string {
+  return `Valid until ${displayDateOf(date)}`;
+}
+
+/**
+ * A row of licence classes held since one issue date (spec 008 FR-024, U65 7057:59186): "B, BE
+ * since 02.05.2010" for `classes` "B, BE" and `since` as `YYYY-MM-DD`; the classes alone without
+ * an issue date
+ */
+export function classesSinceOf(classes: string, since: string | null): string {
+  return since === null ? classes : `${classes} since ${displayDateOf(since)}`;
 }
 
 /** The hidden text before a failing value, at its dot (K1; design-notes.md §4.2) */
@@ -91,23 +97,16 @@ export const editedHiddenText = ', edited';
 
 // Results (FR-015, W10; design-notes.md §6)
 
-/** "1 rule", "2 groups", "1 rule and 1 group": rules before groups, a part with 0 left out */
-function countsPhrase({ rules, groups }: ResultCounts): string {
-  return listOf([
-    ...(rules > 0 ? [`${rules} rule${rules === 1 ? '' : 's'}`] : []),
-    ...(groups > 0 ? [`${groups} group${groups === 1 ? '' : 's'}`] : []),
-  ]);
-}
-
 /**
- * The results' heading: "Result: meets the rules" without a reported item, otherwise "Result:
- * doesn’t meet 1 rule and 1 group" (design-notes.md §6.3)
+ * The results' heading (spec 008 FR-024, U65 7057:58811): "Result: meets the rules" for 0,
+ * otherwise "Result: doesn’t meet 1 rule", "Result: doesn’t meet 2 rules". `unmetRules` is the
+ * number of rules the persona doesn't meet, as `resultViewOf()` counts them (V4)
  */
-export function resultHeadingOf(counts: ResultCounts): string {
-  if (counts.rules + counts.groups === 0) {
+export function resultHeadingOf(unmetRules: number): string {
+  if (unmetRules === 0) {
     return 'Result: meets the rules';
   }
-  return `Result: doesn’t meet ${countsPhrase(counts)}`;
+  return `Result: doesn’t meet ${unmetRules} rule${unmetRules === 1 ? '' : 's'}`;
 }
 
 /** The list's heading for a variant the persona meets: "Rules Mia meets" (F3, F14) */
@@ -123,7 +122,7 @@ export function messageColumnOf(persona: Named): string {
 /** A variant without rules (U06; EC "A branch without rules") */
 export function noRulesNoteOf(branchName: string): string {
   return (
-    `${branchName} has no rules yet, so every applicant meets it. ` +
+    `${branchName} has no rules yet, so every citizen meets it. ` +
     'Add rules in the Rules step to test them.'
   );
 }
@@ -137,7 +136,7 @@ export function confirmOneOf(persona: Named): ConfirmText {
     title: `Generate new data for ${name}?`,
     body:
       `Your changes to ${possessiveOf(name)} data will be replaced. ` +
-      'The other two applicants stay as they are.',
+      'The other two citizens stay as they are.',
   };
 }
 
@@ -145,7 +144,7 @@ export function confirmOneOf(persona: Named): ConfirmText {
 export function confirmAllOf(changed: readonly Named[]): ConfirmText {
   const names = listOf(changed.map((persona) => possessiveOf(firstName(persona))));
   return {
-    title: 'Generate new data for all applicants?',
+    title: 'Generate new data for all citizens?',
     body: `Your changes to ${names} data will be replaced.`,
   };
 }
@@ -153,7 +152,7 @@ export function confirmAllOf(changed: readonly Named[]): ConfirmText {
 // Loading status (FR-004, FR-012, FR-020; design-notes.md §8)
 
 /** A run whose three slots are all free: first open, "Generate all again", "Try again" */
-export const creatingAllText = 'Creating 3 sample applicants…';
+export const creatingAllText = 'Creating 3 sample citizens…';
 
 /** A run for one persona: "Creating new data for Mia…" */
 export function creatingOneOf(persona: Named): string {

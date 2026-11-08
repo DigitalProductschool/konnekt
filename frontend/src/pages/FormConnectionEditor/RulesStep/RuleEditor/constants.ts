@@ -56,11 +56,11 @@ export const RULE_EDITOR_COPY = {
   dateHint: 'Check an age, the time from now, or compare the date with a fixed date.',
   dateHintOther: 'Check the time since or until this date, or compare it with a fixed date.',
   // U11 6348:40755, which stays: under "is at least N years old"
-  turnsThatDay: (years: number) => `Applicants who turn ${years} that day count.`,
+  turnsThatDay: (years: number) => `Citizens who turn ${years} that day count.`,
   // U32 6324:17646, which stays: a field made of parts before its part is chosen
   partsHint: (field: string) => `${field} has parts. Choose the part to check.`,
   // F4: next to every date condition
-  countedFrom: 'Counted from the day the applicant shares.',
+  countedFrom: 'Counted from the day the citizen shares.',
   todayMeans: (today: string, meaning: string) => `Today (${today}) this means: ${meaning}.`,
   missingValue: (thing: string) =>
     `If the ${thing} is missing or can’t be read, the rule isn’t met and is reported as couldn’t be checked.`,
@@ -73,12 +73,12 @@ export const RULE_EDITOR_COPY = {
   // Proposed, for "includes none of" on the licence classes
   classesHintNoneOf: 'Met if the licence has none of the chosen classes.',
   // Field errors (U25 6196:10505, 6194:42253)
-  enterCount: 'Enter a number greater than 0.',
+  enterCount: 'Enter a whole number greater than 0.',
   enterNumber: 'Enter a number.',
   enterText: 'Enter a text to compare with.',
   enterDate: 'Enter a date.',
   // F9: the empty message field, label and placeholder
-  messageLabel: 'Error message applicants read:',
+  messageLabel: 'Error message citizens read:',
   messagePlaceholder: 'Suggested once you complete the check. You can edit it.',
   // U11 6348:40235
   cancel: 'Cancel',

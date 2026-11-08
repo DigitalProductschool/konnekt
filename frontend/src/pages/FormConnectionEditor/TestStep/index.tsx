@@ -18,13 +18,13 @@ import VariantTabs from './VariantTabs';
 /**
  * The test step (S8; FR-004, FR-016; Figma U01 7057:58709), under the page title "Test rules" and
  * its intro: the test-day line (W1), the variant tabs, then the selected variant's area (Figma
- * "Variant area" 7057:58753: hued, 1px border, 8px radius) with the applicants row and the panel
+ * "Variant area" 7057:58753: hued, 1px border, 8px radius) with the citizens row and the panel
  * holding the selected persona's data and results, side by side and 16px apart. The data card
  * stretches to the results' height, and they to its (U08 7058:61705: both 714px; U11: both
  * skeleton cards 317px). Three states (S8.8, S8.9; FR-004, FR-012, FR-013; W7, W9):
  * - frame 18, while all three personas are generated (first open, "Generate all again", "Try
  *   again") or the results' module loads: no test-day line, skeleton pills and the status
- *   "Creating 3 sample applicants…" in the row, skeleton cards, nothing to edit. A later create or
+ *   "Creating 3 sample citizens…" in the row, skeleton cards, nothing to edit. A later create or
  *   edit flow mounts a new editor page, whose personas start anew with this state (W7);
  * - failure (`state.failed`, or a catalog that couldn't load; S8.9): no test-day line, and the
  *   failure in place of the row and the panel;
@@ -43,7 +43,7 @@ import VariantTabs from './VariantTabs';
  * and when frame 18 ends with the focus on its status, to the selected chip.
  *
  * From 1024 × 640 px (`split:`), the step fills the visible height and only the panel scrolls; the
- * header, progress, tabs, applicants row and action bar stay put (K3). The step lives only in the
+ * header, progress, tabs, citizens row and action bar stay put (K3). The step lives only in the
  * signed-in wizard, with no route of its own (W13).
  */
 export default function TestStep({
@@ -167,7 +167,7 @@ export default function TestStep({
                 className="split:min-h-0 split:flex-1 split:overflow-y-auto overflow-x-clip p-16"
               >
                 {/*
-                 * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Applicant
+                 * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Citizen
                  * panel": its own box, as high as its taller card, so that the other card stretches
                  * to it and neither takes the scrolling panel's height
                  */}

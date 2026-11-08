@@ -1,6 +1,6 @@
 // The reading tools (contracts/mcp-tools.md "Reading"; FR-007, FR-008, FR-010, FR-011): finding
 // connections, one connection with its documents, variants and URLs, one variant with its items
-// and applicant fields, and one rule or group. Every answer carries the links of what it read
+// and citizen fields, and one rule or group. Every answer carries the links of what it read
 import type {
   BranchInput,
   FormConnectionOrDraft,
@@ -38,7 +38,7 @@ import { registerTool, toolResult } from './registry';
 const CONNECTION = z
   .string()
   .min(1)
-  .describe('The connection: its id, or any Connection Portal link that names it');
+  .describe('The connection: its id, or any Konnekt link that names it');
 const VARIANT = z
   .string()
   .min(1)
@@ -160,7 +160,7 @@ registerTool({
     const urls = connectionUrlsOf(fc);
     const urlsNote = urlsNoteOf(fc);
     // The editor notes dropped data on a draft's documents step (spec 005, S8): a published
-    // connection's content is changed in the Connection Portal, not by agents
+    // connection's content is changed in Konnekt, not by agents
     const dropped: DroppedData[] =
       fc.status === 'draft' ? droppedDataOf(fc.documents, await backend.documentTypes()) : [];
     const draft =
@@ -215,7 +215,7 @@ registerTool({
   description:
     'Reads one variant of a connection, one per call: its rules and groups as a tree, each with ' +
     'its readable statement, its mark in a based variant (changed, removed, added) and its link; ' +
-    'the top-level AND/OR; the applicant fields its rules check, which test_applicants takes; ' +
+    'the top-level AND/OR; the citizen fields its rules check, which test_applicants takes; ' +
     'and the rules that check data the connection no longer requests.',
   input: z.object({ connection: CONNECTION, variant: VARIANT }),
   handler: async (_caller, input, { backend }) => {
@@ -250,7 +250,7 @@ registerTool({
         operatorLineOf(branch),
         items.length === 0 ? 'No rules yet.' : itemViewLinesOf(items).join('\n'),
         applicantFields.length > 0 &&
-          'Applicant fields for test_applicants:\n' +
+          'Citizen fields for test_applicants:\n' +
             applicantFields
               .map(
                 (field) =>

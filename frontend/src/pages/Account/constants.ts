@@ -10,7 +10,7 @@ export const ACCOUNT_COPY = {
 
   agentsHeading: 'Connected agents',
   agentsEmpty: 'No agent is connected yet.',
-  agentsEmptyLink: 'Add the Connection Portal’s MCP server to your agent',
+  agentsEmptyLink: 'Add Konnekt’s MCP server to your agent',
   agentsEmptyEnd: 'to connect it.',
   tokensHeading: 'Personal access tokens',
   tokensEmpty: 'No personal access token yet.',

@@ -75,7 +75,7 @@ function meetsAll(literals: Literal<EnumTest>[], values: readonly EnumValue[]): 
 }
 
 /**
- * The verdict, once a witness is checked: values an applicant can have (one value of the set, or
+ * The verdict, once a witness is checked: values a citizen can have (one value of the set, or
  * distinct values of it for `multiple`) that meet every literal
  */
 function verdictOf(literals: Literal<EnumTest>[], variable: Variable): Verdict {
@@ -264,7 +264,7 @@ describe('decideEnum', () => {
     );
   });
 
-  it('never takes a rule’s value outside the set for an applicant’s', () => {
+  it('never takes a rule’s value outside the set for a citizen’s', () => {
     expect(verdictOf([oneOf(MDL_NATIONALITY, 'xx')], MDL_NATIONALITY)).toBe('unsat');
     expect(verdictOf([oneOf(PID_NATIONALITIES, 'xx')], PID_NATIONALITIES)).toBe('unsat');
     expect(witnessOf([oneOf(PID_NATIONALITIES, 'xx', 'fr')], PID_NATIONALITIES)).toEqual(['fr']);
@@ -275,7 +275,7 @@ describe('decideEnum', () => {
     (multiple) => {
       const set: EnumValue[] = ['a', 'b', 'c', 'd'];
       const variable: Variable = { key: 'test.enum', kind: 'enum', multiple, values: set };
-      // Every value an applicant can have: one value, or every non-empty subset
+      // Every value a citizen can have: one value, or every non-empty subset
       const applicants = multiple ? subsets(set) : set.map((value) => [value]);
       // The rules' values may name a value outside the set
       const named = [...set, 'z'];

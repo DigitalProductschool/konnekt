@@ -9,7 +9,7 @@ export const LOGIN_COPY = {
   forgotPassword: 'Forgot password?',
   submit: 'Log in',
   secureNote: 'Your sign-in is encrypted',
-  invalidCredentials: 'Invalid username or password',
+  invalidCredentials: 'Username or password is wrong. Check both and try again.',
   signInFailed: 'Signing in failed. Try again in a moment.',
 };
 

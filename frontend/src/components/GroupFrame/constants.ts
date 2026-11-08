@@ -6,7 +6,7 @@ export const GROUP_FRAME_COPY = {
   // live in the rules package, whose test results name a group by them
   subtitles: GROUP_SUBTITLES,
   // The group's own message (U14 6324:39411) and its hint (6324:39419)
-  messageLabel: 'Error message applicants read:',
+  messageLabel: 'Error message citizens read:',
   messageHint: 'Shown instead of the rules’ own messages when this group isn’t met.',
   // Read before a group's identifier on the details (W1)
   identifier: 'Identifier',

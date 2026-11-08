@@ -1,6 +1,6 @@
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import type { GenerationRun, Persona, PersonaField } from '@connection-portal/rules/personas/types';
-import { ageOn } from '@connection-portal/rules/personas/values';
+import { ageOn, dataRowsOf } from '@connection-portal/rules/personas/values';
 import { mainBranch } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
@@ -9,6 +9,7 @@ import {
   ageDraftKey,
   ageTextOf,
   createsAll,
+  dataRowTextOf,
   dateOfBirthForAge,
   documentGroupsOf,
   draftsReducer,
@@ -124,6 +125,12 @@ describe('valueTextOf', () => {
   ];
   const birth = field('pid.birthdate', 'date', { dateOfBirth: true });
   const expiry = field('mdl.expiry_date', 'date');
+  const idExpiry = field('pid.date_of_expiry', 'date');
+  const issue = field('mdl.issue_date', 'date');
+  const expiryB = field('mdl.driving_privileges.expiry_date#B', 'date', {
+    part: 'expiry_date',
+    licenceClass: 'B',
+  });
   const classes = field('mdl.driving_privileges.classes', 'enum', {
     optionSet: 'licence_classes',
     multiple: true,
@@ -145,11 +152,16 @@ describe('valueTextOf', () => {
     }
   });
 
-  it('writes a date as dd.mm.yyyy, and a date of birth with its age (F10)', () => {
-    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, TODAY)).toBe('19.08.2040');
-    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, TODAY)).toBe('08.07.2007 (age 19)');
-    expect(valueTextOf(birth, '2026-11-01', OPTION_SETS, TODAY)).toBe('01.11.2026 (age 0)');
-    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS, TODAY)).toBe('01.01.2030 (not born yet)');
+  it('writes a date as dd.mm.yyyy, a date of birth without its age (spec 008 FR-024)', () => {
+    expect(valueTextOf(issue, '2010-05-02', OPTION_SETS, TODAY)).toBe('02.05.2010');
+    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, TODAY)).toBe('08.07.2007');
+    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS, TODAY)).toBe('01.01.2030');
+  });
+
+  it('writes an expiry date as "Valid until <date>" (spec 008 FR-024, U65 7057:59084)', () => {
+    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, TODAY)).toBe('Valid until 19.08.2040');
+    expect(valueTextOf(idExpiry, '2031-02-28', OPTION_SETS, TODAY)).toBe('Valid until 28.02.2031');
+    expect(valueTextOf(expiryB, '2030-05-01', OPTION_SETS, TODAY)).toBe('Valid until 01.05.2030');
   });
 
   it('writes enums by their labels, several in the value set’s order (F11)', () => {
@@ -168,6 +180,77 @@ describe('valueTextOf', () => {
     expect(valueTextOf(city, 'Stuttgart', OPTION_SETS, TODAY)).toBe('Stuttgart');
     expect(valueTextOf(points, 3, OPTION_SETS, TODAY)).toBe('3');
     expect(valueTextOf(points, 0, OPTION_SETS, TODAY)).toBe('0');
+  });
+});
+
+describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)', () => {
+  const OPTION_SETS: OptionSet[] = [
+    {
+      key: 'licence_classes',
+      options: ['AM', 'B', 'BE', 'C1'].map((code) => ({
+        value: code,
+        label: code,
+        description: null,
+      })),
+    },
+  ];
+  const birth = field('pid.birthdate', 'date', { dateOfBirth: true });
+  const classes = field('mdl.driving_privileges.classes', 'enum', {
+    optionSet: 'licence_classes',
+    multiple: true,
+  });
+  const classDate = (part: string, code: string): PersonaField =>
+    field(`mdl.driving_privileges.${part}#${code}`, 'date', { part, licenceClass: code });
+  const issueB = classDate('issue_date', 'B');
+  const issueBe = classDate('issue_date', 'BE');
+  const expiry = field('mdl.expiry_date', 'date');
+  const fields = [birth, classes, issueB, issueBe, expiry];
+  const textsOf = (values: Persona['values']): string[] => {
+    const subject: Persona = {
+      id: 'persona-1',
+      name: 'Anna Keller',
+      values,
+      generated: values,
+      status: 'ready',
+    };
+    return dataRowsOf(subject, fields).map((row) => dataRowTextOf(row, values, OPTION_SETS));
+  };
+
+  it('writes Anna’s data as the Test 1 frames do', () => {
+    expect(
+      textsOf({
+        [birth.key]: '1992-03-14',
+        [classes.key]: ['B', 'BE'],
+        [issueB.key]: '2010-05-02',
+        [issueBe.key]: '2010-05-02',
+        [expiry.key]: '2035-05-01',
+      })
+    ).toEqual(['14.03.1992', 'B, BE since 02.05.2010', 'Valid until 01.05.2035']);
+  });
+
+  it('writes Mia’s data as the Test 1 frames do: no years, no age', () => {
+    expect(
+      textsOf({
+        [birth.key]: '2007-07-08',
+        [classes.key]: ['B'],
+        [issueB.key]: '2025-08-20',
+        [expiry.key]: '2040-08-19',
+      })
+    ).toEqual(['08.07.2007', 'B since 20.08.2025', 'Valid until 19.08.2040']);
+  });
+
+  it('writes one row per issue date, and classes without one alone', () => {
+    expect(
+      textsOf({
+        [classes.key]: ['AM', 'B', 'BE'],
+        [issueB.key]: '2010-05-02',
+        [issueBe.key]: '2018-01-15',
+      })
+    ).toEqual(['Not shared', 'AM', 'B since 02.05.2010', 'BE since 15.01.2018', 'Not shared']);
+  });
+
+  it('writes no class as "Not shared"', () => {
+    expect(textsOf({ [classes.key]: [] })).toEqual(['Not shared', 'Not shared', 'Not shared']);
   });
 });
 
@@ -193,7 +276,7 @@ describe('runStatusTextOf and createsAll', () => {
 
   it('names the personas of a run in the chips’ order (design-notes §8)', () => {
     expect(runStatusTextOf(run(['free', 'free', 'free']), personas)).toBe(
-      'Creating 3 sample applicants…'
+      'Creating 3 sample citizens…'
     );
     expect(runStatusTextOf(run(['free', 'kept', 'kept']), personas)).toBe(
       'Creating new data for Mia…'

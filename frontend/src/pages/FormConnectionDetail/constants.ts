@@ -20,10 +20,10 @@ export const DETAIL_COPY = {
   resultLink: 'Result link',
   resultLinkInfoLabel: 'About the result link',
   resultLinkInfo:
-    'Your form management system calls this link with the request’s reference. It answers with the status and, once the applicant has shared it, the data.',
+    'Your form management system calls this link with the request’s reference. It answers with the status and, once the citizen has shared it, the data.',
   // The configuration summary, which the design has no frame for
   documentsTitle: 'Documents',
-  documentsHint: 'Applicants share this data from their EUDI Wallet.',
+  documentsHint: 'Citizens share this data from their EUDI Wallet.',
   items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
   // The rules of every variant (S6; FYI #17, F26): a card that opens on request
   rulesTitle: 'Rules',

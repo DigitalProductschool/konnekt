@@ -179,7 +179,7 @@ describe('firstProblem', () => {
     it('refuses a name twice in a branch, ignoring letter case and outer spaces (F12)', () => {
       const items = [ageRule({ name: 'Old enough' }), { ...US1_RULES[1], name: ' OLD ENOUGH ' }];
       expect(firstProblem([mainBranch(items)], CONTEXT)).toEqual({
-        message: 'Another rule in Standard is already called Old enough.',
+        message: 'There’s already a rule called "Old enough" in Standard.',
         branchIndex: 0,
         itemId: 'rule-2',
       });
@@ -191,13 +191,13 @@ describe('firstProblem', () => {
           group(1, US1_RULES.slice(0, 2), 'Licence'),
           { ...US1_RULES[2], name: 'licence' },
         ])
-      ).toBe('Another group in Standard is already called Licence.');
+      ).toBe('There’s already a group called "Licence" in Standard.');
       expect(
         problemOf([
           group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Held B')]),
           { ...rule(4, US1_RULES[0].target, US1_RULES[0].condition), name: 'Held b' },
         ])
-      ).toBe('Another sub-group in Standard is already called Held B.');
+      ).toBe('There’s already a sub-group called "Held B" in Standard.');
     });
 
     it('allows the same name in two branches', () => {
@@ -542,13 +542,13 @@ describe('firstProblem', () => {
           CONTEXT
         )
       ).toEqual({
-        message: 'Another group in Standard is already called Older drivers.',
+        message: 'There’s already a group called "Older drivers" in Standard.',
         branchIndex: 0,
         itemId: 'group-2',
       });
       expect(
         problemOf([group(1, US1_RULES.slice(0, 2)), { ...US1_RULES[2], name: 'group 01' }])
-      ).toBe('Another group in Standard is already called Group 01.');
+      ).toBe('There’s already a group called "Group 01" in Standard.');
     });
 
     it('keeps "Group NN" and "Sub-group NN" for the group numbered NN', () => {
@@ -668,17 +668,17 @@ describe('nameProblem', () => {
 
   it('refuses another item’s name, naming the branch (F12)', () => {
     expect(nameProblem(' RULE 02 ', US1_RULES[0], standard, [standard])).toBe(
-      'Another rule in Standard is already called Rule 02.'
+      'There’s already a rule called "Rule 02" in Standard.'
     );
     expect(nameProblem('held b', US1_RULES[0], standard, [standard])).toBe(
-      'Another sub-group in Standard is already called Held B.'
+      'There’s already a sub-group called "Held B" in Standard.'
     );
     expect(nameProblem('Group 01', US1_RULES[0], standard, [standard])).toBe(
-      'Another group in Standard is already called Group 01.'
+      'There’s already a group called "Group 01" in Standard.'
     );
     expect(
       nameProblem('Rule 01', US1_RULES[1], { ...standard, name: 'Ambulance' }, [standard])
-    ).toBe('Another rule in Ambulance is already called Rule 01.');
+    ).toBe('There’s already a rule called "Rule 01" in Ambulance.');
   });
 
   it('keeps reserved names for their items (FR-005)', () => {
@@ -697,13 +697,13 @@ describe('nameProblem', () => {
     expect(nameProblem('group 01', group1, standard, [standard])).toBeNull();
     expect(nameProblem('Sub-group 1', group1, standard, [standard])).toBeNull();
     expect(nameProblem('Group 01', subGroup, standard, [standard])).toBe(
-      'Another group in Standard is already called Group 01.'
+      'There’s already a group called "Group 01" in Standard.'
     );
     expect(nameProblem('Rule 02', subGroup, standard, [standard])).toBe(
-      'Another rule in Standard is already called Rule 02.'
+      'There’s already a rule called "Rule 02" in Standard.'
     );
     expect(nameProblem('held b', group1, { ...standard, name: 'Ambulance' }, [standard])).toBe(
-      'Another sub-group in Ambulance is already called Held B.'
+      'There’s already a sub-group called "Held B" in Ambulance.'
     );
     expect(nameProblem('Group 03', group1, standard, [standard])).toBe(
       'Group 03 is kept for the group numbered 03.'
@@ -891,7 +891,7 @@ describe('the branches of a based branch (T060)', () => {
       addRuleToBranch(renamed, { ...US1_RULES[0], id: 'rule-9', name: 'rule 01' })
     );
     expect(firstProblem([main, added], CONTEXT)).toEqual({
-      message: 'Another rule in Ambulance is already called Rule 01.',
+      message: 'There’s already a rule called "Rule 01" in Ambulance.',
       branchIndex: 1,
       itemId: 'rule-9',
     });
@@ -905,7 +905,7 @@ describe('the branches of a based branch (T060)', () => {
       addRuleToBranch(removed, { ...US1_RULES[1], id: 'rule-9', name: 'Rule 02' })
     );
     expect(firstProblem([main, added], CONTEXT)?.message).toBe(
-      'Another rule in Ambulance is already called Rule 02.'
+      'There’s already a rule called "Rule 02" in Ambulance.'
     );
   });
 });
@@ -925,17 +925,17 @@ describe('nameProblem in variants (F12; propagation rule 7)', () => {
 
   it('refuses a name an undo gives back in a based branch', () => {
     expect(nameProblem('Rule 01', US1_RULES[1], ambulance, branches)).toBe(
-      'Another rule in Ambulance is already called Rule 01.'
+      'There’s already a rule called "Rule 01" in Ambulance.'
     );
     expect(nameProblem('Rule 01', ambulance.items[0], ambulance, branches)).toBeNull();
   });
 
   it('refuses a rename in the main branch that clashes in a based branch, naming it', () => {
     expect(nameProblem('minimum age', US1_RULES[1], main, branches)).toBe(
-      'Another rule in Ambulance is already called Minimum age.'
+      'There’s already a rule called "Minimum age" in Ambulance.'
     );
     expect(nameProblem('Extra', US1_RULES[0], main, branches)).toBe(
-      'Another rule in Ambulance is already called Extra.'
+      'There’s already a rule called "Extra" in Ambulance.'
     );
     expect(nameProblem('Minimum age', US1_RULES[0], main, branches)).toBeNull();
   });
@@ -961,10 +961,10 @@ describe('variantNameProblem (W3)', () => {
 
   it('refuses another variant’s name, ignoring letter case and outer spaces (FR-020)', () => {
     expect(variantNameProblem(' ambulance', others)).toBe(
-      'Another variant is already called Ambulance.'
+      'There’s already a variant called "Ambulance".'
     );
     expect(variantNameProblem('STANDARD', others)).toBe(
-      'Another variant is already called Standard.'
+      'There’s already a variant called "Standard".'
     );
     expect(variantNameProblem('School transport', others)).toBeNull();
   });

@@ -314,7 +314,7 @@ function checkedDateOf(target: ResolvedTarget): string {
  * The notes under the check row (S3). A field made of parts: U32's hint until its part is
  * chosen. Dates: F3's hint until a check is chosen, the Date of birth's or U30's for any other
  * date, then F4's notes, in error states too: the counting note with today's example for a date
- * counted from the day of sharing, U11's "Applicants who turn 21 that day count." under an age of
+ * counted from the day of sharing, U11's "Citizens who turn 21 that day count." under an age of
  * at least N, and the missing-value note for every date condition; a class's dates add the class
  * note. Text: the spaces hint (F7). Enums: Nationality's (F30) and the licence classes' hints.
  */

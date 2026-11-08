@@ -1,8 +1,8 @@
 // The checks and tests (contracts/mcp-tools.md "Checks and tests"; FR-032 to FR-035; research
 // R14, R15): `check_rules` answers the rules step's findings of one variant or of all, from the
 // same checked trees and the same checks, run off the event loop by `runChecks()`;
-// `test_applicants` evaluates fictitious applicants with the evaluator that ports the backend's,
-// on a day of sharing. Neither stores or logs an argument, an applicant, a finding or a result
+// `test_applicants` evaluates fictitious citizens with the evaluator that ports the backend's,
+// on a day of sharing. Neither stores or logs an argument, a citizen, a finding or a result
 // (FR-035): the registry's request line carries the tool's name only
 import type {
   BranchInput,
@@ -50,9 +50,7 @@ import { registerTool, toolError, toolResult } from './registry';
 const CONNECTION = z
   .string()
   .min(1)
-  .describe(
-    'The connection, draft or published: its id, or any Connection Portal link that names it'
-  );
+  .describe('The connection, draft or published: its id, or any Konnekt link that names it');
 const VARIANT = z
   .string()
   .min(1)
@@ -60,15 +58,15 @@ const VARIANT = z
     'The variant: its id, its link, or its name ("Standard" for the main variant unless renamed)'
   );
 
-/** The most applicants one call tests */
+/** The most citizens one call tests */
 const MAX_APPLICANTS = 10;
 
 export const CHECK_TOOL_MESSAGES = {
   /** A `day` that isn't a calendar date as `YYYY-MM-DD` */
   badDay: "'day' expects a date as YYYY-MM-DD.",
-  /** A rule's outcome is not checked: the applicant has no value for its data */
-  noValue: (key: string) => `The applicant has no value for '${key}'.`,
-  /** A rule's outcome is not checked although the applicant has a value for its data */
+  /** A rule's outcome is not checked: the citizen has no value for its data */
+  noValue: (key: string) => `The citizen has no value for '${key}'.`,
+  /** A rule's outcome is not checked although the citizen has a value for its data */
   unreadableValue: (key: string) => `The value of '${key}' can't be read for this condition.`,
   /** A variant whose rules the evaluation can't take as they are: `problem` is the first one */
   untestable: (problem: string) =>
@@ -134,9 +132,9 @@ registerTool({
   name: 'check_rules',
   level: 'read',
   description:
-    "Checks a connection's rules for mistakes, as the Rules step of the Connection Portal does, " +
+    "Checks a connection's rules for mistakes, as the Rules step of Konnekt does, " +
     'for one variant or for all: rules that conflict, rules another rule already covers, rules ' +
-    'every applicant meets, and a variant nobody or everybody meets. Each finding names the rule ' +
+    'every citizen meets, and a variant nobody or everybody meets. Each finding names the rule ' +
     'or group, why it holds, the other rules involved and what would resolve it; the answer also ' +
     'lists the rules the checks leave out with why, and says whether each variant was checked ' +
     'completely. Judges on today in Germany. Stores nothing.',
@@ -194,7 +192,7 @@ interface ItemOutcome {
   in_group: string | null;
 }
 
-/** One applicant's result (contracts/mcp-tools.md "Checks and tests") */
+/** One citizen's result (contracts/mcp-tools.md "Checks and tests") */
 interface ApplicantResult {
   applicant: string;
   met: boolean;
@@ -202,7 +200,7 @@ interface ApplicantResult {
   messages: { item: ItemRef; message: string }[];
 }
 
-/** Whether the applicant gave a value for a key: not left out, `null`, `''` or `[]` */
+/** Whether the citizen gave a value for a key: not left out, `null`, `''` or `[]` */
 function hasValue(values: Readonly<Record<string, unknown>>, key: string): boolean {
   const value = Object.hasOwn(values, key) ? values[key] : undefined;
   return !(
@@ -259,7 +257,7 @@ function inEvaluationOrder(items: readonly EvaluatedItem[]): EvaluatedItem[] {
   return items.flatMap((entry) => [entry, ...inEvaluationOrder(entry.members)]);
 }
 
-/** One applicant's evaluation as `test_applicants` answers it */
+/** One citizen's evaluation as `test_applicants` answers it */
 function applicantResultOf(
   label: string,
   values: Readonly<Record<string, unknown>>,
@@ -287,7 +285,7 @@ function applicantResultOf(
   return { applicant: label, met: evaluation.met, items, messages };
 }
 
-/** An applicant's result as lines of the text block */
+/** A citizen's result as lines of the text block */
 function applicantLinesOf(result: ApplicantResult): string[] {
   const outcomes = result.items.map(
     (entry) =>
@@ -305,7 +303,7 @@ function applicantLinesOf(result: ApplicantResult): string[] {
 }
 
 const applicantInput = z.object({
-  name: z.string().optional().describe('A made-up name, such as "Applicant A"; never a real one'),
+  name: z.string().optional().describe('A made-up name, such as "Citizen A"; never a real one'),
   values: z
     .record(z.string(), z.unknown())
     .describe(
@@ -318,9 +316,9 @@ registerTool({
   name: 'test_applicants',
   level: 'read',
   description:
-    "Tests one variant's rules with 1 to 10 fictitious applicants, as the Test step of the " +
-    'Connection Portal does: each applicant gives values for the applicant fields that ' +
-    'get_variant lists. Answers per applicant whether they meet the variant, each rule and ' +
+    "Tests one variant's rules with 1 to 10 fictitious citizens, as the Test step of " +
+    'Konnekt does: each citizen gives values for the citizen fields that ' +
+    'get_variant lists. Answers per citizen whether they meet the variant, each rule and ' +
     "group's outcome (met, not met, or not checked with why) and the messages the citizen would " +
     'read, exactly as the evaluation decides on the day of sharing: today in Germany, or the day ' +
     'given. A value that does not fit its field refuses the whole test. Never use real data; ' +
@@ -348,7 +346,7 @@ registerTool({
     }
     const fields: ApplicantField[] = applicantFieldsOf(branch, context);
     const applicants: TestApplicant[] = input.applicants;
-    // Every applicant is checked before any is evaluated: the first refusal fails the call
+    // Every citizen is checked before any is evaluated: the first refusal fails the call
     for (const [index, applicant] of applicants.entries()) {
       const refusal = checkApplicant(fields, applicant, context.optionSets, index + 1);
       if (refusal !== null) {
@@ -363,7 +361,7 @@ registerTool({
         const label =
           applicant.name !== undefined && applicant.name.trim() !== ''
             ? applicant.name
-            : `Applicant ${index + 1}`;
+            : `Citizen ${index + 1}`;
         return applicantResultOf(
           label,
           applicant.values,

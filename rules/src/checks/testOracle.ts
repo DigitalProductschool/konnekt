@@ -1,11 +1,11 @@
 // The brute-force oracle (specs/003-rule-consistency-checks, SC-001, SC-002; research R13): seeded
 // random branches (`randomBranch()`), and the answers to the questions of research R4 found by
-// enumerating every applicant and every day of sharing of a domain small enough to enumerate and
-// large enough to stand for every applicant and every day from 0001-01-01 to 9999-12-31
+// enumerating every citizen and every day of sharing of a domain small enough to enumerate and
+// large enough to stand for every citizen and every day from 0001-01-01 to 9999-12-31
 // (`oracleOf()`). The solver's and the findings' tests compare their answers with it. Only tests
 // import it.
 //
-// Independence: every answer comes from evaluating real applicants on real days with
+// Independence: every answer comes from evaluating real citizens on real days with
 // ../evaluation.ts, the port of the evaluator that Python's vectors pin: `ruleOutcome()` sorts a
 // field's values by their outcomes, and `evaluateBranch()` gives each combination's items and
 // branch. The deletion questions recombine a combination's rule outcomes with `levelMet()`, a
@@ -17,19 +17,19 @@
 // the date theory uses. `buildCheckedBranch()` is called only to check that a generated branch is
 // checked whole (`checkedBranchOf()`).
 //
-// Why the domain stands for every applicant and every day:
+// Why the domain stands for every citizen and every day:
 // - Fields. Each rule reads one field: the licence's classes and the classes' dates are both read
 //   from `driving_privileges`, which is therefore one field here, so that a class's date exists
 //   exactly when the class is listed (FR-007, fifth bullet). Fields don't constrain each other
-//   (FR-007), and every applicant gives every field a rule checks (FR-009). Two values of a field
+//   (FR-007), and every citizen gives every field a rule checks (FR-009). Two values of a field
 //   whose outcomes agree for every rule on it are interchangeable, since an item's outcome
-//   depends only on its rules' outcomes. So on a day d, the applicants that matter are, per
+//   depends only on its rules' outcomes. So on a day d, the citizens that matter are, per
 //   field, one value for each vector of outcomes its values can have on d, combined in every way.
 //   Each combination is evaluated once with `evaluateBranch()`. A rule on the classes reads only
 //   the classes listed, and one on class K's date only K's entry or that K isn't listed, so the
 //   licence's values are found per set of classes and per date of each class
 //   (`privilegesValues()`).
-// - Numbers: 0 to the largest constant rounded up, plus 2. Applicants hold whole numbers from 0
+// - Numbers: 0 to the largest constant rounded up, plus 2. Citizens hold whole numbers from 0
 //   (research R3); every whole number above every constant compares with each constant alike.
 // - Enums: every value of the set, or every non-empty set of its values for a field that holds
 //   several (research R9), such as the licence's classes. The generated rules use three values.
@@ -218,7 +218,7 @@ export const TEXT_LETTERS: readonly string[] = ['a', 'A', 'b', SHARP_S];
 const LONGEST_RULE_TEXT = 2;
 
 /**
- * The units of the applicants' texts (see the module's comment): a, A, b, B, s, ß, ß with U+0307,
+ * The units of the citizens' texts (see the module's comment): a, A, b, B, s, ß, ß with U+0307,
  * ẚ (U+1E9A) and x, which stands for every other character
  */
 export const TEXT_UNITS: readonly string[] = [
@@ -233,7 +233,7 @@ export const TEXT_UNITS: readonly string[] = [
   'x',
 ];
 
-/** The most units an applicant's text has: the rules' texts' total length */
+/** The most units a citizen's text has: the rules' texts' total length */
 const MOST_TEXT_UNITS = MAX_TEXT_RULES * LONGEST_RULE_TEXT;
 
 /**
@@ -596,7 +596,7 @@ export function withSeed<T>(seed: number, check: () => T): T {
   }
 }
 
-/** Whether the applicant meets the branch's rules on the day of sharing `day` (a day number) */
+/** Whether the citizen meets the branch's rules on the day of sharing `day` (a day number) */
 export function met(branch: EvaluatedBranch, applicant: Applicant, day: number): boolean {
   return evaluateBranch(branch, applicant, day, ORACLE_CONTEXT).met;
 }
@@ -606,7 +606,7 @@ export function met(branch: EvaluatedBranch, applicant: Applicant, day: number):
 /** One day of sharing (a day number), or a range of them, both ends included */
 export type Days = number | DayRange;
 
-/** An applicant and a day of sharing that answer a question */
+/** A citizen and a day of sharing that answer a question */
 export interface OracleWitness {
   applicant: Applicant;
   day: number;
@@ -615,7 +615,7 @@ export interface OracleWitness {
 }
 
 /**
- * The questions about one branch (research R4), answered for every applicant and every day of
+ * The questions about one branch (research R4), answered for every citizen and every day of
  * sharing. Items are named by their ids, the items that count (`itemIds`): a rule or group at its
  * own level, whose outcome is its own, wherever it sits. `BRANCH` stands for the branch's rules
  * as a whole. Days are a day number or a range of them, from 0001-01-01 to 9999-12-31
@@ -625,24 +625,24 @@ export interface Oracle {
   readonly itemIds: readonly string[];
   /**
    * The days that stand for `days`: its first day, then each day of it on which the outcomes an
-   * applicant can have may change. Every day of the range answers as the latest of them on or
+   * citizen can have may change. Every day of the range answers as the latest of them on or
    * before it
    */
   days: (days: Days) => number[];
-  /** One applicant per combination of the fields' outcomes on `day` */
+  /** One citizen per combination of the fields' outcomes on `day` */
   applicantsOn: (day: number) => Applicant[];
-  /** An applicant who meets every item of `ids` on a day of `days`, or null when none does */
+  /** A citizen who meets every item of `ids` on a day of `days`, or null when none does */
   whoMeets: (ids: readonly string[], days: Days) => OracleWitness | null;
-  /** Whether some applicant meets every item of `ids` together on some day of `days` */
+  /** Whether some citizen meets every item of `ids` together on some day of `days` */
   canMeet: (ids: readonly string[], days: Days) => boolean;
-  /** The days of `range` on which some applicant meets every item of `ids`, as sorted ranges */
+  /** The days of `range` on which some citizen meets every item of `ids`, as sorted ranges */
   meetDays: (ids: readonly string[], range: DayRange) => DayRange[];
-  /** An applicant who fails an item of `ids` on a day of `days`, or null when none does */
+  /** A citizen who fails an item of `ids` on a day of `days`, or null when none does */
   whoFails: (ids: readonly string[], days: Days) => OracleWitness | null;
-  /** Whether every applicant meets every item of `ids` on every day of `days` */
+  /** Whether every citizen meets every item of `ids` on every day of `days` */
   alwaysMet: (ids: readonly string[], days: Days) => boolean;
   /**
-   * An applicant whose outcome for the branch changes on a day of `days` when the items of
+   * A citizen whose outcome for the branch changes on a day of `days` when the items of
    * `deleted` are deleted from the working tree, or null when no outcome changes (FR-005,
    * SC-002). The working tree is the branch without the items of `alreadyDeleted` (research R8).
    * Deleting removes an item with everything in it; a group left with one member becomes that
@@ -847,7 +847,7 @@ class BranchOracle implements Oracle {
     return null;
   }
 
-  /** The first applicant and day of `days` whose items met pass `test` */
+  /** The first citizen and day of `days` whose items met pass `test` */
   private find(days: Days, test: (mask: number) => boolean): OracleWitness | null {
     for (const day of this.days(days)) {
       const table = this.tableOn(day);
@@ -1083,7 +1083,7 @@ function* combinationsOf(lengths: readonly number[]): Generator<number[]> {
   }
 }
 
-/** An applicant with one value per field: the values at `indices` */
+/** A citizen with one value per field: the values at `indices` */
 function applicantOf(
   fields: readonly OracleField[],
   values: readonly FieldValues[],
@@ -1100,8 +1100,8 @@ function applicantOf(
 }
 
 /**
- * An applicant who gives only one value of the field: `give(value)` sets it and returns the
- * applicant, the same object each time, so that loops over many values build no new objects
+ * A citizen who gives only one value of the field: `give(value)` sets it and returns the
+ * citizen, the same object each time, so that loops over many values build no new objects
  */
 function applicantWith(field: OracleField): (value: unknown) => Applicant {
   const values: Record<string, unknown> = {};
@@ -1198,7 +1198,7 @@ function fieldValues(field: OracleField, day: number): FieldValues {
 
 /**
  * The first of `candidates` for each vector of outcomes of `rules`, a value of `field` each, by
- * the vector: each rule's outcome for an applicant who gives only that value
+ * the vector: each rule's outcome for a citizen who gives only that value
  */
 function distinctValues(
   field: OracleField,
@@ -1217,7 +1217,7 @@ function distinctValues(
   return byKey;
 }
 
-/** The rules' outcomes for the applicant on `day`, a letter each */
+/** The rules' outcomes for the citizen on `day`, a letter each */
 function vectorOf(rules: readonly RuleItem[], applicant: Applicant, day: number): string {
   return rules
     .map((each) => OUTCOME_LETTERS[ruleOutcome(each, applicant, day, ORACLE_CONTEXT)])

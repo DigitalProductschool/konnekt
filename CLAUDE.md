@@ -157,7 +157,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `npm test` in `mcp/` fails when a tool isn't described (`mcp/src/guidance.test.ts`; details in
   `specs/007-agent-mcp-server/contracts/guidance.md`).
 - The MCP server logs only through `mcp/src/log.ts` (method, tool, status, duration), never
-  arguments, results, tokens, findings or applicants (ARCHITECTURE, "Agent access and the MCP
+  arguments, results, tokens, findings or citizens (ARCHITECTURE, "Agent access and the MCP
   server (spec 007)").
 
 ## Code style

@@ -131,7 +131,7 @@ function at(ruleTarget: RuleTarget, condition: Condition) {
   });
 }
 
-/** An applicant whose documents give one field */
+/** A citizen whose documents give one field */
 function applicantWith(ruleTarget: RuleTarget, value: unknown): Applicant {
   return { [ruleTarget.document_type]: { [ruleTarget.field]: value } };
 }

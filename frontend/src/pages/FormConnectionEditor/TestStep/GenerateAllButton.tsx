@@ -3,7 +3,7 @@ import type { GenerateAllButtonProps } from './types';
 
 /**
  * "Generate all again" (S8.3; W9; FR-012): a small tertiary button with the refresh icon, styled
- * like the panel's "Generate again" (Figma 7057:58771), at the right end of the applicants row.
+ * like the panel's "Generate again" (Figma 7057:58771), at the right end of the citizens row.
  * The question before it (S8.7) comes with T046. KERN's small button is 40px high with 4px
  * margins; the wrapper takes 2px of each back, so the row stays as high as the selected chip
  * (44px; Figma row 7057:58754, 60px), and the button's 48px touch area stays

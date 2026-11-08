@@ -367,7 +367,7 @@ describe('modelOf', () => {
     }
   });
 
-  it('gives null for a formula that no applicant can meet', () => {
+  it('gives null for a formula that no citizen can meet', () => {
     const none: Formula = { and: [height('gt', 2), height('lt', 3)] };
     expect(modelOf(none, optionsOf(1))).toBeNull();
     expect(modelOf(none, optionsOf(1, { plausible: PLAUSIBLE }))).toBeNull();

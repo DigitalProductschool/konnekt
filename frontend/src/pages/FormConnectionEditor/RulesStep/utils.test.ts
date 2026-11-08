@@ -597,9 +597,9 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
 
   it('keeps U14’s body without variants based on Standard, and in a variant', () => {
     expect(
-      text(stateWith(items), 'rule-1', 'Personal ID – Date of birth (Age) is at least 21 years old')
+      text(stateWith(items), 'rule-1', 'Personal ID · Date of birth (Age) is at least 21 years old')
     ).toBe(
-      'Applicants will no longer be checked for “Personal ID – Date of birth (Age) is at least 21 years old”. You can undo this right after.'
+      'Citizens will no longer be checked for “Personal ID · Date of birth (Age) is at least 21 years old”. You can undo this right after.'
     );
     expect(text(withVariants('empty'), 'rule-1')).toBe('You can undo this right after.');
     const state = withVariants('based');
@@ -701,8 +701,8 @@ describe('bannerViewOf', () => {
   };
   const NOTICE = {
     tone: 'warning' as const,
-    text: 'No applicant can meet the rules of Standard.',
-    appended: 'So no applicant can meet the rules of Standard.',
+    text: 'No citizen can meet the rules of Standard.',
+    appended: 'So no citizen can meet the rules of Standard.',
   };
   const INCOMPLETE =
     'The rules of Standard couldn’t be checked completely. Only findings that are certain are shown.';
@@ -720,7 +720,7 @@ describe('bannerViewOf', () => {
   }
 
   it('shows one line with its kind text and no items, expanded or not (U01)', () => {
-    const head = [...U01_LINE.parts, ' So no applicant can meet the rules of Standard.'];
+    const head = [...U01_LINE.parts, ' So no citizen can meet the rules of Standard.'];
     const u01 = banner({ lines: [U01_LINE], notice: NOTICE, head });
     for (const expanded of [false, true]) {
       expect(bannerViewOf(u01, expanded)).toEqual({
@@ -784,7 +784,7 @@ describe('bannerViewOf', () => {
       summary: { key: 'summary', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
       items: [],
     });
-    const parts = ['Every applicant meets ', group1, ', so it doesn’t check anything.'];
+    const parts = ['Every citizen meets ', group1, ', so it doesn’t check anything.'];
     const u06 = banner({
       kind: 'info',
       lines: [{ kind: 'always_met', tone: 'info', parts }],
@@ -805,8 +805,8 @@ describe('bannerViewOf', () => {
     ]);
   });
 
-  it('shows the notice that every applicant meets the rules alone, without a link (W8)', () => {
-    const text = 'Every applicant meets the rules of Standard.';
+  it('shows the notice that every citizen meets the rules alone, without a link (W8)', () => {
+    const text = 'Every citizen meets the rules of Standard.';
     const w8 = banner({
       kind: 'info',
       notice: { tone: 'info', text, appended: text },

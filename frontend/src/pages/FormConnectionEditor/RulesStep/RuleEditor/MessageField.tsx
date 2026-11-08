@@ -7,7 +7,7 @@ import type { MessageFieldProps } from './types';
 const MESSAGE_MAX_LENGTH = 500;
 
 /**
- * The error message applicants read (FR-004, F9): Figma "Rules/Message placeholder" while it is
+ * The error message citizens read (FR-004, F9): Figma "Rules/Message placeholder" while it is
  * empty (6348:40234), "Rules/Error message" (editable, 6092:3498) once it has a message. It grows
  * with the message; Enter adds no line break. kern.css gives every textarea a padding and a
  * 96px height, which the field doesn't have. Where the label leaves the field less than 160px,

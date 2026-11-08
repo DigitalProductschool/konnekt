@@ -3,9 +3,9 @@
 // Apostrophes are typographic (’)
 
 export const TEST_STEP_COPY = {
-  // Applicants row (S8.3; design-notes §3.1)
+  // Citizens row (S8.3; design-notes §3.1)
   /** The chips' tab list name (design-notes §3.1, proposed) */
-  applicants: 'Sample applicants',
+  applicants: 'Sample citizens',
   generateAllAgain: 'Generate all again',
 
   // Persona panel (S8.4, S8.5; design-notes §4, §5)
@@ -38,7 +38,7 @@ export const TEST_STEP_COPY = {
   met: 'Met',
 
   // Failure (S8.9; design-notes §9)
-  failureTitle: 'Couldn’t create sample applicants',
+  failureTitle: 'Couldn’t create sample citizens',
   tryAgain: 'Try again',
 
   // Questions before generating anew (S8.7; design-notes §7)
@@ -46,7 +46,7 @@ export const TEST_STEP_COPY = {
   generateNewData: 'Generate new data',
 } as const;
 
-// Applicants row (S8.3; T032): a chip's 20 px KERN mask icon for its outcome in the shown variant,
+// Citizens row (S8.3; T032): a chip's 20 px KERN mask icon for its outcome in the shown variant,
 // in its colour (design-notes §10.4; Figma 7057:59061, 7057:59056). The shapes differ (check
 // circle, diamond), so the outcome never rests on colour alone (FR-015)
 export const CHIP_ICONS = {
@@ -72,7 +72,7 @@ export const MEMBER_INDENT = ['', 'pl-32', 'pl-64', 'pl-96'] as const;
 // Loading states (S8.8; T035; Figma U11 frames 18 and 19, design-notes §8, §10.3)
 
 /**
- * The applicants row's loading status (`role="status"`), which keeps the focus while the button
+ * The citizens row's loading status (`role="status"`), which keeps the focus while the button
  * that started a run gives way to the skeleton (quickstart V9)
  */
 export const LOADING_STATUS_ID = 'test-loading-status';

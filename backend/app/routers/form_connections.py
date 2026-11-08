@@ -34,7 +34,7 @@ CONFIG_FAILED = (
 # A team member's browser session or an agent's bearer token; every GET is open to
 # every access level. Agents change drafts from the level 'drafts' on, and nothing
 # else here: publishing, deleting a draft, a published connection's content and its
-# status are done in the Connection Portal (spec 007, contracts/management-api.md
+# status are done in Konnekt (spec 007, contracts/management-api.md
 # "Who may call what")
 router = APIRouter(
     prefix='/api/form-connections',

@@ -138,7 +138,7 @@ export interface PersonaPanelProps {
 }
 
 /**
- * `PersonaChip` (S8.3; T032): one tab of the "Sample applicants" tab list, with the persona's name
+ * `PersonaChip` (S8.3; T032): one tab of the "Sample citizens" tab list, with the persona's name
  * and the icon of its outcome for the shown variant
  */
 export interface PersonaChipProps {
@@ -240,7 +240,7 @@ export interface MemberRowsProps {
   messageColumn: boolean;
 }
 
-/** `GenerationFailed` (S8.9; T036), in place of the applicants row and the panel */
+/** `GenerationFailed` (S8.9; T036), in place of the citizens row and the panel */
 export interface GenerationFailedProps {
   /** Whether the connection is being edited (`failureHintOf()`) */
   editing: boolean;
@@ -248,9 +248,9 @@ export interface GenerationFailedProps {
   onRetry: () => void;
 }
 
-/** `LoadingStatus` (S8.8; T035): the applicants row's status */
+/** `LoadingStatus` (S8.8; T035): the citizens row's status */
 export interface LoadingStatusProps {
-  /** "Creating 3 sample applicants…", "Creating new data for Mia…", or '' without a run */
+  /** "Creating 3 sample citizens…", "Creating new data for Mia…", or '' without a run */
   text: string;
 }
 

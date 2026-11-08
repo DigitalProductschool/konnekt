@@ -108,7 +108,7 @@ describe('parseReference', () => {
       expect(error).toBeInstanceOf(ReferenceRefusal);
       expect(error).toMatchObject({
         code: 'foreign_link',
-        message: "This link doesn't belong to this Connection Portal.",
+        message: "This link doesn't belong to Konnekt.",
       });
     }
   });

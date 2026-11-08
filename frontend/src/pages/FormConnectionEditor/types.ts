@@ -421,14 +421,14 @@ export interface PublishSummaryValueProps {
 }
 
 /**
- * A branch's line in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019): "Ambulance:
- * 2 rules can’t be met together · 1 duplicate rule", from `dialogLineOf()`
+ * A branch's line in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019), from
+ * `dialogLineOf()`: the variant's name, a colon, then the package's sentences
  */
 export interface FindingLine {
   /** The branch's key */
   key: string;
   text: string;
-  /** Warning when the branch has a conflict or no applicant can meet it, info otherwise */
+  /** Warning when the branch has a conflict or no citizen can meet it, info otherwise */
   tone: FindingTone;
 }
 

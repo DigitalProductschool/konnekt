@@ -13,10 +13,10 @@ import type { ApplicantsRowProps } from './types';
 import { runStatusTextOf } from './utils';
 
 /**
- * The applicants row (S8.3, S8.8; FR-004, FR-012, FR-015; W9; Figma 7057:58754): the chips, then
+ * The citizens row (S8.3, S8.8; FR-004, FR-012, FR-015; W9; Figma 7057:58754): the chips, then
  * at the row's right end the loading status (T035) and "Generate all again".
  *
- * The chips are a tab list, "Sample applicants", inside the variant's tab panel (design-notes
+ * The chips are a tab list, "Sample citizens", inside the variant's tab panel (design-notes
  * §3.2; research R16): each chip is a tab, exactly one selected, the first by default, and the
  * persona panel that `TestStep` renders is the tab panel they control. The keys follow WAI-ARIA's
  * tab pattern, as the variant tabs: one tab stop on the selected chip; Left and Right move to the
@@ -26,7 +26,7 @@ import { runStatusTextOf } from './utils';
  * Loading (S8.8; F14, W9; Figma U11): while all three are generated (frame 18: first open,
  * "Generate all again", "Try again"; `personas` is null), three skeleton pills in place of the
  * chips, and no tab list and no "Generate all again", only the status "Creating 3 sample
- * applicants…". While some are generated anew (frame 19), their chips stay, with a loading ring,
+ * citizens…". While some are generated anew (frame 19), their chips stay, with a loading ring,
  * the status names them ("Creating new data for Mia…"), and "Generate all again" stays usable
  * after it. A fill run, after the team member returns from the rules step with new fields (FR-020),
  * looks the same for each persona being filled, with the status "Adding new data for Mia…"

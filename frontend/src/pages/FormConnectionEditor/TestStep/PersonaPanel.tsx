@@ -4,7 +4,7 @@ import PersonaHead from './PersonaHead';
 import type { PersonaPanelProps } from './types';
 
 /**
- * The selected persona's data card in read mode (S8.4; FR-004, FR-005, FR-007; Figma "Applicant
+ * The selected persona's data card in read mode (S8.4; FR-004, FR-005, FR-007; Figma "Citizen
  * data" 7057:58767): white, 1px decorative border, 8px radius, 16px padding, 410px wide beside the
  * results from `lg`; the head, then 8px below it the values under their documents' headings. It
  * doesn't scroll itself: it shares the scrolling panel of `TestStep` with the results (K3; U08

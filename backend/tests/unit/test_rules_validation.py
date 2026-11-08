@@ -314,7 +314,7 @@ def test_names_are_unique_ignoring_letter_case_and_outer_spaces() -> None:
                 CLASS_RULE | {'name': ' LIVES IN STUTTGART '},
             )
         )
-        == 'Another rule in Standard is already called Lives in Stuttgart.'
+        == 'There’s already a rule called "Lives in Stuttgart" in Standard.'
     )
 
 
@@ -628,7 +628,7 @@ def test_members_a_based_branch_removed_dont_count() -> None:
     [
         ('  ', 'Enter a name for every group in Standard.'),
         ('x' * 101, 'A group in Standard has a name longer than 100 characters.'),
-        (' rule 01 ', 'Another rule in Standard is already called Rule 01.'),
+        (' rule 01 ', 'There’s already a rule called "Rule 01" in Standard.'),
         ('Group 03', 'Group 03 is kept for the group numbered 03.'),
         ('Sub-group 3', 'Sub-group 3 is kept for the sub-group numbered 03.'),
         ('Rule 05', 'Rule 05 is kept for the rule numbered 05.'),
@@ -643,7 +643,7 @@ def test_a_sub_groups_name_is_checked_against_the_groups() -> None:
     us2_group['items'][1] |= {'name': ' GROUP 01'}
 
     assert _problem(_rules(stuttgart, us2_group)) == (
-        'Another group in Standard is already called Group 01.'
+        'There’s already a group called "Group 01" in Standard.'
     )
     us2_group['items'][1] |= {'name': ''}
     assert _problem(_rules(stuttgart, us2_group)) == (
@@ -984,7 +984,7 @@ def test_the_names_of_removed_items_are_taken() -> None:
                 [age, CLASS_RULE], [_marked(age, 'removed'), CLASS_RULE, own]
             )
         )
-        == 'Another rule in Ambulance is already called Age.'
+        == 'There’s already a rule called "Age" in Ambulance.'
     )
 
 
@@ -996,7 +996,7 @@ def test_standards_names_of_changed_items_are_taken() -> None:
     # An undo would bring "Age" back, wherever the other rule is
     assert (
         _problem(_with_ambulance([age, CLASS_RULE], [own, changed, CLASS_RULE]))
-        == 'Another rule in Ambulance is already called Age.'
+        == 'There’s already a rule called "Age" in Ambulance.'
     )
     # The changed rule itself may keep the name
     years_19 = {'operator': 'at_least_years_ago', 'years': 19}
@@ -1015,7 +1015,7 @@ def test_standards_name_of_a_changed_group_is_taken_as_a_groups() -> None:
     ]
 
     assert _problem(_with_ambulance(main, ambulance)) == (
-        'Another group in Ambulance is already called Adults.'
+        'There’s already a group called "Adults" in Ambulance.'
     )
 
 

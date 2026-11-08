@@ -1,11 +1,11 @@
 ---
 name: links
-description: The Connection Portal's links to connections, variants, rules, groups and approval requests, what each names, how to use them in place of identifiers, and how to resolve ambiguous names.
+description: Konnekt's links to connections, variants, rules, groups and approval requests, what each names, how to use them in place of identifiers, and how to resolve ambiguous names.
 ---
 
 # Links
 
-Every connection, variant, rule and group has a link that opens it in the Connection Portal's
+Every connection, variant, rule and group has a link that opens it in Konnekt's
 editor. Answers carry the links of what they read or changed (`link` in every connection, variant
 and item they name); give them to the team member so that they can open the place you mean.
 
@@ -18,13 +18,12 @@ rule, group: {portal}/form-connections/{connection id}/edit?step=rules&variant={
 approval:    {portal}/approvals/{request id}
 ```
 
-`{portal}` is this Connection Portal's address. Connection and variant ids are UUIDs; an item is
+`{portal}` is Konnekt's address. Connection and variant ids are UUIDs; an item is
 `rule-n` or `group-n`.
 
 ## What a link names
 
-- A connection's link names the connection: it is the address of its page in the Connection
-  Portal.
+- A connection's link names the connection: it is the address of its page in Konnekt.
 - A variant's link names the connection and the variant.
 - A rule's or group's link names the connection, the variant and the item. The same `rule-7` can
   sit in several variants (a based variant inherits Standard's rules with their ids), so the link
@@ -74,9 +73,9 @@ it.
 
 ## Foreign links
 
-A link must belong to this Connection Portal. A link to another address, such as a preview
+A link must belong to Konnekt. A link to another address, such as a preview
 deployment's or another installation's, is refused with `foreign_link`: "This link doesn't belong
-to this Connection Portal." Ask the team member for the link from this Portal, or name the item by
+to Konnekt." Ask the team member for the link from Konnekt, or name the item by
 its id or name.
 
 ## Ambiguous names

@@ -181,7 +181,7 @@ describe('decideNumber', () => {
     });
 
     it('can’t meet values that only fall between doubles', () => {
-      // An applicant's 2^53 + 1 compares as 2^53, and 2^53 + 3 as 2^53 + 4 (Python's float())
+      // A citizen's 2^53 + 1 compares as 2^53, and 2^53 + 3 as 2^53 + 4 (Python's float())
       expect(verdictOf([gt(2 ** 53), lt(2 ** 53 + 4), ne(2 ** 53 + 2)])).toBe('unsat');
     });
 
@@ -194,7 +194,7 @@ describe('decideNumber', () => {
 
   it('answers as an enumeration of the values, for 2000 seeded sets of literals', () => {
     // The rules' values lie in [-1, 5] in steps of a half, so 6 and above all behave alike, and 0
-    // to 7 stand for every value an applicant can have
+    // to 7 stand for every value a citizen can have
     const domain = [0, 1, 2, 3, 4, 5, 6, 7];
     const ops: NumberOp[] = ['gt', 'lt', 'eq', 'ne'];
     const random = seeded(2026);

@@ -1,7 +1,7 @@
-// The applicants of `test_applicants` (research R15; data-model §9; FR-034): each one's values
-// checked against the variant's applicant fields as the test step's editor takes them, and turned
+// The citizens of `test_applicants` (research R15; data-model §9; FR-034): each one's values
+// checked against the variant's citizen fields as the test step's editor takes them, and turned
 // into the evaluator's `Applicant` as the test step does for a persona (`applicantOf()`). Pure: no
-// value, applicant or refusal is stored or logged here (FR-035), and a refusal names the field and
+// value, citizen or refusal is stored or logged here (FR-035), and a refusal names the field and
 // the kind it expects, never the value given
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
@@ -12,16 +12,16 @@ import type { Persona, PersonaField, PersonaValue } from '@connection-portal/rul
 
 import type { ApplicantField } from './views';
 
-/** One applicant as `test_applicants` takes it: an optional name, and values by field key */
+/** One citizen as `test_applicants` takes it: an optional name, and values by field key */
 export interface TestApplicant {
   name?: string;
   values: Readonly<Record<string, unknown>>;
 }
 
 export const APPLICANT_MESSAGES = {
-  /** "Applicant 'Anna'", or "Applicant 2" by its 1-based position for one without a name */
+  /** "Citizen 'Anna'", or "Citizen 2" by its 1-based position for one without a name */
   applicant: (name: string | undefined, position: number) =>
-    name !== undefined && name.trim() !== '' ? `Applicant '${name}'` : `Applicant ${position}`,
+    name !== undefined && name.trim() !== '' ? `Citizen '${name}'` : `Citizen ${position}`,
   /** A value that doesn't fit its field's kind: `expected` is one of the `expected*` texts */
   doesNotFit: (who: string, key: string, expected: string) =>
     `${who}: '${key}' expects ${expected}.`,
@@ -40,7 +40,7 @@ export const APPLICANT_MESSAGES = {
 const ITS_VALUE_SET = 'its value set';
 
 /**
- * The first refusal of an applicant's values, or null when every value fits (FR-034). The values
+ * The first refusal of a citizen's values, or null when every value fits (FR-034). The values
  * are checked in the order given:
  * - a key that isn't one of `fields`' is refused with the known keys, in `fields`' order;
  * - a value is checked against its field's kind as the test step's editor takes it: a finite
@@ -50,8 +50,8 @@ const ITS_VALUE_SET = 'its value set';
  * - `null`, and an empty list where a list is expected, stand for a document that doesn't give
  *   the value, as a key left out does: the evaluation reads it as missing data.
  *
- * `position` is the applicant's 1-based place in the call, which names an applicant without a
- * name. Returns the message rather than throwing, so that the tool checks every applicant before
+ * `position` is the citizen's 1-based place in the call, which names a citizen without a
+ * name. Returns the message rather than throwing, so that the tool checks every citizen before
  * evaluating any and answers the first refusal as the tool error `validation`
  */
 export function checkApplicant(
@@ -142,7 +142,7 @@ function refusedEnumKindOf(
 }
 
 /**
- * The persona field `applicantOf()` reads for an applicant field: its document type, field, part
+ * The persona field `applicantOf()` reads for a citizen field: its document type, field, part
  * and class, from the variable key (`variableKey()`: `document_type.field[.part][#class]`, whose
  * document type and field keys have no dots), and the rest as `get_variant` lists it
  */

@@ -12,9 +12,9 @@ import { bannerViewOf } from './utils';
  * W8, W12, W13, W17, W19; FR-005, FR-006, FR-010, FR-013; Figma `Rules/Findings banner`
  * 6750:40865: U01 6750:40882, U02 6750:40933, U04 6750:41077, U05 6753:40144, U06 6753:40514, U07
  * 6753:40851, U08 6753:41324), 8 px inside the rules card: the warning background with its 1 px
- * border when the variant has a conflict or no applicant can meet it, the info one otherwise, as
- * for a duplicate, covered or always-met item alone or "Every applicant meets the rules of …"
- * (FR-019; a variant no applicant can meet has only its conflicts, W4); padding 8 and 16 on the
+ * border when the variant has a conflict or no citizen can meet it, the info one otherwise, as
+ * for a duplicate, covered or always-met item alone or "Every citizen meets the rules of …"
+ * (FR-019; a variant no citizen can meet has only its conflicts, W4); padding 8 and 16 on the
  * left, body/small text and no title. It draws what `bannerOf()` returns and builds no text
  * (design-notes.md §3.3): *single*, one line with what follows it, or the notice or FR-010's
  * sentence alone; *collapsed*, the default with

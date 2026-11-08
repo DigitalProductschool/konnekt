@@ -47,7 +47,7 @@ import { registerTool, toolResult } from './registry';
 const CONNECTION = z
   .string()
   .min(1)
-  .describe('The draft: its id, or any Connection Portal link that names it');
+  .describe('The draft: its id, or any Konnekt link that names it');
 const VARIANT = z
   .string()
   .min(1)
@@ -137,8 +137,8 @@ registerTool({
   level: 'drafts',
   description:
     "Changes a draft's name or description. A description of null or '' clears it; the " +
-    'description can have at most 500 characters. A published connection is changed in the ' +
-    'Connection Portal, not by agents.',
+    'description can have at most 500 characters. A published connection is changed in ' +
+    'Konnekt, not by agents.',
   input: z.object({
     connection: CONNECTION,
     name: z.string().optional().describe('The new name'),

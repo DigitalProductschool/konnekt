@@ -4,7 +4,7 @@ import personalIdInkIcon from '../../assets/icons/personal-id-ink.svg';
 
 export const RULE_ROW_COPY = {
   // Figma "Rules/Error message" (6092:3506)
-  messageLabel: 'Error message applicants read:',
+  messageLabel: 'Error message citizens read:',
   // Read before a rule's identifier on the details (W1)
   identifier: 'Identifier',
 };

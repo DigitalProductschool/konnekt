@@ -5,8 +5,8 @@ import { TEST_STEP_COPY } from './constants';
 import type { GenerationFailedProps } from './types';
 
 /**
- * The failure state (S8.9; FR-013; Figma U12 7062:51782), in place of the applicants row and the
- * panel, centred in the variant area: "Couldn’t create sample applicants", the hint to try again
+ * The failure state (S8.9; FR-013; Figma U12 7062:51782), in place of the citizens row and the
+ * panel, centred in the variant area: "Couldn’t create sample citizens", the hint to try again
  * or publish ("save" when editing) without testing, and a small tertiary "Try again" button with
  * the autorenew icon, which generates all three anew (S8.8's loading state). Figma's "Your rules
  * are saved." isn't built (F7): nothing is stored before publishing.

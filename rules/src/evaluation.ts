@@ -22,7 +22,7 @@
 //   complete rules on fields of `context.documents`, and a group left with one member must be
 //   replaced by that member before it is evaluated, as `buildCheckedBranch()` does. As in Python,
 //   parts are read only from the fields keyed `place_of_birth` and `driving_privileges`;
-// - an applicant's delivered documents (`Applicant`);
+// - a citizen's delivered documents (`Applicant`);
 // - the day of sharing as a day number (calendar.ts), the calendar date in Germany;
 // - a `RuleContext`: its documents stand for the catalog that `_kind_of()` looks targets up in, and
 //   its option sets for `OPTION_SETS`.
@@ -49,7 +49,7 @@ import type { RuleContext } from './types';
 export type Outcome = 'met' | 'not_met' | 'not_checked';
 
 /**
- * An applicant's delivered documents, as `_DocumentValues` holds them: by document type, then by
+ * A citizen's delivered documents, as `_DocumentValues` holds them: by document type, then by
  * field key, each field's value as delivered (JSON). A field's value is the whole field, also when
  * a rule checks a part of it: the place of birth's object, the licence's list of
  * `driving_privileges` entries. A missing document or field, and `null`, read as missing
@@ -258,7 +258,7 @@ function effectiveItems(items: readonly RuleTreeItem[], based: boolean): RuleTre
 }
 
 /**
- * `evaluate_branch()`, without the branch's id and name: whether the applicant meets the branch's
+ * `evaluate_branch()`, without the branch's id and name: whether the citizen meets the branch's
  * rules on the day of sharing `sharedOn` (a day number), each item's outcome, and the messages.
  * Every level combines its items with its own AND or OR, the top level with the branch's, and a
  * group counts as one item of its level. `not_checked` counts as not met, and a branch without
@@ -347,7 +347,7 @@ function levelMet(operator: Combinator, items: readonly EvaluatedItem[]): boolea
 // Rules
 
 /**
- * `_rule_outcome()`: a rule's outcome for the applicant on the day of sharing `sharedOn` (a day
+ * `_rule_outcome()`: a rule's outcome for the citizen on the day of sharing `sharedOn` (a day
  * number). `not_checked` when the value is missing or can't be read for the condition; `not_met`
  * for a rule on the date of a licence class that the licence doesn't list. Throws where Python
  * raises ValueError, and a `RangeError` unless `sharedOn` is a day number

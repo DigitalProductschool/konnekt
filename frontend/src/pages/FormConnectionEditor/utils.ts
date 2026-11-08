@@ -920,8 +920,8 @@ export function draftSaveErrorOf(error: unknown): DraftSaveError {
 
 /**
  * The style of a branch's line in the publish and save dialog (FR-019): warning when the branch
- * has a conflict or no applicant can meet it, info when it has only duplicate, covered or
- * always-met items, or every applicant meets it.
+ * has a conflict or no citizen can meet it, info when it has only duplicate, covered or
+ * always-met items, or every citizen meets it.
  */
 function dialogToneOf(check: BranchCheck): FindingTone {
   const warning =

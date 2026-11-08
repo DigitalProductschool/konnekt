@@ -10,7 +10,7 @@ export const ACCESS_LEVELS: AccessLevelInfo[] = [
     name: 'Read only',
     allows:
       'Find and read connections, variants and rules, run the rule checks and test fictitious ' +
-      'applicants. Nothing changes.',
+      'citizens. Nothing changes.',
   },
   {
     level: 'drafts',

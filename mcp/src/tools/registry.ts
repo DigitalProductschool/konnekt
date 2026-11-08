@@ -86,11 +86,11 @@ export interface ToolDefinition<Input extends z.ZodObject = z.ZodObject> {
 }
 
 export const PUBLISHED_READ_ONLY_MESSAGE =
-  'The content of a published connection is changed in the Connection Portal. Agents can only ' +
+  'The content of a published connection is changed in Konnekt. Agents can only ' +
   'change drafts.';
-export const BACKEND_ERROR_MESSAGE = 'The Connection Portal could not complete this.';
+export const BACKEND_ERROR_MESSAGE = 'Konnekt could not complete this.';
 export const SIGNED_OUT_MESSAGE =
-  'The sign-in to the Connection Portal has ended. Call the tool again to sign in anew.';
+  'The sign-in to Konnekt has ended. Call the tool again to sign in anew.';
 
 /** A tool's answer: the JSON the contract names, and a text block that summarises it. */
 export function toolResult(structured: Record<string, unknown>, text: string): CallToolResult {

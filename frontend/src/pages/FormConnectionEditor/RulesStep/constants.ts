@@ -49,7 +49,7 @@ export const SELECTION_SCROLL_MARGIN = '**:scroll-mt-72 max-sm:**:scroll-mt-152'
 export const RULES_COPY = {
   // U11 6348:40213
   title: 'Rules',
-  hint: 'Each rule checks the data applicants share. If a rule isn’t met, the applicant sees its error message.',
+  hint: 'Each rule checks the data citizens share. If a rule isn’t met, the citizen sees its error message.',
   loading: 'Loading the documents and their values…',
   loadErrorTitle: 'Couldn’t load the documents and their values',
   loadErrorText: 'Check your connection and try again.',
@@ -71,7 +71,7 @@ export const RULES_COPY = {
   deleteTitle: (rule: string) => `Delete ${rule}?`,
   deleteText: (statement: string | null) =>
     statement
-      ? `Applicants will no longer be checked for “${statement}”. You can undo this right after.`
+      ? `Citizens will no longer be checked for “${statement}”. You can undo this right after.`
       : 'You can undo this right after.',
   cancel: 'Cancel',
   // "Save changes to Rule 01?", U28 6197:10989 (F10)
@@ -155,11 +155,11 @@ export const RULES_COPY = {
   variants: 'Variants',
   addVariant: 'Add variant',
   aboutVariants: 'About variants',
-  variantsInfo: 'A variant is a separate set of rules for some of your applicants.',
+  variantsInfo: 'A variant is a separate set of rules for some of your citizens.',
   // The Add variant and Edit variant dialogs (U17 6139:32693; W3; design-notes §4)
   addVariantTitle: 'Add variant',
   addVariantIntro:
-    'A variant is a separate set of rules for some of your applicants. Your form decides which variant applies to each applicant.',
+    'A variant is a separate set of rules for some of your citizens. Your form decides which variant applies to each citizen.',
   editVariantTitle: 'Edit variant',
   variantName: 'Variant name',
   description: 'Description',
@@ -192,7 +192,7 @@ export const RULES_COPY = {
       ? '1 rule checks data that’s no longer requested'
       : `${count} rules check data that’s no longer requested`,
   unrequestedText: (rule: string, branch: string) =>
-    `${rule} in ${branch} checks data that’s no longer requested. Add the data again in Documents, or edit or delete the rule.`,
+    `${rule} in ${branch} checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule.`,
   // A refused Publish or Save (F11), with the server's message
   refusedPublishTitle: 'Couldn’t publish',
   refusedSaveTitle: 'Couldn’t save',

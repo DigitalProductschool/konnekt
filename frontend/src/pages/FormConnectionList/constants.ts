@@ -9,7 +9,7 @@ export const LIST_COPY = {
   loading: 'Loading your connections…',
   emptyTitle: 'No connections yet',
   emptyText:
-    'Create your first connection. Applicants of its form can then share verified data from their EUDI Wallet.',
+    'Create your first connection. Citizens of its form can then share verified data from their EUDI Wallet.',
   errorTitle: 'Couldn’t load your connections',
   errorText: 'Check your connection and try again.',
   retry: 'Try again',

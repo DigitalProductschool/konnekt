@@ -86,6 +86,6 @@ least 18 years old", `less_than_years_ago` with 27 is "is less than 27 years old
 ## Wording the message
 
 The message is shown to the citizen when the rule (or group) isn't met. Write it to the citizen,
-in plain words, saying what is required, not what went wrong in the data: "You must be at least
-18 years old." rather than "birthdate check failed". A group's message replaces its members'
+in plain words, saying what is required, not what went wrong in the data: "You need to be at
+least 18 years old." rather than "birthdate check failed". A group's message replaces its members'
 messages when the group isn't met.

@@ -530,7 +530,7 @@ type Question =
   | 'branch on a later day'
   | 'branch from today'
   | "branch's days from today"
-  | 'every applicant meets the branch'
+  | 'every citizen meets the branch'
   | 'items together today'
   | 'items together on a later day'
   | "items' days from today"
@@ -544,7 +544,7 @@ const QUESTIONS: readonly Question[] = [
   'branch on a later day',
   'branch from today',
   "branch's days from today",
-  'every applicant meets the branch',
+  'every citizen meets the branch',
   'items together today',
   'items together on a later day',
   "items' days from today",
@@ -694,12 +694,12 @@ function drawn<T>(items: readonly T[], size: number, random: (count: number) => 
 }
 
 /**
- * The items each applicant of the oracle meets, on each day that stands for a stretch of days from
+ * The items each citizen of the oracle meets, on each day that stands for a stretch of days from
  * today on (`Oracle.days()`), evaluated with ../evaluation.ts: questions about items that some
  * meet and others fail, which the oracle's own helpers don't ask
  */
 interface MetTable {
-  /** Each stretch of days, and the distinct sets of item ids its applicants meet */
+  /** Each stretch of days, and the distinct sets of item ids its citizens meet */
   stretches: { from: number; to: number; met: Set<string>[] }[];
 }
 
@@ -725,7 +725,7 @@ function metTableOf(branch: GeneratedBranch, oracle: Oracle): MetTable {
   return { stretches };
 }
 
-/** Whether an applicant meets every item of `meets` and fails `fails` on a day of `days` */
+/** Whether a citizen meets every item of `meets` and fails `fails` on a day of `days` */
 function meetsButFails(table: MetTable, meets: readonly string[], fails: string, days: DayRange) {
   return table.stretches.some(
     (stretch) =>
@@ -825,7 +825,7 @@ function surveyOne(seed: number, result: Survey): void {
   compareDays("branch's days from today", whole, oracle.meetDays([BRANCH], FROM_TODAY));
   const everyone = negate(whole);
   compare(
-    'every applicant meets the branch',
+    'every citizen meets the branch',
     everyone,
     ask(everyone, FROM_TODAY),
     !oracle.alwaysMet([BRANCH], FROM_TODAY)
@@ -873,7 +873,7 @@ function surveyOne(seed: number, result: Survey): void {
     );
   }
 
-  // Items that some applicant meets while failing another, as the reasons S ⇒ X ask
+  // Items that some citizen meets while failing another, as the reasons S ⇒ X ask
   if (chosen.context.length > 0) {
     const table = metTableOf(branch, oracle);
     const meets = drawn(chosen.context, 1 + random(2), random);

@@ -146,14 +146,14 @@ describe('createPayload (FR-028)', () => {
   });
 
   it('sends changed rules with the rule set they were loaded from', () => {
-    const payload = createPayload(state, withMessage('Applicants must be 21.'), {
+    const payload = createPayload(state, withMessage('Citizens must be 21.'), {
       loaded: LOADED,
     });
 
     expect(payload.rules?.base_version).toBe(3);
     expect(payload.rules?.numbering_base).toEqual({ rule: 4, group: 1 });
     expect(payload.rules?.replace).toBe(false);
-    expect(payload.rules?.branches[0].items[0].message).toBe('Applicants must be 21.');
+    expect(payload.rules?.branches[0].items[0].message).toBe('Citizens must be 21.');
     // The step's keys and the API's pull URLs stay out
     expect(Object.keys(payload.rules?.branches[0] ?? {}).sort()).toEqual([
       'description',
@@ -179,7 +179,7 @@ describe('createPayload (FR-028)', () => {
   });
 
   it('replaces the other team member’s rules on request', () => {
-    const payload = createPayload(state, withMessage('Applicants must be 21.'), {
+    const payload = createPayload(state, withMessage('Citizens must be 21.'), {
       loaded: LOADED,
       replace: true,
     });
@@ -190,7 +190,7 @@ describe('createPayload (FR-028)', () => {
 
 describe('rulesChanged', () => {
   it('compares the branches, so that a change undone by hand counts as none', () => {
-    expect(rulesChanged(withMessage('Applicants must be 21.'), LOADED)).toBe(true);
+    expect(rulesChanged(withMessage('Citizens must be 21.'), LOADED)).toBe(true);
     expect(rulesChanged(withMessage(US1_RULES[0].message), LOADED)).toBe(false);
   });
 
@@ -600,7 +600,7 @@ describe('firstBranchWithFindings', () => {
     ).toBe('b2');
   });
 
-  it('counts a branch no applicant can meet, or with always-met findings only', () => {
+  it('counts a branch no citizen can meet, or with always-met findings only', () => {
     expect(
       firstBranchWithFindings(BRANCHES, {
         main: check('main', []),
@@ -659,12 +659,12 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
       main: check('main', duplicate),
     });
     expect(lines).toEqual([
-      { key: 'main', text: 'Standard: 1 duplicate rule', tone: 'info' },
-      { key: 'b2', text: 'Ambulance: 2 rules can’t be met together', tone: 'warning' },
+      { key: 'main', text: 'Standard: 1 rule is a duplicate.', tone: 'info' },
+      { key: 'b2', text: 'Ambulance: 2 rules contradict each other.', tone: 'warning' },
     ]);
   });
 
-  it('adds the notice of a branch no applicant can meet, in the warning style', () => {
+  it('adds the notice of a branch no citizen can meet, in the warning style', () => {
     expect(
       findingLinesOf(BRANCHES, {
         b2: check('b2', conflict, { kind: 'none_can_meet', today: false }),
@@ -673,10 +673,10 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
     ).toEqual([
       {
         key: 'b2',
-        text: 'Ambulance: 2 rules can’t be met together. No applicant can meet the rules of Ambulance.',
+        text: 'Ambulance: no citizen can meet these rules. 2 rules contradict each other.',
         tone: 'warning',
       },
-      { key: 'b3', text: 'Right now, no applicant can meet the rules of Taxi.', tone: 'warning' },
+      { key: 'b3', text: 'Taxi: right now no citizen can meet these rules.', tone: 'warning' },
     ]);
   });
 
@@ -687,8 +687,8 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
         b2: check('b2', [], { kind: 'all_meet', today: false }),
       })
     ).toEqual([
-      { key: 'main', text: 'Standard: 1 rule every applicant meets', tone: 'info' },
-      { key: 'b2', text: 'Every applicant meets the rules of Ambulance.', tone: 'info' },
+      { key: 'main', text: 'Standard: 1 rule every citizen meets.', tone: 'info' },
+      { key: 'b2', text: 'Ambulance: every citizen meets these rules.', tone: 'info' },
     ]);
   });
 
@@ -696,7 +696,7 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
     expect(findingLinesOf(BRANCHES, { main: check('main', [...conflict, ...duplicate]) })).toEqual([
       {
         key: 'main',
-        text: 'Standard: 2 rules can’t be met together · 1 duplicate rule',
+        text: 'Standard: 2 rules contradict each other, and 1 rule is a duplicate.',
         tone: 'warning',
       },
     ]);
@@ -709,13 +709,13 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
         b2: { ...check('b2', []), complete: false },
         b3: { ...check('b3', duplicate), complete: false },
       })
-    ).toEqual([{ key: 'b3', text: 'Taxi: 1 duplicate rule', tone: 'info' }]);
+    ).toEqual([{ key: 'b3', text: 'Taxi: 1 rule is a duplicate.', tone: 'info' }]);
   });
 });
 
 describe('the test step (spec 004, S2, S8)', () => {
   const TEST_HINT =
-    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.';
+    'Choose a sample citizen to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.';
 
   it('titles the test step "Test rules" with the intro, in both modes (FR-004)', () => {
     expect(pageTitleOf('test', 'create')).toEqual({ title: 'Test rules', hint: TEST_HINT });
@@ -1375,10 +1375,10 @@ describe('validateConnection (FR-002, FR-003)', () => {
   });
 
   it('still gives the name’s error first', () => {
-    expect(validateConnection('', '')).toEqual({ name: 'Enter a name.' });
+    expect(validateConnection('', '')).toEqual({ name: 'Enter a name for the connection.' });
     const errors = validateConnection('  ', 'a'.repeat(501));
     expect(errors).toEqual({
-      name: 'Enter a name.',
+      name: 'Enter a name for the connection.',
       description: 'The description can have at most 500 characters.',
     });
     expect(firstInvalidElementId(errors, [], [])).toBe('connection-name');
@@ -1387,8 +1387,8 @@ describe('validateConnection (FR-002, FR-003)', () => {
 
 describe('draftNameErrors (R12)', () => {
   it('asks for a name', () => {
-    expect(draftNameErrors('')).toEqual({ name: 'Enter a name.' });
-    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name.' });
+    expect(draftNameErrors('')).toEqual({ name: 'Enter a name for the connection.' });
+    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name for the connection.' });
   });
 
   it('takes 200 characters and refuses 201', () => {

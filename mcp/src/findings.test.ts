@@ -247,13 +247,13 @@ const REPLAYS: Replay[] = [
     ]),
   },
   {
-    title: 'EC "An enum rule with every value": a condition no applicant can meet',
+    title: 'EC "An enum rule with every value": a condition no citizen can meet',
     variant: standard([
       on(1, MDL_NATIONALITY, { operator: 'includes_none_of', values: EVERY_COUNTRY }),
     ]),
   },
   {
-    title: 'EC "An enum rule with every value": every applicant meets the variant',
+    title: 'EC "An enum rule with every value": every citizen meets the variant',
     variant: standard([
       on(1, MDL_NATIONALITY, { operator: 'includes_one_of', values: EVERY_COUNTRY }),
     ]),
@@ -293,7 +293,7 @@ const REPLAYS: Replay[] = [
     ]),
   },
   {
-    title: 'US2-AS5: an OR group that every applicant meets',
+    title: 'US2-AS5: an OR group that every citizen meets',
     variant: standard([group(1, [ageAbove(1, 18), ageBelow(2, 21)], 'or'), classesOneOf(3, 'B')]),
   },
   {
@@ -316,7 +316,7 @@ const REPLAYS: Replay[] = [
     context: ORACLE_CONTEXT,
   },
   {
-    title: 'EC-20: a variant no applicant can meet, with a duplicate',
+    title: 'EC-20: a variant no citizen can meet, with a duplicate',
     variant: standard(DUPLICATED?.items ?? []),
   },
   {
@@ -462,26 +462,26 @@ describe('variantCheckOf', () => {
       rules_checked: 2,
       notice: {
         kind: 'none_can_meet',
-        text: 'No applicant can meet the rules of Standard.',
+        text: 'No citizen can meet the rules of Standard.',
         at_the_moment: false,
-        resolution: 'Loosen or delete one of the rules that no applicant can meet together.',
+        resolution: 'Loosen or delete one of the rules that no citizen can meet together.',
       },
       findings: [
         {
           item: ref(1),
           kind: 'conflicting',
           involves: [ref(2)],
-          why: 'Can’t be met together with Rule 02.',
+          why: 'Contradicts Rule 02.',
           at_the_moment: false,
-          resolution: 'Change or delete one of Rule 01 and Rule 02; they can’t be met together.',
+          resolution: 'Change or delete one of Rule 01 and Rule 02; they contradict each other.',
         },
         {
           item: ref(2),
           kind: 'conflicting',
           involves: [ref(1)],
-          why: 'Can’t be met together with Rule 01.',
+          why: 'Contradicts Rule 01.',
           at_the_moment: false,
-          resolution: 'Change or delete one of Rule 01 and Rule 02; they can’t be met together.',
+          resolution: 'Change or delete one of Rule 01 and Rule 02; they contradict each other.',
         },
       ],
       not_covered: [],
@@ -497,7 +497,7 @@ describe('variantCheckOf', () => {
       item: { id: 'group-1', type: 'group', name: 'Group 01' },
       kind: 'conflicting',
       involves: [{ id: 'rule-1' }, { id: 'rule-2' }],
-      why: 'Rule 01 and Rule 02 in this group can’t be met together.',
+      why: 'Rule 01 and Rule 02 in this group contradict each other.',
     });
   });
 
@@ -505,27 +505,27 @@ describe('variantCheckOf', () => {
     const { answer } = replay(replayTitled('EC-7:'));
     expect(answer.notice).toEqual({
       kind: 'none_can_meet',
-      text: 'Right now, no applicant can meet the rules of Standard.',
+      text: 'Right now, no citizen can meet the rules of Standard.',
       at_the_moment: true,
       resolution:
-        'Loosen or delete one of the rules that no applicant can meet together at the moment.',
+        'Loosen or delete one of the rules that no citizen can meet together at the moment.',
     });
     expect(answer.findings.map((finding) => finding.at_the_moment)).toEqual([true, true]);
   });
 
-  it('gives a variant that every applicant meets its notice and resolution', () => {
-    const { answer } = replay(replayTitled('EC "An enum rule with every value": every applicant'));
+  it('gives a variant that every citizen meets its notice and resolution', () => {
+    const { answer } = replay(replayTitled('EC "An enum rule with every value": every citizen'));
     expect(answer.notice).toEqual({
       kind: 'all_meet',
-      text: 'Every applicant meets the rules of Standard.',
+      text: 'Every citizen meets the rules of Standard.',
       at_the_moment: false,
-      resolution: 'Add a rule or make one stricter; as it is, the variant accepts every applicant.',
+      resolution: 'Add a rule or make one stricter; as it is, the variant accepts every citizen.',
     });
     expect(answer.findings).toEqual([
       expect.objectContaining({
         kind: 'always_met',
         involves: [],
-        why: 'Every applicant meets this rule.',
+        why: 'Every citizen meets this rule.',
         resolution: 'Rule 01’s condition is always met; delete it or make it stricter.',
       }),
     ]);

@@ -213,7 +213,7 @@ export function negate(formula: Formula): Formula {
  * leaves out `true` and is `false` with a `false`, OR leaves out `false` and is `true` with a
  * `true`. A level left with one formula is that formula, and one left with none is its unit:
  * `true` for AND and `false` for OR. So the result is `true`, `false`, or a formula without
- * either, which every applicant meets or none does exactly when the given one is. Literals stay
+ * either, which every citizen meets or none does exactly when the given one is. Literals stay
  * as they are, and nothing else is merged. Linear in the size of the formula
  */
 export function simplify(formula: Formula): Formula {

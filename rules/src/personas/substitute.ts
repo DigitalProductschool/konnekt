@@ -43,7 +43,7 @@ export interface Substitution {
    * (hidden ones too). `{}` for a free slot, whose formulas stay as they are
    */
   fixed: Readonly<Record<string, PersonaValue>>;
-  /** The persona fields, for the evaluator's applicant (`applicantOf()`) */
+  /** The persona fields, for the evaluator's citizen (`applicantOf()`) */
   fields: readonly PersonaField[];
   /** The requested documents and the value sets, for the evaluator */
   context: RuleContext;

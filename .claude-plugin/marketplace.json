@@ -7,7 +7,7 @@
     {
       "name": "connection-portal",
       "source": "./mcp/plugin",
-      "description": "The Connection Portal's MCP server and its skills for agents."
+      "description": "Konnekt's MCP server and its skills for agents."
     }
   ]
 }
