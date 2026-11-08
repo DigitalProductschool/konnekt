@@ -1,23 +1,50 @@
-import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
+import { type FocusEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 import expandIcon from '../../assets/icons/picker-expand.svg';
 import expandOpenIcon from '../../assets/icons/picker-expand-open.svg';
+import {
+  MENU_MAX_HEIGHT_CLASSES,
+  type MenuPlacement,
+  placementFrom,
+  popupWrapperClass,
+} from '../../utils/popupPlacement';
 import MenuSearchField from '../MenuSearchField';
-import { MENU_WIDTH, SEARCH_THRESHOLD } from './constants';
+import {
+  SEARCH_THRESHOLD,
+  VALUES_FIELD_MENU_PLACEMENTS,
+  VALUES_FULL_WRAPPERS,
+  VALUES_MENU_DRAWN_HEIGHT,
+  VALUES_MENU_PLACEMENTS,
+  VALUES_MENU_WIDTH,
+  VALUES_PICKER_DONE,
+} from './constants';
 import type { ValuesPickerProps } from './types';
-import { chosenValueLabels, matchesSearch } from './utils';
+import { chosenValueLabels, matchesSearch, valuesMenuHeight } from './utils';
 import ValueOptionItem from './ValueOptionItem';
 
+// Where a menu opened by its caller (not by its field) is placed: below, at the field's left
+const DEFAULT_PLACEMENT: MenuPlacement = { side: 'start', direction: 'down', maxHeight: 480 };
+
+// A form field's menu opens below it in the card that scrolls it (the test step's data card,
+// which the menu may extend), its list scrolling inside the 400px step (the baseline's 280px list)
+const FIELD_PLACEMENT: MenuPlacement = { side: 'start', direction: 'down', maxHeight: 400 };
+
 /**
- * Figma "Rules/Multi-select field" and "Rules/Multi-select menu" (U24 6191:42191, 6191:42209):
- * the values of an enum condition, any number of them (F8), shown as chips. Also the persona
- * fields that hold several values (specs/004-rule-test-personas T044; `field`). The menu lists the
- * value set with checkboxes; long sets get "Search options", the licence classes "Search
- * classes" and rows with code and description (F32). The chips show the codes only. Escape
- * closes the menu; leaving it with the keyboard or the pointer closes it too. The button is a
- * disclosure (expanded or not), since the menu holds checkboxes, not a list box. Below 768px, the
- * chips wrap instead of being cut off, and the menu hangs from the rule editor's content edge, as
- * ChoiceMenu's does.
+ * Figma "Rules/Multi-select field" and the values menu (U48 6191:42191, 6191:42209; U32
+ * 6357:43382): the values of an enum condition, any number of them (F8), shown as chips. Also the
+ * persona fields that hold several values (specs/004-rule-test-personas T044; `field`). The menu
+ * lists the value set with checkboxes; long sets get "Search options", the licence classes
+ * "Search classes" and rows with code and description (W19). The chips show the codes only.
+ * "Done" closes the menu and keeps the choice (FR-039), as Escape does, and both give the focus
+ * back to the field; leaving the menu with the keyboard or pressing outside it closes it too. The button is a
+ * disclosure (expanded or not), since the menu holds checkboxes, not a list box. The menu is
+ * placed from its field with class sets (utils/popupPlacement.ts, research R10): below it where
+ * its drawn height fits above the footer, else above it, at the field's left edge, else its
+ * right, else across the rule editor; its list scrolls inside the max-height step that fits,
+ * while the search field, the footer and "Done" stay put (design-notes §3 "Menu"). A form
+ * field's menu spans the field below it, in the card that scrolls it. Nothing in
+ * the frame clips, so the search field's 4px keyboard ring shows in the 8px padding. Below 768px
+ * the chips wrap instead of being cut off.
  */
 export default function ValuesPicker({
   idBase,
@@ -34,6 +61,8 @@ export default function ValuesPicker({
   onSearch,
   onChange,
 }: ValuesPickerProps) {
+  // Where the menu opens, measured when the field opens it
+  const [measured, setMeasured] = useState<MenuPlacement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const triggerId = `${idBase}-values`;
@@ -47,19 +76,23 @@ export default function ValuesPicker({
       )
     : choices;
   const chips = chosenValueLabels(values, choices);
+  const footer = shown.length ? copy.footer : copy.noMatch(search.trim());
+  const placement = open ? (measured ?? DEFAULT_PLACEMENT) : null;
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    if (searchable) {
-      document.getElementById(searchId)?.focus();
-    } else {
-      listRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-    }
     if (field) {
       // In a scrolling card, bring the field to the top, so that as much of its menu as fits shows
       containerRef.current?.scrollIntoView({ block: 'start' });
+    }
+    if (searchable) {
+      document.getElementById(searchId)?.focus({ preventScroll: true });
+    } else {
+      listRef.current
+        ?.querySelector<HTMLInputElement>('input:not(:disabled)')
+        ?.focus({ preventScroll: true });
     }
     function closeOnOutsidePointer(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
@@ -72,6 +105,27 @@ export default function ValuesPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  function openMenu() {
+    const height = valuesMenuHeight(choices.length, classes, searchable, copy.footer !== null);
+    setMeasured(
+      field
+        ? FIELD_PLACEMENT
+        : placementFrom(
+            containerRef.current,
+            VALUES_MENU_WIDTH,
+            'start',
+            0,
+            Math.min(height, VALUES_MENU_DRAWN_HEIGHT)
+          )
+    );
+    onOpenChange(true);
+  }
+
+  function close() {
+    onOpenChange(false);
+    document.getElementById(triggerId)?.focus();
+  }
+
   function toggle(value: string | number) {
     onChange(
       values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value]
@@ -79,7 +133,9 @@ export default function ValuesPicker({
   }
 
   function moveFocus(from: EventTarget, step: 1 | -1) {
-    const inputs = Array.from(listRef.current?.querySelectorAll<HTMLInputElement>('input') ?? []);
+    const inputs = Array.from(
+      listRef.current?.querySelectorAll<HTMLInputElement>('input:not(:disabled)') ?? []
+    );
     const index = inputs.indexOf(from as HTMLInputElement);
     const next = inputs[index + step];
     if (next) {
@@ -90,19 +146,25 @@ export default function ValuesPicker({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (event.currentTarget.id === searchId) {
-        if (event.key === 'ArrowDown') {
-          listRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-        }
-        return;
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
+    event.preventDefault();
+    if (event.currentTarget.id === searchId) {
+      if (event.key === 'ArrowDown') {
+        listRef.current?.querySelector<HTMLInputElement>('input:not(:disabled)')?.focus();
       }
-      moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1);
-    } else if (event.key === 'Escape') {
+      return;
+    }
+    moveFocus(event.currentTarget, event.key === 'ArrowDown' ? 1 : -1);
+  }
+
+  // Escape anywhere in the menu, "Done" included
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
       event.preventDefault();
-      onOpenChange(false);
-      document.getElementById(triggerId)?.focus();
+      event.stopPropagation();
+      close();
     }
   }
 
@@ -128,23 +190,28 @@ export default function ValuesPicker({
   const triggerLook = field
     ? `rounded-kern-small focus-visible:outline-kern-action-focus-default min-h-48 w-full cursor-pointer items-center justify-between gap-8 px-16 py-4 focus-visible:outline-4 focus-visible:outline-offset-0 ${fieldLook}`
     : `rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 max-md:h-auto max-md:min-h-40 max-md:py-7 ${border}`;
-  const menuLook = field
-    ? 'left-0 w-full'
-    : `left-0 max-w-[calc(100vw-32px)] max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${MENU_WIDTH}`;
+  const wrapperLook = field
+    ? 'relative w-full'
+    : placement?.side === 'full'
+      ? VALUES_FULL_WRAPPERS[placement.direction]
+      : popupWrapperClass(placement?.side ?? null);
+  const menuLook = placement
+    ? `${MENU_MAX_HEIGHT_CLASSES[placement.maxHeight]} ${
+        field
+          ? VALUES_FIELD_MENU_PLACEMENTS[placement.direction]
+          : VALUES_MENU_PLACEMENTS[placement.side][placement.direction]
+      }`
+    : '';
 
   return (
-    <div
-      ref={containerRef}
-      className={field ? 'relative w-full' : 'relative max-md:static'}
-      onBlur={handleBlur}
-    >
+    <div ref={containerRef} className={wrapperLook} onBlur={handleBlur}>
       <button
         id={triggerId}
         type="button"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-describedby={describedBy}
-        onClick={() => onOpenChange(!open)}
+        onClick={() => (open ? onOpenChange(false) : openMenu())}
         className={`flex text-left ${triggerLook}`}
       >
         <span className="sr-only">{copy.menu}: </span>
@@ -174,7 +241,8 @@ export default function ValuesPicker({
       {open && (
         <div
           id={menuId}
-          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full z-20 mt-4 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${menuLook}`}
+          onKeyDown={handleMenuKeyDown}
+          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${menuLook}`}
         >
           {searchable && (
             <MenuSearchField
@@ -190,7 +258,7 @@ export default function ValuesPicker({
             ref={listRef}
             id={`${menuId}-list`}
             aria-label={copy.menu}
-            className={`flex max-h-280 flex-col overflow-y-auto ${classes ? 'gap-2' : 'p-4'}`}
+            className={`flex min-h-0 flex-col overflow-y-auto ${classes ? 'gap-2' : 'p-4'} ${shown.length ? '' : 'hidden'}`}
           >
             {shown.map((choice) => (
               <ValueOptionItem
@@ -204,7 +272,7 @@ export default function ValuesPicker({
               />
             ))}
           </ul>
-          {(copy.footer !== null || shown.length === 0) && (
+          {footer !== null && (
             <>
               <div
                 aria-hidden="true"
@@ -212,12 +280,18 @@ export default function ValuesPicker({
               />
               <p
                 aria-live="polite"
-                className="text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)"
+                className="text-kern-static-small text-kern-layout-text-muted shrink-0 pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)"
               >
-                {shown.length ? copy.footer : copy.noMatch(search.trim())}
+                {footer}
               </p>
             </>
           )}
+          {/* Figma "Actions" (U32 6357:43428): "Done" at the right end */}
+          <div className="flex shrink-0 justify-end">
+            <button type="button" className="kern-btn kern-btn--secondary" onClick={close}>
+              <span className="kern-label">{VALUES_PICKER_DONE}</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -14,12 +14,17 @@ export interface LocalDraftsOfferProps {
 
 export interface LocalDraftItemProps {
   record: LocalDraftRecord;
-  /** "Resume", which the offer focuses after the item above it was discarded */
+  /**
+   * The only draft (FR-029d): the banner's heading names it, so the item shows only its buttons
+   * in the heading's row, its name and line kept for screen readers
+   */
+  only: boolean;
+  /** "Resume editing", which the offer focuses after the item above it was discarded */
   resumeRef: Ref<HTMLAnchorElement>;
   onDiscard: (record: LocalDraftRecord) => void;
 }
 
-/** Where the focus goes after a discard: the next item's "Resume", or the section's heading */
+/** Where the focus goes after a discard: the next item's "Resume editing", or the heading */
 export type DiscardFocus = { kind: 'resume'; flowKey: string } | { kind: 'heading' };
 
 export interface DiscardState {

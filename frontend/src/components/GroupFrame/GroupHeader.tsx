@@ -1,13 +1,16 @@
 import BranchMark from '../BranchMark';
 import { INACTIVE_OPACITY } from '../BranchMark/constants';
-import { GROUP_FRAME_COPY } from './constants';
+import { GROUP_FRAME_COPY, GROUP_HEADER_DIVIDERS } from './constants';
 import type { GroupHeaderProps } from './types';
 
 /**
- * Figma "Rules/Group header" (U14 6094:6413; sub-group 6094:6320): the name in the action
- * colour, title/default for a group and title/small for a sub-group, how its members combine,
- * its variant mark (FR-023) and the ⋯ slot. On the details, the identifier follows the name
- * (W1). Removed, or dissolved in its variant, its text fades and its name is struck through.
+ * Figma "Rules/Group header" (6082:3513; U34 6094:6413, sub-group 6094:6320) in the frame's
+ * "Header": 24px in, 16px from the right, 8px above the 1px `decorative-border` divider. The name
+ * in the action colour, `title/default` (18/24) for a group and `title/small` (16/24) for a
+ * sub-group, over its subtitle in `body/small` muted, which says how its members combine; then
+ * its variant mark and the ⋯ slot, 8px apart (FR-023). On the details, the identifier follows
+ * the name (W1). Removed, dissolved or inside a removed group, the name and subtitle fade to 40%
+ * and the name is struck through, while the mark and the ⋯ keep their colour (U47 6185:41167).
  * Given an `id`, it can take the focus from script, described by the group's note: the findings
  * banner's name links move the focus to it (spec 003, W19).
  */
@@ -22,16 +25,18 @@ export default function GroupHeader({
   actions,
   mark = null,
   inactive = false,
+  faded = false,
 }: GroupHeaderProps) {
   const nameSize = subGroup
     ? 'text-kern-static-medium leading-(--kern-typography-line-height-medium-static)'
     : 'text-kern-adaptive-medium leading-(--kern-typography-line-height-medium-adaptive)';
+  const divider = faded ? GROUP_HEADER_DIVIDERS.faded : GROUP_HEADER_DIVIDERS.default;
   return (
     <div
       id={id}
       tabIndex={id ? -1 : undefined}
       aria-describedby={describedBy}
-      className="focus-visible:outline-kern-action-focus-default flex items-center gap-8 border-b border-(--kern-color-decorative-border-default) pr-16 pb-8 pl-24 focus-visible:outline-4 focus-visible:outline-offset-2"
+      className={`${divider} focus-visible:outline-kern-action-focus-default flex items-center gap-8 border-b pr-16 pb-8 pl-24 focus-visible:outline-4 focus-visible:outline-offset-2`}
     >
       <div className={`flex min-w-0 flex-1 flex-col ${inactive ? INACTIVE_OPACITY : ''}`}>
         {nameSlot ?? (

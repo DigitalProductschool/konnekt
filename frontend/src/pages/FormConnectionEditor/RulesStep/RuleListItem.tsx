@@ -95,7 +95,7 @@ export default function RuleListItem({
               }
               onDuplicate={() => view.onDuplicateRule(rule.id)}
               onCopy={() => {
-                setCopyPlacement(placementFrom(actionsRef.current, COPY_POPOVER_WIDTH, 'end'));
+                setCopyPlacement(placementFrom(actionsRef.current, COPY_POPOVER_WIDTH, 'end').side);
                 view.onCopyRule(rule.id);
               }}
               onGroup={() => view.onStartSelect(rule.id)}

@@ -16,7 +16,7 @@ export interface RuleRowProps {
   context: RuleContext;
   /** Replaces the name while it is renamed inline (U15) */
   nameSlot?: ReactNode;
-  /** Shows the rule's identifier, read-only, next to its name: on the details only (W1) */
+  /** Shows the rule's identifier ("rule-7"), read-only, next to its name: on the details only (F35) */
   showIdentifier?: boolean;
   /**
    * An inline problem, such as "Rule 02 in Standard checks data that’s no longer requested." The
@@ -33,13 +33,22 @@ export interface RuleRowProps {
   actions?: ReactNode;
   /** How a based variant's rule differs from Standard's (FR-023); none elsewhere */
   mark?: Mark | null;
-  /** In a removed or dissolved group, which fades its members already: no fading of its own */
+  /**
+   * In a removed or dissolved group: the content fades to 40 % and is struck through as a
+   * removed rule's is, the mark keeps its colour (F36); the group fades no box around its
+   * members (T025)
+   */
   faded?: boolean;
+  /**
+   * The rule's checkbox in select mode (U36 6344:53557), placed before the row; the selected row
+   * itself looks unchanged
+   */
+  selectBox?: ReactNode;
 }
 
 export interface RuleNameProps {
   name: string;
-  /** The identifier to show next to the name, if any (W1) */
+  /** The identifier to show next to the name, if any (F35) */
   identifier?: string;
 }
 

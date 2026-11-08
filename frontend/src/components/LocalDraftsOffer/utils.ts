@@ -1,18 +1,33 @@
+import { displayNameOf } from '../../utils/localDrafts/content';
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
 import { CHANGED_AT_FORMAT, LOCAL_DRAFTS_COPY } from './constants';
 import type { DiscardAction, DiscardFocus, DiscardState } from './types';
 
-/** "4 Nov 2026, 14:32": the record's last change, in the browser's time zone */
+/** "06.11.2026, 14:20": the record's last change, in the browser's time zone (cosmetic 3) */
 export function formatChangedAt(iso: string): string {
   return CHANGED_AT_FORMAT.format(new Date(iso));
 }
 
-/** "New connection · Last change …", or "Draft · Last change …" for a stored draft */
+/** "New, never saved · …", or "Edited · …" for a stored draft's local changes (FR-029) */
 export function metaLineOf(record: LocalDraftRecord): string {
   const date = formatChangedAt(record.changedAt);
   return record.draftId === null
-    ? LOCAL_DRAFTS_COPY.localNew(date)
-    : LOCAL_DRAFTS_COPY.localDraft(date);
+    ? LOCAL_DRAFTS_COPY.neverSaved(date)
+    : LOCAL_DRAFTS_COPY.edited(date);
+}
+
+/** The banner's heading: the one draft's name (FR-029d), or the count */
+export function titleOf(drafts: LocalDraftRecord[]): string {
+  return drafts.length === 1
+    ? LOCAL_DRAFTS_COPY.titleOne(displayNameOf(drafts[0].content))
+    : LOCAL_DRAFTS_COPY.titleSeveral(drafts.length);
+}
+
+/** The banner's sub-line: with the one draft's date, which no item line shows */
+export function textOf(drafts: LocalDraftRecord[]): string {
+  return drafts.length === 1
+    ? LOCAL_DRAFTS_COPY.textOne(formatChangedAt(drafts[0].changedAt))
+    : LOCAL_DRAFTS_COPY.textSeveral;
 }
 
 /** The dialog's text: for a stored draft, it adds that the saved draft stays */

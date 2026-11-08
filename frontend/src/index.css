@@ -114,7 +114,7 @@
   --text-step--line-height: 16px;
 
   /*
-   * The variant marks "Changed here" and "New addition" (Figma "Variant status" on U57
+   * The variant marks "Changed here" and "Added here" (Figma "Variant status" on U57
    * 6522:32682 and U58 6522:32977), which KERN has no semantic colours for: the design draws
    * both in the same purple (cosmetic 22), the text and the tint of the marked rule or group
    */
@@ -164,6 +164,15 @@
   outline: none !important;
 }
 
+/*
+ * KERN's primary button keeps its hover shade while pressed: its :hover rule (0,3,0) outranks
+ * :active (0,2,0). The kit draws the pressed state (P09 2:4584) on top of the hover one: design-
+ * notes §2 `CopyableUrl` (T028), for every primary button
+ */
+.kern-btn--primary:not(:disabled):not([aria-disabled='true']):active {
+  background: var(--kern-color-action-state-indicator-shade-active);
+}
+
 /* The same for KERN's checkboxes, which also draw their ring on any :focus */
 .kern-form-check__checkbox:focus:not(:focus-visible) {
   outline: none;
@@ -186,15 +195,151 @@
 }
 
 /*
- * KERN has no indeterminate checkbox, which "All data" needs when only some fields are
- * selected: a dash in the colour and stroke width of KERN's own check mark.
+ * Checkbox: design-notes §2, option b (T016). KERN's checkbox markup with the design's
+ * "Data/Check item" (Figma V5 6027:17252, build note 2): a 20px box, radius 4, 8px to a 14/24
+ * label, 4px above and below the row. Unchecked: white with a 1px border, hover a 2px
+ * action-blue border on the tint. Checked: the action-blue fill with the design's white tick
+ * (icon-done-small); mixed: a white 10 × 2 dash; hover on either: a 3px tint ring. Keyboard
+ * focus: a 3px ring in the focus colour around the box only (the rule above hides it for
+ * pointer focus). Disabled: KERN's 40 % on the box and the label. Build note 2 forbids KERN's
+ * ::before tick (drawn in ink for a 32px box), so it is switched off and the tick and the dash
+ * are background images. kern.css drops the border on :focus; these rules put it back, at equal
+ * or higher specificity and later in the cascade.
  */
-.kern-form-check__checkbox:indeterminate::before {
-  display: block;
-  width: var(--kern-metric-space-default);
-  height: var(--kern-metric-border-width-default);
-  margin: 13px auto 0;
-  background-color: var(--kern-color-form-input-border-contextual);
+.kern-form-check:has(> .kern-form-check__checkbox) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kern-metric-space-small);
+  padding: var(--kern-metric-space-x-small) 0;
+}
+
+.kern-form-check__checkbox ~ .kern-label {
+  padding: 0;
+  font-size: var(--kern-typography-font-size-small-static);
+  font-weight: var(--kern-typography-font-weight-body-default);
+  line-height: var(--kern-typography-line-height-medium-static);
+  cursor: pointer;
+}
+
+.kern-form-check__checkbox,
+.kern-form-check__checkbox:hover,
+.kern-form-check__checkbox:focus,
+.kern-form-check__checkbox:focus-visible {
+  flex: none;
+  /* Centred on the label's first 24px line, also when the label wraps */
+  margin: var(--kern-metric-space-2x-small) 0 0;
+  width: var(--kern-metric-dimension-small);
+  height: var(--kern-metric-dimension-small);
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-layout-border);
+  border-radius: var(--kern-metric-border-radius-small);
+  background: var(--kern-color-layout-background-default) center / 100% 100% no-repeat;
+  cursor: pointer;
+}
+
+.kern-form-check__checkbox::before,
+.kern-form-check__checkbox:checked::before {
+  content: none;
+}
+
+.kern-form-check__checkbox:checked {
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-default);
+  background-image: url('./assets/icons/check-white-small.svg');
+}
+
+.kern-form-check__checkbox:indeterminate {
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-default);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect x='5' y='9' width='10' height='2' rx='1' fill='white'/%3E%3C/svg%3E");
+}
+
+.kern-form-check__checkbox:not(:checked, :indeterminate, :disabled):hover {
+  border: var(--kern-metric-border-width-default) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-state-indicator-tint-contextual);
+}
+
+.kern-form-check__checkbox:is(:checked, :indeterminate):not(:disabled):hover {
+  box-shadow: 0 0 0 var(--kern-3) var(--kern-color-action-state-indicator-tint-contextual);
+}
+
+.kern-form-check__checkbox:focus-visible,
+.kern-form-check__checkbox:checked:focus-visible {
+  outline: var(--kern-3) solid var(--kern-color-action-focus-default-contextual);
+  outline-offset: 0;
+}
+
+.kern-form-check__checkbox:disabled {
+  cursor: default;
+}
+
+/*
+ * Alert: design-notes §2 `ErrorNoticeText` / `FormConnectionLoadState`, option a + b (T017,
+ * coordinator). KERN 2.8.2 draws the alert's 2px border as an outline outside the box, so a
+ * title-only alert shows 68px tall; the kit (P07 1:4097, U02 note 7) strokes inside its 64px.
+ * The outlines move inside: the alert's by its 2px, the body's dividing line by its 1px, with the
+ * body's lower corners rounded like the alert so its side and bottom lines stay under the
+ * alert's own (same colour). Outlines take no space, so the layout doesn't change.
+ */
+.kern-alert {
+  outline-offset: calc(-1 * var(--kern-metric-border-width-default));
+}
+
+.kern-alert .kern-alert__body {
+  outline-offset: calc(-1 * var(--kern-metric-border-width-light));
+  border-radius: 0 0 var(--kern-metric-border-radius-default)
+    var(--kern-metric-border-radius-default);
+}
+
+/*
+ * Loader, 56 px: design-notes §2 `FeedbackLoader`, `PageLoader`, option a + b (T018). KERN's
+ * loader (`kern-loader`, 96 px, the kit's P22) at the size every screen draws it, the V5
+ * component "Loader/Spinner 56" (Figma U10 6401:28662, U78 6387:65280): a 4px ring of radius
+ * 24 (outer 52, 2px inside the 56px box) in the decorative border colour, a quarter arc in the
+ * action blue with round caps, one turn per second. KERN's ::before and ::after, its arc's ends,
+ * become the round caps: 4px dots centred on the ring at the arc's ends (24 × cos 45° from the
+ * centre). The arc sits in the top right quarter as drawn (KERN's left arc turned by 135°), which
+ * is where it stays under reduced motion (.motion stops the turn). In forced colours, KERN's.
+ */
+.kern-loader.kern-loader--56 {
+  width: calc(var(--kern-metric-dimension-2x-large) - 2 * var(--kern-metric-space-2x-small));
+  height: calc(var(--kern-metric-dimension-2x-large) - 2 * var(--kern-metric-space-2x-small));
+  margin: var(--kern-metric-space-2x-small);
+  border-width: var(--kern-metric-border-width-bold);
+  border-color: var(--kern-color-decorative-border-contextual);
+  border-left-color: var(--kern-color-action-default-contextual);
+  rotate: 135deg;
+  animation-duration: 1s;
+}
+
+.kern-loader.kern-loader--56::before,
+.kern-loader.kern-loader--56::after {
+  width: var(--kern-metric-border-width-bold);
+  height: var(--kern-metric-border-width-bold);
+  border-radius: var(--kern-metric-border-radius-circle);
+  left: var(--kern-3);
+  background: var(--kern-color-action-default-contextual);
+  transform: none;
+}
+
+.kern-loader.kern-loader--56::before {
+  top: var(--kern-3);
+}
+
+.kern-loader.kern-loader--56::after {
+  bottom: var(--kern-3);
+}
+
+@media (forced-colors: active) {
+  .kern-loader.kern-loader--56 {
+    border-color: var(--kern-color-layout-background-default)
+      var(--kern-color-layout-background-default) var(--kern-color-layout-background-default)
+      var(--kern-color-layout-background-inverted);
+  }
+
+  .kern-loader.kern-loader--56::before,
+  .kern-loader.kern-loader--56::after {
+    background: var(--kern-color-layout-background-inverted);
+  }
 }
 
 /*

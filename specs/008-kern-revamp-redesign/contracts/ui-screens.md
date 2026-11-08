@@ -342,8 +342,8 @@ and has one `h1`.
   variant" dialog, Delete, "Copy link"; F28, F10); the variant dialog ("Variant name",
   "Description (optional)" textarea, "Start with" preselecting "Linked to Standard
   (recommended)", FR-052h; the duplicate error "There's already a variant called "Ambulance"."
-  next to the field, W18, C5); the marks "Changed here", "New addition", "Removed" with their
-  texts, "Linked to Standard", the link strip with "2 of 3 Standard rules are removed here."
+  next to the field, W18, C5); the marks "Changed here", "Added here", "Removed here" with their
+  texts (report cosmetic 8; T019 2026-11-08), "Linked to Standard", the link strip with "2 of 3 Standard rules are removed here."
   (FR-051 (38)), faded connectors (FR-051 (39)); the copy-to-variant popover with its help text
   and the based variants included (W17, FR-040); "Reset to Standard", "Remove from <variant>",
   "Restore …" (cosmetic 8); after deleting a variant, the tab to the left opens and the toast

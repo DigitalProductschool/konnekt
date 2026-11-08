@@ -1,5 +1,37 @@
-import type { TabFindings } from '@connection-portal/rules/checks/types';
-import type { ReactNode } from 'react';
+import type { FindingTone } from '@connection-portal/rules/checks/types';
+import type { KeyboardEvent, ReactNode } from 'react';
+
+/**
+ * The icon after a variant's name by severity (build note 26, U06 6760:48852; FR-041): the
+ * findings' tones of spec 003 (`warning` for a contradiction, `info` for duplicates or an
+ * always-met item only), and `error` for a spec 002 problem, such as a rule that checks data
+ * that's no longer requested (U50 7375:101551)
+ */
+export type BranchIconKind = FindingTone | 'error';
+
+/**
+ * What the icon after a variant's name shows: its kind and the text of its tooltip's segment.
+ * `tabFindingsOf()`'s `TabFindings` is one
+ */
+export interface BranchFindings {
+  /** Its icon */
+  kind: BranchIconKind;
+  /** "1 conflict: Rule 01 and Rule 02 contradict each other, so no citizen …" */
+  text: string;
+}
+
+/** The tab a variant's name is when `BranchName` renders the tab itself */
+export interface BranchTabControl {
+  /** The tab's element id, which its panel's `aria-labelledby` names */
+  id: string;
+  /** The panel the tab controls */
+  panelId: string;
+  /** The open tab: bold and black, with the black indicator, and the one in the tab order */
+  selected: boolean;
+  onSelect: () => void;
+  /** The tab list's keys (arrow keys, Home, End), which the tab row handles */
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+}
 
 export interface BranchNameProps {
   /** The branch's name, as written */
@@ -7,16 +39,46 @@ export interface BranchNameProps {
   /** The branch's description; without one and without findings, no (i) shows */
   description: string | null;
   /**
-   * The branch's findings, from `tabFindingsOf()`: the icon's kind and the tooltip's segment
-   * (spec 003, A6). Only the rules step's tabs pass them; the details never do (S6; FR-020)
+   * The branch's findings, from `tabFindingsOf()`, or its problem: the icon's kind and the
+   * tooltip's segment (FR-041). The rules step's tabs pass them, the test step's tabs only the
+   * "no citizen can meet" finding (F38)
    */
-  findings?: TabFindings | null;
-  /** The element that shows the name, such as a tab; a plain text by default */
+  findings?: BranchFindings | null;
+  /**
+   * Renders the variant tab itself (Figma "Rules/Variant tab · fixes" 6529:39174): the tab
+   * button with the name, the icon, `actions`, and the 2px indicator under the row. Without it,
+   * `children` (or a plain text) show the name
+   */
+  tab?: BranchTabControl;
+  /**
+   * The grey ⓘ shows without a description too, its tooltip reading "No findings." (FR-041b):
+   * the rules step's variant tabs other than Standard, whose ⓘ shows only with a description
+   * (FR-035c)
+   */
+  noFindingsInfo?: boolean;
+  /** Controls after the icon in the tab's label row, such as the active tab's ⋯ (F28) */
+  actions?: ReactNode;
+  /** The element that shows the name, such as a heading; a plain text by default */
   children?: ReactNode;
 }
 
 export interface FindingsSegmentProps {
-  findings: TabFindings;
+  findings: BranchFindings;
   /** Whether a description is above it, which the divider separates it from */
   divided: boolean;
 }
+
+export interface BranchIconProps {
+  /** The branch's name, trimmed, for the icon's accessible name */
+  label: string;
+  /** The description, trimmed; empty when there is none */
+  description: string;
+  findings?: BranchFindings | null;
+  noFindingsInfo?: boolean;
+}
+
+export type BranchTabButtonProps = BranchTabControl & {
+  name: string;
+  /** The tab's accessible name when it differs from the name: "Ambulance has findings" (W13) */
+  label?: string;
+};
