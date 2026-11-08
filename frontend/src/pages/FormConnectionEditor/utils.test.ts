@@ -36,6 +36,7 @@ import {
   findingLinesOf,
   firstBranchWithFindings,
   firstInvalidElementId,
+  headerTitleOf,
   initialEditorState,
   initialStatesFromDraft,
   initialStatesFromLocal,
@@ -477,7 +478,8 @@ describe('removing data that rules check (FR-029, F18)', () => {
     });
     expect(removed).toEqual(editorReducer(state, removalAction(DOCUMENT)));
     expect(removed.documents.map((document) => document.document_type)).toEqual(['pid']);
-    expect(removed.toast?.message).toBe('Driving licence removed');
+    // The design's wording (FR-002, U24 #27 "Driving licence removed."; spec 008 T052)
+    expect(removed.toast?.message).toBe('Driving licence removed.');
 
     const cleared = editorReducer(editorReducer(state, { type: 'askRemoval', removal: ALL }), {
       type: 'confirmRemoval',
@@ -1355,6 +1357,43 @@ describe('startOfOrigin (data-model.md section 6)', () => {
     const start = startOfOrigin({ origin: { kind: 'new', flowKey: NEW_KEY } });
     expect(start.baseline).toEqual(emptyContent(start.initialStates.rules.branches[0].key));
     expect(start.initialStates.editor.step).toBe('connection');
+  });
+});
+
+describe('step 1 and the header (S7; T049, U19, U98)', () => {
+  const STEP_1 = {
+    title: 'Name your connection',
+    hint: 'Link a service to the EUDI Wallet so citizens can share verified data.',
+  };
+
+  it('titles step 1 as U19 draws it, also for the first connection (U18 6793:47711)', () => {
+    expect(pageTitleOf('connection', 'create')).toEqual(STEP_1);
+    expect(pageTitleOf('connection', 'first')).toEqual(STEP_1);
+  });
+
+  it('titles the edit flow’s step 1 "Connection details" (U98, build note U05 #27)', () => {
+    expect(pageTitleOf('connection', 'edit')).toEqual({
+      title: 'Connection details',
+      hint: 'Rename this connection or update its description.',
+    });
+  });
+
+  it('reads "New connection" on a new connection’s step 1, the name after it (U19 6699:45350)', () => {
+    const named = { ...INITIAL_EDITOR_STATE, name: ' Taxi licence ' };
+    expect(headerTitleOf(INITIAL_EDITOR_STATE)).toBe('New connection');
+    expect(headerTitleOf(named)).toBe('New connection');
+    expect(headerTitleOf({ ...named, step: 'documents' })).toBe('Taxi licence');
+  });
+
+  it('names a stored draft on step 1 too, the adopted header of U19 6716:40925', () => {
+    const named = { ...INITIAL_EDITOR_STATE, name: 'Taxi licence' };
+    expect(headerTitleOf(named, undefined, true)).toBe('Taxi licence');
+    expect(headerTitleOf({ ...named, name: '  ' }, undefined, true)).toBe('New connection');
+  });
+
+  it('names a published connection by the name as typed, or its saved one', () => {
+    expect(headerTitleOf({ ...INITIAL_EDITOR_STATE, name: 'Taxi' }, LOADED)).toBe('Taxi');
+    expect(headerTitleOf(INITIAL_EDITOR_STATE, LOADED)).toBe(LOADED.name);
   });
 });
 

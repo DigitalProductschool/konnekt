@@ -145,6 +145,19 @@ the alpha channel are unchanged. The SVGs are Figma's exports with the tinted fi
 | `icons/expand-more-small.svg` | 20 × 20 | 877 | U11 `6699:44242`, `I6699:44242;7351:52639` "icon-expand_more-small" | `currentColor` (design: `color/action/default`); a KERN Revamp icon that KERN 2.8.2 lacks; same path as the old `expand-more-action-small.svg`, which hard-codes `#1D56F0` |
 | `icons/dot.svg` | 8 × 8 | 228 | U11 `6699:44264` "Status/Connection" (Active), `I6699:44264;7341:101114` "Dot" | `currentColor`: the design tints it per status (Active `#1d7a2e`; Draft and Deactivated in their badge colours) |
 
+Added in phase 6 (T049, T051): frame colours without a KERN token and the glyphs of the documents step:
+
+| value or file | where | note |
+|---|---|---|
+| `#1643c1` | "Add document" filled, pressed and hover (U20 7290:60519) | arbitrary `bg-[#1643c1]` in `DocumentsStep/SearchCard.tsx`: KERN 2.8's `action-state-indicator-shade-active` computes to a lighter blue in light mode; a `@theme` token would be cleaner (T090 or whoever next touches `index.css`) |
+| `#eef3fe` | "Add document" outlined, pressed and hover (U21 7290:61927) | arbitrary `bg-[#eef3fe]` (KERN's tint-hover at 12 % gives `#e4ecfd`) |
+| `#d0d5dd` | the list card's divider (U21 7294:61509) | arbitrary `bg-[#d0d5dd]` in `DocumentsList.tsx` (not `decorative-border-level-1`, `#d0d8e6`) |
+| `icons/personal-id-action.svg`, `personal-id-muted.svg` | "Icon/Glyph" personal-id, tones blue (`#1D56F0`) and grey (`#4A5468`), 24 × 24, from U21 7290:61204 / 7290:62279 (`get_design_context` assets) | the documents step's shown list item and the search card's added rows |
+| `icons/driving-licence-ink-24.svg`, `driving-licence-action.svg`, `driving-licence-muted.svg` | "Icon/Glyph" driving-licence 24 × 24 from U20 7290:60719 (ink), recoloured to `#1D56F0` / `#4A5468` | the old `driving-licence-ink.svg` is 16 px (the rule editor) |
+| `icons/document-action.svg`, `document-muted.svg` | `document-ink.svg` recoloured | the generic document (a type without its own glyph) |
+| `icons/add-link-action.svg` | "Icon/Glyph" add-link 24 × 24, action blue, from U19 `6699:45331` (T049) | the step-1 card header's tile (`IconTile tone="action"`) |
+| `icons/driving-licence-danger.svg`, `personal-id-danger.svg`, `document-danger.svg` | "Icon/Glyph" tone danger (`#C4271C`), the flagged list item (U25 7298:62832) | the `-action` glyphs recoloured; the driving licence one equals the frame's "Doc icon" asset |
+
 Glyphs not exported because KERN 2.8.2 has them (`kern-icon--<name>` in
 `@kern-ux/native/dist/kern.css`):
 
@@ -210,7 +223,7 @@ it (§5).
 | `BranchMark` | the rules frames | c | the marks' chips | changed, new, removed | T006: kept c, the marks have no KERN counterpart (the `kern-badge` types are feedback colours); built by T019. **T019 (2026-11-08): kept c.** Built as the V5 component "Rules/Variant status" (`6118:3681`) draws its three marked types on the screens (U57 `6522:32682`, U58 `6522:32977`, U47 `6185:8555`): a tag with radius 4 (`border-radius-small`), padding 2/8, `label/small` 14/24 600, 28 high; changed and new a white tag (`layout-background-default`) with the purple `#8a22b5` of §1.3 (`--color-variant-changed`, `--color-variant-new`), removed `feedback-default-background` `#eef1f6` with `feedback-default` `#4a5468`. The texts are the screens' (report cosmetic 8, "Figma decides wording"): "Changed here", **"Added here"** (was "New addition"), **"Removed here"** (was "Removed"); the component's description still says "New addition" / "Removed", the screens say otherwise (UNCERTAIN, see the report). The tag is never faded by `BranchMark` itself: U47 `6185:8570` fades only the row's content, the tag keeps its colour; it renders whatever mark it gets, so a changed rule inside a removed group keeps "Changed here" (F36, FR-040). Props unchanged (`mark`), no call site changed; `BRANCH_MARK_TINTS` and `INACTIVE_OPACITY` unchanged |
 | `BranchName` (+ `FindingsSegment`) | P29 tabs (kit: "In Bearbeitung", no tab drawn); V5 "Rules/Variant tab · fixes" `6529:39174` | c | the tab with its ⓘ and problem icon | default, selected, hover, focus, with icon | T006: kept c, KERN 2.8.2 ships no tabs CSS (the React kit’s Tabs needs its own styles, not imported); built by T026. **T026 (2026-11-08): kept c, no `index.css` rule.** Kit P29 `2:47775` draws no tab (its status block says "In Bearbeitung"), so the V5 component "Rules/Variant tab · fixes" (`6529:39174`, "KERN EXTENSION") is the source: the tab `pt-4`, column gap 8; the label row (name, 4, the 20 px icon, 4, the actions) 24 high; the name `body/default` 16/24 400 in `layout-text-muted` #4a5468, selected `label/default` 16/24 600 in `layout-text-default` #0b1220; the 2 px "Indicator" under the row across the tab, #0b1220 while selected; the row's 1 px `decorative-border` line and 24 px gap stay the tab row's (T064). The indicator is an own `span`, so no scoped override is needed. New optional props, old ones unchanged: `tab` (`id`, `panelId`, `selected`, `onSelect`, `onKeyDown`: `BranchName` then renders the tab button itself, one control holding the name only, its accessible name "<variant> has findings" while it has findings, W13), `actions` (the ⋯ slot after the icon, F28), `noFindingsInfo` (the grey ⓘ without a description reads "No findings.", FR-041b; Standard passes none, FR-035c); `findings.kind` gains `error`. The icon by severity (build note 26, U06 6760:48852): grey ⓘ `layout-text-muted` (description or "No findings."), blue ⓘ `feedback-info` (§1.5 AA value) for duplicates / always met only, orange ⚠ `feedback-warning` #9a4a00 for a contradiction (U46 6758:43060, U71 7058:61618), red error diamond `kern-icon--danger` in `feedback-danger` for a spec 002 problem (U50 7375:101551, FR-041a). States the V5 frames don't draw (the kit draws no tab): hover and pressed darken an unselected name to #0b1220, weight kept, 150 ms (`.motion`); keyboard focus KERN's 4 px `action-focus-default` ring, offset 2, none after a click. `FindingsSegment` on the dark bubble (U46 6758:43524): divider `layout-text-inverse` white at 24 %, the kind icon white, its parts 8 apart through the bubble's own gap. Call sites unchanged (they keep the `children` form until T064, T073, T079 switch to `tab`) |
 | `Checkbox` | V5 "Data/Check item" `6027:17252`, build note 2 (P33 base-checkbox is KERN's 32 px box) | b | `kern-form-check__checkbox` + the scoped override in `index.css` headed with this row: the flex row (4 px above and below, 8 px gap), the 20 px box, radius 4, 1 px `layout-border`, the 14/24 label; checked: action-blue fill with `check-white-small.svg` (= the design's icon-done-small) as a background image; mixed: a white 10 × 2 dash (radius 1) as an SVG background; KERN's `::before` tick switched off (`content: none`); hover, keyboard focus (3 px ring), disabled | default, hover, focus, checked, mixed, disabled | T006: kept b, `KernCheckbox` stays, the 20 px box, tick and mixed dash are the override; built by T016. **T016 (2026-11-08): kept b.** The V5 component "Data/Check item" (not the kit's 32 px base-checkbox) is the design's checkbox on every Flow screen (U26, U36; its description: "Built on Revamp tokens because the KERN Revamp base-checkbox is 32 px"); the override replaces the old `:indeterminate::before` rule. The box sits 2 px below the row's top padding (centred on the label's first 24 px line) so that a wrapping label keeps the box on its first line. New optional `disabled` prop |
-| `ConfirmDialog` | P12, P33 dialog-actions | a + b | `kern-dialog` with 1–3 buttons, × and the scrim rule; `.kern-btn--danger` (filled on `--primary`, outline on `--secondary`) | open, long labels, scrollable, working | T006: kept a + c, on `kern-dialog` already; built by T035. **T035 (2026-11-08): a + b.** KERN's `kern-dialog` markup (`__header`, `__body`, `__footer`) with the overlay; utilities on the element: 480 wide (`w-480`, every screen's dialog: U14 `6699:44480`, U17 `7173:52682`, U25 `7299:52174`, U90 `6417:31599`; `wide` gives the kit's 600), centred with 16 px gutters on a narrow screen (`m-auto! min-w-0! max-w-[calc(100%-32px)]!` beat kern.css's bottom sheet below 768 px), radius `border-radius-large` 12 on every corner, the 1 px `layout-border` drawn inside (`border-0! ring-1 ring-inset`) and the footer's top line inside its 24 px (`pt-23!`), so the dialog is the drawn 480 × 256; the scrim `action-state-indicator-shade` #0b1220 at KERN's overlay 72 % (kern.css's own `::backdrop` opacity; only the colour changes, was black). Buttons (P33 dialog-actions): a grid of equal columns from a footer width of 384 px (2 buttons) / 528 px (3), a full-width stack below (container query on the footer), in the order cancel, secondary, confirm; 3 buttons stack in the 480 dialog (the kit's long-label variant), sit in a row in the 600 one; labels wrap inside the buttons. Cancel is secondary, tertiary with three buttons. **Danger buttons (option b, `index.css`)**: `.kern-btn--danger` re-derives `action-default(-contextual)`, the two shades (filled hover/pressed) and the two tints (outline hover/pressed) from the overlay's `feedback-danger` #c4271c on the button; `kern-btn--primary kern-btn--danger` is the filled danger button ("Delete connection"), `kern-btn--secondary kern-btn--danger` the danger outline button ("Discard connection", "Remove 1 document") — no separate `kern-btn--danger-outline` class. Also in `index.css`: the pressed tint of every secondary and tertiary button (KERN's hover rule hid it, as T028 fixed for primary) and the dialog fade (§4) |
+| `ConfirmDialog` | P12, P33 dialog-actions | a + b | `kern-dialog` with 1–3 buttons, × and the scrim rule; `.kern-btn--danger` (filled on `--primary`, outline on `--secondary`) | open, long labels, scrollable, working | T006: kept a + c, on `kern-dialog` already; built by T035. **T035 (2026-11-08): a + b.** KERN's `kern-dialog` markup (`__header`, `__body`, `__footer`) with the overlay; utilities on the element: 480 wide (`w-480`, every screen's dialog: U14 `6699:44480`, U17 `7173:52682`, U25 `7299:52174`, U90 `6417:31599`; `wide` gives the kit's 600), centred with 16 px gutters on a narrow screen (`m-auto! min-w-0! max-w-[calc(100%-32px)]!` beat kern.css's bottom sheet below 768 px), radius `border-radius-large` 12 on every corner, the 1 px `layout-border` drawn inside (`border-0! ring-1 ring-inset`) and the footer's top line inside its 24 px (`pt-23!`), so the dialog is the drawn 480 × 256; the scrim `action-state-indicator-shade` #0b1220 at KERN's overlay 72 % (kern.css's own `::backdrop` opacity; only the colour changes, was black). Buttons (P33 dialog-actions): a grid of equal columns from a footer width of 384 px (2 buttons) / 528 px (3), a full-width stack below (container query on the footer), in the order cancel, secondary, confirm; 3 buttons stack in the 480 dialog (the kit's long-label variant), sit in a row in the 600 one; labels wrap inside the buttons. Cancel is secondary, tertiary with three buttons. **Danger buttons (option b, `index.css`)**: `.kern-btn--danger` re-derives `action-default(-contextual)`, the two shades (filled hover/pressed) and the two tints (outline hover/pressed) from the overlay's `feedback-danger` #c4271c on the button; `kern-btn--primary kern-btn--danger` is the filled danger button ("Delete connection"), `kern-btn--secondary kern-btn--danger` the danger outline button ("Discard connection", "Remove 1 document") — no separate `kern-btn--danger-outline` class. Also in `index.css`: the pressed tint of every secondary and tertiary button (KERN's hover rule hid it, as T028 fixed for primary) and the dialog fade (§4) **T053, 2026-11-08**: third use of the form without cancel ("No data selected in 1 document": `secondaryDanger` "Remove 1 document" + "Choose data", scrim on; ×, Escape and the scrim answer as "Choose data"). |
 | `ConnectionStatusBadge` → status pill | U07 #1 | c | dot + label, tint, radius 8 | active, draft, deactivated | T006: kept c, replacing today’s `KernBadge`: the pill has a dot, not KERN’s icon, and draft/deactivated are no feedback types; built by T019. **T019 (2026-11-08): kept c.** Own markup as V5 "Status/Connection" (`7341:101125`, U11 `6699:44264`, `6699:44277`, `6699:44290`, U93 `I7362:54693;6698:43405`): an inline pill 24 high (the instances' height; the component's 2 px vertical padding does not show at 24), padding 0 10, gap 6, radius 8 (`border-radius-default`), no border; an 8 px decorative dot (`aria-hidden`) and the label in `label/small` 14/24 600. Colours (raw hexes in Figma; the overlay token where the hex equals one): active `#eaf7e6` / dot and label `#1d7a2e` (`feedback-success(-background)`); draft `#e0f2fe` (`feedback-info-background`), dot `#0284c7`, label **`#05669e`** (the design's own blue, 5.38:1 on `#e0f2fe`, so no AA fix; UNCERTAIN against the task's "AA value of §1.5", see the report); deactivated `#eff1f4`, dot `#8c94a1`, label `#4a5468` (`layout-text-muted`). Labels "Active" (was "Live", the design's wording), "Draft", "Deactivated"; the text stays, so the status never rests on colour (005-ACC.1). "Scheduled" is F1 and not a type. The dot is a CSS circle (`rounded-kern-circle size-8`), not `icons/dot.svg`: an `<img>` can't take the per-status `currentColor`, and the circle is the same 8 × 8 geometry. Props unchanged (`isActive`, `draft`), no call site changed |
 | `Connector` (+ menu) | FR-038 | c | the pill with the chevron and the two-option menu | default, open, read-only, faded | T006: kept c; built by T023. **T023 (2026-11-08): kept c**, KERN 2.8.2 has no pill or menu. V5 "Rules/Connector" (`6082:3467`, KERN EXTENSION; variants op AND/OR × mode edit/read only) on the row's 8 24 padding: label/small 14/24 600 in a circle-radius pill, padding 2 8 2 16, 2 px to the 20 px `icon-expand_more-small` (the repo's `expand-more-white-small.svg` / `expand-more-action-small.svg`, the same path and fill as Figma's export), 8 px to the 1 px `decorative-brand` line (#4f8cff); AND filled `action-default` with white text (28 high), OR white with a 1 px `action-default` border and blue text (30 high); read only (the details, U03 #26): no chevron, padding 2 16, a plain `span`. The menu is V5 "Rules/Connector menu" (U34 `6094:7052`): 300 × 189, 1 px `decorative-border`, radius 8, padding 8, parts 2 apart, `--shadow-menu`, two 64 px options (padding 8, gap 8, radius 4; label 14/24 600 over the description 14/24 muted; the chosen one `layout-background-hued`, its label `action-default`, the 20 px `icon-done-small`), the divider and the footer "Applies to every rule in <level>" (padding 8 8 4, 258 wide as drawn), which describes the menu (`aria-describedby`). Placed with T020's `MenuPlacement` and class sets as `ActionMenu` (preferred side `start`, the frame's 189 px height; `top-full`/`bottom-full`, `mt-8`/`mb-8`, the `max-h-*` step on the frame, the options scrolling inside while the divider and footer stay; `full` across the rules card, its up translate by the pill's 28/30 px + 16), `z-40`. States the V5 frames don't draw: the pill's hover / pressed as the kit's buttons (P09 button-primary-small `1914:12574`/`1914:12581`: a white `action-state-indicator-tint` layer at 8 % / 16 % on AND; button-secondary-small `1914:12697`: an `action-state-indicator-default` layer at 8 % / 16 % on OR, over its border), drawn as a `::before` under the label (`isolate`), 150 ms, `.motion`; keyboard focus KERN's 4 px `action-focus-default` ring, offset 2; the options as the ⋯ menus' entries (P33 `2:1985` 8 % / 16 % layers, over the chosen tint too; keyboard focus the `select-option` fill `2:2406`, texts and tick white). Faded (FR-051 (39), U47 `6185:8569`): 40 % (`action-state-opacity-disabled`) on the pill, the line and the mark one by one, **not on the row**, because opacity makes a stacking context that would fade the open menu and let the next (faded) row paint over it. Props unchanged (`operator`, `levelName`, `onSwitch`, `mark`, `faded`), no call site changed; the button's name stays "AND, switch Group 01 to AND or OR" (UNCERTAIN in the report) |
 | `CopyableUrl` | U80, U81, U89 | a + c | the button on KERN's button; the one-line URL | default, hover, pressed, focus, "✓ Copied", disabled with explanation; the field variant | T006: kept a + c, on `kern-btn` already; built by T028. **T028 (2026-11-08): kept a + c.** The URL row of V5 "Links card" (U80 `6396:47718`): the URL box (c) `layout-background-hued` #f2f5fb, radius 8, 48 high, padding 8 16, `body/default/regular` 16/24 `layout-text-default`, one line cut with "…" (`truncate`, U07 note 33 `7370:55183`), 8 px to KERN's primary button (a) with `kern-icon--content-copy` and "Copy link"; the row's 32 px indent is the link card's (T078). The full URL stays the box's text (screen readers read it in full) and shows in a bubble with the tooltip's look (T022's `TOOLTIP_BOX`, 280 wide, breaking anywhere, `aria-hidden`) while the mouse is over a URL that is cut, 8 px below and flush with its left edge, placed with `placementFrom()`; Escape and leaving close it. The box has `contain: inline-size`, so a column that sizes to its content never grows with the URL. After copying, the button reads "✓ Copied" (`kern-icon--check`, the design's icon-done, U81 `6396:47841`) for 2 s (was 3 s), each copy restarting the 2 s, announced in the component's `role="status"` ("Link copied"); a failed copy selects the URL and says so. The button is T022's `ExplainedButton` (`align="end"`, `shrink-0` on `wrapperClassName`): new optional `deactivated` turns it off with the explanation "Activate the connection first" (W21; U89 `6417:31309` draws only the 40 %; UNCERTAIN text). Because `ExplainedButton` owns the button's `aria-describedby`, `describedBy` (the card's title and the variant's name) now joins the button's name through `aria-labelledby` after its label ("Copy link Request link"). New `variant="field"` (S20, W16): a labelled read-only `<input>` in the same box (label 16/24 600, 8 px above), focus selects the value, KERN's 4 px focus ring; `describedBy` describes the input there. New optional `texts` replaces the variant's labels and announcements (the field's default "Copy" / "Copied"). KERN's pressed shade never shows on a hovered button (its `:hover` rule outranks `:active`): fixed for every primary button by the `index.css` block below. Props: `url` and `describedBy` unchanged; `deactivated`, `texts` and the field variant (`variant`, `value`, `label`) new; no call site changed |
@@ -255,7 +268,7 @@ later use.
 | Pattern | Source | Anatomy and rules |
 |---|---|---|
 | **Alert, page level** | U02 #5–#7 (build note 7), P07 | the slim KERN alert, title only in one 64 px line, when the alert carries a title alone; with a body (an error ID, a list, "Try again", "Remove it", "Dismiss") the design's alert keeps those parts (F22). Kinds: danger, warning, info, success. The error ID line reads as `ErrorNoticeText` has it |
-| **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem |
+| **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem Documents step variant: **Field error** (the documents step's variant, T053): a document without data shows its message in its card header in place of the count ("Choose at least one data item, or remove this document.", body/small `feedback-danger`), linked to "All data items" with `aria-describedby`, which takes the focus; the list marks the item (danger tile, glyph, name, KERN's `kern-icon--danger`) and heads the list with "1 document needs data" in red, which describes the marked items. |
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
@@ -271,7 +284,7 @@ later use.
 | **Accordion** | P06, U80, U82 | the heading with "View links" / "Hide links" and the count; one open at a time on the details; heights animate (§4) |
 | **Tabs** | P29, U38, U82 | the variant tabs with the ⓘ and the problem icon; pinned under the step head on the rules step |
 | **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6; first built on the overview's rows (T044, `formatRowDate`, de-DE 2-digit); `formatEditedDate` ("5 Oct 2026") still serves Account, Approval and the details until their tasks switch |
-| **Search in a list** | U11 `6699:44511`, `6699:44570`, `6692:42636`; FR-051 (27) (T043) | a pure filter in the page (`filterConnections`: name and description, `matchesSearch`'s `toLocaleLowerCase` folding and trim, the order kept; nothing sent); the count above the list as a polite status ("3 connections" → "1 of 3 connections"); KERN's input with the search icon (`kern-form-input__input pl-44! pr-48!`) and a visible `kern-label` 16 px before it (stacked over the field below 640 px; the frames draw no label); the × (`kern-btn--tertiary kern-btn--small`, "Clear search") once something is typed, emptying the field and keeping the focus in it; no results: the message with the typed text (label/default), the hint (body/small muted) and "Clear search" (a `kern-link` button) inside the list card under its headers, moving the focus to the field; T051's documents search card follows it |
+| **Search in a list** | U11 `6699:44511`, `6699:44570`, `6692:42636`; FR-051 (27) (T043) | a pure filter in the page (`filterConnections`: name and description, `matchesSearch`'s `toLocaleLowerCase` folding and trim, the order kept; nothing sent); the count above the list as a polite status ("3 connections" → "1 of 3 connections"); KERN's input with the search icon (`kern-form-input__input pl-44! pr-48!`) and a visible `kern-label` 16 px before it (stacked over the field below 640 px; the frames draw no label); the × (`kern-btn--tertiary kern-btn--small`, "Clear search") once something is typed, emptying the field and keeping the focus in it; no results: the message with the typed text (label/default), the hint (body/small muted) and "Clear search" (a `kern-link` button) inside the list card under its headers, moving the focus to the field; T051's documents search card follows it; second build (T051): the documents step's search card uses `MenuSearchField variant="panel"` with no visible label and no × (the frames draw neither; Escape or closing the card empties it), a group with no rows is hidden, ↓ moves into the rows and Enter adds the first available match |
 | **List inside a card** | U12 `6699:44915` (T044) | from 768 × 480 the overview's column is capped at the window (`max-h-[calc(100dvh-144px)]`), the card shrinks to fit and its rows scroll inside it under the column headers; below that the page scrolls as a whole; the rows' table layout from a 58rem card (`@container`), wrapped below, the headers hidden then |
 | **Homepage memory** | FR-027, research R6, W11 (T039) | `homepageOf(list, remembered)` in `pages/FormConnectionList/utils.ts` (pure, tested): loaded and empty → welcome; loaded with anything → overview (a draft counts); loading → `remembered ? 'overview' : 'welcome'`; `hooks/useRememberedHomepage.ts` keeps one `localStorage` flag per account, `connection-portal:local-draft:v1:<username>:homepage:has-connections` (`storageKeyOf`, `keys.ts` unchanged; the `:` in the tail keeps the local drafts' store from listing it), `'true'` / `'false'`, written whenever the list's "has anything" is known and changes (load, last deletion), read once per account; blocked storage → `null`, nothing logged; the page shows `PageLoader` only while loading with `remembered === null`; a draft saved on the way to `/` (`draftSaved` in the router state) counts as `remembered === true`; the loading page is the first load's (a retry stays on the overview); a failed load shows the overview's error state whatever the memory says (T042) |
 | **Page change** | FR-052c, U06 #94 (`7137:50569`) | a change of the route's path scrolls the window to the top at once (`App.tsx`, `behavior: 'instant'`: kern.css makes the root scroll smoothly) and the layout's main region fades in over 150 ms (§4); the header pills stay. A change of the query alone or of the editor's step is no page change |
@@ -576,9 +589,9 @@ Checked in Chromium (playwright-chrome) at 1455 × 900 (1440 frame, body 1440) o
 | U19 6699:45395 | default | label ↔ ⓘ | gap | 4 | 4 (`gap-4`; was 6) | match |
 | U19 6699:45394 | default | label row → field | gap | 8 | 8 | match |
 | U19 6699:45396 | default | required "*" | text, colour, weight | "*" right after the label, `feedback-danger` `#c4271c`, 600 | "*", rgb(196, 39, 28), 600, `aria-hidden` (replica; `requiredMark`) | match |
-| U19 6699:45396 | default | "Connection name*" on step 1 | marker shown | yes | step 1 doesn't pass `requiredMark` yet; its label still reads "Form name" | deferred to T049 |
+| U19 6699:45396 | default | "Connection name*" on step 1 | marker shown | yes | "Connection name" with `requiredMark` (T049) | match |
 | U19 6699:45401 | default | optional marker | text, style | "Description (optional)", one text in label/default | "Description (optional)", 16/24 600 `#0b1220`; accessible name "Description (optional)" | match (report cosmetic 6) |
-| U19 6699:45397 | default | ⓘ after the label | size | 20 (icon-info-small) | `InfoTooltip`'s default icon | deferred to T022 / T049 |
+| U19 6699:45397 | default | ⓘ after the label | size | 20 (icon-info-small) | 20 × 20, `iconSize="small"` on both step-1 ⓘ (T049) | match |
 | P33 2:2151 | hover | input | line | bottom 4 `#22293a` | 4px solid rgb(34, 41, 58), padding-top 2, still 48 high | match |
 | P33 2:2157 | focus (keyboard, Tab) | input | ring | 4 `action-focus-default` `#0b1220` around the field (outside) | outline 4px solid rgb(11, 18, 32), offset 0; line removed (KERN) | match |
 | P33 2:2157 | focus by pointer | input | ring | keyboard focus only (FR-009) | a text field matches `:focus-visible` on a click too (it takes typing), so the ring shows as for the keyboard; the browser's rule, kept | match |
@@ -599,7 +612,7 @@ Checked in Chromium (playwright-chrome) at 1455 × 900 (1440 frame, body 1440) o
 | P33 2:2538 | multiline, hover | textarea | line | bottom 4 | 4px solid rgb(34, 41, 58), padding stays 8 16, 120 high | match |
 | P33 2:2542 | multiline, focus | textarea | ring | 4 `#0b1220` | outline 4px solid rgb(11, 18, 32), offset 0 | match |
 | — | multiline | textarea | spell check, limit | spell check on, ≤ 500 (FR-032) | `spellcheck` true by default; `maxLength` passes through; no counter (the design draws none, 006-S1.3 has none) | match (FR-032: a 500-character limit, no counter drawn; coordinator 2026-11-08) |
-| U19 6699:45403 | multiline | step 1 description as a textarea | element | "Form/Textarea" | step 1 still renders an input (it doesn't pass `multiline`) | deferred to T049 (and T064 for the variant dialog) |
+| U19 6699:45403 | multiline | step 1 description as a textarea | element | "Form/Textarea" | `<textarea>` 726 × 120 (`multiline`, T049); the variant dialog stays T064's | match (step 1) |
 | U10 #7 | password, trailing slot | toggle | place | inside the field, right end | slot `absolute inset-y-0 right-4`, a 40 px small button centred (4 from top and right), input `padding-right 56` (replica; 48 since T040: the toggle is 32 px) | match (the toggle itself: T040) |
 | — | hint | hint | place, link | KERN `kern-hint` under the label | `kern-hint` with `id`, in `aria-describedby`; no page passes `hint` yet | deferred to T064 (the variant dialog's helper) |
 | — | with text | input | colour | `#0b1220` 16/24 | rgb(11, 18, 32) 16px/24px ("Neue Verbindung") | match |
@@ -687,9 +700,9 @@ Checked on the connection step of the seeded draft `9a58451d…` (the page's 48 
 | frame | state | element | property | Figma | actual | result |
 |---|---|---|---|---|---|---|
 | U19 `6699:45330` | default | tile (`action`, 40) | size | 40 × 40 | 40 × 40 | match |
-| U19 `6699:45330` | default | tile (`action`, 40) | fill | `action-default` `#1d56f0` | `rgb(29, 86, 240)` | match |
+| U19 `6699:45330` | default | tile (`action`, 40) | fill | `action-default` at **12 %** as rendered (`#e3eafd`; the code export drops the fill's opacity, T049) | `bg-kern-action-default/12` (coordinator, 2026-11-08, phase 6; was the solid `#1d56f0`) | match |
 | U19 `6699:45330` | default | tile (`action`, 40) | radius, border | 8 (`border-radius-default`), none | 8px, 0 | match |
-| U19 `6699:45331` | default | glyph | size, place | 24 × 24, 8 in, white | 24 × 24 at 8, 8 (the caller's glyph) | match (the white add-link glyph: deferred to T050) |
+| U19 `6699:45331` | default | glyph | size, place | 24 × 24, 8 in, action blue | 24 × 24 at 8, 8; `icons/add-link-action.svg` (T049) on step 1 | match |
 | U11 `6699:44495` | default | tile (`plain`, 48) | size, shape | 48 × 48, circle | 48 × 48, 9999px | match |
 | U11 `6699:44495` | default | tile (`plain`, 48) | fill | `layout-background-default` white | `oklch(1 0 0)` | match |
 | U11 `6699:44496` | default | glyph | size, place | 24 × 24, 12 in, ink | 24 × 24 at 12, 12 | match (the steps illustration: F15, T042) |
@@ -1436,6 +1449,7 @@ the variant undo, T072 "Results updated. …", T082 the action toasts, the detai
 | — | every toast | announcement | live region | announced (001-S7.7, FR-051 (42)) | the status region stays; each toast appears `LIVE_REGION_DELAY_MS` after the region empties | match |
 | — | with action | lifetime | R8 | until used or dismissed | until the page dismisses it (after the action, a newer toast, a change of step) or Escape on it | R8 |
 | — | 5xx | error ID | FR-033 | not drawn | "Error ID: <id>" under the message (`errorId`) | FR-033 |
+| U51 `6197:11098` | failed save (T048) | toast | action, focus | "Try again" | neutral, "Try again" and the error ID; replaces the step's toast; "Try again" moves the focus to the control that shows the retry ("Save and exit"), since the toast goes with its button | FR-033 |
 
 ### WizardLayout (L3) — T033, 2026-11-08
 
@@ -1675,9 +1689,11 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U14, U90 (`6699:44359`, `6699:48039`): the row delete | S4 | done (T044, 2026-11-08) |
 | U14, U90 (the details' dialogs) | S17 | pending (T082) |
 | U16 | S5 | done (T045, 2026-11-08; the list card's minimum height fixed by the coordinator) |
-| U17, U19 | L3, S6, S7 | pending |
-| U18 | S3, S7 | S3 done (T042: F15, nothing to build); S7 pending |
-| U20–U28 | S8 | pending |
+| U17, U19 | L3, S6, S7 | done (S6: T048; S7: T049, 2026-11-08; the load error's error ID: T080/T083) |
+| U18 | S3, S7 | S3 done (T042: F15, nothing to build); S7 done (T049: F15, nothing to build) |
+| U20, U21 | S8 | done (T051, 2026-11-08) |
+| U22, U23, U24, U26; U01 #16 | S8 | done (T052, 2026-11-08) |
+| U25, U27, U28 (F23), U98 (`7296:52315`) | S8 | done (T053, 2026-11-08; U98's edit footer: T084) |
 | U29, U34, U35, U36, U43, U50, U51, U54–U58, U64 | S9 | pending |
 | U30–U33, U48, U49, U53 (U09) | S10 | pending |
 | U37–U42, U47, U52, U59–U62 | S11 | pending |
@@ -1687,7 +1703,7 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U80–U92, U94–U97 | S15 | pending |
 | U93 | S16 | pending |
 | U87, U88, U89 (dialogs) | S17 | pending |
-| U98, U99, U100 | S18 | pending |
+| U98, U99, U100 | S18 | pending; U98 step 1 done (T049, 2026-11-08) |
 | (no frames) | S19, S20, S21, S22 | the patterns' tables of §5.1 stand; the states are checked in quickstart V9 |
 
 U01–U09 are annotations and need no table.
@@ -2019,6 +2035,397 @@ Notes (T045): the offer sits above the welcome page's h1 (contracts S3, "above t
 - The dialog: `role="dialog"` modal, named by its title "Discard unsaved work?", described by the
   body text; the initial focus on "Close".
 
+### U17 Entering and leaving a flow (S6) — T048, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440) and 320 × 640, signed in as
+designer, on new flows, on a draft created for the check (deleted afterwards) and, for the rule
+question only, on the seeded "Führerscheinantrag Stuttgart" with its saves routed to abort (its
+version stayed 3). A failed save, the 5xx with its error ID, the 400, the conflicts and a slow or
+failed load by Playwright routing. The leave model's behaviour is T047's table above.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U17 `7173:52682` | leave dialog | dialog | box | 480 × 256, centred | 480 × 256 at x 480, y 322 (900 high) | match |
+| U17 `7173:52682` | leave dialog | title, text | copy | "Leave this connection?" / "If you leave now, you lose all progress. Save it to continue later, or discard the connection." | the same (`LEAVE_COPY`) | match |
+| U17 `7173:52682` | leave dialog | "Discard connection" | style, box | button-secondary, 1 px `feedback/danger` #c4271c, label #c4271c, flex-1 (200 × 48 at 512) | `kern-btn--secondary kern-btn--danger`, border rgb(196 39 28), 200 × 48 at x 512 | match |
+| U17 `7173:52682` | leave dialog | "Save progress" | style, box | button-primary #1d56f0, 200 × 48 at 728 | rgb(29 86 240), 200 × 48 at x 728 | match |
+| U17 `7173:52682` | leave dialog | × | presence | button-tertiary 48, icon-close | the ×, "Close"; the focus starts on it | match |
+| U17 `7173:52681` | leave dialog | Escape, ×, scrim | closing | × (FR-052a: scrim closes) | stays in the flow, focus back on "Your connections" / "Konnekt" (T047) | match |
+| U17 `6408:72919` | log-out dialog | title, text | copy | "Save before you log out?" / "Your latest changes will be lost if you log out now." | the same | match |
+| U17 `6408:72919` | log-out dialog | buttons | which, style | "Log out anyway" (secondary, action blue), "Save and log out" (primary), ×; no Cancel | "Cancel" (tertiary), "Log out anyway" (secondary), "Save and log out" (primary), × | F20 (Cancel added) |
+| U17 `6408:72919` | log-out dialog | dialog | box, layout | 480 × 232, two buttons side by side | 480 × 360: three buttons stacked 416 × 48 (Cancel 422, Log out anyway 486, Save and log out 550) | F20 + §5.1 ConfirmDialog (three buttons stack in 480) |
+| — | log-out dialog | Cancel | focus | not drawn (F20) | back on the account pill | match (F20) |
+| — | rule question | "Save changes to Rule 01?" | anatomy | not drawn (005-S1.1) | `ConfirmDialog` 480 × 232, "You changed this rule but haven’t saved it yet.", "Discard" (secondary) and "Save changes" (primary), ×; asked after "Save progress"; Escape cancels the save, nothing sent | match (Pattern: Dialog) |
+| U19 `6699:45346` | create flow, step 1 | info strip | fill, border | `feedback/info-background` #e0f2fe, border-top 1 `decorative-border` #e1e6f0 | rgb(224 242 254), 1px solid rgb(225 230 240) | match |
+| U19 `6699:45346` | create flow, step 1 | info strip | padding, gap, height | 8 24, gap 8 (40 + border) | 8px 24px, gap 8, 41 high | match |
+| U19 `6699:45346` | create flow, step 1 | ⓘ | size, colour | icon-info-small 20 × 20, blue (build note 35, `feedback/info`) | `kern-icon--info kern-icon--small` 20 × 20, rgb(2 115 174) (`bg-kern-feedback-info!`), 24 from the left | match (§1.5's AA info blue) |
+| U19 `6699:45346` | create flow, step 1 | text | type, copy | `body/small/regular` 14/24 400, `layout/text/default` #0b1220, "Starts as a draft. It only becomes active when you publish." | 400 14px/24px Fira Sans, rgb(11 18 32), the same text | match |
+| U19 `6699:45346` | create flow, step 1 | info strip | place | the card's bottom row | the card's bottom row, the card's 7 px bottom corners | match |
+| U98 `6731:39846` | edit flow of a published connection | info strip | presence, copy | the draft note in the create flow only (FR-026g); U98 draws its own note in the strip | the edit flow's strip reads F49's note (T049) | match (F49) |
+| — | 320 | info strip | reflow | not drawn | 271 wide, the text wraps (89 high), no horizontal scroll (305 = client less gutter) | match (FR-010) |
+| U17 `6401:71705` | saving | footer | "Save and exit" | the save icon and "Save and exit" (tertiary) behind a "Saving your draft..." modal | no modal (F21): `aria-disabled="true"`, "Saving…", the save icon, keeps the focus | F21 |
+| — | saving | status | polite region | not drawn (FR-033) | `role="status"` `aria-live="polite"` reads "Saving draft…" | match (FR-033) |
+| U51 `6197:11098` | failed save, 5xx | toast | copy, action | "Couldn't save. Check your internet connection and try again." + "Try again", no error ID | the same, "Error ID: abc123def456" on its own line (FR-033) | match; error ID FR-033 |
+| U51 `6197:11098` | failed save | toast | box, fill | 495 × 56, 96 above the bottom (footer 72 + 24), ink #0b1220 | 496 × 80 (the ID line), x 472, 96 above the bottom, rgb(11 18 32) | match (T036's table) |
+| — | failed save | focus | FR-033 | not moved | stays on "Save and exit" (or on "Konnekt" after a leave dialog's "Save progress") | match |
+| — | failed save | the old alert | presence | none (F67) | `SaveDraftAlert` deleted, no `.kern-alert` in the step | match |
+| — | failed save, network | toast | copy | as U51 | the same text, "Try again", no ID | match |
+| — | failed save | lifetime | R8 | until used or dismissed | stays; Escape on it dismisses it; a change of step and a new save take it away; replaces the step's toast (one at a time) | match (R8) |
+| — | "Try again" | focus | not drawn | — | the toast goes with its button; the focus moves to "Save and exit", which reads "Saving…"; success → overview with "Draft saved. You can pick it up any time." | W20 |
+| — | failed save, 400 | toast | copy | not drawn | the server's message, no "Try again", gone after 6 s | UNCERTAIN (T048 report) |
+| U90 `6417:31599`, U17 `7173:52682` | conflict `draft_changed` | dialog | anatomy | dialog 480, title, ×, body, footer with a line (U90's dialog) | 480 × 456: "This draft has changed", the server's message, then the hint 16 below; "Cancel" (tertiary), "Reload" (secondary), "Replace their changes" (primary) stacked 416 | match (W3, three buttons stack) |
+| U90 `6417:31599` | conflict `draft_published` | dialog | anatomy | two buttons side by side, secondary left, primary right | 480 × 304: "Cancel" (secondary) 200, "Open the connection" (primary) 200 | match (W3) |
+| U90 `6417:31599` | conflict `draft_deleted` | dialog | anatomy | as above | 480 × 256: "This draft has been deleted", the deleted text once, "Cancel" / "Save as new draft" | match (W3) |
+| — | each conflict | Escape | closing | — | closes, focus back on "Save and exit", work kept | match (005-S2) |
+| U17 `7173:52681` | restore dialog | dialog | anatomy | U17's dialog: 480, ×, the scrim #0b1220 at 72 % | `ConfirmDialog` 480 × 256 at x 480; scrim rgb(11 18 32) 0.72; fades (`motion`) | match (W4) |
+| — | restore dialog | buttons | which | 005-S5 | "Discard them" (secondary, x 512) and "Restore changes" (primary, x 728), 200 × 48 each | match |
+| — | restore dialog | Escape, ×, scrim | closing | FR-049, F57 | each opens the draft's details (`/form-connections/:id`) and keeps the local draft: the next opening asks again | match (F57) |
+| — | restore dialog | focus | not drawn | — | on the × when it opens (Pattern: Dialog); before: on "Restore changes" | Pattern: Dialog |
+| — | restore dialog | h1 | FR-012 | — | the header's connection name (`titleAsHeading`); the dialog's title is the h2; tab "Restore your unsaved changes? · Konnekt" | match |
+| — | "Restore changes" | result | 005-S5 | — | the flow with the local draft's content ("T048 check draft 2"), focus on the page title | match |
+| — | loading a flow (W10) | page | skeleton | U06 #95 | `FormConnectionLoadState`'s skeleton card in the wizard frame, "Loading the connection…" | match (T017/T033) |
+| — | load failed, 5xx (W10) | page | alert | the design's alert with the error ID | h1 "Couldn’t load the connection", the danger alert "Check your connection and try again." with "Try again" and "Go to connections"; **no error ID** | deferred to T080/T083 (T037's W2 row: `useFormConnection` keeps no notice; not T048's files) |
+| — | /get-started (W11) | step 1 | validation | 001-S4.3 | "Continue" without a name: "Enter a name for the connection.", aria-invalid, the field focused | match |
+| — | /get-started?local=<key> (W11) | bookmark | reopening | 001-S4.5, 005-R.2 | no connection yet: the wizard resumes the key's work ("T048 bookmark"); connections exist: the overview, which offers the work | match |
+| — | log-out warning cancelled (T047 edge 6) | editor | after "Save and log out" | not drawn | UserMenu's "Log out and discard unsaved work?" (other local drafts) → Cancel → the overview with "Draft saved. …" (no stuck "Saving…") | fixed (see notes) |
+| — | log-out warning cancelled | editor | after "Log out anyway" | not drawn | → Cancel → the overview; the flow's local draft gone, the other one kept | fixed (see notes) |
+
+### U17 Leaving a flow (S6, behaviour) — T047, 2026-11-08
+
+verify: `npm test` — `leaveFlow.test.ts`, 145 tests: every state × action of `leaveFlowStep()`
+(idle, leaveAsked new/draft, saveAsked, logoutAsked per origin, saving per origin × after), the
+reducer, whole answers, and `hasUnsavedWork()` (agrees with the local draft's write/remove in a new
+or draft flow; ignores the rule counters for a published connection). Workspace gates green:
+rules 2345, frontend 879, mcp 408 tests.
+
+Behaviour checked in the running app (Playwright, Chromium; the dialogs' look is T048's):
+
+| flow | trigger | result |
+|---|---|---|
+| new, empty | probe `beforeunload` | not cancelled (no listener) |
+| new, name typed | probe `beforeunload` | cancelled (listener on); name cleared again → off |
+| new | "Konnekt" / "Your connections" | "Leave this connection?" with "Discard connection", "Save progress", ×; Escape and × keep the flow, focus back on the link |
+| new | "Save progress" | draft stored, overview with "Draft saved. You can pick it up any time.", local draft gone |
+| new, description only | "Save progress" | stays, step 1, name focused, aria-invalid, "Enter a name for the connection." |
+| new | "Discard connection" | overview, nothing stored, local draft removed, no local-drafts offer |
+| draft (no changes) | "Konnekt" | "Leave this connection?" |
+| draft (changed) | "Log out" | "Save before you log out?" / "Your latest changes will be lost if you log out now." / Cancel, Log out anyway, Save and log out; Cancel and Escape → focus on the account pill |
+| draft (changed) | "Save and log out" | draft saved (name changed), sign-in screen with "You’re logged out.", no local draft |
+| new (named) | "Log out anyway" | signed out, nothing stored, local draft removed |
+| draft, rule editor changed | "Save progress" | "Save changes to Rule 01?" first; × → stays, nothing sent, asks again; "Discard connection" skips the rule question |
+| published (GET intercepted) | "Your connections" without changes | leaves at once |
+| published, renamed | "Konnekt" | "Save your changes?" / "If you leave now, your changes are lost. Save them, or discard them and keep the active version." / Discard changes, Save |
+| published | "Save" | "Ready to save?" (the current save dialog); Escape → stays, asks again |
+| published | "Discard changes" | overview, no request sent |
+| /get-started (list GET intercepted) | "Konnekt" → "Discard connection" | asks, leaves, local draft removed |
+
+A person must check (Playwright dismisses `beforeunload` prompts): reloading and closing the tab
+with unsaved work shows the browser's "Leave site?" in Chrome, Firefox and Safari; without unsaved
+work (a fresh flow, a draft as loaded, a published connection as loaded) and after "Save progress",
+"Discard connection", "Save and log out" or "Log out anyway", no prompt appears.
+
+Decisions the coordinator accepted (T047's UNCERTAIN list; reversible in `leaveFlowStep()`):
+
+
+1. **Create and draft flows always ask** "Leave this connection?", also without unsaved work
+   (FR-026 and #8 are unconditional); the **edit flow asks "Save your changes?" only with unsaved
+   changes** and otherwise leaves at once (V8 step 3 "with changes"; "Save" would open a save dialog
+   for nothing). Core behaviour: only the no-changes case differs. One line to change in
+   `leaveFlowStep()` (`askLeave`) plus its tests.
+2. **The rule question comes after the leave answer, not before the leave dialog**: only the
+   answers that store ("Save progress", "Save", "Save and log out") go through "Save changes to
+   Rule 01?" (005-S1.1's order, Q8 (c) "a rule is saved or discarded before the draft is stored");
+   "Discard connection" and "Log out anyway" never ask. Asking before the leave dialog would need a
+   new `LeaveEditorAction` in `RulesStep/types.ts` (not T047's file). Core behaviour: the order of
+   the two questions.
+3. **"Save and log out" in the edit flow of a published connection** (data-model says "stores the
+   draft"; that flow has no draft): it opens the save dialog, and once saved logs out instead of
+   opening the details. Not core for create/draft.
+4. **"Unsaved work"** (`hasUnsavedWork()`): in a new or draft flow exactly while its local draft
+   holds a record (content ≠ baseline, or always for a record resumed through `?local=`); in the
+   edit flow, the content ≠ as loaded, rule counters ignored. Decides the log-out question, the
+   edit flow's leave question and `beforeunload`.
+5. **Asking while busy**: the product name and "Log out" do nothing while a save or publish runs
+   (the save leaves anyway); a running "Save and exit" can't be doubled from a dialog.
+6. **Edge (not core)**: after "Save and log out" (or "Log out anyway") UserMenu's local-drafts
+   warning still follows when the account has *other* local drafts on the device (T031). If the team
+   member cancels that warning, they stay in the editor: after a save the footer stays "Saving…"
+   (nothing can be stored twice, but the header's leave is ignored while busy); after "Log out
+   anyway" the flow's autosave stays off (forgotten). Q8 (e) drops "Log out and discard unsaved
+   work?"; whoever retires that warning (or adds a cancel callback to `onLogOut`) removes the edge.
+
+### U19 Step 1 Connection (S7) — T049, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440) and 320 × 640, signed in as
+designer, on `/form-connections/new`, on a draft created for the check ("T049 check", its edit
+route; deleted afterwards) and, for the edit flow, on that draft's GET routed to a published
+connection (`status: 'published'`, `is_active: true`, U98's sample name and description). The too
+long state with `maxlength` removed from both fields (the attributes stop typing past the limit);
+the API's 400 by routing the draft's PUT. Fonts: `document.fonts.check` true for Fira Sans 400 and
+600 at 16 px. Figma frames at 1440 × 900; positions compared at the same scale.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U19 `6699:45327` | empty | step head | step line | "Step 1 of 4", 4 segments, the first blue, "Next: Documents" | the same (`WizardProgress`), `role="progressbar"` "Step 1 of 4", valuenow 1, 912 wide at y 106 | match (T032) |
+| U19 `6699:45327` | empty | step head | title, description | "Name your connection" heading/large 24/32 600; "Link a service to the EUDI Wallet so citizens can share verified data." 14/24 muted | h1 "Name your connection" 24px/32px 600 at y 136; the hint as drawn; tab "Name your connection · Konnekt" | match |
+| U18 `6793:47711` | first connection | step head | title | the same title on the first connection's step 1 | `/get-started` uses the create flow's title (`pageTitleOf('connection', 'first')`; "Create your first connection" removed) | match |
+| U19 `6699:45328` | empty | card | border, radius, fill, box | 1 `action/default` #1d56f0, radius large 12, white, 1120 at y 216.6 | 1px rgb(29 86 240), 12px, white, 160,216 1120 × 444 | match |
+| U19 `6699:45329` | empty | card header | padding, gap, line | 24 around, 16 gap, bottom 1 `decorative-border` #e1e6f0 (97 with the line) | 24px, 16px, 1px rgb(225 230 240), 97 high | match |
+| U19 `6699:45330` | empty | icon tile | size, fill, radius | 40, the action blue at 12 % (#e3eafd sampled), radius 8 | 40 × 40, `bg-kern-action-default/12`, 8px | match (UNCERTAIN: not `IconTile tone="action"`, see notes) |
+| U19 `6699:45331` | empty | glyph | asset, size, colour | "Icon/Glyph" add-link 24, #1d56f0 | `add-link-action.svg` (the export), 24 × 24 centred at 193,253 | match |
+| U19 `6699:45333` | empty | card title | copy, type | "Which service are you connecting?" title/small 16/24 600 #0b1220 | h2, the same, 16px/24px 600 rgb(11 18 32) | match |
+| U19 `6699:45334` | empty | card hint | copy, type | "You can change these details later." 14/24 #4a5468 | the same, 14px/24px 400 rgb(74 84 104) | match |
+| U19 `6699:45335` | empty | fields | layout | one column, 24 around and between, each 726 wide | `flex-col gap-24 p-24`, name and description 726 wide (`max-w-726`) | match |
+| U19 `6699:45338` | empty | name label | copy, marker | "Connection name" + red "*" | "Connection name*", `requiredMark` (rgb(196 39 28), `aria-hidden`), `required` on the input | match |
+| U19 `6699:45339` | empty | name ⓘ | size, gap | icon-info-small 20, 4 after the label | 20 × 20 (`iconSize="small"`) at 4 after the "*" | match |
+| U19 `6699:45340` | empty | name input | box, placeholder | 726 × 48 at y 370; "e.g. Residents’ parking permit" | 185,370 726 × 48; the same placeholder; `maxlength` 200, `autocomplete` off | match |
+| U19 `6809:46408` | hover ⓘ | bubble | copy | "This name helps you and your colleagues find this connection later." / "Recommended: Use the name of a particular service. Citizens never see it." (two lines) | the same, a `<br>` between the sentences; hover and keyboard focus open it; accessible name "About the connection name" | match (F60) |
+| U19 `6809:46408` | hover ⓘ | bubble | wrap, place | 280 wide, 4 lines (112 high), x 270 y 368 | 280 wide, 5 lines ("it." wraps: Chromium's Fira Sans runs ~1 % wider in 248 px), x 315 y 368 (T022's anchor: 8 px before the ⓘ) | Pattern: Tooltip (T022; see notes) |
+| U19 `6699:45343` | empty | description label | copy | "Description (optional)", no ⓘ | "Description (optional)" with the ⓘ "About the description" (20 px) | F60 (the ⓘ kept) |
+| — | ⓘ on description | bubble | copy | not drawn (F60) | "A note for your team, such as the form’s ID in your form management system. Citizens never see it." on hover and focus | match (F60, FR-032) |
+| U19 `6699:45345` | empty | description | element, box | Form/Textarea 726 × 120, padding 8 16; placeholder "e.g. For people who live in the area and park on the street" | `<textarea>` 726 × 120 at y 474, 8px 16px; the same placeholder | match |
+| — | empty | description | limit, spell check | ≤ 500, spell check on (FR-032), no counter drawn | `maxlength` 500, `spellcheck` true, no counter | match (FR-032) |
+| U19 `6699:45346` | empty | info strip | copy, place | "Starts as a draft. It only becomes active when you publish." at y 618, the card's foot | the same at 161,618 1118 × 41; bottom corners 11 px inside the 12 px card | match (T048's rows stand) |
+| U19 `6699:45349` | empty | footer | primary | "Choose documents" + arrow, 211 × 40 at 1069,845 | "Choose documents" + `kern-icon--arrow-forward`, 1069,844 211 × 40, submits the step's form | match |
+| U19 `6699:45350` | filled | header pill | title | "Your connections / New connection" on a new connection's step 1, filled | "New connection" (the name only after step 1) | match |
+| U19 `6699:45379` | missing name | field error | message, bar, fill | "Enter a name for the connection." under the input, danger bar 4 beside field and message, #fef1f0 fill | the same text (C7), bar 726 × 88 4px rgb(196 39 28), fill rgb(254 241 240), `aria-invalid`, `aria-describedby="connection-name-error"` | match |
+| — | missing name | focus | 001-S7.6 | not drawn | on the name field after "Choose documents" | match |
+| U19 `6699:45379` | missing name | description | error | none for an empty description | none; description label at y 482 (Figma 481) | match |
+| — | too long (W10) | both fields | messages, focus | not drawn (baseline 005-S1.3, 006-S1.8) | "The name can have at most 200 characters." and "The description can have at most 500 characters.", each under its field in U19's error style; the focus on the name, then (name fixed) on the description | match (W10) |
+| — | API 400 (W10) | step 1 | message | not drawn | Save and exit refused with a 400: the server's message in T048's toast, no "Try again", the focus stays on "Save and exit"; step 1's own checks refuse the name and description before any request, so no 400 reaches a field | UNCERTAIN (see notes; T048's toast) |
+| — | filled → step 2 | footer | "Choose documents" | the documents step | h1 "Add documents" (T051's step), header pill "T049 narrow" | match |
+| U19 `6716:40925` | stored draft, step 1 | header pill | title | "Your connections / Passenger transport licence" + Draft | "Neue Verbindung" + Draft on the seeded draft's step 1 (the call sites pass `stored`: coordinator, 2026-11-08; the restore dialog's title too) | match |
+| U19 `6716:40925` | stored draft, step 1 | card, strip, footer | as the create flow | the same step, the draft's note, "Save and exit", "Choose documents" | the same; the draft's name and description filled | match |
+| — | 320 × 640 | card | reflow | not drawn | 273 wide, the fields 223, the strip wraps (89 high), no horizontal scroll (305 = client) | match (FR-010) |
+
+### U18 (S7) — T049, 2026-11-08
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U18 `6793:47711` | example draft, step 1 | example banner "This is an example. Change anything to see how it works." | presence | drawn | not built (F15: no "Start from an example", no example draft) | F15 (not read) |
+| U18 `6793:47711` | example draft, step 1 | step head, card, fields, strip | anatomy | as U19 | as U19 (the first connection's step 1 is the create flow's) | match (U19's rows) |
+| U18 `6793:47713` | example draft, step 1 | header pill | title | the draft's name + Draft on step 1 | as U19 `6716:40925`'s row (`stored`) | see U19 |
+
+### U98 step 1 (S18) — T049, 2026-11-08
+
+Rows for step 1 only; the edit flow's header badge, footer and step links are T084 / T083 / T032.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U98 `6731:39827` | edit flow, step 1 | step head | title, description | "Name your connection" / "Link a service …" | "Connection details" / "Rename this connection or update its description."; tab "Connection details · Konnekt" | decided copy (report cosmetic 6, build note U05 #27) |
+| U98 `6731:39828` | edit flow, step 1 | card | box | 1120 at y 225, the same card | 160,224 1120, the same classes | match |
+| U98 `6731:39834` | edit flow, step 1 | card hint | copy | "The name shows in ‘Your connections’ and on the Published page." | the same (`EDITOR_COPY.editFormCardHint`) | match |
+| U98 `6731:39836`, `6731:39841` | edit flow, step 1 | fields | values, anatomy | prefilled name and description, the name ⓘ, no description ⓘ | prefilled; both ⓘ (F60) | match (F60) |
+| U98 `6731:39846` | edit flow, step 1 | info strip | copy | "Active. Your changes take effect when you save them." | "Your changes take effect when you save them. Requests already in progress keep their previous configuration." in the same strip, 161,626 1118 × 41 | F49 |
+| — | edit flow, step 1 | info strip | draft note | create flow only (FR-026g) | never the draft's text in the edit flow | match |
+| U98 `6731:39823` | edit flow, step 1 | header pill | title | the connection's name + "Active" | the name ("Passenger transport licence"); no badge yet | match for the title; badge → T084 (F5) |
+| U98 `6731:39850` | edit flow, step 1 | footer | actions | "Discard changes", "Choose documents →" (secondary), "Save" | "Choose documents" (primary) only | T083 / T084 (not this task's files) |
+
+### U20–U25 Documents step view state (S8, behaviour) — T050, 2026-11-08
+
+verify: `npm test`: `DocumentsStep/reducer.test.ts` (44) and `utils.test.ts` (32). The view state
+of FR-031 / research R8; the editor's reducer keeps `documents` (catalog order, F23) and `fields`.
+Deviations from data-model "The documents step", accepted by the coordinator:
+
+- `pendingRemoval` is `{ documentId }` without a `timer`: T036 made an action toast stay until
+  used or dismissed, so the removal ends with the toast ("Undo" → `undoRemoval`, any other
+  dismissal, a newer change or a change of step → `expireRemoval`).
+- `needsData` is `{ documentIds, asking }` (the flags and the dialog "No data selected in n
+  document(s)"); two actions beyond the task's list answer that dialog: `chooseData` (also ×,
+  Escape and the scrim) and `removeNeedsDataDone`.
+- `removeInline` and `confirmRemovalDone` are the same transition; T052 uses one path.
+- `needsDataOf` counts only data the catalog still offers (as the count line); the baseline's
+  `validateDocuments` stays unchanged and tested.
+- A count of 0 reads "No data items chosen yet" (U21 A5, U22 A7); quickstart V4.2's "0 of 25 data
+  items chosen" follows the frames. "n documents need data" is the coordinator-accepted plural the
+  frames don't draw.
+
+### U20, U21 Documents step (S8) — T051, 2026-11-08
+
+Checked in Firefox (playwright-firefox) at 1440 × 880 and 320 × 640, signed in as `designer`, on a new
+connection's documents step (no document, the search card's states, Personal ID added, both added)
+and on the seeded "Führerscheinantrag Stuttgart" (documents that rules check). The step head and the
+shell are T032/T033's tables; the rows here are the step's own.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U20 7290:60373 | every state | step head | h1, hint | "Choose documents and data"; "Add the documents citizens need to share for this connection. You can set rules in the next step using information you select here." | the same (`EDITOR_COPY.documentsTitle` / `documentsHint`); tab title "Choose documents and data · Konnekt" | match (FR-002) |
+| U20 7290:60376 | every state | columns | box, gap | 160, 216 (64 + 152), 1120 × 560; 264 + 24 + 832 | list card 160, 216, 264 × 560; right panel 448, 216, 832 × 560 | match |
+| U20 7290:60377 | every state | list card | fill, border, radius, padding | white, 1 `#e1e6f0`, 12, 16 | oklch(1 0 0), 1px solid rgb(225, 230, 240), 12px, 16px | match |
+| U20 7290:60381 | no document | title | text, font, place | "Added documents (0)", label/default 600 16/24 `#0b1220` at 17, 17 | "Added documents (0)" (`addedDocuments(0)`), an h2, 600 16px/24px rgb(11, 18, 32), 177, 233 | match (FR-031) |
+| U20 7290:60383 | no document | "Add document" | box, fill, label, icon | 177, 269 (17 + 36), 149 × 36; `#1d56f0`; padding 8 16, gap 4; label/small 600 14/24 white; icon-add-small 20 white | 177, 269, 148.6 × 36; rgb(29, 86, 240); 8px 16px, 4px; 600 14px/24px white; `kern-icon--add kern-icon--small` 20 × 20 white | match |
+| U20 7290:60519 | card open, no document | "Add document" | fill (pressed) | `#1643c1` | `bg-[#1643c1]` (also on hover) | match (no KERN 2.8 token: §1.3 row below) |
+| U21 7290:61200 | a document added | "Add document" | look | white, 1 dashed `#1d56f0`, label `#1d56f0`, 151 × 36 | white, 1px dashed rgb(29, 86, 240), the label and icon action blue, 151 × 36 | match (U04 #37) |
+| U21 7290:61927 | card open, documents added | "Add document" | look (pressed) | `#eef3fe`, 1 solid `#1d56f0` | `bg-[#eef3fe]`, 1px solid (also on hover) | match (§1.3 row below) |
+| — | every state | "Add document" | semantics | not drawn | a button with `aria-expanded`, `aria-controls` the card while open; keyboard focus: KERN's 4 px ring, offset 2 | FR-009 |
+| U20 7290:60384 | no document | empty panel | box, border, radius | 448, 216, 832 × 560, 1 dashed `#e1e6f0`, 12, centred column gap 8, no fill | the same; `EmptyPanel` | match |
+| U20 7290:60385 | no document | picture | file, size, place | `wallet-star.png` 127.6 × 123 at 352, 186.5 | `illustrations/wallet-star@2x.png` 128 × 123 (`h-123!`: KERN's `img { height: auto }`) at 800, 402 (448 + 352, 216 + 186.5) | match (U02 #19, build note "128 × 123"; T037's open "Empty state" row closes here) |
+| U20 7290:60386–87 | no document | texts | text, font | "No documents yet" 600 16/24 `#0b1220` at 317.5; "Documents you add show up here, with the data you can choose." 400 14/24 `#4a5468` at 349.5 | the same texts, 600 16px/24px rgb(11, 18, 32) at 533.8; 400 14px/24px rgb(74, 84, 104) at 565.8, 412.5 wide | match |
+| U20 7290:60388 | no document | "Set rules →" | state, hint | disabled primary; "Add a document first" before it | `ExplainedButton` `aria-disabled`, opacity 0.4, ignores clicks; the tooltip "Add a document first" on hover and keyboard focus, right-aligned to the button | match (FR-031, T022's pattern) |
+| U21 7290:61261 | a document added | "Set rules →" | label, state | "Set rules →" primary, usable | "Set rules" + arrow, usable; with a document without data it refuses with the baseline's message (next row) | match (FR-031; the needs-data flags are T053's) |
+| — | a document without data, "Set rules →" | refusal | behaviour | not drawn here (U25, T053) | the baseline's refusal: the first document without data is shown, "Select at least one field for 'Driving licence'." under its header, focus on its "All data items" | 001-S5.5 kept until T053 (W-less interim, see notes) |
+| U20 #13, U21 #19 | every state | footer | "Publish without rules" | not drawn on the documents step | still offered while no branch has a rule | T053 (FR-031: removed with the needs-data work) |
+| U20 7290:60525 | card open | card | box, fill, border, radius, padding, gap, shadow | 177, 313 (8 under the button), 360; white, 1 `#e1e6f0`, 8, 12, 8; 0 10 28 rgba(19, 21, 37, 0.16) | 177, 313, 360 × 198; the same values; `shadow-menu` | match |
+| U20 7295:61181 | card open | hint "12 more documents are coming soon. Search to see them." | presence | drawn | none (card 198 high, Figma 263 less the hint's 57 + 8) | F3 |
+| U20 7290:60526 | card open | search field | box, look, placeholder | 334 × 48 at 13, 13; `#f2f5fb`, bottom 2 `#22293a`, radius 4; search icon 20 action blue; "Find a document" 16/24 `#4a5468` | 190, 326, 334 × 48; `MenuSearchField variant="panel"`; rgb(242, 245, 251), 2px bottom, 4px; icon at 16; padding-left 44; "Find a document" | match |
+| U20 7290:60526 | card open | search field | focus | "focused look": bottom line 2 ink | focus moves into the field as the card opens; KERN's 4 px ring | FR-009 (as §5.1 MenuSearchField, coordinator 2026-11-08) |
+| U20 7290:60713 | card open | group label | box, text, font | 334 × 36, padding 8 0 4 8; "Available (2)" 600 14/24 `#4a5468` | 190, 382, 334 × 36, 8px 0 4px 8px; "Available (2)" (`availableGroup`), 600 14px/24px rgb(74, 84, 104); the group is `role="group"` named by it | match (FR-052e) |
+| U20 7290:60715, 7290:60719 | card open | rows | box, padding, gap, glyph, text | 334 × 40, padding 4 8, gap 8, radius 8; ink glyph 24; 400 14/24 `#0b1220` | 190, 418 and 458, 334 × 40, 4px 8px, 8px, 8px; `personal-id-ink.svg`, `driving-licence-ink-24.svg`; 400 14px/24px | match |
+| U20 7290:60715 (#21) | card open | first row | highlight | "Personal ID" highlighted `#f2f5fb` while the field has the focus | a row is highlighted (`layout/background-hued`) on hover and keyboard focus; ↓ from the field focuses the first row, ↑ / ↓ move, ↑ from the first returns to the field; Enter in the field adds the first available document | match ("Documents/Search result": "Highlighted = mouse hover or keyboard focus (arrow keys)"; see UNCERTAIN 3) |
+| U20 #19 (7290:60724) | typed "ce" | results | rows | "Driving licence", then "Birth certificate", "Health insurance card", "Residence permit" tagged "Coming soon" | "Available (1)" / "Driving licence" | F3 (only the catalog's documents) |
+| U20 7290:60990 | typed "taxi" | card | height | 130 | 130 | match |
+| U20 7290:61187 | typed "taxi" | no results | text, font, place | "No documents match “taxi”." 400 14/24 at 8, 12 in a 48 row, `text-black` | "No documents match “taxi”." (`noMatches(query.trim())`), 400 14px/24px rgb(11, 18, 32), 198, 382, 48 high, padding 12 0 12 8; in a `role="status"`, so the empty result is announced | match (the frame's `#000` is a detached colour: `layout/text-default`) |
+| U21 7290:61989 | card open, Personal ID added | groups | order, text | "Available (1)" / "Driving licence", "Added (1)" / "Personal ID" | the same (`searchGroupsOf`), catalog order in each | match (FR-052e) |
+| U21 7290:62279 | card open, Personal ID added | added row | glyph, text, tag | grey glyph `#4a5468`; name 400 14/24 `#4a5468`; tag "Added" `#e1e6f0` fill, padding 0 8, radius 4, 400 14/24 `#4a5468` | `personal-id-muted.svg`; the same name; the tag with `decorative-border-default` fill, 0 8px, 4px; not a button, not focusable | match (U21 #24) |
+| U21 #21 | a pick | card | behaviour | the card closes, the new document is selected and shown, the button turns outline | the same; the search clears; the focus returns to "Add document" | match (FR-031c) |
+| — | card open | card | closing | not drawn | Escape: closes, the focus on "Add document"; Tab out or a click outside: closes; reopening starts with an empty search | FR-009 (§3 Menu) |
+| U21 7290:61198 | a document added | divider | box, colour | padding 16 0, line 1 `#d0d5dd` | 177, 305, 230 × 33; line 177, 321, 1px rgb(208, 213, 221) | match (`bg-[#d0d5dd]`: §1.3 row below) |
+| U21 7290:61204 | a document added | list item (shown) | box, padding, gap, fill, radius | 177, 338, 230 × 40; padding 4 8; gap 8; `#f2f5fb`; 8 | 177, 338, 230 × 40; 4px 8px; 8px; rgb(242, 245, 251); 8px | match |
+| U21 7290:61204 | a document added | list item (shown) | glyph, name | action-blue glyph 24; name 600 14/24 `#0b1220`, ellipsis | `personal-id-action.svg` (`#1D56F0`) at 185, 346; 600 14px/24px, `truncate` | match |
+| U21 I7290:61204;6246:18954 | a document added | trash | box, icon, place | "Rules/Delete button" 32 × 32, radius 4, icon-delete-small 20 `#4a5468`; always shown | 367, 342, 32 × 32, 4px; `kern-icon--delete` 20 rgb(74, 84, 104); always shown; named "Remove Personal ID" | match (U21 #11) |
+| "Documents/List item" (description) | hover, keyboard focus | trash | colours | the red icon on the light-red fill | rgb(196, 39, 28) on rgb(254, 241, 240) | match (T052 verifies U23's hover frame) |
+| — | a document added | list item | semantics | not drawn | a button that shows the document, `aria-current="true"` on the shown one, `aria-controls` the detail | FR-012 |
+| U21 7290:61205 | a document added | detail card | box, border, radius | 448, 216, 832 × 560, 1 `#e1e6f0`, 12, white | the same | match |
+| U21 7290:61206 | a document added | header | box, padding, gap, line | 830 × 81 at 1, 1; padding 16 24; gap 16; bottom 1 `#e1e6f0` | 449, 217, 830 × 81; 16px 24px; 16px; 1px solid rgb(225, 230, 240) | match |
+| U21 7290:61207–10 | a document added | glyph, name, count | place, font, text | ink glyph 24 at 24, 28; "Personal ID" title/small 600 16/24 at 64, 16; "No data items chosen yet" 400 14/24 `#4a5468` | glyph 473, 245; h2 513, 233, 600 16px/24px; "No data items chosen yet" 400 14px/24px rgb(74, 84, 104) at 513, 257 | match (FR-051 (37)) |
+| U21 #12 (7290:61937) | data chosen | count | text | "6 of 25 data items chosen" | "1 of 25 data items chosen", "25 of 25 data items chosen" as items are ticked | match (`dataCountText`) |
+| U21 7290:61211 | a document added | select-all | text, place, states | "All data items", 116 × 32 at 690, 24; unchecked (A5), mixed (A6) | "All data items" at 1139.6, 241, 115.4 × 32; unchecked; mixed with some chosen; checked with all | match (002-S1.2; the label's width is text rendering) |
+| U21 7290:61212 | a document added | field area | box, padding | 830 × 428 at 1, 82; columns at 24, 16 | 449, 298, 830 × 428, padding 16px 24px; list at 473, 314 | match |
+| U21 7290:61213, 7290:61227, 7290:61238 | a document added | columns | count, width, gap | three columns 245 wide, 24 apart | CSS columns, 3 from 1024 px (244.7 wide: 782 less 2 × 24, the frame's 3 × 245 + 48 is 1 px wider than its card), gap 24; 2 from 640 px, 1 below | match |
+| U21 7290:61214 ff. | a document added | group rows | presence | "Name", "Birth", "Address", "Document", "Other details" with tri-state boxes, items indented 24 | none: the items in the catalog's order, not indented | F24 |
+| U21 7290:61217 | a document added | item | row | "Data/Check item" 32 high, box 20, label 14/24 | `Checkbox` 32 high (T016's table); a long label wraps under its text ("Street (may include the house number)", 56 as the frame's 7290:61232) | match |
+| U21 7290:61256 | a document added | field area | scroll | scrolls inside the card (scrollbar drawn) | `overflow-y: auto` from 1024 px; the items of another document start at the top | match (U21 #16) |
+| U21 7290:61257 | a document added | pager | box, line, layout | 830 × 49 at 1, 510; top 1 `#d0d8e6`; padding 0 16; gap 4, centred | 449, 726, 830 × 49; 1px solid rgb(208, 216, 230); 0 16px; 4px | match |
+| U21 7290:61258, 7290:61260 | one document | arrows | box, icon, state | button-tertiary-small 40 in a 48 slot; chevron 20 action blue; both at 40 % ("disabled") | `kern-btn--tertiary kern-btn--small` with `kern-sr-only` names "Previous document" / "Next document": 40 × 40 at 764 and 924 (slots 760, 920); chevrons rgb(29, 86, 240); `aria-disabled`, opacity 0.4 | match |
+| U21 7290:61259 | one document | pager text | text, font, place | "Document 1 of 1" 600 14/24 at 363, 13 | "Document 1 of 1" (`pagerOf`), 600 14px/24px at 812, 739 | match (FR-031) |
+| — | two documents | pager | behaviour | U22 (T052) | "Document 2 of 2" after adding Driving licence (shown, selected); "Previous document" shows Personal ID "1 of 2"; the focus stays on the arrow (now `aria-disabled` at the end) | match (FR-031b) |
+| U21 #10 | two documents | list | order | "oldest first" | catalog order (Personal ID, Driving licence) whatever the order of adding | F23 |
+| — | the trash, no rule checks it | removal | behaviour | U23 (T052: asks first, F72) | the baseline's removal kept until T052: removed at once, toast "Driving licence removed" + "Undo"; the next document shows (the previous one at the end); Undo puts it back, shows it at its catalog place and focuses its list item | interim (T052) |
+| — | the trash, rules check it | removal | behaviour | U24 (T052) | 002-S1.1's dialog "Remove Personal ID?" naming Rule 01–03 in Standard; "Cancel" keeps it | match (002-S1.1; T052 rebuilds the dialog) |
+| — | deselecting data that rules check | removal | behaviour | U26 (T052) | "Stop requesting City or town?" naming Rule 01 in Standard; "Cancel" keeps it ticked | match (baseline `RemoveDataDialog` flow kept) |
+| — | 320 × 640 | step | layout | not drawn | list card then detail, full width (288); no horizontal scroll (scrollWidth 320); fields in one column; the card spans the step and opens above "Add document" where the space under it, above the sticky footer, is too short (199 – 397, 8 above the button) | FR-010 (R10) |
+| — | loading, catalog error | step | parts | not drawn | `FeedbackLoader` "Loading the wallet documents…"; the danger alert with "Try again" | match (001-S5.10, 001-S5.11; unchanged) |
+| — | dropped data | step | W6 note | not drawn here | `CatalogDroppedNote` above the panels, unchanged | T053 (W6) |
+
+### U22, U23, U24, U26 Documents step: removal (S8) — T052, 2026-11-08
+
+Checked in Chromium (playwright-chrome) at 1455 × 880 and the heights below, signed in as
+`designer`, on a new connection with Personal ID and Driving licence (no rule) and on the seeded
+"Führerscheinantrag Stuttgart" (rules check both documents; saves aborted). The dialogs are T035's
+`ConfirmDialog` (§5.1); the rows here are the step's own.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U22 7290:62332 | two documents | list title, pager | text | "Added documents (2)"; "Document 2 of 2" with Next disabled | the same; Next `aria-disabled` | match (FR-031) |
+| U22 7294:61686 | two documents | list | gap | 4 | items at 338 and 382 (40 + 4) | match |
+| U22 7290:62349 | two documents | item, not shown | fill, glyph, name | none; ink glyph `#0b1220`; 400 14/24 `#0b1220` | transparent; `personal-id-ink.svg` (`#0B1220`); 400 14px/24px rgb(11, 18, 32) | match (T051's guess confirmed) |
+| U22 7290:62349 | two documents | item, not shown | height | 32 (no trash drawn) | 40: the trash's 32px place is kept, invisible (`opacity-0`) | FR-009 (the keyboard reaches the trash; no 8px jump on hover, U23's hovered item is 40); UNCERTAIN 1 |
+| U22 7290:62348 | two documents | item, shown | fill, glyph, name, trash | `#f2f5fb`, radius 8, padding 4 8; action-blue glyph; 600; grey trash 32 | rgb(242, 245, 251), 8px, 4px 8px 4px 0 plus the button's 8px left; `driving-licence-action.svg` (`#1D56F0`); 600; trash 32 × 32 at 367, 386, icon rgb(74, 84, 104) | match |
+| U23 7298:61782 | hover on an item | item | fill | none (no hover fill) | transparent (T051's hover `background-hued` removed) | match |
+| U23 7298:61782 | hover on an item | trash | presence, colours | "Rules/Delete button" state=hover: `#fef1f0` fill, icon `#c4271c` | opacity 1; rgb(254, 241, 240), icon rgb(196, 39, 28), on hover anywhere on the item | match (T051's red hover confirmed) |
+| U23 7298:61783 | hover on another item | shown item's trash | colour | grey | rgb(74, 84, 104), no fill | match |
+| "Documents/List item" (description) | keyboard in an item (Tab to the trash) | trash | look | "on hover/focus of any row it shows red with a light-red fill" | `group-has-focus-visible`: shown, red on light red; KERN's 4px focus ring on the focused button | match (the description's calm 2px ring: §3 focus ring, KERN's, as T051) |
+| U23 #13 (7298:61765) | hover | item | move cursor | "cursor shows it can be moved" | pointer (the item is a button); no drag | F23 |
+| U23 7298:62322 | trash, no rule checks it | dialog | box, text | 480 × 256; "Remove Driving licence?"; "Citizens won’t be asked for this document any more."; × | 480 × 256 at 480, 312; the same texts (`REMOVAL_DIALOG_COPY`); "Close" × | match (F72, FR-031) |
+| U23 7298:62322 | trash, no rule checks it | dialog buttons | label, look | "Keep document" secondary, "Remove document" filled `#c4271c`, 200 each, 16 apart | `kern-btn--secondary` 200; `kern-btn--primary kern-btn--danger` rgb(196, 39, 28) 200 | match |
+| — | the question open | ×, Escape, scrim, "Keep document" | behaviour | not drawn | each closes it (`keepDocument`), the document stays, the focus back on the trash | FR-009; scrim on: decision below (FR-052a) |
+| U24 7298:62500 | trash, rules check it | dialog | text | "Citizens won’t be asked for this document any more. 2 rules check its data: Rule 02 and Rule 03 in Standard. Edit or delete them before you publish." | Personal ID: "… 3 rules check its data: Rule 01, Rule 02 and Rule 03 in Standard. Edit or delete them before you publish."; Driving licence: "… 1 rule checks its data: Rule 04 in Standard. Edit or delete it before you publish." | match (002-S1.1; the rules are sample data; singular and lists of 3 not drawn: UNCERTAIN 3) |
+| U24 7298:62500 | edit flow | dialog | ending | "before you publish" (create) | "before you save." (`removalDialogCopyOf` test) | 002-S1.7 |
+| U24 7298:62552 (A12) | "Remove document" | list, pager, detail | state | "Added documents (1)", Personal ID shown, "Document 1 of 1" | the same; the rules stay (002-S1.3) | match |
+| — | "Remove document" | focus | target | not drawn | the newly shown document's list item (`document-item-pid`); "Add document" once none is left | FR-009 |
+| U24 7298:62627 | after the removal | toast | text | "Driving licence removed." + "Undo" | "Driving licence removed." + "Undo" (`EDITOR_COPY.removed`; the period and the editor's `utils.test.ts` line added by the coordinator, FR-002) | match |
+| U24 7298:62627 | after the removal | toast | kind | type=danger: `#c4271c`, white bin | neutral ink, no icon | T036 (UNCERTAIN there, as U61, U90) |
+| U24 7298:62627 ("toast with Undo (5 s)") | after the removal | toast | duration | 5 s | stays (still there after 7 s) until used or dismissed | T036 (WCAG 2.2.1) |
+| — | "Undo" | document, fields, selection, focus | behaviour | not drawn | Driving licence back with its 2 of 31 data items, shown at its catalog place ("Document 2 of 2"), focus on its list item | match (FR-031) |
+| — | Escape on the toast; Back to step 1 and on again | toast | behaviour | not drawn | the toast goes, the document stays removed (`expireRemoval`) | match (T036, T050) |
+| U26 6324:40396 | unticking "Date of birth" that rules check | dialog | text, buttons | "Stop requesting Date of birth?"; "Citizens won’t share their date of birth any more. 2 rules check it: Rule 01 in Standard and Rule 05 in Ambulance. Edit or delete them before you publish."; "Cancel" / "Stop requesting" (filled danger) | "Stop requesting Date of birth?"; "Citizens won’t share their date of birth any more. 2 rules check it: Rule 02 and Rule 03 in Standard. Edit or delete them before you publish."; "Cancel" / "Stop requesting"; 480 × 280 | match (002-S1.1, 002-S1.6; the rules are sample data) |
+| U26 #15 (6324:40357) | the question open | box, count behind it | state | still ticked, "6 of 25" (not updated yet) | still ticked, "4 of 25 data items chosen"; "Cancel" keeps it ticked | match (002-S1.1) |
+| — | unticking "All data items" that rules check | dialog | text | not drawn | "Stop requesting all data from Personal ID?"; "3 rules check this data: Rule 01, Rule 02 and Rule 03 in Standard. Edit or delete them before you publish." | 002-S1.2 (baseline title; UNCERTAIN 3) |
+| U01 6637:36649 (#16) | 1455 × 880 | list card, detail | height, page scroll | "at 800 px and taller the page doesn’t scroll, the two panels fill the space and only their lists scroll" (U22 A8 draws 560 at 880) | both 552 at y 216 (880 − 216 − 72 − 40); page `scrollHeight` 880 = the window; the fields scroll inside (`overflow-y: auto`) | match (552, not 560: T033's 40px bottom padding; 560 would scroll the page by the 8 px the note names as v6's fault) |
+| U01 #16 | 1455 × 1000 / 800 | panels | height | fill | 672 / 472, no page scroll | match |
+| U01 #16 | 1455 × 799 / 700 | panels | height | — (under 800) | 560 (U21's), the page scrolls (888) | match |
+| U01 #16 | the empty panel, ≥ 800 tall | empty panel | height | as the panels | `PANEL_HEIGHT_CLASSES` too | match |
+| U22 7290:62942 (A8) | card open, every document added | search card | content | "Everything in the wallet is added. Search to see what’s coming soon." + "Added (2)" | "Added (2)" only (T051's table) | F3 |
+| U22 7290:62942 (A8) | 9 of 31 chosen | fields | groups | Name, Birth, … with tri-state boxes | none | F24 |
+| — | 320 × 640 | step, dialog | layout | not drawn | list then detail, 273 wide, no horizontal scroll; the dialog 273 × 472 at 16, 84 | FR-010 |
+
+**`RemoveDataDialog` (a page component, no §2 row)**: T052, 2026-11-08: rebuilt on `ConfirmDialog` (480, filled danger confirm, scrim on); one paragraph names the rules grouped by variant ("Rule 02 and Rule 03 in Standard", `ruleListText()`), which also describes the dialog; asked before every document removal (F72), with "Keep document" / "Remove document", and before data that rules check, with "Cancel" / "Stop requesting"; `RemovedDataRuleItem` deleted
+
+### Decision (T035's carried note, for §2 or the T057 note)
+
+The removal question ("Remove Driving licence?", with or without rules) and the data item's "Stop
+requesting …?" keep `ConfirmDialog`'s default scrim (on): the scrim answers as "Keep document" /
+"Cancel", so nothing goes; a removed document comes back through its toast's "Undo", and a
+deselection changes only the unsaved flow. FR-052a's "a dialog that deletes" is read as one whose
+action can't be taken back on the page (the connection's or draft's delete). T057 can follow the
+same reading for the rule, group and variant deletes, which stay undoable until the flow is saved.
+
+### U25, U27, U28 (F23), U98 Documents step: needs data, dropped data, edit flow (S8) — T053, 2026-11-08
+
+Checked in Firefox (playwright-firefox) at 1440 × 880 (overlay scrollbar: body 1440) and 320 × 640,
+signed in as `designer`, on a new connection "T053 test" with Personal ID and Driving licence, the
+same stored as a draft with its GET routed (W6, the edit flow). The dialog is T035's `ConfirmDialog`
+(§5.1); the list item and the detail are T051/T052's tables; the rows here are T053's.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U25 7299:52174 | "Set rules →", Driving licence without data | dialog | box, title | 480 × 256; "No data selected in 1 document" title/large 600 24/32 | 480 × 256 at 480, 312; the same title (`noDataTitle(1)`) | match (F67, #55) |
+| U25 7299:52174 | the same | dialog | body | "Driving licence has no data chosen yet. Choose data for it or remove it." body/large 18/24 | the same (`noDataText(['Driving licence'])`) | match (#55) |
+| U25 7299:52174 | the same | buttons | order, look | "Remove 1 document" danger outline (`#c4271c`), "Choose data" primary; no cancel; × | `secondaryDanger` "Remove 1 document", primary "Choose data", "Close" ×; scrim on | match (T035's three-button form, U25 #19–#21) |
+| — | two documents without data | dialog | text | not drawn (#55: "the documents named, plural as drawn") | "No data selected in 2 documents"; "Personal ID and Driving licence have no data chosen yet. Choose data for them or remove them."; "Remove 2 documents" (wraps to two lines in its 200 px column) | decision 3 below |
+| U25 7298:62636 (A13) | dialog open | step behind it | marks | none: "No data items chosen yet", list unmarked (U25 #11) | none: the flags show once the dialog closes | match |
+| U25 #20 (7298:62814, A14) | "Choose data" (also ×, Escape, scrim) | step | state | dialog closed, on the documents step, the flagged document shown | the same; the shown document stays when flagged, else the first flagged one shows; focus on its "All data items" | match (U25 #20, #25; focus: FR-009, not drawn) |
+| U25 7298:63253 | A14 | "1 document needs data" | place, font, colour | top of the added list (17, 122 in the card), label/default 600 16/24 `#c4271c`, 4 above the items | 177, 338 (card 160, 216), 230 × 24, 600 16px/24px rgb(196, 39, 28); first item at 366 (338 + 24 + 4) | match |
+| U25 7298:62832 | A14 | flagged item | fill, glyph, name | `feedback-danger-background` `#fef1f0`, radius 8, padding 4 8; danger glyph; label/small 600 14/24 `#c4271c` | rgb(254, 241, 240), 8px; `driving-licence-danger.svg` (`#C4271C`, the frame's asset); 600 14px/24px rgb(196, 39, 28) | match |
+| U25 7298:62832 | A14 | flagged item | error icon | "icon-emergency_home-small" 24 `#c4271c` at the right padding (8) | `kern-icon kern-icon--danger` 24 × 24 at 375, 418 (right edge 399 = 407 − 8), `feedback-danger` | match ("not colour alone", U25 #23) |
+| U25 7298:62832 | A14, the flagged item shown | flagged item | selected look, trash | the error look only (no hued fill, no trash) though shown | the error look, `aria-current="true"`, trash hidden (`opacity-0`, place kept) | match |
+| "Documents/List item" (description, "error · hover") | hover / keyboard in the flagged item | trash | look | "Bin turns red on hover in every state" | the error icon fades out, the trash shows red on light red (opacity 1, rgb(196, 39, 28)) | match |
+| U25 7298:62832 | A14 | flagged item | height, place | 32 at 64 in the list | 40 at 410 (rows keep the trash's 32 px place, T052 UNCERTAIN 1) | T052 decision |
+| — | A14 | flagged item | semantics | not drawn | `aria-describedby` "1 document needs data" | FR-012 |
+| U25 7298:62838 | A14 | header red line | text, font, place | "Choose at least one data item, or remove this document." body/small 400 14/24 `#c4271c`, in place of the count, at 64, 40 | the same (`needsDataLine`), 400 14px/24px rgb(196, 39, 28), 513, 257 (448 + 1 + 64, 216 + 1 + 40) | match (U25 #24) |
+| U25 #24 | A14 | red line | semantics | "must be linked for screen readers" | `id="document-mdl-error"`, `aria-describedby` of "All data items" | match (001-S7.5) |
+| — | A14, a data item ticked | marks | behaviour | not drawn | the red goes from that document (list item, line, heading); unticking brings it back until the next "Set rules →" | match (T050's `documentsNeedingData`) |
+| U25 #19 | "Remove 1 document", Personal ID with data | removal | behaviour | "removes every document without data at once" | Driving licence goes (no toast: `removeDropped`); the rules step opens; Back shows "Added documents (1)", no marks | match; going on: decision 1 |
+| — | "Remove 2 documents", none left | removal | behaviour | not drawn | both go, the step stays, "Added documents (0)", the empty panel, focus on "Add document" | decision 1 |
+| U25 #16, U28 #25 (7298:64281) | no rule anywhere | footer | "Publish without rules" | absent | absent (create and edit flow); the rules step keeps it | match (FR-031) |
+| U25 #25 | a document added | "Set rules →" | state | usable (no `aria-disabled`) | usable; disabled with "Add a document first" only without documents (T051's row) | match |
+| U27 7298:63317, 7298:63736; U28 7298:64157 | drag | list | reordering | drag handle, drop line, drag image | none: catalog order, no move cursor | F23 (not read) |
+| — (W6, not drawn) | dropped field and document type | note | kind, place | not drawn; 005-S8 | `kern-alert--warning` at 160, 216, 1120 wide above the panels: fill rgb(255, 244, 224), 2px outline rgb(154, 74, 0) inside, header icon 32 (`kern-icon--warning`), title "The wallet no longer offers some data of this draft" 600 18/24 | match (§3 "Alert, page level" with a body, F22, T017's values) |
+| — (W6) | the same | note | body | list and "Remove it" | white body under a 1px warning line; bullets "Personal ID – eye_colour_retired", "birth_certificate"; "Remove it" `kern-btn--secondary kern-btn--small` | match (005-S8.3, 005-S8.4; F22) |
+| — (W6) | "Remove it" (no rule checks it) | note | behaviour | — | the note goes, the focus on the step's h1; the page no longer scrolls (880) | match (005-S8) |
+| U01 #16 | W6 note shown, 1440 × 880 | panels | height, page scroll | panels fill the window under the step head | panels keep the fill height (552) under the note (457): the page scrolls by the note + 24 (scrollHeight 1121) | decision 4 |
+| U98 7296:52323 | edit flow, documents | step head | h1, hint | "Choose documents and data"; "Add the documents citizens need to share for this connection. You can set rules in the next step using information you select here." | the same (was "Edit documents"); tab "Choose documents and data · Konnekt" | match (`pageTitleOf`, one line in the editor's `utils.ts`) |
+| U98 7296:52326 | edit flow, documents | columns | place | 160, 224 (64 + 160), 1120 × 560 at 888 tall | list 160, 224, 264 × 544; detail 448, 224, 832 × 544 at 880 tall (U01 #16 fill) | match |
+| U98 7298:63261–62 | edit flow | list, detail, pager | content | "Added documents (2)", Personal ID shown with trash, "6 of 25 data items chosen", "Document 1 of 2" | the same parts ("1 of 25 data items chosen" with the routed data) | match (T051/T052's tables) |
+| U98 7296:52342 ff. | edit flow | field groups | presence | tri-state groups | none | F24 |
+| U98 #28 (7296:52389) | edit flow | footer | actions | "← Back", "Discard changes", "Set rules →" secondary, "Save" primary | "Back", "Set rules →" primary | T084 (the edit flow's footer) |
+| — | edit flow, a document without data | needs data | behaviour | not drawn | the same dialog and marks as in the create flow | match (FR-031) |
+| — | 320 × 640 | list, detail | layout | not drawn | "1 document needs data" and the error item 254 wide, the red line wraps under the name (144 high), no horizontal scroll (scrollWidth 320) | FR-010 |
+| — | 320 × 640 | dialog | layout | not drawn | 288 × 408 at 16, 116; title on three lines; the buttons stacked, "Remove 1 document" above "Choose data" | FR-010 (T035's stack) |
+
+### Decisions (open points of T050 / T052, settled here)
+
+1. **"Remove n documents" goes on to the rules step** when documents with data are left: the dialog
+   answers "Set rules →", #14 (c) adopted "Remove them and continue" and #55 changed only its label
+   (U25 #19: "removes every document without data at once"). With none left the team member stays
+   on the documents step, the focus on "Add document". No undo toast: `removeDropped` removes several
+   documents at once (a toast would be dropped by the change of step anyway; the dialog was the
+   question, and a document without data takes no data with it).
+2. **No 002-S1.1 dialog before "Remove n documents"**: a flagged document has no data chosen, so
+   any rule that still checks its data was confirmed through 002-S1.1 when that data was deselected
+   (or came from a stored draft or an agent). The rules stay, the rules step's checks name them, and
+   publishing refuses while they remain (002-S1.3).
+3. **The plural body** (not drawn): "<A and B> have no data chosen yet. Choose data for them or
+   remove them." (`listText`: "A, B and C"); title "No data selected in <n> documents", button
+   "Remove <n> documents" (#55).
+4. **Panel height with the W6 note**: accepted. "1 document needs data" sits inside the list card
+   (U25 7298:62830), so it pushes nothing; the W6 note above the panels pushes them down by its
+   height plus the 24 px gap, so at ≥ 800 px tall the page scrolls by that much while the note
+   shows. The note asks to be read and acted on first and goes with "Remove it"; subtracting a
+   content-dependent height would need measuring (no inline styles).
+5. The flags show only once the dialog has closed (A13 draws the step unmarked behind it); the
+   dialog's words are kept as they were opened, so they don't change while it fades out.
+
 ## 6. Pass I: the screenshot matrix and the accessibility review
 
 Filled by pass I (quickstart V10–V13): one row per route × state × width (1440 px; 320 px at
@@ -2080,6 +2487,39 @@ Fixed by the coordinator during the phase: `TextField`'s trailing padding 56 →
 toggle is its only user) and the overview's list card `min-h-123` (T045's open row). No frame
 changed since the audit (every task's report). Open for a person: V1.6's and V2.1's
 announcements with NVDA or VoiceOver.
+
+### 6.3 US2 checkpoint (T054, 2026-11-08)
+
+Quickstart V3 (steps 1–8) and V4 (steps 1–6), by the coordinator with playwright-core 1.48.2 and
+Chromium (`/usr/bin/chromium`) at 1455 × 900 (799, 1000 tall and 320 × 640 for V4.6), against the
+dev server. Real mutations: only drafts the walk created ("T054 …", deleted afterwards); the three
+seeded drafts are unchanged (every mutation on "Führerscheinantrag Stuttgart" aborted by routing).
+The failed save and W6 are routed answers. No page error in any step.
+
+| step | result |
+|---|---|
+| V3.1 | `/form-connections/new`: tab "Name your connection · Konnekt", one h1, "Step 1 of 4" with "Next: Documents", one `progressbar` (`aria-valuenow` 1, "Connection"), header "Your connections / New connection", footer "Save and exit" / "Choose documents": pass |
+| V3.2 | "Choose documents" without a name → "Enter a name for the connection." under the field, the field focused and `aria-invalid` (C7): pass |
+| V3.3 | the description is a `<textarea>` (spell check on, `maxlength` 500, the design's placeholder); 501 characters (limit lifted) → "The description can have at most 500 characters.", focus on it (W10); both ⓘ ("About the connection name", "About the description") open on hover and on focus, one at a time: pass |
+| V3.4 | "Konnekt" → "Leave this connection?" with the design's body, "Discard connection", "Save progress", ×; Escape and × keep the flow; "Save progress" → `/` with "Draft saved. You can pick it up any time.", no local draft left; "Discard connection" → `/`, nothing stored, the local draft forgotten, no offer: pass |
+| V3.5 | unsaved changes, "Log out" → "Save before you log out?" / "Your latest changes will be lost if you log out now." / "Cancel", "Log out anyway", "Save and log out"; "Cancel" → focus on the account pill (F20): pass |
+| V3.6 | a stored draft: no `beforeunload` cancel before typing, cancelled after typing (the reload raised Chromium's `beforeunload` dialog, accepted by the script); after the forced reload "Restore your unsaved changes?" with the draft's name and date, "Discard them" / "Restore changes", ×; Escape, × and the scrim each open the draft's details and keep the local draft: pass (the browser's own "Leave site?" prompt: needs a person) |
+| V3.7 | the save routed to a 1.2 s 503 `{error, message, error_id}`: "Saving…" `aria-disabled`, the status "Saving draft…", then the toast "Couldn’t save. Check your internet connection and try again." with "Error ID: err-t054" and "Try again"; focus stays on "Save and exit"; no modal (F21); "Try again" (route lifted) saves and lands on the overview: pass |
+| V3.8 | two browser contexts on one draft (the same account: the conflict is the draft's version): the first "Save and exit" stores, the second → "This draft has changed" with "Cancel", "Reload", "Replace their changes"; "Replace their changes" stores the second version: pass |
+| V4.1 | no document: the empty panel with its picture; "Set rules" `aria-disabled` with "Add a document first" on hover and on keyboard focus (Tab): pass |
+| V4.2 | the search card "Available (2)" with "No documents yet …"; "zzz" → "No documents match “zzz”."; Personal ID added → "Document 1 of 1", "Added documents (1)", "No data items chosen yet" (the frames' wording at 0, T050), the fields in catalog order without group rows; two chosen → "2 of 25 data items chosen"; the card then "Available (1)" / "Added (1)"; Driving licence → "Document 2 of 2": pass |
+| V4.3 | hover shows the trash (no move cursor, F23); the trash → "Remove Personal ID?" / "Citizens won’t be asked for this document any more." / "Keep document" / "Remove document"; Keep keeps it; Remove → "Personal ID removed." + "Undo"; Undo restores it with its two chosen items and focuses it; the rules branch (002-S1.1's dialog naming the rules, F72): T052's table on the seeded draft: pass |
+| V4.4 | Driving licence without data, "Set rules" → "No data selected in 1 document" / "Driving licence has no data chosen yet. Choose data for it or remove it." / "Remove 1 document" / "Choose data"; "Choose data" → "1 document needs data" and "Choose at least one data item, or remove this document.", focus on its "All data items" (described by the line); "Remove 1 document" → the rules step (documents with data remain, T053): pass |
+| V4.5 | the seeded draft's GET routed with a field the catalog doesn't offer (`shoe_size`) → the warning "The wallet no longer offers some data of this draft" listing "Personal ID – shoe_size" with "Remove it" (no rule checks it: removed without a question); no mutation sent: pass |
+| V4.6 | the documents step at 1455 × 900 and 1000: the page doesn't scroll (panels fill the window); at 799 it scrolls (888, the fixed panels); no drag handle (F23), no "Coming soon" (F3), the footer "Back", "Save and exit", "Set rules" (no "Publish without rules"); 320 × 640: no horizontal scroll: pass |
+
+Fixed by the coordinator during the phase: the stored draft's header and restore title
+(`headerTitleOf(…, stored)` at both call sites), `IconTile`'s `action` tone (12 % tint, T049) with
+step 1 on it, and the undo toast's period (`EDITOR_COPY.removed`, FR-002). No frame changed since
+the audit (every task's report). Open for a person: V3.6's "Leave site?" prompt in a real browser
+(Chrome, Firefox, Safari: shown with unsaved work, absent without it and after "Save progress",
+"Discard connection", "Save and log out", "Log out anyway"), then the restore dialog after the
+forced reload; the screen reader's reading of the failed-save toast and "Saving draft…" (T048).
 
 ## 7. Removal checklist (pass H, FR-015, SC-003)
 

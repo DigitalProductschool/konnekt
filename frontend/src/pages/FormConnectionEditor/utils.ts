@@ -96,19 +96,13 @@ export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string
     return { title: RULES_COPY.title, hint: RULES_COPY.hint };
   }
   if (step === 'documents') {
-    return {
-      title: mode === 'edit' ? EDITOR_COPY.editDocumentsTitle : EDITOR_COPY.documentsTitle,
-      hint: EDITOR_COPY.documentsHint,
-    };
+    // The edit flow's step reads as the create flow's (U98 7296:52323)
+    return { title: EDITOR_COPY.documentsTitle, hint: EDITOR_COPY.documentsHint };
   }
-  switch (mode) {
-    case 'edit':
-      return { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint };
-    case 'first':
-      return { title: EDITOR_COPY.firstConnectionTitle, hint: EDITOR_COPY.connectionHint };
-    case 'create':
-      return { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
-  }
+  // The first connection's step 1 is the create flow's (U19 6699:45321, U18 6793:47711)
+  return mode === 'edit'
+    ? { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint }
+    : { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
 }
 
 /**
@@ -141,14 +135,20 @@ export function problemPlaceOf(
 
 /**
  * The header's title: the name as typed once there is one to show, otherwise what is being
- * made, or the edited connection's saved name.
+ * made, or the edited connection's saved name. A new connection reads "New connection" on
+ * step 1 (U19 6699:45350); a stored draft (`stored`) names itself on every step, step 1
+ * included (U19 6716:40925, U18 6793:47713).
  */
-export function headerTitleOf(state: EditorState, formConnection?: FormConnection): string {
+export function headerTitleOf(
+  state: EditorState,
+  formConnection?: FormConnection,
+  stored = false
+): string {
   const name = state.name.trim();
   if (formConnection) {
     return name || formConnection.name;
   }
-  return state.step !== 'connection' && name ? name : EDITOR_COPY.headerTitle;
+  return (stored || state.step !== 'connection') && name ? name : EDITOR_COPY.headerTitle;
 }
 
 /** Keeps documents in catalog order, the order of the API and the cards. */

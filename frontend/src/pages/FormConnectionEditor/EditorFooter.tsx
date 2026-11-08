@@ -9,10 +9,12 @@ import type { EditorFooterProps } from './types';
  * connection or a stored draft, S0, S1; FR-001) or "Discard changes" (the edit flow, FR-045,
  * where the editor passes `onDiscard`), both tertiary (cosmetic 17); on the right the step's
  * action, 8px after an outlined one where there are two. Step 1 continues to the documents, the
- * documents go on to the rules ("Add rules →"), the rules to the test step ("Test rules →"),
+ * documents go on to the rules ("Set rules →", unusable with "Add a document first" while
+ * no document is added, FR-031), the rules to the test step ("Test rules →"),
  * and the test step ends with "Publish" ("Save" when editing; spec 004, S2, S7, S8; F13). While
- * no branch has any rule and no rule editor is open, the documents and the rules step offer
- * publishing "without rules", which skips the test step (FR-001; F10, F17; W2). "Test rules" is
+ * no branch has any rule and no rule editor is open, the rules step offers publishing "without
+ * rules", which skips the test step (FR-001; F10, F17; W2); the documents step doesn't (FR-031,
+ * U25 #16, U28 #25: publishing without rules goes through the rules step). "Test rules" is
  * unusable while a rule is open or rules are being grouped, and says why on hover and focus
  * (FR-034, W21; T022's pattern); a click with other missing input says what is missing (F11),
  * and neither the personas nor their generation ever disable a button (spec 004, FR-003,
@@ -29,6 +31,7 @@ export default function EditorFooter({
   grouping,
   onBack,
   onAddRules,
+  addRulesExplanation = null,
   onTestRules,
   onPublish,
   canSaveDraft,
@@ -78,23 +81,16 @@ export default function EditorFooter({
         </button>
       )}
       {step === 'documents' && (
-        // U09 6235:18684, U98 6731:39850: the two actions are 8px apart
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-8">
-          {withoutRules && (
-            <button
-              type="button"
-              onClick={publishing ? undefined : onPublish}
-              aria-disabled={publishing}
-              className="kern-btn kern-btn--secondary"
-            >
-              <span className="kern-label">{withoutRulesLabel}</span>
-            </button>
-          )}
-          <button type="button" onClick={onAddRules} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{EDITOR_COPY.addRules}</span>
-            <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
-          </button>
-        </div>
+        <ExplainedButton
+          explanation={addRulesExplanation}
+          align="end"
+          wrapperClassName="ml-auto"
+          onClick={onAddRules}
+          className="kern-btn kern-btn--primary"
+        >
+          <span className="kern-label">{EDITOR_COPY.addRules}</span>
+          <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
+        </ExplainedButton>
       )}
       {step === 'rules' &&
         (withoutRules ? (

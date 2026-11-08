@@ -1,33 +1,41 @@
-import type { EditorState, EditorStep } from './types';
+import type { EditorState, EditorStep, LeaveFlowState } from './types';
 
 export const NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 500;
 
 export const EDITOR_COPY = {
   headerTitle: 'New connection',
-  // Step 1, Figma "02d Create a connection"
-  connectionTitle: 'Create a connection',
-  // Step 1 at /get-started, Figma "02 Create connection"
-  firstConnectionTitle: 'Create your first connection',
-  connectionHint: 'Connect any form to the EUDI Wallet for citizens to share verified information.',
-  formCardTitle: 'Which form are you connecting?',
+  // Step 1 (S7; U19 6699:45321), also at /get-started (U18 6793:47711 draws the same step head)
+  connectionTitle: 'Name your connection',
+  connectionHint: 'Link a service to the EUDI Wallet so citizens can share verified data.',
+  // The card "Connection card (highlight)" (U19 6699:45329; U98 6731:39829 when editing)
+  formCardTitle: 'Which service are you connecting?',
   formCardHint: 'You can change these details later.',
-  nameLabel: 'Form name',
+  editFormCardHint: 'The name shows in ‘Your connections’ and on the Published page.',
+  nameLabel: 'Connection name',
   namePlaceholder: 'e.g. Residents’ parking permit',
-  nameInfoLabel: 'About the form name',
-  nameInfo:
-    'Use the official name of the form so your team can find it easily. Citizens never see this name.',
+  nameInfoLabel: 'About the connection name',
+  // The ⓘ's text, two lines (U19 6809:46408; F60)
+  nameInfo: 'This name helps you and your colleagues find this connection later.',
+  nameInfoAdvice: 'Recommended: Use the name of a particular service. Citizens never see it.',
   descriptionLabel: 'Description',
-  descriptionPlaceholder: 'e.g. serviceBW form PK-30051',
+  descriptionPlaceholder: 'e.g. For people who live in the area and park on the street',
   descriptionInfoLabel: 'About the description',
   descriptionInfo:
     'A note for your team, such as the form’s ID in your form management system. Citizens never see it.',
-  // V2 says "Starts as a draft." first; connections have no drafts
-  formCardNote: 'Nothing goes live until you publish.',
-  continue: 'Continue',
+  // The info strip at the bottom of step 1's card, in a new connection's and a stored draft's
+  // flow (FR-026, Q8 (d); U19 6699:45346)
+  draftNote: 'Starts as a draft. It only becomes active when you publish.',
+  // The same strip in the edit flow of a published connection (U98 6731:39846, its copy F49)
+  editNote:
+    'Your changes take effect when you save them. Requests already in progress keep their previous configuration.',
+  // Step 1's footer action (U19 6699:45349, U98 6731:39850)
+  continue: 'Choose documents',
   // Step 2, Figma "03 Documents"
-  documentsTitle: 'Add documents',
-  documentsHint: 'Choose which wallet documents citizens share, and which data from each.',
+  // The step head (U20 7290:60373, U21 #7)
+  documentsTitle: 'Choose documents and data',
+  documentsHint:
+    'Add the documents citizens need to share for this connection. You can set rules in the next step using information you select here.',
   available: 'Available in the wallet',
   add: 'Add',
   added: 'Added',
@@ -41,7 +49,7 @@ export const EDITOR_COPY = {
     'Add a document from the list on the left. Its data shows up here, and you choose what to ask for.',
   allData: 'All data',
   shared: (selected: number, total: number) => `${selected} of ${total} shared`,
-  removed: (document: string) => `${document} removed`,
+  removed: (document: string) => `${document} removed.`,
   undo: 'Undo',
   loadingCatalog: 'Loading the wallet documents…',
   catalogErrorTitle: 'Couldn’t load the wallet documents',
@@ -49,16 +57,16 @@ export const EDITOR_COPY = {
   retry: 'Try again',
   back: 'Back',
   publish: 'Publish',
-  // The documents step goes on to the rules (U09 6235:18684, F17)
-  addRules: 'Add rules',
+  // The documents step goes on to the rules (U20 7290:60388, U21 #20; FR-031)
+  addRules: 'Set rules',
   publishWithoutRules: 'Publish without rules',
   saveWithoutRules: 'Save without rules',
   publishErrorText: 'Nothing went live. Check your connection and try again.',
-  // Editing a connection (no frames): the same steps, saving instead of publishing (FR-005)
-  editConnectionTitle: 'Edit the connection',
-  editConnectionHint: 'Change the form name or description, or go on to the documents.',
+  // Editing a connection: the same steps, saving instead of publishing (FR-005); step 1 as the
+  // build note U05 #27 words it (figma-audit report, cosmetic 6)
+  editConnectionTitle: 'Connection details',
+  editConnectionHint: 'Rename this connection or update its description.',
   editDocumentsTitle: 'Edit documents',
-  editNote: 'Requests already in progress keep their previous data.',
   save: 'Save',
   // The test step (spec 004, S2, S8; FR-004)
   testRules: 'Test rules',
@@ -77,7 +85,7 @@ export const DRAFT_COPY = {
   saveAndExit: 'Save and exit',
   saving: 'Saving…',
   savingStatus: 'Saving draft…',
-  saveErrorTitle: 'Couldn’t save your draft',
+  // The failed save's toast (FR-033, F67; U51 6197:11098), with "Try again" and the error ID
   saveNetworkError: 'Couldn’t save. Check your internet connection and try again.',
   tryAgain: 'Try again',
   draftBadge: 'Draft',
@@ -100,6 +108,27 @@ export const DRAFT_COPY = {
   replaceTheirChanges: 'Replace their changes',
   openConnection: 'Open the connection',
   saveAsNewDraft: 'Save as new draft',
+  cancel: 'Cancel',
+};
+
+// Leaving a flow (FR-026; CLAR 2026-11-07 #8, #47): "Leave this connection?" (U17 7173:52682),
+// "Save your changes?" (U99 7173:52836) and "Save before you log out?" (U17 6408:72737); the
+// wording of T048's task line and FR-026, whose frames T048 checks
+export const LEAVE_COPY = {
+  leaveTitle: 'Leave this connection?',
+  leaveText:
+    'If you leave now, you lose all progress. Save it to continue later, or discard the connection.',
+  discardConnection: 'Discard connection',
+  saveProgress: 'Save progress',
+  saveTitle: 'Save your changes?',
+  saveText:
+    'If you leave now, your changes are lost. Save them, or discard them and keep the active version.',
+  discardChanges: 'Discard changes',
+  save: 'Save',
+  logoutTitle: 'Save before you log out?',
+  logoutText: 'Your latest changes will be lost if you log out now.',
+  saveAndLogOut: 'Save and log out',
+  logOutAnyway: 'Log out anyway',
   cancel: 'Cancel',
 };
 
@@ -197,6 +226,8 @@ export const BRANCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 // Element ids that validation moves the focus to
 export const ELEMENT_IDS = {
   form: 'connection-form',
+  // The footer's "Save and exit", where the failed save's "Try again" leaves the focus
+  saveAndExit: 'save-and-exit',
   rulesProblem: 'rules-problem',
   // A rule's row or a group's frame
   rule: (branchKey: string, itemId: string) => `rule-${branchKey}-${itemId}`,
@@ -247,3 +278,5 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   draftError: null,
   conflict: null,
 };
+
+export const INITIAL_LEAVE_FLOW_STATE: LeaveFlowState = { status: 'idle' };

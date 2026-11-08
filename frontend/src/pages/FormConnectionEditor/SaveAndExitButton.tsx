@@ -1,4 +1,4 @@
-import { DRAFT_COPY } from './constants';
+import { DRAFT_COPY, ELEMENT_IDS } from './constants';
 import type { EditorFooterProps } from './types';
 
 /**
@@ -6,7 +6,8 @@ import type { EditorFooterProps } from './types';
  * tertiary button with the "save" glyph (cosmetic 17) that stores the flow as a draft. It is
  * never `disabled`, so it keeps the focus while a save runs: it is then `aria-disabled`, reads
  * "Saving…" and ignores clicks, and the page's polite status says "Saving draft…" (F21, W20;
- * FR-033). It keeps its label at every width (005-ACC.4).
+ * FR-033). It keeps its label at every width (005-ACC.4). The failed save's "Try again" (the
+ * toast's action, which goes with the toast) moves the focus here, where the save shows.
  */
 export default function SaveAndExitButton({
   savingDraft,
@@ -14,6 +15,7 @@ export default function SaveAndExitButton({
 }: Pick<EditorFooterProps, 'savingDraft' | 'onSaveAndExit'>) {
   return (
     <button
+      id={ELEMENT_IDS.saveAndExit}
       type="button"
       onClick={savingDraft ? undefined : onSaveAndExit}
       aria-disabled={savingDraft}

@@ -1,15 +1,17 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { REMOVE_DATA_COPY } from './constants';
-import RemovedDataRuleItem from './RemovedDataRuleItem';
+import { removalDialogCopyOf } from './DocumentsStep/utils';
 import type { RemoveDataDialogProps } from './types';
-import { removalCopyOf } from './utils';
 
 /**
- * Figma "Remove Personal ID?" (U10 6324:40071) and "Stop requesting Date of birth?" (U10
- * 6324:40396), asked before data that rules check stops being requested: removing a document,
- * deselecting a field, or unticking "All data" (FR-029, US4-AS3; F18). It names those rules
- * with their variants in a list between the design's two sentences. Confirming applies the
- * change and keeps the rules, which refuse publishing and saving while they remain (F11).
+ * The question before data stops being requested (F72, 002-S1.1; FR-029): "Remove Driving
+ * licence?" for a list item's trash, asked always (U23 7298:62322 "Keep document" / "Remove
+ * document"), and naming the rules that check the document when there are any (U24 7298:62500);
+ * "Stop requesting Date of birth?" before a data item, "All data items" or the note's "Remove it"
+ * takes away data that rules check (U26 6324:40396, "Cancel" / "Stop requesting"). One paragraph
+ * names the rules with their variants (`ruleListText()`), so that it also describes the dialog.
+ * Confirming applies the change and keeps the rules, which refuse publishing and saving while
+ * they remain (002-S1.3). The ×, Escape and the scrim answer as the cancel button: nothing goes,
+ * and a removal stays undoable through its toast, so the scrim stays on (FR-052a, T035).
  */
 export default function RemoveDataDialog({
   removal,
@@ -18,24 +20,17 @@ export default function RemoveDataDialog({
   onCancel,
   onConfirm,
 }: RemoveDataDialogProps) {
-  const copy = removalCopyOf(removal, rules.length, editing);
+  const copy = removalDialogCopyOf(removal, rules, editing);
   return (
     <ConfirmDialog
       open={removal !== null}
       title={copy.title}
       text={copy.text}
+      cancelLabel={copy.cancelLabel}
       confirmLabel={copy.confirmLabel}
-      cancelLabel={REMOVE_DATA_COPY.cancel}
       danger
       onCancel={onCancel}
       onConfirm={onConfirm}
-    >
-      <ul className="kern-list kern-list--bullet kern-list--large">
-        {rules.map((rule) => (
-          <RemovedDataRuleItem key={rule.key} rule={rule} />
-        ))}
-      </ul>
-      <p className="kern-body kern-body--large">{copy.after}</p>
-    </ConfirmDialog>
+    />
   );
 }

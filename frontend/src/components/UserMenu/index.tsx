@@ -64,6 +64,8 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
   const menuId = useId();
   // Set by "Cancel": the focus goes back to the menu button once the dialog has closed
   const returnFocus = useRef(false);
+  // What a flow's log-out (`onLogOut`) does when the warning's "Cancel" keeps the user signed in
+  const onCancelled = useRef<(() => void) | null>(null);
   const shown = open && placement !== null ? placement : null;
 
   useEffect(() => {
@@ -139,7 +141,8 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
     navigate(ROUTES.login, { replace: true, state: loggedOut });
   }
 
-  async function logOut() {
+  async function logOut(whenCancelled?: () => void) {
+    onCancelled.current = whenCancelled ?? null;
     // The work of the last second counts too (R11)
     flushPendingLocalDrafts();
     const records = username === null ? [] : store.list(username);
@@ -154,7 +157,7 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
   function handleLogOut() {
     if (onLogOut) {
       dispatch({ type: 'closed' });
-      onLogOut(() => void logOut(), triggerRef.current);
+      onLogOut((whenCancelled) => void logOut(whenCancelled), triggerRef.current);
       return;
     }
     void logOut();
@@ -163,6 +166,9 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
   function handleSignOutCancel() {
     returnFocus.current = true;
     dispatch({ type: 'signOutCancelled' });
+    const cancelled = onCancelled.current;
+    onCancelled.current = null;
+    cancelled?.();
   }
 
   async function handleSignOutConfirm() {

@@ -2,10 +2,14 @@ export interface UserMenuProps {
   /**
    * In a flow (FR-026, T048): "Log out" calls this instead of logging out, so that the editor
    * can ask "Save before you log out?" when the flow has unsaved changes. `logOut` then logs out
-   * as "Log out" does without it ("Log out anyway", or after saving); `trigger` is the account
-   * pill, where the focus goes back on "Cancel" (F20)
+   * as "Log out" does without it ("Log out anyway", or after saving), and calls `onCancelled`
+   * if the local-drafts warning's "Cancel" keeps the team member signed in; `trigger` is the
+   * account pill, where the focus goes back on "Cancel" (F20)
    */
-  onLogOut?: (logOut: () => void, trigger: HTMLButtonElement | null) => void;
+  onLogOut?: (
+    logOut: (onCancelled?: () => void) => void,
+    trigger: HTMLButtonElement | null
+  ) => void;
 }
 
 export interface SignOutDialogProps {

@@ -19,10 +19,12 @@ import {
   saveDraft,
   updateFormConnection,
 } from '../../api/form-connections';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
+import type { ToastContent } from '../../components/Toast/types';
 import WizardLayout from '../../components/WizardLayout';
 import WizardProgress from '../../components/WizardProgress';
 import { CONNECTION_STEPS, ROUTES } from '../../constants';
@@ -37,11 +39,36 @@ import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
 import ConnectionStep from './ConnectionStep';
-import { DRAFT_COPY, EDITOR_COPY, ELEMENT_IDS, STEP_ORDER } from './constants';
+import {
+  DRAFT_COPY,
+  ELEMENT_IDS,
+  INITIAL_LEAVE_FLOW_STATE,
+  LEAVE_COPY,
+  STEP_ORDER,
+} from './constants';
 import DocumentsStep from './DocumentsStep';
+import {
+  DOCUMENTS_STEP_COPY,
+  DOCUMENTS_STEP_IDS,
+  INITIAL_DOCUMENTS_VIEW_STATE,
+} from './DocumentsStep/constants';
+import { documentsViewReducer } from './DocumentsStep/reducer';
+import {
+  indexAfterAdding,
+  indexAfterRemoval,
+  listedDocumentsOf,
+  listIdsOf,
+  needsDataOf,
+  noDataText,
+  noDataTitle,
+  removalDialogOf,
+  removeDocumentsLabel,
+  rulesCheckingDocument,
+} from './DocumentsStep/utils';
 import DraftConflictDialog from './DraftConflictDialog';
 import EditorFooter from './EditorFooter';
 import FindingsAnnouncer from './FindingsAnnouncer';
+import { hasUnsavedWork, leaveFlowStep } from './leaveFlow';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
@@ -61,14 +88,19 @@ import {
   neighbourOf,
   rulesReducer,
 } from './RulesStep/utils';
-import SaveDraftAlert from './SaveDraftAlert';
 import TestStep from './TestStep';
 import type {
   ConnectionWizardProps,
   DraftConflict,
+  DraftSaveError,
+  DroppedData,
   EditorErrors,
   EditorStart,
   FormConnectionEditorPageProps,
+  LeaveEffect,
+  LeaveFlowAction,
+  LeaveFlowContext,
+  LeaveFlowState,
   PendingRemoval,
 } from './types';
 import {
@@ -100,7 +132,6 @@ import {
   startOfOrigin,
   stepForDroppedData,
   validateConnection,
-  validateDocuments,
 } from './utils';
 
 /**
@@ -123,8 +154,11 @@ import {
  * rule editor with changes asks "Save changes to Rule 01?" first, and closing that question
  * cancels (FR-012). A missing or too long name sends the team member to step 1 and stores
  * nothing. Otherwise the flow is stored as a draft, with its step, and the overview confirms it
- * (W1). A failed save keeps the team member in the flow with their work, and says why above the
- * step's content (FR-013; W3).
+ * with its toast. While it saves, "Save and exit" reads "Saving…" and a polite status says
+ * "Saving draft…" (F21, no saving modal). A failed save keeps the team member in the flow with
+ * their work, and the toast "Couldn't save. Check your internet connection and try again." says
+ * so, with "Try again" and the error ID of a server error, without moving the focus (FR-033,
+ * F67; a `400` shows the server's message without "Try again").
  *
  * Two team members on one stored draft (S2; FR-022 to FR-024; R6): a save or a publish that meets
  * another team member's save, publish or deletion of the draft is refused before anything is
@@ -140,8 +174,23 @@ import {
  *   draft, and the overview confirms it as after "Save and exit".
  * - "Cancel" closes the dialog, and the work stays in the flow and in the local draft.
  *
- * An answer that fails otherwise shows as its save's alert or in the publish dialog, as any
+ * An answer that fails otherwise shows as its save's toast or in the publish dialog, as any
  * failed save or publish does.
+ *
+ * Leaving (spec 008, FR-026; CLAR 2026-11-07 #8, #47; leaveFlow.ts): in a flow, the product name
+ * and "Your connections" ask first. A new connection or a stored draft asks "Leave this
+ * connection?": "Save progress" runs "Save and exit" (a missing name sends the team member to step
+ * 1 with its message), and "Discard connection" leaves without storing and forgets the flow's
+ * local draft. The edit flow of a published connection asks "Save your changes?" while it has
+ * unsaved changes: "Save" opens the save dialog, which leaves to the details once saved, and
+ * "Discard changes" leaves without saving. "Log out" with unsaved work asks "Save before you log
+ * out?": "Save and log out" stores the flow as above and then logs out, "Log out anyway" forgets
+ * the local draft and logs out, and "Cancel" returns the focus to the account pill. If the account
+ * menu's warning about other local drafts then cancels the log-out, the flow ends as without it:
+ * a stored flow exits as its save does, a discarded one leaves for the overview. Only an answer
+ * that stores asks "Save changes to Rule 01?" first. Closing or reloading the tab with unsaved
+ * work gets the browser's "Leave site?". There is no router blocker (research V9): the browser's
+ * back button leaves without asking, and the local draft is the safety net (005-S4).
  *
  * Local drafts (FR-014 to FR-018; R9, R10): a new connection and a stored draft keep their unsaved
  * work on this device, in the signed-in account's local draft of their flow key (`new-<uuid>` or
@@ -149,8 +198,9 @@ import {
  * isn't safe elsewhere: it goes when the work comes back to the baseline (the empty flow, or the
  * stored draft as loaded on its edit route), and after a successful "Save and exit" or publish.
  * A stored draft's local draft resumed through `?local=` has no baseline, as that flow doesn't
- * read the stored draft, so only a save or a publish removes it. Leaving the flow otherwise, or a
- * failed save, keeps it. The published edit flow never has one.
+ * read the stored draft, so only a save, a publish or a discard removes it. Leaving the flow
+ * otherwise (the browser's back button), or a failed save, keeps it. The published edit flow
+ * never has one.
  * - The create routes name their flow in the URL, as `?local=<flow key>`, read once when the page
  *   mounts. A key with the account's local draft resumes it at its step, a stored draft's under
  *   its own origin, with the "Draft" badge; a `draft-<id>` key without one opens the stored
@@ -244,6 +294,12 @@ function ConnectionWizard({
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
   const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
   const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
+  // What the documents step shows of the documents (FR-031, research R8): the shown one, the
+  // search, the removal its toast can undo. Here, since the footer and the toast are the editor's
+  const [documentsView, dispatchView] = useReducer(
+    documentsViewReducer,
+    INITIAL_DOCUMENTS_VIEW_STATE
+  );
   // An opened link's notice (S5; FR-031), checked again against the rules the wizard opens, until
   // it is dismissed
   const [linkNotice, setLinkNotice] = useState<LinkNoticeKind | null>(() =>
@@ -286,6 +342,31 @@ function ConnectionWizard({
     step: state.step,
     enabled: flowKey !== null,
   });
+  // What is stored, to tell whether the flow holds unsaved work (FR-026): the local draft's
+  // baseline, or a published connection's content as loaded
+  const [storedContent] = useState(() =>
+    origin.kind === 'published'
+      ? localContentOf(flow.initialStates.editor, flow.initialStates.rules)
+      : flow.baseline
+  );
+  const unsaved = hasUnsavedWork(origin.kind, localContent, storedContent);
+  // The leave model (leaveFlow.ts): the state renders its question; the ref holds the latest
+  // state for the steps that follow a save, after its rule question or its request
+  const [leave, setLeave] = useState<LeaveFlowState>(INITIAL_LEAVE_FLOW_STATE);
+  const leaveRef = useRef<LeaveFlowState>(INITIAL_LEAVE_FLOW_STATE);
+  // UserMenu's log-out and its account pill, from the last "Log out" (UserMenu's `onLogOut`)
+  const logOutRef = useRef<{
+    logOut: (onCancelled?: () => void) => void;
+    trigger: HTMLButtonElement | null;
+  } | null>(null);
+  // The failed save's toast (FR-033), shown while its failure is the editor's `draftError`: a
+  // change of step or a new save takes it away, as does Escape on the toast
+  const [saveFailure, setSaveFailure] = useState<{
+    error: DraftSaveError;
+    toast: ToastContent;
+  } | null>(null);
+  // Counts the failures, so that each toast is new and announced again
+  const saveFailures = useRef(0);
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const { status: optionSetsStatus, optionSets, retry: retryOptionSets } = useOptionSets();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -298,6 +379,24 @@ function ConnectionWizard({
   // The flow moved to the documents step for dropped data: the note takes the focus there (S8)
   const focusDroppedNote = useRef(false);
   const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
+  // The documents step's list: the documents the catalog offers, in catalog order (F23)
+  const listed = useMemo(
+    () => listedDocumentsOf(state.documents, documentTypes),
+    [state.documents, documentTypes]
+  );
+  // The documents step's question before a document goes (F72): which document, as the dialog
+  // names it; null while none is asked (`removalDialogOf()`: with or without rules)
+  const askedDocumentType =
+    removalDialogOf(documentsView.confirmRemoval) === null
+      ? undefined
+      : documentTypes.find((type) => type.key === documentsView.confirmRemoval?.documentId);
+  const askedDocumentRemoval: PendingRemoval | null = askedDocumentType
+    ? { type: 'document', documentType: askedDocumentType.key, label: askedDocumentType.label }
+    : null;
+  // The names of the documents "Set rules →" last flagged as having no data, in list order, which
+  // the dialog about them shows (F67, #55); kept as they were, so that the dialog's words don't
+  // change while it fades out after "Remove 1 document"
+  const [noDataNames, setNoDataNames] = useState<string[]>([]);
   // Data the catalog dropped, once it has loaded; never in the published edit flow (FR-026)
   const dropped = useMemo(
     () =>
@@ -334,16 +433,37 @@ function ConnectionWizard({
   });
   // A rule being edited counts as a rule (FR-006)
   const rulesNextAction = rulesNextActionOf(rules);
+  // The publish and save dialog skips the rules when the documents step's "… without rules"
+  // opens it; the edit flow's "Save" from a leave question opens it there with its rules
+  const dialogWithoutRules =
+    state.step === 'documents' && rulesNextAction === 'publishWithoutRules';
   // A conflict shows where it was met: after "Save and exit" in its own dialog, after publishing
   // in the publish dialog (S2)
   const saveConflict = state.conflict?.during === 'save' ? state.conflict : null;
   const publishConflict = state.conflict?.during === 'publish' ? state.conflict : null;
+  const saveFailureToast =
+    saveFailure !== null && saveFailure.error === state.draftError ? saveFailure.toast : null;
   const pageTitle = pageTitleOf(
     state.step,
     editing ? 'edit' : firstConnection ? 'first' : 'create'
   );
 
   useDocumentTitle(pageTitle.title);
+
+  // Closing or reloading the tab with unsaved work: the browser's own "Leave site?" (FR-026, V9).
+  // Only while there is any, so that a flow without it closes silently
+  useEffect(() => {
+    if (!unsaved) {
+      return;
+    }
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      // Browsers before the standard way (Chrome and Edge before 119) need a return value
+      event.returnValue = true;
+    }
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved]);
 
   // After Reload, the dialog that had the focus is gone
   useEffect(() => {
@@ -358,6 +478,9 @@ function ConnectionWizard({
     if (shownStep.current !== state.step) {
       shownStep.current = state.step;
       dispatchRules({ type: 'dismissToast' });
+      // The documents' undo toast has gone with the step (`goToStep`), and the search card
+      dispatchView({ type: 'expireRemoval' });
+      dispatchView({ type: 'clearSearch' });
       titleRef.current?.focus();
     }
   }, [state.step]);
@@ -422,10 +545,15 @@ function ConnectionWizard({
     }
   }, [state.step, rules.openBranch, onLinkLeft]);
 
-  const dismissToast = useCallback(() => dispatch({ type: 'dismissToast' }), []);
+  // The step's toast goes: a removed document can no longer come back through it
+  const dismissToast = useCallback(() => {
+    dispatch({ type: 'dismissToast' });
+    dispatchView({ type: 'expireRemoval' });
+  }, []);
+  const dismissSaveFailure = useCallback(() => setSaveFailure(null), []);
   const dismissRulesToast = useCallback(() => dispatchRules({ type: 'dismissToast' }), []);
 
-  /** Shows the messages, then moves the focus to the first problem. */
+  /** Shows the messages, then moves the focus to the first problem (step 1's fields). */
   function refuse(errors: EditorErrors) {
     flushSync(() => dispatch({ type: 'showErrors', errors }));
     const id = firstInvalidElementId(errors, state.documents, documentTypes);
@@ -443,20 +571,75 @@ function ConnectionWizard({
     dispatch({ type: 'goToStep', step: 'documents' });
   }
 
-  /** The documents step's "Add rules →" and "Publish without rules": the documents' checks. */
-  function documentsAreValid(): boolean {
-    const errors = validateDocuments(state.documents, documentTypes);
-    if (hasErrors(errors)) {
-      refuse(errors);
-      return false;
-    }
-    return true;
-  }
-
+  /**
+   * "Set rules →" (FR-031, F67): unusable with "Add a document first" while no document is added
+   * (the footer's `ExplainedButton`); otherwise the documents without data are flagged and "No
+   * data selected in 1 document" asks about them (U25 A13), or, with none, the rules step opens
+   * and the flags go.
+   */
   function handleAddRules() {
-    if (documentsAreValid()) {
+    const ids = needsDataOf(state.documents, documentTypes);
+    dispatchView({ type: 'flagNeedsData', documentIds: ids });
+    if (ids.length > 0) {
+      setNoDataNames(
+        listed
+          .filter(({ documentType }) => ids.includes(documentType.key))
+          .map(({ documentType }) => documentType.label)
+      );
+    } else {
       dispatch({ type: 'goToStep', step: 'rules' });
     }
+  }
+
+  /**
+   * The dialog's "Choose data", its ×, Escape and the scrim: it closes and the team member stays
+   * on the documents step with the flagged documents marked (U25 A14), the shown one if it is
+   * flagged, else the first flagged one. Its "All data items", which the red line describes,
+   * takes the focus from "Set rules →", where the dialog returns it.
+   */
+  function handleChooseData() {
+    const listIds = listIdsOf(listed);
+    const after = documentsViewReducer(documentsView, { type: 'chooseData', listIds });
+    const shown = listIds[after.selectedIndex];
+    flushSync(() => dispatchView({ type: 'chooseData', listIds }));
+    requestAnimationFrame(() => {
+      if (shown) {
+        document.getElementById(ELEMENT_IDS.allData(shown))?.focus();
+      }
+    });
+  }
+
+  /**
+   * The dialog's "Remove 1 document" / "Remove <n> documents" (#55): the flagged documents go at
+   * once, without an undo toast (`removeDropped`; the dialog was the question). It answers "Set
+   * rules →": with documents left, which all have data, the rules step opens, as the baseline's
+   * "Remove them and continue" did (#14 (c); #55 changed its label only). With none left the
+   * team member stays, the focus on "Add document". Rules that check a removed document stay and
+   * are named in the rules step's checks (002-S1.3): its data was deselected through 002-S1.1's
+   * dialog already, so no second question is asked.
+   */
+  function handleRemoveNeedingData() {
+    const flagged = documentsView.needsData.documentIds;
+    const items: DroppedData[] = listed
+      .filter(({ documentType }) => flagged.includes(documentType.key))
+      .map(({ documentType }) => ({
+        documentType: documentType.key,
+        field: null,
+        label: documentType.label,
+      }));
+    const remaining = state.documents.filter(
+      (document) => !flagged.includes(document.document_type)
+    );
+    const listIds = listIdsOf(listed);
+    flushSync(() => {
+      dispatch({ type: 'removeDropped', items });
+      dispatchView({ type: 'removeNeedsDataDone', listIds });
+    });
+    if (remaining.length > 0 && needsDataOf(remaining, documentTypes).length === 0) {
+      dispatch({ type: 'goToStep', step: 'rules' });
+      return;
+    }
+    requestAnimationFrame(() => document.getElementById(DOCUMENTS_STEP_IDS.addDocument)?.focus());
   }
 
   /**
@@ -498,7 +681,10 @@ function ConnectionWizard({
   function publishRules(current: RulesState) {
     if (passesPreChecks(current)) {
       dispatch({ type: 'openDialog' });
+      return;
     }
+    // The edit flow's "Save" from a leave question stays in the flow, at the problem
+    stepLeave({ type: 'failed' });
   }
 
   /**
@@ -519,13 +705,6 @@ function ConnectionWizard({
   function handlePublish() {
     // The flow is being stored as a draft: publishing as well would make a second connection
     if (state.savingDraft) {
-      return;
-    }
-    if (state.step === 'documents') {
-      // "Publish without rules", offered while no branch has any rule (FR-001)
-      if (documentsAreValid()) {
-        dispatch({ type: 'openDialog' });
-      }
       return;
     }
     leaveEditor({ type: 'publish' });
@@ -558,8 +737,9 @@ function ConnectionWizard({
   }
 
   /**
-   * "Save and exit", or the alert's "Try again": through the rule editor's question first, whose
-   * either answer goes on with the save, and closing it cancels the save (S1; FR-012).
+   * "Save and exit", or the failed save toast's "Try again": through the rule editor's question
+   * first, whose either answer goes on with the save, and closing it cancels the save (S1;
+   * FR-012).
    */
   function handleSaveAndExit() {
     if (state.savingDraft || state.publishing) {
@@ -572,14 +752,16 @@ function ConnectionWizard({
    * Stores the flow as a draft, with the rules as they are now and the step, then opens the
    * overview, which confirms it (S1; R12; W1). A missing or too long name opens step 1, shows its
    * message under "Form name" and focuses the field, and nothing is stored (S1.2). A failure
-   * keeps the team member in the flow with their work, and the alert above the step says why
-   * (FR-013; W3). Another team member's save, publish or deletion of the stored draft opens the
-   * conflict dialog instead (S2). `replace`, its "Replace their changes", sends the same save over
-   * their changes.
+   * keeps the team member in the flow with their work, and the failed save's toast says why
+   * (FR-013, FR-033). Another team member's save, publish or deletion of the stored draft opens
+   * the conflict dialog instead (S2). `replace`, its "Replace their changes", sends the same save
+   * over their changes.
    */
   async function saveDraftAndExit(current: RulesState, replace = false) {
     const errors = draftNameErrors(state.name);
     if (hasErrors(errors)) {
+      // "Save progress" or "Save and log out" stays in the flow too (FR-026, F18)
+      stepLeave({ type: 'failed' });
       if (state.step !== 'connection') {
         flushSync(() => dispatch({ type: 'goToStep', step: 'connection' }));
       }
@@ -596,6 +778,8 @@ function ConnectionWizard({
       }
       exitWithSavedDraft(payload.name);
     } catch (error) {
+      // A leave question's save stays in the flow, where the failure or the conflict shows
+      stepLeave({ type: 'failed' });
       if (handleUnauthorized(error)) {
         return;
       }
@@ -608,23 +792,61 @@ function ConnectionWizard({
     }
   }
 
-  /** A stored draft: the local draft has no unsaved work left (FR-018), and the overview says so. */
+  /**
+   * A stored draft: the local draft has no unsaved work left (FR-018), and the overview says so;
+   * after "Save and log out", the team member logs out instead (FR-026).
+   */
   function exitWithSavedDraft(name: string) {
     forget();
+    const effect = stepLeave({ type: 'saved' });
     const locationState: OverviewLocationState = { draftSaved: name };
-    navigate(ROUTES.overview, { state: locationState });
+    const toOverview = () => navigate(ROUTES.overview, { state: locationState });
+    if (effect.type === 'logOut') {
+      // The draft is stored: a cancelled log-out exits as "Save and exit" does
+      logOutNow(effect.forget, toOverview);
+      return;
+    }
+    toOverview();
   }
 
   /**
-   * A failed draft save, also an answer of the conflict dialog: the dialog closes first, returning
-   * the focus to "Save and exit", and then the alert above the step takes it (S1.5).
+   * A failed draft save, also an answer of the conflict dialog, whose dialog closes first and
+   * returns the focus to "Save and exit": the failed save's toast, which replaces the toast
+   * shown and leaves the focus where it is (FR-033, F67, W20). A network failure or a `5xx`
+   * offers "Try again" and stays until it is used or dismissed; a `400` shows the server's
+   * message for the toast's usual time.
    */
   function showDraftSaveFailure(error: unknown) {
     if (state.conflict) {
       flushSync(() => dispatch({ type: 'closeConflict' }));
     }
-    // A new object each time, so that the alert takes the focus again
-    dispatch({ type: 'saveDraftFailed', error: draftSaveErrorOf(error) });
+    const failure = draftSaveErrorOf(error);
+    saveFailures.current += 1;
+    dispatch({ type: 'saveDraftFailed', error: failure });
+    // One toast at a time (research R8): the failure replaces the step's
+    dispatch({ type: 'dismissToast' });
+    dispatchView({ type: 'expireRemoval' });
+    dispatchRules({ type: 'dismissToast' });
+    setSaveFailure({
+      error: failure,
+      toast: {
+        // Negative, so that it never shares an id with the step's toasts in the one region
+        id: -saveFailures.current,
+        message: failure.notice.message,
+        actionLabel: failure.retryable ? DRAFT_COPY.tryAgain : undefined,
+        errorId: failure.notice.error_id,
+      },
+    });
+  }
+
+  /**
+   * The failed save's "Try again": the toast goes with its button, so the focus moves to "Save
+   * and exit", which reads "Saving…" while the save runs again (FR-033)
+   */
+  function retrySave() {
+    flushSync(() => setSaveFailure(null));
+    document.getElementById(ELEMENT_IDS.saveAndExit)?.focus();
+    handleSaveAndExit();
   }
 
   /** A failed publish, also an answer of a conflict in the publish dialog, which shows why. */
@@ -703,6 +925,81 @@ function ConnectionWizard({
     }
   }
 
+  /** A step of the leave model (leaveFlow.ts), for a save's outcome: what follows it */
+  function stepLeave(action: LeaveFlowAction): LeaveEffect {
+    const { state: next, effect } = leaveFlowStep(leaveRef.current, action);
+    leaveRef.current = next;
+    setLeave(next);
+    return effect;
+  }
+
+  /**
+   * A question or an answer of the leave model: its dialog opens or closes at once, so that the
+   * focus can move where the answer leads (step 1's name, the rule question, the account pill),
+   * and then the editor does what the model decided.
+   */
+  function answerLeave(action: LeaveFlowAction) {
+    const { state: next, effect } = leaveFlowStep(leaveRef.current, action);
+    leaveRef.current = next;
+    flushSync(() => setLeave(next));
+    switch (effect.type) {
+      case 'leave':
+        if (effect.forget) {
+          forget();
+        }
+        navigate(ROUTES.overview);
+        return;
+      case 'store':
+        // Through "Save changes to Rule 01?" while the rule has unsaved changes (Q8 (c)); a save
+        // that ends without storing reports `failed`
+        leaveEditor(effect.via === 'saveAndExit' ? { type: 'saveAndExit' } : { type: 'publish' });
+        return;
+      case 'logOut':
+        // "Log out anyway" has forgotten the flow's local draft: a cancelled log-out leaves the
+        // flow, as "Discard connection" does; otherwise the flow stays as it is
+        logOutNow(effect.forget, effect.forget ? () => navigate(ROUTES.overview) : undefined);
+        return;
+      case 'focusUserMenu':
+        logOutRef.current?.trigger?.focus();
+        return;
+      case 'none':
+      case 'exit':
+        return;
+    }
+  }
+
+  /** The product name and "Your connections" in the header (TopBar's `onLeave`; FR-026) */
+  function handleLeave() {
+    answerLeave({ type: 'askLeave', context: leaveContext() });
+  }
+
+  /** "Log out" in the account menu (UserMenu's `onLogOut`; FR-026, F20) */
+  function handleLogOut(
+    logOut: (onCancelled?: () => void) => void,
+    trigger: HTMLButtonElement | null
+  ) {
+    logOutRef.current = { logOut, trigger };
+    answerLeave({ type: 'askLogout', context: leaveContext() });
+  }
+
+  /** What the leave model decides from: the flow, its unsaved work, a save or publish running */
+  function leaveContext(): LeaveFlowContext {
+    return { origin: origin.kind, unsaved, busy: state.savingDraft || state.publishing };
+  }
+
+  /**
+   * Logs out as "Log out" does (UserMenu): the local drafts flushed, the warning if the account
+   * still has any on this device, then the sign-in screen with "You're logged out.". The flow's
+   * own local draft goes first, when `forgetDraft`, so that the warning doesn't name it (T031).
+   * `onCancelled` runs when that warning's "Cancel" keeps the team member signed in.
+   */
+  function logOutNow(forgetDraft: boolean, onCancelled?: () => void) {
+    if (forgetDraft) {
+      forget();
+    }
+    logOutRef.current?.logOut(onCancelled);
+  }
+
   /**
    * Closes the rule editor for `next`: with unsaved changes, "Save changes to Rule 01?" asks
    * first (F10), and `next` follows the answer.
@@ -758,7 +1055,16 @@ function ConnectionWizard({
         forget();
       }
       const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
-      navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
+      const toDetails = () =>
+        navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
+      // The edit flow's "Save and log out" logs out once saved (FR-026); a cancelled log-out
+      // opens the details as the save does
+      const effect = stepLeave({ type: 'saved' });
+      if (effect.type === 'logOut') {
+        logOutNow(effect.forget, toDetails);
+        return;
+      }
+      toDetails();
     } catch (error) {
       if (handleUnauthorized(error)) {
         return;
@@ -782,6 +1088,8 @@ function ConnectionWizard({
     }
     dispatch({ type: 'closeDialog' });
     dispatch({ type: 'closeConflict' });
+    // Opened by a leave question's "Save": the team member stays in the flow (FR-026)
+    stepLeave({ type: 'failed' });
   }
 
   /**
@@ -850,10 +1158,12 @@ function ConnectionWizard({
       return;
     }
     dispatch({ type: 'closeDialog' });
+    // Opened by a leave question's "Save": the team member stays in the flow (FR-026)
+    stepLeave({ type: 'failed' });
     if (state.step === 'documents' || state.step === 'test') {
       dispatch({ type: 'goToStep', step: 'rules' });
     }
-    if (state.step === 'documents') {
+    if (dialogWithoutRules) {
       return;
     }
     const branchKey = firstBranchWithFindings(rules.branches, ruleChecks.byBranch);
@@ -866,16 +1176,69 @@ function ConnectionWizard({
    * Removes a document or deselects data, or, when rules in any branch check it, first asks in
    * a dialog that names them (FR-029; F18).
    */
-  function removeOrAsk(removal: PendingRemoval) {
+  function removeOrAsk(removal: PendingRemoval): boolean {
     if (rulesCheckingRemoval(rules.branches, removal, state.documents).length > 0) {
       dispatch({ type: 'askRemoval', removal });
-      return;
+      return false;
     }
     dispatch(removalAction(removal));
+    return true;
   }
 
+  /**
+   * A list item's trash in the documents step: always asks first (F72), "Keep document" /
+   * "Remove document", naming the rules that check the document when there are any (002-S1.1).
+   */
   function handleRemove(documentType: DocumentType) {
-    removeOrAsk({ type: 'document', documentType: documentType.key, label: documentType.label });
+    dispatchView({
+      type: 'askRemoval',
+      documentId: documentType.key,
+      rules: rulesCheckingDocument(rules.branches, state.documents, documentType),
+    });
+  }
+
+  /**
+   * "Remove document": the editor removes the asked document with its undo toast, the question
+   * closes and the next document shows in its place, the previous one at the end (U24 A12). Its
+   * trash has gone with it, so the focus goes to the shown document's list item, or to "Add
+   * document" once none is left.
+   */
+  function handleConfirmDocumentRemoval() {
+    const asked = documentsView.confirmRemoval;
+    const documentType = documentTypes.find((type) => type.key === asked?.documentId);
+    if (!asked || !documentType) {
+      dispatchView({ type: 'keepDocument' });
+      return;
+    }
+    const listIds = listIdsOf(listed);
+    const remaining = listIds.filter((id) => id !== asked.documentId);
+    const shown =
+      remaining[indexAfterRemoval(listIds, documentsView.selectedIndex, [asked.documentId])];
+    flushSync(() => {
+      dispatch({
+        type: 'removeDocument',
+        documentType: documentType.key,
+        label: documentType.label,
+      });
+      dispatchView({ type: 'confirmRemovalDone', listIds });
+    });
+    // After the dialog has closed, which returns the focus to the trash that has gone
+    requestAnimationFrame(() =>
+      document
+        .getElementById(shown ? DOCUMENTS_STEP_IDS.listItem(shown) : DOCUMENTS_STEP_IDS.addDocument)
+        ?.focus()
+    );
+  }
+
+  /** A pick in the documents step's search card: the document is added and shown (U21 A5). */
+  function handleAddDocument(documentType: DocumentType) {
+    const listIds = listIdsOf(listed);
+    dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder });
+    dispatchView({
+      type: 'select',
+      index: indexAfterAdding(listIds, documentType.key, catalogOrder),
+    });
+    dispatchView({ type: 'clearSearch' });
   }
 
   function handleSetField(documentType: string, field: string, selected: boolean) {
@@ -924,10 +1287,14 @@ function ConnectionWizard({
 
   function handleUndo() {
     const restored = state.removed?.document_type;
-    flushSync(() => dispatch({ type: 'undoRemove', catalogOrder }));
-    // The toast and its button are gone; the focus goes to the restored document
+    flushSync(() => {
+      dispatch({ type: 'undoRemove', catalogOrder });
+      // The document shows again, at its catalog place
+      dispatchView({ type: 'undoRemoval', listIds: listIdsOf(listed), catalogOrder });
+    });
+    // The toast and its button are gone; the focus goes to the restored document's list item
     if (restored) {
-      document.getElementById(ELEMENT_IDS.pickerButton(restored))?.focus();
+      document.getElementById(DOCUMENTS_STEP_IDS.listItem(restored))?.focus();
     }
   }
 
@@ -957,7 +1324,7 @@ function ConnectionWizard({
         return (
           <ConnectionStep
             name={state.name}
-            note={editing ? EDITOR_COPY.editNote : EDITOR_COPY.formCardNote}
+            editing={editing}
             description={state.description}
             errors={state.errors}
             onChangeName={(value) => dispatch({ type: 'changeName', value })}
@@ -971,14 +1338,13 @@ function ConnectionWizard({
             catalogStatus={catalogStatus}
             documentTypes={documentTypes}
             documents={state.documents}
-            errors={state.errors}
             dropped={dropped}
             droppedNoteRef={droppedNoteRef}
             onRemoveDropped={handleRemoveDropped}
             onRetryCatalog={retry}
-            onAdd={(documentType) =>
-              dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder })
-            }
+            view={documentsView}
+            dispatchView={dispatchView}
+            onAdd={handleAddDocument}
             onRemove={handleRemove}
             onSetField={handleSetField}
             onSetAllFields={handleSetAllFields}
@@ -1028,8 +1394,10 @@ function ConnectionWizard({
 
   return (
     <WizardLayout
-      title={headerTitleOf(state, formConnection)}
+      title={headerTitleOf(state, formConnection, origin.kind === 'draft')}
       badge={origin.kind === 'draft' ? <ConnectionStatusBadge isActive draft /> : undefined}
+      onLeave={handleLeave}
+      onLogOut={handleLogOut}
       head={
         <>
           <WizardProgress
@@ -1050,6 +1418,9 @@ function ConnectionWizard({
           grouping={rules.selection !== null}
           onBack={goBack}
           onAddRules={handleAddRules}
+          addRulesExplanation={
+            state.documents.length === 0 ? DOCUMENTS_STEP_COPY.addDocumentFirst : null
+          }
           onTestRules={() => leaveEditor({ type: 'test' })}
           onPublish={handlePublish}
           canSaveDraft={origin.kind !== 'published'}
@@ -1062,9 +1433,9 @@ function ConnectionWizard({
           <PublishDialog
             open={state.dialogOpen}
             editing={editing}
-            withoutRules={state.step === 'documents'}
+            withoutRules={dialogWithoutRules}
             documentLines={documentLines(state.documents, documentTypes)}
-            ruleLines={ruleLines(rules, state.step === 'documents')}
+            ruleLines={ruleLines(rules, dialogWithoutRules)}
             branches={rules.branches}
             checks={ruleChecks.byBranch}
             publishing={state.publishing}
@@ -1089,6 +1460,41 @@ function ConnectionWizard({
             onSaveAsNew={() => void handleSaveAsNew('save')}
             onCancel={handleCloseConflict}
           />
+          {/* Leaving the flow (FR-026; leaveFlow.ts): U17 7173:52682, U99 7173:52836 and U17
+              6408:72919 with the "Cancel" of F20 */}
+          <ConfirmDialog
+            open={leave.status === 'leaveAsked'}
+            title={LEAVE_COPY.leaveTitle}
+            text={LEAVE_COPY.leaveText}
+            secondaryLabel={LEAVE_COPY.discardConnection}
+            secondaryDanger
+            onSecondary={() => answerLeave({ type: 'discard' })}
+            confirmLabel={LEAVE_COPY.saveProgress}
+            onCancel={() => answerLeave({ type: 'cancel' })}
+            onConfirm={() => answerLeave({ type: 'saveProgress' })}
+          />
+          <ConfirmDialog
+            open={leave.status === 'saveAsked'}
+            title={LEAVE_COPY.saveTitle}
+            text={LEAVE_COPY.saveText}
+            secondaryLabel={LEAVE_COPY.discardChanges}
+            secondaryDanger
+            onSecondary={() => answerLeave({ type: 'discard' })}
+            confirmLabel={LEAVE_COPY.save}
+            onCancel={() => answerLeave({ type: 'cancel' })}
+            onConfirm={() => answerLeave({ type: 'saveProgress' })}
+          />
+          <ConfirmDialog
+            open={leave.status === 'logoutAsked'}
+            title={LEAVE_COPY.logoutTitle}
+            text={LEAVE_COPY.logoutText}
+            cancelLabel={LEAVE_COPY.cancel}
+            secondaryLabel={LEAVE_COPY.logOutAnyway}
+            onSecondary={() => answerLeave({ type: 'logoutAnyway' })}
+            confirmLabel={LEAVE_COPY.saveAndLogOut}
+            onCancel={() => answerLeave({ type: 'cancel' })}
+            onConfirm={() => answerLeave({ type: 'saveAndLogout' })}
+          />
           <RemoveDataDialog
             removal={state.pendingRemoval}
             rules={
@@ -1100,17 +1506,44 @@ function ConnectionWizard({
             onCancel={() => dispatch({ type: 'cancelRemoval' })}
             onConfirm={handleConfirmRemoval}
           />
+          {/* A list item's trash: the documents step's own question (F72) */}
+          <RemoveDataDialog
+            removal={askedDocumentRemoval}
+            rules={documentsView.confirmRemoval?.rules ?? []}
+            editing={editing}
+            onCancel={() => dispatchView({ type: 'keepDocument' })}
+            onConfirm={handleConfirmDocumentRemoval}
+          />
+          {/* "Set rules →" with documents without data (U25 7299:52174; F67, #55; T035's form) */}
+          <ConfirmDialog
+            open={documentsView.needsData.asking}
+            title={noDataTitle(noDataNames.length)}
+            text={noDataText(noDataNames)}
+            secondaryLabel={removeDocumentsLabel(noDataNames.length)}
+            secondaryDanger
+            onSecondary={handleRemoveNeedingData}
+            confirmLabel={DOCUMENTS_STEP_COPY.chooseData}
+            onCancel={handleChooseData}
+            onConfirm={handleChooseData}
+          />
           <RulesDialogs
             state={rules}
             context={{ documents: ruleCatalog.allDocuments, optionSets }}
             editing={editing}
             dispatch={dispatchRules}
-            onCancel={() => dispatchRules({ type: 'closeDialog' })}
+            onCancel={() => {
+              dispatchRules({ type: 'closeDialog' });
+              // Closing "Save changes to Rule 01?" cancels a leave question's save (FR-026)
+              stepLeave({ type: 'failed' });
+            }}
             onConfirmDelete={handleConfirmDelete}
             onSaveChanges={() => answerSaveChanges(true)}
             onDiscardChanges={() => answerSaveChanges(false)}
           />
-          {state.step === 'rules' ? (
+          {/* One toast at a time: the failed save's, or the step's (research R8) */}
+          {saveFailureToast ? (
+            <Toast toast={saveFailureToast} onAction={retrySave} onDismiss={dismissSaveFailure} />
+          ) : state.step === 'rules' ? (
             <Toast
               toast={rules.toast}
               onAction={handleRulesToastAction}
@@ -1128,12 +1561,6 @@ function ConnectionWizard({
         </>
       }
     >
-      {/* Under the page title, above the step's content (S1.5; W3) */}
-      <SaveDraftAlert
-        error={state.draftError}
-        retrying={state.savingDraft}
-        onRetry={handleSaveAndExit}
-      />
       {/* On /get-started, the unsaved work on this device except this flow's own (S4; FR-016) */}
       {firstConnection && state.step === 'connection' && (
         <LocalDraftsOffer exceptFlowKey={flowKey ?? undefined} emptyFocusRef={titleRef} />

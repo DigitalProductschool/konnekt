@@ -1,9 +1,9 @@
 import type { IconTileProps } from './types';
 
 // The fill and the shape per tone: the design's square tiles have the 8px radius (Figma U19
-// 6699:45330), its round tile is a circle (U11 6699:44495)
+// 6699:45330, the action blue at 12 % as rendered), its round tile is a circle (U11 6699:44495)
 const TONE_CLASSES: Record<IconTileProps['tone'], string> = {
-  action: 'rounded-kern-default bg-kern-action-default',
+  action: 'rounded-kern-default bg-kern-action-default/12',
   plain: 'rounded-kern-circle bg-kern-layout-background-default',
   blue: 'rounded-kern-default bg-kern-darkblue-050',
   grey: 'rounded-kern-default bg-kern-neutral-050',

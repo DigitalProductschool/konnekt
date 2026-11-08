@@ -224,7 +224,10 @@ export interface EditorState {
   toast: ToastContent | null;
   /** "Save and exit" in progress */
   savingDraft: boolean;
-  /** A refused or failed draft save, shown above the step until the step changes (FR-013) */
+  /**
+   * A refused or failed draft save, which the page shows as the failed save's toast (FR-033)
+   * until the step changes, a save starts again or the toast is dismissed
+   */
   draftError: DraftSaveError | null;
   /** The dialog after a refused draft save or publish (S2; R6); `rulesChanged` stays for edits */
   conflict: DraftConflict | null;
@@ -260,8 +263,11 @@ export type EditorAction =
 
 export interface ConnectionStepProps {
   name: string;
-  /** The card's closing note */
-  note: string;
+  /**
+   * The edit flow of a published connection (U98 6731:39821): the card's hint and its note say
+   * that changes take effect once saved, instead of the draft's note
+   */
+  editing: boolean;
   description: string;
   errors: EditorErrors;
   onChangeName: (value: string) => void;
@@ -447,8 +453,13 @@ export interface EditorFooterProps {
   rulesNextAction: RulesNextAction;
   /** "Back": the previous step; from the test step, the rules step */
   onBack: () => void;
-  /** The documents step's "Add rules →" */
+  /** The documents step's "Set rules →" */
   onAddRules: () => void;
+  /**
+   * Why "Set rules →" can't be used now, "Add a document first" while no document is added
+   * (FR-031; T022's pattern); null or absent: usable
+   */
+  addRulesExplanation?: string | null;
   /**
    * A rule editor is open: "Test rules" is unusable and explains "Save the rule first" (FR-034,
    * W21)
@@ -473,15 +484,6 @@ export interface EditorFooterProps {
   onDiscard?: () => void;
 }
 
-export interface SaveDraftAlertProps {
-  /** The failed draft save; nothing renders without one */
-  error: DraftSaveError | null;
-  /** "Try again" is running */
-  retrying: boolean;
-  /** "Try again", shown only while `error.retryable` */
-  onRetry: () => void;
-}
-
 export interface CatalogDroppedNoteProps {
   /** The dropped data, in document order; not empty */
   items: DroppedData[];
@@ -498,4 +500,82 @@ export interface CatalogDroppedItemProps {
 export interface FindingsAnnouncerProps {
   /** The latest change's announcement from `useRuleChecks()`, empty before the first one */
   announcement: string;
+}
+
+/**
+ * Leaving a flow (FR-026; CLAR 2026-11-07 #8, #47; data-model.md "Leaving a flow"): what the
+ * product name, "Your connections" and "Log out" do in the editor, and what each answer of their
+ * questions does (`leaveFlowStep()` in leaveFlow.ts)
+ */
+export type LeaveFlowState =
+  | { status: 'idle' }
+  /** "Leave this connection?", in a new connection's or a stored draft's flow */
+  | { status: 'leaveAsked'; origin: Exclude<EditorOrigin['kind'], 'published'> }
+  /** "Save your changes?", in the edit flow of a published connection (#47) */
+  | { status: 'saveAsked' }
+  /** "Save before you log out?", in any flow with unsaved work */
+  | { status: 'logoutAsked'; origin: EditorOrigin['kind'] }
+  /**
+   * An answer stores the flow: "Save and exit", or the edit flow's save dialog, through the rule
+   * editor's question first; `after` follows once it is stored, and a save that ends without
+   * storing goes back to `idle`
+   */
+  | { status: 'saving'; origin: EditorOrigin['kind']; after: 'leave' | 'logout' };
+
+/** What the editor knows when the team member asks to leave or to log out */
+export interface LeaveFlowContext {
+  origin: EditorOrigin['kind'];
+  /** The flow holds work that isn't stored (`hasUnsavedWork()`) */
+  unsaved: boolean;
+  /** A save or a publish is running: the question waits for it, so the request is ignored */
+  busy: boolean;
+}
+
+export type LeaveFlowAction =
+  /** The product name or "Your connections" */
+  | { type: 'askLeave'; context: LeaveFlowContext }
+  /** "Log out" in the account menu */
+  | { type: 'askLogout'; context: LeaveFlowContext }
+  /** The ×, Escape, the scrim, or "Cancel" of the log-out question: the team member stays */
+  | { type: 'cancel' }
+  /** "Save progress" ("Leave this connection?"), or "Save" ("Save your changes?") */
+  | { type: 'saveProgress' }
+  /** "Discard connection" ("Leave this connection?"), or "Discard changes" ("Save your changes?") */
+  | { type: 'discard' }
+  | { type: 'saveAndLogout' }
+  | { type: 'logoutAnyway' }
+  /** A save stored the flow: from an answer, or from the footer, the conflict dialog or publishing */
+  | { type: 'saved' }
+  /**
+   * A save ended without storing: refused (a missing name, the rules' pre-checks), failed, met a
+   * conflict, or its rule question or save dialog was closed
+   */
+  | { type: 'failed' };
+
+/** What the editor does after a step of the leave model; the model itself only decides */
+export type LeaveEffect =
+  /** Nothing: a question opened or closed, or the action didn't apply */
+  | { type: 'none' }
+  /** Leaves to the overview without storing; `forget` drops the flow's local draft first */
+  | { type: 'leave'; forget: boolean }
+  /**
+   * Stores the flow, through "Save changes to Rule 01?" while the rule editor has unsaved changes
+   * (Q8 (c)): "Save and exit" for a new connection or a stored draft, the save dialog for a
+   * published connection
+   */
+  | { type: 'store'; via: 'saveAndExit' | 'saveDialog' }
+  /**
+   * Logs out (UserMenu's `logOut`); `forget` drops the flow's local draft first, so that the
+   * local-drafts warning doesn't name it
+   */
+  | { type: 'logOut'; forget: boolean }
+  /** The log-out question closed: the focus goes back to the account pill (F20) */
+  | { type: 'focusUserMenu' }
+  /** The flow is stored: the save's own exit follows (the overview with its toast, the details) */
+  | { type: 'exit' };
+
+/** A step of the leave model: the next state, and what the editor does now */
+export interface LeaveFlowStep {
+  state: LeaveFlowState;
+  effect: LeaveEffect;
 }
