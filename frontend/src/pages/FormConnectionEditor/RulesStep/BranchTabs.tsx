@@ -1,7 +1,7 @@
+import { namesOf, tabFindingsOf } from '@connection-portal/rules/checks/findingMessages';
 import type { KeyboardEvent } from 'react';
 
 import InfoTooltip from '../../../components/InfoTooltip';
-import { namesOf, tabFindingsOf } from '../../../utils/rules/checks/findingMessages';
 import { ELEMENT_IDS } from '../constants';
 import BranchTab from './BranchTab';
 import { RULES_COPY } from './constants';
@@ -19,7 +19,7 @@ import { tabAfterKey } from './utils';
  * their icon, selected or not (spec 003, S4; A6, W12, W13; FR-014; Figma U09 6753:41605): only
  * certain findings count, and a variant without checked rules or before its first check shows none.
  */
-export default function BranchTabs({ state, checks, dispatch }: BranchTabsProps) {
+export default function BranchTabs({ state, checks, dispatch, onCopyLink }: BranchTabsProps) {
   const { branches, openBranch } = state;
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -56,6 +56,7 @@ export default function BranchTabs({ state, checks, dispatch }: BranchTabsProps)
               onKeyDown={(event) => handleKeyDown(event, index)}
               onRename={() => dispatch({ type: 'askEditVariant', branchKey: branch.key })}
               onDelete={() => dispatch({ type: 'askDeleteVariant', branchKey: branch.key })}
+              onCopyLink={onCopyLink && (() => onCopyLink(branch.key))}
             />
           );
         })}

@@ -1,8 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
-
-import type { ValueChoice } from '../../../components/ValuesPicker/types';
-import type { Personas } from '../../../hooks/usePersonas';
-import type { BranchCheck } from '../../../utils/rules/checks/types';
+import type { BranchCheck } from '@connection-portal/rules/checks/types';
 import type {
   GenerationRun,
   Persona,
@@ -13,8 +9,12 @@ import type {
   ResultRow,
   ResultView,
   TestResults,
-} from '../../../utils/rules/personas/types';
-import type { RuleContext } from '../../../utils/rules/types';
+} from '@connection-portal/rules/personas/types';
+import type { RuleContext } from '@connection-portal/rules/types';
+import type { KeyboardEvent, ReactNode } from 'react';
+
+import type { ValueChoice } from '../../../components/ValuesPicker/types';
+import type { Personas } from '../../../hooks/usePersonas';
 import type { RulesBranch } from '../RulesStep/types';
 
 /** The test step (S8): the editor page's personas, rules and checks */

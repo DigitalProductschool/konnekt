@@ -1,28 +1,32 @@
-import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
-import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
-import type { DocumentField } from '../../../../types/document-types';
-import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
-import type { OptionSet } from '../../../../types/option-sets';
+import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type {
+  Condition,
+  RuleItem,
+  RuleTarget,
+} from '@connection-portal/api-types/form-connections';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import {
   conditionProblem,
   operatorDefinition,
   operatorsFor,
   optionsOf,
-  resolveTarget,
   suffixOf,
-} from '../../../../utils/rules/conditions';
-import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
-import { boundaryOf, boundaryPhrase, formatDate } from '../../../../utils/rules/dates';
-import { lowerFirst, proposedMessage } from '../../../../utils/rules/messages';
-import { ruleFieldLabel } from '../../../../utils/rules/statements';
+} from '@connection-portal/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+import { boundaryOf, boundaryPhrase, formatDate } from '@connection-portal/rules/dates';
+import { lowerFirst, proposedMessage } from '@connection-portal/rules/messages';
+import { ruleFieldLabel } from '@connection-portal/rules/statements';
 import type {
   ConditionKind,
   OperatorDefinition,
   ResolvedTarget,
   RuleContext,
   RuleDocument,
-} from '../../../../utils/rules/types';
-import { ruleProblem } from '../../../../utils/rules/validation';
+} from '@connection-portal/rules/types';
+import { ruleProblem } from '@connection-portal/rules/validation';
+
+import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
+import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
 import {
   CHECK_SYMBOLS,
   INITIAL_RULE_EDITOR_STATE,
@@ -238,28 +242,6 @@ export function withProposal(draft: RuleItem, context: RuleContext, edited: bool
     return draft;
   }
   return { ...draft, message: proposedMessage(draft, context) ?? '' };
-}
-
-/**
- * The rule with a new target. Its condition stays when the new target compares the same kind of
- * value from the same set, otherwise the check is chosen again.
- */
-export function withTarget(
-  draft: RuleItem,
-  target: RuleTarget | null,
-  context: RuleContext
-): RuleItem {
-  const before = resolveTarget(draft.target, context.documents);
-  const after = resolveTarget(target, context.documents);
-  const keep =
-    before !== null &&
-    after !== null &&
-    after.kind !== null &&
-    before.kind === after.kind &&
-    before.optionSet === after.optionSet &&
-    draft.condition !== null &&
-    operatorDefinition(draft.condition.operator, after.kind) !== undefined;
-  return { ...draft, target, condition: keep ? draft.condition : null };
 }
 
 /** Whether every part of the rule is there: its target, a complete check and a message. */

@@ -6,7 +6,7 @@ task touches its subject.
 
 | Document | Read it when |
 |---|---|
-| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
+| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
@@ -22,6 +22,15 @@ EUDI Wallet, through EUDIPLO.
 - `backend/`: FastAPI (Python 3.13), SQLAlchemy 2 (**sync**), Alembic, psycopg 3, PostgreSQL, a
   background worker thread and a client for the EUDIPLO management API
 - `frontend/`: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
+- `api-types/` (`@connection-portal/api-types`): the TypeScript mirrors of the backend's schemas
+- `rules/` (`@connection-portal/rules`): the pure rules logic, its checks and test personas
+- `mcp/` (`@connection-portal/mcp`): the MCP server for the team members' LLM agents, a Node
+  service (the `mcp` container, port 3100, behind nginx's `/mcp`) that calls the management API
+  with the agent's bearer token; `mcp/plugin/` holds its guidance
+
+`api-types/`, `rules/`, `frontend/` and `mcp/` are the packages of one npm workspace at the root;
+`frontend/` and `mcp/` import the other two by name (`@connection-portal/api-types/<name>`,
+`@connection-portal/rules/<path>`) and never each other.
 
 The UI says "connection" for form connection and "variant" for branch, and calls the main branch
 "Standard" until it is renamed.
@@ -34,9 +43,12 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Routers** (`app/routers/`, one per resource; follow `form_connections.py`) stay thin:
   domain logic goes into `app/services/`. Type every parameter and return value, and give every
   endpoint a docstring.
-- **Auth**: management routers depend on `get_current_user` (`401`), and their `POST`, `PUT`
-  and `DELETE` endpoints also on `require_json` (`415`, the CSRF protection). Only
-  `/api/health`, the sign-in and `/api/connect/` (restricted by the network) are open.
+- **Auth**: management routers depend on `get_current_user` (`401`), or on
+  `get_current_principal` where agents' bearer tokens are accepted too, with
+  `require_level(...)` or `require_browser_session` per endpoint (ARCHITECTURE, "Agent access
+  and the MCP server (spec 007)"); their `POST`, `PUT` and `DELETE` endpoints also on
+  `require_json` (`415`, the CSRF protection). Only `/api/health`, the sign-in, the open OAuth
+  endpoints and `/api/connect/` (restricted by the network) are open.
 - **Answers**: annotate with `ApiResponse[...]` and return `ApiResponse(data=..., message=...)`
   (`data=None` when there is nothing). Errors raise `HTTPException` with a
   `{'error': ..., 'message': ...}` detail.
@@ -58,7 +70,11 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `UpdatedAt` columns, and index the fields used in queries. Never `datetime.utcnow()`; use
   `datetime.now(tz=timezone.utc)`.
 - **Schemas**: Pydantic v2, separate Create, Update and Response models, `from_attributes=True`
-  for ORM objects. `frontend/src/types/` mirrors them field for field (snake_case): change both.
+  for ORM objects. `api-types/src/` mirrors `backend/app/schemas.py` field for field
+  (snake_case): change both.
+- **Approval requests** run the existing services (`publish_stored_draft()`, `delete_draft()`,
+  `deactivate_form_connection()` …), never a second path (ARCHITECTURE, "Agent access and the
+  MCP server (spec 007)").
 - **Settings**: a new environment variable is a field on `Settings` in `app/config.py`.
 - **Developer scripts** (`backend/scripts/`) never ship: `app/` never imports them, and they
   never import `app.config`.
@@ -68,7 +84,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 ## Frontend rules
 
 - **API**: call the backend only through `apiFetch` (`src/api/client.ts`), one module per
-  resource in `src/api/`, types in `src/types/`. A page passes failures through
+  resource in `src/api/`, types in `api-types/src/`. A page passes failures through
   `useSignOutOnUnauthorized()` and shows them with `errorNoticeOf(error, '<fallback>')` and
   `ErrorNoticeText`, so that a `5xx`'s `error_id` appears.
 - **Components** stay small; extract new functionality into new components. Next to a
@@ -94,31 +110,35 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Popups** (menus, popovers, tooltips) pick their side with `placementFrom()`
   (`src/utils/popupPlacement.ts`); never anchor a fixed-width popup with `left-0` or `right-0`
   alone.
-- No `any` without a justification, no `require()`. Never add a `vitest.config.ts`: it would
-  replace the `test` block of `vite.config.ts`.
+- No `any` without a justification, no `require()`. Never add a `vitest.config.ts` to
+  `frontend/`: it would replace the `test` block of `vite.config.ts`.
 
 ## Rules, rule checks and test personas (specs 002, 003, 004)
 
-- The pure rules logic lives in `src/utils/rules/`, every module with its `*.test.ts`.
-- **Propagation** of the main branch's changes lives only in `utils/rules/branches.ts`
+- The pure rules logic lives in `rules/src/`, every module with its `*.test.ts`; the two browser
+  Worker entries are `frontend/src/workers/checks.ts` and `frontend/src/workers/personas.ts`.
+- Agents' edits go through `rules/src/edits.ts`, as the rules reducer does: a new editing action
+  goes there, never into the reducer or an MCP tool alone (ARCHITECTURE, "Rules and branches").
+- **Propagation** of the main branch's changes lives only in `rules/src/branches.ts`
   (`propagateMain`); the server only checks the invariants (`backend/app/services/rules.py`).
   Every change to `branches.ts` comes with a case in `branches.test.ts`, and a change to a
   propagation rule or mark transition also updates the server's checks.
-- `utils/rules/validation.ts` uses the server's messages word for word.
-- **Rule checks** (`utils/rules/checks/`) judge conditions as `backend/app/services/evaluation.py`
-  does. `checks/caseFolding.ts` and `checks/fixtures/evaluator-vectors.json` are generated:
-  never edit them by hand. After a Python upgrade or a change to the evaluator's comparisons,
-  run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the result.
-- **Findings** are never stored, sent or logged (no `console.*` in `checks/`, the worker or
-  `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the Rules
-  step passes the `finding` / `findings` props. Only `checks/worker.ts` and the hook touch
-  browser APIs.
+- `rules/src/validation.ts` uses the server's messages word for word.
+- **Rule checks** (`rules/src/checks/`) judge conditions as `backend/app/services/evaluation.py`
+  does. `rules/src/checks/caseFolding.ts` and `rules/src/checks/fixtures/evaluator-vectors.json`
+  are generated: never edit them by hand. After a Python upgrade or a change to the evaluator's
+  comparisons, run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the
+  result.
+- **Findings** are never stored, sent or logged (no `console.*` in `checks/`, `workers/checks.ts`
+  or `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the
+  Rules step passes the `finding` / `findings` props. Only `frontend/src/workers/` and the hooks
+  touch browser APIs; `rules/src/` stays pure.
 - **Test personas** (spec 004; ARCHITECTURE, "The test step and the test personas"): the evaluator
-  is `utils/rules/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
-  (`rule_outcomes`, `branch_evaluations`). Personas live in `utils/rules/personas/`, pure, every
+  is `rules/src/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
+  (`rule_outcomes`, `branch_evaluations`). Personas live in `rules/src/personas/`, pure, every
   module with its `*.test.ts`, and are never stored, sent or logged: no `console.*` in
-  `personas/`, its worker, `usePersonas` or `useTodayInGermany`. The evaluator and the checked
-  trees reach the page only through `usePersonas`'s dynamic `import()`.
+  `personas/`, `workers/personas.ts`, `usePersonas` or `useTodayInGermany`. The evaluator and the
+  checked trees reach the page only through `usePersonas`'s dynamic `import()`.
 
 ## Drafts and local drafts (spec 005)
 
@@ -130,6 +150,15 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   and takes a `StorageLike` (ARCHITECTURE, "Local drafts (spec 005)").
 - Local drafts never hold personas, findings or citizen data, and nothing in
   `utils/localDrafts/` or its hooks logs (ARCHITECTURE, "Local drafts (spec 005)").
+
+## The MCP server and its guidance (spec 007)
+
+- Every change to the MCP tools updates the skills in `mcp/plugin/skills/` in the same change;
+  `npm test` in `mcp/` fails when a tool isn't described (`mcp/src/guidance.test.ts`; details in
+  `specs/007-agent-mcp-server/contracts/guidance.md`).
+- The MCP server logs only through `mcp/src/log.ts` (method, tool, status, duration), never
+  arguments, results, tokens, findings or applicants (ARCHITECTURE, "Agent access and the MCP
+  server (spec 007)").
 
 ## Code style
 
@@ -159,28 +188,31 @@ uv run alembic revision --autogenerate -m "msg"   # review the file, then:
 uv run alembic upgrade head
 uv run python -m scripts.export_check_fixtures [--check]
 
-# frontend/
+# the root (api-types/, rules/, frontend/, mcp/)
+npm install
 npm run lint && npm test && npm run build
 npm run format
+npm run dev -w frontend   # the SPA on 5173
+npm run dev -w mcp        # the MCP server on 3100 (vite-node; restart after a change)
 ```
 
 Before you finish: Ruff and mypy pass for backend changes (run pytest too), and `npm run lint`,
-`npm test` and `npm run build` for frontend changes. Everything else is in `README.md`, "Common
-Commands".
+`npm test` and `npm run build` from the root for changes in `api-types/`, `rules/`, `frontend/`
+or `mcp/`. Everything else is in `README.md`, "Common Commands".
 
 ## Adding a feature
 
 - **Backend**: model (`app/models.py`) → schemas (`app/schemas.py`) → migration → services
   (`app/services/`) → router (`app/routers/`) → `app.include_router()` in `app/main.py` →
   settings → tests (`tests/api/`, `tests/unit/`).
-- **Frontend**: types (`src/types/`) → API functions (`src/api/`) → page in
+- **Frontend**: types (`api-types/src/`) → API functions (`src/api/`) → page in
   `src/pages/<Name>/`, reusing `src/components/` → route in `App.tsx` and `ROUTES`.
 
 ## Never
 
 - Commit `.env` files (use `.env.example`) or any secret.
-- Edit generated files: Alembic migrations after creation, `caseFolding.ts`,
-  `evaluator-vectors.json`.
+- Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
+  `rules/src/checks/fixtures/evaluator-vectors.json`.
 
 ## Documentation checklist
 

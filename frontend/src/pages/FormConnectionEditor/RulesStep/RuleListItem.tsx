@@ -29,7 +29,7 @@ export default function RuleListItem({
   canGroup,
   faded,
 }: RuleListItemProps) {
-  const { branch, state, dispatch } = view;
+  const { branch, state, dispatch, onCopyLink: copyLink } = view;
   const standing = standingOf(branch, rule);
   const main = state.branches[0];
   const renaming = state.renaming?.branchKey === branch.key && state.renaming.itemId === rule.id;
@@ -106,6 +106,7 @@ export default function RuleListItem({
                   : dispatch({ type: 'askDelete', branchKey: branch.key, ruleId: rule.id })
               }
               onRestore={() => view.onRestore(rule.id)}
+              onCopyLink={copyLink && (() => copyLink(rule.id))}
             />
             {copying && (
               <CopyPopover

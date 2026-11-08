@@ -1,17 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import type { GroupItem, RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import type { BannerLine, FindingsBanner } from '@connection-portal/rules/checks/types';
+import * as edits from '@connection-portal/rules/edits';
+import { rule } from '@connection-portal/rules/testData';
+import { findItem, flattenItems } from '@connection-portal/rules/tree';
+import type { EditResult, EditState } from '@connection-portal/rules/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { GroupItem, RuleTreeItem } from '../../../types/form-connections';
-import type { BannerLine, FindingsBanner } from '../../../utils/rules/checks/types';
-import { rule } from '../../../utils/rules/testData';
-import { findItem, flattenItems } from '../../../utils/rules/tree';
-import type { RulesAction, RulesState } from './types';
+import type { RulesAction, RulesBranch, RulesState } from './types';
 import {
   bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
+  editStateOf,
   findingTargetIdsOf,
   initialRulesState,
   joinNames,
+  linkNoticeOf,
+  linkOf,
   neighbourOf,
   rulesReducer,
   selectionText,
@@ -30,15 +35,47 @@ function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`)
   };
 }
 
+/**
+ * The id `crypto.randomUUID()` gives in these cases, which name the variants as the step keyed
+ * them before it keyed them by id (spec 007, T053): `main` for a new connection's Standard, and
+ * `new-1`, `new-2`… for the variants added after it. The keys are ids all the same: nothing in
+ * the step reads them but to find a branch (see "variants keyed by id" for real UUIDs)
+ */
+let nextKey = 'main';
+
+function keyAfter(branches: RulesBranch[]): string {
+  const taken = new Set(branches.map((branch) => branch.key));
+  let number = branches.length;
+  while (taken.has(`new-${number}`)) {
+    number += 1;
+  }
+  return `new-${number}`;
+}
+
+beforeEach(() => {
+  nextKey = 'main';
+  vi.spyOn(crypto, 'randomUUID').mockImplementation(
+    () => nextKey as ReturnType<Crypto['randomUUID']>
+  );
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 /** A new connection's state with these items in Standard, numbering from rule 9 and group 3. */
 function stateWith(items: RuleTreeItem[]): RulesState {
+  nextKey = 'main';
   const state = initialRulesState();
   const [main] = state.branches;
   return { ...state, branches: [{ ...main, items }], counters: { rule: 9, group: 3 } };
 }
 
 function run(state: RulesState, ...actions: RulesAction[]): RulesState {
-  return actions.reduce(rulesReducer, state);
+  return actions.reduce((current, action) => {
+    nextKey = keyAfter(current.branches);
+    return rulesReducer(current, action);
+  }, state);
 }
 
 function ids(state: RulesState): string[] {
@@ -809,6 +846,657 @@ describe('findingTargetIdsOf', () => {
     expect(findingTargetIdsOf('new-1', 'rule-2')).toEqual([
       'rule-new-1-rule-2-header',
       'rule-new-1-rule-2',
+    ]);
+  });
+});
+
+// Parity (spec 007, SC-003): the cases above that change the rules, replayed through the editor's
+// actions of `@connection-portal/rules/edits`, which the agents' tools call. The reducer must hold
+// the same branches and counters as the actions alone give
+
+/** The actions applied in turn, each expected to succeed. */
+function replay(start: EditState, ...steps: ((content: EditState) => EditResult)[]): EditState {
+  return steps.reduce((content, step) => {
+    const result = step(content);
+    if (!result.ok) {
+      throw new Error(`refused: ${result.refusal.message}`);
+    }
+    return result.state;
+  }, start);
+}
+
+describe('linkOf (spec 007, S4; FR-028, FR-029)', () => {
+  const ORIGIN = 'https://portal.example.org';
+  const CONNECTION = '0b6f2c8e-6a3d-4e0e-9a4c-6f2d7c1e5b10';
+  const VARIANT = '5d1f9a2b-3c4e-4f60-8a7b-9c0d1e2f3a4b';
+
+  it("names a variant's connection and variant, at the rules step", () => {
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT)).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}`
+    );
+  });
+
+  it('adds the item for a rule or a group', () => {
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT, 'rule-3')).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}&item=rule-3`
+    );
+    expect(linkOf(ORIGIN, CONNECTION, VARIANT, 'group-12')).toBe(
+      `${ORIGIN}/form-connections/${CONNECTION}/edit?step=rules&variant=${VARIANT}&item=group-12`
+    );
+  });
+
+  it('takes the origin it is given, such as a preview deployment’s', () => {
+    expect(linkOf('http://localhost:5173', CONNECTION, VARIANT, 'rule-1')).toMatch(
+      /^http:\/\/localhost:5173\/form-connections\//
+    );
+  });
+
+  it('holds identifiers only, never names (FR-029)', () => {
+    const state = stateWith([rule(1, null, null)]);
+    const link = linkOf(ORIGIN, CONNECTION, state.branches[0].key, 'rule-1');
+    // Standard and Rule 01 by name, in any encoding
+    expect(decodeURIComponent(link.replace(/\+/g, ' '))).not.toMatch(/Standard|Rule 01/);
+    expect([...new URL(link).searchParams.keys()]).toEqual(['step', 'variant', 'item']);
+  });
+});
+
+describe('showToast (spec 007, S4)', () => {
+  it('shows "Link copied." without an action, and keeps the Undo for Ctrl/Cmd+Z', () => {
+    const deleted = run(
+      stateWith(FLAT),
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete' }
+    );
+    const copied = run(deleted, { type: 'showToast', message: 'Link copied.' });
+    expect(copied.toast).toEqual({ id: (deleted.toast?.id ?? 0) + 1, message: 'Link copied.' });
+    expect(copied.undo).toEqual(deleted.undo);
+    expect(copied.branches).toBe(deleted.branches);
+  });
+
+  it('drops a copy’s Show, which belongs to the toast it replaces', () => {
+    const withVariant = run(stateWith(FLAT), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'empty',
+    });
+    const shown = run(
+      withVariant,
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: [withVariant.branches[1].key] }
+    );
+    expect(shown.showBranch).not.toBeNull();
+    expect(run(shown, { type: 'showToast', message: 'Link copied.' }).showBranch).toBeNull();
+  });
+});
+
+describe('linkNoticeOf (spec 007, S5; FR-031)', () => {
+  let state: RulesState;
+  beforeEach(() => {
+    state = stateWith([rule(1, null, null), group(1, [rule(2, null, null)])]);
+  });
+
+  it('finds the variant and its rule or group, also in a group', () => {
+    expect(linkNoticeOf(state, BRANCH, null)).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'rule-1')).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'group-1')).toBeNull();
+    expect(linkNoticeOf(state, BRANCH, 'rule-2')).toBeNull();
+  });
+
+  it('names a variant that isn’t there', () => {
+    expect(linkNoticeOf(state, 'gone', 'rule-1')).toBe('variant');
+  });
+
+  it('names an item that isn’t there in the variant', () => {
+    expect(linkNoticeOf(state, BRANCH, 'rule-7')).toBe('item');
+  });
+});
+
+describe('the cases above, replayed through edits.ts (SC-003)', () => {
+  const ITEMS = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  const from = (items: RuleTreeItem[]) => editStateOf(stateWith(items));
+  const addVariant =
+    (name: string, origin: 'based' | 'empty', id: string, description: string | null = null) =>
+    (content: EditState) =>
+      edits.addVariant(content, { name, description }, origin, id);
+  const withVariant = (origin: 'based' | 'empty' = 'based'): RulesState =>
+    run(stateWith(ITEMS), {
+      type: 'addVariant',
+      variant: { name: ' Ambulance ', description: ' For ambulances ' },
+      origin,
+    });
+  const AMBULANCE = addVariant(' Ambulance ', 'based', 'new-1', ' For ambulances ');
+  const renameIn = (branchKey: string, itemId: string, name: string): RulesAction[] => [
+    { type: 'startRename', branchKey, itemId },
+    { type: 'rename', name },
+  ];
+
+  const cases: { name: string; reducer: () => RulesState; edited: () => EditState }[] = [
+    {
+      name: 'groups two rules',
+      reducer: () =>
+        run(
+          stateWith(FLAT),
+          { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-2' },
+          { type: 'toggleSelect', itemId: 'rule-3' },
+          { type: 'groupSelected' }
+        ),
+      edited: () => replay(from(FLAT), (c) => edits.groupItems(c, BRANCH, ['rule-2', 'rule-3'])),
+    },
+    {
+      name: 'groups rules chosen out of order',
+      reducer: () =>
+        run(
+          stateWith(FLAT),
+          { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-3' },
+          { type: 'toggleSelect', itemId: 'rule-1' },
+          { type: 'groupSelected' }
+        ),
+      edited: () => replay(from(FLAT), (c) => edits.groupItems(c, BRANCH, ['rule-3', 'rule-1'])),
+    },
+    {
+      name: 'makes a sub-group',
+      reducer: () =>
+        run(
+          stateWith([group(1, FLAT)]),
+          { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' },
+          { type: 'toggleSelect', itemId: 'rule-2' },
+          { type: 'groupSelected' }
+        ),
+      edited: () =>
+        replay(from([group(1, FLAT)]), (c) => edits.groupItems(c, BRANCH, ['rule-1', 'rule-2'])),
+    },
+    {
+      name: 'ungroups',
+      reducer: () =>
+        run(stateWith(ITEMS), { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1' }),
+      edited: () => replay(from(ITEMS), (c) => edits.ungroup(c, BRANCH, 'group-1')),
+    },
+    {
+      name: 'deletes a group with its members',
+      reducer: () =>
+        run(
+          stateWith(ITEMS),
+          { type: 'askDeleteGroup', branchKey: BRANCH, groupId: 'group-1' },
+          { type: 'confirmDelete' }
+        ),
+      edited: () => replay(from(ITEMS), (c) => edits.deleteItem(c, BRANCH, 'group-1')),
+    },
+    {
+      name: 'dissolves a group when a member is deleted below two',
+      reducer: () =>
+        run(
+          stateWith(ITEMS),
+          { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-2' },
+          { type: 'confirmDelete' }
+        ),
+      edited: () => replay(from(ITEMS), (c) => edits.deleteItem(c, BRANCH, 'rule-2')),
+    },
+    {
+      name: 'deletes a rule, then renames another',
+      reducer: () =>
+        run(
+          stateWith(FLAT),
+          { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+          { type: 'confirmDelete' },
+          ...renameIn(BRANCH, 'rule-2', 'Old enough')
+        ),
+      edited: () =>
+        replay(
+          from(FLAT),
+          (c) => edits.deleteItem(c, BRANCH, 'rule-1'),
+          (c) => edits.changeRule(c, BRANCH, 'rule-2', { name: 'Old enough' })
+        ),
+    },
+    {
+      name: 'switches the top level',
+      reducer: () =>
+        run(stateWith(FLAT), {
+          type: 'switchOperator',
+          branchKey: BRANCH,
+          parentId: null,
+          operator: 'or',
+        }),
+      edited: () => replay(from(FLAT), (c) => edits.switchOperator(c, BRANCH, null, 'or')),
+    },
+    {
+      name: 'switches a group there and back, then renames a rule',
+      reducer: () =>
+        run(
+          stateWith([group(1, FLAT)]),
+          { type: 'switchOperator', branchKey: BRANCH, parentId: 'group-1', operator: 'or' },
+          { type: 'switchOperator', branchKey: BRANCH, parentId: 'group-1', operator: 'and' },
+          ...renameIn(BRANCH, 'rule-1', 'Old enough')
+        ),
+      edited: () =>
+        replay(
+          from([group(1, FLAT)]),
+          (c) => edits.switchOperator(c, BRANCH, 'group-1', 'or'),
+          (c) => edits.switchOperator(c, BRANCH, 'group-1', 'and'),
+          (c) => edits.changeRule(c, BRANCH, 'rule-1', { name: 'Old enough' })
+        ),
+    },
+    {
+      name: 'adds, changes and removes a group’s own message',
+      reducer: () =>
+        run(
+          stateWith([group(1, FLAT)]),
+          { type: 'setGroupMessage', branchKey: BRANCH, groupId: 'group-1', message: '' },
+          {
+            type: 'setGroupMessage',
+            branchKey: BRANCH,
+            groupId: 'group-1',
+            message: 'You must meet one of these.',
+          },
+          { type: 'setGroupMessage', branchKey: BRANCH, groupId: 'group-1', message: null }
+        ),
+      edited: () =>
+        replay(
+          from([group(1, FLAT)]),
+          (c) => edits.setGroupMessage(c, BRANCH, 'group-1', ''),
+          (c) => edits.setGroupMessage(c, BRANCH, 'group-1', 'You must meet one of these.'),
+          (c) => edits.setGroupMessage(c, BRANCH, 'group-1', null)
+        ),
+    },
+    {
+      name: 'adds a rule at the end of its group',
+      reducer: () =>
+        run(
+          stateWith([group(1, [rule(1, null, null), rule(2, null, null)])]),
+          { type: 'addRule', branchKey: BRANCH, parentId: 'group-1' },
+          { type: 'saveRule' }
+        ),
+      edited: () =>
+        replay(from([group(1, [rule(1, null, null), rule(2, null, null)])]), (c) =>
+          edits.addRule(c, BRANCH, 'group-1')
+        ),
+    },
+    {
+      name: 'adds a rule at the end of the top level once its group is gone',
+      reducer: () =>
+        run(
+          stateWith([group(1, [rule(1, null, null), rule(2, null, null)])]),
+          { type: 'addRule', branchKey: BRANCH, parentId: 'group-1' },
+          { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1' },
+          { type: 'saveRule' }
+        ),
+      edited: () =>
+        replay(
+          from([group(1, [rule(1, null, null), rule(2, null, null)])]),
+          (c) => edits.ungroup(c, BRANCH, 'group-1'),
+          (c) => edits.addRule(c, BRANCH, null)
+        ),
+    },
+    {
+      name: 'adds a variant based on Standard, and one that starts empty',
+      reducer: () =>
+        run(withVariant(), {
+          type: 'addVariant',
+          variant: { name: 'Taxi', description: null },
+          origin: 'empty',
+        }),
+      edited: () => replay(from(ITEMS), AMBULANCE, addVariant('Taxi', 'empty', 'new-2')),
+    },
+    {
+      name: 'passes Standard’s new rule and rename to a based variant',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'addRule', branchKey: BRANCH, parentId: null },
+          { type: 'saveRule' },
+          ...renameIn(BRANCH, 'rule-1', 'Old enough')
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          AMBULANCE,
+          (c) => edits.addRule(c, BRANCH, null),
+          (c) => edits.changeRule(c, BRANCH, 'rule-1', { name: 'Old enough' })
+        ),
+    },
+    {
+      name: 'passes nothing to a variant that started empty',
+      reducer: () =>
+        run(
+          withVariant('empty'),
+          { type: 'addRule', branchKey: BRANCH, parentId: null },
+          { type: 'saveRule' }
+        ),
+      edited: () =>
+        replay(from(ITEMS), addVariant(' Ambulance ', 'empty', 'new-1', ' For ambulances '), (c) =>
+          edits.addRule(c, BRANCH, null)
+        ),
+    },
+    {
+      name: 'marks a based variant’s rename, and resets it to Standard',
+      reducer: () =>
+        run(withVariant(), ...renameIn('new-1', 'rule-1', 'Old enough'), {
+          type: 'resetItem',
+          branchKey: 'new-1',
+          itemId: 'rule-1',
+        }),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          AMBULANCE,
+          (c) => edits.changeRule(c, 'new-1', 'rule-1', { name: 'Old enough' }),
+          (c) => edits.resetItem(c, 'new-1', 'rule-1')
+        ),
+    },
+    {
+      name: 'marks a based variant’s rename',
+      reducer: () => run(withVariant(), ...renameIn('new-1', 'rule-1', 'Old enough')),
+      edited: () =>
+        replay(from(ITEMS), AMBULANCE, (c) =>
+          edits.changeRule(c, 'new-1', 'rule-1', { name: 'Old enough' })
+        ),
+    },
+    {
+      name: 'switches a based variant’s top level, and resets it',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'switchOperator', branchKey: 'new-1', parentId: null, operator: 'or' },
+          { type: 'resetOperator', branchKey: 'new-1' }
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          AMBULANCE,
+          (c) => edits.switchOperator(c, 'new-1', null, 'or'),
+          (c) => edits.resetOperator(c, 'new-1')
+        ),
+    },
+    {
+      name: 'removes an inherited group, and restores it',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'removeItem', branchKey: 'new-1', itemId: 'group-1' },
+          { type: 'restoreItem', branchKey: 'new-1', itemId: 'group-1' }
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          AMBULANCE,
+          (c) => edits.deleteItem(c, 'new-1', 'group-1'),
+          (c) => edits.restoreItem(c, 'new-1', 'group-1')
+        ),
+    },
+    {
+      name: 'removes an inherited group',
+      reducer: () =>
+        run(withVariant(), { type: 'removeItem', branchKey: 'new-1', itemId: 'group-1' }),
+      edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.deleteItem(c, 'new-1', 'group-1')),
+    },
+    {
+      name: 'adds a based variant’s own rule to an inherited group',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'addRule', branchKey: 'new-1', parentId: 'group-1' },
+          { type: 'saveRule' }
+        ),
+      edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.addRule(c, 'new-1', 'group-1')),
+    },
+    {
+      name: 'groups in a based variant',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'startSelect', branchKey: 'new-1', itemId: 'rule-2' },
+          { type: 'toggleSelect', itemId: 'rule-3' },
+          { type: 'groupSelected' }
+        ),
+      edited: () =>
+        replay(from(ITEMS), AMBULANCE, (c) => edits.groupItems(c, 'new-1', ['rule-2', 'rule-3'])),
+    },
+    {
+      name: 'deletes a rule of Standard in every variant',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+          { type: 'confirmDelete' }
+        ),
+      edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.deleteItem(c, BRANCH, 'rule-1')),
+    },
+    {
+      name: 'renames a variant',
+      reducer: () =>
+        run(withVariant(), {
+          type: 'editVariant',
+          branchKey: 'new-1',
+          variant: { name: 'School transport ', description: '  ' },
+        }),
+      edited: () =>
+        replay(from(ITEMS), AMBULANCE, (c) =>
+          edits.editVariant(c, 'new-1', { name: 'School transport ', description: '  ' })
+        ),
+    },
+    {
+      name: 'deletes a variant',
+      reducer: () =>
+        run(
+          withVariant(),
+          { type: 'askDeleteVariant', branchKey: 'new-1' },
+          { type: 'confirmDelete' }
+        ),
+      edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.deleteVariant(c, 'new-1')),
+    },
+    {
+      name: 'copies a rule to an empty and a based variant',
+      reducer: () =>
+        run(
+          withVariant('empty'),
+          {
+            type: 'addVariant',
+            variant: { name: 'School transport', description: null },
+            origin: 'based',
+          },
+          { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+          { type: 'copyRule', targets: ['new-1', 'new-2'] }
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          addVariant(' Ambulance ', 'empty', 'new-1', ' For ambulances '),
+          addVariant('School transport', 'based', 'new-2'),
+          (c) => edits.copyRule(c, BRANCH, 'rule-1', ['new-1', 'new-2'])
+        ),
+    },
+    {
+      name: 'copies a rule, then renames another',
+      reducer: () =>
+        run(
+          withVariant('empty'),
+          { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+          { type: 'copyRule', targets: ['new-1'] },
+          ...renameIn(BRANCH, 'rule-2', 'Old enough')
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          addVariant(' Ambulance ', 'empty', 'new-1', ' For ambulances '),
+          (c) => edits.copyRule(c, BRANCH, 'rule-1', ['new-1']),
+          (c) => edits.changeRule(c, BRANCH, 'rule-2', { name: 'Old enough' })
+        ),
+    },
+    {
+      name: 'renames Standard’s rule in two based variants',
+      reducer: () =>
+        run(
+          stateWith(ITEMS),
+          {
+            type: 'addVariant',
+            variant: { name: 'Ambulance', description: null },
+            origin: 'based',
+          },
+          {
+            type: 'addVariant',
+            variant: { name: 'School transport', description: null },
+            origin: 'based',
+          },
+          ...renameIn('new-1', 'rule-1', 'Old enough'),
+          ...renameIn('new-2', 'rule-1', 'Of age')
+        ),
+      edited: () =>
+        replay(
+          from(ITEMS),
+          addVariant('Ambulance', 'based', 'new-1'),
+          addVariant('School transport', 'based', 'new-2'),
+          (c) => edits.changeRule(c, 'new-1', 'rule-1', { name: 'Old enough' }),
+          (c) => edits.changeRule(c, 'new-2', 'rule-1', { name: 'Of age' })
+        ),
+    },
+    {
+      name: 'switches an inherited group in a based variant',
+      reducer: () =>
+        run(
+          stateWith(ITEMS),
+          {
+            type: 'addVariant',
+            variant: { name: 'Ambulance', description: null },
+            origin: 'based',
+          },
+          { type: 'switchOperator', branchKey: 'new-1', parentId: 'group-1', operator: 'or' }
+        ),
+      edited: () =>
+        replay(from(ITEMS), addVariant('Ambulance', 'based', 'new-1'), (c) =>
+          edits.switchOperator(c, 'new-1', 'group-1', 'or')
+        ),
+    },
+    {
+      name: 'renames a rule of an inherited group in a based variant',
+      reducer: () =>
+        run(
+          stateWith(ITEMS),
+          {
+            type: 'addVariant',
+            variant: { name: 'Ambulance', description: null },
+            origin: 'based',
+          },
+          ...renameIn('new-1', 'rule-3', 'Held B')
+        ),
+      edited: () =>
+        replay(from(ITEMS), addVariant('Ambulance', 'based', 'new-1'), (c) =>
+          edits.changeRule(c, 'new-1', 'rule-3', { name: 'Held B' })
+        ),
+    },
+    {
+      name: 'adds a based and an empty variant to a flat Standard',
+      reducer: () =>
+        run(
+          stateWith(FLAT),
+          {
+            type: 'addVariant',
+            variant: { name: 'Ambulance', description: null },
+            origin: 'based',
+          },
+          { type: 'addVariant', variant: { name: 'Taxi', description: null }, origin: 'empty' }
+        ),
+      edited: () =>
+        replay(
+          from(FLAT),
+          addVariant('Ambulance', 'based', 'new-1'),
+          addVariant('Taxi', 'empty', 'new-2')
+        ),
+    },
+  ];
+
+  for (const { name, reducer, edited } of cases) {
+    it(name, () => {
+      const state = reducer();
+      const content = edited();
+      expect(editStateOf(state).branches).toEqual(content.branches);
+      expect(state.counters).toEqual(content.counters);
+    });
+  }
+
+  it('refuses what the reducer leaves as it was', () => {
+    const one = run(stateWith(FLAT), { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' });
+    expect(run(one, { type: 'groupSelected' })).toBe(one);
+    expect(edits.groupItems(from(FLAT), BRANCH, ['rule-1']).ok).toBe(false);
+    const state = withVariant();
+    const kept = run(
+      state,
+      { type: 'askDeleteVariant', branchKey: BRANCH },
+      { type: 'confirmDelete' }
+    );
+    expect(kept.branches).toEqual(state.branches);
+    expect(edits.deleteVariant(editStateOf(state), BRANCH).ok).toBe(false);
+  });
+});
+
+describe('variants keyed by id (spec 007, research R10)', () => {
+  // Real ids from here on
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const ID = 'c8a2f1e0-1b2c-4d3e-8f40-5a6b7c8d9e0f';
+
+  it('keys a new connection’s Standard by a new id, without an id loaded, and opens it', () => {
+    const state = initialRulesState();
+    const [main] = state.branches;
+    expect(main).toMatchObject({ id: null, name: 'Standard', origin: 'main' });
+    expect(main.key).toMatch(UUID);
+    expect(state.openBranch).toBe(main.key);
+    expect(initialRulesState().branches[0].key).not.toBe(main.key);
+  });
+
+  it('keys an added variant by the id the dialog made, or by a new one', () => {
+    const added = rulesReducer(initialRulesState(), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+      id: ID,
+    });
+    expect(added.branches[1]).toMatchObject({ key: ID, id: null, name: 'Ambulance' });
+    expect(added.openBranch).toBe(ID);
+    const another = rulesReducer(added, {
+      type: 'addVariant',
+      variant: { name: 'Taxi', description: null },
+      origin: 'empty',
+    });
+    expect(another.branches[2].key).toMatch(UUID);
+    expect(editStateOf(another).branches.map((branch) => branch.id)).toEqual(
+      another.branches.map((branch) => branch.key)
+    );
+  });
+
+  it('works on ids as on any key: Standard’s change, a variant’s own, an undo', () => {
+    const start = stateWith(FLAT);
+    const main = start.branches[0].key;
+    expect(main).toMatch(UUID);
+    const steps: RulesAction[] = [
+      {
+        type: 'addVariant',
+        variant: { name: 'Ambulance', description: null },
+        origin: 'based',
+        id: ID,
+      },
+      { type: 'addRule', branchKey: main, parentId: null },
+      { type: 'saveRule' },
+      { type: 'startRename', branchKey: ID, itemId: 'rule-1' },
+      { type: 'rename', name: 'Old enough' },
+      { type: 'askDelete', branchKey: main, ruleId: 'rule-2' },
+      { type: 'confirmDelete' },
+    ];
+    const state = steps.reduce(rulesReducer, start);
+    expect(ids(state)).toEqual(['rule-1', 'rule-3', 'rule-9']);
+    expect(flattenItems(state.branches[1].items).map((entry) => [entry.id, entry.mark])).toEqual([
+      ['rule-1', 'changed'],
+      ['rule-3', null],
+      ['rule-9', null],
+    ]);
+    const undone = rulesReducer(state, { type: 'undo' });
+    expect(undone.openBranch).toBe(main);
+    expect(ids(undone)).toEqual(['rule-1', 'rule-2', 'rule-3', 'rule-9']);
+    expect(neighbourOf(undone, main, 'rule-2')).toBe('rule-3');
+    expect(findingTargetIdsOf(ID, 'rule-1')).toEqual([
+      `rule-${ID}-rule-1-header`,
+      `rule-${ID}-rule-1`,
     ]);
   });
 });

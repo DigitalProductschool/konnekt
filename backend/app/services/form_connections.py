@@ -17,15 +17,17 @@ it. The published paths here refuse a draft with 409 `not_published`, and the
 worker's re-sync leaves it alone.
 """
 
+import base64
+import binascii
 import logging
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, func, null, select, update
+from sqlalchemy import ColumnElement, and_, delete, func, null, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -37,6 +39,7 @@ from ..schemas import (
     Branch,
     DocumentField,
     FormConnectionCreate,
+    FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
     RequestedDocument,
@@ -53,6 +56,11 @@ logger = logging.getLogger(__name__)
 
 NAME_MAX_LENGTH = 200
 DESCRIPTION_MAX_LENGTH = 500
+# The search's page size: the default and the largest `limit` (spec 007, R9)
+SEARCH_PAGE_SIZE = 25
+
+# The search's status filter (spec 007, research R9)
+SearchStatus = Literal['draft', 'live', 'deactivated']
 
 NOT_FOUND = FORM_CONNECTION_NOT_FOUND
 NOT_PUBLISHED_DETAIL = {
@@ -66,7 +74,13 @@ DRAFT_PUBLISHED_DETAIL = {
 # No variant of a draft has a pull URL, so the message names none (spec 005, R6)
 DRAFT_CHANGED_DETAIL = {
     'error': 'draft_changed',
-    'message': 'Another team member saved this draft after you opened it.',
+    'message': 'This draft has been modified since you opened it.',
+}
+# An approved approval request finds the status it was made for changed (spec 007,
+# research R12); the approval page says which change instead
+STATUS_CHANGED_DETAIL = {
+    'error': 'status_changed',
+    'message': 'This connection was deactivated or reactivated in the meantime.',
 }
 
 
@@ -421,6 +435,100 @@ def list_form_connections(db: Session) -> list[FormConnectionSummary]:
     return [_summary(form_connection) for form_connection in form_connections]
 
 
+# The search (spec 007, research R9; FR-007)
+
+_SEARCH_STATUS_FILTERS: dict[SearchStatus, ColumnElement[bool]] = {
+    'draft': FormConnection.published_at.is_(None),
+    'live': and_(
+        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(True)
+    ),
+    'deactivated': and_(
+        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(False)
+    ),
+}
+_CURSOR_SEPARATOR = '|'
+
+
+def _like_pattern(text: str) -> str:
+    """`%text%`, with LIKE's `%`, `_` and the escape character `\\` taken literally."""
+    escaped = text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f'%{escaped}%'
+
+
+def _encode_cursor(form_connection: FormConnection) -> str:
+    """The position after a row: its `updated_at` (ISO) and `id`, base64."""
+    position = (
+        f'{form_connection.updated_at.isoformat()}{_CURSOR_SEPARATOR}'
+        f'{form_connection.id}'
+    )
+    return base64.urlsafe_b64encode(position.encode()).decode('ascii')
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, str]:
+    """The `updated_at` and `id` a cursor holds; anything else answers 400."""
+    try:
+        position = base64.urlsafe_b64decode(cursor.encode('ascii')).decode()
+        updated_at_text, form_connection_id = position.split(_CURSOR_SEPARATOR)
+        updated_at = datetime.fromisoformat(updated_at_text)
+        uuid.UUID(form_connection_id)
+    except (ValueError, UnicodeError, binascii.Error):
+        raise _validation_error('Unknown cursor.') from None
+    if updated_at.tzinfo is None:
+        raise _validation_error('Unknown cursor.')
+    return updated_at, form_connection_id
+
+
+def search_form_connections(
+    db: Session,
+    q: str | None,
+    status: SearchStatus | None,
+    cursor: str | None,
+    limit: int = SEARCH_PAGE_SIZE,
+) -> FormConnectionPage:
+    """A page of the form connections that aren't deleted, for agents (FR-007).
+
+    `q`, trimmed, matches the name or the description case-insensitively and
+    literally; empty, it matches every row. `status` keeps drafts, live or
+    deactivated connections. Ordered by `updated_at` descending, then `id`, with a
+    keyset cursor, so that changes between calls don't shift the pages;
+    `next_cursor` is None on the last page. A cursor this search didn't answer
+    gets 400.
+    """
+    query = select(FormConnection).where(FormConnection.deleted_at.is_(None))
+    text = (q or '').strip()
+    if text:
+        pattern = _like_pattern(text)
+        query = query.where(
+            or_(
+                FormConnection.name.ilike(pattern, escape='\\'),
+                FormConnection.description.ilike(pattern, escape='\\'),
+            )
+        )
+    if status is not None:
+        query = query.where(_SEARCH_STATUS_FILTERS[status])
+    if cursor is not None:
+        updated_at, form_connection_id = _decode_cursor(cursor)
+        query = query.where(
+            or_(
+                FormConnection.updated_at < updated_at,
+                and_(
+                    FormConnection.updated_at == updated_at,
+                    FormConnection.id > form_connection_id,
+                ),
+            )
+        )
+    rows = db.scalars(
+        query.order_by(FormConnection.updated_at.desc(), FormConnection.id).limit(
+            limit + 1
+        )
+    ).all()
+    page = rows[:limit]
+    return FormConnectionPage(
+        items=[_summary(form_connection) for form_connection in page],
+        next_cursor=_encode_cursor(page[-1]) if len(rows) > limit else None,
+    )
+
+
 def get_form_connection(db: Session, form_connection_id: str) -> FormConnectionView:
     """A form connection with its current documents, branches and URLs, or 404."""
     return _current_view(db, find_form_connection(db, form_connection_id))
@@ -462,6 +570,9 @@ def create_form_connection(
     if data.rules is not None:
         save = rules.clean_rules(data.rules, documents, main_branch_id=None)
         rules.check_first_save(save)
+        # A variant id the editor chose must be free (spec 007, research R10);
+        # `first_rule_set` checks it again before the rows are written
+        rules.check_draft_branch_ids(db, None, save.branches)
 
     form_connection_id = str(uuid.uuid4())
     lifetime_seconds = settings.request_lifetime_seconds
@@ -772,15 +883,37 @@ def update_form_connection(
 # Deactivating, activating and deleting (FR-006)
 
 
+def _lock_for_status_change(
+    db: Session, form_connection_id: str, expected_active: bool | None
+) -> FormConnection:
+    """Lock a published form connection's row to change its status.
+
+    Answers 404 and 409 `not_published` like `_lock_published_form_connection`.
+    With `expected_active`, the `is_active` an approved approval request was made
+    for (spec 007, research R12), also 409 `status_changed` when the row's is
+    another one by now, after releasing the lock: the connection was deactivated
+    or reactivated since the approval's check. The management interface passes
+    none and changes the status whatever it is.
+    """
+    form_connection = _lock_published_form_connection(db, form_connection_id)
+    if expected_active is not None and form_connection.is_active != expected_active:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=STATUS_CHANGED_DETAIL
+        )
+    return form_connection
+
+
 def deactivate_form_connection(
-    db: Session, form_connection_id: str
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
 ) -> FormConnectionView:
     """Deactivate a form connection: its URLs answer 409 from the next call on.
 
     Its open requests become unavailable in the same transaction. EUDIPLO isn't
-    called: the worker deletes their sessions in its next cycle.
+    called: the worker deletes their sessions in its next cycle. `expected_active`
+    as `_lock_for_status_change` says.
     """
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.is_active = False
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()
@@ -793,23 +926,29 @@ def deactivate_form_connection(
 
 
 def activate_form_connection(
-    db: Session, form_connection_id: str
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
 ) -> FormConnectionView:
-    """Activate a form connection again: its URLs work again, unchanged."""
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    """Activate a form connection again: its URLs work again, unchanged.
+
+    `expected_active` as `_lock_for_status_change` says.
+    """
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.is_active = True
     db.commit()
     logger.info('Form connection %s activated', form_connection_id)
     return _current_view(db, form_connection)
 
 
-def delete_form_connection(db: Session, form_connection_id: str) -> None:
+def delete_form_connection(
+    db: Session, form_connection_id: str, *, expected_active: bool | None = None
+) -> None:
     """Delete a form connection: its URLs answer 409 for good.
 
     The row stays, marked deleted, so that the URLs can still say "unavailable".
     Open requests are cancelled as for deactivating, and EUDIPLO isn't called.
+    `expected_active` as `_lock_for_status_change` says.
     """
-    form_connection = _lock_published_form_connection(db, form_connection_id)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
     form_connection.deleted_at = datetime.now(tz=timezone.utc)
     cancelled = cancel_open_requests(db, form_connection_id)
     db.commit()

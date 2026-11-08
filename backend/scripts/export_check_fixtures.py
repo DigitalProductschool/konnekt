@@ -1,7 +1,7 @@
 """Write the rule checks' case-folding table and the evaluator's vectors (spec 003).
 
 Run from backend/: `uv run python -m scripts.export_check_fixtures`. The rule checks
-in the browser (frontend/src/utils/rules/checks/) compare texts and count days as
+in the browser (rules/src/checks/) compare texts and count days as
 app/services/evaluation.py does. This script reads the interpreter and the evaluator
 themselves (research R7, R13) and writes
 
@@ -49,7 +49,7 @@ from app.services.evaluation import (
 
 # The repository's root, which the generated files' paths are relative to
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CHECKS_DIR = Path('frontend/src/utils/rules/checks')
+CHECKS_DIR = Path('rules/src/checks')
 CASE_FOLDING_FILE = CHECKS_DIR / 'caseFolding.ts'
 VECTORS_FILE = CHECKS_DIR / 'fixtures' / 'evaluator-vectors.json'
 COMMAND = 'uv run python -m scripts.export_check_fixtures'

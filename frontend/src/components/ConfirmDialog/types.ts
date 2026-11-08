@@ -1,6 +1,5 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { ReactNode } from 'react';
-
-import type { ErrorNotice } from '../../types/api';
 
 export interface ConfirmDialogProps {
   open: boolean;

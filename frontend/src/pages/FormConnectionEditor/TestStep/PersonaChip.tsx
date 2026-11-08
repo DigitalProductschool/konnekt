@@ -1,4 +1,5 @@
-import { chipNameOf } from '../../../utils/rules/personas/messages';
+import { chipNameOf } from '@connection-portal/rules/personas/messages';
+
 import { ELEMENT_IDS } from '../constants';
 import { CHIP_ICONS } from './constants';
 import LoadingRing from './LoadingRing';

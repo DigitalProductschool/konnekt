@@ -1,9 +1,9 @@
-import type { LoginRequest, UserView } from '../types/auth';
-import type { DocumentType } from '../types/document-types';
-import type { FormConnectionOrDraft } from '../types/form-connections';
-import type { OptionSet } from '../types/option-sets';
-import type { buildCheckedBranch, KeyedBranch } from '../utils/rules/checks/checkedTree';
-import type { RunBranch } from '../utils/rules/checks/types';
+import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { buildCheckedBranch, KeyedBranch } from '@connection-portal/rules/checks/checkedTree';
+import type { RunBranch } from '@connection-portal/rules/checks/types';
 
 export interface DocumentTypesState {
   status: 'loading' | 'loaded' | 'failed';

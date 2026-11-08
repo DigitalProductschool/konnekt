@@ -604,7 +604,7 @@ second's version whole (quickstart V10–V12).
 ### Backend
 
 - [X] T045 [US3] Compare draft versions in `backend/app/services/drafts.py` and `DraftGuard.check()` in `backend/app/services/form_connections.py` (research R6; FR-022–FR-024; contracts/management-api.md "Errors"). Depends on T013.
-  - `DRAFT_CHANGED_DETAIL = {'error': 'draft_changed', 'message': 'Another team member saved this draft after you opened it.'}`. The message names no variant, since no variant of a draft has a pull URL.
+  - `DRAFT_CHANGED_DETAIL = {'error': 'draft_changed', 'message': 'This draft has been modified since you opened it.'}`. The message names no variant, since no variant of a draft has a pull URL.
   - `_check_state(form_connection, version, replace)`: `409 draft_published` first, even with `replace` (FR-023), then `409 draft_changed` when `version != form_connection.draft_version` and not `replace`. `save_draft` and `publish_draft` call it in step 1, before the content is checked, so a stale editor meets the conflict and not a refusal that its staleness causes. `save_draft` calls it again under the lock.
   - `DraftGuard.check()` does the same comparison under both of `create_revision()`'s locks. A refusal there deletes the configuration and removes the revision, as T012 set up.
   - A deleted draft keeps answering `404 Not found`, which the editor turns into "This draft has been deleted since you opened it." (FR-024).

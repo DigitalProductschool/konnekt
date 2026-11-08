@@ -1,7 +1,7 @@
+import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { generatePath, Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
-import type { EditLocationState } from '../../types/routing';
 import { DETAIL_COPY } from './constants';
 import type { DetailFooterProps } from './types';
 

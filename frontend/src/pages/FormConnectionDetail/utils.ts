@@ -1,15 +1,16 @@
-import { ApiError, errorNoticeOf } from '../../api/client';
-import type { DocumentType } from '../../types/document-types';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
   EditorStep,
   FormConnection,
   RequestedDocumentView,
   RuleTreeItem,
-} from '../../types/form-connections';
-import type { DetailLocationState } from '../../types/routing';
-import { ruleDocumentsOf } from '../../utils/rules/conditions';
-import type { RuleDocument } from '../../utils/rules/types';
+} from '@connection-portal/api-types/form-connections';
+import type { DetailLocationState } from '@connection-portal/api-types/routing';
+import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import type { RuleDocument } from '@connection-portal/rules/types';
+
+import { ApiError, errorNoticeOf } from '../../api/client';
 import { formatEditedDate } from '../FormConnectionList/utils';
 import { DETAIL_COPY, DRAFT_STEPS, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMAT } from './constants';
 import type {

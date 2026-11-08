@@ -1,4 +1,5 @@
-import type { DocumentType } from '../types/document-types';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
+
 import { apiFetch } from './client';
 
 export function getDocumentTypes(): Promise<DocumentType[]> {

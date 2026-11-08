@@ -90,7 +90,7 @@ name the problem.
 |---|---|---|
 | `400` | `Validation error` | **Draft save**: a structural rule of research R3 is broken (FR-003). **Publish**: any rule that `POST /api/form-connections` applies, with the same message (FR-009). Nothing is stored; the draft stays as it was |
 | `404` | `Not found` | Unknown id, a deleted published connection, or a **deleted draft**. The editor, which knows it opened a draft, says "This draft has been deleted since you opened it." (FR-024) |
-| `409` | `draft_changed` | `version` isn't the draft's current version and `replace` is false: "Another team member saved this draft after you opened it." Nothing is stored (FR-022) |
+| `409` | `draft_changed` | `version` isn't the draft's current version and `replace` is false: "This draft has been modified since you opened it." Nothing is stored (FR-022) |
 | `409` | `draft_published` | A draft endpoint on a published connection, which may have been published since the editor loaded it as a draft: "This draft has been published since you opened it." Nothing changes, also with `replace` (FR-023) |
 | `409` | `not_published` | A published connection's endpoint on a draft: "This connection is a draft. Continue it to save or publish it." |
 | `502`, `503` | as in spec 001 | Publishing: EUDIPLO couldn't create the configuration. Nothing is stored, and the connection stays a draft (FR-009). The message is spec 001's `CONFIG_FAILED` |

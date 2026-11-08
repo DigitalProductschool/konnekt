@@ -14,7 +14,13 @@ from fastapi import HTTPException
 from app.db import SessionLocal
 from app.models import FormConnection, FormConnectionBranch, FormConnectionRuleSet
 from app.schemas import RequestedDocument, RulesInput
-from app.services.rules import RulesSave, check_first_save, check_save, clean_rules
+from app.services.rules import (
+    RulesSave,
+    check_first_save,
+    check_save,
+    clean_rules,
+    save_rule_set,
+)
 from tests.helpers import (
     AGE_19_RULE,
     AGE_21_RULE,
@@ -218,7 +224,8 @@ def test_the_main_branch_keeps_its_id() -> None:
     assert _problem(_rules(id='another-id'), main_branch_id='main-branch-id') == (
         message
     )
-    assert _problem(_rules(id='main-branch-id')) == message
+    # Without a main branch id (on create), the main branch's id must be a UUID
+    assert _problem(_rules(id='main-branch-id')) == 'Unknown variant.'
     assert _clean(_rules(id='main-branch-id'), main_branch_id='main-branch-id')
 
 
@@ -1179,17 +1186,43 @@ def test_saved_variants_and_new_ones_pass() -> None:
     assert _save_problem(ids, _stored_branches(ids)[:1]) is None
 
 
-@pytest.mark.parametrize('stored', ['Deleted', 'other', 'unknown'])
+@pytest.mark.parametrize('stored', ['Deleted', 'other', 'not a UUID'])
 def test_a_saved_variant_is_a_live_variant_of_this_connection(stored: str) -> None:
     ids = _stored_connection()
     branch_id = {
         'Deleted': ids['Deleted'],
         'other': ids['other main'],
-        'unknown': str(uuid.uuid4()),
+        'not a UUID': 'variant-4',
     }[stored]
     stranger = variant([], name='Stranger', origin='empty', branch_id=branch_id)
 
     assert _save_problem(ids, [*_stored_branches(ids), stranger]) == UNKNOWN_VARIANT
+
+
+def test_an_unused_uuid_is_a_new_variant() -> None:
+    """Spec 007, research R10: the editor may choose a new variant's id."""
+    ids = _stored_connection()
+    fresh = str(uuid.uuid4())
+    branches = [
+        *_stored_branches(ids),
+        variant([], name='School transport', origin='empty', branch_id=fresh),
+    ]
+
+    assert _save_problem(ids, branches) is None
+    payload = RulesInput.model_validate(rules_input(branches, base_version=1))
+    with SessionLocal() as db:
+        form_connection = db.get_one(FormConnection, ids['connection'])
+        saved = save_rule_set(
+            db, form_connection, clean_rules(payload, DOCUMENTS, ids['Standard'])
+        )
+        db.commit()
+        row = db.get_one(FormConnectionBranch, fresh)
+        assert (row.form_connection_id, row.is_main, row.deleted_at) == (
+            ids['connection'],
+            False,
+            None,
+        )
+    assert [branch.id for branch in saved][-1] == fresh
 
 
 def test_a_variant_is_saved_once() -> None:
@@ -1217,13 +1250,14 @@ def test_a_saved_variant_keeps_its_origin(
     )
 
 
-def test_a_new_connections_variants_have_no_ids_yet() -> None:
-    ambulance = variant([], branch_id=str(uuid.uuid4()))
-    save = _clean(rules_input([main_branch([]), ambulance]))
+def test_a_new_connections_variants_keep_the_uuids_they_were_given() -> None:
+    """Spec 007, research R10: whether a UUID is free is `first_rule_set`'s check."""
+    ambulance_id = str(uuid.uuid4())
+    save = _clean(rules_input([main_branch([]), variant([], branch_id=ambulance_id)]))
 
-    with pytest.raises(HTTPException) as caught:
-        check_first_save(save)
-    assert caught.value.detail == {
-        'error': 'Validation error',
-        'message': UNKNOWN_VARIANT,
-    }
+    check_first_save(save)
+    assert save.branches[1].id == ambulance_id
+    assert (
+        _problem(rules_input([main_branch([]), variant([], branch_id='variant-2')]))
+        == UNKNOWN_VARIANT
+    )

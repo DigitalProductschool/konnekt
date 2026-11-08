@@ -1,5 +1,6 @@
-# Dependencies
-/frontend/node_modules/
+# Dependencies: the workspace's, and a package's own (Vitest keeps its cache in rules/node_modules/)
+/node_modules/
+/*/node_modules/
 
 # Build outputs
 dist/
@@ -83,6 +84,8 @@ specs/*/figma-audit/*
 
 resume.sh
 .mcp.json
+# The plugin's server configuration ships with it (spec 007, research R16)
+!mcp/plugin/.mcp.json
 
 # Playwright MCP snapshots and console logs
 .playwright-mcp/

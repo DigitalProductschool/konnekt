@@ -19,15 +19,18 @@ htmlcov/
 venv/
 env/
 
-# Node
+# Node (the workspace root's and every package's)
 node_modules/
+**/node_modules/
 frontend/dist/
+mcp/dist/
 npm-debug.log*
 
-# Environment variables — never bake secrets into an image
-.env
-.env.*
-!.env.example
+# Environment variables — never bake secrets into an image. `**/` matches them in
+# every package too (backend/, frontend/, mcp/): a bare `.env` matches the root only
+**/.env
+**/.env.*
+!**/.env.example
 
 # Database
 *.db

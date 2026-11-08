@@ -1,4 +1,5 @@
-import type { OptionSet } from '../types/option-sets';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+
 import { apiFetch } from './client';
 
 export function getOptionSets(): Promise<OptionSet[]> {

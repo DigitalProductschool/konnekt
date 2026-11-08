@@ -6,7 +6,7 @@ import type {
   EditorStep,
   NumberingBase,
   RequestedDocument,
-} from '../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
 
 /** The part of the Web Storage API the store uses: local storage or an in-memory fake */
 export interface StorageLike {

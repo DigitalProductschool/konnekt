@@ -1,16 +1,17 @@
 // The test step's pure helpers (specs/004-rule-test-personas, S8)
-import type { ValueChoice } from '../../../components/ValuesPicker/types';
-import type { OptionSet } from '../../../types/option-sets';
-import { parseDayNumber } from '../../../utils/rules/checks/calendar';
-import { optionsOf } from '../../../utils/rules/conditions';
-import { ageSuffixOf, runStatusOf } from '../../../utils/rules/personas/messages';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
+import { optionsOf } from '@connection-portal/rules/conditions';
+import { ageSuffixOf, runStatusOf } from '@connection-portal/rules/personas/messages';
 import type {
   GenerationRun,
   Persona,
   PersonaField,
   PersonaValue,
-} from '../../../utils/rules/personas/types';
-import { ageOn, isEmptyValue } from '../../../utils/rules/personas/values';
+} from '@connection-portal/rules/personas/types';
+import { ageOn, isEmptyValue } from '@connection-portal/rules/personas/values';
+
+import type { ValueChoice } from '../../../components/ValuesPicker/types';
 import type { RulesBranch } from '../RulesStep/types';
 import { TEST_STEP_COPY } from './constants';
 import type {

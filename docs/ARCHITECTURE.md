@@ -2,28 +2,31 @@
 
 ## System Overview
 
-Two independently built and deployed applications — a React SPA and a FastAPI
-service — sharing a PostgreSQL database. There is no monorepo tooling and no
-root `package.json`; each side manages its own dependencies. The backend also
-runs a background worker thread, and talks to EUDIPLO, which handles the
-citizens' wallets.
+Three applications, built and deployed as containers of one stack: a React SPA, a
+FastAPI service with a PostgreSQL database, and the MCP server through which the team
+members' LLM agents work. The backend also runs a background worker thread, and talks to
+EUDIPLO, which handles the citizens' wallets. The Node code is one npm workspace (see
+[Repository Structure](#repository-structure)); the backend manages its own
+dependencies with uv.
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
 │    Frontend     │────▶│  Backend (FastAPI)   │────▶│   PostgreSQL    │
 │  (React/Vite)   │     │  + worker thread     │     │   (Database)    │
 └─────────────────┘     └──────────┬───────────┘     └─────────────────┘
-                                   │ management API (HTTPS, OAuth token)
-                                   ▼
-                        ┌──────────────────────┐
-                        │  EUDIPLO (tenant     │◀──── citizens' EUDI wallets
-                        │  dps, hosted)        │      (OpenID4VP)
-                        └──────────────────────┘
+                          ▲        │ management API (HTTPS, OAuth token)
+┌─────────────────┐       │        ▼
+│   MCP server    │───────┘  ┌──────────────────────┐
+│ (Node, mcp/)    │ bearer   │  EUDIPLO (tenant     │◀──── citizens' EUDI wallets
+└────────▲────────┘          │  dps, hosted)        │      (OpenID4VP)
+         │ MCP (Streamable   └──────────────────────┘
+         │ HTTP, OAuth 2.1)
+   LLM agents on the team members' machines
 ```
 
-Types are **not** shared at build time. The interfaces in `frontend/src/types/`
-mirror the Pydantic schemas in `backend/app/schemas.py` by hand — when you
-change one, change the other.
+Types are **not** shared with the backend at build time. The interfaces in
+`api-types/src/` mirror the Pydantic schemas in `backend/app/schemas.py` by hand — when
+you change one, change the other. The SPA and the MCP server import them by name.
 
 This repository is being turned into the serviceBW ↔ EUDI Wallet middleware. Its
 target architecture, with form connections, document requests and an nginx
@@ -47,14 +50,21 @@ groups that conflict, repeat or cover each other, are always met, or make a vari
 that no applicant can meet. They run only in the browser and never reach the server.
 See [Rule consistency checks](#rule-consistency-checks-spec-003).
 
+Spec 007 ([plan](../specs/007-agent-mcp-server/plan.md)) lets team members connect **LLM
+agents** through an MCP server: the agents find and read connections, build drafts one change
+at a time with the editor's own logic, run the rule checks and test fictitious applicants, and
+ask for the team member's **approval** to publish or delete a draft or to deactivate,
+reactivate or delete a live connection. See
+[Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007).
+
 ### Data Flow
 
 1. User interacts with the React frontend
 2. Frontend calls the backend API through `apiFetch` in `frontend/src/api/client.ts`,
    which sends the `session` cookie and sends every write as JSON
-3. FastAPI checks the sign-in session (`get_current_user`) and, for `POST`, `PUT`
-   and `DELETE`, the JSON content type (`require_json`), then validates the body
-   against a Pydantic schema
+3. FastAPI checks the sign-in session (`get_current_user`, or `get_current_principal`
+   where an agent's bearer token is accepted too) and, for `POST`, `PUT` and `DELETE`, the
+   JSON content type (`require_json`), then validates the body against a Pydantic schema
 4. The route handler calls the domain logic in `app/services/`, which queries via
    a SQLAlchemy `Session` injected by `Depends(get_db)` and, where needed, calls
    EUDIPLO
@@ -66,25 +76,48 @@ See [Rule consistency checks](#rule-consistency-checks-spec-003).
 
 ```
 dps-react-python-template/
-├── frontend/              # React SPA (Vite)
-│   ├── eslint.config.mjs  # ESLint 9 flat config
-│   └── .prettierrc        # Prettier formatting rules
+├── package.json           # npm workspace root: api-types, rules, frontend, mcp; scripts over them
+├── package-lock.json      # One lockfile for every Node package
+├── eslint.config.mjs      # ESLint 9 flat config, one block per package
+├── tsconfig.base.json     # Compiler options every package extends
+├── .prettierrc            # Prettier formatting rules
+├── api-types/             # @connection-portal/api-types: the TypeScript mirrors of the schemas
+├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/
+├── frontend/              # React SPA (Vite), depends on api-types and rules
+│   └── .prettierrc        # The root's rules plus the Tailwind plugin
+├── mcp/                   # @connection-portal/mcp: the MCP server, depends on api-types and rules
+│   └── plugin/            # Guidance for agents: instructions, skills, the Claude Code plugin
 ├── backend/               # FastAPI API (SQLAlchemy + Alembic)
 ├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
 ├── specs/                 # Feature specification, plan, contracts and tasks (Spec Kit)
+├── .claude-plugin/
+│   └── marketplace.json   # The Claude Code marketplace that lists mcp/plugin
 ├── .pre-commit-config.yaml # Git hook definitions (both stacks)
-├── .dockerignore          # Applies to both image builds (context is the repo root)
-└── docker-compose.yml     # Local development
+├── .dockerignore          # Applies to every image build (context is the repo root)
+├── docker-compose.yml     # Local development
+└── docker-compose.prod.yml # Production and previews (Coolify)
 ```
 
-Node tooling is scoped to `frontend/` — there is no root `package.json` — while the
-backend uses Ruff and mypy. Git hooks, however, are repository-wide: they are defined in
-the root `.pre-commit-config.yaml` and cover both stacks, running `ruff check --fix` and
-`ruff format` on Python files and `prettier --write` and `eslint --fix` on `frontend/`
-files, plus the usual whitespace and merge-conflict checks.
+The Node code is one npm workspace with four packages, `api-types/`, `rules/`, `frontend/`
+and `mcp/`, while the backend uses Ruff and mypy. `npm install` at the root installs every
+package's dependencies into the root `node_modules/` and links the two shared packages
+there, so that the frontend and the MCP server import them by name
+(`@connection-portal/api-types/<name>`, `@connection-portal/rules/<path>`). `api-types` and
+`rules` export their TypeScript source (`"./*": "./src/*.ts"`) and build nothing; Vite
+compiles them into the frontend, and Vite's SSR build bundles them into the MCP server's
+`mcp/dist/`. `rules/` imports only `api-types` and itself, `api-types` nothing, neither
+imports `frontend/` or `mcp/`, and `frontend/` and `mcp/` never import each other
+(`no-restricted-imports` in the root `eslint.config.mjs`). The root scripts `lint`, `test`,
+`build` (every package's `typecheck`, then every `build`), `format` and `format:check` run
+each package's script of that name.
 
-The hooks are installed by `frontend/package.json`'s `prepare` script, which runs
-`uv run pre-commit install` in `backend/` — so `npm install` in the frontend is what wires
+Git hooks are repository-wide: they are defined in the root `.pre-commit-config.yaml` and
+cover both stacks, running `ruff check --fix` and `ruff format` on Python files and, from
+the root, `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and
+`mcp/` files, plus the trailing-whitespace, merge-conflict and large-file checks.
+
+The hooks are installed by the root `package.json`'s `prepare` script, which runs
+`uv run pre-commit install` in `backend/` — so `npm install` at the root is what wires
 up the backend's hooks. `pre-commit` itself is a `dev` dependency in
 `backend/pyproject.toml` and lives in `backend/.venv`, which is why the `prepare` script
 has to `cd` there. The script ends in `|| exit 0` so a machine without `uv` can still
@@ -105,7 +138,8 @@ section of `README.md` for the full command list and editor format-on-save setup
 frontend/
 ├── src/
 │   ├── api/              # client.ts (apiFetch, ApiError), one module per resource: auth.ts,
-│   │                     # document-types.ts, form-connections.ts, option-sets.ts
+│   │                     # document-types.ts, form-connections.ts, option-sets.ts; spec 007:
+│   │                     # agent-access.ts, approvals.ts, oauth.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the wizard's
 │   │                     # frame (WizardLayout), the signed-out screens' frame (AuthLayout),
@@ -113,7 +147,8 @@ frontend/
 │   │                     # and the read-only rules display that the Rules step and the
 │   │                     # details share: RuleRow, GroupFrame, Connector, BranchMark,
 │   │                     # BranchName; FindingNote, the note under a rule or group with a
-│   │                     # finding of the rule checks; LocalDraftsOffer (spec 005)
+│   │                     # finding of the rule checks; LocalDraftsOffer (spec 005);
+│   │                     # AccessLevelChoice, the three access levels as radio buttons (spec 007)
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
 │   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
 │   │                     # useRuleChecks (the rule checks' run and their worker),
@@ -121,21 +156,21 @@ frontend/
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
 │   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
-│   │                     # FormConnectionDetail
-│   ├── types/            # TypeScript interfaces mirroring backend schemas
+│   │                     # FormConnectionDetail; spec 007: Authorize (the consent page),
+│   │                     # Account (the user page), Approval (an approval request)
 │   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon),
 │   │                     # menuNavigation.ts (arrow keys in menus), popupPlacement.ts
-│   │                     # (the side a popup opens to), and rules/: the pure rules logic,
-│   │                     # each module with its *.test.ts, with rules/checks/: the rule
-│   │                     # checks, their worker's entry worker.ts, and the generated
-│   │                     # caseFolding.ts and fixtures/; localDrafts/: the local drafts'
+│   │                     # (the side a popup opens to); localDrafts/: the local drafts'
 │   │                     # pure modules (spec 005)
+│   ├── workers/          # The browser Worker entries: checks.ts (the rule checks) and
+│   │                     # personas.ts (the test personas)
 │   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
 │   └── index.css         # Tailwind, KERN, and the project's design tokens
 ├── vite.config.ts        # Vite configuration, and Vitest's `test` block (node environment)
-├── nginx.conf            # Serves the production build, proxies /api to the backend
+├── nginx.conf            # Serves the production build, proxies /api to the backend and
+│                         # /mcp to the MCP server
 └── package.json
 ```
 
@@ -212,14 +247,40 @@ frontend/
   in the create flow, in its local draft (see [Local drafts](#local-drafts-spec-005)). The
   details open the edit wizard at a step through the router state `EditLocationState.step`
   (`'connection'`, `'documents'` or `'rules'`)
-- **Vitest** tests the pure logic in Node, without a DOM: the modules of
-  `src/utils/rules/` and the sibling `utils.ts` of components, each with its `*.test.ts`
-  beside it. `npm test` is a gate (constitution III), because the rules' propagation
-  between branches runs only in the browser. It is configured in the `test` block of
-  `vite.config.ts`; a `vitest.config.ts` would silently replace that block
+- **Vitest** tests the pure logic in Node, without a DOM: the modules of `rules/src/`
+  and the sibling `utils.ts` of components, each with its `*.test.ts` beside it. `npm test`
+  is a gate (constitution III), because the rules' propagation between branches runs only
+  in the browser. In `frontend/` it is configured in the `test` block of `vite.config.ts`,
+  which a `vitest.config.ts` would silently replace; `rules/`, which has no Vite build, has
+  its own `rules/vitest.config.ts`
 - The **rule checks** (spec 003) run in the browser, in a module Web Worker that the
   editor page starts through `useRuleChecks()`; Vite builds the worker into a chunk of
   its own. See [Rule consistency checks](#rule-consistency-checks-spec-003)
+- **Agent access** (spec 007) adds three signed-in screens in `AppLayout`, each with one
+  `h1` (`contracts/ui-screens.md` of the spec, S1 to S3):
+  - the **consent page** (`/authorize`, `pages/Authorize/`): an agent's OAuth authorization
+    request, read from the query string, which a sign-in round trip keeps. It names the
+    client (`GET /api/oauth/clients/{client_id}`), preselects the access level from the
+    requested `scope` in `AccessLevelChoice`, says so when the agent asks for more than its
+    current level, and sends "Allow" or "Deny" to `POST /api/oauth/authorize`, then follows
+    the answer's `redirect_to` to the agent. A bad request is shown on the page, without a
+    redirect;
+  - the **user page** (`/account`, `pages/Account/`, reached through "Your account" in
+    `UserMenu`): the account's agent connections and personal access tokens, with "Change
+    access level", "Revoke" and "Create token"; a new token is shown once, in
+    `TokenCreatedDialog`;
+  - the **approval page** (`/approvals/:id`, `pages/Approval/`): what an approval request
+    would do, from `GET /api/approval-requests/{id}`. For `publish` it shows the publish
+    step's summary of the stored draft and the findings of the rule checks, computed in the
+    page with `useRuleChecks()`; for the other actions the connection and the URLs it
+    affects. "Approve" and "Decline" give way to the outcome (done, declined, expired,
+    replaced, cancelled with its reason, another team member's request, or a failure with
+    "Try again").
+
+  The rules step's menus have **"Copy link"** for a variant, a rule and a group, and
+  `FormConnectionEdit` opens a link's `step`, `variant` and `item` search parameters, with
+  `LinkNotice` when what it names no longer exists (see
+  [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007))
 
 ### backend
 
@@ -230,7 +291,8 @@ backend/
 ├── app/
 │   ├── routers/          # APIRouter modules (one per resource): auth.py,
 │   │                     # document_types.py, option_sets.py, form_connections.py,
-│   │                     # connect.py
+│   │                     # connect.py; spec 007: oauth.py, agent_access.py,
+│   │                     # approval_requests.py
 │   ├── services/         # Domain logic shared by routers and worker:
 │   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), dcql.py,
 │   │                     # form_connections.py, drafts.py (spec 005: saving,
@@ -238,7 +300,9 @@ backend/
 │   │                     # sets and their checks), document_requests.py (trigger, pull,
 │   │                     # statuses), documents.py (field extraction),
 │   │                     # evaluation.py (the rules on the shared documents),
-│   │                     # qr.py, worker.py
+│   │                     # qr.py, worker.py; spec 007: oauth.py (the authorization
+│   │                     # server), agent_access.py (the user page, the draft limit),
+│   │                     # approvals.py (approval requests)
 │   ├── catalog.py        # Document types, their fields, and each field's kind, parts
 │   │                     # and multiple_values (whether it can hold several values)
 │   ├── option_sets.py    # The value sets of enum fields: countries, sex, licence
@@ -299,7 +363,10 @@ backend/
   `APP_ENV=development`. A session lasts `LOGIN_SESSION_HOURS`; signing out
   deletes the row, and the worker deletes expired ones.
 - **Protected routes** depend on `get_current_user`, which answers `401` without a
-  valid session. `/api/health` and the sign-in itself are open.
+  valid session, or on `get_current_principal`, which also accepts an agent's bearer token
+  (see [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007)).
+  `/api/health`, the sign-in itself and the OAuth endpoints that the protocol leaves open
+  (the metadata, registration and the token endpoint) are open.
 - **CSRF**: every `POST`, `PUT` and `DELETE` must be sent as
   `application/json`, or `require_json` answers `415`. A cross-site page can't send
   JSON with cookies without a CORS preflight, which only `CORS_ORIGIN` (development)
@@ -456,8 +523,15 @@ to R10 in `specs/002-connection-rules/`, the tables its
   name follows its new number). Each save raises the counters and never lowers them.
   Publishing checks the identifiers against the row's counters (`check_first_save()`)
   and writes rule set 1 with them (`first_rule_set()`), so a rule keeps the identifier
-  that a draft save gave it. A draft's variants have no id, since a draft has no branch
-  rows; any id is refused ("Unknown variant.").
+  that a draft save gave it.
+- **Variant identifiers in a draft** (spec 007, research R10): every variant of a stored
+  draft carries a UUID, although a draft has no branch rows. A draft save may send `null`,
+  and the server assigns one (`_clean_branch()`), or a UUID that is unique in the body and
+  isn't another connection's branch id (`check_draft_branch_ids()`); anything else is refused
+  ("Unknown variant."). Publishing creates the branch rows with the draft's ids
+  (`first_rule_set()`), so a variant's link and its pull URL name the same id before and after
+  publishing. A save of a published connection may likewise give a new branch a client UUID.
+  The migration `60d71d73af6d_agent_mcp_server` gave the variants of existing drafts ids.
 - **Marks**: a branch based on the main branch is stored as its full tree, and each
   item carries a mark: none (follows the main branch, a copy of its item), `changed`,
   `removed` (shown, not evaluated) or `added`; `operator_mark` says that the top
@@ -466,7 +540,7 @@ to R10 in `specs/002-connection-rules/`, the tables its
   than two active members counts as dissolved there; that is derived from the tree,
   not stored (`effective_items` in `evaluation.py`, and `tree.ts` in the browser).
 - **Propagation runs only in the browser**: when the main branch changes in the Rules
-  step, `propagateMain` in `frontend/src/utils/rules/branches.ts` updates every based
+  step, `propagateMain` in `rules/src/branches.ts` updates every based
   branch (data-model.md, "Propagation from the main branch"), so the step shows each
   branch's rules at once. The server doesn't propagate: it checks every saved snapshot
   against the invariants that a correct propagation satisfies (every main-branch item
@@ -474,12 +548,20 @@ to R10 in `specs/002-connection-rules/`, the tables its
   marks only in based branches) and refuses a violation with `400` "The variant … is
   out of step with Standard", so a propagation bug can't reach serviceBW. Vitest pins every
   propagation rule and mark transition in `branches.test.ts`.
+- **One implementation of editing**: `rules/src/edits.ts` holds the editor's actions on the
+  rules as pure functions (add, change, delete, group and reset items, add and delete
+  variants, and so on), the compositions of `branches.ts` and `tree.ts`. The Rules step's
+  reducer calls them, and so does every draft-changing tool of the MCP server, so that an
+  agent's change stores the same content, marks and identifiers as the editor's. Each takes
+  the branches and the counters and answers the new state or a refusal with the editor's
+  message; a new variant's id is the caller's (the editor's `crypto.randomUUID()`).
+  `edits.test.ts` replays the reducer's cases.
 - **Saving**: `POST` and `PUT /api/form-connections` take the rules with the rest, so
   documents, branches and rules change together or not at all. The server checks the
   name and the documents, then the rules against the documents the save leaves current,
   before anything is written or EUDIPLO is called; a refusal is a `400` whose message
   names the problem, the rule and its branch, in the words of the Rules step's own
-  checks (`utils/rules/validation.ts`). Rules alone are saved in one transaction under
+  checks (`rules/src/validation.ts`). Rules alone are saved in one transaction under
   the form connection's row lock. With changed documents, `create_revision` runs as
   before, and its final locked transaction, which makes the revision current, also
   saves the rule set (`save_rule_set()`). Creating a form connection saves its branch
@@ -528,11 +610,11 @@ The checks have no endpoint, table, setting or dependency of their own.
 - **In the browser, in a module Web Worker**: `useRuleChecks()`
   (`frontend/src/hooks/useRuleChecks.ts`), in the editor page
   (`pages/FormConnectionEditor/index.tsx`), builds each branch's checked tree on the main
-  thread after every change (`checks/checkedTree.ts`, with a fingerprint, so an unchanged
-  branch reuses its cached result) and starts a module worker,
-  `new Worker(new URL('../utils/rules/checks/worker.ts', import.meta.url), { type: 'module' })`,
+  thread after every change (`checks/checkedTree.ts` in `rules/src/`, with a fingerprint, so
+  an unchanged branch reuses its cached result) and starts a module worker,
+  `new Worker(new URL('../workers/checks.ts', import.meta.url), { type: 'module' })`,
   for the others: the shown branch first, then the rest in tab order. The worker
-  (`checks/worker.ts`) runs the solver and the findings (`checks/solver.ts`,
+  (`frontend/src/workers/checks.ts`) runs the solver and the findings (`checks/solver.ts`,
   `checks/findings.ts`, the theories per kind) and posts each branch's result as it
   finishes. A change during a run terminates the worker and starts a new one. A run has
   5 seconds from the change; branches it can't finish count as not checked completely,
@@ -540,27 +622,31 @@ The checks have no endpoint, table, setting or dependency of their own.
   editing goes on. Vite builds the worker into a
   chunk of its own under `assets/`, so the solver and the case-folding table stay out of
   the main bundle. The run state is the pure reducer of `checks/runState.ts`; the modules
-  of `src/utils/rules/checks/` are pure, and only `worker.ts` and the hook touch browser
-  APIs.
+  of `rules/src/checks/` are pure, and only `frontend/src/workers/checks.ts` and the hook
+  touch browser APIs.
 - **Shown in two places only**: the Rules step (notes under rules and groups through
   `FindingNote`, the findings banner, the variant tab's icon and tooltip, and a polite
   status region, `FindingsAnnouncer`) and the publish and save dialog, which lists the
   variants with findings. Findings never block Publish or Save. Every finding text comes
-  from `checks/findingMessages.ts`. The details page never shows them.
+  from `checks/findingMessages.ts`. The details page never shows them. Spec 007 shows them
+  in a third place, the approval page of a publish request, and runs the same checks for
+  agents in the MCP server, with `resolutionOf()` in `findingMessages.ts` saying what would
+  resolve each finding (see
+  [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007)).
 - **Never stored, sent or logged**: findings exist only in the page's memory. They are
   not part of a save, no request carries them, nothing in `checks/`, the worker or the
   hook writes to the console, and the hook handles the worker's errors so that the
   browser doesn't log them. Nothing changes for serviceBW or the server.
 - **The catalog's `multiple_values`**: whether a field or part can hold several values
   comes from `app/catalog.py` through `GET /api/document-types`
-  (`frontend/src/types/document-types.ts` mirrors it), so that a rule set requiring two
+  (`api-types/src/document-types.ts` mirrors it), so that a rule set requiring two
   nationalities isn't reported as a conflict.
 - **In step with `evaluation.py`**: the checks judge each condition as the evaluator
   does: text trimmed, NFC-normalised and case-folded with Python's `str.casefold()`,
   dates by the evaluator's calendar arithmetic. Two files are generated from the
   interpreter and the evaluator by `backend/scripts/export_check_fixtures.py`:
-  `checks/caseFolding.ts` (Python's case-folding table, which `checks/text.ts` uses) and
-  `checks/fixtures/evaluator-vectors.json` (Python's results for text normalisation,
+  `rules/src/checks/caseFolding.ts` (Python's case-folding table, which `checks/text.ts` uses) and
+  `rules/src/checks/fixtures/evaluator-vectors.json` (Python's results for text normalisation,
   `years_after()`, `months_after()`, day numbers and rule outcomes), which the Vitest
   tests replay against `checks/text.ts`, `checks/calendar.ts` and the test evaluator. They
   are never edited by hand; after a Python upgrade or a change to the evaluator's
@@ -568,7 +654,7 @@ The checks have no endpoint, table, setting or dependency of their own.
   commit the result. Its `--check` writes nothing and fails on stale files, and
   `backend/tests/unit/test_check_fixtures.py` runs it. A brute-force oracle
   (`checks/testOracle.ts`, test-only) checks the solver's answers against an evaluator
-  ported from `evaluation.py` (`utils/rules/evaluation.ts`, since spec 004 production code
+  ported from `evaluation.py` (`rules/src/evaluation.ts`, since spec 004 production code
   that the test step shares; see "The test step and the test personas").
 
 ### The test step and the test personas (spec 004)
@@ -590,10 +676,10 @@ endpoint, table, setting or dependency of its own.
   the test step, is the unchanged one; its "Check rules again" goes back to the Rules
   step, to the first variant with findings or the one that was open.
 - **Generation in a module worker**: `usePersonas()`
-  (`hooks/usePersonas.ts`) starts `personas/worker.ts`
-  (`new Worker(new URL(...), { type: 'module' })`) with a `generate` message: the checked
+  (`hooks/usePersonas.ts`) starts `frontend/src/workers/personas.ts`
+  (`new Worker(new URL('../workers/personas.ts', import.meta.url), { type: 'module' })`) with a `generate` message: the checked
   trees, the slots to generate and a deadline. The worker runs `generatePersonas()`
-  (`personas/generation.ts`: the branches' outcome vectors found with spec 003's solver,
+  (`rules/src/personas/generation.ts`: the branches' outcome vectors found with spec 003's solver,
   then values per rule target, research R6 to R8) and posts one `generated` message. The
   run stops searching at `GENERATION_STOP_MS` (4.5 s from the start) and delivers the best
   personas so far; a watchdog fails the run at `GENERATION_WATCHDOG_MS` (5.5 s), and a worker
@@ -603,10 +689,10 @@ endpoint, table, setting or dependency of its own.
   `MAX_QUESTIONS_BELOW_UNKNOWN` (14) questions, so that an unsolvable corner can't use up
   the deadline.
 - **Evaluation on the main thread**: the personas' results are computed in the page, on
-  every change, by `utils/rules/evaluation.ts`, the port of `evaluation.py` (spec 003's
+  every change, by `rules/src/evaluation.ts`, the port of `evaluation.py` (spec 003's
   test evaluator promoted to production code, so that the step shows exactly what the real
   evaluation answers). It and the checked trees are loaded by `usePersonas`'s one dynamic
-  `import()` of `personas/results.ts`, so the main bundle doesn't hold them (the step shows
+  `import()` of `@connection-portal/rules/personas/results`, so the main bundle doesn't hold them (the step shows
   its loading state meanwhile). The vectors of `export_check_fixtures`, `rule_outcomes` and
   `branch_evaluations` (whole-branch outcomes), pin it to Python.
 - **The day**: the test day is today in Germany, from `useTodayInGermany()`
@@ -699,6 +785,181 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
   not the open variant tab, the rule editor's position, personas or findings. Nothing in
   `utils/localDrafts/` or its hooks logs (no `console.*`) or calls the API.
 
+### Agent access and the MCP server (spec 007)
+
+Team members connect LLM agents on their own machines (Claude Code, Cursor, Codex) to the
+middleware through an MCP server, give each one an access level, and approve what it may not do
+alone. The decisions are research R1 to R20 in `specs/007-agent-mcp-server/`, the tables and
+states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the shapes its
+`contracts/` (`mcp-tools.md`, `oauth.md`, `management-api.md`, `ui-screens.md`,
+`guidance.md`).
+
+- **Topology** (research R2, R3): `mcp/` is a Node service, `@connection-portal/mcp`, in a
+  container of its own (`mcp`, port 3100). It has no database: every tool call goes to the
+  backend's management API at `BACKEND_URL`, with the agent's own bearer token. In production,
+  nginx is the only public entry and has three locations for agents:
+
+  | Location | Goes to | What |
+  |---|---|---|
+  | `= /mcp` | `mcp:3100` | The MCP endpoint, every method, unbuffered, with a 600 s read timeout (a stream may stay open while a tool waits for an approval) |
+  | `^~ /.well-known/oauth-protected-resource` | `mcp:3100` | The protected resource metadata (RFC 9728), in the root and the path form (`…/oauth-protected-resource/mcp`) |
+  | `= /.well-known/oauth-authorization-server` | `backend:3000` | The authorization server metadata (RFC 8414) |
+
+  The OAuth endpoints themselves live under `/api/oauth/`, which `/api/` already forwards, and
+  the consent page is the SPA's `/authorize`. In development there is no nginx: the MCP server
+  listens on `http://localhost:3100` (`/mcp`, its metadata and `/health`), the backend on 3000,
+  the SPA on 5173. The MCP endpoint serves protocol 2026-07-28 statelessly and 2025-era clients
+  (2025-11-25, 2025-06-18, 2025-03-26) in sessions (`Mcp-Session-Id`) that live in memory, are
+  bound to the SHA-256 of the bearer that opened them and close after 30 idle minutes, so the
+  server runs as **one replica**. The SDK is `@modelcontextprotocol/server` 2.4.0 with
+  `@modelcontextprotocol/node` 2.1.2 and `zod` 4, pinned to exact versions.
+- **The backend is the OAuth 2.1 authorization server** (research R4; `routers/oauth.py`,
+  `services/oauth.py`, the metadata in `main.py`), the MCP server the protected resource. A
+  client identifies itself with a Client ID Metadata Document (an `https://` `client_id` the
+  backend fetches and caches for 24 hours) or, as a fallback, by dynamic registration
+  (`POST /api/oauth/register`, no secret). The authorization endpoint is
+  `{PORTAL_URL}/authorize`, the consent page, which calls `POST /api/oauth/authorize` with the
+  cookie; the code lives 5 minutes, PKCE is `S256` only, and every token is bound to the
+  resource `MCP_URL`. `POST /api/oauth/token` issues access tokens (`cp_at_`,
+  `AGENT_ACCESS_TOKEN_MINUTES`) and refresh tokens (`cp_rt_`, `AGENT_CONNECTION_IDLE_DAYS`),
+  rotated at every use; a retired refresh token used again revokes the agent connection.
+  Personal access tokens (`cp_pat_`, research R6) are created on the user page, with an expiry
+  of at most `AGENT_TOKEN_MAX_DAYS`, for clients without browser sign-in. The tables
+  (`oauth_clients`, `oauth_codes`, `agent_authorizations`, `agent_tokens`) hold the SHA-256 of
+  every code and token, never the secret. The OAuth endpoints answer RFC 6749 and RFC 7591
+  bodies, not the `{data}` envelope (constitution, Principle I).
+- **The bearer principal** (research R5; `services/auth.py`): `get_current_principal` reads an
+  `Authorization: Bearer` header (an unexpired access or personal access token) or, without
+  one, the cookie session, and answers a `Principal { user, authorization }`, whose
+  `authorization` is `None` for the browser. It touches the authorization's `last_used_at` at
+  most once a minute. `require_level('drafts')` refuses a bearer below that level with
+  `403 insufficient_access` and `needs_access_level`; `require_browser_session` refuses every
+  bearer with `403 browser_only` ("This action is done in the Connection Portal."), on the
+  endpoints that agents reach only through approval requests, `PUT /api/form-connections/{id}`,
+  the user page's and the approval page's endpoints and `/api/auth/*`. `get_current_user` stays
+  the cookie-only dependency. The table of who may call what is in the spec's
+  `contracts/management-api.md`. `/api/connect/` is unchanged.
+- **Three access levels**, one value per agent connection or token (`access_level`), each
+  including the one before:
+
+  | Level | UI name | Allows |
+  |---|---|---|
+  | `read` | Read only | Every read, `check_rules`, `test_applicants`, `get_guide` |
+  | `drafts` | Read and edit drafts | Also every change to a draft, and approval requests to publish or delete a draft |
+  | `manage` | Read, edit drafts and manage live connections | Also approval requests to deactivate, reactivate or delete a published connection |
+
+  No level changes a published connection's content. The level is read from the row at every
+  call, so a change on the user page applies from the agent's next call; tokens carry none.
+  The MCP server asks `GET /api/agent/me` once per request and refuses a tool above the level
+  before any work, with a message that names the level; the backend's check is the safety
+  net. The tool `request_access(level)` answers the MCP request with HTTP `403` and
+  `WWW-Authenticate: Bearer error="insufficient_scope"`, on which the client runs the
+  authorization again and the consent page preselects that level (step-up).
+- **The user page's endpoints** (research R7; `routers/agent_access.py`,
+  `services/agent_access.py`, browser only): `GET /api/agent-access` lists the account's agent
+  connections and tokens, `PUT …/{id}` changes a level, `DELETE …/{id}` revokes,
+  `POST /api/agent-access/tokens` creates a personal access token and answers it once.
+  Revoking and lowering a level cancel the authorization's waiting approval requests first
+  (`revoked`, `access_changed`). An agent principal may create `AGENT_DRAFTS_PER_HOUR` drafts in
+  a fixed one-hour window kept on its authorization (research R17); the next answers `429
+  rate_limited` with the time it may again, in Germany's time. Saves don't count, and browser
+  sessions aren't limited.
+- **Search** (research R9): `GET /api/form-connections/search?q=&status=&cursor=` answers a page
+  of at most 25 connections (`limit`) that aren't deleted, matched on name and description, newest change
+  first, with a keyset cursor (`search_form_connections()`).
+- **Approval requests** (research R12; `routers/approval_requests.py`, `services/approvals.py`,
+  the table `approval_requests`): an agent asks with `POST /api/approval-requests` for one of
+  `publish`, `delete_draft` (level `drafts`), `deactivate`, `reactivate` or `delete` (level
+  `manage`). The action's preconditions are checked without writing (for `publish`,
+  `drafts.check_publishable()`: publishing's checks with publishing's messages), a waiting
+  request for the same connection and action becomes `replaced` under the row lock, and the new
+  one is `waiting` for `APPROVAL_REQUEST_MINUTES`, with a snapshot of what it was made for (the
+  draft's version, or the connection's `is_active`) and the agent's name as `requested_by`. Its
+  link is `{PORTAL_URL}/approvals/{id}`. States:
+
+  ```text
+  waiting ──approve ok──▶ done
+          ──approve fails (EUDIPLO)──▶ waiting, with failed_at and error_id ("Try again")
+          ──decline──▶ declined
+          ──a newer request, same connection and action──▶ replaced
+          ──revoke / lower the agent's level──▶ cancelled (revoked, access_changed; stored)
+          ──expires_at passes──▶ expired (computed)
+          ──the connection moved on, or the agent's access ended──▶ cancelled (computed)
+  ```
+
+  Staleness is computed at every read and again under the row lock at approval, never written
+  by the save paths: a draft whose version moved, that was published or deleted, a connection
+  whose `is_active` moved or that was deleted, or an authorization that is gone (the row keeps
+  `authorization_id` null) reads as `cancelled` with its reason. Approving
+  (`POST …/{id}/approve`) and declining are for the browser session of the request's team
+  member only (`403 not_yours` for another). **Approving runs the existing services, never a
+  second path**: `drafts.publish_stored_draft()`, which publishes the stored draft through
+  `create_revision()` with its `DraftGuard`, `drafts.delete_draft()`, and
+  `form_connections.deactivate_form_connection()`, `activate_form_connection()` and
+  `delete_form_connection()` with the request's snapshot as `expected_active`. An
+  `EudiploError` leaves the request waiting with the failure's `error_id`. The tool
+  `request_approval` returns the link at once and, for a client that declared URL-mode
+  elicitation, also asks the client to open it; `check_approval` reads the outcome. A request
+  that ended or expired is deleted by the worker a day later.
+- **Variant identifiers and links** (research R10, R11): every variant has a UUID from the
+  moment it is added, drafts included (see [Rules and branches](#rules-and-branches-spec-002)),
+  so links name the same thing before and after publishing:
+
+  ```text
+  connection:  {PORTAL_URL}/form-connections/{connectionId}
+  variant:     {PORTAL_URL}/form-connections/{connectionId}/edit?step=rules&variant={variantId}
+  item:        …&variant={variantId}&item={rule-n | group-n}
+  approval:    {PORTAL_URL}/approvals/{requestId}
+  ```
+
+  A link holds no name and no content. The MCP server builds them from `PORTAL_URL`
+  (`mcp/src/links.ts`) and accepts them, an id or a name wherever a tool takes a connection,
+  variant or item (`mcp/src/resolve.ts`); a link of another origin is refused. The browser
+  builds them from `window.location.origin` ("Copy link" in the rules step), and
+  `FormConnectionEdit` opens them.
+- **Editing by agents** (research R8): every draft-changing tool runs the read-apply-save loop
+  of `mcp/src/draftEdit.ts`: read the connection, refuse a published one, apply one change with
+  `rules/src/edits.ts` (see [Rules and branches](#rules-and-branches-spec-002)) to the draft
+  as stored, and save the whole content with the version read; on `409 draft_changed` the
+  change is applied again to the newer draft, up to 3 attempts. Nothing is kept between calls.
+  What the editor's forms limit, the tools check on their input: a target is resolved against
+  the catalog (`mcp/src/resolve.ts`), and a condition's operator must be one of the data's
+  kind, as the rule editor's check menu offers only those (`mcp/src/tools/items.ts`, with the
+  field's operators in the refusal). A rule's new data keeps or drops its condition through
+  `withTarget()` in `rules/src/conditions.ts`, which the rule editor uses too; a tool that
+  drops one says so in its answer.
+- **Checks and tests for agents** (research R14, R15): `check_rules` builds each variant's
+  checked tree as the editor does and runs `checkBranch()` in a `node:worker_threads` worker
+  (`mcp/src/checksWorker.ts`, built to `dist/checksWorker.js` beside `dist/main.js`) with the
+  editor's budgets from `rules/src/checks/constants.ts`; a variant that doesn't finish comes
+  back as not checked completely. Run from the sources (`npm run dev`, Vitest), the checks run
+  on the main thread with the same deadline. Each finding carries the items involved, why it
+  holds and `resolutionOf()`'s text. `test_applicants` checks each fictitious applicant's
+  values against the variant's persona fields (`mcp/src/applicants.ts`) and evaluates them with
+  `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, applicants and
+  results are never stored, sent on or logged.
+- **Guidance from one source** (research R16; the spec's `contracts/guidance.md`):
+  `mcp/plugin/` holds the server instructions (`instructions.md`), the eight skills
+  (`skills/<topic>/SKILL.md`) and the Claude Code plugin's `.claude-plugin/plugin.json` and
+  `.mcp.json`; the repository's `.claude-plugin/marketplace.json` lists it. `mcp/src/guidance.ts`
+  embeds the files at build time (`import.meta.glob` with `?raw`, which is why development
+  runs through `vite-node`) and serves them three ways: as the instructions every client gets
+  when it connects, through the protocol's Skills extension (`skills/list`, `skills/get`,
+  `skill://<topic>/SKILL.md`), and through the `get_guide` tool. The production image has no
+  `plugin/` folder: the skills are in the bundle. `mcp/src/guidance.test.ts` is the gate: every
+  registered tool appears in a skill, every skill has its frontmatter, the instructions name
+  the levels and actions, so `npm test` fails when a tool changes without its guidance.
+- **Logging** (research R18): the MCP server logs one JSON line per request (method, tool,
+  status, duration) and fixed error descriptions, only through `mcp/src/log.ts` (`no-console`
+  everywhere else in `mcp/`, and in `rules/src/` and `api-types/src/`), never arguments,
+  results, tokens or claims. The client chooses the method and the tool name, so the line
+  shows `other` for a method that isn't a method name's shape and `unknown` for a tool the
+  server doesn't have. The backend logs ids and counts only, never a token, code, client
+  metadata, applicant, finding or rule content; the token endpoint's refusals are logged as
+  their error code. The OAuth endpoints read no query, so both access logs, uvicorn's
+  (`redact_references()` in `app/main.py`) and nginx's (`$redacted_request_uri`), show
+  `/api/oauth/…?<redacted>` in place of any query sent there.
+
 ### Background worker
 
 `app/services/worker.py` runs a daemon thread, started and stopped by the FastAPI
@@ -712,7 +973,8 @@ an internal id, never a request reference. A step is a plain function without
 arguments in the `STEPS` tuple, in the order below. Tests set `WORKER_ENABLED=false`
 and call the steps directly.
 
-Implemented steps, in the order of research R7 in the spec folder:
+Implemented steps, in the order of research R7 in the spec folder, then those of
+agents' access (spec 007), which log counts and ids only:
 
 1. **Sync**: one `GET /api/session` per page of sessions updated since the cursor,
    which is the latest `updatedAt` seen less 5 seconds. It applies each outcome to
@@ -744,6 +1006,23 @@ Implemented steps, in the order of research R7 in the spec folder:
 7. **Delete expired sign-in sessions.**
 8. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
    ended.
+9. **Delete expired authorization codes**, used or not, after their 5 minutes.
+10. **Delete expired agent tokens**: access tokens past their expiry, and refresh tokens
+    past theirs or replaced more than a day ago (until then, a replaced one used again still
+    finds its row and revokes its agent connection).
+11. **Delete idle agent connections**: an agent connection without an unexpired, unreplaced
+    refresh token can't be renewed, because it was unused for `AGENT_CONNECTION_IDLE_DAYS`.
+    Its tokens go with it; its waiting approval requests then read as cancelled.
+12. **Delete expired personal access tokens**, past the expiry chosen at creation.
+13. **Delete unused OAuth clients**: dynamically registered clients older than an hour that
+    no agent connection or authorization code uses. Clients of metadata documents stay, as
+    their cache.
+14. **Delete old approval requests** a day after they ended or expired; their approval page
+    then answers `404`.
+
+Steps 11 to 13 lock the rows they delete (`skip_locked`) and check their conditions again
+in the deleting statement, so that, for example, a consent that renews an agent connection at
+the same moment keeps it.
 
 The production image runs one uvicorn process, so there is one worker thread; row
 locks keep the steps correct if that changes.
@@ -901,10 +1180,14 @@ The tables and their rules are described in
 [data-model.md](../specs/001-servicebw-eudi-middleware/data-model.md), and those of
 the rules and branches in
 [spec 002's data-model.md](../specs/002-connection-rules/data-model.md), and the drafts
-in [spec 005's data-model.md](../specs/005-connection-drafts/data-model.md). A rule set's
+in [spec 005's data-model.md](../specs/005-connection-drafts/data-model.md), and agents'
+access and approval requests in
+[spec 007's data-model.md](../specs/007-agent-mcp-server/data-model.md). A rule set's
 tree and a draft's content are one JSONB column each, since they are always read and
-written whole. Autogenerate emits no CHECK constraint or backfill, so the drafts
-migration adds them by hand. No table holds a citizen's documents or an evaluation.
+written whole. Autogenerate emits no CHECK constraint, partial unique index or backfill, so
+the drafts migration and spec 007's migration (`uq_agent_authorizations_oauth_client`, the
+variant ids in drafts) add them by hand. No table holds a citizen's documents, an
+evaluation, a finding, a test applicant or a token's secret.
 
 ## Environment Variables
 
@@ -930,12 +1213,43 @@ declared there is ignored (`extra='ignore'`).
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+| `PORTAL_URL` | Public origin of the management interface: links and the OAuth authorization endpoint (`{PORTAL_URL}/authorize`) are built from it | `http://localhost:5173` in development; `CONNECTION_BASE_URL` otherwise |
+| `MCP_URL` | Public URL of the MCP endpoint, the resource indicator every agent token is bound to | `http://localhost:3100/mcp` in development; `{CONNECTION_BASE_URL}/mcp` otherwise |
+| `OAUTH_ISSUER` | Issuer of the OAuth authorization server | `CONNECTION_BASE_URL` |
+| `AGENT_ACCESS_TOKEN_MINUTES` | Lifetime of an agent's access token | `60` |
+| `AGENT_CONNECTION_IDLE_DAYS` | Lifetime of a refresh token: an agent connection unused this long ends | `30` |
+| `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
+| `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
+| `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
+
+The three URLs are resolved by `resolve_agent_urls`, after the check of
+`CONNECTION_BASE_URL`; trailing slashes are removed. In the Coolify setup all three live on
+the one public domain, so `docker-compose.prod.yml` sets them from `CONNECTION_BASE_URL`.
 
 The developer script `scripts/issue_test_credentials` reads `EUDIPLO_URL`,
 `EUDIPLO_TRUST_LIST_ID` and its own issuer client, `EUDIPLO_ISSUER_CLIENT_ID` and
 `EUDIPLO_ISSUER_CLIENT_SECRET` (roles `issuance:manage` + `issuance:offer`), from the same
 `.env` with a settings class of its own. `Settings` doesn't declare the issuer client: the
 middleware has no issuance role (research R2).
+
+### MCP server
+
+Read once at start by `mcp/src/config.ts`. Outside production (`NODE_ENV` not `production`)
+the URLs have development defaults; in production a missing one stops the server with a log
+line that names the variable. A value that isn't a URL, or a `PORT` that isn't a port number,
+stops it in any environment. Trailing slashes are removed.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Port the server listens on | `3100` |
+| `BACKEND_URL` | The backend's internal address, which every tool call goes to | `http://localhost:3000` (compose: `http://backend:3000`) |
+| `PORTAL_URL` | Public origin of the management interface, which links are built from; the backend's `PORTAL_URL` | `http://localhost:5173` |
+| `MCP_URL` | Public URL of the MCP endpoint, the `resource` of its protected resource metadata; the backend's `MCP_URL` | `http://localhost:3100/mcp` |
+| `OAUTH_ISSUER` | The authorization server its metadata names; the backend's `OAUTH_ISSUER` | `http://localhost:3000` |
+
+`PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` must match the backend's, since tokens are bound to
+`MCP_URL` and links must open the right Connection Portal. `mcp/.env.example` lists them; the
+compose files pass them as `environment:`, and `npm run dev -w mcp` reads them from the shell.
 
 ### Frontend
 
@@ -957,6 +1271,7 @@ Read at container start, not at build time, so one image serves every environmen
 | `BACKEND_HOST` | Host name of the backend, which nginx forwards `/api/` to; rendered into `nginx.conf` by the image's envsubst templating | `backend` |
 | `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call `/api/connect/` | empty: `/api/connect/` answers `403` to everyone |
 | `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Traefik), whose `X-Forwarded-For` gives the client's address | empty: the connecting address counts |
+| `MCP_HOST` | Host name of the MCP server, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to; rendered like `BACKEND_HOST` | `mcp` (`${SERVICE_NAME_MCP}` in Coolify) |
 
 `frontend/nginx/40-servicebw-access.sh`, which the nginx image runs from
 `/docker-entrypoint.d/`, writes the two lists into `/etc/nginx/servicebw-allow.conf`
@@ -966,13 +1281,18 @@ but an address or a range stops the container.
 
 ## Docker Development
 
-The `docker-compose.yml` orchestrates three services:
+The `docker-compose.yml` orchestrates four services:
 
 1. **postgres**: PostgreSQL 18 (`postgres:18-alpine`) with health checks, published on host port **5435**
 2. **backend**: FastAPI via uvicorn `--reload`, depends on postgres, exposes port 3000
 3. **frontend**: Vite dev server, depends on backend, exposes port 5173
+4. **mcp**: the MCP server through `vite-node` (`mcp/Dockerfile.dev`, `npm run dev -w mcp`),
+   depends on backend, exposes port 3100, with `BACKEND_URL=http://backend:3000` and the
+   development URLs; it mounts `mcp/src/`, `mcp/plugin/`, `api-types/` and `rules/`.
+   `vite-node` doesn't watch, so a change to the sources or the skills takes effect when the
+   container restarts (`docker compose restart mcp`)
 
-Both images build with the repository root as context, so the root
+Every image builds with the repository root as context, so the root
 `.dockerignore` is the only one Docker reads. Volumes enable hot reload by
 mounting source directories. The backend container runs
 `alembic upgrade head` on start, and reads `backend/.env` through `env_file`
@@ -996,9 +1316,13 @@ gateway.
                  │  /api/connect/* → proxy, │
                  │    allow-listed only     │
                  │  /api/* → proxy ─────────┼───▶ backend:3000 ───▶ postgres:5432
-                 └──────────────────────────┘      (internal)        (internal)
-                                                       │
-                                                       └──▶ EUDIPLO (outbound HTTPS)
+                 │  /.well-known/oauth-     │      (internal)        (internal)
+                 │   authorization-server ──┼───▶ backend:3000
+                 │  /mcp, /.well-known/     │          ▲   │
+                 │   oauth-protected-       │          │   └──▶ EUDIPLO (outbound HTTPS)
+                 │   resource → proxy ──────┼───▶ mcp:3100
+                 └──────────────────────────┘      (internal; calls the backend
+                                                    at BACKEND_URL)
 ```
 
 Consequences of this design:
@@ -1007,6 +1331,14 @@ Consequences of this design:
   `EUDIPLO_*` variables in the Coolify environment; it refuses to start without
   `CONNECTION_BASE_URL`. Previews need it too, because they also run with
   `APP_ENV=production`
+- The MCP server is public at `https://<domain>/mcp`, through the same nginx. The compose
+  file derives `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the `mcp`
+  service from `CONNECTION_BASE_URL`, and the `mcp` service runs with `NODE_ENV=production`,
+  so a missing URL stops it. It reaches the backend at
+  `http://${SERVICE_NAME_BACKEND}:3000`, and nginx reaches it through `MCP_HOST`
+  (`${SERVICE_NAME_MCP}`). It runs as one replica, since 2025-era MCP sessions live in its
+  memory; its health check is `GET /health`. A preview has its own MCP endpoint on its own
+  domain
 - The UI must be served over HTTPS (Coolify's Traefik): the session cookie is
   `Secure` outside development
 - This nginx is the only public entry point, so it also restricts serviceBW's

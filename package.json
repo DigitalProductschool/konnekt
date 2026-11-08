@@ -1,0 +1,18 @@
+{
+  "name": "connection-portal",
+  "private": true,
+  "workspaces": [
+    "api-types",
+    "rules",
+    "frontend",
+    "mcp"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run typecheck --workspaces --if-present && npm run build --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
+    "prepare": "cd backend && uv run pre-commit install || exit 0"
+  }
+}

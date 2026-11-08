@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 
 from ..catalog import DOCUMENT_TYPES
 from ..schemas import ApiResponse, DocumentField, DocumentType
-from ..services.auth import get_current_user
+from ..services.auth import get_current_principal
 
 router = APIRouter(
     prefix='/api/document-types',
     tags=['document-types'],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_principal)],
 )
 
 

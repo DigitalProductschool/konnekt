@@ -1,4 +1,5 @@
-import { testDayLineOf } from '../../../utils/rules/personas/messages';
+import { testDayLineOf } from '@connection-portal/rules/personas/messages';
+
 import type { TestDayLineProps } from './types';
 
 /**

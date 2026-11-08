@@ -1,6 +1,6 @@
 """scripts/export_check_fixtures: the rule checks' generated files (research R13).
 
-The case-folding table and the evaluator's vectors in frontend/src/utils/rules/checks/
+The case-folding table and the evaluator's vectors in rules/src/checks/
 are generated from this interpreter and app/services/evaluation.py. These tests fail
 when they are stale: run `uv run python -m scripts.export_check_fixtures` and commit
 the result.

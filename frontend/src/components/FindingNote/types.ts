@@ -1,4 +1,4 @@
-import type { ItemFindingKind } from '../../utils/rules/checks/types';
+import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
 
 /**
  * A rule's or group's finding as the rules step shows it: its kind and the note's text from

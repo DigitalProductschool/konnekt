@@ -1,5 +1,6 @@
+import { noticeText } from '@connection-portal/rules/checks/findingMessages';
+
 import BranchName from '../../../components/BranchName';
-import { noticeText } from '../../../utils/rules/checks/findingMessages';
 import { ELEMENT_IDS } from '../constants';
 import type { VariantTabProps } from './types';
 

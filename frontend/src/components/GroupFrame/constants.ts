@@ -1,12 +1,10 @@
-import type { Combinator } from '../../types/form-connections';
-import type { ItemFindingKind } from '../../utils/rules/checks/types';
+import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
+import { GROUP_SUBTITLES } from '@connection-portal/rules/personas/constants';
 
 export const GROUP_FRAME_COPY = {
-  // Figma "Rules/Group header" (U14 6094:6413, 6094:6320): how the members combine
-  subtitles: {
-    and: 'All of these must be true',
-    or: 'At least one of these must be true',
-  } satisfies Record<Combinator, string>,
+  // Figma "Rules/Group header" (U14 6094:6413, 6094:6320): how the members combine. The texts
+  // live in the rules package, whose test results name a group by them
+  subtitles: GROUP_SUBTITLES,
   // The group's own message (U14 6324:39411) and its hint (6324:39419)
   messageLabel: 'Error message applicants read:',
   messageHint: 'Shown instead of the rules’ own messages when this group isn’t met.',

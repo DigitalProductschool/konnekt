@@ -1,4 +1,5 @@
-import { optionsOf } from '../../../utils/rules/conditions';
+import { optionsOf } from '@connection-portal/rules/conditions';
+
 import { ELEMENT_IDS } from '../constants';
 import EditorField from './EditorField';
 import type { DocumentFieldsProps } from './types';

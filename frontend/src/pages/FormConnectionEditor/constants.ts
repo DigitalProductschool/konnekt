@@ -79,15 +79,14 @@ export const DRAFT_COPY = {
   draftBadge: 'Draft',
   untitled: 'Untitled connection',
   draftSaved: (name: string) => `Draft ${name} saved.`,
-  // The note on data the catalog no longer offers (S8; W10): "Personal ID – Eye colour", or a
-  // whole document by its key, since the catalog has no label for it any more
+  // The note on data the catalog no longer offers (S8; W10); its labels come from
+  // `droppedDataOf()` in @connection-portal/rules/dropped
   catalogDroppedTitle: 'The wallet no longer offers some data of this draft',
-  droppedField: (document: string, field: string) => `${document} – ${field}`,
   removeIt: 'Remove it',
   // The conflict dialog after "Save and exit", and the publish dialog's conflicts (S2; W4)
   draftChangedTitle: 'This draft has changed',
   draftChangedHint:
-    'Reload shows the draft as they saved it and drops your changes. Replace their changes saves your version of the whole draft.',
+    'Reload shows the draft as it was last saved and drops your changes. Replace their changes saves your version of the whole draft.',
   draftPublishedTitle: 'This draft has been published',
   draftPublishedHint: 'Your changes weren’t saved. Open the connection to see it.',
   draftDeletedTitle: 'This draft has been deleted',
@@ -184,6 +183,12 @@ export const UPCOMING_DOCUMENTS = [
   'Residence permit',
   'Vehicle registration',
 ];
+
+/**
+ * A branch id as the server takes it (spec 007, research R10): a UUID in its canonical form, as
+ * `crypto.randomUUID()` makes it. A loaded branch whose id isn't one gets a new id
+ */
+export const BRANCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 // Element ids that validation moves the focus to
 export const ELEMENT_IDS = {

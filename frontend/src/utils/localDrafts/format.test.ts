@@ -1,6 +1,6 @@
+import type { GroupItem, RuleItem } from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
-import type { GroupItem, RuleItem } from '../../types/form-connections';
 import { parseRecord, serializeRecord } from './format';
 import { flowKeyOfDraft, newFlowKey } from './keys';
 import type { LocalDraftRecord } from './types';

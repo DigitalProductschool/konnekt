@@ -8,10 +8,14 @@ A row is in one of two states, draft or published, and a published connection ne
 becomes a draft again. Its URLs answer as unavailable while it is a draft.
 
 Saving a draft checks its structure only (`complete=False`, research R3) and numbers
-new rules and groups from the row's counters (R4). Publishing runs the checks of
+new rules and groups from the row's counters (R4). Its variants keep their ids, which
+the server assigns where a request sends none, and which their branch rows take when
+the draft is published (spec 007, research R10, FR-029). Publishing runs the checks of
 creating a connection and then `form_connections.create_revision()` with a
-`DraftGuard`, so there is no second save path (R5). Nothing here calls EUDIPLO
-except through publishing.
+`DraftGuard`, so there is no second save path (R5). An approval request publishes
+the stored draft through the same path (`check_publishable()` before it is made,
+`publish_stored_draft()` once it is approved; spec 007, research R12). Nothing here
+calls EUDIPLO except through publishing.
 """
 
 import logging
@@ -30,6 +34,7 @@ from ..schemas import (
     DraftPublish,
     DraftUpdate,
     FormConnectionDraft,
+    NumberingBase,
     RequestedDocument,
     RulesInput,
     to_iso_utc,
@@ -60,7 +65,8 @@ def _draft_changed() -> HTTPException:
 def draft_view(form_connection: FormConnection) -> FormConnectionDraft:
     """A draft as the API returns it: its content and version, without URLs.
 
-    Answers 409 `draft_published` for a published row.
+    Its branches carry their ids (spec 007, research R10). Answers 409
+    `draft_published` for a published row.
     """
     if form_connection.draft is None or form_connection.draft_version is None:
         raise _draft_published()
@@ -130,11 +136,14 @@ def _lock_draft(
 
 
 def _clean_draft(
-    data: DraftCreate,
+    db: Session, data: DraftCreate, form_connection_id: str | None
 ) -> tuple[str, str, list[RequestedDocument], rules.RulesSave]:
     """The structural checks of a draft (FR-003, research R3), or a 400.
 
-    Returns the name, the description, the documents and the checked rules.
+    Returns the name, the description, the documents and the checked rules, whose
+    branches all have ids: a null one gets a UUID, and a UUID the request sends is
+    kept unless another form connection's branch has it (`form_connection_id` is
+    the draft's, None while it is created; spec 007, research R10).
     """
     name = form_connections.clean_name(data.name)
     description = form_connections.clean_description(data.description)
@@ -148,6 +157,7 @@ def _clean_draft(
         main_branch_id=None,
         complete=False,
     )
+    rules.check_draft_branch_ids(db, form_connection_id, save.branches)
     return name, description, documents, save
 
 
@@ -170,7 +180,7 @@ def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
     revision, rule set or branch row (FR-005). Answers 400 when the structure is
     broken.
     """
-    name, description, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(db, data, None)
     numbering = rules.number_draft(save, (1, 1))
     form_connection = FormConnection(
         id=str(uuid.uuid4()),
@@ -212,7 +222,7 @@ def save_draft(
         data.version,
         data.replace,
     )
-    name, description, documents, save = _clean_draft(data)
+    name, description, documents, save = _clean_draft(db, data, form_connection_id)
 
     form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
     numbering = rules.number_draft(
@@ -233,6 +243,81 @@ def save_draft(
     return draft_view(form_connection)
 
 
+def _publish_checks(
+    db: Session,
+    form_connection: FormConnection,
+    name: str | None,
+    description: str | None,
+    documents: list[RequestedDocument],
+    rules_input: RulesInput | None,
+) -> tuple[str, str, list[RequestedDocument], rules.RulesSave | None]:
+    """The checks of publishing a draft, in their order: a 400 before any write.
+
+    Those of creating a form connection, unchanged and with their messages (spec
+    005, FR-009; the description optional, spec 006), the rules' identifiers
+    against the draft's counters, and the variants' ids, which their branch rows
+    take (spec 007, FR-029). Returns the name, the description, the documents and
+    the checked rules (None without rules).
+    """
+    clean_name = form_connections.clean_name(name)
+    clean_description = form_connections.clean_description(description)
+    clean_documents = form_connections.clean_documents(documents)
+    save: rules.RulesSave | None = None
+    if rules_input is not None:
+        save = rules.clean_rules(rules_input, clean_documents, main_branch_id=None)
+        rules.check_first_save(
+            save,
+            counters=(
+                form_connection.next_rule_number,
+                form_connection.next_group_number,
+            ),
+        )
+        # The branch rows take the draft's ids (FR-029); `first_rule_set` repeats
+        # this under the row lock
+        rules.check_draft_branch_ids(db, form_connection.id, save.branches)
+    return clean_name, clean_description, clean_documents, save
+
+
+def _stored_rules(form_connection: FormConnection, content: DraftContent) -> RulesInput:
+    """A stored draft's branches as publishing takes them.
+
+    Numbered from the row's counters, so that every stored identifier counts as
+    loaded and keeps its number, as the editor's publish of the loaded draft sends
+    them (research R4).
+    """
+    return RulesInput(
+        branches=content.branches,
+        numbering_base=NumberingBase(
+            rule=form_connection.next_rule_number,
+            group=form_connection.next_group_number,
+        ),
+    )
+
+
+def check_publishable(
+    db: Session, form_connection: FormConnection
+) -> tuple[str, str, list[RequestedDocument], rules.RulesSave | None]:
+    """Whether publishing would accept the stored draft, without writing anything.
+
+    The checks of `publish_draft()`'s step 2 on the draft's stored name,
+    description, documents and branches, numbered from the row's counters: a 400
+    with publishing's message for the first problem (FR-022; spec 005, FR-009). An
+    approval request to publish is made only for a draft that passes (spec 007,
+    research R12). Answers 409 `draft_published` for a published row.
+    """
+    if form_connection.draft is None or form_connection.published_at is not None:
+        raise _draft_published()
+    content = DRAFT_CONTENT.validate_python(form_connection.draft)
+    return _publish_checks(
+        db,
+        form_connection,
+        form_connection.name,
+        form_connection.description,
+        content.documents,
+        _stored_rules(form_connection, content),
+    )
+
+
 def publish_draft(
     db: Session, form_connection_id: str, data: DraftPublish
 ) -> FormConnectionView:
@@ -242,9 +327,10 @@ def publish_draft(
        published (also with `data.replace`), and 409 `draft_changed` if
        `data.version` is outdated and `data.replace` is false, before the content
        is checked (research R6).
-    2. The checks of creating a form connection, unchanged and in its order, and
-       the rules' identifiers against the draft's counters: 400 before anything is
-       written.
+    2. The checks of creating a form connection, unchanged and in its order, the
+       rules' identifiers against the draft's counters, and the variants' ids,
+       which their branch rows take (spec 007, FR-029): 400 before anything is
+       written (`_publish_checks`, which `check_publishable()` shares).
     3. `form_connections.create_revision()` with a `DraftGuard`, which repeats
        step 1 under both of its row locks, reserves the revision, creates the
        EUDIPLO configuration with no transaction held, and publishes the row in
@@ -257,19 +343,14 @@ def publish_draft(
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_state(form_connection, data.version, data.replace)
-    name = form_connections.clean_name(data.name)
-    description = form_connections.clean_description(data.description)
-    documents = form_connections.clean_documents(data.documents)
-    save: rules.RulesSave | None = None
-    if data.rules is not None:
-        save = rules.clean_rules(data.rules, documents, main_branch_id=None)
-        rules.check_first_save(
-            save,
-            counters=(
-                form_connection.next_rule_number,
-                form_connection.next_group_number,
-            ),
-        )
+    name, description, documents, save = _publish_checks(
+        db,
+        form_connection,
+        data.name,
+        data.description,
+        data.documents,
+        data.rules,
+    )
 
     # End the read transaction: the revision path locks the row itself
     db.rollback()
@@ -285,15 +366,50 @@ def publish_draft(
     return form_connections.get_form_connection(db, form_connection_id)
 
 
-def delete_draft(db: Session, form_connection_id: str) -> None:
+def publish_stored_draft(
+    db: Session, form_connection_id: str, version: int
+) -> FormConnectionView:
+    """Publish the stored draft as it was at `version` (spec 007, research R12).
+
+    What an approved approval request runs: the `DraftPublish` body is built from
+    the stored draft (its name, description, documents and branches, numbered from
+    the row's counters) with `version` and `replace=False`, and goes through
+    `publish_draft()`, so there is one save path with the `DraftGuard`. 404 if the
+    draft is missing, 409 `draft_published` if it is published, and 409
+    `draft_changed` if its version is no longer `version`, here and under the
+    publish's row locks: only the content of that version is published. An
+    `EudiploError` reaches the caller, and the draft stays a draft.
+    """
+    form_connection = form_connections.find_form_connection(db, form_connection_id)
+    # The content read below belongs to this version: both come from one row
+    _check_state(form_connection, version, replace=False)
+    content = DRAFT_CONTENT.validate_python(form_connection.draft)
+    data = DraftPublish(
+        name=form_connection.name,
+        description=form_connection.description,
+        documents=content.documents,
+        rules=_stored_rules(form_connection, content),
+        version=version,
+        replace=False,
+    )
+    return publish_draft(db, form_connection_id, data)
+
+
+def delete_draft(
+    db: Session, form_connection_id: str, version: int | None = None
+) -> None:
     """Remove a draft for good (FR-010, research R7).
 
-    Answers 404 if it's missing and 409 `draft_published` if it's published; it
-    compares no version. Otherwise deletes any revision that a publish in flight
-    reserved, then the row, in one commit; that publish then finds no row, answers
-    404 and deletes its own configuration. No EUDIPLO call.
+    Answers 404 if it's missing and 409 `draft_published` if it's published. The
+    editor's delete compares no version; an approved approval request passes the
+    `version` it was made for, and a draft saved since answers 409
+    `draft_changed` under the row lock, so that only the content the team member
+    saw is deleted (spec 007, research R12, FR-024). Otherwise deletes any
+    revision that a publish in flight reserved, then the row, in one commit; that
+    publish then finds no row, answers 404 and deletes its own configuration. No
+    EUDIPLO call.
     """
-    form_connection = _lock_draft(db, form_connection_id)
+    form_connection = _lock_draft(db, form_connection_id, version)
     db.execute(
         delete(FormConnectionRevision).where(
             FormConnectionRevision.form_connection_id == form_connection_id

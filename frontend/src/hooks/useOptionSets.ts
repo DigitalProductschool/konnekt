@@ -1,7 +1,7 @@
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import { useEffect, useReducer } from 'react';
 
 import { getOptionSets } from '../api/option-sets';
-import type { OptionSet } from '../types/option-sets';
 import type { OptionSetsState } from './types';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import { INITIAL_OPTION_SETS_STATE, optionSetsReducer } from './utils';

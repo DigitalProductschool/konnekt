@@ -1,12 +1,11 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
+import type { FindingTone } from '@connection-portal/rules/checks/types';
+
 import type { PopupPlacement } from '../../../utils/popupPlacement';
-import type { FindingTone } from '../../../utils/rules/checks/types';
 import type { ItemNameSize } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */
 export const MAIN_BRANCH_NAME = 'Standard';
-/** Its key until the save gives it an id */
-export const MAIN_BRANCH_KEY = 'main';
 
 /** The type of names (U14): label/small for a rule, title/default and title/small for groups */
 export const NAME_SIZES: Record<ItemNameSize, string> = {
@@ -15,24 +14,14 @@ export const NAME_SIZES: Record<ItemNameSize, string> = {
   'sub-group': 'text-kern-static-medium leading-(--kern-typography-line-height-medium-static)',
 };
 
-/**
- * The width of a ⋯ menu. Figma's 220px (U14 6113:28988) holds Revamp's 14px labels; at KERN
- * 2.8's 16px the longest fixed one, "Remove from this variant", needs 248px to stay on one line
- * (design-notes §9)
- */
-export const ACTION_MENU_WIDTH = 248;
 /** The width of the "Copy to variant" popover (U20) */
 export const COPY_POPOVER_WIDTH = 300;
 
 /**
- * Where a ⋯ menu or the copy popover opens from its ⋯ (utils/popupPlacement.ts): below it,
- * opening to the side that fits, or across the rules card when neither does
+ * Where the copy popover opens from its ⋯ (utils/popupPlacement.ts), as a ⋯ menu does
+ * (components/ActionMenu): below it, opening to the side that fits, or across the rules card when
+ * neither does
  */
-export const ACTION_MENU_PLACEMENTS: Record<PopupPlacement, string> = {
-  start: 'absolute top-full left-0 w-248',
-  end: 'absolute top-full right-0 w-248',
-  full: 'absolute inset-x-16',
-};
 export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, string> = {
   start: 'absolute top-full left-0 w-300',
   end: 'absolute top-full right-0 w-300',
@@ -210,7 +199,32 @@ export const RULES_COPY = {
   // The findings banner's chevron (spec 003, S2; A1, W19)
   showFindings: 'Show findings',
   hideFindings: 'Hide findings',
+  // Links (spec 007, contracts/ui-screens.md S4, S5; FR-028, FR-031): the ⋯ menus' entry, its
+  // toasts, and the notice of a link to what no longer exists
+  copyLink: 'Copy link',
+  linkCopied: 'Link copied.',
+  linkNotCopied:
+    'The link couldn’t be copied. Copy it from the address bar after opening the item.',
+  missingVariant: 'This link points to a variant that no longer exists.',
+  missingItem: 'This link points to a rule or group that no longer exists.',
+  dismiss: 'Dismiss',
 };
+
+/**
+ * The search parameters of a link to a variant, rule or group (spec 007, research R11):
+ * `?step=rules&variant={variantId}&item={itemId}`, identifiers only (FR-029)
+ */
+export const LINK_PARAMS = {
+  step: 'step',
+  variant: 'variant',
+  item: 'item',
+} as const;
+
+/** The `step` a link opens: the rules step */
+export const LINK_STEP = 'rules';
+
+/** The link notice's id, which takes the focus when an opened link names what isn't there (S5) */
+export const LINK_NOTICE_ID = 'link-notice';
 
 /**
  * The findings banner's looks by kind (spec 003, S2; A1; design-notes.md §7, "Banner"): the

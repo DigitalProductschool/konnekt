@@ -14,6 +14,7 @@ from app.cli import CONNECTION_MODELS, main
 from app.config import settings
 from app.db import SessionLocal
 from app.models import (
+    ApprovalRequest,
     DocumentRequest,
     FormConnectionRuleSet,
     LoginSession,
@@ -23,6 +24,7 @@ from app.services.auth import authenticate, create_login_session
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
+    create_agent_authorization,
     create_form_connection,
     now,
     share,
@@ -163,8 +165,29 @@ def _row_counts() -> dict[str, int]:
 
 
 def _add_connection_rows(client: TestClient) -> str:
-    """A form connection with a request for it; returns the request's reference."""
-    reference: str = trigger(client, create_form_connection(client))['reference']
+    """A form connection with a document request and an agent's approval request
+    for it; returns the document request's reference."""
+    form_connection_id = create_form_connection(client)
+    reference: str = trigger(client, form_connection_id)['reference']
+    with SessionLocal() as db:
+        user_account_id = db.scalars(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        ).one()
+    authorization_id, _ = create_agent_authorization(user_account_id, 'manage')
+    with SessionLocal() as db:
+        db.add(
+            ApprovalRequest(
+                form_connection_id=form_connection_id,
+                action='deactivate',
+                authorization_id=authorization_id,
+                requested_by='test',
+                user_account_id=user_account_id,
+                was_active=True,
+                status='waiting',
+                expires_at=now() + timedelta(minutes=10),
+            )
+        )
+        db.commit()
     return reference
 
 

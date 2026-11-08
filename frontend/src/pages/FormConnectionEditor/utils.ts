@@ -1,6 +1,5 @@
-import { ApiError, errorNoticeOf } from '../../api/client';
-import type { ErrorNotice } from '../../types/api';
-import type { DocumentType } from '../../types/document-types';
+import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
   DraftCreate,
@@ -10,18 +9,20 @@ import type {
   NumberingBase,
   RequestedDocument,
   RequestedDocumentView,
-  RuleItem,
-} from '../../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
+import { sameValue } from '@connection-portal/rules/branches';
+import { dialogLineOf } from '@connection-portal/rules/checks/findingMessages';
+import type { BranchCheck, FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
+import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
+import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
+import type { RulesProblem } from '@connection-portal/rules/types';
+
+import { ApiError, errorNoticeOf } from '../../api/client';
 import { emptyContent } from '../../utils/localDrafts/content';
 import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import { sameValue } from '../../utils/rules/branches';
-import { dialogLineOf } from '../../utils/rules/checks/findingMessages';
-import type { BranchCheck, FindingTone, RuleChecks } from '../../utils/rules/checks/types';
-import { countRules, flattenItems, hasAnyRule } from '../../utils/rules/tree';
-import type { RulesProblem } from '../../utils/rules/types';
-import { rulesCheckingData } from '../../utils/rules/validation';
 import {
+  BRANCH_ID_PATTERN,
   DESCRIPTION_MAX_LENGTH,
   DRAFT_CHANGED_ERROR,
   DRAFT_COPY,
@@ -35,9 +36,9 @@ import {
   RULES_CHANGED_ERROR,
   VALIDATION_MESSAGES,
 } from './constants';
-import { MAIN_BRANCH_KEY, RULES_COPY } from './RulesStep/constants';
+import { RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
-import { initialRulesState, newBranchKey, rulesReducer } from './RulesStep/utils';
+import { initialRulesState, rulesReducer } from './RulesStep/utils';
 import type {
   DraftConflict,
   DraftSaveError,
@@ -185,72 +186,17 @@ export function removalAction(removal: PendingRemoval): EditorAction {
   }
 }
 
-/** The fields a document requests, in its order. */
-function fieldsOf(documents: RequestedDocument[], documentType: string): string[] {
-  return documents.find((document) => document.document_type === documentType)?.fields ?? [];
-}
-
 /**
- * Whether a removal takes away the data a rule checks: a whole document's requested fields, or
- * one field; for "All data", those still selected. Data already not requested doesn't count.
+ * The rules, in every branch, that check the data a removal takes away (FR-029), as the removal
+ * dialog lists them: "Rule 01 in Standard", each with a key of its own
+ * (`rulesCheckingRemoval()`, which the agents' tools share).
  */
-function removalTakes(
-  removal: PendingRemoval,
-  target: { document_type: string; field: string },
-  documents: RequestedDocument[]
-): boolean {
-  if (removal.type === 'dropped') {
-    return removal.items.some((item) =>
-      removalTakes(
-        item.field === null
-          ? { type: 'document', documentType: item.documentType, label: item.label }
-          : {
-              type: 'field',
-              documentType: item.documentType,
-              field: item.field,
-              label: item.label,
-            },
-        target,
-        documents
-      )
-    );
-  }
-  if (target.document_type !== removal.documentType) {
-    return false;
-  }
-  return removal.type === 'field'
-    ? target.field === removal.field
-    : fieldsOf(documents, removal.documentType).includes(target.field);
-}
-
-/**
- * The rules, in every branch, that check the data a removal takes away (FR-029): a document's
- * rules, a field's, or for "All data" those of the fields still selected; for the data the
- * catalog dropped (S8), those of every dropped document and field, each rule once, in branch and
- * tree order. Rules on data the connection already doesn't request are flagged by the Rules step
- * (F11) and not named again.
- */
-export function rulesCheckingRemoval(
+export function removedDataRulesOf(
   removal: PendingRemoval,
   branches: RulesBranch[],
   documents: RequestedDocument[]
 ): RemovedDataRule[] {
-  const found =
-    removal.type === 'dropped'
-      ? branches.flatMap((branch, branchIndex) =>
-          flattenItems(branch.items)
-            .filter((item): item is RuleItem => item.type === 'rule')
-            .filter(({ target }) => target !== null && removalTakes(removal, target, documents))
-            .map((rule) => ({ branchIndex, rule }))
-        )
-      : rulesCheckingData(
-          branches,
-          removal.documentType,
-          removal.type === 'field' ? removal.field : undefined
-        ).filter(
-          ({ rule }) => rule.target !== null && removalTakes(removal, rule.target, documents)
-        );
-  return found.map(({ branchIndex, rule }) => ({
+  return rulesCheckingRemoval(branches, removal, documents).map(({ branchIndex, rule }) => ({
     key: `${branches[branchIndex].key}-${rule.id}`,
     ruleName: rule.name.trim(),
     branchName: branches[branchIndex].name.trim(),
@@ -530,31 +476,6 @@ export function labelOf(documentType: string, documentTypes: DocumentType[]): st
   return documentTypes.find((type) => type.key === documentType)?.label ?? documentType;
 }
 
-/**
- * The data the flow requests that the catalog no longer offers (S8; FR-003 edge case), in
- * document order: a document type the catalog lacks is one item, labelled with its key, since
- * the catalog has no label for it any more; a field a known document lacks is "Personal ID –
- * eye_colour", with the field's key. Empty when the catalog offers everything.
- */
-export function droppedDataOf(
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): DroppedData[] {
-  return documents.flatMap((document): DroppedData[] => {
-    const documentType = documentTypes.find((type) => type.key === document.document_type);
-    if (!documentType) {
-      return [{ documentType: document.document_type, field: null, label: document.document_type }];
-    }
-    return document.fields
-      .filter((field) => !documentType.fields.some((offered) => offered.key === field))
-      .map((field) => ({
-        documentType: documentType.key,
-        field,
-        label: DRAFT_COPY.droppedField(documentType.label, field),
-      }));
-  });
-}
-
 /** The note's "Remove it" (S8): every dropped item at once, named in the removal dialog. */
 export function droppedRemovalOf(items: DroppedData[]): PendingRemoval {
   return { type: 'dropped', items, label: items.map((item) => item.label).join(', ') };
@@ -616,7 +537,7 @@ export function ruleLines(rules: RulesState, withoutRules: boolean): string[] {
   );
 }
 
-/** Branches as the API takes them, without the step's keys or the API's pull URLs. */
+/** Branches as the API takes them, without the API's pull URLs. */
 function branchInputs(branches: BranchInput[]): BranchInput[] {
   return branches.map((branch) => ({
     id: branch.id,
@@ -630,11 +551,19 @@ function branchInputs(branches: BranchInput[]): BranchInput[] {
 }
 
 /**
+ * The step's branches as the API takes them: each with its key as its id (spec 007, research
+ * R10), so that a variant keeps the id it got when it was added.
+ */
+function rulesBranchInputs(branches: RulesBranch[]): BranchInput[] {
+  return branchInputs(branches.map((branch) => ({ ...branch, id: branch.key })));
+}
+
+/**
  * Whether the step's branches differ from the ones it loaded. Compared rather than tracked, so
  * that a change undone by hand counts as none.
  */
 export function rulesChanged(rules: RulesState, loaded: FormConnection): boolean {
-  return !sameValue(branchInputs(rules.branches), branchInputs(loaded.branches));
+  return !sameValue(rulesBranchInputs(rules.branches), branchInputs(loaded.branches));
 }
 
 /**
@@ -661,7 +590,7 @@ export function createPayload(
   return {
     ...payload,
     rules: {
-      branches: branchInputs(rules.branches),
+      branches: rulesBranchInputs(rules.branches),
       numbering_base: rules.numberingBase,
       base_version: rules.ruleSetVersion,
       replace,
@@ -716,9 +645,9 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
 
 /**
  * What "Save and exit" would store at this moment, apart from the step and the version (FR-002,
- * FR-015): the name and the description as typed, the documents, and the branches with the
- * counters. A rule open in the rule editor counts as kept, complete or not, as "Save changes"
- * would keep it (R9, FR-012).
+ * FR-015): the name and the description as typed, the documents, and the branches, with their
+ * keys as their ids (spec 007, research R10), with the counters. A rule open in the rule editor
+ * counts as kept, complete or not, as "Save changes" would keep it (R9, FR-012).
  */
 export function localContentOf(state: EditorState, rules: RulesState): LocalDraftContent {
   const kept = rules.editing ? rulesReducer(rules, { type: 'saveRule' }) : rules;
@@ -726,7 +655,7 @@ export function localContentOf(state: EditorState, rules: RulesState): LocalDraf
     name: state.name,
     description: state.description,
     documents: state.documents,
-    branches: branchInputs(kept.branches),
+    branches: rulesBranchInputs(kept.branches),
     numberingBase: kept.numberingBase,
     counters: kept.counters,
   };
@@ -734,6 +663,7 @@ export function localContentOf(state: EditorState, rules: RulesState): LocalDraf
 
 /**
  * The body of "Save and exit" (R12): the content, the name and the description trimmed, the step.
+ * The branches go with the ids `localContentOf()` gives them, the step's keys.
  */
 export function draftPayload(content: LocalDraftContent, step: EditorStep): DraftCreate {
   return {
@@ -755,9 +685,9 @@ export function openingStepOf(step: EditorStep, rules: RulesState): EditorStep {
 
 /**
  * The reducers' starting states for a stored draft (R12): its name, description and documents, a
- * type or field the catalog dropped included; its variants with the editor's keys (`main` for the
- * main variant, `newBranchKey()` for the others, in order), numbering from the draft's counters,
- * without a rule set; at `step` (the draft's own by default), through `openingStepOf()`.
+ * type or field the catalog dropped included; its variants keyed by their stored ids (spec 007,
+ * research R10), which a save keeps, numbering from the draft's counters, without a rule set; at
+ * `step` (the draft's own by default), through `openingStepOf()`.
  */
 export function initialStatesFromDraft(
   draft: FormConnectionDraft,
@@ -777,9 +707,11 @@ export function initialStatesFromDraft(
 
 /**
  * The reducers' starting states for a local draft (R10): its content, at its step through
- * `openingStepOf()`; its variants with the editor's keys, as a stored draft's get them. Its
- * counters and numbering base are the record's own, since a flow that was never saved numbers
- * from its start, not from its next numbers.
+ * `openingStepOf()`; its variants keyed by their ids, as a stored draft's. A record saved before
+ * variants had ids (format 2 all the same) gets them here, and keeps them with its next change,
+ * when the flow writes it again (spec 007, research R10). Its counters and numbering base are the
+ * record's own, since a flow that was never saved numbers from its start, not from its next
+ * numbers.
  */
 export function initialStatesFromLocal(record: LocalDraftRecord): {
   editor: EditorState;
@@ -798,9 +730,26 @@ export function initialStatesFromLocal(record: LocalDraftRecord): {
 }
 
 /**
- * The rules step's starting state for stored or local branches, without a rule set: the main
- * variant keyed `main`, the others `newBranchKey()` in order, the first one open. Without
- * branches, the empty Standard alone.
+ * Stored or local branches keyed by their ids (spec 007, research R10): a branch's own id when it
+ * is a UUID that no branch before it has, as the server takes it, and a new one otherwise, such as
+ * for a local draft saved before variants had ids. `id` stays the one loaded.
+ */
+function keyedBranches(branches: BranchInput[]): RulesBranch[] {
+  const taken = new Set<string>();
+  return branches.map((branch) => {
+    const { id } = branch;
+    const key =
+      typeof id === 'string' && BRANCH_ID_PATTERN.test(id) && !taken.has(id)
+        ? id
+        : crypto.randomUUID();
+    taken.add(key);
+    return { ...branch, key };
+  });
+}
+
+/**
+ * The rules step's starting state for stored or local branches, without a rule set: keyed by their
+ * ids (`keyedBranches()`), the first one open. Without branches, the empty Standard alone.
  */
 function rulesStateOf(
   branches: BranchInput[],
@@ -808,13 +757,7 @@ function rulesStateOf(
   numberingBase: NumberingBase
 ): RulesState {
   const empty = initialRulesState();
-  const keyed = branches.reduce<RulesBranch[]>(
-    (done, branch) => [
-      ...done,
-      { ...branch, key: branch.origin === 'main' ? MAIN_BRANCH_KEY : newBranchKey(done) },
-    ],
-    []
-  );
+  const keyed = keyedBranches(branches);
   return keyed.length > 0
     ? { ...empty, branches: keyed, openBranch: keyed[0].key, counters, numberingBase }
     : { ...empty, counters, numberingBase };
@@ -879,11 +822,12 @@ export function startOfEntry(
       return entry;
     case 'local': {
       const origin = originOfRecord(entry.record);
+      const initialStates = initialStatesFromLocal(entry.record);
       return {
         kind: 'open',
         origin,
-        initialStates: initialStatesFromLocal(entry.record),
-        baseline: origin.kind === 'new' ? emptyContent() : null,
+        initialStates,
+        baseline: origin.kind === 'new' ? emptyContentOf(initialStates.rules) : null,
         urlFlowKey: null,
       };
     }
@@ -894,13 +838,22 @@ export function startOfEntry(
   }
 }
 
+/**
+ * The empty flow as a baseline (data-model.md section 6): `emptyContent()` with the flow's own
+ * main variant's id, which the flow's content carries and no change takes away.
+ */
+function emptyContentOf(rules: RulesState): LocalDraftContent {
+  return emptyContent(rules.branches[0].key);
+}
+
 /** An empty new connection under `flowKey`, which a fresh flow writes into the URL. */
 function newConnectionFlow(flowKey: string, initialStep: EditorStep, fresh: boolean): EditorFlow {
+  const rules = initialRulesState();
   return {
     kind: 'open',
     origin: { kind: 'new', flowKey },
-    initialStates: { editor: initialEditorState({ initialStep }), rules: initialRulesState() },
-    baseline: emptyContent(),
+    initialStates: { editor: initialEditorState({ initialStep }), rules },
+    baseline: emptyContentOf(rules),
     urlFlowKey: fresh ? flowKey : null,
   };
 }
@@ -934,7 +887,9 @@ export function startOfOrigin({
       origin.kind === 'published'
         ? null
         : (baseline ??
-          (origin.kind === 'new' ? emptyContent() : localContentOf(states.editor, states.rules))),
+          (origin.kind === 'new'
+            ? emptyContentOf(states.rules)
+            : localContentOf(states.editor, states.rules))),
     urlFlowKey: null,
   };
 }

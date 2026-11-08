@@ -48,6 +48,16 @@ services:
       ALLOW_PLAIN_HTTP: ${ALLOW_PLAIN_HTTP:-false}
       WORKER_ENABLED: ${WORKER_ENABLED:-true}
       LOGIN_SESSION_HOURS: ${LOGIN_SESSION_HOURS:-8}
+      # Agent access (spec 007): the public addresses the OAuth server and the links
+      # are built from, all on the one public domain (research R3)
+      PORTAL_URL: ${CONNECTION_BASE_URL}
+      MCP_URL: ${CONNECTION_BASE_URL}/mcp
+      OAUTH_ISSUER: ${CONNECTION_BASE_URL}
+      AGENT_ACCESS_TOKEN_MINUTES: ${AGENT_ACCESS_TOKEN_MINUTES:-60}
+      AGENT_CONNECTION_IDLE_DAYS: ${AGENT_CONNECTION_IDLE_DAYS:-30}
+      AGENT_TOKEN_MAX_DAYS: ${AGENT_TOKEN_MAX_DAYS:-90}
+      APPROVAL_REQUEST_MINUTES: ${APPROVAL_REQUEST_MINUTES:-10}
+      AGENT_DRAFTS_PER_HOUR: ${AGENT_DRAFTS_PER_HOUR:-20}
     healthcheck:
       # python:3.13-slim ships neither curl nor wget
       test:
@@ -81,10 +91,38 @@ services:
       # Comma-separated ranges of the proxy in front of nginx (Coolify's Traefik)
       # whose X-Forwarded-For is trusted. Empty: the connecting address counts
       - TRUSTED_PROXY_CIDRS=${TRUSTED_PROXY_CIDRS:-}
+      # MCP server hostname for the nginx /mcp proxy; suffixed per preview
+      - MCP_HOST=${SERVICE_NAME_MCP:-mcp}
     healthcheck:
       # 127.0.0.1, not localhost: busybox wget doesn't fall back from ::1,
       # where nginx isn't listening
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/ > /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      backend:
+        condition: service_healthy
+      mcp:
+        condition: service_started
+
+  # The MCP server for agents (spec 007), reached only through nginx's /mcp. One
+  # replica: 2025-era MCP sessions live in its memory (research R2)
+  mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      # SERVICE_NAME_BACKEND is suffixed per preview, like SERVICE_NAME_POSTGRES
+      BACKEND_URL: http://${SERVICE_NAME_BACKEND:-backend}:3000
+      PORTAL_URL: ${CONNECTION_BASE_URL}
+      MCP_URL: ${CONNECTION_BASE_URL}/mcp
+      OAUTH_ISSUER: ${CONNECTION_BASE_URL}
+    healthcheck:
+      # 127.0.0.1, not localhost: busybox wget doesn't fall back from ::1
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3100/health > /dev/null']
       interval: 10s
       timeout: 5s
       retries: 5

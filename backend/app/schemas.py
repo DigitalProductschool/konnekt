@@ -231,7 +231,8 @@ GroupItem.model_rebuild()
 class BranchInput(BaseModel):
     """A branch ("variant" in the UI) with its rules, as the editor sends it."""
 
-    # Null for a branch added in this save
+    # Null or a client UUID for a branch added in this save; a stored draft's
+    # branches always carry one (spec 007, research R10)
     id: str | None
     name: str
     # Shown in the UI only, never delivered to serviceBW (FR-020)
@@ -296,7 +297,9 @@ class DraftContent(BaseModel):
 
     # Catalog order; may be empty, and a document may have no fields
     documents: list[RequestedDocument]
-    # Main branch first; every id is null, since a draft has no branch rows
+    # Main branch first; every branch carries an id, which its branch row gets when
+    # the draft is published (spec 007, research R10). A request may send null (the
+    # server assigns one) or a client UUID
     branches: list[BranchInput]
     # The step the draft was saved in, where "Continue" opens it
     step: EditorStep
@@ -321,6 +324,14 @@ class FormConnectionSummary(BaseModel):
     status: ConnectionStatus
     # For a draft: its last save (FR-007)
     updated_at: str
+
+
+class FormConnectionPage(BaseModel):
+    """A page of the search's results (spec 007, research R9)."""
+
+    items: list[FormConnectionSummary]
+    # Null on the last page
+    next_cursor: str | None
 
 
 class FormConnection(BaseModel):
@@ -388,7 +399,8 @@ class FormConnectionDraft(BaseModel):
     # May be empty, and a document's fields may be empty. A type or field the
     # catalog dropped keeps its key as its label
     documents: list[RequestedDocumentView]
-    # Main branch first; every id is null
+    # Main branch first; a stored draft's branches always carry an id (spec 007,
+    # research R10)
     branches: list[BranchInput]
     # The next free identifier numbers, the draft's numbering (research R4)
     next_rule_number: int
@@ -411,7 +423,8 @@ FormConnectionOrDraft = Annotated[
 class DraftRules(BaseModel):
     """A draft's branches and rules, as the editor sends them (spec 005)."""
 
-    # Main branch first; every id is null
+    # Main branch first; a branch's id may be null (the server assigns one) or a
+    # client UUID. A stored draft's branches always carry an id (spec 007, R10)
     branches: list[BranchInput]
     # The counters the editor started numbering from (research R4)
     numbering_base: NumberingBase
@@ -552,3 +565,218 @@ class PullResponse(BaseModel):
     expires_at: str
     documents: list[DeliveredDocument] | None
     evaluation: Evaluation | None
+
+
+# Agent access (specs/007-agent-mcp-server/contracts/management-api.md "Schemas",
+# research R6, R7)
+
+# What an agent connection or a personal access token may do (data-model.md 3.1)
+AccessLevel = Literal['read', 'drafts', 'manage']
+# An agent connection (OAuth) or a personal access token
+AgentAccessKind = Literal['oauth', 'token']
+
+
+class AccessLevelInfo(BaseModel):
+    """An access level with its UI name and what it allows."""
+
+    level: AccessLevel
+    name: str
+    allows: str
+
+
+class AgentAccessItem(BaseModel):
+    """An agent connection or personal access token on the user page."""
+
+    id: str
+    kind: AgentAccessKind
+    # oauth only
+    client_name: str | None
+    # token only
+    name: str | None
+    access_level: AccessLevel
+    created_at: str
+    # token only
+    expires_at: str | None
+    last_used_at: str | None
+
+
+class AgentAccessList(BaseModel):
+    """The user page's list: the signed-in account's agent access, newest first."""
+
+    items: list[AgentAccessItem]
+    # The three access levels, for the level choice
+    levels: list[AccessLevelInfo]
+
+
+class AgentAccessUpdate(BaseModel):
+    """A new access level; applies from the agent's next call."""
+
+    access_level: AccessLevel
+
+
+class TokenCreate(BaseModel):
+    """A new personal access token. The service layer checks the name and days."""
+
+    name: str
+    access_level: AccessLevel
+    # 1 to AGENT_TOKEN_MAX_DAYS
+    expires_in_days: int
+
+
+class TokenCreated(BaseModel):
+    """A created personal access token, with its secret, shown once."""
+
+    item: AgentAccessItem
+    token: str
+
+
+class AgentMe(BaseModel):
+    """The bearer principal: whose access it is and at which level."""
+
+    username: str
+    # oauth only
+    client_name: str | None
+    kind: AgentAccessKind
+    access_level: AccessLevel
+    levels: list[AccessLevelInfo]
+
+
+# Approval requests (research R12, data-model.md section 5)
+
+ApprovalAction = Literal[
+    'publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'
+]
+ApprovalStatus = Literal[
+    'waiting', 'done', 'declined', 'expired', 'replaced', 'cancelled'
+]
+# The status, or failed while waiting after an approve attempt failed (FR-027)
+ApprovalOutcome = ApprovalStatus | Literal['failed']
+
+
+class ApprovalCreate(BaseModel):
+    """An agent's request that a team member approve an action."""
+
+    form_connection_id: str
+    action: ApprovalAction
+
+
+class ApprovalRequest(BaseModel):
+    """An approval request, with its status as the row reads now (FR-024)."""
+
+    id: str
+    action: ApprovalAction
+    form_connection_id: str
+    connection_name: str
+    # The agent's name when it asked, kept after its access is gone
+    requested_by: str
+    status: ApprovalStatus
+    outcome: ApprovalOutcome
+    # revoked, access_changed, access_ended, draft_changed, draft_published,
+    # draft_deleted, connection_changed or connection_deleted
+    cancel_reason: str | None
+    # The approval page's link
+    link: str
+    expires_at: str
+    created_at: str
+    decided_at: str | None
+    failed_at: str | None
+    error_id: str | None
+    # Whether the request is the signed-in account's
+    mine: bool
+
+
+class VariantUrl(BaseModel):
+    """A variant's pull URL; contains the placeholder `{reference}` literally."""
+
+    id: str
+    name: str
+    pull_url: str
+
+
+class ConnectionUrls(BaseModel):
+    """The URLs to copy into serviceBW."""
+
+    trigger_url: str
+    variants: list[VariantUrl]
+
+
+class ApprovalPreview(BaseModel):
+    """An approval request with what it acts on, for the approval page."""
+
+    request: ApprovalRequest
+    # publish and delete_draft, while the draft exists
+    draft: FormConnectionDraft | None
+    # The other actions, while the connection exists
+    connection: FormConnection | None
+    # After a done publish or reactivate, and for the status actions
+    urls: ConnectionUrls | None
+
+
+# OAuth (specs/007-agent-mcp-server/contracts/oauth.md, research R4). The register
+# and token answers are RFC bodies, not the ApiResponse envelope
+
+
+class OauthClientView(BaseModel):
+    """An OAuth client, as the consent page shows it."""
+
+    client_id: str
+    client_name: str
+    # cimd or dcr
+    kind: Literal['cimd', 'dcr']
+    # The signed-in account's existing agent connection's level for this client
+    current_access_level: AccessLevel | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AuthorizeRequest(BaseModel):
+    """The consent page's decision. The service layer checks every parameter."""
+
+    client_id: str
+    redirect_uri: str
+    code_challenge: str
+    code_challenge_method: str
+    state: str
+    scope: str = ''
+    resource: str
+    decision: Literal['allow', 'deny']
+    access_level: AccessLevel | None = None
+
+
+class AuthorizeResponse(BaseModel):
+    """Where the consent page sends the browser: the client's redirect URI."""
+
+    redirect_to: str
+
+
+class RegisterRequest(BaseModel):
+    """A dynamic client registration (RFC 7591)."""
+
+    client_name: str
+    redirect_uris: list[str]
+    token_endpoint_auth_method: str = 'none'
+    grant_types: list[str] | None = None
+    response_types: list[str] | None = None
+
+
+class RegisterResponse(BaseModel):
+    """A registered client (RFC 7591). No secret."""
+
+    client_id: str
+    client_name: str
+    redirect_uris: list[str]
+    token_endpoint_auth_method: Literal['none'] = 'none'
+    grant_types: list[str] = ['authorization_code', 'refresh_token']
+    response_types: list[str] = ['code']
+
+
+class TokenResponse(BaseModel):
+    """The token endpoint's answer (RFC 6749)."""
+
+    access_token: str
+    token_type: Literal['Bearer'] = 'Bearer'
+    # Seconds
+    expires_in: int
+    refresh_token: str
+    # The granted scopes, space-separated
+    scope: str

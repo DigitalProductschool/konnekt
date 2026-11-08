@@ -1,8 +1,8 @@
+import type { FormConnection } from '@connection-portal/api-types/form-connections';
 import { useEffect, useReducer } from 'react';
 
 import { ApiError } from '../api/client';
 import { getFormConnection } from '../api/form-connections';
-import type { FormConnection } from '../types/form-connections';
 import type { FormConnectionState } from './types';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import { formConnectionReducer, INITIAL_FORM_CONNECTION_STATE } from './utils';

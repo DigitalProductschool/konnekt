@@ -1,5 +1,6 @@
-import type { EditorStep } from '../../types/form-connections';
-import type { EditLocationState } from '../../types/routing';
+import type { EditorStep } from '@connection-portal/api-types/form-connections';
+import type { EditLocationState } from '@connection-portal/api-types/routing';
+
 import type { ActionsState, DraftDeleteState } from './types';
 
 export const DETAIL_COPY = {

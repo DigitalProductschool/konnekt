@@ -404,7 +404,51 @@ def test_a_new_form_connections_rules_are_numbered_from_1() -> None:
         )
 
 
-def test_a_new_form_connection_has_no_saved_branch_to_name() -> None:
+def _new_form_connection(db: Session) -> FormConnection:
+    """A published form connection without branch rows yet, added and flushed."""
+    form_connection = FormConnection(
+        id=str(uuid.uuid4()),
+        name='Test',
+        description='FS-1',
+        published_at=datetime.now(tz=timezone.utc),
+        current_revision=1,
+        current_rule_set=1,
+        next_rule_number=1,
+        next_group_number=1,
+    )
+    db.add(form_connection)
+    db.flush()
+    return form_connection
+
+
+def test_a_new_form_connections_branch_rows_take_the_ids_it_was_given() -> None:
+    """Spec 007, research R10: a UUID that no branch row has is kept."""
+    fresh = str(uuid.uuid4())
+    payload = rules_input(
+        [
+            main_branch([]),
+            main_branch([]) | {'id': fresh, 'origin': 'empty', 'name': 'X'},
+        ]
+    )
+    save = clean_rules(RulesInput.model_validate(payload), DOCUMENTS, None)
+    check_first_save(save)
+
+    with SessionLocal() as db:
+        form_connection = _new_form_connection(db)
+        saved = first_rule_set(db, form_connection, save)
+        db.commit()
+        rows = db.scalars(
+            select(FormConnectionBranch).where(
+                FormConnectionBranch.form_connection_id == form_connection.id
+            )
+        ).all()
+    # The main branch got a UUID when the rules were checked
+    assert str(uuid.UUID(saved[0].id)) == saved[0].id
+    assert saved[1].id == fresh
+    assert {row.id: row.is_main for row in rows} == {saved[0].id: True, fresh: False}
+
+
+def test_a_new_form_connection_cant_take_another_ones_branch_id() -> None:
     payload = rules_input(
         [
             main_branch([]),
@@ -412,9 +456,28 @@ def test_a_new_form_connection_has_no_saved_branch_to_name() -> None:
         ]
     )
     save = clean_rules(RulesInput.model_validate(payload), DOCUMENTS, None)
+    with SessionLocal() as db:
+        first_rule_set(db, _new_form_connection(db), save)
+        db.commit()
+
+    with SessionLocal() as db, pytest.raises(HTTPException) as caught:
+        first_rule_set(db, _new_form_connection(db), save)
+    assert caught.value.detail == {
+        'error': 'Validation error',
+        'message': 'Unknown variant.',
+    }
+
+
+def test_a_new_form_connections_branch_id_must_be_a_uuid() -> None:
+    payload = rules_input(
+        [
+            main_branch([]),
+            main_branch([]) | {'id': 'variant-2', 'origin': 'empty', 'name': 'X'},
+        ]
+    )
 
     with pytest.raises(HTTPException) as caught:
-        check_first_save(save)
+        clean_rules(RulesInput.model_validate(payload), DOCUMENTS, None)
     assert caught.value.detail == {
         'error': 'Validation error',
         'message': 'Unknown variant.',

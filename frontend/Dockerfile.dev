@@ -1,21 +1,28 @@
 # Development Dockerfile for React frontend with hot reload
-FROM node:22-alpine
+FROM node:26-alpine
 
-WORKDIR /app/frontend
+# The npm workspace: the root manifest and lockfile, and the frontend with the
+# packages it imports (api-types, rules)
+WORKDIR /app
 
 # Copy dependency files
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY package.json package-lock.json ./
+COPY api-types/package.json api-types/
+COPY rules/package.json rules/
+COPY frontend/package.json frontend/
 
-# No .git in the image: skip the husky hook install that `prepare` would run
-ENV HUSKY=0
+# Install dependencies; no .git in the image: skip the root's `prepare`
+# (the pre-commit hook install)
+RUN npm install -w frontend --ignore-scripts
 
-# Install dependencies
-RUN npm install
-
-# Copy application code (in dev, src will be overridden by volume mount)
-COPY frontend ./
+# Copy application code (in dev, the sources are overridden by volume mounts)
+# The packages' tsconfig.json files extend the root's
+COPY tsconfig.base.json ./
+COPY api-types ./api-types
+COPY rules ./rules
+COPY frontend ./frontend
 
 EXPOSE 5173
 
 # Start Vite dev server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["npm", "run", "dev", "-w", "frontend", "--", "--host", "0.0.0.0"]

@@ -3,8 +3,9 @@
 User stories 1 to 3 through the management API: creating and editing a form
 connection with rules, groups and sub-groups, and variants with their ids and pull
 URLs; the refusals that name the problem, the rule and its branch; saving documents
-and rules together or not at all; and a save over another team member's newer rules,
-refused unless it replaces them (FR-028).
+and rules together or not at all; a save over another team member's newer rules,
+refused unless it replaces them (FR-028); and the variant ids an editor chooses for
+new variants (spec 007, research R10).
 """
 
 import copy
@@ -773,6 +774,199 @@ def test_the_main_branch_cant_be_left_out(
         assert response.json()['message'] == 'The rules need exactly one main branch.'
     assert _get(signed_in_client, created['id']) == created
     assert all(row.deleted_at is None for row in _branch_rows(created['id']).values())
+
+
+# Variant ids chosen by the editor (spec 007, research R10, FR-029)
+
+UNKNOWN_VARIANT = {'error': 'Validation error', 'message': 'Unknown variant.'}
+
+
+def test_a_new_variant_keeps_the_uuid_its_editor_gave_it(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    chosen = str(uuid.uuid4())
+
+    edited = _put(
+        signed_in_client,
+        created,
+        rules=_save_branches(
+            created,
+            [_as_sent(created['branches'][0]), AMBULANCE | {'id': chosen}],
+        ),
+    )
+
+    standard, ambulance = edited['branches']
+    assert standard['id'] == created['branches'][0]['id']
+    assert ambulance['id'] == chosen
+    assert ambulance['pull_url'] == (
+        f'https://middleware.test/api/connect/{created["id"]}/branches/'
+        f'{chosen}/requests/{{reference}}'
+    )
+    rows = _branch_rows(created['id'])
+    assert set(rows) == {standard['id'], chosen}
+    assert not rows[chosen].is_main
+    assert _get(signed_in_client, created['id']) == edited
+
+
+def test_creating_keeps_the_uuids_the_editor_gave_the_variants(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    main_id, ambulance_id = str(uuid.uuid4()), str(uuid.uuid4())
+
+    created = _create(
+        signed_in_client,
+        rules=rules_input(
+            [
+                main_branch(US1_ITEMS, branch_id=main_id),
+                AMBULANCE | {'id': ambulance_id},
+                TAXI,
+            ]
+        ),
+    )
+
+    standard, ambulance, taxi = created['branches']
+    assert (standard['id'], ambulance['id']) == (main_id, ambulance_id)
+    assert uuid.UUID(taxi['id']).version == 4
+    assert standard['pull_url'] == created['pull_url']
+    assert ambulance['pull_url'] == (
+        f'https://middleware.test/api/connect/{created["id"]}/branches/'
+        f'{ambulance_id}/requests/{{reference}}'
+    )
+    assert set(_branch_rows(created['id'])) == {main_id, ambulance_id, taxi['id']}
+
+
+@pytest.mark.parametrize('branch_id', ['variant-2', str(uuid.uuid4()).upper()])
+def test_a_new_variants_id_must_be_a_uuid(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, branch_id: str
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    calls = len(fake_eudiplo.calls)
+
+    edit = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}',
+        json={
+            'rules': _save_branches(
+                created,
+                [_as_sent(created['branches'][0]), AMBULANCE | {'id': branch_id}],
+            )
+        },
+    )
+    create = signed_in_client.post(
+        '/api/form-connections',
+        json=FORM_CONNECTION
+        | {'rules': rules_input([main_branch([], branch_id=branch_id)])},
+    )
+
+    for response in (edit, create):
+        assert response.status_code == 400
+        assert response.json() == UNKNOWN_VARIANT
+    assert len(fake_eudiplo.calls) == calls
+    assert _get(signed_in_client, created['id']) == created
+    assert _count(FormConnection) == 1
+
+
+def test_a_new_variant_cant_take_another_connections_branch_id(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    other = _create(signed_in_client, rules=rules_input([main_branch([]), TAXI]))
+    created = _create(signed_in_client, rules=US1_RULES)
+    calls = len(fake_eudiplo.calls)
+
+    for taken in (branch['id'] for branch in other['branches']):
+        edit = signed_in_client.put(
+            f'/api/form-connections/{created["id"]}',
+            json={
+                'rules': _save_branches(
+                    created,
+                    [_as_sent(created['branches'][0]), AMBULANCE | {'id': taken}],
+                )
+            },
+        )
+        # Creating checks it before EUDIPLO is called
+        create = signed_in_client.post(
+            '/api/form-connections',
+            json=FORM_CONNECTION
+            | {
+                'rules': rules_input(
+                    [main_branch(US1_ITEMS), AMBULANCE | {'id': taken}]
+                )
+            },
+        )
+
+        for response in (edit, create):
+            assert response.status_code == 400
+            assert response.json() == UNKNOWN_VARIANT
+    assert _get(signed_in_client, created['id']) == created
+    assert _count(FormConnection) == 2
+    assert len(fake_eudiplo.calls) == calls
+
+
+def test_a_variant_id_taken_while_eudiplo_answers_is_refused_on_create(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """`first_rule_set` checks the ids again; the configuration is deleted again."""
+    other = _create(signed_in_client)
+    taken = str(uuid.uuid4())
+    configs = set(fake_eudiplo.configs)
+    create_config = fake_eudiplo._create_config
+
+    def take_the_id(request: Request) -> Response:
+        # Another connection's save takes the id while EUDIPLO answers
+        with SessionLocal() as db:
+            db.add(
+                FormConnectionBranch(
+                    id=taken, form_connection_id=other['id'], is_main=False
+                )
+            )
+            db.commit()
+        return create_config(request)
+
+    fake_eudiplo._create_config = take_the_id  # type: ignore[method-assign]
+
+    response = signed_in_client.post(
+        '/api/form-connections',
+        json=FORM_CONNECTION
+        | {'rules': rules_input([main_branch(US1_ITEMS), AMBULANCE | {'id': taken}])},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == UNKNOWN_VARIANT
+    assert _count(FormConnection) == 1
+    assert set(fake_eudiplo.configs) == configs
+
+
+def test_two_new_variants_cant_share_an_id(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    created = _create(signed_in_client, rules=US1_RULES)
+    shared = str(uuid.uuid4())
+    taxi = TAXI | {'id': shared}
+
+    edit = signed_in_client.put(
+        f'/api/form-connections/{created["id"]}',
+        json={
+            'rules': _save_branches(
+                created,
+                [_as_sent(created['branches'][0]), AMBULANCE | {'id': shared}, taxi],
+            )
+        },
+    )
+    create = signed_in_client.post(
+        '/api/form-connections',
+        json=FORM_CONNECTION
+        | {
+            'rules': rules_input(
+                [main_branch(US1_ITEMS, branch_id=shared), AMBULANCE, taxi]
+            )
+        },
+    )
+
+    for response in (edit, create):
+        assert response.status_code == 400
+        assert response.json() == UNKNOWN_VARIANT
+    assert _get(signed_in_client, created['id']) == created
+    assert _count(FormConnection) == 1
 
 
 def test_an_out_of_step_variant_is_refused_on_create_and_nothing_is_saved(

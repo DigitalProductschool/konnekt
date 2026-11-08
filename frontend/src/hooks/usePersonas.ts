@@ -8,28 +8,23 @@
 // Bundle (research R9, R16): `results.ts` reaches the evaluator, `fields.ts`,
 // `checks/checkedTree.ts` and the case-folding table, so this module imports only their types, and
 // loads them with the one dynamic `import()` below
+import type { BranchInput } from '@connection-portal/api-types/form-connections';
+import type { KeyedBranch } from '@connection-portal/rules/checks/checkedTree';
+import type { AnnouncedBranch, MetByBranch } from '@connection-portal/rules/personas/announcements';
 import {
-  type Dispatch,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
-
-import type { BranchInput } from '../types/form-connections';
-import type { KeyedBranch } from '../utils/rules/checks/checkedTree';
-import type { AnnouncedBranch, MetByBranch } from '../utils/rules/personas/announcements';
-import { GENERATION_STOP_MS, GENERATION_WATCHDOG_MS } from '../utils/rules/personas/constants';
-import { initialPersonaState, personaStateReducer } from '../utils/rules/personas/personaState';
+  GENERATION_STOP_MS,
+  GENERATION_WATCHDOG_MS,
+} from '@connection-portal/rules/personas/constants';
+import {
+  initialPersonaState,
+  personaStateReducer,
+} from '@connection-portal/rules/personas/personaState';
 import type {
   checkedBranchesOf,
   personaFieldsOf,
   resultViewOf,
   testResultsOf,
-} from '../utils/rules/personas/results';
+} from '@connection-portal/rules/personas/results';
 import type {
   GeneratedMessage,
   GenerateMessage,
@@ -43,8 +38,19 @@ import type {
   PersonaValue,
   ResultView,
   TestResults,
-} from '../utils/rules/personas/types';
-import type { RuleContext } from '../utils/rules/types';
+} from '@connection-portal/rules/personas/types';
+import type { RuleContext } from '@connection-portal/rules/types';
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+
 import { useTodayInGermany } from './useTodayInGermany';
 
 /** What `usePersonas()` reads from the editor page */
@@ -190,7 +196,7 @@ function createWorker(
 ): PersonaWorker | null {
   let worker: Worker;
   try {
-    worker = new Worker(new URL('../utils/rules/personas/worker.ts', import.meta.url), {
+    worker = new Worker(new URL('../workers/personas.ts', import.meta.url), {
       type: 'module',
     });
   } catch {
@@ -274,7 +280,7 @@ function useResultsModule(
       return;
     }
     let ignore = false;
-    import('../utils/rules/personas/results').then(
+    import('@connection-portal/rules/personas/results').then(
       ({ testResultsOf, resultViewOf, personaFieldsOf, checkedBranchesOf }) => {
         if (!ignore) {
           setLoad({

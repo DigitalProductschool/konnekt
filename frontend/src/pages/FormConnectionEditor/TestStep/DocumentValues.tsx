@@ -1,4 +1,5 @@
-import { changedKeys } from '../../../utils/rules/personas/values';
+import { changedKeys } from '@connection-portal/rules/personas/values';
+
 import type { DocumentValuesProps } from './types';
 import { valueTextOf } from './utils';
 import ValueRow from './ValueRow';

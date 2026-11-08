@@ -1,6 +1,8 @@
-import type { FormConnectionDraft } from '../../types/form-connections';
+import type { FormConnectionDraft } from '@connection-portal/api-types/form-connections';
+
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
-import type { EditorStep } from '../FormConnectionEditor/types';
+import type { LinkNoticeKind } from '../FormConnectionEditor/RulesStep/types';
+import type { EditorLinkProps, EditorStep } from '../FormConnectionEditor/types';
 
 /**
  * What a stored draft's local draft means on its edit route (contracts/local-drafts.md "Rules for
@@ -20,9 +22,20 @@ export type DraftFlowAction =
   /** "Discard them", once the record is removed */
   | { type: 'discard' };
 
-export interface DraftEditFlowProps {
+/**
+ * What an opened link names (spec 007, S5; FR-030, FR-031), from `linkTargetOf()`: the variant
+ * whose tab opens and the rule or group to bring into view, each null for none or when it isn't
+ * there, and which of them isn't there, which the rules step's notice says
+ */
+export interface LinkTarget {
+  variantId: string | null;
+  itemId: string | null;
+  notice: LinkNoticeKind | null;
+}
+
+export interface DraftEditFlowProps extends EditorLinkProps {
   draft: FormConnectionDraft;
-  /** The step the stored draft opens at, from `initialStepOf()` */
+  /** The step the stored draft opens at, from `initialStepOf()`; the rules step for a link */
   initialStep: EditorStep;
   /** A conflict's "Reload" (S2): fetches the draft again and opens it at its stored step */
   onReload: () => void;

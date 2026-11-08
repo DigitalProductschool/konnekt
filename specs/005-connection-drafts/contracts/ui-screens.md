@@ -96,7 +96,7 @@ for spec 002's `rules_changed` (W9 of spec 002).
 
 | Conflict | Title | Text | Buttons |
 |---|---|---|---|
-| `draft_changed` | "This draft has changed" | The server's message, then "Reload shows the draft as they saved it and drops your changes. Replace their changes saves your version of the whole draft." | "Reload" (secondary), "Replace their changes" (primary), "Cancel" (tertiary). In the publish dialog, "Replace their changes" publishes |
+| `draft_changed` | "This draft has changed" | The server's message, then "Reload shows the draft as it was last saved and drops your changes. Replace their changes saves your version of the whole draft." | "Reload" (secondary), "Replace their changes" (primary), "Cancel" (tertiary). In the publish dialog, "Replace their changes" publishes |
 | `draft_published` | "This draft has been published" | The server's message, then "Your changes weren't saved. Open the connection to see it." | "Open the connection" (primary), "Cancel" |
 | `draft_deleted` (a `404`) | "This draft has been deleted" | "This draft has been deleted since you opened it. Save your work as a new draft to keep it." | "Save as new draft" (primary), "Cancel" |
 
@@ -278,7 +278,7 @@ alert or in the publish dialog. The step's cards show only what the catalog offe
 | `discarded` | Unsaved work discarded. |
 | `restoreTitle` / `restoreText(name, date)` | Restore your unsaved changes? / This device has changes to {name} from {date} that weren't saved. |
 | `restore` / `discardThem` | Restore changes / Discard them |
-| `draftChangedTitle` / `draftChangedHint` | This draft has changed / Reload shows the draft as they saved it and drops your changes. Replace their changes saves your version of the whole draft. |
+| `draftChangedTitle` / `draftChangedHint` | This draft has changed / Reload shows the draft as it was last saved and drops your changes. Replace their changes saves your version of the whole draft. |
 | `draftPublishedTitle` / `draftPublishedHint` | This draft has been published / Your changes weren't saved. Open the connection to see it. |
 | `draftDeletedTitle` / `draftDeletedText` | This draft has been deleted / This draft has been deleted since you opened it. Save your work as a new draft to keep it. |
 | `openConnection` / `saveAsNewDraft` | Open the connection / Save as new draft |

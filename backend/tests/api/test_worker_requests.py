@@ -550,6 +550,14 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
         worker.delete_unused_configs,
         worker.delete_expired_login_sessions,
         worker.delete_old_request_records,
+        # Agents' access (spec 007; tests/api/test_oauth.py)
+        worker.delete_expired_oauth_codes,
+        worker.delete_expired_agent_tokens,
+        worker.delete_idle_agent_connections,
+        worker.delete_expired_personal_tokens,
+        worker.delete_unused_oauth_clients,
+        # Approval requests (spec 007; tests/api/test_approval_requests.py)
+        worker.delete_old_approval_requests,
     )
 
 

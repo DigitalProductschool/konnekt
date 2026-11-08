@@ -8,7 +8,8 @@ import type {
   FormConnectionOrDraft,
   FormConnectionSummary,
   FormConnectionUpdate,
-} from '../types/form-connections';
+} from '@connection-portal/api-types/form-connections';
+
 import { apiFetch } from './client';
 
 export function listFormConnections(): Promise<FormConnectionSummary[]> {

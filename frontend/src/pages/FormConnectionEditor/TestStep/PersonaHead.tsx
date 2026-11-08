@@ -1,4 +1,5 @@
-import { dataHeadingOf } from '../../../utils/rules/personas/messages';
+import { dataHeadingOf } from '@connection-portal/rules/personas/messages';
+
 import { ELEMENT_IDS } from '../constants';
 import { TEST_STEP_COPY } from './constants';
 import type { PersonaHeadProps } from './types';

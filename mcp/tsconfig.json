@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    // vite/client: the `?raw` imports and `import.meta.glob` of guidance.ts (research R16)
+    "types": ["node", "vite/client"],
+    // The server's version comes from package.json
+    "resolveJsonModule": true
+  },
+  "include": ["src", "test", "vite.config.ts"]
+}

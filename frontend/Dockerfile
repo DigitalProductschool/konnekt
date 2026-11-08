@@ -1,18 +1,26 @@
 FROM node:26-alpine AS builder
 
-WORKDIR /app/frontend
+# The npm workspace: the root manifest and lockfile, and the frontend with the
+# packages it imports (api-types, rules)
+WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY package.json package-lock.json ./
+COPY api-types/package.json api-types/
+COPY rules/package.json rules/
+COPY frontend/package.json frontend/
 
-# No .git in the image: skip the husky hook install that `prepare` would run
-ENV HUSKY=0
-RUN npm install
+# No .git in the image: skip the root's `prepare` (the pre-commit hook install)
+RUN npm ci -w frontend --ignore-scripts
 
-COPY frontend ./
+# The packages' tsconfig.json files extend the root's
+COPY tsconfig.base.json ./
+COPY api-types ./api-types
+COPY rules ./rules
+COPY frontend ./frontend
 
 # VITE_API_URL is intentionally not set: the build falls back to the relative
 # '/api' path, which nginx proxies to the backend container.
-RUN npm run build
+RUN npm run build -w frontend
 
 FROM nginx:alpine AS runner
 
@@ -21,6 +29,9 @@ FROM nginx:alpine AS runner
 # resolving ${BACKEND_HOST}. Overridden per environment (Coolify previews get
 # a suffixed backend service name); defaults to the compose service name.
 ENV BACKEND_HOST=backend
+# Likewise ${MCP_HOST}, the MCP server's service name, for /mcp and its protected
+# resource metadata (spec 007, research R3)
+ENV MCP_HOST=mcp
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 # Writes the /api/connect/ allow-list and the trusted proxies at container start,
 # from SERVICEBW_ALLOWED_CIDRS and TRUSTED_PROXY_CIDRS (research R13)

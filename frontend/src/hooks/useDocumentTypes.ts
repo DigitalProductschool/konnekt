@@ -1,7 +1,7 @@
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import { useEffect, useReducer } from 'react';
 
 import { getDocumentTypes } from '../api/document-types';
-import type { DocumentType } from '../types/document-types';
 import type { DocumentTypesState } from './types';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import { documentTypesReducer, INITIAL_DOCUMENT_TYPES_STATE } from './utils';

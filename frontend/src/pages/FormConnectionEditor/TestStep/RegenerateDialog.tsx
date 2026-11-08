@@ -1,7 +1,8 @@
+import type { ConfirmText } from '@connection-portal/rules/personas/messages';
+import { confirmAllOf, confirmOneOf } from '@connection-portal/rules/personas/messages';
+import type { Persona, PersonaConfirm } from '@connection-portal/rules/personas/types';
+
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import type { ConfirmText } from '../../../utils/rules/personas/messages';
-import { confirmAllOf, confirmOneOf } from '../../../utils/rules/personas/messages';
-import type { Persona, PersonaConfirm } from '../../../utils/rules/personas/types';
 import { TEST_STEP_COPY } from './constants';
 import type { RegenerateDialogProps } from './types';
 

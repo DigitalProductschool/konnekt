@@ -1,5 +1,6 @@
+import { statementOf } from '@connection-portal/rules/statements';
+
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { statementOf } from '../../../utils/rules/statements';
 import { RULES_COPY } from './constants';
 import type { RulesDialogsProps } from './types';
 import { branchOf, deleteDialogText, groupOf, ruleOf } from './utils';

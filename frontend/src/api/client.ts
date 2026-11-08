@@ -1,4 +1,4 @@
-import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '../types/api';
+import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '@connection-portal/api-types/api';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.

@@ -1,4 +1,5 @@
-import type { FormConnectionSummary } from '../../types/form-connections';
+import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+
 import { EDITED_DATE_FORMAT, LIST_COPY } from './constants';
 import type { ListAction, ListState } from './types';
 

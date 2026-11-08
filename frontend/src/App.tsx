@@ -4,6 +4,9 @@ import AppLayout from './components/AppLayout';
 import RequireSignedOut from './components/RequireSignedOut';
 import RequireSignIn from './components/RequireSignIn';
 import { ROUTES } from './constants';
+import AccountPage from './pages/Account';
+import ApprovalPage from './pages/Approval';
+import AuthorizePage from './pages/Authorize';
 import FirstConnectionPage from './pages/FirstConnection';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import FormConnectionDetailPage from './pages/FormConnectionDetail';
@@ -48,6 +51,9 @@ function App() {
       </Route>
       <Route element={<SignedInScreens />}>
         <Route path={ROUTES.overview} element={<FormConnectionListPage />} />
+        <Route path={ROUTES.authorize} element={<AuthorizePage />} />
+        <Route path={ROUTES.account} element={<AccountPage />} />
+        <Route path={ROUTES.approval} element={<ApprovalPage />} />
       </Route>
       <Route element={<SignedInWizards />}>
         <Route path={ROUTES.firstConnection} element={<FirstConnectionPage />} />

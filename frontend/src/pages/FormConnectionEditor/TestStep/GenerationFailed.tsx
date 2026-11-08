@@ -1,6 +1,6 @@
+import { failureHintOf } from '@connection-portal/rules/personas/messages';
 import { useId } from 'react';
 
-import { failureHintOf } from '../../../utils/rules/personas/messages';
 import { TEST_STEP_COPY } from './constants';
 import type { GenerationFailedProps } from './types';
 

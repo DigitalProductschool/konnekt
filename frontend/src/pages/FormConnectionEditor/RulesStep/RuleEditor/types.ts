@@ -1,8 +1,12 @@
+import type {
+  Condition,
+  RuleItem,
+  RuleTarget,
+} from '@connection-portal/api-types/form-connections';
+import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { OperatorDefinition } from '@connection-portal/rules/types';
 import type { Dispatch, KeyboardEvent, ReactNode } from 'react';
 
-import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
-import type { OptionSet } from '../../../../types/option-sets';
-import type { OperatorDefinition } from '../../../../utils/rules/types';
 import type { RulesCatalog } from '../types';
 
 export interface RuleEditorProps {

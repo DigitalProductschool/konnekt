@@ -12,6 +12,9 @@ import type { BranchTabProps } from './types';
  * target in the 24px row by overhanging it by 4px above and below. A long name wraps. A variant
  * with findings shows their icon in the (i)'s place, selected or not, and its tooltip adds them
  * (spec 003, S4; A6, W20; FR-014; Figma U09 6753:41694, U10 6758:43060, U11 6758:43549).
+ * The focus ring shows for keyboard focus only: kern.css, unlayered, does the reverse for
+ * `[tabindex]` (a ring on any `:focus`, `outline: 0` on `:focus:focus-visible`), and the open
+ * tab has `tabIndex` 0, hence the `!` on both sides, as in the test step's `VariantTab`.
  */
 export default function BranchTab({
   branch,
@@ -22,6 +25,7 @@ export default function BranchTab({
   onKeyDown,
   onRename,
   onDelete,
+  onCopyLink,
 }: BranchTabProps) {
   const text = selected
     ? 'text-kern-layout-text-default font-semibold'
@@ -39,7 +43,7 @@ export default function BranchTab({
             tabIndex={selected ? 0 : -1}
             onClick={onSelect}
             onKeyDown={onKeyDown}
-            className={`${text} text-kern-static-medium rounded-kern-small focus-visible:outline-kern-action-focus-default cursor-pointer text-left leading-(--kern-typography-line-height-medium-static) wrap-anywhere focus-visible:outline-4 focus-visible:outline-offset-2`}
+            className={`${text} text-kern-static-medium rounded-kern-small focus-visible:outline-kern-action-focus-default! cursor-pointer text-left leading-(--kern-typography-line-height-medium-static) wrap-anywhere focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!`}
           >
             {branch.name}
           </button>
@@ -51,6 +55,7 @@ export default function BranchTab({
               deletable={deletable}
               onRename={onRename}
               onDelete={onDelete}
+              onCopyLink={onCopyLink}
             />
           </div>
         )}

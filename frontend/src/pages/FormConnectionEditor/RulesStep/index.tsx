@@ -1,3 +1,7 @@
+import { namesOf, noteOf } from '@connection-portal/rules/checks/findingMessages';
+import { groupIdOf, ruleIdOf, shownItems } from '@connection-portal/rules/tree';
+import type { RuleContext } from '@connection-portal/rules/types';
+import { unrequestedRules } from '@connection-portal/rules/validation';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -5,15 +9,12 @@ import { flushSync } from 'react-dom';
 import Connector from '../../../components/Connector';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import type { ShownFinding } from '../../../components/FindingNote/types';
-import { namesOf, noteOf } from '../../../utils/rules/checks/findingMessages';
-import { groupIdOf, ruleIdOf, shownItems } from '../../../utils/rules/tree';
-import type { RuleContext } from '../../../utils/rules/types';
-import { unrequestedRules } from '../../../utils/rules/validation';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
 import { RULES_COPY, SELECTION_SCROLL_MARGIN } from './constants';
 import FindingsBanner from './FindingsBanner';
+import LinkNotice from './LinkNotice';
 import LinkStrip from './LinkStrip';
 import RuleEditor from './RuleEditor';
 import RulesEmptyState from './RulesEmptyState';
@@ -22,7 +23,7 @@ import SwitchNote from './SwitchNote';
 import TreeItem from './TreeItem';
 import type { RulesStepProps, RulesTreeView } from './types';
 import UnrequestedBanner from './UnrequestedBanner';
-import { branchOf, focusSoon, groupOf, switchNoteOf } from './utils';
+import { branchOf, focusSoon, groupOf, linkOf, switchNoteOf } from './utils';
 
 /**
  * The Rules step (S2, S4; Figma U11, U14, U16, U17, U18, U21, U29): the variant tabs with "+ Add
@@ -39,7 +40,9 @@ import { branchOf, focusSoon, groupOf, switchNoteOf } from './utils';
  * and group of the open branch that has a finding, with its note (S2; FR-012; F4, F5, F6; Figma
  * U01 6171:6749, U02 6171:7064), and the findings banner sums them up above its rules, after the
  * problems banner, with links to them (FR-013; A1, A2); they update in place after every change (W1), refuse nothing (F8;
- * FR-016), and the rule editor shows nothing about them (S3; W15).
+ * FR-016), and the rule editor shows nothing about them (S3; W15). A stored draft's and a
+ * published connection's ⋯ menus offer "Copy link" (spec 007, S4; FR-028), and a link to what
+ * no longer exists shows its notice at the top of the step until it is dismissed (S5; FR-031).
  */
 export default function RulesStep({
   status,
@@ -48,6 +51,9 @@ export default function RulesStep({
   catalog,
   checks,
   editing,
+  connectionId,
+  linkNotice,
+  onDismissLinkNotice,
   dispatch,
   onAddRule,
   onEditRule,
@@ -137,6 +143,29 @@ export default function RulesStep({
     }
   }
 
+  /**
+   * "Copy link" (S4; FR-028): writes the link of the variant, or of its rule or group, to the
+   * clipboard, and the toast says whether it worked. Without a secure context there is no
+   * clipboard, which fails as a refused permission does.
+   */
+  function copyLink(variantId: string, itemId?: string) {
+    if (connectionId === null) {
+      return;
+    }
+    const link = linkOf(window.location.origin, connectionId, variantId, itemId);
+    void Promise.resolve()
+      .then(() => navigator.clipboard.writeText(link))
+      .then(
+        () => dispatch({ type: 'showToast', message: RULES_COPY.linkCopied }),
+        () => dispatch({ type: 'showToast', message: RULES_COPY.linkNotCopied })
+      );
+  }
+
+  /** "Dismiss": the notice goes, and the focus moves to the open variant's tab. */
+  function dismissLinkNotice() {
+    thenFocus(onDismissLinkNotice, ELEMENT_IDS.branchTab(branch.key));
+  }
+
   const ruleEditor = editor && (
     <div ref={editorRef} className={items.length === 0 ? 'p-16' : 'px-16 py-8'}>
       <RuleEditor
@@ -192,6 +221,7 @@ export default function RulesStep({
       keepFocus(() => dispatch({ type: 'restoreItem', branchKey: branch.key, itemId }), itemId),
     onReset: (itemId) =>
       keepFocus(() => dispatch({ type: 'resetItem', branchKey: branch.key, itemId }), itemId),
+    onCopyLink: connectionId === null ? null : (itemId) => copyLink(branch.key, itemId),
   };
 
   // Back to the first chosen rule, or to its level's "Add rule" once no rule is chosen
@@ -213,7 +243,13 @@ export default function RulesStep({
 
   return (
     <div className="flex flex-col gap-16">
-      <BranchTabs state={state} checks={checks} dispatch={dispatch} />
+      {linkNotice && <LinkNotice kind={linkNotice} onDismiss={dismissLinkNotice} />}
+      <BranchTabs
+        state={state}
+        checks={checks}
+        dispatch={dispatch}
+        onCopyLink={connectionId === null ? null : (branchKey) => copyLink(branchKey)}
+      />
       {problem && (
         <KernAlert
           id={ELEMENT_IDS.rulesProblem}

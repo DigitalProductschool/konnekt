@@ -1,6 +1,6 @@
+import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
-import type { FormConnectionSummary } from '../../types/form-connections';
 import { LIST_COPY } from './constants';
 import { descriptionOf, hintOf } from './utils';
 

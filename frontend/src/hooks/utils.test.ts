@@ -1,11 +1,11 @@
+import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
+import type { BranchCheck } from '@connection-portal/rules/checks/types';
+import { CONTEXT, mainBranch, US1_RULES } from '@connection-portal/rules/testData';
+import { renameItem } from '@connection-portal/rules/tree';
 import { describe, expect, it } from 'vitest';
 
-import type { RuleTreeItem } from '../types/form-connections';
 import { emptyContent } from '../utils/localDrafts/content';
-import { buildCheckedBranch } from '../utils/rules/checks/checkedTree';
-import type { BranchCheck } from '../utils/rules/checks/types';
-import { CONTEXT, mainBranch, US1_RULES } from '../utils/rules/testData';
-import { renameItem } from '../utils/rules/tree';
 import type { CheckableBranch } from './types';
 import {
   actionOf,

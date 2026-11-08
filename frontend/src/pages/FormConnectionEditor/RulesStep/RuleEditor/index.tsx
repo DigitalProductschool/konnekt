@@ -1,18 +1,23 @@
-import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
-
-import type { Condition, RuleItem, RuleTarget } from '../../../../types/form-connections';
+import type {
+  Condition,
+  RuleItem,
+  RuleTarget,
+} from '@connection-portal/api-types/form-connections';
 import {
   changeOperator,
   conditionProblem,
   operatorDefinition,
   optionsOf,
   resolveTarget,
-} from '../../../../utils/rules/conditions';
-import { LICENCE_CLASSES_SET } from '../../../../utils/rules/constants';
-import { todayInGermany } from '../../../../utils/rules/dates';
-import { ruleFieldLabel } from '../../../../utils/rules/statements';
-import type { RuleContext } from '../../../../utils/rules/types';
-import { ruleProblem } from '../../../../utils/rules/validation';
+  withTarget,
+} from '@connection-portal/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+import { todayInGermany } from '@connection-portal/rules/dates';
+import { ruleFieldLabel } from '@connection-portal/rules/statements';
+import type { RuleContext } from '@connection-portal/rules/types';
+import { ruleProblem } from '@connection-portal/rules/validation';
+import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
+
 import ChoicePicker from './ChoicePicker';
 import ConditionFields from './ConditionFields';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';
@@ -40,7 +45,6 @@ import {
   ruleEditorReducer,
   targetOfPart,
   withProposal,
-  withTarget,
 } from './utils';
 
 /**
@@ -144,13 +148,13 @@ export default function RuleEditor({
     dispatch({ type: 'chooseDocument', document: key });
     if (key !== draft.target?.document_type) {
       dispatch({ type: 'resetValues' });
-      change(withTarget(draft, null, context));
+      change(withTarget(draft, null, context.documents));
     }
     open('data');
   }
 
   function chooseTarget(next: RuleTarget, then: MenuKey | null) {
-    const changed = withTarget(draft, next, context);
+    const changed = withTarget(draft, next, context.documents);
     if (changed.condition !== draft.condition) {
       dispatch({ type: 'resetValues' });
     }

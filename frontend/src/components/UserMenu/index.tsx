@@ -1,23 +1,28 @@
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
+import { Link } from 'react-router';
 
 import expandMoreIcon from '../../assets/icons/expand-more.svg';
 import logoutIcon from '../../assets/icons/logout.svg';
+import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { flushPendingLocalDrafts } from '../../utils/localDrafts/store';
+import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../utils/menuNavigation';
 import {
   INITIAL_USER_MENU_STATE,
   LOG_OUT_LABEL,
-  MENU_NAVIGATION_KEYS,
+  MENU_ITEM_CLASSES,
   SIGNED_IN_AS,
+  YOUR_ACCOUNT_LABEL,
 } from './constants';
 import SignOutDialog from './SignOutDialog';
 import { initialsOf, signOutNamesOf, userMenuReducer } from './utils';
 
 /**
- * Figma "App/User menu": the avatar opens a panel with the signed-in user and the
- * "Log out" action. It follows the WAI-ARIA menu button pattern. After logging out,
- * the route guard shows the sign-in screen.
+ * Figma "App/User menu": the avatar opens a panel with the signed-in user, "Your account", which
+ * leads to the user page (spec 007, S2), and the "Log out" action. It follows the WAI-ARIA menu
+ * button pattern: the first item takes the focus when it opens, and the arrow keys, Home and End
+ * move between the items. After logging out, the route guard shows the sign-in screen.
  *
  * If the account has local drafts on this device, "Log out" first warns that it discards them
  * (S7, W8; FR-019). Only a confirmed "Log out" removes them: `signOut()` itself, which also runs
@@ -30,7 +35,7 @@ export default function UserMenu() {
   const { open, signOutNames, signingOut } = state;
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const itemRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const triggerId = useId();
   const menuId = useId();
   // Set by "Cancel": the focus goes back to the menu button once the dialog has closed
@@ -40,7 +45,7 @@ export default function UserMenu() {
     if (!open) {
       return;
     }
-    itemRef.current?.focus();
+    menuRef.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
     function closeOnOutsidePointer(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
         dispatch({ type: 'closed' });
@@ -78,7 +83,9 @@ export default function UserMenu() {
       dispatch({ type: 'closed' });
     } else if (MENU_NAVIGATION_KEYS.has(event.key)) {
       event.preventDefault();
-      itemRef.current?.focus();
+      const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role=menuitem]') ?? [])];
+      const current = items.indexOf(document.activeElement as HTMLElement);
+      items[nextMenuIndex(event.key, current, items.length)]?.focus();
     }
   }
 
@@ -139,19 +146,32 @@ export default function UserMenu() {
             {user.username}
           </p>
           <div
+            ref={menuRef}
             id={menuId}
             role="menu"
             aria-labelledby={triggerId}
             onKeyDown={handleMenuKeyDown}
             className="py-4"
           >
+            <Link
+              to={ROUTES.account}
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => dispatch({ type: 'closed' })}
+              className={MENU_ITEM_CLASSES}
+            >
+              <span
+                aria-hidden="true"
+                className="kern-icon kern-icon--account-circle kern-icon--small bg-kern-layout-text-default!"
+              />
+              {YOUR_ACCOUNT_LABEL}
+            </Link>
             <button
-              ref={itemRef}
               type="button"
               role="menuitem"
               tabIndex={-1}
               onClick={handleSignOut}
-              className="text-kern-static-small text-kern-layout-text-default hover:bg-kern-neutral-050 focus-visible:bg-kern-neutral-050 focus-visible:outline-kern-action-focus-default flex h-48 w-full cursor-pointer items-center gap-12 px-16 leading-(--kern-typography-line-height-medium-static) font-semibold focus-visible:outline-4 focus-visible:-outline-offset-4"
+              className={MENU_ITEM_CLASSES}
             >
               <img src={logoutIcon} alt="" className="size-20" />
               {LOG_OUT_LABEL}

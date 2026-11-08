@@ -4,23 +4,29 @@ Part 1 (T016): the draft lifecycle. Creating, reading, listing, saving, numberin
 publishing and deleting drafts, the boundaries between draft and published
 endpoints, and authentication. The publish parity table (T017), the
 concurrency tests (T018) and the conflicts of two team members (T046) follow
-below and reuse the helpers at the top.
+below and reuse the helpers at the top. Last, spec 007's variant identifiers: the ids
+a draft's variants keep from their first save through publishing, and the migration
+that gives the stored drafts' branches theirs (research R10, data-model.md section
+6.1, FR-029).
 """
 
+import importlib.util
 import json
 import threading
 import uuid
 from collections.abc import Callable
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from httpx2 import Request, Response
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.db import SessionLocal
+from app.db import SessionLocal, engine
 from app.models import (
     FormConnection,
     FormConnectionBranch,
@@ -42,6 +48,7 @@ from tests.helpers import (
     AGE_RULE,
     CLASS_RULE,
     FORM_CONNECTION,
+    branch_pull_url,
     create_form_connection,
     group,
     main_branch,
@@ -178,6 +185,26 @@ def draft_is_sql_null(form_connection_id: str) -> bool:
         )
 
 
+def is_uuid(value: object) -> bool:
+    """Whether `value` is a UUID string in its canonical form."""
+    return isinstance(value, str) and str(uuid.UUID(value)) == value
+
+
+def assert_ids_assigned(
+    answered: list[dict[str, Any]], sent: list[dict[str, Any]]
+) -> None:
+    """The branches answered are the ones sent, each with a UUID of its own: the
+    one sent, or one the server assigned where it sent null (spec 007, R10)."""
+    assert len(answered) == len(sent)
+    ids = [branch['id'] for branch in answered]
+    assert all(is_uuid(branch_id) for branch_id in ids)
+    assert len(set(ids)) == len(ids)
+    for answer, request in zip(answered, sent, strict=True):
+        if request['id'] is not None:
+            assert answer['id'] == request['id']
+        assert answer | {'id': None} == request | {'id': None}
+
+
 def item_ids(branch: dict[str, Any]) -> list[str]:
     """The identifiers of a branch's items, depth first."""
     ids: list[str] = []
@@ -240,8 +267,8 @@ def test_creating_a_draft_keeps_its_content_and_step(
     assert data['step'] == 'rules'
     assert [document['document_type'] for document in data['documents']] == ['pid']
     assert [field['key'] for field in data['documents'][0]['fields']] == ['birthdate']
-    assert data['branches'] == branches
-    assert all(branch['id'] is None for branch in data['branches'])
+    # Null ids sent, UUIDs answered (spec 007, research R10)
+    assert_ids_assigned(data['branches'], branches)
     assert data['next_rule_number'] == 2
     assert fake_eudiplo.calls == []
     assert rows(data['id']) == (0, 0, 0)
@@ -375,7 +402,7 @@ def test_saving_a_draft_replaces_its_content_and_raises_its_version(
         ('pid', ['family_name', 'given_name', 'birthdate', 'address_locality']),
         ('mdl', ['expiry_date', 'document_number', 'driving_privileges']),
     ]
-    assert data['branches'] == branches
+    assert_ids_assigned(data['branches'], branches)
     assert data['step'] == 'rules'
     assert get(signed_in_client, draft_id) == data
     assert fake_eudiplo.calls == []
@@ -529,7 +556,7 @@ def test_saving_accepts_incomplete_content(
     data = response.json()['data']
     assert data['version'] == 2
     if 'rules' in changes:
-        assert data['branches'] == changes['rules']['branches']
+        assert_ids_assigned(data['branches'], changes['rules']['branches'])
     assert fake_eudiplo.calls == []
 
 
@@ -570,11 +597,11 @@ def test_saving_accepts_incomplete_content(
         pytest.param(
             {
                 'rules': draft_rules(
-                    [main_branch([]), variant([], branch_id=str(uuid.uuid4()))]
+                    [main_branch([]), variant([], branch_id='variant-2')]
                 )
             },
             'Unknown variant.',
-            id='a variant with an id',
+            id='a variant whose id is no UUID',
         ),
         pytest.param(
             {
@@ -1499,7 +1526,7 @@ def test_saving_an_outdated_version_answers_draft_changed(
     assert response.status_code == 409
     assert response.json() == DRAFT_CHANGED_DETAIL
     assert response.json()['message'] == (
-        'Another team member saved this draft after you opened it.'
+        'This draft has been modified since you opened it.'
     )
     # Content, version and counters as the first team member saved them
     assert get(signed_in_client, draft_id) == theirs
@@ -1538,7 +1565,7 @@ def test_replacing_their_changes_stores_the_whole_draft(
         'pid',
         'mdl',
     ]
-    assert data['branches'] == OUR_DRAFT['rules']['branches']
+    assert_ids_assigned(data['branches'], OUR_DRAFT['rules']['branches'])
     assert data['step'] == 'rules'
     assert data['next_rule_number'] == 3
     assert get(signed_in_client, draft_id) == data
@@ -1753,3 +1780,610 @@ def test_a_draft_saved_during_its_publish(
         assert rows(draft_id) == (1, 1, 2)
         assert set(fake_eudiplo.configs) == set(created_configs)
         assert deleted_configs(fake_eudiplo) == []
+
+
+# Spec 007: variant identifiers (research R10, FR-029). A draft's variants have ids
+# from their first save; the branch rows take them when the draft is published
+
+
+def published_connection_branch_ids(client: TestClient) -> list[str]:
+    """The ids of a new published connection's branches, a deleted one's last."""
+    created = client.post(
+        BASE,
+        json=FORM_CONNECTION
+        | {
+            'rules': rules_input(
+                [
+                    main_branch([]),
+                    variant([], name='Taxi', origin='empty'),
+                    variant([], name='Bus', origin='empty'),
+                ]
+            )
+        },
+    )
+    assert created.status_code == 201, created.json()
+    connection = created.json()['data']
+    standard, taxi, bus = connection['branches']
+    response = client.put(
+        f'{BASE}/{connection["id"]}',
+        json={
+            'rules': rules_input(
+                [
+                    {
+                        key: value
+                        for key, value in branch.items()
+                        if key not in ('is_main', 'pull_url')
+                    }
+                    for branch in (standard, taxi)
+                ],
+                rule_base=connection['next_rule_number'],
+                group_base=connection['next_group_number'],
+                base_version=connection['rule_set_version'],
+            )
+        },
+    )
+    assert response.status_code == 200, response.json()
+    return [standard['id'], taxi['id'], bus['id']]
+
+
+def test_a_drafts_variant_ids_are_assigned_once_and_kept(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    branches = [
+        main_branch([AGE_RULE]),
+        variant([AGE_RULE]),
+        variant([], name='Taxi', origin='empty'),
+    ]
+    created = signed_in_client.post(
+        f'{BASE}/drafts', json=draft_body(rules=draft_rules(branches), step='rules')
+    ).json()['data']
+    assert_ids_assigned(created['branches'], branches)
+    ids = [branch['id'] for branch in created['branches']]
+
+    # The editor sends them back; a variant added meanwhile gets one of its own
+    added = variant([], name='Bus', origin='empty')
+    response = save(
+        signed_in_client,
+        created['id'],
+        1,
+        rules=draft_rules([*created['branches'], added], rule_base=2),
+        step='rules',
+    )
+
+    assert response.status_code == 200, response.json()
+    data = response.json()['data']
+    assert [branch['id'] for branch in data['branches']][:3] == ids
+    assert_ids_assigned(data['branches'], [*created['branches'], added])
+    assert get(signed_in_client, created['id'])['branches'] == data['branches']
+
+
+def test_a_drafts_variant_keeps_the_uuid_its_editor_gave_it(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    main_id, variant_id = str(uuid.uuid4()), str(uuid.uuid4())
+    branches = [main_branch([], branch_id=main_id), variant([], branch_id=variant_id)]
+
+    created = signed_in_client.post(
+        f'{BASE}/drafts', json=draft_body(rules=draft_rules(branches))
+    )
+    assert created.status_code == 201, created.json()
+    assert created.json()['data']['branches'] == branches
+
+    draft_id = created.json()['data']['id']
+    other_id = str(uuid.uuid4())
+    response = save(
+        signed_in_client,
+        draft_id,
+        1,
+        rules=draft_rules(
+            [main_branch([], branch_id=main_id), variant([], branch_id=other_id)]
+        ),
+    )
+
+    assert response.status_code == 200, response.json()
+    assert [branch['id'] for branch in response.json()['data']['branches']] == [
+        main_id,
+        other_id,
+    ]
+
+
+@pytest.mark.parametrize(
+    'branch_id',
+    [
+        pytest.param('variant-2', id='no UUID'),
+        pytest.param('', id='empty'),
+        pytest.param(str(uuid.uuid4()).upper(), id='upper case'),
+        pytest.param('{' + str(uuid.uuid4()) + '}', id='braces'),
+        pytest.param(uuid.uuid4().hex, id='no hyphens'),
+    ],
+)
+@pytest.mark.parametrize('main', [True, False], ids=['Standard', 'another variant'])
+def test_a_drafts_variant_id_must_be_a_uuid(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    branch_id: str,
+    main: bool,
+) -> None:
+    branches = (
+        [main_branch([], branch_id=branch_id)]
+        if main
+        else [main_branch([]), variant([], branch_id=branch_id)]
+    )
+    draft_id = create_draft(signed_in_client)
+    before = get(signed_in_client, draft_id)
+
+    responses = [
+        signed_in_client.post(
+            f'{BASE}/drafts', json=draft_body(rules=draft_rules(branches))
+        ),
+        save(signed_in_client, draft_id, 1, rules=draft_rules(branches)),
+    ]
+
+    for response in responses:
+        assert response.status_code == 400
+        assert response.json() == {
+            'error': 'Validation error',
+            'message': 'Unknown variant.',
+        }
+    assert get(signed_in_client, draft_id) == before
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(FormConnection)) == 1
+
+
+@pytest.mark.parametrize('taken', ['Standard', 'Taxi', 'deleted Bus'])
+@pytest.mark.parametrize('main', [True, False], ids=['as Standard', 'as a variant'])
+def test_a_drafts_variant_cant_take_another_connections_branch_id(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, taken: str, main: bool
+) -> None:
+    standard_id, taxi_id, bus_id = published_connection_branch_ids(signed_in_client)
+    branch_id = {'Standard': standard_id, 'Taxi': taxi_id, 'deleted Bus': bus_id}[taken]
+    branches = (
+        [main_branch([], branch_id=branch_id)]
+        if main
+        else [main_branch([]), variant([], name='Taxi', branch_id=branch_id)]
+    )
+    draft_id = create_draft(signed_in_client)
+    before = get(signed_in_client, draft_id)
+
+    responses = [
+        signed_in_client.post(
+            f'{BASE}/drafts', json=draft_body(rules=draft_rules(branches))
+        ),
+        save(signed_in_client, draft_id, 1, rules=draft_rules(branches)),
+    ]
+
+    for response in responses:
+        assert response.status_code == 400
+        assert response.json() == {
+            'error': 'Validation error',
+            'message': 'Unknown variant.',
+        }
+    assert get(signed_in_client, draft_id) == before
+
+
+def test_two_of_a_drafts_variants_cant_share_an_id(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    shared = str(uuid.uuid4())
+    draft_id = create_draft(signed_in_client)
+
+    for branches in (
+        [main_branch([]), variant([], branch_id=shared), variant([], branch_id=shared)],
+        [main_branch([], branch_id=shared), variant([], branch_id=shared)],
+    ):
+        responses = [
+            signed_in_client.post(
+                f'{BASE}/drafts', json=draft_body(rules=draft_rules(branches))
+            ),
+            save(signed_in_client, draft_id, 1, rules=draft_rules(branches)),
+        ]
+        for response in responses:
+            assert response.status_code == 400
+            assert response.json() == {
+                'error': 'Validation error',
+                'message': 'Unknown variant.',
+            }
+    assert get(signed_in_client, draft_id)['version'] == 1
+
+
+def test_publishing_a_draft_keeps_its_variant_ids(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """FR-029: a link to a draft's variant still leads to it once it is published."""
+    sent = [
+        main_branch([AGE_RULE, CLASS_RULE]),
+        variant([AGE_RULE, CLASS_RULE]),
+        variant([], name='Taxi', origin='empty'),
+    ]
+    draft = signed_in_client.post(
+        f'{BASE}/drafts', json=draft_body(rules=draft_rules(sent), step='rules')
+    ).json()['data']
+    ids = [branch['id'] for branch in draft['branches']]
+
+    response = publish(
+        signed_in_client,
+        draft['id'],
+        1,
+        rules=rules_input(draft['branches'], rule_base=3),
+    )
+
+    assert response.status_code == 200, response.json()
+    data = response.json()['data']
+    assert [branch['id'] for branch in data['branches']] == ids
+    connect_url = f'{BASE_URL}/api/connect/{draft["id"]}'
+    assert data['branches'][0]['pull_url'] == (f'{connect_url}/requests/{{reference}}')
+    for branch_id, branch in zip(ids[1:], data['branches'][1:], strict=True):
+        assert branch['pull_url'] == (
+            f'{connect_url}/branches/{branch_id}/requests/{{reference}}'
+        )
+    with SessionLocal() as db:
+        branch_rows = db.scalars(
+            select(FormConnectionBranch).where(
+                FormConnectionBranch.form_connection_id == draft['id']
+            )
+        ).all()
+    assert {row.id: row.is_main for row in branch_rows} == {
+        ids[0]: True,
+        ids[1]: False,
+        ids[2]: False,
+    }
+    # The variant's pull URL answers for the draft's id
+    reference = trigger(signed_in_client, draft['id'])['reference']
+    pulled = signed_in_client.get(branch_pull_url(draft['id'], ids[1], reference))
+    assert pulled.status_code == 200, pulled.json()
+
+
+def test_publishing_refuses_a_variant_id_another_connection_took_meanwhile(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    taken = str(uuid.uuid4())
+    draft_id = create_draft(
+        signed_in_client,
+        rules=draft_rules([main_branch([]), variant([], branch_id=taken)]),
+    )
+    # A published connection's new variant takes the id after the draft's save
+    create_form_connection(
+        signed_in_client,
+        rules=rules_input(
+            [main_branch([]), variant([], name='Taxi', origin='empty', branch_id=taken)]
+        ),
+    )
+    before = get(signed_in_client, draft_id)
+    calls = len(fake_eudiplo.calls)
+
+    response = publish(
+        signed_in_client,
+        draft_id,
+        1,
+        rules=rules_input(before['branches']),
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'Unknown variant.',
+    }
+    # Refused before EUDIPLO is called; the draft stays as it was
+    assert len(fake_eudiplo.calls) == calls
+    assert get(signed_in_client, draft_id) == before
+    assert rows(draft_id) == (0, 0, 0)
+
+
+def test_a_variant_id_taken_during_a_publish_is_refused_under_the_lock(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """`first_rule_set` checks the ids again; the configuration is deleted again."""
+    taken = str(uuid.uuid4())
+    draft_id = create_draft(
+        signed_in_client,
+        rules=draft_rules([main_branch([]), variant([], branch_id=taken)]),
+    )
+    before = get(signed_in_client, draft_id)
+    other_id = create_form_connection(signed_in_client)
+    configs = set(fake_eudiplo.configs)
+    create_config = fake_eudiplo._create_config
+
+    def take_the_id(request: Request) -> Response:
+        # Another connection's save takes the id while EUDIPLO answers
+        with SessionLocal() as db:
+            db.add(
+                FormConnectionBranch(
+                    id=taken, form_connection_id=other_id, is_main=False
+                )
+            )
+            db.commit()
+        return create_config(request)
+
+    fake_eudiplo._create_config = take_the_id  # type: ignore[method-assign]
+
+    response = publish(
+        signed_in_client, draft_id, 1, rules=rules_input(before['branches'])
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'Validation error',
+        'message': 'Unknown variant.',
+    }
+    assert get(signed_in_client, draft_id) == before
+    assert rows(draft_id) == (0, 0, 0)
+    assert set(fake_eudiplo.configs) == configs
+
+
+# Spec 007: the migration gives every stored draft's branches an id (data-model.md
+# section 6.1, FR-029)
+
+MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / 'alembic'
+    / 'versions'
+    / '60d71d73af6d_agent_mcp_server.py'
+)
+
+
+def agent_mcp_server_migration() -> ModuleType:
+    """The migration's module, imported by its path (alembic/ is no package)."""
+    spec = importlib.util.spec_from_file_location('agent_mcp_server', MIGRATION)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def insert_draft(content: dict[str, Any]) -> str:
+    """Insert a draft row with SQL, as spec 005 stored it, and return its id."""
+    draft_id = str(uuid.uuid4())
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                'INSERT INTO form_connections (id, name, description, draft, '
+                "draft_version) VALUES (:id, 'Alter Entwurf', '', "
+                'CAST(:draft AS JSONB), 3)'
+            ),
+            {'id': draft_id, 'draft': json.dumps(content)},
+        )
+    return draft_id
+
+
+def stored_draft(draft_id: str) -> tuple[dict[str, Any], int, object]:
+    """The row's draft, draft_version and updated_at, read with SQL."""
+    with engine.connect() as connection:
+        content, version, updated_at = connection.execute(
+            text(
+                'SELECT draft, draft_version, updated_at FROM form_connections '
+                'WHERE id = :id'
+            ),
+            {'id': draft_id},
+        ).one()
+    return content, version, updated_at
+
+
+def without_branch_ids(content: dict[str, Any]) -> dict[str, Any]:
+    """The draft with every branch's id left out."""
+    branches = [
+        {key: value for key, value in branch.items() if key != 'id'}
+        for branch in content['branches']
+    ]
+    return content | {'branches': branches}
+
+
+def test_the_migration_gives_every_drafts_branches_an_id(
+    signed_in_client: TestClient,
+) -> None:
+    kept_id = str(uuid.uuid4())
+    old = {
+        'documents': [],
+        'branches': [
+            main_branch([AGE_RULE]),
+            variant([AGE_RULE], name='Ambulance'),
+            variant([], name='Leer', origin='empty', branch_id=kept_id),
+        ],
+        'step': 'rules',
+    }
+    with_ids = {
+        'documents': [],
+        'branches': [main_branch([], branch_id=str(uuid.uuid4()))],
+        'step': 'connection',
+    }
+    old_id = insert_draft(old)
+    complete_id = insert_draft(with_ids)
+    before = {draft_id: stored_draft(draft_id) for draft_id in (old_id, complete_id)}
+    backfill_branch_ids = agent_mcp_server_migration().backfill_branch_ids
+
+    with engine.begin() as connection:
+        backfill_branch_ids(connection)
+
+    content, version, updated_at = stored_draft(old_id)
+    ids = [branch['id'] for branch in content['branches']]
+    # Every branch has a UUID of its own; one it had stays
+    assert all(str(uuid.UUID(branch_id)) == branch_id for branch_id in ids)
+    assert len(set(ids)) == 3
+    assert ids[2] == kept_id
+    # Nothing else changes: the content, the version, the time of the last save
+    assert without_branch_ids(content) == without_branch_ids(before[old_id][0])
+    assert (version, updated_at) == before[old_id][1:]
+    # A draft whose branches all have ids is left alone
+    assert stored_draft(complete_id) == before[complete_id]
+    # The draft still reads as one, with the new ids
+    data = get(signed_in_client, old_id)
+    assert [branch['id'] for branch in data['branches']] == ids
+
+    # Running it again changes nothing
+    with engine.begin() as connection:
+        backfill_branch_ids(connection)
+    assert stored_draft(old_id) == (content, version, updated_at)
+
+
+# Spec 007: approval requests check and publish the stored draft (research R12,
+# FR-022). `check_publishable` runs publishing's checks on the stored content, and
+# `publish_stored_draft` publishes it through `publish_draft`
+
+
+def editor_publish_body(draft: dict[str, Any], documents: Any) -> dict[str, Any]:
+    """What the editor sends to publish a draft it loaded without changing it.
+
+    The stored branches, with their ids, numbered from the draft's counters.
+    """
+    return {
+        'name': draft['name'],
+        'description': draft['description'],
+        'documents': documents,
+        'rules': rules_input(
+            draft['branches'],
+            rule_base=draft['next_rule_number'],
+            group_base=draft['next_group_number'],
+        ),
+        'version': draft['version'],
+    }
+
+
+def check_publishable_refusal(draft_id: str) -> HTTPException:
+    """The refusal of `check_publishable` for the stored draft."""
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None
+        with pytest.raises(HTTPException) as refused:
+            drafts.check_publishable(db, row)
+    return refused.value
+
+
+@pytest.mark.parametrize(
+    ('documents', 'branches'),
+    [
+        pytest.param([], [main_branch([])], id='no documents'),
+        pytest.param(
+            FORM_CONNECTION['documents'],
+            [main_branch([AGE_RULE | {'condition': None}])],
+            id='a rule without a condition',
+        ),
+        pytest.param(
+            FORM_CONNECTION['documents'],
+            [main_branch([AGE_RULE]), variant([AGE_RULE], name=' ')],
+            id='an unnamed variant',
+        ),
+    ],
+)
+def test_check_publishable_refuses_as_publishing_does(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    documents: list[dict[str, Any]],
+    branches: list[dict[str, Any]],
+) -> None:
+    draft_id = create_draft(
+        signed_in_client, documents=documents, rules=draft_rules(branches)
+    )
+    draft = get(signed_in_client, draft_id)
+
+    refusal = check_publishable_refusal(draft_id)
+    published = signed_in_client.post(
+        f'{BASE}/{draft_id}/publish', json=editor_publish_body(draft, documents)
+    )
+
+    assert published.status_code == refusal.status_code == 400
+    assert published.json()['error'] == 'Validation error'
+    assert refusal.detail == published.json()
+    # Nothing is written
+    assert get(signed_in_client, draft_id) == draft
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []
+
+
+def test_check_publishable_passes_a_complete_draft(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = create_draft(
+        signed_in_client,
+        description='  FS-20417 ',
+        documents=FORM_CONNECTION['documents'],
+        rules=draft_rules([main_branch([AGE_RULE, CLASS_RULE])]),
+    )
+
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None
+        name, description, documents, save = drafts.check_publishable(db, row)
+
+    assert (name, description) == ('Führerscheinantrag Entwurf', 'FS-20417')
+    assert [document.document_type for document in documents] == ['pid', 'mdl']
+    assert save is not None
+    assert [branch.id for branch in save.branches] == [
+        branch['id'] for branch in get(signed_in_client, draft_id)['branches']
+    ]
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []
+
+
+def test_check_publishable_refuses_a_published_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    form_connection_id = create_form_connection(signed_in_client)
+
+    refusal = check_publishable_refusal(form_connection_id)
+
+    assert refusal.status_code == 409
+    assert refusal.detail == DRAFT_PUBLISHED_DETAIL
+
+
+def test_publish_stored_draft_publishes_as_the_editor_does(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Two drafts with the same content: the editor publishes one, the approval
+    path the other, and both answer the same connection."""
+    content = {
+        'documents': FORM_CONNECTION['documents'],
+        'rules': draft_rules(
+            [
+                main_branch(us2_items(group_message='You are too young.')),
+                variant(us2_items(group_message='You are too young.')),
+                variant([AGE_RULE, CLASS_RULE], name='Taxi', origin='empty'),
+            ]
+        ),
+        'step': 'test',
+    }
+    edited_id = create_draft(signed_in_client, **content)
+    approved_id = create_draft(signed_in_client, **content)
+    edited = get(signed_in_client, edited_id)
+    approved = get(signed_in_client, approved_id)
+    published = signed_in_client.post(
+        f'{BASE}/{edited_id}/publish',
+        json=editor_publish_body(edited, content['documents']),
+    )
+    assert published.status_code == 200, published.json()
+
+    with SessionLocal() as db:
+        view = drafts.publish_stored_draft(db, approved_id, approved['version'])
+
+    data = view.model_dump(mode='json')
+    assert data['id'] == approved_id
+    assert published_shape(data) == published_shape(published.json()['data'])
+    # The variants keep the draft's ids (FR-029)
+    assert [branch['id'] for branch in data['branches']] == [
+        branch['id'] for branch in approved['branches']
+    ]
+    assert get(signed_in_client, approved_id) == data
+    assert rows(approved_id) == (1, 1, 3)
+    assert trigger(signed_in_client, approved_id)['status'] == 'pending'
+
+
+def test_publish_stored_draft_publishes_only_its_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = create_draft(signed_in_client)
+    saved = save(
+        signed_in_client,
+        draft_id,
+        1,
+        name='Geändert',
+        documents=FORM_CONNECTION['documents'],
+    )
+    assert saved.status_code == 200, saved.json()
+    before = get(signed_in_client, draft_id)
+
+    with SessionLocal() as db, pytest.raises(HTTPException) as refused:
+        drafts.publish_stored_draft(db, draft_id, 1)
+
+    assert refused.value.status_code == 409
+    assert refused.value.detail == DRAFT_CHANGED_DETAIL
+    assert get(signed_in_client, draft_id) == before
+    assert rows(draft_id) == (0, 0, 0)
+    assert fake_eudiplo.calls == []

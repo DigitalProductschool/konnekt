@@ -1,4 +1,5 @@
-import type { ItemFindingKind } from '../../utils/rules/checks/types';
+import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
+
 import type { FindingLook } from './types';
 
 // The look of each kind (A3, A4; design-notes.md §7, "Update 2026-11-01" and "Icons"): a conflict

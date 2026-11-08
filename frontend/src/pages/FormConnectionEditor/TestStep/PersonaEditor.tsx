@@ -1,7 +1,7 @@
+import type { PersonaField } from '@connection-portal/rules/personas/types';
+import { shownFieldsOf } from '@connection-portal/rules/personas/values';
 import { useEffect, useReducer } from 'react';
 
-import type { PersonaField } from '../../../utils/rules/personas/types';
-import { shownFieldsOf } from '../../../utils/rules/personas/values';
 import { ELEMENT_IDS } from '../constants';
 import { TEST_STEP_COPY } from './constants';
 import DocumentFields from './DocumentFields';

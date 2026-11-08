@@ -14,16 +14,21 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import ColumnElement, and_, delete, func, or_, select
 
 from ..config import settings
 from ..db import SessionLocal
 from ..errors import describe_error
 from ..models import (
+    AgentAuthorization,
+    AgentToken,
+    ApprovalRequest,
     DocumentRequest,
     FormConnection,
     FormConnectionRevision,
     LoginSession,
+    OauthClient,
+    OauthCode,
 )
 from . import document_requests, form_connections
 from .document_requests import (
@@ -50,6 +55,13 @@ STOP_TIMEOUT_SECONDS = 10.0
 SYNC_OVERLAP = timedelta(seconds=5)
 # At most this many pages of sessions per cycle; the next cycle reads on
 SYNC_MAX_PAGES = 50
+# A retired refresh token is kept this long, so that its reuse still revokes its
+# agent connection (spec 007, data-model.md section 4)
+RETIRED_REFRESH_TOKEN_KEPT = timedelta(days=1)
+# A dynamically registered client that no authorization uses is deleted after this
+UNUSED_CLIENT_KEPT = timedelta(hours=1)
+# An approval request that ended or expired is kept this long (spec 007, R12)
+APPROVAL_REQUEST_KEPT = timedelta(days=1)
 
 Step = Callable[[], None]
 
@@ -387,8 +399,185 @@ def delete_old_request_records() -> None:
         db.commit()
 
 
+# Agents' access (spec 007, data-model.md sections 1 to 4, research R7). Each step
+# logs counts and ids only, never a code, a token or a client's metadata
+
+
+def delete_expired_oauth_codes() -> None:
+    """Delete authorization codes past their expiry, used or not (data-model 2)."""
+    with SessionLocal() as db:
+        deleted = db.scalars(
+            delete(OauthCode)
+            .where(OauthCode.expires_at < datetime.now(tz=timezone.utc))
+            .returning(OauthCode.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+        db.commit()
+    if deleted:
+        logger.info('Deleted %d expired authorization codes', len(deleted))
+
+
+def delete_expired_agent_tokens() -> None:
+    """Delete the agent tokens nothing accepts any more (data-model.md section 4).
+
+    Access tokens past their expiry, and refresh tokens past theirs or retired
+    (replaced) more than a day ago: until then a retired one's reuse still finds
+    it and revokes its agent connection. Personal access tokens go with their
+    authorization (`delete_expired_personal_tokens`).
+    """
+    now = datetime.now(tz=timezone.utc)
+    with SessionLocal() as db:
+        deleted = db.scalars(
+            delete(AgentToken)
+            .where(
+                or_(
+                    and_(AgentToken.kind == 'access', AgentToken.expires_at <= now),
+                    and_(
+                        AgentToken.kind == 'refresh',
+                        or_(
+                            AgentToken.expires_at <= now,
+                            and_(
+                                AgentToken.replaced_by_id.is_not(None),
+                                AgentToken.updated_at
+                                < now - RETIRED_REFRESH_TOKEN_KEPT,
+                            ),
+                        ),
+                    ),
+                )
+            )
+            .returning(AgentToken.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+        db.commit()
+    if deleted:
+        logger.info('Deleted %d expired agent tokens', len(deleted))
+
+
+def _delete_authorizations(*conditions: ColumnElement[bool]) -> list[str]:
+    """Delete the agent authorizations that meet `conditions`; return their ids.
+
+    The rows are locked first and the conditions checked again in a second
+    statement, which sees what committed while it waited for a lock: a consent
+    that renews an agent connection at the same time keeps it. Their tokens
+    cascade; their approval requests stay with `authorization_id` null, and a
+    waiting one then reads as `cancelled` with `access_ended` (computed by
+    `approvals`, data-model.md section 5.2), so no `cancel_for` is needed here.
+    """
+    with SessionLocal() as db:
+        candidates = db.scalars(
+            select(AgentAuthorization.id)
+            .where(*conditions)
+            .with_for_update(skip_locked=True)
+        ).all()
+        if not candidates:
+            return []
+        deleted = list(
+            db.scalars(
+                delete(AgentAuthorization)
+                .where(AgentAuthorization.id.in_(candidates), *conditions)
+                .returning(AgentAuthorization.id)
+                .execution_options(synchronize_session=False)
+            ).all()
+        )
+        db.commit()
+    return deleted
+
+
+def delete_idle_agent_connections() -> None:
+    """Delete the agent connections unused for 30 days (FR-005, data-model 3).
+
+    An `oauth` authorization without a refresh token that is unexpired and not
+    replaced can't be renewed: its last refresh token expired
+    AGENT_CONNECTION_IDLE_DAYS after it was issued, or a code's reuse deleted its
+    tokens.
+    """
+    now = datetime.now(tz=timezone.utc)
+    renewable = (
+        select(AgentToken.id)
+        .where(
+            AgentToken.authorization_id == AgentAuthorization.id,
+            AgentToken.kind == 'refresh',
+            AgentToken.expires_at > now,
+            AgentToken.replaced_by_id.is_(None),
+        )
+        .exists()
+    )
+    for authorization_id in _delete_authorizations(
+        AgentAuthorization.kind == 'oauth', ~renewable
+    ):
+        logger.info('Deleted idle agent connection %s', authorization_id)
+
+
+def delete_expired_personal_tokens() -> None:
+    """Delete the personal access tokens past their expiry (FR-005, data-model 3)."""
+    for authorization_id in _delete_authorizations(
+        AgentAuthorization.kind == 'token',
+        AgentAuthorization.expires_at <= datetime.now(tz=timezone.utc),
+    ):
+        logger.info('Deleted expired personal access token %s', authorization_id)
+
+
+def delete_unused_oauth_clients() -> None:
+    """Delete dynamically registered clients unused for an hour (data-model 1).
+
+    A `dcr` client created more than an hour ago that no authorization uses goes;
+    one with an authorization code waits for `delete_expired_oauth_codes`, since
+    the code refers to it. Clients of metadata documents stay, as their cache.
+    Locked and checked again as `_delete_authorizations` does.
+    """
+    unused = (
+        OauthClient.kind == 'dcr',
+        OauthClient.created_at < datetime.now(tz=timezone.utc) - UNUSED_CLIENT_KEPT,
+        ~select(AgentAuthorization.id)
+        .where(AgentAuthorization.client_id == OauthClient.id)
+        .exists(),
+        ~select(OauthCode.id).where(OauthCode.client_id == OauthClient.id).exists(),
+    )
+    with SessionLocal() as db:
+        candidates = db.scalars(
+            select(OauthClient.id).where(*unused).with_for_update(skip_locked=True)
+        ).all()
+        if not candidates:
+            return
+        deleted = db.scalars(
+            delete(OauthClient)
+            .where(OauthClient.id.in_(candidates), *unused)
+            .returning(OauthClient.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+        db.commit()
+    for client_id in deleted:
+        logger.info('Deleted unused OAuth client %s', client_id)
+
+
+def delete_old_approval_requests() -> None:
+    """Delete the approval requests that ended or expired a day ago (research R12).
+
+    A request that left `waiting` (`decided_at`) or whose `expires_at` passed more
+    than APPROVAL_REQUEST_KEPT ago goes; one that reads as cancelled by computation
+    (its draft moved on, its access ended) goes with its expiry. Its approval page
+    then answers 404.
+    """
+    cutoff = datetime.now(tz=timezone.utc) - APPROVAL_REQUEST_KEPT
+    with SessionLocal() as db:
+        deleted = db.scalars(
+            delete(ApprovalRequest)
+            .where(
+                or_(
+                    ApprovalRequest.decided_at < cutoff,
+                    ApprovalRequest.expires_at < cutoff,
+                )
+            )
+            .returning(ApprovalRequest.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+        db.commit()
+    if deleted:
+        logger.info('Deleted %d old approval requests', len(deleted))
+
+
 # The steps of one cycle, in the order of research R7 (step 4 was removed with
-# webhook mode)
+# webhook mode), then those of agents' access (spec 007)
 STEPS: tuple[Step, ...] = (
     sync_sessions,
     expire_requests,
@@ -398,6 +587,12 @@ STEPS: tuple[Step, ...] = (
     delete_unused_configs,
     delete_expired_login_sessions,
     delete_old_request_records,
+    delete_expired_oauth_codes,
+    delete_expired_agent_tokens,
+    delete_idle_agent_connections,
+    delete_expired_personal_tokens,
+    delete_unused_oauth_clients,
+    delete_old_approval_requests,
 )
 
 

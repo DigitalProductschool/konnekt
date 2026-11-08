@@ -1,3 +1,4 @@
+import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { useReducer } from 'react';
 import { generatePath, useNavigate } from 'react-router';
 
@@ -10,7 +11,6 @@ import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import type { EditLocationState } from '../../types/routing';
 import { DETAIL_COPY, DRAFT_STEPS, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
 import DocumentsSummary from './DocumentsSummary';

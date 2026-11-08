@@ -1,3 +1,4 @@
+import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { generatePath, useNavigate } from 'react-router';
 
@@ -14,7 +15,6 @@ import WizardProgress from '../../components/WizardProgress';
 import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import type { EditLocationState } from '../../types/routing';
 import ConnectionLinks from './ConnectionLinks';
 import ConnectionStatus from './ConnectionStatus';
 import { DETAIL_COPY } from './constants';

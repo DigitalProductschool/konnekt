@@ -1,7 +1,7 @@
+import { creatingAllText } from '@connection-portal/rules/personas/messages';
+import type { PersonaSlot } from '@connection-portal/rules/personas/types';
 import type { KeyboardEvent } from 'react';
 
-import { creatingAllText } from '../../../utils/rules/personas/messages';
-import type { PersonaSlot } from '../../../utils/rules/personas/types';
 import { ELEMENT_IDS } from '../constants';
 import { tabAfterKey } from '../RulesStep/utils';
 import { SKELETON_PILL_WIDTHS, TEST_STEP_COPY } from './constants';

@@ -88,6 +88,22 @@
 }
 
 /*
+ * And for KERN's radios (the access levels). Their :focus rule also swaps the border for the
+ * ring, so a radio focused by a click or a tap gets the border it has unfocused back: 2px, and
+ * 4px while hovered, as KERN draws it. Equal specificity to kern.css's :checked:focus rules,
+ * later in the cascade.
+ */
+.kern-form-check__radio:focus:not(:focus-visible) {
+  outline: none;
+  border: var(--kern-metric-border-width-default) solid
+    var(--kern-color-form-input-border-contextual);
+}
+
+.kern-form-check__radio:focus:not(:focus-visible):hover {
+  border: var(--kern-metric-border-width-bold) solid var(--kern-color-form-input-border-contextual);
+}
+
+/*
  * KERN has no indeterminate checkbox, which "All data" needs when only some fields are
  * selected: a dash in the colour and stroke width of KERN's own check mark.
  */

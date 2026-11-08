@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -11,11 +11,18 @@ from ..schemas import (
     FormConnectionCreate,
     FormConnectionDraft,
     FormConnectionOrDraft,
+    FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
 )
-from ..services import drafts, form_connections
-from ..services.auth import get_current_user, require_json
+from ..services import agent_access, drafts, form_connections
+from ..services.auth import (
+    Principal,
+    get_current_principal,
+    require_browser_session,
+    require_json,
+    require_level,
+)
 from ..services.eudiplo import EudiploError, http_error_for
 
 # The answer when EUDIPLO can't store a revision's request configuration
@@ -24,10 +31,15 @@ CONFIG_FAILED = (
     'saved. Try again in a moment.'
 )
 
+# A team member's browser session or an agent's bearer token; every GET is open to
+# every access level. Agents change drafts from the level 'drafts' on, and nothing
+# else here: publishing, deleting a draft, a published connection's content and its
+# status are done in the Connection Portal (spec 007, contracts/management-api.md
+# "Who may call what")
 router = APIRouter(
     prefix='/api/form-connections',
     tags=['form-connections'],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_principal)],
 )
 
 
@@ -39,8 +51,39 @@ def list_form_connections(
     return ApiResponse(data=form_connections.list_form_connections(db))
 
 
+@router.get('/search')
+def search_form_connections(
+    q: str | None = None,
+    connection_status: form_connections.SearchStatus | None = Query(
+        default=None, alias='status'
+    ),
+    cursor: str | None = None,
+    limit: int = Query(
+        default=form_connections.SEARCH_PAGE_SIZE,
+        ge=1,
+        le=form_connections.SEARCH_PAGE_SIZE,
+    ),
+    db: Session = Depends(get_db),
+) -> ApiResponse[FormConnectionPage]:
+    """Search the form connections that aren't deleted, a page at a time (FR-007).
+
+    `q` matches the name or the description, ignoring case; `status` is `draft`,
+    `live` or `deactivated`. At most `limit` (1 to 25) entries, most recently
+    updated first; pass `next_cursor` as `cursor` for the next page. An unknown
+    `status`, a bad `cursor` or `limit` answers 400. Declared before
+    `/{form_connection_id}`, which would otherwise take the path.
+    """
+    return ApiResponse(
+        data=form_connections.search_form_connections(
+            db, q, connection_status, cursor, limit
+        )
+    )
+
+
 @router.post(
-    '', status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_json)]
+    '',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def create_form_connection(
     data: FormConnectionCreate, db: Session = Depends(get_db)
@@ -59,15 +102,23 @@ def create_form_connection(
 
 
 @router.post(
-    '/drafts', status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_json)]
+    '/drafts',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_level('drafts')), Depends(require_json)],
 )
 def create_draft(
-    data: DraftCreate, db: Session = Depends(get_db)
+    data: DraftCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnectionDraft]:
     """Store a new draft, version 1, without calling EUDIPLO (spec 005).
 
-    Refuses a broken structure with 400; an incomplete draft is accepted.
+    Refuses a broken structure with 400; an incomplete draft is accepted. An
+    agent's new draft counts towards its draft limit, 429 beyond it (spec 007,
+    FR-020); a browser session isn't limited.
     """
+    if principal.authorization is not None:
+        agent_access.count_draft_creation(db, principal.authorization.id)
     return ApiResponse(data=drafts.create_draft(db, data), message='Draft saved')
 
 
@@ -83,7 +134,10 @@ def get_form_connection(
     return ApiResponse(data=drafts.get_form_connection_or_draft(db, form_connection_id))
 
 
-@router.put('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+@router.put(
+    '/{form_connection_id}/draft',
+    dependencies=[Depends(require_level('drafts')), Depends(require_json)],
+)
 def save_draft(
     form_connection_id: str,
     data: DraftUpdate,
@@ -100,7 +154,10 @@ def save_draft(
     )
 
 
-@router.post('/{form_connection_id}/publish', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/publish',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def publish_draft(
     form_connection_id: str,
     data: DraftPublish,
@@ -121,7 +178,10 @@ def publish_draft(
     return ApiResponse(data=form_connection, message='Form connection published')
 
 
-@router.delete('/{form_connection_id}/draft', dependencies=[Depends(require_json)])
+@router.delete(
+    '/{form_connection_id}/draft',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def delete_draft(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[None]:
@@ -134,7 +194,10 @@ def delete_draft(
     return ApiResponse(data=None, message='Draft deleted')
 
 
-@router.put('/{form_connection_id}', dependencies=[Depends(require_json)])
+@router.put(
+    '/{form_connection_id}',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def update_form_connection(
     form_connection_id: str,
     data: FormConnectionUpdate,
@@ -156,7 +219,10 @@ def update_form_connection(
     return ApiResponse(data=form_connection, message='Form connection updated')
 
 
-@router.post('/{form_connection_id}/deactivate', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/deactivate',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def deactivate_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[FormConnection]:
@@ -170,7 +236,10 @@ def deactivate_form_connection(
     )
 
 
-@router.post('/{form_connection_id}/activate', dependencies=[Depends(require_json)])
+@router.post(
+    '/{form_connection_id}/activate',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def activate_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[FormConnection]:
@@ -181,7 +250,10 @@ def activate_form_connection(
     )
 
 
-@router.delete('/{form_connection_id}', dependencies=[Depends(require_json)])
+@router.delete(
+    '/{form_connection_id}',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
 def delete_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
 ) -> ApiResponse[None]:

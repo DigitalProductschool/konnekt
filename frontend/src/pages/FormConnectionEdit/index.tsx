@@ -1,5 +1,5 @@
-import { useEffect, useReducer, useState } from 'react';
-import { generatePath, useLocation, useNavigate, useParams } from 'react-router';
+import { useCallback, useEffect, useReducer, useState } from 'react';
+import { generatePath, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
 import FormConnectionLoadState from '../../components/FormConnectionLoadState';
 import { formatChangedAt } from '../../components/LocalDraftsOffer/utils';
@@ -9,6 +9,7 @@ import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { displayNameOf } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft } from '../../utils/localDrafts/keys';
 import FormConnectionEditorPage from '../FormConnectionEditor';
+import { LINK_PARAMS } from '../FormConnectionEditor/RulesStep/constants';
 import type { EditorStep } from '../FormConnectionEditor/types';
 import {
   headerTitleOf,
@@ -22,9 +23,11 @@ import {
   draftFlowReducer,
   initialDraftFlowState,
   initialStepOf,
+  linkTargetOf,
   reloadedOf,
   restoreChoiceOf,
   storedContentOf,
+  withoutLinkParams,
 } from './utils';
 
 /**
@@ -44,13 +47,27 @@ import {
  *   team member saved the draft (S2; R6), drops that local draft, fetches the draft again and
  *   opens a new wizard at the step it was stored in, not at the one its details asked for, with
  *   the focus on the page title.
+ * - A link (spec 007, S5; FR-030, FR-031), `?step=rules&variant=…&item=…`: either flow opens at
+ *   the rules step, with the variant's tab open and the rule or group in view, or with the notice
+ *   of what no longer exists (`linkTargetOf()`). A stored draft with unsaved changes on this device
+ *   asks first, and the link applies to the content the answer opens. The search parameters win
+ *   over the router state. They stay in the address while the link's variant is shown in the rules
+ *   step, so that reloading opens the link again (and the address bar holds it); once the team
+ *   member moves to another step or variant they go, in place of the current history entry. A
+ *   conflict's "Reload" doesn't apply them. A connection that isn't there shows the frame's
+ *   not-found state, and a signed-out team member comes back to the link after signing in.
  */
 export default function FormConnectionEditPage() {
   const { id = '' } = useParams();
   const location = useLocation();
-  // Read once, so that going back to step 1 isn't undone by a re-render
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Read once, so that going back to step 1 isn't undone by a re-render; the link's too (S5)
   const [requested] = useState<unknown>(() => location.state);
-  const [initialStep, setInitialStep] = useState<EditorStep>(() => initialStepOf(requested));
+  const [link] = useState(() => new URLSearchParams(searchParams));
+  const linkStep = link.get(LINK_PARAMS.step);
+  const [initialStep, setInitialStep] = useState<EditorStep>(() =>
+    initialStepOf(requested, undefined, linkStep)
+  );
   // A draft conflict's "Reload" from a resumed local draft opens this page as reloaded (S2)
   const [reloaded, setReloaded] = useState(() => reloadedOf(requested));
   const { state, retry } = useFormConnection(id);
@@ -66,6 +83,15 @@ export default function FormConnectionEditPage() {
       store.remove(username, flowKeyOfDraft(publishedId));
     }
   }, [publishedId, store, username]);
+
+  // Once the team member moves from what the link opened, the address is the editor's own again;
+  // the route and the router state stay, so the wizard stays mounted (S5)
+  const handleLinkLeft = useCallback(() => {
+    setSearchParams((current) => withoutLinkParams(current), {
+      replace: true,
+      state: location.state,
+    });
+  }, [setSearchParams, location.state]);
 
   function handleReload() {
     setInitialStep('rules');
@@ -84,15 +110,20 @@ export default function FormConnectionEditPage() {
     return <FormConnectionLoadState state={state} onRetry={retry} />;
   }
   const loaded = state.formConnection;
+  // After a reload, neither the step the details asked for nor the link applies
+  const target = linkTargetOf(reloaded ? new URLSearchParams() : link, loaded.branches);
   if (loaded.status === 'draft') {
     return (
       <DraftEditFlow
         key={`${loaded.id}:${state.attempt}`}
         draft={loaded}
-        // After a reload, the step the details asked for no longer applies
-        initialStep={initialStepOf(reloaded ? null : requested, loaded)}
+        initialStep={initialStepOf(reloaded ? null : requested, loaded, reloaded ? null : linkStep)}
         onReload={handleDraftReload}
         reloaded={reloaded}
+        initialVariant={target.variantId}
+        initialItem={target.itemId}
+        linkNotice={target.notice}
+        onLinkLeft={handleLinkLeft}
       />
     );
   }
@@ -103,6 +134,10 @@ export default function FormConnectionEditPage() {
       initialStep={initialStep}
       onReload={handleReload}
       reloaded={reloaded}
+      initialVariant={target.variantId}
+      initialItem={target.itemId}
+      linkNotice={target.notice}
+      onLinkLeft={handleLinkLeft}
     />
   );
 }
@@ -113,7 +148,16 @@ export default function FormConnectionEditPage() {
  * brings the restore question before the editor mounts, so that the editor's autosave can't write
  * over it until the team member has answered.
  */
-function DraftEditFlow({ draft, initialStep, onReload, reloaded }: DraftEditFlowProps) {
+function DraftEditFlow({
+  draft,
+  initialStep,
+  onReload,
+  reloaded,
+  initialVariant = null,
+  initialItem = null,
+  linkNotice = null,
+  onLinkLeft,
+}: DraftEditFlowProps) {
   const { store, username } = useLocalDraftStore();
   const navigate = useNavigate();
   const flowKey = flowKeyOfDraft(draft.id);
@@ -164,16 +208,24 @@ function DraftEditFlow({ draft, initialStep, onReload, reloaded }: DraftEditFlow
   // After an answer to the question, or after a conflict's Reload, the dialog that had the focus
   // is gone: the focus starts on the page title
   const answered = stored.choice === 'ask' || reloaded;
+  // A link (S5) opens the rules step after the answer, with the content the answer opens: the
+  // editor checks the link's variant and item again against it
+  const linked = initialVariant !== null || linkNotice !== null;
+  const link = { initialVariant, initialItem, linkNotice, onLinkLeft };
   if (flow.restored) {
+    const restored = initialStatesFromLocal(flow.restored);
     // At the version the record was loaded at, so a save meets the conflict if the draft changed
     // since (US3); the stored draft as loaded stays the baseline (data-model.md section 6)
     return (
       <FormConnectionEditorPage
         origin={originOfRecord(flow.restored)}
-        initialStates={initialStatesFromLocal(flow.restored)}
+        initialStates={
+          linked ? { ...restored, editor: { ...restored.editor, step: 'rules' } } : restored
+        }
         baseline={storedContentOf(draft)}
         onReload={onReload}
         reloaded={answered}
+        {...link}
       />
     );
   }
@@ -188,6 +240,7 @@ function DraftEditFlow({ draft, initialStep, onReload, reloaded }: DraftEditFlow
       initialStates={stored.states}
       onReload={onReload}
       reloaded={answered}
+      {...link}
     />
   );
 }

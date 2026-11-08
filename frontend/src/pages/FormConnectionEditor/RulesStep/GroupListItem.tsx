@@ -1,6 +1,7 @@
+import { shownItems } from '@connection-portal/rules/tree';
+
 import GroupFrame from '../../../components/GroupFrame';
 import type { GroupFrameMember } from '../../../components/GroupFrame/types';
-import { shownItems } from '../../../utils/rules/tree';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import GroupMenu from './GroupMenu';
@@ -27,7 +28,7 @@ export default function GroupListItem({
   dissolved,
   faded,
 }: GroupListItemProps) {
-  const { branch, state, dispatch } = view;
+  const { branch, state, dispatch, onCopyLink: copyLink } = view;
   const subGroup = depth > 0;
   const inactive = dissolved || group.mark === 'removed';
   // Nothing in a removed or dissolved group changes until it is restored (FR-024)
@@ -111,6 +112,7 @@ export default function GroupListItem({
                 : dispatch({ type: 'askDeleteGroup', branchKey: branch.key, groupId: group.id })
             }
             onRestore={() => view.onRestore(group.id)}
+            onCopyLink={copyLink && (() => copyLink(group.id))}
           />
         )
       }
