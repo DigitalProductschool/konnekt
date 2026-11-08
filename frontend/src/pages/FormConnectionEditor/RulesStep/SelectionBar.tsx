@@ -8,10 +8,12 @@ import { selectionText } from './utils';
  * select mode, what is chosen and what grouping makes, "Cancel", and "Group rules", which stays
  * disabled until two rules are chosen. Its text is announced as it changes. Once the card's top
  * scrolls past, the bar pins under the wizard's head until the card's end (B3, Figma note
- * 6524:38720), so rules further down can be grouped without scrolling back. z-1 paints it over
- * the rows' select boxes and KERN buttons, under the popups (z-20) and the user menu. The text
- * takes the row's whole width once less than 192px is left beside the buttons, which then wrap
- * under it: squeezed beside them at 360px, it made the bar 280px tall.
+ * 6524:38720), so rules further down can be grouped without scrolling back: the page scrolls,
+ * so it pins at `--wizard-sticky-top`, the bottom of the wizard's sticky header (WizardLayout;
+ * U01 #19 and the pinned tabs are T056's). z-1 paints it over the rows' select boxes and KERN
+ * buttons, under the step header and the footer (z-15), the popups (z-20) and the user menu. The
+ * text takes the row's whole width once less than 192px is left beside the buttons, which then
+ * wrap under it: squeezed beside them at 360px, it made the bar 280px tall.
  */
 export default function SelectionBar({ selection, branch, onCancel, onGroup }: SelectionBarProps) {
   const { sentinelRef, barRef, pinned } = usePinned<HTMLDivElement>();
@@ -21,7 +23,7 @@ export default function SelectionBar({ selection, branch, onCancel, onGroup }: S
       <div ref={sentinelRef} aria-hidden="true" className="-mb-px h-px" />
       <div
         ref={barRef}
-        className={`bg-kern-layout-background-hued sticky top-0 z-1 flex flex-wrap items-center gap-8 px-16 py-8 ${SELECTION_BAR_STATES[pinned ? 'pinned' : 'resting']}`}
+        className={`bg-kern-layout-background-hued sticky top-(--wizard-sticky-top) z-1 flex flex-wrap items-center gap-8 px-16 py-8 ${SELECTION_BAR_STATES[pinned ? 'pinned' : 'resting']}`}
       >
         <p
           role="status"

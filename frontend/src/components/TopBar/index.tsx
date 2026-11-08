@@ -1,27 +1,27 @@
+import { type MouseEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
-import { APP_NAME } from '../../constants';
+import logo from '../../assets/illustrations/logo.svg';
+import { APP_NAME, ROUTES } from '../../constants';
+import {
+  BREADCRUMB_LABEL,
+  FOCUS_RING_CLASSES,
+  PILL_CLASSES,
+  SMALL_TEXT_CLASSES,
+  YOUR_CONNECTIONS_LABEL,
+} from './constants';
 import type { TopBarProps } from './types';
 
-const LOGO_CLASSES = 'gap-kern-space-small order-1 flex shrink-0 items-center';
-// The title: truncated from `lg` only; below, it has a row of its own and wraps
-const SMALL_TEXT =
-  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) min-w-0 wrap-break-word lg:truncate';
-// The meta: one line at every width. Below `lg`, at most the second row's width. On `lg`,
-// `flex-1` (basis 0) takes only the space the others leave, so it never shortens the title,
-// and keeps 96 px so that the "…" stays visible
-const META_TEXT =
-  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) max-w-full min-w-0 truncate lg:min-w-96 lg:flex-1 lg:text-right';
-
 /**
- * Figma "App/Top bar": the product logo, and on signed-in screens the user. With a title it
- * is "App/Header", which the wizard and the details screen use; the details add the status
- * badge after the title and the description before the user. The logo leads at the left edge on
- * every screen (Figma 2026-10-13). Below `lg`, which the design has no frame for, the title,
- * the badge and the meta move to a second row and wrap; the title itself wraps too, so that it
- * is not cut off at 320 px or at 200% zoom (WCAG 1.4.10, decision 2026-10-19). The meta is the
- * connection's description: one line at every width, cut with "…". It has no `title`
- * attribute, since the element holds the whole text for assistive technology (spec 006, R6).
+ * Figma "Shell/Header" (U11 6699:44242, U17 7173:52658, U10 6401:27994; build notes U03
+ * #29–#40): pills 48px high, 16px from the top and the sides, that stay at the top while the
+ * page scrolls. Left the Konnekt pill, light blue on the signed-in screens, white on the sign-in
+ * screens (#33); right the account pill (UserMenu), none when signed out. Inside a connection a
+ * second pill, "Your connections / <name> · <status>", grows out of the Konnekt pill (#34, #40),
+ * the name cut with "…" (#38). The header area, 64px, turns white once the page scrolls under it
+ * (#39). The product name and "Your connections" go home, or in a flow call `onLeave` (FR-026).
+ * No DE/EN switch (F6). Below `md`, which the design has no frame for, the second pill and the
+ * description take rows of their own (W2).
  */
 export default function TopBar({
   title,
@@ -29,13 +29,17 @@ export default function TopBar({
   badge,
   meta,
   logoTo,
+  signedOut = false,
+  onLeave,
   children,
 }: TopBarProps) {
-  const TitleTag = titleAsHeading ? 'h1' : 'span';
-  const logo = (
+  const scrolled = useScrolled();
+  const handleLeave = onLeave ? leaveClick(onLeave) : undefined;
+  const logoPill = `${PILL_CLASSES} ${signedOut ? 'bg-kern-layout-background-default' : 'bg-kern-layout-background-hued'} order-1 shrink-0 gap-8 pr-24 pl-16`;
+  const logoContent = (
     <>
-      <span aria-hidden="true" className="rounded-kern-small bg-kern-layout-text-default size-16" />
-      <span className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold">
+      <img src={logo} alt="" className="size-24 shrink-0" />
+      <span className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap">
         {APP_NAME}
       </span>
     </>
@@ -43,42 +47,102 @@ export default function TopBar({
 
   return (
     <header
-      className={`border-kern-neutral-100 bg-kern-layout-background-default flex border-b px-16 sm:px-32 lg:h-64 lg:pb-0 ${title ? 'pb-12' : 'h-64'}`}
+      className={`motion sticky top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 transition-colors duration-(--duration-colour) md:flex-nowrap ${title ? 'gap-x-8' : 'gap-x-16'} ${scrolled ? 'bg-kern-layout-background-default' : ''}`}
     >
-      <div className="flex w-full min-w-0 flex-wrap items-center gap-x-16 gap-y-4 lg:flex-nowrap">
-        {logoTo ? (
-          <Link
-            to={logoTo}
-            className={`${LOGO_CLASSES} rounded-kern-small focus-visible:outline-kern-action-focus-default focus-visible:outline-4 focus-visible:outline-offset-2`}
-          >
-            {logo}
-          </Link>
-        ) : (
-          <div className={LOGO_CLASSES}>{logo}</div>
-        )}
-        {title && (
-          <>
-            <span
-              aria-hidden="true"
-              className="bg-kern-neutral-100 hidden h-24 w-1 shrink-0 lg:order-2 lg:block"
-            />
-            {/* Below lg, a line break: what follows starts the second row */}
-            <span aria-hidden="true" className="order-4 basis-full lg:hidden" />
-            <TitleTag
-              className={`${SMALL_TEXT} text-kern-layout-text-default order-5 font-semibold lg:order-3`}
-            >
-              {title}
-            </TitleTag>
-          </>
-        )}
-        {badge && <div className="order-6 flex shrink-0 lg:order-4">{badge}</div>}
-        {/* The first row's height below lg; on lg, the meta takes its place when there is one */}
-        <div className={`order-2 h-64 flex-1 lg:order-5 lg:h-auto ${meta ? 'lg:hidden' : ''}`} />
-        {meta && (
-          <p className={`${META_TEXT} text-kern-layout-text-muted order-7 lg:order-6`}>{meta}</p>
-        )}
-        <div className="order-3 flex shrink-0 lg:order-7">{children}</div>
-      </div>
+      {logoTo ? (
+        <Link to={logoTo} onClick={handleLeave} className={`${logoPill} ${FOCUS_RING_CLASSES}`}>
+          {logoContent}
+        </Link>
+      ) : (
+        <div className={logoPill}>{logoContent}</div>
+      )}
+      {title && (
+        <ConnectionPill
+          title={title}
+          titleAsHeading={titleAsHeading}
+          badge={badge}
+          onLeave={handleLeave}
+        />
+      )}
+      {/* The stretching gap between the pills; on md, the description takes its place */}
+      <div className={`order-2 h-8 min-w-px flex-1 md:order-4 ${meta ? 'md:hidden' : ''}`} />
+      {meta && (
+        <p
+          className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-muted order-5 max-w-full min-w-0 basis-full truncate md:order-3 md:min-w-96 md:flex-1 md:basis-0`}
+        >
+          {meta}
+        </p>
+      )}
+      {children && <div className="order-3 flex shrink-0 md:order-5">{children}</div>}
     </header>
   );
+}
+
+interface ConnectionPillProps {
+  title: string;
+  titleAsHeading: boolean;
+  badge: TopBarProps['badge'];
+  onLeave?: (event: MouseEvent<HTMLAnchorElement>) => void;
+}
+
+/**
+ * "Pill · Where you are" (U17 I7173:52658;6698:43401): the link home, a muted "/", the name
+ * (label/small, cut with "…") and, 8px after it, the status pill. It is revealed from its left
+ * edge in 240ms and its text fades in during the last 120ms (U03 #40); under reduced motion it
+ * just appears (.motion)
+ */
+function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPillProps) {
+  const NameTag = titleAsHeading ? 'h1' : 'span';
+  return (
+    <nav
+      aria-label={BREADCRUMB_LABEL}
+      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
+    >
+      <div className="motion animate-pill-text flex min-w-0 items-center gap-8">
+        <Link
+          to={ROUTES.overview}
+          onClick={onLeave}
+          className={`${SMALL_TEXT_CLASSES} text-kern-action-default rounded-kern-small font-semibold hover:underline ${FOCUS_RING_CLASSES}`}
+        >
+          {YOUR_CONNECTIONS_LABEL}
+        </Link>
+        <span aria-hidden="true" className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-muted`}>
+          /
+        </span>
+        <NameTag
+          className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-default min-w-0 truncate font-semibold`}
+        >
+          {title}
+        </NameTag>
+        {badge && <span className="flex shrink-0">{badge}</span>}
+      </div>
+    </nav>
+  );
+}
+
+/**
+ * A click on the product name or "Your connections" in a flow: the editor asks before leaving
+ * (FR-026). A click that opens a new tab or window still follows the link
+ */
+function leaveClick(onLeave: () => void) {
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    onLeave();
+  };
+}
+
+/** Whether the page has scrolled, so that content passes under the header (U03 #39) */
+function useScrolled(): boolean {
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 0);
+  useEffect(() => {
+    function update() {
+      setScrolled(window.scrollY > 0);
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+  return scrolled;
 }

@@ -1,6 +1,7 @@
 import type { PersonaSlot } from '@connection-portal/rules/personas/types';
 import { useEffect, useRef } from 'react';
 
+import { VISIBLE_HEIGHT_CLASSES } from '../../../components/WizardLayout/constants';
 import { ELEMENT_IDS } from '../constants';
 import ApplicantsRow from './ApplicantsRow';
 import { LOADING_STATUS_ID } from './constants';
@@ -42,9 +43,11 @@ import VariantTabs from './VariantTabs';
  * stands in for it: frame 18's status, the failure's "Try again", or the selected persona's chip;
  * and when frame 18 ends with the focus on its status, to the selected chip.
  *
- * From 1024 × 640 px (`split:`), the step fills the visible height and only the panel scrolls; the
- * header, progress, tabs, citizens row and action bar stay put (K3). The step lives only in the
- * signed-in wizard, with no route of its own (W13).
+ * Where the wizard pins its step header (`wizard-pinned:`, from 768 × 640 px), the step fills the
+ * visible part of the window and only the panel scrolls; the header, the step header, the tabs,
+ * the citizens row and the footer stay put (K3, F43; the page scrolls elsewhere, research R4;
+ * T073 builds the design's panel). The step lives only in the signed-in wizard, with no route of
+ * its own (W13).
  */
 export default function TestStep({
   personas,
@@ -126,7 +129,7 @@ export default function TestStep({
   return (
     <>
       <div
-        className="split:h-[100cqh] flex flex-col gap-16"
+        className={`flex flex-col gap-16 ${VISIBLE_HEIGHT_CLASSES}`}
         onFocus={(event) => {
           lastFocusedRef.current = event.target;
         }}
@@ -143,7 +146,7 @@ export default function TestStep({
           id={ELEMENT_IDS.testPanel(branch.key)}
           role="tabpanel"
           aria-labelledby={ELEMENT_IDS.testTab(branch.key)}
-          className="rounded-kern-large bg-kern-layout-background-hued split:min-h-0 split:flex-1 flex flex-col overflow-clip border border-(--kern-color-decorative-border-default)"
+          className="rounded-kern-large bg-kern-layout-background-hued wizard-pinned:min-h-0 wizard-pinned:flex-1 flex flex-col overflow-clip border border-(--kern-color-decorative-border-default)"
         >
           {failed ? (
             <GenerationFailed editing={editing} onRetry={onRetry} />
@@ -164,7 +167,7 @@ export default function TestStep({
                 role={persona ? 'tabpanel' : undefined}
                 aria-labelledby={persona ? ELEMENT_IDS.personaChip(persona.id) : undefined}
                 aria-busy={persona && !ready ? true : undefined}
-                className="split:min-h-0 split:flex-1 split:overflow-y-auto overflow-x-clip p-16"
+                className="wizard-pinned:min-h-0 wizard-pinned:flex-1 wizard-pinned:overflow-y-auto overflow-x-clip p-16"
               >
                 {/*
                  * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Citizen

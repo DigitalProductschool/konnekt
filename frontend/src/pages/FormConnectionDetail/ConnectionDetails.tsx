@@ -108,6 +108,7 @@ export default function ConnectionDetails({
             busy={state.running !== null}
             error={state.dialogOpen ? state.error : null}
             retryLabel={DETAIL_COPY.retry}
+            dismissOnScrim={state.dialog !== 'delete'}
             onCancel={() => dispatch({ type: 'closeDialog' })}
             onConfirm={() => run(state.dialog)}
           />

@@ -17,12 +17,7 @@ import DocumentsSummary from './DocumentsSummary';
 import DraftCard from './DraftCard';
 import RulesSummary from './RulesSummary';
 import type { DraftDetailsProps } from './types';
-import {
-  deleteDraftDialogOf,
-  deleteDraftErrorOf,
-  draftDeleteReducer,
-  reachedStepsOf,
-} from './utils';
+import { deleteDraftDialogOf, deleteDraftErrorOf, draftDeleteReducer } from './utils';
 
 /**
  * A stored draft's details (spec 005, S6, W7) in the wizard's frame: the header names it (the
@@ -85,11 +80,9 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       badge={<ConnectionStatusBadge isActive draft />}
       meta={draft.description || undefined}
       head={
-        // No step is current (Publish is a dialog, FR-025): the steps the draft reached are done
         <WizardProgress
           steps={CONNECTION_STEPS}
           current={CONNECTION_STEPS.length}
-          reached={reachedStepsOf(draft.step)}
           onSelect={continueAt}
         />
       }
@@ -107,6 +100,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           error={state.failure?.notice ?? null}
           errorTitle={dialog.errorTitle}
           retryLabel={dialog.retryLabel}
+          dismissOnScrim={false}
           onCancel={() => dispatch({ type: 'closeDialog' })}
           onConfirm={confirm}
         />

@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   useDocumentTitle(FORGOT_PASSWORD_COPY.pageTitle);
 
   return (
-    <AuthLayout cardAlign="end">
+    <AuthLayout>
       <ForgotPasswordCard />
     </AuthLayout>
   );

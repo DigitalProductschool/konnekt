@@ -150,7 +150,7 @@ export default function AccountPage() {
       <RevokeDialog {...dialogProps} />
       <CreateTokenDialog {...dialogProps} levels={state.levels} />
       <TokenCreatedDialog dialog={state.dialog} onClose={closeDialog} />
-      <Toast toast={state.toast} onDismiss={dismissToast} />
+      <Toast toast={state.toast} onDismiss={dismissToast} noFooter />
     </>
   );
 }

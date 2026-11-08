@@ -449,6 +449,13 @@ export interface EditorFooterProps {
   onBack: () => void;
   /** The documents step's "Add rules →" */
   onAddRules: () => void;
+  /**
+   * A rule editor is open: "Test rules" is unusable and explains "Save the rule first" (FR-034,
+   * W21)
+   */
+  ruleOpen: boolean;
+  /** Rules are being chosen for a group: "Test rules" explains "Finish grouping first" */
+  grouping: boolean;
   /** The rules step's "Test rules →" (spec 004, S2) */
   onTestRules: () => void;
   /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */
@@ -459,6 +466,11 @@ export interface EditorFooterProps {
   savingDraft: boolean;
   /** "Save and exit" */
   onSaveAndExit: () => void;
+  /**
+   * The edit flow's "Discard changes" beside "Back" (FR-045, U98 6731:39850), which asks
+   * "Discard your changes?" (T083); no button without it
+   */
+  onDiscard?: () => void;
 }
 
 export interface SaveDraftAlertProps {

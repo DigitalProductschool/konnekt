@@ -102,6 +102,7 @@ export default function PublishDialog({
       onSecondary={actions?.secondary?.onClick}
       onCancel={actions ? onClose : rulesChanged ? onReload : onCancel}
       onClose={onClose}
+      dismissOnScrim={false}
       onConfirm={actions ? actions.onConfirm : rulesChanged ? onReplace : onConfirm}
     >
       {/* "Dialog content/Publish · summary": a two-column table, documents then rules */}

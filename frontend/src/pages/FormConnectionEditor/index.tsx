@@ -932,9 +932,8 @@ function ConnectionWizard({
   }
 
   /**
-   * A finished step of the progress, which leads back to it. Only steps before the current one
-   * are offered, and the test step is the last, so it is never one; should it be, it opens
-   * through the gate of "Test rules" all the same (FR-002).
+   * A step of the step line, which leads to it: in the edit flow of a published connection only
+   * (F25). The test step opens through the gate of "Test rules" (FR-002).
    */
   function selectStep(index: number) {
     const step = STEP_ORDER[index];
@@ -1036,9 +1035,9 @@ function ConnectionWizard({
           <WizardProgress
             steps={CONNECTION_STEPS}
             current={STEP_ORDER.indexOf(state.step)}
-            onSelect={selectStep}
+            onSelect={editing ? selectStep : undefined}
           />
-          <PageTitle ref={titleRef} title={pageTitle.title} hint={pageTitle.hint} />
+          <PageTitle ref={titleRef} title={pageTitle.title} hint={pageTitle.hint} size="large" />
         </>
       }
       footer={
@@ -1047,6 +1046,8 @@ function ConnectionWizard({
           editing={editing}
           publishing={state.publishing}
           rulesNextAction={rulesNextAction}
+          ruleOpen={rules.editing !== null}
+          grouping={rules.selection !== null}
           onBack={goBack}
           onAddRules={handleAddRules}
           onTestRules={() => leaveEditor({ type: 'test' })}

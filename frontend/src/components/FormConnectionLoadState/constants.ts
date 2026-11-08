@@ -3,7 +3,7 @@ export const LOAD_STATE_COPY = {
   errorTitle: 'Couldn’t load the connection',
   errorText: 'Check your connection and try again.',
   retry: 'Try again',
-  backToList: 'Go to your connections',
+  backToList: 'Go to connections',
   home: 'Home',
 };
 

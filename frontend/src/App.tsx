@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { useLayoutEffect, useRef } from 'react';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 
 import AppLayout from './components/AppLayout';
 import RequireSignedOut from './components/RequireSignedOut';
@@ -42,7 +43,26 @@ function SignedInWizards() {
   );
 }
 
+/**
+ * A page change scrolls to the top (FR-052c, U06 #94; design-notes §3 "Page change"): when the
+ * route's path changes, before the browser paints the new page, which the layouts fade in. A
+ * change of the query alone (the editor's flow key, a link's parameters) or of the editor's step
+ * keeps the path and the window's offset.
+ */
+function useScrollToTopOnPageChange() {
+  const { pathname } = useLocation();
+  const shownPath = useRef(pathname);
+  useLayoutEffect(() => {
+    if (shownPath.current !== pathname) {
+      shownPath.current = pathname;
+      // At once: kern.css makes the root scroll smoothly, and nothing slides (U06 #94)
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [pathname]);
+}
+
 function App() {
+  useScrollToTopOnPageChange();
   return (
     <Routes>
       <Route element={<SignedOutScreens />}>

@@ -1,16 +1,36 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
+import { type MouseEvent, type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
 import ErrorNoticeText from '../ErrorNoticeText';
-import { CONFIRM_DIALOG_COPY } from './constants';
+import { CONFIRM_DIALOG_COPY, DIALOG_ACTIONS_CLASSES, DIALOG_WIDTH_CLASSES } from './constants';
 import type { ConfirmDialogProps } from './types';
 
+/** Whether a pointer event on the dialog element itself lies outside its box: on the scrim */
+function isOnScrim(event: MouseEvent<HTMLDialogElement>): boolean {
+  const dialog = event.currentTarget;
+  if (event.target !== dialog) {
+    return false;
+  }
+  const box = dialog.getBoundingClientRect();
+  return (
+    event.clientX < box.left ||
+    event.clientX > box.right ||
+    event.clientY < box.top ||
+    event.clientY > box.bottom
+  );
+}
+
 /**
- * KERN's dialog, asking to confirm an action (Figma "Dialog: Ready to publish?", 06d). It is a
- * native modal dialog: the focus moves into it, the page behind it is inert, Escape closes it,
- * and closing it returns the focus to the button that opened it. While the action runs it
- * can't be closed. If the action fails, it stays open with the API's message above the text
- * and offers to try again: wherever the page is scrolled, the dialog is in view.
+ * KERN's dialog (the kit's set, P12, with P33 dialog-actions), asking to confirm an action, as
+ * the screens draw it (U14 6699:44480, U17 7173:52682, U25 7299:52174): the title, the ×, the
+ * text, and one to three buttons that sit side by side while they fit and stack where they
+ * don't; a long text makes the whole dialog scroll. It is a native modal dialog: the focus moves
+ * into it and stays there (the page behind it is inert), and closing it returns the focus to the
+ * control that opened it. Escape and the × close it (`onClose`), and so does a click on the
+ * scrim unless `dismissOnScrim` is off (the dialogs that delete or publish, FR-052a). While the
+ * action runs (`busy`, the working state) nothing closes it. If the action fails, it stays open
+ * with the API's message above the text and offers to try again: wherever the page is
+ * scrolled, the dialog is in view. It and its scrim fade in and out (design-notes §4).
  */
 export default function ConfirmDialog({
   open,
@@ -19,7 +39,7 @@ export default function ConfirmDialog({
   textClassName = 'kern-body kern-body--large',
   children,
   confirmLabel,
-  cancelLabel,
+  cancelLabel = '',
   danger = false,
   busyLabel = '',
   busy = false,
@@ -31,15 +51,26 @@ export default function ConfirmDialog({
   onConfirm,
   secondaryLabel = '',
   onSecondary,
+  secondaryDanger = false,
+  dismissOnScrim = true,
+  wide = false,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  // Whether the press that ends in a click began on the scrim too, so that selecting text in
+  // the dialog and letting go outside it doesn't close it
+  const pressedOnScrim = useRef(false);
   const id = useId();
   const titleId = `${id}-title`;
   const errorId = `${id}-error`;
   const textId = `${id}-text`;
-  // Three buttons don't fit two halves: they share the row, and wrap where they don't fit
-  const threeButtons = onSecondary !== undefined;
-  const buttonWidth = threeButtons ? 'w-full sm:w-auto' : 'w-full sm:w-[calc(50%-8px)]';
+  const hasCancel = cancelLabel !== '';
+  const hasSecondary = onSecondary !== undefined;
+  const buttonCount = ((hasCancel ? 1 : 0) +
+    (hasSecondary ? 1 : 0) +
+    1) as keyof typeof DIALOG_ACTIONS_CLASSES;
+  const actions = DIALOG_ACTIONS_CLASSES[buttonCount];
+  // With three buttons, cancel turns tertiary (P33 dialog-actions, number of buttons=3)
+  const cancelVariant = hasSecondary ? 'kern-btn--tertiary' : 'kern-btn--secondary';
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -53,26 +84,49 @@ export default function ConfirmDialog({
     }
   }, [open]);
 
+  function close() {
+    if (!busy) {
+      onClose();
+    }
+  }
+
   // Escape: the page's state decides whether the dialog closes
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
     event.preventDefault();
-    onClose();
+    close();
+  }
+
+  function handleMouseDown(event: MouseEvent<HTMLDialogElement>) {
+    pressedOnScrim.current = isOnScrim(event);
+  }
+
+  function handleClick(event: MouseEvent<HTMLDialogElement>) {
+    if (dismissOnScrim && pressedOnScrim.current && isOnScrim(event)) {
+      close();
+    }
+    pressedOnScrim.current = false;
   }
 
   return (
+    // The scrim is the dialog's ::backdrop, so its clicks reach the dialog element; Escape is
+    // the keyboard's way to close it (onCancel), so the click needs no key handler of its own
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
       aria-describedby={[error ? errorId : '', text ? textId : ''].join(' ').trim() || undefined}
       onCancel={handleCancel}
-      // As in the KERN Figma dialog: centred (Tailwind's preflight drops the browser's
-      // margin: auto), with its outline drawn inside like Figma's stroke, and the design's
-      // scrim (text colour at 50%, where kern.css uses black at 72%). The !s beat kern.css,
-      // which isn't in a cascade layer
-      className="kern-dialog ring-kern-layout-border backdrop:bg-kern-layout-text-default! m-auto w-600 max-w-[calc(100vw-32px)]! border-0! ring-1 ring-inset backdrop:opacity-50!"
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      // KERN's dialog as the screens draw it: centred also on a small screen (Tailwind's
+      // preflight drops the browser's margin: auto, and kern.css turns it into a bottom sheet
+      // below 768px), all corners rounded, its 1px outline drawn inside like Figma's stroke, and
+      // the design's scrim: the shade colour at KERN's overlay opacity (72 %, kern.css's own;
+      // it uses black). The !s beat kern.css, which isn't in a cascade layer. The fade is
+      // index.css's ("Dialog")
+      className={`kern-dialog motion ring-kern-layout-border m-auto! max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! ring-1 ring-inset backdrop:bg-(--kern-color-action-state-indicator-shade)! ${DIALOG_WIDTH_CLASSES[wide ? 'wide' : 'default']}`}
     >
       <header className="kern-dialog__header">
-        {/* The container of the Figma dialog, which puts the title 8px lower than kern.css */}
+        {/* The kit's container, which puts the title 8px lower than kern.css and 16px from the × */}
         <div className="flex-1 pt-8 pr-16">
           <h2 id={titleId} className="kern-title kern-title--large">
             {title}
@@ -80,7 +134,7 @@ export default function ConfirmDialog({
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           aria-disabled={busy}
           className="kern-btn kern-btn--tertiary"
         >
@@ -109,34 +163,40 @@ export default function ConfirmDialog({
           </p>
         )}
       </div>
-      {/* 23px: in Figma the top stroke is inside the 24px padding */}
-      <footer className="kern-dialog__footer pt-23!">
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-disabled={busy}
-          className={`kern-btn ${threeButtons ? 'kern-btn--tertiary' : 'kern-btn--secondary'} ${buttonWidth}`}
-        >
-          <span className="kern-label">{cancelLabel}</span>
-        </button>
-        {threeButtons && (
+      {/* 23px: in Figma the footer's top line is inside its 24px padding */}
+      <footer className="kern-dialog__footer @container pt-23!">
+        <div className={`flex w-full flex-1 gap-16 ${actions}`}>
+          {hasCancel && (
+            <button
+              type="button"
+              onClick={busy ? undefined : onCancel}
+              aria-disabled={busy}
+              className={`kern-btn ${cancelVariant}`}
+            >
+              <span className="kern-label">{cancelLabel}</span>
+            </button>
+          )}
+          {hasSecondary && (
+            <button
+              type="button"
+              onClick={busy ? undefined : onSecondary}
+              aria-disabled={busy}
+              className={`kern-btn kern-btn--secondary ${secondaryDanger ? 'kern-btn--danger' : ''}`}
+            >
+              <span className="kern-label">{secondaryLabel}</span>
+            </button>
+          )}
           <button
             type="button"
-            onClick={busy ? undefined : onSecondary}
+            onClick={busy ? undefined : onConfirm}
             aria-disabled={busy}
-            className={`kern-btn kern-btn--secondary ${buttonWidth}`}
+            className={`kern-btn kern-btn--primary ${danger ? 'kern-btn--danger' : ''}`}
           >
-            <span className="kern-label">{secondaryLabel}</span>
+            <span className="kern-label">
+              {busy ? busyLabel : error ? retryLabel : confirmLabel}
+            </span>
           </button>
-        )}
-        <button
-          type="button"
-          onClick={busy ? undefined : onConfirm}
-          aria-disabled={busy}
-          className={`kern-btn kern-btn--primary ${buttonWidth} ${danger ? 'kern-btn--danger' : ''}`}
-        >
-          <span className="kern-label">{busy ? busyLabel : error ? retryLabel : confirmLabel}</span>
-        </button>
+        </div>
       </footer>
     </dialog>
   );

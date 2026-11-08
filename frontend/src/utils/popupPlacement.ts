@@ -10,7 +10,7 @@
  * 'full': neither fits, so it spans the box that holds the page's content less the gutters, below
  * its control. For that, a popup's wrapper is its containing block only while the popup is open
  * beside its control (popupWrapperClass), so that the nearest positioned box around it is the
- * rules card, or the wizard's scrolling area, even where one popup's wrapper holds another's.
+ * rules card, or the wizard's content box, even where one popup's wrapper holds another's.
  * Without a top, the popup stays where the flow puts it, below its control
  */
 export type PopupPlacement = 'start' | 'end' | 'full';
@@ -158,23 +158,42 @@ function clipsVertically(element: Element): boolean {
   return getComputedStyle(element).overflowY !== 'visible';
 }
 
+/** A length in px that the wizard sets on the root element (WizardLayout), null without one */
+function wizardEdge(property: string): number | null {
+  const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(property));
+  return Number.isNaN(value) ? null : value;
+}
+
 /**
  * The header's bottom and the footer's top for a control on the page, measured now: the page's
- * header (the top bar, outside any dialog), and the box that scrolls the control, where one
- * does (the wizard's step, between its header and its action bar), whose edges a menu can't
- * pass
+ * header (the top bar, outside any dialog); in the wizard, whose page scrolls, the bottom of its
+ * sticky step header and the top of its sticky footer (`--wizard-sticky-top` / `-bottom`, T033),
+ * unless the control is in a dialog; and the box that scrolls the control, where one does (such
+ * as the test step's panel), whose edges a menu can't pass
  */
 function boundsOf(control: Element): MenuBounds {
   const viewportHeight = document.documentElement.clientHeight;
   const header = [...document.querySelectorAll('header')].find((each) => !each.closest('dialog'));
   let headerBottom = header ? header.getBoundingClientRect().bottom : null;
   let footerTop: number | null = null;
+  if (!control.closest('dialog')) {
+    const stickyTop = wizardEdge('--wizard-sticky-top');
+    const stickyBottom = wizardEdge('--wizard-sticky-bottom');
+    if (stickyTop !== null) {
+      headerBottom = Math.max(headerBottom ?? 0, stickyTop);
+    }
+    if (stickyBottom) {
+      footerTop = viewportHeight - stickyBottom;
+    }
+  }
   let parent = control.parentElement;
   while (parent && parent !== document.body && parent !== document.documentElement) {
     if (clipsVertically(parent)) {
       const box = parent.getBoundingClientRect();
       headerBottom = Math.max(headerBottom ?? 0, box.top);
-      footerTop = box.bottom < viewportHeight ? box.bottom : null;
+      if (box.bottom < (footerTop ?? viewportHeight)) {
+        footerTop = box.bottom;
+      }
       break;
     }
     parent = parent.parentElement;
