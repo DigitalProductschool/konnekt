@@ -13,9 +13,9 @@ import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import ConsentForm from './ConsentForm';
-import { CONSENT_COPY } from './constants';
+import { ALERT_ACTIONS_CLASSES, CONSENT_CARD_CLASSES, CONSENT_COPY, SMALL_TEXT } from './constants';
 import InvalidRequestAlert from './InvalidRequestAlert';
-import type { ConsentDecision } from './types';
+import type { ConsentDecision, LoadFailedAlertProps } from './types';
 import {
   consentReducer,
   initialConsentState,
@@ -26,11 +26,32 @@ import {
 } from './utils';
 
 /**
- * The OAuth consent page at `/authorize` (contracts/ui-screens.md S1; FR-002). It reads the
+ * The client couldn't be loaded for another reason than the request (no answer, a 5xx): the
+ * design's danger alert under the card's h1 (design-notes §3 "Error state of a page"), its title
+ * what failed, its body the server's message with the error ID (F22), then the way back
+ */
+function LoadFailedAlert({ notice }: LoadFailedAlertProps) {
+  return (
+    <KernAlert variant="danger" title={CONSENT_COPY.loadErrorTitle} className="w-full">
+      <ErrorNoticeText notice={notice} />
+      <span className={ALERT_ACTIONS_CLASSES}>
+        <Link to={ROUTES.overview} className="kern-link">
+          {CONSENT_COPY.backToList}
+        </Link>
+      </span>
+    </KernAlert>
+  );
+}
+
+/**
+ * The OAuth consent page at `/authorize` (spec 007 S1, FR-002; spec 008 S19, W16). It reads the
  * agent's authorization request from the query string, which survives a sign-in because the
  * sign-in screen returns to `from.pathname + from.search`, loads the client and preselects the
  * level the request's scope asks for. "Allow" and "Deny" send the decision, and the browser
- * leaves for the redirect URI the server answers with, a URI the client registered.
+ * leaves for the redirect URI the server answers with, a URI the client registered. Every state
+ * is one card (kit P10) under the header pills: the h1 and the sentence (title/large with
+ * body/default 8px under it, as the §3 card heading), then the loader, the alert of an invalid
+ * request or a failed load, or the form and the footer line.
  */
 export default function AuthorizePage() {
   useDocumentTitle(CONSENT_COPY.pageTitle);
@@ -90,21 +111,24 @@ export default function AuthorizePage() {
   const clientName = state.status === 'ready' ? state.client.client_name : null;
 
   return (
-    <>
-      <PageTitle
-        title={clientName === null ? CONSENT_COPY.fallbackTitle : CONSENT_COPY.title(clientName)}
-        hint={clientName === null ? undefined : CONSENT_COPY.intro(clientName)}
-      />
+    <div className={CONSENT_CARD_CLASSES}>
+      <div className="flex flex-col gap-8">
+        <PageTitle
+          size="large"
+          title={clientName === null ? CONSENT_COPY.fallbackTitle : CONSENT_COPY.title(clientName)}
+        />
+        {clientName !== null && (
+          <p className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) text-pretty break-words">
+            {CONSENT_COPY.intro(clientName)}
+          </p>
+        )}
+      </div>
 
       {state.status === 'loading' && <FeedbackLoader label={CONSENT_COPY.loading} />}
 
       {state.status === 'invalid' && <InvalidRequestAlert message={state.message} />}
 
-      {state.status === 'failed' && (
-        <KernAlert variant="danger" title={CONSENT_COPY.loadErrorTitle} className="w-full">
-          <ErrorNoticeText notice={state.notice} />
-        </KernAlert>
-      )}
+      {state.status === 'failed' && <LoadFailedAlert notice={state.notice} />}
 
       {state.status === 'ready' && (
         <>
@@ -118,10 +142,12 @@ export default function AuthorizePage() {
             error={state.error}
             onDecide={(decision) => void decide(decision)}
           />
+          {/* The link inline in the sentence: without KERN's baseline paddings, so that a wrapped
+              line keeps the 24px line height */}
           {user && (
-            <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
+            <p className={`text-kern-layout-text-muted text-pretty ${SMALL_TEXT}`}>
               {CONSENT_COPY.signedInAs(user.username)} {CONSENT_COPY.changeLater}{' '}
-              <Link to={ROUTES.account} className="kern-link kern-link--small">
+              <Link to={ROUTES.account} className="kern-link kern-link--small py-0!">
                 {CONSENT_COPY.userPage}
               </Link>
               .
@@ -129,6 +155,6 @@ export default function AuthorizePage() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 }

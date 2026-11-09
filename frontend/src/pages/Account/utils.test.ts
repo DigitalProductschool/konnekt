@@ -7,10 +7,25 @@ import { describe, expect, it } from 'vitest';
 
 import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, INITIAL_TOKEN_FORM } from './constants';
 import type { AccountState } from './types';
-import { accountReducer, levelNameOf, nameOf, relativeLastUseOf, rowTextsOf } from './utils';
+import {
+  accountReducer,
+  formatDateTime,
+  levelNameOf,
+  nameOf,
+  relativeLastUseOf,
+  rowTextsOf,
+} from './utils';
 
 // Midday, so that the dates are the same in every time zone the tests may run in
 const NOW = new Date('2026-11-06T12:00:00Z');
+
+/**
+ * A time in the browser's time zone, which the rows' dates are written in (cosmetic 3,
+ * design-notes §3 "Dates": "05.10.2026, 12:00")
+ */
+function localTime(year: number, month: number, day: number, hour: number, minute = 0): string {
+  return new Date(year, month - 1, day, hour, minute).toISOString();
+}
 
 function agent(changes: Partial<AgentAccessItem> = {}): AgentAccessItem {
   return {
@@ -19,7 +34,7 @@ function agent(changes: Partial<AgentAccessItem> = {}): AgentAccessItem {
     client_name: 'Claude Code',
     name: null,
     access_level: 'read',
-    created_at: '2026-10-05T12:00:00Z',
+    created_at: localTime(2026, 10, 5, 12),
     expires_at: null,
     last_used_at: null,
     ...changes,
@@ -33,8 +48,8 @@ function token(changes: Partial<AgentAccessItem> = {}): AgentAccessItem {
     client_name: null,
     name: 'CI agent',
     access_level: 'drafts',
-    created_at: '2026-11-01T12:00:00Z',
-    expires_at: '2026-12-01T12:00:00Z',
+    created_at: localTime(2026, 11, 1, 9, 5),
+    expires_at: localTime(2026, 12, 1, 0, 0),
     last_used_at: '2026-11-06T11:55:00Z',
     ...changes,
   };
@@ -72,8 +87,15 @@ describe('relativeLastUseOf', () => {
     expect(relativeLastUseOf('2026-10-25T12:00:00Z', NOW)).toBe('12 days ago');
   });
 
-  it('gives the date from 30 days on', () => {
-    expect(relativeLastUseOf('2026-10-07T12:00:00Z', NOW)).toBe('7 Oct 2026');
+  it('gives the date and time from 30 days on', () => {
+    expect(relativeLastUseOf(localTime(2026, 10, 6, 12), NOW)).toBe('06.10.2026, 12:00');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('writes the date as dd.mm.yyyy with the 24-hour time, padded, midnight as 00', () => {
+    expect(formatDateTime(localTime(2026, 10, 5, 14, 32))).toBe('05.10.2026, 14:32');
+    expect(formatDateTime(localTime(2026, 1, 9, 0, 0))).toBe('09.01.2026, 00:00');
   });
 });
 
@@ -102,7 +124,7 @@ describe('rowTextsOf', () => {
     expect(rowTextsOf(agent(), NOW, LEVELS)).toEqual({
       name: 'Claude Code',
       level: 'Read only',
-      since: { prefix: 'Connected', date: '5 Oct 2026', datetime: '2026-10-05T12:00:00Z' },
+      since: { prefix: 'Connected', date: '05.10.2026, 12:00', datetime: agent().created_at },
       expires: null,
       lastUse: null,
     });
@@ -112,8 +134,8 @@ describe('rowTextsOf', () => {
     expect(rowTextsOf(token(), NOW)).toEqual({
       name: 'CI agent',
       level: 'Read and edit drafts',
-      since: { prefix: 'Created', date: '1 Nov 2026', datetime: '2026-11-01T12:00:00Z' },
-      expires: { prefix: 'Expires', date: '1 Dec 2026', datetime: '2026-12-01T12:00:00Z' },
+      since: { prefix: 'Created', date: '01.11.2026, 09:05', datetime: token().created_at },
+      expires: { prefix: 'Expires', date: '01.12.2026, 00:00', datetime: token().expires_at },
       lastUse: { prefix: 'Last used', date: '5 minutes ago', datetime: '2026-11-06T11:55:00Z' },
     });
   });

@@ -271,22 +271,22 @@ later use.
 | **Unrequested-data banner** | U50 `6863:47363` (T060) | the findings banner's danger kind: `feedback-danger-background`, 1 px `feedback-danger` border, radius 8, padding 8 8 8 16, one 20 px error diamond + body/small line per rule, the action ("Add it in Documents") on the first line's right, wrapping under at narrow widths; flush at the top of the card's list (`UNREQUESTED_BANNER_CLASSES`, RulesStep `constants.ts`); `role="alert"` flush at the top of the card's list, or, with the findings banner right after it, at that banner's 8 px inset, the two 8 px apart (T070; `UNREQUESTED_BANNER_CLASSES`, `data-findings-banner` on `FindingsBanner`'s wrap). |
 | **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem Documents step variant: **Field error** (the documents step's variant, T053): a document without data shows its message in its card header in place of the count ("Choose at least one data item, or remove this document.", body/small `feedback-danger`), linked to "All data items" with `aria-describedby`, which takes the focus; the list marks the item (danger tile, glyph, name, KERN's `kern-icon--danger`) and heads the list with "1 document needs data" in red, which describes the marked items. |
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
-| **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") T077: T077: a dialog that can't be closed (the publish status) prevents `cancel` and opens again on a `close` the browser forces (Chrome closes a modal dialog on a second Escape without user activation); two dialogs that replace each other close the old one in a layout effect and open the new one in a passive effect, so the focus returns to the opener. |
+| **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") T077: T077: a dialog that can't be closed (the publish status) prevents `cancel` and opens again on a `close` the browser forces (Chrome closes a modal dialog on a second Escape without user activation); two dialogs that replace each other close the old one in a layout effect and open the new one in a passive effect, so the focus returns to the opener. T086: a page card that asks for a decision (the consent card) lays its two buttons out as the kit's dialog actions (`DECISION_ACTIONS_CLASSES` in `pages/Authorize/ constants.ts`, the same container query as `ConfirmDialog`'s two-button row). |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
 | **Menu** (addition, T061) | U30 6350:41316, U31 6350:41548, 6635:36529 | the rule editor's single-select menus (`ChoiceMenu`) follow it: placed from the picker's wrapper with `placementFrom()` as the menu opens (`useLayoutEffect` in `ChoicePicker`: a choice opens the next picker's menu, whose picker may only appear or move in that render), the height it decides with is its estimated height capped at the drawn 294 (U31 parts menu), the frame takes the max-height step and its list scrolls; entries take T021's hover/pressed layers and keyboard fill |
 | **The rules step's menus** (FR-036) | U54 `6522:33105` (build note 10), U55, U56, U57, U58, U59; CLAR #22, #48, #53, #54, #60, #61; 007-S4 | `menuEntriesOf(menuItemOf(branches, branchKey, id), { branchKind, linkable })` in `RulesStep/utils.ts` (pure, tested; T055). The menu shows only what it returns, in `MENU_ENTRY_ORDER`: Edit · Rename · Add message · Remove message · Duplicate · Copy to variant · Group with other rules · Ungroup · Reset to Standard · Restore · Copy link · then, after the divider, Remove from <variant> or Delete …. "Copy link" appears whenever the connection is stored (`linkable`), as the last entry before the destructive one, and also after "Restore". An item linked to Standard in a variant has no Rename, Duplicate or Ungroup, and offers "Remove from <variant>". "Copy to variant" appears only while some other variant could still receive the rule. "Group with other rules" carries its select-mode scope (`'top'` or the group's id). `selectableIn()` decides which items count as neighbours and gets a box. An item faded with a removed or dissolved group has no menu at all **T058 (2026-11-09):** built in `RuleMenu` / `GroupMenu`, each entry mapped to its label and `MENU_ENTRY_LOOKS` (`RulesStep/constants.ts`: icon, `danger`, `separated`); "Restore rule / group / sub-group", "Delete rule / group / sub-group" (a group shown as a sub-group says "sub-group"), "Remove from <variant>"; "Copy link" after "Restore" has no icon; "Add message" on a group with a message only moves the focus to its message field; no "Group with other rules" on groups (#64) **T067 (2026-11-09):** the variant tab's ⋯ (`BranchMenu`, every tab, F28) shows `menuEntriesOf({ kind: 'variant' }, …)`: "Rename" (opens "Edit variant"), "Copy link" (stored), and after the divider "Delete variant" on every variant but Standard. |
 | **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute; a cut text's tooltip (T044, the overview's description, U13 `7366:55276`): on hover of a cut text only, on the keyboard focus of the row's name, on a tap, `aria-hidden` since the text is whole in the page |
 | **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason). **Exception (#65, Implement Q4, T063):** the rule editor's "Save rule" keeps the baseline's press (002-S3.10): while incomplete a press never saves but flags the missing parts, shows the problem under the check row and moves the focus there (`onClickCapture` in `EditorActions.tsx`); its tooltip is the rule's current problem in the server's words. |
 | **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating (T074: a static 16 px ring, 2 px `#e4e8ef`, no arc, as U74 `7062:51495` draws it; the test step's skeleton cards fill the panel, their bars the same greys and radius 4); the overview's list (T044): the toolbar's 48 px kept empty, the list card with its headers and three skeleton rows 80 high in the rows' columns (name 160 strong + description 220 light, status 72 strong, date 96 light, bars 10 high, radius 4), under a polite status with "Loading your connections…" (`FormConnectionRowSkeleton`) T080: the details (T080): the band (`layout-background-hued`, 124, a 32 circle, 240 × 14 and 360 × 10 bars on the title's and sub-line's lines) and two closed accordion cards (102, 160 × 14 and 200 × 10 bars), in the 832 column under the status 'Loading the connection…'. |
-| **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037); built as the welcome page by T042: the card heading (`h2`, `text-kern-adaptive-large font-semibold`) and the four-step illustration (`ol`, `IconTile tone="plain" size={48}`, ink glyphs, lines `bg-kern-action-default opacity-32` sharing the free space; a row from a 640 px text column, stacked below, undrawn) |
-| **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037); on the overview (T043) the alert sits right under the title block and before the local-drafts offer, with the footer bar kept and no toolbar T080: the error ID now shows on the connection pages (T080): `useFormConnection` keeps the notice. |
+| **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037); built as the welcome page by T042: the card heading (`h2`, `text-kern-adaptive-large font-semibold`) and the four-step illustration (`ol`, `IconTile tone="plain" size={48}`, ink glyphs, lines `bg-kern-action-default opacity-32` sharing the free space; a row from a 640 px text column, stacked below, undrawn) T087: a section of a page with its own h1 (the account page's 'Connected agents', 'Personal access tokens'): the light blue card with the one sentence only, padding 24, no picture, no action of its own, the sentence the card's width. |
+| **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037); on the overview (T043) the alert sits right under the title block and before the local-drafts offer, with the footer bar kept and no toolbar T080: the error ID now shows on the connection pages (T080): `useFormConnection` keeps the notice. T086: on `/authorize` the h1 and the alert sit inside the consent card (the card heading is the page's h1); the failed load has no "Try again" (the baseline says to reload); the invalid-request alert carries the same "Go to connections" row. T087: `/account` — the h1 'Your account' stays; 'Try again' remounts the page (`AccountView` keyed by the attempt), the h1 takes the focus after it. |
 | **Status pill** | U07 #1–#4 | dot + coloured label, tint fill, no border, radius 8; active green, draft blue (AA per §1.5), deactivated grey; used in rows, the header pill and the band |
 | **Status band** | U07 #6–#8, U80, U89, U93 | 32 px icon column, h1 + sub-line 4 px apart, padding 32, picture bottom right (colour / grey), the ⋯ and "Activate again" at the right end; the draft band's gradient from `feedback-info-background` to `layout-background-hued` T078: "the ⋯ (and 'Activate again') in the pill's white chip without the date, top right of the band from 768 px; the picture in a clipped layer of its own so nothing clips the menu (V6); below 768 px no picture, padding 16." T080: deactivated (T080): `layout-background-hued`, the white link-off glyph 20 in a 32 `layout-text-muted` circle, the grey picture; 'Activate again' (`mainAction`) 16 before the ⋯ chip at the top right; below 768 px both in a row under the text, 20 apart from it. T081: draft (T081): the gradient `linear-gradient(113.27deg, feedback-info-background 21.638 %, layout-background-hued 75.912 %)` (an arbitrary class, the frame's stops, no oklab interpolation), the white edit glyph 20 in a 32 `feedback-info` circle, the grey picture; the date pill "Edited dd.mm.yyyy, hh:mm" as `meta` (white, radius 8, padding 8 16, KERN's calendar 20 ink, label/small muted), 20 under the text; no ⋯; "Delete draft" (tertiary) as `mainAction` at the right end. |
-| **Info strip** | U07 #18, U19 `6699:45346` | blue ⓘ, info background, one sentence |
-| **Card** | P10 (`surface`, `interactive`), U11 (the list card), U21 (the search card) | KERN's card; the kit's `surface` variant as the light blue card where drawn; the overview's list card (T043): white, 1 px `decorative-border`, radius 12, no shadow (the V5 card `6699:44252` draws none, §1.3), its column headers on `layout-background-hued` 8 24, label/small muted, `aria-hidden` |
+| **Info strip** | U07 #18, U19 `6699:45346` | blue ⓘ, info background, one sentence T086: the consent page's step-up line, "{client} is asking for more access than it has.", above the radios (`ConsentForm`); `items-start` with the 20 px ⓘ 2 px down so a wrapped line keeps the icon on the first line (320 px). |
+| **Card** | P10 (`surface`, `interactive`), U11 (the list card), U21 (the search card) | KERN's card; the kit's `surface` variant as the light blue card where drawn; the overview's list card (T043): white, 1 px `decorative-border`, radius 12, no shadow (the V5 card `6699:44252` draws none, §1.3), its column headers on `layout-background-hued` 8 24, label/small muted, `aria-hidden` T088: the approval page's Links card (`ApprovalLinkCards`): the details' accordion card without the toggle: header `px-24 pt-24` with the h2 (16/24 600) and its lead (body/default) 4 apart, then the `LinkCard` list `divide-y` in `decorative-border`; without URLs the header keeps its 24 bottom padding. |
 | **Accordion** | P06, U80, U82 | the heading with "View links" / "Hide links" and the count; one open at a time on the details; heights animate (§4) T078: "built as `DetailAccordion` (T078): header padding 24, title 16/24 600 and the counts 14/24 muted 4 apart, tertiary-small toggle without underline, chevron down closed / up open; open border 1 px `action-default`, closed `decorative-border-default`; body `grid-template-rows` 0fr → 1fr over `--duration-height` (200 ms) with `.motion`, clipped only while closed or moving, `inert` while closed." |
 | **Tabs** | P29, U38, U82 | the variant tabs with the ⓘ and the problem icon; pinned under the step head on the rules step a tab with a spec 002 problem shows the red icon, its tooltip the description, the problem, then the findings (T070); the tab's accessible name stays "<variant> has findings". T079: the details' Summary (T079): the test step's row (`TAB_ROW_CLASSES`, the empty `tablist` owning the tabs, `tabAfterKey()`), every variant a tab, Standard alone too. |
-| **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6; first built on the overview's rows (T044, `formatRowDate`, de-DE 2-digit); `formatEditedDate` ("5 Oct 2026") still serves Account, Approval and the details until their tasks switch T081: the draft details' date pill uses `formatRowDate` + the 24-hour time ("Edited 03.10.2026, 14:32", `editedLineOf()`); `formatEditedDate` no longer serves the details. |
+| **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6; first built on the overview's rows (T044, `formatRowDate`, de-DE 2-digit); `formatEditedDate` ("5 Oct 2026") still serves Account, Approval and the details until their tasks switch T081: the draft details' date pill uses `formatRowDate` + the 24-hour time ("Edited 03.10.2026, 14:32", `editedLineOf()`); `formatEditedDate` no longer serves the details. T087: the account page's rows (`formatDateTime()` in `pages/Account/utils.ts`: `formatRowDate` + the 24-hour time, 'Connected 05.10.2026, 14:32'); `formatEditedDate` no longer serves the account page. |
 | **Search in a list** | U11 `6699:44511`, `6699:44570`, `6692:42636`; FR-051 (27) (T043) | a pure filter in the page (`filterConnections`: name and description, `matchesSearch`'s `toLocaleLowerCase` folding and trim, the order kept; nothing sent); the count above the list as a polite status ("3 connections" → "1 of 3 connections"); KERN's input with the search icon (`kern-form-input__input pl-44! pr-48!`) and a visible `kern-label` 16 px before it (stacked over the field below 640 px; the frames draw no label); the × (`kern-btn--tertiary kern-btn--small`, "Clear search") once something is typed, emptying the field and keeping the focus in it; no results: the message with the typed text (label/default), the hint (body/small muted) and "Clear search" (a `kern-link` button) inside the list card under its headers, moving the focus to the field; T051's documents search card follows it; second build (T051): the documents step's search card uses `MenuSearchField variant="panel"` with no visible label and no × (the frames draw neither; Escape or closing the card empties it), a group with no rows is hidden, ↓ moves into the rows and Enter adds the first available match |
 | **List inside a card** | U12 `6699:44915` (T044) | from 768 × 480 the overview's column is capped at the window (`max-h-[calc(100dvh-144px)]`), the card shrinks to fit and its rows scroll inside it under the column headers; below that the page scrolls as a whole; the rows' table layout from a 58rem card (`@container`), wrapped below, the headers hidden then |
 | **Homepage memory** | FR-027, research R6, W11 (T039) | `homepageOf(list, remembered)` in `pages/FormConnectionList/utils.ts` (pure, tested): loaded and empty → welcome; loaded with anything → overview (a draft counts); loading → `remembered ? 'overview' : 'welcome'`; `hooks/useRememberedHomepage.ts` keeps one `localStorage` flag per account, `connection-portal:local-draft:v1:<username>:homepage:has-connections` (`storageKeyOf`, `keys.ts` unchanged; the `:` in the tail keeps the local drafts' store from listing it), `'true'` / `'false'`, written whenever the list's "has anything" is known and changes (load, last deletion), read once per account; blocked storage → `null`, nothing logged; the page shows `PageLoader` only while loading with `remembered === null`; a draft saved on the way to `/` (`draftSaved` in the router state) counts as `remembered === true`; the loading page is the first load's (a retry stays on the overview); a failed load shows the overview's error state whatever the memory says (T042) |
@@ -1730,7 +1730,10 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U15 (`6699:47905`), U87 (`6396:49030`): the edit entry | S17 | done (T083, 2026-11-09) |
 | U98, U99 | S18 | done (T084, 2026-11-09; U98 step 1: T049, 2026-11-08) |
 | U100 ("Discard your changes?") | S18 | done (T083, 2026-11-09) |
-| (no frames) | S19, S20, S21, S22 | the patterns' tables of §5.1 stand; the states are checked in quickstart V9 |
+| (no frame) | S19 | done (T086, 2026-11-09): the patterns’ tables of §5.1 stand; the states under S19 below; checked in V9 (V9.1, T089, §6.6) |
+| (no frame) | S20 | done (T087, 2026-11-09): the patterns’ tables of §5.1 stand; the states under S20 below; checked in V9 (V9.2, T089, §6.6) |
+| (no frame) | S21 | done (T088, 2026-11-09): the patterns’ tables of §5.1 stand; the states under S21 below; checked in V9 (V9.3, T089, §6.6) |
+| (no frame) | S22 | done (T089, 2026-11-09): the route-by-route table under S22 below; checked in V9 (§6.6) |
 
 U01–U09 are annotations and need no table.
 
@@ -4811,6 +4814,285 @@ Open rows: none.
    that’s active now", T083) and the leave question ("keep the active version", FR-026's own words) keep the
    design's copy also for a deactivated connection.
 
+### S19 Consent page — T086, 2026-11-09
+
+Checked in Chromium (playwright-chrome) at 1455 × 900 (body 1440) and 320 × 640 (the 320 CSS px
+of a 640 px window at 200 %), signed in as `p9-consent`, against the running backend (OAuth
+clients registered by a scratchpad helper with a kept PKCE verifier, so that a code from the page
+could be exchanged); the failures by Playwright routing with the backend's flat error bodies. No
+frame (W16): the rows cite the §3 pattern or the baseline item.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| — (§3 Card, P10) | every state | card | look, place | not drawn | white, 1 px `decorative-border` #e1e6f0, radius 12, no shadow; 600 wide, centred in the layout's 1120 column (420 / 96 at 1440, under the header pills), padding 40 (24 below 640 px), parts 24 apart; top-aligned, so nothing moves from loading to loaded | W16 (§3 "Card"; 007-R.1 "a centred card") |
+| — (§3 Empty state's card heading) | request | h1 + sentence | style | not drawn | h1 "Allow access for T086 agent?" `PageTitle size="large"` 24/32 600 #0b1220 (the one h1); 8 under it "T086 agent wants to act on your behalf in Konnekt. Choose what it may do." body/default 16/24 #4a5468, `text-pretty` | W16, C1 (007-S1.1, S1.2) |
+| — | every state | tab title | text | — | "Allow access · Konnekt" | match (FR-012, C1) |
+| — (§3 Skeleton: the spinner for a page) | loading | loader | anatomy | not drawn | the h1 "Allow access", then `FeedbackLoader` 56 with "Loading the request…" (polite status); card 234 high | W16 (baseline's loader) |
+| — (P14/P15, T016) | request, scope `read drafts manage` | radios | preselected | — | "Read, edit drafts and manage live connections" | match (007-S1.7) |
+| — | request, scope `read drafts` | radios | preselected | — | "Read and edit drafts" | match (007-S1.7) |
+| — | request, scope `read`, empty, absent | radios | preselected | — | "Read only" (all three) | match (007-S1.7) |
+| — (T016) | request | `AccessLevelChoice` | look | kit radios | legend "Access level" 16/24 600; three 32 px radios 16 apart, the names and the C2 descriptions ("… test fictitious citizens. Nothing changes."), arrow keys choose | match (007-S1.3–S1.6, C2) |
+| — (§3 Info strip) | step-up (current `read`, scope `read drafts`; also `manage` asked) | step-up line | look, text | not drawn | `feedback-info-background` #e0f2fe, radius 8, padding 8 16, the blue ⓘ 20 (#0273ae), body/small 14/24 #0b1220: "T086 agent is asking for more access than it has." above the radios | W16 (007-S1.8; was 16/24 semibold) |
+| — | no step-up (no connection; current `drafts` and scope `read`) | step-up line | presence | — | none | match (007-S1.8) |
+| — (P33 dialog-actions, `ConfirmDialog`) | request | "Deny", "Allow" | look, order | not drawn | `kern-btn--secondary` "Deny" then `kern-btn--primary` "Allow", 48 high, equal columns 251 / 251 (16 apart) while the card's inner width is ≥ 384 px; stacked full width (223) at 320, "Deny" first | W16 (007-S1.9; order: decision 2, UNCERTAIN) |
+| — | request | footer line | text, style | not drawn | "Signed in as p9-consent. You can change or revoke this access later on your user page." body/small 14/24 muted, the `Link` to `/account` (`kern-link--small`, baseline paddings off so a wrapped line keeps 24 px) | match (007-S1.12) |
+| — | allow (mouse, double click) | request | body | — | one `POST /api/oauth/authorize`, JSON: the seven query parameters as read + `decision: "allow"` + `access_level` = the chosen level; byte-identical to the baseline's body for the same request and level | match (007-S1.9; baseline wiring) |
+| — | allow | redirect | target | — | `window.location.assign(redirect_to)`: the browser reached `http://127.0.0.1:33418/callback?code=…&state=<the request's state>` (routed loopback) | match |
+| — | allow, level changed to "Read only" (scope asked `manage`) | authorization | level | — | the code exchanged → `scope read`; `GET /api/agent-access`: "T086 agent", `read` | match |
+| — | step-up, allow "Read and edit drafts" | authorization | level | — | the same row raised to `drafts` (exchange `scope read drafts`) | match |
+| — | keyboard: arrows to "manage", Enter in the radio | request, authorization | body, level | — | implicit submission sends `allow` + `manage` (one POST); exchanged → the row at `manage` | match |
+| — | allow, leaving (redirect held with a 204) | page | state | — | status "You can go back to T086 agent." (polite, rendered empty before); both buttons `aria-disabled="true"`; a press on either, Enter, or a radio click sends nothing and keeps the level | match (007-S1.10) |
+| — | sending (POST held 2 s) | buttons | state | — | both `aria-disabled="true"`; further presses and Enter send nothing (one POST) | match (baseline) |
+| — | deny (double click) | request, redirect | body, target | — | one POST, the seven parameters + `decision: "deny"`, no `access_level` (byte-identical to the baseline); the browser reached `…/callback?error=access_denied&state=…`; the existing authorization unchanged | match (007-S1.9) |
+| — (§3 Alert, page level; T017) | invalid: a parameter missing, all missing, `response_type=token` | alert | anatomy | not drawn | in place of the form, h1 "Allow access": danger alert "This sign-in request isn’t valid. Start again from your agent." with the reason ("The request is missing state.", the full list, "The request must ask for an authorization code (response_type=code).") and "Go to connections"; the alert takes the focus; no request sent | W16, F22 (007-S1.11) |
+| — | invalid: unknown `client_id` (`404 invalid_client` on load) | alert | anatomy | — | the same alert with "The client is unknown." | match (007-S1.11) |
+| — | invalid: `redirect_uri` not the client's, `code_challenge_method=plain`, scope "read admin", `resource` ≠ MCP_URL (`400 invalid_request` on Allow and on Deny) | alert | anatomy, redirect | — | the form replaced by the alert with the server's message ("The redirect URI isn't one of the client's.", "The code challenge method must be S256.", "The scope may only contain read, drafts and manage.", "The resource isn't Konnekt's MCP server."), focus on the alert, no redirect (8 POSTs, all 400, no callback) | match (007-S1.11) |
+| — (§3 Error state of a page) | failed: loading the client, 5xx | alert | anatomy | not drawn | under the h1 "Allow access": danger alert "Couldn’t load this request", body "Something went wrong on our side. Contact an administrator and give them the error ID." + "Error ID: 3f2c9a7e-…", then "Go to connections" (`kern-link`, mt 10); no form, no footer line | W2, F22 (T037's carried note) |
+| — | failed: loading the client, no answer | alert | body | — | "Check your connection and reload the page." + "Go to connections" | match (baseline's text) |
+| — (§3 Alert, page level) | failed: sending, 5xx | alert | anatomy | not drawn | the form stays; danger alert "Couldn’t send your answer" between the radios and the buttons (where the baseline's message was), body the server's message + "Error ID: 9b8c7d6e-…" (`role="alert"`); the buttons usable again, the level kept, the focus on the pressed button | W16, F22 (was a field-error line) |
+| — | failed: sending, no answer | alert | body | — | "Check your connection and try again." | match (baseline's words, now title + body) |
+| — | failed: sending, then again | request | body | — | the retry sends the identical body and the browser follows the redirect | match |
+| — | `401` on sending | session | — | — | signed out, the sign-in screen, and back on `/authorize` with the whole query after signing in | match (007-R.1) |
+| — | signed out, opening the URL | guard | — | — | the sign-in screen, then the consent page with the query kept | match (007-R.1) |
+| — | keyboard | focus | order, ring | — | radio group → "Deny" → "Allow" → "user page"; KERN's 4 px ring on keyboard focus only (a mouse press on a button or radio shows none) | match |
+| — | 320 px (200 %) | every state | reflow | not drawn | scrollWidth 305 of 320, nothing outside the window; card 273 wide, padding 24; the h1, sentence, strip, labels and descriptions wrap; buttons stacked; the error IDs break (`ErrorNoticeText`) | match (FR-010) |
+| — | every state | `h1` | count | — | one | match |
+| — | every state | storage, console | — | — | nothing written to `localStorage` / `sessionStorage`; no `console.*` in the folder; the code, state and tokens appear only in the request and the redirect | match |
+
+#### Decisions (T086)
+
+1. **The card holds every state** (the h1, the sentence, then the loader / the alert / the form and
+   the footer line), centred horizontally at 600 px and top-aligned under the header; the h1 in
+   the card heading's style (title/large 24/32 600, §3 "Empty state": "a card heading … 8 above
+   the sentence") because it heads a card, as the sign-in card's "Log in" and the dialogs' titles
+   do. 007-R.1 says "centred card"; vertically it stays at the top so the card doesn't jump from
+   loading to loaded. **UNCERTAIN** (layout only; no frame).
+2. **"Deny" before "Allow", equal columns**: the kit's dialog actions (P33, as `ConfirmDialog`
+   lays them out: the cancelling action first, the confirming one last, stacked full width where
+   two don't fit). The baseline had "Allow" first. "Allow" is still the form's only submit button,
+   so Enter in a radio still sends "Allow"; the handlers are unchanged. **UNCERTAIN** (order and
+   tab order only; the wiring is the baseline's).
+3. **The step-up line is the §3 "Info strip"** (blue ⓘ, info background, one sentence) instead of
+   the baseline's semibold line.
+4. **A failure to send is the design's danger alert** (§3 "Alert, page level", F22) with the
+   title "Couldn’t send your answer" and the body from `errorNoticeOf(error, 'Check your
+   connection and try again.')`: the server's message with the 5xx error ID, or the baseline's
+   second sentence without an answer. The baseline showed one field-error line ("Couldn’t send
+   your answer. Check your connection and try again."); the words are kept, split into title and
+   body. Placed where the baseline's line was (between the radios and the buttons), so that it is
+   next to the pressed button; announced (`role="alert"`), the focus stays on the button.
+5. **Failed load (T037's carried note)**: h1, the danger alert "Couldn’t load this request" with
+   `ErrorNoticeText`, and "Go to connections" — no "Try again" (the carried note names none; the
+   baseline's text says to reload the page).
+6. **"Go to connections" in the invalid-request alert too**: S22 asks every error state for the
+   way back; the alert still replaces the form and nothing redirects (007-S1.11).
+7. **`AccessLevelChoice`'s `disabled` (carried from T016) is not used**: disabled radios would drop
+   the focus to the body when the decision was sent with Enter from a radio (implicit
+   submission), and the page can stay in the "leaving" state when the redirect URI is an app's own
+   scheme (allowed by `redirect_uri_allowed`, RFC 8252), or after a failure. The reducer already
+   keeps the level once the browser is leaving (baseline), and the buttons are `aria-disabled`.
+   **UNCERTAIN** (does not touch what is sent).
+
+#### Request-body comparison (baseline vs T086)
+
+Captured with `page.route` on `**/api/oauth/authorize` before the change and after it, for the same
+request (`client_id` cp_client_ktxVS8…, scope "read drafts"):
+deny `{"client_id":…,"redirect_uri":"http://127.0.0.1:33418/callback","code_challenge":…,"code_challenge_method":"S256","state":"oqUH9QupHjI","scope":"read drafts","resource":"http://localhost:3100/mcp","decision":"deny"}`
+and allow with "manage" chosen (the same + `"decision":"allow","access_level":"manage"`): both
+byte-identical before and after (`application/json`, one POST per double click). The page's
+`useEffect`, `decide()`, `utils.ts` and the reducer are untouched (the `git diff` of `index.tsx`
+changes only the imports, the doc comment, `LoadFailedAlert` and the JSX).
+
+### S20 Account page — T087, 2026-11-09
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| — (W16) | every state | h1, tab title | one h1, "<page> · Konnekt" | — | one h1 "Your account" (`PageTitle size="x-large"`, 500 32/40 as the overview's), hint "Signed in as p9-account."; tab "Your account · Konnekt" | match (007-S2.2, FR-012) |
+| U13 6699:44358 (F17) | user menu | "Your account" | first entry, router link | — | `A` `role="menuitem"` "Your account" → `/account`, then "Log out" (T031's) | match (F17, 007-S2.1) |
+| — (§3 Empty state) | empty | "Connected agents" | sentence, card | "No agent is connected yet. Add Konnekt’s MCP server to your agent to connect it." (C1) | the sentence with the README link on "Add Konnekt’s MCP server to your agent", in the light blue card: rgb(242 245 251), radius 12, padding 24, 16/24 rgb(74 84 104), 1120 wide | match (C1, 007-S2.5; decision 2) |
+| — (§3 Empty state) | empty | "Personal access tokens" | sentence, action | — | "No personal access token yet." in the same card; "Create token" (secondary, + icon) beside the h2 | match (007-S2.7) |
+| — (§3 Card, U11 6699:44252) | listed | list card | fill, border, radius, clip | white, 1 px `decorative-border`, 12, no shadow | oklch(1 0 0), 1px rgb(225 230 240), 12px, `overflow: visible` (V6) | match |
+| U30 6348:40889 (row anatomy) | listed | row | padding, gap, line | the rule row's column of texts 4 apart and the 32 px ⋯ at the top right | 16 16 16 24 (16 at the left below 640), gap 16, 1px rgb(225 230 240) above every row but the first; 112 high with three lines | match (W16; decision 1) |
+| — | listed | name, level, dates | type | label/default; body/small; body/small muted | 600 16/24 rgb(11 18 32); 400 14/24 default; 14/24 rgb(74 84 104), the dates 16 apart, wrapping | match (007-S2.3, S2.6) |
+| — (cosmetic 3) | listed | dates | format, `datetime` | dd.mm.yyyy, hh:mm | "Connected 09.11.2026, 13:21", "Created …", "Expires 09.12.2026, 13:21", "Last used just now" / "3 minutes ago" / "30.09.2026, 13:22" (≥ 30 days), "Never used"; every date a `time` with the ISO timestamp | match (§3 "Dates", 007-S2.15) |
+| — | listed, expired token (DB) | row | look | not drawn (007 draws no expired state) | "Expires 07.11.2026, 13:22" in the past, nothing else (the baseline's) | match (baseline) |
+| U55 6530:40192 | ⋯ open (keyboard) | menu | entries, place | "Change access level"; divider; "Revoke" red | 220 wide, 8 below the ⋯, right edges flush (1263); "Change access level" focused (ink fill), divider, "Revoke" rgb(196 39 28); opens past the card's bottom over the page, not clipped | match (§3 "Menu": destructive last after a divider) |
+| — | ⋯ open | Escape | focus | — | closes, focus on the ⋯ with the 4 px ring (keyboard) | match (002-ACC.4) |
+| P12 (600) | change level, open | dialog | width, content | the kit's 600 (form dialog, as the variant and edit-data dialogs) | 600 × 536 centred; "Change access level for T087 agent"; `AccessLevelChoice` with the current level checked; "Cancel" / "Save" 260 each | match (007-S2.8; decision 3) |
+| — | change level, working (routed slow) | dialog | state | not drawn (FR-008) | "Saving…", ×/Cancel/Save `aria-disabled`, the radios `disabled` at 0.4, Escape ignored | match (T016's carried `disabled`) |
+| — | change level, failed (5xx routed) | dialog | alert | not drawn (F22) | danger alert "The access level couldn’t be changed" / "Something went wrong on our side. Try again later." / "Error ID: 3f2c9a7e-8701-0001" above the radios; the chosen level kept; "Try again" | match (FR-008, F22) |
+| — | change level, saved | toast, focus | kind, text | Figma toast "saved" = success | green rgb(29 122 46) "Access level changed. It applies from the agent’s next call."; the row reads "Read and edit drafts"; focus back on the row's ⋯; request `PUT /api/agent-access/<id>` `{"access_level":"drafts"}` as the baseline | match (007-S2.9; decision 5) |
+| U14 6699:44480 (480) | revoke, open | dialog | box, buttons | 480; secondary + filled danger | 480 × 256; "Revoke access for T087 token?" / "The agent’s next call will be refused, and its waiting approval requests are cancelled."; "Cancel" transparent, "Revoke" rgb(196 39 28) | match (007-S2.10, S2.11) |
+| U14 #17 / FR-052a | revoke, scrim click | dialog | closes | no (it takes access away, as deleting) | stays open; Escape closes, focus on the ⋯ | match (decision 4) |
+| — | revoke, failed (5xx routed) | dialog | alert | not drawn | "Access couldn’t be revoked" + message + "Error ID: 3f2c9a7e-8701-0002"; "Try again" stays red | match (F22) |
+| — | revoked | row, toast, focus | — | Figma toast "removed" = neutral | the row gone; ink toast rgb(11 18 32) "Access revoked."; the h1 takes the focus (opener gone); `DELETE /api/agent-access/<id>` as the baseline | match |
+| P12 (600) | create token, open | dialog | width, fields | 600 | 600 × 816 at 1440 × 900; intro 16/24 muted; Name focused; "Access level" with "Read only" checked; "Valid for" KERN select 7 / 30* / 90 days | match (007-S2.12) |
+| §3 Field error | create token, no name | field | message, focus | under the field, announced, focus to the field | "Enter a name for the token." (`role="alert"`) under Name, `aria-invalid`, described by it, the focus in the field; nothing sent | match |
+| — | create token, working (routed slow) | dialog | state | not drawn | "Creating token…", buttons `aria-disabled`, radios `disabled` | match |
+| — | create token, failed (5xx routed) | dialog | alert | not drawn | "The token couldn’t be created" + message + "Error ID: 3f2c9a7e-8701-0003"; name, level and days kept; "Try again" | match (F22) |
+| P12 (600) | token created | dialog | frame, fade | `ConfirmDialog`'s frame; §4 fade | 600 × 328 centred, radius 12, ring inside, the design's scrim, class `motion` (T035's fade) | match (T035's carried note) |
+| — | token created | dialog | texts | — | "Token T087 page token created", "Copy it now. It won’t be shown again."; field "Your token"; one full-width "Done" (536) | match (007-S2.13, S2.14) |
+| U80 6396:47719 (T028 `field`) | token created | field | look, focus | the URL box; no monospace | Fira Sans 16/24 on rgb(242 245 251), 48 high; opens with the focus in the field and the whole token selected (50 / 50), described by the warning | match (T028's carried note) |
+| U81 6396:47841 (FR-048) | "✓ Copied" | button, status | label, 2 s, announced | "✓ Copied" 2 s, announced | check icon + "Copied" at 0.2 s and 1.7 s, "Copy" again at 2.3 s; status "Token copied", emptied after; clipboard = the 50-character token | match |
+| — | copy fails (writeText rejected) | field, status | — | baseline (007-S2.13) | the token selected (0–50), "Copying didn’t work. The token is selected, so you can copy it yourself." | match |
+| — | token created, scrim click | dialog | closes | — | stays open (closing loses the secret) | decision 4 |
+| — | token created, closed (Escape / Done) | page | secret gone | 007-R / FR-004: shown once | dialog closed, focus on "Create token"; no `cp_pat_` in the DOM, the URL, local or session storage, or the console; the row "T087 page token" without it; no toast; `POST /api/agent-access/tokens` `{"name","access_level","expires_in_days"}` as the baseline | match |
+| W2, §3 Error state of a page | load failed (5xx routed) | alert | parts | h1, danger alert with the error ID, "Try again", "Go to connections" | h1 "Your account" + hint, 16 below: "Your agent access couldn’t be loaded" / message / "Error ID: 3f2c9a7e-8701-0004", then "Try again" (secondary small) and "Go to connections" (`kern-link`, `/`), `role="alert"` | match (T037's carried note; decision 6) |
+| — | load failed (aborted) | alert | body | — | "Check your connection and try again." (the fallback), no error ID | match |
+| — | "Try again" | page | — | — | the loader, then the list; the h1 takes the focus | match |
+| — (FR-010) | 320 × 640 | page | reflow | — | no sideways scroll (scrollWidth 320); rows 17–303, dates one per line; "Create token" under its h2; the ⋯ menu 32–288; the alert 288 wide with the error ID broken | match |
+| — (FR-010) | 320 × 640 | dialogs | box | — | 288 wide at x 16; change level 602 high, scrolls inside (928); revoke 432, buttons stacked 224 wide; create token scrolls; token field 224 wide with "Copy" below it | match |
+| — (FR-010) | 720 × 450 (1440 at 200 %) | page | reflow | — | no sideways scroll (720) | match |
+
+#### Decisions (T087)
+
+1. **Rows**: each section's list is the overview's list card (white, 1 px decorative border,
+   radius 12) without `overflow-hidden` (V6), rows divided by a line, the rule row's anatomy (texts
+   in a column 4 apart, the 32 px ⋯ at the top right, 16 between) with the overview's padding
+   (16 24; 16 at the left below 640 px). `ROW_CLASSES`, `LIST_CARD_CLASSES` in
+   `pages/Account/constants.ts`.
+2. **Empty sections**: §3 "Empty state" inside a page with its own h1 — the light blue card with
+   the one sentence, padding 24, no picture, no action of its own ("Create token" stays beside the
+   tokens' h2). The pattern's 578 px measure is not applied: it broke the agents' sentence before
+   "it." at 1440.
+3. **Widths**: the form dialogs (change level, create token, token created) take the kit's 600
+   (`wide`), as the design's form dialogs do (variant, edit data); "Revoke" is a confirmation and
+   keeps the screens' 480.
+4. **Scrim**: "Revoke" takes access away, so `dismissOnScrim={false}` (FR-052a, as the deleting
+   dialogs). The token-created dialog doesn't close on the scrim either (its own `kern-dialog`,
+   as before): closing it loses the secret for good, so it is treated as the restore dialog's
+   exception — **UNCERTAIN** (FR-052 names only the restore dialog; not core behaviour: ×, Escape
+   and "Done" close it as before).
+5. **Toast kinds**: "Access level changed. …" is `success` (the Figma toast's "saved"), "Access
+   revoked." neutral ("removed"). `utils.ts` may change only for the dates, so the reducer's toast
+   keeps no kind: the page maps the text through `SUCCESS_TOASTS` (`constants.ts`).
+6. **Load failure**: §3 "Error state of a page" with "Try again" (a retry makes sense for a list).
+   The reducer has no retry action (and `utils.ts` changes only for the dates), so "Try again"
+   mounts the page anew (`AccountView` keyed by the attempt in `index.tsx`), which starts from
+   loading; the h1 takes the focus once the new attempt is done. The fallback text (no API
+   message, e.g. offline) is now "Check your connection and try again." (was "… Reload the page
+   to try again.", which "Try again" made wrong); the alert's title is unchanged.
+7. **Dates**: `formatDateTime()` = the overview's `formatRowDate` + ", " + the 24-hour time
+   (`TIME_FORMAT` in `pages/Account/constants.ts`, the same options as the details'
+   `SAVED_TIME_FORMAT`), for "Connected", "Created", "Expires" and a "Last used" of 30 days or
+   more. `utils.test.ts` changed only for that (cosmetic 3): the fixtures in local time
+   (`localTime()`), the expected strings, a `formatDateTime` case; it passes in UTC,
+   America/Los_Angeles, Europe/Berlin, Pacific/Kiritimati and Etc/GMT+12.
+8. **Menu**: "Revoke" now sits after the menu's divider (`separated`), as §3 "Menu" puts
+   destructive entries.
+9. **Title size**: `PageTitle size="x-large"` (heading/x-large, the overview's and §3's page
+   title), 32 px between the title block and the first section (`mt-16` on top of the layout's
+   16).
+10. **TokenCopyField** is `<CopyableUrl variant="field" …>` with `TOKEN_COPY_TEXTS` ("Token
+    copied" and the failure sentence); `COPY_ANNOUNCEMENTS`, `COPIED_RESET_MS` (3000) and the
+    page's `CopyStatus`, `copy`, `copied` and `close` texts are gone (the × reads
+    `KERN_TRANSLATIONS.closeDialog`, hidden with `sr-only`).
+
+### S21 Approval page (W16, no frames) — T088, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `p9-approval`. Sizes: 1455 × 900
+  (column 1120) and 320 × 900 (`scrollWidth` 305 = 320 less the scrollbar on every state: no sideways scroll; the
+  same CSS width as a 640 px window at 200 %).
+- Data (deleted at the end, `seed9.py cleanup T088` and the request rows): tokens "T088 token" and "T088b token"
+  (manage), connections "T088 Verbindung" (three active, two deactivated), drafts "T088 Entwurf" (three); requests of
+  every action made with the tokens. Approving ran for real against the fake EUDIPLO.
+- Routed (`page.route`, the backend's flat `{error, message[, error_id]}`): another team member's request (`403
+  not_yours`), the load failure (`500` with `error_id`), the failed approve (`502` "The wallet service could not create
+  the request configuration, so nothing was saved. Try again in a moment." with `error_id`) and failed decline (`503`),
+  a slow approve (3 s before the real call), the cancel reasons the stack can't make on demand (`draft_changed`,
+  `draft_published`, `draft_deleted`, `connection_deleted`, `access_ended`: the real preview with `status` /
+  `cancel_reason` patched), a draft with findings (the real preview plus a duplicate in Standard and a contradicting
+  variant "Ambulance"), the catalog slow (4 s) and failing (`500`). Expired and "failed before" from the dev database
+  (`expires_at` in the past, `failed_at` + `error_id` set; own rows only).
+- Built from: §3 "Alert, page level", "Error state of a page", "Card", "Accordion" (`RulesSummary`), "Dates",
+  "Dialog" (the danger button), T076's summary table and findings lines, T078's `LinkCard` list, T028's `CopyableUrl`.
+
+| state | element | expected (spec 007 S3, FR, pattern) | actual | result |
+|---|---|---|---|---|
+| loading | page | `PageLoader` (007-S3.1) | unchanged | match |
+| every loaded state | h1, tab title | the title by action (007-S3.4) as heading/x-large (the AppLayout pages' size, U11), tab "<title> · Konnekt" | "Publish ‘T088 Entwurf’?" … 32/40, tab "Publish ‘T088 Entwurf’? · Konnekt" | match (C1) |
+| every loaded state | sub-line | "Requested by {name} · expires at {time}" (007-S3.6) | "Requested by T088 token · expires at 13:35", body/default muted | match |
+| publish | body | description line, documents, rules per variant, "Rule checks" (007-S3.7) in the publish dialog's style (T076) | description (one line, "…"), the dialog's table (`PublishSummaryRow` ×2 in the 8 px-round `dl`, decorative border: "Personal ID · 4 data items", "Driving licence · 3 data items"; "Standard · 2 rules"), "Rule checks", then the Summary card (`RulesSummary` draft, open: documents with their data items, variants as tabs, rules read-only), the parts 24 apart | match (decision 1) |
+| publish | headings | no skipped level (T079 note) | h1 → h2 "Rule checks" → h2 "Summary" → h3 "Documents" → h4 per document → h3 "Rules" | match |
+| publish, checking | rule checks | "Checking the rules…" polite (007-S3.8) | `role="status"` "Checking the rules…" (catalog delayed 4 s), 14/24 muted | match |
+| publish, no findings | rule checks | "No findings." | "No findings." body/default | match |
+| publish, findings | lines | C4 sentences, warnings first, 4 apart, the dialog's line (T076 note) | "Ambulance: no citizen can meet these rules. 2 rules contradict each other." (warning icon) before "Standard: 1 rule is a duplicate." (info icon); 14/24 regular, default colour, gap 4 | match (FR-044c, C4) |
+| publish, findings | Summary tabs | no second check (T079 note) | tabs "Standard", "Ambulance" without findings icons; one `useRuleChecks()` (ApprovalFindings) | match |
+| publish, catalog failed | rule checks | "The rules couldn’t be checked." | shown, 14/24 muted; Approve stays | match (007-S3.9) |
+| delete_draft | body | description, "Last saved {date}", "Its content will be gone for good." (007-S3.10) | "FS-20418", "Last saved 09.11.2026, 13:16", the sentence semibold | match (cosmetic 3, §3 "Dates") |
+| deactivate | body | lead, URLs in `LinkCard`s, "Requests in progress are cancelled." (007-S3.11) | the Links card (white, 1 px decorative border, radius 12): h2 "Links for your service", the lead, "1 Request link", "2 Result link" divided by a line (T078), `CopyableUrl` "Copy link"; the sentence under the card | match |
+| reactivate | body | "These connection URLs will work again:" (007-S3.12); a deactivated connection's copy buttons off (T028) | the lead; "Copy link" `aria-disabled` at 40 % with "Activate the connection first" | match (W21) |
+| delete | body | lead, URLs, both sentences (007-S3.13) | "These connection URLs will stop working for good:", "Requests in progress are cancelled.", "Deleting can’t be undone." (semibold) | match |
+| delete, delete_draft | Approve | filled danger (007-S3.14, T035 note) | `kern-btn--primary kern-btn--danger` red; Decline `kern-btn--secondary` | match |
+| working | buttons, status | both disabled, "Publishing…" / "Working…" (007-S3.15); nothing sent twice | both `aria-disabled`, status "Publishing…"; click + forced click + Enter → one `POST …/approve` | match |
+| done publish | outcome | "Published." + URLs + "Open the connection" (007-S3.17) | success slim alert (64, focused, no ring after a mouse press), the Links card with the lead "Add both links to your form. Each one goes in its own field.", "Copy link" on, "Open the connection" `kern-link` | match |
+| done reactivate | outcome | "Connection reactivated." + URLs | as publish, copy buttons on (the connection is live) | match |
+| done deactivate, delete, delete_draft | outcome | the action's word, no URLs | "Connection deactivated.", "Connection deleted.", "Draft deleted."; reloaded after the draft's row is gone: h1 "Delete the draft?" (007-S3.5) | match |
+| declined | outcome | "You declined this request. Nothing has changed." (007-S3.18) | info slim alert, one `POST …/decline` | match |
+| expired | outcome | "This request expired at {time}. …" (007-S3.19) | warning slim alert, "expired at 13:24" | match |
+| expired while open | approve | `409 approval_expired` → the expired state from the answer (007-S3.26) | warning alert with the server's sentence ("expired at 14:24": the server writes German time, the headless browser runs in UTC) | match (baseline) |
+| replaced | outcome | "The agent made a newer request for this action." (007-S3.20) | a second publish request for the same draft; warning alert | match |
+| cancelled | outcome | each reason's sentence (007-S3.21–S3.24) | real: `access_changed` (token lowered to drafts), `revoked` (token revoked), `connection_changed` ("The connection was reactivated in the meantime.", activated through the API); routed: `draft_changed`, `draft_published`, `draft_deleted`, `connection_deleted`, `access_ended`: each sentence word for word | match |
+| failed (approve) | alert, actions | the service's message + error ID, body kept, "Try again" (007-S3.25, FR-033) | danger alert at the top "Couldn’t approve" with the message and "Error ID: 9b1e7c2d-…" (F22), focused; the body kept; "Try again" in place of "Approve" | match (decision 2) |
+| failed before (read again) | alert | the kept error ID | "Couldn’t approve" / "The last attempt didn’t work. Nothing has changed." / "Error ID: 7c4d2e1a-…", "Try again"; then approving for real → "Connection deactivated." | match |
+| failed (decline) | alert | the service's message + error ID | "Couldn’t decline" with the message; "Approve" kept | match |
+| not yours | page | info "This request was made for another team member. Only they can approve it." (007-S3.2) | h1 "Approval request", the slim info alert, tab "Approval request · Konnekt" | match |
+| not found | page | the not-found screen (007-S3.3) | `NotFound`, tab "Page not found · Konnekt" | match |
+| load failed | page | §3 "Error state of a page" with the error ID and "Go to connections" (T037 note) | h1 "Approval request", danger alert "Couldn’t load this request", "Something went wrong on our side." + "Error ID: 3f2c9a1e-…", then "Go to connections" (`kern-link`, `/`) 10 under it | match (F22, W2) |
+| 320 px | every state above | reflow, nothing hidden (FR-010) | title wraps, the table's labels above their lines, the URL boxes and "Copy link" stacked, the alert's text and error ID wrap; `scrollWidth` 305 | match |
+| focus | keyboard only | focus-visible only | a mouse press shows no ring (`:focus-visible` false on the focused alert); Tab shows it on the ⓘ, copy buttons, Approve, Decline | match |
+
+Open rows: none.
+
+**Decisions (T088):**
+
+1. **The publish body: the dialog's table and the draft in full.** The task asks for "the stored draft's summary in
+   the publish dialog's style" (T076: the `dl` of `PublishSummaryRow`s, the findings lines), and 007-S3.7 keeps the
+   documents with their fields and the rules per variant, which the reviewer needs to read before approving. So the
+   body is the dialog's table and its findings lines first, then the draft details' Summary card (`RulesSummary`
+   with `draft`, T079's suggestion), open, which also fixes the heading order (the h3 "Documents" no longer follows
+   the h1). Its counts repeat the table's. UNCERTAIN (layout only; nothing sent or checked changes).
+2. **The failed approve is the alert, not the toast.** FR-033's toast is for a failed save; its alert clause ("keeps
+   its error ID, list or action") covers this one. The approve is the publish dialog's and the details' action, whose
+   failures are drawn as alerts with the error ID (U79, F46; the details' dialogs), and a request read again after a
+   failed attempt has to show it on arrival, which a toast can't. Clarification Q17 (a) lists 007-S3.25 among the
+   toast's surfaces; the task line leaves "a toast or an alert". UNCERTAIN (presentation of the failure; the requests,
+   "Try again" and the error ID are the baseline's).
+3. **The page title is heading/x-large**, as the other AppLayout pages (the overview, the welcome page, `NotFound`);
+   the column stays AppLayout's 1120.
+4. **No "Go to connections" on the other dead ends** (not yours, the outcomes): only the load failure gets it (T037's
+   note); the header's Konnekt pill leads back from any of them.
+5. **`warningsFirst()` moved** from `PublishDialog.tsx` to `FormConnectionEditor/utils.ts` (exported, with a test in
+   `utils.test.ts`), as T076's note allows: the dialog and the approval page both sort with it.
+6. **`lastSavedLineOf()` writes `formatRowDate`** ("Last saved 09.11.2026, 14:32"): T044's carried note ("switch it");
+   `utils.ts` and its one test expectation changed for cosmetic 3 only. Approval no longer imports `formatEditedDate`.
+
+### S22 Not found, the sign-in guard, errors, tab titles, reflow — T089, 2026-11-09
+
+By the coordinator with playwright-core 1.48.2 and Chromium at 1455 × 900 and 320 × 640 (the CSS
+width of a 640 px window at 200 %), signed in as `designer`, on the coordinator's own "T089 …" data
+(deleted afterwards). Each row was checked at both widths: one `h1`, the tab title
+"<page> · Konnekt", `scrollWidth` 1440 / 305 (no sideways scroll), no control outside the viewport.
+
+| route | state | tab title | h1 | result |
+|---|---|---|---|---|
+| `/login`, `/forgot-password` | signed out | "Log in · Konnekt", "Forgot password · Konnekt" | "Connect to the EUDI Wallet" | match |
+| `/` | connections | "Your connections · Konnekt" | "Your connections" | match |
+| `/get-started` | with connections | redirected to `/` (baseline) | "Your connections" | match |
+| `/form-connections/new`, `…/<draft>/edit` | step 1, test step | "Name your connection · Konnekt", "Test rules with sample citizen data · Konnekt" | the step's title | match |
+| `/form-connections/<id>` | active, deactivated, draft | "<name> · Konnekt", "<name> (Draft) · Konnekt" | "Your connection is active", "Connection deactivated", "This connection is a draft" | match |
+| `/form-connections/<id>/edit` | step 1 | "Connection details · Konnekt" | "Connection details" | match |
+| `/form-connections/<unknown>`, `/approvals/<unknown>` | not found | "Page not found · Konnekt" | "Page not found" | match (`NotFound` titled by its callers, T037) |
+| `/authorize?…` | request, invalid | "Allow access · Konnekt" | "Allow access for T089 agent?", "Allow access" | match |
+| `/account` | listed | "Your account · Konnekt" | "Your account" | match |
+| `/approvals/<id>` | publish, delete_draft, deactivate, reactivate, delete | "<the h1> · Konnekt" | "Publish ‘T089 Entwurf’?" … "Delete ‘T089 Verbindung’?" | match |
+| `/no-such-page` | unknown route | redirected to `/` (baseline, S22) | "Your connections" | match |
+| the wizard's footer | 320 px, step 1 and the edit flow | — | — | wraps: "Save and exit" (step 1) and "Discard changes" / "Save" (edit) keep their labels on their own rows above "Choose documents →" (005-ACC.4): match |
+| guards | — | — | — | `RequireSignIn`, `RequireSignedOut` and `App.tsx`'s routes unchanged in this phase (git diff empty; W2) |
+| errors | — | — | — | every `errorNoticeOf` call site reaches `ErrorNoticeText` (the page's alert, `ConfirmDialog`, `LoadFailed` or the toast): Account, Approval, Authorize, Login, the overview, the editor, the details, `useFormConnection` (F22) |
+| light only | — | — | — | `data-kern-theme="light"` in `index.html`, `color-scheme: only light` in `index.css`, no `dark:` class (FR-011) |
+
 ## 6. Pass I: the screenshot matrix and the accessibility review
 
 Filled by pass I (quickstart V10–V13): one row per route × state × width (1440 px; 320 px at
@@ -4991,6 +5273,41 @@ Open for a person: the walk ran against the fake EUDIPLO; publishing, deactivati
 saving a revision against the hosted EUDIPLO need its credentials in `backend/.env` (tasks.md, phase
 8 "Needs a person"); the 0.5 s "Published" wait timed by hand in a real browser (measured here by
 script: 585 ms from the answer to the details).
+
+### 6.6 US5 checkpoint (T089, 2026-11-09)
+
+Quickstart V9 (steps 1–3), by the coordinator with playwright-core 1.48.2 and Chromium at 1455 × 900
+(320 × 640 for the step-up), against the dev server whose backend ran with the tests' in-memory
+`FakeEudiplo` (as in §6.5). No MCP client: the agent side came from a scratchpad helper that
+registers an OAuth client (RFC 7591), consents through `POST /api/oauth/authorize`, exchanges the
+code with a PKCE verifier, creates personal access tokens, and posts approval requests with a
+token's bearer; the consent page was opened from a hand-built `/authorize` URL (the task's
+fallback). Data: the coordinator's own "T089 …" connections, drafts, tokens and agents, deleted
+afterwards. Each task's own walk (T086–T088, §5.2 S19–S21) covers the states one by one; this
+checkpoint walks the steps across them. S22's route-by-route table is in §5.2.
+
+| step | result |
+|---|---|
+| V9.1 | "T089 agent wants to act on your behalf in Konnekt. Choose what it may do." (C1); the scope "read drafts manage" preselects "Read, edit drafts and manage live connections"; a routed `500` with `error_id` on Allow → the danger alert with the error ID, the chosen level kept; "Allow" with "Read and edit drafts" → the client's redirect URI with `code` and `state`, the body `"decision":"allow","access_level":"drafts"`; "Deny" → `error=access_denied`, no `access_level` sent; a `redirect_uri` not the client's → "This sign-in request isn’t valid. Start again from your agent." on the page with the server's message, no redirect; a client authorized (code exchanged) at "read" asking "read drafts" → "T089s agent is asking for more access than it has." with "Read and edit drafts" preselected, at 320 px without sideways scroll: pass |
+| V9.2 | the connected agent and the token listed with their levels and "dd.mm.yyyy, hh:mm" dates; "Create token" → the token dialog with the `cp_pat_…` secret in the read-only field; "Copy" → "Copied" with the check icon for 2 s, "Token copied" in the live region, the clipboard holds the token; after "Done" the secret is nowhere in the page; the row's ⋯ → "Change access level", "Revoke"; "Change access level" → "Read only" → "Access level changed. It applies from the agent’s next call."; "Revoke" → the row gone; "Your account" the user menu's first entry. The empty state ("No agent is connected yet. Add Konnekt's MCP server to your agent to connect it.") was checked by T087 on an empty account: pass |
+| V9.3 | deactivate approved → "Connection deactivated."; delete_draft declined → "You declined this request. Nothing has changed."; publish with a routed `502` (1.2 s late) → "Publishing…" while it works, then the danger alert with "Error ID: err-T089-approve" and "Try again" in place of "Approve"; "Try again" (real) → "Published." with the Links card; reactivate approved → "Connection reactivated." with the links; the delete request made before the deactivation → "The connection was deactivated in the meantime." (cancelled, `connection_changed`). Expired, replaced, the other cancel reasons, another team member's request and the load failure: T088's table (§5.2 S21): pass |
+
+Accepted from the tasks (no spec item settles them, none touches core behaviour; the requests each
+page sends are byte-identical to the baseline's, T086–T088): the consent card's h1 in the card
+heading's style, the card top-aligned, "Deny" before "Allow" in equal columns (T086); the token
+dialog and "Revoke" ignore a scrim click (T087); the approval page's publish body shows the publish
+dialog's summary and findings, then the draft details' Summary card, so the counts appear twice
+(T088); a failed approve is the 007-S3.25 danger alert with the error ID and "Try again", not
+Q17 (a)'s toast: the task line leaves "a toast or an alert per FR-033" open, FR-033's toast text is a
+save's, and a request read again after a failed approve (status waiting with `error_id`, FR-027) must
+show the failure on arrival, which a toast can't (T088). Fixed by the coordinator: the stale comment
+on `ROUTES.firstConnection` (`src/constants.ts`; a sign-in lands on `/` since T042). `rules/src/`,
+`mcp/`, `backend/` and `api-types/` are unchanged; `warningsFirst()` moved from `PublishDialog.tsx`
+to `FormConnectionEditor/utils.ts` with a test (T088, T076's note).
+
+Open for a person: V9 with a real MCP client (Claude Code with `mcp/plugin/` against the MCP server
+on 3100) opening the consent page and making the agents and approval requests through its tools;
+approving a publish request against the hosted EUDIPLO (credentials as in phase 8).
 
 ## 7. Removal checklist (pass H, FR-015, SC-003)
 

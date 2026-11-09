@@ -57,6 +57,7 @@ import {
   startOfOrigin,
   stepForDroppedData,
   validateConnection,
+  warningsFirst,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -1638,5 +1639,18 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
       after: 'After this, edit or delete these rules before you publish.',
       confirmLabel: 'Stop requesting',
     });
+  });
+});
+
+describe('warningsFirst (FR-044c)', () => {
+  it('puts the warning lines first and keeps each kind in tab order', () => {
+    const lines = [
+      { key: 'main', text: 'Standard: 1 rule is a duplicate.', tone: 'info' as const },
+      { key: 'b2', text: 'Ambulance: 2 rules contradict each other.', tone: 'warning' as const },
+      { key: 'b3', text: 'Taxi: 1 rule every citizen meets.', tone: 'info' as const },
+      { key: 'b4', text: 'Bus: no citizen can meet these rules.', tone: 'warning' as const },
+    ];
+    expect(warningsFirst(lines).map((line) => line.key)).toEqual(['b2', 'b4', 'main', 'b3']);
+    expect(lines.map((line) => line.key)).toEqual(['main', 'b2', 'b3', 'b4']);
   });
 });

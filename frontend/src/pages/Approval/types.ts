@@ -129,13 +129,21 @@ export interface ApprovalOutcomeProps {
   /** After publishing or reactivating: the connection URLs, and the connection to open */
   urls?: ConnectionUrls | null;
   formConnectionId?: string;
+  /** Whether the connection is deactivated now: its copy buttons are off (FR-046, W21) */
+  deactivated?: boolean;
 }
 
 export interface ApprovalLinkCardsProps {
-  urls: ConnectionUrls;
+  /** The URLs; without them, the card holds only its title and lead */
+  urls: ConnectionUrls | null;
+  /** The sentence under the title: what becomes of the URLs, or what to do with them */
+  lead: string;
+  /** While the connection is deactivated: the copy buttons are off and say why (FR-046, W21) */
+  deactivated?: boolean;
 }
 
 export interface ApprovalUrlsProps {
   urls: ConnectionUrls;
   formConnectionId: string;
+  deactivated?: boolean;
 }

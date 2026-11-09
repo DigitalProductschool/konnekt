@@ -5,7 +5,7 @@ import type {
 } from '@connection-portal/api-types/agent-access';
 
 import { ACCESS_LEVELS } from '../../components/AccessLevelChoice/constants';
-import { formatEditedDate } from '../FormConnectionList/utils';
+import { formatRowDate } from '../FormConnectionList/utils';
 import {
   ACCOUNT_COPY,
   DAY_MS,
@@ -14,8 +14,17 @@ import {
   MINUTE_MS,
   RELATIVE_DAYS_LIMIT,
   RELATIVE_TIME_FORMAT,
+  TIME_FORMAT,
 } from './constants';
 import type { AccountAction, AccountState, RowTexts } from './types';
+
+/**
+ * A row's date with the 24-hour time of the browser's time zone, "05.10.2026, 14:32" (cosmetic 3,
+ * design-notes §3 "Dates": the overview's `formatRowDate`, the time as the draft details add it)
+ */
+export function formatDateTime(timestamp: string): string {
+  return `${formatRowDate(timestamp)}, ${TIME_FORMAT.format(new Date(timestamp))}`;
+}
 
 /** The client's name for an agent connection, the token's name for a token */
 export function nameOf(item: AgentAccessItem): string {
@@ -36,8 +45,8 @@ export function levelNameOf(level: AccessLevel, levels: AccessLevelInfo[] = ACCE
 
 /**
  * When an agent last called, counted from `now`: "just now" within a minute, then "5 minutes
- * ago", "3 hours ago", "yesterday", "12 days ago", and from 30 days on the date ("5 Oct 2026").
- * A time after `now`, from a clock that runs ahead, is "just now"
+ * ago", "3 hours ago", "yesterday", "12 days ago", and from 30 days on the date and time
+ * ("06.10.2026, 12:00"). A time after `now`, from a clock that runs ahead, is "just now"
  */
 export function relativeLastUseOf(lastUsedAt: string, now: Date): string {
   const elapsed = now.getTime() - new Date(lastUsedAt).getTime();
@@ -54,13 +63,13 @@ export function relativeLastUseOf(lastUsedAt: string, now: Date): string {
   if (days < RELATIVE_DAYS_LIMIT) {
     return RELATIVE_TIME_FORMAT.format(-days, 'day');
   }
-  return formatEditedDate(lastUsedAt);
+  return formatDateTime(lastUsedAt);
 }
 
 /**
  * What a row says (S2): the name, the level's name, "Connected {date}" for an agent connection or
  * "Created {date}" and "Expires {date}" for a token, and "Last used {relative}" or, without a
- * use, "Never used" (`lastUse` null). Dates as the overview writes them ("5 Oct 2026")
+ * use, "Never used" (`lastUse` null). Dates with their time, "05.10.2026, 14:32" (`formatDateTime`)
  */
 export function rowTextsOf(
   item: AgentAccessItem,
@@ -73,14 +82,14 @@ export function rowTextsOf(
     level: levelNameOf(item.access_level, levels),
     since: {
       prefix: token ? ACCOUNT_COPY.created : ACCOUNT_COPY.connected,
-      date: formatEditedDate(item.created_at),
+      date: formatDateTime(item.created_at),
       datetime: item.created_at,
     },
     expires:
       token && item.expires_at
         ? {
             prefix: ACCOUNT_COPY.expires,
-            date: formatEditedDate(item.expires_at),
+            date: formatDateTime(item.expires_at),
             datetime: item.expires_at,
           }
         : null,

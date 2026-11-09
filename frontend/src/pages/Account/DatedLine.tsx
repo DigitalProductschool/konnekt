@@ -1,6 +1,6 @@
 import type { DatedLineProps } from './types';
 
-/** "Connected 5 Oct 2026", "Last used 3 days ago": the words, then the date in a `time` */
+/** "Connected 05.10.2026, 14:32", "Last used 3 days ago": the words, then the date in a `time` */
 export default function DatedLine({ text }: DatedLineProps) {
   return (
     <span>

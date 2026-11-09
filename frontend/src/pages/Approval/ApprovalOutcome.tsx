@@ -7,14 +7,21 @@ import { OUTCOME_VARIANTS } from './constants';
 import type { ApprovalOutcomeProps } from './types';
 
 /**
- * The outcome alert (S3 "Outcome states"). A final state replaces the actions under the title:
- * "Published." or "Connection reactivated." with the connection URLs (the caller passes them only
- * then), the other actions' words, declined, expired, replaced, or cancelled with its reason. A
- * failed call keeps the body and the actions, and shows the service's message with the error ID.
- * The alert takes the focus when it appears and again for a new text; `KernAlert` takes no ref,
- * so the wrapper holds it.
+ * The outcome alert (S3 "Outcome states"; design-notes §3 "Alert, page level"). A final state
+ * replaces the actions under the title, in the slim title-only alert: "Published." or "Connection
+ * reactivated." (success) with the connection URLs (the caller passes them only then), the other
+ * actions' words, declined (info), expired, replaced, or cancelled with its reason (warning). A
+ * failed call keeps the body and the actions, and shows the service's message with the error ID
+ * in the danger alert's body (F22, FR-033: an alert with a body keeps it); "Try again" takes the
+ * place of "Approve". The alert takes the focus when it appears and again for a new text;
+ * `KernAlert` takes no ref, so the wrapper holds it.
  */
-export default function ApprovalOutcome({ view, urls, formConnectionId }: ApprovalOutcomeProps) {
+export default function ApprovalOutcome({
+  view,
+  urls,
+  formConnectionId,
+  deactivated = false,
+}: ApprovalOutcomeProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const key = view.kind === 'final' ? view.outcome.text : `${view.title} ${view.notice.message}`;
 
@@ -23,7 +30,7 @@ export default function ApprovalOutcome({ view, urls, formConnectionId }: Approv
   }, [key]);
 
   return (
-    <div ref={wrapperRef} className="flex w-full flex-col gap-32">
+    <div ref={wrapperRef} className="flex w-full flex-col gap-24">
       {view.kind === 'final' ? (
         <KernAlert
           tabIndex={-1}
@@ -37,7 +44,7 @@ export default function ApprovalOutcome({ view, urls, formConnectionId }: Approv
         </KernAlert>
       )}
       {view.kind === 'final' && view.outcome.status === 'done' && urls && formConnectionId && (
-        <ApprovalUrls urls={urls} formConnectionId={formConnectionId} />
+        <ApprovalUrls urls={urls} formConnectionId={formConnectionId} deactivated={deactivated} />
       )}
     </div>
   );

@@ -128,3 +128,18 @@ export const OUTCOME_VARIANTS: Record<FinalStatus, 'success' | 'info' | 'warning
 };
 
 export const INITIAL_APPROVAL_STATE: ApprovalPageState = { status: 'loading' };
+
+/**
+ * The page's cards, as the details' accordions draw them (U91 7246:51436; design-notes §3
+ * "Card"): white, 1px `decorative-border`, radius 12, no shadow
+ */
+export const CARD_CLASSES =
+  'rounded-kern-large bg-kern-layout-background-default border border-(--kern-color-decorative-border-default)';
+
+/** A part's heading (`h2`), as the details' accordions head theirs: title/small, 16/24 600 */
+export const SECTION_TITLE_CLASSES =
+  'text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words';
+
+/** The body's sentences: body/default, 16/24 */
+export const BODY_TEXT_CLASSES =
+  'text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) break-words';

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';
 import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
-import { formatEditedDate } from '../FormConnectionList/utils';
+import { formatRowDate } from '../FormConnectionList/utils';
 import { APPROVAL_COPY, INITIAL_APPROVAL_STATE } from './constants';
 import type { ApprovalPageState, LoadedApprovalState } from './types';
 import {
@@ -171,10 +171,10 @@ describe('subtitleOf', () => {
 });
 
 describe('lastSavedLineOf', () => {
-  it('writes the date and the time as the draft card does', () => {
+  it('writes the date as dd.mm.yyyy and the 24-hour time (cosmetic 3)', () => {
     const updatedAt = DRAFT.updated_at;
     expect(lastSavedLineOf(updatedAt)).toBe(
-      `Last saved ${formatEditedDate(updatedAt)}, ${SAVED_TIME_FORMAT.format(new Date(updatedAt))}`
+      `Last saved ${formatRowDate(updatedAt)}, ${SAVED_TIME_FORMAT.format(new Date(updatedAt))}`
     );
   });
 });

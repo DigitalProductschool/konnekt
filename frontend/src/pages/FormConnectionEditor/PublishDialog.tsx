@@ -16,7 +16,7 @@ import type {
   PublishFailure,
   PublishStatusDialogProps,
 } from './types';
-import { findingLinesOf } from './utils';
+import { findingLinesOf, warningsFirst } from './utils';
 
 /** The intro's look in the summary (U73 6374:25448: body/default, muted) */
 const INTRO_CLASSES =
@@ -164,14 +164,6 @@ function cancelLabelOf(dialog: PublishDialogState): string {
     return PUBLISH_COPY.addRules;
   }
   return dialog.from === 'test' ? PUBLISH_COPY.backToTest : PUBLISH_COPY.checkRulesAgain;
-}
-
-/**
- * The findings lines warnings first (FR-044c; U77 6760:47979: Ambulance's warning before
- * Standard's info), each kind in tab order. `Array.prototype.sort` is stable.
- */
-function warningsFirst(lines: FindingLine[]): FindingLine[] {
-  return [...lines].sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'));
 }
 
 /** "Dialog content/Publish · summary" (a two-column table, documents then rules), then findings */

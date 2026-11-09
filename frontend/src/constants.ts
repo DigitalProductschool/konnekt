@@ -5,7 +5,7 @@ export const ROUTES = {
   login: '/login',
   forgotPassword: '/forgot-password',
   overview: '/',
-  // Where a sign-in without a requested route lands: the wizard until a connection exists
+  // The first connection's wizard, opened by the welcome page's "Create connection" (T042)
   firstConnection: '/get-started',
   newFormConnection: '/form-connections/new',
   formConnection: '/form-connections/:id',

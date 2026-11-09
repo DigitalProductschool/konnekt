@@ -1,6 +1,6 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useEffect, useReducer } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 
 import { approveRequest, declineRequest, getApprovalRequest } from '../../api/approvals';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
@@ -8,10 +8,11 @@ import NotFound from '../../components/NotFound';
 import { NOT_FOUND_COPY } from '../../components/NotFound/constants';
 import PageLoader from '../../components/PageLoader';
 import PageTitle from '../../components/PageTitle';
+import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { DETAIL_COPY } from '../FormConnectionDetail/constants';
 import ApprovalActions from './ApprovalActions';
-import ApprovalFindings from './ApprovalFindings';
 import ApprovalOutcome from './ApprovalOutcome';
 import ApprovalSummary from './ApprovalSummary';
 import { APPROVAL_COPY, INITIAL_APPROVAL_STATE } from './constants';
@@ -28,12 +29,15 @@ import {
 } from './utils';
 
 /**
- * One approval request (contracts/ui-screens.md S3; FR-023 to FR-027): its title by action, who
- * asked and until when, what it acts on, and "Approve" and "Decline". A request that isn't waiting
- * any more, or turns out not to be when a call answers `409 approval_<status>`, shows its outcome
- * in place of the actions, under the same title. A failed approve leaves the request waiting: the
- * page keeps the body and offers "Try again". Another team member's request, and one that isn't
- * there, show no preview.
+ * S21, one approval request (spec 007, S3; FR-023 to FR-027), built without frames (W16) from the
+ * patterns of design-notes §3 in `AppLayout`'s column: the page title (heading/x-large, as the
+ * overview's) by action with who asked and until when, what it acts on (`ApprovalSummary`), and
+ * "Approve" and "Decline". A request that isn't waiting any more, or turns out not to be when a
+ * call answers `409 approval_<status>`, shows its outcome in place of the body and the actions,
+ * under the same title. A failed approve leaves the request waiting: the page keeps the body,
+ * shows the failure with its error ID above it and offers "Try again". Another team member's
+ * request and one that isn't there show no preview; a failed load shows the §3 "Error state of a
+ * page" with the way back to the connections.
  */
 function ApprovalScreen({ id }: ApprovalScreenProps) {
   const [state, dispatch] = useReducer(approvalReducer, INITIAL_APPROVAL_STATE);
@@ -85,16 +89,22 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
     case 'notYours':
       return (
         <>
-          <PageTitle title={APPROVAL_COPY.fallbackTitle} />
+          <PageTitle title={APPROVAL_COPY.fallbackTitle} size="x-large" />
           <KernAlert variant="info" title={APPROVAL_COPY.notYours} className="w-full" />
         </>
       );
     case 'failed':
+      // design-notes §3 "Error state of a page": the reason with a 5xx's error ID, the way back
       return (
         <>
-          <PageTitle title={APPROVAL_COPY.fallbackTitle} />
+          <PageTitle title={APPROVAL_COPY.fallbackTitle} size="x-large" />
           <KernAlert variant="danger" title={APPROVAL_COPY.loadFailedTitle} className="w-full">
             <ErrorNoticeText notice={state.notice} />
+            <span className="mt-10 flex flex-wrap items-center gap-x-24 gap-y-8">
+              <Link to={ROUTES.overview} className="kern-link">
+                {DETAIL_COPY.goToConnections}
+              </Link>
+            </span>
           </KernAlert>
         </>
       );
@@ -105,15 +115,16 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
   const view = outcomeViewOf(state);
   return (
     <>
-      <PageTitle title={title ?? ''} hint={subtitleOf(preview.request)} />
+      <PageTitle title={title ?? ''} hint={subtitleOf(preview.request)} size="x-large" />
       {view?.kind === 'final' ? (
         <ApprovalOutcome
           view={view}
           urls={doneShowsUrls(action) ? preview.urls : null}
           formConnectionId={preview.request.form_connection_id}
+          deactivated={preview.connection ? !preview.connection.is_active : false}
         />
       ) : (
-        <div className="flex flex-col gap-32">
+        <div className="flex flex-col gap-24">
           {view && <ApprovalOutcome view={view} />}
           <ApprovalSummary
             action={action}
@@ -121,7 +132,6 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
             connection={preview.connection}
             urls={preview.urls}
           />
-          {action === 'publish' && preview.draft && <ApprovalFindings draft={preview.draft} />}
           <ApprovalActions
             action={action}
             running={running}

@@ -954,6 +954,15 @@ export function findingLinesOf(
 }
 
 /**
+ * The findings lines warnings first (FR-044c; U77 6760:47979: Ambulance's warning before
+ * Standard's info), each kind in tab order. `Array.prototype.sort` is stable. The publish dialog
+ * and the approval page (S21) list them so
+ */
+export function warningsFirst(lines: readonly FindingLine[]): FindingLine[] {
+  return [...lines].sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'));
+}
+
+/**
  * The key of the first branch, in tab order, that has findings, for "Check rules again" (spec 003,
  * S5; W10; FR-017; US4-AS3), or null when none has. A branch has findings when the dialog gives it
  * a line (`findingLinesOf()`), so the button opens the first branch the dialog names.

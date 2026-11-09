@@ -3,10 +3,12 @@ import type { ApprovalActionsProps } from './types';
 import { busyTextOf } from './utils';
 
 /**
- * "Approve" and "Decline" (S3 "Actions"). Approving deletes for `delete_draft` and `delete`, so
- * its button is KERN's danger variant there. After a failed approve it says "Try again". While a
- * call runs, both are `aria-disabled` and ignore clicks, and the status region under them says
- * "Publishing…" or "Working…"; it stays rendered, so that its text is announced.
+ * "Approve" and "Decline" (S3 "Actions"; design-notes §3 "Dialog" for the danger look). Approving
+ * deletes for `delete_draft` and `delete`, so its button is the filled danger button there
+ * (`kern-btn--primary kern-btn--danger`, as "Delete connection" is drawn). After a failed approve
+ * it says "Try again". While a call runs, both are `aria-disabled` and ignore clicks, so nothing
+ * is sent twice, and the status region under them says "Publishing…" or "Working…"; it stays
+ * rendered, so that its text is announced.
  */
 export default function ApprovalActions({
   action,
@@ -40,7 +42,7 @@ export default function ApprovalActions({
       {/* Empty, it leaves the flow (no gap) but stays rendered, so its text is announced */}
       <p
         role="status"
-        className="text-kern-static-medium text-kern-layout-text-default empty:absolute"
+        className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) empty:absolute"
       >
         {busyTextOf(action, running)}
       </p>

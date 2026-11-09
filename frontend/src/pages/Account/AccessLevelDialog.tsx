@@ -8,9 +8,10 @@ import type { LevelDialogProps } from './types';
 import { nameOf } from './utils';
 
 /**
- * "Change access level" (S2; FR-006): the three levels with what each allows, as on the consent
- * page, the current one selected. "Save" applies the chosen one from the agent's next call; a
- * failure stays in the dialog, with a 5xx answer's error ID.
+ * "Change access level" (S20; 007-S2.8, FR-006): T016's radios in T035's dialog at the kit's 600px
+ * (P12, as the design's form dialogs), the three levels with what each allows, as on the consent
+ * page, the current one selected. "Save" applies the chosen one from the agent's next call; while
+ * it saves, the radios are off; a failure stays in the dialog, with a 5xx answer's error ID.
  */
 export default function AccessLevelDialog({
   dialog,
@@ -51,6 +52,7 @@ export default function AccessLevelDialog({
       retryLabel={ACCOUNT_COPY.retry}
       onCancel={() => dispatch({ type: 'dialogClosed' })}
       onConfirm={save}
+      wide
     >
       {open && (
         <AccessLevelChoice
@@ -59,6 +61,7 @@ export default function AccessLevelDialog({
           onChange={(level) => dispatch({ type: 'levelChosen', level })}
           name="agent-access-level"
           legend={ACCOUNT_COPY.accessLevel}
+          disabled={busy}
         />
       )}
     </ConfirmDialog>
