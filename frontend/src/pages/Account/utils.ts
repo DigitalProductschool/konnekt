@@ -5,6 +5,7 @@ import type {
 } from '@connection-portal/api-types/agent-access';
 
 import { ACCESS_LEVELS } from '../../components/AccessLevelChoice/constants';
+import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
 import { formatRowDate } from '../FormConnectionList/utils';
 import {
   ACCOUNT_COPY,
@@ -14,7 +15,6 @@ import {
   MINUTE_MS,
   RELATIVE_DAYS_LIMIT,
   RELATIVE_TIME_FORMAT,
-  TIME_FORMAT,
 } from './constants';
 import type { AccountAction, AccountState, RowTexts } from './types';
 
@@ -23,7 +23,7 @@ import type { AccountAction, AccountState, RowTexts } from './types';
  * design-notes §3 "Dates": the overview's `formatRowDate`, the time as the draft details add it)
  */
 export function formatDateTime(timestamp: string): string {
-  return `${formatRowDate(timestamp)}, ${TIME_FORMAT.format(new Date(timestamp))}`;
+  return `${formatRowDate(timestamp)}, ${SAVED_TIME_FORMAT.format(new Date(timestamp))}`;
 }
 
 /** The client's name for an agent connection, the token's name for a token */

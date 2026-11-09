@@ -6,6 +6,13 @@ export const CONFIRM_DIALOG_COPY = {
 };
 
 /**
+ * The dialog's frame (centred, radius 12, the 1px outline drawn inside, the design's scrim, the
+ * fade of design-notes §4 with `motion`); the Account page's "token created" dialog shares it
+ */
+export const DIALOG_FRAME_CLASSES =
+  'kern-dialog motion ring-kern-layout-border m-auto! max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! ring-1 ring-inset backdrop:bg-(--kern-color-action-state-indicator-shade)!';
+
+/**
  * The dialog's width: the screens' dialogs are 480px wide (U14 6699:44480, U17 7173:52682, U25
  * 7299:52174, U90 6417:31599), the kit's set 600px (P12 2:12865); 16px from the window's edges
  * on a narrow screen. The `!`s beat kern.css's small-screen bottom sheet (min-width and

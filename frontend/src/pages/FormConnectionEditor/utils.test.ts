@@ -49,7 +49,6 @@ import {
   problemPlaceOf,
   publishErrorNotice,
   removalAction,
-  removalCopyOf,
   removedDataRulesOf,
   rulesChanged,
   rulesNextActionOf,
@@ -486,28 +485,6 @@ describe('removing data that rules check (FR-029, F18)', () => {
       type: 'confirmRemoval',
     });
     expect(cleared.documents[0].fields).toEqual([]);
-  });
-
-  it('words the dialog as designed, "before you save" when editing', () => {
-    expect(removalCopyOf(DOCUMENT, 3, false)).toEqual({
-      title: 'Remove Driving licence?',
-      text: '3 rules check data from this document:',
-      after: 'After removing it, edit or delete these rules before you publish.',
-      confirmLabel: 'Remove document',
-    });
-    expect(removalCopyOf(FIELD, 2, true)).toEqual({
-      title: 'Stop requesting Date of birth?',
-      text: '2 rules check it:',
-      after: 'After this, edit or delete these rules before you save.',
-      confirmLabel: 'Stop requesting',
-    });
-    expect(removalCopyOf(ALL, 1, false)).toEqual({
-      title: 'Stop requesting all data from Personal ID?',
-      text: '1 rule checks this data:',
-      after: 'After this, edit or delete this rule before you publish.',
-      confirmLabel: 'Stop requesting',
-    });
-    expect(removalCopyOf(null, 0, false).title).toBe('');
   });
 });
 
@@ -1414,7 +1391,7 @@ describe('validateConnection (FR-002, FR-003)', () => {
     expect(validateConnection(NAME, ` ${'a'.repeat(500)} `)).toEqual({});
     const errors = validateConnection(NAME, 'a'.repeat(501));
     expect(errors).toEqual({ description: 'The description can have at most 500 characters.' });
-    expect(firstInvalidElementId(errors, [], [])).toBe('connection-description');
+    expect(firstInvalidElementId(errors)).toBe('connection-description');
   });
 
   it('still gives the name’s error first', () => {
@@ -1424,7 +1401,7 @@ describe('validateConnection (FR-002, FR-003)', () => {
       name: 'Enter a name for the connection.',
       description: 'The description can have at most 500 characters.',
     });
-    expect(firstInvalidElementId(errors, [], [])).toBe('connection-name');
+    expect(firstInvalidElementId(errors)).toBe('connection-name');
   });
 });
 
@@ -1561,7 +1538,6 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
       ...INITIAL_EDITOR_STATE,
       step: 'documents' as const,
       documents,
-      errors: { fields: { residence_permit: 'x', mdl: 'y' } },
     };
     const removal = droppedRemovalOf([EYE_COLOUR, SHOE_SIZE, PERMIT]);
     expect(removalAction(removal)).toEqual({
@@ -1573,7 +1549,6 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
       { document_type: 'pid', fields: ['birthdate'] },
       { document_type: 'mdl', fields: ['driving_privileges'] },
     ]);
-    expect(removed.errors).toEqual({ fields: { mdl: 'y' } });
     expect(removed.toast).toBeNull();
     expect(removed.removed).toBeNull();
     expect(droppedDataOf(removed.documents, CATALOG)).toEqual([]);
@@ -1626,18 +1601,12 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
     });
   });
 
-  it('words the dialog with every dropped item', () => {
+  it('names every dropped item in the removal', () => {
     const removal = droppedRemovalOf([EYE_COLOUR, PERMIT]);
     expect(removal).toEqual({
       type: 'dropped',
       items: [EYE_COLOUR, PERMIT],
       label: 'Personal ID – eye_colour, residence_permit',
-    });
-    expect(removalCopyOf(removal, 2, false)).toEqual({
-      title: 'Stop requesting Personal ID – eye_colour, residence_permit?',
-      text: '2 rules check this data:',
-      after: 'After this, edit or delete these rules before you publish.',
-      confirmLabel: 'Stop requesting',
     });
   });
 });

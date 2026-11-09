@@ -304,17 +304,12 @@ export function ageDraftKey(fieldKey: string): string {
 
 /**
  * The drafts by key, with their errors (research R12; design-notes §5.3): 'edit' records a typed
- * text, 'done' drops the invalid ones and 'reset' all (the edit-data dialog uses 'edit' through
- * `editDataReducer()`)
+ * text (the edit-data dialog uses it through `editDataReducer()`)
  */
 export function draftsReducer(state: DraftsState, action: DraftsAction): DraftsState {
   switch (action.type) {
     case 'edit':
       return { ...state, [action.key]: { text: action.text, error: action.error } };
-    case 'done':
-      return Object.fromEntries(Object.entries(state).filter(([, draft]) => draft.error === null));
-    case 'reset':
-      return {};
   }
 }
 

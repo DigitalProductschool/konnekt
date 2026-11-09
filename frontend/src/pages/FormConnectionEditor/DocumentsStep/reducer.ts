@@ -44,8 +44,6 @@ export function documentsViewReducer(
       return action.query === state.query ? state : { ...state, query: action.query };
     case 'clearSearch':
       return state.query === '' ? state : { ...state, query: '' };
-    case 'removeInline':
-      return removed(state, action.documentId, action.listIds);
     case 'undoRemoval': {
       const { pendingRemoval } = state;
       if (pendingRemoval === null) {

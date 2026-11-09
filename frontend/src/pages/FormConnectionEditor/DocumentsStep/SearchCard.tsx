@@ -24,11 +24,11 @@ const BUTTON =
 // "Add document" (U04 #37): filled while no document is added, the dashed "Rules/Add button"
 // once one is; pressed while its card is open (U20 7290:60519, U21 7290:61927), which hover
 // shows too. The two pressed fills are the frames' hexes: KERN 2.8 has no token for either
-const FILLED = 'bg-kern-action-default text-kern-action-on-default hover:bg-[#1643c1]';
-const FILLED_OPEN = 'bg-[#1643c1] text-kern-action-on-default';
+const FILLED = 'bg-kern-action-default text-kern-action-on-default hover:bg-action-pressed';
+const FILLED_OPEN = 'bg-action-pressed text-kern-action-on-default';
 const OUTLINE =
-  'border border-dashed border-kern-action-default bg-kern-layout-background-default text-kern-action-default hover:bg-[#eef3fe]';
-const OUTLINE_OPEN = 'border border-kern-action-default bg-[#eef3fe] text-kern-action-default';
+  'border border-dashed border-kern-action-default bg-kern-layout-background-default text-kern-action-default hover:bg-action-tint';
+const OUTLINE_OPEN = 'border border-kern-action-default bg-action-tint text-kern-action-default';
 const GROUP_LABEL =
   'text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static) font-semibold';
 
@@ -48,7 +48,6 @@ export default function SearchCard({
   documents,
   query,
   filled,
-  describedBy,
   onSearch,
   onClearSearch,
   onAdd,
@@ -162,7 +161,6 @@ export default function SearchCard({
         type="button"
         aria-expanded={open}
         aria-controls={open ? DOCUMENTS_STEP_IDS.searchCard : undefined}
-        aria-describedby={describedBy}
         onClick={() => (open ? close(false) : openCard())}
         className={`${BUTTON} ${look}`}
       >

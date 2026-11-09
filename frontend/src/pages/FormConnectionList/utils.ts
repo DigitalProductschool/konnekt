@@ -3,13 +3,7 @@ import type { FormConnectionSummary } from '@connection-portal/api-types/form-co
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { matchesSearch } from '../../components/ValuesPicker/utils';
 import type { Homepage } from '../../hooks/types';
-import {
-  DELETE_DIALOG_COPY,
-  EDITED_DATE_FORMAT,
-  LIST_COPY,
-  ROW_DATE_FORMAT,
-  STEP_LABELS,
-} from './constants';
+import { DELETE_DIALOG_COPY, LIST_COPY, ROW_DATE_FORMAT, STEP_LABELS } from './constants';
 import type {
   ListAction,
   ListState,
@@ -35,11 +29,6 @@ export function listReducer(state: ListState, action: ListAction): ListState {
           }
         : state;
   }
-}
-
-/** "5 Oct 2026" for an ISO timestamp from the API (the other pages' dates, until they switch). */
-export function formatEditedDate(timestamp: string): string {
-  return EDITED_DATE_FORMAT.format(new Date(timestamp));
 }
 
 /** "28.10.2026" for an ISO timestamp from the API (cosmetic 3, design-notes §3 "Dates"). */

@@ -2,10 +2,11 @@ import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
 import {
   DIALOG_ACTIONS_CLASSES,
+  DIALOG_FRAME_CLASSES,
   DIALOG_WIDTH_CLASSES,
 } from '../../components/ConfirmDialog/constants';
 import { KERN_TRANSLATIONS } from '../../constants';
-import { ACCOUNT_COPY, TOKEN_DIALOG_CLASSES } from './constants';
+import { ACCOUNT_COPY } from './constants';
 import TokenCopyField from './TokenCopyField';
 import type { TokenCreatedDialogProps } from './types';
 
@@ -52,7 +53,7 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
       aria-labelledby={titleId}
       aria-describedby={textId}
       onCancel={handleCancel}
-      className={`${TOKEN_DIALOG_CLASSES} ${DIALOG_WIDTH_CLASSES.wide}`}
+      className={`${DIALOG_FRAME_CLASSES} ${DIALOG_WIDTH_CLASSES.wide}`}
     >
       <header className="kern-dialog__header">
         <div className="flex-1 pt-8 pr-16">

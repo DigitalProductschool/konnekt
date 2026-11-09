@@ -125,14 +125,6 @@ export const DAY_MS = 24 * HOUR_MS;
 // "5 minutes ago", "yesterday", "3 days ago"
 export const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat('en-GB', { numeric: 'auto' });
 
-// "14:32": the 24-hour time in the browser's time zone after a date, as the draft details write
-// it ("03.10.2026, 14:32"; cosmetic 3, design-notes §3 "Dates")
-export const TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-
 /**
  * A section's list (S20; W16, the rule rows' list with a ⋯ per row, U55): the overview's list
  * card (U11 6699:44252: white, 1px decorative border, radius 12, no shadow), but nothing clips
@@ -158,10 +150,3 @@ export const ROW_CLASSES =
  */
 export const EMPTY_CARD_CLASSES =
   'rounded-kern-large bg-kern-layout-background-hued text-kern-static-medium text-kern-layout-text-muted p-24 leading-(--kern-typography-line-height-medium-static)';
-
-/**
- * The "token created" dialog: `ConfirmDialog`'s frame (centred, radius 12, the 1px outline drawn
- * inside, the design's scrim, the fade of design-notes §4 with `motion`), the kit's 600px width
- */
-export const TOKEN_DIALOG_CLASSES =
-  'kern-dialog motion ring-kern-layout-border m-auto! max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! ring-1 ring-inset backdrop:bg-(--kern-color-action-state-indicator-shade)!';

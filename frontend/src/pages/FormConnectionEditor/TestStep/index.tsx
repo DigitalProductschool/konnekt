@@ -15,7 +15,6 @@ import EditDataDialog from './EditDataDialog';
 import GenerationFailed from './GenerationFailed';
 import PersonaPanel from './PersonaPanel';
 import PersonaPlaceholder from './PersonaPlaceholder';
-import PersonasAnnouncer from './PersonasAnnouncer';
 import RegenerateDialog from './RegenerateDialog';
 import ResultSection from './ResultSection';
 import TestDayLine from './TestDayLine';
@@ -278,7 +277,6 @@ export default function TestStep({
         onConfirm={confirmed}
         onCancel={cancelled}
       />
-      <PersonasAnnouncer announcement={state.announcement} announcementId={state.announcementId} />
       <Toast
         toast={saved?.message ? { id: saved.id, kind: 'success', message: saved.message } : null}
         onDismiss={dismissSaved}

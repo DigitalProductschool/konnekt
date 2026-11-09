@@ -5,16 +5,16 @@ Figma URL; follow the steps in order.
 
 Where the design's decisions are recorded:
 
-- `specs/001-servicebw-eudi-middleware/design-notes.md`: the copy, tokens and decisions of the
-  form connections' screens.
-- `specs/002-connection-rules/design-notes.md`: those of the rules and variants. Figma is out of step
-  with spec 002, so its `contracts/ui-screens.md` lists the decided deviations (F#, W#).
+- `specs/008-kern-revamp-redesign/design-notes.md`: the current record. It holds the token
+  overlay, the component decisions, the patterns, the verification tables and the history of the
+  decisions it superseded (§8). The feature's `spec.md` says what decides what (Figma: layout,
+  styling and wording; specs 001–007: behaviour); its `brief.md` is history from pass C on.
 - The active feature's `figma-audit/report.md`: sections "Figma must change (decided)" (F#),
   "Build without frames (decided)" (W#) and "Copy from outside the frontend (decided)" (C#).
-- `specs/008-kern-revamp-redesign/`: the port of the redesign on the KERN Revamp. Its `brief.md` is the
-  plan of record, its `spec.md` says what decides what (Figma: layout, styling and wording; specs
-  001–007: behaviour), and its `design-notes.md` (from pass C on) holds the token overlay, the
-  component decisions and the verification tables.
+- History: `specs/001-servicebw-eudi-middleware/design-notes.md` (the form connections' screens)
+  and `specs/002-connection-rules/design-notes.md` (the rules and variants, with the decided
+  deviations in its `contracts/ui-screens.md`). The copy and tokens they record are superseded by
+  spec 008; the decisions on behaviour they cite stay in force.
 - SVG glyphs from the design go into `frontend/src/assets/icons/`, decorative SVGs into
   `frontend/src/assets/illustrations/`; KERN's own icons use the `kern-icon` classes.
 
@@ -68,10 +68,10 @@ Dev server: `<npm run dev>` → `<http://localhost:5173/login>`. Start it in the
 - Never implement nodes outside the current task.
 - A difference from Figma that an F# or W# item prescribes is not a mismatch: list it with its item
   number in the verification table instead of fixing it.
-- History, superseded by spec 008 on 2026-11-06: until then, the Figma file
+- History, superseded by spec 008 on 2026-11-06: until then the Figma file
   (`s8mU9oJDq3411e8bxMjQO9`) bound KERN's variable names to the values of the unreleased KERN
-  "Revamp" while the app kept KERN 2.8's values, and a visual check listed such a value as "KERN 2.8
-  vs Revamp" instead of fixing it (decision 2026-10-25, `specs/002-connection-rules/design-notes.md`
-  §9). Spec 008 reversed this (its `brief.md`, decision 2): the Revamp value is the target, a
-  difference from it is a mismatch to fix, and "KERN 2.8 vs Revamp" is no longer a reason to leave
-  one. Spec 002's verification tables keep their old entries as history.
+  Revamp while the app kept KERN 2.8's values, and a visual check listed such a difference as
+  accepted instead of fixing it (decision 2026-10-25, `specs/002-connection-rules/design-notes.md`
+  §9). Spec 008 reversed this (`specs/008-kern-revamp-redesign/design-notes.md` §1 and §8
+  History): the Revamp value is the target and a difference from it is a mismatch to fix. Spec
+  002's verification tables keep their old entries as history.

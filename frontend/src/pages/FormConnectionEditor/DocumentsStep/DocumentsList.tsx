@@ -52,7 +52,7 @@ export default function DocumentsList({
       {listed.length > 0 && (
         <>
           <div aria-hidden="true" className="py-16">
-            <div className="h-1 bg-[#d0d5dd]" />
+            <div className="bg-card-divider h-1" />
           </div>
           <div className="-m-6 flex min-h-0 flex-1 flex-col gap-4 p-6 lg:overflow-y-auto">
             {needingData.length > 0 && (

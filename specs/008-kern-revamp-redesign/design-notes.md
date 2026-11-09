@@ -107,6 +107,7 @@ title / label / heading 600, heading-balanced 500, label-subtle 400) and Fira Sa
 | `--text-step` | the step circle's number | **removed** (the step line has no numbers, §7) |
 | `--color-variant-changed(-background)`, `--color-variant-new(-background)` | warning / violet | cosmetic 22 says both marks use the same purple in the design: the shared-components task reads U57 `6522:32682` and U58 `6522:32977` and sets the two tokens accordingly, recording the hexes here. **T003, 2026-11-08**: both purple, `#8a22b5` on `#f8f1fc` (values below) |
 | `--duration-pill` 240ms, `--duration-colour` 150ms, `--duration-height` 200ms, `--duration-page` 150ms | FR-050 | **new** (§4); set by T003 |
+| `--color-action-pressed` `#1643c1`, `--color-action-tint` `#eef3fe`, `--color-card-divider` `#d0d5dd` | the documents step's frame colours without a KERN token (rows below) | **new**, T090 (2026-11-09): the arbitrary values `bg-[#…]` became `bg-action-pressed`, `bg-action-tint`, `bg-card-divider`; same rendered values |
 
 **Values set by T003 (2026-11-08)**, read with `get_design_context` on "Middleware – V5"; a Figma
 drop shadow `(x, y), radius r, spread s, #rrggbbaa` is the CSS `box-shadow: x y r s` with the
@@ -149,9 +150,9 @@ Added in phase 6 (T049, T051): frame colours without a KERN token and the glyphs
 
 | value or file | where | note |
 |---|---|---|
-| `#1643c1` | "Add document" filled, pressed and hover (U20 7290:60519) | arbitrary `bg-[#1643c1]` in `DocumentsStep/SearchCard.tsx`: KERN 2.8's `action-state-indicator-shade-active` computes to a lighter blue in light mode; a `@theme` token would be cleaner (T090 or whoever next touches `index.css`) |
-| `#eef3fe` | "Add document" outlined, pressed and hover (U21 7290:61927) | arbitrary `bg-[#eef3fe]` (KERN's tint-hover at 12 % gives `#e4ecfd`) |
-| `#d0d5dd` | the list card's divider (U21 7294:61509) | arbitrary `bg-[#d0d5dd]` in `DocumentsList.tsx` (not `decorative-border-level-1`, `#d0d8e6`) |
+| `#1643c1` | "Add document" filled, pressed and hover (U20 7290:60519) | `@theme` token `--color-action-pressed` (`bg-action-pressed`, T090) in `DocumentsStep/SearchCard.tsx`: KERN 2.8's `action-state-indicator-shade-active` computes to a lighter blue in light mode |
+| `#eef3fe` | "Add document" outlined, pressed and hover (U21 7290:61927) | `@theme` token `--color-action-tint` (`bg-action-tint`, T090; KERN's tint-hover at 12 % gives `#e4ecfd`) |
+| `#d0d5dd` | the list card's divider (U21 7294:61509) | `@theme` token `--color-card-divider` (`bg-card-divider`, T090) in `DocumentsList.tsx` (not `decorative-border-level-1`, `#d0d8e6`) |
 | `icons/personal-id-action.svg`, `personal-id-muted.svg` | "Icon/Glyph" personal-id, tones blue (`#1D56F0`) and grey (`#4A5468`), 24 × 24, from U21 7290:61204 / 7290:62279 (`get_design_context` assets) | the documents step's shown list item and the search card's added rows |
 | `icons/driving-licence-ink-24.svg`, `driving-licence-action.svg`, `driving-licence-muted.svg` | "Icon/Glyph" driving-licence 24 × 24 from U20 7290:60719 (ink), recoloured to `#1D56F0` / `#4A5468` | the old `driving-licence-ink.svg` is 16 px (the rule editor) |
 | `icons/document-action.svg`, `document-muted.svg` | `document-ink.svg` recoloured | the generic document (a type without its own glyph) |
@@ -5335,6 +5336,35 @@ new layouts, the page scroll, the four steps and the header; `docs/KERN-DESIGN-S
 section on the overlay; `CLAUDE.md`'s UI rules are updated; spec 002's `design-notes.md` §9 gets
 a "superseded by spec 008" note and its `figma-audit/` stays as history with its node ids marked
 stale.
+
+### Result (T094, 2026-11-09)
+
+Run from the repository root after T090–T093 (each command of the block above, plus T092's
+unused-component loop):
+
+| Line | Command | Output |
+|---|---|---|
+| 1 | `index.css`: nothing of the old design | empty |
+| 2 | KERN 2.8 hexes, the 248 px menu | empty (the last hit, `#131525` in the unused `icons/logout.svg`, went with T091) |
+| 3 | five steps, the old product name | empty |
+| 4 | assets nobody imports | empty (T091 deleted 17 icons and 2 illustrations, and `utils/documentGlyphs.ts`) |
+| 5 | old texts outside the frontend | 186 lines, identifiers only (FR-019, FR-020, §8.2): `applicantOf` and its siblings, the oracle's `applicantsOn()`, variables and parameters named `applicant`, the type `Applicant`, `ApplicantField`, `applicantFieldsOf`, the MCP tool `test_applicants` and the fields `applicants`, `applicant`, `applicant_fields`, named in backticks in the guidance (`mcp/plugin/`, 8 lines) and `docs/ARCHITECTURE.md` (2 lines); no "Connection Portal"; no string a person reads says "applicant" (T093's classification, the coordinator's check of the string literals) |
+| 6 | superseded doc rules | empty (T093 rewrote `docs/FIGMA-WORKFLOW.md`'s history note) |
+| — | components and pages no module imports | empty (T092 deleted `TestStep/PersonasAnnouncer.tsx`) |
+
+The "Also" paragraph: `docs/FIGMA-WORKFLOW.md`'s list and spec 002's §9 note and `figma-audit/units.md`
+note are done (T093); `docs/ARCHITECTURE.md`, `docs/KERN-DESIGN-SYSTEM.md` and `CLAUDE.md` are
+T100's (phase 11).
+
+Kept on purpose: all seven `KERN_TRANSLATIONS` entries (the kit's prop type requires every key;
+`loading` and `closeDialog` are read directly); the arbitrary colours left in classes (`#e4e8ef`,
+`#0284c7`, `#05669e`, `#eff1f4`, `#8c94a1`, `#d9dee8`, `#eff1f5`) are Revamp values recorded here,
+none of KERN 2.8; the editor's `EditorState.dialogOpen`, `publishError`, `rulesChanged` (its
+reducer tests read them). New `@theme` tokens of T090: `--color-action-pressed` (#1643c1),
+`--color-action-tint` (#eef3fe), `--color-card-divider` (#d0d5dd) (§1.3).
+
+Gates: `npm run lint`, `npm run build` pass (Vite's chunk-size warning stays); `npm test`: rules
+43 files / 2351 tests, frontend 29 / 969, mcp 15 / 408, all passed. `backend/` (unchanged in this phase): `ruff check` all checks passed, `ruff format --check` 86 files already formatted, `mypy` no issues in 77 source files, `pytest` (`template_db_test`) 1998 passed (9 min 44 s).
 
 ## 8. History
 

@@ -1,4 +1,6 @@
 # Units — fileKey s8mU9oJDq3411e8bxMjQO9 | root 6263:12360 | 🔗 Flow · Connection Portal, log in to publish (source for the HTML build) | canvas (page, 0×0; content 30520×28559)
+> History: the node ids in this folder are stale since the redraw of 2026-11 (spec 008); don't use them.
+
 Mapper Figma calls: 1. Estimated audit calls: 176 (IN + UNCERTAIN units; screenshots per node-id + up to 3 design-context calls per unit).
 
 | UNIT-ID | node-ids | name | kind | w×h | desc | scope | status | counts | est. calls | notes |

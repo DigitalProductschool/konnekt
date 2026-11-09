@@ -73,11 +73,6 @@ export type DocumentsViewAction =
   | { type: 'search'; query: string }
   /** The search field's ×, or the card closing after a document was picked */
   | { type: 'clearSearch' }
-  /**
-   * A document has left the list with its undo toast, without this state's question (such as
-   * through the editor's own removal dialog): the toast's "Undo" can bring it back
-   */
-  | { type: 'removeInline'; documentId: string; listIds: readonly string[] }
   /** The toast's "Undo": the editor has put the document back, and it shows again */
   | { type: 'undoRemoval'; listIds: readonly string[]; catalogOrder: readonly string[] }
   /**
@@ -91,7 +86,7 @@ export type DocumentsViewAction =
   | { type: 'keepDocument' }
   /**
    * "Remove document", once the page has removed the asked document through the editor: the
-   * question closes and the removal waits for its undo, as `removeInline`
+   * question closes and the removal waits for its undo
    */
   | { type: 'confirmRemovalDone'; listIds: readonly string[] }
   /**
@@ -240,8 +235,6 @@ export interface SearchCardProps {
   query: string;
   /** "Add document" is filled while no document is added, outlined once one is (U04 #37) */
   filled: boolean;
-  /** The id of a message about adding documents, which describes the button */
-  describedBy?: string;
   onSearch: (query: string) => void;
   onClearSearch: () => void;
   onAdd: (documentType: DocumentType) => void;

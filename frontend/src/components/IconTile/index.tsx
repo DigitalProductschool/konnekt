@@ -5,13 +5,9 @@ import type { IconTileProps } from './types';
 const TONE_CLASSES: Record<IconTileProps['tone'], string> = {
   action: 'rounded-kern-default bg-kern-action-default/12',
   plain: 'rounded-kern-circle bg-kern-layout-background-default',
-  blue: 'rounded-kern-default bg-kern-darkblue-050',
-  grey: 'rounded-kern-default bg-kern-neutral-050',
-  outline: 'rounded-kern-default border border-kern-neutral-100 bg-kern-layout-background-default',
 };
 
 const SIZE_CLASSES: Record<IconTileProps['size'], string> = {
-  28: 'size-28',
   40: 'size-40',
   48: 'size-48',
 };

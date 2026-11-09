@@ -11,7 +11,6 @@ import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';
 import {
-  ageDraftKey,
   ageTextOf,
   changedValuesOf,
   CLOSED_EDIT_DATA,
@@ -515,20 +514,6 @@ describe('draftsReducer', () => {
     expect(state).toEqual({ a: { text: '31.02', error: 'bad' } });
     state = draftsReducer(state, { type: 'edit', key: 'a', text: '28.02.2007', error: null });
     expect(state).toEqual({ a: { text: '28.02.2007', error: null } });
-  });
-
-  it('drops the invalid drafts on done', () => {
-    let state = draftsReducer({}, { type: 'edit', key: 'a', text: 'x', error: 'bad' });
-    state = draftsReducer(state, { type: 'edit', key: NAME_DRAFT_KEY, text: '', error: 'e' });
-    state = draftsReducer(state, { type: 'edit', key: ageDraftKey('a'), text: '5', error: null });
-    expect(draftsReducer(state, { type: 'done' })).toEqual({
-      'age:a': { text: '5', error: null },
-    });
-  });
-
-  it('empties on reset', () => {
-    const state = draftsReducer({}, { type: 'edit', key: 'a', text: 'x', error: null });
-    expect(draftsReducer(state, { type: 'reset' })).toEqual({});
   });
 });
 

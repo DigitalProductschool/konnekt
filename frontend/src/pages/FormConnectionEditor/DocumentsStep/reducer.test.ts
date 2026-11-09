@@ -165,44 +165,26 @@ describe('the selection after a removal (U24 A11 → A12)', () => {
   });
 });
 
-describe('removeInline (a removal without this view’s question)', () => {
-  it('waits for Undo and moves the selection as a confirmed removal does', () => {
-    const removed = documentsViewReducer(state({ selectedIndex: 1 }), {
-      type: 'removeInline',
-      documentId: 'mdl',
-      listIds: ['pid', 'mdl'],
-    });
-    expect(removed).toEqual(state({ selectedIndex: 0, pendingRemoval: { documentId: 'mdl' } }));
-  });
-
-  it('answers a question about the same document, and leaves one about another', () => {
-    const asked = state({ confirmRemoval: { documentId: 'mdl', rules: RULES } });
-    const listIds = ['pid', 'mdl'];
-    expect(
-      documentsViewReducer(asked, { type: 'removeInline', documentId: 'mdl', listIds })
-        .confirmRemoval
-    ).toBeNull();
-    expect(
-      documentsViewReducer(asked, { type: 'removeInline', documentId: 'pid', listIds })
-        .confirmRemoval
-    ).toEqual({ documentId: 'mdl', rules: RULES });
-  });
-
+describe('a confirmed removal (the shared bookkeeping)', () => {
   it('replaces an older removal: only the newest toast offers Undo', () => {
     const twice = run([
-      { type: 'removeInline', documentId: 'pid', listIds: ['pid', 'mdl', 'ehic'] },
-      { type: 'removeInline', documentId: 'ehic', listIds: ['mdl', 'ehic'] },
+      { type: 'askRemoval', documentId: 'pid', rules: [] },
+      { type: 'confirmRemovalDone', listIds: ['pid', 'mdl', 'ehic'] },
+      { type: 'askRemoval', documentId: 'ehic', rules: [] },
+      { type: 'confirmRemovalDone', listIds: ['mdl', 'ehic'] },
     ]);
     expect(twice.pendingRemoval).toEqual({ documentId: 'ehic' });
   });
 
   it('takes the document’s needs-data flag away, and keeps the others', () => {
     const flagged = state({ needsData: { documentIds: ['pid', 'mdl'], asking: false } });
-    const removed = documentsViewReducer(flagged, {
-      type: 'removeInline',
-      documentId: 'mdl',
-      listIds: ['pid', 'mdl'],
-    });
+    const removed = run(
+      [
+        { type: 'askRemoval', documentId: 'mdl', rules: [] },
+        { type: 'confirmRemovalDone', listIds: ['pid', 'mdl'] },
+      ],
+      flagged
+    );
     expect(removed.needsData).toEqual({ documentIds: ['pid'], asking: false });
   });
 });
@@ -223,7 +205,8 @@ describe('undoRemoval (the toast’s Undo)', () => {
   it('shows a document that went while another one showed', () => {
     const undone = run([
       { type: 'select', index: 1 },
-      { type: 'removeInline', documentId: 'pid', listIds: ['pid', 'mdl'] },
+      { type: 'askRemoval', documentId: 'pid', rules: [] },
+      { type: 'confirmRemovalDone', listIds: ['pid', 'mdl'] },
       { type: 'undoRemoval', listIds: ['mdl'], catalogOrder: CATALOG_ORDER },
     ]);
     expect(undone.selectedIndex).toBe(0);

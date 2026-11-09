@@ -2,11 +2,9 @@ import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { generatePath, Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
+import { EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import { DETAIL_COPY } from './constants';
 import type { DetailFooterProps } from './types';
-
-// "Edit connection" opens the edit flow at step 1 (FR-046)
-const EDIT_CONNECTION: EditLocationState = { step: 'connection' };
 
 /**
  * The actions of Figma "Shell/Footer" on the details (U80 6424:34839) and a draft's (U93
@@ -18,7 +16,7 @@ const EDIT_CONNECTION: EditLocationState = { step: 'connection' };
  * →" alone, where it will stay. The footer wraps where they don't fit.
  */
 export default function DetailFooter({ formConnectionId, draft, onEdit }: DetailFooterProps) {
-  const editState: EditLocationState = draft ? { step: draft.step } : EDIT_CONNECTION;
+  const editState: EditLocationState = draft ? { step: draft.step } : EDIT_ENTRY_STATE;
   // Only a published connection asks first: a draft was never live (F48, T081)
   const asksFirst = onEdit !== undefined && !draft;
   const editContent = (

@@ -36,19 +36,6 @@ export const EDITOR_COPY = {
   documentsTitle: 'Choose documents and data',
   documentsHint:
     'Add the documents citizens need to share for this connection. You can set rules in the next step using information you select here.',
-  available: 'Available in the wallet',
-  add: 'Add',
-  added: 'Added',
-  remove: 'Remove',
-  // Starts with the visible "Added", for speech input (WCAG 2.5.3); "Remove" shows on focus
-  removeLabel: (document: string) => `Added, remove ${document}`,
-  upcoming: (count: number) => `Coming to the wallet (${count})`,
-  upcomingNote: 'You can add these once the wallet supports them.',
-  emptyTitle: 'No documents yet',
-  emptyText:
-    'Add a document from the list on the left. Its data shows up here, and you choose what to ask for.',
-  allData: 'All data',
-  shared: (selected: number, total: number) => `${selected} of ${total} shared`,
   removed: (document: string) => `${document} removed.`,
   undo: 'Undo',
   loadingCatalog: 'Loading the wallet documents…',
@@ -65,7 +52,6 @@ export const EDITOR_COPY = {
   // build note U05 #27 words it (figma-audit report, cosmetic 6)
   editConnectionTitle: 'Connection details',
   editConnectionHint: 'Rename this connection or update its description.',
-  editDocumentsTitle: 'Edit documents',
   save: 'Save',
   // The test step (spec 004, S2, S8; FR-004)
   testRules: 'Test rules',
@@ -181,29 +167,6 @@ export const PUBLISH_COPY = {
   replaceTheirChanges: 'Replace their changes',
 };
 
-// The question before data that rules check goes (F18): U10 6324:40071 for a document and
-// 6324:40396 for a field. The rules are listed, one per line, between the dialog's two
-// sentences; "All data" and the singular are proposed (design-notes.md §2)
-const rulesCheck = (count: number) => `${count} ${count === 1 ? 'rule checks' : 'rules check'}`;
-const editThem = (count: number, editing: boolean) =>
-  `edit or delete ${count === 1 ? 'this rule' : 'these rules'} before you ${editing ? 'save' : 'publish'}.`;
-
-export const REMOVE_DATA_COPY = {
-  documentTitle: (document: string) => `Remove ${document}?`,
-  fieldTitle: (field: string) => `Stop requesting ${field}?`,
-  allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
-  documentText: (count: number) => `${rulesCheck(count)} data from this document:`,
-  fieldText: (count: number) => `${rulesCheck(count)} it:`,
-  allFieldsText: (count: number) => `${rulesCheck(count)} this data:`,
-  documentAfter: (count: number, editing: boolean) =>
-    `After removing it, ${editThem(count, editing)}`,
-  fieldAfter: (count: number, editing: boolean) => `After this, ${editThem(count, editing)}`,
-  rule: (rule: string, branch: string) => `${rule} in ${branch}`,
-  cancel: 'Cancel',
-  removeDocument: 'Remove document',
-  stopRequesting: 'Stop requesting',
-};
-
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';
 
@@ -216,19 +179,7 @@ export const VALIDATION_MESSAGES = {
   nameRequired: 'Enter a name for the connection.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
   descriptionTooLong: `The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
-  noDocuments: 'Add at least one document.',
-  noFields: (document: string) => `Select at least one field for '${document}'.`,
 };
-
-// Documents the wallet doesn't hold yet (Figma "Nav/Coming soon"); they can't be added
-export const UPCOMING_DOCUMENTS = [
-  'Certificate of good conduct',
-  'Proof of expertise',
-  'Eye test certificate',
-  'Medical fitness certificate',
-  'Residence permit',
-  'Vehicle registration',
-];
 
 /**
  * A branch id as the server takes it (spec 007, research R10): a UUID in its canonical form, as
@@ -255,8 +206,6 @@ export const ELEMENT_IDS = {
   addVariant: 'add-variant',
   name: 'connection-name',
   description: 'connection-description',
-  documentsError: 'documents-error',
-  pickerButton: (documentType: string) => `document-picker-${documentType}`,
   allData: (documentType: string) => `document-${documentType}-all`,
   fieldsError: (documentType: string) => `document-${documentType}-error`,
   field: (documentType: string, field: string) => `document-${documentType}-${field}`,

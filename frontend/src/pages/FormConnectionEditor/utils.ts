@@ -32,7 +32,6 @@ import {
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
   PUBLISH_COPY,
-  REMOVE_DATA_COPY,
   RULES_CHANGED_ERROR,
   VALIDATION_MESSAGES,
 } from './constants';
@@ -159,15 +158,6 @@ function inCatalogOrder(documents: RequestedDocument[], catalogOrder: string[]) 
   );
 }
 
-function withoutFieldError(errors: EditorErrors, documentType: string): EditorErrors {
-  if (!errors.fields?.[documentType]) {
-    return errors;
-  }
-  const fields = { ...errors.fields };
-  delete fields[documentType];
-  return { ...errors, fields };
-}
-
 /** The change a removal makes, once it is confirmed or needs no question. */
 export function removalAction(removal: PendingRemoval): EditorAction {
   switch (removal.type) {
@@ -204,50 +194,6 @@ export function removedDataRulesOf(
   }));
 }
 
-/**
- * The removal dialog's words for a removal that names `count` rules (U10; F18): a document's
- * removal or a field's deselection, as designed, or "All data" unticked. In the edit flow the
- * rules need changing "before you save". Empty while no removal waits.
- */
-export function removalCopyOf(
-  removal: PendingRemoval | null,
-  count: number,
-  editing: boolean
-): { title: string; text: string; after: string; confirmLabel: string } {
-  if (!removal) {
-    return { title: '', text: '', after: '', confirmLabel: '' };
-  }
-  if (removal.type === 'dropped') {
-    // Spec 002's words for data that stops being requested, naming every dropped item
-    return {
-      title: REMOVE_DATA_COPY.fieldTitle(removal.label),
-      text: REMOVE_DATA_COPY.allFieldsText(count),
-      after: REMOVE_DATA_COPY.fieldAfter(count, editing),
-      confirmLabel: REMOVE_DATA_COPY.stopRequesting,
-    };
-  }
-  if (removal.type === 'document') {
-    return {
-      title: REMOVE_DATA_COPY.documentTitle(removal.label),
-      text: REMOVE_DATA_COPY.documentText(count),
-      after: REMOVE_DATA_COPY.documentAfter(count, editing),
-      confirmLabel: REMOVE_DATA_COPY.removeDocument,
-    };
-  }
-  return {
-    title:
-      removal.type === 'field'
-        ? REMOVE_DATA_COPY.fieldTitle(removal.label)
-        : REMOVE_DATA_COPY.allFieldsTitle(removal.label),
-    text:
-      removal.type === 'field'
-        ? REMOVE_DATA_COPY.fieldText(count)
-        : REMOVE_DATA_COPY.allFieldsText(count),
-    after: REMOVE_DATA_COPY.fieldAfter(count, editing),
-    confirmLabel: REMOVE_DATA_COPY.stopRequesting,
-  };
-}
-
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case 'changeName':
@@ -282,7 +228,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: inCatalogOrder([...state.documents, added], action.catalogOrder),
-        errors: { ...state.errors, documents: undefined },
       };
     }
     case 'removeDocument': {
@@ -295,7 +240,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: state.documents.filter((document) => document !== removed),
-        errors: withoutFieldError(state.errors, action.documentType),
         removed,
         toast: {
           id: (state.toast?.id ?? 0) + 1,
@@ -315,7 +259,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: inCatalogOrder([...state.documents, removed], action.catalogOrder),
-        errors: { ...state.errors, documents: undefined },
         removed: null,
         toast: null,
       };
@@ -332,9 +275,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           const fields = document.fields.filter((field) => field !== action.field);
           return { ...document, fields: action.selected ? [...fields, action.field] : fields };
         }),
-        errors: action.selected
-          ? withoutFieldError(state.errors, action.documentType)
-          : state.errors,
       };
     case 'setAllFields':
       return {
@@ -344,10 +284,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             ? { ...document, fields: action.fields }
             : document
         ),
-        errors:
-          action.fields.length > 0
-            ? withoutFieldError(state.errors, action.documentType)
-            : state.errors,
       };
     case 'askRemoval':
       return { ...state, pendingRemoval: action.removal };
@@ -378,11 +314,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
               }
             : document;
         });
-      return {
-        ...state,
-        documents,
-        errors: goneTypes.reduce(withoutFieldError, state.errors),
-      };
+      return { ...state, documents };
     }
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
@@ -430,47 +362,15 @@ export function validateConnection(name: string, description: string): EditorErr
   return errors;
 }
 
-/** Step 2: at least one document, and at least one field for each. */
-export function validateDocuments(
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): EditorErrors {
-  if (documents.length === 0) {
-    return { documents: VALIDATION_MESSAGES.noDocuments };
-  }
-  const fields: Record<string, string> = {};
-  for (const document of documents) {
-    if (document.fields.length === 0) {
-      fields[document.document_type] = VALIDATION_MESSAGES.noFields(
-        labelOf(document.document_type, documentTypes)
-      );
-    }
-  }
-  return Object.keys(fields).length > 0 ? { fields } : {};
-}
-
 export function hasErrors(errors: EditorErrors): boolean {
-  return Boolean(
-    errors.name ||
-    errors.description ||
-    errors.documents ||
-    Object.keys(errors.fields ?? {}).length > 0
-  );
+  return Boolean(errors.name || errors.description);
 }
 
 /** The element that gets the focus after a refused step: the first one with a problem. */
-export function firstInvalidElementId(
-  errors: EditorErrors,
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): string | null {
+export function firstInvalidElementId(errors: EditorErrors): string | null {
   if (errors.name) return ELEMENT_IDS.name;
   if (errors.description) return ELEMENT_IDS.description;
-  if (errors.documents && documentTypes.length > 0) {
-    return ELEMENT_IDS.pickerButton(documentTypes[0].key);
-  }
-  const invalid = documents.find((document) => errors.fields?.[document.document_type]);
-  return invalid ? ELEMENT_IDS.allData(invalid.document_type) : null;
+  return null;
 }
 
 export function labelOf(documentType: string, documentTypes: DocumentType[]): string {

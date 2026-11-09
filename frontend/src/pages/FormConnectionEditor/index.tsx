@@ -649,7 +649,7 @@ function ConnectionWizard({
   /** Shows the messages, then moves the focus to the first problem (step 1's fields). */
   function refuse(errors: EditorErrors) {
     flushSync(() => dispatch({ type: 'showErrors', errors }));
-    const id = firstInvalidElementId(errors, state.documents, documentTypes);
+    const id = firstInvalidElementId(errors);
     if (id) {
       document.getElementById(id)?.focus();
     }

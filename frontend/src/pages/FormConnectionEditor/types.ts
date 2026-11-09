@@ -1,5 +1,4 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   EditorStep,
   FormConnection,
@@ -162,10 +161,6 @@ export type RulesNextAction = 'test' | 'publishWithoutRules';
 export interface EditorErrors {
   name?: string;
   description?: string;
-  /** No document was added */
-  documents?: string;
-  /** By document type: a document without a selected field */
-  fields?: Record<string, string>;
 }
 
 /**
@@ -273,72 +268,6 @@ export interface ConnectionStepProps {
   onChangeName: (value: string) => void;
   onChangeDescription: (value: string) => void;
   onSubmit: () => void;
-}
-
-export interface DocumentsStepProps {
-  catalogStatus: 'loading' | 'loaded' | 'failed';
-  documentTypes: DocumentType[];
-  documents: RequestedDocument[];
-  errors: EditorErrors;
-  /**
-   * The data the catalog dropped (S8): the note above the picker shows while there is any. Empty
-   * in the published edit flow, which stays as it is (FR-026)
-   */
-  dropped: DroppedData[];
-  /** The note, which takes the focus when the flow moved to this step for it (S8) */
-  droppedNoteRef: Ref<HTMLElement>;
-  /** The note's "Remove it" */
-  onRemoveDropped: () => void;
-  onRetryCatalog: () => void;
-  onAdd: (documentType: DocumentType) => void;
-  onRemove: (documentType: DocumentType) => void;
-  onSetField: (documentType: string, field: string, selected: boolean) => void;
-  onSetAllFields: (documentType: string, fields: string[]) => void;
-}
-
-export interface DocumentPickerProps {
-  documentTypes: DocumentType[];
-  documents: RequestedDocument[];
-  /** The id of the "Add at least one document." message, while it is shown */
-  errorId?: string;
-  onAdd: (documentType: DocumentType) => void;
-  onRemove: (documentType: DocumentType) => void;
-}
-
-export interface DocumentPickerItemProps {
-  documentType: DocumentType;
-  added: boolean;
-  describedBy?: string;
-  onAdd: () => void;
-  onRemove: () => void;
-}
-
-export interface UpcomingDocumentItemProps {
-  name: string;
-}
-
-export interface DocumentCardProps {
-  documentType: DocumentType;
-  selected: string[];
-  error?: string;
-  onSetField: (field: string, selected: boolean) => void;
-  onSetAllFields: (fields: string[]) => void;
-}
-
-export interface FieldChecklistProps {
-  documentType: DocumentType;
-  selected: string[];
-  /** The id of the document's validation message, while it is shown */
-  errorId?: string;
-  onSetField: (field: string, selected: boolean) => void;
-  onSetAllFields: (fields: string[]) => void;
-}
-
-export interface FieldCheckboxProps {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
 }
 
 /**
@@ -470,10 +399,6 @@ export interface RemoveDataDialogProps {
   editing: boolean;
   onCancel: () => void;
   onConfirm: () => void;
-}
-
-export interface RemovedDataRuleItemProps {
-  rule: RemovedDataRule;
 }
 
 export interface PublishSummaryRowProps {

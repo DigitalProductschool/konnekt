@@ -2,7 +2,12 @@ import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { type MouseEvent, type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
 import ErrorNoticeText from '../ErrorNoticeText';
-import { CONFIRM_DIALOG_COPY, DIALOG_ACTIONS_CLASSES, DIALOG_WIDTH_CLASSES } from './constants';
+import {
+  CONFIRM_DIALOG_COPY,
+  DIALOG_ACTIONS_CLASSES,
+  DIALOG_FRAME_CLASSES,
+  DIALOG_WIDTH_CLASSES,
+} from './constants';
 import type { ConfirmDialogProps } from './types';
 
 /** Whether a pointer event on the dialog element itself lies outside its box: on the scrim */
@@ -123,7 +128,7 @@ export default function ConfirmDialog({
       // the design's scrim: the shade colour at KERN's overlay opacity (72 %, kern.css's own;
       // it uses black). The !s beat kern.css, which isn't in a cascade layer. The fade is
       // index.css's ("Dialog")
-      className={`kern-dialog motion ring-kern-layout-border m-auto! max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! ring-1 ring-inset backdrop:bg-(--kern-color-action-state-indicator-shade)! ${DIALOG_WIDTH_CLASSES[wide ? 'wide' : 'default']}`}
+      className={`${DIALOG_FRAME_CLASSES} ${DIALOG_WIDTH_CLASSES[wide ? 'wide' : 'default']}`}
     >
       <header className="kern-dialog__header">
         {/* The kit's container, which puts the title 8px lower than kern.css and 16px from the × */}

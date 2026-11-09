@@ -112,14 +112,6 @@ export interface RegenerateDialogProps {
   onCancel: () => void;
 }
 
-/** `PersonasAnnouncer` (S8.10; F2; T047): the hidden status region for changes of outcome */
-export interface PersonasAnnouncerProps {
-  /** `state.announcement`: the latest text, '' when the last change moved no outcome */
-  announcement: string;
-  /** `state.announcementId`: goes up with every non-empty announcement */
-  announcementId: number;
-}
-
 /** `PersonaPanel` (S8.4; T033): the selected persona's data card, left of the results */
 export interface PersonaPanelProps {
   /** A ready persona */
@@ -298,11 +290,7 @@ export type DraftsState = Readonly<Record<string, Draft>>;
 /** `draftsReducer()`'s actions */
 export type DraftsAction =
   /** One entry was typed: its text and its error, `null` when it is valid */
-  | { type: 'edit'; key: string; text: string; error: string | null }
-  /** "Done", or ending edit mode otherwise: drops the invalid drafts, keeps the valid ones */
-  | { type: 'done' }
-  /** Drops every draft: another persona, a persona generated anew */
-  | { type: 'reset' };
+  { type: 'edit'; key: string; text: string; error: string | null };
 
 /** An entry's parse: its value (`null` when empty), or the error to show under its field */
 export type ParseResult<T> = { ok: true; value: T | null } | { ok: false; error: string };

@@ -110,13 +110,6 @@ export const STEP_LABELS: Record<EditorStep, string> = {
   test: 'Test',
 };
 
-// "5 Oct 2026": the baseline's date, which the other pages still use (Account, Approval, details)
-export const EDITED_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-
 // "28.10.2026": a row's date (cosmetic 3, design-notes §3 "Dates"; U13 6739:40556)
 export const ROW_DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
