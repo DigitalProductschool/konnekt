@@ -1,0 +1,1 @@
+{"name":"pdf-spike","private":true,"type":"module","dependencies":{"@expo-google-fonts/fira-mono":"^0.4.1","@expo-google-fonts/fira-sans":"^0.4.1","@kern-ux/native":"^2.8.2","pdfkit":"^0.20.2","vite":"^8.3.5"}}
