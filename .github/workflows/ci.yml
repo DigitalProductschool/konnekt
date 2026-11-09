@@ -1,6 +1,6 @@
-# The checks of "Before you finish" in CLAUDE.md, on every push and pull request
-# (README.md, "Continuous integration"). One job per kind of check and side, so each one is
-# its own status check on a pull request; they all run in parallel
+# The checks of "Before you finish" in CLAUDE.md and a scan for secrets, on every push and pull
+# request (README.md, "Continuous integration"). One job per kind of check and side, so each one
+# is its own status check on a pull request; they all run in parallel
 name: CI
 
 on:
@@ -183,3 +183,36 @@ jobs:
       # and the replay of the evaluator's vectors
       - name: Vitest
         run: npm test
+
+  # gitleaks, the MIT command-line tool, at the version of the hook in .pre-commit-config.yaml:
+  # change them together. Not gitleaks-action, whose license needs a key for an organization's
+  # repositories (README.md, "Secrets (gitleaks)")
+  secrets:
+    name: 'Secrets: gitleaks'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: '8.30.1'
+      # Of gitleaks_8.30.1_linux_x64.tar.gz, from the release's gitleaks_8.30.1_checksums.txt
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The whole history, which the scan reads
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/gitleaks"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/gitleaks" gitleaks
+          echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+      # Every commit the checked-out one reaches: main's and the branch's, not the other
+      # branches' (`--log-opts=HEAD`; without it, gitleaks reads `--all`). A finding prints its
+      # file, line, commit and fingerprint, never the secret (`--redact`)
+      - name: gitleaks
+        run: gitleaks git --log-opts=HEAD --redact --verbose --no-banner

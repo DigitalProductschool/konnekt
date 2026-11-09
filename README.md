@@ -34,7 +34,7 @@ draft or to deactivate, reactivate or delete a live connection. See
 - **MCP server**: Node, TypeScript, the official MCP TypeScript SDK 2, zod 4, Vite (build)
 - **Database**: PostgreSQL 18
 - **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
-- **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, uv (Python), Docker
+- **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, gitleaks, uv (Python), Docker
 
 ### Dependencies added to the template
 
@@ -55,6 +55,7 @@ draft or to deactivate, reactivate or delete a live connection. See
 | `zod` 4.6.7 | mcp | The tools' input schemas, published as JSON Schema by the SDK |
 | `@modelcontextprotocol/client` 2.4.0 | mcp, `devDependencies` | The MCP client of the server's integration tests |
 | `vite-node` 6.0.0 | mcp, `devDependencies` | Runs the MCP server in development (`npm run dev`) through Vite's transform, which the embedded skills (`import.meta.glob` with `?raw`) need |
+| `gitleaks` 8.30.1 | pre-commit hook and CI | Looks for secrets (keys, tokens, passwords) in the staged changes and in the history, so none reaches the repository unnoticed ([Secrets (gitleaks)](#secrets-gitleaks)). MIT |
 
 The three KERN packages and `react-router` are pinned to exact versions; for KERN, a version
 mismatch between the packages is the most likely cause of visual breakage.
@@ -101,8 +102,8 @@ Skills extension is marked experimental in 2.4.0.
 ├── specs/                 # Specification, plan and tasks (Spec Kit)
 ├── .claude-plugin/
 │   └── marketplace.json   # Claude Code marketplace that lists mcp/plugin
-├── .github/workflows/ci.yml # CI: six parallel jobs (lint & format, types, tests per side)
-├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint)
+├── .github/workflows/ci.yml # CI: seven parallel jobs (lint & format, types, tests per side; secrets)
+├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint, gitleaks)
 ├── docker-compose.yml     # Local development
 └── docker-compose.prod.yml # Production and previews (Coolify)
 ```
@@ -392,6 +393,9 @@ The hooks in `.pre-commit-config.yaml` run on every `git commit`:
 - `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and `mcp/`
   files, run from the repository root
 - trailing whitespace, merge conflict markers, large files
+- `gitleaks` on the staged changes, which refuses a commit that adds a secret (see
+  [Secrets (gitleaks)](#secrets-gitleaks)). pre-commit builds it from source the first time it
+  runs, which takes a minute, and fetches Go for it if Go isn't installed
 
 Installation is automatic — `npm install` at the repository root runs a `prepare` script
 that calls `uv run pre-commit install` in `backend/`, so the workspace install is what wires
@@ -414,8 +418,9 @@ uv run pre-commit autoupdate
 ### Continuous integration
 
 GitHub Actions runs `.github/workflows/ci.yml` on every push to any branch, on every pull
-request, and by hand from the Actions tab (*Run workflow*). It has six jobs, one per kind of
-check and side, so each is its own status check on a pull request. They run in parallel:
+request, and by hand from the Actions tab (*Run workflow*). It has seven jobs, one per kind of
+check and side and a secret scan, so each is its own status check on a pull request. They run
+in parallel:
 
 | | Lint & format | Types | Tests |
 |---|---|---|---|
@@ -433,8 +438,45 @@ Node 26. Change them together, and add a new check to the workflow when you add 
 you finish" in `CLAUDE.md`.
 
 To block merging a red pull request, make the jobs required status checks in the repository's
-branch protection for `main` (all six, or only types and tests if formatting should stay
-advisory).
+branch protection for `main` (all seven, or only types, tests and secrets if formatting should
+stay advisory).
+
+### Secrets (gitleaks)
+
+[gitleaks](https://github.com/gitleaks/gitleaks) looks for secrets, such as API keys, tokens,
+private keys and passwords in URLs, with its default rules:
+
+- The pre-commit hook scans the staged changes and refuses the commit.
+- CI's *Secrets: gitleaks* job scans every commit that the pushed commit, or the pull request's
+  merge, reaches. It catches a commit made without the hooks too, such as one from GitHub's web
+  editor.
+
+CI downloads the gitleaks binary from its GitHub release and checks it against the SHA-256 in the
+workflow. It doesn't use gitleaks-action, whose license needs a key for an organization's
+repositories and sends the repository's name to a license server. The hook and the job pin the
+same version, 8.30.1: change `rev` in `.pre-commit-config.yaml` and `GITLEAKS_VERSION` and
+`GITLEAKS_SHA256` in the workflow together.
+
+When gitleaks reports a finding:
+
+- **A real secret**: revoke or rotate it where it was issued first, because deleting it from the
+  code leaves it in the history. Then move it into an untracked `.env` (see
+  [Environment Variables](#environment-variables)). If the commit was already pushed, add the
+  finding's fingerprint to `.gitleaksignore`, as for a false positive; the secret no longer works.
+- **Not a secret** (a test value, a placeholder): on a line you are committing, a
+  `gitleaks:allow` comment at its end. For a commit already pushed, its fingerprint from the
+  job's log (`<commit>:<file>:<rule>:<line>`), one per line in `.gitleaksignore` at the root. For a
+  whole file or pattern, an `[[allowlists]]` entry in a `.gitleaks.toml` at the root that starts
+  with `[extend]` and `useDefault = true`, so that the default rules still apply.
+
+Don't get past the hook with `git commit --no-verify` or `SKIP=gitleaks`.
+
+To scan the history on your machine as CI does, with gitleaks 8.30.1 on your PATH (from the
+[release](https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1)), from the root:
+
+```bash
+gitleaks git --log-opts=HEAD --redact --verbose
+```
 
 ### Format on save
 
