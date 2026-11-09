@@ -87,6 +87,13 @@ export const DELETE_DIALOG_COPY = {
   retry: 'Try again',
 };
 
+/**
+ * A row's "Edit" (U13 6739:40602): a link for a draft, a button for a published connection, which
+ * asks first (F48). Figma draws the 1px outline inside the 8px padding (77 wide); KERN adds it
+ * outside
+ */
+export const ROW_EDIT_CLASSES = 'kern-btn kern-btn--secondary kern-btn--small px-7!';
+
 export const INITIAL_ROW_DELETE_STATE: RowDeleteState = {
   target: null,
   open: false,

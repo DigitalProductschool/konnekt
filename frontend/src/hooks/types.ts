@@ -1,3 +1,4 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
@@ -40,13 +41,18 @@ export interface CurrentUserContextValue {
 export type FormConnectionState =
   | { status: 'loading'; attempt: number }
   | { status: 'notFound'; attempt: number }
-  | { status: 'failed'; attempt: number }
+  | {
+      status: 'failed';
+      attempt: number;
+      /** What the server answered, with a 5xx answer's error ID (W2); null when it didn't answer */
+      notice: ErrorNotice | null;
+    }
   | { status: 'loaded'; attempt: number; formConnection: FormConnectionOrDraft };
 
 export type FormConnectionAction =
   | { type: 'loaded'; formConnection: FormConnectionOrDraft }
   | { type: 'notFound' }
-  | { type: 'failed' }
+  | { type: 'failed'; notice: ErrorNotice | null }
   | { type: 'retry' };
 
 // useRuleChecks() (specs/003-rule-consistency-checks, contracts/rule-checks.md "useRuleChecks")

@@ -2,29 +2,24 @@ import { BANNER_ICONS } from './RulesStep/constants';
 import type { PublishFindingLineProps } from './types';
 
 /**
- * A branch's findings in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019), built
- * from spec 002's warnings line (U33 6376:26181, "1 warning on Ambulance"): the 20 px kind icon,
- * 8 px, then the text in body/default, top-aligned so that a long line wraps under itself. In the
- * warning style, as drawn, when the branch has a conflict or no citizen can meet it: KERN's
- * warning triangle and the text in label/default and `feedback-warning`. In the info style
- * otherwise, less prominently: KERN's info icon and the text in regular weight and
- * `feedback-info`. The text names the branch and says what its findings are, so the icon is
- * decorative.
+ * A variant's findings in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019;
+ * FR-022), Figma `Rules/Finding item` in "Rule findings" (U77 6760:47354, 6760:47372; U63
+ * 7112:48859): the 20 px kind icon, 8 px, then the text in body/small and the default text colour,
+ * as C4's sentence ("Ambulance: no citizen can meet these rules. 2 rules contradict each other,
+ * and 1 rule is a duplicate."). KERN's warning triangle in `feedback-warning` when the variant has
+ * a conflict or no citizen can meet it, its info icon in `feedback-info` otherwise. The icon sits
+ * in the middle of the text's lines, as the frame's centred row draws it. The text names the
+ * variant and says what its findings are, so the icon is decorative. The approval page lists its
+ * findings with it too (spec 007, S3).
  */
 export default function PublishFindingLine({ line }: PublishFindingLineProps) {
-  const warning = line.tone === 'warning';
   return (
-    <li className="flex items-start gap-8">
-      {/* The 24 px line box centres the icon on the first line, as Figma's centred row does */}
-      <span className="flex h-24 shrink-0 items-center">
-        <span
-          aria-hidden="true"
-          className={`kern-icon ${BANNER_ICONS[line.tone]} kern-icon--small`}
-        />
-      </span>
-      <p
-        className={`text-kern-static-medium min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static) break-words ${warning ? 'text-kern-feedback-warning font-semibold' : 'text-kern-feedback-info'}`}
-      >
+    <li className="flex items-center gap-8">
+      <span
+        aria-hidden="true"
+        className={`kern-icon ${BANNER_ICONS[line.tone]} kern-icon--small shrink-0`}
+      />
+      <p className="text-kern-static-small text-kern-layout-text-default min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static) break-words">
         {line.text}
       </p>
     </li>

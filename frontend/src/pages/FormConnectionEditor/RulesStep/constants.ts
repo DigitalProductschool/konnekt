@@ -398,6 +398,9 @@ export const RULES_COPY = {
     `Rules you changed or added in ${variant} are deleted. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
   deleteVariantTextEditing: (variant: string, others: string, count: number) =>
     `The connection is active, so this only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
+  // A deactivated connection's edit flow (no frame): 11.5b's body without its first clause
+  deleteVariantTextEditingInactive: (variant: string, others: string, count: number) =>
+    `This only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
   deleteVariantConfirm: 'Delete variant',
   keepVariant: 'Keep variant',
   // The toast after deleting a variant, with Undo (FR-051 (33); U61 6523:37991): neutral as every

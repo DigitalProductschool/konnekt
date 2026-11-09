@@ -23,6 +23,8 @@ export interface FormConnectionRowProps {
   formConnection: FormConnectionSummary;
   /** The row's "Delete": opens the one delete dialog for it */
   onDelete: (formConnection: FormConnectionSummary) => void;
+  /** A published connection's "Edit": asks "Edit “<name>”?" first (F48, T083) */
+  onEdit: (formConnection: FormConnectionSummary) => void;
 }
 
 export interface RowDescriptionProps {

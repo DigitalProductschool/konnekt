@@ -576,6 +576,11 @@ export interface RulesDialogsProps {
   context: RuleContext;
   /** Whether the connection is being edited: deleting a variant then ends its result link */
   editing: boolean;
+  /**
+   * Whether the edited connection is active (the default): a deactivated one's delete-variant body
+   * doesn't say "The connection is active" (T068's note)
+   */
+  active?: boolean;
   dispatch: (action: RulesAction) => void;
   /** Closes the dialog: the rule stays, and so does the editor */
   onCancel: () => void;

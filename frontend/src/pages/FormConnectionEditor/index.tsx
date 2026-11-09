@@ -1,4 +1,5 @@
 import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
 import type {
   DetailLocationState,
   EditLocationState,
@@ -12,6 +13,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { flushSync } from 'react-dom';
 import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
 
+import { ApiError } from '../../api/client';
 import {
   createDraft,
   createFormConnection,
@@ -43,7 +45,9 @@ import {
   DRAFT_COPY,
   ELEMENT_IDS,
   INITIAL_LEAVE_FLOW_STATE,
+  INITIAL_PUBLISH_DIALOG_STATE,
   LEAVE_COPY,
+  PUBLISHED_DELAY_MS,
   STEP_ORDER,
 } from './constants';
 import DocumentsStep from './DocumentsStep';
@@ -102,6 +106,9 @@ import type {
   LeaveFlowContext,
   LeaveFlowState,
   PendingRemoval,
+  PublishDialogAction,
+  PublishDialogState,
+  PublishFailure,
 } from './types';
 import {
   conflictOf,
@@ -145,10 +152,14 @@ import {
  * - `draft`, a stored draft: the wizard starts from the draft's content (`initialStates`), or
  *   from its local draft resumed through `?local=`, and shows the "Draft" badge (S0). "Publish" publishes the draft through its own endpoint, at the
  *   version the wizard opened, and opens the connection's details.
- * - `published`, at /form-connections/:id/edit: the wizard edits the connection as before
- *   (FR-026). "Save" changes it with one call, and changes apply to new requests only (FR-005,
- *   FR-028). If another team member saved the rules after the wizard loaded them, the team member
- *   reloads the connection or replaces their rules (W9).
+ * - `published`, at /form-connections/:id/edit (S18): the wizard edits the connection as before
+ *   (FR-026), with "Active" (or "Deactivated") in the header (F5) and its step line as links
+ *   (F25). "Save" on every step opens "Save changes?" from that step (FR-045), once step 1's
+ *   fields, the documents' data and the rules pass their checks; it changes the connection with
+ *   one call, changes apply to new requests only (FR-005, FR-028), and the details open with
+ *   "Changes saved.". If another team member saved the rules after the wizard loaded them, the
+ *   team member reloads the connection or replaces their rules (W9). "Discard changes" goes back
+ *   to the details after "Discard your changes?" (`EditorFooter`).
  *
  * A new connection and a stored draft offer "Save and exit" on every step (S1; FR-001): an open
  * rule editor with changes asks "Save changes to Rule 01?" first, and closing that question
@@ -278,6 +289,62 @@ export default function FormConnectionEditorPage({
   );
 }
 
+/**
+ * The publish and save dialog's own state (data-model.md "The publish dialog"; FR-044; S14):
+ * "Publish" / "Save" opens its summary, or "Publish without rules?" from the documents step;
+ * publishing shows its status, then "Published" or the failure or the conflict; every way out
+ * closes it, keeping the step that opened it. What the last attempt met stays through the next
+ * attempt and the closing, so that the words don't change while the dialog fades out; the next
+ * failure or conflict replaces it, the next opening clears it.
+ */
+function publishDialogReducer(
+  state: PublishDialogState,
+  action: PublishDialogAction
+): PublishDialogState {
+  switch (action.type) {
+    case 'open':
+      return {
+        ...INITIAL_PUBLISH_DIALOG_STATE,
+        phase: action.withoutRules ? 'noRules' : 'summary',
+        from: action.from,
+        withoutRules: action.withoutRules,
+      };
+    case 'publish':
+      return { ...state, phase: 'publishing' };
+    case 'published':
+      return { ...state, phase: 'published', connectionId: action.connectionId };
+    case 'failed':
+      return { ...state, phase: 'failed', failure: action.failure, conflict: null };
+    case 'conflict':
+      return { ...state, phase: 'conflict', conflict: action.conflict, failure: null };
+    case 'close':
+      return { ...state, phase: 'closed' };
+  }
+}
+
+/**
+ * What a failed publish or save shows (F46; U79 6376:27178): a network failure or a `5xx`, nginx's
+ * `502` or `503` without JSON included, gets the design's sentence and the error ID the server
+ * sent; any other answer, such as a `400`, the server's message (002-S5.3). A `409 rules_changed`
+ * is a conflict, not a failure.
+ */
+function publishFailureOf(error: unknown, editing: boolean): PublishFailure {
+  if (!(error instanceof ApiError) || error.status >= 500) {
+    const errorId = error instanceof ApiError ? error.data.error_id : undefined;
+    return errorId ? { kind: 'general', errorId } : { kind: 'general' };
+  }
+  return { kind: 'refused', notice: publishErrorNotice(error, editing) };
+}
+
+/**
+ * Where the connection just published or saved opens: its details, right after publishing with
+ * the Links open (FR-046; the details' `initialAccordionOf()`), after saving with "Changes saved."
+ */
+function detailsRouteOf(id: string, editing: boolean): [string, { state: DetailLocationState }] {
+  const state: DetailLocationState = editing ? { saved: true } : { published: true };
+  return [generatePath(ROUTES.formConnection, { id }), { state }];
+}
+
 /** The wizard of the flow the page opened, with its autosave into the local draft. */
 function ConnectionWizard({
   flow,
@@ -294,6 +361,10 @@ function ConnectionWizard({
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
   const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
   const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
+  const [publishDialog, dispatchPublishDialog] = useReducer(
+    publishDialogReducer,
+    INITIAL_PUBLISH_DIALOG_STATE
+  );
   // What the documents step shows of the documents (FR-031, research R8): the shown one, the
   // search, the removal its toast can undo. Here, since the footer and the toast are the editor's
   const [documentsView, dispatchView] = useReducer(
@@ -397,6 +468,9 @@ function ConnectionWizard({
   // the dialog about them shows (F67, #55); kept as they were, so that the dialog's words don't
   // change while it fades out after "Remove 1 document"
   const [noDataNames, setNoDataNames] = useState<string[]>([]);
+  // The edit flow's "Save" asked about them (not "Set rules →"): "Remove n documents" then goes on
+  // to the save dialog
+  const saveAfterNoData = useRef(false);
   // Data the catalog dropped, once it has loaded; never in the published edit flow (FR-026)
   const dropped = useMemo(
     () =>
@@ -442,14 +516,9 @@ function ConnectionWizard({
         : null,
     [state.step, loadedCatalog, rules.editing, rules.selection, rules.branches]
   );
-  // The publish and save dialog skips the rules when the documents step's "… without rules"
-  // opens it; the edit flow's "Save" from a leave question opens it there with its rules
-  const dialogWithoutRules =
-    state.step === 'documents' && rulesNextAction === 'publishWithoutRules';
   // A conflict shows where it was met: after "Save and exit" in its own dialog, after publishing
-  // in the publish dialog (S2)
+  // in the publish dialog (S2), whose own state holds it
   const saveConflict = state.conflict?.during === 'save' ? state.conflict : null;
-  const publishConflict = state.conflict?.during === 'publish' ? state.conflict : null;
   const saveFailureToast =
     saveFailure !== null && saveFailure.error === state.draftError ? saveFailure.toast : null;
   const pageTitle = pageTitleOf(
@@ -473,6 +542,21 @@ function ConnectionWizard({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [unsaved]);
+
+  // "Published" ("Saved") shows for 0.5 s, then the details open (FR-044d). A timer, not a
+  // transition, so it stays under reduced motion (CLAR #33, FR-050); leaving the page first
+  // cancels it
+  const publishedId = publishDialog.phase === 'published' ? publishDialog.connectionId : null;
+  useEffect(() => {
+    if (publishedId === null) {
+      return;
+    }
+    const timer = window.setTimeout(
+      () => navigate(...detailsRouteOf(publishedId, editing)),
+      PUBLISHED_DELAY_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [publishedId, editing, navigate]);
 
   // After Reload, the dialog that had the focus is gone
   useEffect(() => {
@@ -588,6 +672,15 @@ function ConnectionWizard({
    */
   function handleAddRules() {
     const ids = needsDataOf(state.documents, documentTypes);
+    saveAfterNoData.current = false;
+    flagNeedsData(ids);
+    if (ids.length === 0) {
+      dispatch({ type: 'goToStep', step: 'rules' });
+    }
+  }
+
+  /** Flags the documents without data, and with any asks about them (U25 A13; F67, #55). */
+  function flagNeedsData(ids: string[]) {
     dispatchView({ type: 'flagNeedsData', documentIds: ids });
     if (ids.length > 0) {
       setNoDataNames(
@@ -595,8 +688,6 @@ function ConnectionWizard({
           .filter(({ documentType }) => ids.includes(documentType.key))
           .map(({ documentType }) => documentType.label)
       );
-    } else {
-      dispatch({ type: 'goToStep', step: 'rules' });
     }
   }
 
@@ -625,7 +716,8 @@ function ConnectionWizard({
    * "Remove them and continue" did (#14 (c); #55 changed its label only). With none left the
    * team member stays, the focus on "Add document". Rules that check a removed document stay and
    * are named in the rules step's checks (002-S1.3): its data was deselected through 002-S1.1's
-   * dialog already, so no second question is asked.
+   * dialog already, so no second question is asked. Asked by the edit flow's "Save", it answers
+   * "Save" instead: with documents left, the save goes on to its pre-checks and "Save changes?".
    */
   function handleRemoveNeedingData() {
     const flagged = documentsView.needsData.documentIds;
@@ -645,6 +737,11 @@ function ConnectionWizard({
       dispatchView({ type: 'removeNeedsDataDone', listIds });
     });
     if (remaining.length > 0 && needsDataOf(remaining, documentTypes).length === 0) {
+      if (saveAfterNoData.current) {
+        saveAfterNoData.current = false;
+        publishRules(rules, remaining);
+        return;
+      }
       dispatch({ type: 'goToStep', step: 'rules' });
       return;
     }
@@ -656,10 +753,15 @@ function ConnectionWizard({
    * rules" passes too (spec 004, FR-002; W3): a problem refuses with the server's message, shown
    * in the rules step where publishing shows it, opens the branch it names and moves the focus to
    * the rule (F11). Without the catalog, which is loading or failed to load, they would refuse
-   * every rule, so the server's checks alone apply then. Whether they pass.
+   * every rule, so the server's checks alone apply then. Whether they pass. `documents`: the
+   * requested documents, when they changed since this render (after "Remove n documents").
    */
-  function passesPreChecks(current: RulesState): boolean {
-    const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, ruleCatalog) : null;
+  function passesPreChecks(current: RulesState, documents = state.documents): boolean {
+    const catalog =
+      documents === state.documents
+        ? ruleCatalog
+        : { ...ruleCatalog, documents: requestedRuleDocuments(documentTypes, documents) };
+    const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, catalog) : null;
     if (!problem) {
       return true;
     }
@@ -683,17 +785,56 @@ function ConnectionWizard({
   }
 
   /**
-   * "Publish" or "Save" with rules, on the test step, or "Publish without rules" on the rules
-   * step: the pre-checks, then the publish and save dialog, unchanged (FR-003; O6). The personas'
-   * results refuse, delay and ask nothing.
+   * "Publish" on the test step, "Publish without rules" on the rules step, or the edit flow's
+   * "Save" on any step: the pre-checks, then the publish and save dialog from the current step
+   * (FR-003, FR-045; O6). The personas' results refuse, delay and ask nothing. Without any rule it
+   * asks "Publish without rules?" ("Save without rules?"; 002-S5.6): the documents step no longer
+   * offers it (F17), so the question comes with the rules step's "Publish without rules", and
+   * with the edit flow's "Save" on a step or from a leave question.
+   *
+   * The edit flow checks what the steps would have checked first (`passesSaveChecks()`): its
+   * steps are links (F25), so the team member may not have gone through them.
    */
-  function publishRules(current: RulesState) {
-    if (passesPreChecks(current)) {
+  function publishRules(current: RulesState, documents = state.documents) {
+    if ((!editing || passesSaveChecks(documents)) && passesPreChecks(current, documents)) {
       dispatch({ type: 'openDialog' });
+      dispatchPublishDialog({
+        type: 'open',
+        from: state.step,
+        withoutRules: rulesNextActionOf(current) === 'publishWithoutRules',
+      });
       return;
     }
     // The edit flow's "Save" from a leave question stays in the flow, at the problem
     stepLeave({ type: 'failed' });
+  }
+
+  /**
+   * The edit flow's "Save" (FR-045; FR-026, #47: a validation error keeps the team member in the
+   * flow), on the step that holds the problem: step 1's name and description, with their
+   * messages and the focus on the first field, as "Choose documents →" does; then the documents
+   * without data, flagged with "No data selected in 1 document", as "Set rules →" does (F67,
+   * #55), whose "Remove 1 document" goes on with the save. Whether they pass.
+   */
+  function passesSaveChecks(documents: RequestedDocument[]): boolean {
+    const errors = validateConnection(state.name, state.description);
+    if (hasErrors(errors)) {
+      if (state.step !== 'connection') {
+        flushSync(() => dispatch({ type: 'goToStep', step: 'connection' }));
+      }
+      refuse(errors);
+      return false;
+    }
+    const ids = needsDataOf(documents, documentTypes);
+    if (ids.length > 0) {
+      if (state.step !== 'documents') {
+        flushSync(() => dispatch({ type: 'goToStep', step: 'documents' }));
+      }
+      saveAfterNoData.current = true;
+      flagNeedsData(ids);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -713,7 +854,7 @@ function ConnectionWizard({
 
   function handlePublish() {
     // The flow is being stored as a draft: publishing as well would make a second connection
-    if (state.savingDraft) {
+    if (state.savingDraft || state.publishing) {
       return;
     }
     leaveEditor({ type: 'publish' });
@@ -858,7 +999,10 @@ function ConnectionWizard({
     handleSaveAndExit();
   }
 
-  /** A failed publish, also an answer of a conflict in the publish dialog, which shows why. */
+  /**
+   * A failed publish, also an answer of a conflict in the publish dialog, which shows why: the
+   * failure over the summary (F46), or after `409 rules_changed` the conflict (W9)
+   */
   function showPublishFailure(error: unknown) {
     if (state.conflict) {
       dispatch({ type: 'closeConflict' });
@@ -868,6 +1012,14 @@ function ConnectionWizard({
       error: publishErrorNotice(error, editing),
       rulesChanged: isRulesChanged(error),
     });
+    dispatchPublishDialog(
+      isRulesChanged(error)
+        ? {
+            type: 'conflict',
+            conflict: { kind: 'rules_changed', message: error.data.message },
+          }
+        : { type: 'failed', failure: publishFailureOf(error, editing) }
+    );
   }
 
   /**
@@ -1044,6 +1196,7 @@ function ConnectionWizard({
    */
   async function handleConfirm(replace = false) {
     dispatch({ type: 'publish' });
+    dispatchPublishDialog({ type: 'publish' });
     try {
       // Editing sends the name and the documents, which create no revision when unchanged, and
       // the rules only when they changed (FR-028). A stored draft is published at the version
@@ -1063,17 +1216,16 @@ function ConnectionWizard({
       if (!editing) {
         forget();
       }
-      const locationState: DetailLocationState = editing ? { saved: true } : { published: true };
-      const toDetails = () =>
-        navigate(generatePath(ROUTES.formConnection, { id: saved.id }), { state: locationState });
-      // The edit flow's "Save and log out" logs out once saved (FR-026); a cancelled log-out
-      // opens the details as the save does
+      // The edit flow's "Save and log out" logs out once saved (FR-026), without "Saved", which
+      // says that the details open; a cancelled log-out opens them as the save does
       const effect = stepLeave({ type: 'saved' });
       if (effect.type === 'logOut') {
-        logOutNow(effect.forget, toDetails);
+        dispatchPublishDialog({ type: 'close' });
+        logOutNow(effect.forget, () => navigate(...detailsRouteOf(saved.id, editing)));
         return;
       }
-      toDetails();
+      // "Published" ("Saved"), then the details (the effect below; FR-044d)
+      dispatchPublishDialog({ type: 'published', connectionId: saved.id });
     } catch (error) {
       if (handleUnauthorized(error)) {
         return;
@@ -1081,6 +1233,7 @@ function ConnectionWizard({
       const conflict = conflictOf(error, origin, 'publish');
       if (conflict) {
         dispatch({ type: 'draftConflict', conflict });
+        dispatchPublishDialog({ type: 'conflict', conflict });
         return;
       }
       showPublishFailure(error);
@@ -1096,6 +1249,7 @@ function ConnectionWizard({
       return;
     }
     dispatch({ type: 'closeDialog' });
+    dispatchPublishDialog({ type: 'close' });
     dispatch({ type: 'closeConflict' });
     // Opened by a leave question's "Save": the team member stays in the flow (FR-026)
     stepLeave({ type: 'failed' });
@@ -1161,24 +1315,33 @@ function ConnectionWizard({
   useUndoShortcut(state.step === 'rules' && rules.undo !== null && !rules.editing, undoRules);
 
   /**
-   * "Check rules again" closes the dialog and opens the first branch, in tab order, that the
-   * dialog lists findings for, or stays on the open branch when none has (FR-017; research R11).
-   * Opened from the test step, it does so in the rules step, whose open branch is then the one it
-   * had (spec 004, FR-003; S5; F4). "Add rules", from the documents, opens the rules. "Reload"
-   * after `409 rules_changed` is the dialog's `onReload`, not this.
+   * "Back to test", opened from the test step, closes the dialog to it (FR-044a; supersedes
+   * 004-S5.3). Opened from another step, "Check rules again" closes it and opens the rules step
+   * (from step 1 or the documents, after the edit flow's "Save") at the first branch, in tab order, that the dialog lists findings for, or stays on the open branch when
+   * none has (FR-017; research R11). "Add rules", after "Publish without rules?", opens the rules
+   * step, or stays there. "Reload" after `409 rules_changed` is the dialog's `onReload`, not this.
    */
   function handleDialogCancel() {
     if (state.publishing) {
       return;
     }
     dispatch({ type: 'closeDialog' });
+    dispatchPublishDialog({ type: 'close' });
     // Opened by a leave question's "Save": the team member stays in the flow (FR-026)
     stepLeave({ type: 'failed' });
-    if (state.step === 'documents' || state.step === 'test') {
-      dispatch({ type: 'goToStep', step: 'rules' });
-    }
-    if (dialogWithoutRules) {
+    if (publishDialog.withoutRules) {
+      // "Add rules": the rules step, where the dialog may have opened
+      if (state.step !== 'rules') {
+        dispatch({ type: 'goToStep', step: 'rules' });
+      }
       return;
+    }
+    if (publishDialog.from === 'test') {
+      return;
+    }
+    // From step 1 or the documents (the edit flow's "Save"), the rules are on their own step
+    if (state.step !== 'rules') {
+      dispatch({ type: 'goToStep', step: 'rules' });
     }
     const branchKey = firstBranchWithFindings(rules.branches, ruleChecks.byBranch);
     if (branchKey !== null) {
@@ -1314,7 +1477,10 @@ function ConnectionWizard({
 
   /**
    * A step of the step line, which leads to it: in the edit flow of a published connection only
-   * (F25). The test step opens through the gate of "Test rules" (FR-002).
+   * (F25). The test step opens through the gate of "Test rules" (FR-002). Every other step opens
+   * at once, forward too, without the current step's checks: the step line moves between the
+   * parts of a connection that is complete, and "Save" checks them all before it asks (FR-045;
+   * `passesSaveChecks()`).
    */
   function selectStep(index: number) {
     const step = STEP_ORDER[index];
@@ -1410,7 +1576,14 @@ function ConnectionWizard({
   return (
     <WizardLayout
       title={headerTitleOf(state, formConnection, origin.kind === 'draft')}
-      badge={origin.kind === 'draft' ? <ConnectionStatusBadge isActive draft /> : undefined}
+      badge={
+        origin.kind === 'draft' ? (
+          <ConnectionStatusBadge isActive draft />
+        ) : formConnection ? (
+          // "Active" (U98 6731:39823), never "Draft changes" (F5); "Deactivated" when it is
+          <ConnectionStatusBadge isActive={formConnection.is_active} />
+        ) : undefined
+      }
       onLeave={handleLeave}
       onLogOut={handleLogOut}
       head={
@@ -1442,27 +1615,29 @@ function ConnectionWizard({
           canSaveDraft={origin.kind !== 'published'}
           savingDraft={state.savingDraft}
           onSaveAndExit={handleSaveAndExit}
+          // "Discard your changes?" (T083): back to the details, unchanged (FR-045 (c))
+          onDiscard={
+            formConnection
+              ? () => navigate(generatePath(ROUTES.formConnection, { id: formConnection.id }))
+              : undefined
+          }
         />
       }
       overlay={
         <>
           <PublishDialog
-            open={state.dialogOpen}
+            dialog={publishDialog}
             editing={editing}
-            withoutRules={dialogWithoutRules}
             documentLines={documentLines(state.documents, documentTypes)}
-            ruleLines={ruleLines(rules, dialogWithoutRules)}
+            ruleLines={ruleLines(rules, publishDialog.withoutRules)}
             branches={rules.branches}
             checks={ruleChecks.byBranch}
-            publishing={state.publishing}
-            error={state.publishError}
-            rulesChanged={state.rulesChanged}
+            busy={state.publishing}
             onCancel={handleDialogCancel}
             onClose={handleCloseDialog}
-            onConfirm={() => handleConfirm()}
+            onConfirm={() => void handleConfirm()}
             onReload={handleReload}
-            onReplace={() => handleConfirm(true)}
-            conflict={publishConflict}
+            onReplace={() => void handleConfirm(true)}
             onOpenConnection={handleOpenConnection}
             onSaveAsNew={() => void handleSaveAsNew('publish')}
           />
@@ -1546,6 +1721,7 @@ function ConnectionWizard({
             state={rules}
             context={{ documents: ruleCatalog.allDocuments, optionSets }}
             editing={editing}
+            active={formConnection?.is_active ?? true}
             dispatch={dispatchRules}
             onCancel={() => {
               dispatchRules({ type: 'closeDialog' });

@@ -35,4 +35,6 @@ export interface EditLocationState {
 export interface OverviewLocationState {
   /** The name of the draft "Save and exit" just stored: the overview confirms it (W1) */
   draftSaved?: string;
+  /** The name of the connection or draft the details just deleted: the overview says so */
+  deleted?: string;
 }

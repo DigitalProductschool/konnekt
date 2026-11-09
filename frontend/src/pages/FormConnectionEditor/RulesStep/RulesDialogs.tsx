@@ -26,6 +26,7 @@ export default function RulesDialogs({
   state,
   context,
   editing,
+  active = true,
   dispatch,
   onCancel,
   onConfirmDelete,
@@ -97,7 +98,11 @@ export default function RulesDialogs({
         title={RULES_COPY.deleteVariantTitle(deletingVariant?.name.trim() ?? '')}
         text={
           deletingVariant
-            ? (editing ? RULES_COPY.deleteVariantTextEditing : RULES_COPY.deleteVariantText)(
+            ? (editing
+                ? active
+                  ? RULES_COPY.deleteVariantTextEditing
+                  : RULES_COPY.deleteVariantTextEditingInactive
+                : RULES_COPY.deleteVariantText)(
                 deletingVariant.name.trim(),
                 joinNames(others),
                 others.length

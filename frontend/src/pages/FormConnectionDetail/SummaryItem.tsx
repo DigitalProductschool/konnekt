@@ -5,9 +5,10 @@ import RuleRow from '../../components/RuleRow';
 import type { SummaryItemProps } from './types';
 
 /**
- * A rule or group of a variant on the details, read-only, with its identifier next to its name
- * (W1). A group shows through the Rules step's frame, with its AND or OR between its members and
- * its own message (F26). In a variant based on Standard, each shows its mark; a removed group,
+ * A rule or group of a variant on the details, read-only, with its identifier "rule-7" next to its
+ * name (F35) and no menus (T024: the empty actions column keeps its 32px, U82). A group shows
+ * through the Rules step's frame, with its AND or OR between its members and its own message
+ * (F26). In a variant based on Standard, each shows its mark; a removed group,
  * or one dissolved there, shows as removed with what it holds faded (FR-023, F13, F26).
  */
 export default function SummaryItem({

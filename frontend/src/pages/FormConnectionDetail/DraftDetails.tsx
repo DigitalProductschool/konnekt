@@ -1,56 +1,60 @@
-import type { EditLocationState } from '@connection-portal/api-types/routing';
-import { useReducer } from 'react';
-import { generatePath, useNavigate } from 'react-router';
+import type { OverviewLocationState } from '@connection-portal/api-types/routing';
+import { useReducer, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { deleteDraft } from '../../api/form-connections';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import WizardLayout from '../../components/WizardLayout';
-import WizardProgress from '../../components/WizardProgress';
-import { CONNECTION_STEPS, ROUTES } from '../../constants';
+import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { DETAIL_COPY, DRAFT_STEPS, INITIAL_DRAFT_DELETE_STATE } from './constants';
+import { DELETE_DIALOG_COPY } from '../FormConnectionList/constants';
+import { DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
-import DocumentsSummary from './DocumentsSummary';
 import DraftCard from './DraftCard';
 import RulesSummary from './RulesSummary';
-import type { DraftDetailsProps } from './types';
-import { deleteDraftDialogOf, deleteDraftErrorOf, draftDeleteReducer } from './utils';
+import StatusBand from './StatusBand';
+import type { DetailAccordionName, DraftDetailsProps } from './types';
+import {
+  deleteDraftDialogOf,
+  deleteDraftErrorOf,
+  draftDeleteReducer,
+  editedLineOf,
+  toggleAccordion,
+} from './utils';
 
 /**
- * A stored draft's details (spec 005, S6, W7) in the wizard's frame: the header names it (the
- * page's h1) with the "Draft" badge and its description, if it has one; Publish is the current
- * step, and the steps up to the one it was saved in are reached and lead to its flow there, while
- * the steps between are to do. The draft isn't live, so it shows no
- * connection URL anywhere (FR-006): an info note in KERN's alert style, which isn't a live
- * region, says so, then the documents and rules it holds, incomplete parts included, and the
- * draft card. "Delete draft" asks first and returns to the overview; if the draft was published
- * meanwhile, "Open the connection" loads the details again.
+ * A stored draft's details (S16; U93 7362:54691, U07 #22–#27) in the details' frame (L4): the
+ * header pill names it with the "Draft" badge and its description (W10), the tab title "<name>
+ * (Draft)"; no step line (FR-025e). The draft band's "This connection is a draft" is the page's
+ * one h1 (FR-049), with its sub-line and the date pill "Edited 03.10.2026, 14:32"; no ⋯, but a
+ * visible "Delete draft" at the band's right end (F56), which asks in the overview's one delete
+ * dialog with the draft's body (S17: "Delete “<name>”?", F55, "Keep connection" / "Delete
+ * connection", the scrim not closing it) and returns to the overview with the toast "“<name>”
+ * deleted." (no Undo, F4), or, if the draft was published or deleted meanwhile, says so in the
+ * dialog's alert (W8): "Open the connection" loads the details again, "Go to overview" leaves. Then the Summary,
+ * open first (its documents and rules, incomplete parts with the placeholders, unchecked), and
+ * the Links card without links: the draft isn't live, so no connection URL shows anywhere
+ * (FR-006). The footer's "Edit connection" opens its flow at the step it was saved in. No
+ * Activity (F2), no PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12).
  */
 export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const [state, dispatch] = useReducer(draftDeleteReducer, INITIAL_DRAFT_DELETE_STATE);
+  // The Summary opens first (U07 #24); the Links card has nothing to open
+  const [openAccordion, setOpenAccordion] = useState<DetailAccordionName | null>('summary');
   const navigate = useNavigate();
   const handleUnauthorized = useSignOutOnUnauthorized();
   const { id, name } = draft;
-  const editPath = generatePath(ROUTES.editFormConnection, { id });
-  // Names the data that rules check but the draft doesn't request; until it loads, or if it
-  // fails, the rules card names only the requested documents
-  const { documentTypes } = useDocumentTypes();
 
-  useDocumentTitle(name);
-
-  function continueAt(index: number) {
-    const editState: EditLocationState = { step: DRAFT_STEPS[index] };
-    navigate(editPath, { state: editState });
-  }
+  useDocumentTitle(DETAIL_COPY.draftTabTitle(name));
 
   async function remove() {
     dispatch({ type: 'start' });
     try {
       await deleteDraft(id);
-      navigate(ROUTES.overview, { replace: true });
+      const overviewState: OverviewLocationState = { deleted: name };
+      navigate(ROUTES.overview, { replace: true, state: overviewState });
     } catch (error) {
       if (!handleUnauthorized(error)) {
         dispatch({ type: 'failed', failure: deleteDraftErrorOf(error) });
@@ -75,27 +79,20 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const dialog = deleteDraftDialogOf(state.failure);
   return (
     <WizardLayout
+      variant="details"
       title={name}
-      titleAsHeading
       badge={<ConnectionStatusBadge isActive draft />}
       meta={draft.description || undefined}
-      head={
-        <WizardProgress
-          steps={CONNECTION_STEPS}
-          current={CONNECTION_STEPS.length}
-          onSelect={continueAt}
-        />
-      }
       footer={<DetailFooter formConnectionId={id} draft={draft} />}
       overlay={
         <ConfirmDialog
           open={state.dialogOpen}
-          title={DETAIL_COPY.deleteDraftTitle}
-          text={DETAIL_COPY.deleteDraftText(name)}
-          confirmLabel={DETAIL_COPY.deleteDraft}
-          cancelLabel={DETAIL_COPY.cancel}
+          title={DELETE_DIALOG_COPY.title(name)}
+          text={DELETE_DIALOG_COPY.draft(name)}
+          confirmLabel={DELETE_DIALOG_COPY.confirm}
+          cancelLabel={DELETE_DIALOG_COPY.cancel}
           danger={dialog.danger}
-          busyLabel={DETAIL_COPY.deleting}
+          busyLabel={DELETE_DIALOG_COPY.busy}
           busy={state.deleting}
           error={state.failure?.notice ?? null}
           errorTitle={dialog.errorTitle}
@@ -106,30 +103,42 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
         />
       }
     >
-      <div className="mx-auto flex w-full max-w-900 flex-col gap-32">
-        {/* KERN's info alert, built from its classes: `KernAlert` is always role="alert", which
-            would interrupt the page's announcement with a note that never changes */}
-        <div className="kern-alert kern-alert--info w-full">
-          <div className="kern-alert__header">
-            <span aria-hidden="true" className="kern-icon kern-icon--info kern-icon--small" />
-            <p className="kern-title">{DETAIL_COPY.draftNotLive}</p>
-          </div>
-        </div>
-        <DocumentsSummary documents={draft.documents} draft />
+      {/* The band and the cards 16px apart (U93 7362:54696: 208 → 224, 956 → 972) */}
+      <div className="flex flex-col gap-16">
+        <StatusBand
+          tone="draft"
+          title={DETAIL_COPY.draftTitle}
+          text={DETAIL_COPY.draftText}
+          meta={
+            // The date pill (7362:54709): white, radius 8, padding 8 16, the calendar 8px before
+            // the date in label/small muted
+            <p className="bg-kern-layout-background-default rounded-kern-default text-kern-static-small text-kern-layout-text-muted flex items-center gap-8 self-start px-16 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold">
+              <span
+                aria-hidden="true"
+                className="kern-icon kern-icon--calendar-today kern-icon--small bg-kern-layout-text-default! shrink-0"
+              />
+              {editedLineOf(draft.updated_at)}
+            </p>
+          }
+          mainAction={
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'openDialog' })}
+              className="kern-btn kern-btn--tertiary"
+            >
+              <span aria-hidden="true" className="kern-icon kern-icon--delete" />
+              <span className="kern-label">{DETAIL_COPY.deleteDraft}</span>
+            </button>
+          }
+        />
         <RulesSummary
-          formConnectionId={id}
           branches={draft.branches}
           documents={draft.documents}
           draft
-          catalog={documentTypes}
+          open={openAccordion === 'summary'}
+          onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
         />
-        <DraftCard
-          name={name}
-          editPath={editPath}
-          step={draft.step}
-          updatedAt={draft.updated_at}
-          onDelete={() => dispatch({ type: 'openDialog' })}
-        />
+        <DraftCard />
       </div>
     </WizardLayout>
   );

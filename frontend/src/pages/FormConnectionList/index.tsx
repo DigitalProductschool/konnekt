@@ -2,7 +2,7 @@ import type { FormConnectionSummary } from '@connection-portal/api-types/form-co
 import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { generatePath, Link, useLocation, useNavigate } from 'react-router';
 
 import { errorNoticeOf } from '../../api/client';
 import { deleteDraft, deleteFormConnection, listFormConnections } from '../../api/form-connections';
@@ -19,6 +19,7 @@ import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useRememberedHomepage } from '../../hooks/useRememberedHomepage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { EDIT_ENTRY_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import {
   COLUMN_HEADER_CLASSES,
   COLUMN_HEADERS,
@@ -128,6 +129,21 @@ function NoMatches({ query, onClear }: NoMatchesProps) {
 }
 
 /**
+ * The toast of an arrival: after "Save and exit" the success toast "Draft saved. …" (U17
+ * 6699:48002); after a delete on the details the toast a row delete shows, "“<name>” deleted."
+ * (U90 6699:48098, neutral, no Undo: F4)
+ */
+function arrivalToastOf(arrival: OverviewLocationState | null): ToastContent | null {
+  if (arrival?.draftSaved !== undefined) {
+    return { id: 1, kind: 'success', message: LIST_COPY.draftSaved };
+  }
+  if (arrival?.deleted !== undefined) {
+    return { id: 1, message: LIST_COPY.deleted(arrival.deleted) };
+  }
+  return null;
+}
+
+/**
  * The homepage "/" (FR-027, research R6): the welcome page (S3) while no connection or draft
  * exists, the overview (S4, Figma "Your connections") once anything is listed, drafts included.
  * While the list loads, the device's memory of the account (`useRememberedHomepage`) picks the
@@ -146,9 +162,12 @@ function NoMatches({ query, onClear }: NoMatchesProps) {
  * list loads, skeleton rows stand for it (001-S3.5). A row's "Delete" asks the one delete dialog
  * (FR-028, FR-029c); after the delete the row leaves the list, a toast says so, without Undo
  * (F4), and the focus moves to the page's heading, since the button that opened the dialog is
- * gone; after the last one the welcome page shows. After "Save and exit" the success toast
+ * gone; after the last one the welcome page shows. A delete on the details arrives here with the
+ * same toast. After "Save and exit" the success toast
  * "Draft saved. You can pick it up any time." confirms the saved draft (U17 6699:48002); a saved
- * draft also means that the list holds something, so the overview shows at once.
+ * draft also means that the list holds something, so the overview shows at once. A published
+ * connection's "Edit" asks "Edit “<name>”?" first (S17, F48; U15 6699:47905): "Edit connection"
+ * opens the edit flow at step 1, and "Cancel", the ×, Escape and the scrim keep the overview.
  */
 export default function FormConnectionListPage() {
   const [state, dispatch] = useReducer(listReducer, INITIAL_LIST_STATE);
@@ -158,19 +177,24 @@ export default function FormConnectionListPage() {
   const navigate = useNavigate();
   const titleRef = useRef<HTMLHeadingElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  // Set when a delete removed the row whose button had the focus: the heading takes it
-  const focusTitleAfterDelete = useRef(false);
+  // Set when a delete removed the row whose button had the focus, or on arriving from a delete
+  // on the details, whose opener is gone too: the heading takes it once the list is there
+  const focusTitleAfterDelete = useRef(
+    (location.state as OverviewLocationState | null)?.deleted !== undefined
+  );
   const countId = useId();
   const listId = useId();
   const [query, setQuery] = useState('');
   // Read once: the router state is cleared below, so the toast goes at the next navigation
-  const [draftSaved] = useState(
-    () => (location.state as OverviewLocationState | null)?.draftSaved ?? null
-  );
-  const [toast, setToast] = useState<ToastContent | null>(() =>
-    draftSaved !== null ? { id: 1, kind: 'success', message: LIST_COPY.draftSaved } : null
-  );
+  const [arrival] = useState(() => location.state as OverviewLocationState | null);
+  const draftSaved = arrival?.draftSaved ?? null;
+  const [toast, setToast] = useState<ToastContent | null>(() => arrivalToastOf(arrival));
   const dismissToast = useCallback(() => setToast(null), []);
+  // The edit entry question (F48): there once a row asked, keeping its name while it closes
+  const [editEntry, setEditEntry] = useState<{
+    target: FormConnectionSummary;
+    open: boolean;
+  } | null>(null);
 
   const list = state.status === 'loaded' ? state.formConnections : null;
   const shown = list === null ? [] : filterConnections(list, query);
@@ -187,10 +211,10 @@ export default function FormConnectionListPage() {
   useDocumentTitle(view === 'welcome' ? WELCOME_COPY.pageTitle : LIST_COPY.pageTitle);
 
   useEffect(() => {
-    if (draftSaved !== null) {
+    if (arrival?.draftSaved !== undefined || arrival?.deleted !== undefined) {
       navigate(location.pathname, { replace: true });
     }
-  }, [draftSaved, navigate, location.pathname]);
+  }, [arrival, navigate, location.pathname]);
 
   useEffect(() => {
     let ignore = false;
@@ -211,7 +235,7 @@ export default function FormConnectionListPage() {
 
   // After the list changed: the overview's heading, or the welcome page's after the last row
   useEffect(() => {
-    if (focusTitleAfterDelete.current) {
+    if (focusTitleAfterDelete.current && state.status !== 'loading') {
       focusTitleAfterDelete.current = false;
       titleRef.current?.focus();
     }
@@ -251,31 +275,44 @@ export default function FormConnectionListPage() {
     return <HomepageLoader />;
   }
 
-  const dialogCopy = rowDelete.target
-    ? deleteDialogCopyOf(rowDelete.target)
-    : { title: '', text: '' };
   // The delete dialog and the toast outlive the overview: after the last delete they show over
-  // the welcome page
+  // the welcome page. The dialog is there once a row asked for it, so that it never has an empty
+  // title; it keeps the row's texts while it closes
+  const { target } = rowDelete;
   const overlays = (
     <>
-      <ConfirmDialog
-        open={rowDelete.open}
-        title={dialogCopy.title}
-        text={dialogCopy.text}
-        confirmLabel={DELETE_DIALOG_COPY.confirm}
-        cancelLabel={DELETE_DIALOG_COPY.cancel}
-        danger
-        busyLabel={DELETE_DIALOG_COPY.busy}
-        busy={rowDelete.deleting}
-        error={rowDelete.error}
-        errorTitle={DELETE_DIALOG_COPY.errorTitle}
-        retryLabel={DELETE_DIALOG_COPY.retry}
-        dismissOnScrim={false}
-        onCancel={closeDelete}
-        onConfirm={() => {
-          if (rowDelete.target) void deleteRow(rowDelete.target);
-        }}
-      />
+      {target && (
+        <ConfirmDialog
+          open={rowDelete.open}
+          {...deleteDialogCopyOf(target)}
+          confirmLabel={DELETE_DIALOG_COPY.confirm}
+          cancelLabel={DELETE_DIALOG_COPY.cancel}
+          danger
+          busyLabel={DELETE_DIALOG_COPY.busy}
+          busy={rowDelete.deleting}
+          error={rowDelete.error}
+          errorTitle={DELETE_DIALOG_COPY.errorTitle}
+          retryLabel={DELETE_DIALOG_COPY.retry}
+          dismissOnScrim={false}
+          onCancel={closeDelete}
+          onConfirm={() => void deleteRow(target)}
+        />
+      )}
+      {editEntry && (
+        <ConfirmDialog
+          open={editEntry.open}
+          title={EDIT_ENTRY_COPY.title(editEntry.target.name)}
+          text={EDIT_ENTRY_COPY.text}
+          cancelLabel={EDIT_ENTRY_COPY.cancel}
+          confirmLabel={EDIT_ENTRY_COPY.confirm}
+          onCancel={() => setEditEntry({ ...editEntry, open: false })}
+          onConfirm={() =>
+            navigate(generatePath(ROUTES.editFormConnection, { id: editEntry.target.id }), {
+              state: EDIT_ENTRY_STATE,
+            })
+          }
+        />
+      )}
       <Toast toast={toast} onDismiss={dismissToast} noFooter={view === 'welcome'} />
     </>
   );
@@ -342,6 +379,7 @@ export default function FormConnectionListPage() {
                       key={formConnection.id}
                       formConnection={formConnection}
                       onDelete={(target) => dispatchDelete({ type: 'open', target })}
+                      onEdit={(target) => setEditEntry({ target, open: true })}
                     />
                   ))}
                 </ul>

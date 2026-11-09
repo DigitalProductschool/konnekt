@@ -1,4 +1,4 @@
-import type { EditorState, EditorStep, LeaveFlowState } from './types';
+import type { EditorState, EditorStep, LeaveFlowState, PublishDialogState } from './types';
 
 export const NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 500;
@@ -60,7 +60,6 @@ export const EDITOR_COPY = {
   // The documents step goes on to the rules (U20 7290:60388, U21 #20; FR-031)
   addRules: 'Set rules',
   publishWithoutRules: 'Publish without rules',
-  saveWithoutRules: 'Save without rules',
   publishErrorText: 'Nothing went live. Check your connection and try again.',
   // Editing a connection: the same steps, saving instead of publishing (FR-005); step 1 as the
   // build note U05 #27 words it (figma-audit report, cosmetic 6)
@@ -134,10 +133,12 @@ export const LEAVE_COPY = {
 // design-notes.md §6
 export const PUBLISH_COPY = {
   publishTitle: 'Ready to publish?',
-  saveTitle: 'Ready to save?',
+  // The edit flow's save dialog (FR-045c; CLAR #47: "Save" opens "Save changes?")
+  saveTitle: 'Save changes?',
   publishWithoutRulesTitle: 'Publish without rules?',
   saveWithoutRulesTitle: 'Save without rules?',
-  publishIntro: 'Once you publish, the connection goes live and you can add it to your form.',
+  // U73 7058:62120, U75 6376:25536, U77 6760:47979 (FR-002; F1: no "Active from")
+  publishIntro: 'When you publish, the connection is ready to be added to your services.',
   // F27: the message of "Edit this live connection?" (U38) moves here
   saveIntro:
     'Citizens keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
@@ -150,11 +151,25 @@ export const PUBLISH_COPY = {
     `${branch} · ${count === 0 ? 'No rules' : `${count} ${count === 1 ? 'rule' : 'rules'}`}`,
   noRules: 'No rules',
   checkRulesAgain: 'Check rules again',
+  // FR-044a: opened from the test step, it closes back to it (U73 7058:62120)
+  backToTest: 'Back to test',
   addRules: 'Add rules',
-  publish: 'Publish',
+  publish: 'Publish connection',
   save: 'Save',
+  // The status dialog (U78 6387:65280 publishing, 6387:65289 published; "Dialog/Status"); the
+  // edit flow's words are the save's, its frames undrawn
   publishing: 'Publishing…',
   saving: 'Saving…',
+  statusWait: 'This takes a few seconds.',
+  published: 'Published',
+  saved: 'Saved',
+  openingConnection: 'Opening your connection page…',
+  // A network failure or a 5xx (U79 6376:27178; F46: with the error ID, the summary kept)
+  publishFailed:
+    'Couldn’t publish, so nothing has changed. Check your internet connection and try again.',
+  saveFailed:
+    'Couldn’t save, so nothing has changed. Check your internet connection and try again.',
+  // Any other refusal, above the server's message (002-S5.3)
   publishErrorTitle: 'Couldn’t publish',
   saveErrorTitle: 'Couldn’t save',
   retry: 'Try again',
@@ -276,5 +291,28 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   draftError: null,
   conflict: null,
 };
+
+export const INITIAL_PUBLISH_DIALOG_STATE: PublishDialogState = {
+  phase: 'closed',
+  from: 'test',
+  withoutRules: false,
+  failure: null,
+  conflict: null,
+  connectionId: null,
+};
+
+/**
+ * How long "Published" ("Saved") shows before the details open (FR-044d; U78 6376:26662: "green
+ * check for 0.5 s"). Behaviour, not motion: it stays under reduced motion (CLAR #33, FR-050)
+ */
+export const PUBLISHED_DELAY_MS = 500;
+
+/**
+ * The status dialog ("Dialog/Status", U78 6387:65280: 400 × 232, padding 40 32, gap 16, radius 12,
+ * no outline), on the scrim and with the fade of `ConfirmDialog` (design-notes §4). The `!`s beat
+ * kern.css's dialog and its small-screen bottom sheet, as `ConfirmDialog`'s do
+ */
+export const PUBLISH_STATUS_DIALOG_CLASSES =
+  'kern-dialog motion m-auto! w-400 max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! backdrop:bg-(--kern-color-action-state-indicator-shade)!';
 
 export const INITIAL_LEAVE_FLOW_STATE: LeaveFlowState = { status: 'idle' };

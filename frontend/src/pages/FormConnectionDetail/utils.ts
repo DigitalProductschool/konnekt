@@ -1,27 +1,37 @@
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
-  EditorStep,
   FormConnection,
+  RequestedDocument,
   RequestedDocumentView,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { DetailLocationState } from '@connection-portal/api-types/routing';
+import type { RuleChecks } from '@connection-portal/rules/checks/types';
 import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import { countRules } from '@connection-portal/rules/tree';
 import type { RuleDocument } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
-import { formatEditedDate } from '../FormConnectionList/utils';
-import { DETAIL_COPY, DRAFT_STEPS, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMAT } from './constants';
+import { PUBLISH_COPY } from '../FormConnectionEditor/constants';
+import type { BannerItem, RulesBranch } from '../FormConnectionEditor/RulesStep/types';
+import type { FindingLine } from '../FormConnectionEditor/types';
+import { findingLinesOf } from '../FormConnectionEditor/utils';
+import { DELETE_DIALOG_COPY } from '../FormConnectionList/constants';
+import { deleteDialogCopyOf, formatRowDate } from '../FormConnectionList/utils';
+import { DETAIL_COPY, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMAT } from './constants';
 import type {
+  ActionDialogCopy,
   ActionsAction,
   ActionsState,
   Arrival,
   ConfirmedAction,
   DeleteDraftFailure,
+  DetailAccordionName,
   DraftDeleteAction,
   DraftDeleteState,
   LinkCardLink,
+  ReactivateSummary,
   StatusAction,
 } from './types';
 
@@ -32,11 +42,11 @@ export function arrivalOf(state: unknown): Arrival {
   return null;
 }
 
-/** The first state: after saving an edit, a toast confirms it. */
+/** The first state: after saving an edit, a success toast confirms it (FR-051 (42)). */
 export function initialActionsState(arrival: Arrival): ActionsState {
   return {
     ...INITIAL_ACTIONS_STATE,
-    toast: arrival === 'saved' ? { id: 1, message: DETAIL_COPY.saved } : null,
+    toast: arrival === 'saved' ? { id: 1, kind: 'success', message: DETAIL_COPY.saved } : null,
   };
 }
 
@@ -54,7 +64,7 @@ export function actionsReducer(state: ActionsState, action: ActionsAction): Acti
         ...state,
         dialogOpen: false,
         running: null,
-        toast: { id: (state.toast?.id ?? 0) + 1, message: action.message },
+        toast: { id: (state.toast?.id ?? 0) + 1, kind: 'success', message: action.message },
       };
     case 'failed':
       // A dialog stays open and shows the message where the user is looking
@@ -64,23 +74,67 @@ export function actionsReducer(state: ActionsState, action: ActionsAction): Acti
   }
 }
 
-/** The confirmation's texts for deactivating or deleting. */
-export function dialogCopyOf(action: ConfirmedAction) {
-  return action === 'delete'
-    ? {
-        title: DETAIL_COPY.deleteTitle,
-        text: DETAIL_COPY.deleteText,
-        confirmLabel: DETAIL_COPY.delete,
-        busyLabel: DETAIL_COPY.deleting,
-        errorTitle: DETAIL_COPY.deleteError,
-      }
-    : {
+/**
+ * A confirmation's texts and look (S17): deleting with the overview's one delete dialog, its body
+ * by the connection's state (FR-029c; U14, U90), in danger red; deactivating with F13's body and
+ * "Keep active" (U88 6417:31206); reactivating with its summary in the wide dialog (U89
+ * 7173:52959).
+ */
+export function dialogCopyOf(
+  action: ConfirmedAction,
+  formConnection: Pick<FormConnection, 'name' | 'status' | 'is_active'>
+): ActionDialogCopy {
+  switch (action) {
+    case 'delete':
+      return {
+        ...deleteDialogCopyOf(formConnection),
+        confirmLabel: DELETE_DIALOG_COPY.confirm,
+        cancelLabel: DELETE_DIALOG_COPY.cancel,
+        busyLabel: DELETE_DIALOG_COPY.busy,
+        errorTitle: DELETE_DIALOG_COPY.errorTitle,
+        danger: true,
+        wide: false,
+      };
+    case 'deactivate':
+      return {
         title: DETAIL_COPY.deactivateTitle,
         text: DETAIL_COPY.deactivateText,
         confirmLabel: DETAIL_COPY.deactivate,
+        cancelLabel: DETAIL_COPY.keepActive,
         busyLabel: DETAIL_COPY.deactivating,
         errorTitle: DETAIL_COPY.deactivateError,
+        danger: false,
+        wide: false,
       };
+    case 'activate':
+      return {
+        title: DETAIL_COPY.activateTitle,
+        text: DETAIL_COPY.activateText,
+        confirmLabel: DETAIL_COPY.activate,
+        cancelLabel: DETAIL_COPY.cancel,
+        busyLabel: DETAIL_COPY.activating,
+        errorTitle: DETAIL_COPY.activateError,
+        danger: false,
+        wide: true,
+      };
+  }
+}
+
+/**
+ * The reactivate dialog's summary (FR-051 (40); U89 7173:52959), as the publish dialog writes
+ * it: "Personal ID · 7 data items" per document, "Standard · 2 rules" per variant in tab order.
+ */
+export function reactivateSummaryOf(
+  formConnection: Pick<FormConnection, 'documents' | 'branches'>
+): ReactivateSummary {
+  return {
+    documentLines: formConnection.documents.map((document) =>
+      PUBLISH_COPY.documentLine(document.label, document.fields.length)
+    ),
+    ruleLines: formConnection.branches.map((branch) =>
+      PUBLISH_COPY.ruleLine(branch.name.trim(), countRules(branch.items))
+    ),
+  };
 }
 
 /** The API's message, with the error ID of a 5xx answer, or "Nothing changed. …". */
@@ -105,6 +159,27 @@ export function resultLinksOf(formConnection: FormConnection): LinkCardLink[] {
   return branches.map((branch) => ({ key: branch.id, url: branch.pull_url, branch }));
 }
 
+/** The Links accordion's counts (FR-052f): "1 request link · 3 result links". */
+export function linksCountsOf(formConnection: FormConnection): string {
+  return DETAIL_COPY.linksCounts(resultLinksOf(formConnection).length);
+}
+
+/**
+ * The accordion open on arrival (FR-046, F50): Links right after publishing (U80), otherwise
+ * the Summary, as from the overview's "View" (U91), which passes no state of its own.
+ */
+export function initialAccordionOf(arrival: Arrival): DetailAccordionName {
+  return arrival === 'published' ? 'links' : 'summary';
+}
+
+/** One accordion open at a time (FR-046): opening one closes the other; its toggle closes it. */
+export function toggleAccordion(
+  open: DetailAccordionName | null,
+  name: DetailAccordionName
+): DetailAccordionName | null {
+  return open === name ? null : name;
+}
+
 /** The identifiers of the rules that count in a tree, as `countRules` counts them. */
 function countableRuleIds(items: RuleTreeItem[]): string[] {
   return items.flatMap((item) => {
@@ -124,6 +199,52 @@ function countableRuleIds(items: RuleTreeItem[]): string[] {
 export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
   const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
   return DETAIL_COPY.rulesCounts(branches.length, ruleIds.size);
+}
+
+/**
+ * The Summary accordion's counts (FR-046 (i); U82 6396:48195): "2 documents · 9 data items · 3
+ * variants · 4 rules", every requested field counted once and the rules as `rulesCountsOf()`
+ * counts them.
+ */
+export function summaryCountsOf(
+  documents: Pick<RequestedDocumentView, 'fields'>[],
+  branches: Pick<BranchInput, 'items'>[]
+): string {
+  const dataItems = documents.reduce((count, document) => count + document.fields.length, 0);
+  return DETAIL_COPY.summaryCounts(documents.length, dataItems, rulesCountsOf(branches));
+}
+
+/**
+ * The branches as the variant tabs and the rule checks take them (research R7): keyed by their
+ * id, or, a draft's without one, by their place, which doesn't change on this read-only page.
+ */
+export function keyedBranchesOf(branches: BranchInput[]): RulesBranch[] {
+  return branches.map((branch, index) => ({ ...branch, key: branch.id ?? `${index}` }));
+}
+
+/** The requested documents with the keys of their fields, which the checks' context takes. */
+export function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocument[] {
+  return documents.map((document) => ({
+    document_type: document.document_type,
+    fields: document.fields.map((field) => field.key),
+  }));
+}
+
+/**
+ * The findings lines of the published summary (FR-047, CLAR #36; U85 6760:48704, U06 #10: "lists
+ * the same lines" as the publish dialog): one per variant with findings, the publish dialog's
+ * sentence (C4), warnings first and each kind in tab order (FR-044c), as the read-only rows of
+ * `FindingsBannerLine`: the sentence is one plain part, so no name is a link, and no kind text
+ * goes before it, since the sentence says what the findings are. A variant not checked yet has none.
+ */
+export function summaryFindingsOf(
+  branches: readonly RulesBranch[],
+  byBranch: RuleChecks['byBranch']
+): BannerItem[] {
+  const lines: FindingLine[] = findingLinesOf(branches, byBranch);
+  return [...lines]
+    .sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'))
+    .map((line) => ({ key: line.key, tone: line.tone, kindText: null, parts: [line.text] }));
 }
 
 /**
@@ -150,21 +271,13 @@ export function draftRuleDocumentsOf(
 }
 
 /**
- * How many of the wizard's steps a draft has reached: every step up to and including the one it
- * was saved in (S6), which `WizardProgress` (as `reached`) shows as done and leading to the flow
- * there.
+ * The draft band's date pill (U93 7362:54712, FR-049): the draft's last save as the overview writes
+ * dates and the 24-hour time in the browser's time zone, "Edited 03.10.2026, 14:32" (design-notes
+ * §3 "Dates").
  */
-export function reachedStepsOf(step: EditorStep): number {
-  return DRAFT_STEPS.indexOf(step) + 1;
-}
-
-/**
- * The draft card's text, with the draft's last save as the overview writes dates and the 24-hour
- * time in the browser's time zone: "Saved 4 Nov 2026, 14:32. Continue to finish and publish it."
- */
-export function savedLineOf(updatedAt: string): string {
+export function editedLineOf(updatedAt: string): string {
   const time = SAVED_TIME_FORMAT.format(new Date(updatedAt));
-  return DETAIL_COPY.draftCardText(`${formatEditedDate(updatedAt)}, ${time}`);
+  return DETAIL_COPY.edited(`${formatRowDate(updatedAt)}, ${time}`);
 }
 
 /**

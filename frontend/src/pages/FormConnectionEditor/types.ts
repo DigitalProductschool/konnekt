@@ -341,12 +341,70 @@ export interface FieldCheckboxProps {
   onChange: (checked: boolean) => void;
 }
 
+/**
+ * The phases of the publish and save dialog (data-model.md "The publish dialog"; FR-044; S14):
+ * - `summary`: "Ready to publish?" ("Save changes?") with the counts and the findings lines;
+ * - `noRules`: "Publish without rules?" ("Save without rules?"), from the documents step while no
+ *   variant has rules (002-S5.6);
+ * - `publishing`: the status dialog "Publishing…" ("Saving…"), which can't be closed (FR-051 (41));
+ * - `published`: the status dialog "Published" ("Saved") for 0.5 s, then the details (FR-044d);
+ * - `failed`: the summary again, under the failure's alert, with "Try again" (F46);
+ * - `conflict`: `409 rules_changed` (W7, W9) or a stored draft's conflict (W3, 005-S2) in U90's
+ *   dialog anatomy, with "Reload" or "Replace their changes".
+ */
+export type PublishDialogPhase =
+  'closed' | 'summary' | 'noRules' | 'publishing' | 'published' | 'failed' | 'conflict';
+
+/**
+ * Why publishing or saving failed: a network failure or a `5xx` gets the design's sentence and
+ * the error ID the server sent (U79 6376:27178; F46); any other answer, such as a `400`, shows the
+ * server's message, which says what went wrong (002-S5.3)
+ */
+export type PublishFailure =
+  { kind: 'general'; errorId?: string } | { kind: 'refused'; notice: ErrorNotice };
+
+/** What publishing or saving met: another team member's rules (W9) or a draft conflict (S2) */
+export type PublishConflict = { kind: 'rules_changed'; message: string } | DraftConflict;
+
+/**
+ * The publish and save dialog's own state, kept by the editor's `publishDialogReducer()`. The
+ * fields other than `phase` stay as they were when it closes, so that the closing dialog's words
+ * don't change while it fades out.
+ */
+export interface PublishDialogState {
+  phase: PublishDialogPhase;
+  /** The step that opened it, which "Back to test" closes back to (FR-044a) */
+  from: EditorStep;
+  /** Opened as "Publish without rules?": its title, intro and "Add rules" stay after a failure */
+  withoutRules: boolean;
+  /** The last attempt's failure, shown while `failed` */
+  failure: PublishFailure | null;
+  /** The last attempt's conflict, shown while `conflict` */
+  conflict: PublishConflict | null;
+  /** The connection the details open after `published` */
+  connectionId: string | null;
+}
+
+export type PublishDialogAction =
+  /** "Publish" or "Save", once the pre-checks have passed */
+  | { type: 'open'; from: EditorStep; withoutRules: boolean }
+  /** "Publish connection", "Save", "Try again", "Replace their changes" */
+  | { type: 'publish' }
+  /** Published or saved: "Published" ("Saved"), then the details */
+  | { type: 'published'; connectionId: string }
+  | { type: 'failed'; failure: PublishFailure }
+  | { type: 'conflict'; conflict: PublishConflict }
+  /**
+   * "Back to test", the other cancel buttons, the ×, Escape, a conflict's "Cancel", and the log-out
+   * after the edit flow's "Save and log out"
+   */
+  | { type: 'close' };
+
 export interface PublishDialogProps {
-  open: boolean;
+  /** Its own state (`publishDialogReducer()`): its phase decides what shows */
+  dialog: PublishDialogState;
   /** Saves changes to an existing connection rather than publishing a new one */
   editing: boolean;
-  /** Opened from the documents step, skipping the rules: "Publish without rules?" (U36) */
-  withoutRules: boolean;
   /** One line per document: "Personal ID · 7 data items" */
   documentLines: string[];
   /** One line per branch: "Standard · 2 rules" */
@@ -355,32 +413,35 @@ export interface PublishDialogProps {
   branches: readonly RulesBranch[];
   /** The latest checks per branch key, from `useRuleChecks()` */
   checks: RuleChecks['byBranch'];
-  publishing: boolean;
-  /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
-  error: ErrorNotice | null;
-  /** The last attempt met rules another team member saved meanwhile (W9) */
-  rulesChanged: boolean;
-  /** "Check rules again", or "Add rules" when publishing without rules */
+  /** A conflict's answer that publishes nothing is running: "Save as new draft" ("Saving…") */
+  busy: boolean;
+  /**
+   * "Back to test" when the test step opened it (FR-044a), "Add rules" when publishing without
+   * rules, "Check rules again" otherwise
+   */
   onCancel: () => void;
-  /** The close button and Escape */
+  /** The close button and Escape, and a draft conflict's "Cancel" */
   onClose: () => void;
+  /** "Publish connection", "Save", "Try again" */
   onConfirm: () => void;
-  /** "Reload", after `rulesChanged` */
+  /** "Reload", after `rules_changed` or `draft_changed` */
   onReload: () => void;
   /**
-   * "Replace their changes", after `rulesChanged` (the same save, replacing their rules) or
+   * "Replace their changes", after `rules_changed` (the same save, replacing their rules) or
    * `draft_changed` (the same publish with `replace: true`)
    */
   onReplace: () => void;
-  /**
-   * The last publish of a draft met another team member's save (S2): the dialog shows its
-   * message and buttons in place of "Publish"
-   */
-  conflict: DraftConflict | null;
   /** "Open the connection", after `draft_published` */
   onOpenConnection: () => void;
   /** "Save as new draft", after `draft_deleted` */
   onSaveAsNew: () => void;
+}
+
+/** The status dialog of the publish and save dialog (U78 6387:65280, 6387:65289) */
+export interface PublishStatusDialogProps {
+  /** `publishing` or `published` while open; anything else closes it */
+  phase: PublishDialogPhase;
+  editing: boolean;
 }
 
 export interface DraftConflictDialogProps {
@@ -457,7 +518,7 @@ export interface EditorFooterProps {
   onAddRules: () => void;
   /**
    * Why "Set rules →" can't be used now, "Add a document first" while no document is added
-   * (FR-031; T022's pattern); null or absent: usable
+   * (FR-031; T022's pattern), and the edit flow's "Save" with it; null or absent: usable
    */
   addRulesExplanation?: string | null;
   /**
@@ -475,7 +536,7 @@ export interface EditorFooterProps {
   rulesProblem?: string | null;
   /** The rules step's "Test rules →" (spec 004, S2) */
   onTestRules: () => void;
-  /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */
+  /** "Publish without rules" on the rules step, the test step's "Publish", or the edit flow's "Save" */
   onPublish: () => void;
   /** "Save and exit" shows on every step: the origin is `new` or `draft` (FR-001, FR-026) */
   canSaveDraft: boolean;
@@ -484,8 +545,8 @@ export interface EditorFooterProps {
   /** "Save and exit" */
   onSaveAndExit: () => void;
   /**
-   * The edit flow's "Discard changes" beside "Back" (FR-045, U98 6731:39850), which asks
-   * "Discard your changes?" (T083); no button without it
+   * The edit flow's "Discard changes" beside "Back" (FR-045, U98 6731:39850): runs once
+   * "Discard your changes?" is confirmed (T083); no button without it
    */
   onDiscard?: () => void;
 }

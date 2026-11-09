@@ -21,7 +21,7 @@ import {
 import { bubblePlacementClass, isOpen, tooltipReducer } from '../../components/InfoTooltip/utils';
 import { ROUTES } from '../../constants';
 import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
-import { LIST_COPY, ROW_CLASSES, SKELETON_ROW_BARS } from './constants';
+import { LIST_COPY, ROW_CLASSES, ROW_EDIT_CLASSES, SKELETON_ROW_BARS } from './constants';
 import type { FormConnectionRowProps, RowDescriptionHandle, RowDescriptionProps } from './types';
 import { descriptionOf, rowMetaOf } from './utils';
 
@@ -147,16 +147,31 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
  * details (U13 #21), with its description cut to one line under it (or none, the name centred);
  * the status pill (T019; "Scheduled" is F1); "Edited <date>", a draft adding its step (FR-048,
  * FR-052d); and "View" (tertiary, eye), "Edit" (secondary, pencil) and the red bin "Delete"
- * (tertiary, icon only), each naming the connection for screen readers (FR-028). A draft offers
- * the same actions (cosmetic 2): its "Edit" opens the editor at the step it was saved in. Rows
- * are 80 high with or without a description (FR-029b). No checkbox (F14)
+ * (tertiary, icon only), each naming the connection for screen readers (FR-028). A published
+ * connection's "Edit", active or deactivated, asks "Edit “<name>”?" first (F48; U15 6699:47905),
+ * in the overview's one question. A draft offers the same actions (cosmetic 2): its "Edit" opens
+ * the editor at the step it was saved in, without asking. Rows are 80 high with or without a
+ * description (FR-029b). No checkbox (F14)
  */
-export default function FormConnectionRow({ formConnection, onDelete }: FormConnectionRowProps) {
+export default function FormConnectionRow({
+  formConnection,
+  onDelete,
+  onEdit,
+}: FormConnectionRowProps) {
   const { id, name, is_active: isActive, status } = formConnection;
   const draft = status === 'draft';
   const description = descriptionOf(formConnection);
   const detailsPath = generatePath(ROUTES.formConnection, { id });
   const descriptionRef = useRef<RowDescriptionHandle>(null);
+  const editContent = (
+    <>
+      <span aria-hidden="true" className="kern-icon kern-icon--edit" />
+      <span className="kern-label">
+        {LIST_COPY.edit}
+        <span className="sr-only"> {name}</span>
+      </span>
+    </>
+  );
 
   // Only keyboard focus opens the description's tooltip: after a click the mouse decides
   function handleNameFocus(event: FocusEvent<HTMLAnchorElement>) {
@@ -193,17 +208,15 @@ export default function FormConnectionRow({ formConnection, onDelete }: FormConn
             <span className="sr-only"> {name}</span>
           </span>
         </Link>
-        <Link
-          to={generatePath(ROUTES.editFormConnection, { id })}
-          // Figma draws the 1px outline inside the 8px padding (77 wide); KERN adds it outside
-          className="kern-btn kern-btn--secondary kern-btn--small px-7!"
-        >
-          <span aria-hidden="true" className="kern-icon kern-icon--edit" />
-          <span className="kern-label">
-            {LIST_COPY.edit}
-            <span className="sr-only"> {name}</span>
-          </span>
-        </Link>
+        {draft ? (
+          <Link to={generatePath(ROUTES.editFormConnection, { id })} className={ROW_EDIT_CLASSES}>
+            {editContent}
+          </Link>
+        ) : (
+          <button type="button" onClick={() => onEdit(formConnection)} className={ROW_EDIT_CLASSES}>
+            {editContent}
+          </button>
+        )}
         {/* Icon only: kern-sr-only makes it KERN's 40px square button (U13 6739:40548) */}
         <button
           type="button"
