@@ -276,7 +276,7 @@ and has one `h1`.
   groups with "At least one rule must be met" / "All rules must be met" and the note "Group 01
   now needs only one rule to be true." (FR-051 (32)); the group message hiding its members'
   messages with "Not shown while this rule is in Group 01. Citizens see the group message
-  instead." (F32); select mode with checkboxes on rules and groups (F33), the sticky bar "Choose
+  instead." (F32); select mode with checkboxes on rules (F33; groups deferred by #64, Implement Q2), the sticky bar "Choose
   at least one more rule to group with Rule 03." / "2 rules selected. They become a sub-group of
   Group 01." and "Group rules"; the toasts "Rule 03 deleted." (Undo), "Rule 02 and Rule 03 are
   now in Group 01.", "Ungrouped. Rules 03 to 05 use their own messages again.", "Rule 01 saved."
@@ -313,7 +313,7 @@ and has one `h1`.
   "Licence classes has parts. Choose the part to check.", "Citizens who turn 21 that day count."
   (F59), the born-between hint and the date hint "Check the time since or until this date, or
   compare it with a fixed date." (F34); the Date of birth keeps "Time ago" / "Time from now"
-  (F34; "Time passed / Time left", "at most", "on", a unit picker and "starts with" are not
+  and its "Fixed date" checks (#63, Implement Q3) (F34; "Time passed / Time left", "at most", "on", a unit picker and "starts with" are not
   built); the field errors under the field ("Enter a whole number greater than 0.", F58, C5;
   "There's already a rule called "Rule 02" in Standard."); the statement preview in the design's
   form (C3); "Need other data? Add it in Documents" asks "Save changes to Rule 01?" first

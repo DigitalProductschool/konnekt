@@ -467,6 +467,12 @@ export interface EditorFooterProps {
   ruleOpen: boolean;
   /** Rules are being chosen for a group: "Test rules" explains "Finish grouping first" */
   grouping: boolean;
+  /**
+   * The first spec 002 problem of the rules in the server's words, such as "Rule 02 in Standard
+   * checks data that's no longer requested.", or null: while there is one, "Test rules" is
+   * unusable and explains it (FR-034 "in error"; CLAR #66, Implement Q5)
+   */
+  rulesProblem?: string | null;
   /** The rules step's "Test rules →" (spec 004, S2) */
   onTestRules: () => void;
   /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */

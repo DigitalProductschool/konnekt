@@ -7,7 +7,6 @@ import {
   changeOperator,
   conditionProblem,
   operatorDefinition,
-  optionsOf,
   resolveTarget,
   withTarget,
 } from '@connection-portal/rules/conditions';
@@ -48,14 +47,17 @@ import {
 } from './utils';
 
 /**
- * The rule editor (S3; Figma "Rule editor", U11 6348:40228), in the rule's place in the list. The
- * choice goes document → data → part → check → value, each unlocked in order (FR-002, FR-003):
- * after each choice the next menu opens. Only the requested documents and fields are offered,
- * images as "Can't be checked". The checks are those of the target's kind, in FR-003's words.
- * The message is proposed once the condition is complete, and follows it until the team member
- * writes their own (F9). The rule itself is the page's: every change goes to `onChange`.
- * "Save rule" on an incomplete rule says what is missing, under the check row, and moves the
- * focus to that control (WCAG 3.3.1); a rule on data that is no longer requested says so there.
+ * The rule editor (S10; Figma "Rule editor", U30 6348:40744, 6350:41176; U31 6350:41417), in the
+ * rule's place in the list: white, a 1px action-blue border, radius 8, 16px 24px padding, its
+ * parts 16px apart. The choice goes document → data → part → check → value, each unlocked in
+ * order (FR-039, W19): after each choice the next menu opens. Only the requested documents and
+ * fields are offered, images as "Not for rules". The checks are those of the target's kind, in
+ * FR-003's words. The message is proposed once the condition is complete (C3), and follows it
+ * until the team member writes their own (F9). The rule itself is the page's: every change goes
+ * to `onChange`. "Save rule" on an incomplete rule explains in its tooltip what is missing (W21);
+ * pressed, it says so under the check row,
+ * flags the missing part red (FR-039) and moves the focus to it (WCAG 3.3.1); a rule on data
+ * that is no longer requested says so there.
  */
 export default function RuleEditor({
   draft,
@@ -84,7 +86,7 @@ export default function RuleEditor({
   const focusNext = useRef<string | null>(null);
   const day = today ?? todayInGermany();
 
-  // A value field takes the focus once its check is chosen
+  // A value field takes the focus once its check is chosen, the missing part after "Save rule"
   useEffect(() => {
     if (focusNext.current) {
       document.getElementById(focusNext.current)?.focus();
@@ -112,7 +114,9 @@ export default function RuleEditor({
       : null;
   // A field made of parts has a hint before its part, which leaves no kind yet
   const hints = target && (kind || !target.part) ? hintsOf(target, draft.condition, day) : [];
+  // What keeps the rule from being saved, in the server's words: "Save rule"'s explanation (W21)
   const complete = isRuleComplete(draft, branchName, context);
+  const blocker = complete ? null : ruleProblem(draft, branchName, context);
   const missing = complete
     ? null
     : missingControl({
@@ -129,11 +133,10 @@ export default function RuleEditor({
       });
   // What keeps the rule from being saved, once "Save rule" was pressed, or the unrequested data,
   // unless a value's own problem already says it
-  const issue =
-    !complete && !problem && (state.saveTried || unrequested)
-      ? ruleProblem(draft, branchName, context)
-      : null;
+  const issue = !complete && !problem && (state.saveTried || unrequested) ? blocker : null;
   const describedIf = (control: string) => (issue && missing === control ? issueId : undefined);
+  // The inline flag on the part that is missing, once "Save rule" said so (FR-039)
+  const flagged = (control: string) => issue !== null && missing === control;
 
   /** Changes the rule; its message follows the condition until it was written (F9). */
   function change(next: RuleItem) {
@@ -211,13 +214,18 @@ export default function RuleEditor({
     onChange({ ...draft, message });
   }
 
+  /**
+   * "Save rule": saves a complete rule; on an incomplete one, whose button only explains (W21),
+   * a press still says what is missing and moves the focus there once the editor shows it, after
+   * the button has handled the press (002-S3.10, WCAG 3.3.1)
+   */
   function save() {
     if (complete) {
       onSave();
     } else {
       dispatch({ type: 'touchAll' });
       if (missing) {
-        document.getElementById(`${idBase}-${missing}`)?.focus();
+        focusNext.current = `${idBase}-${missing}`;
       }
     }
   }
@@ -242,9 +250,11 @@ export default function RuleEditor({
                 catalog.allDocuments.find((entry) => entry.key === draft.target?.document_type)
             )}
             sections={documentSections(catalog.documents)}
-            widthClass={MENU_WIDTHS.document}
+            width={MENU_WIDTHS.document}
+            invalid={flagged('document')}
             describedBy={describedIf('document')}
             footer={<MenuFooter divided text={RULE_EDITOR_COPY.documentsFooter} />}
+            footerDivided
             state={state}
             dispatch={dispatch}
             onChoose={chooseDocument}
@@ -256,10 +266,10 @@ export default function RuleEditor({
             placeholder={RULE_EDITOR_COPY.chooseData}
             chosen={field ? { key: field.key, label: ruleFieldLabel(field) } : null}
             disabled={!documentKey}
-            invalid={unrequested}
+            invalid={unrequested || flagged('data')}
             describedBy={describedIf('data')}
             sections={dataSections(ruleDocument)}
-            widthClass={MENU_WIDTHS.data}
+            width={MENU_WIDTHS.data}
             searchPlaceholder={
               ruleDocument ? RULE_EDITOR_COPY.searchDocument(ruleDocument.label) : undefined
             }
@@ -288,13 +298,9 @@ export default function RuleEditor({
                 ) ?? null
               }
               sections={partSections(field, catalog.optionSets)}
+              invalid={flagged('part')}
               describedBy={describedIf('part')}
-              widthClass={
-                optionsOf(catalog.optionSets, LICENCE_CLASSES_SET) &&
-                field.parts?.some((part) => part.per_licence_class)
-                  ? MENU_WIDTHS.partSearch
-                  : MENU_WIDTHS.part
-              }
+              width={MENU_WIDTHS.part}
               searchPlaceholder={
                 field.parts?.some((part) => part.per_licence_class)
                   ? RULE_EDITOR_COPY.searchClasses
@@ -312,9 +318,10 @@ export default function RuleEditor({
             placeholder={RULE_EDITOR_COPY.chooseCheck}
             chosen={checkChoiceOf(draft.condition, kind)}
             disabled={!kind}
-            sections={kind ? checkSections(kind, target?.dateOfBirth ?? false) : []}
+            sections={kind ? checkSections(kind) : []}
+            invalid={flagged('check')}
             describedBy={describedIf('check')}
-            widthClass={kind === 'date' ? MENU_WIDTHS.dateCheck : MENU_WIDTHS.check}
+            width={kind === 'text' ? MENU_WIDTHS.textCheck : MENU_WIDTHS.check}
             state={state}
             dispatch={dispatch}
             onChoose={chooseCheck}
@@ -338,14 +345,15 @@ export default function RuleEditor({
         {problem && <FieldError id={errorId} message={problem.message} />}
         {issue && <FieldError id={issueId} message={issue} alert />}
       </div>
-      {hints.length > 0 && <EditorHints hints={hints} />}
+      {/* The empty hints row keeps its 24px, except under a field error (U49 6196:10243) */}
+      {(hints.length > 0 || (!problem && !issue)) && <EditorHints hints={hints} />}
       <MessageField
         id={`${idBase}-message`}
         message={draft.message}
         errorId={describedIf('message')}
         onChange={changeMessage}
       />
-      <EditorActions complete={complete} onCancel={onCancel} onSave={save} />
+      <EditorActions explanation={blocker} onCancel={onCancel} onSave={save} />
     </section>
   );
 }

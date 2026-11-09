@@ -11,7 +11,7 @@ import CopyPopover from './CopyPopover';
 import ItemName from './ItemName';
 import RuleMenu from './RuleMenu';
 import type { RuleListItemProps } from './types';
-import { standingOf } from './utils';
+import { menuEntriesOf, menuItemOf, standingOf } from './utils';
 
 /**
  * A saved rule in the Rules step (S2, S4): the shared row, its name and its ⋯ menu, with "Copy to
@@ -26,8 +26,8 @@ export default function RuleListItem({
   elementId,
   flag,
   finding,
-  canGroup,
   faded,
+  selectBox,
 }: RuleListItemProps) {
   const { branch, state, dispatch, onCopyLink: copyLink } = view;
   const standing = standingOf(branch, rule);
@@ -37,6 +37,14 @@ export default function RuleListItem({
   const copying =
     dialog?.type === 'copyRule' && dialog.branchKey === branch.key && dialog.ruleId === rule.id;
   const actionsRef = useRef<HTMLDivElement>(null);
+  // What its ⋯ offers (FR-036; T055)
+  const menuItem = menuItemOf(state.branches, branch.key, rule.id);
+  const entries = menuItem
+    ? menuEntriesOf(menuItem, {
+        branchKind: branch.origin === 'main' ? 'standard' : 'variant',
+        linkable: copyLink !== null,
+      })
+    : [];
   // Where "Copy to variant" opens from the ⋯, measured when it is chosen
   const [copyPlacement, setCopyPlacement] = useState<PopupPlacement>('end');
 
@@ -67,6 +75,7 @@ export default function RuleListItem({
       finding={finding}
       mark={view.based ? rule.mark : null}
       faded={faded}
+      selectBox={selectBox}
       nameSlot={
         faded || standing === 'removed' ? undefined : (
           <ItemName
@@ -84,29 +93,28 @@ export default function RuleListItem({
           <div ref={actionsRef} className={popupWrapperClass(copying ? copyPlacement : null)}>
             <RuleMenu
               ruleName={rule.name}
-              standing={standing}
-              canGroup={canGroup}
-              canCopy={state.branches.length > 1}
-              canReset={view.based && rule.mark === 'changed'}
+              entries={entries}
+              branchName={branch.name.trim()}
               mainName={main.name}
-              onEdit={() => view.onEditRule(rule.id)}
-              onRename={() =>
-                dispatch({ type: 'startRename', branchKey: branch.key, itemId: rule.id })
-              }
-              onDuplicate={() => view.onDuplicateRule(rule.id)}
-              onCopy={() => {
-                setCopyPlacement(placementFrom(actionsRef.current, COPY_POPOVER_WIDTH, 'end').side);
-                view.onCopyRule(rule.id);
+              handlers={{
+                edit: () => view.onEditRule(rule.id),
+                rename: () =>
+                  dispatch({ type: 'startRename', branchKey: branch.key, itemId: rule.id }),
+                duplicate: () => view.onDuplicateRule(rule.id),
+                copyToVariant: () => {
+                  setCopyPlacement(
+                    placementFrom(actionsRef.current, COPY_POPOVER_WIDTH, 'end').side
+                  );
+                  view.onCopyRule(rule.id);
+                },
+                group: () => view.onStartSelect(rule.id),
+                reset: () => view.onReset(rule.id),
+                restore: () => view.onRestore(rule.id),
+                copyLink: () => copyLink?.(rule.id),
+                remove: () => view.onRemove(rule.id),
+                delete: () =>
+                  dispatch({ type: 'askDelete', branchKey: branch.key, ruleId: rule.id }),
               }}
-              onGroup={() => view.onStartSelect(rule.id)}
-              onReset={() => view.onReset(rule.id)}
-              onDelete={() =>
-                standing === 'inherited'
-                  ? view.onRemove(rule.id)
-                  : dispatch({ type: 'askDelete', branchKey: branch.key, ruleId: rule.id })
-              }
-              onRestore={() => view.onRestore(rule.id)}
-              onCopyLink={copyLink && (() => copyLink(rule.id))}
             />
             {copying && (
               <CopyPopover

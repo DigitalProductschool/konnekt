@@ -478,7 +478,8 @@ later `/speckit-specify`.
     sub-group offers no further grouping).
   - Supersedes: no Clarification; 007-S4.1, 007-S4.2, 002-S2.10, 002-S2.16, 002-S2.19 hold.
     "Group with other rules" is extended by #48 (second round, Remap Q3): also on a top-level
-    group without a sub-group, and only with a neighbour on the same level; and by #60 (third
+    group without a sub-group (deferred by #64, Implement Q2), and only with a neighbour on the
+    same level; and by #60 (third
     round, Remap 2 Q1): also on a rule inside a top-level group, with another rule of that group
     on its level (#61, fourth round, Remap 3 Q1: a sub-group of the group is no neighbour).
     "Rename" and "Copy
@@ -513,6 +514,8 @@ later `/speckit-specify`.
     only (U40 #29, #30 (6961:56291); U62 #19, #21): not built; one connector between items
     (002-S2.8) and the link icon on every linked rule or none (002-S4.31).
   - (c) Select mode (U40 #13; U64 #22): groups have checkboxes and can be selected (002-S2.9).
+    Deferred by #64 (Implement Q2): the rules package groups rules only, so in select mode only
+    rules have checkboxes.
   - Supersedes: 002-ACC.2 (control type). No Clarification; 002-S2.8, 002-S2.9, 002-S4.31 hold.
 
 - Q: For the Date of birth and the other date checks, should the editor follow the baseline's
@@ -523,8 +526,10 @@ later `/speckit-specify`.
   - Surfaces: U09 #24, #27 (6986:50041); U29 #27; U31 #40, #43; U03 #2; U46 #13; U49 #18; U50
     #24; U53 #16, #36.
   - Kept: the Date of birth's "Time ago" / "Time from now" checks (002-S3.12–S3.18, 002-S3.30).
-  - Deferred: a fixed-date comparison for the Date of birth (evaluator and rules package,
-    Clarification 2026-11-06 #1); the editor offers none.
+  - ~~Deferred: a fixed-date comparison for the Date of birth (evaluator and rules package,
+    Clarification 2026-11-06 #1); the editor offers none.~~ Superseded by #63 (Implement Q3): the
+    baseline already offers the Date of birth's fixed-date checks (002 Session 2026-10-26), so
+    they stay, under "Fixed date" after "Time ago" / "Time from now"; nothing is deferred.
   - Figma errors, not built: "Time passed / Time left", "at most", "on", a unit picker on age
     checks (whole years stay fixed text), "starts with".
   - Hint wording: "Check the time since or until this date, or compare it with a fixed date."
@@ -920,7 +925,8 @@ Q<n>". The record is the same: the decision, the surfaces, the exact wording, wh
   Conflict 3) → A: Two levels only.
   - Surfaces: built on top-level rules (U36 #15; U39 #27c; U41 #22; U64 #2), on rules inside a
     top-level group beside another rule of that group (U36 #28; U55 #24; decided by #60 and
-    #61) and on a top-level group without a sub-group (U57 #22); select mode U36, U40, U64;
+    #61) and on a top-level group without a sub-group (U57 #22; deferred by #64, Implement Q2);
+    select mode U36, U40, U64;
     build note 10 U54 6522:33107 (#5). Figma errors, not built: the entry on a rule inside
     Sub-group 01 (U55 6531:39068), on a group that holds a sub-group (U55 6522:32424; U58 #20,
     6522:33026, whose Group 01 holds Sub-group 01), on a rule whose only neighbour in its group
@@ -1168,6 +1174,67 @@ numbered #62 here and tagged "Implement Q1". The record is the same.
     step (cosmetic 2), read by the editor. The item joins `deferred.md` group A.
   - Supersedes: #59's and FR-052d's step part (FR-052d now names the deferral); F71 in
     `contracts/ui-screens.md` S4.
+
+Sixth round, 2026-11-08, during `/speckit-implement` phase 7 (T062): a premise found wrong while
+building, numbered #63 here and tagged "Implement Q3". The record is the same.
+
+- Q: #25 deferred "a fixed-date comparison for the Date of birth" as if the baseline had none, but
+  spec 002 (Session 2026-10-26: "the fixed-date checks under 'Age'") gives the Date of birth
+  fixed-date checks and the app offered them. Restore them, or keep them removed as #25 says?
+  (#63, Implement Q3, F34) → A: Restore.
+  - Surfaces: U31 #40, #43 and U09 #27 (6985:50041, 6986:50041): the Date of birth's check menu
+    reads "Time ago", "Time from now" and "Fixed date", as every other date's; the date hint
+    "Check the time since or until this date, or compare it with a fixed date." (F34) fits it.
+  - Behaviour: the baseline's fixed-date checks on the Date of birth (is before, is after, is a
+    given date) stay offered and evaluated as before; the section is headed "Fixed date" (the
+    design's word; the baseline's "Date of birth" heading under "Age" is replaced, as "Age" is by
+    "Time ago", F34). The rules package and the evaluator are unchanged.
+  - Supersedes: #25's "Deferred" line (struck there); the Q25 row of `deferred.md` (removed);
+    F34 in `contracts/ui-screens.md` S10.
+
+- Q: #48 and FR-038 put "Group with other rules" on a top-level group without a sub-group and
+  checkboxes on groups in select mode, but the rules package's `canGroup` (`rules/src/tree.ts`)
+  groups rules only, and Clarification 2026-11-06 #1 defers an item that needs the rules
+  package. Build it, defer it, or show it disabled? (#64, Implement Q2, T055) → B: Defer.
+  - Surfaces, Figma must change (not built): the entry on a top-level group, U57 #22
+    (6522:32862); the group checkboxes in select mode, U36 (6344:53506 …), U40 #13, U64 #22.
+    Built: the entry on top-level rules and on rules inside a top-level group beside another rule
+    of that group (#48, #60, #61); in select mode only rules have checkboxes, a top-level rule's
+    neighbours are the other top-level rules.
+  - Behaviour: unchanged from the baseline's rules package (a selection holds rules of one
+    level). `menuEntriesOf` offers no grouping on groups and `selectableIn` boxes rules only.
+    The item joins `deferred.md` group B.
+  - Supersedes: #48's group surface and its "or group" neighbour, #22's extension, FR-036's
+    group clause, FR-038's "groups are selectable", the (c) answer on select mode (002-S2.9
+    read as rules only), F33's "on rules and groups" in `contracts/ui-screens.md` S9.
+
+- Q: W21 makes "Save rule" a disabled button with an explanation (`aria-disabled`, focusable,
+  ignoring activation), but the baseline's press shows what is missing (002-S3.10, U25): the
+  missing parts flagged, the problem under the check row announced, the focus moved there. Keep
+  the press, follow W21 strictly, or drop W21 for "Save rule"? (#65, Implement Q4, W21, T063)
+  → A: Keep the baseline's press.
+  - Surfaces: U30 #46 (6350:41089), U49 (6196:10232, 6196:10383, 6196:10567).
+  - Behaviour: while the rule is incomplete "Save rule" is `ExplainedButton` (`aria-disabled`),
+    its tooltip the rule's current problem in the server's words ("Rule 02 in Standard: choose
+    the data to check."), on hover, keyboard focus and tap; a press (click, Enter, Space, tap)
+    never saves, and does what 002-S3.10 says: flags the missing parts (FR-039), shows the
+    problem under the check row (announced) and moves the focus there. Complete, it is the
+    ordinary primary button.
+  - Supersedes: W21's "ignoring activation" for "Save rule" only (design-notes §3 "Disabled
+    button with explanation"); "Test rules" and the other explained buttons keep ignoring it.
+
+- Q: FR-034 disables "Test rules" while a rule is "in error" (U50 #21 draws it disabled with a
+  rule on data no longer requested), but only "Save the rule first" and "Finish grouping first"
+  are worded. What does it explain? (#66, Implement Q5, FR-034, T060) → A: The problem in the
+  server's words.
+  - Surfaces: U50 #21 (6197:10714).
+  - Behaviour: while the rules step has a spec 002 problem (`firstProblem`, the publishing
+    pre-checks) and no rule editor is open and no grouping runs, "Test rules" is `ExplainedButton`
+    (`aria-disabled`, ignoring activation) whose explanation is the first problem's message, such
+    as "Rule 02 in Standard checks data that's no longer requested."; the open editor ("Save the
+    rule first") and grouping ("Finish grouping first") explain first. The refused attempt on a
+    press is gone for "Test rules" (Q18); "Publish" and "Save" keep their pre-checks.
+  - Supersedes: FR-034's explanation list (extended by the problem's message).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -1551,7 +1618,8 @@ Decided drift items (Clarifications, session 2026-11-07):
   modal is shown (Q17).
 - **FR-034**: On the rules step, "Test rules" and, in the edit flow, "Save" are disabled while a
   rule is open, incomplete or in error, or while grouping, with "Save the rule first" / "Finish
-  grouping first" as their explanation, shown as FR-052b says for every disabled button (Q18, #47).
+  grouping first" / the first problem in the server's words (#66) as their explanation, shown as
+  FR-052b says for every disabled button (Q18, #47, #66).
 - **FR-035**: The Rules step shows an ⓘ after "+ Add variant" that opens on hover and on focus
   and reads "A separate set of rules for citizens with different requirements. Each variant gets
   its own result link."; the Test step shows no variant ⓘ (#57); the Standard tab's (i) shows
@@ -1562,7 +1630,8 @@ Decided drift items (Clarifications, session 2026-11-07):
   variant" shows only while some variant could still receive the item (#53); group and
   sub-group menus carry "Rename" (inline, with the duplicate check) and, while the group has a
   message, "Remove message" next to "Add message" (#54); and the menu of a top-level rule or of
-  a top-level group without a sub-group offers "Group with other rules" when another rule or
+  a top-level group without a sub-group (deferred by #64: rules only until the rules package
+  groups groups) offers "Group with other rules" when another rule or
   group is on the same level, the menu of a rule inside a top-level group (whether or not the
   group already holds a sub-group) when another rule sits directly in that group (a sub-group
   of the group is no neighbour); the entry starts select mode with that item selected, inside a
@@ -1577,7 +1646,8 @@ Decided drift items (Clarifications, session 2026-11-07):
 - **FR-038**: The AND/OR connector is a pill that opens a two-option menu ("All rules must be
   met" / "At least one rule must be met"), exposed as a menu button whose accessible name says
   the level; exactly one connector sits between items, the link icon is on every linked rule or
-  none, and groups are selectable in select mode (Q24).
+  none, and groups are selectable in select mode (Q24; deferred by #64, Implement Q2: only
+  rules are selectable until the rules package can group a group).
 - **FR-039**: The rule editor keeps the baseline's states in the design's styling: pickers that
   unlock in order, inline flags on incomplete parts, the counting and missing notes on date
   conditions, the part picker after "Licence classes", the placeholder "Message for citizens:

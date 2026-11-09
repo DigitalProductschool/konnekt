@@ -1,4 +1,5 @@
-import type { RuleEditorState } from './types';
+import type { MenuDirection, PopupPlacement } from '../../../../utils/popupPlacement';
+import type { MenuWidth, RuleEditorState } from './types';
 
 // The rule editor's copy (S3): the frames of U11, U12, U13, U24, U25, U30–U32, with the decided
 // changes of F1–F9, F30 and F32 and design-notes.md §2–§3
@@ -16,8 +17,8 @@ export const RULE_EDITOR_COPY = {
   checksMenu: 'Checks',
   unitsMenu: 'Unit',
   valuesMenu: 'Values',
-  // FYI #20: one footer wording for the document menu (design-notes.md §2)
-  documentsFooter: 'Only documents you request are listed.',
+  // One footer wording for the document menu (002-S3.41), the design's (U30 6350:41316)
+  documentsFooter: 'Only documents you added are listed.',
   searchDocument: (document: string) => `Search ${document}`,
   searchClasses: 'Search classes',
   searchOptions: 'Search options',
@@ -25,19 +26,18 @@ export const RULE_EDITOR_COPY = {
   // The data menu's footer (6348:40520)
   needOtherData: 'Need other data?',
   addInDocuments: 'Add it in Documents',
-  // Data/Status tag on images (6348:40517; FR-002)
-  cantBeChecked: 'Can’t be checked',
-  // The values menu's footer (6191:42209, F32)
-  selectAtLeastOne: 'Select at least one option.',
+  // Data/Status tag on images (U31 6350:41624; FR-002, cosmetic 9)
+  notForRules: 'Not for rules',
+  // The values menu's footer and the values field's error (U48 6191:42209, 6194:42246; cosmetic 9)
+  selectAtLeastOne: 'Choose at least one option.',
   // Licence classes' part picker (F5)
   licenceClasses: 'Licence classes',
   classPart: (code: string, part: string) => `Licence class ${code} – ${part}`,
-  // Date menu sections (F3; U11 6348:40681 on the Date of birth, U30 6324:15613 elsewhere)
-  ageSection: 'Age',
+  // Date menu sections (U31 6985:50041): "Time ago" and "Time from now" on every date, "Fixed
+  // date" on every date but the Date of birth (F34, CLAR 2026-11-07 #25, cosmetic 9)
   timeAgoSection: 'Time ago',
   timeFromNowSection: 'Time from now',
   fixedDateSection: 'Fixed date',
-  dateOfBirthSection: 'Date of birth',
   // Units of from-now conditions (6350:42585)
   years: 'years',
   months: 'months',
@@ -51,24 +51,28 @@ export const RULE_EDITOR_COPY = {
   // F7, design-notes.md §3
   matchCase: 'Match letter case',
   textHint: 'Spaces at the start or end don’t matter.',
-  // F3: the hint while a Date of birth has no check yet, and U30 6324:15429's, which stays (F3),
-  // for every other date
-  dateHint: 'Check an age, the time from now, or compare the date with a fixed date.',
-  dateHintOther: 'Check the time since or until this date, or compare it with a fixed date.',
+  // The hint while a date has no check yet, the Date of birth's too (F34; U31 6350:42013)
+  dateHint: 'Check the time since or until this date, or compare it with a fixed date.',
   // U11 6348:40755, which stays: under "is at least N years old"
   turnsThatDay: (years: number) => `Citizens who turn ${years} that day count.`,
   // U32 6324:17646, which stays: a field made of parts before its part is chosen
   partsHint: (field: string) => `${field} has parts. Choose the part to check.`,
-  // F4: next to every date condition
-  countedFrom: 'Counted from the day the citizen shares.',
-  todayMeans: (today: string, meaning: string) => `Today (${today}) this means: ${meaning}.`,
+  // The counting note next to a time-ago or from-now condition (U30 6348:40754, U53 6324:15672;
+  // a class's issue date U32 6350:42724; cosmetic 3, cosmetic 9), dates as dd.mm.yyyy
+  countedFrom: 'Counted from the day the citizen shares their data.',
+  countedFromClassIssue: (code: string) => `Counted from the date class ${code} was first issued.`,
+  todayMeans: (today: string, meaning: string) => `Today (${today}), that means ${meaning}.`,
+  // The words before the boundary: "born on or before …" (U30), "it expires on or after …" (U53)
+  bornPrefix: 'born',
+  expiresPrefix: 'it expires',
+  // The missing-value note next to every date condition (U30 6348:40756, U53 6324:15673, a
+  // class's dates U32 6350:42726; C1, cosmetic 9)
   missingValue: (thing: string) =>
-    `If the ${thing} is missing or can’t be read, the rule isn’t met and is reported as couldn’t be checked.`,
-  classOf: (part: string, code: string) => `${part} of class ${code}`,
-  classMissing: (code: string) => `If class ${code} is missing, the rule isn’t met.`,
-  // F30, and U12 6357:43117 which stays
-  nationalityHint:
-    'Nationality can have more than one value. “Includes one of” is met if any of them is one of the chosen values, “includes none of” if none of them is.',
+    `If the ${thing} is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”.`,
+  classMissing: (code: string) =>
+    `If class ${code} is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”.`,
+  // The design's wording (U53 6324:17370, cosmetic 9), and U12 6357:43117 which stays
+  nationalityHint: 'A citizen can have more than one nationality. The rule checks all of them.',
   classesHintOneOf: 'Met if the licence has at least one of the chosen classes.',
   // Proposed, for "includes none of" on the licence classes
   classesHintNoneOf: 'Met if the licence has none of the chosen classes.',
@@ -77,26 +81,92 @@ export const RULE_EDITOR_COPY = {
   enterNumber: 'Enter a number.',
   enterText: 'Enter a text to compare with.',
   enterDate: 'Enter a date.',
-  // F9: the empty message field, label and placeholder
-  messageLabel: 'Error message citizens read:',
-  messagePlaceholder: 'Suggested once you complete the check. You can edit it.',
-  // U11 6348:40235
-  cancel: 'Cancel',
+  // The message field's label (C2) and its placeholder while empty (U30 6350:41266, FR-039)
+  messageLabel: 'Message for citizens:',
+  messagePlaceholder: 'Suggested once you choose a check. You can edit it.',
+  // U30 6348:40758 (FR-051 (36))
+  discardRule: 'Discard rule',
   saveRule: 'Save rule',
   rename: (name: string) => `Rename ${name}`,
 };
 
-// The menus' widths in the frames: documents and parts 300, data and dates 340, checks 300,
-// units 200
-export const MENU_WIDTHS = {
-  document: 'w-300',
-  data: 'w-340',
-  part: 'w-300',
-  partSearch: 'w-340',
-  check: 'w-300',
-  dateCheck: 'w-340',
-  unit: 'w-200',
+// The menus' widths in the frames (U30 6350:41316, U31 6350:41548, 6984:49993, 6985:50041, U33
+// 6357:42841): documents, parts (also with the classes' search) and checks (also the dates') 300,
+// the text checks 240, data 340, units 200
+export const MENU_WIDTHS: Record<
+  'document' | 'data' | 'part' | 'check' | 'textCheck' | 'unit',
+  MenuWidth
+> = {
+  document: 300,
+  data: 340,
+  part: 300,
+  check: 300,
+  textCheck: 240,
+  unit: 200,
 };
+
+/** The width class of each menu width (numeric utilities are pixels) */
+export const MENU_WIDTH_CLASSES: Record<MenuWidth, string> = {
+  200: 'w-200',
+  240: 'w-240',
+  300: 'w-300',
+  340: 'w-340',
+};
+
+/**
+ * Where a menu opens from its picker (utils/popupPlacement.ts, design-notes §3 "Menu"), 8px from
+ * it as U30 draws it (the picker's bottom 541, the menu's top 549; U31 1.8b opens up, 8px above
+ * it): below or above it, its left edge on the picker's, else its right edge. Where neither fits
+ * (320px, 200% zoom) it spans the rule editor's content (the editor is the positioned box, 24px
+ * padding): opening down it starts where the flow puts it, under the picker; opening up its
+ * wrapper is a flex column, so that it starts at the picker's top, and it moves up by its own
+ * height and the gap, whatever the picker's height (as the values menu, T027)
+ */
+export const CHOICE_MENU_PLACEMENTS: Record<PopupPlacement, Record<MenuDirection, string>> = {
+  start: { down: 'top-full left-0 mt-8', up: 'bottom-full left-0 mb-8' },
+  end: { down: 'top-full right-0 mt-8', up: 'bottom-full right-0 mb-8' },
+  full: { down: 'inset-x-24 mt-8', up: 'inset-x-24 -translate-y-[calc(100%+8px)]' },
+};
+
+/** The wrapper of a menu across the editor, by direction (see CHOICE_MENU_PLACEMENTS) */
+export const CHOICE_FULL_WRAPPERS: Record<MenuDirection, string> = {
+  down: 'static',
+  up: 'static flex flex-col',
+};
+
+/**
+ * The heights a menu's height is estimated from before it opens (U30 6350:41316, U31
+ * 6350:41548, 6985:50041): the 1px border and 8px padding at the top and the bottom, the parts
+ * 2px apart, the 40px search field, a choice 40px, a row with a symbol chip or an image's tag
+ * 42px (the 26px chip, T024), a section heading 34px (8px above and 2px below its line), a
+ * divider 1px and the footer's 36px text
+ */
+export const CHOICE_MENU_METRICS = {
+  frame: 18,
+  gap: 2,
+  search: 40,
+  row: 40,
+  tallRow: 42,
+  heading: 34,
+  divider: 1,
+  footer: 36,
+};
+
+/**
+ * The height a long menu counts with when it decides to open down or up: U31 draws the parts
+ * menu 294px high below its picker (6984:49993), its list scrolling inside, so a longer menu
+ * opens down where that much fits above the footer (Figma "Rules/Picker": "Menus always open
+ * downward"), else up (U31 6635:36492, "never under the footer"); its frame then takes the
+ * max-height step that fits (research R10)
+ */
+export const CHOICE_MENU_DRAWN_HEIGHT = 294;
+
+/**
+ * A choice's hover and pressed layers (the kit's "states", P33 2:1985: the action colour at 8% and
+ * 16%, as the ⋯ menus' entries, T021) and the colour transition (design-notes §4)
+ */
+export const CHOICE_STATES =
+  'motion transition-colors duration-(--duration-colour) hover:bg-kern-action-state-indicator-default/8 active:bg-kern-action-state-indicator-default/16';
 
 // The decoration chips of the check menus and the check picker (Figma "Rules/Symbol"). Text and
 // enum checks have none
@@ -116,6 +186,13 @@ export const CHECK_SYMBOLS: Record<string, string> = {
 };
 
 export const NATIONALITIES_FIELD = 'pid.nationalities';
+
+// The keys of the expiry dates, fields and parts, whose counting note reads "it expires …" (U53
+// 6324:15672)
+export const EXPIRY_DATE_KEYS = ['date_of_expiry', 'expiry_date'];
+
+// The issue date of a licence class, whose counting note names the class (U32 6350:42724)
+export const CLASS_ISSUE_DATE_PART = 'issue_date';
 
 export const INITIAL_RULE_EDITOR_STATE: RuleEditorState = {
   openMenu: null,

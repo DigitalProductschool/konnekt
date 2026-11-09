@@ -166,12 +166,13 @@ touch.
 `menuEntriesOf(item, context)` (pure, in `RulesStep/utils.ts`, tested) decides the entries from:
 `kind` (rule, group, sub-group, variant), `level` (top, in a group, in a sub-group), `linked`
 (linked to Standard in a variant), `removed`, `hasMessage` (groups), `neighbours` (another rule
-or group on the same level at the top; another rule directly in the group inside one), the
+on the same level at the top; another rule directly in the group inside one; groups are no
+neighbours and get no grouping entry until the rules package can group a group, #64), the
 branch's `kind` (Standard or a variant) and whether some variant could still receive the item
 ("Copy to variant"). "Copy link" is the last entry before the destructive ones and follows
 "Restore" on removed items; "Group with other rules" starts select mode `{ selected: [id],
 scope: 'top' | groupId }`, inside a group limited to that group's rules (Clarifications #48, #60,
-#61).
+#61, #64).
 
 ### The test step (FR-042, FR-043, C6)
 

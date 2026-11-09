@@ -49,18 +49,18 @@ Updated as `/speckit-clarify` (session 2026-11-07) runs; items Q# come from
 
 | # | Feature | Frames | Design's wording | Needs | Would supersede |
 |---|---|---|---|---|---|
+| Q2-I | Grouping a group: "Group with other rules" on a top-level group without a sub-group, and groups selectable in select mode (#64, Implement Q2) | U57 #22 (6522:32862); U36 (6344:53506, 6344:53530); U40 #13; U64 #22 | "Group with other rules" | `canGroup` in `rules/src/tree.ts` accepting a top-level group without a sub-group (it becomes a sub-group), propagation of that move in `rules/src/branches.ts`, the server's checks (`backend/app/services/rules.py`) and the MCP skill | FR-036's and FR-038's group clauses (built for rules only) |
 | F7 | "Remove from group" / "Remove from sub-group", moving a sub-group out | U34 #27; U36 #29 (6344:53657); U54 #6, #14 (6522:33107); U55 #25, #26 (6522:32071); U56 #27 (6522:32540) | "Remove from group", "Remove from sub-group" | a new edit action in `rules/src/edits.ts` and its MCP tool | 002-S2.12, 002-S2.13, 002-S2.15 (group menus offer "Ungroup" and "Delete group" only) |
 | F8 | "Duplicate group" / "Duplicate sub-group" | U54 #15; U55 #29 (6522:32424); U56 #24; U57 #22 | "Duplicate group", "Duplicate sub-group" | a group duplicate action in the rules package | 002-S2.16 (Duplicate is a rule action) |
-| F9 | "+ Add rule" inside a group or sub-group; adding into an empty group | U34 #19; U35 #20; U36 #26; U38 #21; U40 #24; U41 #20; U42 #26; U43 #22; U44 #29; U45 #20; U47 #24; U51 #19, #25; U52 #17; U54 #9; U55 #21; U56 #21; U57 #16; U58 #18; U59 #22; U60 #24; U62 #14 | "+ Add rule" | an insert-into-group action in the rules package | 002-S3.1, 002-S2.9, 002-S2.15, 002-S2.13 |
+| F9 | Adding into an empty group (the "+ Add rule" inside a group or sub-group with members is the baseline, 002 FR-008 and `edits.addRule` with `parentId`, and stays built: T057, 2026-11-08) | U34 #19; U35 #20; U36 #26; U38 #21; U40 #24; U41 #20; U42 #26; U43 #22; U44 #29; U45 #20; U47 #24; U51 #19, #25; U52 #17; U54 #9; U55 #21; U56 #21; U57 #16; U58 #18; U59 #22; U60 #24; U62 #14 | "+ Add rule" | an insert-into-group action in the rules package | 002-S3.1, 002-S2.9, 002-S2.15, 002-S2.13 |
 | F10 | "Unlink from Standard", its result and the toast | U03 #23 (6648:42016); U05 #4, #5 (6711:39381); U06 #16 (6791:46863); U08 #5 (7370:55195) | "Unlink from Standard", "Unlinked from Standard." | an unlink transition in `rules/src/branches.ts` and the server's checks | 002-S4.14, 002-S4.31, 002-S4.4 |
-| Q25 | A fixed-date comparison for the Date of birth ("is before / after <date>") | U09 #27 (6986:50041); U31 #40, #43 | the date hint "… or compare it with a fixed date." | the evaluator (`evaluation.py`) and its port `rules/src/evaluation.ts`, the exported vectors | 002-S3.14 (Date of birth: time ago / from now only) |
 | F11 | Persona generation that makes every rule testable | U06 #40 | — | the personas generator in the rules package | 004-S8.6.4 ("Couldn't be checked" stays) |
 
 `/speckit-specify` description (draft):
 
 > Extend the rules of a connection with the editing actions the KERN Revamp design draws and
 > feature 008 deferred: remove a rule from its group, duplicate a group, add a rule inside a group,
-> unlink a variant from Standard, and generate test personas that make every rule testable. The
+> unlink a variant from Standard, group a group with other rules, and generate test personas that make every rule testable. The
 > frames are listed in specs/008-kern-revamp-redesign/deferred.md, group B; each action goes into
 > rules/src/edits.ts (or branches.ts) with its test, its MCP tool and skill, and the frontend ports
 > the frames as drawn.

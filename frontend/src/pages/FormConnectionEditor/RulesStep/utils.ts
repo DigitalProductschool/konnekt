@@ -13,6 +13,7 @@ import {
   deleteItem,
   findItem,
   flattenItems,
+  isDissolved,
   newRule,
   numberOfId,
 } from '@connection-portal/rules/tree';
@@ -21,14 +22,27 @@ import { variantNameProblem } from '@connection-portal/rules/validation';
 import { generatePath } from 'react-router';
 
 import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
+import type { ToastKind } from '../../../components/Toast/types';
 import { ROUTES } from '../../../constants';
 import { ELEMENT_IDS } from '../constants';
-import { LINK_PARAMS, LINK_STEP, MAIN_BRANCH_NAME, RULES_COPY } from './constants';
+import {
+  LINK_PARAMS,
+  LINK_STEP,
+  MAIN_BRANCH_NAME,
+  MENU_ENTRY_ORDER,
+  RULES_COPY,
+} from './constants';
 import type {
   BannerItem,
   BannerView,
   ItemStanding,
   LinkNoticeKind,
+  MenuContext,
+  MenuEntry,
+  MenuEntryId,
+  MenuItem,
+  MenuRuleLevel,
+  MenuTreeItemState,
   RenameAction,
   RenameField,
   RenamingItem,
@@ -38,6 +52,7 @@ import type {
   RulesSelection,
   RulesState,
   RulesUndo,
+  SelectScope,
   SwitchedLevel,
   VariantForm,
   VariantFormAction,
@@ -285,6 +300,180 @@ export function standingOf(branch: RulesBranch, item: RuleTreeItem): ItemStandin
   return isInherited(branch, item) ? 'inherited' : 'own';
 }
 
+/**
+ * Whether an item of select mode's level can be chosen (FR-036, FR-038; CLAR #60, #61, #64): a
+ * rule that isn't removed. Groups never are: the rules package groups rules only (`canGroup`),
+ * so grouping a group is deferred (CLAR #64, Implement Q2; deferred.md group B). Select mode
+ * lists only its scope's level, so in a top-level group only the rules directly in it.
+ */
+export function selectableIn(item: RuleTreeItem): boolean {
+  return item.type === 'rule' && item.mark !== 'removed';
+}
+
+/**
+ * Whether another item of the found item's level can be chosen with it (`selectableIn`): its
+ * neighbour for "Group with other rules". A sub-group's rules have none: it holds no further
+ * grouping (FR-036; 002-S2.10).
+ */
+function hasGroupingNeighbour(
+  items: RuleTreeItem[],
+  found: { item: RuleTreeItem; parentId: string | null; depth: number }
+): boolean {
+  if (found.depth > 1) {
+    return false;
+  }
+  return levelItems(items, found.parentId).some(
+    (other) => other.id !== found.item.id && selectableIn(other)
+  );
+}
+
+/** Whether a tree holds the item, not removed there, nor in a removed group. */
+function holdsItem(items: RuleTreeItem[], id: string): boolean {
+  return items.some(
+    (item) =>
+      item.mark !== 'removed' &&
+      (item.id === id || (item.type === 'group' && holdsItem(item.items, id)))
+  );
+}
+
+/**
+ * Whether some other variant could still receive a copy of a rule of `source` ("Copy to
+ * variant", FR-036; CLAR #53; build note U54 6522:33107 #4): always for a rule added or changed in
+ * a based variant ("New addition", "Changed here"); otherwise (a Standard rule, in Standard or as a
+ * variant inherits it unchanged, or a rule of a variant that started empty) only while some other
+ * variant doesn't hold it: one not linked to it, or one that removed it, alone or with its group.
+ */
+function receivableElsewhere(
+  branches: RulesBranch[],
+  source: RulesBranch,
+  rule: RuleItem
+): boolean {
+  const others = branches.filter((branch) => branch.key !== source.key);
+  if (source.origin === 'based' && (rule.mark === 'added' || rule.mark === 'changed')) {
+    return others.length > 0;
+  }
+  return others.some((branch) => !holdsItem(branch.items, rule.id));
+}
+
+/**
+ * What a rule's or group's ⋯ menu is built from (`menuEntriesOf()`; FR-036; data-model "The rules
+ * step's menus"), as it sits in its branch: a group or a sub-group, or a rule at the top level, in
+ * a group or in a sub-group; whether it is linked to Standard there, changed or removed (an
+ * inherited group dissolved in a based variant counts as removed, F13); whether another item of
+ * its level can be grouped with it; a group's message and sub-groups; and whether some other
+ * variant could still receive a rule's copy. Null if the branch has no such item. What is faded
+ * with a removed or dissolved group has no menu: the list doesn't ask for one.
+ */
+export function menuItemOf(
+  branches: RulesBranch[],
+  branchKey: string,
+  itemId: string
+): MenuItem | null {
+  const branch = branches.find((entry) => entry.key === branchKey);
+  const found = branch ? findItem(branch.items, itemId) : null;
+  if (!branch || !found) {
+    return null;
+  }
+  const based = branch.origin === 'based';
+  const { item, parentId, depth } = found;
+  const standing = standingOf(branch, item);
+  const state: MenuTreeItemState = {
+    linked: standing === 'inherited',
+    changed: item.mark === 'changed',
+    removed: standing === 'removed' || isDissolved(item, based),
+    neighbours: hasGroupingNeighbour(branch.items, found),
+  };
+  if (item.type === 'group') {
+    return {
+      kind: depth === 0 ? 'group' : 'sub-group',
+      hasMessage: item.message !== null,
+      holdsSubGroup: subGroupCount(item) > 0,
+      ...state,
+    };
+  }
+  let level: MenuRuleLevel = { level: 'sub-group' };
+  if (depth === 0) {
+    level = { level: 'top' };
+  } else if (depth === 1 && parentId !== null) {
+    level = { level: 'group', groupId: parentId };
+  }
+  return {
+    kind: 'rule',
+    receivable: receivableElsewhere(branches, branch, item),
+    ...level,
+    ...state,
+  };
+}
+
+/**
+ * The entries of a ⋯ menu, in `MENU_ENTRY_ORDER` (FR-036; data-model "The rules step's menus";
+ * Clarifications #22, #48, #53, #54, #60, #61; spec 007, S4):
+ * - every menu carries "Copy link" while the connection is stored, as its last entry before the
+ *   destructive ones, also after "Restore" on a removed item, which offers nothing else;
+ * - a rule: "Edit rule", "Rename", "Duplicate", "Copy to variant" while some other variant could
+ *   still receive it, "Group with other rules", and "Delete rule";
+ * - a group or sub-group: "Rename" (inline, with the duplicate check), "Add message", and "Remove
+ *   message" next to it while the group has one, "Ungroup", and "Delete group" or "Delete
+ *   sub-group";
+ * - in a variant, an item linked to Standard has no "Rename", "Duplicate" or "Ungroup", offers
+ *   "Reset to Standard" once changed there, and "Remove from <variant>" instead of Delete;
+ * - "Group with other rules", with a neighbour (`MenuTreeItemState.neighbours`), on a top-level
+ *   rule or a top-level group without a sub-group, selecting at the top level, and on a rule
+ *   directly in a top-level group, selecting that group's rules; never on a sub-group, a rule in a
+ *   sub-group or a group holding a sub-group;
+ * - a variant's tab: "Rename" (Edit variant), and "Delete variant" except on Standard.
+ */
+export function menuEntriesOf(item: MenuItem, context: MenuContext): MenuEntry[] {
+  const shown = new Set<MenuEntryId>();
+  let scope: SelectScope = 'top';
+  if (item.kind === 'variant') {
+    shown.add('rename');
+    if (context.branchKind === 'variant') {
+      shown.add('delete');
+    }
+  } else if (item.removed) {
+    shown.add('restore');
+  } else {
+    // Only a variant links its items to Standard
+    const linked = context.branchKind === 'variant' && item.linked;
+    if (!linked) {
+      shown.add('rename');
+    }
+    if (item.kind === 'rule') {
+      shown.add('edit');
+      if (!linked) {
+        shown.add('duplicate');
+      }
+      if (item.receivable) {
+        shown.add('copyToVariant');
+      }
+      if (item.neighbours && item.level !== 'sub-group') {
+        shown.add('group');
+        scope = item.level === 'group' ? item.groupId : 'top';
+      }
+    } else {
+      shown.add('addMessage');
+      if (item.hasMessage) {
+        shown.add('removeMessage');
+      }
+      if (!linked) {
+        shown.add('ungroup');
+      }
+      // No "Group with other rules" on a group: deferred (CLAR #64, Implement Q2)
+    }
+    if (linked && item.changed) {
+      shown.add('reset');
+    }
+    shown.add(linked ? 'remove' : 'delete');
+  }
+  if (context.linkable) {
+    shown.add('copyLink');
+  }
+  return MENU_ENTRY_ORDER.filter((id) => shown.has(id)).map((id) =>
+    id === 'group' ? { id, scope } : { id }
+  );
+}
+
 /** Whether the open rule editor holds changes that "Save changes to Rule 01?" asks about. */
 export function hasUnsavedChanges(state: RulesState): boolean {
   const { editing } = state;
@@ -338,6 +527,28 @@ export function switchNoteOf(
   return switched.operator === 'or'
     ? RULES_COPY.switchedToOr(level)
     : RULES_COPY.switchedToAnd(level);
+}
+
+/**
+ * The toast after ungrouping (002-S2.34). A group with its own message gives the rules it held
+ * their own messages back, as U35 6965:50849 says (F32): not those of a sub-group with its own
+ * message, and none while a group around it has one; otherwise the baseline's toast.
+ */
+export function ungroupedText(branch: RulesBranch, group: GroupItem): string {
+  const parentId = findItem(branch.items, group.id)?.parentId ?? null;
+  const parent = parentId === null ? null : groupOf(branch, parentId);
+  const freed =
+    group.message === null || (parent && parent.message !== null)
+      ? []
+      : group.items.flatMap((item) =>
+          item.type === 'rule' ? [item] : item.message === null ? item.items : []
+        );
+  return freed.length > 0
+    ? RULES_COPY.ungroupedOwnMessages(
+        joinNames(freed.map((item) => item.name.trim())),
+        freed.length
+      )
+    : RULES_COPY.ungrouped(group.name, branch.name);
 }
 
 /** The refused Publish's problem, if it names this item of the branch (F11). */
@@ -549,18 +760,28 @@ function changed(state: RulesState, content: EditState): RulesState {
   };
 }
 
-/** A change with an Undo toast: the toast's Undo puts every branch back as it was. */
+/**
+ * A change with an Undo toast: the toast's Undo puts every branch back as it was. A deletion's
+ * toast is neutral, a grouping's or ungrouping's `success` (the Figma toast's description:
+ * "saved, grouped, copied, restored, published"; U36 #27, U35 #41).
+ */
 function undoable(
   state: RulesState,
   content: EditState,
   message: string,
-  focus: Omit<RulesUndo, 'branches'>
+  focus: Omit<RulesUndo, 'branches'>,
+  kind: ToastKind = 'neutral'
 ): RulesState {
   return {
     ...changed(state, content),
     undo: { branches: state.branches, ...focus },
     showBranch: null,
-    toast: { id: nextToastId(state), message, actionLabel: RULES_COPY.undo },
+    toast: {
+      id: nextToastId(state),
+      ...(kind === 'success' ? { kind } : {}),
+      message,
+      actionLabel: RULES_COPY.undo,
+    },
   };
 }
 
@@ -684,6 +905,7 @@ function copyFromDialog(state: RulesState, targets: string[]): RulesState {
     showBranch: copied.copies[0].branchId,
     toast: {
       id: nextToastId(state),
+      kind: 'success',
       message: RULES_COPY.copied(rule.name, joinNames(names)),
       actionLabel: RULES_COPY.show,
     },
@@ -756,6 +978,8 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         showBranch: null,
         toast: {
           id: nextToastId(state),
+          // A finished action: the Figma toast's success type ("saved, grouped, …"; T036)
+          kind: 'success',
           message: RULES_COPY.ruleSaved(editing.draft.name, branch?.name ?? ''),
         },
       };
@@ -906,11 +1130,13 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         branch.origin === 'based'
           ? RULES_COPY.groupedInVariant(names, branch.name, group.name, state.branches[0].name)
           : RULES_COPY.grouped(names, branch.name, group.name);
-      return undoable(state, grouped.state, message, {
-        branchKey: branch.key,
-        itemId: group.items[0].id,
-        groupNumber: state.counters.group,
-      });
+      return undoable(
+        state,
+        grouped.state,
+        message,
+        { branchKey: branch.key, itemId: group.items[0].id, groupNumber: state.counters.group },
+        'success'
+      );
     }
     case 'ungroup': {
       const branch = branchOf(state, action.branchKey);
@@ -919,10 +1145,13 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         return state;
       }
       const group = ungrouped.item;
-      return undoable(state, ungrouped.state, RULES_COPY.ungrouped(group.name, branch.name), {
-        branchKey: branch.key,
-        itemId: group.id,
-      });
+      return undoable(
+        state,
+        ungrouped.state,
+        ungroupedText(branch, group),
+        { branchKey: branch.key, itemId: group.id },
+        'success'
+      );
     }
     case 'setGroupMessage':
       return changedOr(

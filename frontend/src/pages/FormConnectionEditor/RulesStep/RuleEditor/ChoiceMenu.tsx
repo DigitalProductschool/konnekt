@@ -2,27 +2,32 @@ import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
 import MenuSearchField from '../../../../components/MenuSearchField';
 import { matchesSearch } from '../../../../components/ValuesPicker/utils';
-import { RULE_EDITOR_COPY } from './constants';
+import { MENU_MAX_HEIGHT_CLASSES } from '../../../../utils/popupPlacement';
+import { CHOICE_MENU_PLACEMENTS, MENU_WIDTH_CLASSES, RULE_EDITOR_COPY } from './constants';
 import MenuSectionGroup from './MenuSectionGroup';
 import type { ChoiceMenuProps } from './types';
 import { focusOption } from './utils';
 
 /**
- * A rule editor menu (Figma "Rules/Menu", "Elevation/Menu"), below its picker: an optional
- * search field, the choices in sections, and an optional footer. It follows the listbox pattern:
- * the arrow keys, Home and End move between the choices, Enter or Space chooses, and Escape
- * closes it. Tab reaches the footer's button, and the menu closes once the focus leaves it. It
- * opens with the focus on its search field or its chosen option. "No options match" is outside
- * the list, and announced. Below
- * 768px (200% zoom, small screens) it hangs from the rule editor's content edge instead of its
- * picker, and is no wider than the editor's content, so it never runs off the screen (WCAG 1.4.10).
+ * A rule editor menu (Figma "Rules/Menu · Documents" U30 6350:41316, the data menu U31
+ * 6350:41548, "Rules/Menu · Date checks" 6985:50041; "Elevation/Menu"): an optional search field
+ * that stays put, the choices in sections, and an optional footer. It follows the listbox
+ * pattern: the arrow keys, Home and End move between the choices, Enter or Space chooses, and
+ * Escape closes it. Tab reaches the footer's button, and the menu closes once the focus leaves
+ * it. It opens with the focus on its search field or its chosen option. "No options match" is
+ * outside the list, and announced. It is placed from its picker's wrapper with class sets
+ * (design-notes §3 "Menu"): 8px below or above the picker, at its left edge, else its right
+ * edge, else across the rule editor's content (WCAG 1.4.10); its list scrolls inside the
+ * max-height step that fits between the step header and the footer. It stays above the sticky
+ * header and footer (z-40), and nothing around it clips it (V6).
  */
 export default function ChoiceMenu({
   id,
   label,
   sections,
   selectedKey,
-  widthClass,
+  width,
+  placement,
   searchPlaceholder,
   search,
   footer,
@@ -103,7 +108,7 @@ export default function ChoiceMenu({
     <div
       id={id}
       onBlur={handleBlur}
-      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute top-full left-0 z-20 mt-4 flex max-w-[calc(100vw-32px)] flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 max-md:top-auto max-md:left-24 max-md:max-w-[calc(100%-48px)] ${widthClass}`}
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${MENU_MAX_HEIGHT_CLASSES[placement.maxHeight]} ${CHOICE_MENU_PLACEMENTS[placement.side][placement.direction]} ${placement.side === 'full' ? '' : MENU_WIDTH_CLASSES[width]}`}
     >
       {searchPlaceholder && (
         <MenuSearchField
@@ -120,7 +125,7 @@ export default function ChoiceMenu({
         id={listId}
         role="listbox"
         aria-label={label}
-        className={`flex flex-col gap-2 ${searchPlaceholder ? 'max-h-280 overflow-y-auto' : ''}`}
+        className="flex min-h-0 flex-col gap-2 overflow-y-auto"
       >
         {shown.map((section, index) => (
           <MenuSectionGroup

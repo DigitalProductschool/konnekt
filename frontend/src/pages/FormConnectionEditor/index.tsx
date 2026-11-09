@@ -433,6 +433,15 @@ function ConnectionWizard({
   });
   // A rule being edited counts as a rule (FR-006)
   const rulesNextAction = rulesNextActionOf(rules);
+  // "Test rules" is unusable while the rules are in error, and says why in the server's words
+  // (FR-034; CLAR #66, Implement Q5); the open editor and grouping explain themselves first
+  const rulesProblem = useMemo(
+    () =>
+      state.step === 'rules' && loadedCatalog && rules.editing === null && rules.selection === null
+        ? (firstProblem(rules.branches, loadedCatalog)?.message ?? null)
+        : null,
+    [state.step, loadedCatalog, rules.editing, rules.selection, rules.branches]
+  );
   // The publish and save dialog skips the rules when the documents step's "… without rules"
   // opens it; the edit flow's "Save" from a leave question opens it there with its rules
   const dialogWithoutRules =
@@ -1416,6 +1425,7 @@ function ConnectionWizard({
           rulesNextAction={rulesNextAction}
           ruleOpen={rules.editing !== null}
           grouping={rules.selection !== null}
+          rulesProblem={rulesProblem}
           onBack={goBack}
           onAddRules={handleAddRules}
           addRulesExplanation={

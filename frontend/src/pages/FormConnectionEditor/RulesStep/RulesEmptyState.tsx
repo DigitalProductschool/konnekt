@@ -2,9 +2,10 @@ import { RULES_COPY } from './constants';
 import type { RulesEmptyStateProps } from './types';
 
 /**
- * Figma "Rules/Empty state" (U29 6197:11654): a branch without rules, with "Add rule" (W5). It
- * sits in the rules card with 24px on every side, the card hugging it (frame 1.1, Empty wrap
- * 6504:43840; bug rules-ui-fixes B1).
+ * Figma "Rules/Empty state" (U29 6504:43841; component 6093:4289): a branch without rules, with
+ * "Add rule" (W5), from the start of the step and in each variant (F26). It sits in the rules card
+ * with 24px on every side, the card hugging it (U29 "Empty wrap" 6504:43840; bug rules-ui-fixes
+ * B1). The text names Konnekt (C1).
  */
 export default function RulesEmptyState({ addRuleId, onAddRule }: RulesEmptyStateProps) {
   return (

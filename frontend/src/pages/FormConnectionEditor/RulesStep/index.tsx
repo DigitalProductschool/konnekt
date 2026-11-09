@@ -3,16 +3,26 @@ import { groupIdOf, ruleIdOf, shownItems } from '@connection-portal/rules/tree';
 import type { RuleContext } from '@connection-portal/rules/types';
 import { unrequestedRules } from '@connection-portal/rules/validation';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
+import type { BranchFindings } from '../../../components/BranchName/types';
 import Connector from '../../../components/Connector';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import type { ShownFinding } from '../../../components/FindingNote/types';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
-import { RULES_COPY, SELECTION_SCROLL_MARGIN } from './constants';
+import {
+  EDITOR_WRAP_CLASSES,
+  FIRST_RULE_SPACING,
+  PINNED_TABS_CLASSES,
+  PINNED_TOP_CLASSES,
+  RULES_COPY,
+  SELECTION_SCROLL_MARGIN,
+  TABS_HEIGHT_PROPERTY,
+  TABS_SCROLL_MARGIN,
+} from './constants';
 import FindingsBanner from './FindingsBanner';
 import LinkNotice from './LinkNotice';
 import LinkStrip from './LinkStrip';
@@ -21,28 +31,120 @@ import RulesEmptyState from './RulesEmptyState';
 import SelectionBar from './SelectionBar';
 import SwitchNote from './SwitchNote';
 import TreeItem from './TreeItem';
-import type { RulesStepProps, RulesTreeView } from './types';
+import type {
+  RulesCatalog,
+  RulesState,
+  RulesStepProps,
+  RulesTreeView,
+  UnrequestedRule,
+} from './types';
 import UnrequestedBanner from './UnrequestedBanner';
 import { branchOf, focusSoon, groupOf, linkOf, switchNoteOf } from './utils';
 
 /**
- * The Rules step (S2, S4; Figma U11, U14, U16, U17, U18, U21, U29): the variant tabs with "+ Add
- * variant" (F16), then the open branch's rules and groups in the order of adding, joined by
- * their level's AND or OR, which a connector switches for the whole level (FR-007), each with
- * its ⋯ menu, and "Add rule". Groups and sub-groups hold their members the same way (FR-008);
- * "Group with other rules" starts select mode (U16), which shifts the list for the boxes and
- * puts the selection bar at the top of the card. The rule editor opens in the rule's place, or
- * at the end of a new rule's level. A variant based on Standard opens with the link strip, and
- * marks what it changed, removed or added (FR-023, W4); a group dissolved there shows as removed
- * after its remaining member (F13). A rule that checks data no longer requested is named in a
- * banner and flagged (F11); a refused Publish or Save shows the server's message above the
- * card. Identifiers aren't shown here (FR-010). The rule checks of spec 003 outline each rule
- * and group of the open branch that has a finding, with its note (S2; FR-012; F4, F5, F6; Figma
- * U01 6171:6749, U02 6171:7064), and the findings banner sums them up above its rules, after the
- * problems banner, with links to them (FR-013; A1, A2); they update in place after every change (W1), refuse nothing (F8;
- * FR-016), and the rule editor shows nothing about them (S3; W15). A stored draft's and a
- * published connection's ⋯ menus offer "Copy link" (spec 007, S4; FR-028), and a link to what
- * no longer exists shows its notice at the top of the step until it is dismissed (S5; FR-031).
+ * Keeps the pinned tab row's height in `--rules-tabs-height` on the step's root (constants.ts),
+ * measured, because the row wraps with many variants or at narrow widths, and 0 where the row
+ * isn't pinned (`wizard-pinned:`, which follows the window's size). A custom property only carries
+ * the measurement: the styles that use it are classes. The tab row is there once the step has
+ * loaded (`status`).
+ */
+function usePinnedTabsHeight(
+  rootRef: RefObject<HTMLDivElement | null>,
+  tabsRef: RefObject<HTMLDivElement | null>,
+  status: RulesStepProps['status']
+) {
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const tabs = tabsRef.current;
+    if (!root || !tabs) {
+      return;
+    }
+    function update() {
+      if (!root || !tabs) {
+        return;
+      }
+      const pinned = getComputedStyle(tabs).position === 'sticky';
+      const height = pinned ? Math.ceil(tabs.getBoundingClientRect().height) : 0;
+      root.style.setProperty(TABS_HEIGHT_PROPERTY, `${height}px`);
+    }
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(tabs);
+    window.addEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [rootRef, tabsRef, status]);
+}
+
+/**
+ * The rules that check data no longer requested, in every branch, as the banner names them (F11,
+ * F58, FR-023c): the field's sentence, or, when the whole document is no longer requested, the
+ * document's (U50 7173:52333); with their branch's key for the tab's icon.
+ */
+function unrequestedOf(
+  branches: RulesState['branches'],
+  catalog: RulesCatalog
+): { branchKey: string; entry: UnrequestedRule }[] {
+  return unrequestedRules(branches, catalog.documents).map(({ branchIndex, rule }) => {
+    const branch = branches[branchIndex];
+    const documentType = rule.target?.document_type;
+    const requested = catalog.documents.some((document) => document.key === documentType);
+    const label = requested
+      ? undefined
+      : catalog.allDocuments.find((document) => document.key === documentType)?.label;
+    const name = rule.name.trim();
+    const branchName = branch.name.trim();
+    const text =
+      label === undefined
+        ? RULES_COPY.unrequestedText(name, branchName)
+        : RULES_COPY.unrequestedDocumentText(name, branchName, label.trim());
+    return { branchKey: branch.key, entry: { key: `${branch.key}-${rule.id}`, text } };
+  });
+}
+
+/**
+ * The tab icon of a branch with rules on data no longer requested (U50 7375:101551; FR-041a): the
+ * red `error` kind, which wins over its findings' icon (error > warning > info, T026's carried
+ * order), with the banner's sentences in its tooltip.
+ */
+function tabProblemsOf(
+  unrequested: { branchKey: string; entry: UnrequestedRule }[]
+): Record<string, BranchFindings> {
+  const problems: Record<string, BranchFindings> = {};
+  for (const { branchKey, entry } of unrequested) {
+    const before = problems[branchKey]?.text;
+    problems[branchKey] = { kind: 'error', text: before ? `${before} ${entry.text}` : entry.text };
+  }
+  return problems;
+}
+
+/**
+ * The Rules step (S9; spec 002's S2, S4; Figma U29, U43, U01 #17–#19): under the step header
+ * "Set eligibility rules for citizens" (the page's, `pageTitleOf`), the variant tabs with
+ * "+ Add variant" from the start of the step (F26), pinned with the step header while the page
+ * scrolls (U01 #18), then the rules card: "No rules yet" with "Add rule" (U29 6504:43841), or the
+ * open branch's rules and groups in the order of adding, joined by their level's AND or OR, which
+ * a connector switches for the whole level (FR-007), each with its ⋯ menu, and "Add rule"
+ * (U43 6168:7014). Groups and sub-groups hold their members the same way (FR-008); "Group with
+ * other rules" starts select mode (U16), which shifts the list for the boxes and puts the
+ * selection bar at the top of the card, pinned under the tabs once the card's top scrolls past
+ * (U01 #19). The rule editor opens in the rule's place, or at the end of a new rule's level. A
+ * variant based on Standard opens with the link strip, and marks what it changed, removed or
+ * added (FR-023, W4); a group dissolved there shows as removed after its remaining member (F13).
+ * A rule that checks data no longer requested is named in a banner with "Add it in Documents",
+ * flagged, and puts the red icon on its variant's tab (F11, F58; U50); a refused Publish or Save
+ * shows the server's message above the card. Identifiers aren't shown here (F35,
+ * FR-010). The rule checks of spec 003 outline each rule and group of the open branch that has a
+ * finding, with its note (S2; FR-012; F4, F5, F6; Figma U01 6171:6749, U02 6171:7064), and the
+ * findings banner sums them up above its rules, after the problems banner, with links to them
+ * (FR-013; A1, A2); they update in place after every change (W1), refuse nothing (F8; FR-016),
+ * and the rule editor shows nothing about them (S3; W15). A stored draft's and a published
+ * connection's ⋯ menus offer "Copy link" (spec 007, S4; FR-028), and a link to what no longer
+ * exists shows its notice at the top of the step until it is dismissed (S5; FR-031). "Test
+ * rules" is the footer's (EditorFooter), unusable while a rule is open or rules are grouped
+ * (F65, W21, FR-034).
  */
 export default function RulesStep({
   status,
@@ -62,6 +164,9 @@ export default function RulesStep({
   onCancelEditor,
 }: RulesStepProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  usePinnedTabsHeight(rootRef, tabsRef, status);
   const editedId = state.editing?.draft.id;
   const editedBranch = state.editing?.branchKey;
   const editedParent = state.editing?.parentId ?? null;
@@ -106,9 +211,8 @@ export default function RulesStep({
   const shown = shownItems(branch.items, based);
   // Statements read from the whole catalog, so that a rule on data no longer requested reads
   const context: RuleContext = { documents: catalog.allDocuments, optionSets: catalog.optionSets };
-  const unrequested = unrequestedRules(state.branches, catalog.documents).map(
-    ({ branchIndex, rule }) => ({ rule, branchName: state.branches[branchIndex].name })
-  );
+  const unrequested = unrequestedOf(state.branches, catalog);
+  const tabProblems = tabProblemsOf(unrequested);
   const editor = state.editing?.branchKey === branch.key ? state.editing : null;
   const { items } = branch;
   const addingAtTop = editor !== null && editor.original === null && editor.parentId === null;
@@ -167,7 +271,7 @@ export default function RulesStep({
   }
 
   const ruleEditor = editor && (
-    <div ref={editorRef} className={items.length === 0 ? 'p-16' : 'px-16 py-8'}>
+    <div ref={editorRef} className={EDITOR_WRAP_CLASSES}>
       <RuleEditor
         draft={editor.draft}
         isNew={editor.original === null}
@@ -209,11 +313,23 @@ export default function RulesStep({
         first ? ELEMENT_IDS.rule(branch.key, first.id) : ''
       );
     },
-    onAddGroupMessage: (groupId) =>
-      thenFocus(
-        () => dispatch({ type: 'setGroupMessage', branchKey: branch.key, groupId, message: '' }),
-        ELEMENT_IDS.groupMessage(branch.key, groupId)
-      ),
+    // "Add message" opens the group's message field; on a group that has one already ("Remove
+    // message" next to it, FR-036) it only moves the focus there, keeping the message
+    onAddGroupMessage: (groupId) => {
+      const fieldId = ELEMENT_IDS.groupMessage(branch.key, groupId);
+      if (groupOf(branch, groupId)?.message === null) {
+        thenFocus(
+          () => dispatch({ type: 'setGroupMessage', branchKey: branch.key, groupId, message: '' }),
+          fieldId
+        );
+        return;
+      }
+      const field = document.getElementById(fieldId);
+      if (field instanceof HTMLTextAreaElement) {
+        field.focus();
+        field.setSelectionRange(field.value.length, field.value.length);
+      }
+    },
     onCopyRule: (ruleId) => dispatch({ type: 'askCopyRule', branchKey: branch.key, ruleId }),
     onRemove: (itemId) =>
       keepFocus(() => dispatch({ type: 'removeItem', branchKey: branch.key, itemId }), itemId),
@@ -241,44 +357,55 @@ export default function RulesStep({
     );
   }
 
+  // The first rule of the list keeps 16px under it before the first connector (U43 6168:7017)
+  const firstRuleSpaced = shown[0]?.item.type === 'rule' && (shown.length > 1 || addingAtTop);
+
   return (
-    <div className="flex flex-col gap-16">
+    <div ref={rootRef} className={`flex flex-col gap-16 ${PINNED_TOP_CLASSES.root}`}>
       {linkNotice && <LinkNotice kind={linkNotice} onDismiss={dismissLinkNotice} />}
-      <BranchTabs
-        state={state}
-        checks={checks}
-        dispatch={dispatch}
-        onCopyLink={connectionId === null ? null : (branchKey) => copyLink(branchKey)}
-      />
+      {/* Pinned with the step header while the page scrolls (U01 #18) */}
+      <div ref={tabsRef} className={PINNED_TABS_CLASSES}>
+        <BranchTabs
+          state={state}
+          checks={checks}
+          dispatch={dispatch}
+          onCopyLink={connectionId === null ? null : (branchKey) => copyLink(branchKey)}
+          problems={tabProblems}
+        />
+      </div>
       {problem && (
         <KernAlert
           id={ELEMENT_IDS.rulesProblem}
           tabIndex={-1}
           variant="danger"
           title={editing ? RULES_COPY.refusedSaveTitle : RULES_COPY.refusedPublishTitle}
-          className="w-full"
+          className={`w-full ${TABS_SCROLL_MARGIN}`}
         >
           {problem.message}
         </KernAlert>
       )}
-      {/* Positioned, so that select mode's boxes line up 16px from its left edge. In select mode,
-          an element that gets the focus scrolls clear of the pinned selection bar (WCAG 2.4.11) */}
+      {/* Positioned, so that select mode's boxes line up 16px from its left edge. An element that
+          gets the focus scrolls clear of the pinned tabs, and in select mode of the pinned
+          selection bar too (WCAG 2.4.11), which pins under the tabs (U01 #19) */}
       <section
         id={ELEMENT_IDS.branchPanel(branch.key)}
         role="tabpanel"
         aria-labelledby={ELEMENT_IDS.branchTab(branch.key)}
-        className={`rounded-kern-large bg-kern-layout-background-default relative border border-(--kern-color-decorative-border-default) ${selection ? SELECTION_SCROLL_MARGIN : ''}`}
+        className={`rounded-kern-large bg-kern-layout-background-default relative border border-(--kern-color-decorative-border-default) ${PINNED_TOP_CLASSES.card} ${selection ? SELECTION_SCROLL_MARGIN : TABS_SCROLL_MARGIN}`}
       >
         {based && <LinkStrip mainName={state.branches[0].name} />}
         {selection && (
           <SelectionBar
             selection={selection}
             branch={branch}
+            mainName={state.branches[0].name}
             onCancel={cancelSelect}
             onGroup={groupSelected}
           />
         )}
-        {unrequested.length > 0 && <UnrequestedBanner rules={unrequested} />}
+        {unrequested.length > 0 && (
+          <UnrequestedBanner rules={unrequested.map(({ entry }) => entry)} onAddData={onAddData} />
+        )}
         <FindingsBanner
           check={checks[branch.key] ?? null}
           branch={branch}
@@ -297,7 +424,10 @@ export default function RulesStep({
           <>
             <ul className={selection ? 'pl-40' : undefined}>
               {shown.map(({ item, dissolved }, index) => (
-                <li key={item.id}>
+                <li
+                  key={item.id}
+                  className={index === 0 && firstRuleSpaced ? FIRST_RULE_SPACING : undefined}
+                >
                   {index > 0 && (
                     <Connector
                       operator={branch.operator}
@@ -317,7 +447,6 @@ export default function RulesStep({
                   <TreeItem
                     view={view}
                     item={item}
-                    level={items}
                     parentId={null}
                     depth={0}
                     dissolved={dissolved}

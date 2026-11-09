@@ -245,7 +245,7 @@ it (§5).
 | `Toast` (+ message) | U10 #20, U51, U17 #39, U61 #9 | c | the dark toast, bottom centre, optional action | neutral, success, with action, with error ID | T006: kept c, KERN has no toast; **T036, 2026-11-08: built c; kinds `neutral` / `success` (U61's drawn `danger` type built as neutral, UNCERTAIN); `noFooter` for pages without the footer bar** |
 | `TopBar` | L2 | c | the two pills, the connection pill | signed out, signed in, in a connection, scrolled | T006: kept c; built by T031. **T031 (2026-11-08): kept c**, own markup as "Shell/Header · two pills" (`6688:41392`) and "Shell/Header · in a connection" (`6698:43392`) draw it: a `header` (sticky, `z-30`, `pt-16 px-16`, so the header area is 64 high with the pills 16 from the top and the sides), transparent, white (`layout-background-default`, 150 ms `.motion`) once `window.scrollY > 0` (U03 #39). Pills: 48 high, `rounded-kern-circle`, `--shadow-card` ("Elevation/Card"), the Konnekt pill `layout-background-hued` signed in / white signed out (new prop `signedOut`, U03 #33), padding 0 24 0 16, gap 8, the 24 px logo (`assets/illustrations/logo.svg`, new: Figma's export of the "logo" layer, `#1d56f0` squares) and "Konnekt" 16/24 600; the pills' gap 16 (two pills) or 8 (in a connection), the stretching spacer between them. **In a connection** (`title` set): "Pill · Where you are" `layout-background-hued`, padding 0 16, gap 8: "Your connections" (`label/small`, `action-default`, a link home, underlined on hover as U17 6a draws it), "/" (`body/small` muted, `aria-hidden`), the name (`label/small` ink, `truncate`, the h1 with `titleAsHeading`), the status pill 8 px after it (T019's `badge`); a `nav` "Breadcrumb". It grows out of the Konnekt pill on mount: `animate-pill-grow` (a `clip-path: inset()` reveal from its left edge, 240 ms ease-out; `width: auto` can't be transitioned in every browser) and its text `animate-pill-text` (opacity, the last 120 ms), both `.motion` (FR-050, U03 #40). `onLeave` (new, T048): a plain click on the product name or "Your connections" calls it instead of going home (modifier clicks still follow the link). `meta` (the description, W10) stays: muted 14/24, one line with "…", after the second pill (U80/U91's breadcrumb row is T078's to check). No DE/EN switch (F6). Below `md` (no frame) the second pill and the meta take rows of their own (header 120 high with the pill), the name truncating (W2, 320 px: no horizontal scroll). Props `title`, `titleAsHeading`, `badge`, `meta`, `logoTo`, `children` unchanged; `signedOut`, `onLeave` new; `AuthLayout` passes `signedOut` (one-line change) |
 | `UserMenu` (+ `SignOutDialog`) | U13 `6699:44358`, U17 | c + a | the account pill and its menu; the log-out dialog on `ConfirmDialog` | closed, open, focus, the dialog | T006: kept c + a; built by T031. **T031 (2026-11-08): kept c + a.** The account pill (U11 `I6699:44242;6688:41398`, build note 14): 56 × 48, white with an `action-default` layer at 12 % (`::before`), pl 8 pr 4, T004's `person.svg` (24) and `expand-more-small.svg` (20) in `action-default` as masks (`.icon-person`, `.icon-expand-more-small` in `index.css`: the files fill with `currentColor`, which an `<img>` can't take); no initials, no name (FR-030; `initialsOf()` and its test removed); hover / pressed / open the kit's "states" layer on `::after` (8 % / 16 %, 150 ms `.motion`), keyboard focus KERN's 4 px ring offset 2; accessible name "Signed in as <username>". The menu "Shell/Account menu" (U13 `6699:44358`): **260** wide (not the ⋯ menus' 220: the frame draws 260), 1 px `decorative-border`, radius 8, padding 8, gap 4, `--shadow-menu`, `z-40`, placed with `placementFrom()` and own class sets (`ACCOUNT_MENU_PLACEMENTS`, `end` preferred: right edge on the pill's, 8 below); the name in `label/default` 16/24 600 with padding 8 (F17: no email), a divider, then the entries as U13's "Menu item · Log out" draws them: 40 high, padding 8, `body/small` 14/24 **regular**, ink, **no icons** (the old account-circle and logout icons are gone), radius 4; hover / pressed / keyboard focus as the ⋯ menus' entries (T021's `ACTION_MENU_STATES`, the select-option focus fill). "Your account" (a link, 007-S2) then a divider then "Log out" (UNCERTAIN: see the report). Behaviour as the baseline: Escape, Tab, a click outside close it; arrows, Home, End; the local-drafts warning (`SignOutDialog` on `ConfirmDialog`, unchanged; T035 restyles the dialog), focus back on the pill after "Cancel". New: after logging out the sign-in screen gets the router state `{ from, loggedOut: true }` (`LoggedOutLocationState`) for its toast (T040); new optional prop `onLogOut(logOut, trigger)` for the editor's "Save before you log out?" (T048) |
-| `ValuesPicker` (+ option item) | U32 `6357:43090` (menu `6357:43382`), U48 `6191:42065` / `6191:42209`, `6191:42191` | c | the picker with search and "Done" | open, option hover/focus/selected/disabled | T006: kept c; built by T027. **T027 (2026-11-08): kept c**, KERN 2.8.2 has no menu or multi-select. The field is V5 "Rules/Multi-select field" (`6191:41863`, U48 `6191:42191`): 40 high, pl 16 pr 8, gap 8, radius 8, 1 px `decorative-border`, open 2 px `action-default` (1 px border + 1 px inset ring), the chosen values as "Rules/Value chip"s (codes only, 4 apart), unchanged. The menu as U32 "Menu" `6357:43382` draws it: 300 wide, 1 px `decorative-border`, radius 8, padding 8, parts 2 apart, `--shadow-menu`, 8 px below the field at its left edge; T015's `MenuSearchField` (`menu`) on top ("Search classes" / "Search options", from 10 options or for classes); the list (`min-h-0 overflow-y-auto`) under it; the baseline's footer ("Select at least one option." / "No options match “…”.", divider + 14/24 muted, padding 8 0 4 8) kept; then the **"Done"** row (U32 `6357:43428`, FR-039, CLAR Q27): KERN's secondary button right-aligned, which closes the menu, keeps the choice and gives the focus back to the field (Escape does the same). Class options are "Rules/Menu item · class" type=multi (`6358:43249`/`6358:43255`, W19): min 40 high, padding 8, gap 8, radius 4, the box in a 4 px-padded 28 px slot, the code `label/small` 14/24 600 min 32 wide, the description `body/small` 14/24 400 filling the rest (44 high, 64 when it wraps); other values are "Data/Check item" (`6027:17252`, U48): 28 px rows in a list padded 4. The box is KERN's `kern-form-check__checkbox` with T016's `Checkbox` override in `index.css` (no own box any more; `mt-0!` drops the override's 2 px top margin, the slot centres it): default, hover 2 px blue (also over the label), checked with the tick, checked hover the 3 px tint ring, keyboard focus the 3 px `#0b1220` ring on the box only. States the V5 frames don't draw: a class row's hover / pressed as the kit's "states" layers (P33 `2:1985`, 8 % / 16 % action blue, 150 ms, `.motion`), as the ⋯ menus' entries; a disabled option (new optional `ValueChoice.disabled`) at the kit's 40 % (KERN fades the box, the row its texts), not toggled, skipped by the arrow keys. **Placement** with T020's `placementFrom()` and class sets (`VALUES_MENU_PLACEMENTS`): the up/down choice uses the drawn 316 px height (or the menu's own, if shorter) so that it opens down where U32's menu fits ("Rules/Picker": "Menus always open downward"), else up; the frame takes the `max-h-*` step, the list scrolls inside while the search field, the footer and "Done" stay put; where neither side fits (320 px) it spans the rule editor's content (`inset-x-24`), and opening up its static wrapper becomes a flex column so that it starts at the field's top whatever the field's height (wrapped chips). The persona form field (`field`, test step) keeps the baseline: its menu spans the field below it, in the data card that scrolls it, at the 400 step (was a 280 px list). `z-40` (was `z-20`). No `overflow: hidden` on the frame (the search field's 4 px ring shows in the padding). No `index.css` rule. Props unchanged; `ValueChoice` gains optional `disabled`; no call site changed |
+| `ValuesPicker` (+ option item) | U32 `6357:43090` (menu `6357:43382`), U48 `6191:42065` / `6191:42209`, `6191:42191` | c | the picker with search and "Done" | open, option hover/focus/selected/disabled | T006: kept c; built by T027. **T027 (2026-11-08): kept c**, KERN 2.8.2 has no menu or multi-select. The field is V5 "Rules/Multi-select field" (`6191:41863`, U48 `6191:42191`): 40 high, pl 16 pr 8, gap 8, radius 8, 1 px `decorative-border`, open 2 px `action-default` (1 px border + 1 px inset ring), the chosen values as "Rules/Value chip"s (codes only, 4 apart), unchanged. The menu as U32 "Menu" `6357:43382` draws it: 300 wide, 1 px `decorative-border`, radius 8, padding 8, parts 2 apart, `--shadow-menu`, 8 px below the field at its left edge; T015's `MenuSearchField` (`menu`) on top ("Search classes" / "Search options", from 10 options or for classes); the list (`min-h-0 overflow-y-auto`) under it; the baseline's footer ("Select at least one option." / "No options match “…”.", divider + 14/24 muted, padding 8 0 4 8) kept; then the **"Done"** row (U32 `6357:43428`, FR-039, CLAR Q27): KERN's secondary button right-aligned, which closes the menu, keeps the choice and gives the focus back to the field (Escape does the same). Class options are "Rules/Menu item · class" type=multi (`6358:43249`/`6358:43255`, W19): min 40 high, padding 8, gap 8, radius 4, the box in a 4 px-padded 28 px slot, the code `label/small` 14/24 600 min 32 wide, the description `body/small` 14/24 400 filling the rest (44 high, 64 when it wraps); other values are "Data/Check item" (`6027:17252`, U48): 28 px rows in a list padded 4. The box is KERN's `kern-form-check__checkbox` with T016's `Checkbox` override in `index.css` (no own box any more; `mt-0!` drops the override's 2 px top margin, the slot centres it): default, hover 2 px blue (also over the label), checked with the tick, checked hover the 3 px tint ring, keyboard focus the 3 px `#0b1220` ring on the box only. States the V5 frames don't draw: a class row's hover / pressed as the kit's "states" layers (P33 `2:1985`, 8 % / 16 % action blue, 150 ms, `.motion`), as the ⋯ menus' entries; a disabled option (new optional `ValueChoice.disabled`) at the kit's 40 % (KERN fades the box, the row its texts), not toggled, skipped by the arrow keys. **Placement** with T020's `placementFrom()` and class sets (`VALUES_MENU_PLACEMENTS`): the up/down choice uses the drawn 316 px height (or the menu's own, if shorter) so that it opens down where U32's menu fits ("Rules/Picker": "Menus always open downward"), else up; the frame takes the `max-h-*` step, the list scrolls inside while the search field, the footer and "Done" stay put; where neither side fits (320 px) it spans the rule editor's content (`inset-x-24`), and opening up its static wrapper becomes a flex column so that it starts at the field's top whatever the field's height (wrapped chips). The persona form field (`field`, test step) keeps the baseline: its menu spans the field below it, in the data card that scrolls it, at the 400 step (was a 280 px list). `z-40` (was `z-20`). No `overflow: hidden` on the frame (the search field's 4 px ring shows in the padding). No `index.css` rule. Props unchanged; `ValueChoice` gains optional `disabled`; no call site changed. **T061 (2026-11-08):** the rule editor's `ChoiceMenu` no longer uses `z-20`, `mt-4`, `max-md:left-24`: it uses `placementFrom()`, `z-40` and 8 px as the values menu does (T027's carried note closed). **T062 (2026-11-08):** chips kept in the field, not U32 `6357:43363`'s "B, BE" text (U48's "Rules/Multi-select field" `6191:42191` and 002-S3.39); "Search classes" kept on the licence classes (U32 `6358:61888`, 002-S3.37) where U48 draws "Search options"; footer and error "Choose at least one option." (U48 #16, #23, cosmetic 9) |
 | `WizardLayout` | L3 | c | the sticky step header and footer, page scroll | create, edit, saving, loading, failed | T006: kept c; built by T033. **T033 (2026-11-08): kept c (+ b for the footer buttons).** The design's page L3 (U19 `6699:45321`): white page (`layout-background-default`; the old `neutral-025` is gone), `TopBar` + `UserMenu` (T031; `onLeave` and `onLogOut` passed through for T048), the step header, the content column and the footer, in a `min-h-dvh` column. **The page scrolls** (U01 #15, research R4): no inner scroll container, no `split:`, no `[@media(height<30rem)]`, no `cqh`. The **step header** ("Shell/Step header · compact", U03 #42–#43): a full-width white band (`z-15`) holding the 1120 column with `pt-32 pb-24` and the `head` (T032's step line, then `PageTitle size="large"`: heading/large 600 24/32, body/small 14/24 muted, no gap) 16 apart (the instances' 16, not U02 #1's 8; T032 carry); sticky at `top-64` under the pills where the window has room (`wizard-pinned:`, a new custom variant: ≥ 768 px wide and ≥ 640 px tall), else it scrolls away. The **footer** ("Shell/Footer" `6262:12701`, U01 #20): white, the 1 px `decorative-border` line as an inset shadow (so 16 + 40 + 16 = 72), the 1120 column, gap 8, wrapping into rows (005-ACC.4), sticky at the bottom in windows ≥ 480 px tall (`[@media(height>=30rem)]:sticky`), else at the page's end; option b: `.wizard-footer .kern-btn { min-height: 40px }` and the outlined button's label `padding-block: 7px` (its 1 px border is outside the label, Figma draws it inside the 40) in `index.css`. **How much the sticky parts cover** is measured (ResizeObserver + `resize`, `useLayoutEffect`) and published as `--wizard-sticky-top` / `--wizard-sticky-bottom` on `<html>`, removed on unmount: `index.css` uses them for `scroll-padding-top` / `-bottom` (focus and `scrollIntoView` stay clear of the header and footer, WCAG 2.4.11), `placementFrom()` for the menus' edges, `Toast` for "24 above the footer", the selection bar for its pin line, the documents list and the test panel for the visible height (the exceptions' slots, U01 #16–#19, F43). New props: `variant` (`steps` default, `details`: no step header, the 832 column, L4, for T078), `onLeave`, `onLogOut`; `footer={null}` renders no footer (the restore screen). `constants.ts` new (`STICKY_*_PROPERTY`, `STEP_HEADER_CLASSES`, `FOOTER_CLASSES`, `COLUMN_CLASSES`, `VISIBLE_HEIGHT_CLASSES`). The footer's actions (`EditorFooter`): Back and "Save and exit" (tertiary with the "save" glyph, cosmetic 17) or "Discard changes" (tertiary with the "undo" glyph, FR-045; an `onDiscard` slot, wired by T083) left, 8 apart; the step's action right with `ml-auto`; "Test rules" is T022's `ExplainedButton` ("Save the rule first" / "Finish grouping first", FR-034, W21) **T037 (2026-11-08)**: the page fade on `main` (step header, content, footer), keyed by the path (`key={pathname}`; the path is also in `useStickyEdges`' dependency key, so the observer follows a remounted step header and footer); a module-level `shownPath` (`usePageFade`) keeps a layout that takes over on the same path (loading → loaded, the restore screen → the editor) from fading in a second time. A change of step keeps the path: no fade, no scroll, the step's h1 takes the focus (unchanged, T033) |
 | `WizardProgress` (+ step) | U02 #1–#4 | c | the step line, `role="progressbar"` | 1–4, clickable (edit), not clickable | T006: kept c, the kit’s P25 progress is a bar, not the step line; built by T032. **T032 (2026-11-08): kept c**, no `index.css` rule. Two forms of V5 "Shell/Step line" (`6630:40056`, KERN EXTENSION). **Creating** (U19 `6699:45327`, U63 `7112:48729`): one 24 px row, gap 16: "Step n of 4" (`body/small/regular` 14/24 `layout-text-muted`, `aria-hidden`), the four segments (4 high, 4 apart, radius 2 as `rounded-[2px]` because the overlay's small radius is 4; `action-default` up to and including the current step, `decorative-border-default` after) and "Next: <step>" / "Last step" in the same style; not clickable (no hover, no pointer). The segments are the `role="progressbar"` with `aria-label` "Step n of 4", `aria-valuemin` 1, `aria-valuemax` 4, `aria-valuenow` n and `aria-valuetext` the step's name (FR-025b). **Editing a published connection** (U98 `6731:39827`, F25): the four segments with the steps' names under them (`label/small` 14/24 600, 4 px gap; 32 high), equal widths (277 at 1120), each never narrower than its name's longest word (`min-w-min`, so "Connection" and "Documents" stay whole at 320 px); the current step `action-default` line and name with `aria-current="step"`; every other step a `<button>` ("Shell/Step link" `7139:50059`: `layout-text-muted` line, `layout-text-default` name; hover and pressed both blue, 150 ms `.motion`); keyboard focus KERN's 4 px ring, offset 2; in `<nav aria-label="Steps">` with an `<ol>` (a progress bar can't hold buttons). No numbers (`--text-step` is unused from here, §7/T090), no "Step n of 4" / "Next" in the edit form (as drawn). Past the last step (`current` ≥ 4, the details) it renders nothing (FR-025e). Props: `steps`, `current`, `onSelect` (now: the edit flow only); `reached` removed. The Draft badge is not part of the step line in any frame read (U19 `6699:45321`: no badge on step 1 before the first save; the badge belongs to the header's breadcrumb pill, P08) |
 | The pages' own components (research R11): `StatusBand`, `WelcomePage`, the documents list, detail and search card, the persona chips, data card and result rows, the publish dialog, the variant dialog and popover | the frames of their screens | c | — | the screen's states | T006: kept c; built by T042 (`WelcomePage`), T051 (documents list, detail, search card), T064 and T067 (variant dialog and popover), T071 and T072 (chips, data card, result rows), T076 (publish dialog), T078 (`StatusBand`) |
@@ -268,12 +268,15 @@ later use.
 | Pattern | Source | Anatomy and rules |
 |---|---|---|
 | **Alert, page level** | U02 #5–#7 (build note 7), P07 | the slim KERN alert, title only in one 64 px line, when the alert carries a title alone; with a body (an error ID, a list, "Try again", "Remove it", "Dismiss") the design's alert keeps those parts (F22). Kinds: danger, warning, info, success. The error ID line reads as `ErrorNoticeText` has it |
+| **Unrequested-data banner** | U50 `6863:47363` (T060) | the findings banner's danger kind: `feedback-danger-background`, 1 px `feedback-danger` border, radius 8, padding 8 8 8 16, one 20 px error diamond + body/small line per rule, the action ("Add it in Documents") on the first line's right, wrapping under at narrow widths; flush at the top of the card's list (`UNREQUESTED_BANNER_CLASSES`, RulesStep `constants.ts`); `role="alert"` |
 | **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem Documents step variant: **Field error** (the documents step's variant, T053): a document without data shows its message in its card header in place of the count ("Choose at least one data item, or remove this document.", body/small `feedback-danger`), linked to "All data items" with `aria-describedby`, which takes the focus; the list marks the item (danger tile, glyph, name, KERN's `kern-icon--danger`) and heads the list with "1 document needs data" in red, which describes the marked items. |
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
+| **Menu** (addition, T061) | U30 6350:41316, U31 6350:41548, 6635:36529 | the rule editor's single-select menus (`ChoiceMenu`) follow it: placed from the picker's wrapper with `placementFrom()` as the menu opens (`useLayoutEffect` in `ChoicePicker`: a choice opens the next picker's menu, whose picker may only appear or move in that render), the height it decides with is its estimated height capped at the drawn 294 (U31 parts menu), the frame takes the max-height step and its list scrolls; entries take T021's hover/pressed layers and keyboard fill |
+| **The rules step's menus** (FR-036) | U54 `6522:33105` (build note 10), U55, U56, U57, U58, U59; CLAR #22, #48, #53, #54, #60, #61; 007-S4 | `menuEntriesOf(menuItemOf(branches, branchKey, id), { branchKind, linkable })` in `RulesStep/utils.ts` (pure, tested; T055). The menu shows only what it returns, in `MENU_ENTRY_ORDER`: Edit · Rename · Add message · Remove message · Duplicate · Copy to variant · Group with other rules · Ungroup · Reset to Standard · Restore · Copy link · then, after the divider, Remove from <variant> or Delete …. "Copy link" appears whenever the connection is stored (`linkable`), as the last entry before the destructive one, and also after "Restore". An item linked to Standard in a variant has no Rename, Duplicate or Ungroup, and offers "Remove from <variant>". "Copy to variant" appears only while some other variant could still receive the rule. "Group with other rules" carries its select-mode scope (`'top'` or the group's id). `selectableIn()` decides which items count as neighbours and gets a box. An item faded with a removed or dissolved group has no menu at all **T058 (2026-11-09):** built in `RuleMenu` / `GroupMenu`, each entry mapped to its label and `MENU_ENTRY_LOOKS` (`RulesStep/constants.ts`: icon, `danger`, `separated`); "Restore rule / group / sub-group", "Delete rule / group / sub-group" (a group shown as a sub-group says "sub-group"), "Remove from <variant>"; "Copy link" after "Restore" has no icon; "Add message" on a group with a message only moves the focus to its message field; no "Group with other rules" on groups (#64) |
 | **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute; a cut text's tooltip (T044, the overview's description, U13 `7366:55276`): on hover of a cut text only, on the keyboard focus of the row's name, on a tap, `aria-hidden` since the text is whole in the page |
-| **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason) |
+| **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason). **Exception (#65, Implement Q4, T063):** the rule editor's "Save rule" keeps the baseline's press (002-S3.10): while incomplete a press never saves but flags the missing parts, shows the problem under the check row and moves the focus there (`onClickCapture` in `EditorActions.tsx`); its tooltip is the rule's current problem in the server's words. |
 | **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating; the overview's list (T044): the toolbar's 48 px kept empty, the list card with its headers and three skeleton rows 80 high in the rows' columns (name 160 strong + description 220 light, status 72 strong, date 96 light, bars 10 high, radius 4), under a polite status with "Loading your connections…" (`FormConnectionRowSkeleton`) |
 | **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037); built as the welcome page by T042: the card heading (`h2`, `text-kern-adaptive-large font-semibold`) and the four-step illustration (`ol`, `IconTile tone="plain" size={48}`, ink glyphs, lines `bg-kern-action-default opacity-32` sharing the free space; a row from a 640 px text column, stacked below, undrawn) |
 | **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037); on the overview (T043) the alert sits right under the title block and before the local-drafts offer, with the footer bar kept and no toolbar |
@@ -289,6 +292,7 @@ later use.
 | **Homepage memory** | FR-027, research R6, W11 (T039) | `homepageOf(list, remembered)` in `pages/FormConnectionList/utils.ts` (pure, tested): loaded and empty → welcome; loaded with anything → overview (a draft counts); loading → `remembered ? 'overview' : 'welcome'`; `hooks/useRememberedHomepage.ts` keeps one `localStorage` flag per account, `connection-portal:local-draft:v1:<username>:homepage:has-connections` (`storageKeyOf`, `keys.ts` unchanged; the `:` in the tail keeps the local drafts' store from listing it), `'true'` / `'false'`, written whenever the list's "has anything" is known and changes (load, last deletion), read once per account; blocked storage → `null`, nothing logged; the page shows `PageLoader` only while loading with `remembered === null`; a draft saved on the way to `/` (`draftSaved` in the router state) counts as `remembered === true`; the loading page is the first load's (a retry stays on the overview); a failed load shows the overview's error state whatever the memory says (T042) |
 | **Page change** | FR-052c, U06 #94 (`7137:50569`) | a change of the route's path scrolls the window to the top at once (`App.tsx`, `behavior: 'instant'`: kern.css makes the root scroll smoothly) and the layout's main region fades in over 150 ms (§4); the header pills stay. A change of the query alone or of the editor's step is no page change |
 | **Sticky parts of the wizard** | U01 #14–#19, U03 #42–#43, research R4 | the page scrolls; the header pills stay at the top (64 / 120 below md), the step header under them from 768 × 640 (`wizard-pinned:`), the footer at the bottom from 480 px tall; in smaller windows the step header and footer scroll with the page so that the step keeps room (WCAG 1.4.10, spec 005 FR-028). What they cover is `--wizard-sticky-top` / `--wizard-sticky-bottom`: what scrolls into view stops 16 px clear of them, a menu stays between them, the toast sits 24 above the footer, a pinned bar sticks at `top-(--wizard-sticky-top)`, a part that fills the window takes `100dvh` less both and the content's 40 px bottom padding |
+| **Rules step pins** | U01 #17–#19, T033, T056 | Where the wizard pins its step header (`wizard-pinned:`, ≥ 768 × 640), the variant tab row pins right under it (`top-(--wizard-sticky-top)`, white, z-10) and the selection bar under the tabs (`--rules-pinned-top`, handed to the card as `--wizard-sticky-top`). Everything under the tabs keeps `scroll-mt-(--rules-tabs-height)` (+ the bar in select mode) so a focused element stays clear (WCAG 2.4.11). Below that size nothing of the step pins except the selection bar under the header pills. **T059 (2026-11-09):** the selection bar is the 27 Oct "Rules/Selection bar": info tint, 56 px (8 + 40 + 8); in select mode the scroll margin under the tabs is the bar plus 8 (64), 144 below 640 px; pinned, the bar has square corners and no line; at rest 11 px top corners when first in the card, square under a variant's link strip. |
 
 ## 4. Motion (FR-050, research R5)
 
@@ -412,7 +416,7 @@ Checked on the documents step of the seeded draft `e67b4d7b…` ("All data" mixe
 | 6324:40344 | mixed ("All data items") | row | box, dash, label | 20 px blue box, white dash, 14 px label | the same ("All data") | match |
 | 6324:40347 | checked / unchecked fields | rows | box, tick, label | as `6027:17244` / `6027:17241` | the same | match |
 | 6324:40347 | mixed | group row "Name" | presence | a group checkbox, label 16 / 24, 600, items indented 24 | no group rows | F24 (OUT-13, FR-031j: no group rows) |
-| 6344:53557 | select mode, unchecked | box | size, border, fill, radius | 20, 1 `#6b7488`, white, 4 | the select-mode boxes are `RulesStep/SelectBox.tsx` (own markup, T059's file); `Checkbox` draws the same box (rows above) | deferred to T059 |
+| 6344:53557 | select mode, unchecked | box | size, border, fill, radius | 20, 1 `#6b7488`, white, 4 | `RulesStep/SelectBox.tsx` now uses `kern-form-check__checkbox` (this override): 20 × 20, 1px rgb(107, 116, 136), white, 4px; hover 2px rgb(29, 86, 240); checked rgb(29, 86, 240) with the tick; checked hover the 3px white ring; keyboard focus 3px rgb(11, 18, 32), offset 0 | match (T059) |
 | — | default | box | transition | colour 150 ms (§4) | `motion transition-colors duration-(--duration-colour)` | match |
 
 ### AccessLevelChoice — T016, 2026-11-08
@@ -1694,8 +1698,15 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U20, U21 | S8 | done (T051, 2026-11-08) |
 | U22, U23, U24, U26; U01 #16 | S8 | done (T052, 2026-11-08) |
 | U25, U27, U28 (F23), U98 (`7296:52315`) | S8 | done (T053, 2026-11-08; U98's edit footer: T084) |
-| U29, U34, U35, U36, U43, U50, U51, U54–U58, U64 | S9 | pending |
-| U30–U33, U48, U49, U53 (U09) | S10 | pending |
+| U29, U43 (`6168:7004`, `6168:7263` top level, `6168:7666` frame) | S9 | done (T056, 2026-11-08); the variant ⓘ's action tone: T064; groups in `6168:7263`: T057; 4.3's link strip and marks: T066 |
+| U34 (`6094:6127`, `6094:6597`, `6113:28651`, `6113:29018`, `6113:29056`), U35 (`6324:39410`) | S9 | done (T057, 2026-11-08); the menus in 2.3 and the rule-deleted frames of U35: T058 |
+| U35 (`6113:29132`, `6324:39032`, `6965:49996`, `6965:50045`), U54, U55, U56 | S9 | done (T058, 2026-11-09) |
+| U36, U64 | S9 | done (T059, 2026-11-09); group checkboxes Figma must change (CLAR #64) |
+| U50, U51 | S9 | done (T060, 2026-11-09); two rows moved to T075: FR-034's "in error" on "Test rules" and U51 8.8's outline "Publish without rules" (`EditorFooter.tsx`) |
+| U57, U58 | S9 | pending (T066) |
+| U30, U31 | S10 | done (T061, 2026-11-08); the editor wrap's padding and the save toast: T056 |
+| U32, U33, U48 | S10 | done (T062, 2026-11-08); the empty field's error, the incomplete message: T063 (notes) |
+| U49, U53, U09 | S10 | done (T063, 2026-11-08); the locked picker's look: coordinator (UNCERTAIN 2); the rename field's look and quotes: T058 / C5 (notes) |
 | U37–U42, U47, U52, U59–U62 | S11 | pending |
 | U44, U45, U46 | S12 | pending |
 | U65–U74 | S13 | pending |
@@ -2425,6 +2436,736 @@ same stored as a draft with its GET routed (W6, the edit flow). The dialog is T0
    content-dependent height would need measuring (no inline styles).
 5. The flags show only once the dialog has closed (A13 draws the step unmarked behind it); the
    dialog's words are kept as they were opened, so they don't change while it fades out.
+
+### U30, U31 Rule editor part 1 (S10) — T061, 2026-11-08
+
+Checked in Firefox (playwright-firefox) at 1440 × 947 (Firefox's overlay scrollbar takes no gutter:
+`body` 1440 wide at a 1440 window), 1440 × 720 (U31 1.8b) and 320 × 640, signed in as `designer`, on
+three own drafts (since deleted): "T061 no rules" (the first rule, U30 1.5), "T061 images" (Rule 01 =
+AGE_RULE, Rule 02 on the Driving licence with Portrait and Signature requested: U31 1.8) and on the
+seeded "Führerscheinantrag Stuttgart" (editor opened and discarded, nothing saved). Fonts:
+`document.fonts.check('600 14px "Fira Sans"')`, `'400 16px …'`, `'400 14px …'` true. Rule-editor
+state is local; nothing was sent. The rule row after "Save rule" is T024's table; the menu search
+field T015's; the step shell T032/T033's.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U30 6348:40744 | every state | editor | box, border, radius, padding, gap | 1086 wide at 177 (card 160 + 1 + wrap 16); white, 1 `#1d56f0`, 8; 16 24; 16 | 177, 1086; oklch(1 0 0), 1px solid rgb(29, 86, 240), 8px; 16px 24px; 16px | match |
+| U30 6350:41176 | new rule | editor | height | 276 | 276 | match |
+| U30 6348:40744 | age complete | editor | height | 330 | 330 | match |
+| U30 6350:41175 | Rule 02 after Rule 01 | editor wrap | padding | 16 16 24 (316 = 16 + 276 + 24) | 8 16 8 (292): the caller's `px-16 py-8` in `RulesStep/index.tsx`; the editor 8 higher than drawn (436 vs 444) | T056 (caller outside T061's files; note below) |
+| U30 6348:40745 | every state | name row | text, font, colour, place | "Rule 01" / "Rule 02", label/small 600 14/24 `#1d56f0` at 25, 17 | "Rule 01" / "Rule 02" 600 14px/24px rgb(29, 86, 240) at 202, 315 (= 177 + 25, 298 + 17) | match (002-S3.1) |
+| U30 6348:40745 | every state | name row | pencil | icon-edit-small 20 `#4a5468`, 4 after the name | none: the page passes no `onRename`; the editor has no rename in the baseline (002-S3.1 shows the name; a saved rule renames inline from its row or ⋯) | baseline (UNCERTAIN 2) |
+| U30 6348:40746 | every state | check row | place, gap, wrap | 25, 57; gap 8; wraps | 202, 355; 8px; `flex-wrap` | match |
+| U30 6350:41179 | new rule | document picker | box, padding, gap, border, radius, fill | h 40, pl 16 pr 8, gap 8, 1 `#e1e6f0`, 8, white | 40, 0 8px 0 16px, 8px, 1px solid rgb(225, 230, 240), 8px, white | match |
+| U30 6350:41179 | new rule | document picker | width, glyph | 211 with a 16 px Personal ID glyph (the instance's default) before "Choose document" | 185.1, no glyph until a document is chosen | UNCERTAIN 3 (a glyph would name a document not chosen) |
+| U30 6350:41179 | document menu open | document picker | open look | 2 `#1d56f0` border, label `#1d56f0`, chevron up | 1px border + 1px inset ring rgb(29, 86, 240) (2 px, content kept in place), label and `picker-expand-open.svg` blue, rotated | match |
+| U30 6350:41180, 6350:41181 | new rule | "Choose data", "Choose check" | look, state | drawn like the enabled picker: white, ink label 16/24, 144 and 153 wide | disabled until the choice before (`disabled`), the kit's 40 % (`opacity-(--kern-color-action-state-opacity-disabled)`), white, ink label; 144.3 and 153.2 wide | W19, FR-039 (the disabled look: UNCERTAIN 1) |
+| U30 6350:41180 | new rule | picker label | colour while nothing is chosen | ink `#0b1220` (16/24 400) | rgb(11, 18, 32) 400 16px/24px (was muted) | match |
+| U31 6350:41420 | document chosen | document picker | label, glyph, width | "Driving licence" with the 16 px glyph, 184 | "Driving licence", `driving-licence-ink.svg` 16 × 16, 184.5 | match |
+| U30 6348:40747 | data chosen | pickers | widths | Personal ID 161; Date of birth (Age) 187; "≥ is at least" 158 | 160.6; 186.5; 158 | match (text rendering) |
+| U30 6348:40749 | check chosen | check picker | symbol chip | "Rules/Symbol" before the words: min 24, 0 8, 1 `#e1e6f0`, circle, 600 14/24 | 25.8 × 26, 0 8px, 1px rgb(225, 230, 240), 9999px, 600 14px/24px, `aria-hidden` | match (T024's 26 high chip) |
+| U30 6348:40750, 6348:40752 | value entered | number field, suffix | box, text | 64 × 40, 0 16, 1 `#e1e6f0`, 8; "21" 16/24; "years old" 16/24 ink, 8 after | 64 × 40, 0px 16px, 1px rgb(225, 230, 240), 8px; "21"; "years old" 400 16px/24px at 803 (795 + 8) | match |
+| U30 6348:40753 | age complete | hints | place, gap, row | 25, 113; 4 apart; icon-info-small 20 `#4a5468`, 8, body/small 14/24 `#4a5468` | 202, 411; 4px; `kern-icon--info` 20 rgb(74, 84, 104) at y + 2, gap 8px, 400 14px/24px rgb(74, 84, 104) | match |
+| U30 6348:40755 | age complete | boundary hint | text | "Citizens who turn 21 on that day meet the rule." | "Citizens who turn 21 that day count." | F59 |
+| U30 6348:40754 | age complete | counting note | text | "Counted from the day the citizen shares their data. Today (23.10.2026), that means born on or before 23.10.2005." | "Counted from the day the citizen shares. Today (8 Nov 2026) this means: …" (unchanged) | T062 (cosmetic 9, cosmetic 3; the date notes are T062's) |
+| U30 6348:40756 | age complete | missing note | text | "If the date of birth is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”." | "If the date of birth is missing or can’t be read, the rule isn’t met and is reported as couldn’t be checked." (unchanged) | T062 (C1, cosmetic 9) |
+| U30 6350:41185 | new rule, nothing to note | hints row | height | 24 (the "Hints" frame keeps its row with every hint hidden; the message at 153 = 113 + 24 + 16) | an empty `aria-hidden` 24 px row; message at 451 = 298 + 153 | match (UNCERTAIN 4) |
+| U31 6350:41728 | part missing | hint | text | "Licence classes has parts. Choose the part to check." | the same | match (FR-051 (34)) |
+| U31 6350:42013 | class date, no check | hint | text | "Check the time since or until this date, or compare it with a fixed date." | the same | match |
+| U30 6350:41266 | before a check | message placeholder | box | 1036 × 42 at 25, 153; 1 dashed `#e1e6f0`, radius 4, 8 16, gap 8 | 202, 451, 1036 × 42; 1px dashed rgb(225, 230, 240), 4px, 8px 16px, 8px | match |
+| U30 6350:41266 | before a check | message placeholder | texts | "Message for citizens:" label/small 600 `#4a5468`; "Suggested once you choose a check. You can edit it." body/small `#4a5468` | the `label` 600 14px/24px rgb(74, 84, 104); the textarea's placeholder, 400 14px/24px, `::placeholder` rgb(74, 84, 104) | match (FR-039, C2; was "Error message citizens read:" / "… once you complete the check …") |
+| U30 6348:40757 | message proposed | message field | box | hued `#f2f5fb`, radius 4, 8 8 8 16, gap 8, 40 high | rgb(242, 245, 251), 4px, 8px 8px 8px 16px, 8px, 40 | match |
+| U30 6348:40757 | message proposed | message field | texts, pencil | "Message for citizens:" 600 14/24 `#1d56f0`; "You need to be at least 21 years old." 14/24 ink; icon-edit-small 20 `#1d56f0` at the end | label 600 14px/24px rgb(29, 86, 240); "You need to be at least 21 years old." (T009's proposal) 400 14px/24px ink; pencil 20 rgb(29, 86, 240) at 1210 (1238 − 8 − 20) | match (C3) |
+| — | message edited | message field | behaviour | not drawn | a written message stays when the condition changes (years 2 → 3 kept "Only experienced drivers can apply."); emptied, it follows the condition again | match (F9 baseline) |
+| U30 6348:40758 | every state | editor actions | layout | 1036 × 48 at 25, 265; right-aligned, 16 apart | 202, 563, 1036 × 48; `justify-end`, 16px | match |
+| U30 6348:40758 | every state | "Discard rule" | look, text | button-tertiary-small: 40 high in 48, padding 0 8, label 4 8, "Discard rule" label/Action/small_underline 600 14/24 `#1d56f0` underlined | `kern-btn--tertiary kern-btn--small` 40 at y + 4, 0 8px, label 4px 8px, "Discard rule" 600 14px/24px rgb(29, 86, 240), underline | match (FR-051 (36); was "Cancel") |
+| — | "Discard rule" | behaviour | — | not drawn | the baseline's cancel: closes the editor, asks "Save changes to Rule 01?" when there are changes (F10) | match (002-S2.26) |
+| U30 6348:40758 | complete | "Save rule" | look | button-primary-small `#1d56f0`, label 600 14/24 white | `kern-btn--primary kern-btn--small` rgb(29, 86, 240), 600 14px/24px white, 90.9 × 40 | match |
+| U30 6350:41190 | incomplete | "Save rule" | look | 40 % (`action-state-opacity-disabled`) | opacity 0.4 (`aria-disabled`) | match (the explanation and `ExplainedButton`: T063, W21) |
+| — | "Save rule" pressed, incomplete | inline flags | look, ARIA, focus | not drawn (U30 #46) | the missing part's red border (`#c4271c`), `aria-invalid`, described by "Rule 02 in Standard: choose a check." (`role="alert"`) under the check row, focus moved to it; an empty message: the placeholder's dashed border red, `aria-invalid`, "Rule 02 in Standard has no error message.", focus in the field | FR-039, W19 |
+| U30 6350:41316 | document menu | menu | box | 300 × 141 at the picker's left, 8 below (202, 549 under the picker's bottom 541) | 202, 403 under the picker's 395 (first rule) and 202, 541 under 533 (Rule 02); 300 × 141 | match |
+| U30 6350:41316 | document menu | menu | frame | white, 1 `#e1e6f0`, 8, padding 8, gap 2, "Elevation/Menu" | the same; `--shadow-menu` `rgba(19, 21, 37, 0.16) 0 10px 28px` | match (the frame's 14 px drop-shadow blur is the export's; the style is "Elevation/Menu" r 28) |
+| U30 6350:41316 | document menu | items | box, glyph, text | 282 × 40, padding 8, gap 8, radius 4; 16 px ink glyph; body/small 14/24 ink | 282 × 40, 8px, 8px, 4px; `personal-id-ink.svg` / `driving-licence-ink.svg` 16; 400 14px/24px | match |
+| U30 6350:41316 | document menu | divider, footer | box, text | 1 `#e1e6f0`; footer pt 8 pb 4 pl 8, "Only documents you added are listed." body/small `#4a5468` | 1px rgb(225, 230, 240); 8px 0 4px 8px, "Only documents you added are listed." 400 14px/24px rgb(74, 84, 104) | match (002-S3.41's one wording, now the design's; was "… you request …") |
+| U31 6350:41548 | data menu | menu | place, width | 340 at the data picker's left (394), 8 below | 394.5, 541 under the picker's 533; 340 | match |
+| U31 6350:41549 | data menu | search field | placeholder, box | "Search Driving licence", 322 × 40 | the same (T015's `MenuSearchField variant="menu"`) | match |
+| U31 6362:61765 | data menu | list | height, scroll | 220, scrolls (the images below the fold); search and footer stay | 222 in the `max-h-320` step that fits above the footer (533 + 8 … 875 − 8), scrolls; search and footer stay | R10 (the step, design-notes §3 Menu: 1.8b draws the same list 280) |
+| U31 6350:41551 ff. | data menu | items | box, text | 322 × 40, padding 8, body/small 14/24 ink | 322 × 40, 8px, 400 14px/24px | match |
+| U31 6350:41551 ff. | data menu | order | items | Licence classes, Issue date, Expiry date, Licence number, Issuing country | the requested fields in the catalog's order (Issue date, Expiry date, Issuing country, Licence number, Licence classes) | match (sample data; 002-S3.3) |
+| U31 6350:41621 | data menu | divider before the images | box | 322 × 1 `#e1e6f0`, in the list | 322 × 1 rgb(225, 230, 240) | match |
+| U31 6350:41622, 6350:41624 | data menu | image rows | box, text, tag | 322 × 42, padding 8; "Portrait" body/small `#4a5468`; "Data/Status tag" "Not for rules" 99 × 26, 1 `#e1e6f0`, 0 8, radius 4, 14/24 `#4a5468`, at 215 | 322 × 42, 8px; 400 14px/24px rgb(74, 84, 104); "Not for rules" 98.1 × 26, 1px rgb(225, 230, 240), 0 8px, 4px, rgb(74, 84, 104), at 215.8; `aria-disabled`, skipped by the arrow keys | match (cosmetic 9; was "Can’t be checked") |
+| U31 6350:41628 | data menu | footer | box, texts | pt 8 pb 4 pl 8, gap 8, no divider; "Need other data?" body/small `#4a5468`; "Add it in Documents" label/small 600 `#1d56f0` | 8px 0 4px 8px, 8px, no divider; 400 14px/24px rgb(74, 84, 104); a button 600 14px/24px rgb(29, 86, 240) | match (its "Save changes to Rule 01?" first: the page's, T063) |
+| U31 6635:36529 | 1440 × 720 | data menu | direction | opens up, 8 above the picker, never under the footer | `bottom-full mb-8`: 263 – 485 above the picker's 493; `max-h-240` fits under the pinned step header (`--wizard-sticky-top` 216) | match (R10: the frame draws it over the step header, which the wizard pins at this size) |
+| U31 6984:49993 | part menu | menu | width, place, search | 300 at the part picker's left, 8 below; "Search classes" | 300 at 567.4, 541; "Search classes" | match (was 340) |
+| U31 6984:49995 | part menu | list | height | 234, scrolls | 260 in `max-h-320`, scrolls | R10 (step) |
+| U31 6984:50048 ff. | part menu | items | text | "Licence classes", "Licence class AM – Issue date", "… – Expiry date", … | the same | match (W19's codes and descriptions are the values menu's: T063) |
+| U31 6350:42064 | class date | check picker | label | "Choose check" after the part | the same, at 829.4 (Figma 827: the part's text 1 px wider) | match |
+| U31 6985:50041 | date check menu | menu | width | 300 | 300 (was 340) | match |
+| U31 6985:50041 | date check menu | heading | box, text | pt 8 pb 2 pl 8, body/small `#4a5468`; "Time ago", "Time from now", "Fixed date" | 8px 0 2px 8px, 400 14px/24px rgb(74, 84, 104), `aria-hidden` naming its `role="group"`; the same headings | match (the words: T062, F34) |
+| U31 6985:50041 | date check menu | items with symbol | box | padding 8, the symbol chip at the end, 42 high (26 chip) | 282 × 42, chip 25.8 × 26 at the end | match |
+| U31 6985:50041 | date check menu | dividers | between sections | 1 `#e1e6f0` | 1px rgb(225, 230, 240) | match |
+| U30 6348:40889 | Rule 01 saved | rule row | statement | "Personal ID · Date of birth (Age) ≥ is at least [21 years old]" | the same (C3); T024's row | match |
+| U30 6369:62602 | Rule 01 saved | toast | text | "Rule 01 saved." | "Rule 01 in Standard saved." | T056 (cosmetic 8; the toast is the page's) |
+| P33 2:1985 | hover | menu item | background | `action-state-indicator-default` at 8 %, pressed 16 % | #1d56f0 / 0.08 (`oklab(… / 0.08)`), 150 ms | match (T021's entries) |
+| P33 2:2406 | keyboard focus | menu item | look | the focus colour fill, text inverse | rgb(11, 18, 32) fill, white text, the glyph `brightness(0) invert(1)`, no outline | match (T021's entries; the old 4 px inset ring is gone) |
+| — | chosen | menu item | look | not drawn | hued `#f2f5fb` (`aria-selected`) | match (baseline) |
+| — | open | menu | placement, z-index, clipping | design-notes §3 Menu | `placementFrom()` measured as it opens (also a menu opened by the choice before it, after its picker moved or appeared), class sets only, `z-40`, no clipping ancestor | match (T027 carry: `z-20`, `mt-4`, `max-md:left-24` gone) |
+| — | 320 × 640 | menus | stay on screen | not drawn | check menu across the editor (`inset-x-24`, 58 – 262, 204 wide) down 8 under the picker, and up 8 above it (142 – 462 above 470) where it doesn't fit below; no horizontal scroll (scrollWidth 320) | FR-010 (R10) |
+| — | keyboard | menus | listbox pattern | — | arrows, Home, End, Enter, Escape (focus back on the picker), Tab closes; a choice opens the next menu; a value field takes the focus after its check | match (002-ACC, baseline) |
+
+UNCERTAIN (T061, accepted by the coordinator, none core): disabled pickers in the kit's disabled state (no frame draws them); no pencil on the name row (the baseline editor has no rename, 002-S3.1); no glyph on the empty document picker; the 24 px hints spacer also for kinds without hints; list heights by the R10 max-height step.
+
+### U29, U43 Rules step frame and list (S9) — T056, 2026-11-08
+
+Checked in Chromium (playwright-core 1.48.2, `/usr/bin/chromium`) at 1455 × 947 (body 1440), 1455 × 600 and
+320 × 640, signed in as `designer`, on T056's own drafts: no rules, one rule, two rules, three rules as U43 4.1
+(Rule 01 ≥ 21 years, Rule 02 expiry ≥ 6 months from now, Rule 03 classes B, BE), a rule without a message, 12
+rules (scrolling, select mode). Font check `600 24px "Fira Sans"` true. The step header and the footer are
+T032/T033's tables (L3); the rule rows T024's, the connectors T023's, the editor T061's; the rows here are the
+step's frame and list. Figma y values are page values (frame + 64 for the header area).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U29 6702:39345, U43 6702:41083 | every state | step head | h1 text, font | "Set eligibility rules for citizens", heading/large 600 24/32 `#0b1220` at 160, 136 | "Set eligibility rules for citizens" (`RULES_COPY.title`), the one h1, 600 24px/32px rgb(11, 18, 32) at 160, 136 | match (C2) |
+| U29 6702:39345 | every state | step head | hint | "A rule is a condition the citizen’s data has to meet. Konnekt checks each rule and tells your service whether it’s met." body/small 14/24 `#4a5468` at 160, 168 | the same text (`RULES_COPY.hint`), 400 14px/24px rgb(74, 84, 104) at 160, 168 | match (C1, C2) |
+| — | every state | tab title | text | not drawn | "Set eligibility rules for citizens · Konnekt" | match (W2, C1) |
+| U29 6504:43833 | no rules | tab row | presence | none (the card at 216) | "Standard", "+ Add variant", the ⓘ at 160, 216, 1120 × 49; the card at 281 | F26 (the tab row from the start; then U43's layout) |
+| U43 6168:7009 | every state | tab row | box | 160, 216, 1120 × 49, bottom 1 `#e1e6f0`, 16 above the card | 160, 216, 1120 × 49 (`BranchTabs` in the pinned wrapper, white); card 16 below at 281 | match |
+| U43 6168:7013 | Standard only | "What is a variant" ⓘ | colour | action blue (`icon-info-small` on `#1d56f0`) | muted grey (`InfoTooltip` default tone) | T064 (carried from T022: `tone="action"`; `BranchTabs.tsx` is T064's) |
+| U43 6168:7014 | rules | rules card | box, border, radius, fill | 160, 281, 1120 × 470; 1 `#e1e6f0`; 12; white | 160, 281, 1120 × 470; 1px solid rgb(225, 230, 240); 12px; oklch(1 0 0) | match |
+| U43 6168:7017 | rules | first rule row | height, padding | 110: pt 8, pb 16 (16 under its content before the first connector), pl 24, pr 16 | `li` 110 = `RuleRow` 102 (py 8, pl 24, pr 16) + the list's `pb-8`; name at 185, 290 | match (T024's carry: the extra 8 is the list's) |
+| U43 6168:7020, 6168:7226 | rules | other rule rows | height | 102 | 102 (in a 146 `li` with the connector's 44) | match |
+| U43 6168:7018, 6168:7021 | rules | connector frame | box, padding | 1118 × 44, padding 8 24 | 161, 392 and 538, 1118 × 44, 8px 24px | match |
+| U43 6168:7042 | rules | "Add" frame | box, padding | 1 + 403 in the card, 1118 × 66, padding 8 24 16 | 161, 684, 1118 × 66, 8px 24px 16px | match |
+| U43 6168:7043 | rules | "Add rule" | box, look | 24, 8 in the frame; dashed 1 `#1d56f0`, radius 8, padding 8 16, gap 4, add icon 20, label/small 600 14/24 `#1d56f0` | 185, 692, 111.7 × 42; 1px dashed rgb(29, 86, 240), 8px, 8px 16px; `kern-icon--add kern-icon--small`; 600 14px/24px | match |
+| — | one rule | first rule row | spacing | not drawn (no connector follows) | `li` 102, no extra 8; card 170 (102 + 66 + 2) | match (the extra 8 sits before a first connector only) |
+| U43 6168:7014 | rules | identifiers | presence | none | no "rule-n" in the card's text | match (F35) |
+| U29 6504:43840 | no rules | empty wrap | padding | 24 all round, the card hugging it (1120 × 248) | 161, 282, 1118 × 246, 24px; card 1120 × 248 | match |
+| U29 6504:43841 | no rules | empty state | box, border, radius, padding, gap | 1070 × 198 at 24, 24; dashed 1 `#1d56f0`; 8; py 40; gap 8 | 185, 306, 1070 × 198; 1px dashed rgb(29, 86, 240); 8px; 40px 0; 8px | match |
+| U29 I6504:43841;6093:4290 | no rules | title | text, font, place | "No rules yet", title/default 600 18/24 `#0b1220` at 1 + 40 | "No rules yet" (an h2), 600 18px/24px rgb(11, 18, 32) at 347 (306 + 1 + 40) | match |
+| U29 I6504:43841;6093:4291 | no rules | text | text, font | "Without rules, Konnekt still passes the verified data to your service. Your team decides who can apply." 400 14/24 `#4a5468`, 4 under the title | the same text (`RULES_COPY.emptyText`), 400 14px/24px rgb(74, 84, 104) at 375 | match (RULE wording; C1) |
+| U29 I6504:43841;6093:4313 | no rules | "+ Add rule" | box, look | button-primary-small: a 48 slot 8 + 8 under the text, visible 40 high, `#1d56f0`, radius 8, icon-add-small 20 white, label/small white | 667.2, 419, 105.7 × 40 (slot 415), rgb(29, 86, 240), 8px, `kern-btn--primary kern-btn--small` | match |
+| U29 6504:43841 | "+ Add rule" | focus | behaviour | 1.2 draws the documents menu open (U30 1.7) | the editor opens in the card; the focus on "Choose document" (the picker, closed) | baseline (002-S3.1; T061's note: kept) |
+| U29 6348:40227, 6348:40531 | new rule, no other rules | editor wrap | padding, box | 16 16 24; card 278 (1.2) / 318 (1.4) | 16px 16px 24px; wrap 1118 × 316 with the 276 editor, card 318 | match (T061's open row closed; the editor's own height is T061's) |
+| U30 6350:41175 | new rule after rules | editor wrap | padding | 16 16 24 (316 = 16 + 276 + 24) | 16px 16px 24px, wrap 316 after the connector's 44 (`li` 360) | match (was `px-16 py-8`: T061's open row closed) |
+| — | rule edited in place | editor wrap | padding | not drawn | 16px 16px 24px (wrap 372) | match (one wrap for every position) |
+| U29 6348:40236, 6348:40255, 6348:40542 | rule open | "Test rules" | state | disabled look (pale blue) | `ExplainedButton`, `aria-disabled="true"`, no `disabled`; a click stays on the step | match (F65, FR-034; T033) |
+| — | rule open | "Test rules" | explanation | not drawn | "Save the rule first" on hover and on keyboard focus, `aria-describedby` the tooltip | W21 (T022's pattern) |
+| — | select mode | "Test rules" | explanation | not drawn | "Finish grouping first" on hover and keyboard focus; usable again after "Cancel" | W21 (FR-034) |
+| U30 6369:62602 (U30 #37) | Rule 01 saved | toast | text | "Rule 01 saved." | "Rule 01 saved." (was "Rule 01 in Standard saved.") | match (report cosmetic 8; T061's open row closed) |
+| U01 6637:36644 #17 | scrolled, 1455 × 947 | step head | pin | step line, title and description pinned under the header | pinned at 64 – 216 (T033's `wizard-pinned:`) | match |
+| U01 6637:36644 #18 | scrolled 700, 1455 × 947 | tab row | pin | the variant tabs pinned with the step header | `sticky` at 216 – 265 (right under the step header), white, z-10; rules scroll under it; `--rules-tabs-height` 49px | match |
+| U01 6637:36644 #19 | select mode, scrolled 700 | selection bar | pin | right under the tabs | `top` 265px: 265 – 329 (`--wizard-sticky-top` in the card = 216 + 49) | match |
+| — | scrolled, focus moves | focused element | clearance | not drawn | `scrollIntoView` start: a rule's ⋯ and a row land at 281 (16 under the tabs' 265); in select mode a box lands at 353 (24 under the bar's 329) | WCAG 2.4.11 (scroll-padding + `scroll-mt`) |
+| — | tab row pinned | tab menu, variant tooltip | stacking | not drawn | the Standard ⋯ menu (266 – 366) and the ⓘ tooltip paint over the card; a rule's ⋯ menu (z-40) over the tabs | match (V6: no clipping, no transform) |
+| — | 1455 × 600 (under 640 tall) | tab row, bar | pin | not drawn | step header and tabs scroll away (`--rules-tabs-height` 0px); the bar pins under the header pills at 64 | match (as T033's step header) |
+| — | 320 × 640 | step | layout | not drawn | tab row wraps (87 high), not pinned; no horizontal scroll (scrollWidth 305 = 320 less the scrollbar) | FR-010 (R10) |
+| U43 6168:7263 | a group | group wrap | layout | 16 sides, 8 above and below | not checked here | T057 |
+| U43 6168:7666 | Ambulance | link strip, marks | layout | "Linked to Standard" strip 56, removed rows 74 | not checked here | T066 (strip, marks), T024 (rows) |
+
+**`stickyPin.ts` (§2 decision, T056):** `frontend/src/utils/stickyPin.ts` and `stickyPin.test.ts`: **kept, unchanged** (T056). `usePinned` still uses `isPinned` for the selection bar's resting/pinned look; the tab row pins with CSS `position: sticky` only and needs no helper. The pinned tab row's height is measured into `--rules-tabs-height` (RulesStep `index.tsx`, `usePinnedTabsHeight`), 0 where the row isn't sticky.
+
+UNCERTAIN (T056, accepted by the coordinator): the selection bar pins under the tabs through a scoped `--wizard-sticky-top` on the rules card (mechanism only, the drawn behaviour; T059 may switch `SelectionBar` to `--rules-pinned-top`); "Rule 01 saved." without the variant's name in every variant (contract S9, cosmetic 8); the first rule's extra 8 px only when something follows it; the editor wrap 16 16 24 also inside groups.
+
+### U32, U33, U48 Rule editor part 2 (S10) — T062, 2026-11-08
+
+Checked in Chromium (playwright-core, `/usr/bin/chromium`, 1455 × 947, body 1440) for the numbers
+and in Firefox (playwright-firefox, 1440 × 947, body 1440: the overlay scrollbar takes no gutter)
+for the font check, the text check's numbers and the screenshots (`phase7/T062/ff-*.png`), plus
+320 × 640 (Chromium). Signed in as `designer`, on the own draft "T062 rule editor" (Personal ID:
+names, Date of birth, City or town, Nationality, Expiry date; Driving licence: Licence classes,
+Issue date, Expiry date; Rule 01 = AGE_RULE), deleted at the end. Fonts:
+`document.fonts.check('600 14px "Fira Sans"')`, `'400 16px …'`, `'400 14px …'` true. Rule-editor
+state is local; "Save rule" saved only into the page's state, nothing was sent. Today in Germany was
+09.11.2026 during the run (the frames draw 23.10.2026: sample data). The values menu's frame, its
+class rows and "Done" are T027's table (§5.1 ValuesPicker); the saved row T024's; the menus' frame
+and items T061's.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U32 6350:42714 | ready to save (class B issue date ≥ 2 years ago) | editor | box | 1086 × 302 at 177 (16 + 1 + 160) | 177, 1086 × 302 | match |
+| U32 6350:42716 | ready to save | check row | pickers, widths | Driving licence 184, Licence classes 164, "Licence class B – Issue date" 253, "≥ is at least" 158, number 64, gap 8 | 184.5, 164.9, 254.1, 158.1, 64 × 40, 8px | match (text rendering; F5 part picker) |
+| U32 6350:42720, 6350:42722 | ready to save | value, suffix | box, text | "Rules/Number field" 64 × 40, 0 16, 1 `#e1e6f0`, 8, "2" 16/24; "years ago" 16/24 ink, 8 after, no unit picker | 64 × 40, 16px, 1px rgb(225, 230, 240), 8px, "2"; "years ago" 16px/24px rgb(11, 18, 32) 8 after; no unit picker | match (F34: whole years as fixed text; 002-S3.15) |
+| U32 6350:42354 | years ago, frame 1.11 | hints | presence | no notes drawn although the condition is complete | the counting and missing notes show next to every date condition | FR-039 (002-S3.19, 002-S3.20; U32 #19 PARTIAL; 1.12 draws them for the same condition) |
+| U32 6350:42723 | ready to save | hints | box, gap | 1036 × 52 at 25, 113; 4 apart | 202, 565 (452 + 113), 1036 × 52; 4px | match |
+| U32 6350:42724 | ready to save | counting note | text, look | "Counted from the date class B was first issued. Today (23.10.2026), that means on or before 23.10.2024." body/small `#4a5468`, icon-info-small 20, 8 | "Counted from the date class B was first issued. Today (09.11.2026), that means on or before 09.11.2024." 400 14px/24px rgb(74, 84, 104), info icon 20 at y + 2, 8px | match (cosmetic 3, cosmetic 9; was "Counted from the day the citizen shares. Today (9 Nov 2026) this means: …") |
+| U32 6350:42726 | ready to save | missing note | text | "If class B is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”." | the same, one note (was "If the issue date of class B is missing … reported as couldn’t be checked." plus "If class B is missing, the rule isn’t met.") | match (C1, cosmetic 9) |
+| U32 6350:42727 | ready to save | message | text | "You need to have held a class B driving licence for at least 2 years." | the same (T009's proposal) | match (C3) |
+| U32 6350:42728 | ready to save | "Save rule" | state | enabled | enabled (`aria-disabled="false"`) | match |
+| — | class B issue date, no years yet | notes | text | not drawn | "Counted from the date class B was first issued." and the missing note (no example until the value is complete) | baseline (002-S3.19) |
+| — | class B expiry date ≥ 1 year from now | notes | text | not drawn | "Counted from the day the citizen shares their data. Today (09.11.2026), that means it expires on or after 09.11.2027." and the class's missing note | cosmetic 9 (the class wording drawn for the issue date only; the expiry wording U53's) |
+| U32 6350:42833 | both saved | rule row | statement | "Driving licence · Licence class B – Issue date ≥ is at least [2 years ago]", no notes | the same, no notes (T024's row) | match |
+| U32 6350:42833 | both saved | toast | text | "Rule 02 saved." | "Rule 02 saved." (T056's change) | match |
+| U30 6348:40754 (T061 carry) | age ≥ 21 | counting note | text | "Counted from the day the citizen shares their data. Today (23.10.2026), that means born on or before 23.10.2005." | "Counted from the day the citizen shares their data. Today (09.11.2026), that means born on or before 09.11.2005." | match (cosmetic 3, cosmetic 9) |
+| U30 6348:40756 (T061 carry) | age ≥ 21 | missing note | text | "If the date of birth is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”." | the same | match (C1) |
+| U30 6348:40753 | age ≥ 21 | notes | order, box | counting, boundary, missing; 4 apart | the same; 1036 × 80 (3 × 24 + 2 × 4) | match (F59's "Citizens who turn 21 that day count." between) |
+| U09 6986:50244 #26 | age = 18 | born-between note | text | "= means born between two dates" (the table) | "… Today (09.11.2026), that means born between 10.11.2007 and 09.11.2008." | match |
+| U53 6324:15672 | expiry date ≥ 6 months from now | counting note | text | "Counted from the day the citizen shares their data. Today (23.10.2026), that means it expires on or after 23.04.2027." | "… Today (09.11.2026), that means it expires on or after 09.05.2027." | match (read from U53.md as text; U53's frames are T063's) |
+| U53 6324:15673 | expiry date, any check | missing note | text | "If the expiry date is missing or can’t be read, the rule isn’t met. Konnekt reports it as “couldn’t be checked”." | the same | match (C1) |
+| — | fixed date (expiry date is before …) | notes | presence | not drawn | the missing note only, no counting note | baseline (002-S3.19: counted from the day of sharing only for time-ago / from-now) |
+| U31 6350:42013, U53 6324:15429 | date, no check | hint | text | "Check the time since or until this date, or compare it with a fixed date." | the same, on the Date of birth too (was "Check an age, the time from now, or compare the date with a fixed date.") | F34 (CLAR 2026-11-07 #25) |
+| U31 6985:50041 | Date of birth, check menu | sections | headings, checks | (U29/U30 draw "Age" / "Date of birth" with fixed dates and "at most") | "Time ago" (is at least, is less than, is exactly), "Time from now" (is at least, is less than); no "Fixed date"; 300 × 240 | F34 (CLAR #25: the Date of birth's fixed date deferred; cosmetic 9 "Fixed date" on other dates only; was "Age", "Time from now", "Date of birth") |
+| U31 6985:50041 | other dates, check menu | sections | headings | "Time ago", "Time from now", "Fixed date" | the same, "is before", "is after", "is" under "Fixed date" | match (F34: no "on", "at most", "Time passed / Time left") |
+| — | Date of birth, "from now" | check | behaviour | not drawn | kept (002-S3.14): "is at least 21 years from now", unit picker, "born on or after …" | F34 (kept) |
+| U33 6357:42622 | text data, check menu open | menu | box, place | 240 × 184 at the check picker's left, 8 below; padding 8, gap 2 | 240 × 184 at 519.4 (picker 519.4), 557 (picker bottom 549 + 8); 8px, 2px | match (was 300: `MENU_WIDTHS.textCheck`) |
+| U33 6357:42842 ff. | text data, check menu open | items | box, text | 222 × 40, padding 8, body/small 14/24 ink; "is equal to", "is not equal to", "contains", "doesn’t contain"; no symbols, no search | 222 × 40, 8px, 14px; the same four, no chips, no search | match (002-S3.29; no "starts with": F34, 002-S3.30) |
+| U33 6357:42631 | text data, no check | hints, message | presence | no hint, no message area | the 24 px spacer and the message placeholder | T061 (UNCERTAIN 4 there; FR-039's placeholder; U33 #15 PARTIAL) |
+| U33 6357:42892 | text check complete | check row | value field | "Rules/Number field" 140 × 40 at 457, 0 16, 1 `#e1e6f0`, 8; "Stuttgart" 16/24 | 140 × 40 at 455.8 (pickers' fractional widths), 16px, 1px rgb(225, 230, 240), 8px, 16px/24px; grows with the text (Firefox and Chromium support `field-sizing`; 349 wide with a 44-character text), never wider than the row | match (was `min-w-96`) |
+| U33 6985:50760 | text check complete | "Match letter case" | box, label, place | "Data/Check item": box 20, 1 `#6b7488`, radius 4, white; label body/small 14/24 ink; gap 8; 8 after the field, 137 wide | box 20 × 20, 1px rgb(107, 116, 136), 4px, white, at 805.8 (field end 797.8 + 8); label 400 14px/24px ink at 833.8 (box + 28); `kern-form-check` 137.3 × 32, centred in the 40 row | match (T016's `Checkbox`; the frame's 40 is the row's height) |
+| U33 6357:42901 | text check complete | hint | text | "Spaces at the start or end don’t matter." | the same | match (002-S3.30) |
+| U33 6357:42903 | text check complete | message | text | "You need to live in Stuttgart." | the same; "is not equal to" "You must not live in Stuttgart.", "contains" "Your city or town must contain "Stuttgart"." | match (C3; the straight quotes are the rules package's: T009 note) |
+| U33 6357:42890 | text check complete | editor | height | 274 | 274 | match |
+| — | text, case on, check changed | behaviour | — | not drawn | the text and "Match letter case" stay when the check changes (is equal to → contains …) | baseline (`changeOperator`) |
+| U32 6357:43363, U48 6191:42191 | values chosen | values field | look | U32: "B, BE" as text; U48: "Rules/Multi-select field" with "Rules/Value chip"s "B", "BE" | chips "B" (26.6 × 30), "BE" (34 × 30), 600 14/24, 4 apart | Decision 1 (U48's component, 002-S3.39) |
+| U48 6191:42209 | values menu open | search | placeholder | "Search options" | "Search classes" on the licence classes (U32 6358:61888 draws "Search classes"), "Search options" on other value sets | Decision 2 (002-S3.37) |
+| U48 6191:42209 | values menu open | footer | text | "Choose at least one option." under a divider | "Choose at least one option." under a divider, above "Done" | match (cosmetic 9; was "Select at least one option.") |
+| U32 6357:43417 | values menu open | "Done" | presence, behaviour | secondary, right | T027's: closes, keeps the choice, focus back on the field | match (FR-039) |
+| U32 6357:43117 | values chosen | hint | text | "Met if the licence has at least one of the chosen classes." | the same | match (002-S3.36) |
+| U32 6972:50180, U48 6191:42087 | values chosen | message | text | "You need a class B or BE licence." | the same | match (C3) |
+| U48 6191:42088 | values chosen | "Save rule" | state | enabled | enabled | match |
+| U32 6357:43122 | values menu open | "Save rule" | state | looks disabled (under the menu) | enabled once the rule is complete | baseline (002-S3.10; U32 #40 PARTIAL ?) |
+| U48 6191:42385 | values emptied, menu closed | values field | look | "Choose options" muted, 1 red border, chevron | "Choose options", 1px rgb(196, 39, 28), chevron | match |
+| U48 6194:42246 | values emptied | field error | text | "Choose at least one option." with the danger icon under the check row | "Choose at least one option." (`FieldError`, `kern-error`) | match for the text (cosmetic 9); the error's layout is T063's (`FieldError.tsx`) |
+| U48 6191:42281 | values emptied | message | text | "You need a licence in one of the required classes." | the placeholder "Suggested once you choose a check. You can edit it." (the proposal needs a complete condition) | T063 (U48 #24 PARTIAL ?; the rule logic table's messages, U09) |
+| U48 6191:42259 | values emptied | licence hint | presence | not drawn | "Met if the licence has at least one of the chosen classes." | baseline (002-S3.36; U48 "Missing here") |
+| — | 320 × 640 | text check menu, field | placement | not drawn | menu 240 × 184 at the picker's left (58, 180), field 140; no horizontal scroll (scrollWidth 305 = 320 − Chromium's scrollbar) | FR-010 (R10) |
+
+#### Decisions (T062)
+
+1. **Chips, not "B, BE" text** (T027's carried point, U32 #34 PARTIAL): the field keeps the chosen
+   values as "Rules/Value chip"s, as the component "Rules/Multi-select field" (U48 6191:42191) and
+   002-S3.39 ("Chips in the field … keep the codes only") draw it; U32 6357:43363 draws the codes as
+   comma text in a plain picker. No change to `components/ValuesPicker/`.
+2. **"Search classes" on the licence classes' values menu** (U48 6191:42209 draws "Search options"):
+   kept, as U32 6358:61888 (the later frame with W19's code and description rows) and 002-S3.37
+   say; "Search options" stays on the other value sets (002-S3.40). Cosmetic 9 lists U48 #14's
+   "Search options" as wording to port; the two frames disagree, so the baseline's wording stays
+   (UNCERTAIN 2).
+3. **"Choose at least one option."** for the values menu's footer and the values field's error
+   (U48 #16, #23, cosmetic 9: "None of these rows is flagged copy:server or copy:rules"; the text is
+   the editor's own, `RULE_EDITOR_COPY.selectAtLeastOne`).
+4. **Date notes** in the design's wording (cosmetic 3, cosmetic 9, C1): "Counted from the day the
+   citizen shares their data." / on a licence class's issue date "Counted from the date class B was
+   first issued.", then "Today (dd.mm.yyyy), that means <boundary>." with "born …" on the Date of
+   birth, "it expires …" on an expiry date (keys `date_of_expiry`, `expiry_date`), nothing before
+   the boundary on other dates; one missing note per condition, "If the <date> is missing …" or, on
+   a class's dates, "If class B is missing …". The boundary is formatted in the editor
+   (`boundaryWords`, `dottedDate` in `utils.ts`); `rules/src/dates.ts`' `boundaryPhrase` and
+   `formatDate` ("23 Oct 2005") are untouched and no longer used by the editor.
+5. **The Date of birth's check menu**: "Time ago" and "Time from now", no fixed-date section (F34,
+   CLAR 2026-11-07 #25 "the editor offers none", cosmetic 9 "a 'Fixed date' section (other dates
+   only)"). A saved Date-of-birth rule with a fixed-date check (an earlier one, or an agent's) still
+   shows its check in the picker; only the menu no longer offers it (UNCERTAIN 1).
+6. **Text check menu 240 wide** (U33 6357:42841): `MENU_WIDTHS.textCheck`; `MenuWidth` gains 240
+   (`types.ts`) and the check picker picks it for text data (`index.tsx`). The other check menus stay
+   300 (U31 6985:50041); the number and value-set check menus are not drawn in T062's frames (T063
+   checks U53).
+
+#### utils.test.ts (changed for F34)
+
+- "gives every date, the Date of birth too, F34’s hint" (was "gives the Date of birth F3’s hint and
+  every other date U30’s"): the Date of birth expects F34's hint.
+- "offers the Date of birth "Time ago" and "Time from now", other dates also "Fixed date"" (was
+  "keeps the check menu’s "Date of birth" section of fixed dates under "Age""): F34, CLAR
+  2026-11-07 #25.
+- The other tests are unchanged; "keeps "date of birth" in the missing-value note" passes with the
+  new wording.
+
+#### UNCERTAIN (T062)
+
+1. **The Date of birth's fixed-date checks removed from the menu** (Decision 5). Touches the task's
+   core behaviour: spec 002's own clarification (002 spec.md, Session 2026-10-26 (bug fixes): "The check menu's
+   'Date of birth' section, the fixed-date checks under 'Age', keeps its name") gave the Date of birth
+   fixed-date checks, and the app offered them until now; 008's CLAR 2026-11-07 #25 was asked as if
+   the baseline had none ("with the fixed-date check deferred?") and answers "defer a fixed date for
+   the Date of birth … the editor offers none". Built as CLAR #25 and F34 say; reverting is one `if`
+   in `checkSections` and the test. The coordinator may want to confirm with the user.
+2. **"Search classes" vs U48's "Search options"** (Decision 2). Not core.
+3. **The counting note's verb by field** ("born", "it expires", none) and the class wording only
+   on the issue date: the frames draw the Date of birth (U30), an expiry date (U53) and a class's
+   issue date (U32); a class's expiry date and the other dates (issue date, portrait capture date)
+   are not drawn and take the general sentence without a verb. Not core.
+4. **U32 1.11 draws no notes for a complete condition** (6350:42450): built with the notes, as 1.12
+   and FR-039 show them. Not core.
+
+Coordinator: UNCERTAIN 2–4 accepted; UNCERTAIN 1 (the Date of birth's fixed-date checks) taken to the user as Implement Q3.
+
+### U34, U35 (6324:39410) Groups (S9) — T057, 2026-11-08
+
+Checked in Chromium (playwright-chrome MCP) at 1455 × 947 (body 1440), with a scroll for the connector
+menu, and at 320 × 640. Signed in as `designer`. I used T057's own drafts:
+
+- "T057 groups": Rule 01 ≥ 21 years, Rule 02 Stuttgart, and Group 01 (OR). Group 01 holds Rule 03
+  (classes C, D) and Sub-group 02 (AND), which holds Rule 04 (B, BE) and Rule 05 (expiry ≥ 6 months from
+  now). This is U34 2.1's shape. Rule 02 differs from the frame's sample so that no finding shifts the
+  list.
+- "T057 group message": the same, with U35 2.6's group message on Group 01.
+- "T057 variant": the same, plus Ambulance based on Standard with its top level switched to OR.
+- "T057 flat": four rules.
+
+Figma y values are page values (frame + 64 for the header area); the card is at 281. Font check:
+Fira Sans 600/400 render as in T056's table. The group frame's own parts (fill, border, header, subtitle
+type, message card) are T025's §5.1 rows. These rows cover the frame as the step uses it.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U34 6094:6188 | a group, a sub-group | rules card | box | 160, 281, 1120 × 1058 | 160, 281, 1120 × 1058 | match |
+| U34 6094:6469, 6094:6511, 6094:6521, 6094:6564 | a group | top level before the group | y, height | Rule 01 282 h110, AND 392 h44, Rule 02 436 h102, AND 538 h44 | `li` 282 h110, 392 h146 (44 + 102), connector 538 h44 | match |
+| U34 6094:6574 | a group | group wrap (top level) | box, padding | 161, 582, 1118 × 690; 8 16 | 161, 582, 1118 × 690; 8px 16px | match (T056 carry: 16 at the sides, 8 above and below; no `FIRST_RULE_SPACING` on a group) |
+| U34 6094:6411 | a group | Group 01 frame | box, pt, border, fill, corners | 177, 590, 1086 × 674; 8; 3 `#1d56f0`; `#f2f5fb`; square | 177, 590, 1086 × 674; 8px; 3px rgb(29, 86, 240); rgb(242, 245, 251); 0 | match |
+| U34 6094:6412 | a group | header | box, padding, divider | 180, 598, 1083 × 57; 0 16 8 24; 1 `#e1e6f0` | 180, 598, 1083 × 57; 0 16px 8px 24px; 1px rgb(225, 230, 240) | match |
+| U34 6082:3516, 6082:3522 | a group | name, subtitle | text, font | "Group 01" title/default 600 18/24 `#1d56f0`; "At least one rule must be met" 400 14/24 `#4a5468` | "Group 01" 600 18px/24px rgb(29, 86, 240); "At least one rule must be met" 400 14px/24px rgb(74, 84, 104) | match (FR-051 (32)) |
+| U34 6094:6357, 6094:6400 | a group | Rule 03, OR connector | y, height | 655 h102; 757 h46 (OR pill 30) | 655 h102; 757 h46, pill 204, 765, 66.3 × 30 | match |
+| U34 6094:6410, 6094:6318 | a sub-group | sub-group wrap, frame | box | wrap 180, 803, 1083 × 395; frame 196, 811, 1051 × 379, white, radius 8, 3 `#1d56f0` | wrap 180, 803, 1083 × 395 (8px 16px); frame 196, 811, 1051 × 379, white, 8px, 3px rgb(29, 86, 240) | match |
+| U34 I6094:6320;6082:3516 | a sub-group | name, subtitle | text, font | title/small 600 16/24; "All rules must be met" | "Sub-group 02" 600 16px/24px rgb(29, 86, 240); "All rules must be met" | match (the name is sample data; F31: a sub-group keeps its own name) |
+| U34 6094:6223, 6094:6266, 6094:6276 | a sub-group | Rule 04, AND, Rule 05 | y, height | 876 h102, 978 h44, 1022 h102 | 876 h102, 978 h44 (`li` 146), 1022 | match |
+| U34 6094:6336, 6094:6429, 6094:6575 | a group | the three "Add" frames | box, padding | sub-group 1124 h66, group 1198 h66, top 1272 h66; 8 24 16; button white, dashed 1 `#1d56f0`, radius 8, 8 16, gap 4 | 199/180/161 at 1124/1198/1272, h66, 8px 24px 16px; buttons oklch(1 0 0), 1px dashed rgb(29, 86, 240), 8px, 8px 16px, gap 4px | match (002-FR-008: rules are added to groups; see UNCERTAIN 1 on F9) |
+| U34 6094:6127 | a group | whole frame | look (screenshot) | 2.1 | the same order, spacing and colours (`shots/t057-groups-full.png`) | match |
+| U34 6113:28651 | a group | group frame in 2.3 | structure | as 2.1 (first rule 102) | as 2.1 | match (the first rule's 110 is T056's; Rule 03's open menu: T058) |
+| U34 6329:19219 | after switching Group 01 to OR | note | place, box | right under the header, x 3, 1083 × 40 (180, 655) | 180, 655, 1083 × 40, directly under the header (598 + 57); first member moves to 695 (Figma 105 → 695) | match |
+| U34 6329:19219 | after switching | note | look | `feedback-info-background` `#e0f2fe`, radius 8, 8 16, gap 8, icon-info-small 20 `#0284c7`, body/small 400 14/24 `#0b1220` | rgb(224, 242, 254), 8px, 8px 16px, gap 8px, `kern-icon--info` 20 × 20 at 196 rgb(2, 115, 174), 14px/24px rgb(11, 18, 32) | match (§1.5: `feedback-info` AA value) |
+| U34 I6329:19219;6082:3565 | after switching | note | text | "Group 01 now needs only one rule to be true." | "Group 01 now needs only one rule to be true." in a `role="status"` region | match (FR-051 (32)) |
+| — | after switching to AND | note | text | not drawn | "Group 01 now needs all its rules to be true." | match (baseline `switchedToAnd`; T058 carries the "must be met" question for these two texts) |
+| — | top level switched | note | place, text | not drawn ("Rules/Note" in a group only) | "Standard now needs only one rule to be true." above the list, wrapper 16 16 8, the note 1086 × 40 | match (no frame; the top level's note sits in the card clear of its edges) |
+| U34 6094:7052 | connector menu open | menu | options, footer | "AND / All rules must be met", "OR / At least one rule must be met" (ticked), "Applies to every rule in Group 01" | the same; the footer is the menu's `aria-describedby`; the pill "OR, switch Group 01 to AND or OR", `aria-expanded` | match (FR-038; T023's §5.1) |
+| U34 6094:7052 | connector menu open | menu | place | 204, 862, 300 × 189 (left edge on the pill; 35 below the pill as drawn) | 204, 843, 300 × 189: left edge on the pill, 8 below it; opens above the pill (608–797) where the footer leaves no room | match (T023 / §3 "Menu": 8 px; R10 placement) |
+| U34 6094:6597 | connector menu open, keyboard | chosen option | look | `layout-background-hued`, tick | after a key press: the select-option focus fill (dark) on the chosen option | match (T023's keyboard-focus state; the drawn tint shows on pointer use) |
+| U34 6094:6511 (W12) | Ambulance, top level switched | first connector | mark | not drawn | "OR" pill and "Changed here" (`#8a22b5` on white) at 1151, 457, after the line, on the first top-level connector only | W12 (T023's `mark`) |
+| — | Ambulance, Group 01 switched | group header | mark | not drawn | "Changed here" before ⋯ (T025's §5.1 U58 rows) | W12 |
+| U34 6113:29056 | delete dialog | "Delete Group 01?" | box, title, buttons | 480 × 256; title/large 24/32; "Cancel" secondary, the danger primary, × | 480 × 256 at 480, 345.5; "Delete Group 01?"; "Cancel" `kern-btn--secondary`, "Delete group" `kern-btn--primary kern-btn--danger`, "Close" × | match (T035's `ConfirmDialog`) |
+| U34 6113:29056 | delete dialog | body | text | "Citizens won’t be checked for licence classes C or D any more." (rule) | "Group 01 and the rules and sub-group in it will be deleted. You can undo this right after." | F70 (the baseline's body, no effect sentence) |
+| U34 6113:29018 (6113:29055) | delete dialog | scrim | colour, click | scrim over the page | rgb(11, 18, 32) at 0.72; a click on it closes the dialog and keeps the group | match (T052's decision: undoable until saved, so the scrim stays on) |
+| — | Standard with Ambulance, delete Group 01 | body | text | not drawn | "This group and the rules in it will be removed from Standard and from the variants that follow them. Ambulance changed Rule 03 and keeps its own version. You can undo this right after." | W12 (names the variant) |
+| — | Standard with Ambulance, delete Sub-group 02 | body | text | not drawn | "This sub-group and the rules in it will be removed from Standard and from the variants that follow them. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. You can undo this right after." | W12, F31 |
+| — | after deleting the group | toast, focus | text | not drawn for groups | "Group 01 in Standard deleted." with "Undo"; focus on the neighbouring item | baseline (T058 owns the deleted toasts) |
+| U35 6324:39410 | group message | card | box | under the header, 180, 655, 1083 × 90 | 180, 655, 1083 × 90 | match (T025's §5.1 rows for its parts) |
+| U35 6324:39055, 6324:39062, 6324:39065 | group message | members' message line | text | none drawn | "Message for citizens: Not shown while this rule is in Group 01. Citizens see the group message instead." on Rule 03, and on Rule 04 and Rule 05 in Sub-group 02 | F32 (FR-037) |
+| U35 6324:39032 | group message | member rows | height | 72 (no message line) | 102 (with F32's line) | F32 |
+| U35 6965:49996 | group message, Rule 04 edited | editor | message | the rule’s own message stays editable | the editor shows "You need a class B or BE licence." (the data unchanged) | match (FR-037: "keeping the message in the data"; the editor's hint is T063's) |
+| U35 6965:50849 | after Ungroup (group with message) | toast | text | "Ungrouped. Rules 03 to 05 use their own messages again." with "Undo" | "Ungrouped. Rule 03, Rule 04 and Rule 05 use their own messages again." with "Undo" | cosmetic 8 (the list as `joinNames` writes it; UNCERTAIN 2) |
+| U35 6965:50045 | after Ungroup | list | members, names | Rule 01–03 at the top level, the former sub-group renamed "Group 01" | Rule 03 at the top level, "Sub-group 02" keeps its name and moves up; the members' own messages are back | F31 |
+| — | after Ungroup | focus | — | not drawn | on Rule 03 (the group's first member) | baseline |
+| — | after Ungroup (group without message) | toast | text | not drawn | "Group 02 in Standard ungrouped." with "Undo" | baseline (UNCERTAIN 2) |
+| U36 6344:53623 | after grouping | toast | text | "Rule 02 and Rule 03 are now in Group 01." | "Rule 03 and Rule 04 are now in Group 02." with "Undo" | cosmetic 8 (was "… in Standard are now Group 01.") |
+| — | new rule in a group | editor wrap | padding | not drawn | 16px 16px 24px, 1083 wide in Group 01's frame; the focus on "Choose document" | match (T056 UNCERTAIN 4 stands) |
+| U34 6094:6511 | any | connector line | colour (Chromium) | `decorative-brand` `#4f8cff` | rgb(79, 140, 255) on every connector, group and top level | match (Firefox, T062's note: not checked here, the Firefox browser was reserved) |
+| — | 320 × 640 | groups, message card | horizontal scroll | — | none (scrollWidth 305 of 320); Group 01 at 33, 239 wide; the sub-group at 52, 204 wide; the message card wraps | match (FR-010) |
+
+#### Decision (T057)
+
+The rule, group and variant delete dialogs in `RulesDialogs` keep `ConfirmDialog`'s default scrim: a click
+on it answers "Cancel". This follows T052's reading of FR-052a: "a dialog that deletes" is one whose action
+can't be taken back on the page. These deletes stay undoable (the toast's "Undo", and nothing is stored
+until the flow is saved). Checked on "Delete Group 01?".
+
+#### UNCERTAIN (T057)
+
+1. **F9, the "+ Add rule" inside groups: kept (behaviour).** The report's F9 says "One '+ Add rule' per
+   variant… Groups form only by selecting items", and deferred.md lists it as needing "an insert-into-group
+   action in the rules package". But the baseline already has that action: spec 002 FR-008 says "…and to add
+   rules to both", and the app has always added a new rule at the end of a group (`onAddRule(group.id)`).
+   U34 #19 draws it too. Removing it would change the baseline's behaviour, so the group and sub-group
+   "Add rule" stay. The coordinator should correct F9 and deferred.md's F9 row. Not core: grouping and
+   dissolving are unaffected.
+2. **Toast wording (copy).**
+   - "Rules 03 to 05" is written as `joinNames`' list, for example "Rule 03, Rule 04 and Rule 05", because a
+     range only reads for consecutive default names.
+   - One freed rule gets "Ungrouped. Rule 03 uses its own message again." No frame draws this.
+   - A group without its own message keeps the baseline's "Group 01 in Standard ungrouped." No frame draws
+     this either.
+   - The ungroup toast mentions own messages only for the rules that really get theirs back. That leaves
+     out the rules of a sub-group with its own message, and every rule when the group around it has one.
+
+   Not core: the toast's text only.
+3. **F32's line keeps the row's label.** No frame draws a member's line: U35 2.6 draws none, and F32 decides
+   that the line reads the text. The row shows it in the message's place, after the muted "Message for
+   citizens:", in the message's style. Rules in a sub-group name the outer group when that group has its
+   own message, because evaluation reports the outermost group's message. The sub-group's own message card
+   still shows in that case. Not core (layout and copy). The F32 substitution itself is core and follows F32.
+
+Coordinator: all three accepted; F9's `deferred.md` row corrected (the "+ Add rule" inside a group with members is the baseline; only adding into an empty group stays deferred).
+
+### U49, U53, U09 Rule editor part 3 (S10) — T063, 2026-11-08
+
+Checked in Firefox (playwright-firefox) at 1440 × 947 (`body` 1440: the overlay scrollbar takes no
+gutter) and 320 × 640, signed in as `designer`, on the own draft "T063 rule editor" (deleted).
+Fonts: `document.fonts.check('600 14px "Fira Sans"')`, `'400 16px …'`, `'400 14px …'` true. Editor
+state is local; nothing was sent. Figma read: the five U53 and three U49 rules cards
+(`get_design_context`), the four U53 menus (`get_metadata` 6324:15613, 6616:39880, 6616:39897,
+6616:39908); U09 as text from `figma-audit/units/U09.md`. Today in Germany was 09.11.2026 (the
+frames' 23.10.2026 is sample data). Screens: `phase7/T063/*.png`. Rows already in T061's / T062's
+tables (editor frame, pickers, menus, notes, message field, "Discard rule") are not repeated.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U49 6196:10249 | empty field | field error | anatomy | "Rules/Field error" 6194:42227: icon-emergency_home-small 20, gap 4, body/small 14/24 `#c4271c` | `kern-icon--danger kern-icon--small` 20 × 20 rgb(196, 39, 28), gap 4px, 14px/24px 400 rgb(196, 39, 28) | match (the old asset `#C31C13` replaced) |
+| U49 6196:10243 | empty field | check row + error | gap, place | error 8 under the row, message 16 under the error, no hints row | row 509–549, error 557 (8), message box 597 (16 under the error 557+24) | match (the empty 24 px hints row now hidden under an error) |
+| U49 6196:10246 | empty field | data picker | border | 1 `#c4271c` | rgb(196, 39, 28), `aria-invalid="true"`, described by the error | match (FR-039) |
+| U49 6196:10249 | empty field | error | text | "Choose the data to check." | "Rule 02 in Standard: choose the data to check." (`role="alert"`) | FR-006 (the server's words; U49 #8: no C item rewrites them) |
+| U49 6196:10247 | empty field | check picker (locked) | look | hued `#f2f5fb` fill, `#e1e6f0` border, muted text | white, 40 % (`disabled:opacity`) | UNCERTAIN (T061 UNCERTAIN 1; `Picker.tsx` is not T063's file; U53 6324:17641 draws it enabled-looking) |
+| U49 6196:10254, 6196:10405 | incomplete | message | content | a filled message on an incomplete condition | the placeholder "Message for citizens: Suggested once you choose a check. You can edit it." | W19, FR-039 (C3: the proposal needs a complete condition) |
+| U49 6196:10255 | incomplete | "Save rule" | look | button-primary-small at 40 % | `ExplainedButton`, opacity 0.4, `aria-disabled="true"`, no `disabled` | match (W21) |
+| — | incomplete, hover / focus | "Save rule" | explanation | not drawn (U49 #12, FR-052b) | the tooltip "Rule 02 in Standard: choose the data to check." (the rule's current problem), 280 wide, above, right-aligned (958–1238); opens on keyboard focus; closes when the focus leaves | W21 (Decision 1) |
+| — | incomplete, click / Enter / Space | "Save rule" | activation | not drawn | doesn't save; flags the missing part, shows the problem under the check row and moves the focus there (`_r_v_-data`); after Enter / Space the tooltip is closed | 002-S3.10, U25 (Decision 1, UNCERTAIN core) |
+| U49 6196:10398 | number 0 | years field | border, width | 1 `#c4271c`, 64 | rgb(196, 39, 28), 64px, `aria-invalid`, described by the error | match |
+| U49 6196:10533 | number 0 | error | text | "Enter a number greater than 0." | "Enter a whole number greater than 0." (years and months alike) | F58, C5 |
+| U49 6196:10399, 6196:10400 | age | unit | content | a "years" picker, then "old" | the fixed text "years old" | CLAR 2026-11-07 #25 (a unit picker on age checks is a Figma error) |
+| U49 6196:10533 | number 0 | "Save rule" | explanation | — | "Rule 03 in Standard: enter a number of years of at least 1." / "… months of at least 1." | W21 (the server's words) |
+| U49 6196:10653, 6196:10710 | duplicate name | rename field, error | where | a rename field in the editor's name row | the editor has no rename (T061 UNCERTAIN 2); the list's inline rename (`ItemName`, T058) shows "There’s already a rule called "Rule 02" in Standard.", `aria-invalid`, described | F58, C5 (text); look: T058 |
+| U49 6196:10710 | duplicate name | error | quotes | “Rule 02” (typographic) | "Rule 02" (straight, `rules/src/constants.ts` `nameTaken`) | C5 (copy:server, out of T063's files; note for T058 / pass I) |
+| U53 6324:15424 | expiry date, check menu open | check picker | look | 2 `#1d56f0`, label action blue, chevron up | rgb(29, 86, 240) | match (T061's open state) |
+| U53 6324:15613 | expiry date | date check menu | width, sections | 300; "Time ago" ≥ < =, "Time from now" ≥ <, "Fixed date" < > = with dividers | 300 at the picker's left (538), 8 under it; the same sections, words and symbols | match (the height follows R10: T061 UNCERTAIN 5) |
+| U53 6324:15429 | expiry date, no check | hint | text | "Check the time since or until this date, or compare it with a fixed date." | the same | match (F34) |
+| U53 6324:15667–15670 | ≥ 6 months from now | check row | content | "≥ is at least", 6, "months", "from now" | the same | match |
+| U53 6324:15672, 6324:15673 | ≥ 6 months from now | notes | text, place | counting note "… that means it expires on or after 23.04.2027." and the missing note, 16 under the row, 4 apart | "… Today (09.11.2026), that means it expires on or after 09.05.2027." and the missing note; 565 (16 under 549), 593 (4 under 589) | match |
+| U53 6324:15675 | complete | message | text | "You need a driving licence that’s valid for at least 6 more months." | the same | match (C3) |
+| U53 6324:15676 | complete | "Save rule" | state | enabled | enabled (no `aria-disabled`, opacity 1, no tooltip) | match |
+| U53 6616:39880 | Height (cm) | number check menu | size, items | 300 × 192; is greater than >, is less than <, is equal to =, is not equal to ≠ | 300 × 192, the same | match |
+| — | Height (cm) > 150 | message | text (U09 #32) | (COPY-BRIEF) | "Your height (cm) must be greater than 150." | match (C3, rules package) |
+| U53 6616:39897 | Nationality | list check menu | size, items | 300 × 100; includes one of, includes none of, no symbols | 300 × 100, the same | match |
+| U53 6324:17370 | Nationality | hint | text | "A citizen can have more than one nationality. The rule checks all of them." | the same | match (cosmetic 9; was F30's longer sentence) |
+| U53 6324:17370 | Nationality, check menu open | hint | when | shown before a check is chosen | shown once a check is chosen | baseline (002-S3.35; `hintsOf` unchanged) |
+| — | Nationality includes one of Germany | message | text | (COPY-BRIEF) | "You need the nationality of Germany." | match (C3) |
+| — | Sex (Driving licence) includes none of | message | text | (COPY-BRIEF) | "Your sex must not be Not known." | match (C3, rules package; no hint, as U09 #18) |
+| U53 6616:39908 | Place of birth | parts menu | size, items, search | 300 × 142; Country, Region, City or town; no search | 300 × 142, the same, no search | match |
+| U53 6324:17646 | Place of birth, no part | hint | text | "Place of birth has parts. Choose the part to check." | the same | match (FR-051h) |
+| U53 6324:17641 | Place of birth, no part | check picker | state | drawn enabled-looking | disabled until the part is chosen | baseline (002-S3.2, W19) |
+| U09 #39 | Place of birth – Country / City or town | checks, messages | list / text checks | Country: list checks; City or town: text checks | includes one of / none of (300 × 100); is equal to … doesn’t contain (240 × 184, `textCheck`); "You need to be born in Germany.", "You need to be born in Stuttgart." with "Spaces at the start or end don’t matter." | match |
+| U09 #12 | Driving licence Place of birth | kind | text, no parts | text checks, "Match letter case", "Your place of birth must contain "Stuttgart"." | match (the straight quotes: C3, T062's note) |
+| U09 #33, U53 (FR-039c) | Licence classes, no part | part picker, hint | — | "Choose part" (search "Search classes"); "Licence classes has parts. Choose the part to check." | "Choose part", the parts menu 300 wide with search, Licence classes then every class's Issue / Expiry date; the hint | match (W19, F5) |
+| U09 #35 (FR-039e) | Licence classes, includes one of | values menu | options | code and description, "B Cars up to 3.5 t" | "B · Cars up to 3.5 t" rows (T027's table) | match (W19) |
+| U48 7.2 6191:42259 | values left empty | error, message | — | error under the row; the message "You need a licence in one of the required classes." | "Choose at least one option." under the row; the placeholder; the licence hint still shows | W19, FR-039 (the placeholder until complete); hint: baseline (T062's note) |
+| — | Licence class B chosen | message | text | (COPY-BRIEF) | "You need a class B licence." | match (C3, rules package) |
+| U09 #22, #28 | Date of birth / other dates | check menus | sections | DoB: Age ≥ < =, fixed date; dates: three sections | DoB: "Time ago", "Time from now"; dates: + "Fixed date" | CLAR 2026-11-07 #25 (unchanged: Implement Q3 with the user) |
+| U09 #19 | values field | error text | "Select at least one option." | "Choose at least one option." | cosmetic 9 (T062) |
+| — | "Need other data? Add it in Documents" with changes | behaviour | asks first (cosmetic 9) | "Save changes to Rule 02?" ("You changed this rule but haven’t saved it yet.", "Discard", "Save changes"); "Save changes" keeps the rule and opens the documents step | match (T047's `leaveEditor({ type: 'documents' })`, unchanged) |
+| — | 320 × 640 | error, tooltip | reflow | stays on screen | the error wraps (58–262, 48 high); the tooltip 50–270; scrollWidth 320 | match (FR-010) |
+
+#### Decisions (T063)
+
+1. **"Save rule"'s field-error trigger (T022's open point)**: the spec documents don't settle it.
+   W21 / design-notes §3 make the button `aria-disabled`, focusable and "ignoring activation";
+   FR-039 and CLAR #27 keep the baseline's inline flags (002-S3.10), whose trigger in the baseline
+   is the press (002 design-notes "Errors (3.3.1, 4.1.3)"; U25); U49 draws the error showing with
+   "Save rule" disabled but doesn't say what made it show; CLAR #18 drops the refuse-and-focus
+   model only for "Test rules". Built: the reading that loses no baseline behaviour. While the rule
+   is incomplete "Save rule" is `ExplainedButton` with the rule's problem as its explanation
+   (hover, keyboard focus, tap); a press (click, Enter, Space, tap) never saves, but it still does
+   what the baseline did: flags the missing part, shows the problem under the check row (announced)
+   and moves the focus there. Implementation: `onClickCapture` on the button (passed through
+   `ExplainedButton`'s button props; its own click handler only calls `preventDefault()` and opens
+   the tooltip, it doesn't stop propagation), and the focus moves after the press through the
+   editor's `focusNext` effect, so the tooltip closes. **UNCERTAIN, core.** Alternatives:
+   (a) strict W21: a press does nothing; the flags show only for a field left empty (e.g. a menu
+   closed without a choice, a value field blurred: U49 8.1's look) and the tooltip says what is
+   missing; loses the focus move and the flag on a part never touched (e.g. the message);
+   (b) both: (a)'s "left empty" flags plus this press behaviour; adds behaviour the baseline didn't
+   have. Reverting to (a) is removing `onClickCapture` in `EditorActions.tsx`.
+2. **The explanation's text**: no frame or item gives "Save rule" a text (W21 lists only "Test
+   rules"' and the copy buttons'); built with the rule's current problem in the server's words
+   (`ruleProblem`, "Rule 02 in Standard: choose a check."), the same sentence the baseline showed on
+   a press, so the reason is the same in the tooltip and under the row. Not core (wording).
+3. **The nationality hint** in the design's words (cosmetic 9 lists U53 #29 as RULE wording to
+   port); it no longer explains "includes none of". Not core.
+4. **The empty hints row** (T061 UNCERTAIN 4) is left out while a field error shows, as U49 draws
+   ("Check row + error" directly followed by the message, 16 apart); U53 9.5 keeps it without an
+   error. Not core.
+
+#### UNCERTAIN (T063)
+
+1. Decision 1, "Save rule" pressed while incomplete still flags and moves the focus. **Core.**
+   Alternatives above; the user was named for it in phase 3.
+2. The locked picker's look: U49 6196:10247 draws a hued fill with muted text and border
+   `#e1e6f0`, which contradicts T061's premise "no frame draws it" (built 40 % white); U53
+   6324:17641 draws the locked check picker enabled-looking. Not built: `Picker.tsx` is not
+   T063's file. Not core (look only); the change would be `disabled:bg-kern-layout-background-hued`
+   + muted text instead of `disabled:opacity-…` in `Picker.tsx`.
+3. Decision 2 (the explanation's text). Not core.
+4. The nationality hint's timing stays the baseline's (after a check), U53 9.7 shows it with the
+   check menu open. Not core.
+
+Coordinator: UNCERTAIN 1 decided by the user as #65 (Implement Q4, A: the baseline's press kept, as built); 2 (the locked picker) fixed by the coordinator, see below; 3, 4 accepted.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U49 6196:10247 | locked (data, check) | picker | fill, text, border, opacity | `#f2f5fb`, muted, `#e1e6f0`, 100 % | rgb(242, 245, 251), rgb(74, 84, 104), rgb(225, 230, 240), 1 (`Picker.tsx`: `disabled:bg-kern-layout-background-hued`, `text-kern-layout-text-muted`; the kit's 40 % dropped; coordinator, 2026-11-09) | match |
+
+### U54, U55, U56, U35 Menus (S9) — T058, 2026-11-09
+
+How I checked:
+- Scripted Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 1000 (body 1440), 1455 × 700 (to scroll each ⋯ to the top and the bottom of the window) and 320 × 640.
+- Fonts: `document.fonts.check('600 14px "Fira Sans"')` true.
+- Own drafts, all deleted at the end:
+  - "T058 menus": U55's tree. Rule 01 (age ≥ 21), Rule 02 (expiry ≥ 6 months), then Group 01 (OR), which holds Rule 03 (C, D) and Sub-group 01 (AND). Sub-group 01 holds Rule 04 (B, BE) and Rule 05 (age ≥ 21).
+  - "T058 group message": the same tree, with U35 2.6's message on Group 01.
+  - "T058 variant": the same tree in three tabs.
+    - Standard.
+    - Ambulance, based on Standard and unchanged.
+    - School transport, based on Standard: Rule 02 changed (12 months), Rule 06 (D1) added. This is U56 10.5.
+- Nothing was saved. Every change was local editor state.
+- Figma: I read U55's group menu `6522:32424`, U56's sub-group menu `6522:32540` and its linked-rule menu `6522:32644` with `get_design_context`. I took screenshots of `6530:40150`, `6522:32382`, `6522:32038`, `6531:39026`, `6522:32594`, `6113:29132`, `6965:50045`, `6324:39032` and U54's note `6522:33105`. I also read the toast `6113:29469`, and, from T063's carried note, the rename field `6196:10653` and its error `6196:10710`.
+  - Every frame I read matches its audit inventory. No frame has changed.
+  - I didn't re-read `6522:32498` (U56 10.4): the menu inside it, `6522:32540`, is the node read. I didn't re-read `6965:49996` either: it is the editor, covered by T057's and T063's rows.
+- The menu's own geometry (220 wide, 40 px rows, 8 padding, divider, shadow, focus fill, keyboard) is in the §5.1 ActionMenu rows (T021). These rows check what the step puts in it.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U55 6530:40192 (10.1) | Rule 01 menu, Standard, no variant | entries | order, labels | Edit rule · Duplicate · Group with other rules · — · Delete rule | Edit rule · Rename · Duplicate · Group with other rules · Copy link · — · Delete rule | F29 (Rename, Copy link; no Copy to variant without another variant, FR-036f) |
+| U55 6530:40192 | Rule 01 menu | icons, colours | per entry | `icon-edit-small`, `icon-content_copy-small`, "Icon/Group · brackets", `icon-delete-small`; ink `#0b1220`, Delete `#c4271c` | `kern-icon--edit`, `kern-icon--content-copy`, group-brackets.svg (the same path), `kern-icon--delete`; rgb(11, 18, 32), Delete rgb(196, 39, 28); Rename "Icon/Rename", Copy link "Icon/Link" (not drawn here) | match |
+| U55 6530:40192 | Rule 01 menu | place | from the ⋯ | below the ⋯, right edges aligned | right edge on the ⋯'s right edge, 8 below (1455 × 1000: ⋯ 348, menu 388) | match |
+| U55 6522:32071 (10.2) | Rule 03 in Group 01 (beside Sub-group 01) | entries | — | Edit rule · Duplicate · Group with other rules · Remove from group · — · Delete rule | Edit rule · Rename · Duplicate · Copy link · — · Delete rule | F30 (a sub-group is no neighbour, #61), F7 ("Remove from group" out), F29 |
+| — | Rule 02 at the top level | entries | — | (as 10.1) | Edit rule · Rename · Duplicate · Group with other rules · Copy link · — · Delete rule; "Group with other rules" starts select mode with "Select Rule 02" ticked and focused | match (FR-036i; select mode's look is T059's) |
+| U55 6531:39068 (10.2b) | Rule 04 in Sub-group 01 | entries | — | Edit rule · Duplicate · Group with other rules · Remove from sub-group · — · Delete rule | Edit rule · Rename · Duplicate · Copy link · — · Delete rule | F30 (no grouping in a sub-group, 002-S2.10), F7, F29 |
+| U55 6522:32424 (10.3) | Group 01 menu (holds Sub-group 01) | entries | — | Add message · Duplicate group · Group with other rules · Ungroup · — · Delete group | Rename · Add message · Ungroup · Copy link · — · Delete group | F69 (Rename), F29 (Copy link), F30/CLAR #64 (no grouping on a group), "Duplicate group" not built (no rules-package action; UNCERTAIN 3) |
+| U55 6522:32424 | Group 01 menu | icons | Add message, Ungroup | "Icon/Error message · speech bubble" 6529:39060, "Icon/Ungroup · brackets apart" 6529:39057 | message-alert.svg, ungroup-brackets.svg: Figma's assets unchanged (the baseline drew Ungroup with the group brackets) | match |
+| U55 6522:32424 | Group 01 menu | labels | wording | "Add message", "Delete group" | "Add message" (was "Add error message"), "Delete group" | match (cosmetic 8) |
+| U35 6324:39032 + W22 | group with a message, its menu | entries | — | not drawn (menu closed) | Rename · Add message · Remove message · Ungroup · Copy link · — · Delete group; "Remove message" with `kern-icon--close` (not drawn) | W22 (FR-036h "next to") |
+| — | group with a message, "Add message" | message field | value, focus | not drawn | the message is kept (100 characters), the field has the focus, caret at the end (100) | match (CLAR #54 reading, coordinator) |
+| — | group without a message, "Add message" | message field | — | U35 6324:39410 | an empty field appears, focused (the baseline's `setGroupMessage(…, '')`) | match |
+| — | "Remove message" | message card, focus | — | not drawn | the card goes; focus back on Group 01's ⋯ | match (baseline) |
+| U56 6522:32540 (10.4) | Sub-group 01 menu | entries | — | Add message · Duplicate sub-group · Group with other rules · Ungroup · Remove from group · — · Delete sub-group | Rename · Add message · Ungroup · Copy link · — · Delete sub-group | F69, F29, F30 (no grouping), F7, "Duplicate sub-group" not built (UNCERTAIN 3) |
+| U56 6522:32540 | Sub-group 01 menu | label | delete | "Delete sub-group" | "Delete sub-group" (was "Delete group") | match (build note U54 #13, cosmetic 8) |
+| U56 6522:32540 | Sub-group 01 menu | width | — | 240 | 220 | research R10 (T021's §5.1 row: one menu width) |
+| U56 6522:32644 (10.5) | School transport, Rule 01 (linked) | entries | — | Edit rule · Group with other rules · — · Remove from School transport | Edit rule · Group with other rules · Copy link · — · Remove from School transport | F29 (Copy link); no Copy to variant: Standard and Ambulance hold it (FR-036f) |
+| U56 6522:32644 | Rule 01 (linked) | "Remove from …" | icon, colour, divider | "Icon/Remove from this variant · minus circle" 20, `#c4271c`, after the divider | remove-circle-danger.svg (Figma's, fill #C4271C) 20 × 20, rgb(196, 39, 28), after the divider | match (build note U54 #8) |
+| U56 6522:32594 | School transport, Rule 02 (changed) | entries | — | not drawn (badge under the menu) | Edit rule · Copy to variant · Group with other rules · Reset to Standard · Copy link · — · Remove from School transport | match (FR-036e/f; U57's frames are T066's) |
+| U56 6522:32594 | School transport, Rule 06 ("Added here") | entries | — | not drawn | Edit rule · Rename · Duplicate · Copy to variant · Group with other rules · Copy link · — · Delete rule | match (F68: an added rule keeps Rename and Duplicate) |
+| — | School transport, Group 01 / Sub-group 01 (linked) | entries | — | not drawn | Add message · Copy link · — · Remove from School transport | match (FR-036e: no Rename, Ungroup) |
+| — | School transport, a linked rule's or group's name | name | rename | "Rename: hidden for rules linked to Standard" (6529:39070) | plain text, no rename button (only Rule 06's "Rename Rule 06" is a button) | match (FR-036e; UNCERTAIN 2) |
+| U54 6522:33107 #10 | removed rule / removed group | entries | — | "Restore only" | Restore rule · Copy link, and Restore group · Copy link, both without icons | F29 (007-S4.2: Copy link after Restore) |
+| U54 6522:33107 #2 | every menu | order | — | change · copy · structure · Reset · divider · Remove / Delete | `MENU_ENTRY_ORDER` (Copy link last before the divider) | match (F29) |
+| — | every ⋯ of the three drafts, ⋯ scrolled to 280 px | menu | direction, gap, clipping | down where it fits | down, 8 below, right edges aligned; no ancestor with `overflow`, `transform` or `filter` (walked from the menu to `html`); nothing painted over its corners | match (V6) |
+| — | every ⋯, scrolled to the window's bottom (1455 × 700) | menu | direction, gap, clipping | up where it doesn't fit above the footer | up, 8 above (for example Group 01: ⋯ 550, menu 313–542); the 7-entry rule menus (271) take `max-h-240` and scroll inside; no clipping ancestor | match (V6, R10) |
+| — | opening up near the pinned tab row (T056's note) | menu | over the tabs | — | the menu paints over the pinned tabs (z-40 over z-10); nothing covers it (`elementFromPoint` at its four corners is inside it) | match: not clipped, so `boundsOf` is unchanged |
+| — | 320 × 640, every ⋯ | menu | stays on screen | — | 220 wide inside 320 (Sub-group 01: x 20); `scrollWidth` 305, no horizontal scroll; the list scrolls inside `max-h-160` | match (FR-010) |
+| U49 6196:10653 | renaming (Rule 02, from the menu's "Rename") | field | box, line, radius, padding, type | 240 × 40, white, 1 `decorative-border` (default), radius 8, 0 16, body/default 400 16/24 `#0b1220` | 240 × 40, oklch(1 0 0), 1px rgb(225, 230, 240), 8px, 0 16px, 400 16px/24px Fira Sans, rgb(11, 18, 32); hover `form-input-border`; KERN's 4 px focus ring (a text field always matches `:focus-visible`) | match (the default line is "Rules/Search field"'s; was a dotted underline in the name's type) |
+| — | renaming | hint | place, type | not drawn | "Enter saves · Esc cancels" 8 under the field, 14/24 `layout-text-muted` rgb(74, 84, 104) | match (baseline hint, the field error's place) |
+| U49 6196:10653 | duplicate name | field | line | 1 `#c4271c` | 1px rgb(196, 39, 28), `aria-invalid="true"`, the focus stays in the field | match |
+| U49 6196:10710 | duplicate name | field error | place, anatomy | "Rules/Field error" 8 under the field: `icon-emergency_home-small` 20, gap 4, body/small 14/24 `#c4271c` | 8 under, `kern-icon--danger` 20 × 20, gap 4px, 400 14px/24px rgb(196, 39, 28), in the field's `aria-describedby` region (`aria-live="assertive"`) | match (T063's `FieldError`) |
+| U49 6196:10710 | duplicate name | field error | text | "There’s already a rule called “Rule 02”." | "There’s already a rule called "Rule 01" in Standard." (renaming Rule 02 to Rule 01) | C5 (`rules/src/constants.ts`: straight quotes and the branch; a copy fix is T011's files, left as is) |
+| — | reserved / undo-able names (W12) | field error | text | not drawn | "Rule 07 is kept for the rule numbered 07." (the next number); after deleting Rule 02, "Rule 02 is kept for the rule numbered 02."; empty: "Enter a name."; a group: "There’s already a group called "Group 01" in Standard." | W12 (baseline texts, the design's field error) |
+| — | after Escape | focus | — | — | back on "Rename Rule 02" (the name button) | match (baseline) |
+| U14 6083:3453 (T024's deferred row) | name hover | underline, pencil | look, motion | dashed underline, pencil 20 | 1px dashed rgb(29, 86, 240), pencil visible, `motion` 0.15 s on the line's colour | match (design-notes §4; closes T024's "deferred to T058") |
+| U34 6113:29056 | "Delete Rule 02?" | body | text | "Citizens won’t be checked for licence classes C or D any more." | "Citizens will no longer be checked for “Driving licence · Expiry date is at least 6 months from now”. You can undo this right after." | F70 (the current app's body, CLAR #56; UNCERTAIN 1) |
+| — | "Delete Sub-group 01?" | dialog | confirm label, body | not drawn | "Delete sub-group"; "Sub-group 01 and the rules in it will be deleted. You can undo this right after." | match (the menu's label, build note U54 #13) |
+| U34 6113:29018 | delete dialogs | scrim | — | scrim | `ConfirmDialog`'s scrim kept (a click answers "Cancel") | match (T052/T057 decision) |
+| U35 6113:29469 (2.5) | Rule 02 deleted | toast | text, action | "Rule 03 deleted." with "Undo" | "Rule 02 deleted." with "Undo" (was "… in Standard deleted.") | match (cosmetic 8) |
+| U35 6113:29469 | deleted | toast | type | `type=danger`: red `#c4271c`, white `icon-delete` | neutral (ink) toast | T036 (U61's danger type not built: phase 4 report) |
+| — | Sub-group 01 deleted | toast | text | not drawn | "Sub-group 01 deleted." with "Undo" | match (worded as "Rule 03 deleted.", T057's carried note) |
+| U35 6113:29132 | after "Undo" / Ctrl+Z | list, focus | — | — | every rule and group back in its place; the focus on the restored Rule 02 | match (`useUndoShortcut.ts` kept) |
+| U35 6965:50849 (2.6c) | after Ungroup | toast | type | green `type=success`, the white filled check | `kind: 'success'`: rgb(29, 122, 46), the filled check | match (T057's carried note) |
+| U36 6344:53623 | after grouping (Rule 01 and Rule 02) | toast | type, text | green; "Rule 02 and Rule 03 are now in Group 01." | `kind: 'success'`, "Rule 01 and Rule 02 are now in Group 03." with "Undo" | match |
+| — | "Copy link" on Rule 04 and Sub-group 01 | toast, clipboard | — | not drawn | "Link copied."; `…/edit?step=rules&variant=<id>&item=rule-4` / `item=group-2` | match (007-S4) |
+
+Open rows: none.
+
+#### Decisions (T058)
+
+1. **The toasts' kind.**
+   - `undoable()` takes a `kind`. Grouping, ungrouping and the rule copy are `success` (the Figma toast's description: "saved, grouped, copied, restored, published"; U36 #27, U35 #41).
+   - Deletions stay neutral.
+   - "Link copied." stays neutral: it is a note, not a change of the rules.
+   - "Rule 01 saved." (T056's) is untouched. It is still neutral although the description lists "saved". See the T056 note below.
+2. **`switchedToOr` / `switchedToAnd` keep "… to be true".** The phase 2 note asked for "must be met" (C3). But FR-051 (32) and U34 6329:19219 word the note itself as "Group 01 now needs only one rule to be true.", and T057's table matched that row. "must be met" belongs to the subtitle and the connector menu, which already say it. I left both texts unchanged and only rewrote the comment. (UNCERTAIN 4)
+3. **Sub-group labels follow how the group is shown** (`GroupListItem`'s depth), not `menuItemOf`'s kind. T055 UNCERTAIN 4: a sub-group that moved up after its group dissolved in a variant reads "group", as it is drawn.
+
+#### UNCERTAIN (T058)
+
+1. **F70, the delete-rule dialog's body (copy; not core).** I kept the current app's body, which quotes the rule's statement: "Citizens will no longer be checked for “<statement>”. You can undo this right after." CLAR #56 answers "keep the current app's body" and drops the frame's per-check-kind sentence. Its "Dropped: … any sentence built from the rule's check" could also be read as dropping this quote. If so, it is a one-line change in `RULES_COPY.deleteText`, plus one test in `utils.test.ts` ("keeps U14's body …").
+2. **Rename on a name linked to Standard (behaviour, small; touches FR-036's core rule).** FR-036e takes "Rename" out of a linked item's menu. To be consistent, `ItemName` also renders a linked rule's or group's name as plain text, not as a rename button. The baseline let the name button rename it (and mark it "Changed here"). T066 may revisit this.
+3. **"Duplicate group" / "Duplicate sub-group" (U55 #29, U56 #24) not built (not core).** `menuEntriesOf` gives groups no duplicate, the baseline had none, and the rules package has no group-duplicate action. 002-S2.19 is read by the audit as "the same actions" (COVERED ? 75 %). I followed T055's entries. The coordinator may take it to `deferred.md`.
+4. **The switch notes' wording (copy; not core).** See Decision 2.
+
+Coordinator: all four accepted (1: #56 keeps the current app's body, and quoting the statement is not a per-check effect sentence; 2: consistent with FR-036e; 3: already deferred as F8 in `deferred.md` group B; 4: FR-051 (32) words the note so). "Rule 01 saved." made `kind: 'success'` by the coordinator (`utils.ts`, the `saveRule` case), as the Figma toast's description lists "saved".
+
+### U36, U64 Select mode (S9) — T059, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`.
+- Sizes: 1455 × 943 (body 1440; frame 2.15 is 1440 × 943), 1455 × 947 for scrolling, 1455 × 900 (U64 12.2) and
+  320 × 640.
+- Drafts (all T059's own):
+  - "T059 three rules": Rule 01 age ≥ 21, Rule 02 expiry ≥ 6 months, Rule 03 classes B, BE; as U36 2.15.
+  - "T059 group": Rule 01, Rule 02, and Group 01 (OR) holding Rule 03 C, D and Rule 04 B, BE; as 2.19.
+  - "T059 many": three rules; then Group 01 (OR) with three direct rules and Sub-group 01 of two; then six more
+    top-level rules, so the page scrolls.
+  - "T059 variant": Standard, and Ambulance based on it, with a group and a sub-group; as U64 12.2.
+  - "T059 colours": two rules; used for the label colours.
+- Font check `600 16px "Fira Sans"` true.
+
+Out of scope here: the rule rows are T024's, the groups T057's, the menus (2.14 6344:53506, 2.18 6344:53624) T058's,
+the toast T036's, and the pinned step header and tabs T033's and T056's. The rows below cover select mode itself.
+Figma y values are page values.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U36 6344:53530 (2.15) | one selected | entry | behaviour | "Group with other rules" in Rule 02's ⋯ starts select mode with Rule 02 ticked | the same; the focus moves to "Select Rule 02" (ticked); by keyboard (Enter on ⋯, Enter on the entry) too | match (FR-036; T058's entry) |
+| U36 6616:44187 | one selected | selection bar | box | 161, 282, 1118 × 56, first in the card | 161, 282, 1118 × 56 | match |
+| U36 6616:44185 | every state | selection bar | fill, padding, gap | `feedback-info-background` `#e0f2fe`; 8 16; 8 | rgb(224, 242, 254); 8px 16px; 8px | match (was `layout-background-hued`, 64 high: the hidden "Old · Selection bar" 6344:53542) |
+| U36 6616:44187 | at rest | selection bar | corners | inside the card's 12 px radius | top 11px (12 less the 1px border); the card doesn't clip | match |
+| U36 6616:44156 | one selected | text | copy | "Choose at least one more rule to group with Rule 02." | the same (`RULES_COPY.selectOneMore`) | match (was "Select at least one more …") |
+| U36 6616:44156 | every state | text | font, colour, box | label/default 600 16/24 `#0b1220`; 177, 298, 863 wide | 600 16px/24px rgb(11, 18, 32); 177, 298, 862.8 wide; `role="status"` | match |
+| U36 6616:44157 | every state | "Cancel" | box | button-tertiary-small, 74 × 40 at 1048, 290 | 1047.8, 290, 74.2 × 40 (KERN's 4px slot margins dropped, `my-0!`) | match |
+| U36 I6616:44157;1914:12729 | every state | "Cancel" | label | label/Action/small_underline 600 14/24 `#1d56f0`, underlined | 600 14px/24px rgb(29, 86, 240), underline | match |
+| U36 6616:44176 | one selected | "Group rules" | box, look | button-primary 133 × 40 at 1130, 290; `#1d56f0`; radius 8; 40 % (disabled) | 1130, 290, 133 × 40; rgb(29, 86, 240); 8px; opacity 0.4, `aria-disabled="true"`, a press does nothing | match |
+| U36 I6616:44176;2:4624 | every state | "Group rules" | label | label/default 600 16/24 white | 600 16px/24px white | match |
+| U36 6344:53557 – 53559 | one selected | boxes | place | 176, 360 / 514 / 660 (Check item at y − 4, 28 high) | 176, 360 / 514 / 660, 20 × 20 | match |
+| U36 6344:53557 | select mode | box | offset in the row | 22 below the row's top (row 338, box 360) | `SelectBox` in `RuleRow`'s `selectBox` slot: 22 below the row (`mt-20` + the override's 2px) | match (T024's carry) |
+| U36 6344:53557 | select mode | box | look, states | "Data/Check item" | `kern-form-check__checkbox` with T016's override (hover 2px blue border; checked hover 3px tint ring; keyboard focus 3px `#0b1220` ring, never after a click) | match (T016's carry; §5.1 Checkbox) |
+| U36 6344:53546 | select mode | rule list | shift | rows at 40 in the card (name at 225) | `pl-40`: row at 201, name at 225 | match |
+| U36 6344:53530 (frame title) | select mode | boxes | which items | "only rules on the same level get a box" | top level: the top-level rules; no box in groups' rows or on removed rules | match (CLAR #61, #64) |
+| U36 6344:53560 (2.16) | two selected | text, "Group rules" | copy, state | "2 rules selected"; "Group rules" enabled (full opacity) | "2 rules selected"; `aria-disabled="false"`, opacity 1 | match |
+| U36 6344:53556, 6344:53586, 6344:53693 | select mode | "Test rules" | state | disabled, "Finish grouping first" as visible text before it | `ExplainedButton`, `aria-disabled="true"`, "Finish grouping first" on hover and keyboard focus (`aria-describedby`) | W21 (FR-034; T056's row) |
+| U36 6344:53590 (2.17) | grouped | result | layout, toast | Group 01 in Rule 02's place holding Rule 02 and Rule 03; toast "Rule 02 and Rule 03 are now in Group 01." with "Undo" | the same; the bar and the boxes go; the focus moves to Group 01's header | match (toast: T036, T057) |
+| U36 6616:44240 (2.19) | inside a group, two selected | text | copy | "2 rules selected. They become a sub-group of Group 01." | the same (`RULES_COPY.selectedSubGroup`) | match |
+| U36 6344:53695, 6344:53696 (2.19) | inside a group | boxes | which, place | only on Rule 03 and Rule 04 (group members), at 176, row + 22 | "Select Rule 03", "Select Rule 04" only, at 176, row + 22; none on Rule 01, Rule 02 | match (CLAR #61) |
+| — | inside a group with a sub-group ("T059 many", from Rule 05) | boxes | which | not drawn | Rule 04, Rule 05, Rule 06 (direct rules); none on Sub-group 01 or its rules | match (CLAR #61; 002-S2.10) |
+| — | sub-grouped | result | behaviour | not drawn after 2.19 | Sub-group 02 in Group 01 holding Rule 03 and Rule 04; toast "Rule 03 and Rule 04 are now in Sub-group 02." with Undo; the focus on Sub-group 02's header | match (baseline 002-S2.10) |
+| U36 #19, U40 #13, U64 #22 | select mode | group checkboxes | presence | U36 frame titles and the item list draw groups as selectable (U40 #13); U64 12.2 draws none on Group 01 | no box on any group | CLAR #64 (Implement Q2: Figma must change; `selectableIn` boxes rules only) |
+| — | cancelled | "Cancel" | behaviour | "goes away when you press Cancel" (6524:38720) | the bar and the boxes go; the focus goes to the first chosen rule's row (or its level's "Add rule" if none is ticked) | match (baseline) |
+| — | keyboard path | focus order | behaviour | not drawn (U36 Missing: 002-ACC.4) | the bar's "Cancel" and "Group rules" come first in the DOM, then for each rule: box → "Rename Rule NN" → "Actions for Rule NN" → the connector; Space ticks a box, and the status text updates ("2 rules selected") | match (002-ACC.4) |
+| U64 6524:38720 | note | selection bar | lifecycle | starts at the card top, pins when the card top scrolls past, unpins when scrolled back, goes on Cancel / Group rules | scrolled 1500: `sticky`, `top` 265px (161, 265 – 321) under the tabs; back at 0: 161, 282 with the 11px corners | match |
+| U64 6616:44309, 6616:44355 | scrolled | pinned bar | look | the same component, no line under it, square corners, card width (drawn 1120 at 160) | the same bar, square, no line (was a 1px inset line); 1118 inside the card's 1px border, which continues beside it | match (the outer 1px is the card's border either way) |
+| U64 6524:38299 (12.1), 6524:38489 (12.2) | scrolled | pinned bar | position | 257: 8 below the tab row's line (249), over the sticky frame's white bottom | right under the tab row (265 = 216 + 49) | T056 (U01 #19 row; the drawn sticky frame ends at 265 and the bar overlaps it) |
+| U64 6524:38299 | scrolled | boxes under the bar | stacking | a box partly under the bar is hidden by it | the bar (z-1) paints over the boxes and the rows' buttons | match |
+| — | scrolled, focus moves | focused box | clearance | not drawn | a box under the pinned bar that gets the focus scrolls to 345 (24 under the bar's 321) | WCAG 2.4.11 (`SELECTION_SCROLL_MARGIN`: tabs + 64) |
+| U64 6524:38547 – 38549, 6524:38326 – 38328 | variant / Standard, scrolled | boxes | offset in the row | 10 above the row's top (12.2: row 194, box 184) | 22 below the row's top | U36 6344:53557 (the select-mode frames are the source; U64 is the sticky-bar note's frame, and T024's carry names U36's offset) |
+| U64 6616:44355 (12.2) | variant, two selected at the top level | text | copy | "2 rules selected. The group is added in Ambulance only. Standard stays the same." | the same (`RULES_COPY.selectedInVariant`) | match |
+| U64 6524:38500 | variant | selection bar | start | directly under the link strip | 161, 338 (card 281 + strip 56 + 1), square corners | match |
+| U64 6524:38547 – 38549 | variant | boxes | which | top-level rules only | Rule 01, Rule 02, Rule 06; none on Group 01 or its rules | match (CLAR #64) |
+| U64 6524:38324 | select mode | "Add rule" | presence | still shown at the card's bottom | shown | match |
+| — | 320 × 640, variant, two selected | selection bar | layout | not drawn (U64 Missing: FR-010a) | text over three lines (239 wide, 72 high), "Cancel" and "Group rules" wrapped under it; bar 136; pinned under the header pills; no horizontal scroll | FR-010 (R10) |
+
+UNCERTAIN (T059):
+1. "Choose two or more rules to group." is used for the undrawn no-rule case, taking the drawn verb. Copy only.
+2. U64's variant text is used only for top-level grouping. Inside a group in a based variant, the bar keeps the
+   sub-group text. Copy only.
+3. The box sits 22 below the row as U36 draws it. U64 draws it 10 above. Layout only.
+
+#### UNCERTAIN (T059)
+
+1. **"Choose two or more rules to group."** No frame draws the state with no rule ticked. I used Figma's new verb
+   (the old bar's "Select at least one more" became "Choose at least one more"). The tested text is renamed in
+   `utils.test.ts`. Copy only; not the core behaviour.
+2. **U64's variant text applies only to top-level grouping.** In a based variant, two or more rules ticked at the
+   top level read "N rules selected. The group is added in Ambulance only. Standard stays the same." (U64
+   6616:44355). Inside a group in a based variant, the bar keeps "N rules selected. They become a sub-group of Group
+   01." because no frame draws that case. The text is composed in `SelectionBar.tsx` (`RULES_COPY.selectedInVariant`)
+   so that `selectionText` in `utils.ts` stays as it is. Copy only; not the core behaviour.
+3. **The box's place in the row.** U36 draws the box 22 px below the row's top; U64 12.1 and 12.2 draw it 10 px above.
+   I followed U36, the select-mode frames, as T024's carry says. Layout only.
+4. **The pinned bar's place.** The bar pins right under the tab row (T056's mechanism, kept: the scoped
+   `--wizard-sticky-top` on the card). U64 draws it 8 px lower, overlapping its own sticky frame. Layout only; it
+   touches the pinned state, but only by 8 px.
+
+Coordinator: all four accepted (copy and layout; the pinned place keeps T056's mechanism).
+
+### U50, U51 Unrequested data, saving failed, link notices (S9) — T060, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 995
+  (body 1440; the U50 frames are 1440 × 995), 1455 × 600 and 320 × 640.
+- Fonts: `document.fonts.check('400 14px "Fira Sans"')` true.
+- Drafts (all T060's own, deleted at the end):
+  - "T060 field": Personal ID without Date of birth; Rule 01 expiry ≥ 6 months, Rule 02 age ≥ 21 (the field no
+    longer requested), Rule 03 classes B, BE. As U50 8.4.
+  - "T060 document": Personal ID only; Rule 01, Rule 02 ages, Rule 03 classes B, BE (the whole document no longer
+    requested). As U50 8.4b.
+  - "T060 several": Personal ID without Date of birth, no Driving licence; three Standard rules on unrequested data and
+    "Ambulance" (started empty) with Rule 04 on the Driving licence.
+  - "T060 links": three rules, Standard and Ambulance based on it; for the links and the failed saves.
+  - The removal case was also made live on "T060 links": documents step, "Remove Driving licence", "Set rules", with
+    every non-GET request aborted, so nothing was saved.
+- The failed saves were made with Playwright routing: the draft's `PUT …/draft` aborted (network) and answered `500`
+  `{error, message, error_id: "a1b2c3d4e5f6"}`. The stale links were opened with a made-up variant id
+  (`00000000-0000-4000-8000-000000000000`) and a made-up item (`rule-99`). The group link was opened read-only on the
+  seeded "Führerscheinantrag Stuttgart" (nothing changed or saved).
+- Figma: `get_design_context` on the banner `6863:47363` and the toast `6197:11098`; `get_metadata` on `6197:10682`;
+  screenshots of the eight frames. Every frame matches its audit inventory (U50.md, U51.md); none has changed.
+- Out of scope: the rule rows (T024), the flagged row's outline and note look (T024's "problem (blocking)" rows), the
+  editor (T061–T063), the toast's anatomy (T036) and the failed save's behaviour (T048), the tab's look (T026, T064).
+  Figma y values are page values.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U50 6863:47363 (8.4) | one rule, a field | banner | place, box | first in the card's list, flush: 161, 282, 1118 × 42 | 161, 282, 1118 × 42 (no 8 px wrap any more; was a KERN alert with a title in an 8 px wrap) | match |
+| U50 6863:47363 | one rule | banner | fill, border, radius, padding | "Rules/Findings banner" danger: `#fef1f0`, 1 `#c4271c`, 8, 8 8 8 16 | rgb(254, 241, 240), 1px rgb(196, 39, 28), 8px, 8px 8px 8px 16px | match |
+| U50 I6863:47363;6863:47328 | one rule | kind icon | glyph, size, colour, place | `icon-emergency_home-small` 20 `#c4271c`, at 178, 293 | `kern-icon--danger kern-icon--small`, 20 × 20, rgb(196, 39, 28), at 178, 293 | match |
+| U50 I6863:47363;6863:47329 | one rule | text | font, colour, place | body/small 400 14/24 `#0b1220`, 8 after the icon (206, 291) | 400 14px/24px "Fira Sans", rgb(11, 18, 32), at 206, 291 | match |
+| U50 6863:47363 | one rule | text | copy | "Rule 02 checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule." | "Rule 02 in Standard checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule." | F58, C5 (FR-023c keeps the variant) |
+| U50 6863:47363 | one rule | title | presence | none (the component's note: "no title") | none (was "1 rule checks data that’s no longer requested") | match |
+| U50 6863:47363 | one rule | "Add it in Documents" | presence, look, place | not drawn ("Add it again in Documents" plain text) | a button on the line's right: 600 14px/24px rgb(29, 86, 240), 128 × 24 at 1142, 291 (8 inside the border), underline on hover, KERN's 4px focus ring by keyboard only; the data menu's footer button look (U31 6350:41628) | F58 (FR-023f, Q5) |
+| — | "Add it in Documents", no rule open | behaviour | — | not drawn | the documents step opens, the focus on its h1 "Choose documents and data" | match (002-S2.25; the editor's `onAddData`) |
+| U50 6197:10963 (8.5) | "Add it in Documents" with a changed rule open | dialog | title, body, buttons | "Save changes to Rule 01?", "If you leave without saving, your changes are lost.", "Discard changes" (secondary), "Save changes" (primary), × | "Save changes to Rule 03?", the same body, "Discard changes", "Save changes", ×; "Discard changes" opens the documents step | match (FR-002 body, cosmetic 8 "Discard changes"; was "You changed this rule but haven’t saved it yet." / "Discard") |
+| U50 6197:10965 | 8.5 | tab row | presence | absent while the editor is open | shown | F26 |
+| U50 7173:52333 (8.4b) | one rule, the whole document | text | copy | "Rule 03 checks data from Driving licence, which is no longer requested. Add the document again in Documents, or edit or delete the rule." | "Rule 03 in Standard checks data from Driving licence, which is no longer requested. Add the document again in Documents, or edit or delete the rule." | C5 (Q5's wording; FR-023c keeps the variant) |
+| — | several rules (three in Standard, one in Ambulance) | banner | layout | not drawn | one line per rule, each with its icon on the first text line (`mt-2`), 8 apart; the action on the first line's right; a long sentence wraps beside it (186 high) | match (the findings banner's line pattern) |
+| — | several rules | banner | which | not drawn | every variant's rules, each naming its variant; a rule a based variant inherits unchanged is named once, for Standard | match (002-S2.22, FR-006) |
+| — | 320 × 640 | banner | layout | not drawn | 271 wide; the text wraps over four lines, "Add it in Documents" wraps under it at the text's left (34, 565); no horizontal scroll (`scrollWidth` 305) | FR-010 (R10) |
+| — | select mode | banner | order | not drawn | the selection bar first, then the banner | match (T059's carried note) |
+| — | appearing | banner | announcement | not drawn | `role="alert"`, as the baseline's KERN alert | match (baseline) |
+| U50 6197:10688 (also 7173:52326, 7375:101521) | Standard with a rule on unrequested data | tab icon | glyph, colour | red error diamond after "Standard" | `kern-icon--danger` rgb(196, 39, 28) in the ⓘ's place; "Ambulance" (started empty, Rule 04 on unrequested data) has one too, unselected | match (FR-041a, CLAR #29 (a); `BranchName`'s `error` kind) |
+| — | a branch with a problem and findings | tab icon | kind | not drawn | the problem's red icon (error > warning > info) | match (T026's carried order, coordinator default) |
+| U50 7375:101551 (8.4c) | hover on the tab icon | tooltip | text | (the description, divider,) the error icon and "Rule 02 checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule." | white error icon and "Rule 02 in Standard checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule." (no description on this Standard); 280 × 120 | C5 (as the banner); the bubble's look: T026's rows |
+| U50 7375:101551 | tab icon | accessible name | — | not drawn | "Standard has findings" | T070 (the tab's accessible name; FR-041) |
+| U50 6197:10706, 6197:10708 | flagged rule | outline, note | look | red 1 outline, error icon + note 600 14/24 `#c4271c` | as T024's "problem (blocking)" rows | match (T024) |
+| U50 6197:10708, 7173:52619 | flagged rule | note | copy | "Nationality is no longer requested." / "Driving licence is no longer requested." | "Rule 02 in Standard checks data that’s no longer requested." (the server's sentence, `RULES_MESSAGES.notRequested`) | 002-S2.22 (Q5 adopts the banner's sentences only; `TreeItem.tsx` is not T060's: UNCERTAIN 2) |
+| U50 6197:10714 (#21) | a rule on unrequested data | "Test rules" | state | disabled look | enabled; a press refuses (below) | **open: FR-034 "in error"** (`EditorFooter`, not T060's files; no explanation text is specified: UNCERTAIN 3) |
+| — | "Test rules" pressed (click, Enter) | refused attempt | message, focus | not drawn (U50 Missing: 002-S2.24) | "Couldn’t publish" alert with "Rule 02 in Standard checks data that’s no longer requested." above the card; the focus on Rule 02's row (`aria-describedby` its note); keyboard: 4px ring `rgb(11, 18, 32)`; after a click no ring | W12 (002-S2.24) |
+| U51 6197:11098 (8.6) | save failed, network | toast | text, action | "Couldn’t save. Check your internet connection and try again." with "Try again" (label/small, underlined, white) | the same; dark toast rgb(11, 18, 32), 496 × 56 at 472, 843, centred over the 1440 body | match (T036, T048) |
+| — | save failed, 500 with error ID | toast | error ID | not drawn | "Error ID: a1b2c3d4e5f6" on its own line (80 high), "Try again" | F67 (FR-033a; T048's carry) |
+| — | "Try again" | focus, result | — | not drawn | the toast goes, the focus on "Save and exit" ("Saving…" while it runs), the new failure's toast | match (T048) |
+| U51 6197:11060 | 8.6 | list | groups | Group 01 holding only Sub-group 01; "+ Add rule" inside groups | not built | 002-S2.13 (a group with one member dissolves), FR-037c; T057 |
+| U51 6197:11403 (8.7) | empty group | group | state | "This group is empty. Add a rule or a sub-group, or delete the group." | no empty groups | FR-037c, OUT-21 (U51 #24, #25 CONFLICT) |
+| U51 6197:11646 (8.8) | no rules | empty state | anatomy | "No rules yet", text, "+ Add rule" | as T056's rows | match (T056) |
+| U51 6197:11648 (8.8), 6197:11762 (8.9) | no rules, first rule edited | tab row | presence | absent | shown | F26 |
+| U51 6198:12366 (8.8) | no rules | "Publish without rules" | look | secondary (outline) | `kern-btn--primary` | **open: the footer is `EditorFooter`'s (T033/T056), not T060's files: coordinator** |
+| U51 6197:11760 (8.9) | values menu, "XL" | menu, footer | anatomy, copy | "No options match "XL"." | T027's and T062's rows | match (T027, T062) |
+| U51 6197:11782 | rule open | "Test rules" | state | disabled | `aria-disabled="true"`, "Save the rule first" | match (F65, T056) |
+| — | `?variant=<unknown>` | notice | text, look | not drawn (W15: the design's warning alert) | "This link points to a variant that no longer exists." KERN warning alert 1120 wide at 160, 216 (above the tabs): `#fff4e0` header, 2px outline rgb(154, 74, 0), 32 px icon, title 600 18/24, white body 8 24 16 with "Dismiss" (`kern-btn--secondary kern-btn--small`, 83 × 40); Standard shown | W15 (§3 "Alert, page level": a body keeps "Dismiss") |
+| — | `?variant=<Ambulance>&item=rule-99` | notice | text | not drawn | "This link points to a rule or group that no longer exists."; Ambulance shown | W15 |
+| — | stale link opened | focus | — | not drawn | the notice (`tabIndex=-1`), announced by its title; Tab goes to "Dismiss"; no extra ring (the alert's own border; as a heading focused by script) | W15 (007-S5) |
+| — | "Dismiss" | notice, focus | — | not drawn | the notice goes, the focus on the open variant's tab; the address keeps the link while the variant is shown | match (007-S5) |
+| — | 320 × 640, stale link | notice | layout | not drawn | 273 wide, 184 high; no horizontal scroll | FR-010 |
+| — | `?variant=<Ambulance>&item=rule-3` | highlighted item | look | "highlighted as the design draws it" (no frame draws it) | the row focused and scrolled into view (`goToItem`): KERN's 4px focus ring `rgb(11, 18, 32)` inset (`-4px`) around the 1118 × 102 row; at 1455 × 600 the row at 410, clear of the pinned tabs | W15 (007-S5; UNCERTAIN 4) |
+| — | a link to Group 01 | highlighted item | focus | not drawn | the group's header focused (1083 × 57), the same ring | match (007-S5, `findingTargetIdsOf`) |
+
+Open rows: two, both outside T060's files: "Test rules" disabled while a rule is in error (FR-034, U50 #21) and U51
+8.8's secondary "Publish without rules". See UNCERTAIN 3 and the coordinator note.
+
+#### UNCERTAIN (T060)
+
+1. **The banner's anatomy (layout; not core).** The task names "T017's alert with a body"; U50 `6863:47363` draws
+   the "Rules/Findings banner" in its danger kind (no title, body/small, flush at the list's top), and the frame is
+   unchanged since the audit. I followed the frame ("Figma decides layout"), with the "Add it in Documents" action
+   FR-023f keeps, in the data menu's footer button look, and kept the alert's `role="alert"`.
+2. **The flagged rule's note (copy; not core).** U50 draws "Nationality is no longer requested." / "Driving licence
+   is no longer requested."; the row keeps the server's sentence "Rule 02 in Standard checks data that’s no longer
+   requested." (002-S2.22). Q5 adopts the banner's two sentences only, and the note comes from `TreeItem.tsx`, not a
+   T060 file. If the frame's note is wanted, it is a new frontend sentence in `TreeItem.tsx` (field label or
+   document label).
+3. **"Test rules" while a rule is in error (behaviour; touches FR-034, not T060's core).** FR-034 / Q18 disable
+   "Test rules" while a rule is "open, incomplete or in error", and U50 #21 draws it disabled. Only "Save the rule
+   first" and "Finish grouping first" are specified as explanations, and `EditorFooter` is not a T060 file. So
+   "Test rules" stays enabled and refuses with the message, moving the focus to the rule (the W12 refused attempt
+   this task names). Q18 drops that refusal. Choosing the explanation text and building it is for the coordinator.
+4. **The highlighted item (look; small).** No frame draws a link's highlight. The item is focused and scrolled into
+   view as 007-S5 says (`goToItem`), which shows KERN's focus ring, since a script focus without a pointer
+   interaction matches `:focus-visible`. No extra highlight was added.
+5. **The tab tooltip with several rules (copy; not core).** One rule: its banner sentence. Several in one variant:
+   the sentences one after the other (the design's words; no count sentence was invented).
+6. **"Save changes to Rule 01?" body and "Discard changes" (copy; not core).** Adopted from U50 8.5 (`6197:10989`,
+   FR-002; "Discard changes" is cosmetic 8, U50 #30). This dialog is also the leave flow's rule question, so T048's
+   row 2067 ("You changed this rule but haven’t saved it yet.", "Discard") now reads differently.
+
+Coordinator: the two open rows go to T075 (the footer is `EditorFooter.tsx`, outside T060's files; FR-034's explanation text for "in error" is taken to the user as Implement Q5); UNCERTAIN 2 (the flagged rule's note text, `TreeItem.tsx`) to T075; the others accepted. U50 8.5's "Save changes to Rule 01?" body "If you leave without saving, your changes are lost." and "Discard changes" now also word the leave flow's rule question (T048's row "U17 Entering and leaving a flow" reads differently since).
+
+Coordinator, 2026-11-09, after the user's Implement Q5 (#66, A): T075's carried row 1 is built: "Test rules" is `ExplainedButton` with the first spec 002 problem's message while the rules are in error (`EditorFooter.tsx` `rulesProblem`, computed with `firstProblem` in the editor's `index.tsx`; the open editor and grouping explain first).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U50 6197:10714 (#21) | a rule on unrequested data | "Test rules" | state, explanation | disabled look | `aria-disabled="true"`, 40 %, tooltip and description "Rule 02 in Standard checks data that’s no longer requested." on keyboard focus; a press stays on the step; a draft without problems: enabled | match (#66) |
 
 ## 6. Pass I: the screenshot matrix and the accessibility review
 

@@ -15,8 +15,9 @@ import type { EditorFooterProps } from './types';
  * no branch has any rule and no rule editor is open, the rules step offers publishing "without
  * rules", which skips the test step (FR-001; F10, F17; W2); the documents step doesn't (FR-031,
  * U25 #16, U28 #25: publishing without rules goes through the rules step). "Test rules" is
- * unusable while a rule is open or rules are being grouped, and says why on hover and focus
- * (FR-034, W21; T022's pattern); a click with other missing input says what is missing (F11),
+ * unusable while a rule is open, rules are being grouped or the rules are in error (the
+ * first problem in the server's words, CLAR #66), and says why on hover and focus (FR-034,
+ * W21; T022's pattern); a click with other missing input says what is missing (F11),
  * and neither the personas nor their generation ever disable a button (spec 004, FR-003,
  * FR-013). Where the actions don't fit in one row (320px, 200 % zoom), the bar wraps them
  * (`WizardLayout`): the step's actions carry `ml-auto`, so that they stay on the right in a row
@@ -29,6 +30,7 @@ export default function EditorFooter({
   rulesNextAction,
   ruleOpen,
   grouping,
+  rulesProblem = null,
   onBack,
   onAddRules,
   addRulesExplanation = null,
@@ -110,7 +112,7 @@ export default function EditorFooter({
                 ? EDITOR_COPY.saveRuleFirst
                 : grouping
                   ? EDITOR_COPY.finishGroupingFirst
-                  : null
+                  : rulesProblem
             }
             align="end"
             wrapperClassName="ml-auto"

@@ -19,7 +19,13 @@ import { tabAfterKey } from './utils';
  * their icon, selected or not (spec 003, S4; A6, W12, W13; FR-014; Figma U09 6753:41605): only
  * certain findings count, and a variant without checked rules or before its first check shows none.
  */
-export default function BranchTabs({ state, checks, dispatch, onCopyLink }: BranchTabsProps) {
+export default function BranchTabs({
+  state,
+  checks,
+  dispatch,
+  onCopyLink,
+  problems,
+}: BranchTabsProps) {
   const { branches, openBranch } = state;
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -51,7 +57,10 @@ export default function BranchTabs({ state, checks, dispatch, onCopyLink }: Bran
               branch={branch}
               selected={branch.key === openBranch}
               deletable={index > 0}
-              findings={check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null}
+              findings={
+                problems?.[branch.key] ??
+                (check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null)
+              }
               onSelect={() => dispatch({ type: 'selectBranch', branchKey: branch.key })}
               onKeyDown={(event) => handleKeyDown(event, index)}
               onRename={() => dispatch({ type: 'askEditVariant', branchKey: branch.key })}

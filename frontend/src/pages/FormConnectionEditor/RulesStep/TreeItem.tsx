@@ -6,12 +6,13 @@ import GroupListItem from './GroupListItem';
 import RuleListItem from './RuleListItem';
 import SelectBox from './SelectBox';
 import type { TreeItemProps } from './types';
-import { problemFlagOf } from './utils';
+import { problemFlagOf, selectableIn } from './utils';
 
 /**
  * An item of the open branch's tree: a rule, or the rule editor in its place, or a group with
- * its members. In select mode, the rules of the chosen level get their box (U16), except removed
- * ones. A rule a based variant inherits unchanged isn't flagged there for data no longer
+ * its members. In select mode, the rules of the chosen level get their box in their row (U36;
+ * `selectableIn`: rules only, CLAR #64), except removed ones and those faded with a group; in a
+ * group, only the rules directly in it (CLAR #61). A rule a based variant inherits unchanged isn't flagged there for data no longer
  * requested: Standard's rule is (FR-006). A rule with a finding of spec 003 gets its note, unless
  * it is removed or faded with its group, which the checks leave out (FR-001, FR-012): a conflict
  * in the warning look, a duplicate, covered or always-met rule in the info look (FR-005, FR-006;
@@ -21,7 +22,6 @@ import { problemFlagOf } from './utils';
 export default function TreeItem({
   view,
   item,
-  level,
   parentId,
   depth,
   dissolved = false,
@@ -40,7 +40,7 @@ export default function TreeItem({
   const removed = item.mark === 'removed';
   const selectable =
     !faded &&
-    !removed &&
+    selectableIn(item) &&
     selection !== null &&
     selection.branchKey === branch.key &&
     selection.parentId === parentId;
@@ -49,32 +49,24 @@ export default function TreeItem({
     (checkedInBranch(branch, item) && checksUnrequestedData(item, view.documents)
       ? RULES_MESSAGES.notRequested(item.name.trim(), branch.name.trim())
       : null);
-  // Groups form at the top level and in groups, from two or more rules (FR-008, US2-AS6)
-  const canGroup =
-    depth < 2 &&
-    !removed &&
-    level.some(
-      (other) => other.type === 'rule' && other.id !== item.id && other.mark !== 'removed'
-    );
   return (
-    <>
-      {selectable && (
-        <SelectBox
-          id={ELEMENT_IDS.selectBox(branch.key, item.id)}
-          ruleName={item.name}
-          checked={selection.ids.includes(item.id)}
-          onToggle={() => dispatch({ type: 'toggleSelect', itemId: item.id })}
-        />
-      )}
-      <RuleListItem
-        rule={item}
-        view={view}
-        elementId={ELEMENT_IDS.rule(branch.key, item.id)}
-        flag={flag}
-        finding={faded || removed ? null : (view.findings.get(item.id) ?? null)}
-        canGroup={canGroup}
-        faded={faded}
-      />
-    </>
+    <RuleListItem
+      rule={item}
+      view={view}
+      elementId={ELEMENT_IDS.rule(branch.key, item.id)}
+      flag={flag}
+      finding={faded || removed ? null : (view.findings.get(item.id) ?? null)}
+      faded={faded}
+      selectBox={
+        selectable && (
+          <SelectBox
+            id={ELEMENT_IDS.selectBox(branch.key, item.id)}
+            ruleName={item.name}
+            checked={selection.ids.includes(item.id)}
+            onToggle={() => dispatch({ type: 'toggleSelect', itemId: item.id })}
+          />
+        )
+      }
+    />
   );
 }
