@@ -221,7 +221,7 @@ function condition(itemId: string, today = false): ConflictingFinding {
 /** "Can’t be met together with <items>." */
 function withNote(items: string, today = false): string {
   const suffix = today ? ' at the moment' : '';
-  return `Contradicts ${items}${suffix}.`;
+  return `Can’t be met together with ${items}${suffix}.`;
 }
 
 const NONE_CAN_MEET = { kind: 'none_can_meet', today: false } as const;

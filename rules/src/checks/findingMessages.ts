@@ -13,7 +13,9 @@
 // The design's sentences (spec 008 C4, FR-022): items that can't be met together "contradict each
 // other", the counts row joins its phrases with ", and ", and a single conflict and the notice
 // that no citizen can meet the variant's rules make one sentence ("…, so no citizen can meet the
-// rules of Standard."; "…, so right now …" when it holds only for citizens who share today).
+// rules of Standard."; "…, so right now …" when it holds only for citizens who share today); a
+// conflicting item's note reads "Can’t be met together with Rule 02." (U44, U46; the user's
+// decision of 2026-11-09).
 import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
 
 import { flattenItems } from '../tree';
@@ -196,7 +198,7 @@ function conflictingNote(finding: ConflictingFinding, names: ItemNames): string 
       const others = namesInOrder(reason.items, names);
       // Only while an item it names has no name any more, such as a deleted one
       const items = others.length > 0 ? listOf(others) : 'other rules';
-      return `Contradicts ${items}${suffix}.`;
+      return `Can’t be met together with ${items}${suffix}.`;
     }
     case 'members': {
       const parts = membersParts(reason, namesInOrder(reason.items, names), 'this group', today);

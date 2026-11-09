@@ -152,19 +152,23 @@ describe('kindTextOf', () => {
 
 describe('noteOf', () => {
   it('reads U01’s note 6171:7010, without a kind (FR-003, A3)', () => {
-    expect(noteOf(withItems('rule-1', ['rule-2']), NAMES)).toBe('Contradicts Rule 02.');
-    expect(noteOf(withItems('group-1', ['rule-1']), NAMES)).toBe('Contradicts Rule 01.');
+    expect(noteOf(withItems('rule-1', ['rule-2']), NAMES)).toBe(
+      'Can’t be met together with Rule 02.'
+    );
+    expect(noteOf(withItems('group-1', ['rule-1']), NAMES)).toBe(
+      'Can’t be met together with Rule 01.'
+    );
   });
 
   it('lists several items in display order (EC-11, W3)', () => {
     expect(noteOf(withItems('rule-1', ['rule-4', 'rule-2', 'rule-3']), NAMES)).toBe(
-      'Contradicts Rule 02, Rule 03 and Rule 04.'
+      'Can’t be met together with Rule 02, Rule 03 and Rule 04.'
     );
   });
 
   it('reads U08’s note 6753:41332 for a conflict that holds today (FR-008, A7)', () => {
     expect(noteOf(withItems('rule-1', ['rule-2'], true), NAMES)).toBe(
-      'Contradicts Rule 02 at the moment.'
+      'Can’t be met together with Rule 02 at the moment.'
     );
   });
 
@@ -222,12 +226,18 @@ describe('noteOf', () => {
 
   it('shows the current names, so that a rename shows at once (FR-011)', () => {
     const renamed = namesOf([rule(1, null, null), rule(2, null, null, 'x', 'Minimum age')]);
-    expect(noteOf(withItems('rule-1', ['rule-2']), renamed)).toBe('Contradicts Minimum age.');
+    expect(noteOf(withItems('rule-1', ['rule-2']), renamed)).toBe(
+      'Can’t be met together with Minimum age.'
+    );
   });
 
   it('leaves out an item without a current name, and never shows an id', () => {
-    expect(noteOf(withItems('rule-1', ['rule-2', 'rule-9']), NAMES)).toBe('Contradicts Rule 02.');
-    expect(noteOf(withItems('rule-1', ['rule-9']), NAMES)).toBe('Contradicts other rules.');
+    expect(noteOf(withItems('rule-1', ['rule-2', 'rule-9']), NAMES)).toBe(
+      'Can’t be met together with Rule 02.'
+    );
+    expect(noteOf(withItems('rule-1', ['rule-9']), NAMES)).toBe(
+      'Can’t be met together with other rules.'
+    );
   });
 });
 

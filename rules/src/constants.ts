@@ -112,6 +112,15 @@ export const OPERATOR_SYMBOLS: Record<string, StatementSymbol> = {
   exactly_years_ago: '=',
 };
 
+// The chips before a number condition (U45 6753:40528, 6753:40544: "> is greater than", "< is less
+// than"; the user's decision of 2026-11-09). Only for numbers: a text "is equal to" has none
+export const NUMBER_OPERATOR_SYMBOLS: Record<string, StatementSymbol> = {
+  greater_than: '>',
+  less_than: '<',
+  equal_to: '=',
+  not_equal_to: '≠',
+};
+
 // The design's date format, "23 Oct 2005", with fixed English month names
 export const MONTH_ABBREVIATIONS = [
   'Jan',

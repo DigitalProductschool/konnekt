@@ -919,7 +919,7 @@ Checked in Firefox at 1440 × 1000 (scrollbar gutter `innerWidth − clientWidth
 | U47 6185:8570 | removed | mark | text | "Removed here" | "Removed here" (`BranchMark`, T019) | match |
 | U44 6171:7487 | problem (finding, conflict) | outline | inset, border, radius, fill | 8 from the card, 1 `feedback-warning` #9a4a00, 8, white | 8px padding, 1px rgb(154, 74, 0), 8px, white | match |
 | U44 6171:7489 | problem (finding) | note | padding, height, gap, icon, font | 0 0 8 24, 32, 4, `icon-warning-small` 20, 400 14/24 #0b1220 | 0px 0px 8px 24px, 32, 4px, 20 rgb(154, 74, 0), 400 14px/24px rgb(11, 18, 32) | match (`FindingNote`, T025) |
-| U44 6171:7489 | problem (finding) | note | text | "Can’t be met together with Rule 05." | the checks' text ("Contradicts Rule 07.") from `findingMessages.ts` | W13 (T025's note; the texts are T010's, C4) |
+| U44 6171:7489 | problem (finding) | note | text | "Can’t be met together with Rule 05." | the checks' text ("Contradicts Rule 07.") from `findingMessages.ts` | W13 (T025's note; the texts are T010's, C4) → **user 2026-11-09: the design's wording, `noteOf()` changed ("Can’t be met together with …")** |
 | 6110:3657 | problem (spec 002, blocking) | outline | border | 1 `feedback-danger` #c4271c, radius 8, white | 1px rgb(196, 39, 28), 8px, white | match |
 | 6110:3657 | problem (blocking) | note | icon, gap, font, colour, padding | `icon-info-small` 20 danger, 8, 600 14/24, #c4271c, 0 0 8 24 | `kern-icon--info` 20 rgb(196, 39, 28), 8px, 600 14px/24px, rgb(196, 39, 28), 0 0 8px 24px; 32 high | match |
 | — | problem | row | description | — | `aria-describedby` = the note's id | match (baseline F11) |
@@ -1126,7 +1126,7 @@ Same session and drafts as `GroupFrame` above; the rule notes on the rules step 
 | U44 6171:7489 | warning (rule) | note | padding, height, gap | 0 0 8 24, 32, 4 | 0px 0px 8px 24px, 32, 4px | match |
 | U44 6171:7490 | warning | icon | glyph, size, colour | `icon-warning-small` 20, #9a4a00 (`feedback-warning`) | `kern-icon--warning` 20 × 20, rgb(154, 74, 0) | match |
 | U44 6171:7490 | warning | text | font, colour | 400 14/24 (`body/small`), #0b1220 | 400 14px/24px, rgb(11, 18, 32) | match |
-| U44 6171:7490 | warning | text | wording | "Can’t be met together with Rule 05." | "Contradicts Rule 06." (`findingMessages.ts`) | W13 (the texts are T010's, C4) |
+| U44 6171:7490 | warning | text | wording | "Can’t be met together with Rule 05." | "Contradicts Rule 06." (`findingMessages.ts`) | W13 (the texts are T010's, C4) → **user 2026-11-09: the design's wording, `noteOf()` changed ("Can’t be met together with …")** |
 | U44 6171:7509 | info (rule) | icon | glyph, size, colour | `icon-info-small` 20, #0284c7 (`feedback-info`) | `kern-icon--info` 20 × 20, rgb(2, 115, 174) | §1.5 AA fix (the variable's value; was `layout-text-muted`) |
 | U44 6171:7510 | info | text | wording, font, colour | "Same as Rule 03. You can delete one of them.", 400 14/24, #0b1220 | "Same as Rule 01. You can delete one of them.", 400 14px/24px, rgb(11, 18, 32) | match |
 | U44 6750:41109 | warning (group) | note | icon x, padding | 24 in, 0 16 8 24 | +24 (202 − 178), wrapper `pr-16`, note `0 0 8 24` | match |
@@ -1714,7 +1714,7 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U58 `6530:40675` (10.11, the details page) | S15/S17 | not S11: the frame draws the details page's status band and connection menu ("Change start date", "Deactivate", "Delete connection"). For the details tasks (T079, T082) |
 | U41, U42, U59 | S11 | done (T067, 2026-11-09); the ⋯ on every tab (F28, CLAR #21), "Copy link" in the tab menu (F10, FR-036) |
 | U60, U61, U62 | S11 | done (T068, 2026-11-09); the inline rename (U60 11.4, U62 11.10) not built (F28); the deleted toast neutral, not U61's red (T036) |
-| U44, U45 | S12 | done (T069, 2026-11-09); the first rule's outline 8 px shorter than U44 5.1 draws (T024's list spacing, UNCERTAIN 2 of T069); the rule notes' "Contradicts Rule 02." where the design draws "Can’t be met together with Rule 02." (C4, T010's text, UNCERTAIN 1 of T069) |
+| U44, U45 | S12 | done (T069, 2026-11-09); the first rule's outline 8 px shorter than U44 5.1 draws (T024's list spacing, UNCERTAIN 2 of T069); the rule notes' "Contradicts Rule 02." where the design draws "Can’t be met together with Rule 02." (C4, T010's text, UNCERTAIN 1 of T069) → **user 2026-11-09: the design's wording, `noteOf()` changed ("Can’t be met together with …")** |
 | U46 | S12 | done (T070, 2026-11-09) |
 | U65 (`7057:58709`, `7057:59123`), U66 (`7057:59536`): page title, chips, data card, results, test-day line | S13 | done (T071, 2026-11-09); the edit-data dialog `7058:60514`: T072; the per-card scroll areas: F43, done (T073); the footer's "Publish" arrow: T075/T084 (note) |
 | U66 (`7058:60514`), U67, U68: the edit-data dialog, a field error, saved with the toast, the regeneration question | S13 | done (T072, 2026-11-09) |
@@ -3944,7 +3944,7 @@ these rows check the screen.
 | U44 6171:7578 (5.3) | Ambulance, Rule 06 added and a duplicate | row | tint, outline, note | tint kept, 1 px info outline, "Same as Rule 01. You can delete one of them." | the same | match |
 | U44 6171:7008, 6171:7022 | conflict | rule outline | colour, width, inset | 1 #9a4a00, radius 8, 8 in from the card | the same (T024's `RuleRow`) | match |
 | U44 6171:7008 | conflict, first rule | rule outline | height | 144 (the list's first row, 16 under the content, inside the outline) | 136, the extra 8 under the outline (`FIRST_RULE_SPACING` on the `li`) | T024 (the extra 8 belongs to the list); UNCERTAIN 2 |
-| U44 6171:7010, 6171:7024 | conflict | rule note | wording | "Can’t be met together with Rule 02." | "Contradicts Rule 02." (`noteOf()`) | C4 (T010's text; UNCERTAIN 1) |
+| U44 6171:7010, 6171:7024 | conflict | rule note | wording | "Can’t be met together with Rule 02." | "Contradicts Rule 02." (`noteOf()`) | C4 (T010's text; UNCERTAIN 1) → **user 2026-11-09: the design's wording, `noteOf()` changed ("Can’t be met together with …")** |
 | U44 6171:7091, 6750:41000 | conflict in a sub-group | group | outline, note | warning outline replacing the left border; "Rule 04 and Rule 05 in this group contradict each other." under the header | the same | match |
 | U44 6171:7094 | conflict in a sub-group | members | notes | each member keeps its outline and note | the same | match |
 | U44 (5.1, 5.2) | any finding | "Test rules" | state | enabled ("doesn’t block") | enabled | match (003-S2.22) |
@@ -3998,6 +3998,9 @@ these rows check the screen.
    design's sentences; T010 replaced "can’t be met together" by "contradict" throughout (C4).
    `rules/src/` stays untouched in phase 7, so it stays; T025 recorded the same row as W13/C4.
    Not the task's core behaviour (copy only). For the coordinator / a clarify question.
+   **Decided by the user (2026-11-09): the design's wording.** `noteOf()` now writes "Can’t be met
+   together with Rule 02." (and "… at the moment.", "… with other rules."); the tests of
+   `findingMessages`, `scenarios` and `mcp/src/findings.test.ts` follow.
 2. The list's first rule with an outline is 8 px shorter than drawn (U44 5.1: 144 vs 136): T024
    put the first row's extra 8 on the list item (`FIRST_RULE_SPACING`), outside the outline, where
    U44 draws it inside. The connector below lands within 1 px of the frame. Moving it inside needs
@@ -4025,7 +4028,7 @@ the bubble's geometry T026's (§5.1, "BranchName"); these rows check U46's state
 | U46 6753:41324 (5.8) | today-only conflict, single | banner | place, size, look | in its 8 wrap (6754:44401), 1102 × 42, warning kind | 169, 290 (card 160, 281), 1102 × 42, `feedback-warning-background`, 1px rgb(154, 74, 0) | match |
 | U46 6753:41324 | today-only conflict | text | wording | "Rule 01 and Rule 02 contradict each other, so right now no citizen can meet the rules of Standard." | the same (`bannerOf()`), "Conflicting:" hidden before it | match (C4) |
 | U46 6753:41324 | today-only conflict | names | look | plain text | links to Rule 01, Rule 02 | F39 (T069 decision 2) |
-| U46 6753:41332, 6753:41339 | today-only conflict | rule notes | wording | "Can’t be met together with Rule 02 at the moment." | "Contradicts Rule 02 at the moment." (`noteOf()`) | C4 (T069's open point 1: T010's text, `rules/src/` untouched) |
+| U46 6753:41332, 6753:41339 | today-only conflict | rule notes | wording | "Can’t be met together with Rule 02 at the moment." | "Contradicts Rule 02 at the moment." (`noteOf()`) | C4 (T069's open point 1: T010's text, `rules/src/` untouched) → **user 2026-11-09: the design's wording, `noteOf()` changed ("Can’t be met together with …")** |
 | U46 6753:41317 | today-only conflict | Standard tab | icon, name | ⚠ after "Standard", no (i) (no description) | `kern-icon--warning` rgb(154, 74, 0); tab and icon named "Standard has findings" | match (FR-035c, 003-S4.4) |
 | U46 6753:41317 | today-only conflict | Standard tab | tooltip | not drawn | "1 conflict: Rule 01 and Rule 02 contradict each other, so right now no citizen can meet the rules of Standard." | match (003-CP.16, C4; no description, so no divider) |
 | U46 6753:41605, 6753:41694 (5.9) | Standard open, Ambulance with a conflict | tabs | icons | Standard blue (i) + ⋮; Ambulance unselected with ⚠ | Standard `kern-icon--info` rgb(2, 115, 174) + ⋮; Ambulance unselected, `kern-icon--warning` rgb(154, 74, 0), named "Ambulance has findings", + ⋮ | match; the unselected ⋮ F28 |
@@ -4231,9 +4234,14 @@ and the stale V5.3 / V5.6 wording (#64, cosmetic 8). `rules/src/` is unchanged s
 diff --stat -- rules/src` empty); no `console.*` added under `checks/`, `personas/`, `workers/`, the
 hooks.
 
-Open for the user (copy in the rules package, which phase 7 leaves alone): the rule notes'
-"Contradicts Rule 02." where U44 / U45 / U46 draw "Can’t be met together with Rule 02." (FR-022);
-the number statements' symbol chip (">" / "<", U45 `6753:40528`). Open for a person: V5.7's and
+Decided by the user after the walk (2026-11-09), changed in the rules package: the rule notes
+read the design's "Can’t be met together with Rule 02." (U44 / U45 / U46, FR-022; was "Contradicts
+Rule 02.", `noteOf()`); number statements carry the symbol chip ("> is greater than", "< is less
+than", "=", "≠" as the number check menu U53 `6616:39880` draws them; U45 `6753:40528`,
+`6753:40544`): `NUMBER_OPERATOR_SYMBOLS` in `rules/src/constants.ts`, and `symbolOf(operator,
+kind)` gives a chip only to number and relative date conditions, so a text "is equal to" keeps
+none. Fixed dates ("is before" / "is after" / "is") still have no chip in the statement. Open for
+a person: V5.7's and
 V6.5's announcements and focus moves, and the "Save rule" press (#65), read by a screen reader
 (NVDA or VoiceOver); the variant dialog's "ⓘ" glyph on a desktop system (T064).
 

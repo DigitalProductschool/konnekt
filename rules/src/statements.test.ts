@@ -207,17 +207,23 @@ describe('optionLabel', () => {
 
 describe('symbolOf', () => {
   it.each([
-    ['at_least_years_ago', '≥'],
-    ['at_least_from_now', '≥'],
-    ['less_than_years_ago', '<'],
-    ['less_than_from_now', '<'],
-    ['exactly_years_ago', '='],
-    ['before', null],
-    ['on', null],
-    ['greater_than', null],
-    ['includes_one_of', null],
-  ])('gives %s the chip %s', (operator, symbol) => {
-    expect(symbolOf(operator)).toBe(symbol);
+    ['at_least_years_ago', 'date', '≥'],
+    ['at_least_from_now', 'date', '≥'],
+    ['less_than_years_ago', 'date', '<'],
+    ['less_than_from_now', 'date', '<'],
+    ['exactly_years_ago', 'date', '='],
+    ['before', 'date', null],
+    ['on', 'date', null],
+    ['greater_than', 'number', '>'],
+    ['less_than', 'number', '<'],
+    ['equal_to', 'number', '='],
+    ['not_equal_to', 'number', '≠'],
+    ['equal_to', 'text', null],
+    ['not_equal_to', 'text', null],
+    ['includes_one_of', 'enum', null],
+    ['greater_than', null, null],
+  ] as const)('gives %s (%s) the chip %s', (operator, kind, symbol) => {
+    expect(symbolOf(operator, kind)).toBe(symbol);
   });
 });
 

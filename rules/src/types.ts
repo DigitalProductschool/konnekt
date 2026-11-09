@@ -84,8 +84,8 @@ export interface ResolvedTarget {
   dateOfBirth: boolean;
 }
 
-/** The design's chip before a date condition: decoration that assistive technologies skip */
-export type StatementSymbol = '≥' | '<' | '=';
+/** The design's chip before a number or date condition: decoration that assistive technologies skip */
+export type StatementSymbol = '≥' | '>' | '<' | '=' | '≠';
 
 /** A rule as a readable statement (FR-005) */
 export interface Statement {

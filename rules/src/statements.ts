@@ -16,9 +16,10 @@ import {
   resolveTarget,
   suffixOf,
 } from './conditions';
-import { DATE_OF_BIRTH_RULE_LABEL, OPERATOR_SYMBOLS } from './constants';
+import { DATE_OF_BIRTH_RULE_LABEL, NUMBER_OPERATOR_SYMBOLS, OPERATOR_SYMBOLS } from './constants';
 import { formatDate } from './dates';
 import type {
+  ConditionKind,
   PredicateParts,
   ResolvedTarget,
   RuleContext,
@@ -84,9 +85,15 @@ export function optionLabel(
   return option ? option.label : String(value);
 }
 
-/** The design's chip for a condition (≥, < or =), decoration only, or null. */
-export function symbolOf(operator: string): StatementSymbol | null {
-  return OPERATOR_SYMBOLS[operator] ?? null;
+/**
+ * The design's chip for a condition of a kind (≥, >, <, = or ≠), decoration only, or null: number
+ * conditions and the relative date conditions have one.
+ */
+export function symbolOf(operator: string, kind: ConditionKind | null): StatementSymbol | null {
+  if (kind === 'number') {
+    return NUMBER_OPERATOR_SYMBOLS[operator] ?? null;
+  }
+  return kind === 'date' ? (OPERATOR_SYMBOLS[operator] ?? null) : null;
 }
 
 function count(amount: number, unit: 'year' | 'month'): string {
@@ -113,7 +120,7 @@ export function predicatePartsOf(
     return null;
   }
   const parts = (values: string[], tail: string | null = null): PredicateParts => ({
-    symbol: symbolOf(condition.operator),
+    symbol: symbolOf(condition.operator, kind),
     words: definition.label,
     values,
     tail,
@@ -183,7 +190,7 @@ export function statementOf(
   return {
     subject,
     predicate,
-    symbol: symbolOf(rule.condition?.operator ?? ''),
+    symbol: symbolOf(rule.condition?.operator ?? '', target.kind),
     text: `${subject} ${predicate}`,
   };
 }
