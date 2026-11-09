@@ -1,0 +1,182 @@
+# The checks of "Before you finish" in CLAUDE.md, on every push and pull request
+# (README.md, "Continuous integration"). One job per kind of check and side, so each one is
+# its own status check on a pull request; they all run in parallel
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels the older run, except on main,
+# where every commit keeps its result
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+# Versions as in the Dockerfiles: uv 0.12.9 and Node 26 here, Python from
+# backend/.python-version (3.13, whose Unicode version the rule checks' generated fixtures
+# pin). Change them together. `uv sync --locked` fails when uv.lock no longer matches
+# pyproject.toml; `npm ci --ignore-scripts`, as in the Dockerfiles, also skips the root's
+# prepare script, which installs the pre-commit hooks
+
+jobs:
+  backend-lint:
+    name: 'Backend: lint & format'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: '0.12.9'
+          working-directory: backend
+          enable-cache: true
+      - name: Install dependencies
+        id: install
+        run: uv sync --locked
+
+      - name: Ruff (lint)
+        run: uv run ruff check --output-format=github .
+      # Runs after a failed lint too, so one run reports both
+      - name: Ruff (format)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: uv run ruff format --check --diff .
+
+  backend-types:
+    name: 'Backend: types'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: '0.12.9'
+          working-directory: backend
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: mypy
+        run: uv run mypy app/ scripts/ tests/
+
+  backend-tests:
+    name: 'Backend: tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    # The PostgreSQL of docker-compose.yml. The tests empty their database, so its name
+    # ends in _test; they build the schema from the migrations themselves
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: template_db_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/template_db_test
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: '0.12.9'
+          working-directory: backend
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # EUDIPLO is faked and the worker is off (tests/conftest.py); the tests also check
+      # that rules/src/checks/'s generated fixtures are current
+      - name: pytest
+        run: uv run pytest -ra
+
+  workspace-lint:
+    name: 'Frontend & packages: lint & format'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install dependencies
+        id: install
+        run: npm ci --ignore-scripts
+
+      - name: ESLint
+        run: npm run lint
+      # Runs after a failed lint too, so one run reports both
+      - name: Prettier
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run format:check
+
+  workspace-types:
+    name: 'Frontend & packages: types & build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # tsc for every package, then the frontend's and the MCP server's production builds
+      - name: Type-check and build
+        run: npm run build
+
+  workspace-tests:
+    name: 'Frontend & packages: tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # rules/, frontend/ and mcp/, including the MCP guidance gate (mcp/src/guidance.test.ts)
+      # and the replay of the evaluator's vectors
+      - name: Vitest
+        run: npm test

@@ -101,6 +101,7 @@ Skills extension is marked experimental in 2.4.0.
 ├── specs/                 # Specification, plan and tasks (Spec Kit)
 ├── .claude-plugin/
 │   └── marketplace.json   # Claude Code marketplace that lists mcp/plugin
+├── .github/workflows/ci.yml # CI: six parallel jobs (lint & format, types, tests per side)
 ├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint)
 ├── docker-compose.yml     # Local development
 └── docker-compose.prod.yml # Production and previews (Coolify)
@@ -409,6 +410,31 @@ uv run pre-commit run --all-files
 # Update the pinned hook versions
 uv run pre-commit autoupdate
 ```
+
+### Continuous integration
+
+GitHub Actions runs `.github/workflows/ci.yml` on every push to any branch, on every pull
+request, and by hand from the Actions tab (*Run workflow*). It has six jobs, one per kind of
+check and side, so each is its own status check on a pull request. They run in parallel:
+
+| | Lint & format | Types | Tests |
+|---|---|---|---|
+| **Backend** (`backend/`) | `ruff check`, `ruff format --check` | `mypy app/ scripts/ tests/` | `pytest` |
+| **Frontend & packages** (root) | `npm run lint`, `npm run format:check` | `npm run build` | `npm test` |
+
+Each job installs its own dependencies: `uv sync --locked`, which fails when `uv.lock` no longer
+matches `pyproject.toml`, or `npm ci`. `pytest` runs against a `postgres:18-alpine` service with
+the database `template_db_test`; EUDIPLO is faked as on your machine, so no job needs a secret.
+In the lint & format jobs, the format check runs after a failed lint too, so one run reports
+both.
+
+The versions match the Dockerfiles: Python from `backend/.python-version`, uv 0.12.9 and
+Node 26. Change them together, and add a new check to the workflow when you add one to "Before
+you finish" in `CLAUDE.md`.
+
+To block merging a red pull request, make the jobs required status checks in the repository's
+branch protection for `main` (all six, or only types and tests if formatting should stay
+advisory).
 
 ### Format on save
 

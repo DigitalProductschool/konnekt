@@ -210,6 +210,10 @@ Before you finish: Ruff and mypy pass for backend changes (run pytest too), and 
 `npm test` and `npm run build` from the root for changes in `api-types/`, `rules/`, `frontend/`
 or `mcp/`. Everything else is in `README.md`, "Common Commands".
 
+CI (`.github/workflows/ci.yml`) runs the same checks on every push and pull request: a new
+check, or a new Python, uv or Node version, goes into it too (`README.md`, "Continuous
+integration").
+
 ## Adding a feature
 
 - **Backend**: model (`app/models.py`) → schemas (`app/schemas.py`) → migration → services
