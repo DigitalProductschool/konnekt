@@ -1,0 +1,16 @@
+{
+  "name": "pdf-proto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "@expo-google-fonts/fira-mono": "^0.4.1",
+    "@expo-google-fonts/fira-sans": "^0.4.1",
+    "pdfkit": "^0.20.2"
+  }
+}

@@ -1,0 +1,8 @@
+# The prototype's output is not committed: `npm install && node make.mjs` here writes the four
+# PDFs again (published-ids-top.pdf and draft-ids-top.pdf are the agreed layout, the *-bottom.pdf
+# files the rejected alternative); the PNGs are page renders of those PDFs
+*.pdf
+*.png
+
+# The root .gitignore covers node_modules/ only one level deep
+node_modules/
