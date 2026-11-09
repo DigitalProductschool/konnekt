@@ -13,7 +13,7 @@ export default function GenerateAllButton({ onGenerateAll }: GenerateAllButtonPr
   return (
     <button
       type="button"
-      className="kern-btn kern-btn--tertiary kern-btn--small shrink-0"
+      className="kern-btn kern-btn--tertiary kern-btn--small max-w-full shrink-0"
       onClick={onGenerateAll}
     >
       <span aria-hidden="true" className="kern-icon kern-icon--autorenew kern-icon--small" />

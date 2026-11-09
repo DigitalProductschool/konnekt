@@ -170,10 +170,11 @@ export const COLUMN_HEADER_CLASSES =
 export const ROW_CLASSES = {
   row: 'relative flex flex-wrap items-center gap-x-24 gap-y-8 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t @min-[58rem]:flex-nowrap',
   name: 'flex min-w-0 shrink-0 basis-full flex-col @min-[58rem]:w-280 @min-[58rem]:basis-auto',
-  status: 'flex shrink-0 @min-[58rem]:w-130',
-  date: 'text-kern-static-small text-kern-layout-text-muted shrink-0 leading-(--kern-typography-line-height-medium-static) @min-[58rem]:w-160',
+  status: 'flex max-w-full shrink-0 @min-[58rem]:w-130',
+  date: 'text-kern-static-small text-kern-layout-text-muted max-w-full shrink-0 leading-(--kern-typography-line-height-medium-static) @min-[58rem]:w-160',
   spacer: 'hidden min-w-0 flex-1 @min-[58rem]:block',
-  actions: 'flex shrink-0 flex-wrap items-center gap-x-8',
+  // max-w-full: in a window under 320 CSS px the buttons wrap instead of leaving the card (T096)
+  actions: 'flex max-w-full shrink-0 flex-wrap items-center gap-x-8',
 };
 
 /** A skeleton row's bars (§3 "Skeleton", U74 7062:51211): name, description, status, date */

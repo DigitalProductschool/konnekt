@@ -28,15 +28,15 @@ function aroundLeapDay(...years: number[]): string[] {
 }
 
 describe('the design example (F4)', () => {
-  it('on 23 Oct 2026, "at least 21 years old" means born on or before 23 Oct 2005', () => {
+  it('on 23.10.2026, "at least 21 years old" means born on or before 23.10.2005', () => {
     const boundary = boundaryOf({ operator: 'at_least_years_ago', years: 21 }, '2026-10-23');
     expect(boundary).toEqual({ relation: 'on_or_before', date: '2005-10-23' });
-    expect(boundary && boundaryPhrase(boundary, true)).toBe('born on or before 23 Oct 2005');
+    expect(boundary && boundaryPhrase(boundary, true)).toBe('born on or before 23.10.2005');
   });
 
   it('leaves out "born" on other dates', () => {
     const boundary = boundaryOf({ operator: 'at_least_years_ago', years: 2 }, '2026-10-23');
-    expect(boundary && boundaryPhrase(boundary, false)).toBe('on or before 23 Oct 2024');
+    expect(boundary && boundaryPhrase(boundary, false)).toBe('on or before 23.10.2024');
   });
 });
 
@@ -112,7 +112,7 @@ describe('boundaryOf', () => {
     const boundary = boundaryOf({ operator: 'exactly_years_ago', years: 21 }, '2026-10-23');
     expect(boundary).toEqual({ relation: 'between', from: '2004-10-24', to: '2005-10-23' });
     expect(boundary && boundaryPhrase(boundary, true)).toBe(
-      'born between 24 Oct 2004 and 23 Oct 2005'
+      'born between 24.10.2004 and 23.10.2005'
     );
   });
 
@@ -153,7 +153,7 @@ describe('boundaryOf', () => {
       date: '2020-01-01',
     });
     const on = boundaryOf({ operator: 'on', date: '2020-01-01' }, day);
-    expect(on && boundaryPhrase(on, false)).toBe('on 1 Jan 2020');
+    expect(on && boundaryPhrase(on, false)).toBe('on 01.01.2020');
   });
 
   it.each([
@@ -170,9 +170,9 @@ describe('boundaryOf', () => {
 
 describe('formatDate', () => {
   it('writes the design’s format, the day without a leading zero', () => {
-    expect(formatDate('2005-10-23')).toBe('23 Oct 2005');
-    expect(formatDate('2020-01-01')).toBe('1 Jan 2020');
-    expect(formatDate('2027-09-09')).toBe('9 Sep 2027');
+    expect(formatDate('2005-10-23')).toBe('23.10.2005');
+    expect(formatDate('2020-01-01')).toBe('01.01.2020');
+    expect(formatDate('2027-09-09')).toBe('09.09.2027');
   });
 });
 

@@ -36,6 +36,7 @@ export default function Picker({
     : disabled
       ? 'text-kern-layout-text-muted'
       : 'text-kern-layout-text-default';
+  // Under 320 CSS px the label takes a line of its own under the icons (T096)
   return (
     <button
       id={id}
@@ -47,12 +48,12 @@ export default function Picker({
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
       onClick={onToggle}
-      className={`rounded-kern-default focus-visible:outline-kern-action-focus-default bg-kern-layout-background-default disabled:bg-kern-layout-background-hued flex h-40 shrink-0 cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-default max-md:h-auto max-md:min-h-40 max-md:max-w-full max-md:py-7 max-md:text-left ${border}`}
+      className={`rounded-kern-default focus-visible:outline-kern-action-focus-default bg-kern-layout-background-default disabled:bg-kern-layout-background-hued narrow:flex-wrap flex h-40 shrink-0 cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-default max-md:h-auto max-md:min-h-40 max-md:max-w-full max-md:py-7 max-md:text-left ${border}`}
     >
       {icon && <img src={icon} alt="" className="size-16 shrink-0" />}
       {symbol && <SymbolChip symbol={symbol} />}
       <span
-        className={`text-kern-static-medium min-w-0 leading-(--kern-typography-line-height-medium-static) whitespace-nowrap max-md:whitespace-normal ${text}`}
+        className={`text-kern-static-medium narrow:order-last narrow:basis-full min-w-0 leading-(--kern-typography-line-height-medium-static) whitespace-nowrap max-md:whitespace-normal ${text}`}
       >
         <span className="sr-only">{name}: </span>
         {label}

@@ -217,12 +217,13 @@ export const START_WITH_CLASSES = {
  * label. States (the component's description): hover unselected a 2px action-blue ring on the
  * tint, hover selected a 3px tint ring, keyboard focus a 3px ring in the focus colour, never
  * after a click, disabled 40 %. KERN's radio is 32px with a 12px ink dot and swaps its border
- * for the ring on any focus (kern.css, unlayered), hence the `!`
+ * for the ring on any focus (kern.css, unlayered), hence the `!`. After a click, `index.css`'s
+ * `.kern-form-check__radio:focus:not(:focus-visible)` takes KERN's ring off (T104)
  */
 export const START_WITH_OPTION_CLASSES = {
   row: 'kern-form-check flex! items-center! gap-8 py-4',
   radio:
-    'kern-form-check__radio size-20! shrink-0 cursor-pointer border! border-kern-layout-border! bg-kern-layout-background-default! checked:border-kern-action-default! checked:before:size-10! checked:before:bg-kern-action-default! hover:not-checked:border-2! hover:not-checked:border-kern-action-default! hover:not-checked:bg-kern-action-state-indicator-tint! hover:checked:shadow-[0_0_0_3px_var(--kern-color-action-state-indicator-tint)] focus:outline-none! focus-visible:outline-3! focus-visible:outline-solid! focus-visible:outline-kern-action-focus-default! focus-visible:outline-offset-0!',
+    'kern-form-check__radio size-20! shrink-0 cursor-pointer border! border-kern-layout-border! bg-kern-layout-background-default! checked:border-kern-action-default! checked:before:size-10! checked:before:bg-kern-action-default! hover:not-checked:border-2! hover:not-checked:border-kern-action-default! hover:not-checked:bg-kern-action-state-indicator-tint! hover:checked:shadow-[0_0_0_3px_var(--kern-color-action-state-indicator-tint)] focus-visible:outline-3! focus-visible:outline-solid! focus-visible:outline-kern-action-focus-default! focus-visible:outline-offset-0!',
   label:
     'kern-label text-kern-static-medium! text-kern-layout-text-default cursor-pointer p-0! leading-(--kern-typography-line-height-medium-static) font-semibold!',
   help: 'text-kern-static-small text-kern-layout-text-muted pl-28 leading-(--kern-typography-line-height-medium-static)',

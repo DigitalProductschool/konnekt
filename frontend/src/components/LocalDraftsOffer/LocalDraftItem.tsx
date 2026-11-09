@@ -38,7 +38,7 @@ export default function LocalDraftItem({
       <p className={nameClass}>{name}</p>
       <p className={lineClass}>{metaLineOf(record)}</p>
       {/* The two buttons wrap together on narrow screens */}
-      <div className="flex shrink-0 gap-16">
+      <div className="flex shrink-0 flex-wrap gap-16">
         <button
           type="button"
           onClick={() => onDiscard(record)}

@@ -79,7 +79,7 @@ export default function ConditionFields({
             value={typeof condition.value === 'string' ? condition.value : ''}
             invalid={problemField === 'value'}
             describedBy={describedBy('value')}
-            widthClass="min-w-140 max-w-full field-sizing-content"
+            widthClass="narrow:min-w-0 min-w-140 max-w-full field-sizing-content"
             onChange={(text) => onChange({ ...condition, value: text })}
             onBlur={() => dispatch({ type: 'touch', field: 'value' })}
           />

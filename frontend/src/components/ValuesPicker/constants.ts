@@ -43,12 +43,16 @@ export const VALUES_PICKER_DONE = 'Done';
  * spans the rule editor's content (the editor is the positioned box, 24px padding): opening down
  * it starts where the flow puts it, under the field; opening up its wrapper is a flex column, so
  * that it starts at the field's top (an absolute box's static position in a flex container, CSS
- * Flexbox §4.1), and moves up by its own height and the gap, whatever the field's height
+ * Flexbox §4.1), and moves up by its own height and the gap, whatever the field's height. Under
+ * 320 CSS px it spans the editor's whole width (T096)
  */
 export const VALUES_MENU_PLACEMENTS: Record<PopupPlacement, Record<MenuDirection, string>> = {
   start: { down: 'top-full left-0 mt-8 w-300', up: 'bottom-full left-0 mb-8 w-300' },
   end: { down: 'top-full right-0 mt-8 w-300', up: 'bottom-full right-0 mb-8 w-300' },
-  full: { down: 'inset-x-24 mt-8', up: 'inset-x-24 -translate-y-[calc(100%+8px)]' },
+  full: {
+    down: 'inset-x-24 mt-8 narrow:inset-x-0',
+    up: 'inset-x-24 -translate-y-[calc(100%+8px)] narrow:inset-x-0',
+  },
 };
 
 /** The wrapper of a menu across the editor, by direction (see VALUES_MENU_PLACEMENTS) */

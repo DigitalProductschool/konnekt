@@ -48,6 +48,8 @@ export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessag
     }
   }
 
+  // Under 320 CSS px the action wraps under the text, and a long toast scrolls in half the
+  // window instead of covering it (T096)
   return (
     <div
       onPointerEnter={() => setPaused(true)}
@@ -55,7 +57,7 @@ export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessag
       onFocus={handleFocus}
       onBlur={() => setPaused(false)}
       onKeyDown={handleKeyDown}
-      className={`${TOAST_KIND_FILL[toast.kind ?? 'neutral']} rounded-kern-default shadow-toast text-kern-static-small text-kern-action-on-default pointer-events-auto flex max-w-full items-center gap-24 p-16 leading-(--kern-typography-line-height-medium-static)`}
+      className={`${TOAST_KIND_FILL[toast.kind ?? 'neutral']} rounded-kern-default shadow-toast text-kern-static-small text-kern-action-on-default narrow:max-h-[50dvh] narrow:flex-wrap narrow:gap-y-8 narrow:overflow-y-auto pointer-events-auto flex max-w-full items-center gap-24 p-16 leading-(--kern-typography-line-height-medium-static)`}
     >
       <div className="flex min-w-0 items-center gap-8">
         {toast.kind === 'success' && (

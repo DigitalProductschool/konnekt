@@ -36,9 +36,12 @@ export default function GroupHeader({
       id={id}
       tabIndex={id ? -1 : undefined}
       aria-describedby={describedBy}
-      className={`${divider} focus-visible:outline-kern-action-focus-default flex items-center gap-8 border-b pr-16 pb-8 pl-24 focus-visible:outline-4 focus-visible:outline-offset-2`}
+      className={`${divider} focus-visible:outline-kern-action-focus-default narrow:flex-wrap flex items-center gap-8 border-b pr-16 pb-8 pl-24 focus-visible:outline-4 focus-visible:outline-offset-2`}
     >
-      <div className={`flex min-w-0 flex-1 flex-col ${inactive ? INACTIVE_OPACITY : ''}`}>
+      {/* Under 320 CSS px the mark and the actions take a line under the text (T096) */}
+      <div
+        className={`narrow:basis-full flex min-w-0 flex-1 flex-col ${inactive ? INACTIVE_OPACITY : ''}`}
+      >
         {nameSlot ?? (
           <p className={`${nameSize} flex flex-wrap items-baseline gap-x-8`}>
             <span
@@ -59,7 +62,7 @@ export default function GroupHeader({
         </p>
       </div>
       {(mark || actions) && (
-        <div className="flex shrink-0 items-center gap-8">
+        <div className="narrow:ml-auto narrow:flex-wrap flex shrink-0 items-center justify-end gap-8">
           {mark && <BranchMark mark={mark} />}
           {actions}
         </div>

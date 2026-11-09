@@ -75,13 +75,13 @@ describe('statementOf', () => {
     it('writes fixed dates in the design’s format', () => {
       const issued = target('pid', 'date_of_issuance');
       expect(statement(issued, { operator: 'before', date: '2020-01-01' })).toBe(
-        'Personal ID · Issue date is before 1 Jan 2020'
+        'Personal ID · Issue date is before 01.01.2020'
       );
       expect(statement(issued, { operator: 'after', date: '2020-01-01' })).toBe(
-        'Personal ID · Issue date is after 1 Jan 2020'
+        'Personal ID · Issue date is after 01.01.2020'
       );
       expect(statement(issued, { operator: 'on', date: '2005-10-23' })).toBe(
-        'Personal ID · Issue date is 23 Oct 2005'
+        'Personal ID · Issue date is 23.10.2005'
       );
     });
 

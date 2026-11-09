@@ -11,7 +11,7 @@ import type { PersonaChipProps } from './types';
  * ring on any `:focus`, and `outline: 0` on `:focus:focus-visible`. Hence the `!` on both sides
  */
 const CHIP_CLASSES =
-  'bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default! flex shrink-0 cursor-pointer items-center gap-8 rounded-full py-8 pr-14 pl-12 leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
+  'bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default! flex max-w-full shrink-0 cursor-pointer items-center gap-8 rounded-full py-8 pr-14 pl-12 leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap narrow:rounded-kern-large narrow:whitespace-normal focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
 
 /**
  * Selected: a 2px outline in `action-default` (7057:58755). Otherwise the 1px decorative border

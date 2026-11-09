@@ -35,7 +35,8 @@ const INTRO_CLASSES =
  *   "Back to test" closes the dialog to the test step that opened it (FR-044a); opened from
  *   another step, the cancel button keeps the baseline's "Check rules again". Findings never
  *   disable "Publish connection" nor ask anything more (spec 003, US4-AS5).
- * - `noRules`: from the documents step, while no variant has rules, "Publish without rules?"
+ * - `noRules`: from "Publish without rules" on the rules step (or the edit flow's "Save"), while no
+ *   variant has rules, "Publish without rules?"
  *   (002-S5.6) with "Add rules", which goes on to the rules.
  * - `publishing` and `published`: the small status dialog in place of the summary (U78
  *   "Dialog/Status"): "Publishing… This takes a few seconds." with the 56 px loader, no buttons, no
@@ -291,7 +292,8 @@ function conflictViewOf(conflict: PublishConflict, handlers: ConflictHandlers): 
  * both): a native modal dialog without title bar, ×, or buttons. Publishing: `FeedbackLoader`'s
  * 56 px loader with "Publishing…" ("Saving…") and the muted "This takes a few seconds."; published:
  * the success tick ("Icon/Success tick 56": a 3 px success ring on the light success fill, the
- * check 28 px), "Published" ("Saved") and "Opening your connection page…" in a polite status.
+ * check 28 px), "Published" ("Saved") and "Opening your connection page…", announced by the
+ * polite status that holds both states (T095).
  * Nothing closes it (FR-051 (41)): Escape is ignored, the scrim does nothing, and if the browser
  * closes it anyway (Chrome closes a modal dialog on a second Escape without user activation), it
  * opens again. It closes before the summary opens and opens after the summary closed, so the
@@ -346,10 +348,16 @@ function PublishStatusDialog({ phase, editing }: PublishStatusDialogProps) {
       onClose={handleClose}
       className={PUBLISH_STATUS_DIALOG_CLASSES}
     >
-      <div className="flex min-h-232 flex-col items-center justify-center gap-16 px-32 py-40 text-center">
+      {/* One polite status for both states: it stays in the dialog while "Publishing…" turns into
+          "Published", so that the new text is announced as a change (a status that is inserted
+          with its text may stay silent). FeedbackLoader's own status inside it never changes */}
+      <div
+        role="status"
+        className="flex min-h-232 flex-col items-center justify-center gap-16 px-32 py-40 text-center"
+      >
         {published ? (
-          // The same column as FeedbackLoader's, its line inside the status so it is read too
-          <div role="status" className="flex flex-col items-center gap-16">
+          // The same column as FeedbackLoader's
+          <div className="flex flex-col items-center gap-16">
             <span className="border-kern-feedback-success bg-kern-feedback-success-background rounded-kern-circle flex size-56 items-center justify-center border-3">
               <span
                 aria-hidden="true"

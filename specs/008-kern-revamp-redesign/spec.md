@@ -1236,6 +1236,22 @@ building, numbered #63 here and tagged "Implement Q3". The record is the same.
     press is gone for "Test rules" (Q18); "Publish" and "Save" keep their pre-checks.
   - Supersedes: FR-034's explanation list (extended by the problem's message).
 
+Seventh round, 2026-11-09, during `/speckit-implement` phase 11 (T096): a gap between Q8 (e) and
+spec 005, numbered #67 here and tagged "Implement Q6". The record is the same.
+
+- Q: Q8 (e) dropped "Log out and discard unsaved work?", but spec 005 FR-019 still says signing
+  out warns about the device's local drafts and discards them, and `UserMenu` still shows that
+  dialog when the account has local drafts and no flow is open. What does signing out outside a
+  flow do with them? (#67, Implement Q6, Q8 (e), 005-FR-019, T048, T096) → A: Keep the old dialog.
+  - Surfaces: the user menu's "Log out" outside a flow (no frame: U05 #42 and U17 #19–#20 draw the
+    in-flow dialog only).
+  - Behaviour: outside a flow, "Log out" with local drafts on the device opens "Log out and
+    discard unsaved work?" (005-S7.2–S7.5, in the new design's dialog), and logging out discards
+    them (FR-019); inside a flow, Q8 (e)'s "Save before you log out?" applies. `UserMenu`'s dialog,
+    `onLogOut`'s `logOut(onCancelled?)`, `SignOutDialog.tsx`, `SIGN_OUT_COPY` and
+    `signOutNamesOf` stay.
+  - Supersedes: Q8 (e)'s "Dropped" list for the case outside a flow (005-S7.2–S7.5 stand there).
+
 ## User Scenarios & Testing *(mandatory)*
 
 Each story is one flow of the app. It is checkable on its own: open its screens in every state,

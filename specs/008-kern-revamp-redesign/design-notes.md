@@ -192,9 +192,14 @@ pass, text at 4.5:1 does not.
 
 | Pair (foreground on background, where) | Ratio | Fixed to | Ratio after | Designer told |
 |---|---|---|---|---|
-| `feedback-info` `#0284c7` on `#ffffff` (info text and icons; the "Draft" label on white) | 4.10:1 | `#0273ae` | 5.17:1 | |
-| `feedback-info` `#0284c7` on `feedback-info-background` `#e0f2fe` (info strips) | 3.57:1 | `#0273ae` | 4.50:1 | T019 (2026-11-08): the V5 "Draft" status pill draws its label in `#05669e` (5.38:1 on `#e0f2fe`, passes) and only its dot in `#0284c7`, so the pill takes the drawn value, not this fix |
-| `feedback-danger` `#c4271c` label on its pressed tint, the danger outline button ("Discard connection", "Remove 1 document") while pressed: KERN's 16 % tint `#f6dcdb` | 4.43:1 | a 15 % tint `#f6dfdd` (`.kern-btn--danger`'s `tint-active-opacity`, coordinator after T035, 2026-11-08) | 4.52:1 (measured in Chromium) | |
+| `feedback-info` `#0284c7` on `#ffffff` (info text and icons; the "Draft" label on white) | 4.10:1 | `#0273ae` | 5.17:1 | 2026-11-09 (closing report) |
+| `feedback-info` `#0284c7` on `feedback-info-background` `#e0f2fe` (info strips) | 3.57:1 | `#0273ae` | 4.50:1 | T019 (2026-11-08): the V5 "Draft" status pill draws its label in `#05669e` (5.38:1 on `#e0f2fe`, passes) and only its dot in `#0284c7`, so the pill takes the drawn value, not this fix; 2026-11-09 (closing report) |
+| `feedback-danger` `#c4271c` label on its pressed tint, the danger outline button ("Discard connection", "Remove 1 document") while pressed: KERN's 16 % tint `#f6dcdb` | 4.43:1 | a 15 % tint `#f6dfdd` (`.kern-btn--danger`'s `tint-active-opacity`, coordinator after T035, 2026-11-08) | 4.52:1 (measured in Chromium) | 2026-11-09 (closing report) |
+| White label on the primary button's pressed shade (every primary button, "Log in", "Create connection", "Publish" …): KERN's `action-state-indicator-shade-active`, 16 % white mixed into `#1d56f0` in oklch = `#4076f6` (the kit's P09 2:4584 layer: `#4171f2`) | 4.09:1 | 11 % white, `#356df4` (overlay: `--kern-color-action-state-indicator-shade-active: color-mix(in oklch, var(--kern-color-action-default), white 11%)`, T098); the CIEDE2000 nearest colour would be `#346fef` (ΔE2000 2.7); the danger button keeps its own darker shade | 4.52:1 | 2026-11-09 (closing report) |
+| `action-default` `#1d56f0` label of an outline or tertiary button while pressed, the 16 % tint laid over a tinted surface: the selection bar's "Cancel" on `feedback-info-background` (`#c1d9fc`), the S5 offer's "Discard" / "Resume editing" on `feedback-default-background` (`#cdd8f6`), the test step's "Generate all" / "Try again" on `hued` (`#d0dcfa`), S16's "Delete draft" on the band's gradient (`#cfdaf9`, measured in pixels) | 4.01–4.20:1 | the 16 % tint laid on white, one solid fill wherever the button sits: `#dbe4fd` (overlay: the `:active` rule of `.kern-btn--secondary` / `--tertiary` draws `color-mix(in srgb, var(--kern-color-action-default) var(--pressed-tint-share, 16%), var(--kern-color-layout-background-default))`; the danger outline button's 15 % via `--pressed-tint-share`, its `#f6dfdd` unchanged); per-surface nearest colours `#d2e5ff` / `#dae3ff` / `#d9e4ff` (ΔE2000 2.0–3.9) | 4.54:1 (danger 4.52:1) | 2026-11-09 (closing report) |
+| Text of disabled controls at KERN's 40 % (`action-state-opacity-disabled`): white on the primary button (`#a5bbf9`; "Set rules", "Save rule", "Test rules", "Copy link", "Allow" …), the blue label of a disabled outline or tertiary button (`#a5bbf9` on white; "Copy", "Keep connection", "Deny", "Decline"; "Saving…" on the footer's `#f8faff`), "Group rules" on the selection bar (`#ecf7fe` on `#92b4f8`), the danger button's "Deleting…" (`#dfa7a3`) | 1.82–2.06:1 (the task's 3:1) | opacity 68 % (overlay: `--kern-color-action-state-opacity-disabled: 0.68`), the smallest that gives every measured pair 3:1 (0.65 leaves the label on `hued` / `#f8faff` at 2.9:1) | 3.17:1 (primary, outline, tertiary), 3.21:1 ("Group rules"), 3.37:1 ("Deleting…") | 2026-11-09 (closing report) |
+| A disabled button under the pointer or pressed took KERN's hover / pressed shade: kern.css's `.kern-btn--primary:not(:disabled):hover, .kern-btn--primary:not([aria-disabled=true]):hover` (and the same for the outline and tertiary buttons) matches each kind of disabled button through the other half of the list; the busy "Logging in…", "Allow", "Approve" (`#ffffff` on `#acc2fa`), "Group rules" while hovered (`#99bafa`) | 1.77–1.79:1 (the task's 3:1) | the resting fill on hover and while pressed for `:disabled` / `[aria-disabled=true]` KERN buttons (overlay rule; ExplainedButton's `hover:` / `active:` pin of T022 does the same for its buttons) | 3.17:1, 3.21:1 (with the 68 % above) | 2026-11-09 (closing report) |
+| The faded inactive parts at the same 40 % (the task's 3:1 as for disabled text, see §6.10): a rule removed in a variant (U47: its name `#a5bbf9`, the data `#b7bbc3`, its condition and message `#9da0a6`), the faded connector (`CONNECTOR_FADED`, white on `#a5bbf9`), the inactive marks (`INACTIVE_OPACITY`) | 1.90–2.62:1 | the same token, 68 % (`opacity-(--kern-color-action-state-opacity-disabled)`); `RuleMenuItem` and `AccessLevelOption` faded a disabled entry with a hard-coded `opacity-40` and now use the token too (not reached as a state: computed, default text 2.62 → 6.52:1, danger 1.98 → 3.37:1, muted 1.92 → 3.43:1) | 3.17:1 (blue), 3.43:1 (muted), 6.52:1 (default text) | 2026-11-09 (closing report) |
 
 T002, 2026-11-08 (WCAG 2.x relative luminance, unrounded): "nearest" is the passing colour with
 the smallest CIEDE2000 distance from the design's value (ΔE2000 6.6), searched over every sRGB
@@ -274,7 +279,7 @@ later use.
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") T077: T077: a dialog that can't be closed (the publish status) prevents `cancel` and opens again on a `close` the browser forces (Chrome closes a modal dialog on a second Escape without user activation); two dialogs that replace each other close the old one in a layout effect and open the new one in a passive effect, so the focus returns to the opener. T086: a page card that asks for a decision (the consent card) lays its two buttons out as the kit's dialog actions (`DECISION_ACTIONS_CLASSES` in `pages/Authorize/ constants.ts`, the same container query as `ConfirmDialog`'s two-button row). |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
-| **Menu** (addition, T061) | U30 6350:41316, U31 6350:41548, 6635:36529 | the rule editor's single-select menus (`ChoiceMenu`) follow it: placed from the picker's wrapper with `placementFrom()` as the menu opens (`useLayoutEffect` in `ChoicePicker`: a choice opens the next picker's menu, whose picker may only appear or move in that render), the height it decides with is its estimated height capped at the drawn 294 (U31 parts menu), the frame takes the max-height step and its list scrolls; entries take T021's hover/pressed layers and keyboard fill |
+| **Menu** (addition, T061) | U30 6350:41316, U31 6350:41548, 6635:36529 | the rule editor's single-select menus (`ChoiceMenu`) follow it: placed from the picker's wrapper with `placementFrom()` as the menu opens (`useLayoutEffect` in `ChoicePicker`: a choice opens the next picker's menu, whose picker may only appear or move in that render), the height it decides with is its estimated height capped at the drawn 294 (U31 parts menu), the frame takes the max-height step and its list scrolls; entries take T021's hover/pressed layers and keyboard fill T096: a menu opened by its caller (the rule editor’s values picker after a check is chosen) is placed by `placementFrom()` too, measured when it opens (FR-009d). |
 | **The rules step's menus** (FR-036) | U54 `6522:33105` (build note 10), U55, U56, U57, U58, U59; CLAR #22, #48, #53, #54, #60, #61; 007-S4 | `menuEntriesOf(menuItemOf(branches, branchKey, id), { branchKind, linkable })` in `RulesStep/utils.ts` (pure, tested; T055). The menu shows only what it returns, in `MENU_ENTRY_ORDER`: Edit · Rename · Add message · Remove message · Duplicate · Copy to variant · Group with other rules · Ungroup · Reset to Standard · Restore · Copy link · then, after the divider, Remove from <variant> or Delete …. "Copy link" appears whenever the connection is stored (`linkable`), as the last entry before the destructive one, and also after "Restore". An item linked to Standard in a variant has no Rename, Duplicate or Ungroup, and offers "Remove from <variant>". "Copy to variant" appears only while some other variant could still receive the rule. "Group with other rules" carries its select-mode scope (`'top'` or the group's id). `selectableIn()` decides which items count as neighbours and gets a box. An item faded with a removed or dissolved group has no menu at all **T058 (2026-11-09):** built in `RuleMenu` / `GroupMenu`, each entry mapped to its label and `MENU_ENTRY_LOOKS` (`RulesStep/constants.ts`: icon, `danger`, `separated`); "Restore rule / group / sub-group", "Delete rule / group / sub-group" (a group shown as a sub-group says "sub-group"), "Remove from <variant>"; "Copy link" after "Restore" has no icon; "Add message" on a group with a message only moves the focus to its message field; no "Group with other rules" on groups (#64) **T067 (2026-11-09):** the variant tab's ⋯ (`BranchMenu`, every tab, F28) shows `menuEntriesOf({ kind: 'variant' }, …)`: "Rename" (opens "Edit variant"), "Copy link" (stored), and after the divider "Delete variant" on every variant but Standard. |
 | **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute; a cut text's tooltip (T044, the overview's description, U13 `7366:55276`): on hover of a cut text only, on the keyboard focus of the row's name, on a tap, `aria-hidden` since the text is whole in the page |
 | **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason). **Exception (#65, Implement Q4, T063):** the rule editor's "Save rule" keeps the baseline's press (002-S3.10): while incomplete a press never saves but flags the missing parts, shows the problem under the check row and moves the focus there (`onClickCapture` in `EditorActions.tsx`); its tooltip is the rule's current problem in the server's words. |
@@ -294,6 +299,7 @@ later use.
 | **Page change** | FR-052c, U06 #94 (`7137:50569`) | a change of the route's path scrolls the window to the top at once (`App.tsx`, `behavior: 'instant'`: kern.css makes the root scroll smoothly) and the layout's main region fades in over 150 ms (§4); the header pills stay. A change of the query alone or of the editor's step is no page change |
 | **Sticky parts of the wizard** | U01 #14–#19, U03 #42–#43, research R4 | the page scrolls; the header pills stay at the top (64 / 120 below md), the step header under them from 768 × 640 (`wizard-pinned:`), the footer at the bottom from 480 px tall; in smaller windows the step header and footer scroll with the page so that the step keeps room (WCAG 1.4.10, spec 005 FR-028). What they cover is `--wizard-sticky-top` / `--wizard-sticky-bottom`: what scrolls into view stops 16 px clear of them, a menu stays between them, the toast sits 24 above the footer, a pinned bar sticks at `top-(--wizard-sticky-top)`, a part that fills the window takes `100dvh` less both and the content's 40 px bottom padding |
 | **Rules step pins** | U01 #17–#19, T033, T056 | Where the wizard pins its step header (`wizard-pinned:`, ≥ 768 × 640), the variant tab row pins right under it (`top-(--wizard-sticky-top)`, white, z-10) and the selection bar under the tabs (`--rules-pinned-top`, handed to the card as `--wizard-sticky-top`). Everything under the tabs keeps `scroll-mt-(--rules-tabs-height)` (+ the bar in select mode) so a focused element stays clear (WCAG 2.4.11). Below that size nothing of the step pins except the selection bar under the header pills. **T059 (2026-11-09):** the selection bar is the 27 Oct "Rules/Selection bar": info tint, 56 px (8 + 40 + 8); in select mode the scroll margin under the tabs is the bar plus 8 (64), 144 below 640 px; pinned, the bar has square corners and no line; at rest 11 px top corners when first in the card, square under a variant's link strip. |
+| **Below 320 CSS px** (T096) | no frame; WCAG 1.4.10, FR-010, quickstart V11 | the `narrow:` variant (`@media (width < 20rem)`, under WCAG’s reflow width, such as a 320 px window at 200 %) and the overlay’s one unlayered narrow block in `index.css`: long words break, horizontal paddings and gaps of 16 px and more halve, `whitespace-nowrap` wraps and `shrink-0` stays within its row, KERN’s alert and dialog heads wrap with smaller sides; rows put their ⋯ and marks under the text; the toast region sticks at the page’s bottom instead of floating; the header sticks only from 320 CSS px wide and 480 px tall. Nothing changes from 320 CSS px up |
 
 ## 4. Motion (FR-050, research R5)
 
@@ -5310,6 +5316,1171 @@ Open for a person: V9 with a real MCP client (Claude Code with `mcp/plugin/` aga
 on 3100) opening the consent page and making the agents and approval requests through its tools;
 approving a publish request against the hosted EUDIPLO (credentials as in phase 8).
 
+### 6.7 Keyboard walkthrough (T095, 2026-11-09)
+
+Quickstart V10, by a task agent with playwright-core 1.48.2 and Chromium 156 (`/usr/bin/chromium`)
+at 1455 × 900 (a 1440 px page), against the dev server whose backend runs the in-memory fake
+EUDIPLO. Every step was driven by the keyboard only (`Tab`, `Shift+Tab`, arrows, `Home`/`End`,
+`Enter`, `Space`, `Escape`); the mouse was used only for the focus-ring-after-click checks. The
+script read for every focus stop the role, the accessible name, `:focus-visible` and the computed
+outline / box-shadow (the ring); the h1s from the accessibility tree (`page.accessibility.snapshot`);
+and every live-region change through a `MutationObserver` installed before the app loads (text
+changed inside an `aria-live` / `role="status"` region, a `role="alert"` inserted, or a status
+region inserted with its text, which may stay silent). Data: the agent's own "T095 …" connections
+(seed8.py), a "T095 keyboard draft" made in the walk, a seed9.py draft, and on `p9-consent`,
+`p9-account`, `p9-approval` the seed9.py client, agents, tokens, connection, draft and two approval
+requests; all deleted afterwards (`seed9.py cleanup T095` on the four accounts; the T095 rows and
+agent-access lists checked empty). The seeded `designer` data was only read. No page error in any
+walk. Scripts and screenshots: the scratchpad's `phase11/T095/`.
+
+| flow | step | result |
+|---|---|---|
+| US1 | `/login`: tab title "Log in · Konnekt", one h1; order Username → Password → "Show password" → "Forgot password?" → "Log in" | pass |
+| US1 | wrong password by Enter: the `role="alert"` "Username or password is wrong. Check both and try again." inserted (announced), focus stays in Password | pass |
+| US1 | "Show password" by Space: the field turns `text`; a mouse click on it leaves no ring | pass |
+| US1 | "Forgot password?" by Enter: "Forgot password · Konnekt", one h1, "Back to log in" the only control; Enter returns to `/login` | pass |
+| US1 | sign in by Enter → `/` ("Your connections · Konnekt", one h1) | pass |
+| US1 | overview order: Konnekt → account pill → Search → per row name link, "View <name>", "Edit <name>", "Delete <name>" → … → the footer's "Create connection" (DOM order = visual order) | pass |
+| US1 | account menu: Enter opens it with the focus on "Your account"; ↓ ↑ Home End move (wrapping); Escape closes it with the focus back on the pill; Tab leaves and closes it; opened by a click, the item has the focus without a ring | pass |
+| US1 | search: typing announces "7 of 9 connections", "3 of 9 connections" (`role="status"`); "Clear search" is the next stop | pass |
+| US1 | row delete dialog: Enter → focus on ×; Tab goes × → "Keep connection" → "Delete connection" → (the browser's own UI) → ×, never to the page (inert); Escape returns the focus to the row's "Delete <name>"; opened by a click, × has no ring | pass |
+| US1 | a cut description (routed long text): keyboard focus on the row's name opens the full-text bubble; Escape closes it, the focus stays | pass |
+| US1 | welcome page (routed empty list): "Welcome · Konnekt", one h1 "Welcome to Konnekt"; Konnekt → pill → "Create connection" | pass |
+| US1 | local drafts offer (two never-saved connections): per item "Discard changes in <name>" → "Resume editing <name>", before Search; the dialog Cancel / Discard; after Discard the polite status "Unsaved work discarded." and the focus on the next "Resume editing"; after the last one (by mouse) the focus on the h1, no ring | pass |
+| US1 | log out by the menu (↓, Enter) → `/login` with "You’re logged out." in the polite status | pass |
+| US2 | "Create connection" by Enter → step 1 ("Name your connection · Konnekt", one h1); order Konnekt → "Your connections" → pill → ⓘ "About the connection name" → name → ⓘ "About the description" → description → "Save and exit" → "Choose documents" | pass |
+| US2 | both ⓘ open their tooltip on focus; Escape closes it, the focus stays | pass |
+| US2 | "Choose documents" without a name: focus on the name field, `aria-invalid="true"`, described by "Enter a name for the connection." | pass |
+| US2 | Konnekt with a name typed → "Leave this connection?": × → "Discard connection" → "Save progress"; Escape keeps the flow, focus back on Konnekt | pass |
+| US2 | "Log out" with unsaved work → × → "Cancel" → "Log out anyway" → "Save and log out"; Escape → focus on the pill, no menu left open | pass |
+| US2 | "Save and exit" (save held 1.2 s): the button reads "Saving…", `aria-disabled`, keeps the focus; "Saving draft…" then the toast "Draft saved. You can pick it up any time." announced in the polite status | pass |
+| US2 | documents step: the h1 takes the focus (no ring, `tabindex=-1`); order "Add document" → Back → "Save and exit" → "Set rules" (`aria-disabled`, described by "Add a document first", its tooltip open on focus; Enter does nothing) | pass |
+| US2 | "Add document": Enter opens the card with the focus in "Find a document"; ↓ ↑ move through the rows (↑ from the first row back to the field); Escape closes it, focus on "Add document"; "zzz" announces "No documents match “zzz”."; Enter on a row adds it, focus back on "Add document" | pass |
+| US2 | order with a document: "Personal ID" → "Remove Personal ID" → "All data items" → the items; Space ticks a box; a mouse click on a box leaves no ring | pass |
+| US2 | "Remove Personal ID": "Keep document" / "Remove document", Escape returns to the trash; Remove → the toast "Personal ID removed. Undo" announced, focus on "Add document"; "Undo" reachable by Tab (after the footer) restores it and focuses "Personal ID" | pass |
+| US3 | rules step: the h1 takes the focus; order tab "Standard" → "Actions for Standard" → "Add variant" → ⓘ "About variants" (tooltip on focus) → "Add rule" → Back → "Save and exit" → "Publish without rules" | pass |
+| US3 | the tab's ⋯ menu: Enter, ↓, Escape back on the ⋯ | pass |
+| US3 | rule editor: "Add rule" → focus on "Documents: Choose document"; Enter opens the list (focus on "Personal ID"), Enter picks it and opens the data menu with the focus in its search; ↓ into the options, ↑ back to the search; Enter picks "Given name" and opens the check menu ("is equal to"), Enter → the value field | pass |
+| US3 | "Save rule" `aria-disabled` described by "Rule 01 in Standard: choose the data to check." (tooltip on focus); Enter on it moves the focus to the missing part | pass |
+| US3 | "Save rule" → "Rule 01 saved." announced (toast), focus on the rule | pass |
+| US3 | the rule's ⋯: ↓ wraps, Escape back on the ⋯; "Duplicate" → the findings' status "Rule 02 is the same as Rule 01." announced (polite, `FindingsAnnouncer`); the tab reads "Standard has findings", its icon button "Standard has findings" opens "1 duplicate: Rule 02 is the same as Rule 01." on focus, Escape closes it | pass |
+| US3 | connector "AND, switch Standard to AND or OR": Enter opens the `menuitemradio`s, ↓, Escape back on the connector | pass |
+| US3 | "Add variant" dialog: focus in "Variant name"; Tab name → description → radio → Cancel → "Add variant" → ×; Escape back on "Add variant"; adding moves the focus to the new tab | pass |
+| US3 | variant tabs: one stop (roving); ← → Home End move the focus, Enter selects | pass |
+| US3 | "Group with other rules": focus on "Select Rule 01"; the bar ("Group rules" `aria-disabled`, Cancel) sits before the rules; ticking Rule 02 announces "2 rules selected"; "Group rules" → "Rule 01 and Rule 02 are now in Group 01. Undo" announced, focus on the group | pass |
+| US3 | rename: Enter edits, Escape cancels back on "Rename Rule 01"; an empty name → "Enter a name." (assertive) under the field, which it describes | pass |
+| US3 | "Copy link" → "Link copied." announced | pass |
+| US3 | "Copy to variant" (Ambulance, Rule 01): focus on the first variant's box; Tab goes round its controls; Escape closes it, focus on the ⋯ | pass |
+| US3 | "Delete rule" dialog: Cancel / "Delete rule"; Escape back on the ⋯ | pass |
+| US3 | "Test rules" → the h1 takes the focus; "Creating 3 sample citizens…" announced; order tab → chip → "Generate all" → "Edit data" → "Generate again" → Back → "Save and exit" → Publish; chips ← → Home End; the variant ⓘ ("About Ambulance") opens on focus | pass |
+| US3 | "Edit data": focus in the first field; Tab goes round; Escape back on "Edit data"; "Save and test" → "Results updated. Anna now meets Rule 01." announced, focus on "Edit data" | pass |
+| US3 | "Generate again" for an edited citizen: × → Cancel → "Generate new data", Escape back; generating announces "Creating new data for Anna…", focus on the chip; "Generate all" announces "Creating 3 sample citizens…" | pass |
+| US4 | the publish dialog: × → "Back to test" → "Publish connection"; Escape and "Back to test" return the focus to "Publish" | pass |
+| US4 | "Publish connection": the status dialog takes the focus, named "Publishing…"; "Published. Opening your connection page…" was a `role="status"` inserted with its text (may stay silent) | **fixed** (S14, `PublishDialog.tsx`, T077): one status holds both states, so the text is announced as a change (checked: "Published Opening your connection page…", also "Saved …" in the edit flow) |
+| US4 | the details after publishing: one h1 "Your connection is active", which has the focus; order ⋯ → "Hide links" → ⓘ request → "Copy link" → ⓘ result → "Copy link" → "View summary" → the tab → "Edit connection" → "Go to connections"; the ⓘ open on focus; "Copy link" → "Link copied" announced; the accordions toggle `aria-expanded` | pass |
+| US4 | ⋯ → Escape back on the ⋯; "Deactivate this connection?" Keep active / Deactivate, Escape back on the ⋯; Deactivate → "Connection deactivated." announced, focus back on the ⋯ | pass |
+| US4 | deactivated: "Activate again" before the ⋯; the copy buttons `aria-disabled`, described by "Activate the connection first" (tooltip on focus); "Activate" → "Connection reactivated." announced, focus on the new h1 | pass |
+| US4 | "Delete connection" dialog from the ⋯: Escape back on the ⋯ | pass |
+| US4 | draft details: "T095 Entwurf (Draft) · Konnekt", one h1; "Delete draft" → Summary → tab → "Edit connection" → "Go to connections"; the delete dialog returns the focus to "Delete draft" | pass |
+| US4 | the row's "Edit" on a published connection: "Edit “<name>”?" Cancel / "Edit connection", Escape back on the row's Edit; "Edit connection" → "Connection details" | pass |
+| US4 | the edit flow: the step line's Documents, Rules, Test are buttons after the pill; footer "Discard changes" → "Choose documents" → "Save"; with a rule open "Save" is described by "Save the rule first" (tooltip on focus) | pass |
+| US4 | Konnekt with changes → "Save your changes?" × → "Discard changes" → "Save", Escape back on Konnekt; "Discard changes" dialog Keep editing / Discard changes, Escape back | pass |
+| US4 | "Save" → "Save changes?" ("Check rules again" / "Save"), Escape back; Save → "Saving…" → "Saved. Opening your connection page…" (the fix above) → the details with "Changes saved." announced | pass |
+| US5 | consent (`p9-consent`): "Allow access · Konnekt", one h1 "Allow access for T095 agent?"; order Konnekt → pill → the radio group (one stop, ↑ ↓ change the level) → Deny → Allow → "user page" (T086's order); a click on a radio leaves no ring; Enter on Allow → the client's redirect with `code` | pass |
+| US5 | account (`p9-account`): order Konnekt → pill → "Actions for T095 agent" → "Create token" → "Actions for T095 token"; the ⋯ menu Escape; "Change access level" (×, radios, Cancel, Save) and "Revoke" dialogs return the focus to the ⋯ | pass |
+| US5 | "Create token": focus in Name; no name → the alert "Enter a name for the token." (announced), focus on Name; created → focus in the read-only "Your token" (FR-042, ring shown at once); "Copy" → "Copied" and "Token copied" announced; "Done" → focus on "Create token" | pass |
+| US5 | approval (`p9-approval`), deactivate: one h1 "Deactivate ‘T095 Verbindung’?"; order … → Approve → Decline; Approve → "Working…" (status) then the alert "Connection deactivated." with the focus | pass |
+| US5 | approval, publish: Summary → tab → Approve → Decline; Decline → "Working…" then "You declined this request. Nothing has changed." with the focus | pass |
+| all | one h1 per route (accessibility tree): `/login`, `/forgot-password`, `/`, `/get-started` (→ `/`), `/form-connections/new`, active, deactivated and draft details, a draft's and a published connection's `/edit`, `/authorize` (no parameters), `/account`, an unknown approval and an unknown connection ("Page not found"), an unknown route (→ `/`): exactly one each, every tab title "<page> · Konnekt" | pass |
+| all | focus ring after a mouse click (none): "Show password", the account pill (menu item focused), row Delete (× focused), the offer's Discard, a data box, a persona chip, the details' ⋯ and accordions, Deactivate / Activate by mouse (focus back on the ⋯ / on the h1), a consent radio, the step line, the variant tabs, the rule ⋯ and its items, "Add rule", "Discard rule", "Save rule", the connector and its options, the findings icon, a findings banner link, the variant dialog's Cancel, "Generate again", "Save and test"; text fields focused after a click ("Find a document", "Variant name", the rename field, Edit data's first field, the token's Name) show their field focus, as a text field does | pass |
+| all | dialogs: every one a native modal `<dialog>`: the page behind is inert; Tab after the last control goes to the browser's own UI (or, in the edit flow's "Save your changes?", straight back to ×) and comes back to the first, never to the page; Escape (or the dialog's own close) returns the focus to the opener, except where the opener is gone (the h1 takes it) | pass |
+
+Fixed during the run: the publish dialog's status (S14 "Dialog/Status", built by T077):
+`PublishDialog.tsx` `PublishStatusDialog` now carries `role="status"` on the dialog's one content
+column, which stays while "Publishing…" ("Saving…") turns into "Published" ("Saved"), instead of a
+second status inserted with its text; `FeedbackLoader`'s own status sits inside it and never
+changes. Behaviour, wording and look unchanged. Open for a person: the screen reader's reading of
+every announcement above (NVDA or VoiceOver).
+
+### 6.8 Screenshot matrix (T096, 2026-11-09)
+
+Quickstart V11, by a task agent with playwright-core 1.48.2 and Chromium 156 (`/usr/bin/chromium`),
+against the dev server whose backend runs the in-memory fake EUDIPLO; a Firefox 158 spot check
+with the playwright-firefox tools. Two widths per state:
+
+- **1440**: a 1455 × 900 window (a 1440 px page beside the 15 px scrollbar).
+- **320 @ 200 %**: a 320 px window at 200 % zoom, run as the **equivalent CSS-pixel viewport,
+  160 × 320 CSS px at device scale 2** (the screenshots are 320 px wide). `document.body.style.zoom
+  = '2'` on a 320 px window misbehaved and was not used: the media and container queries still saw
+  320 px while the content had 160, sticky and fixed parts landed mid-page in the screenshots, the
+  h1 clipped where the 160 px layout breaks it, and `getBoundingClientRect` mixed zoomed and
+  unzoomed coordinates. The browser's own zoom shrinks the CSS viewport the same way (Chrome at
+  200 % on a 320 px window: `innerWidth` 160), so the CSS viewport is the faithful equivalent. At
+  the start of the run every route already passed at **320 CSS px** (the WCAG 1.4.10 reflow width,
+  = 1280 px at 400 % or 640 px at 200 %, the width the §5 tables call "320 px (200 %)"); at 160 CSS
+  px eleven of fifteen routes scrolled sideways or cut content. The fixes below make 160 CSS px
+  pass.
+
+Per screenshot the script read: `horizontal_scroll` = `documentElement.scrollWidth` beyond its
+`clientWidth` (headless Chromium keeps a 15 px scrollbar, so the 160 px window has 145 px of page);
+`hidden_content` = any visible text or control past the window's left or right edge, any element
+whose text is cut by `overflow: hidden` without the design's "…" (`truncate`, which the header's
+name, the row descriptions and the URLs use by design), any box that scrolls sideways inside the
+page, any open dialog, menu, tooltip, toast or alert outside the window (fixed) or the document
+(absolute), or cut vertically without scrolling; and "Save and exit" (or "Saving…") with its label
+visible and uncut. A dialog or menu taller than the window scrolls inside (noted in the row); that
+keeps its content reachable. Full-page screenshots, except where a modal dialog is open (window
+screenshot); Playwright's full-page capture draws a sticky footer where the first window ended, an
+artefact of the capture, not of the page. States the stack can't make are routed answers of the
+backend's shape (flat `{error, message[, error_id]}`), marked "routed"; "(T096 …)" data are the
+agent's own copies. Screenshots: the scratchpad's `phase11/T096/shots/` (`<file>-w.png` at 1440,
+`-n.png` at 320 @ 200 %), not committed. Scripts: `phase11/T096/s1.mjs` … `s7.mjs`, `extra.mjs`, `extra2.mjs` (`runall.sh` runs s1–s7).
+
+**Fixed during the run** (each a UI task of its screen; all of them only change windows under
+320 CSS px, the new `narrow:` variant `@media (width < 20rem)`, except where the row says
+otherwise):
+
+| screen (S#, task that built it) | file | what failed at 320 @ 200 % | fix |
+|---|---|---|---|
+| every screen (overlay, T006) | `frontend/src/index.css` | words wider than their line pushed the page sideways (the details' summary, the alerts, the step header); 24 px card paddings and nested group indents left a few px for text (the rules step one letter per line, 34 000 px tall); KERN's alert put its title in 15 px beside the 32 px icon; KERN's dialogs kept 32 px sides (content 49 px wide, the dialogs scrolled sideways); `whitespace-nowrap` / `shrink-0` parts wider than their row (badges, buttons, the "Choose documents" step name, the offer's two buttons) | the `narrow` custom variant and one unlayered `@media (width < 20rem)` block: `overflow-wrap: anywhere`; the horizontal paddings and gaps of 16 px and more halved (`p-`, `px-`, `pl-`, `pr-`, `gap-`, `gap-x-` 16–48, `pl-64`, `pl-96`); `.whitespace-nowrap` wraps and `.shrink-0` is at most its row's width; KERN buttons 8 px sides (label 4); KERN's alert header wraps (icon above the title), 8 / 12 px sides; KERN's dialogs 12 px sides with the title on its own line under the × (`wrap-reverse`) |
+| L2 header (T031, T033) | `components/TopBar/index.tsx` | the connection pill ("Your connections / name · status") is one 48 px line: the status pill ran 77–130 px past the window; T033's note: the sticky header took 152 of 256 px at 400 % (320 × 256) | the pill wraps (height auto, radius 12) and "Your connections" may wrap; the header sticks only in windows ≥ 320 CSS px wide **and** ≥ 480 px tall (the wizard footer's rule), otherwise it scrolls away (WCAG 1.4.10); changes the 1440 frame: no |
+| L3 wizard shell (T033) | `components/WizardLayout/index.tsx` | with the header no longer sticky in short windows, `--wizard-sticky-top` still counted its height | counts the header only while it sticks (`isSticky(header)`) |
+| L3 step line (T032) | `components/WizardProgress/index.tsx` | "Next: Documents" ran 65 px past the window; the edit flow's four step buttons 90 px | the bar takes its own row between the two texts; the edit flow's steps stack |
+| S4 overview rows (T044) | `pages/FormConnectionList/constants.ts` | the row's actions (`shrink-0`) were wider than the list card: "Edit" and the bin scrolled sideways inside the list (247 > 111) | status, date and actions `max-w-full` (their buttons wrap); no change at 1440 (they fit) |
+| S4/S15 status pill (T019) | `components/ConnectionStatusBadge/index.tsx` | "Deactivated" (111 px) in a 79 px row | `max-w-full`; under 320 CSS px its label wraps and the pill grows |
+| S5 offer (T045) | `components/LocalDraftsOffer/LocalDraftItem.tsx` | "Discard" and "Resume editing" side by side: 153 px past the window | `flex-wrap` (no change where they fit) |
+| L3/S6/S8/S9 toasts (T036) | `components/Toast/index.tsx`, `constants.ts`, `ToastMessage.tsx` | the failed-save toast (text, error ID, "Try again") was 440 px tall in a 320 px window, half of it above the window; a toast with an action (stays until used) covered the page's last controls, "Set rules" under "Personal ID removed. Undo" (the footer doesn't stick in such a window) | under 320 CSS px the toast region is `sticky` at the bottom (it keeps a place of its own at the end of the page, so at the end it covers nothing), the action wraps under the text and a long toast scrolls in half the window |
+| S7 step 1 (T049) | `pages/FormConnectionEditor/ConnectionStep.tsx` | the card head's icon tile beside the title left 24 px for "Which service are you connecting?" | the tile above the title |
+| S9 rules, S15 summary (T024, T025) | `components/RuleRow/index.tsx`, `components/GroupFrame/GroupHeader.tsx` | the ⋯ (and the branch mark) beside the text left 29 px for a rule in a sub-group; "Changed here" / "Removed here" ran 11–19 px past the left edge | the mark and the actions take a line under the text, right-aligned, and wrap |
+| S10 rule editor (T061) | `RulesStep/RuleEditor/ChoiceMenu.tsx`, `constants.ts`, `Picker.tsx`, `ConditionFields.tsx`, `EditorActions.tsx` | a menu with a note ("Only documents you added are listed.") squeezed its list to 0 px (the options unreachable) and the note out of the box; the "Text to compare with" field's `min-w-140` ran 25 px past the window; a menu across the editor kept 24 px insets (43 px wide); "Driving licence" one letter per line in its picker; "Save rule" one letter per line beside "Discard rule" | the whole menu scrolls (the list doesn't shrink); `narrow:min-w-0`; menus across the editor span it; a picker's label takes its own line under the icons; the editor's actions wrap |
+| S10 values picker (T027) | `components/ValuesPicker/index.tsx`, `constants.ts` | **at every width**: when the editor opens the picker itself (after the check is chosen) it used the unmeasured default (beside the field, 300 px): at 160 CSS px it ran 185 px past the window; at 320 @ 200 % its list squeezed as the ChoiceMenu's | measured with `placementFrom()` whenever it opens (a layout effect, before it shows), as a click opens it (CLAUDE.md "Popups"); under 320 CSS px the whole menu scrolls and spans the editor |
+| S13 test step (T071, T072) | `TestStep/ResultTable.tsx`, `ResultRow.tsx`, `PersonaChip.tsx`, `GenerateAllButton.tsx`, `DateOfBirthField.tsx` | the result table's two columns left 10 px for the rule (one letter per line); the persona chips (`nowrap`) were cut by the panel; the "Edit data" dialog's two 140 px fields scrolled the dialog sideways (152 > 113) | the message cell stacks under its rule (the table stays a table: Chromium's tree keeps 2 column headers and 4 cells); chips and "Generate all" `max-w-full`, the chip's name wraps; the two fields stack |
+| S15/S16 details (T078, T079) | `pages/FormConnectionDetail/StatusBand.tsx`, `DetailAccordion.tsx` | the band's h1 one letter per line beside the icon and the ⋯; the ⋯ menu, placed across (`full`), took the 48 px actions box as its frame (16 px wide); "Hide summary" (`shrink-0`) and the summary's body (an `auto` grid track sized to its content: 234 px) ran past the window | the text and the actions take rows of their own, the actions box is `static` so the menu spans the band; the accordion's toggle `max-w-full` and its grid track `minmax(0, 1fr)` (no change at 1440) |
+
+Data: on `designer` the agent's own "T096 …" connections (`seed8.py T096`), stored drafts
+(`seed9.py draft`, two to publish, one without rules, four with one kind of finding each, one with
+an empty variant), the drafts the flows saved ("T096 toast …"); on `p9-consent`, `p9-account`,
+`p9-approval` the `seed9.py` clients, agents, a token, connections, drafts and approval requests
+(fresh ones just before S21, they expire after 10 minutes). All deleted afterwards (`seed9.py
+cleanup T096` on the four accounts; no "T096" connection or agent access left; the six seeded
+connections of `designer` only read, never saved). The OAuth clients registered by `seed9.py`
+stay (no delete). Gates after the fixes: `npm run lint && npm test && npm run build` pass (rules
+2351, frontend 969, mcp 408 tests, as after T095).
+
+**The matrix** (the final run; every row after the fixes):
+
+**Result**: 450 rows (223 states at 1440 and at 320 @ 200 %, plus L1 at about 1280 and 1000 px), 0
+fail after the fixes above; 64 rows have a dialog or menu that scrolls inside at 320 @ 200 % (its
+content stays reachable). L4 is covered by S15 and S16; L2, which has no States line, by its menu
+(on the overview and in a flow), the scrolled header and the long name (S15). The states the stack
+can't make are routed and say so: expired, cancelled and another member's approval requests, the
+empty account page, the long names, the 5xx / 404 / 409 answers, slow answers for the loading and
+working states, a blocked `localStorage`, and the workers' module blocked for "generation failed".
+Before the final run the same scripts found the failures of the fix table (at 320 @ 200 % only,
+except the values picker's placement); the rows are the final run's (16:42–17:04) and two
+supplementary scripts' (`extra.mjs`, `extra2.mjs`, 17:05–17:15).
+
+**Not reached as screenshots** (no row; each is behaviour that another check covers, or the
+browser's own UI): S9 "undo-able names" and "Standard's delete-group dialog naming variants" (the
+delete-group dialog and a refused name are rows; the seeded data has no group in a draft with
+variants); S11 "an inherited group dissolving" (W12, covered by `branches.test.ts`); S13 "class
+dates coming back, group members, the name kept, arrow keys, focus" (W14: behaviour, T075 and
+T095); S17 "focus returned to the opener" and S19 "allow and deny with the redirect" (T095's
+keyboard walk; the redirect leaves the app); L3 "the Leave site? warning" (the browser's own
+dialog: needs a person, T054).
+
+| route | state | width | horizontal_scroll | hidden_content | result |
+|---|---|---|---|---|---|
+| `/login` | L1 about 1280 px | 1280 | no | none (the login art slides 94 px past the left edge by design (U02 #12, T034)) | pass |
+| `/forgot-password` | L1 about 1280 px | 1280 | no | none (the login art slides 94 px past the left edge by design (U02 #12, T034)) | pass |
+| `/login` | L1 about 1000 px | 1000 | no | none | pass |
+| `/forgot-password` | L1 about 1000 px | 1000 | no | none | pass |
+| `/login` | S1 default (L1) | 1440 | no | none | pass |
+| `/login` | S1 filled | 1440 | no | none | pass |
+| `/login` | S1 password shown (toggle pressed) | 1440 | no | none | pass |
+| `/login` | S1 failed sign-in (alert, both fields invalid) | 1440 | no | none | pass |
+| `/login` | S1 server error with error ID | 1440 | no | none | pass |
+| `/login` | S1 request running ("Log in" busy) | 1440 | no | none | pass |
+| `/` | S1 after sign-in: loading frame "Loading your connections…" | 1440 | no | none | pass |
+| `/login` | S1 after signing out: "You’re logged out." toast | 1440 | no | none | pass |
+| `/forgot-password` | S2 default (L1) | 1440 | no | none | pass |
+| `/login` | S1 default (L1) | 320 @ 200 % | no | none | pass |
+| `/login` | S1 filled | 320 @ 200 % | no | none | pass |
+| `/login` | S1 password shown (toggle pressed) | 320 @ 200 % | no | none | pass |
+| `/login` | S1 failed sign-in (alert, both fields invalid) | 320 @ 200 % | no | none | pass |
+| `/login` | S1 server error with error ID | 320 @ 200 % | no | none | pass |
+| `/login` | S1 request running ("Log in" busy) | 320 @ 200 % | no | none | pass |
+| `/` | S1 after sign-in: loading frame "Loading your connections…" | 320 @ 200 % | no | none | pass |
+| `/login` | S1 after signing out: "You’re logged out." toast | 320 @ 200 % | no | none | pass |
+| `/forgot-password` | S2 default (L1) | 320 @ 200 % | no | none | pass |
+| `/` | S4 published, deactivated and draft rows | 1440 | no | none | pass |
+| `/` | L2 account menu open | 1440 | no | none | pass |
+| `/` | L2 content scrolled under the header (header white) | 1440 | no | none | pass |
+| `/` | S4 search without results | 1440 | no | none | pass |
+| `/` | S4 search with results ("3 of 6") | 1440 | no | none | pass |
+| `/` | S4 / S17 delete dialog (draft row) | 1440 | no | none | pass |
+| `/` | S4 / S17 delete dialog (published row) | 1440 | no | none | pass |
+| `/` | S17 edit entry dialog "Edit “<name>”?" from a row | 1440 | no | none | pass |
+| `/` | S4 long name and description (routed) | 1440 | no | none | pass |
+| `/` | S4 loading (skeleton rows) | 1440 | no | none | pass |
+| `/` | S4 / S22 error state with error ID and "Try again" | 1440 | no | none | pass |
+| `/` | S3 welcome page (routed empty list) | 1440 | no | none | pass |
+| `/` | S5 offer, one draft (on S4) | 1440 | no | none | pass |
+| `/` | S5 offer, several drafts (on S4) | 1440 | no | none | pass |
+| `/` | S3 welcome page with the offer above it (S5) | 1440 | no | none | pass |
+| `/form-connections/new` | S5 offer above step 1 | 1440 | no | none | pass |
+| `/` | S5 offer after another tab discarded one (heading form) | 1440 | no | none | pass |
+| `/` | S5 discard dialog | 1440 | no | none | pass |
+| `/` | S5 after discarding (status, focus on the h1) | 1440 | no | none | pass |
+| `/` | S4 after-save toast "Draft saved. …" | 1440 | no | none | pass |
+| `/form-connections/new` | S5 blocked storage: step 1 without local drafts (silent) | 1440 | no | none | pass |
+| `/` | S5 blocked storage: overview without the offer | 1440 | no | none | pass |
+| `/` | S4 published, deactivated and draft rows | 320 @ 200 % | no | none | pass |
+| `/` | L2 account menu open | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/` | L2 content scrolled under the header (header white) | 320 @ 200 % | no | none | pass |
+| `/` | S4 search without results | 320 @ 200 % | no | none | pass |
+| `/` | S4 search with results ("3 of 6") | 320 @ 200 % | no | none | pass |
+| `/` | S4 / S17 delete dialog (draft row) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/` | S4 / S17 delete dialog (published row) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/` | S17 edit entry dialog "Edit “<name>”?" from a row | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/` | S4 long name and description (routed) | 320 @ 200 % | no | none | pass |
+| `/` | S4 loading (skeleton rows) | 320 @ 200 % | no | none | pass |
+| `/` | S4 / S22 error state with error ID and "Try again" | 320 @ 200 % | no | none | pass |
+| `/` | S3 welcome page (routed empty list) | 320 @ 200 % | no | none | pass |
+| `/` | S5 offer, one draft (on S4) | 320 @ 200 % | no | none | pass |
+| `/` | S5 offer, several drafts (on S4) | 320 @ 200 % | no | none | pass |
+| `/` | S3 welcome page with the offer above it (S5) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S5 offer above step 1 | 320 @ 200 % | no | none | pass |
+| `/` | S5 offer after another tab discarded one (heading form) | 320 @ 200 % | no | none | pass |
+| `/` | S5 discard dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/` | S5 after discarding (status, focus on the h1) | 320 @ 200 % | no | none | pass |
+| `/` | S4 after-save toast "Draft saved. …" | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S5 blocked storage: step 1 without local drafts (silent) | 320 @ 200 % | no | none | pass |
+| `/` | S5 blocked storage: overview without the offer | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S7 empty (L3 creating, step 1) | 1440 | no | none | pass |
+| `/form-connections/new` | S7 the name ⓘ’s bubble (T049) | 1440 | no | none | pass |
+| `/form-connections/new` | S7 missing name "Enter a name for the connection." (C7) | 1440 | no | none | pass |
+| `/form-connections/new` | S7 too-long name and description (W10) | 1440 | no | none | pass |
+| `/form-connections/new` | S7 the API’s 400 message (W10) | 1440 | no | none | pass |
+| `/form-connections/new` | S6 leave dialog "Leave this connection?" | 1440 | no | none | pass |
+| `/form-connections/new` | L2 account menu open in a flow | 1440 | no | none | pass |
+| `/form-connections/new` | S6 log-out dialog "Save before you log out?" | 1440 | no | none | pass |
+| `/form-connections/new` | S6 / L3 failed save: toast with "Try again" and the error ID | 1440 | no | none | pass |
+| `/form-connections/new` | S6 / L3 saving: "Saving…" aria-disabled, "Saving draft…" | 1440 | no | none | pass |
+| `/form-connections/new` | S8 no document (empty panel) | 1440 | no | none | pass |
+| `/form-connections/new` | S8 "Set rules" aria-disabled with "Add a document first" | 1440 | no | none | pass |
+| `/form-connections/new` | S8 the search card without a match | 1440 | no | none | pass |
+| `/form-connections/new` | S8 the search card open ("Available") | 1440 | no | none | pass |
+| `/form-connections/new` | S8 a document added | 1440 | no | none | pass |
+| `/form-connections/new` | S8 two documents | 1440 | no | none | pass |
+| `/form-connections/new` | S8 hover on a document (the trash) | 1440 | no | none | pass |
+| `/form-connections/new` | S8 removal confirmation "Remove Personal ID?" | 1440 | no | none | pass |
+| `/form-connections/new` | S8 undo toast "Personal ID removed." | 1440 | no | none | pass |
+| `/form-connections/new` | S8 no data dialog "No data selected in 1 document" | 1440 | no | none | pass |
+| `/form-connections/new` | S8 "1 document needs data" with the line | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | L3 creating a stored draft (Draft badge), documents step | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S8 removal of a document that rules use (dialog naming the rules) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | L3 stored draft on step 1 (Draft badge) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S8 data the catalog no longer offers (W6 warning with "Remove it") | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_changed | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_published | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_deleted | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 restore dialog "Restore your unsaved changes?" | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 / L3 loading a flow (W10 skeleton) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 / L3 load error with the error ID (W10) | 1440 | no | none | pass |
+| `/get-started` | S6 first-connection flow, step 1 | 1440 | no | none | pass |
+| `/get-started` | S6 first-connection flow: validation | 1440 | no | none | pass |
+| `/get-started` | S6 first-connection flow reopened from a bookmark (W11) | 1440 | no | none | pass |
+| `/get-started → /` | S6 bookmark while connections exist: the overview (W11) | 1440 | no | none | pass |
+| `/form-connections/new` | S7 empty (L3 creating, step 1) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S7 the name ⓘ’s bubble (T049) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S7 missing name "Enter a name for the connection." (C7) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S7 too-long name and description (W10) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S7 the API’s 400 message (W10) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S6 leave dialog "Leave this connection?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | L2 account menu open in a flow | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | S6 log-out dialog "Save before you log out?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | S6 / L3 failed save: toast with "Try again" and the error ID | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S6 / L3 saving: "Saving…" aria-disabled, "Saving draft…" | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 no document (empty panel) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 "Set rules" aria-disabled with "Add a document first" | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 the search card without a match | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 the search card open ("Available") | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 a document added | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 two documents | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 hover on a document (the trash) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 removal confirmation "Remove Personal ID?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | S8 undo toast "Personal ID removed." | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S8 no data dialog "No data selected in 1 document" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | S8 "1 document needs data" with the line | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | L3 creating a stored draft (Draft badge), documents step | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S8 removal of a document that rules use (dialog naming the rules) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | L3 stored draft on step 1 (Draft badge) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S8 data the catalog no longer offers (W6 warning with "Remove it") | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_changed | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_published | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 conflict on save: draft_deleted | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 restore dialog "Restore your unsaved changes?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 / L3 loading a flow (W10 skeleton) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S6 / L3 load error with the error ID (W10) | 320 @ 200 % | no | none | pass |
+| `/get-started` | S6 first-connection flow, step 1 | 320 @ 200 % | no | none | pass |
+| `/get-started` | S6 first-connection flow: validation | 320 @ 200 % | no | none | pass |
+| `/get-started` | S6 first-connection flow reopened from a bookmark (W11) | 320 @ 200 % | no | none | pass |
+| `/get-started → /` | S6 bookmark while connections exist: the overview (W11) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S9 no rules | 1440 | no | none | pass |
+| `/form-connections/new` | S10 new rule (empty editor) | 1440 | no | none | pass |
+| `/form-connections/new` | S10 "Save rule" aria-disabled with its explanation (W21) | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 rules, groups, a sub-group and a group message | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the pinned head and tabs while scrolling | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a group’s menu (⋯) | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 delete-group dialog | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a rule’s menu (⋯) | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the AND/OR menu | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the switched top-level AND/OR and its note (W12) | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a refused name (taken) with the focus kept | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S10 editing a rule inside a sub-group | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 rules (stored draft, two top-level rules) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode at the top level (one rule ticked) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode with two rules ticked ("Group rules") | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 grouped (toast) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode inside a group | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 delete-rule dialog | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 a rule deleted with "Undo" (toast) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 a rule whose data is no longer requested | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 saving failed (toast with the error ID) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit?step=rules&variant=…` | S9 deep-link notice: the variant no longer exists (W15) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit?step=rules&variant=main&item=…` | S9 deep-link notice: the rule or group no longer exists (W15) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the data menu open | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: text (with "Match letter case") | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 errors (a value missing) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the message edited | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the checks menu open | 1440 | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: age | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: date (expiry) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the part menu open (with its search field) | 1440 | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the values picker open (the editor opens it after the check) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: licence classes with its part | 1440 | no | none | pass |
+| `/form-connections/new` | S9 no rules | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 new rule (empty editor) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 "Save rule" aria-disabled with its explanation (W21) | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 rules, groups, a sub-group and a group message | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the pinned head and tabs while scrolling | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a group’s menu (⋯) | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 delete-group dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a rule’s menu (⋯) | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the AND/OR menu | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 the switched top-level AND/OR and its note (W12) | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S9 a refused name (taken) with the focus kept | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S10 editing a rule inside a sub-group | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 rules (stored draft, two top-level rules) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode at the top level (one rule ticked) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode with two rules ticked ("Group rules") | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 grouped (toast) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 select mode inside a group | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 delete-rule dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 a rule deleted with "Undo" (toast) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 a rule whose data is no longer requested | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S9 saving failed (toast with the error ID) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit?step=rules&variant=…` | S9 deep-link notice: the variant no longer exists (W15) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit?step=rules&variant=main&item=…` | S9 deep-link notice: the rule or group no longer exists (W15) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the data menu open | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: text (with "Match letter case") | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 errors (a value missing) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the message edited | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the checks menu open | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: age | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: date (expiry) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the part menu open (with its search field) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 the values picker open (the editor opens it after the check) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S10 condition: licence classes with its part | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 two variants (tabs), Standard selected, a redundant finding (S12) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant with a changed rule ("Changed here") and the link strip | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant with an added rule ("Added here") | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant’s menu (⋯) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: new variant | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: name missing | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: name taken | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: edit a variant | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 renaming Standard | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the "Copy to variant" popover | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 deleting a rule of Standard that variants inherit (dialog) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 propagation: Standard removed a rule, the variant follows (W12) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 an inherited rule removed in a variant (removed item) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 delete-variant dialog | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a deleted variant with "Undo" (toast) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S11 / S12 no variant, no findings | 1440 | no | none | pass |
+| `/form-connections/bcdf1fe3-f8d2-484a-a572-00b4d78938c3/edit` | S12 redundant only | 1440 | no | none | pass |
+| `/form-connections/8fe260f6-475a-411d-a401-dd7311a39649/edit` | S12 today-only conflict | 1440 | no | none | pass |
+| `/form-connections/156d163f-2e5a-4478-ad44-2c1af39e7de6/edit` | S12 duplicates only | 1440 | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 an unselected tab with the findings icon | 1440 | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 the tab icon’s tooltip | 1440 | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 conflict (banner, notes, outlines) in a variant | 1440 | no | none | pass |
+| `/form-connections/fe31b4c7-c3c1-4a66-86de-7dc6f87166db/edit` | S12 conflict and duplicates (published connection, edit flow) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 loading (first open, skeletons) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 a persona (default selection) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 met | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 not met | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the edit dialog | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the edit dialog with an error | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 couldn’t be checked (fields cleared) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the regeneration question (changed data) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 one persona regenerating (ring, test-day line) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the "Generate all" dialog | 1440 | no | none | pass |
+| `/form-connections/b17d4704-2dfe-4812-bbf0-abb21efa1389/edit` | S13 a variant without rules | 1440 | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S13 many rules (groups, sub-group) | 1440 | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 generation failed (the workers’ module blocked) | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 two variants (tabs), Standard selected, a redundant finding (S12) | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant with a changed rule ("Changed here") and the link strip | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant with an added rule ("Added here") | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a variant’s menu (⋯) | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: new variant | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: name missing | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: name taken | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: edit a variant | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 renaming Standard | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the "Copy to variant" popover | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 deleting a rule of Standard that variants inherit (dialog) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 propagation: Standard removed a rule, the variant follows (W12) | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 an inherited rule removed in a variant (removed item) | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 delete-variant dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 a deleted variant with "Undo" (toast) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S11 / S12 no variant, no findings | 320 @ 200 % | no | none | pass |
+| `/form-connections/bcdf1fe3-f8d2-484a-a572-00b4d78938c3/edit` | S12 redundant only | 320 @ 200 % | no | none | pass |
+| `/form-connections/8fe260f6-475a-411d-a401-dd7311a39649/edit` | S12 today-only conflict | 320 @ 200 % | no | none | pass |
+| `/form-connections/156d163f-2e5a-4478-ad44-2c1af39e7de6/edit` | S12 duplicates only | 320 @ 200 % | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 an unselected tab with the findings icon | 320 @ 200 % | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 the tab icon’s tooltip | 320 @ 200 % | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S12 conflict (banner, notes, outlines) in a variant | 320 @ 200 % | no | none | pass |
+| `/form-connections/fe31b4c7-c3c1-4a66-86de-7dc6f87166db/edit` | S12 conflict and duplicates (published connection, edit flow) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 loading (first open, skeletons) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 a persona (default selection) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 met | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 not met | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the edit dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the edit dialog with an error | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 couldn’t be checked (fields cleared) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the regeneration question (changed data) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 one persona regenerating (ring, test-day line) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 the "Generate all" dialog | 320 @ 200 % | no | none | pass |
+| `/form-connections/b17d4704-2dfe-4812-bbf0-abb21efa1389/edit` | S13 a variant without rules | 320 @ 200 % | no | none | pass |
+| `/form-connections/76abafb6-2963-45dc-a0bc-14019c54f62e/edit` | S13 many rules (groups, sub-group) | 320 @ 200 % | no | none | pass |
+| `/form-connections/be5e271b-c42e-43bd-9a5c-0a9a98f43a60/edit` | S13 generation failed (the workers’ module blocked) | 320 @ 200 % | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18/edit` | S14 summary (Standard only) | 1440 | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18/edit` | S14 failed (alert with the error ID over the summary) | 1440 | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18/edit` | S14 conflict (draft changed meanwhile) | 1440 | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18/edit` | S14 publishing ("Publishing…") | 1440 | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18/edit` | S14 published ("Published. Opening your connection page…") | 1440 | no | none | pass |
+| `/form-connections/1ec678a8-8731-4097-b8ae-1d2998a07a18` | S15 active, Links open from the publish dialog | 1440 | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S14 summary with variants and warnings | 1440 | no | none | pass |
+| `/form-connections/6e40c70e-90c0-4470-a435-01cb3416272b/edit` | S14 without rules ("Publish without rules?") | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 active, Summary open from "View" (L4) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 a variant tab in the summary (Ambulance) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 a variant tab in the summary (School transport) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 "✓ Copied" (request link) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 the "Request link" ⓘ | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 the menu (⋯) | 1440 | no | none | pass |
+| `/form-connections/32655494-b73b-4bd1-af5b-62852441616e` | S15 findings on the summary | 1440 | no | none | pass |
+| `/form-connections/38045b88-8d88-43ea-b253-77da0638250c` | S15 deactivated (L4) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 long name, description and URLs (routed) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 loading (skeletons) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 / S22 error state with the error ID and the way back | 1440 | no | none | pass |
+| `/form-connections/<unknown>` | S15 / S22 deleted or unknown connection (not found, way back) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 delete dialog (published) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 working (delete running) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 a failure with the error ID (delete, 5xx) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 delete of a connection deleted meanwhile (404, T082) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 edit entry dialog "Edit “<name>”?" from the details | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 deactivate dialog | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 deactivate failed with the error ID | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 deactivated after "Deactivate" (toast; the Links accordion, T095) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 reactivate dialog | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 active again (toast) | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 a complete draft | 1440 | no | none | pass |
+| `/form-connections/414d27ee-76b7-4ffb-a208-2169561c0713` | S16 an incomplete draft (placeholders) | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 / S17 delete dialog (draft) | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 409 | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 404 | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 5xx | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 loading | 1440 | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 error state | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 step 1 in the edit flow (the note, "Active", disabled Save) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the disabled Save with its explanation | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 documents step in the edit flow | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 rules step in the edit flow | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 test step in the edit flow | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the leave dialog "Save your changes?" | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the discard dialog "Discard your changes?" | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the save dialog "Save changes?" | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the save dialog’s conflict (409 rules_changed) | 1440 | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S18 back on the details with the toast | 1440 | no | none | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a/edit` | S14 summary (Standard only) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a/edit` | S14 failed (alert with the error ID over the summary) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a/edit` | S14 conflict (draft changed meanwhile) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a/edit` | S14 publishing ("Publishing…") | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a/edit` | S14 published ("Published. Opening your connection page…") | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/0a92ca6d-6b48-4955-9b7c-03c7fbf4df4a` | S15 active, Links open from the publish dialog | 320 @ 200 % | no | none | pass |
+| `/form-connections/3a84a4a7-40eb-46f8-b203-130dfa5cbe4e/edit` | S14 summary with variants and warnings | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/6e40c70e-90c0-4470-a435-01cb3416272b/edit` | S14 without rules ("Publish without rules?") | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 active, Summary open from "View" (L4) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 a variant tab in the summary (Ambulance) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 a variant tab in the summary (School transport) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 "✓ Copied" (request link) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 the "Request link" ⓘ | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 the menu (⋯) | 320 @ 200 % | no | none | pass |
+| `/form-connections/32655494-b73b-4bd1-af5b-62852441616e` | S15 findings on the summary | 320 @ 200 % | no | none | pass |
+| `/form-connections/38045b88-8d88-43ea-b253-77da0638250c` | S15 deactivated (L4) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 long name, description and URLs (routed) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 loading (skeletons) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 / S22 error state with the error ID and the way back | 320 @ 200 % | no | none | pass |
+| `/form-connections/<unknown>` | S15 / S22 deleted or unknown connection (not found, way back) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 delete dialog (published) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 working (delete running) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 a failure with the error ID (delete, 5xx) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 delete of a connection deleted meanwhile (404, T082) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 edit entry dialog "Edit “<name>”?" from the details | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 deactivate dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 deactivate failed with the error ID | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 deactivated after "Deactivate" (toast; the Links accordion, T095) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S17 reactivate dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S15 active again (toast) | 320 @ 200 % | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 a complete draft | 320 @ 200 % | no | none | pass |
+| `/form-connections/414d27ee-76b7-4ffb-a208-2169561c0713` | S16 an incomplete draft (placeholders) | 320 @ 200 % | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 / S17 delete dialog (draft) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 409 | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 404 | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 delete error 5xx | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 loading | 320 @ 200 % | no | none | pass |
+| `/form-connections/d31faf2d-27c6-453e-9727-56fb3d51b11a` | S16 error state | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 step 1 in the edit flow (the note, "Active", disabled Save) | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the disabled Save with its explanation | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 documents step in the edit flow | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 rules step in the edit flow | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 test step in the edit flow | 320 @ 200 % | no | none | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the leave dialog "Save your changes?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the discard dialog "Discard your changes?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the save dialog "Save changes?" | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb/edit` | S18 the save dialog’s conflict (409 rules_changed) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/ab29ac43-40ca-4f19-9487-a8d19b6125eb` | S18 back on the details with the toast | 320 @ 200 % | no | none | pass |
+| `/authorize` | S19 the request with the levels preselected from the scope | 1440 | no | none | pass |
+| `/authorize` | S19 the step-up line (more access than before) | 1440 | no | none | pass |
+| `/authorize` | S19 the failed authorization with its error ID | 1440 | no | none | pass |
+| `/authorize` | S19 allow running (working) | 1440 | no | none | pass |
+| `/authorize` | S19 the invalid request shown on the page | 1440 | no | none | pass |
+| `/account` | S20 agents and tokens listed | 1440 | no | none | pass |
+| `/account` | S20 an agent’s menu (⋯) | 1440 | no | none | pass |
+| `/account` | S20 "Change access level" dialog | 1440 | no | none | pass |
+| `/account` | S20 "Change access level" failure | 1440 | no | none | pass |
+| `/account` | S20 "Revoke" dialog | 1440 | no | none | pass |
+| `/account` | S20 "Revoke" failure | 1440 | no | none | pass |
+| `/account` | S20 "Create token" dialog | 1440 | no | none | pass |
+| `/account` | S20 "Create token" failure | 1440 | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 the token shown once in its dialog (copyable field) | 1440 | no | none | pass |
+| `/account` | S20 the token copied | 1440 | no | none | pass |
+| `/account` | S20 empty (the Konnekt sentence; routed) | 1440 | no | none | pass |
+| `/account` | S20 the menu entry "Your account" (user menu open) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 publish (the stored draft’s summary and findings) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 reactivate (the connection and its URLs) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 delete | 1440 | no | none | pass |
+| `/approvals/:id` | S21 delete a draft | 1440 | no | none | pass |
+| `/approvals/:id` | S21 deactivate | 1440 | no | none | pass |
+| `/approvals/:id` | S21 working ("Working…") | 1440 | no | none | pass |
+| `/approvals/:id` | S21 failed with "Try again" and the error ID | 1440 | no | none | pass |
+| `/approvals/:id` | S21 done (approved) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 declined | 1440 | no | none | pass |
+| `/approvals/:id` | S21 replaced (a newer request) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 expired (routed) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 cancelled with its reason (routed) | 1440 | no | none | pass |
+| `/approvals/:id` | S21 another team member’s request (routed) | 1440 | no | none | pass |
+| `/account → /login` | S22 the sign-in guard (signed out, requested route kept) | 1440 | no | none | pass |
+| `/no-such-page → /` | S22 an unknown route redirects to the overview | 1440 | no | none | pass |
+| `/approvals/<unknown>` | S22 not found (NotFound, the way back) | 1440 | no | none | pass |
+| `/authorize` | S19 the request with the levels preselected from the scope | 320 @ 200 % | no | none | pass |
+| `/authorize` | S19 the step-up line (more access than before) | 320 @ 200 % | no | none | pass |
+| `/authorize` | S19 the failed authorization with its error ID | 320 @ 200 % | no | none | pass |
+| `/authorize` | S19 allow running (working) | 320 @ 200 % | no | none | pass |
+| `/authorize` | S19 the invalid request shown on the page | 320 @ 200 % | no | none | pass |
+| `/account` | S20 agents and tokens listed | 320 @ 200 % | no | none | pass |
+| `/account` | S20 an agent’s menu (⋯) | 320 @ 200 % | no | none | pass |
+| `/account` | S20 "Change access level" dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 "Change access level" failure | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 "Revoke" dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 "Revoke" failure | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 "Create token" dialog | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 "Create token" failure | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 the token shown once in its dialog (copyable field) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 the token copied | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/account` | S20 empty (the Konnekt sentence; routed) | 320 @ 200 % | no | none | pass |
+| `/account` | S20 the menu entry "Your account" (user menu open) | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/approvals/:id` | S21 publish (the stored draft’s summary and findings) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 reactivate (the connection and its URLs) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 delete | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 delete a draft | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 deactivate | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 working ("Working…") | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 failed with "Try again" and the error ID | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 done (approved) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 declined | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 replaced (a newer request) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 expired (routed) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 cancelled with its reason (routed) | 320 @ 200 % | no | none | pass |
+| `/approvals/:id` | S21 another team member’s request (routed) | 320 @ 200 % | no | none | pass |
+| `/account → /login` | S22 the sign-in guard (signed out, requested route kept) | 320 @ 200 % | no | none | pass |
+| `/no-such-page → /` | S22 an unknown route redirects to the overview | 320 @ 200 % | no | none | pass |
+| `/approvals/<unknown>` | S22 not found (NotFound, the way back) | 320 @ 200 % | no | none | pass |
+| `/form-connections/:id` | L2 content scrolled under the header (header white) | 1440 | no | none | pass |
+| `/form-connections/:id` | L2 content scrolled (the header scrolls away: it sticks only from 320 CSS px wide and 480 px tall) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 condition: place of birth | 1440 | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: a reserved name ("Standard") | 1440 | no | none | pass |
+| `/form-connections/new` | S10 condition: place of birth | 320 @ 200 % | no | none | pass |
+| `/form-connections/aae1b881-eac2-41ff-96f5-5a83a38d633d/edit` | S11 the dialog: a reserved name ("Standard") | 320 @ 200 % | no | none (dialog or menu scrolls inside) | pass |
+| `/form-connections/new` | S10 condition: place of birth, its values menu open | 1440 | no | none | pass |
+| `/form-connections/new` | S10 condition: a list (nationality), its values menu open | 1440 | no | none | pass |
+| `/form-connections/new` | S10 condition: a list (nationality) | 1440 | no | none | pass |
+| `/form-connections/new` | S10 condition: a number (height) | 1440 | no | none | pass |
+| `/form-connections/new` | S10 condition: place of birth, its values menu open | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 condition: a list (nationality), its values menu open | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 condition: a list (nationality) | 320 @ 200 % | no | none | pass |
+| `/form-connections/new` | S10 condition: a number (height) | 320 @ 200 % | no | none | pass |
+
+**Firefox spot check** (Firefox 158, playwright-firefox tools, signed in as `designer`):
+
+| check | result |
+|---|---|
+| T045 / T095: the initial focus on × after a mouse click on the row's bin ("Delete “Neue Verbindung”?"), the details' ⋯ → "Deactivate" and ⋯ → "Delete connection" | × focused, `:focus-visible` false, no outline: no ring (as Chromium 156 in T095) |
+| a menu opened by a click (the details' ⋯) | the first item focused, `:focus-visible` false: no ring |
+| T061: `MenuSearchField` focused when the rule editor's data menu ("Search Driving licence") and the part menu ("Search classes") open after a click | `:focus-visible` true, the 4 px ring: as T061 found; Chromium 156 does the same (the part menu in `s10-part-menu-w.png`) |
+| 160 × 320 CSS px: `/`, a published connection's details, `/form-connections/new`, the seeded draft's rules step, a deactivated connection, `/account`, `/forgot-password`, `/login` | `scrollWidth` = `clientWidth` = 160 on each (Firefox's overlay scrollbar); the header `static` |
+
+**Decisions on the carried notes**:
+
+- **T033** (`TopBar` sticky at every size): checked at 320 × 256 CSS px (1280 × 1024 at 400 %): the
+  sticky header took 64 px on the overview and 152 px (59 %) inside a connection. Decided and fixed:
+  the header sticks only in windows at least 320 CSS px wide and 480 px tall, the rule the wizard's
+  footer already follows (`[@media(height>=30rem)]`); in shorter or narrower windows it scrolls away
+  with the page (WCAG 1.4.10). Measured after the fix: 320 × 256 `static`; 320 × 640 sticky (152 px
+  in a connection, 24 %); 640 × 450 (1280 × 900 at 200 %) `static`; 1440 × 900 sticky. No frame draws
+  a short window; the designer may want to see it (listed below).
+- **T045** (a) the local-drafts offer's h2 before the welcome page's h1: kept. Contract S3 puts the
+  offer above the page (005-S4, 001-S4.5), the heading order follows the visual order (WCAG 1.3.2),
+  and no AA criterion asks for the h1 first; the page keeps exactly one h1. (b) the dialog's initial
+  focus after a mouse click: no ring in Chromium 156 (T095) nor in Firefox 158 (above), for the row
+  delete, the details' Deactivate and Delete (all `ConfirmDialog`): no change for any
+  `ConfirmDialog`. A dialog that opens without a click (the restore question after a reload) shows
+  the ring on ×, as the browsers treat focus without a pointer as keyboard focus: correct.
+- **T048** the failed-save toast and "Saving draft…" with a screen reader: needs a person (below).
+  Retiring `UserMenu`'s "Log out and discard unsaved work?" with `logOut(onCancelled?)`: **Q8 (e) does
+  not settle it completely**, so it is left for T100 (or T099's convergence) with a note. Q8 (e) drops
+  the dialog, its list of names, "Saved drafts stay as they are." and its danger "Log out"
+  (superseding 005-S7.2–S7.5), but keeps 005-S7.1 and 005-S7.6 and says nothing about spec 005's
+  FR-019 ("discard them when the team member signs out"): without the dialog, "Log out" with
+  local drafts on the device must either discard them silently or keep them for the next sign-in,
+  and that choice (silent loss of crash-recovery work, or local drafts kept past a sign-out on a
+  shared device) is behaviour no item decides. Not changed.
+- **T049** (the name ⓘ's bubble 8 px before the icon; "it." on a fifth line): the pattern's,
+  unchanged; the bubble stays inside the window at both widths (`S7 the name ⓘ’s bubble` rows).
+- **T051** (the search card's rows highlighted on hover and focus, no `aria-activedescendant`
+  combobox): unchanged (baseline behaviour, `MenuSearchField` without combobox props); its states pass
+  at both widths (S8 rows).
+- **T061** (Firefox shows `MenuSearchField`'s 4 px ring when a click opens the menu): confirmed in
+  Firefox 158 and seen in Chromium 156 too. Kept: a text field matches `:focus-visible` on any focus
+  in both engines (the HTML heuristic for elements that take keyboard input), and the ring marks
+  where typing goes; hiding it would take `outline: none` on the field's `:focus`, which hides it
+  from keyboard users as well. FR-009's "keyboard focus only" is met for the controls a click
+  presses.
+- **T082** (deleting a published connection that was deleted meanwhile: the server's message with
+  "Try again"; the draft's 404 offers "Go to overview"): baseline, unchanged; both captured
+  (`s17-delete-404`, `s16-delete-404`); listed for the designer.
+- **T084** (the edit flow's footer at 320 px: three rows on step 1, four on the others): the same
+  at 320 @ 200 % (160 CSS px): step 1 "Discard changes" / "Choose documents" / "Save", the rules step
+  "Back" / "Discard changes" / "Test rules" / "Save", one per row, each with its label (a long one
+  wraps inside its button); in the create flow "Save and exit" keeps its label in every row of the
+  matrix (the script checked it). No narrow frame exists to compare with: unchanged.
+- **T095** (a) the Firefox check: done (above). (b) "deactivating closes an open Links accordion":
+  not reproduced. With "View links" open, ⋯ → "Deactivate" → "Deactivate connection" leaves the
+  accordion open ("Hide links", `aria-expanded="true"`), directly and after a failed attempt and
+  "Try again" (`s15-after-deactivate-w.png`), and "Activate again" keeps it open too; no change.
+
+### 6.9 Copy outside the frontend, removal, light only and motion (T097, 2026-11-09)
+
+Quickstart V12 and V13, by a task agent: the gates from the repository root and `backend/`, the
+greps of §7 from the root, and playwright-core 1.48.2 with Chromium (`/usr/bin/chromium`) at
+1455 × 900 against the dev server whose backend runs the in-memory fake EUDIPLO, account
+`designer`, `colorScheme` and `reducedMotion` set on the browser context (the same media features
+`browser_emulate_media` sets). Durations were read from `getComputedStyle()` and
+`Element.getAnimations()`; the "frames" columns are `requestAnimationFrame` samples in headless
+Chromium (about 16 ms apart, so a span is ± one frame). Data: one "T097 Entwurf" draft
+(`seed9.py draft T097`), published through the UI, then deleted (`seed9.py cleanup T097`).
+No source file changed.
+
+#### V12.1 Tests with the new texts
+
+| Gate | Result |
+|---|---|
+| `backend/`: `ruff check .`, `ruff format --check .` | all checks passed; 86 files already formatted |
+| `backend/`: `mypy app/ scripts/ tests/` | no issues in 77 source files |
+| `backend/`: `pytest` (`template_db_test`) | 1998 passed (9 min 52 s) |
+| root: `npm run lint` | passed |
+| root: `npm test` | rules 43 files / 2351 tests (one run: `performance.test.ts`'s 1.5 s budget missed at 5.1 s while pytest ran beside it, the known flake; `npm test -w rules` again: 2351 passed), frontend 29 / 969 passed, mcp 15 / 408 passed (`guidance.test.ts` included) |
+| root: `npm run build` | passed (Vite's chunk-size warning stays) |
+
+`rules/src/validation.ts` against the server: the sentences that `rules/src/validation.test.ts`
+and `backend/tests/unit/test_rules_validation.py` (+ `test_draft_validation.py`) assert, extracted
+from both files' string literals (28 sentences are byte-identical in both files), reduced to their
+templates (item, variant, name and number as placeholders), and each template found word for word
+in the two sources (`RULES_MESSAGES` and `CONDITION_PROBLEM_MESSAGES` in `rules/src/constants.ts`,
+the `_validation_error(...)` calls in `backend/app/services/rules.py`):
+
+| # | Template (word for word on both sides) | Asserted by the rules test | Asserted by the backend test | Server source |
+|---|---|---|---|---|
+| 1 | A connection can have at most 20 variants. | same string | same string | `rules.py:279` |
+| 2 | The rules need exactly one main branch. | same string | same string | `rules.py:287` |
+| 3 | Enter a name for every variant. | same string | same string | `rules.py:340` |
+| 4 | A variant’s name can have at most 100 characters. | same string | same string | `rules.py:343` |
+| 5 | Two variants are called {name}. Give each variant its own name. | "…called AMBULANCE…" | same string | `rules.py:350` |
+| 6 | The description of {variant} can have at most 500 characters. | "…of Standard…" | same string | `rules.py:398` |
+| 7 | {variant} can have at most 200 rules and groups. | "Taxi can…" | "Standard can…" | `rules.py:404` |
+| 8 | The rules contain an invalid identifier. Reload the connection and try again. | same string | same string | `rules.py:74` |
+| 9 | Enter a name for every {rule / group / sub-group} in {variant}. | all three nouns | all three nouns | `rules.py:588` |
+| 10 | A {noun} in {variant} has a name longer than 100 characters. | "A rule in Standard…" | "A rule…", "A group…" | `rules.py:591` |
+| 11 | There’s already a {noun} called "{name}" in {variant}. | rule, group, sub-group | rule, group | `rules.py:599` |
+| 12 | {Name} is kept for the {noun} numbered {nn}. | Rule, Group, Sub-group (with and without leading zeros) | Rule, Group, Sub-group | `rules.py:621` |
+| 13 | {item} in {variant}: choose the data to check. | same string | same string | `rules.py:631` |
+| 14 | {item} in {variant} checks data that’s no longer requested. | same string | same string | `rules.py:634` |
+| 15 | {item} in {variant} checks a part that {field} doesn’t have. | template (`{field}`) | template (`{label}`) | `rules.py:637` |
+| 16 | {item} in {variant} has no error message. | Standard, Ambulance, Taxi | Standard, Ambulance, Taxi | `rules.py:518` |
+| 17 | The error message of {item} in {variant} can have at most 500 characters. | Rule, Group, Sub-group | Rule, Group, `rule-7` (a draft's unnamed rule) | `rules.py:497`, `:521` |
+| 18 | {sub-group} in {variant} can only hold rules. | same string | same string | `rules.py:542` |
+| 19 | {group} in {variant} needs at least two rules. | Group, Sub-group | Group, Sub-group | `rules.py:547` |
+| 20 | {item} in {variant}: {condition problem} | "choose a check.", "choose values from the list.", the rest through `{problem}` | "choose a check.", "enter a number.", "enter a text to compare with.", "enter a date.", "enter a number of years of at least 1.", the rest through `{message}` | `rules.py:513`–`738`; all ten `CONDITION_PROBLEM_MESSAGES` found word for word |
+
+Asserted on one side only, by design: the rules side's dialog and inline-rename texts ("Enter a
+name for the variant.", "There’s already a variant called "{name}".", "Enter a name.", "A name can
+have at most 100 characters.": the client's own checks, no server message); the server side's
+structural refusals the editor never sends ("The variant {variant} is out of step with Standard.
+Reload the connection and try again.", "Unknown variant.", "Unknown document type …", the
+connection's name and description limits). No template differs: pass.
+
+#### V12.2 The removal checklist (§7) again
+
+| Line | Command | Output | Against T094 |
+|---|---|---|---|
+| 1 | `index.css`: nothing of the old design | empty | same |
+| 2 | KERN 2.8 hexes, the 248 px menu | empty | same |
+| 3 | five steps, the old product name | empty | same |
+| 4 | assets nobody imports | empty | same |
+| 5 | old texts outside the frontend | 186 lines, identifiers only, 0 "Connection Portal" (by file: `rules/src/` 133, `mcp/src/` 43, `mcp/plugin/` 8, `docs/ARCHITECTURE.md` 2) | same count; the only string literals are calls and imports (`applicant(…)`, `applicantOf`, `applicantFieldsOf`) |
+| 6 | superseded doc rules | empty | same |
+
+T095's and T096's fixes (`PublishDialog.tsx`, the `narrow:` variant and block in `index.css`,
+`TopBar`, `ValuesPicker`) brought nothing back: pass.
+
+#### V12.3 The agents' guidance
+
+| Check | Result |
+|---|---|
+| `grep -rn "Connection Portal\|[Aa]pplicant" mcp/plugin` | 8 lines, every one an identifier in backticks: the tool `test_applicants` (`instructions.md:20`, `skills/checks-and-tests/SKILL.md:9, 58, 60`, `skills/links/SKILL.md:52`, `skills/variants-and-standard/SKILL.md:17`) and its fields `applicants` (`checks-and-tests:61`) and `applicant_fields` (`checks-and-tests:64`, `variants-and-standard:17`); no prose says "applicant", no "Connection Portal" (the identifiers stay, FR-019, FR-020, research R2; T094's line 5) |
+| Konnekt | `instructions.md:1` "# Konnekt", `:3` "You work in Konnekt, the City of Stuttgart's DO.IT team's portal…"; `README.md:1` "# The Konnekt plugin"; `skills/links/SKILL.md:3` "Konnekt's links to connections, variants, rules, groups and approval requests…"; `skills/connection-workflow/SKILL.md:3` "…to a live connection in Konnekt…" |
+| citizens | 30 lines in 7 files, e.g. `skills/checks-and-tests/SKILL.md:9` "citizens you invent with `test_applicants`", `:58` "## Testing with fictitious citizens: `test_applicants`"; `skills/conditions/SKILL.md:88` "The message is shown to the citizen when the rule (or group) isn't met. Write it to the citizen…"; `skills/connection-workflow/SKILL.md:21` "each with the message the citizen reads when it isn't met" |
+
+Pass (the identifiers as T094 recorded them).
+
+#### V13.1 Dark mode
+
+`colorScheme: 'dark'` on the context (`matchMedia('(prefers-color-scheme: dark)')` true):
+
+| Check | Dark device | Light device |
+|---|---|---|
+| `<html data-kern-theme>` | `light` | `light` |
+| `<html>` computed `color-scheme` | `light only` | `light only` |
+| `body` background | `oklch(1 0 0)` (white) | `oklch(1 0 0)` |
+| `body` text colour, `h1` colour | `rgb(11, 18, 32)` | `rgb(11, 18, 32)` |
+| Overview screenshot (1455 × 900) | byte-identical to the light one (same MD5) | — |
+| Details of "P11 Führerscheinantrag Esslingen" | light (screenshot `details-dark.png`) | — |
+
+Pass.
+
+#### V13.2 `prefers-reduced-motion: reduce`
+
+`reducedMotion: 'reduce'` on the context (`matchMedia` true):
+
+| Check | Result |
+|---|---|
+| Elements with a transition or an animation (every element and its `::before`/`::after`, overview and details at rest) | 0 (with motion on: the header, the user button's `::after`, the dialogs, `main`, the pill and its text, the row and tab buttons, the accordions' cards and bodies, all carrying `motion`; no element without `motion` transitions or animates, KERN's own included) |
+| The connection pill on opening a connection (overview → details by a click) | `animation-name: none`, `getAnimations()` empty, `clip-path: none` in the first frame after mount, its text at opacity 1 in the first frame: appears at once |
+| `main` (page change) | `animation-name: none`, no animation, opacity 1 in the first frame |
+| Accordion "View links" (details) | `transition: none 0s`; the body's height 0 → 489 px in one frame (with motion on: 9 frames over about 130 ms of a 200 ms ease-out, `grid-template-rows 0.2s`) |
+| Colour on hover ("Connection actions" ⋯) | `transition: none 0s`; the background changes in one frame (with motion on: 10 frames over about 150 ms) |
+| Dialogs (`.kern-dialog.motion` and `::backdrop`) | `transition: none 0s` |
+| "Published" waits 0.5 s | the "T097 Entwurf" draft published through the UI (test step → "Publish" → "Publish connection"): `POST /api/form-connections/<id>/publish` 200, then the details opened 544 ms after the answer reached the page (the 500 ms timer plus the render and a frame); the details' page fade `none` |
+
+Pass.
+
+#### V13.3 Motion on
+
+`reducedMotion: 'no-preference'`, overview → details of "P11 Führerscheinantrag Esslingen" by a
+click (the pill mounts):
+
+| What | Computed | Animation object | Measured (frames) | Expected (§4) |
+|---|---|---|---|---|
+| The pill (`nav.motion.animate-pill-grow`) | `animation-name: pill-grow`, `animation-duration: 0.24s`, delay 0 s | `pill-grow`, 240 ms | `clip-path` from `inset(0px 100% 0px 0px round 9999px)` to `none`, 15 changing frames | 240 ms ease-out clip reveal: pass |
+| The pill's text (`.motion.animate-pill-text`) | `pill-text`, `0.12s`, delay `0.12s` | `pill-text`, 120 ms after 120 ms | opacity 0 → 1, 8 changing frames | the last 120 ms: pass |
+| Colours (the ⋯, the tabs, the cards, the header) | `transition-property: color, background-color, border-color, …`, `transition-duration: 0.15s`, `cubic-bezier(0.4, 0, 0.2, 1)` | — | the ⋯'s hover background over 148 ms (10 frames) | 150 ms: pass |
+| Page fade (`main.motion.animate-page-in`) | `animation-name: page-in`, `0.15s` | `page-in`, 150 ms | opacity 0 → 1, settled by 144 ms | 150 ms ease-out: pass |
+| Accordion bodies | `grid-template-rows 0.2s cubic-bezier(0, 0, 0.2, 1)` | — | 0 → 489 px | 150–200 ms: pass |
+| Dialogs and their scrim | `opacity, display, overlay` `0.15s` each | — | — | fade: pass |
+
+The timings by eye are for a person (below).
+
+### 6.10 AA contrast review (T098, 2026-11-09)
+
+SC-006, FR-013, W1, Clarification 2026-11-06 #2. By a task agent with playwright-core 1.48.2 and
+Chromium 156 against the dev server (fake EUDIPLO). **Method**: a script measured every text pair
+on the rendered pages; a screenshot was opened only where the script could not decide.
+
+- **States**: T096's route × state scripts (§6.8) rerun with the screenshot replaced by a
+  collector: **258 route × states** on 34 routes: 227 at 1440 (a 1455 × 900 window, including L1
+  at about 1280 and 1000 px) and 31 at 320 @ 200 % (160 CSS px, for the markup that changes there:
+  L1 / S1 / S2 and the overview, the TopBar's wrapped pill and the sticky toast; T096 changed no
+  colour under 320 CSS px). The same states as §6.8 (same reach, routed answers for the states the
+  stack can't make); T098's own copies of the data (`seed8.py T098`, `seed9.py` with prefix T098,
+  `phase11/T098/seed98.py`), deleted afterwards.
+- **Collector** (`phase11/T098/collect.js`, in the page): every rendered text node
+  (`checkVisibility` with opacity and `visibility`, a box of 2 px or more), every input's value or
+  `::placeholder`, `::before` / `::after` with text content and list markers. The text colour
+  (`-webkit-text-fill-color`) and the background are composited through the whole ancestor chain:
+  every `background-color` with its alpha, and every ancestor's `opacity` as a group (the group's
+  content faded over the layers outside it), over the canvas's white; every colour converted through
+  a canvas (computed values were `oklch()`, `color(srgb …)`, `color-mix()` results), the WCAG 2.x
+  ratio from the composited sRGB values, unrounded. Threshold 4.5:1; 3:1 for large text (≥ 24 px,
+  or ≥ 18.66 px at 700); 3:1 for a disabled control's text (`:disabled`, `aria-disabled="true"`,
+  inside a disabled fieldset) and for the faded inactive parts (any text whose ancestors fade it
+  below opacity 1 outside a disabled control: the removed rule, the faded connector and marks): that
+  3:1 is **this task's** threshold, not WCAG 1.4.3's, which exempts inactive components.
+  Visibility: per text box `elementsFromPoint` at its centre, scrolling the page in steps for the
+  text below the window (each text measured where it is in view and not covered); text covered by
+  an open popup, clipped by an ancestor's overflow, or `sr-only` is not measured there; text behind
+  a modal dialog (inert) is not measured in that state (it is measured in the states without the
+  dialog). **Unsure** instead of a guess: a `background-image` (other than a one-colour gradient,
+  composited as a layer), `filter`, `backdrop-filter`, `mix-blend-mode`, a mask or a `text-shadow`
+  on the chain under the first opaque layer, or a non-ancestor box with a background painted under
+  the text (a layer beneath).
+- **States forced**: through CDP (`CSS.forcePseudoState`) on every link, button, summary, label,
+  form control, tab, menu item, option, `[tabindex]` and `.group` at once: hover; hover + active
+  (pressed); focus + focus-visible; each pass re-collects the text inside those elements after
+  the colour transitions end, then clears the state. The scripts' own hovers, the open menus,
+  pressed toggles and selected tabs are in the default pass.
+- **Counts** (the final run): 14,345 rendered text items in the default states (8,870 more behind
+  a modal dialog and 9,027 not rendered were left out); 8,158 measured in the default state, 8,068
+  more in the forced passes (14,551 rows after removing repeats); not measured where they stood:
+  2,350 `sr-only`, 3,760 clipped (mostly `sr-only` spans the browser lays out wider than their 1 px
+  box, and rows scrolled out of view inside the overview's list and the editor's menus, whose
+  visible siblings carry the same classes), 62 covered by an open popup. **63 distinct pairs**
+  (foreground, background, threshold), every one listed below. CSV:
+  `<scratchpad>/phase11/T098/pairs.csv` (one row per text, state and pass: route, state, width,
+  pass, text, fg, bg, ratio, threshold, size, weight, opacity, raw colour, background source,
+  selector path, flags); the first run's in `phase11/T098/run1/`.
+- **Results**: the first run (227 states at 1440, before the fixes): 68 pairs, **13 failing**
+  (the five §1.5 rows of T098: the pressed primary shade, 196 rows; the pressed tint on tinted
+  surfaces, 30 rows; the disabled controls at 40 %, 242 rows; the disabled buttons' hover shade;
+  the faded inactive parts) and one unsure group (the S16 band). After the fixes: **0 failing, 0
+  undecided**. Screenshots opened: **one** (a crop of S16's "Edited …" chip,
+  `phase11/T098/shots/s16-edited.png`); everything else was settled by the script or by pixel
+  measurement.
+
+**Unsure, and how each was settled**: only the S16 draft band (`section` with the
+`linear-gradient(113.27deg, feedback-info-background 21.6 %, hued 75.9 %)`): 10 rows (its heading,
+the muted line, "Delete draft" in each state). Settled by pixels (`phase11/T098/gradient.mjs`,
+`gradient0.mjs`, `gradient1.mjs`): per text, the text made transparent, its box captured, the
+pixels read with `getImageData`, the ratio against the darkest and the lightest background pixel.
+Heading 16.31–17.09:1, muted line 6.63–6.96:1, "Delete draft" 5.24:1 (resting), 4.66:1 (hover),
+**4.13:1 pressed (fail, fixed: §1.5 row 2)**; after the fix every one of its 3,838 pixels is
+`#dbe4fd`, 4.54:1. The "Edited …" chip's darkest pixel (`#0b1220`) was its calendar icon: the crop
+shows the chip on its own white fill, so the collector's 7.61:1 stands. The first version of fix 2
+laid the tint as a one-colour `linear-gradient` over white; Chromium dithers gradient layers by one
+level (pixels `#dae3fc`, 4.496:1), so the fix is a solid `color-mix` (all pixels `#dbe4fd`).
+
+**Fixed pairs, for the designer** (overlay in `frontend/src/index.css`, §1.5):
+
+| # | pair | before | after | change |
+|---|---|---|---|---|
+| 1 | white label on the pressed primary button | `#4076f6`, 4.09:1 | `#356df4`, 4.52:1 | the pressed shade mixes 11 % white, not 16 % |
+| 2 | blue label of a pressed outline / tertiary button on a tinted surface (info bar, offer card, hued panel, S16 band) | `#c1d9fc`–`#d0dcfa`, 4.01–4.20:1 | `#dbe4fd`, 4.54:1 | the pressed tint is drawn on white (as on a white surface), not over the surface |
+| 3 | text of disabled buttons | at 40 %: 1.82–2.06:1 | at 68 %: 3.17–3.37:1 | `action-state-opacity-disabled` 0.68 |
+| 4 | disabled button under the pointer / pressed | KERN's hover shade at 40 %: 1.77–1.79:1 | the resting fill: 3.17–3.21:1 | disabled KERN buttons don't take the hover or pressed shade |
+| 5 | faded inactive parts (removed rule, faded connector, inactive marks; disabled menu entries and access levels) | at 40 %: 1.90–2.62:1 | at 68 %: 3.17–6.52:1 | the same token; `RuleMenuItem` and `AccessLevelOption` use it instead of `opacity-40` |
+
+Files: `frontend/src/index.css` (the overlay's `:root`: `--kern-color-action-state-opacity-disabled`,
+`--kern-color-action-state-indicator-shade-active`; the outline / tertiary `:active` rule; the new
+disabled-buttons rule; `--pressed-tint-share` on `.kern-btn--danger`), `components/ActionMenu/RuleMenuItem.tsx`
+(T021) and `components/AccessLevelChoice/AccessLevelOption.tsx` (T016): `opacity-40` → the token.
+Each is a UI task of its screens: every screen with KERN buttons (T006 overlay, T035), S9 / S11
+(T021, T024, T025), S19 / S20 (T016).
+
+**Every distinct pair** (the final run; ratio = the lowest of the group; "where" = two examples:
+state, text, element; the passes in brackets when not only the default):
+
+| fg | bg | ratio | threshold | where (state: "text" element; states forced) | result |
+|---|---|---|---|---|---|
+| `#ffffff` | `#658cf5` | 3.17 | 3 (disabled, task) | S1 "Logging in…" `kern-label`; S8 "Set rules" `kern-label` (default, focus-visible, hover, pressed), 212 rows | pass |
+| `#658cf5` | `#ffffff` | 3.17 | 3 (disabled, task) | S6 "Saving…" `kern-label`; S11 "Copy" `kern-label` (default, focus-visible, hover, pressed), 18 rows | pass |
+| `#ffffff` | `#658cf5` | 3.17 | 3 (inactive, faded; task) | S11 "AND" `button#_r_17_` (default, focus-visible, hover, pressed), 4 rows | pass |
+| `#658cf5` | `#ffffff` | 3.17 | 3 (inactive, faded; task) | S11 "Rule 02" `span`, 1 rows | pass |
+| `#f5fbff` | `#5b88f4` | 3.21 | 3 (disabled, task) | S9 "Group rules" `kern-label` (default, focus-visible, hover, pressed), 8 rows | pass |
+| `#ffffff` | `#d76c65` | 3.37 | 3 (disabled, task) | S17 "Deleting…" `kern-label` (default, hover, pressed), 3 rows | pass |
+| `#848b98` | `#ffffff` | 3.43 | 3 (inactive, faded; task) | S11 "Driving licence" `span`; S11 "·" `span`, 4 rows | pass |
+| `#0273ae` | `#e0f2fe` | 4.50 | 4.5 | S9 "Message for citizens:" `div`; S11 "Linked to Standard" `p` (default, focus-visible, hover, pressed), 41 rows | pass |
+| `#1d56f0` | `#d0e6fd` | 4.51 | 4.5 | S9 "Cancel" `kern-label` (hover), 3 rows | pass |
+| `#ffffff` | `#356df4` | 4.52 | 4.5 | L1 "Log in" `kern-label`; S4 "Create connection" `kern-label` (pressed), 222 rows | pass |
+| `#c4271c` | `#dbe4fd` | 4.52 | 4.5 | S9 "Delete group" `span`; S9 "Delete rule" `span` (pressed), 5 rows | pass |
+| `#1d56f0` | `#dbe4fd` | 4.54 | 4.5 | S4 "View" `kern-label`; S4 "Edit" `kern-label` (pressed), 162 rows | pass |
+| `#1d56f0` | `#dde5f6` | 4.56 | 4.5 | S5 "Discard" `kern-label`; S5 "Resume editing" `kern-label` (hover), 24 rows | pass |
+| `#1d56f0` | `#e1e9fa` | 4.73 | 4.5 | S13 "Generate all" `kern-label`; S13 "Try again" `kern-label` (default, focus-visible, hover), 13 rows | pass |
+| `#ffffff` | `#2f67f3` | 4.82 | 4.5 | S7 "Choose documents" `kern-label`; S11 "Add variant" `kern-label` (default, focus-visible, hover), 249 rows | pass |
+| `#1d7a2e` | `#eaf7e6` | 4.89 | 4.5 | S4 "Active" `span`, 51 rows | pass |
+| `#1d56f0` | `#e0f2fe` | 5.03 | 4.5 | S9 "Cancel" `kern-label`; S11 "Rule 03" `button` (default, focus-visible, hover, pressed), 66 rows | pass |
+| `#c4271c` | `#faeeed` | 5.07 | 4.5 | S6 "Discard connection" `kern-label`; S8 "Remove 1 document" `kern-label` (hover), 3 rows | pass |
+| `#1d56f0` | `#eef1f6` | 5.09 | 4.5 | S5 "Discard" `kern-label`; S5 "Resume editing" `kern-label` (default, focus-visible), 48 rows | pass |
+| `#c4271c` | `#edf2fe` | 5.13 | 4.5 | S9 "Delete group" `span`; S9 "Delete rule" `span` (hover), 5 rows | pass |
+| `#1d56f0` | `#edf2fe` | 5.14 | 4.5 | S7 "Save and exit" `kern-label`; L3 "Back" `kern-label` (default, focus-visible, hover), 500 rows | pass |
+| `#1d56f0` | `#eef3fe` | 5.19 | 4.5 | S8 "Add document" `button` (hover, pressed), 16 rows | pass |
+| `#1d56f0` | `#f8f1fc` | 5.21 | 4.5 | S11 "Rule 01" `span`; S11 "Rule 04" `span` (default, focus-visible, hover, pressed), 17 rows | pass |
+| `#c4271c` | `#fef1f0` | 5.21 | 4.5 | S8 "Driving licence" `span` (default, focus-visible, hover, pressed), 4 rows | pass |
+| `#1d56f0` | `#fef1f0` | 5.23 | 4.5 | S9 "Add it in Documents" `div` (default, focus-visible, hover, pressed), 4 rows | pass |
+| `#1d56f0` | `#f3f4f7` | 5.24 | 4.5 | S9 "Add rule" `button` (hover, pressed), 126 rows | pass |
+| `#c4271c` | `#f2f5fb` | 5.26 | 4.5 | S9 "There’s already a rule calle" `span`, 1 rows | pass |
+| `#1d56f0` | `#f2f5fb` | 5.28 | 4.5 | S5 "Your connections" `a`; S9 "Group 01" `button` (default, focus-visible, hover, pressed), 561 rows | pass |
+| `#1d56f0` | `#fff4e0` | 5.29 | 4.5 | S12 "Rule 01" `button`; S12 "Rule 02" `button` (default, focus-visible, hover, pressed), 24 rows | pass |
+| `#05669e` | `#e0f2fe` | 5.38 | 4.5 | S4 "Draft" `span`, 73 rows | pass |
+| `#ffffff` | `#1d7a2e` | 5.42 | 4.5 | S4 "Draft saved. You can pick it" `p`; S9 "Rule 01 and Rule 02 are now " `p` (default, focus-visible, hover, pressed), 16 rows | pass |
+| `#ffffff` | `#c4271c` | 5.75 | 4.5 | S4 "Delete connection" `kern-label`; S5 "Discard" `kern-label` (default, focus-visible), 37 rows | pass |
+| `#c4271c` | `#ffffff` | 5.75 | 4.5 | S5 "*" `kern-form-input`; S6 "Discard connection" `kern-label` (default, focus-visible, hover, pressed), 118 rows | pass |
+| `#1d56f0` | `#ffffff` | 5.77 | 4.5 | L1 "Forgot password?" `kern-link--no-visited-state`; L1 "Back to log in" `kern-label` (default, focus-visible, hover, pressed), 2339 rows | pass |
+| `#ffffff` | `#1d56f0` | 5.77 | 4.5 | L1 "Log in" `kern-label`; S4 "Create connection" `kern-label` (default, focus-visible, hover, pressed), 707 rows | pass |
+| `#595e67` | `#ffffff` | 6.52 | 3 (inactive, faded; task) | S11 "Licence classes" `span`; S11 "B" `span`, 3 rows | pass |
+| `#4a5468` | `#e0f2fe` | 6.63 | 4.5 | S9 "Shown instead of the rules’ " `p`, 8 rows | pass |
+| `#4a5468` | `#eef1f6` | 6.72 | 4.5 | S5 "Saved only on this device on" `p`; S5 "New, never saved · 09.11.202" `p`, 31 rows | pass |
+| `#4a5468` | `#eff1f4` | 6.73 | 4.5 | S4 "Deactivated" `span`, 26 rows | pass |
+| `#ffffff` | `#af2218` | 6.85 | 4.5 | S17 "Try again" `kern-label`; S4 "Delete connection" `kern-label` (default, focus-visible, hover), 21 rows | pass |
+| `#4a5468` | `#eaf7e6` | 6.87 | 4.5 | S15 "Citizens can now share their" `p`, 13 rows | pass |
+| `#4a5468` | `#f8f1fc` | 6.88 | 4.5 | S11 "Personal ID" `span`; S11 "·" `span`, 38 rows | pass |
+| `#4a5468` | `#fef1f0` | 6.91 | 4.5 | S7 "e.g. Residents’ parking perm" `kern-form-input`; S13 "Personal ID" `span` (default, focus-visible, hover, pressed), 33 rows | pass |
+| `#4a5468` | `#f2f5fb` | 6.97 | 4.5 | L1 "Receive verified citizen dat" `p`; S4 "Name" `span` (default, focus-visible, hover, pressed), 438 rows | pass |
+| `#4a5468` | `#f2f5fb` | 6.97 | 3 (disabled, task) | S10 "Choose data" `span`; S10 "Choose check" `span` (default, focus-visible, hover, pressed), 24 rows | pass |
+| `#8a22b5` | `#ffffff` | 7.05 | 4.5 | S11 "Changed here" `span`; S11 "Added here" `span`, 8 rows | pass |
+| `#4a5468` | `#ffffff` | 7.61 | 4.5 | L1 "Your login is encrypted" `p`; L1 "Ask your admin to reset it. " `p` (default, focus-visible, hover, pressed), 1345 rows | pass |
+| `#ffffff` | `#1643c1` | 8.06 | 4.5 | S8 "Add document" `button` (default, focus-visible, hover, pressed), 12 rows | pass |
+| `#ffffff` | `#9b1d14` | 8.14 | 4.5 | S4 "Delete connection" `kern-label`; S5 "Discard" `kern-label` (pressed), 19 rows | pass |
+| `#0b1220` | `#dbe4fd` | 14.74 | 4.5 | L2 "Your account" `a`; L2 "Log out" `button` (pressed), 49 rows | pass |
+| `#0b1220` | `#e0f2fe` | 16.32 | 4.5 | S5 "Starts as a draft. It only b" `p`; S9 "You need to be at least 21, " `div` (default, focus-visible, hover, pressed), 83 rows | pass |
+| `#0b1220` | `#eef1f6` | 16.54 | 4.5 | S5 "Unsaved changes in “T098 loc" `h2#_r_7_`; S5 "Unsaved changes in 2 connect" `h2#_r_5_`, 40 rows | pass |
+| `#0b1220` | `#edf2fe` | 16.70 | 4.5 | L2 "Your account" `a`; L2 "Log out" `button` (hover), 49 rows | pass |
+| `#0b1220` | `#eaf7e6` | 16.89 | 3 (large) | S15 "Your connection is active" `kern-heading-large`, 13 rows | pass |
+| `#0b1220` | `#eaf7e6` | 16.89 | 4.5 | S21 "Connection deactivated." `kern-title`, 1 rows | pass |
+| `#0b1220` | `#f8f1fc` | 16.92 | 4.5 | S11 "Date of birth (Age)" `span`; S11 "You must be at least 19 year" `p`, 16 rows | pass |
+| `#0b1220` | `#fef1f0` | 16.99 | 4.5 | S1 "Username or password is wron" `kern-title`; S1 "Check both and try again." `kern-title` (default, focus-visible, hover, pressed), 99 rows | pass |
+| `#0b1220` | `#f2f5fb` | 17.14 | 3 (large) | L1 "Connect to the EUDI Wallet" `h1`; S3 "Create your first connection" `h2`, 27 rows | pass |
+| `#0b1220` | `#f2f5fb` | 17.14 | 4.5 | S1 "designer" `kern-form-input`; S1 "wrong-password" `kern-form-input` (default, focus-visible, hover, pressed), 1094 rows | pass |
+| `#0b1220` | `#fff4e0` | 17.18 | 4.5 | S8 "The wallet no longer offers " `kern-title`; S9 "This link points to a varian" `kern-title`, 12 rows | pass |
+| `#0b1220` | `#ffffff` | 18.72 | 4.5 | L1 "Konnekt" `span`; L1 "Username" `kern-form-input` (default, focus-visible, hover, pressed), 5012 rows | pass |
+| `#0b1220` | `#ffffff` | 18.72 | 3 (large) | L1 "Log in" `h2#login-title`; L1 "Forgot your password?" `h2`, 243 rows | pass |
+| `#ffffff` | `#0b1220` | 18.72 | 4.5 | S1 "You’re logged out." `p`; S7 "This name helps you and your" `span` (default, focus-visible, hover, pressed), 99 rows | pass |
+| `#0b1220` | S16 band gradient `#e0f2fd`–`#f1f5fc` (pixels) | 16.31 | 3 (large) | S16 "This connection is a draft" (the band’s heading, 24/600) | pass (unsure, measured) |
+| `#4a5468` | S16 band gradient `#e0f2fd`–`#f1f5fc` (pixels) | 6.63 | 4.5 | S16 "The links can’t be added to your service" | pass (unsure, measured) |
+| `#1d56f0` | S16 band gradient `#f1f4fb`–`#f2f5fb` (pixels, under the button) | 5.24 | 4.5 | S16 "Delete draft" `kern-btn--tertiary` | pass (unsure, measured) |
+| `#1d56f0` | 8 % tint on the band `#e0e7fa`–`#e1e8fa` (pixels) | 4.66 | 4.5 | S16 "Delete draft" (hover) | pass (unsure, measured) |
+| `#1d56f0` | pressed fill `#dbe4fd` (pixels, 3838 of 3838) | 4.54 | 4.5 | S16 "Delete draft" (pressed) | pass after fix 2 (was 4.13 on the 16 % tint over the band) |
+
+### 6.11 Convergence: dates in rule texts (T103, 2026-11-09)
+
+`rules/src/dates.ts` `formatDate` now writes the §3 "Dates" pattern, `dd.mm.yyyy` with leading zeros
+(SC-002, FR-021, C3, audit cosmetic 3; carried from T062). The rule statements (`statements.ts`), the
+proposed messages (`messages.ts`) and the boundary text (`boundaryPhrase`) all go through it, so they
+change together. `MONTH_ABBREVIATIONS` (`rules/src/constants.ts`) was used nowhere else and is removed.
+The doc comments in `dates.ts` show the new form. The rule editor's own hint ("Today (…), that means …")
+already used `dottedDate()` in `RuleEditor/utils.ts` and doesn't change.
+
+| Text | Before | After |
+|---|---|---|
+| Statement (a fixed date) | Personal ID · Issue date is before 1 Jan 2020 | Personal ID · Issue date is before 01.01.2020 |
+| Proposed message | The expiry date of your class B must be before 30 Jun 2030. | The expiry date of your class B must be before 30.06.2030. |
+| Boundary text | born between 24 Oct 2004 and 23 Oct 2005 | born between 24.10.2004 and 23.10.2005 |
+
+Tests updated: `rules/src/dates.test.ts` (10 dates, including the `formatDate` cases `01.01.2020` and
+`09.09.2027`), `rules/src/statements.test.ts` (3) and `rules/src/messages.test.ts` (7). Checked and
+left alone:
+- `evaluation`, `checks/*` and `personas/*` tests: they assert no formatted date. Their old-style dates
+  are only in test titles and comments (prose about the day, e.g. "met from 2 Jan 2031 on").
+- The frontend's and the MCP's tests: no assertion uses such a date.
+- `mcp/plugin/skills/`: no example statement has a date.
+- `checks/fixtures/evaluator-vectors.json` (generated, not touched): it has no formatted date. Its only
+  dates in words are two case `description`s written by the exporter ("29 February 2000").
+
+The comment in `frontend/src/pages/FormConnectionEdit/types.ts` now reads "04.11.2026, 14:32".
+
+§6.4 (T075), rows U30, U32 and U53: dates are now dd.mm.yyyy (T103).
+
+### 6.12 Convergence: the "Start with" radio's focus (T104, 2026-11-09)
+
+`START_WITH_OPTION_CLASSES.radio` (`frontend/src/pages/FormConnectionEditor/RulesStep/constants.ts`, T064) carried `focus:outline-none!`, against CLAUDE.md's "focus-visible: … never focus:". We tested whether `index.css`'s `.kern-form-check__radio:focus:not(:focus-visible)` (specificity 0,3,0, later than kern.css's unlayered `:focus` / `:checked:focus` rules) already takes KERN's 4 px ring off after a click. It does, so the class was **dropped** instead of being replaced by `[&:focus:not(:focus-visible)]:outline-none!`. The border stays the drawn one because of the `border!` / `checked:border-kern-action-default!` / `hover:not-checked:border-2!` utilities, which are important and layered and so beat both kern.css's `border: 0` on focus and index.css's 2 px KERN border. The doc comment above the constant now names the index.css rule. Afterwards `grep -rnE "[\" ]focus:[a-z]" frontend/src` came back empty.
+
+Where we checked: S9, the rules step of the draft "Führerscheinantrag Stuttgart" (76abafb6…), "+ Add variant" dialog, "Start with" (U37/U38), signed in as `designer`, read-only (the dialog was closed with Escape and nothing was saved). The computed values come from `getComputedStyle` on the focused radio.
+
+| browser | input | outline | border | result |
+|---|---|---|---|---|
+| Chromium (before: with `focus:outline-none!`) | click "Start empty" | none | solid 1px rgb(29, 86, 240) (selected) | baseline: no ring |
+| Chromium (before) | Tab into the group | solid 3px rgb(11, 18, 32), offset 0 | solid 1px rgb(29, 86, 240) | baseline: ring |
+| Chromium (class dropped) | at rest, unselected | none | solid 1px rgb(107, 116, 136) | pass |
+| Chromium (class dropped) | click "Start empty" / "Linked to Standard" | none | solid 1px rgb(29, 86, 240) | pass: no ring, drawn border |
+| Chromium (class dropped) | click, pointer still over it (selected) | none | solid 1px rgb(29, 86, 240) | pass |
+| Chromium (class dropped) | other radio focused by click, hover the unselected one | none | solid 2px rgb(29, 86, 240) | pass (hover-unselected look) |
+| Chromium (class dropped) | Tab into the group | solid 3px rgb(11, 18, 32), offset 0 | solid 1px rgb(29, 86, 240) | pass: 3 px ring, border kept |
+| Chromium (class dropped) | ArrowDown to "Start empty" | solid 3px rgb(11, 18, 32), offset 0 | solid 1px rgb(29, 86, 240) | pass |
+| Firefox (MCP, class dropped) | click "Start empty" / "Linked to Standard" (pointer away and over it) | none | solid 1px rgb(29, 86, 240) | pass |
+| Firefox (MCP, class dropped) | Tab into the group | solid 3px rgb(11, 18, 32), offset 0 | solid 1px rgb(29, 86, 240) | pass |
+| Firefox (MCP, class dropped) | ArrowDown to "Start empty" | solid 3px rgb(11, 18, 32), offset 0 | solid 1px rgb(29, 86, 240) | pass |
+
+Screenshots: `<scratchpad>/phase11/T104/{before,drop}-chromium-{click,tab}.png`; script `<scratchpad>/phase11/T104/focus.mjs`.
+
+§5 row for §6.7: "Start with" radio, click / keyboard: click shows no ring and the drawn 1px border; Tab and the arrow keys show the 3 px focus ring (Chromium, Firefox), pass.
+
+### 6.13 Closing report (T101, 2026-11-09)
+
+The port's evidence against SC-001–SC-007 (quickstart "Done when"), with the items left for a
+person, the designer's list and what was not built. Sources: §5, §6.1–6.12, §7, §8.1 and
+tasks.md. The §7 greps were run again for this report (2026-11-09). No other check was run again,
+and no source file changed.
+
+#### Success criteria
+
+| SC | Evidence | Result |
+|---|---|---|
+| SC-001 every unit and component has a clean table | **Units**: the audit has 91 screen units, U10–U100 (`figma-audit/units.md`; U01–U09 are annotations and need no table, U101 is research and out of scope). The §5.2 status table names all 91 units: 47 rows, every unit "done". §5.2 holds 52 tables, and every unit has at least one. **Components**: §2 has 33 rows. 31 of them have UI, and each has its §5.1 table: 32 tables, because `InfoTooltip` and `ExplainedButton` have one each. §5.1 also has 13 pattern tables. The "no change" row (`CurrentUserProvider` …) has no UI. The pages' own components are checked in their screens' tables (§5.2). | met. Two notes. (1) One optional row is still open: U47 `6185:41178`, a changed or added member's tint inside a removed group. The design draws it at 40 %; the app shows it at full strength (`RuleRow`, T065). The task called the row optional, and it is on the designer's list. (2) The status row "U58 `6530:40675`" (frame 10.11) draws the details page, not S11. It was handed to the details tasks. Its band and connection menu are verified on the frames of T078's table (`6417:31045`), but no table names `6530:40675` itself. |
+| SC-002 the texts equal the frames', differences cite decided items, 0 undecided | Every text row of §5 says `match` or cites an item (C#, F#, W#, CLAR #n, cosmetic n, a baseline id). T103 changed the dates in statements, proposed messages and boundary texts to dd.mm.yyyy (§6.11). The duplicate-name quotes are settled by Q5 / FR-023: the variant stays named (T099). The user decided the rule notes' wording, "Can’t be met together with …", on 2026-11-09 (§6.4). V12.1 found the 20 validation templates word for word in both the rules package and the server (§6.9). | met. 53 rows of §5 carry their task's "UNCERTAIN" tag next to the item they cite. The checkpoints accepted those tags (§6.4–§6.6), so none is undecided. One look question goes to the designer: the delete toast is neutral, where U90 draws it red. |
+| SC-003 the removal checklist finds nothing | §7 "Result" (T094): 5 lines are empty, and line 5 lists only identifiers (186 lines, 0 "Connection Portal"). §6.9 V12.2 (T097): the same after T095's and T096's fixes. Run again by T101 after T098–T104: lines 1–4 and 6 empty, line 5 186 identifier lines with 0 "Connection Portal", and the `focus:` grep of T104 empty. | met |
+| SC-004 the gates pass; backend and MCP tests unchanged unless a C item changed their copy | §6.9 V12.1 (T097) and T100's gates after T102–T104: lint and build pass; rules 43 files / 2351 tests, frontend 29 / 969, mcp 15 / 408, pytest 1998, ruff and mypy clean (77 source files). The baseline (§8.1, T001) was rules 43 / 2337, frontend 23 / 598, mcp 15 / 408, pytest 1998. Rules +14 (8 of them in phase 2's C items, §8.2), frontend +6 files / +371 tests. The MCP and backend counts are unchanged; their texts changed only by C1, C2, C5 and C7 (§8.2). | met. `rules/src/personas/performance.test.ts` is a known flake: once it missed its 1.5 s budget while pytest ran beside it, and it passed when run again (T097). |
+| SC-005 screenshot matrix: 0 screens with sideways scrolling or hidden content | §6.8 (T096): 450 rows, 223 states, each at 1440 px and at 320 px with 200 % zoom (taken as a 160 × 320 CSS px viewport at scale 2), plus L1 at about 1280 and 1000 px. 0 fail after the fixes (the `narrow:` variant and the overlay's narrow block, the header sticky only from 320 CSS px × 480 px, the `ValuesPicker` placement). | met by the chat. The browser's own zoom needs a person (below). |
+| SC-006 keyboard run, one h1 per route, 0 AA failures | §6.7 (T095): 57 rows, 56 pass and 1 fixed (the publish status dialog's one polite status). §6.12 (T104): the "Start with" radio shows its ring on keyboard focus only. One h1 per route: §6.7, and S22's route-by-route table (T089). §6.10 (T098): 63 distinct pairs, plus 5 measured on S16's gradient. The first run found 13 failing pairs; 5 changes fixed them, and the final run has 0 failing and 0 undecided. §1.5 holds every fix. | met by the chat. A screen reader needs a person (below). |
+| SC-007 the five flows complete as before | V1–V9 were each walked once, at the checkpoints: T046 (V1, V2; §6.2), T054 (V3, V4; §6.3), T075 (V5, V6; §6.4), T085 (V7, V8; §6.5), T089 (V9; §6.6). The flows covered: sign-in to a live connection with rules on a variant (V5–V7), a draft saved, left and resumed (V3), an agent's consent (V9.1), an approval (V9.3). Each checkpoint is unchecked in tasks.md only for its "Needs a person" step. V7–V9 ran against the in-memory fake EUDIPLO. | met by the chat. The hosted EUDIPLO and a real MCP client need a person (below). |
+
+#### The user's decisions during implement
+
+| # | Decision | Where |
+|---|---|---|
+| #62 (Implement Q1) | A draft row's " · <step> step" is deferred (F71, `deferred.md` group A). | spec.md fifth round |
+| #63 (Implement Q3) | The Date of birth's fixed-date checks are restored under "Fixed date" (F34). | sixth round |
+| #64 (Implement Q2) | Grouping a group and group checkboxes in select mode are deferred (Q2-I, group B). Figma must change. | sixth round |
+| #65 (Implement Q4) | "Save rule" keeps the baseline's press: it flags the missing parts, shows the problem and moves the focus there. | sixth round |
+| #66 (Implement Q5) | "Test rules" is explained by the first problem, in the server's words. | sixth round |
+| #67 (Implement Q6) | Outside a flow, "Log out" with local drafts on the device keeps the old "Log out and discard unsaved work?" dialog. | seventh round |
+| 2026-11-09 (after T075) | The rule notes use the design's "Can’t be met together with …". Number statements carry the symbol chip. | §6.4 |
+| 2026-11-09 (T099 → T102) | Constitution 1.2.0 → 1.2.1: a value measured at run time MAY be set as a CSS custom property on an element; it carries no visual style itself. | constitution, CLAUDE.md "Styling" |
+
+#### Needs a person (before merging)
+
+| What | From |
+|---|---|
+| A screen reader (NVDA with Chrome or Firefox, VoiceOver with Safari) through the five flows: "You’re logged out." and "Unsaved work discarded." (V1.6, V2.1). The failed-save toast with its error ID, and "Saving draft…". V5.7's and V6.5's announcements and focus moves, and the "Save rule" press (#65). "Publishing…" ("Saving…") as the status dialog's name when it takes the focus, "Published. Opening your connection page…" ("Saved. …") read within its 0.5 s, and the failed state's alert with the focus on its ×. "You can go back to {client}." after "Allow". The token dialog's order (title → warning → label → token → warning). The rest of the announcements listed in §6.7. The narrow result table and the narrow toast under 320 CSS px. | T046, T048/T054, T075, T077/T095, T086, T087, T095, T096 |
+| The variant dialog's "ⓘ" glyph on a desktop system | T064/T075 |
+| Tab past a dialog's last control in a real browser (to the toolbar, then back to ×) | T095 |
+| "Leave site?" in Chrome, Firefox and Safari: shown with unsaved work, absent without it and after "Save progress", "Discard connection", "Save and log out" and "Log out anyway". Then the restore dialog after the forced reload. | T054 (V3.6) |
+| Publish, deactivate, reactivate and save a revision against the hosted EUDIPLO (credentials in `backend/.env`); approve a publish request there; the 0.5 s "Published" wait by hand | T085, T089 |
+| V9 with a real MCP client (Claude Code with `mcp/plugin/` against the MCP server on 3100) | T089 |
+| The browser's own zoom: Chrome and Firefox at 200 % on a 320 px window, and 400 % on 1280 × 1024 | T096 |
+| V13.3's timings by eye in Chrome and Firefox (pill 240 ms, colours 150 ms, page fade 150 ms, accordion 200 ms); V13.1 and V13.2 on a real device with the system settings | T097 |
+| Tell the designer the list below, including whether the 68 % disabled look still reads as disabled | T098, T101 |
+| Commit `new-design` from the other machine and open the PR with `pr.md` (git is read-only here) | T101 |
+
+#### For the designer (told 2026-11-09 by this report; a person passes it on)
+
+| # | Item | Where |
+|---|---|---|
+| 1 | `feedback-info` `#0284c7` → `#0273ae` for info text on white (4.10 → 5.17:1) | §1.5 row 1 (T002) |
+| 2 | The same `#0273ae` on the info strips' `#e0f2fe` (3.57 → 4.50:1). The "Draft" pill keeps its drawn `#05669e`. | §1.5 row 2 (T002, T019) |
+| 3 | The danger outline button's pressed tint is 15 % (`#f6dfdd`, 4.52:1), where KERN uses 16 % | §1.5 row 3 (T035) |
+| 4 | The primary button's pressed shade mixes 11 % white (`#356df4`, 4.52:1), where KERN mixes 16 % (`#4076f6`) | §1.5 row 4 (T098) |
+| 5 | An outline or tertiary button's pressed tint is one solid fill mixed over white (`#dbe4fd`, 4.54:1), not laid over the tinted surface | §1.5 row 5 (T098) |
+| 6 | Disabled controls at 68 % opacity instead of KERN's 40 % (3.17–3.37:1) | §1.5 row 6 (T098) |
+| 7 | Disabled buttons keep their resting fill on hover and while pressed | §1.5 row 7 (T098) |
+| 8 | The faded inactive parts (removed rule, faded connector, inactive marks, disabled menu entries and access levels) at the same 68 % | §1.5 row 8 (T098) |
+| 9 | Narrow layouts under 320 CSS px, which have no frames: the stacked status band, rows with the ⋯ under the text, the wrapped header pill, the status pill's label wrapping, the toast in the page's flow (sticky) instead of floating | §6.8 (T096) |
+| 10 | The header is sticky only in windows at least 320 CSS px wide and 480 px tall; below that it scrolls away with the page (WCAG 1.4.10) | §6.8 (T096) |
+| 11 | Copy with no frame on the sign-in page: "Logging in…", and the 5xx / network alert "Logging in failed." / "Try again in a moment." | T040 (W2, FR-008) |
+| 12 | Toast copy with no frame on the test step: "Results updated." alone, and "Results updated. <name> no longer meets <rule>." | T072 (FR-042c) |
+| 13 | The delete toast is neutral (`ToastKind` has no danger) and has no "Undo" (F4), where U90 draws a red toast with "Undo" | T044, T082 |
+| 14 | Toasts with an action ("Undo") have no ×. They stay until used or dismissed with Escape, so a mouse user can close one only by using it (U10, U51 draw none). | T099 |
+| 15 | "Konnekt" is set in Fira Sans 600, where the design uses Geist SemiBold. Geist would be a new dependency. | T031, T099 |
+| 16 | Deleting a published connection that was deleted meanwhile shows the server's message with "Try again"; the draft's 404 offers "Go to overview" | T082, T096 |
+| 17 | The entry dialog reads "Edit “<name>”?" for a deactivated connection too. FR-045 says "a published connection", and the frames draw only the active row. | T083 |
+| 18 | A changed or added rule inside a removed group keeps its tint at full strength, where U47 `6185:41178` draws it at 40 % (optional, not built) | T065 |
+| 19 | Figma must change (#64): no "Group with other rules" on a top-level group (U57 #22), no group checkboxes in select mode (U36, U40 #13, U64 #22) | spec.md sixth round |
+| 20 | The details band: the ⋯ and "Activate again" sit in the band's top-right chip. "Delete draft" sits at the right end of the draft band (F56, no frame). | T078, T080, T081 |
+| 21 | Consent page (no frames): the h1 in the card heading's style, the card top-aligned, "Deny" before "Allow" in equal columns | T086 |
+| 22 | Approval page (no frames): a publish request shows the publish summary and then the draft's Summary card, so the counts appear twice. A failed approve is a danger alert with the error ID and "Try again", not a toast. | T088 |
+| 23 | The decided "Figma must change" list of the audit, for the frames to be redrawn | `figma-audit/report.md` "Figma must change (decided)" |
+
+#### Not built (deferred.md)
+
+23 items, each drawn in the design and each needing a change outside the frontend (Clarification
+2026-11-06 #1):
+
+- **Group A, stored data the backend lacks** (13):
+  - F1 go-live scheduling
+  - F2 the Activity card
+  - F4 undo after deleting a connection
+  - F5 a live connection's pending changes kept as a draft
+  - F13 deactivation that lets started requests finish
+  - Q9 (b) "Start from an example"
+  - Q13 the email line in the user menu
+  - Q14 (e) drag reordering of documents
+  - Q31 (a) the met citizen's success message
+  - Q37 (b) "Download PDF"
+  - Q37 (c) status dates
+  - F71 a draft row's step (#62)
+  - Q11 bulk delete on the overview
+- **Group B, rules-package capabilities** (6):
+  - Q2-I grouping a group (#64)
+  - F7 "Remove from group"
+  - F8 "Duplicate group"
+  - F9 adding into an empty group
+  - F10 "Unlink from Standard"
+  - F11 personas that make every rule testable
+- **Group C, product-wide** (4):
+  - F3 "Coming soon" documents
+  - F6 the DE/EN switch
+  - F12 view-only users and roles
+  - Q14 (f) field groups
+
+#### Known and left as they are
+
+- The expired sentence after a `409` comes from the server in German time. The approval page's own
+  "expired at" uses the browser's time zone. This is the baseline, and the two agree for users in
+  Germany (T088).
+- Accessibility tree (T095):
+  - The connector's name reads "AND , switch Standard to AND or OR"; a screen reader pauses at the
+    comma only.
+  - The rules step's tab and its findings icon are two stops, both named "Standard has findings"
+    (by design).
+  - The selection bar's status is inserted together with its text.
+  - "Copy" in the "Copy to variant" popover (nothing ticked) and "Group rules" (fewer than two
+    ticked) are `aria-disabled` with no explanation (baseline).
+- The 3:1 threshold for disabled and faded text is this feature's own threshold; WCAG exempts
+  inactive components (T098).
+- V12.3 is not literally empty: 8 lines in `mcp/plugin/` name the tool `test_applicants` and its
+  fields. These identifiers are kept by FR-019, FR-020 and R2, and the prose says "citizens" (T097).
+- The old-form dates in test titles and comments of `checks/*` and `personas/*` are prose about
+  days, not assertions (T103).
+- Known duplication, not refactored (T100):
+  - `FormConnectionList/FormConnectionRow.tsx` copies `InfoTooltip`'s private `useTooltip`.
+  - `RuleEditor/utils.ts` `dottedDate()` and `boundaryWords()` duplicate `formatDate()` and
+    `boundaryPhrase()` of `rules/src/dates.ts`.
+
+  Both need a browser check before a refactor. A check that compares rule texts with the design
+  should expect "01.01.2020".
+- Closed in phase 11:
+  - The coordinator fixed the stale `noRules` comments (`PublishDialog.tsx`, `types.ts`).
+  - §7's "Also" paragraph is done (T100).
+  - The README's list of specs names 001, 002, 007 and 008 (T100).
+
 ## 7. Removal checklist (pass H, FR-015, SC-003)
 
 Run after pass G; every line must come back empty or list only identifiers and history
@@ -5425,3 +6596,45 @@ Counts after phase 2: rules 2345 tests (was 2337: T012 +7, T009/T010 +1), fronte
 labels (`DocumentValues.tsx`, `PersonaData.tsx`, "Date of birth" without "(Age)"; T071), the
 `switchedToOr` / `switchedToAnd` toasts' "… to be true" (`RulesStep/constants.ts`; T057/T058),
 the stale comments `TestStep/TestDayLine.tsx:6` and `ValueRow.tsx:15` (T071).
+
+### 8.3 Decisions superseded while building (T100, 2026-11-09)
+
+What the port replaced after pass C, with where the current decision lives. The older entries
+above (the 248 px menus, "map by name", the inner scroll) stay as they are.
+
+| Superseded | By | Where it is recorded now |
+|---|---|---|
+| `brief.md` as the plan of record | `plan.md` and `tasks.md` from pass C on; `brief.md` is history (its status line, T100) | `brief.md` head |
+| The five labelled wizard steps (Connection, Documents, Rules, Test, Publish) and the details' all-done progress | "Step n of 4" (Connection, Documents, Rules, Test) and the publish dialog (Q7) | `CONNECTION_STEPS`; ARCHITECTURE "frontend" |
+| A sign-in without a requested route goes to `/get-started` (spec 001 FR-022) | it lands on `/`, the welcome page or the overview (FR-027, T042); `/get-started` is opened by the welcome page's "Create connection" | `RequireSignedOut/utils.ts` `redirectTarget()`; ARCHITECTURE "frontend", routing |
+| The wizard's inner scroll, `split:` and the whole frame scrolling under 480 px tall | the page scrolls; the step header pins from 768 × 640 (`wizard-pinned:`), the footer sticks from 480 px tall (T033) | ARCHITECTURE "frontend", "Layouts" |
+| `TopBar` sticky at every size (T031, T033) | sticky only from 320 CSS px wide and 480 px tall; `--wizard-sticky-top` counts it only then (T096, WCAG 1.4.10) | `TopBar`; ARCHITECTURE "Layouts" |
+| The toast fixed above the footer at every width | sticky at the window's bottom under 320 CSS px (`narrow:`, T096) | `Toast/constants.ts`; ARCHITECTURE "Layouts" |
+| No layout below 320 CSS px | the `narrow:` variant and the narrow block of `index.css` (T096) | KERN-DESIGN-SYSTEM §3.1; CLAUDE.md "Narrow windows" |
+| Constitution 1.2.0, "inline styles are forbidden" without exception; T033's "the one place a measured value is set as a custom property" | constitution 1.2.1 (T102): a measured value may be set as a custom property; two call sites, `WizardLayout` on `<html>` (`--wizard-sticky-top` / `-bottom`) and the rules step's tab row (`--rules-tabs-height`) | constitution; CLAUDE.md "Styling"; ARCHITECTURE "Layouts" |
+| KERN's disabled opacity 0.4; §1.1's "Opacities … no entry" | 0.68 in the overlay (T098) | §1.5 (T098 rows); KERN-DESIGN-SYSTEM §3.1 |
+| KERN's pressed shade (16 % white) and pressed tints laid over the surface | 11 % white for the primary button; tints mixed over white as one fill; the disabled buttons' fill pinned on hover and while pressed (T098) | §1.5; `index.css`; KERN-DESIGN-SYSTEM §3.1 |
+| Q8 (e)'s "Dropped: Log out and discard unsaved work?" outside a flow; T048's and T096's "retire both" notes | #67 (Implement Q6): the old dialog stays outside a flow, and after the editor's question for the account's other records | spec.md #67; ARCHITECTURE "Local drafts (spec 005)" |
+| Dates in statements, proposed messages and boundary texts as "1 Jan 2020" | dd.mm.yyyy, "01.01.2020" (cosmetic 3, T103) | §6.11 |
+| `focus:` on the "Start with" radio | KERN's radio with `index.css`'s click-focus rule (T104) | §6.12 |
+| CLAUDE.md "Only `hooks/useLocalDraftStore.ts` touches `localStorage`" | "Only `useLocalDraftStore` and `useRememberedHomepage` touch `localStorage`" (T039, T100) | CLAUDE.md; ARCHITECTURE "Local drafts (spec 005)" |
+| CLAUDE.md "Popups pick their side with `placementFrom()`; never `left-0` / `right-0` alone" | menus, tooltips and popovers placed by `placementFrom()`'s class sets (side, direction, max-height step), never with inline coordinates (research R10) | CLAUDE.md; ARCHITECTURE "Popups" |
+| `--shadow-chip`, `utils/documentGlyphs.ts`, 17 icons and 2 illustrations of the old design | deleted (T090, T091) | §7 Result |
+| Spec 002's `figma-audit/` node ids | stale since the redraw of 2026-11 (T093) | its `units.md` head |
+
+### 8.4 Where the record lives (T100, 2026-11-09)
+
+The documentation checklist (CLAUDE.md "Documentation checklist", FR-017) after the port:
+
+| Document | What it now says |
+|---|---|
+| `docs/ARCHITECTURE.md` "frontend" | the three route groups (L1–L4; `/` renders `AppLayout` itself, its loading page none), the page scroll and what stays put (header from 320 CSS px × 480 px, step header from 768 × 640, footer from 480 px tall, the toast under 320 CSS px), the two measured custom properties, `placementFrom()`'s class sets, `ConfirmDialog` and the scrim rule, the overlay and the two variants, the four steps and the publish dialog, the documents step's view reducer, the header pills and the leave model, the homepage and `useRememberedHomepage`, the details' checks in the browser, where the design's decisions are recorded |
+| `docs/ARCHITECTURE.md` "Local drafts (spec 005)" | the homepage flag `connection-portal:local-draft:v1:<username>:homepage:has-connections` (the `:` in its tail keeps the store from listing it), the two `localStorage` users, #67's dialog as the one exception to Q8 (e), the offers on the welcome page, the overview and `/get-started` |
+| `docs/KERN-DESIGN-SYSTEM.md` §3.1 | what the overlay sets (with 0.68 and the 11 % pressed shade), the table of scoped overrides (with kern.css's hover selector list and the disabled-hover pin), `wizard-pinned:`, `narrow:` and its block |
+| `docs/FIGMA-WORKFLOW.md` | spec 008's notes first, 001's and 002's as history (T093) |
+| `CLAUDE.md` "Frontend rules" | "KERN Revamp" (overlay names, `@theme` for the rest), "Narrow windows" (`narrow:`), "Popups" (class sets), "Dialogs" (scrim), beside T102's "Styling"; spec 005's `localStorage` rule widened |
+| `README.md` | Konnekt as the management UI's name (intro, the approval page, the tree, the accounts); spec 008 named among the specs; no new dependency |
+| `brief.md` | status: history from pass C on; `plan.md` and `tasks.md` are the record |
+
+Gates after T100: `npm run lint`, `npm test` (rules 43 files / 2351 tests, frontend 29 / 969,
+mcp 15 / 408), `npm run build`: all pass. Backend untouched.

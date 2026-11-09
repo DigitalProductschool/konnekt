@@ -4,6 +4,7 @@ Middleware that lets the DO.IT team of the City of Stuttgart connect serviceBW f
 Wallet. For each form, DO.IT creates a form connection that names the documents and fields the
 form needs. serviceBW then uses the form connection's URLs to request those documents from the
 citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
+The team sets up its form connections in **Konnekt**, the middleware's management UI.
 
 A form connection can also have rules that the shared documents must meet, such as "Date of
 birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
@@ -15,14 +16,15 @@ citizen.
 The middleware is built in phases. Each phase's specification, plan and task list are in
 [specs/](specs/): [001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/) for the
 form connections, [002-connection-rules/](specs/002-connection-rules/) for their rules and
-variants. The code base started from the Digital Product School React + FastAPI + PostgreSQL
-template.
+variants, and [008-kern-revamp-redesign/](specs/008-kern-revamp-redesign/) for Konnekt's current
+design on the KERN Revamp. The code base started from the Digital Product School React + FastAPI +
+PostgreSQL template.
 
 Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
 Codex, through the middleware's MCP server ([007-agent-mcp-server/](specs/007-agent-mcp-server/)):
 the agent finds and reads connections, builds drafts, checks their rules and tests them with
-fictitious citizens, and asks the team member's approval, on a page of the management UI, to
-publish a draft or to deactivate, reactivate or delete a live connection. See
+fictitious citizens, and asks the team member's approval, on a page of Konnekt, to publish a
+draft or to deactivate, reactivate or delete a live connection. See
 [Agents and the MCP server](#agents-and-the-mcp-server).
 
 ## Tech Stack
@@ -71,7 +73,7 @@ Skills extension is marked experimental in 2.4.0.
 │   └── src/
 ├── rules/                 # @connection-portal/rules: the pure rules logic, rule checks and test
 │   └── src/               # personas, with their tests (vitest.config.ts)
-├── frontend/              # React SPA (Vite + TypeScript): the DO.IT management UI
+├── frontend/              # React SPA (Vite + TypeScript): Konnekt, the DO.IT management UI
 │   └── src/workers/       # The browser Worker entries of the rule checks and test personas
 ├── mcp/                   # @connection-portal/mcp: the MCP server for agents (Node + TypeScript)
 │   ├── src/               # Server, tools, links, checks; tests beside the modules
@@ -200,7 +202,7 @@ Then follow Option 2 steps for backend and frontend.
 
 ### Accounts
 
-DO.IT team members sign in with personal accounts. The management UI has no account
+DO.IT team members sign in to Konnekt with personal accounts. Konnekt has no account
 management: the operators manage accounts with the command-line tool, run from `backend/`
 (prefix it with `docker compose exec backend` when the backend runs in Docker):
 

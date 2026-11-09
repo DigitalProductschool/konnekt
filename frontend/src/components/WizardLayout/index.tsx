@@ -63,7 +63,9 @@ function useStickyEdges(
       const footer = footerRef.current;
       const top = isSticky(head)
         ? head.getBoundingClientRect().bottom
-        : (header?.getBoundingClientRect().bottom ?? 0);
+        : isSticky(header)
+          ? header.getBoundingClientRect().bottom
+          : 0;
       const bottom = isSticky(footer) ? footer.getBoundingClientRect().height : 0;
       style.setProperty(STICKY_TOP_PROPERTY, `${Math.ceil(Math.max(top, 0))}px`);
       style.setProperty(STICKY_BOTTOM_PROPERTY, `${Math.ceil(bottom)}px`);

@@ -38,7 +38,7 @@ export default function AccessLevelOption({
       </div>
       <p
         id={descriptionId}
-        className={`text-kern-static-small text-kern-layout-text-muted pl-48 leading-(--kern-typography-line-height-medium-static) ${disabled ? 'opacity-40' : ''}`}
+        className={`text-kern-static-small text-kern-layout-text-muted pl-48 leading-(--kern-typography-line-height-medium-static) ${disabled ? 'opacity-(--kern-color-action-state-opacity-disabled)' : ''}`}
       >
         {level.allows}
       </p>

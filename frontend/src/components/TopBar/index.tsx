@@ -21,7 +21,9 @@ import type { TopBarProps } from './types';
  * the name cut with "…" (#38). The header area, 64px, turns white once the page scrolls under it
  * (#39). The product name and "Your connections" go home, or in a flow call `onLeave` (FR-026).
  * No DE/EN switch (F6). Below `md`, which the design has no frame for, the second pill and the
- * description take rows of their own (W2).
+ * description take rows of their own (W2). In a window under 320 CSS px or 480px tall (such as
+ * 1280 × 1024 at 400 % zoom) it scrolls away with the page instead of covering half of it
+ * (WCAG 1.4.10, T096), as the wizard's footer does
  */
 export default function TopBar({
   title,
@@ -47,7 +49,7 @@ export default function TopBar({
 
   return (
     <header
-      className={`motion sticky top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 transition-colors duration-(--duration-colour) md:flex-nowrap ${title ? 'gap-x-8' : 'gap-x-16'} ${scrolled ? 'bg-kern-layout-background-default' : ''}`}
+      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 transition-colors duration-(--duration-colour) md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${scrolled ? 'bg-kern-layout-background-default' : ''}`}
     >
       {logoTo ? (
         <Link to={logoTo} onClick={handleLeave} className={`${logoPill} ${FOCUS_RING_CLASSES}`}>
@@ -96,13 +98,14 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
   return (
     <nav
       aria-label={BREADCRUMB_LABEL}
-      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
+      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
     >
-      <div className="motion animate-pill-text flex min-w-0 items-center gap-8">
+      {/* Under 320 CSS px its parts wrap (T096) */}
+      <div className="motion animate-pill-text narrow:flex-wrap flex min-w-0 items-center gap-8">
         <Link
           to={ROUTES.overview}
           onClick={onLeave}
-          className={`${SMALL_TEXT_CLASSES} text-kern-action-default rounded-kern-small font-semibold hover:underline ${FOCUS_RING_CLASSES}`}
+          className={`${SMALL_TEXT_CLASSES} text-kern-action-default rounded-kern-small narrow:whitespace-normal font-semibold hover:underline ${FOCUS_RING_CLASSES}`}
         >
           {YOUR_CONNECTIONS_LABEL}
         </Link>

@@ -73,8 +73,11 @@ export default function RuleRow({
     >
       {selectBox}
       <div className={framed ? frame : undefined}>
-        <div className="flex items-start gap-16 py-8 pr-16 pl-24">
-          <div className={`flex min-w-0 flex-1 flex-col gap-4 ${inactive ? INACTIVE_OPACITY : ''}`}>
+        {/* Under 320 CSS px the mark and the actions take a line under the text (T096) */}
+        <div className="narrow:flex-wrap flex items-start gap-16 py-8 pr-16 pl-24">
+          <div
+            className={`narrow:basis-full flex min-w-0 flex-1 flex-col gap-4 ${inactive ? INACTIVE_OPACITY : ''}`}
+          >
             {nameSlot ?? (
               <RuleName name={rule.name} identifier={showIdentifier ? rule.id : undefined} />
             )}
@@ -89,7 +92,7 @@ export default function RuleRow({
               </div>
             )}
           </div>
-          <div className="flex min-h-32 min-w-32 shrink-0 items-center justify-end gap-8">
+          <div className="narrow:ml-auto narrow:flex-wrap flex min-h-32 min-w-32 shrink-0 items-center justify-end gap-8">
             {mark && <BranchMark mark={mark} />}
             {actions}
           </div>

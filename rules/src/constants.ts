@@ -121,22 +121,6 @@ export const NUMBER_OPERATOR_SYMBOLS: Record<string, StatementSymbol> = {
   not_equal_to: '≠',
 };
 
-// The design's date format, "23 Oct 2005", with fixed English month names
-export const MONTH_ABBREVIATIONS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 // Dates as the API writes them
 export const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 

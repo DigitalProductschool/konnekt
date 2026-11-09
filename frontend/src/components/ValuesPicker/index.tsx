@@ -1,4 +1,11 @@
-import { type FocusEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import {
+  type FocusEvent,
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import expandIcon from '../../assets/icons/picker-expand.svg';
 import expandOpenIcon from '../../assets/icons/picker-expand-open.svg';
@@ -22,7 +29,8 @@ import type { ValuesPickerProps } from './types';
 import { chosenValueLabels, matchesSearch, valuesMenuHeight } from './utils';
 import ValueOptionItem from './ValueOptionItem';
 
-// Where a menu opened by its caller (not by its field) is placed: below, at the field's left
+// The placement for the first render of an open menu, before it is measured (below, at the
+// field's left)
 const DEFAULT_PLACEMENT: MenuPlacement = { side: 'start', direction: 'down', maxHeight: 480 };
 
 // A form field's menu opens below it in the card that scrolls it (the test step's data card,
@@ -105,7 +113,7 @@ export default function ValuesPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function openMenu() {
+  function measure() {
     const height = valuesMenuHeight(choices.length, classes, searchable, copy.footer !== null);
     setMeasured(
       field
@@ -118,6 +126,20 @@ export default function ValuesPicker({
             Math.min(height, VALUES_MENU_DRAWN_HEIGHT)
           )
     );
+  }
+
+  // The editor also opens the menu itself, once a check is chosen: measured then too, before
+  // it shows, or it would open beside the field where 300px don't fit (320px at 200 %, T096)
+  useLayoutEffect(() => {
+    if (open) {
+      measure();
+    }
+    // Only when the menu opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function openMenu() {
+    measure();
     onOpenChange(true);
   }
 
@@ -242,7 +264,7 @@ export default function ValuesPicker({
         <div
           id={menuId}
           onKeyDown={handleMenuKeyDown}
-          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${menuLook}`}
+          className={`rounded-kern-default bg-kern-layout-background-default shadow-menu narrow:overflow-y-auto absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${menuLook}`}
         >
           {searchable && (
             <MenuSearchField
@@ -258,7 +280,7 @@ export default function ValuesPicker({
             ref={listRef}
             id={`${menuId}-list`}
             aria-label={copy.menu}
-            className={`flex min-h-0 flex-col overflow-y-auto ${classes ? 'gap-2' : 'p-4'} ${shown.length ? '' : 'hidden'}`}
+            className={`narrow:shrink-0 flex min-h-0 flex-col overflow-y-auto ${classes ? 'gap-2' : 'p-4'} ${shown.length ? '' : 'hidden'}`}
           >
             {shown.map((choice) => (
               <ValueOptionItem

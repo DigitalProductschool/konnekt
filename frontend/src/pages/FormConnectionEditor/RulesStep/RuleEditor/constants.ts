@@ -125,7 +125,10 @@ export const MENU_WIDTH_CLASSES: Record<MenuWidth, string> = {
 export const CHOICE_MENU_PLACEMENTS: Record<PopupPlacement, Record<MenuDirection, string>> = {
   start: { down: 'top-full left-0 mt-8', up: 'bottom-full left-0 mb-8' },
   end: { down: 'top-full right-0 mt-8', up: 'bottom-full right-0 mb-8' },
-  full: { down: 'inset-x-24 mt-8', up: 'inset-x-24 -translate-y-[calc(100%+8px)]' },
+  full: {
+    down: 'inset-x-24 mt-8 narrow:inset-x-0',
+    up: 'inset-x-24 -translate-y-[calc(100%+8px)] narrow:inset-x-0',
+  },
 };
 
 /** The wrapper of a menu across the editor, by direction (see CHOICE_MENU_PLACEMENTS) */

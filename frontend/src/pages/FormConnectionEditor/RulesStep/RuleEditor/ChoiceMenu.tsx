@@ -104,11 +104,12 @@ export default function ChoiceMenu({
     }
   }
 
+  // Under 320 CSS px the whole menu scrolls, so that its note can't squeeze the list away (T096)
   return (
     <div
       id={id}
       onBlur={handleBlur}
-      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${MENU_MAX_HEIGHT_CLASSES[placement.maxHeight]} ${CHOICE_MENU_PLACEMENTS[placement.side][placement.direction]} ${placement.side === 'full' ? '' : MENU_WIDTH_CLASSES[width]}`}
+      className={`rounded-kern-default bg-kern-layout-background-default shadow-menu narrow:overflow-y-auto absolute z-40 flex flex-col gap-2 border border-(--kern-color-decorative-border-default) p-8 ${MENU_MAX_HEIGHT_CLASSES[placement.maxHeight]} ${CHOICE_MENU_PLACEMENTS[placement.side][placement.direction]} ${placement.side === 'full' ? '' : MENU_WIDTH_CLASSES[width]}`}
     >
       {searchPlaceholder && (
         <MenuSearchField
@@ -125,7 +126,7 @@ export default function ChoiceMenu({
         id={listId}
         role="listbox"
         aria-label={label}
-        className="flex min-h-0 flex-col gap-2 overflow-y-auto"
+        className="narrow:shrink-0 flex min-h-0 flex-col gap-2 overflow-y-auto"
       >
         {shown.map((section, index) => (
           <MenuSectionGroup

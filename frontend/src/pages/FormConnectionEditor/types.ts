@@ -273,8 +273,8 @@ export interface ConnectionStepProps {
 /**
  * The phases of the publish and save dialog (data-model.md "The publish dialog"; FR-044; S14):
  * - `summary`: "Ready to publish?" ("Save changes?") with the counts and the findings lines;
- * - `noRules`: "Publish without rules?" ("Save without rules?"), from the documents step while no
- *   variant has rules (002-S5.6);
+ * - `noRules`: "Publish without rules?" ("Save without rules?"), from the rules step's "Publish
+ *   without rules" or the edit flow's "Save" while no variant has rules (002-S5.6);
  * - `publishing`: the status dialog "Publishing…" ("Saving…"), which can't be closed (FR-051 (41));
  * - `published`: the status dialog "Published" ("Saved") for 0.5 s, then the details (FR-044d);
  * - `failed`: the summary again, under the failure's alert, with "Try again" (F46);

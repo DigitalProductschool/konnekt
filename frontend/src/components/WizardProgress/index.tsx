@@ -18,7 +18,7 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
   if (onSelect) {
     return (
       <nav aria-label={PROGRESS_LABEL}>
-        <ol className="flex items-start gap-4">
+        <ol className="narrow:flex-col narrow:items-stretch narrow:gap-8 flex items-start gap-4">
           {steps.map((label, index) => (
             <WizardStep
               key={label}
@@ -34,7 +34,8 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
   }
   const count = stepCountOf(current, steps.length);
   return (
-    <div className="flex h-24 w-full items-center gap-16">
+    // Under 320 CSS px the bar takes a row of its own between the two texts (T096)
+    <div className="narrow:h-auto narrow:flex-wrap narrow:gap-x-8 narrow:gap-y-4 flex h-24 w-full items-center gap-16">
       {/* The progress bar's name says it, so it is read once */}
       <span aria-hidden="true" className={LINE_TEXT_CLASSES}>
         {count}
@@ -46,7 +47,7 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
         aria-valuemax={steps.length}
         aria-valuenow={current + 1}
         aria-valuetext={steps[current]}
-        className="flex h-4 min-w-px flex-1 gap-4"
+        className="narrow:basis-full flex h-4 min-w-px flex-1 gap-4"
       >
         {steps.map((label, index) => (
           <WizardStep key={label} label={label} state={stepStateOf(index, current)} />

@@ -38,7 +38,7 @@ export default function ConnectionStep({
         className="rounded-kern-large border-kern-action-default bg-kern-layout-background-default border"
       >
         {/* U19 6699:45329: 24px around, 16px between the tile and the title */}
-        <div className="flex items-center gap-16 border-b border-(--kern-color-decorative-border-default) p-24">
+        <div className="narrow:flex-col narrow:items-start flex items-center gap-16 border-b border-(--kern-color-decorative-border-default) p-24">
           <IconTile glyph={addLinkIcon} size={40} tone="action" />
           <div className="flex min-w-0 flex-col">
             <h2

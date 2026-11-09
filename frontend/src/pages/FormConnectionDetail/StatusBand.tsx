@@ -48,7 +48,7 @@ export default function StatusBand({
       >
         <img src={look.icon} alt="" className={look.iconSize} />
       </span>
-      <div className="relative flex min-w-0 flex-1 flex-col gap-20">
+      <div className="narrow:basis-full relative flex min-w-0 flex-1 flex-col gap-20">
         <div className="flex flex-col gap-4">
           <h1
             id={titleId}
@@ -66,9 +66,11 @@ export default function StatusBand({
       </div>
       {(actions || mainAction) && (
         // From 768px in the band's top right corner, over the picture, so that the text keeps its
-        // drawn width, centred on the title's line; below, a main action wraps under the text
+        // drawn width, centred on the title's line; below, a main action wraps under the text.
+        // Under 320 CSS px the text and the actions take rows of their own, and a menu that spans
+        // the band is placed in the band, not in this box (T096)
         <div
-          className={`relative flex shrink-0 items-center gap-16 md:absolute md:top-24 md:right-32 ${mainAction ? 'max-md:mt-4 max-md:basis-full max-md:flex-wrap sm:max-md:pl-48' : 'sm:-mt-8 md:mt-0'}`}
+          className={`narrow:static narrow:basis-full narrow:flex-wrap relative flex shrink-0 items-center gap-16 md:absolute md:top-24 md:right-32 ${mainAction ? 'max-md:mt-4 max-md:basis-full max-md:flex-wrap sm:max-md:pl-48' : 'sm:-mt-8 md:mt-0'}`}
         >
           {mainAction}
           {actions && (

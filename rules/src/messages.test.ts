@@ -129,13 +129,13 @@ describe('proposedMessage', () => {
 
     it('says when someone was born', () => {
       expect(message(target('pid', 'birthdate'), { operator: 'before', date: '2000-01-01' })).toBe(
-        'You need to be born before 1 Jan 2000.'
+        'You need to be born before 01.01.2000.'
       );
       expect(message(target('pid', 'birthdate'), { operator: 'on', date: '2000-01-01' })).toBe(
-        'You need to be born on 1 Jan 2000.'
+        'You need to be born on 01.01.2000.'
       );
       expect(message(target('pid', 'birthdate'), { operator: 'after', date: '2010-01-01' })).toBe(
-        'You need to be born after 1 Jan 2010.'
+        'You need to be born after 01.01.2010.'
       );
     });
 
@@ -198,9 +198,9 @@ describe('proposedMessage', () => {
     });
 
     it.each([
-      [{ operator: 'before', date: '2020-01-01' }, 'must be before 1 Jan 2020.'],
-      [{ operator: 'after', date: '2020-01-01' }, 'must be after 1 Jan 2020.'],
-      [{ operator: 'on', date: '2020-01-01' }, 'must be 1 Jan 2020.'],
+      [{ operator: 'before', date: '2020-01-01' }, 'must be before 01.01.2020.'],
+      [{ operator: 'after', date: '2020-01-01' }, 'must be after 01.01.2020.'],
+      [{ operator: 'on', date: '2020-01-01' }, 'must be 01.01.2020.'],
       [{ operator: 'at_least_years_ago', years: 2 }, 'must be at least 2 years ago.'],
       [{ operator: 'less_than_years_ago', years: 1 }, 'must be less than 1 year ago.'],
       [{ operator: 'exactly_years_ago', years: 5 }, 'must be exactly 5 years ago.'],
@@ -224,7 +224,7 @@ describe('proposedMessage', () => {
           operator: 'before',
           date: '2030-06-30',
         })
-      ).toBe('The expiry date of your class B must be before 30 Jun 2030.');
+      ).toBe('The expiry date of your class B must be before 30.06.2030.');
     });
   });
 

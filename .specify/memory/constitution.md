@@ -1,5 +1,31 @@
 <!--
 Sync Impact Report
+Version change: 1.2.0 → 1.2.1
+Rationale: PATCH. A clarification of "inline styles are forbidden" in Technology and
+Structure Constraints: a value measured at run time may be handed to CSS as a custom
+property set on an element; every visual style still comes from Tailwind classes or
+`index.css`. Spec 008 (the KERN Revamp port) pins the wizard's step header and the rules
+step's tab row under a sticky header whose height varies with the window and the wrapped
+text: `WizardLayout` sets `--wizard-sticky-top` and `--wizard-sticky-bottom` on `<html>`,
+the rules step sets its tab row's height, both with `style.setProperty`, and Tailwind
+classes read the properties. No principle is removed or redefined; code that complied
+still complies.
+
+Modified principles: none
+Modified sections:
+- Technology and Structure Constraints: the styling sentence of the frontend paragraph.
+
+Added sections: none
+Removed sections: none
+
+Templates requiring updates: none.
+
+Follow-up TODOs:
+- CLAUDE.md "Frontend rules", "Styling": the matching half-sentence (spec 008, T102, in the
+  same change).
+-->
+<!--
+Previous report (1.1.0 → 1.2.0):
 Version change: 1.1.0 → 1.2.0
 Rationale: MINOR. The repository becomes an npm workspace of four Node packages so that the
 MCP server (spec 007) reuses the editor's rules logic without a second implementation. This
@@ -203,7 +229,8 @@ state-independent utility functions MUST be extracted into sibling `types.ts`,
 MUST use `useReducer` with actions rather than a stack of `useState` calls, and JSX
 mapped over a list MUST be extracted into a sub-component. Styling MUST use Tailwind
 utility classes — inline styles are forbidden, design tokens live in the `@theme` block
-in `index.css`. `require()` is forbidden; use ES imports. The `any` type MUST NOT be
+in `index.css`. A value measured at run time (a sticky part's height) MAY be set as a CSS
+custom property on an element for classes to read; it carries no visual style itself. `require()` is forbidden; use ES imports. The `any` type MUST NOT be
 used without a written justification at the use site.
 
 Backend code MUST use the `logging` module or FastAPI's logger — `print()` is not
@@ -259,4 +286,4 @@ complexity, and only for principles not marked NON-NEGOTIABLE.
 contributors alike; it MUST remain consistent with this constitution, and this
 constitution is the authority when they diverge.
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-05
+**Version**: 1.2.1 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-09

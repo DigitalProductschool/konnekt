@@ -61,7 +61,7 @@ export default function DetailAccordion({
           aria-expanded={open}
           aria-controls={bodyId}
           onClick={onToggle}
-          className="kern-btn kern-btn--tertiary kern-btn--small shrink-0"
+          className="kern-btn kern-btn--tertiary kern-btn--small max-w-full shrink-0"
         >
           {/* No underline, as the kit draws it: KERN drops it only beside a `kern-icon` */}
           <span className="kern-label no-underline!">{open ? hideLabel : viewLabel}</span>
@@ -74,7 +74,7 @@ export default function DetailAccordion({
             setSettled(true);
           }
         }}
-        className={`motion grid transition-[grid-template-rows] duration-(--duration-height) ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        className={`motion grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-(--duration-height) ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
       >
         <div id={bodyId} inert={!open} className={`min-h-0 ${clipped ? 'overflow-hidden' : ''}`}>
           {children}

@@ -30,7 +30,7 @@ export default function Toast({ toast, onAction, onDismiss, noFooter = false }: 
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className={`pointer-events-none fixed inset-x-0 z-30 flex justify-center px-16 ${noFooter ? TOAST_POSITION.noFooter : TOAST_POSITION.aboveFooter}`}
+      className={`pointer-events-none fixed inset-x-0 z-30 flex justify-center px-16 ${noFooter ? TOAST_POSITION.noFooter : TOAST_POSITION.aboveFooter} ${TOAST_POSITION.narrow}`}
     >
       {toast && toast.id === shownId && (
         <ToastMessage key={toast.id} toast={toast} onAction={onAction} onDismiss={onDismiss} />

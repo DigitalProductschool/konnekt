@@ -18,7 +18,7 @@ export default function RuleMenuItem({
 }: RuleMenuItemProps) {
   const colour = danger ? 'text-kern-feedback-danger' : 'text-kern-layout-text-default';
   const states = disabled ? 'cursor-default' : `cursor-pointer ${ACTION_MENU_STATES}`;
-  const fade = disabled ? 'opacity-40' : '';
+  const fade = disabled ? 'opacity-(--kern-color-action-state-opacity-disabled)' : '';
   return (
     <button
       type="button"

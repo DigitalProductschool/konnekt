@@ -13,7 +13,7 @@ import type { EditorActionsProps } from './types';
  */
 export default function EditorActions({ explanation, onCancel, onSave }: EditorActionsProps) {
   return (
-    <div className="flex items-center justify-end gap-16">
+    <div className="flex flex-wrap items-center justify-end gap-16">
       <button
         type="button"
         onClick={onCancel}

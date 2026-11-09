@@ -1,7 +1,10 @@
-# Brief: porting the redesigned UI (KERN Revamp) — plan of record
+# Brief: porting the redesigned UI (KERN Revamp) — plan of record until pass C
 
-**Written**: 2026-11-06, in the planning chat. **Status**: pass A in progress: `spec.md` written,
-this file moved here from `specs/redesign-brief.md` and the tooling edits of §4 done, all on
+**Status**: history from pass C on; `plan.md` and `tasks.md` are the record (and
+`design-notes.md` for the decisions made while building). The text below is kept as written.
+
+**Written**: 2026-11-06, in the planning chat. **Status then**: pass A in progress: `spec.md`
+written, this file moved here from `specs/redesign-brief.md` and the tooling edits of §4 done, all on
 2026-11-06 (the kit's two mapper runs are driven by `/figma-audit kit <file link>`), and
 `/speckit-clarify` answered three questions (defer for F items beyond the frontend, AA contrast
 fixes, what a verification table covers). **Pass A is complete; pass B is next**, in a new chat

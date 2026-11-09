@@ -16,6 +16,13 @@ export const TOAST_DURATION_MS = 6000;
 export const TOAST_POSITION = {
   aboveFooter: 'bottom-[calc(var(--wizard-sticky-bottom,72px)+24px)]',
   noFooter: 'bottom-24',
+  /*
+   * Under 320 CSS px (T096) it sticks to the window's bottom edge while the part of the page it
+   * belongs to is in view, and keeps a place of its own there: at the end of the page it covers
+   * nothing (a fixed toast with an action, which stays until it is used, would hide the page's
+   * last controls, such as the footer's, which doesn't stick in such a window)
+   */
+  narrow: 'narrow:sticky narrow:bottom-8',
 };
 
 /**

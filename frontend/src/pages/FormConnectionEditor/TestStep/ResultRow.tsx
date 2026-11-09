@@ -25,7 +25,7 @@ export default function ResultRow({ row, depth, messageColumn }: ResultRowProps)
       <tr
         className={`border-b border-(--kern-color-decorative-border-default) ${tinted ? 'bg-kern-feedback-danger-background' : ''}`}
       >
-        <td className={`${padding} pl-8 align-top ${messageColumn ? '' : 'pr-8'}`}>
+        <td className={`${padding} pl-8 align-top ${messageColumn ? 'narrow:block' : 'pr-8'}`}>
           <div
             className={`flex items-start gap-12 ${MEMBER_INDENT[Math.min(depth, MEMBER_INDENT.length - 1)]}`}
           >
@@ -58,7 +58,7 @@ export default function ResultRow({ row, depth, messageColumn }: ResultRowProps)
         </td>
         {messageColumn && (
           <td
-            className={`${padding} text-kern-static-small pr-8 pl-12 align-top leading-(--kern-typography-line-height-medium-static) break-words ${row.message ? 'text-kern-layout-text-default' : 'text-kern-layout-text-muted'}`}
+            className={`${padding} text-kern-static-small narrow:block narrow:pt-0 narrow:pl-36 pr-8 pl-12 align-top leading-(--kern-typography-line-height-medium-static) break-words ${row.message ? 'text-kern-layout-text-default' : 'text-kern-layout-text-muted'}`}
           >
             {row.message ?? TEST_STEP_COPY.noMessage}
           </td>

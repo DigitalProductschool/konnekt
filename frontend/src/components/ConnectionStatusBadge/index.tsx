@@ -16,11 +16,11 @@ export default function ConnectionStatusBadge({
   const tone = STATUS_PILL_TONES[status];
   return (
     <span
-      className={`${tone.pill} rounded-kern-default inline-flex h-24 shrink-0 items-center gap-6 px-10`}
+      className={`${tone.pill} rounded-kern-default narrow:h-auto narrow:min-h-24 inline-flex h-24 max-w-full shrink-0 items-center gap-6 px-10`}
     >
       <span aria-hidden="true" className={`${tone.dot} rounded-kern-circle size-8 shrink-0`} />
       <span
-        className={`${tone.label} text-kern-static-small leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap`}
+        className={`${tone.label} text-kern-static-small narrow:whitespace-normal leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap`}
       >
         {STATUS_PILL_COPY[status]}
       </span>
