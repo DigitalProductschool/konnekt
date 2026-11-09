@@ -1,4 +1,5 @@
 import re
+from contextvars import copy_context
 
 import pytest
 
@@ -10,10 +11,15 @@ from app.catalog import (
     PID,
     SD_JWT_VC_FORMAT,
     CatalogDocumentType,
+    CatalogField,
     CatalogPart,
     get_document_type,
+    label_of,
 )
+from app.language import Language, request_language
 from app.option_sets import OPTION_SETS
+from app.schemas import DocumentField
+from app.services.form_connections import document_field_view
 
 # data-model.md, "Document type catalog": keys and claim paths, in catalog order
 PID_CLAIM_PATHS = [
@@ -264,9 +270,9 @@ def test_the_place_of_birth_and_the_licence_classes_have_parts() -> None:
 
     assert place_of_birth is not None and driving_privileges is not None
     assert place_of_birth.parts == (
-        CatalogPart('country', 'Country', 'enum', 'countries'),
-        CatalogPart('region', 'Region', 'text'),
-        CatalogPart('locality', 'City or town', 'text'),
+        CatalogPart('country', 'Country', 'enum', 'countries', label_de='Land'),
+        CatalogPart('region', 'Region', 'text', label_de='Region'),
+        CatalogPart('locality', 'City or town', 'text', label_de='Ort'),
     )
     assert driving_privileges.parts == (
         CatalogPart(
@@ -274,10 +280,23 @@ def test_the_place_of_birth_and_the_licence_classes_have_parts() -> None:
             'Licence classes',
             'enum',
             'licence_classes',
+            label_de='Führerscheinklassen',
             multiple_values=True,
         ),
-        CatalogPart('issue_date', 'Issue date', 'date', per_licence_class=True),
-        CatalogPart('expiry_date', 'Expiry date', 'date', per_licence_class=True),
+        CatalogPart(
+            'issue_date',
+            'Issue date',
+            'date',
+            label_de='Ausstellungsdatum',
+            per_licence_class=True,
+        ),
+        CatalogPart(
+            'expiry_date',
+            'Expiry date',
+            'date',
+            label_de='Ablaufdatum',
+            per_licence_class=True,
+        ),
     )
     # Parts belong to fields made of parts, and only enum parts have a value set
     for document_type in DOCUMENT_TYPES:
@@ -386,3 +405,102 @@ def test_the_17_licence_classes_have_descriptions() -> None:
     assert next(option for option in classes if option.value == 'B').description == (
         'Cars up to 3.5 t'
     )
+
+
+# German labels (spec 009, R6, glossary §4)
+
+# Labels that are the same word in both languages (glossary §1, "Identifiers", and
+# the completeness tests' allowlist): nothing else may equal its English
+EQUAL_IN_BOTH_LANGUAGES = {'Region'}
+
+
+def _labelled() -> list[CatalogDocumentType | CatalogField | CatalogPart]:
+    items: list[CatalogDocumentType | CatalogField | CatalogPart] = []
+    for document_type in DOCUMENT_TYPES:
+        items.append(document_type)
+        for field in document_type.fields:
+            items.append(field)
+            items.extend(field.parts or ())
+    return items
+
+
+Labelled = CatalogDocumentType | CatalogField | CatalogPart
+
+
+def _in(language: Language, item: Labelled) -> str:
+    def run() -> str:
+        request_language.set(language)
+        return label_of(item)
+
+    return copy_context().run(run)
+
+
+def test_every_label_has_its_german() -> None:
+    items = _labelled()
+
+    # Two document types, 56 fields and 6 parts
+    assert len(items) == 2 + 56 + 6
+    for item in items:
+        assert item.label_de.strip(), item.label
+        assert item.label_de != item.label or item.label in EQUAL_IN_BOTH_LANGUAGES, (
+            item.label
+        )
+
+
+def test_the_glossary_labels_are_used() -> None:
+    place_of_birth = PID.field('place_of_birth')
+    driving_privileges = MDL.field('driving_privileges')
+    birthdate = PID.field('birthdate')
+
+    assert place_of_birth is not None and place_of_birth.parts is not None
+    assert driving_privileges is not None and driving_privileges.parts is not None
+    assert birthdate is not None
+    assert PID.label_de == 'Personalausweis'
+    assert MDL.label_de == 'Führerschein'
+    assert birthdate.label_de == 'Geburtsdatum'
+    assert place_of_birth.label_de == 'Geburtsort'
+    assert [part.label_de for part in place_of_birth.parts] == ['Land', 'Region', 'Ort']
+    assert driving_privileges.label_de == 'Führerscheinklassen'
+    assert [part.label_de for part in driving_privileges.parts] == [
+        'Führerscheinklassen',
+        'Ausstellungsdatum',
+        'Ablaufdatum',
+    ]
+
+
+def test_label_of_follows_the_request_language() -> None:
+    family_name = PID.field('family_name')
+    assert family_name is not None
+
+    # Outside a request: English
+    assert label_of(PID) == 'Personal ID'
+    assert _in('en', family_name) == 'Family name'
+    assert _in('de', family_name) == 'Familienname'
+    assert _in('de', MDL) == 'Führerschein'
+
+
+def _without_labels(view: DocumentField) -> dict[str, object]:
+    # A field view's values apart from its labels and its parts' labels
+    values = view.model_dump(exclude={'label', 'parts'})
+    values['parts'] = view.parts and [
+        part.model_dump(exclude={'label'}) for part in view.parts
+    ]
+    return values
+
+
+@pytest.mark.parametrize('language', ['en', 'de'])
+def test_a_field_view_changes_only_its_labels(language: Language) -> None:
+    fields = [field for type_ in DOCUMENT_TYPES for field in type_.fields]
+
+    def run() -> list[DocumentField]:
+        request_language.set(language)
+        return [document_field_view(field) for field in fields]
+
+    for field, view in zip(fields, copy_context().run(run), strict=True):
+        validated = DocumentField.model_validate(field)
+        assert _without_labels(view) == _without_labels(validated)
+        german = language == 'de'
+        assert view.label == (field.label_de if german else field.label)
+        assert [part.label for part in view.parts or ()] == [
+            part.label_de if german else part.label for part in field.parts or ()
+        ]

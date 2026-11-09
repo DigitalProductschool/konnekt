@@ -74,3 +74,35 @@ may be written from the glossary. Corrections, if any, come from the walk of §3
 
 - 2026-11-09: skeleton written by `/speckit-plan`; the switch read from Figma (research R2); the
   glossary drafted ([contracts/glossary.md](contracts/glossary.md)).
+- 2026-11-09: green baseline before the feature (T001; V5, V10). Node v20.19.2, npm 9.2.0:
+  `npm ci` and Vite 8 work on Node 20 (no engines warning; only npm's deprecation note for
+  `eslint@9.39.5`); `package-lock.json` and `backend/uv.lock` unchanged. `npm run lint`,
+  `npm test` and `npm run build` green: `rules/` 43 test files, 2351 tests; `frontend/` 29 test
+  files, 969 tests; `mcp/` 15 test files, 408 tests; `api-types/` has no tests. The frontend
+  build warns that a chunk is over 500 kB (as before the feature). Backend: Ruff clean (no file
+  changed), mypy clean over 77 source files, pytest 1998 passed, 0 skipped, 0 failed.
+- 2026-11-09: checkpoint of the foundations (T010; FR-008, FR-009, FR-010, FR-018; V2, V5, V6,
+  V10). Gates: `npm run lint`, `npm test`, `npm run build` green (`rules/` 45 files, 2362 tests;
+  `frontend/` 31, 985; `mcp/` 15, 408, unchanged); Ruff and mypy clean (80 source files);
+  `export_check_fixtures --check` current; the phase's one full pytest: 2062 passed, 0 failed
+  (1998 + 64 new). Browser (Playwright, Chromium, dev server; fresh contexts, nothing stored):
+  `de-AT` renders `<html lang="de">`, the sign-in page's loader "Wird geladen …" and
+  `Accept-Language: de` on `/api/auth/me`, while the page's own copy stays English (expected
+  until phase 5); `en-US` gives `lang="en"`, "Loading…", `en`. `setLanguage('de')` in tab A
+  writes `connection-portal:language:v1` = `de` and tab B follows; tab B's `en` is followed by
+  tab A; choosing the current language changes nothing; a reload in an `en-US` browser keeps the
+  stored `de`; another tab's `fr` or a cleared storage falls back to the browser's language.
+  Backend (uvicorn on 3000, `template_db_test`, worker off, debug log): `GET
+  /api/document-types` with `de` (and `de-AT,de;q=0.9,en;q=0.8`) gives 64 German labels, only
+  "Region" equal in both, and the body without its labels is identical to the English one (keys,
+  kinds, option sets, flags, parts, order); an empty connection name answers "Geben Sie einen
+  Namen für die Anbindung ein." with `de`, the English message with `fr` or no header;
+  `/api/connect/…/requests` with `de` answers in English; the 19 lines of the backend's debug log
+  hold no `Accept-Language`, no `de` marker and no German text. Open: a person confirms the
+  first visit once in a real German-language browser (tasks.md, phase 1 "Needs a person").
+  Plan changes in this phase: T004 also switched `PageLoader`'s default label to `useCopy` (the
+  checkpoint's loader check needs it; T031 finds it done); the glossary gained "the kit's field
+  texts", "administrator", "Invalid request payload" and nine catalog labels (T009), and its
+  "loading" note was corrected (KERN's kit writes "Wird geladen...", the German column keeps the
+  space); from wave 4 on the full pytest runs once per phase, at the checkpoint (the user's
+  request), the agents running Ruff, mypy and their targeted tests.

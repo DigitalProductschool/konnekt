@@ -8,9 +8,11 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .config import settings
 from .errors import register_exception_handlers
+from .language import language_of_scope, request_language
 from .routers.agent_access import router as agent_access_router
 from .routers.approval_requests import router as approval_requests_router
 from .routers.auth import router as auth_router
@@ -73,6 +75,31 @@ class RedactReferencesFilter(logging.Filter):
 logging.getLogger('uvicorn.access').addFilter(RedactReferencesFilter())
 
 
+class LanguageMiddleware:
+    """Sets the language of a request's texts for its handlers (spec 009, R6).
+
+    Pure ASGI: for an HTTP request it sets `request_language` from the
+    `Accept-Language` header, or to English for every path under `/api/connect/`
+    whatever the header says (FR-017), by `language_of_scope`, and resets it once
+    the app has answered or raised. Plain `def` handlers run in Starlette's
+    threadpool with a copy of the context, so services read `current_language()`.
+    It never logs the header or the language (FR-018).
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope['type'] != 'http':
+            await self.app(scope, receive, send)
+            return
+        token = request_language.set(language_of_scope(scope))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            request_language.reset(token)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Run the background worker while the app is up, unless WORKER_ENABLED=false."""
@@ -93,6 +120,11 @@ app = FastAPI(
     version='0.1.0',
     lifespan=lifespan,
 )
+
+# Starlette makes the middleware added last the outermost. The language middleware
+# is added first so that it runs inside CORS, around the exception handlers and the
+# routers; the handler of a 5xx runs outside both (see errors.py)
+app.add_middleware(LanguageMiddleware)
 
 # Add CORS middleware
 app.add_middleware(

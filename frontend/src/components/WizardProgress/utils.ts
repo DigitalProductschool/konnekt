@@ -26,7 +26,7 @@ export function stepCountOf(current: number, total: number): string {
 }
 
 /** "Next: Documents" after the segments, or "Last step" on the last step (FR-025). */
-export function nextLabelOf(steps: readonly string[], current: number): string {
-  const next = steps[current + 1];
+export function nextLabelOf(labels: readonly string[], current: number): string {
+  const next = labels[current + 1];
   return next === undefined ? LAST_STEP : `Next: ${next}`;
 }

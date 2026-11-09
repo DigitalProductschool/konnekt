@@ -1,4 +1,5 @@
 import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '@connection-portal/api-types/api';
+import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.
@@ -13,6 +14,16 @@ export const API_BASE_URL = normalizeApiBaseUrl(API_URL);
 
 // These need a JSON body, which also protects the session cookie against CSRF
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'DELETE']);
+
+// The website's language, which every call asks the answers' texts in (spec 009, research R7,
+// contracts/api-language.md "The request header"). `LanguageProvider` sets it before the first
+// render and on every change, so that the client needs no React
+let requestLanguage: Language = DEFAULT_LANGUAGE;
+
+/** The language the following calls send as `Accept-Language`; only `LanguageProvider` sets it. */
+export function setRequestLanguage(language: Language): void {
+  requestLanguage = language;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -77,15 +88,16 @@ interface ApiFetchOptions {
 /**
  * Call the backend with the session cookie and return the `data` of its answer.
  *
- * POST, PUT and DELETE always send JSON, `{}` when there is no body. An error answer
- * throws an `ApiError`.
+ * Every call sends the website's language as `Accept-Language`. POST, PUT and DELETE always
+ * send JSON, `{}` when there is no body. An error answer throws an `ApiError`.
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
-  const init: RequestInit = { method, credentials: 'include' };
+  const headers: Record<string, string> = { 'Accept-Language': requestLanguage };
+  const init: RequestInit = { method, credentials: 'include', headers };
 
   if (STATE_CHANGING_METHODS.has(method)) {
-    init.headers = { 'Content-Type': 'application/json' };
+    headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(options.body ?? {});
   }
 

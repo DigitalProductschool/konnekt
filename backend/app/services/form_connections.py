@@ -31,13 +31,15 @@ from sqlalchemy import ColumnElement, and_, delete, func, null, or_, select, upd
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ..catalog import DOCUMENT_TYPES, get_document_type
+from ..catalog import DOCUMENT_TYPES, CatalogField, get_document_type, label_of
 from ..config import settings
 from ..errors import describe_error
+from ..language import Text
 from ..models import FormConnection, FormConnectionRevision
 from ..schemas import (
     Branch,
     DocumentField,
+    FieldPart,
     FormConnectionCreate,
     FormConnectionPage,
     FormConnectionSummary,
@@ -84,7 +86,7 @@ STATUS_CHANGED_DETAIL = {
 }
 
 
-def _validation_error(message: str) -> HTTPException:
+def _validation_error(message: str | Text) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={'error': 'Validation error', 'message': message},
@@ -96,7 +98,10 @@ def _validation_error(message: str) -> HTTPException:
 
 
 def _required_text(
-    value: str | None, max_length: int, empty_message: str, too_long_message: str
+    value: str | None,
+    max_length: int,
+    empty_message: str | Text,
+    too_long_message: str | Text,
 ) -> str:
     text = (value or '').strip()
     if not text:
@@ -111,7 +116,10 @@ def clean_name(value: str | None) -> str:
     return _required_text(
         value,
         NAME_MAX_LENGTH,
-        'Enter a name for the connection.',
+        Text(
+            en='Enter a name for the connection.',
+            de='Geben Sie einen Namen für die Anbindung ein.',
+        ),
         f'The name can have at most {NAME_MAX_LENGTH} characters.',
     )
 
@@ -179,11 +187,43 @@ def trigger_url_of(form_connection_id: str) -> str:
     return f'{settings.connection_base_url}/api/connect/{form_connection_id}/requests'
 
 
+def document_field_view(field: CatalogField) -> DocumentField:
+    """Show a catalog field, and its parts, with labels in the request's language.
+
+    Every other value is the catalog's, as `DocumentField.model_validate` gives it
+    (spec 009, R6: keys, kinds, flags and order never change with the language).
+    """
+    return DocumentField(
+        key=field.key,
+        label=label_of(field),
+        kind=field.kind,
+        option_set=field.option_set,
+        date_of_birth=field.date_of_birth,
+        parts=(
+            None
+            if field.parts is None
+            else [
+                FieldPart(
+                    key=part.key,
+                    label=label_of(part),
+                    kind=part.kind,
+                    option_set=part.option_set,
+                    per_licence_class=part.per_licence_class,
+                    multiple_values=part.multiple_values,
+                )
+                for part in field.parts
+            ]
+        ),
+        multiple_values=field.multiple_values,
+    )
+
+
 def documents_view(documents: list[RequestedDocument]) -> list[RequestedDocumentView]:
     """Show requested documents with the catalog's labels and field descriptions.
 
-    Used for published connections and for drafts. A document type or field that the
-    catalog no longer has keeps its key as its label.
+    Used for published connections and for drafts. The labels are in the request's
+    language (spec 009); a document type or field that the catalog no longer has
+    keeps its key as its label in both languages.
     """
     views: list[RequestedDocumentView] = []
     for document in documents:
@@ -192,7 +232,7 @@ def documents_view(documents: list[RequestedDocument]) -> list[RequestedDocument
         for key in document.fields:
             field = document_type.field(key) if document_type else None
             fields.append(
-                DocumentField.model_validate(field)
+                document_field_view(field)
                 if field
                 # A field the catalog no longer has: no rule can check it
                 else DocumentField(
@@ -208,7 +248,9 @@ def documents_view(documents: list[RequestedDocument]) -> list[RequestedDocument
         views.append(
             RequestedDocumentView(
                 document_type=document.document_type,
-                label=document_type.label if document_type else document.document_type,
+                label=(
+                    label_of(document_type) if document_type else document.document_type
+                ),
                 fields=fields,
             )
         )

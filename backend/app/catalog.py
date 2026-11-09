@@ -4,16 +4,22 @@ The document types DO.IT can request, with the fields each one offers. Field key
 stable: they appear in the API, in the configurations sent to EUDIPLO and in the
 documents delivered to serviceBW. Labels are UI copy: they use the Figma design's
 wording where the design names a field (design-notes.md §8), and data-model.md's
-elsewhere. The catalog order is the order of the API, of the claims in a request and of
-the delivered fields.
+elsewhere. Each label has its German beside it (`label_de`, spec 009, glossary §4):
+the website's answers show the request's language through `label_of()`, while the
+DCQL builder, the evaluator, the worker and serviceBW's delivery keep `label`. The
+catalog order is the order of the API, of the claims in a request and of the
+delivered fields.
 
 Each field also has a kind of value, which decides the conditions a rule can check on
 it (spec 002, FR-003, research R6): an enum names its value set in `option_sets.py`,
 and a field made of parts lists them.
 """
 
+import dataclasses
 from dataclasses import dataclass
 from typing import Literal
+
+from .language import current_language
 
 SD_JWT_VC_FORMAT = 'dc+sd-jwt'
 MDOC_FORMAT = 'mso_mdoc'
@@ -37,6 +43,8 @@ class CatalogPart:
 
     key: str
     label: str
+    # The label in German (spec 009); keyword-only, so positional calls keep meaning
+    label_de: str = dataclasses.field(kw_only=True)
     kind: PartKind
     # Enum parts: the key of their value set
     option_set: str | None = None
@@ -52,6 +60,8 @@ class CatalogField:
 
     key: str
     label: str
+    # The label in German (spec 009); keyword-only, so positional calls keep meaning
+    label_de: str = dataclasses.field(kw_only=True)
     # SD-JWT VC: the claim path; mdoc: (namespace, element)
     claim_path: tuple[str, ...]
     kind: FieldKind
@@ -72,6 +82,8 @@ class CatalogDocumentType:
 
     key: str
     label: str
+    # The label in German (spec 009)
+    label_de: str = dataclasses.field(kw_only=True)
     # SD_JWT_VC_FORMAT or MDOC_FORMAT
     format: str
     fields: tuple[CatalogField, ...]
@@ -90,6 +102,7 @@ def _claim(
     label: str,
     kind: FieldKind,
     *claim_path: str,
+    label_de: str,
     option_set: str | None = None,
     date_of_birth: bool = False,
     parts: tuple[CatalogPart, ...] | None = None,
@@ -105,6 +118,7 @@ def _claim(
         date_of_birth,
         parts,
         multiple_values,
+        label_de=label_de,
     )
 
 
@@ -113,6 +127,7 @@ def _mdl_element(
     label: str,
     kind: FieldKind,
     *,
+    label_de: str,
     option_set: str | None = None,
     date_of_birth: bool = False,
     parts: tuple[CatalogPart, ...] | None = None,
@@ -127,6 +142,7 @@ def _mdl_element(
         date_of_birth,
         parts,
         multiple_values,
+        label_de=label_de,
     )
 
 
@@ -134,21 +150,29 @@ def _mdl_element(
 PID = CatalogDocumentType(
     key='pid',
     label='Personal ID',
+    label_de='Personalausweis',
     format=SD_JWT_VC_FORMAT,
     vct_values=('urn:eudi:pid:1', 'urn:eudi:pid:de:1'),
     fields=(
-        _claim('family_name', 'Family name', 'text'),
-        _claim('given_name', 'Given name', 'text'),
-        _claim('birthdate', 'Date of birth', 'date', date_of_birth=True),
+        _claim('family_name', 'Family name', 'text', label_de='Familienname'),
+        _claim('given_name', 'Given name', 'text', label_de='Vorname'),
+        _claim(
+            'birthdate',
+            'Date of birth',
+            'date',
+            label_de='Geburtsdatum',
+            date_of_birth=True,
+        ),
         # An object with locality, region and/or country
         _claim(
             'place_of_birth',
             'Place of birth',
             'parts',
+            label_de='Geburtsort',
             parts=(
-                CatalogPart('country', 'Country', 'enum', COUNTRIES),
-                CatalogPart('region', 'Region', 'text'),
-                CatalogPart('locality', 'City or town', 'text'),
+                CatalogPart('country', 'Country', 'enum', COUNTRIES, label_de='Land'),
+                CatalogPart('region', 'Region', 'text', label_de='Region'),
+                CatalogPart('locality', 'City or town', 'text', label_de='Ort'),
             ),
         ),
         # A list: a person can have several nationalities
@@ -156,46 +180,107 @@ PID = CatalogDocumentType(
             'nationalities',
             'Nationality',
             'enum',
+            label_de='Staatsangehörigkeit',
             option_set=COUNTRIES,
             multiple_values=True,
         ),
-        _claim('address_formatted', 'Address (full)', 'text', 'address', 'formatted'),
+        _claim(
+            'address_formatted',
+            'Address (full)',
+            'text',
+            'address',
+            'formatted',
+            label_de='Adresse (vollständig)',
+        ),
         _claim(
             'address_street_address',
             'Street (may include the house number)',
             'text',
             'address',
             'street_address',
+            label_de='Straße (kann die Hausnummer enthalten)',
         ),
         _claim(
-            'address_house_number', 'House number', 'text', 'address', 'house_number'
+            'address_house_number',
+            'House number',
+            'text',
+            'address',
+            'house_number',
+            label_de='Hausnummer',
         ),
-        _claim('address_postal_code', 'Postal code', 'text', 'address', 'postal_code'),
-        _claim('address_locality', 'City or town', 'text', 'address', 'locality'),
-        _claim('address_region', 'State or region', 'text', 'address', 'region'),
+        _claim(
+            'address_postal_code',
+            'Postal code',
+            'text',
+            'address',
+            'postal_code',
+            label_de='Postleitzahl',
+        ),
+        _claim(
+            'address_locality',
+            'City or town',
+            'text',
+            'address',
+            'locality',
+            label_de='Ort',
+        ),
+        _claim(
+            'address_region',
+            'State or region',
+            'text',
+            'address',
+            'region',
+            label_de='Bundesland oder Region',
+        ),
         _claim(
             'address_country',
             'Country of residence',
             'enum',
             'address',
             'country',
+            label_de='Wohnsitzland',
             option_set=COUNTRIES,
         ),
         _claim(
-            'personal_administrative_number', 'Personal administrative number', 'text'
+            'personal_administrative_number',
+            'Personal administrative number',
+            'text',
+            label_de='Persönliche Verwaltungsnummer',
         ),
-        _claim('picture', 'Photo', 'image'),
-        _claim('birth_family_name', 'Family name at birth', 'text'),
-        _claim('birth_given_name', 'Given name at birth', 'text'),
-        _claim('sex', 'Sex', 'enum', option_set=SEX),
-        _claim('email', 'Email address', 'text'),
-        _claim('phone_number', 'Mobile phone number', 'text'),
-        _claim('document_number', 'Document number', 'text'),
-        _claim('date_of_issuance', 'Issue date', 'date'),
-        _claim('date_of_expiry', 'Expiry date', 'date'),
-        _claim('issuing_authority', 'Issuing authority', 'text'),
-        _claim('issuing_country', 'Issuing country', 'enum', option_set=COUNTRIES),
-        _claim('issuing_jurisdiction', 'Issuing jurisdiction', 'text'),
+        _claim('picture', 'Photo', 'image', label_de='Foto'),
+        _claim(
+            'birth_family_name', 'Family name at birth', 'text', label_de='Geburtsname'
+        ),
+        _claim(
+            'birth_given_name', 'Given name at birth', 'text', label_de='Geburtsvorname'
+        ),
+        _claim('sex', 'Sex', 'enum', label_de='Geschlecht', option_set=SEX),
+        _claim('email', 'Email address', 'text', label_de='E-Mail-Adresse'),
+        _claim('phone_number', 'Mobile phone number', 'text', label_de='Mobilnummer'),
+        _claim(
+            'document_number', 'Document number', 'text', label_de='Dokumentennummer'
+        ),
+        _claim('date_of_issuance', 'Issue date', 'date', label_de='Ausstellungsdatum'),
+        _claim('date_of_expiry', 'Expiry date', 'date', label_de='Ablaufdatum'),
+        _claim(
+            'issuing_authority',
+            'Issuing authority',
+            'text',
+            label_de='Ausstellende Behörde',
+        ),
+        _claim(
+            'issuing_country',
+            'Issuing country',
+            'enum',
+            label_de='Ausstellungsland',
+            option_set=COUNTRIES,
+        ),
+        _claim(
+            'issuing_jurisdiction',
+            'Issuing jurisdiction',
+            'text',
+            label_de='Ausstellende Gebietskörperschaft',
+        ),
     ),
 )
 
@@ -205,69 +290,167 @@ PID = CatalogDocumentType(
 MDL = CatalogDocumentType(
     key='mdl',
     label='Driving licence',
+    label_de='Führerschein',
     format=MDOC_FORMAT,
     doctype_value='org.iso.18013.5.1.mDL',
     fields=(
-        _mdl_element('family_name', 'Family name', 'text'),
-        _mdl_element('given_name', 'Given name', 'text'),
-        _mdl_element('birth_date', 'Date of birth', 'date', date_of_birth=True),
-        _mdl_element('issue_date', 'Issue date', 'date'),
-        _mdl_element('expiry_date', 'Expiry date', 'date'),
+        _mdl_element('family_name', 'Family name', 'text', label_de='Familienname'),
+        _mdl_element('given_name', 'Given name', 'text', label_de='Vorname'),
         _mdl_element(
-            'issuing_country', 'Issuing country', 'enum', option_set=COUNTRIES
+            'birth_date',
+            'Date of birth',
+            'date',
+            label_de='Geburtsdatum',
+            date_of_birth=True,
         ),
-        _mdl_element('issuing_authority', 'Issuing authority', 'text'),
-        _mdl_element('document_number', 'Licence number', 'text'),
-        _mdl_element('portrait', 'Portrait', 'image'),
+        _mdl_element('issue_date', 'Issue date', 'date', label_de='Ausstellungsdatum'),
+        _mdl_element('expiry_date', 'Expiry date', 'date', label_de='Ablaufdatum'),
+        _mdl_element(
+            'issuing_country',
+            'Issuing country',
+            'enum',
+            label_de='Ausstellungsland',
+            option_set=COUNTRIES,
+        ),
+        _mdl_element(
+            'issuing_authority',
+            'Issuing authority',
+            'text',
+            label_de='Ausstellende Behörde',
+        ),
+        _mdl_element(
+            'document_number',
+            'Licence number',
+            'text',
+            label_de='Führerscheinnummer',
+        ),
+        _mdl_element('portrait', 'Portrait', 'image', label_de='Lichtbild'),
         _mdl_element(
             'driving_privileges',
             'Licence classes',
             'parts',
+            label_de='Führerscheinklassen',
             parts=(
                 CatalogPart(
                     'classes',
                     'Licence classes',
                     'enum',
                     LICENCE_CLASSES,
+                    label_de='Führerscheinklassen',
                     multiple_values=True,
                 ),
-                CatalogPart('issue_date', 'Issue date', 'date', per_licence_class=True),
                 CatalogPart(
-                    'expiry_date', 'Expiry date', 'date', per_licence_class=True
+                    'issue_date',
+                    'Issue date',
+                    'date',
+                    label_de='Ausstellungsdatum',
+                    per_licence_class=True,
+                ),
+                CatalogPart(
+                    'expiry_date',
+                    'Expiry date',
+                    'date',
+                    label_de='Ablaufdatum',
+                    per_licence_class=True,
                 ),
             ),
         ),
-        _mdl_element('un_distinguishing_sign', 'UN distinguishing sign', 'text'),
-        _mdl_element('administrative_number', 'Administrative number', 'text'),
-        _mdl_element('sex', 'Sex', 'enum', option_set=SEX),
-        _mdl_element('height', 'Height (cm)', 'number'),
-        _mdl_element('weight', 'Weight (kg)', 'number'),
-        _mdl_element('eye_colour', 'Eye colour', 'enum', option_set=EYE_COLOURS),
-        _mdl_element('hair_colour', 'Hair colour', 'enum', option_set=HAIR_COLOURS),
-        _mdl_element('birth_place', 'Place of birth', 'text'),
-        _mdl_element('resident_address', 'Resident address', 'text'),
-        _mdl_element('portrait_capture_date', 'Portrait capture date', 'date'),
-        _mdl_element('age_in_years', 'Age in years', 'number'),
-        _mdl_element('age_birth_year', 'Year of birth', 'number'),
-        _mdl_element('issuing_jurisdiction', 'Issuing jurisdiction', 'text'),
-        _mdl_element('nationality', 'Nationality', 'enum', option_set=COUNTRIES),
-        _mdl_element('resident_city', 'Resident city', 'text'),
-        _mdl_element('resident_state', 'Resident state', 'text'),
-        _mdl_element('resident_postal_code', 'Resident postal code', 'text'),
         _mdl_element(
-            'resident_country', 'Resident country', 'enum', option_set=COUNTRIES
+            'un_distinguishing_sign',
+            'UN distinguishing sign',
+            'text',
+            label_de='Unterscheidungszeichen (UN)',
+        ),
+        _mdl_element(
+            'administrative_number',
+            'Administrative number',
+            'text',
+            label_de='Verwaltungsnummer',
+        ),
+        _mdl_element('sex', 'Sex', 'enum', label_de='Geschlecht', option_set=SEX),
+        _mdl_element('height', 'Height (cm)', 'number', label_de='Körpergröße (cm)'),
+        _mdl_element('weight', 'Weight (kg)', 'number', label_de='Gewicht (kg)'),
+        _mdl_element(
+            'eye_colour',
+            'Eye colour',
+            'enum',
+            label_de='Augenfarbe',
+            option_set=EYE_COLOURS,
+        ),
+        _mdl_element(
+            'hair_colour',
+            'Hair colour',
+            'enum',
+            label_de='Haarfarbe',
+            option_set=HAIR_COLOURS,
+        ),
+        _mdl_element('birth_place', 'Place of birth', 'text', label_de='Geburtsort'),
+        _mdl_element(
+            'resident_address', 'Resident address', 'text', label_de='Wohnanschrift'
+        ),
+        _mdl_element(
+            'portrait_capture_date',
+            'Portrait capture date',
+            'date',
+            label_de='Aufnahmedatum des Lichtbilds',
+        ),
+        _mdl_element(
+            'age_in_years', 'Age in years', 'number', label_de='Alter in Jahren'
+        ),
+        _mdl_element(
+            'age_birth_year', 'Year of birth', 'number', label_de='Geburtsjahr'
+        ),
+        _mdl_element(
+            'issuing_jurisdiction',
+            'Issuing jurisdiction',
+            'text',
+            label_de='Ausstellende Gebietskörperschaft',
+        ),
+        _mdl_element(
+            'nationality',
+            'Nationality',
+            'enum',
+            label_de='Staatsangehörigkeit',
+            option_set=COUNTRIES,
+        ),
+        _mdl_element('resident_city', 'Resident city', 'text', label_de='Wohnort'),
+        _mdl_element(
+            'resident_state',
+            'Resident state',
+            'text',
+            label_de='Bundesland des Wohnorts',
+        ),
+        _mdl_element(
+            'resident_postal_code',
+            'Resident postal code',
+            'text',
+            label_de='Postleitzahl des Wohnorts',
+        ),
+        _mdl_element(
+            'resident_country',
+            'Resident country',
+            'enum',
+            label_de='Land des Wohnorts',
+            option_set=COUNTRIES,
         ),
         _mdl_element(
             'family_name_national_character',
             'Family name (national characters)',
             'text',
+            label_de='Familienname (nationale Schriftzeichen)',
         ),
         _mdl_element(
             'given_name_national_character',
             'Given name (national characters)',
             'text',
+            label_de='Vorname (nationale Schriftzeichen)',
         ),
-        _mdl_element('signature_usual_mark', 'Signature or usual mark', 'image'),
+        _mdl_element(
+            'signature_usual_mark',
+            'Signature or usual mark',
+            'image',
+            label_de='Unterschrift oder übliches Zeichen',
+        ),
     ),
 )
 
@@ -277,3 +460,12 @@ DOCUMENT_TYPES: tuple[CatalogDocumentType, ...] = (PID, MDL)
 def get_document_type(key: str) -> CatalogDocumentType | None:
     """Return the document type with this key, or None."""
     return next((type_ for type_ in DOCUMENT_TYPES if type_.key == key), None)
+
+
+def label_of(item: CatalogDocumentType | CatalogField | CatalogPart) -> str:
+    """Return the label in the current request's language (spec 009, R6).
+
+    For the website's answers only: the DCQL builder, the evaluator, the worker and
+    serviceBW's delivery read `label`, which stays English.
+    """
+    return item.label_de if current_language() == 'de' else item.label

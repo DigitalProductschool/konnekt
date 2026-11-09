@@ -1,8 +1,11 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
+
 import { KERN_TRANSLATIONS } from '../../constants';
 
 export const CONFIRM_DIALOG_COPY = {
   // The kit's own word for the ×, so that the React kit's dialogs and this one agree
-  close: KERN_TRANSLATIONS.closeDialog,
+  // TODO(009, phase 5): useCopy
+  close: KERN_TRANSLATIONS[DEFAULT_LANGUAGE].closeDialog,
 };
 
 /**

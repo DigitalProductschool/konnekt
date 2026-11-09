@@ -1,3 +1,6 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
+
+import { CONNECTION_STEP_LABELS } from '../../constants';
 import { LINE_TEXT_CLASSES, PROGRESS_LABEL } from './constants';
 import type { WizardProgressProps } from './types';
 import { hasStepLine, nextLabelOf, stepCountOf, stepStateOf } from './utils';
@@ -15,14 +18,17 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
   if (!hasStepLine(current, steps.length)) {
     return null;
   }
+  // TODO(009, phase 5): useCopy
+  const stepLabels = CONNECTION_STEP_LABELS[DEFAULT_LANGUAGE];
+  const labels = steps.map((step) => stepLabels[step]);
   if (onSelect) {
     return (
       <nav aria-label={PROGRESS_LABEL}>
         <ol className="narrow:flex-col narrow:items-stretch narrow:gap-8 flex items-start gap-4">
-          {steps.map((label, index) => (
+          {steps.map((step, index) => (
             <WizardStep
-              key={label}
-              label={label}
+              key={step}
+              label={stepLabels[step]}
               state={stepStateOf(index, current)}
               labelled
               onSelect={() => onSelect(index)}
@@ -46,14 +52,14 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
         aria-valuemin={1}
         aria-valuemax={steps.length}
         aria-valuenow={current + 1}
-        aria-valuetext={steps[current]}
+        aria-valuetext={labels[current]}
         className="narrow:basis-full flex h-4 min-w-px flex-1 gap-4"
       >
-        {steps.map((label, index) => (
-          <WizardStep key={label} label={label} state={stepStateOf(index, current)} />
+        {steps.map((step, index) => (
+          <WizardStep key={step} label={stepLabels[step]} state={stepStateOf(index, current)} />
         ))}
       </div>
-      <span className={LINE_TEXT_CLASSES}>{nextLabelOf(steps, current)}</span>
+      <span className={LINE_TEXT_CLASSES}>{nextLabelOf(labels, current)}</span>
     </div>
   );
 }

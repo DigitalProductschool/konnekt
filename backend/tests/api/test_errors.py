@@ -35,7 +35,7 @@ def test_an_unexpected_error_answers_500_with_only_an_error_id(
     error_id = response.json()['error_id']
     assert response.json() == {
         'error': 'Internal server error',
-        'message': INTERNAL_ERROR_MESSAGE,
+        'message': INTERNAL_ERROR_MESSAGE.en,
         'error_id': error_id,
     }
     # The tests run with APP_ENV=development, which used to echo the message

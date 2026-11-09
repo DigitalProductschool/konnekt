@@ -70,9 +70,12 @@ German column is the one translation of the term everywhere it appears.
 | serviceBW | serviceBW | |
 | link, "Copy link" | Link, "Link kopieren" | |
 | error ID | Fehler-ID | shown unchanged after the message |
-| "Something went wrong" (a `5xx`) | "Etwas ist schiefgelaufen" | plus the error ID line as today |
-| loading, "Loading…" | "Wird geladen …" | the design system's text, with the narrow space before the ellipsis as KERN writes it |
+| "Something went wrong" (a `5xx`) | "Etwas ist schiefgelaufen" | plus the error ID line as today; the server's full `5xx` text "Something went wrong on our side. Contact an administrator and give them the error ID." → "Etwas ist auf unserer Seite schiefgelaufen. Wenden Sie sich an eine Administratorin oder einen Administrator und nennen Sie die Fehler-ID." (T008) |
+| administrator | Administratorin oder Administrator | the neutral pair (§1 "Gender"); added 2026-11-09, T008 |
+| "Invalid request payload" (the server's generic `400`) | "Ungültige Anfrage." | added 2026-11-09, T008 |
+| loading, "Loading…" | "Wird geladen …" | a space before the ellipsis, as in the German column here (KERN's kit itself writes "Wird geladen..."; corrected 2026-11-09, T005) |
 | optional | optional | the KERN field hint |
+| the kit's field texts: "Please check your input.", Day / Month / Year | "Bitte überprüfen Sie Ihre Eingabe.", Tag / Monat / Jahr | `KERN_TRANSLATIONS` (T005, added 2026-11-09); the kit's own default for the first is "Bitte prüfen Sie Ihre Angaben." |
 | close | Schließen | |
 | cancel / back / next / save | Abbrechen / Zurück / Weiter / Speichern | |
 | try again | Erneut versuchen | |
@@ -135,6 +138,11 @@ templates themselves are in the code, one per language, with their tests.
 | Photo, Portrait, Portrait capture date, Signature or usual mark | Foto, Lichtbild, Aufnahmedatum des Lichtbilds, Unterschrift oder übliches Zeichen |
 | Licence class descriptions ("Cars up to 3.5 t", …) | the German descriptions of the EU licence classes ("Pkw bis 3,5 t", …) |
 | Countries | The German short names of the Federal Foreign Office's country list (for example "Deutschland", "Österreich", "Schweiz", "Vereinigtes Königreich", "Vereinigte Staaten"), in the same order as the English list |
+| Street (may include the house number), House number, Country of residence, Personal administrative number | Straße (kann die Hausnummer enthalten), Hausnummer, Wohnsitzland, Persönliche Verwaltungsnummer (added 2026-11-09, T009) |
+| Resident country | Land des Wohnorts (added 2026-11-09, T009) |
+| Family name (national characters), Given name (national characters) | Familienname (nationale Schriftzeichen), Vorname (nationale Schriftzeichen) (added 2026-11-09, T009) |
+| Sex (the field's label) | Geschlecht (added 2026-11-09, T009) |
+| Licence classes (the label of the part `classes` of the field Licence classes; the catalog's English part label is "Licence classes", not "Classes") | Führerscheinklassen (added 2026-11-09, T009) |
 
 The English column is `backend/app/catalog.py`'s and `option_sets.py`'s labels as of 2026-11-09
 (two document types, 56 fields, 6 parts, 294 option values). The full lists are translated in the

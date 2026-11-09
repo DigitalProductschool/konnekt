@@ -1,12 +1,17 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { describe, expect, it } from 'vitest';
 
-import { CONNECTION_STEPS } from '../../constants';
+import { CONNECTION_STEP_LABELS, CONNECTION_STEPS } from '../../constants';
 import { hasStepLine, nextLabelOf, stepCountOf, stepStateOf } from './utils';
 
 // FR-025: four steps (Connection, Documents, Rules, Test); Publish is a dialog, not a step
 describe('the step line (FR-025)', () => {
+  // The steps' English names, in step order (spec 009: the steps are keys, their names a table)
+  const stepNames = CONNECTION_STEPS.map((step) => CONNECTION_STEP_LABELS[DEFAULT_LANGUAGE][step]);
+
   it('has the four steps', () => {
-    expect(CONNECTION_STEPS).toEqual(['Connection', 'Documents', 'Rules', 'Test']);
+    expect(CONNECTION_STEPS).toEqual(['connection', 'documents', 'rules', 'test']);
+    expect(stepNames).toEqual(['Connection', 'Documents', 'Rules', 'Test']);
   });
 
   it('marks the steps before the current one done and the ones after it to do', () => {
@@ -23,10 +28,10 @@ describe('the step line (FR-025)', () => {
   });
 
   it('names the next step, and the last step as "Last step"', () => {
-    expect(nextLabelOf(CONNECTION_STEPS, 0)).toBe('Next: Documents');
-    expect(nextLabelOf(CONNECTION_STEPS, 1)).toBe('Next: Rules');
-    expect(nextLabelOf(CONNECTION_STEPS, 2)).toBe('Next: Test');
-    expect(nextLabelOf(CONNECTION_STEPS, 3)).toBe('Last step');
+    expect(nextLabelOf(stepNames, 0)).toBe('Next: Documents');
+    expect(nextLabelOf(stepNames, 1)).toBe('Next: Rules');
+    expect(nextLabelOf(stepNames, 2)).toBe('Next: Test');
+    expect(nextLabelOf(stepNames, 3)).toBe('Last step');
   });
 
   it('shows no step line past the last step (the details)', () => {

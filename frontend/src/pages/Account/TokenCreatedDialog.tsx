@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
 import {
@@ -63,7 +64,8 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
         </div>
         <button type="button" onClick={onClose} className="kern-btn kern-btn--tertiary">
           <span aria-hidden="true" className="kern-icon kern-icon--close" />
-          <span className="sr-only">{KERN_TRANSLATIONS.closeDialog}</span>
+          {/* TODO(009, phase 5): useCopy */}
+          <span className="sr-only">{KERN_TRANSLATIONS[DEFAULT_LANGUAGE].closeDialog}</span>
         </button>
       </header>
       <div className="kern-dialog__body">
