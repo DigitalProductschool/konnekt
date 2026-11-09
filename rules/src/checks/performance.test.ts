@@ -205,7 +205,7 @@ const CONTEXT: RuleContext = {
  * A branch of 200 items built to be hard (SC-003): each of the six country fields "includes one
  * of" the four allowed countries, and for each of those countries and each pair of the fields, a
  * group "the first includes none of it, or the second does" (186 items), then items joined from
- * the seeds from `fillerSeed` on. No applicant can meet it: six fields can't hold six different
+ * the seeds from `fillerSeed` on. No citizen can meet it: six fields can't hold six different
  * countries out of four (the pigeonhole principle)
  */
 function hardBranch(fillerSeed: number): Branch {
@@ -341,7 +341,7 @@ describe('the time budgets of the checks (SC-003)', () => {
       expectCheckedWhole(branch, LARGE_ITEMS);
       const { results, elapsed } = timedRun([branch], CONTEXT);
       expect(elapsed).toBeLessThanOrEqual(RUN_DEADLINE_MS);
-      // Step 1 finds that no applicant can meet it, before anything else is asked
+      // Step 1 finds that no citizen can meet it, before anything else is asked
       expect(results[0].notice?.kind).toBe('none_can_meet');
     },
     RUN_TIMEOUT_MS

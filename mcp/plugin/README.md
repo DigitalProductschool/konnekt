@@ -1,11 +1,11 @@
-# The Connection Portal plugin
+# The Konnekt plugin
 
-Guidance for agents that work in the Connection Portal, from one source (spec 007, research R16):
+Guidance for agents that work in Konnekt, from one source (spec 007, research R16):
 
 - `instructions.md`: the short instructions the MCP server gives every agent when it connects;
 - `skills/<topic>/SKILL.md`: the guidance by topic, served by the MCP server through the Skills
   extension and the `get_guide` tool, and installed into Claude Code by this plugin;
-- `.mcp.json`: adds the Connection Portal's MCP server to Claude Code;
+- `.mcp.json`: adds Konnekt's MCP server to Claude Code;
 - `.claude-plugin/plugin.json`: the plugin's manifest. The repository's
   `.claude-plugin/marketplace.json` lists it.
 
@@ -42,7 +42,7 @@ The plugin adds the MCP server `connection-portal` and the eight skills in one s
    claude plugin install connection-portal@connection-portal
    ```
 
-3. Start Claude Code. The first call to the server opens the browser on the Connection Portal's
+3. Start Claude Code. The first call to the server opens the browser on Konnekt's
    consent page, where you sign in and choose the agent's access level.
 
 To get newer skills, refresh the marketplace and update the plugin
@@ -68,6 +68,6 @@ where the client looks for skills.
 ## Clients without browser sign-in
 
 A client that can't open a browser to sign in uses a personal access token instead. Create one on
-your user page in the Connection Portal, with its access level and expiry, and give it to the
+your user page in Konnekt, with its access level and expiry, and give it to the
 client as its bearer token (`Authorization: Bearer <token>`). The token is shown once; keep it
 out of files that are committed or shared.

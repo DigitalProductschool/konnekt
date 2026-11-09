@@ -13,8 +13,8 @@ export const PERSONA_IDS: readonly PersonaId[] = ['persona-1', 'persona-2', 'per
 // 6094:6413, 6094:6320): a group's statement in the test results. The SPA's group frame builds
 // its subtitles from these
 export const GROUP_SUBTITLES = {
-  and: 'All of these must be true',
-  or: 'At least one of these must be true',
+  and: 'All of these must be met',
+  or: 'At least one of these must be met',
 } satisfies Record<Combinator, string>;
 
 // A run's personas are due 5 seconds after the request (FR-013, SC-003). The worker stops planning

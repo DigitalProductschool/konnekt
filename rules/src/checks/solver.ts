@@ -1,5 +1,5 @@
 // The solver (specs/003-rule-consistency-checks, FR-003 to FR-010; research R4, R5, R8, R10):
-// whether some applicant meets a formula on some day of sharing within a range of days, for the
+// whether some citizen meets a formula on some day of sharing within a range of days, for the
 // questions of research R4. `satisfiable()` answers 'sat', 'unsat' or 'unknown', and
 // `feasibleDaysOf()` gives the days themselves.
 //
@@ -28,9 +28,9 @@
 //   memo keeps the text and date theories' answers for the whole run.
 //
 // The answers (research R5, FR-010):
-// - 'sat': some applicant meets the formula on some day of the range. Number, enum and text
+// - 'sat': some citizen meets the formula on some day of the range. Number, enum and text
 //   variables don't depend on the day, and the date variables decided over days found a day in
-//   common, so a leaf of the search whose variables can all be met is a real applicant on a real
+//   common, so a leaf of the search whose variables can all be met is a real citizen on a real
 //   day.
 // - 'unsat': every child of every OR the search branched over was refuted, by a theory's 'unsat'
 //   or by days that don't intersect.
@@ -125,11 +125,11 @@ export function createSolverMemo(): SolverMemo {
 }
 
 /**
- * Whether some applicant meets `formula` on some day of sharing of `days` (day numbers, both
+ * Whether some citizen meets `formula` on some day of sharing of `days` (day numbers, both
  * included): 'sat', 'unsat', or 'unknown' when a theory can't decide or `options.deadline` passes
  * (research R5). For today alone, pass `{ from: today, to: today }`; "on every day from today
  * on" is the complement: `satisfiable(negate(formula), { from: today, to: LAST_DAY }, …)` is
- * 'unsat' exactly when every applicant meets `formula` on every day from today (research R4). An
+ * 'unsat' exactly when every citizen meets `formula` on every day from today (research R4). An
  * empty range (`from` after `to`) has no day, so 'unsat'.
  *
  * With a memo, an answer kept from an earlier question is returned at once, even past the
@@ -164,14 +164,14 @@ export function satisfiable(formula: Formula, days: DayRange, options: SolverOpt
 }
 
 /**
- * The days of `days` on which some applicant meets `formula`, as sorted, disjoint, non-adjacent
+ * The days of `days` on which some citizen meets `formula`, as sorted, disjoint, non-adjacent
  * `DayRange`s, both ends included, as `feasibleDays()` and the oracle's `meetDays()` give them:
  * empty when there are none (`satisfiable()` would answer 'unsat'). 'unknown' when a theory
  * can't decide for days that no certain answer covers, or the deadline passes.
  *
  * The search finds a leaf that can be met, takes every day on which that leaf can be met, and
  * searches again on the days left, until none is left or no leaf can be met on them. So the
- * answer is exact: each day found has an applicant, and the days left have none. Without a date
+ * answer is exact: each day found has a citizen, and the days left have none. Without a date
  * condition counted from the day of sharing, the answer is every day of `days` or none. A memo
  * keeps it as `satisfiable()` keeps its answers, and also keeps the verdict for `days`
  */

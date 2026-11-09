@@ -1,7 +1,7 @@
 // `checkBranch()` against the brute-force oracle (specs/003-rule-consistency-checks, SC-001,
 // SC-002; research R13): for seeded random branches of testOracle.ts, every finding and notice
-// that the checks report must be true for every applicant and every day of sharing, and a complete
-// result must miss nothing. The oracle evaluates real applicants with ../evaluation.ts and uses
+// that the checks report must hold for every citizen and every day of sharing, and a complete
+// result must miss nothing. The oracle evaluates real citizens with ../evaluation.ts and uses
 // neither the theories nor the solver.
 //
 // Each seed's branch is checked once (`checkSeed()`), and its result compared with the oracle:
@@ -124,8 +124,8 @@ function* subsetsOf(pool: readonly string[], size: number): Generator<string[]> 
 }
 
 /**
- * Whether the oracle finds X conflicting (FR-003): no applicant meets it today on its own, or some
- * T ⊆ A(X) that some applicant meets today is met by none together with X. A T that works stays
+ * Whether the oracle finds X conflicting (FR-003): no citizen meets it today on its own, or some
+ * T ⊆ A(X) that some citizen meets today is met by none together with X. A T that works stays
  * one when items that can be met with it are added, so the search may stop at the first
  */
 function conflictingByOracle(oracle: Oracle, { item, context }: Placed): boolean {
@@ -199,9 +199,9 @@ function expectConflictHolds(finding: ConflictingFinding, placed: Placed, oracle
 }
 
 /**
- * The notices (FR-004, FR-006, FR-008): `none_can_meet` appears only when no applicant can meet
+ * The notices (FR-004, FR-006, FR-008): `none_can_meet` appears only when no citizen can meet
  * the branch today, and its `today` says whether a later day can; `all_meet` only when every
- * applicant meets it on every day from today on. With `complete`, the one that holds appears
+ * citizen meets it on every day from today on. With `complete`, the one that holds appears
  */
 function expectNotice(result: BranchCheck, oracle: Oracle): void {
   const meetable = oracle.canMeet([BRANCH], TODAY);
@@ -217,7 +217,7 @@ function expectNotice(result: BranchCheck, oracle: Oracle): void {
       expect(notice.today).toBe(later);
     }
   } else if (notice?.kind === 'all_meet') {
-    expect(allMeet, 'every applicant meets the branch').toBe(true);
+    expect(allMeet, 'every citizen meets the branch').toBe(true);
     expect(notice.today).toBe(false);
   }
 }
@@ -250,7 +250,7 @@ function expectConflicts(placed: Placed[], result: BranchCheck, oracle: Oracle):
 // The assertions: where findings may be (data-model.md, invariants 2 and 3)
 
 /**
- * Invariant 2: a branch that no applicant can meet has only conflicting findings (FR-005, W4).
+ * Invariant 2: a branch that no citizen can meet has only conflicting findings (FR-005, W4).
  * Invariant 3: no finding inside a redundant or always-met group, and no redundant or always-met
  * finding inside a conflicting item (on one is ruled out by invariant 1)
  */
@@ -318,11 +318,11 @@ interface Differences {
 /**
  * The always-met and redundant findings (FR-005, FR-006, SC-002), walked in step 4's visit order
  * (research R8), with the working tree as the branch without the items found redundant so far:
- * - an always-met item is met by every applicant on every day from today on;
+ * - an always-met item is met by every citizen on every day from today on;
  * - a redundant item names items of the tree other than itself and those already deleted, and
  *   deleting it from the working tree changes no outcome on any day from today on;
  * - deleting every redundant item at once changes no outcome either (invariant 4);
- * - with `complete`, in a branch that some applicant can meet, every item that step 4 may report
+ * - with `complete`, in a branch that some citizen can meet, every item that step 4 may report
  *   (`reportable()`) that is always met has that finding, and every other one without a finding
  *   changes an outcome when deleted from the working tree (invariant 5). That is the working tree
  *   of its visit: after later deletions, it may no longer, as in seed 236, OR(AND(Rule 01 always

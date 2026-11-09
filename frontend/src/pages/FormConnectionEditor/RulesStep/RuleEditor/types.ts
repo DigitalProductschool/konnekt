@@ -7,6 +7,7 @@ import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import type { OperatorDefinition } from '@connection-portal/rules/types';
 import type { Dispatch, KeyboardEvent, ReactNode } from 'react';
 
+import type { MenuPlacement } from '../../../../utils/popupPlacement';
 import type { RulesCatalog } from '../types';
 
 export interface RuleEditorProps {
@@ -20,7 +21,7 @@ export interface RuleEditorProps {
   onChange: (draft: RuleItem) => void;
   /** "Save rule", offered once the rule is complete */
   onSave: () => void;
-  /** "Cancel"; the page asks "Save changes to Rule 01?" when there are changes (F10) */
+  /** "Discard rule"; the page asks "Save changes to Rule 01?" when there are changes (F10) */
   onCancel: () => void;
   /** "Need other data? Add it in Documents"; the page asks first when there are changes */
   onAddData: () => void;
@@ -28,7 +29,15 @@ export interface RuleEditorProps {
   onRename?: () => void;
   /** The day the example of a date condition counts from, YYYY-MM-DD; today in Germany */
   today?: string;
+  /**
+   * The hint under the message while a group around the rule has its own message (U35
+   * 6965:50822; F32): "Not shown while this rule is in Group 01. …"
+   */
+  messageHint?: string | null;
 }
+
+/** A menu's width in the frames, px */
+export type MenuWidth = 200 | 240 | 300 | 340;
 
 /** The editor's menus; one is open at a time */
 export type MenuKey = 'document' | 'data' | 'part' | 'check' | 'unit' | 'values';
@@ -49,7 +58,8 @@ export interface RuleEditorState {
   typed: Partial<Record<'value' | 'years' | 'amount', string>>;
   /** The value fields that were used, whose problems show (U25) */
   touched: Partial<Record<ValueField, boolean>>;
-  /** "Save rule" was pressed on an incomplete rule, so the rule's problem shows (WCAG 3.3.1) */
+  /** "Save rule" was pressed on an incomplete rule, so the rule's problem shows (WCAG 3.3.1); the
+   * button is then the disabled button with explanation, whose press still says it (W21) */
   saveTried: boolean;
 }
 
@@ -94,7 +104,7 @@ export interface MenuChoice {
   symbol?: string | null;
   /** A 16px glyph before the label */
   icon?: string;
-  /** Listed but not choosable, with the tag "Can't be checked" */
+  /** Listed but not choosable, with the tag "Not for rules" */
   unavailable?: boolean;
 }
 
@@ -115,11 +125,9 @@ export interface PickerProps {
   name: string;
   /** What the picker shows: the choice, or what to choose */
   label: string;
-  /** Nothing is chosen yet: the label is what to choose */
-  placeholder: boolean;
   disabled?: boolean;
   open: boolean;
-  /** The red border of a field with a problem */
+  /** The red border of a field with a problem, or of a missing choice after "Save rule" */
   invalid?: boolean;
   icon?: string;
   symbol?: string | null;
@@ -135,12 +143,14 @@ export interface ChoiceMenuProps {
   label: string;
   sections: MenuSection[];
   selectedKey: string | null;
-  /** The menu's width class, from the frames */
-  widthClass: string;
+  /** The menu's width, from the frames */
+  width: MenuWidth;
+  /** Where the menu opens from its picker, measured as it opens */
+  placement: MenuPlacement;
   /** A search field with this placeholder, for long menus */
   searchPlaceholder?: string;
   search: string;
-  /** Under the list, after a divider */
+  /** Under the list */
   footer?: ReactNode;
   onSearch: (text: string) => void;
   onChoose: (key: string) => void;
@@ -178,14 +188,18 @@ export interface ChoicePickerProps {
   placeholder: string;
   chosen: MenuChoice | null;
   disabled?: boolean;
-  /** The red border: what is chosen is no longer requested */
+  /** The red border: what is chosen is no longer requested, or the choice is missing after "Save
+   * rule" (FR-039) */
   invalid?: boolean;
   /** The id of the text that says what is wrong with the picker or missing from it */
   describedBy?: string;
   sections: MenuSection[];
-  widthClass: string;
+  /** The menu's width, from the frames */
+  width: MenuWidth;
   searchPlaceholder?: string;
   footer?: ReactNode;
+  /** The footer has a divider above it, for the menu's height before it opens */
+  footerDivided?: boolean;
   state: RuleEditorState;
   dispatch: Dispatch<RuleEditorAction>;
   onChoose: (key: string) => void;
@@ -247,14 +261,18 @@ export interface FieldErrorProps {
 export interface MessageFieldProps {
   id: string;
   message: string;
-  /** The id of the text that says the rule has no message, once "Save rule" was pressed */
+  /** The id of the text that says the rule has no message, once "Save rule" was pressed; the
+   * field is then flagged (FR-039) */
   errorId?: string;
   onChange: (message: string) => void;
 }
 
 export interface EditorActionsProps {
-  complete: boolean;
+  /** What keeps the rule from being saved, in the server's words, while it is incomplete; null
+   * once it is complete (W21) */
+  explanation: string | null;
   onCancel: () => void;
+  /** "Save rule": saves a complete rule, or points out what is missing in an incomplete one */
   onSave: () => void;
 }
 

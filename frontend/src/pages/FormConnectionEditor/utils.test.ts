@@ -36,6 +36,7 @@ import {
   findingLinesOf,
   firstBranchWithFindings,
   firstInvalidElementId,
+  headerTitleOf,
   initialEditorState,
   initialStatesFromDraft,
   initialStatesFromLocal,
@@ -48,7 +49,6 @@ import {
   problemPlaceOf,
   publishErrorNotice,
   removalAction,
-  removalCopyOf,
   removedDataRulesOf,
   rulesChanged,
   rulesNextActionOf,
@@ -56,6 +56,7 @@ import {
   startOfOrigin,
   stepForDroppedData,
   validateConnection,
+  warningsFirst,
 } from './utils';
 
 const STANDARD: Branch = {
@@ -146,14 +147,14 @@ describe('createPayload (FR-028)', () => {
   });
 
   it('sends changed rules with the rule set they were loaded from', () => {
-    const payload = createPayload(state, withMessage('Applicants must be 21.'), {
+    const payload = createPayload(state, withMessage('Citizens must be 21.'), {
       loaded: LOADED,
     });
 
     expect(payload.rules?.base_version).toBe(3);
     expect(payload.rules?.numbering_base).toEqual({ rule: 4, group: 1 });
     expect(payload.rules?.replace).toBe(false);
-    expect(payload.rules?.branches[0].items[0].message).toBe('Applicants must be 21.');
+    expect(payload.rules?.branches[0].items[0].message).toBe('Citizens must be 21.');
     // The step's keys and the API's pull URLs stay out
     expect(Object.keys(payload.rules?.branches[0] ?? {}).sort()).toEqual([
       'description',
@@ -179,7 +180,7 @@ describe('createPayload (FR-028)', () => {
   });
 
   it('replaces the other team member’s rules on request', () => {
-    const payload = createPayload(state, withMessage('Applicants must be 21.'), {
+    const payload = createPayload(state, withMessage('Citizens must be 21.'), {
       loaded: LOADED,
       replace: true,
     });
@@ -190,7 +191,7 @@ describe('createPayload (FR-028)', () => {
 
 describe('rulesChanged', () => {
   it('compares the branches, so that a change undone by hand counts as none', () => {
-    expect(rulesChanged(withMessage('Applicants must be 21.'), LOADED)).toBe(true);
+    expect(rulesChanged(withMessage('Citizens must be 21.'), LOADED)).toBe(true);
     expect(rulesChanged(withMessage(US1_RULES[0].message), LOADED)).toBe(false);
   });
 
@@ -477,34 +478,13 @@ describe('removing data that rules check (FR-029, F18)', () => {
     });
     expect(removed).toEqual(editorReducer(state, removalAction(DOCUMENT)));
     expect(removed.documents.map((document) => document.document_type)).toEqual(['pid']);
-    expect(removed.toast?.message).toBe('Driving licence removed');
+    // The design's wording (FR-002, U24 #27 "Driving licence removed."; spec 008 T052)
+    expect(removed.toast?.message).toBe('Driving licence removed.');
 
     const cleared = editorReducer(editorReducer(state, { type: 'askRemoval', removal: ALL }), {
       type: 'confirmRemoval',
     });
     expect(cleared.documents[0].fields).toEqual([]);
-  });
-
-  it('words the dialog as designed, "before you save" when editing', () => {
-    expect(removalCopyOf(DOCUMENT, 3, false)).toEqual({
-      title: 'Remove Driving licence?',
-      text: '3 rules check data from this document:',
-      after: 'After removing it, edit or delete these rules before you publish.',
-      confirmLabel: 'Remove document',
-    });
-    expect(removalCopyOf(FIELD, 2, true)).toEqual({
-      title: 'Stop requesting Date of birth?',
-      text: '2 rules check it:',
-      after: 'After this, edit or delete these rules before you save.',
-      confirmLabel: 'Stop requesting',
-    });
-    expect(removalCopyOf(ALL, 1, false)).toEqual({
-      title: 'Stop requesting all data from Personal ID?',
-      text: '1 rule checks this data:',
-      after: 'After this, edit or delete this rule before you publish.',
-      confirmLabel: 'Stop requesting',
-    });
-    expect(removalCopyOf(null, 0, false).title).toBe('');
   });
 });
 
@@ -600,7 +580,7 @@ describe('firstBranchWithFindings', () => {
     ).toBe('b2');
   });
 
-  it('counts a branch no applicant can meet, or with always-met findings only', () => {
+  it('counts a branch no citizen can meet, or with always-met findings only', () => {
     expect(
       firstBranchWithFindings(BRANCHES, {
         main: check('main', []),
@@ -659,12 +639,12 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
       main: check('main', duplicate),
     });
     expect(lines).toEqual([
-      { key: 'main', text: 'Standard: 1 duplicate rule', tone: 'info' },
-      { key: 'b2', text: 'Ambulance: 2 rules can’t be met together', tone: 'warning' },
+      { key: 'main', text: 'Standard: 1 rule is a duplicate.', tone: 'info' },
+      { key: 'b2', text: 'Ambulance: 2 rules contradict each other.', tone: 'warning' },
     ]);
   });
 
-  it('adds the notice of a branch no applicant can meet, in the warning style', () => {
+  it('adds the notice of a branch no citizen can meet, in the warning style', () => {
     expect(
       findingLinesOf(BRANCHES, {
         b2: check('b2', conflict, { kind: 'none_can_meet', today: false }),
@@ -673,10 +653,10 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
     ).toEqual([
       {
         key: 'b2',
-        text: 'Ambulance: 2 rules can’t be met together. No applicant can meet the rules of Ambulance.',
+        text: 'Ambulance: no citizen can meet these rules. 2 rules contradict each other.',
         tone: 'warning',
       },
-      { key: 'b3', text: 'Right now, no applicant can meet the rules of Taxi.', tone: 'warning' },
+      { key: 'b3', text: 'Taxi: right now no citizen can meet these rules.', tone: 'warning' },
     ]);
   });
 
@@ -687,8 +667,8 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
         b2: check('b2', [], { kind: 'all_meet', today: false }),
       })
     ).toEqual([
-      { key: 'main', text: 'Standard: 1 rule every applicant meets', tone: 'info' },
-      { key: 'b2', text: 'Every applicant meets the rules of Ambulance.', tone: 'info' },
+      { key: 'main', text: 'Standard: 1 rule every citizen meets.', tone: 'info' },
+      { key: 'b2', text: 'Ambulance: every citizen meets these rules.', tone: 'info' },
     ]);
   });
 
@@ -696,7 +676,7 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
     expect(findingLinesOf(BRANCHES, { main: check('main', [...conflict, ...duplicate]) })).toEqual([
       {
         key: 'main',
-        text: 'Standard: 2 rules can’t be met together · 1 duplicate rule',
+        text: 'Standard: 2 rules contradict each other, and 1 rule is a duplicate.',
         tone: 'warning',
       },
     ]);
@@ -709,17 +689,20 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
         b2: { ...check('b2', []), complete: false },
         b3: { ...check('b3', duplicate), complete: false },
       })
-    ).toEqual([{ key: 'b3', text: 'Taxi: 1 duplicate rule', tone: 'info' }]);
+    ).toEqual([{ key: 'b3', text: 'Taxi: 1 rule is a duplicate.', tone: 'info' }]);
   });
 });
 
 describe('the test step (spec 004, S2, S8)', () => {
-  const TEST_HINT =
-    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.';
+  // Spec 008 cosmetic 12, C2 (U65 7057:58714)
+  const TEST_TITLE = {
+    title: 'Test rules with sample citizen data',
+    hint: 'Choose a sample citizen to check that your rules work as intended. See which rules they meet and which message they’d see. The data is made up.',
+  };
 
-  it('titles the test step "Test rules" with the intro, in both modes (FR-004)', () => {
-    expect(pageTitleOf('test', 'create')).toEqual({ title: 'Test rules', hint: TEST_HINT });
-    expect(pageTitleOf('test', 'edit')).toEqual({ title: 'Test rules', hint: TEST_HINT });
+  it('titles the test step with the intro, in both modes (FR-004)', () => {
+    expect(pageTitleOf('test', 'create')).toEqual(TEST_TITLE);
+    expect(pageTitleOf('test', 'edit')).toEqual(TEST_TITLE);
   });
 
   it('publishes without rules while no branch has a rule (FR-001)', () => {
@@ -1358,6 +1341,43 @@ describe('startOfOrigin (data-model.md section 6)', () => {
   });
 });
 
+describe('step 1 and the header (S7; T049, U19, U98)', () => {
+  const STEP_1 = {
+    title: 'Name your connection',
+    hint: 'Link a service to the EUDI Wallet so citizens can share verified data.',
+  };
+
+  it('titles step 1 as U19 draws it, also for the first connection (U18 6793:47711)', () => {
+    expect(pageTitleOf('connection', 'create')).toEqual(STEP_1);
+    expect(pageTitleOf('connection', 'first')).toEqual(STEP_1);
+  });
+
+  it('titles the edit flow’s step 1 "Connection details" (U98, build note U05 #27)', () => {
+    expect(pageTitleOf('connection', 'edit')).toEqual({
+      title: 'Connection details',
+      hint: 'Rename this connection or update its description.',
+    });
+  });
+
+  it('reads "New connection" on a new connection’s step 1, the name after it (U19 6699:45350)', () => {
+    const named = { ...INITIAL_EDITOR_STATE, name: ' Taxi licence ' };
+    expect(headerTitleOf(INITIAL_EDITOR_STATE)).toBe('New connection');
+    expect(headerTitleOf(named)).toBe('New connection');
+    expect(headerTitleOf({ ...named, step: 'documents' })).toBe('Taxi licence');
+  });
+
+  it('names a stored draft on step 1 too, the adopted header of U19 6716:40925', () => {
+    const named = { ...INITIAL_EDITOR_STATE, name: 'Taxi licence' };
+    expect(headerTitleOf(named, undefined, true)).toBe('Taxi licence');
+    expect(headerTitleOf({ ...named, name: '  ' }, undefined, true)).toBe('New connection');
+  });
+
+  it('names a published connection by the name as typed, or its saved one', () => {
+    expect(headerTitleOf({ ...INITIAL_EDITOR_STATE, name: 'Taxi' }, LOADED)).toBe('Taxi');
+    expect(headerTitleOf(INITIAL_EDITOR_STATE, LOADED)).toBe(LOADED.name);
+  });
+});
+
 describe('validateConnection (FR-002, FR-003)', () => {
   const NAME = 'Passenger transport licence';
 
@@ -1371,24 +1391,24 @@ describe('validateConnection (FR-002, FR-003)', () => {
     expect(validateConnection(NAME, ` ${'a'.repeat(500)} `)).toEqual({});
     const errors = validateConnection(NAME, 'a'.repeat(501));
     expect(errors).toEqual({ description: 'The description can have at most 500 characters.' });
-    expect(firstInvalidElementId(errors, [], [])).toBe('connection-description');
+    expect(firstInvalidElementId(errors)).toBe('connection-description');
   });
 
   it('still gives the name’s error first', () => {
-    expect(validateConnection('', '')).toEqual({ name: 'Enter a name.' });
+    expect(validateConnection('', '')).toEqual({ name: 'Enter a name for the connection.' });
     const errors = validateConnection('  ', 'a'.repeat(501));
     expect(errors).toEqual({
-      name: 'Enter a name.',
+      name: 'Enter a name for the connection.',
       description: 'The description can have at most 500 characters.',
     });
-    expect(firstInvalidElementId(errors, [], [])).toBe('connection-name');
+    expect(firstInvalidElementId(errors)).toBe('connection-name');
   });
 });
 
 describe('draftNameErrors (R12)', () => {
   it('asks for a name', () => {
-    expect(draftNameErrors('')).toEqual({ name: 'Enter a name.' });
-    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name.' });
+    expect(draftNameErrors('')).toEqual({ name: 'Enter a name for the connection.' });
+    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name for the connection.' });
   });
 
   it('takes 200 characters and refuses 201', () => {
@@ -1518,7 +1538,6 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
       ...INITIAL_EDITOR_STATE,
       step: 'documents' as const,
       documents,
-      errors: { fields: { residence_permit: 'x', mdl: 'y' } },
     };
     const removal = droppedRemovalOf([EYE_COLOUR, SHOE_SIZE, PERMIT]);
     expect(removalAction(removal)).toEqual({
@@ -1530,7 +1549,6 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
       { document_type: 'pid', fields: ['birthdate'] },
       { document_type: 'mdl', fields: ['driving_privileges'] },
     ]);
-    expect(removed.errors).toEqual({ fields: { mdl: 'y' } });
     expect(removed.toast).toBeNull();
     expect(removed.removed).toBeNull();
     expect(droppedDataOf(removed.documents, CATALOG)).toEqual([]);
@@ -1583,18 +1601,25 @@ describe('data the catalog dropped (S8; FR-003 edge case)', () => {
     });
   });
 
-  it('words the dialog with every dropped item', () => {
+  it('names every dropped item in the removal', () => {
     const removal = droppedRemovalOf([EYE_COLOUR, PERMIT]);
     expect(removal).toEqual({
       type: 'dropped',
       items: [EYE_COLOUR, PERMIT],
       label: 'Personal ID – eye_colour, residence_permit',
     });
-    expect(removalCopyOf(removal, 2, false)).toEqual({
-      title: 'Stop requesting Personal ID – eye_colour, residence_permit?',
-      text: '2 rules check this data:',
-      after: 'After this, edit or delete these rules before you publish.',
-      confirmLabel: 'Stop requesting',
-    });
+  });
+});
+
+describe('warningsFirst (FR-044c)', () => {
+  it('puts the warning lines first and keeps each kind in tab order', () => {
+    const lines = [
+      { key: 'main', text: 'Standard: 1 rule is a duplicate.', tone: 'info' as const },
+      { key: 'b2', text: 'Ambulance: 2 rules contradict each other.', tone: 'warning' as const },
+      { key: 'b3', text: 'Taxi: 1 rule every citizen meets.', tone: 'info' as const },
+      { key: 'b4', text: 'Bus: no citizen can meet these rules.', tone: 'warning' as const },
+    ];
+    expect(warningsFirst(lines).map((line) => line.key)).toEqual(['b2', 'b4', 'main', 'b3']);
+    expect(lines.map((line) => line.key)).toEqual(['main', 'b2', 'b3', 'b4']);
   });
 });

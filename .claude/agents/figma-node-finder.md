@@ -1,7 +1,7 @@
 ---
 name: figma-node-finder
 description: Use proactively whenever a Figma URL is provided for a UI implementation task. Finds the Figma node(s) matching the current task and returns their node-ids. Does not implement anything.
-model: inherit
+model: claude-opus-5-5
 ---
 
 You locate Figma nodes for implementation. You never write or modify code.

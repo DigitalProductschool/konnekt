@@ -13,11 +13,11 @@ import type {
   FindingTone,
   ItemNames,
   ItemReference,
-  TabFindings,
 } from '@connection-portal/rules/checks/types';
 import type { RuleContext, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
+import type { BranchFindings } from '../../../components/BranchName/types';
 import type { ShownFinding } from '../../../components/FindingNote/types';
 import type { ToastContent } from '../../../components/Toast/types';
 import type { PopupPlacement } from '../../../utils/popupPlacement';
@@ -294,8 +294,6 @@ export interface RulesTreeView {
 export interface TreeItemProps {
   view: RulesTreeView;
   item: RuleTreeItem;
-  /** Its level's items, itself included */
-  level: RuleTreeItem[];
   parentId: string | null;
   /** 0 at the top level, 1 in a group, 2 in a sub-group */
   depth: number;
@@ -323,10 +321,10 @@ export interface RuleListItemProps {
   flag: string | null;
   /** Its finding of spec 003, or null; `flag` wins over it (W11) */
   finding: ShownFinding | null;
-  /** Whether its menu offers "Group with other rules": another rule shares its level */
-  canGroup: boolean;
   /** In a removed or dissolved group: faded with it, without a menu */
   faded: boolean;
+  /** Its box in select mode (`SelectBox`), passed to the row's `selectBox` slot */
+  selectBox?: ReactNode;
 }
 
 /**
@@ -336,49 +334,116 @@ export interface RuleListItemProps {
  */
 export type ItemStanding = 'own' | 'inherited' | 'removed';
 
+/** What a ⋯ menu's entries do, by entry; an entry without one isn't offered */
+export type MenuHandlers = Partial<Record<MenuEntryId, () => void>>;
+
 export interface RuleMenuProps {
   ruleName: string;
-  standing: ItemStanding;
-  canGroup: boolean;
-  /** Whether "Copy to variant" applies: the connection has other variants */
-  canCopy: boolean;
-  /** Whether "Reset to Standard" applies: the rule changed in its based variant */
-  canReset: boolean;
+  /** What it offers, in order: `menuEntriesOf()` (FR-036) */
+  entries: MenuEntry[];
+  /** The open branch's name, which "Remove from <variant>" names */
+  branchName: string;
   /** The main branch's name, which "Reset to Standard" names */
   mainName: string;
-  onEdit: () => void;
-  onRename: () => void;
-  onDuplicate: () => void;
-  onCopy: () => void;
-  onGroup: () => void;
-  onReset: () => void;
-  /** "Delete rule", or for an inherited rule "Remove from this variant" */
-  onDelete: () => void;
-  onRestore: () => void;
-  /** "Copy link" (S4); null hides it: a new, unsaved connection has no link */
-  onCopyLink: (() => void) | null;
+  /** What each entry does; "Group with other rules" starts select mode with the rule chosen */
+  handlers: MenuHandlers;
 }
 
 export interface GroupMenuProps {
   groupName: string;
-  standing: ItemStanding;
-  hasMessage: boolean;
-  /** Whether "Reset to Standard" applies: the group changed in its based variant */
-  canReset: boolean;
+  /** Shown as a sub-group: its labels say "sub-group" (build note U54 6522:33107 #13) */
+  subGroup: boolean;
+  /** What it offers, in order: `menuEntriesOf()` (FR-036) */
+  entries: MenuEntry[];
+  /** The open branch's name, which "Remove from <variant>" names */
+  branchName: string;
   mainName: string;
-  onAddMessage: () => void;
-  onRemoveMessage: () => void;
-  onRename: () => void;
-  onUngroup: () => void;
-  onReset: () => void;
-  /** "Delete group", or for an inherited group "Remove from this variant" */
-  onDelete: () => void;
-  onRestore: () => void;
-  /** "Copy link" (S4); null hides it: a new, unsaved connection has no link */
-  onCopyLink: (() => void) | null;
+  handlers: MenuHandlers;
+}
+
+/**
+ * An entry of a rule's, group's, sub-group's or variant tab's ⋯ menu, from `menuEntriesOf()`
+ * (FR-036; data-model "The rules step's menus"). The menu gives each its label: `rename` is
+ * inline for rules and groups and opens "Edit variant" for a variant (Q21); `restore` reads
+ * "Restore rule", "Restore group" or "Restore sub-group"; `remove` ("Remove from <variant>") and
+ * `delete` ("Delete rule", "Delete group", "Delete sub-group", "Delete variant") are the
+ * destructive ones, after the divider
+ */
+export type MenuEntryId =
+  | 'edit'
+  | 'rename'
+  | 'addMessage'
+  | 'removeMessage'
+  | 'duplicate'
+  | 'copyToVariant'
+  | 'group'
+  | 'ungroup'
+  | 'reset'
+  | 'restore'
+  | 'copyLink'
+  | 'remove'
+  | 'delete';
+
+/**
+ * Where "Group with other rules" starts select mode (FR-036; CLAR #60, #61): the top level, where
+ * rules and groups can be chosen, or the id of a top-level group, where only the rules directly in
+ * it can be
+ */
+export type SelectScope = 'top' | string;
+
+/** A menu entry; "Group with other rules" carries the scope of the select mode it starts */
+export type MenuEntry = { id: 'group'; scope: SelectScope } | { id: Exclude<MenuEntryId, 'group'> };
+
+/** Where a rule sits in its branch: at the top level, directly in a group, or in a sub-group */
+export type MenuRuleLevel =
+  { level: 'top' } | { level: 'group'; groupId: string } | { level: 'sub-group' };
+
+/** What a rule's or group's place in its branch says about its menu */
+export interface MenuTreeItemState {
+  /** In a variant, linked to Standard: inherited, changed there or not (CLAR #53) */
+  linked: boolean;
+  /** Changed in its variant ("Changed here"), which "Reset to Standard" takes back */
+  changed: boolean;
+  /** Removed in its variant, or an inherited group dissolved there (F13): restored only */
+  removed: boolean;
+  /**
+   * Whether another item of its level can be grouped with it (FR-036; CLAR #48, #60, #61): at the
+   * top level another rule or group, in a group another rule directly in it, never a sub-group
+   */
+  neighbours: boolean;
+}
+
+/** What a ⋯ menu belongs to, from `menuItemOf()` for a rule or group (FR-036) */
+export type MenuItem =
+  | ({
+      kind: 'rule';
+      /** Whether some other variant could still receive a copy ("Copy to variant", CLAR #53) */
+      receivable: boolean;
+    } & MenuRuleLevel &
+      MenuTreeItemState)
+  | ({
+      kind: 'group' | 'sub-group';
+      /** Whether the group has a message of its own ("Remove message", CLAR #54) */
+      hasMessage: boolean;
+      /** A group holding a sub-group offers no grouping (FR-036; 002-S2.10) */
+      holdsSubGroup: boolean;
+    } & MenuTreeItemState)
+  | { kind: 'variant' };
+
+/** What every menu of a branch shares (FR-036) */
+export interface MenuContext {
+  /** The branch the item is in, for a tab's ⋯ that variant: Standard or a variant */
+  branchKind: 'standard' | 'variant';
+  /**
+   * Whether the menus offer "Copy link": a stored draft or a published connection, not a new,
+   * unsaved one (spec 007, S4.6)
+   */
+  linkable: boolean;
 }
 
 export interface LinkStripProps {
+  /** The based variant it heads, whose removals it counts (FR-051 (38)) */
+  branch: RulesBranch;
   /** The main branch's name */
   mainName: string;
 }
@@ -458,14 +523,23 @@ export interface FindingLinkProps {
   branchKey: string;
 }
 
+/** A rule that checks data no longer requested, as the banner names it (F11, F58) */
+export interface UnrequestedRule {
+  /** Its branch's key and its id, unique across the branches */
+  key: string;
+  /** The banner's sentence, naming the rule, its variant and, if it is gone, the document */
+  text: string;
+}
+
 export interface UnrequestedBannerProps {
-  /** The rules that check data no longer requested, each with its branch's name */
-  rules: { rule: RuleItem; branchName: string }[];
+  /** The rules that check data no longer requested, in every branch */
+  rules: UnrequestedRule[];
+  /** "Add it in Documents": the documents step, asking first if a rule is open (FR-023f) */
+  onAddData: () => void;
 }
 
 export interface UnrequestedRuleLineProps {
-  ruleName: string;
-  branchName: string;
+  text: string;
 }
 
 export interface AddRuleButtonProps {
@@ -476,6 +550,8 @@ export interface AddRuleButtonProps {
 export interface SelectionBarProps {
   selection: RulesSelection;
   branch: RulesBranch;
+  /** Standard's name, which the bar names in a based variant (U64 6616:44355) */
+  mainName: string;
   onCancel: () => void;
   onGroup: () => void;
 }
@@ -500,6 +576,11 @@ export interface RulesDialogsProps {
   context: RuleContext;
   /** Whether the connection is being edited: deleting a variant then ends its result link */
   editing: boolean;
+  /**
+   * Whether the edited connection is active (the default): a deactivated one's delete-variant body
+   * doesn't say "The connection is active" (T068's note)
+   */
+  active?: boolean;
   dispatch: (action: RulesAction) => void;
   /** Closes the dialog: the rule stays, and so does the editor */
   onCancel: () => void;
@@ -517,6 +598,11 @@ export interface BranchTabsProps {
   dispatch: (action: RulesAction) => void;
   /** "Copy link" of a variant, by its key (S4); null for a new, unsaved connection */
   onCopyLink: ((branchKey: string) => void) | null;
+  /**
+   * A spec 002 problem per branch key, such as a rule on data no longer requested (U50
+   * 7375:101551): the red icon, which wins over the findings' (error > warning > info)
+   */
+  problems?: Readonly<Record<string, BranchFindings>>;
 }
 
 export interface BranchTabProps {
@@ -525,7 +611,12 @@ export interface BranchTabProps {
   /** Whether the branch can be deleted: every branch but the main branch */
   deletable: boolean;
   /** Its findings for the tab's icon and tooltip, from `tabFindingsOf()`; null without (W13) */
-  findings: TabFindings | null;
+  findings: BranchFindings | null;
+  /**
+   * Its spec 002 problem (the `error` kind), such as a rule on data no longer requested: its red
+   * icon wins, its tooltip says the problem, then the findings (FR-041a); null without
+   */
+  problem: BranchFindings | null;
   onSelect: () => void;
   /** Arrow keys, Home and End move between the tabs */
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
@@ -583,7 +674,7 @@ export interface CopyPopoverProps {
   onCopy: (targets: string[]) => void;
   /** Cancel, Escape or a click elsewhere */
   onClose: () => void;
-  /** The focus left it, with Tab: it closes, and the focus stays where it went */
+  /** The focus left it another way than Tab, which stays inside: it closes, the focus stays */
   onDismiss: () => void;
 }
 
@@ -605,5 +696,7 @@ export interface CopyTargetItemProps {
   checked: boolean;
   /** A variant based on Standard while Standard is chosen: included, not chosen on its own */
   included: boolean;
+  /** The id of the help text "Variants linked to Standard get it too.", where it applies */
+  describedBy?: string;
   onToggle: () => void;
 }

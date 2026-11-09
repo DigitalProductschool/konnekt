@@ -1,11 +1,11 @@
 ---
 name: access-levels
-description: The three access levels an agent can have in the Connection Portal, what each allows, how to ask for more, the team member's user page and personal access tokens.
+description: The three access levels an agent can have in Konnekt, what each allows, how to ask for more, the team member's user page and personal access tokens.
 ---
 
 # Access levels
 
-The team member chooses your access level when they connect you, on the Connection Portal's
+The team member chooses your access level when they connect you, on Konnekt's
 consent page. Each level includes the one before it:
 
 | Level                                           | Allows                                                                                  |
@@ -15,7 +15,7 @@ consent page. Each level includes the one before it:
 | "Read, edit drafts and manage live connections" | Also asking for approval to deactivate, reactivate or delete a published connection     |
 
 At every level, a published connection's content (its name, description, documents, variants and
-rules) is read-only for agents: the team member changes it in the Connection Portal. Publishing,
+rules) is read-only for agents: the team member changes it in Konnekt. Publishing,
 deleting, deactivating and reactivating never happen without the team member's approval.
 
 ## When a level isn't enough
@@ -36,7 +36,7 @@ user page.
 
 ## The user page
 
-The team member's user page in the Connection Portal lists the agents they connected and their
+The team member's user page in Konnekt lists the agents they connected and their
 personal access tokens. There they can raise or lower each one's access level, which applies from
 your next call without connecting again, or revoke it, after which your calls are refused until
 you are connected again. Lowering or revoking cancels the approval requests the new level doesn't

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyContent } from '../../utils/localDrafts/content';
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
 import { INITIAL_USER_MENU_STATE } from './constants';
-import { initialsOf, signOutNamesOf, userMenuReducer } from './utils';
+import { signOutNamesOf, userMenuReducer } from './utils';
 
 function record(name: string, index = 0): LocalDraftRecord {
   return {
@@ -21,12 +21,7 @@ function records(count: number): LocalDraftRecord[] {
   return Array.from({ length: count }, (_, index) => record(`Form ${index + 1}`, index));
 }
 
-describe('initialsOf', () => {
-  it('takes the first letters of up to two parts', () => {
-    expect(initialsOf('laura.weber')).toBe('LW');
-    expect(initialsOf('alice')).toBe('A');
-  });
-});
+// initialsOf() went with the avatar: the account pill has no initials (spec 008, FR-030, F17)
 
 describe('signOutNamesOf', () => {
   it('is empty without records', () => {

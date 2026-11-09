@@ -1,56 +1,37 @@
-import { KernBadge } from '@kern-ux-annex/kern-react-kit';
-
-import successTick from '../../assets/illustrations/success-tick.svg';
 import { DETAIL_COPY } from './constants';
+import DetailAccordion from './DetailAccordion';
 import LinkCard from './LinkCard';
 import type { ConnectionLinksProps } from './types';
-import { resultLinksOf } from './utils';
+import { linksCountsOf, resultLinksOf } from './utils';
 
 /**
- * Figma "Publish/Success card": the trigger URL ("Request link") once, and the pull URL ("Result
- * link") of every variant, Standard first, each labelled with the variant's name and its (i)
- * (FR-026, US3-AS7; F24, F31). With Standard only, the URLs show as spec 001 shows them, without
- * a name (W2). Right after publishing it opens with the tick and "Your connection is live".
+ * The Links accordion, "Links for your service" (U80 6396:47648, U91 7246:51436; FR-046,
+ * FR-052f): the trigger URL ("Request link") once, then the pull URL ("Result link") of every
+ * variant, Standard first, each labelled with the variant's name and its ⓘ (F51; F24); with
+ * Standard only, its URL unlabelled, as in spec 001 (W2). The two parts are numbered and
+ * divided by a line; no name header (U07 #9). Open right after publishing (U80). While the
+ * connection is deactivated, the URLs stay readable and the copy buttons are off (40 %), each
+ * explaining "Activate the connection first" on hover and focus (U89 6417:31309; FR-046, W21).
  */
-export default function ConnectionLinks({
-  formConnection,
-  published,
-  headingRef,
-}: ConnectionLinksProps) {
+export default function ConnectionLinks({ formConnection, open, onToggle }: ConnectionLinksProps) {
+  const deactivated = !formConnection.is_active;
   return (
-    <section
-      aria-labelledby="links-title"
-      className="rounded-kern-large border-kern-neutral-100 bg-kern-layout-background-default flex flex-col items-center gap-16 border px-16 py-40 sm:px-40"
+    <DetailAccordion
+      title={DETAIL_COPY.linksTitle}
+      counts={linksCountsOf(formConnection)}
+      viewLabel={DETAIL_COPY.viewLinks}
+      hideLabel={DETAIL_COPY.hideLinks}
+      open={open}
+      onToggle={onToggle}
     >
-      {published && (
-        <>
-          <img src={successTick} alt="" />
-          <KernBadge
-            variant="success"
-            label={DETAIL_COPY.published}
-            withIcon
-            className="kern-badge--small"
-          />
-        </>
-      )}
-      <h2
-        id="links-title"
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-kern-adaptive-large text-kern-layout-text-default text-center font-semibold focus:outline-none"
-      >
-        {published ? DETAIL_COPY.liveTitle : DETAIL_COPY.linksTitle}
-      </h2>
-      <p className="text-kern-static-medium text-kern-layout-text-muted text-center">
-        {DETAIL_COPY.linksLead}
-      </p>
-      <ol className="flex w-full flex-col gap-12 pt-8">
+      <ol className="flex flex-col divide-y divide-(--kern-color-decorative-border-default)">
         <LinkCard
           number={1}
           title={DETAIL_COPY.requestLink}
           links={[{ key: 'trigger', url: formConnection.trigger_url, branch: null }]}
           infoLabel={DETAIL_COPY.requestLinkInfoLabel}
           info={DETAIL_COPY.requestLinkInfo}
+          deactivated={deactivated}
         />
         <LinkCard
           number={2}
@@ -58,8 +39,9 @@ export default function ConnectionLinks({
           links={resultLinksOf(formConnection)}
           infoLabel={DETAIL_COPY.resultLinkInfoLabel}
           info={DETAIL_COPY.resultLinkInfo}
+          deactivated={deactivated}
         />
       </ol>
-    </section>
+    </DetailAccordion>
   );
 }

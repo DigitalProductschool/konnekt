@@ -1,33 +1,29 @@
-import { KernBadge } from '@kern-ux-annex/kern-react-kit';
-
-import { STATUS_BADGE_COPY } from './constants';
-import type { ConnectionStatusBadgeProps } from './types';
+import { STATUS_PILL_COPY, STATUS_PILL_TONES } from './constants';
+import type { ConnectionStatus, ConnectionStatusBadgeProps } from './types';
 
 /**
- * Whether a connection is active, as KERN's small badge: "Live" (success) or "Deactivated"
- * (warning). With `draft`, a saved draft that isn't live yet: "Draft" (info), whatever
- * `isActive` says. The text and the icon say it, not the colour alone.
+ * Figma "Status/Connection" (U07 build note 32, 7370:55180; U11 6699:44264): a connection's
+ * status as a tinted pill with an 8px dot and its label, radius 8, no border, 24px high as the
+ * rows and the header draw it. "Active" (green) or "Deactivated" (grey); with `draft`, a saved
+ * draft that isn't live yet: "Draft" (blue), whatever `isActive` says. The label says it, not
+ * the colour alone (005-ACC.1); the dot is decorative.
  */
 export default function ConnectionStatusBadge({
   isActive,
   draft = false,
 }: ConnectionStatusBadgeProps) {
-  if (draft) {
-    return (
-      <KernBadge
-        variant="info"
-        label={STATUS_BADGE_COPY.draft}
-        withIcon
-        className="kern-badge--small"
-      />
-    );
-  }
+  const status: ConnectionStatus = draft ? 'draft' : isActive ? 'active' : 'deactivated';
+  const tone = STATUS_PILL_TONES[status];
   return (
-    <KernBadge
-      variant={isActive ? 'success' : 'warning'}
-      label={isActive ? STATUS_BADGE_COPY.live : STATUS_BADGE_COPY.deactivated}
-      withIcon
-      className="kern-badge--small"
-    />
+    <span
+      className={`${tone.pill} rounded-kern-default narrow:h-auto narrow:min-h-24 inline-flex h-24 max-w-full shrink-0 items-center gap-6 px-10`}
+    >
+      <span aria-hidden="true" className={`${tone.dot} rounded-kern-circle size-8 shrink-0`} />
+      <span
+        className={`${tone.label} text-kern-static-small narrow:whitespace-normal leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap`}
+      >
+        {STATUS_PILL_COPY[status]}
+      </span>
+    </span>
   );
 }

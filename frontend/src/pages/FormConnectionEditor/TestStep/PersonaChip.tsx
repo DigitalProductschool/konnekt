@@ -6,12 +6,12 @@ import LoadingRing from './LoadingRing';
 import type { PersonaChipProps } from './types';
 
 /**
- * Figma "Applicant · Mia Schulz" (7057:58755): a white pill, the label/default type. The focus
+ * Figma "Citizen · Mia Schulz" (7057:58755): a white pill, the label/default type. The focus
  * ring shows for keyboard focus only. kern.css, unlayered, does the reverse for `[tabindex]`: a
  * ring on any `:focus`, and `outline: 0` on `:focus:focus-visible`. Hence the `!` on both sides
  */
 const CHIP_CLASSES =
-  'bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default! flex shrink-0 cursor-pointer items-center gap-8 rounded-full py-8 pr-14 pl-12 leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
+  'bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default! flex max-w-full shrink-0 cursor-pointer items-center gap-8 rounded-full py-8 pr-14 pl-12 leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap narrow:rounded-kern-large narrow:whitespace-normal focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
 
 /**
  * Selected: a 2px outline in `action-default` (7057:58755). Otherwise the 1px decorative border
@@ -22,7 +22,7 @@ const UNSELECTED_CLASSES = 'border border-(--kern-color-decorative-border-defaul
 
 /**
  * One persona's chip (S8.3; FR-004, FR-015; Figma 7057:58755, 7057:58758, 7057:58761): a tab of
- * the "Sample applicants" tab list, with the persona's name and an icon whose shape states its
+ * the "Sample citizens" tab list, with the persona's name and an icon whose shape states its
  * outcome for the shown variant, a check circle when it meets it, the warning diamond when not.
  * The chip shows no outcome text: its accessible name carries it ("Mia Schulz: doesn’t meet the
  * rules of Standard", `chipNameOf()`). Without a result, no icon and the name alone (design-notes

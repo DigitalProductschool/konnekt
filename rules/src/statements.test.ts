@@ -20,18 +20,18 @@ function statement(ruleTarget: RuleTarget, condition: Condition): string | undef
 describe('statementOf', () => {
   it('reads US1’s rules in FR-005’s words (F1, F5, F32)', () => {
     expect(US1_RULES.map((rule) => statementOf(rule, CONTEXT)?.text)).toEqual([
-      'Personal ID – Date of birth (Age) is at least 21 years old',
-      'Driving licence – Licence classes includes one of B',
-      'Driving licence – Licence class B – Issue date is at least 2 years ago',
+      'Personal ID · Date of birth (Age) is at least 21 years old',
+      'Driving licence · Licence classes includes one of B',
+      'Driving licence · Licence class B – Issue date is at least 2 years ago',
     ]);
   });
 
   it('splits a statement into its subject, its predicate and the design’s chip', () => {
     expect(statementOf(US1_RULES[0], CONTEXT)).toEqual({
-      subject: 'Personal ID – Date of birth (Age)',
+      subject: 'Personal ID · Date of birth (Age)',
       predicate: 'is at least 21 years old',
       symbol: '≥',
-      text: 'Personal ID – Date of birth (Age) is at least 21 years old',
+      text: 'Personal ID · Date of birth (Age) is at least 21 years old',
     });
   });
 
@@ -42,10 +42,10 @@ describe('statementOf', () => {
       ['exactly_years_ago', 1, 'is exactly 1 year old'],
     ])('words %s on a Date of birth as an age', (operator, years, predicate) => {
       expect(statement(target('pid', 'birthdate'), { operator, years })).toBe(
-        `Personal ID – Date of birth (Age) ${predicate}`
+        `Personal ID · Date of birth (Age) ${predicate}`
       );
       expect(statement(target('mdl', 'birth_date'), { operator, years })).toBe(
-        `Driving licence – Date of birth (Age) ${predicate}`
+        `Driving licence · Date of birth (Age) ${predicate}`
       );
     });
 
@@ -55,33 +55,33 @@ describe('statementOf', () => {
       ['exactly_years_ago', 3, 'is exactly 3 years ago'],
     ])('words %s on every other date as years ago', (operator, years, predicate) => {
       expect(statement(target('pid', 'date_of_issuance'), { operator, years })).toBe(
-        `Personal ID – Issue date ${predicate}`
+        `Personal ID · Issue date ${predicate}`
       );
     });
 
     it('counts from now in years or months, without "left" (F2)', () => {
       const expiry = target('mdl', 'expiry_date');
       expect(statement(expiry, { operator: 'at_least_from_now', amount: 6, unit: 'months' })).toBe(
-        'Driving licence – Expiry date is at least 6 months from now'
+        'Driving licence · Expiry date is at least 6 months from now'
       );
       expect(statement(expiry, { operator: 'less_than_from_now', amount: 1, unit: 'years' })).toBe(
-        'Driving licence – Expiry date is less than 1 year from now'
+        'Driving licence · Expiry date is less than 1 year from now'
       );
       expect(statement(expiry, { operator: 'at_least_from_now', amount: 1, unit: 'months' })).toBe(
-        'Driving licence – Expiry date is at least 1 month from now'
+        'Driving licence · Expiry date is at least 1 month from now'
       );
     });
 
     it('writes fixed dates in the design’s format', () => {
       const issued = target('pid', 'date_of_issuance');
       expect(statement(issued, { operator: 'before', date: '2020-01-01' })).toBe(
-        'Personal ID – Issue date is before 1 Jan 2020'
+        'Personal ID · Issue date is before 01.01.2020'
       );
       expect(statement(issued, { operator: 'after', date: '2020-01-01' })).toBe(
-        'Personal ID – Issue date is after 1 Jan 2020'
+        'Personal ID · Issue date is after 01.01.2020'
       );
       expect(statement(issued, { operator: 'on', date: '2005-10-23' })).toBe(
-        'Personal ID – Issue date is 23 Oct 2005'
+        'Personal ID · Issue date is 23.10.2005'
       );
     });
 
@@ -92,7 +92,7 @@ describe('statementOf', () => {
           amount: 2,
           unit: 'years',
         })
-      ).toBe('Driving licence – Licence class CE – Expiry date is at least 2 years from now');
+      ).toBe('Driving licence · Licence class CE – Expiry date is at least 2 years from now');
     });
   });
 
@@ -103,7 +103,7 @@ describe('statementOf', () => {
     ['not_equal_to', 0, 'is not equal to 0'],
   ])('reads the number condition %s', (operator, value, predicate) => {
     expect(statement(target('mdl', 'height'), { operator, value })).toBe(
-      `Driving licence – Height (cm) ${predicate}`
+      `Driving licence · Height (cm) ${predicate}`
     );
   });
 
@@ -119,19 +119,19 @@ describe('statementOf', () => {
         value: ' Stuttgart ',
         match_case: matchCase,
       })
-    ).toBe(`Personal ID – City or town ${predicate}`);
+    ).toBe(`Personal ID · City or town ${predicate}`);
   });
 
   it('reads enum values by their label (F8)', () => {
     const nationality = target('pid', 'nationalities');
     expect(statement(nationality, { operator: 'includes_one_of', values: ['DE'] })).toBe(
-      'Personal ID – Nationality includes one of Germany'
+      'Personal ID · Nationality includes one of Germany'
     );
     expect(statement(nationality, { operator: 'includes_none_of', values: ['DE', 'AT'] })).toBe(
-      'Personal ID – Nationality includes none of Germany, Austria'
+      'Personal ID · Nationality includes none of Germany, Austria'
     );
     expect(statement(target('pid', 'sex'), { operator: 'includes_one_of', values: [2, 0] })).toBe(
-      'Personal ID – Sex includes one of Female, Not known'
+      'Personal ID · Sex includes one of Female, Not known'
     );
   });
 
@@ -141,7 +141,7 @@ describe('statementOf', () => {
         operator: 'includes_none_of',
         values: ['B', 'BE'],
       })
-    ).toBe('Driving licence – Licence classes includes none of B, BE');
+    ).toBe('Driving licence · Licence classes includes none of B, BE');
   });
 
   it('names the place of birth’s parts', () => {
@@ -150,14 +150,14 @@ describe('statementOf', () => {
         operator: 'includes_one_of',
         values: ['AT'],
       })
-    ).toBe('Personal ID – Place of birth – Country includes one of Austria');
+    ).toBe('Personal ID · Place of birth – Country includes one of Austria');
     expect(
       statement(target('pid', 'place_of_birth', 'locality'), {
         operator: 'contains',
         value: 'Stutt',
         match_case: false,
       })
-    ).toBe('Personal ID – Place of birth – City or town contains "Stutt", ignoring letter case');
+    ).toBe('Personal ID · Place of birth – City or town contains "Stutt", ignoring letter case');
   });
 
   it.each([
@@ -189,10 +189,10 @@ describe('statementOf', () => {
 describe('subjectOf', () => {
   it('names the document, the field and the part', () => {
     expect(subjectOf(target('pid', 'place_of_birth', 'region'), CONTEXT.documents)).toBe(
-      'Personal ID – Place of birth – Region'
+      'Personal ID · Place of birth – Region'
     );
     expect(subjectOf(target('mdl', 'driving_privileges', 'classes'), CONTEXT.documents)).toBe(
-      'Driving licence – Licence classes'
+      'Driving licence · Licence classes'
     );
     expect(subjectOf(null, CONTEXT.documents)).toBeNull();
   });
@@ -207,17 +207,23 @@ describe('optionLabel', () => {
 
 describe('symbolOf', () => {
   it.each([
-    ['at_least_years_ago', '≥'],
-    ['at_least_from_now', '≥'],
-    ['less_than_years_ago', '<'],
-    ['less_than_from_now', '<'],
-    ['exactly_years_ago', '='],
-    ['before', null],
-    ['on', null],
-    ['greater_than', null],
-    ['includes_one_of', null],
-  ])('gives %s the chip %s', (operator, symbol) => {
-    expect(symbolOf(operator)).toBe(symbol);
+    ['at_least_years_ago', 'date', '≥'],
+    ['at_least_from_now', 'date', '≥'],
+    ['less_than_years_ago', 'date', '<'],
+    ['less_than_from_now', 'date', '<'],
+    ['exactly_years_ago', 'date', '='],
+    ['before', 'date', null],
+    ['on', 'date', null],
+    ['greater_than', 'number', '>'],
+    ['less_than', 'number', '<'],
+    ['equal_to', 'number', '='],
+    ['not_equal_to', 'number', '≠'],
+    ['equal_to', 'text', null],
+    ['not_equal_to', 'text', null],
+    ['includes_one_of', 'enum', null],
+    ['greater_than', null, null],
+  ] as const)('gives %s (%s) the chip %s', (operator, kind, symbol) => {
+    expect(symbolOf(operator, kind)).toBe(symbol);
   });
 });
 
@@ -230,7 +236,7 @@ describe('statementPartsOf', () => {
     }
     const { words, values, tail } = parts.predicate;
     const predicate = `${words} ${values.join(', ')}${tail ? `, ${tail}` : ''}`;
-    return `${parts.document} – ${parts.data} ${predicate}`;
+    return `${parts.document} · ${parts.data} ${predicate}`;
   }
 
   it('splits US1’s rules into the document, the data, the words and the chips', () => {

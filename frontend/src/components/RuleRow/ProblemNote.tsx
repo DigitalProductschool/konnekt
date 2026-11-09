@@ -1,11 +1,16 @@
+import { SMALL_TEXT } from './constants';
 import type { ProblemNoteProps } from './types';
 
-/** Figma "Rules/Problem note" (blocking, 6110:3657): the problem under a flagged rule. */
+/**
+ * Figma "Rules/Problem note" level=blocking (6110:3657): a spec 002 problem under a flagged rule
+ * or group, the 20px info icon and `label/small` in `feedback-danger`, 8px apart, 24px in and 8px
+ * above the outline's bottom (U44 6171:7489).
+ */
 export default function ProblemNote({ id, message }: ProblemNoteProps) {
   return (
     <p
       id={id}
-      className="text-kern-static-small text-kern-feedback-danger flex items-center gap-8 pb-8 pl-24 leading-(--kern-typography-line-height-medium-static) font-semibold"
+      className={`${SMALL_TEXT} text-kern-feedback-danger flex items-center gap-8 pb-8 pl-24 font-semibold`}
     >
       <span
         aria-hidden="true"

@@ -1,10 +1,12 @@
 import { useId } from 'react';
 
+import { START_WITH_OPTION_CLASSES } from './constants';
 import type { StartWithOptionProps } from './types';
 
 /**
- * One choice of "Start with" in the Add variant dialog (U17 6139:32693): KERN's radio with its
- * label, and the help under it, indented to the label (48px) and linked to the radio.
+ * One choice of "Start with" in the Add variant dialog (U37 6044:16353, 6044:16358; the design's
+ * "Data/Radio item"): a 20px radio with its label, and the help under it, indented to the label
+ * (28px) and linked to the radio.
  */
 export default function StartWithOption({
   name,
@@ -17,8 +19,8 @@ export default function StartWithOption({
   const id = useId();
   const helpId = `${id}-help`;
   return (
-    <div className="flex flex-col gap-8">
-      <div className="kern-form-check">
+    <div className="flex flex-col">
+      <div className={START_WITH_OPTION_CLASSES.row}>
         <input
           id={id}
           type="radio"
@@ -27,16 +29,13 @@ export default function StartWithOption({
           checked={checked}
           onChange={onSelect}
           aria-describedby={helpId}
-          className="kern-form-check__radio"
+          className={START_WITH_OPTION_CLASSES.radio}
         />
-        <label htmlFor={id} className="kern-label">
+        <label htmlFor={id} className={START_WITH_OPTION_CLASSES.label}>
           {label}
         </label>
       </div>
-      <p
-        id={helpId}
-        className="text-kern-static-small text-kern-layout-text-muted pl-48 leading-(--kern-typography-line-height-medium-static)"
-      >
+      <p id={helpId} className={START_WITH_OPTION_CLASSES.help}>
         {help}
       </p>
     </div>

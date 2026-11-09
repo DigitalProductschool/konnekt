@@ -1,10 +1,14 @@
-import { RULE_ROW_COPY } from './constants';
+import { RULE_ROW_COPY, SMALL_TEXT } from './constants';
 import type { RuleNameProps } from './types';
 
-/** The rule's name in Figma's blue label, and on the details its identifier (W1). */
+/**
+ * Figma "Rules/Rule row" › "Name row" (6083:3455): the rule's name in `label/small` (14/24, 600)
+ * in the action blue, and on the details its identifier 8px after it in `body/small` muted
+ * ("rule-7", F35; the design draws no identifier).
+ */
 export default function RuleName({ name, identifier }: RuleNameProps) {
   return (
-    <p className="text-kern-static-small flex flex-wrap items-center gap-x-8 leading-(--kern-typography-line-height-medium-static)">
+    <p className={`${SMALL_TEXT} flex flex-wrap items-center gap-x-8`}>
       <span className="text-kern-action-default font-semibold break-words">{name}</span>
       {identifier && (
         <span className="text-kern-layout-text-muted">

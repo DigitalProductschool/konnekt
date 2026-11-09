@@ -196,7 +196,7 @@ function DraftEditFlow({
   if (flow.kind === 'asking') {
     return (
       <RestoreDialog
-        title={headerTitleOf(stored.states.editor)}
+        title={headerTitleOf(stored.states.editor, undefined, true)}
         name={displayNameOf(storedContentOf(draft))}
         changedAt={formatChangedAt(flow.record.changedAt)}
         onRestore={() => dispatch({ type: 'restore' })}

@@ -30,7 +30,7 @@ import { announcementOf } from './announcements';
 import { applicantOf } from './applicant';
 import { generatePersonas } from './generation';
 import { goalsOf } from './goals';
-import { ageSuffixOf, testDayLineOf } from './messages';
+import { testDayLineOf } from './messages';
 import { initialPersonaState, personaStateReducer } from './personaState';
 import { checkedBranchesOf, personaFieldsOf, resultViewOf, testResultsOf } from './results';
 import type {
@@ -48,7 +48,7 @@ import { ageOn, shownFieldsOf } from './values';
 
 // The day, the clock and the seeds
 
-/** Today in Germany, as the step names it: "1 Nov 2026" */
+/** Today in Germany, as the step names it: "01.11.2026" */
 const TODAY = '2026-11-01';
 
 /** A clock that never reaches the deadline: a run depends only on its seed */
@@ -150,10 +150,10 @@ const EXAMPLE = [keyed(STANDARD, 'standard'), keyed(AMBULANCE, 'ambulance')];
 
 /** The example's persona fields, as the step shows them */
 const EXAMPLE_LABELS = [
-  'Personal ID – Date of birth (Age)',
-  'Personal ID – City or town',
-  'Driving licence – Licence classes',
-  'Driving licence – Licence class B – Issue date',
+  'Personal ID · Date of birth (Age)',
+  'Personal ID · City or town',
+  'Driving licence · Licence classes',
+  'Driving licence · Licence class B – Issue date',
 ];
 
 /** The example's rule messages, by id */
@@ -336,7 +336,7 @@ function goalsFor(branches: readonly KeyedBranch[]): ReturnType<typeof goalsOf> 
   );
 }
 
-// The spec's three applicants (US1's story): a 25-year-old from Stuttgart who has held class B for
+// The spec's three citizens (US1's story): a 25-year-old from Stuttgart who has held class B for
 // 6 years, a 20-year-old from Stuttgart who has held it for 3 years, and a 45-year-old from
 // Esslingen without class B, whose hidden class B date is never delivered
 const MIA = persona(
@@ -374,7 +374,7 @@ const ANNA = persona(
 
 describe('US1-AS1: the personas have exactly the data the rules check', () => {
   it('derives the four fields, named as the rules name them', () => {
-    expect(fieldsOf(EXAMPLE).map((each) => `${each.documentLabel} – ${each.label}`)).toEqual(
+    expect(fieldsOf(EXAMPLE).map((each) => `${each.documentLabel} · ${each.label}`)).toEqual(
       EXAMPLE_LABELS
     );
   });
@@ -469,7 +469,7 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
     ]);
     expect(standard.rows[0].name).toBe('Rule 01');
     expect(standard.rows[0].statement).toBe(
-      'Personal ID – Date of birth (Age) is at least 21 years old'
+      'Personal ID · Date of birth (Age) is at least 21 years old'
     );
     expect(standard.failingFields).toEqual([BIRTH]);
 
@@ -477,7 +477,7 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
     expect(ambulance.meets).toBe(true);
     expect(ambulance.heading).toBe('Result: meets the rules');
     expect(ambulance.rows[0].statement).toBe(
-      'Personal ID – Date of birth (Age) is at least 19 years old'
+      'Personal ID · Date of birth (Age) is at least 19 years old'
     );
   });
 
@@ -557,7 +557,7 @@ describe('US1-AS3: one persona meets both variants, one only Ambulance, one neit
     GENERATING
   );
 
-  it('the spec’s three applicants show the same pattern', () => {
+  it('the spec’s three citizens show the same pattern', () => {
     expect([MIA, JONAS, ANNA].map((each) => vectorOf(each, EXAMPLE))).toEqual([
       'meet/meet',
       'fail/meet',
@@ -568,7 +568,7 @@ describe('US1-AS3: one persona meets both variants, one only Ambulance, one neit
 
 describe('US1-AS4: tested as if shared today', () => {
   it('names today’s date', () => {
-    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 1 Nov 2026.');
+    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026.');
   });
 
   it('evaluates on today: a persona who turns 21 today meets Rule 01, yesterday not', () => {
@@ -687,7 +687,7 @@ describe('EC "A branch without rules": every persona meets it', () => {
   );
 });
 
-describe('EC "A branch that no applicant can meet": no persona meets it', () => {
+describe('EC "A branch that no citizen can meet": no persona meets it', () => {
   // Ambulance also asks for "Date of birth (Age) is less than 18 years old" (quickstart V6)
   const unmeetable = keyed(
     must(
@@ -709,7 +709,7 @@ describe('EC "A branch that no applicant can meet": no persona meets it', () => 
     const checked = buildCheckedBranch(unmeetable, CONTEXT, TODAY);
     const { notice } = checkBranch(checked, NO_DEADLINE);
     expect(noticeText(must(notice), 'Ambulance')).toBe(
-      'No applicant can meet the rules of Ambulance.'
+      'No citizen can meet the rules of Ambulance.'
     );
   });
 
@@ -735,8 +735,8 @@ describe('EC "A branch that no applicant can meet": no persona meets it', () => 
   );
 });
 
-describe('EC "A branch that every applicant meets": every persona meets it', () => {
-  // "Personal ID – Nationality includes one of" every country (spec 003, FR-006)
+describe('EC "A branch that every citizen meets": every persona meets it', () => {
+  // "Personal ID · Nationality includes one of" every country (spec 003, FR-006)
   const always = keyed(
     {
       ...mainBranch([
@@ -754,9 +754,7 @@ describe('EC "A branch that every applicant meets": every persona meets it', () 
   it('is the branch spec 003 points out', () => {
     const checked = buildCheckedBranch(always, CONTEXT, TODAY);
     const { notice } = checkBranch(checked, NO_DEADLINE);
-    expect(noticeText(must(notice), 'Everyone')).toBe(
-      'Every applicant meets the rules of Everyone.'
-    );
+    expect(noticeText(must(notice), 'Everyone')).toBe('Every citizen meets the rules of Everyone.');
   });
 
   it('generation doesn’t try to fail it', () => {
@@ -827,10 +825,10 @@ describe('EC "Rules removed in a branch": not tested there', () => {
 describe('EC "Birthday today and 29 February": as the evaluation counts them', () => {
   it('a persona who turns 21 today is 21, and meets Rule 01', () => {
     const turning = persona('Lea Fischer', { ...MIA.values, [BIRTH]: '2005-11-01' });
-    expect(ageSuffixOf(turning.values[BIRTH], TODAY)).toBe(' (age 21)');
+    expect(ageOn(turning.values[BIRTH], TODAY)).toBe(21);
     expect(outcomesOf(turning, EXAMPLE, 'standard')['rule-1']).toBe('met');
     const tomorrow = persona('Lea Fischer', { ...MIA.values, [BIRTH]: '2005-11-02' });
-    expect(ageSuffixOf(tomorrow.values[BIRTH], TODAY)).toBe(' (age 20)');
+    expect(ageOn(tomorrow.values[BIRTH], TODAY)).toBe(20);
     expect(outcomesOf(tomorrow, EXAMPLE, 'standard')['rule-1']).toBe('not_met');
   });
 
@@ -1087,7 +1085,6 @@ describe('US2-AS1: an age of 20 no longer meets Standard, still meets Ambulance'
   it('gives age 20 on today', () => {
     expect(ageOn(MIA.values[BIRTH], TODAY)).toBe(25);
     expect(ageOn(twenty.values[BIRTH], TODAY)).toBe(20);
-    expect(ageSuffixOf(twenty.values[BIRTH], TODAY)).toBe(' (age 20)');
   });
 
   it('fails Standard at Rule 01 with its message, and meets Ambulance', () => {
@@ -1123,7 +1120,7 @@ describe('US2-AS2: the day 21 years before today meets "at least 21 years old"',
     expect(exact.values[BIRTH]).toBe('2005-11-01');
     expect(ruleOneOf(exact, EXAMPLE)).toBe('met');
     expect(viewOf(exact, EXAMPLE, 'standard').rows[0].statement).toBe(
-      'Personal ID – Date of birth (Age) is at least 21 years old'
+      'Personal ID · Date of birth (Age) is at least 21 years old'
     );
     expect(ruleOneOf(edited(MIA, BIRTH, '2005-11-02'), EXAMPLE)).toBe('not_met');
   });
@@ -1191,7 +1188,7 @@ describe('US2-AS5: an empty date of birth couldn’t be checked', () => {
         ]);
         expect(view.failingFields).toEqual([BIRTH]);
       }
-      expect(ageSuffixOf(cleared.values[BIRTH], TODAY)).toBe('');
+      expect(ageOn(cleared.values[BIRTH], TODAY)).toBeNull();
     }
   });
 });
@@ -1231,10 +1228,9 @@ describe('US2-AS7: a rename changes no result', () => {
 });
 
 describe('EC "Dates of birth in the future and ages of 200": evaluated like any value', () => {
-  it('a date of birth in the future fails Rule 01 and reads "not born yet"', () => {
+  it('a date of birth in the future fails Rule 01, with an age below 0', () => {
     const future = edited(MIA, BIRTH, '2030-01-15');
     expect(ageOn(future.values[BIRTH], TODAY)).toBeLessThan(0);
-    expect(ageSuffixOf(future.values[BIRTH], TODAY)).toBe(' (not born yet)');
     expect(ruleOneOf(future, EXAMPLE)).toBe('not_met');
     expect(resultOf(future, EXAMPLE, 'standard').met).toBe(false);
     expect(resultOf(future, EXAMPLE, 'ambulance').met).toBe(false);

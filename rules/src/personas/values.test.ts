@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Persona, PersonaField, PersonaValue } from './types';
-import { ageOn, changedKeys, isEmptyValue, shownFieldsOf } from './values';
+import {
+  ageOn,
+  changedKeys,
+  dataRowsOf,
+  isEmptyValue,
+  isExpiryDate,
+  shownFieldsOf,
+} from './values';
 
 /** A persona field; only the key, the document and the class matter here */
 function field(key: string, licenceClass: string | null = null): PersonaField {
@@ -163,5 +170,111 @@ describe('changedKeys', () => {
       'pid.family_name': 'Kaya',
     };
     expect(changedKeys(persona(values, generated), FIELDS)).toEqual([CLASSES.key]);
+  });
+});
+
+describe('isExpiryDate (spec 008 FR-024)', () => {
+  it('recognises the documents’ expiry dates and a licence class’s', () => {
+    expect(isExpiryDate({ key: 'mdl.expiry_date', part: null })).toBe(true);
+    expect(isExpiryDate({ key: 'pid.date_of_expiry', part: null })).toBe(true);
+    expect(
+      isExpiryDate({ key: 'mdl.driving_privileges.expiry_date#BE', part: 'expiry_date' })
+    ).toBe(true);
+  });
+
+  it('leaves every other date out', () => {
+    expect(isExpiryDate({ key: 'pid.birthdate', part: null })).toBe(false);
+    expect(isExpiryDate({ key: 'mdl.issue_date', part: null })).toBe(false);
+    expect(isExpiryDate({ key: 'mdl.driving_privileges.issue_date#B', part: 'issue_date' })).toBe(
+      false
+    );
+  });
+});
+
+describe('dataRowsOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)', () => {
+  /** A class's date, with its part as `personaFieldsOf()` gives it */
+  const classDate = (part: 'issue_date' | 'expiry_date', code: string): PersonaField => ({
+    ...field(`mdl.driving_privileges.${part}#${code}`, code),
+    part,
+  });
+  const BIRTH = field('pid.birthdate');
+  const ISSUE_B2 = classDate('issue_date', 'B');
+  const ISSUE_BE = classDate('issue_date', 'BE');
+  const ISSUE_C1 = classDate('issue_date', 'C1');
+  const EXPIRY_B = classDate('expiry_date', 'B');
+  const EXPIRY = field('mdl.expiry_date');
+  const ALL = [BIRTH, CLASSES, ISSUE_B2, ISSUE_BE, ISSUE_C1, EXPIRY_B, EXPIRY];
+  const single = (entry: PersonaField) => ({
+    field: entry,
+    keys: [entry.key],
+    classes: null,
+    since: null,
+  });
+
+  it('puts the classes of one issue date in one row: "B, BE since 02.05.2010" (Anna)', () => {
+    const anna = persona({
+      [BIRTH.key]: '1992-03-14',
+      [CLASSES.key]: ['B', 'BE'],
+      [ISSUE_B2.key]: '2010-05-02',
+      [ISSUE_BE.key]: '2010-05-02',
+      [EXPIRY.key]: '2035-05-01',
+    });
+    expect(dataRowsOf(anna, [BIRTH, CLASSES, ISSUE_B2, ISSUE_BE, EXPIRY])).toEqual([
+      single(BIRTH),
+      {
+        field: CLASSES,
+        keys: [CLASSES.key, ISSUE_B2.key, ISSUE_BE.key],
+        classes: ['B', 'BE'],
+        since: '2010-05-02',
+      },
+      single(EXPIRY),
+    ]);
+  });
+
+  it('gives one row per issue date, in the order of their first class', () => {
+    const values = {
+      [CLASSES.key]: ['B', 'BE', 'C1'],
+      [ISSUE_B2.key]: '2010-05-02',
+      [ISSUE_BE.key]: '2018-01-15',
+      [ISSUE_C1.key]: '2010-05-02',
+      [EXPIRY_B.key]: '2030-05-01',
+    };
+    expect(dataRowsOf(persona(values), ALL)).toEqual([
+      single(BIRTH),
+      {
+        field: CLASSES,
+        keys: [CLASSES.key, ISSUE_B2.key, ISSUE_C1.key],
+        classes: ['B', 'C1'],
+        since: '2010-05-02',
+      },
+      { field: CLASSES, keys: [CLASSES.key, ISSUE_BE.key], classes: ['BE'], since: '2018-01-15' },
+      single(EXPIRY_B),
+      single(EXPIRY),
+    ]);
+  });
+
+  it('puts the classes without a shown issue date in one row without a date', () => {
+    // B's date is checked but empty, AM's is no field
+    const values = {
+      [CLASSES.key]: ['AM', 'B', 'BE'],
+      [ISSUE_B2.key]: null,
+      [ISSUE_BE.key]: '2018-01-15',
+    };
+    expect(dataRowsOf(persona(values), [CLASSES, ISSUE_B2, ISSUE_BE])).toEqual([
+      { field: CLASSES, keys: [CLASSES.key, ISSUE_B2.key], classes: ['AM', 'B'], since: null },
+      { field: CLASSES, keys: [CLASSES.key, ISSUE_BE.key], classes: ['BE'], since: '2018-01-15' },
+    ]);
+  });
+
+  it('gives one row without classes, and none for the hidden dates', () => {
+    const values = { [CLASSES.key]: [], [ISSUE_B2.key]: '2010-05-02' };
+    expect(dataRowsOf(persona(values), [CLASSES, ISSUE_B2])).toEqual([
+      { field: CLASSES, keys: [CLASSES.key], classes: [], since: null },
+    ]);
+  });
+
+  it('keeps an issue date’s own row without "Licence classes" among the fields', () => {
+    const values = { [CLASSES.key]: ['B'], [ISSUE_B2.key]: '2010-05-02' };
+    expect(dataRowsOf(persona(values), [ISSUE_B2])).toEqual([single(ISSUE_B2)]);
   });
 });

@@ -3,6 +3,8 @@ export interface RuleMenuItemProps {
   /** A KERN icon class, such as 'kern-icon--edit', or an image; none for "Restore rule" */
   icon?: { kern: string } | { src: string };
   danger?: boolean;
+  /** Shown faded, reachable with the arrow keys, and choosing it does nothing */
+  disabled?: boolean;
   onSelect: () => void;
 }
 
@@ -11,6 +13,8 @@ export interface MenuAction {
   label: string;
   icon?: RuleMenuItemProps['icon'];
   danger?: boolean;
+  /** Shown faded; choosing it does nothing and leaves the menu open */
+  disabled?: boolean;
   /** Draws the menu's divider before it */
   separated?: boolean;
   onSelect: () => void;

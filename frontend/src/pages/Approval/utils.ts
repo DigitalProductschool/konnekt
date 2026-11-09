@@ -14,7 +14,7 @@ import type {
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
 import type { RulesBranch } from '../FormConnectionEditor/RulesStep/types';
-import { formatEditedDate } from '../FormConnectionList/utils';
+import { formatRowDate } from '../FormConnectionList/utils';
 import {
   APPROVAL_COPY,
   CANCELLED_TEXTS,
@@ -56,11 +56,11 @@ export function subtitleOf(request: ApprovalRequest): string {
 }
 
 /**
- * "Last saved 4 Nov 2026, 14:32": the draft's last save, as the draft card's `savedLineOf()`
- * writes it
+ * "Last saved 04.11.2026, 14:32": the draft's last save, as the draft details' date pill writes
+ * it (cosmetic 3, design-notes §3 "Dates")
  */
 export function lastSavedLineOf(updatedAt: string): string {
-  return APPROVAL_COPY.lastSaved(`${formatEditedDate(updatedAt)}, ${timeOf(updatedAt)}`);
+  return APPROVAL_COPY.lastSaved(`${formatRowDate(updatedAt)}, ${timeOf(updatedAt)}`);
 }
 
 /** Whether the action acts on a published connection: `deactivate`, `reactivate` or `delete` */

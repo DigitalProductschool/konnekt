@@ -84,12 +84,12 @@ export interface ResolvedTarget {
   dateOfBirth: boolean;
 }
 
-/** The design's chip before a date condition: decoration that assistive technologies skip */
-export type StatementSymbol = '≥' | '<' | '=';
+/** The design's chip before a number or date condition: decoration that assistive technologies skip */
+export type StatementSymbol = '≥' | '>' | '<' | '=' | '≠';
 
 /** A rule as a readable statement (FR-005) */
 export interface Statement {
-  /** The document, the field and the part: "Driving licence – Licence class B – Issue date" */
+  /** The document, the field and the part: "Driving licence · Licence class B – Issue date" */
   subject: string;
   /** The condition in FR-003's words: "is at least 2 years ago" */
   predicate: string;

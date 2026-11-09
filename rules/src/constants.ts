@@ -112,21 +112,14 @@ export const OPERATOR_SYMBOLS: Record<string, StatementSymbol> = {
   exactly_years_ago: '=',
 };
 
-// The design's date format, "23 Oct 2005", with fixed English month names
-export const MONTH_ABBREVIATIONS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+// The chips before a number condition (U45 6753:40528, 6753:40544: "> is greater than", "< is less
+// than"; the user's decision of 2026-11-09). Only for numbers: a text "is equal to" has none
+export const NUMBER_OPERATOR_SYMBOLS: Record<string, StatementSymbol> = {
+  greater_than: '>',
+  less_than: '<',
+  equal_to: '=',
+  not_equal_to: '≠',
+};
 
 // Dates as the API writes them
 export const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -189,7 +182,7 @@ export const RULES_MESSAGES = {
   itemNameTooLong: (noun: string, branch: string) =>
     `A ${noun} in ${branch} has a name longer than 100 characters.`,
   nameTaken: (noun: string, branch: string, name: string) =>
-    `Another ${noun} in ${branch} is already called ${name}.`,
+    `There’s already a ${noun} called "${name}" in ${branch}.`,
   nameReserved: (name: string, noun: string, number: string) =>
     `${name} is kept for the ${noun} numbered ${number}.`,
   chooseData: (rule: string, branch: string) => `${rule} in ${branch}: choose the data to check.`,
@@ -206,7 +199,7 @@ export const RULES_MESSAGES = {
     `${group} in ${branch} needs at least two rules.`,
   // The Add variant and Edit variant dialogs (W3; U26 6197:12011; design-notes.md §4)
   variantNameMissing: 'Enter a name for the variant.',
-  variantNameTaken: (name: string) => `Another variant is already called ${name}.`,
+  variantNameTaken: (name: string) => `There’s already a variant called "${name}".`,
   // Inline renaming (`nameProblem`)
   nameMissing: 'Enter a name.',
   nameTooLong: 'A name can have at most 100 characters.',

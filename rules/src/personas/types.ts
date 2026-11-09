@@ -68,7 +68,7 @@ export type PersonaId = 'persona-1' | 'persona-2' | 'persona-3';
 /** A persona's place among the three, in their fixed order */
 export type PersonaSlot = 0 | 1 | 2;
 
-/** A sample applicant: a name, and a value for each persona field */
+/** A sample citizen: a name, and a value for each persona field */
 export interface Persona {
   id: PersonaId;
   /**
@@ -293,7 +293,7 @@ export interface ResultRow {
 export interface ResultView {
   /** Whether the persona meets the variant */
   meets: boolean;
-  /** "Result: meets the rules", "Result: doesn't meet 1 rule and 1 group" (FR-015, W10) */
+  /** "Result: meets the rules", "Result: doesn't meet 2 rules" (FR-015; spec 008 FR-024, V4) */
   heading: string;
   /** "Rules Mia meets" under a met variant, otherwise null (F3) */
   listHeading: string | null;
@@ -334,7 +334,7 @@ export interface SlotPlan {
 }
 
 /**
- * Branches with the same formula, by canonical serialisation, and that formula: no applicant can
+ * Branches with the same formula, by canonical serialisation, and that formula: no citizen can
  * meet them differently
  */
 export interface BranchClass {

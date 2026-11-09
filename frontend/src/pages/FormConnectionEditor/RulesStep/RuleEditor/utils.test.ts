@@ -64,32 +64,33 @@ describe('hintsOf', () => {
     ]);
   });
 
-  it('gives the Date of birth F3’s hint and every other date U30’s', () => {
+  // F34 (CLAR 2026-11-07 #25): the Date of birth takes the other dates' hint
+  it('gives every date, the Date of birth too, F34’s hint', () => {
     expect(hintsOf(resolved('pid', 'birthdate'), null, TODAY)).toEqual([
-      'Check an age, the time from now, or compare the date with a fixed date.',
+      'Check the time since or until this date, or compare it with a fixed date.',
     ]);
     expect(hintsOf(resolved('pid', 'date_of_expiry'), null, TODAY)).toEqual([
       'Check the time since or until this date, or compare it with a fixed date.',
     ]);
   });
 
-  it('says that applicants who turn N on the day of sharing count (U11)', () => {
+  it('says that citizens who turn N on the day of sharing count (U11)', () => {
     const hints = hintsOf(
       resolved('pid', 'birthdate'),
       { operator: 'at_least_years_ago', years: 21 },
       TODAY
     );
-    expect(hints).toContain('Applicants who turn 21 that day count.');
+    expect(hints).toContain('Citizens who turn 21 that day count.');
     expect(
       hintsOf(resolved('pid', 'birthdate'), { operator: 'less_than_years_ago', years: 21 }, TODAY)
-    ).not.toContain('Applicants who turn 21 that day count.');
+    ).not.toContain('Citizens who turn 21 that day count.');
     expect(
       hintsOf(
         resolved('pid', 'date_of_issuance'),
         { operator: 'at_least_years_ago', years: 2 },
         TODAY
       )
-    ).not.toContain('Applicants who turn 2 that day count.');
+    ).not.toContain('Citizens who turn 2 that day count.');
   });
 });
 
@@ -110,11 +111,13 @@ describe('date of birth in the rule editor (B7)', () => {
     expect(found('birth')).toContain('Date of birth (Age)');
   });
 
-  it('keeps the check menu’s "Date of birth" section of fixed dates under "Age"', () => {
-    expect(checkSections('date', true).map((section) => section.heading)).toEqual([
-      'Age',
+  // F34 (cosmetic 9) and CLAR 2026-11-08 #63: every date, the Date of birth too, offers "Time
+  // ago", "Time from now" and "Fixed date"
+  it('offers every date, the Date of birth too, "Time ago", "Time from now" and "Fixed date"', () => {
+    expect(checkSections('date').map((section) => section.heading)).toEqual([
+      'Time ago',
       'Time from now',
-      'Date of birth',
+      'Fixed date',
     ]);
   });
 

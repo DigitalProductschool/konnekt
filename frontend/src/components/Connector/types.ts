@@ -1,6 +1,6 @@
 import type { Combinator, Mark } from '@connection-portal/api-types/form-connections';
 
-import type { PopupPlacement } from '../../utils/popupPlacement';
+import type { MenuPlacement } from '../../utils/popupPlacement';
 
 export interface ConnectorProps {
   /** How the level's rules and groups combine */
@@ -9,12 +9,15 @@ export interface ConnectorProps {
   levelName?: string;
   /**
    * Switches the level to AND or OR. With it, the pill opens the menu that switches it; without
-   * it, the connector is read-only
+   * it, the connector is read-only (the details' summary: no chevron, U03 #26)
    */
   onSwitch?: (operator: Combinator) => void;
-  /** A based variant's top-level AND/OR switched there: its mark, after the line (W4) */
+  /** A based variant's top-level AND/OR switched there: its mark, after the line (W12) */
   mark?: Mark | null;
-  /** Before a removed rule or group: faded with it (U23 6185:8571) */
+  /**
+   * Next to a removed rule or group, or beside the only active item of its level: faded (U47
+   * 6185:8569; FR-051 (39))
+   */
   faded?: boolean;
 }
 
@@ -24,8 +27,8 @@ export interface ConnectorMenuProps {
   triggerId: string;
   operator: Combinator;
   levelName: string;
-  /** Where it opens from its pill: below it, to the side that fits (utils/popupPlacement.ts) */
-  placement: PopupPlacement;
+  /** Where it opens from its pill: side, direction and max-height step (utils/popupPlacement.ts) */
+  placement: MenuPlacement;
   onChoose: (operator: Combinator) => void;
   /** Escape: closes the menu and gives the focus back to its button */
   onClose: () => void;

@@ -1,48 +1,42 @@
-import type { EditorState, EditorStep } from './types';
+import type { EditorState, EditorStep, LeaveFlowState, PublishDialogState } from './types';
 
 export const NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 500;
 
 export const EDITOR_COPY = {
   headerTitle: 'New connection',
-  // Step 1, Figma "02d Create a connection"
-  connectionTitle: 'Create a connection',
-  // Step 1 at /get-started, Figma "02 Create connection"
-  firstConnectionTitle: 'Create your first connection',
-  connectionHint:
-    'Connect any form to the EUDI Wallet for applicants to share verified information.',
-  formCardTitle: 'Which form are you connecting?',
+  // Step 1 (S7; U19 6699:45321), also at /get-started (U18 6793:47711 draws the same step head)
+  connectionTitle: 'Name your connection',
+  connectionHint: 'Link a service to the EUDI Wallet so citizens can share verified data.',
+  // The card "Connection card (highlight)" (U19 6699:45329; U98 6731:39829 when editing)
+  formCardTitle: 'Which service are you connecting?',
   formCardHint: 'You can change these details later.',
-  nameLabel: 'Form name',
+  editFormCardHint: 'The name shows in ‘Your connections’ and on the Published page.',
+  nameLabel: 'Connection name',
   namePlaceholder: 'e.g. Residents’ parking permit',
-  nameInfoLabel: 'About the form name',
-  nameInfo:
-    'Use the official name of the form so your team can find it easily. Applicants never see this name.',
+  nameInfoLabel: 'About the connection name',
+  // The ⓘ's text, two lines (U19 6809:46408; F60)
+  nameInfo: 'This name helps you and your colleagues find this connection later.',
+  nameInfoAdvice: 'Recommended: Use the name of a particular service. Citizens never see it.',
   descriptionLabel: 'Description',
-  descriptionPlaceholder: 'e.g. serviceBW form PK-30051',
+  descriptionPlaceholder: 'e.g. For people who live in the area and park on the street',
   descriptionInfoLabel: 'About the description',
   descriptionInfo:
-    'A note for your team, such as the form’s ID in your form management system. Applicants never see it.',
-  // V2 says "Starts as a draft." first; connections have no drafts
-  formCardNote: 'Nothing goes live until you publish.',
-  continue: 'Continue',
+    'A note for your team, such as the form’s ID in your form management system. Citizens never see it.',
+  // The info strip at the bottom of step 1's card, in a new connection's and a stored draft's
+  // flow (FR-026, Q8 (d); U19 6699:45346)
+  draftNote: 'Starts as a draft. It only becomes active when you publish.',
+  // The same strip in the edit flow of a published connection (U98 6731:39846, its copy F49)
+  editNote:
+    'Your changes take effect when you save them. Requests already in progress keep their previous configuration.',
+  // Step 1's footer action (U19 6699:45349, U98 6731:39850)
+  continue: 'Choose documents',
   // Step 2, Figma "03 Documents"
-  documentsTitle: 'Add documents',
-  documentsHint: 'Choose which wallet documents applicants share, and which data from each.',
-  available: 'Available in the wallet',
-  add: 'Add',
-  added: 'Added',
-  remove: 'Remove',
-  // Starts with the visible "Added", for speech input (WCAG 2.5.3); "Remove" shows on focus
-  removeLabel: (document: string) => `Added, remove ${document}`,
-  upcoming: (count: number) => `Coming to the wallet (${count})`,
-  upcomingNote: 'You can add these once the wallet supports them.',
-  emptyTitle: 'No documents yet',
-  emptyText:
-    'Add a document from the list on the left. Its data shows up here, and you choose what to ask for.',
-  allData: 'All data',
-  shared: (selected: number, total: number) => `${selected} of ${total} shared`,
-  removed: (document: string) => `${document} removed`,
+  // The step head (U20 7290:60373, U21 #7)
+  documentsTitle: 'Choose documents and data',
+  documentsHint:
+    'Add the documents citizens need to share for this connection. You can set rules in the next step using information you select here.',
+  removed: (document: string) => `${document} removed.`,
   undo: 'Undo',
   loadingCatalog: 'Loading the wallet documents…',
   catalogErrorTitle: 'Couldn’t load the wallet documents',
@@ -50,21 +44,22 @@ export const EDITOR_COPY = {
   retry: 'Try again',
   back: 'Back',
   publish: 'Publish',
-  // The documents step goes on to the rules (U09 6235:18684, F17)
-  addRules: 'Add rules',
+  // The documents step goes on to the rules (U20 7290:60388, U21 #20; FR-031)
+  addRules: 'Set rules',
   publishWithoutRules: 'Publish without rules',
-  saveWithoutRules: 'Save without rules',
   publishErrorText: 'Nothing went live. Check your connection and try again.',
-  // Editing a connection (no frames): the same steps, saving instead of publishing (FR-005)
-  editConnectionTitle: 'Edit the connection',
-  editConnectionHint: 'Change the form name or description, or go on to the documents.',
-  editDocumentsTitle: 'Edit documents',
-  editNote: 'Requests already in progress keep their previous data.',
+  // Editing a connection: the same steps, saving instead of publishing (FR-005); step 1 as the
+  // build note U05 #27 words it (figma-audit report, cosmetic 6)
+  editConnectionTitle: 'Connection details',
+  editConnectionHint: 'Rename this connection or update its description.',
   save: 'Save',
   // The test step (spec 004, S2, S8; FR-004)
   testRules: 'Test rules',
-  testRulesHint:
-    'Choose a sample applicant to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.',
+  // Why "Test rules" can't be used now (FR-034, W21; U01 #22)
+  saveRuleFirst: 'Save the rule first',
+  finishGroupingFirst: 'Finish grouping first',
+  // The edit flow's footer (FR-045, U98 6731:39850)
+  discardChanges: 'Discard changes',
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 
@@ -73,7 +68,7 @@ export const DRAFT_COPY = {
   saveAndExit: 'Save and exit',
   saving: 'Saving…',
   savingStatus: 'Saving draft…',
-  saveErrorTitle: 'Couldn’t save your draft',
+  // The failed save's toast (FR-033, F67; U51 6197:11098), with "Try again" and the error ID
   saveNetworkError: 'Couldn’t save. Check your internet connection and try again.',
   tryAgain: 'Try again',
   draftBadge: 'Draft',
@@ -99,17 +94,40 @@ export const DRAFT_COPY = {
   cancel: 'Cancel',
 };
 
+// Leaving a flow (FR-026; CLAR 2026-11-07 #8, #47): "Leave this connection?" (U17 7173:52682),
+// "Save your changes?" (U99 7173:52836) and "Save before you log out?" (U17 6408:72737); the
+// wording of T048's task line and FR-026, whose frames T048 checks
+export const LEAVE_COPY = {
+  leaveTitle: 'Leave this connection?',
+  leaveText:
+    'If you leave now, you lose all progress. Save it to continue later, or discard the connection.',
+  discardConnection: 'Discard connection',
+  saveProgress: 'Save progress',
+  saveTitle: 'Save your changes?',
+  saveText:
+    'If you leave now, your changes are lost. Save them, or discard them and keep the active version.',
+  discardChanges: 'Discard changes',
+  save: 'Save',
+  logoutTitle: 'Save before you log out?',
+  logoutText: 'Your latest changes will be lost if you log out now.',
+  saveAndLogOut: 'Save and log out',
+  logOutAnyway: 'Log out anyway',
+  cancel: 'Cancel',
+};
+
 // The publish and save dialog (S5): U33 6376:25536, U35 6376:27178, U36 6376:27630, and
 // design-notes.md §6
 export const PUBLISH_COPY = {
   publishTitle: 'Ready to publish?',
-  saveTitle: 'Ready to save?',
+  // The edit flow's save dialog (FR-045c; CLAR #47: "Save" opens "Save changes?")
+  saveTitle: 'Save changes?',
   publishWithoutRulesTitle: 'Publish without rules?',
   saveWithoutRulesTitle: 'Save without rules?',
-  publishIntro: 'Once you publish, the connection goes live and you can add it to your form.',
+  // U73 7058:62120, U75 6376:25536, U77 6760:47979 (FR-002; F1: no "Active from")
+  publishIntro: 'When you publish, the connection is ready to be added to your services.',
   // F27: the message of "Edit this live connection?" (U38) moves here
   saveIntro:
-    'Applicants keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
+    'Citizens keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
   withoutRulesIntro: 'Without rules, anyone who shares these documents can apply.',
   documents: 'Documents',
   rules: 'Rules',
@@ -119,11 +137,25 @@ export const PUBLISH_COPY = {
     `${branch} · ${count === 0 ? 'No rules' : `${count} ${count === 1 ? 'rule' : 'rules'}`}`,
   noRules: 'No rules',
   checkRulesAgain: 'Check rules again',
+  // FR-044a: opened from the test step, it closes back to it (U73 7058:62120)
+  backToTest: 'Back to test',
   addRules: 'Add rules',
-  publish: 'Publish',
+  publish: 'Publish connection',
   save: 'Save',
+  // The status dialog (U78 6387:65280 publishing, 6387:65289 published; "Dialog/Status"); the
+  // edit flow's words are the save's, its frames undrawn
   publishing: 'Publishing…',
   saving: 'Saving…',
+  statusWait: 'This takes a few seconds.',
+  published: 'Published',
+  saved: 'Saved',
+  openingConnection: 'Opening your connection page…',
+  // A network failure or a 5xx (U79 6376:27178; F46: with the error ID, the summary kept)
+  publishFailed:
+    'Couldn’t publish, so nothing has changed. Check your internet connection and try again.',
+  saveFailed:
+    'Couldn’t save, so nothing has changed. Check your internet connection and try again.',
+  // Any other refusal, above the server's message (002-S5.3)
   publishErrorTitle: 'Couldn’t publish',
   saveErrorTitle: 'Couldn’t save',
   retry: 'Try again',
@@ -135,29 +167,6 @@ export const PUBLISH_COPY = {
   replaceTheirChanges: 'Replace their changes',
 };
 
-// The question before data that rules check goes (F18): U10 6324:40071 for a document and
-// 6324:40396 for a field. The rules are listed, one per line, between the dialog's two
-// sentences; "All data" and the singular are proposed (design-notes.md §2)
-const rulesCheck = (count: number) => `${count} ${count === 1 ? 'rule checks' : 'rules check'}`;
-const editThem = (count: number, editing: boolean) =>
-  `edit or delete ${count === 1 ? 'this rule' : 'these rules'} before you ${editing ? 'save' : 'publish'}.`;
-
-export const REMOVE_DATA_COPY = {
-  documentTitle: (document: string) => `Remove ${document}?`,
-  fieldTitle: (field: string) => `Stop requesting ${field}?`,
-  allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
-  documentText: (count: number) => `${rulesCheck(count)} data from this document:`,
-  fieldText: (count: number) => `${rulesCheck(count)} it:`,
-  allFieldsText: (count: number) => `${rulesCheck(count)} this data:`,
-  documentAfter: (count: number, editing: boolean) =>
-    `After removing it, ${editThem(count, editing)}`,
-  fieldAfter: (count: number, editing: boolean) => `After this, ${editThem(count, editing)}`,
-  rule: (rule: string, branch: string) => `${rule} in ${branch}`,
-  cancel: 'Cancel',
-  removeDocument: 'Remove document',
-  stopRequesting: 'Stop requesting',
-};
-
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';
 
@@ -167,22 +176,10 @@ export const DRAFT_PUBLISHED_ERROR = 'draft_published';
 
 // Validation messages; the API answers with the same ones (data-model.md, FR-003)
 export const VALIDATION_MESSAGES = {
-  nameRequired: 'Enter a name.',
+  nameRequired: 'Enter a name for the connection.',
   nameTooLong: `The name can have at most ${NAME_MAX_LENGTH} characters.`,
   descriptionTooLong: `The description can have at most ${DESCRIPTION_MAX_LENGTH} characters.`,
-  noDocuments: 'Add at least one document.',
-  noFields: (document: string) => `Select at least one field for '${document}'.`,
 };
-
-// Documents the wallet doesn't hold yet (Figma "Nav/Coming soon"); they can't be added
-export const UPCOMING_DOCUMENTS = [
-  'Certificate of good conduct',
-  'Proof of expertise',
-  'Eye test certificate',
-  'Medical fitness certificate',
-  'Residence permit',
-  'Vehicle registration',
-];
 
 /**
  * A branch id as the server takes it (spec 007, research R10): a UUID in its canonical form, as
@@ -193,6 +190,8 @@ export const BRANCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 // Element ids that validation moves the focus to
 export const ELEMENT_IDS = {
   form: 'connection-form',
+  // The footer's "Save and exit", where the failed save's "Try again" leaves the focus
+  saveAndExit: 'save-and-exit',
   rulesProblem: 'rules-problem',
   // A rule's row or a group's frame
   rule: (branchKey: string, itemId: string) => `rule-${branchKey}-${itemId}`,
@@ -207,8 +206,6 @@ export const ELEMENT_IDS = {
   addVariant: 'add-variant',
   name: 'connection-name',
   description: 'connection-description',
-  documentsError: 'documents-error',
-  pickerButton: (documentType: string) => `document-picker-${documentType}`,
   allData: (documentType: string) => `document-${documentType}-all`,
   fieldsError: (documentType: string) => `document-${documentType}-error`,
   field: (documentType: string, field: string) => `document-${documentType}-${field}`,
@@ -223,7 +220,7 @@ export const ELEMENT_IDS = {
   personaField: (personaId: string, fieldKey: string) => `persona-${personaId}-${fieldKey}`,
 };
 
-// The wizard's steps by their place in the progress bar (CONNECTION_STEPS)
+// The wizard's steps by their place in the progress bar (CONNECTION_STEPS; Publish is a dialog)
 export const STEP_ORDER: EditorStep[] = ['connection', 'documents', 'rules', 'test'];
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -243,3 +240,28 @@ export const INITIAL_EDITOR_STATE: EditorState = {
   draftError: null,
   conflict: null,
 };
+
+export const INITIAL_PUBLISH_DIALOG_STATE: PublishDialogState = {
+  phase: 'closed',
+  from: 'test',
+  withoutRules: false,
+  failure: null,
+  conflict: null,
+  connectionId: null,
+};
+
+/**
+ * How long "Published" ("Saved") shows before the details open (FR-044d; U78 6376:26662: "green
+ * check for 0.5 s"). Behaviour, not motion: it stays under reduced motion (CLAR #33, FR-050)
+ */
+export const PUBLISHED_DELAY_MS = 500;
+
+/**
+ * The status dialog ("Dialog/Status", U78 6387:65280: 400 × 232, padding 40 32, gap 16, radius 12,
+ * no outline), on the scrim and with the fade of `ConfirmDialog` (design-notes §4). The `!`s beat
+ * kern.css's dialog and its small-screen bottom sheet, as `ConfirmDialog`'s do
+ */
+export const PUBLISH_STATUS_DIALOG_CLASSES =
+  'kern-dialog motion m-auto! w-400 max-w-[calc(100%-32px)]! min-w-0! rounded-(--kern-metric-border-radius-large)! border-0! backdrop:bg-(--kern-color-action-state-indicator-shade)!';
+
+export const INITIAL_LEAVE_FLOW_STATE: LeaveFlowState = { status: 'idle' };

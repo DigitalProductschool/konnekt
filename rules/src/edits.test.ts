@@ -193,12 +193,12 @@ describe('addRule', () => {
     expect(item(named.state, AMBULANCE, 'rule-5')?.name).toBe(' Adult ');
     const own = inAmbulance(addRule(STATE, AMBULANCE, null, { name: 'Resident' }));
     expect(refusal(addRule(own, 'main-id', null, { name: 'resident' }))).toEqual({
-      message: 'Another rule in Ambulance is already called Resident.',
+      message: 'There’s already a rule called "Resident" in Ambulance.',
       branchIndex: 0,
       itemId: 'rule-6',
     });
     expect(refusal(addRule(STATE, 'main-id', null, { name: 'Rule 01' })).message).toBe(
-      'Another rule in Standard is already called Rule 01.'
+      'There’s already a rule called "Rule 01" in Standard.'
     );
   });
 
@@ -259,7 +259,7 @@ describe('changeRule and changeGroup', () => {
   it('refuses a rename of Standard’s rule that clashes in a based variant (rule 7)', () => {
     const own = inAmbulance(addRule(STATE, AMBULANCE, null, { name: 'Adult' }));
     expect(refusal(changeRule(own, 'main-id', 'rule-1', { name: ' adult' }))).toEqual({
-      message: 'Another rule in Ambulance is already called Adult.',
+      message: 'There’s already a rule called "Adult" in Ambulance.',
       branchIndex: 0,
       itemId: 'rule-1',
     });
@@ -546,7 +546,7 @@ describe('groupItems', () => {
     expect(
       refusal(groupItems(STATE, 'main-id', ['rule-1', 'rule-4'], { name: 'Group 01' }))
     ).toEqual({
-      message: 'Another group in Standard is already called Group 01.',
+      message: 'There’s already a group called "Group 01" in Standard.',
       branchIndex: 0,
       itemId: 'group-2',
     });
@@ -652,7 +652,7 @@ describe('variants (FR-019, FR-020)', () => {
     const add = (name: string, description: string | null = null, id = ID) =>
       refusal(addVariant(STATE, { name, description }, 'based', id));
     expect(add(' ambulance ')).toEqual({
-      message: 'Another variant is already called Ambulance.',
+      message: 'There’s already a variant called "Ambulance".',
       branchIndex: null,
       itemId: null,
     });
@@ -688,7 +688,7 @@ describe('variants (FR-019, FR-020)', () => {
       'Ambulance'
     );
     expect(refusal(editVariant(STATE, AMBULANCE, { name: 'taxi' }))).toEqual({
-      message: 'Another variant is already called Taxi.',
+      message: 'There’s already a variant called "Taxi".',
       branchIndex: 1,
       itemId: null,
     });

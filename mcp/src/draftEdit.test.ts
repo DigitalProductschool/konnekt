@@ -32,7 +32,7 @@ const STANDARD = '11111111-1111-4111-8111-1111111111a1';
 const NEW_VARIANT = '11111111-1111-4111-8111-1111111111b1';
 
 const PUBLISHED_MESSAGE =
-  'The content of a published connection is changed in the Connection Portal. Agents can only ' +
+  'The content of a published connection is changed in Konnekt. Agents can only ' +
   'change drafts.';
 
 function caller(accessLevel: Caller['accessLevel'] = 'drafts'): Caller {
@@ -306,7 +306,7 @@ describe('editDraft', () => {
     const outcome = await editDraft(stub.backend, caller(), ID, addNightShift);
     expect(!outcome.ok && outcome.error.structuredContent).toEqual({
       code: 'validation',
-      message: 'Another variant is already called night shift.',
+      message: 'There’s already a variant called "night shift".',
     });
     expect(stub.saves).toEqual([]);
   });

@@ -5,20 +5,23 @@ import { useLocalDrafts } from '../../hooks/useLocalDrafts';
 import { displayNameOf } from '../../utils/localDrafts/content';
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
 import ConfirmDialog from '../ConfirmDialog';
-import { INITIAL_DISCARD_STATE, LOCAL_DRAFTS_COPY } from './constants';
+import { INITIAL_DISCARD_STATE, LOCAL_DRAFTS_COPY, SMALL_TEXT } from './constants';
 import LocalDraftItem from './LocalDraftItem';
 import type { LocalDraftsOfferProps } from './types';
-import { discardReducer, discardTextOf, focusAfterDiscard } from './utils';
+import { discardReducer, discardTextOf, focusAfterDiscard, textOf, titleOf } from './utils';
 
 /**
- * The offer of the account's unsaved work on this device (S4, W5; FR-016, FR-018, FR-021), on
- * the overview and the first-connection screen: one item per local draft, newest first, to
- * resume or discard. It renders nothing while there is none, or without a storage, and follows
- * the writes and discards of other tabs (`useLocalDrafts`).
+ * The offer of the account's unsaved work on this device (S5, W5; 005-S4; FR-016, FR-018,
+ * FR-021), on the overview and the first-connection screen: the grey banner above the toolbar
+ * (U16 `7362:54543`, `7362:54614`), one item per local draft, newest first, to resume or
+ * discard. One draft is offered heading-only, its name in the heading and its buttons in the
+ * heading's row, the h2 and a one-item list kept for screen readers (FR-029d); several get the
+ * count in the heading and a line each. It renders nothing while there is none, or without a
+ * storage, and follows the writes and discards of other tabs (`useLocalDrafts`).
  *
  * "Discard" asks first, in a `ConfirmDialog`. Afterwards the item goes, a polite status says
  * "Unsaved work discarded." (the region is there before its text, so it is announced), and the
- * focus moves to the next item's "Resume", or else to the section's heading; after the last
+ * focus moves to the next item's "Resume editing", or else to the heading; after the last
  * item, whose discard removes the section, to `emptyFocusRef` (the page's h1). Nothing about a
  * local draft is logged or sent (FR-020).
  */
@@ -80,6 +83,8 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
   }
 
   const pendingName = state.pending ? displayNameOf(state.pending.content) : '';
+  // One draft is offered heading-only, its item a one-item list for screen readers (FR-029d)
+  const only = drafts.length === 1;
 
   return (
     <>
@@ -87,25 +92,27 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
         {state.announced && LOCAL_DRAFTS_COPY.discarded}
       </p>
       {drafts.length > 0 && (
-        <section aria-labelledby={headingId} className="flex flex-col gap-16">
-          <div className="flex flex-col gap-8">
+        <section
+          aria-labelledby={headingId}
+          className={`rounded-kern-default flex border border-(--kern-color-decorative-border-level-1) bg-(--kern-color-feedback-default-background) py-16 pr-16 pl-20 ${only ? 'flex-wrap items-center gap-16' : 'flex-col'}`}
+        >
+          <div className={`flex flex-col ${only ? 'min-w-0 flex-1 basis-320' : 'pb-8'}`}>
             <h2
               id={headingId}
               ref={headingRef}
               tabIndex={-1}
-              className="text-kern-adaptive-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-adaptive) font-semibold outline-none"
+              className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold wrap-break-word outline-none"
             >
-              {LOCAL_DRAFTS_COPY.localTitle}
+              {titleOf(drafts)}
             </h2>
-            <p className="text-kern-static-medium text-kern-layout-text-muted">
-              {LOCAL_DRAFTS_COPY.localText}
-            </p>
+            <p className={`${SMALL_TEXT} text-kern-layout-text-muted`}>{textOf(drafts)}</p>
           </div>
-          <ul className="flex flex-col gap-8">
+          <ul className={only ? 'shrink-0' : 'flex flex-col'}>
             {drafts.map((record) => (
               <LocalDraftItem
                 key={record.flowKey}
                 record={record}
+                only={only}
                 resumeRef={resumeRefOf(record.flowKey)}
                 onDiscard={handleDiscard}
               />
@@ -117,7 +124,7 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
         open={state.pending !== null}
         title={LOCAL_DRAFTS_COPY.discardTitle}
         text={state.pending ? discardTextOf(state.pending, pendingName) : ''}
-        confirmLabel={LOCAL_DRAFTS_COPY.discard}
+        confirmLabel={LOCAL_DRAFTS_COPY.confirmDiscard}
         cancelLabel={LOCAL_DRAFTS_COPY.cancel}
         danger
         onCancel={() => dispatch({ type: 'cancel' })}

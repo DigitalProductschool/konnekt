@@ -1,26 +1,41 @@
-import type { GroupItem, RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import type { GroupItem, Mark, RuleTreeItem } from '@connection-portal/api-types/form-connections';
 import type { BannerLine, FindingsBanner } from '@connection-portal/rules/checks/types';
 import * as edits from '@connection-portal/rules/edits';
-import { rule } from '@connection-portal/rules/testData';
+import { MDL, PID, rule, target } from '@connection-portal/rules/testData';
 import { findItem, flattenItems } from '@connection-portal/rules/tree';
 import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { RulesAction, RulesBranch, RulesState } from './types';
+import { MENU_ENTRY_ORDER } from './constants';
+import type {
+  MenuContext,
+  MenuItem,
+  MenuRuleLevel,
+  MenuTreeItemState,
+  RulesAction,
+  RulesBranch,
+  RulesState,
+} from './types';
 import {
   bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
+  editorMessageHintOf,
   editStateOf,
   findingTargetIdsOf,
   initialRulesState,
   joinNames,
   linkNoticeOf,
   linkOf,
+  linkStripSummaryOf,
+  menuEntriesOf,
+  menuItemOf,
   neighbourOf,
   rulesReducer,
+  selectableIn,
   selectionText,
   switchNoteOf,
+  unrequestedNoteOf,
 } from './utils';
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
@@ -102,7 +117,7 @@ describe('grouping in select mode (FR-008; U16)', () => {
     expect(grouped.selection).toBeNull();
     expect(grouped.counters).toEqual({ rule: 9, group: 4 });
     expect(grouped.toast).toMatchObject({
-      message: 'Rule 02 and Rule 03 in Standard are now Group 03.',
+      message: 'Rule 02 and Rule 03 are now in Group 03.',
       actionLabel: 'Undo',
     });
   });
@@ -145,10 +160,10 @@ describe('grouping in select mode (FR-008; U16)', () => {
     const state = stateWith([group(1, FLAT)]);
     const branch = state.branches[0];
     expect(selectionText({ branchKey: BRANCH, parentId: null, ids: [] }, branch)).toBe(
-      'Select two or more rules to group.'
+      'Choose two or more rules to group.'
     );
     expect(selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2'] }, branch)).toBe(
-      'Select at least one more rule to group with Rule 02.'
+      'Choose at least one more rule to group with Rule 02.'
     );
     expect(
       selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2', 'rule-1'] }, branch)
@@ -182,6 +197,37 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
     expect(run(ungrouped, { type: 'undo' }).branches[0].items).toEqual(items);
   });
 
+  it('says that the rules use their own messages again after ungrouping a group with one (F32)', () => {
+    const withMessage = (number: number, members: RuleTreeItem[], message: string | null) => ({
+      ...group(number, members, number === 1 ? 'Group 01' : 'Sub-group 02'),
+      message,
+    });
+    const tree = (outer: string | null, inner: string | null) => [
+      rule(1, null, null),
+      withMessage(
+        1,
+        [rule(3, null, null), withMessage(2, [rule(4, null, null), rule(5, null, null)], inner)],
+        outer
+      ),
+    ];
+    const toastOf = (items: RuleTreeItem[], groupId: string) =>
+      run(stateWith(items), { type: 'ungroup', branchKey: BRANCH, groupId }).toast?.message;
+    expect(toastOf(tree('Group message.', null), 'group-1')).toBe(
+      'Ungrouped. Rule 03, Rule 04 and Rule 05 use their own messages again.'
+    );
+    // A sub-group's own message still covers its rules
+    expect(toastOf(tree('Group message.', 'Sub-group message.'), 'group-1')).toBe(
+      'Ungrouped. Rule 03 uses its own message again.'
+    );
+    // Inside a group with a message, the sub-group's rules keep reading the group's
+    expect(toastOf(tree('Group message.', 'Sub-group message.'), 'group-2')).toBe(
+      'Sub-group 02 in Standard ungrouped.'
+    );
+    expect(toastOf(tree(null, 'Sub-group message.'), 'group-2')).toBe(
+      'Ungrouped. Rule 04 and Rule 05 use their own messages again.'
+    );
+  });
+
   it('deletes a group with its members after the question, with an Undo toast', () => {
     const asked = run(stateWith(items), {
       type: 'askDeleteGroup',
@@ -192,7 +238,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
     const deleted = run(asked, { type: 'confirmDelete' });
     expect(ids(deleted)).toEqual(['rule-1']);
     expect(deleted.toast).toMatchObject({
-      message: 'Group 01 in Standard deleted.',
+      message: 'Group 01 deleted.',
       actionLabel: 'Undo',
     });
     expect(run(deleted, { type: 'undo' }).branches[0].items).toEqual(items);
@@ -205,7 +251,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
       { type: 'confirmDelete' }
     );
     expect(ids(deleted)).toEqual(['rule-1', 'rule-3']);
-    expect(deleted.toast?.message).toBe('Rule 02 in Standard deleted.');
+    expect(deleted.toast?.message).toBe('Rule 02 deleted.');
     expect(run(deleted, { type: 'undo' }).branches[0].items).toEqual(items);
   });
 
@@ -484,9 +530,7 @@ describe('variants (FR-019 to FR-024)', () => {
       { type: 'groupSelected' }
     );
     expect(item(grouped, 1, 'group-3')?.mark).toBe('added');
-    expect(grouped.toast?.message).toBe(
-      'Rule 02 and Rule 03 in Ambulance are now Sub-group 03. Standard stays the same.'
-    );
+    expect(grouped.toast?.message).toBe('Grouped in Ambulance only. Standard stays the same.');
   });
 
   it('undoes a deletion in Standard in every variant', () => {
@@ -520,6 +564,32 @@ describe('variants (FR-019 to FR-024)', () => {
       run(state, { type: 'askDeleteVariant', branchKey: BRANCH }, { type: 'confirmDelete' })
         .branches
     ).toHaveLength(2);
+  });
+
+  it('FR-051 (33): a deleted variant opens the tab to its left, and Undo brings it back', () => {
+    const state = run(withVariant(), {
+      type: 'addVariant',
+      variant: { name: 'School transport', description: null },
+      origin: 'empty',
+    });
+    const school = state.branches[2].key;
+    const deleted = run(
+      state,
+      { type: 'askDeleteVariant', branchKey: school },
+      { type: 'confirmDelete' }
+    );
+    expect(deleted.branches.map((branch) => branch.name)).toEqual(['Standard', 'Ambulance']);
+    expect(deleted.openBranch).toBe(variantKey(state));
+    expect(deleted.toast).toMatchObject({
+      message: 'School transport deleted.',
+      actionLabel: 'Undo',
+    });
+    expect(deleted.toast?.kind).toBeUndefined();
+    expect(deleted.undo).toMatchObject({ branchKey: school, itemId: '' });
+    const undone = run(deleted, { type: 'undo' });
+    expect(undone.branches).toEqual(state.branches);
+    expect(undone.openBranch).toBe(school);
+    expect(undone.toast).toBeNull();
   });
 
   it('copies a rule to other variants with a toast whose Show opens the first (F29)', () => {
@@ -597,9 +667,9 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
 
   it('keeps U14’s body without variants based on Standard, and in a variant', () => {
     expect(
-      text(stateWith(items), 'rule-1', 'Personal ID – Date of birth (Age) is at least 21 years old')
+      text(stateWith(items), 'rule-1', 'Personal ID · Date of birth (Age) is at least 21 years old')
     ).toBe(
-      'Applicants will no longer be checked for “Personal ID – Date of birth (Age) is at least 21 years old”. You can undo this right after.'
+      'Citizens will no longer be checked for “Personal ID · Date of birth (Age) is at least 21 years old”. You can undo this right after.'
     );
     expect(text(withVariants('empty'), 'rule-1')).toBe('You can undo this right after.');
     const state = withVariants('based');
@@ -608,26 +678,18 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     );
   });
 
-  it('names the variants that changed the rule and keep their version', () => {
-    const state = withVariants('based', 'based');
+  it('gives a Standard rule U47’s drawn body, naming the variants that follow it (CLAR #56)', () => {
+    const state = withVariants('based', 'based', 'empty');
     expect(text(state, 'rule-1')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. You can undo this right after.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance and School transport. If a variant changed this rule, it keeps its own version.'
     );
     const changed = run(
-      state,
+      withVariants('based'),
       { type: 'startRename', branchKey: 'new-1', itemId: 'rule-1' },
       { type: 'rename', name: 'Old enough' }
     );
     expect(text(changed, 'rule-1')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. Ambulance changed it and keeps its own version. You can undo this right after.'
-    );
-    const both = run(
-      changed,
-      { type: 'startRename', branchKey: 'new-2', itemId: 'rule-1' },
-      { type: 'rename', name: 'Of age' }
-    );
-    expect(text(both, 'rule-1')).toContain(
-      'Ambulance and School transport changed it and keep their own versions.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance. If a variant changed this rule, it keeps its own version.'
     );
   });
 
@@ -639,7 +701,7 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
       operator: 'or',
     });
     expect(text(switched, 'rule-2')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. Ambulance’s changes to Group 01 go with it. You can undo this right after.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance. If a variant changed this rule, it keeps its own version. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. Ambulance’s changes to Group 01 go with it.'
     );
   });
 
@@ -652,6 +714,50 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     expect(text(changed, 'group-1')).toBe(
       'This group and the rules in it will be removed from Standard and from the variants that follow them. Ambulance changed Rule 03 and keeps its own version. You can undo this right after.'
     );
+  });
+});
+
+describe('the link strip’s removals (FR-051 (38); U47 6344:60085, 6344:60090, 6344:60095)', () => {
+  const items = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  // Built in each case: the variant's key comes from the mocked `crypto.randomUUID()`
+  const based = () =>
+    run(stateWith(items), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+    });
+  function summary(...removed: string[]): string | null {
+    const state = run(
+      based(),
+      ...removed.map((itemId): RulesAction => ({ type: 'removeItem', branchKey: 'new-1', itemId }))
+    );
+    return linkStripSummaryOf(state.branches[1], 'Standard');
+  }
+
+  it('says nothing while the variant removed nothing, nor while Standard has no rules (F37)', () => {
+    expect(summary()).toBeNull();
+    const empty = run(stateWith([]), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+    });
+    expect(linkStripSummaryOf(empty.branches[1], 'Standard')).toBeNull();
+  });
+
+  it('counts the removed Standard rules, as U47 6.1 words it', () => {
+    expect(summary('rule-1')).toBe('1 of 3 Standard rules is removed here.');
+    expect(summary('rule-1', 'rule-3')).toBe('2 of 3 Standard rules are removed here.');
+  });
+
+  it('names removed groups while nothing else is removed, as U47 6.3 and 6.4 word it', () => {
+    expect(summary('group-1')).toBe('Group 01 is removed here.');
+    expect(summary('group-1', 'rule-1')).toBe('3 of 3 Standard rules are removed here.');
+  });
+
+  it('leaves out what the variant added, and counts a dissolved group’s remaining rule (F13)', () => {
+    const added = run(based(), { type: 'duplicateRule', branchKey: 'new-1', ruleId: 'rule-1' });
+    expect(linkStripSummaryOf(added.branches[1], 'Standard')).toBeNull();
+    expect(summary('rule-2')).toBe('1 of 3 Standard rules is removed here.');
   });
 });
 
@@ -701,8 +807,8 @@ describe('bannerViewOf', () => {
   };
   const NOTICE = {
     tone: 'warning' as const,
-    text: 'No applicant can meet the rules of Standard.',
-    appended: 'So no applicant can meet the rules of Standard.',
+    text: 'No citizen can meet the rules of Standard.',
+    appended: 'So no citizen can meet the rules of Standard.',
   };
   const INCOMPLETE =
     'The rules of Standard couldn’t be checked completely. Only findings that are certain are shown.';
@@ -720,7 +826,7 @@ describe('bannerViewOf', () => {
   }
 
   it('shows one line with its kind text and no items, expanded or not (U01)', () => {
-    const head = [...U01_LINE.parts, ' So no applicant can meet the rules of Standard.'];
+    const head = [...U01_LINE.parts, ' So no citizen can meet the rules of Standard.'];
     const u01 = banner({ lines: [U01_LINE], notice: NOTICE, head });
     for (const expanded of [false, true]) {
       expect(bannerViewOf(u01, expanded)).toEqual({
@@ -784,7 +890,7 @@ describe('bannerViewOf', () => {
       summary: { key: 'summary', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
       items: [],
     });
-    const parts = ['Every applicant meets ', group1, ', so it doesn’t check anything.'];
+    const parts = ['Every citizen meets ', group1, ', so it doesn’t check anything.'];
     const u06 = banner({
       kind: 'info',
       lines: [{ kind: 'always_met', tone: 'info', parts }],
@@ -805,8 +911,8 @@ describe('bannerViewOf', () => {
     ]);
   });
 
-  it('shows the notice that every applicant meets the rules alone, without a link (W8)', () => {
-    const text = 'Every applicant meets the rules of Standard.';
+  it('shows the notice that every citizen meets the rules alone, without a link (W8)', () => {
+    const text = 'Every citizen meets the rules of Standard.';
     const w8 = banner({
       kind: 'info',
       notice: { tone: 'info', text, appended: text },
@@ -1498,5 +1604,639 @@ describe('variants keyed by id (spec 007, research R10)', () => {
       `rule-${ID}-rule-1-header`,
       `rule-${ID}-rule-1`,
     ]);
+  });
+});
+
+describe('menuEntriesOf (FR-036; data-model "The rules step’s menus")', () => {
+  const STANDARD: MenuContext = { branchKind: 'standard', linkable: true };
+  const VARIANT: MenuContext = { branchKind: 'variant', linkable: true };
+  const UNSAVED: MenuContext = { branchKind: 'standard', linkable: false };
+  const PLAIN: MenuTreeItemState = {
+    linked: false,
+    changed: false,
+    removed: false,
+    neighbours: true,
+  };
+  const TOP: MenuRuleLevel = { level: 'top' };
+  const IN_GROUP: MenuRuleLevel = { level: 'group', groupId: 'group-1' };
+  const IN_SUB_GROUP: MenuRuleLevel = { level: 'sub-group' };
+
+  function ruleItem(
+    level: MenuRuleLevel,
+    changes: Partial<MenuTreeItemState & { receivable: boolean }> = {}
+  ): MenuItem {
+    return { kind: 'rule', receivable: true, ...level, ...PLAIN, ...changes };
+  }
+
+  function groupItem(
+    kind: 'group' | 'sub-group',
+    changes: Partial<MenuTreeItemState & { hasMessage: boolean; holdsSubGroup: boolean }> = {}
+  ): MenuItem {
+    return { kind, hasMessage: false, holdsSubGroup: false, ...PLAIN, ...changes };
+  }
+
+  /** The entries' ids in order, "Group with other rules" with its scope */
+  function show(item: MenuItem, context: MenuContext): string[] {
+    return menuEntriesOf(item, context).map((entry) =>
+      entry.id === 'group' ? `group:${entry.scope}` : entry.id
+    );
+  }
+
+  it('FR-036, 007-S4.1 (#22, F29): a Standard rule’s menu ends with Copy link before Delete rule', () => {
+    expect(show(ruleItem(TOP), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'group:top',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('007-S4.6: a new, unsaved connection’s menus offer no Copy link', () => {
+    expect(show(ruleItem(TOP), UNSAVED)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'group:top',
+      'delete',
+    ]);
+    expect(show(groupItem('group'), UNSAVED)).toEqual([
+      'rename',
+      'addMessage',
+      'ungroup',
+      'delete',
+    ]);
+    expect(show(ruleItem(TOP, { removed: true }), { ...VARIANT, linkable: false })).toEqual([
+      'restore',
+    ]);
+    expect(show({ kind: 'variant' }, UNSAVED)).toEqual(['rename']);
+    expect(show({ kind: 'variant' }, { ...VARIANT, linkable: false })).toEqual([
+      'rename',
+      'delete',
+    ]);
+  });
+
+  it('FR-036, 007-S4.2 (#22, F29): a removed rule, group or sub-group offers Restore, then Copy link only', () => {
+    const removed = { removed: true, linked: true, changed: true, neighbours: true };
+    expect(show(ruleItem(TOP, removed), VARIANT)).toEqual(['restore', 'copyLink']);
+    expect(show(ruleItem(IN_GROUP, removed), VARIANT)).toEqual(['restore', 'copyLink']);
+    expect(show(groupItem('group', { ...removed, hasMessage: true }), VARIANT)).toEqual([
+      'restore',
+      'copyLink',
+    ]);
+    expect(show(groupItem('sub-group', removed), VARIANT)).toEqual(['restore', 'copyLink']);
+  });
+
+  it('FR-036 (#53, F68): in a variant, a rule linked to Standard has no Rename or Duplicate, and is removed from the variant', () => {
+    expect(show(ruleItem(TOP, { linked: true }), VARIANT)).toEqual([
+      'edit',
+      'copyToVariant',
+      'group:top',
+      'copyLink',
+      'remove',
+    ]);
+    // U56 10.5's linked rule, with nothing left to copy to: Edit rule, Group with other rules,
+    // and F29's Copy link before "Remove from School transport"
+    expect(show(ruleItem(TOP, { linked: true, receivable: false }), VARIANT)).toEqual([
+      'edit',
+      'group:top',
+      'copyLink',
+      'remove',
+    ]);
+  });
+
+  it('FR-036 (#53; U57 #18): a rule changed in its variant offers Reset to Standard before Copy link', () => {
+    expect(show(ruleItem(TOP, { linked: true, changed: true }), VARIANT)).toEqual([
+      'edit',
+      'copyToVariant',
+      'group:top',
+      'reset',
+      'copyLink',
+      'remove',
+    ]);
+  });
+
+  it('FR-036 (#53; F68, U57 #19): a rule added in a variant keeps the whole menu with Rename and Delete rule', () => {
+    expect(show(ruleItem(TOP), VARIANT)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'group:top',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#53): only a variant links items to Standard', () => {
+    expect(show(ruleItem(TOP, { linked: true, changed: true }), STANDARD)).toEqual(
+      show(ruleItem(TOP), STANDARD)
+    );
+    expect(show(groupItem('group', { linked: true, changed: true }), STANDARD)).toEqual(
+      show(groupItem('group'), STANDARD)
+    );
+  });
+
+  it('FR-036 (#53, F29): Copy to variant shows only while some variant could still receive the rule', () => {
+    expect(show(ruleItem(TOP, { receivable: false }), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'group:top',
+      'copyLink',
+      'delete',
+    ]);
+    expect(
+      show(ruleItem(TOP, { linked: true, changed: true, receivable: false }), VARIANT)
+    ).toEqual(['edit', 'group:top', 'reset', 'copyLink', 'remove']);
+  });
+
+  it('FR-036 (#48, F30): a top-level rule offers Group with other rules only with a neighbour on its level', () => {
+    expect(show(ruleItem(TOP, { neighbours: false }), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#60, F30): a rule directly in a top-level group groups within that group’s rules', () => {
+    expect(show(ruleItem(IN_GROUP), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'group:group-1',
+      'copyLink',
+      'delete',
+    ]);
+    expect(menuEntriesOf(ruleItem(IN_GROUP), STANDARD)).toContainEqual({
+      id: 'group',
+      scope: 'group-1',
+    });
+  });
+
+  it('FR-036 (#61, F30): a rule in a top-level group without another rule directly in it offers no grouping', () => {
+    expect(show(ruleItem(IN_GROUP, { neighbours: false }), STANDARD)).not.toContain(
+      'group:group-1'
+    );
+    expect(show(ruleItem(IN_GROUP, { neighbours: false }), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#22, #48, F30; 002-S2.10): a rule in a sub-group never offers grouping', () => {
+    expect(show(ruleItem(IN_SUB_GROUP), STANDARD)).toEqual([
+      'edit',
+      'rename',
+      'duplicate',
+      'copyToVariant',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#64, Implement Q2; U57 #22 a Figma error): a top-level group offers no grouping, with or without a neighbour', () => {
+    expect(show(groupItem('group'), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+    expect(show(groupItem('group', { neighbours: false }), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#48, #61, F30; U55 #30, U58 #20): a group holding a sub-group offers no grouping', () => {
+    expect(show(groupItem('group', { holdsSubGroup: true }), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#22, F30; U56 #25): a sub-group’s menu never offers grouping', () => {
+    expect(show(groupItem('sub-group'), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+  });
+
+  it('FR-036 (#54, W22): Remove message sits next to Add message while the group has one, Add message alone otherwise', () => {
+    expect(show(groupItem('group', { hasMessage: true }), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'removeMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+    expect(show(groupItem('sub-group', { hasMessage: true }), STANDARD)).toEqual([
+      'rename',
+      'addMessage',
+      'removeMessage',
+      'ungroup',
+      'copyLink',
+      'delete',
+    ]);
+    expect(show(groupItem('group'), STANDARD)).not.toContain('removeMessage');
+  });
+
+  it('FR-036 (#53, #54, F69; U58 #19–#22): in a variant, a group linked to Standard has no Rename or Ungroup, and is removed from the variant', () => {
+    // U58's changed Group 01, which holds Sub-group 01: Add message, Reset to Standard, F29's Copy
+    // link, "Remove from Ambulance"
+    expect(
+      show(groupItem('group', { linked: true, changed: true, holdsSubGroup: true }), VARIANT)
+    ).toEqual(['addMessage', 'reset', 'copyLink', 'remove']);
+    expect(show(groupItem('sub-group', { linked: true, hasMessage: true }), VARIANT)).toEqual([
+      'addMessage',
+      'removeMessage',
+      'copyLink',
+      'remove',
+    ]);
+    // A group added in the variant isn't linked: the whole menu
+    expect(show(groupItem('group'), VARIANT)).toEqual(show(groupItem('group'), STANDARD));
+  });
+
+  it('FR-036 (#48, #53, #64; U56 #38, U57 #18): rules linked to Standard keep Group with other rules, groups have none', () => {
+    expect(show(groupItem('group', { linked: true }), VARIANT)).toEqual([
+      'addMessage',
+      'copyLink',
+      'remove',
+    ]);
+    expect(show(ruleItem(IN_GROUP, { linked: true }), VARIANT)).toContain('group:group-1');
+  });
+
+  it('002-S4.4, 002-S4.5, 007-S4.1 (Q21, #22): every variant tab offers Rename and Copy link, and Delete variant except on Standard', () => {
+    expect(show({ kind: 'variant' }, STANDARD)).toEqual(['rename', 'copyLink']);
+    expect(show({ kind: 'variant' }, VARIANT)).toEqual(['rename', 'copyLink', 'delete']);
+  });
+
+  it('FR-036, 007-S4.1 (U54 #2): every menu keeps the order, Copy link last before its one destructive entry', () => {
+    const flags = [false, true];
+    const items: MenuItem[] = [{ kind: 'variant' }];
+    for (const linked of flags) {
+      for (const changed of flags) {
+        for (const removed of flags) {
+          for (const neighbours of flags) {
+            const state = { linked, changed, removed, neighbours };
+            for (const level of [TOP, IN_GROUP, IN_SUB_GROUP]) {
+              for (const receivable of flags) {
+                items.push({ kind: 'rule', receivable, ...level, ...state });
+              }
+            }
+            for (const kind of ['group', 'sub-group'] as const) {
+              for (const hasMessage of flags) {
+                for (const holdsSubGroup of flags) {
+                  items.push({ kind, hasMessage, holdsSubGroup, ...state });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    for (const context of [STANDARD, VARIANT, UNSAVED, { ...VARIANT, linkable: false }]) {
+      for (const item of items) {
+        const shown = menuEntriesOf(item, context).map((entry) => entry.id);
+        const positions = shown.map((id) => MENU_ENTRY_ORDER.indexOf(id));
+        expect(positions).toEqual([...positions].sort((a, b) => a - b));
+        expect(new Set(shown).size).toBe(shown.length);
+        const destructive = shown.filter((id) => id === 'remove' || id === 'delete');
+        expect(destructive.length).toBeLessThanOrEqual(1);
+        if (destructive.length === 1) {
+          expect(shown[shown.length - 1]).toBe(destructive[0]);
+        }
+        expect(shown.includes('copyLink')).toBe(context.linkable);
+        if (context.linkable) {
+          expect(shown[shown.length - 1 - destructive.length]).toBe('copyLink');
+        }
+        const removedItem = item.kind !== 'variant' && item.removed;
+        expect(shown.includes('restore')).toBe(removedItem);
+        if (removedItem) {
+          expect(shown).toEqual(context.linkable ? ['restore', 'copyLink'] : ['restore']);
+        }
+      }
+    }
+  });
+});
+
+describe('menuItemOf (FR-036; CLAR #48, #53, #60, #61)', () => {
+  const r = (number: number) => rule(number, null, null);
+  const marked = <T extends RuleTreeItem>(item: T, mark: Mark): T => ({ ...item, mark });
+
+  function menuBranch(
+    key: string,
+    origin: RulesBranch['origin'],
+    items: RuleTreeItem[]
+  ): RulesBranch {
+    return {
+      key,
+      id: key,
+      name: key,
+      description: null,
+      origin,
+      operator: 'and',
+      operator_mark: null,
+      items,
+    };
+  }
+
+  /** The item of Standard alone, with these items */
+  function inStandard(items: RuleTreeItem[], itemId: string): MenuItem | null {
+    return menuItemOf([menuBranch('main', 'main', items)], 'main', itemId);
+  }
+
+  function neighboursOf(items: RuleTreeItem[], itemId: string): boolean | undefined {
+    const item = inStandard(items, itemId);
+    return item && item.kind !== 'variant' ? item.neighbours : undefined;
+  }
+
+  const TREE = [r(1), group(1, [r(2), r(3), group(2, [r(4), r(5)], 'Sub-group 02')])];
+
+  it('places a rule at the top level, directly in a group or in a sub-group, and tells groups from sub-groups', () => {
+    expect(inStandard(TREE, 'rule-1')).toMatchObject({ kind: 'rule', level: 'top' });
+    expect(inStandard(TREE, 'rule-2')).toMatchObject({
+      kind: 'rule',
+      level: 'group',
+      groupId: 'group-1',
+    });
+    expect(inStandard(TREE, 'rule-4')).toMatchObject({ kind: 'rule', level: 'sub-group' });
+    expect(inStandard(TREE, 'group-1')).toMatchObject({
+      kind: 'group',
+      holdsSubGroup: true,
+      hasMessage: false,
+    });
+    expect(inStandard(TREE, 'group-2')).toMatchObject({ kind: 'sub-group', holdsSubGroup: false });
+    expect(inStandard(TREE, 'rule-9')).toBeNull();
+    expect(menuItemOf([menuBranch('main', 'main', TREE)], 'other', 'rule-1')).toBeNull();
+  });
+
+  it('FR-036 (#54, W22): tells a group with a message of its own, an empty one just added too', () => {
+    const items = [group(1, [r(1), r(2)]), group(2, [r(3), r(4)])];
+    items[0] = { ...(items[0] as GroupItem), message: 'You need both.' };
+    items[1] = { ...(items[1] as GroupItem), message: '' };
+    expect(inStandard(items, 'group-1')).toMatchObject({ hasMessage: true });
+    expect(inStandard(items, 'group-2')).toMatchObject({ hasMessage: true });
+    expect(inStandard(TREE, 'group-2')).toMatchObject({ hasMessage: false });
+  });
+
+  it('FR-036 (#48, #64): at the top level, another rule is a neighbour, a group is none (grouping a group is deferred)', () => {
+    expect(neighboursOf([r(1)], 'rule-1')).toBe(false);
+    expect(neighboursOf([r(1), r(2)], 'rule-1')).toBe(true);
+    expect(neighboursOf([r(1), group(1, [r(2), r(3)])], 'rule-1')).toBe(false);
+    expect(neighboursOf([r(1), r(2), group(1, [r(3), r(4)])], 'rule-1')).toBe(true);
+    expect(neighboursOf([group(1, [r(1), r(2)]), group(2, [r(3), r(4)])], 'group-1')).toBe(false);
+  });
+
+  it('FR-036 (#48, #61; 002-S2.10): a group holding a sub-group is no neighbour at the top level, since it can’t become one', () => {
+    expect(neighboursOf(TREE, 'rule-1')).toBe(false);
+    expect(neighboursOf([...TREE, r(6)], 'rule-1')).toBe(true);
+  });
+
+  it('FR-036 (#60): a rule in a top-level group has another rule directly in it as neighbour, whether or not the group holds a sub-group', () => {
+    expect(neighboursOf(TREE, 'rule-2')).toBe(true);
+    expect(neighboursOf([group(1, [r(2), r(3)])], 'rule-2')).toBe(true);
+    const item = inStandard(TREE, 'rule-2');
+    expect(item && menuEntriesOf(item, { branchKind: 'standard', linkable: true })).toContainEqual({
+      id: 'group',
+      scope: 'group-1',
+    });
+  });
+
+  it('FR-036 (#61, F30; U34 #26): a sub-group, or a rule outside the group, is no neighbour of a rule in a group', () => {
+    // U34 frame 2.3: Rule 03 in Group 01 beside Sub-group 01 only, next to a top-level rule
+    const items = [r(1), group(1, [r(3), group(2, [r(4), r(5)], 'Sub-group 01')])];
+    expect(neighboursOf(items, 'rule-3')).toBe(false);
+    const item = inStandard(items, 'rule-3');
+    expect(
+      item && menuEntriesOf(item, { branchKind: 'standard', linkable: true }).map(({ id }) => id)
+    ).toEqual(['edit', 'rename', 'duplicate', 'copyLink', 'delete']);
+  });
+
+  it('FR-036 (#22, #48; 002-S2.10): a rule in a sub-group has no neighbour', () => {
+    expect(neighboursOf(TREE, 'rule-4')).toBe(false);
+  });
+
+  it('FR-024, F13: removed items and groups dissolved in a based variant are no neighbours, and the dissolved group counts as removed', () => {
+    const items = [r(1), r(2), group(1, [r(3), r(4)])];
+    const variant = menuBranch('ambulance', 'based', [
+      r(1),
+      marked(r(2), 'removed'),
+      group(1, [r(3), marked(r(4), 'removed')]),
+    ]);
+    const branches = [menuBranch('main', 'main', items), variant];
+    expect(menuItemOf(branches, 'ambulance', 'rule-1')).toMatchObject({ neighbours: false });
+    expect(menuItemOf(branches, 'main', 'rule-1')).toMatchObject({ neighbours: true });
+    expect(menuItemOf(branches, 'ambulance', 'group-1')).toMatchObject({
+      kind: 'group',
+      removed: true,
+    });
+    expect(menuItemOf(branches, 'ambulance', 'rule-2')).toMatchObject({ removed: true });
+    // Rule 03 stays alone in the dissolved group: nothing to group it with there
+    expect(menuItemOf(branches, 'ambulance', 'rule-3')).toMatchObject({
+      level: 'group',
+      neighbours: false,
+      removed: false,
+    });
+  });
+
+  it('FR-036 (#53): in a based variant, inherited items are linked, changed ones changed, added ones not linked; elsewhere nothing is', () => {
+    const items = [r(1), r(2), group(1, [r(3), r(4)])];
+    const variant = menuBranch('ambulance', 'based', [
+      r(1),
+      marked(r(2), 'changed'),
+      marked(group(1, [r(3), r(4)]), 'changed'),
+      marked(r(9), 'added'),
+    ]);
+    const empty = menuBranch('taxi', 'empty', [r(10)]);
+    const branches = [menuBranch('main', 'main', items), variant, empty];
+    const state = (key: string, id: string) => {
+      const item = menuItemOf(branches, key, id);
+      return item && item.kind !== 'variant'
+        ? { linked: item.linked, changed: item.changed, removed: item.removed }
+        : null;
+    };
+    expect(state('ambulance', 'rule-1')).toEqual({ linked: true, changed: false, removed: false });
+    expect(state('ambulance', 'rule-2')).toEqual({ linked: true, changed: true, removed: false });
+    expect(state('ambulance', 'group-1')).toEqual({ linked: true, changed: true, removed: false });
+    expect(state('ambulance', 'rule-3')).toEqual({ linked: true, changed: false, removed: false });
+    expect(state('ambulance', 'rule-9')).toEqual({ linked: false, changed: false, removed: false });
+    expect(state('main', 'rule-1')).toEqual({ linked: false, changed: false, removed: false });
+    expect(state('taxi', 'rule-10')).toEqual({ linked: false, changed: false, removed: false });
+  });
+
+  describe('Copy to variant (FR-036; CLAR #53; build note U54 #4)', () => {
+    const items = [r(1), group(1, [r(2), r(3)])];
+    const main = menuBranch('main', 'main', items);
+    const receivable = (branches: RulesBranch[], key: string, id: string) => {
+      const item = menuItemOf(branches, key, id);
+      return item?.kind === 'rule' ? item.receivable : undefined;
+    };
+
+    it('has nothing to copy to without a variant', () => {
+      expect(receivable([main], 'main', 'rule-1')).toBe(false);
+    });
+
+    it('copies a Standard rule only while some variant isn’t linked to it or removed it', () => {
+      const linked = menuBranch('ambulance', 'based', items);
+      expect(receivable([main, linked], 'main', 'rule-1')).toBe(false);
+      // A variant that changed it is still linked to it
+      const changed = menuBranch('ambulance', 'based', [marked(r(1), 'changed'), items[1]]);
+      expect(receivable([main, changed], 'main', 'rule-1')).toBe(false);
+      const removed = menuBranch('ambulance', 'based', [marked(r(1), 'removed'), items[1]]);
+      expect(receivable([main, removed], 'main', 'rule-1')).toBe(true);
+      // Removed with its group
+      const groupRemoved = menuBranch('ambulance', 'based', [r(1), marked(items[1], 'removed')]);
+      expect(receivable([main, groupRemoved], 'main', 'rule-2')).toBe(true);
+      expect(receivable([main, groupRemoved], 'main', 'rule-1')).toBe(false);
+      // Removed inside its group, which that dissolves there; its other member stays
+      const memberRemoved = menuBranch('ambulance', 'based', [
+        r(1),
+        group(1, [r(2), marked(r(3), 'removed')]),
+      ]);
+      expect(receivable([main, memberRemoved], 'main', 'rule-3')).toBe(true);
+      expect(receivable([main, memberRemoved], 'main', 'rule-2')).toBe(false);
+      // Held in a sub-group too
+      const deep = [group(1, [r(2), group(2, [r(4), r(5)], 'Sub-group 02')])];
+      expect(
+        receivable(
+          [menuBranch('main', 'main', deep), menuBranch('ambulance', 'based', deep)],
+          'main',
+          'rule-4'
+        )
+      ).toBe(false);
+      const empty = menuBranch('taxi', 'empty', []);
+      expect(receivable([main, linked, empty], 'main', 'rule-1')).toBe(true);
+    });
+
+    it('copies a variant’s rule that follows Standard only while another variant doesn’t hold it', () => {
+      const ambulance = menuBranch('ambulance', 'based', items);
+      expect(receivable([main, ambulance], 'ambulance', 'rule-1')).toBe(false);
+      const school = menuBranch('school', 'based', items);
+      expect(receivable([main, ambulance, school], 'ambulance', 'rule-1')).toBe(false);
+      const schoolRemoved = menuBranch('school', 'based', [marked(r(1), 'removed'), items[1]]);
+      expect(receivable([main, ambulance, schoolRemoved], 'ambulance', 'rule-1')).toBe(true);
+      const empty = menuBranch('taxi', 'empty', []);
+      expect(receivable([main, ambulance, empty], 'ambulance', 'rule-1')).toBe(true);
+    });
+
+    it('always copies a rule added or changed in its variant', () => {
+      const ambulance = menuBranch('ambulance', 'based', [
+        marked(r(1), 'changed'),
+        items[1],
+        marked(r(9), 'added'),
+      ]);
+      expect(receivable([main, ambulance], 'ambulance', 'rule-1')).toBe(true);
+      expect(receivable([main, ambulance], 'ambulance', 'rule-9')).toBe(true);
+      expect(receivable([main, ambulance], 'ambulance', 'rule-2')).toBe(false);
+    });
+
+    it('copies a rule of a variant that started empty: no other variant holds it', () => {
+      const taxi = menuBranch('taxi', 'empty', [r(10)]);
+      expect(receivable([main, taxi], 'taxi', 'rule-10')).toBe(true);
+    });
+  });
+});
+
+describe('selectableIn (FR-036, FR-038; CLAR #60, #61, #64)', () => {
+  const r = (number: number) => rule(number, null, null);
+
+  it('chooses rules, never a group or sub-group (#64: grouping a group is deferred)', () => {
+    expect(selectableIn(r(1))).toBe(true);
+    expect(selectableIn(group(1, [r(1), r(2)]))).toBe(false);
+    expect(selectableIn(group(1, [r(1), group(2, [r(2), r(3)])]))).toBe(false);
+  });
+
+  it('chooses no removed rule', () => {
+    expect(selectableIn({ ...r(1), mark: 'removed' })).toBe(false);
+  });
+});
+
+describe('unrequestedNoteOf (U50 6197:10708, 7173:52351; FR-023)', () => {
+  const onBirthdate = rule(2, target('pid', 'birthdate'), null);
+  const pidWithout = { ...PID, fields: PID.fields.filter((field) => field.key !== 'birthdate') };
+
+  it('names the field no longer requested', () => {
+    expect(unrequestedNoteOf(onBirthdate, [pidWithout, MDL], [PID, MDL])).toBe(
+      'Date of birth is no longer requested.'
+    );
+  });
+
+  it('names the document while the whole document is no longer requested', () => {
+    expect(unrequestedNoteOf(onBirthdate, [MDL], [PID, MDL])).toBe(
+      'Personal ID is no longer requested.'
+    );
+  });
+
+  it('gives null for a target the catalog doesn’t know', () => {
+    expect(unrequestedNoteOf(rule(3, target('xyz', 'a'), null), [MDL], [PID, MDL])).toBeNull();
+    expect(unrequestedNoteOf(rule(4, null, null), [MDL], [PID, MDL])).toBeNull();
+  });
+});
+
+describe('editorMessageHintOf (U35 6965:50822; F32)', () => {
+  const member = rule(2, null, null);
+  const inner: GroupItem = {
+    type: 'group',
+    id: 'group-2',
+    name: 'Sub-group 02',
+    mark: null,
+    operator: 'and',
+    message: null,
+    items: [member, rule(3, null, null)],
+  };
+  const outer: GroupItem = {
+    type: 'group',
+    id: 'group-1',
+    name: 'Group 01',
+    mark: null,
+    operator: 'or',
+    message: 'You need a class C or D licence.',
+    items: [rule(4, null, null), inner],
+  };
+  const first = rule(1, null, null);
+  const items: RuleTreeItem[] = [first, outer];
+  const editing = (original: typeof member | null, parentId: string | null) => ({
+    branchKey: 'main',
+    parentId,
+    original,
+    draft: member,
+  });
+
+  it('names the outermost group with a message around the rule', () => {
+    expect(editorMessageHintOf(items, editing(member, null))).toBe(
+      'Not shown while this rule is in Group 01. Citizens see the group message instead.'
+    );
+  });
+
+  it('takes a new rule’s group', () => {
+    expect(editorMessageHintOf(items, editing(null, 'group-2'))).toContain('Group 01');
+  });
+
+  it('gives null outside a group with a message', () => {
+    expect(editorMessageHintOf(items, editing(first, null))).toBeNull();
+    expect(editorMessageHintOf(items, editing(null, null))).toBeNull();
   });
 });

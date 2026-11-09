@@ -11,9 +11,11 @@ import { ACCOUNT_COPY, TOKEN_NAME_MAX_LENGTH, TOKEN_VALIDITY_DAYS } from './cons
 import type { LevelDialogProps } from './types';
 
 /**
- * "Create token" (S2; FR-004): a name, an access level and how long the token is valid, at most
- * 90 days. A missing name is refused under the field, announced, and the focus goes back to it.
- * On success the "token created" dialog shows the secret once.
+ * "Create token" (S20; 007-S2.12, FR-004) in T035's dialog at the kit's 600px (P12): a name, an
+ * access level (T016's radios, off while it creates) and how long the token is valid, at most 90
+ * days. A missing name is refused under the field (§3 "Field error"), announced, and the focus
+ * goes back to it. A failure stays in the dialog, with a 5xx answer's error ID. On success the
+ * "token created" dialog shows the secret once.
  */
 export default function CreateTokenDialog({
   dialog,
@@ -76,6 +78,7 @@ export default function CreateTokenDialog({
       retryLabel={ACCOUNT_COPY.retry}
       onCancel={() => dispatch({ type: 'dialogClosed' })}
       onConfirm={create}
+      wide
     >
       {open && (
         <div className="flex flex-col gap-24">
@@ -105,6 +108,7 @@ export default function CreateTokenDialog({
             onChange={(level) => dispatch({ type: 'levelChosen', level })}
             name="token-access-level"
             legend={ACCOUNT_COPY.accessLevel}
+            disabled={busy}
           />
           <div className="kern-form-input">
             <label htmlFor={`${id}-days`} className="kern-label">

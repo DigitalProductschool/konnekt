@@ -444,7 +444,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     documents: RequestedDocument[];
   } {
     const name = (body.name ?? '').trim();
-    if (!name) throw validation('Enter a name.');
+    if (!name) throw validation('Enter a name for the connection.');
     if (name.length > NAME_MAX_LENGTH) {
       throw validation(`The name can have at most ${NAME_MAX_LENGTH} characters.`);
     }

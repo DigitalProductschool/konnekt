@@ -12,7 +12,7 @@ from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 
 INVALID_CREDENTIALS = {
     'error': 'Unauthorized',
-    'message': 'Invalid username or password',
+    'message': 'Username or password is wrong. Check both and try again.',
 }
 SIGN_IN_REQUIRED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}
 

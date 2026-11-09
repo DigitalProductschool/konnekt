@@ -145,6 +145,83 @@ primitive tokens  →  semantic/theme tokens
   `body/large/regular`, `body/small/regular`, `label/default`, `label/default_subtle`, `label/large`,
   `label/small`.
 
+### 3.1 KERN Revamp overlay and the three build options (spec 008)
+
+The UI follows the designer's **KERN Revamp** (Figma "KERN – Revamp – Design Kit"), a rework of
+KERN's values that has no npm package. The packages stay at `@kern-ux/native` 2.8.2; the Revamp's
+values are laid over them.
+
+- **Where**: one `:root { … }` block in `frontend/src/index.css`, right after the four `@import`s
+  and before `@theme`, headed `/* KERN Revamp overlay (spec 008, design-notes §1) */`. It is the
+  only place a KERN variable gets a new value for the whole page; the one scoped exception is
+  `.kern-btn--danger`, which re-derives the action colour on its own buttons (below).
+- **Under KERN's own names**: the overlay sets `--kern-color-…`, `--kern-metric-…` and
+  `--kern-typography-…`, so `kern.css`, the React kit and the Tailwind theme pick the values up
+  without a change to their markup. It sets the plain names; `kern.css` derives the
+  `-contextual` aliases from them. Coming after `kern.css`, it also beats KERN's 768 px
+  `@media` switches of the adaptive type, so the design's single size holds on every width.
+- **A value without a KERN name** (a shadow, a duration, the variants' marks) is a project token
+  in `@theme` (`--shadow-card`, `--duration-pill`, `--color-variant-new` …), never a new
+  `--kern-…` variable.
+- **What it sets**: the Revamp's colours (one AA fix: `feedback-info` `#0273ae` for the
+  design's `#0284c7`), the radii, the static type sizes, the adaptive sizes and line heights
+  and the heading, title, body and label baseline paddings at their small-screen values on
+  every width, the alert icon at 32 px, and two state values for AA (T098): the disabled
+  opacity `--kern-color-action-state-opacity-disabled: 0.68` (KERN's is 0.4, which left
+  disabled labels at 1.8–2.6:1; 0.68 is the nearest that gives every measured pair 3:1) and
+  the primary button's pressed shade `--kern-color-action-state-indicator-shade-active`, the
+  action blue mixed with 11 % white (KERN's 16 % left the white label at 4.1:1).
+- **AA**: a Revamp text colour that fails 4.5:1 is set to the nearest passing value in the
+  overlay, with a comment naming the pair (spec 008's design-notes §1.5).
+- **Motion**: an element that transitions carries the `motion` class next to its utilities; the
+  one `prefers-reduced-motion` rule in `index.css` switches it off (design-notes §4).
+
+Each component is built in one of three ways, recorded per component in spec 008's
+`design-notes.md` §2:
+
+| Option | What | Example |
+|---|---|---|
+| **a** KERN class with the overlay | KERN's markup and classes unchanged; the overlay alone makes it match | `TextField` on `KernInput` / `kern-form-input` |
+| **b** KERN class plus a scoped override | KERN's markup, plus a rule in `index.css` scoped to the component's class for what the overlay can't express | `Checkbox`: `kern-form-check__checkbox` with the design's 20 px box, tick and mixed dash |
+| **c** own markup with Tailwind | KERN has no component for it, or its markup can't take the design's shape; Tailwind utilities on the overlay's tokens | `ActionMenu`, `InfoTooltip`, the status pill |
+
+KERN's CSS beats Tailwind on the same property (it is unlayered, Tailwind's utilities are in a
+layer): to change a property a KERN class sets, use option b, wrap the KERN element (option c
+around it), or, sparingly, the `!` suffix (§7).
+
+**The scoped overrides** (option b) in `index.css`, after `@theme` and the variants, each with a
+comment naming its frame and task:
+
+| Rule | What it does |
+|---|---|
+| `.wizard-footer .kern-btn` | 40 px buttons in the footer bars (the wizard's, the details', the overview's), the outlined label 1 px shorter so the border sits inside |
+| `.kern-btn:focus:not(:focus-visible)`, `.kern-form-check__checkbox:…`, `.kern-form-check__radio:…` | the focus ring for keyboard focus only (§7); the radio gets its unfocused border back |
+| `.kern-btn--primary:not(:disabled):not([aria-disabled='true']):active` | the pressed shade shows while pressed: KERN's `:hover` rule (0,3,0) outranks its `:active` (0,2,0) |
+| `.kern-btn--secondary` / `--tertiary` `…:active` | the pressed tint (16 %, the danger button 15 % through `--pressed-tint-share`) as one solid fill mixed over white, not over the surface the button sits on, so the blue label keeps 4.5:1 on tinted panels (T098) |
+| `.kern-btn--primary:is(:disabled, [aria-disabled='true']):is(:hover, :active)`, the same for `--secondary` / `--tertiary` | disabled buttons keep their resting fill. kern.css means to skip them with the selector list `:not(:disabled):hover, :not([aria-disabled=true]):hover`, but each half matches the other kind of disabled button (a native `disabled` one is not `aria-disabled`, and the reverse), so a busy "Logging in…" took the lighter hover shade (its label 2.8:1 at the disabled opacity; T098) |
+| `.kern-form-check` / `.kern-form-check__checkbox` | the design's 20 px checkbox: tick and mixed dash as background images, KERN's `::before` tick off |
+| `.kern-alert`, `.kern-alert__body` | the 2 px outline drawn inside the box, as the kit's 64 px alert |
+| `.kern-loader.kern-loader--56` | the 56 px loader with a quarter arc and round caps |
+| `.kern-btn--danger` | the danger buttons, filled and outlined: the action colour and its state shades re-derived from `feedback-danger` |
+| `.kern-dialog.motion` | the dialog and its scrim fade in and out (150 ms; off under reduced motion) |
+| `.icon-person`, `.icon-expand-more-small`, `.icon-save`, `.icon-undo` | glyphs KERN lacks, as masks in the text or action colour |
+
+**Two custom variants**:
+
+- `wizard-pinned:`: `@media (width >= 48rem) and (height >= 40rem)`, the windows where the wizard
+  pins its step header (and the rules step its tab row) under the header pills.
+- `narrow:`: `@media (width < 20rem)`, windows narrower than WCAG's reflow width of 320 CSS px,
+  such as a 320 px window at 200 % zoom (160 CSS px; T096). No frame draws them; use the variant
+  where a layout that holds from 320 px must give way (rows that wrap, pills that grow taller).
+  An unlayered `@media (width < 20rem)` block beside it applies everywhere in such windows:
+  `overflow-wrap: anywhere` on every element (text cut with "…" by `truncate` stays cut); the
+  horizontal paddings and gaps of 16 px and more halved (`p-`, `px-`, `pl-`, `pr-`, `gap-`,
+  `gap-x-` 16, 20, 24, 32, 40, 48; the vertical rhythm stays); `whitespace-nowrap` wrapping and
+  `shrink-0` no wider than its row; KERN's buttons with 8 px at the sides and 4 px around the
+  label; KERN's dialogs with 12 px at the sides and the title on its own line under the ×;
+  KERN's alert with the icon above the title; the test step's indents halved. Wider windows are
+  not affected.
+
 ## 4. Component API reference (verified against the installed package)
 
 The authoritative reference is the package's own `COMPONENTS.md` and per-component `.d.ts` files

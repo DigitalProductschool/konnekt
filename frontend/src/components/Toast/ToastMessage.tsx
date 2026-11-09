@@ -1,39 +1,79 @@
-import { useEffect, useState } from 'react';
+import type { FocusEvent, KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { TOAST_DURATION_MS } from './constants';
+import checkFilledIcon from '../../assets/icons/check-filled-white.svg';
+import ErrorNoticeText from '../ErrorNoticeText';
+import { TOAST_DURATION_MS, TOAST_KIND_FILL } from './constants';
 import type { ToastMessageProps } from './types';
 
 /**
- * The visible toast. Every toast goes after its 6 seconds, with or without an action (B4,
- * 2026-10-26); its time runs only while neither the pointer nor the keyboard focus is on it, so
- * that its action can be reached (WCAG 2.2.1).
+ * The visible toast, Figma "Rules/Toast" (6369:25433): the message in `body/small/regular`
+ * white, the success kind's filled check before it, the error ID of a 5xx on a line of its own
+ * (as `ErrorNoticeText` writes it) and the optional action as an underlined `label/small` link
+ * at the right. A toast without an action goes after its 6 seconds, which run only while the
+ * pointer is not on it; one with an action stays until it is used or dismissed (research R8),
+ * Escape on it dismissing it and returning the focus to where it came from.
  */
 export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessageProps) {
   const [paused, setPaused] = useState(false);
+  // Where the focus came from when it entered the toast, for Escape to return it there
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const hasAction = Boolean(toast.actionLabel && onAction);
 
   useEffect(() => {
-    if (paused) {
+    if (hasAction || paused) {
       return;
     }
     const timer = window.setTimeout(onDismiss, TOAST_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, [paused, onDismiss]);
+  }, [hasAction, paused, onDismiss]);
 
+  function handleFocus(event: FocusEvent<HTMLDivElement>) {
+    setPaused(true);
+    const from = event.relatedTarget;
+    if (from instanceof HTMLElement && !event.currentTarget.contains(from)) {
+      returnFocusRef.current = from;
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    event.stopPropagation();
+    const target = returnFocusRef.current;
+    onDismiss();
+    if (target?.isConnected) {
+      target.focus();
+    }
+  }
+
+  // Under 320 CSS px the action wraps under the text, and a long toast scrolls in half the
+  // window instead of covering it (T096)
   return (
     <div
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
+      onFocus={handleFocus}
       onBlur={() => setPaused(false)}
-      // The 6px radius is Figma's; KERN's radii are 2, 4 and 8px
-      className="bg-kern-layout-text-default text-kern-static-medium text-kern-layout-background-default shadow-toast pointer-events-auto flex items-center gap-24 rounded-[6px] px-20 py-12"
+      onKeyDown={handleKeyDown}
+      className={`${TOAST_KIND_FILL[toast.kind ?? 'neutral']} rounded-kern-default shadow-toast text-kern-static-small text-kern-action-on-default narrow:max-h-[50dvh] narrow:flex-wrap narrow:gap-y-8 narrow:overflow-y-auto pointer-events-auto flex max-w-full items-center gap-24 p-16 leading-(--kern-typography-line-height-medium-static)`}
     >
-      <p>{toast.message}</p>
-      {toast.actionLabel && onAction && (
+      <div className="flex min-w-0 items-center gap-8">
+        {toast.kind === 'success' && (
+          <img src={checkFilledIcon} alt="" className="size-20 shrink-0" />
+        )}
+        <p className="min-w-0">
+          <ErrorNoticeText
+            notice={{ message: toast.message, error_id: toast.errorId ?? undefined }}
+          />
+        </p>
+      </div>
+      {hasAction && (
         <button
           type="button"
           onClick={onAction}
-          className="focus-visible:outline-kern-layout-background-default cursor-pointer font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="focus-visible:outline-kern-action-on-default shrink-0 cursor-pointer font-semibold underline decoration-[8%] [text-underline-position:from-font] focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {toast.actionLabel}
         </button>

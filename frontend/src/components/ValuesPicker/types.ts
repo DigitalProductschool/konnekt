@@ -7,6 +7,8 @@ export interface ValueChoice {
   label: string;
   /** A licence class's description, such as "Cars up to 3.5 t" */
   description: string | null;
+  /** Shown at 40 % and can't be chosen or unchosen (the kit's disabled option) */
+  disabled?: boolean;
 }
 
 /** The texts of a values picker, which differ with where it is used */
@@ -48,6 +50,7 @@ export interface ValuesPickerProps {
    * compact button with a 300px menu (the rule editor's)
    */
   field?: boolean;
+  /** The texts that differ with where the picker is used; "Done" is the same everywhere */
   copy: ValuesPickerCopy;
   open: boolean;
   /** The search text */

@@ -1,10 +1,16 @@
-import checkIcon from '../../assets/icons/check-white-small.svg';
+import { CLASS_OPTION_STATES } from './constants';
 import type { ValueOptionItemProps } from './types';
 
 /**
- * A value of the values menu with its checkbox (Figma "Data/Check item", 20px box), or a licence
- * class with its code and description (Figma "Rules/Menu item · class", F32). The focus ring is
- * around the box only, for keyboard focus.
+ * An option of the values menu: a value with its checkbox (Figma "Data/Check item" 6027:17252,
+ * U48 6191:42209: a 20px box, 8px to the 14/24 label, 28px rows), or a licence class with its
+ * code and description ("Rules/Menu item · class" 6358:43249, U32 6362:61767: 8px padding,
+ * radius 4, the code in label/small, the description in body/small, W19). The box is KERN's
+ * checkbox with the Checkbox component's override in index.css (design-notes §2 `Checkbox`):
+ * hover (also over the label) a 2px blue border, checked hover a 3px tint ring, keyboard focus a
+ * 3px ring around the box only, never after a click. A class row also takes the kit's hover and
+ * pressed layers (P33 2:1985). A disabled option is faded to the kit's 40% (KERN fades the box, the row its texts) and
+ * can't be toggled.
  */
 export default function ValueOptionItem({
   id,
@@ -14,35 +20,37 @@ export default function ValueOptionItem({
   onToggle,
   onKeyDown,
 }: ValueOptionItemProps) {
+  const disabled = choice.disabled ?? false;
+  // KERN fades a disabled box itself (kern.css, 40%); the texts fade beside it
+  const fade = disabled ? 'opacity-(--kern-color-action-state-opacity-disabled)' : '';
+  const row = classes
+    ? `rounded-kern-small min-h-40 p-8 ${disabled ? '' : CLASS_OPTION_STATES}`
+    : '';
   return (
     <li>
       <label
-        className={`text-kern-static-small text-kern-layout-text-default flex cursor-pointer items-center gap-8 leading-(--kern-typography-line-height-medium-static) ${
-          classes ? 'rounded-kern-small hover:bg-kern-layout-background-hued min-h-40 p-8' : 'py-4'
-        }`}
+        className={`text-kern-static-small text-kern-layout-text-default flex items-center gap-8 leading-(--kern-typography-line-height-medium-static) ${disabled ? '' : 'cursor-pointer'} ${row}`}
       >
-        <span className="relative flex size-20 shrink-0">
+        <span className="flex shrink-0 py-4">
           <input
             id={id}
             type="checkbox"
             checked={checked}
+            disabled={disabled}
             onChange={onToggle}
             onKeyDown={onKeyDown}
-            className="peer rounded-kern-small border-kern-layout-border bg-kern-layout-background-default checked:border-kern-action-default checked:bg-kern-action-default focus-visible:outline-kern-layout-text-default size-20 cursor-pointer appearance-none border focus-visible:outline-2 focus-visible:outline-offset-2"
-          />
-          <img
-            src={checkIcon}
-            alt=""
-            className="pointer-events-none absolute inset-0 hidden size-20 peer-checked:block"
+            className="kern-form-check__checkbox motion mt-0! transition-colors duration-(--duration-colour)"
           />
         </span>
         {classes ? (
           <>
-            <span className="min-w-32 shrink-0 font-semibold">{choice.label}</span>
-            <span className="min-w-0 flex-1">{choice.description}</span>
+            <span className={`min-w-32 shrink-0 font-semibold whitespace-nowrap ${fade}`}>
+              {choice.label}
+            </span>
+            <span className={`min-w-0 flex-1 ${fade}`}>{choice.description}</span>
           </>
         ) : (
-          <span>{choice.label}</span>
+          <span className={fade}>{choice.label}</span>
         )}
       </label>
     </li>

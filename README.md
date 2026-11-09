@@ -4,6 +4,7 @@ Middleware that lets the DO.IT team of the City of Stuttgart connect serviceBW f
 Wallet. For each form, DO.IT creates a form connection that names the documents and fields the
 form needs. serviceBW then uses the form connection's URLs to request those documents from the
 citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
+The team sets up its form connections in **Konnekt**, the middleware's management UI.
 
 A form connection can also have rules that the shared documents must meet, such as "Date of
 birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
@@ -15,14 +16,15 @@ citizen.
 The middleware is built in phases. Each phase's specification, plan and task list are in
 [specs/](specs/): [001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/) for the
 form connections, [002-connection-rules/](specs/002-connection-rules/) for their rules and
-variants. The code base started from the Digital Product School React + FastAPI + PostgreSQL
-template.
+variants, and [008-kern-revamp-redesign/](specs/008-kern-revamp-redesign/) for Konnekt's current
+design on the KERN Revamp. The code base started from the Digital Product School React + FastAPI +
+PostgreSQL template.
 
 Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
 Codex, through the middleware's MCP server ([007-agent-mcp-server/](specs/007-agent-mcp-server/)):
 the agent finds and reads connections, builds drafts, checks their rules and tests them with
-fictitious applicants, and asks the team member's approval, on a page of the management UI, to
-publish a draft or to deactivate, reactivate or delete a live connection. See
+fictitious citizens, and asks the team member's approval, on a page of Konnekt, to publish a
+draft or to deactivate, reactivate or delete a live connection. See
 [Agents and the MCP server](#agents-and-the-mcp-server).
 
 ## Tech Stack
@@ -71,7 +73,7 @@ Skills extension is marked experimental in 2.4.0.
 │   └── src/
 ├── rules/                 # @connection-portal/rules: the pure rules logic, rule checks and test
 │   └── src/               # personas, with their tests (vitest.config.ts)
-├── frontend/              # React SPA (Vite + TypeScript): the DO.IT management UI
+├── frontend/              # React SPA (Vite + TypeScript): Konnekt, the DO.IT management UI
 │   └── src/workers/       # The browser Worker entries of the rule checks and test personas
 ├── mcp/                   # @connection-portal/mcp: the MCP server for agents (Node + TypeScript)
 │   ├── src/               # Server, tools, links, checks; tests beside the modules
@@ -200,7 +202,7 @@ Then follow Option 2 steps for backend and frontend.
 
 ### Accounts
 
-DO.IT team members sign in with personal accounts. The management UI has no account
+DO.IT team members sign in to Konnekt with personal accounts. Konnekt has no account
 management: the operators manage accounts with the command-line tool, run from `backend/`
 (prefix it with `docker compose exec backend` when the backend runs in Docker):
 
@@ -281,7 +283,7 @@ Python's results for the evaluator's text normalisation, date arithmetic and rul
 the `rules/` package's Vitest tests replay. Its `rule_outcomes` vectors pin single rules, and its
 `branch_evaluations` vectors (spec 004) whole branches, with their groups and inherited items, for
 the browser's evaluator `rules/src/evaluation.ts`, which the test step uses to
-evaluate its sample applicants. `scripts/export_check_fixtures` writes both from the current
+evaluate its sample citizens. `scripts/export_check_fixtures` writes both from the current
 interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
 
 Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can
@@ -675,12 +677,12 @@ Good to know:
 The MCP server (`mcp/`) lets team members work with an LLM agent on their own machine. It is
 public at `https://<domain>/mcp` (Streamable HTTP), next to the management UI, and
 `http://localhost:3100/mcp` in development. An agent signs in through the browser, with OAuth:
-the first call opens the Connection Portal's consent page, where the team member signs in and
+the first call opens Konnekt's consent page, where the team member signs in and
 chooses one of three access levels:
 
 | Access level | Allows |
 |---|---|
-| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious applicants |
+| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious citizens |
 | Read and edit drafts | Also creating and changing drafts, and asking for approval to publish or delete a draft |
 | Read, edit drafts and manage live connections | Also asking for approval to deactivate, reactivate or delete a published connection |
 
@@ -689,7 +691,7 @@ deletes, deactivates or reactivates by itself: it hands the team member a link t
 page, valid for `APPROVAL_REQUEST_MINUTES`, where they approve or decline. The user page
 ("Your account" in the user menu) lists the connected agents and personal access tokens, and
 changes an access level or revokes access, from the agent's next call. Every answer carries
-links into the Connection Portal, and the rules step's menus copy a variant's, a rule's or a
+links into Konnekt, and the rules step's menus copy a variant's, a rule's or a
 group's link ("Copy link"), which agents accept wherever they take an identifier.
 
 The guidance agents get, the server's instructions and eight skills, lives in `mcp/plugin/`

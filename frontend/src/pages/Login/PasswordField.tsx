@@ -1,46 +1,51 @@
-import { KernInput } from '@kern-ux-annex/kern-react-kit';
-
+import TextField from '../../components/TextField';
 import { LOGIN_COPY } from './constants';
 import type { PasswordFieldProps } from './types';
 
-/** The password input with a toggle that shows the password as plain text. */
+/**
+ * Figma "Input/Password · eye inside" (U10 6616:40784): the password input with the show/hide
+ * toggle inside the field at its right end, a 32px icon button with the 24px eye in the action
+ * colour (FR-051 (29)). The eye is struck through while the password is hidden, as the design
+ * draws it; the button's name stays "Show password" and `aria-pressed` tells whether it shows.
+ */
 export default function PasswordField({
   id,
   label,
   value,
   visible,
+  invalid,
+  describedBy,
   onChange,
   onToggleVisible,
 }: PasswordFieldProps) {
-  return (
-    <div className="relative">
-      <KernInput
-        id={id}
-        type={visible ? 'text' : 'password'}
-        label={label}
-        required
-        autoComplete="current-password"
-        value={value}
-        onChange={onChange}
-        // Keeps the text clear of the toggle; KERN's own padding needs the override
-        className="pr-56!"
+  const toggle = (
+    <button
+      type="button"
+      aria-pressed={visible}
+      onClick={onToggleVisible}
+      className="rounded-kern-small focus-visible:outline-kern-action-focus-default flex size-32 cursor-pointer items-center justify-center focus-visible:outline-4"
+    >
+      {/* KERN's icon rule sets its colour, so the design's action blue needs the `!` */}
+      <span
+        aria-hidden="true"
+        className={`kern-icon bg-kern-action-default! ${visible ? 'kern-icon--visibility' : 'kern-icon--visibility-off'}`}
       />
-      <span className="absolute right-4 bottom-0 flex">
-        <button
-          type="button"
-          aria-pressed={visible}
-          onClick={onToggleVisible}
-          // Only the icon changes: no KERN tint on hover or press. Not `hover:`, which Tailwind
-          // limits to devices that can hover, while a tap leaves :hover on touch screens
-          className="kern-btn kern-btn--tertiary kern-btn--small [&:is(:hover,:active)]:bg-transparent!"
-        >
-          <span
-            aria-hidden="true"
-            className={`kern-icon kern-icon--small ${visible ? 'kern-icon--visibility-off' : 'kern-icon--visibility'}`}
-          />
-          <span className="kern-label kern-sr-only">{LOGIN_COPY.showPassword}</span>
-        </button>
-      </span>
-    </div>
+      <span className="sr-only">{LOGIN_COPY.showPassword}</span>
+    </button>
+  );
+
+  return (
+    <TextField
+      id={id}
+      label={label}
+      type={visible ? 'text' : 'password'}
+      required
+      autoComplete="current-password"
+      value={value}
+      onChange={onChange}
+      invalid={invalid}
+      aria-describedby={describedBy}
+      trailing={toggle}
+    />
   );
 }

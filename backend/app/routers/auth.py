@@ -33,7 +33,7 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 'error': 'Unauthorized',
-                'message': 'Invalid username or password',
+                'message': 'Username or password is wrong. Check both and try again.',
             },
         )
     set_session_cookie(response, create_login_session(db, user))

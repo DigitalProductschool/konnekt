@@ -514,8 +514,8 @@ FAMILY_NAME = ['family_name']
             {'documents': [{'document_type': PID, 'fields': FAMILY_NAME * 2}]},
             "'Family name' is selected more than once for 'Personal ID'.",
         ),
-        ({'name': ''}, 'Enter a name.'),
-        ({'name': '   '}, 'Enter a name.'),
+        ({'name': ''}, 'Enter a name for the connection.'),
+        ({'name': '   '}, 'Enter a name for the connection.'),
         ({'name': 'x' * 201}, 'The name can have at most 200 characters.'),
         (
             {'description': 'x' * 501},
@@ -548,7 +548,7 @@ def test_the_first_problem_in_form_order_is_reported(
     )
 
     assert response.status_code == 400
-    assert response.json()['message'] == 'Enter a name.'
+    assert response.json()['message'] == 'Enter a name for the connection.'
 
 
 def test_the_description_is_checked_after_the_name(
@@ -813,8 +813,8 @@ def test_an_empty_update_changes_nothing(
 @pytest.mark.parametrize(
     ('changes', 'message'),
     [
-        ({'name': ''}, 'Enter a name.'),
-        ({'name': None}, 'Enter a name.'),
+        ({'name': ''}, 'Enter a name for the connection.'),
+        ({'name': None}, 'Enter a name for the connection.'),
         (
             {'description': 'x' * 501},
             'The description can have at most 500 characters.',

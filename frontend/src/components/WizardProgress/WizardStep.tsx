@@ -1,61 +1,52 @@
-import checkIcon from '../../assets/icons/check-blue-small.svg';
-import { DONE_SUFFIX } from './constants';
+import {
+  COLOUR_TRANSITION,
+  LINK_STEP_CLASSES,
+  SEGMENT_CLASSES,
+  STEP_NAME_CLASSES,
+} from './constants';
 import type { WizardStepProps } from './types';
 
-// Truncated from `sm` only: below, the name sits under the circle with the step's full width
-const LABEL_CLASSES =
-  'text-kern-static-small leading-(--kern-typography-line-height-medium-static) max-w-full text-left wrap-break-word sm:truncate';
-
 /**
- * One step of Figma "App/Progress" (style B): circle, name and bar. Below `sm`, which the
- * design has no frame for, the name goes under the circle, so that it isn't cut off at 320 px
- * (WCAG 1.4.10, decision 2026-10-19).
+ * One step of Figma "Shell/Step line". While creating, the bare segment of the progress bar:
+ * action blue up to the current step, the decorative border colour after it. In the edit flow
+ * (`labelled`), the segment with the step's name under it, 4 px apart: the current step in
+ * action blue, every other one a button ("Shell/Step link": a muted line and an ink name, both
+ * blue on hover and while pressed, 150 ms; F25).
  */
-export default function WizardStep({ label, number, state, onSelect }: WizardStepProps) {
-  return (
-    <li
-      aria-current={state === 'current' ? 'step' : undefined}
-      className="flex min-w-0 flex-1 flex-col gap-10"
-    >
-      <div className="flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8">
-        {state === 'done' && (
-          <span className="rounded-kern-circle bg-kern-darkblue-050 flex size-24 shrink-0 items-center justify-center">
-            <img src={checkIcon} alt="" className="size-16" />
-          </span>
-        )}
-        {state === 'current' && (
-          <span className="rounded-kern-circle bg-kern-action-default text-step text-kern-action-on-default flex size-24 shrink-0 items-center justify-center font-semibold">
-            {number}
-          </span>
-        )}
-        {state === 'todo' && (
-          // The 1.5px border is Figma's; KERN's border widths are 1, 2 and 4px
-          <span className="rounded-kern-circle text-step text-kern-layout-text-muted flex size-24 shrink-0 items-center justify-center border-[1.5px] border-(--kern-color-decorative-border-default) font-semibold">
-            {number}
-          </span>
-        )}
-        {state === 'done' && onSelect ? (
-          <button
-            type="button"
-            onClick={onSelect}
-            className={`${LABEL_CLASSES} text-kern-action-default focus-visible:outline-kern-action-focus-default rounded-kern-small cursor-pointer focus-visible:outline-4 focus-visible:outline-offset-2`}
-          >
-            {label}
-            <span className="kern-sr-only">{DONE_SUFFIX}</span>
-          </button>
-        ) : (
-          <span
-            className={`${LABEL_CLASSES} ${state === 'current' ? 'text-kern-layout-text-default font-semibold' : ''} ${state === 'todo' ? 'text-kern-layout-text-muted' : ''} ${state === 'done' ? 'text-kern-action-default' : ''}`}
-          >
-            {label}
-            {state === 'done' && <span className="kern-sr-only">{DONE_SUFFIX}</span>}
-          </span>
-        )}
-      </div>
+export default function WizardStep({ label, state, labelled, onSelect }: WizardStepProps) {
+  if (!labelled) {
+    return (
       <span
-        aria-hidden="true"
-        className={`rounded-kern-small h-4 w-full ${state === 'todo' ? 'bg-(--kern-color-decorative-border-default)' : 'bg-kern-action-default'}`}
+        className={`${SEGMENT_CLASSES} min-w-px flex-1 ${state === 'todo' ? 'bg-(--kern-color-decorative-border-default)' : 'bg-kern-action-default'}`}
       />
+    );
+  }
+  if (state === 'current' || !onSelect) {
+    return (
+      <li aria-current={state === 'current' ? 'step' : undefined} className={LINK_STEP_CLASSES}>
+        <span className="flex flex-col items-start gap-4">
+          <span className={`${SEGMENT_CLASSES} bg-kern-action-default`} />
+          <span className={`${STEP_NAME_CLASSES} text-kern-action-default`}>{label}</span>
+        </span>
+      </li>
+    );
+  }
+  return (
+    <li className={LINK_STEP_CLASSES}>
+      <button
+        type="button"
+        onClick={onSelect}
+        className="group rounded-kern-small focus-visible:outline-kern-action-focus-default flex w-full cursor-pointer flex-col items-start gap-4 text-left focus-visible:outline-4 focus-visible:outline-offset-2"
+      >
+        <span
+          className={`${SEGMENT_CLASSES} ${COLOUR_TRANSITION} bg-kern-layout-text-muted group-hover:bg-kern-action-default group-active:bg-kern-action-default`}
+        />
+        <span
+          className={`${STEP_NAME_CLASSES} ${COLOUR_TRANSITION} text-kern-layout-text-default group-hover:text-kern-action-default group-active:text-kern-action-default`}
+        >
+          {label}
+        </span>
+      </button>
     </li>
   );
 }

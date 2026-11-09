@@ -76,7 +76,7 @@ export function formConnectionReducer(
     case 'notFound':
       return { status: 'notFound', attempt: state.attempt };
     case 'failed':
-      return { status: 'failed', attempt: state.attempt };
+      return { status: 'failed', attempt: state.attempt, notice: action.notice };
     case 'retry':
       return { status: 'loading', attempt: state.attempt + 1 };
   }

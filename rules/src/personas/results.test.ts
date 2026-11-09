@@ -203,7 +203,7 @@ describe('resultViewOf', () => {
       ['Rule 03', 'rule', statementOf(CLASS_B, CONTEXT)?.text],
     ]);
     expect(view.rows[0].statement).toBe(
-      'Personal ID – Date of birth (Age) is at least 21 years old'
+      'Personal ID · Date of birth (Age) is at least 21 years old'
     );
     expect(view.rows[0].parts).toEqual(statementPartsOf(AGE, CONTEXT));
   });
@@ -217,6 +217,11 @@ describe('resultViewOf', () => {
     ]);
   });
 
+  // V4 (spec 008 research R15; FR-024): "Result: doesn’t meet <n> rules" counts rules only: each
+  // reported rule, and inside a reported group the rules listed under it (its members that aren't
+  // met, through its sub-groups that aren't met); a group never counts itself. U65 (7057:58811,
+  // "doesn’t meet 2 rules") and U66 (#19 "doesn’t meet 3 rules", #25) draw only top-level rules,
+  // so this is the literal reading of the heading for groups
   it('lists a reported group with its members that are not met, recursively', () => {
     const subGroup = group(2, 'or', [FAMILY, NATIONALITY], null, 'Sub-group 01');
     const groupWithMessage = group(1, 'and', [CLASS_B, HELD_B, subGroup], 'You need a licence.');
@@ -228,7 +233,8 @@ describe('resultViewOf', () => {
         'pid.nationalities': [],
       })
     );
-    expect(view.heading).toBe('Result: doesn’t meet 1 group');
+    // V4: Rule 04, and Rules 05 and 06 of the sub-group; not the groups themselves
+    expect(view.heading).toBe('Result: doesn’t meet 3 rules');
     expect(outline(view.rows)).toEqual([
       [
         'group-1',
@@ -260,7 +266,7 @@ describe('resultViewOf', () => {
     ]);
     expect([groupRow.members[1].name, groupRow.members[1].statement]).toEqual([
       'Sub-group 01',
-      'At least one of these must be true',
+      'At least one of these must be met',
     ]);
   });
 
@@ -278,13 +284,14 @@ describe('resultViewOf', () => {
     ]);
   });
 
-  it('counts a reported sub-group as a group', () => {
+  it('counts the rules listed under a reported sub-group, not the sub-group (V4)', () => {
     const subGroup = group(2, 'and', [FAMILY, NATIONALITY], 'Check your ID.', 'Sub-group 01');
     const { view } = viewOf(
       [group(1, 'and', [subGroup, CITY]), AGE],
       persona({ 'pid.family_name': 'Schulz', 'pid.address_locality': 'Berlin' })
     );
-    expect(view.heading).toBe('Result: doesn’t meet 1 rule and 1 group');
+    // Rule 05 under Sub-group 01, and Rule 02
+    expect(view.heading).toBe('Result: doesn’t meet 2 rules');
     expect(outline(view.rows)).toEqual([
       ['group-2', 'not_met', 'Check your ID.', true, [['rule-5', 'not_met', null, false, []]]],
       ['rule-2', 'not_met', 'You must meet this rule.', true, []],
@@ -293,12 +300,40 @@ describe('resultViewOf', () => {
     ]);
   });
 
-  it('counts groups only', () => {
+  it('counts the rules not met inside reported groups only, not their met rules (V4)', () => {
     const { view } = viewOf(
       [group(1, 'and', [AGE, CITY], 'First.'), group(2, 'and', [FAMILY, CLASS_B], 'Second.')],
       persona({ 'pid.address_locality': 'Berlin', 'pid.family_name': 'Schulz' })
     );
-    expect(view.heading).toBe('Result: doesn’t meet 2 groups');
+    // Rule 02 in Group 01 and Rule 05 in Group 02; Rules 01 and 03 are met
+    expect(view.heading).toBe('Result: doesn’t meet 2 rules');
+  });
+
+  it('counts every member of a reported OR group, and none inside a met sub-group (V4)', () => {
+    const metSubGroup = group(3, 'or', [HELD_B, NATIONALITY], null, 'Sub-group 02');
+    const { view } = viewOf(
+      [group(1, 'or', [CITY, FAMILY, metSubGroup], 'Either.'), CLASS_B],
+      persona({ 'pid.address_locality': 'Berlin', 'pid.family_name': 'Schulz' })
+    );
+    // The OR group is met through Sub-group 02, so nothing is reported
+    expect(view.heading).toBe('Result: meets the rules');
+    const { view: unmet } = viewOf(
+      [group(1, 'or', [CITY, FAMILY], 'Either.'), group(2, 'and', [AGE, metSubGroup], 'Both.')],
+      persona({
+        'pid.address_locality': 'Berlin',
+        'pid.family_name': 'Schulz',
+        'pid.birthdate': '2010-01-01',
+      })
+    );
+    // Rules 02 and 05 of the OR group; Rule 01 of Group 02, whose met Sub-group 02 isn't listed
+    expect(outline(unmet.rows)[1]).toEqual([
+      'group-2',
+      'not_met',
+      'Both.',
+      true,
+      [['rule-1', 'not_met', null, false, []]],
+    ]);
+    expect(unmet.heading).toBe('Result: doesn’t meet 3 rules');
   });
 
   it('lists every top-level item under a met variant, without a message column (F3)', () => {

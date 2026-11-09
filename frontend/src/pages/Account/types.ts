@@ -86,7 +86,7 @@ export interface RowTexts {
 export interface AgentAccessListProps {
   /** The section's heading */
   heading: string;
-  /** Shown instead of the list while it is empty */
+  /** Shown in the light blue card instead of the list while it is empty */
   empty: ReactNode;
   items: AgentAccessItem[];
   levels: AccessLevelInfo[];
@@ -117,6 +117,14 @@ export interface LevelDialogProps extends AccountDialogProps {
   levels: AccessLevelInfo[];
 }
 
+/** The page once the list has loaded, or failed to; a new attempt mounts it anew */
+export interface AccountViewProps {
+  /** Loads the list again: "Try again" in the error state */
+  onRetry: () => void;
+  /** Whether this is a new attempt after a failure: the heading takes the focus once it is done */
+  retried: boolean;
+}
+
 export interface TokenCreatedDialogProps {
   dialog: AccountDialog | null;
   onClose: () => void;
@@ -131,5 +139,3 @@ export interface TokenCopyFieldProps {
 export interface DatedLineProps {
   text: DatedText;
 }
-
-export type CopyStatus = 'idle' | 'copied' | 'failed';

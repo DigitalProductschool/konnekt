@@ -54,3 +54,8 @@ export interface ConsentFormProps {
 export interface InvalidRequestAlertProps {
   message: string;
 }
+
+export interface LoadFailedAlertProps {
+  /** Why the client couldn't be loaded, with a 5xx answer's error ID */
+  notice: ErrorNotice;
+}

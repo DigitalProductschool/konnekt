@@ -1,4 +1,4 @@
-"""Approval requests: an agent asks, the team member approves in the Portal.
+"""Approval requests: an agent asks, the team member approves in Konnekt.
 
 Spec 007, contracts/management-api.md "Approval requests", research R12. An agent
 creates a request with its bearer token and reads its own; the team member it was
@@ -66,7 +66,7 @@ def approve_request(
     user: UserAccount = Depends(require_browser_session),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ApprovalPreview]:
-    """Approve a waiting request: its action runs as in the Connection Portal.
+    """Approve a waiting request: its action runs as in Konnekt.
 
     The request's account only (403 `not_yours`). A request that isn't waiting,
     has expired or no longer applies answers 409 `approval_<status>` and nothing

@@ -41,8 +41,8 @@ registerTool({
   level: 'read',
   description:
     'Asks the team member for a higher access level: drafts (Read and edit drafts) or manage ' +
-    '(Read, edit drafts and manage live connections). Your client then opens the Connection ' +
-    "Portal's consent page with that level selected, and the team member decides; call the " +
+    '(Read, edit drafts and manage live connections). Your client then opens ' +
+    "Konnekt's consent page with that level selected, and the team member decides; call the " +
     'refused tool again afterwards. If you already have the level, it says so.',
   input: accessInput,
   handler: async (caller, input) => {

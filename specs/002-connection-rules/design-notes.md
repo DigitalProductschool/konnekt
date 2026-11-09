@@ -395,6 +395,9 @@ the coverage check leave open is in §10 ("Left to decide") and §11 ("Unresolve
 
 ## 9. Tokens (T003)
 
+> Superseded by spec 008 (design-notes §1): the Revamp's values are the target. This section
+> stays as history (`specs/008-kern-revamp-redesign/design-notes.md` §8).
+
 `get_variable_defs` on the root `6263:12360` is refused (the root is a page), so it ran on each of
 the page's 15 sections; together they cover every frame.
 

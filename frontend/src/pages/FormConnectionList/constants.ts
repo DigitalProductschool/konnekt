@@ -1,32 +1,189 @@
-import type { ListState } from './types';
+import type { EditorStep } from '@connection-portal/api-types/form-connections';
 
+import documentInk from '../../assets/icons/document-ink.svg';
+import factCheckInk from '../../assets/icons/fact-check-ink.svg';
+import publicInk from '../../assets/icons/public-ink.svg';
+import scienceInk from '../../assets/icons/science-ink.svg';
+import type { ListState, RowDeleteState, WelcomeStep } from './types';
+
+// S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570)
 export const LIST_COPY = {
   pageTitle: 'Your connections',
   title: 'Your connections',
-  hint: 'Open a connection to copy its links, or connect another form.',
-  newConnection: 'New connection',
-  caption: (count: number) => `Connections (${count})`,
+  // The design's one hint in every state (FR-029a; U11 #5)
+  hint: 'Each connection links one of your services to the EUDI Wallet. Open a draft to continue, or view an active connection to get its links.',
+  // The footer bar's primary action (cosmetic 1; U11 6699:44298)
+  createConnection: 'Create connection',
   loading: 'Loading your connections…',
-  emptyTitle: 'No connections yet',
-  emptyText:
-    'Create your first connection. Applicants of its form can then share verified data from their EUDI Wallet.',
   errorTitle: 'Couldn’t load your connections',
   errorText: 'Check your connection and try again.',
   retry: 'Try again',
+  // A row's meta (FR-048, FR-052d; U17 6699:48031): "Edited 28.10.2026", a draft adding its step
   edited: (date: string) => `Edited ${date}`,
-  edit: 'Edit',
+  step: (label: string) => `${label} step`,
+  metaSeparator: ' · ',
+  // The row's actions (U13 6739:40602) and their per-row accessible names (FR-028)
   view: 'View',
-  saved: (date: string) => `Saved ${date}`,
-  continue: 'Continue',
-  hintWithDrafts: 'Pick up your draft or connect another form.',
-  draftSaved: (name: string) => `Draft ${name} saved.`,
+  edit: 'Edit',
+  deleteLabel: (name: string) => `Delete ${name}`,
+  // The toasts (U17 6699:48002; U90 6699:48098 without its Undo, F4)
+  draftSaved: 'Draft saved. You can pick it up any time.',
+  deleted: (name: string) => `“${name}” deleted.`,
 };
+
+// The list card's column headers (U11 6699:44253; no checkbox column, F14)
+export const COLUMN_HEADERS = { name: 'Name', status: 'Status', date: 'Date' };
+
+// The toolbar's search (FR-051 (27), (28); U11 6699:44247, 6699:44518, 6699:44628)
+export const SEARCH_COPY = {
+  label: 'Search',
+  placeholder: 'Search connections',
+  clear: 'Clear search',
+  count: (total: number) => `${total} ${total === 1 ? 'connection' : 'connections'}`,
+  countOf: (shown: number, total: number) =>
+    `${shown} of ${total} ${total === 1 ? 'connection' : 'connections'}`,
+  noMatches: (query: string) => `No connections match “${query}”.`,
+  noMatchesHint: 'Check the spelling or try another name.',
+};
+
+// S3, the welcome page (Figma U11 6699:44481, "1b")
+export const WELCOME_COPY = {
+  pageTitle: 'Welcome',
+  title: 'Welcome to Konnekt',
+  heading: 'Create your first connection',
+  text: 'Link your services to the EUDI Wallet. Set your own rules and get verified citizen data.',
+  stepsLabel: 'How a connection comes together',
+  createConnection: 'Create connection',
+};
+
+// The welcome page's steps illustration (U11 6699:44493): the design's four labels and glyphs
+export const WELCOME_STEPS: readonly WelcomeStep[] = [
+  { label: 'Choose documents', glyph: documentInk },
+  { label: 'Set rules', glyph: factCheckInk },
+  { label: 'Test', glyph: scienceInk },
+  { label: 'Publish', glyph: publicInk },
+];
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
 
-// "5 Oct 2026", as in the design
-export const EDITED_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
+/**
+ * The one delete dialog of a row (FR-029c; U14 6699:44419, 6699:44480, U90 6417:31599): the
+ * design's title and buttons for every connection, the body by its state. A draft keeps its own
+ * body (F55, 005-S6.10); a deactivated connection takes the design's "Its documents and rules
+ * …", an active one the active warning. The failure texts are the details' (FR-008)
+ */
+export const DELETE_DIALOG_COPY = {
+  title: (name: string) => `Delete “${name}”?`,
+  draft: (name: string) =>
+    `${name} will be deleted for good. It was never live, so nothing changes for serviceBW.`,
+  active:
+    'This connection is active. Citizens won’t be able to use it, and its links stop working.',
+  deactivated: 'Its documents and rules will be deleted too.',
+  confirm: 'Delete connection',
+  cancel: 'Keep connection',
+  busy: 'Deleting…',
+  errorTitle: 'Couldn’t delete',
+  errorText: 'Nothing changed. Check your connection and try again.',
+  retry: 'Try again',
+};
+
+/**
+ * A row's "Edit" (U13 6739:40602): a link for a draft, a button for a published connection, which
+ * asks first (F48). Figma draws the 1px outline inside the 8px padding (77 wide); KERN adds it
+ * outside
+ */
+export const ROW_EDIT_CLASSES = 'kern-btn kern-btn--secondary kern-btn--small px-7!';
+
+export const INITIAL_ROW_DELETE_STATE: RowDeleteState = {
+  target: null,
+  open: false,
+  deleting: false,
+  error: null,
+  stale: false,
+};
+
+/** The step a draft was saved in, as its row names it ("Rules step"; the wizard's step names) */
+export const STEP_LABELS: Record<EditorStep, string> = {
+  connection: 'Connection',
+  documents: 'Documents',
+  rules: 'Rules',
+  test: 'Test',
+};
+
+// "28.10.2026": a row's date (cosmetic 3, design-notes §3 "Dates"; U13 6739:40556)
+export const ROW_DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
   year: 'numeric',
 });
+
+/**
+ * The overview's footer bar (Figma "Shell/Footer" 6699:44298, cosmetic 1): 72px, white with the
+ * 1px top line, its action right-aligned in the 1120px column, the buttons 40px tall
+ * (`wizard-footer`, index.css). Fixed to the window's bottom where it is 480px tall, as the
+ * wizard's is, and in the flow below that. Its slot keeps the design's 24px between the list card
+ * and the bar (16 of the column's gap + 8; U12 6699:44915: the card ends at 804, the bar starts at
+ * 828) and the bar's 72px, in place of the page's bottom padding, so the end of the list never
+ * hides under the bar.
+ */
+export const OVERVIEW_FOOTER_CLASSES = {
+  slot: 'mt-8 -mb-48 shrink-0 [@media(height>=30rem)]:h-72',
+  bar: 'wizard-footer bg-kern-layout-background-default z-15 px-16 py-16 shadow-[inset_0_1px_0_var(--kern-color-decorative-border-default)] [@media(height>=30rem)]:fixed [@media(height>=30rem)]:inset-x-0 [@media(height>=30rem)]:bottom-0',
+};
+
+/**
+ * The overview's column (U12 6699:44915, "rows scroll inside the card"): in a window at least
+ * 768px wide and 480px tall (the footer bar fixed), the page is never taller than the window: the
+ * column ends at the window's bottom (less the 64px header area, AppLayout's 32px above and the
+ * 48px below it, which the footer slot takes back), so the list card gets what the title, the
+ * toolbar and the footer leave, and its rows scroll inside it under the column headers (564px in
+ * a 900px window, as drawn). In a narrower or shorter window (320px, 200 % zoom) the page scrolls
+ * as a whole, so that the rows don't scroll in a box of a row or two
+ */
+export const OVERVIEW_COLUMN_CLASSES =
+  'flex min-h-0 flex-col gap-16 [@media(width>=48rem)_and_(height>=30rem)]:max-h-[calc(100dvh-144px)]';
+
+/**
+ * The list card (U11 6699:44252): white, 1px border, radius 12, no shadow. It is the container
+ * the rows' and headers' layout follows (`ROW_BREAKPOINT`), and it may shrink to fit the column
+ */
+export const LIST_CARD_CLASSES =
+  '@container rounded-kern-large bg-kern-layout-background-default flex min-h-123 flex-col overflow-hidden border border-(--kern-color-decorative-border-default)';
+
+/** The rows: they scroll inside the card when it is shorter than they are, one row at least */
+export const ROWS_CLASSES = 'min-h-80 overflow-y-auto';
+
+/**
+ * The list card's column headers and rows share these widths (U11 6699:44253: 280, 130, 160).
+ * The columns need 928px of the card (24 + 280 + 24 + 130 + 24 + 160 + 24 + the 223px actions +
+ * 24, with room to spare); in a narrower card the rows wrap and the headers go (`@max-[58rem]`)
+ */
+export const COLUMN_HEADER_CLASSES =
+  'bg-kern-layout-background-hued text-kern-static-small text-kern-layout-text-muted flex shrink-0 items-center gap-24 border-b border-(--kern-color-decorative-border-default) px-24 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold @max-[58rem]:hidden';
+
+/**
+ * A row (U13 6739:40536): 24 16, its parts 24 apart and centred, a 1px line above every row but
+ * the first, no border or radius of its own; 80 high with or without a description (FR-029b),
+ * since the 48px actions set the height. In a card narrower than 58rem the parts wrap: the name
+ * on its own line, then the status and the date, then the actions
+ */
+export const ROW_CLASSES = {
+  row: 'relative flex flex-wrap items-center gap-x-24 gap-y-8 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t @min-[58rem]:flex-nowrap',
+  name: 'flex min-w-0 shrink-0 basis-full flex-col @min-[58rem]:w-280 @min-[58rem]:basis-auto',
+  status: 'flex max-w-full shrink-0 @min-[58rem]:w-130',
+  date: 'text-kern-static-small text-kern-layout-text-muted max-w-full shrink-0 leading-(--kern-typography-line-height-medium-static) @min-[58rem]:w-160',
+  spacer: 'hidden min-w-0 flex-1 @min-[58rem]:block',
+  // max-w-full: in a window under 320 CSS px the buttons wrap instead of leaving the card (T096)
+  actions: 'flex max-w-full shrink-0 flex-wrap items-center gap-x-8',
+};
+
+/** A skeleton row's bars (§3 "Skeleton", U74 7062:51211): name, description, status, date */
+export const SKELETON_ROW_BARS = {
+  name: 'h-10 w-160',
+  description: 'h-10 w-220',
+  status: 'h-10 w-72',
+  date: 'h-10 w-96',
+};
+
+/** How many skeleton rows stand for the list while it loads (001-S3.5) */
+export const SKELETON_ROW_COUNT = 3;

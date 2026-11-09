@@ -1,6 +1,6 @@
 import type { EditorHintProps } from './types';
 
-/** Figma "Rules/Hint": a muted note with KERN's info icon. */
+/** Figma "Rules/Hint" (6083:3543): a body/small muted note after the 20px info icon, 8px apart. */
 export default function EditorHint({ text }: EditorHintProps) {
   return (
     <li className="flex items-center gap-8">

@@ -1,6 +1,7 @@
 import type { AgentAccessItem } from '@connection-portal/api-types/agent-access';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { Link } from 'react-router';
 
 import { listAgentAccess } from '../../api/agent-access';
 import { errorNoticeOf } from '../../api/client';
@@ -8,24 +9,28 @@ import ErrorNoticeText from '../../components/ErrorNoticeText';
 import FeedbackLoader from '../../components/FeedbackLoader';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
+import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import AccessLevelDialog from './AccessLevelDialog';
 import AgentAccessList from './AgentAccessList';
-import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_README_URL } from './constants';
+import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_README_URL, SUCCESS_TOASTS } from './constants';
 import CreateTokenDialog from './CreateTokenDialog';
 import RevokeDialog from './RevokeDialog';
 import TokenCreatedDialog from './TokenCreatedDialog';
+import type { AccountViewProps } from './types';
 import { accountReducer } from './utils';
 
 /**
- * The user page (S2; FR-004, FR-006): the signed-in team member's agent connections and personal
- * access tokens, and only theirs, each with its access level and dates, to change the level of or
- * revoke. Tokens are created here and shown once. When a dialog closes, the focus goes back to
- * the control that opened it, as in `UserMenu`, or, when its row is gone, to the page's heading.
+ * The account page (S20; 007-S2, FR-004, FR-006; W16): the signed-in team member's agent
+ * connections and personal access tokens, and only theirs, each with its access level and dates,
+ * to change the level of or revoke. Tokens are created here and shown once. When a dialog
+ * closes, the focus goes back to the control that opened it, as in `UserMenu`, or, when its row
+ * is gone, to the page's heading. If the list can't be loaded, the page shows §3's "Error state
+ * of a page", whose "Try again" loads it anew.
  */
-export default function AccountPage() {
+function AccountView({ onRetry, retried }: AccountViewProps) {
   useDocumentTitle(ACCOUNT_COPY.title);
   const { user } = useCurrentUser();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -51,6 +56,13 @@ export default function AccountPage() {
       ignore = true;
     };
   }, [handleUnauthorized]);
+
+  // "Try again" went with the loader: once the new attempt is done, the heading takes the focus
+  useEffect(() => {
+    if (retried && state.status !== 'loading') {
+      titleRef.current?.focus();
+    }
+  }, [retried, state.status]);
 
   // Runs after ConfirmDialog's effect has closed the native dialog, so the focus stays here
   useEffect(() => {
@@ -90,22 +102,42 @@ export default function AccountPage() {
     error: state.error,
     dispatch,
   };
+  // "Access level changed." is a finished save (green); "Access revoked." the neutral toast
+  const toast = state.toast && {
+    ...state.toast,
+    kind: SUCCESS_TOASTS.has(state.toast.message) ? ('success' as const) : ('neutral' as const),
+  };
   return (
     <>
       <PageTitle
         ref={titleRef}
+        size="x-large"
         title={ACCOUNT_COPY.title}
         hint={user ? ACCOUNT_COPY.signedInAs(user.username) : undefined}
       />
 
-      {state.status === 'failed' && state.loadError && (
+      {state.status === 'failed' && (
         <KernAlert variant="danger" title={ACCOUNT_COPY.loadFailedTitle} className="w-full">
-          <ErrorNoticeText notice={state.loadError} />
+          {state.loadError && <ErrorNoticeText notice={state.loadError} />}
+          <span
+            className={`flex flex-wrap items-center gap-x-24 gap-y-8 ${state.loadError ? 'mt-10' : ''}`}
+          >
+            <button
+              type="button"
+              onClick={onRetry}
+              className="kern-btn kern-btn--secondary kern-btn--small"
+            >
+              <span className="kern-label">{ACCOUNT_COPY.retry}</span>
+            </button>
+            <Link to={ROUTES.overview} className="kern-link">
+              {ACCOUNT_COPY.backToList}
+            </Link>
+          </span>
         </KernAlert>
       )}
 
       {state.status === 'loaded' && state.now && (
-        <div className="flex flex-col gap-40">
+        <div className="mt-16 flex flex-col gap-40">
           <AgentAccessList
             heading={ACCOUNT_COPY.agentsHeading}
             empty={
@@ -150,7 +182,17 @@ export default function AccountPage() {
       <RevokeDialog {...dialogProps} />
       <CreateTokenDialog {...dialogProps} levels={state.levels} />
       <TokenCreatedDialog dialog={state.dialog} onClose={closeDialog} />
-      <Toast toast={state.toast} onDismiss={dismissToast} />
+      <Toast toast={toast} onDismiss={dismissToast} noFooter />
     </>
   );
+}
+
+/**
+ * The account page's route: "Try again" after a failed load mounts the page anew, so that it
+ * starts from loading with a fresh state
+ */
+export default function AccountPage() {
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((current) => current + 1), []);
+  return <AccountView key={attempt} onRetry={retry} retried={attempt > 0} />;
 }

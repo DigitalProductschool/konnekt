@@ -3,12 +3,12 @@
 //
 // Values compare as `_enum_holds()` in backend/app/services/evaluation.py compares them: keys of
 // the variable's set, codes as integers and texts case-folded, in the form `literals.ts` gives
-// them, so plain equality decides. An applicant's values are a non-empty list, one value long
+// them, so plain equality decides. A citizen's values are a non-empty list, one value long
 // unless the variable is `multiple`, as the evaluator reads a single value as a list of one. A
 // negated literal swaps "includes one of" and "includes none of".
 // - One value: the allowed values are the set, within every "includes one of", without every
 //   "includes none of". The literals can be met when one value is left.
-// - Several values: the applicant's values lie in the set without every "includes none of", and
+// - Several values: the citizen's values lie in the set without every "includes none of", and
 //   meet every "includes one of" V. The literals can be met when each V keeps a value outside the
 //   "none of" values, and the set keeps at least one, since the values can't be empty
 import type {
@@ -24,7 +24,7 @@ import type {
 const UNSAT: UnsatAnswer = { verdict: 'unsat' };
 
 /**
- * Whether an applicant with `values` (non-empty, a single value as a list of one) meets the
+ * Whether a citizen with `values` (non-empty, a single value as a list of one) meets the
  * literal, as the evaluator compares, with `negated` flipping it
  */
 export function enumHolds(literal: Literal<EnumTest>, values: readonly EnumValue[]): boolean {
@@ -86,7 +86,7 @@ function decideOne(
   return UNSAT;
 }
 
-/** Whether an applicant whose only value is `value` meets every literal */
+/** Whether a citizen whose only value is `value` meets every literal */
 function allowsAlone(literals: readonly Literal<EnumTest>[], value: EnumValue): boolean {
   for (const literal of literals) {
     if (literal.test.values.includes(value) !== wantsOneOf(literal)) {

@@ -135,14 +135,14 @@ describe('backendFailureError', () => {
   });
 
   it('maps browser_only to published_read_only where the tool changes content', () => {
-    const error = new BrowserOnly('Only in the Connection Portal.');
+    const error = new BrowserOnly('Only in Konnekt.');
     expect(backendFailureError(error, true).structuredContent).toEqual({
       code: 'published_read_only',
       message: PUBLISHED_READ_ONLY_MESSAGE,
     });
     expect(backendFailureError(error, false).structuredContent).toEqual({
       code: 'not_allowed',
-      message: 'Only in the Connection Portal.',
+      message: 'Only in Konnekt.',
     });
   });
 });

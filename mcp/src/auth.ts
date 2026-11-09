@@ -177,7 +177,7 @@ export function protectedResourceMetadata(): {
     authorization_servers: [config.oauthIssuer],
     scopes_supported: [...LEVEL_ORDER],
     bearer_methods_supported: ['header'],
-    resource_name: 'Connection Portal',
+    resource_name: 'Konnekt',
   };
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "connection-portal",
-  "description": "The Connection Portal's MCP server and its skills: build, check and publish the connections between serviceBW forms and the EUDI Wallet with an agent.",
+  "description": "Konnekt's MCP server and its skills: build, check and publish the connections between serviceBW forms and the EUDI Wallet with an agent.",
   "version": "0.1.0",
   "author": {
     "name": "DO.IT, City of Stuttgart"

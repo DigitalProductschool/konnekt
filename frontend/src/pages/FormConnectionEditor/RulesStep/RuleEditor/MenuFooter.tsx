@@ -2,8 +2,9 @@ import { RULE_EDITOR_COPY } from './constants';
 import type { MenuFooterProps } from './types';
 
 /**
- * A menu's footer: the documents menu's note (FYI #20), after a divider, or the data menu's
- * "Need other data? Add it in Documents" (6348:40520), which opens the documents step.
+ * A menu's footer (U30 6350:41316, U31 6350:41628): the documents menu's note, after a divider,
+ * or the data menu's "Need other data? Add it in Documents", which opens the documents step
+ * (the page asks "Save changes to Rule 01?" first).
  */
 export default function MenuFooter({ text, divided = false, onAddData }: MenuFooterProps) {
   return (
@@ -14,7 +15,7 @@ export default function MenuFooter({ text, divided = false, onAddData }: MenuFoo
           className="h-px w-full shrink-0 bg-(--kern-color-decorative-border-default)"
         />
       )}
-      <div className="text-kern-static-small flex items-start gap-8 pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)">
+      <div className="text-kern-static-small flex shrink-0 items-start gap-8 pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static)">
         <p className="text-kern-layout-text-muted min-w-0 flex-1">{text}</p>
         {onAddData && (
           <button

@@ -1,94 +1,83 @@
-import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import { requestedRuleDocuments, ruleDocumentsOf } from '@connection-portal/rules/conditions';
 import { useId, useMemo, useState } from 'react';
-import { generatePath, Link } from 'react-router';
 
-import expandLessIcon from '../../assets/icons/expand-less.svg';
-import expandMoreIcon from '../../assets/icons/expand-more.svg';
-import { ROUTES } from '../../constants';
-import { DETAIL_COPY, EDIT_RULES_STATE } from './constants';
+import { useDocumentTypes } from '../../hooks/useDocumentTypes';
+import { DETAIL_COPY } from './constants';
+import DetailAccordion from './DetailAccordion';
+import DocumentsSummary from './DocumentsSummary';
 import RulesSummaryContent from './RulesSummaryContent';
 import type { RulesSummaryProps } from './types';
-import { draftRuleDocumentsOf, rulesCountsOf } from './utils';
+import { draftRuleDocumentsOf, requestedDocumentsOf, summaryCountsOf } from './utils';
 
 /**
- * Figma "Summary card" (U37 6396:47750, open 6396:48191; S6): the rules of every variant,
- * read-only, in a card that is closed until "View summary" (FYI #17). While closed, it counts the
- * variants and the rules under its title ("3 variants · 6 rules", Figma 10.11 6530:40737; B8).
- * "Download PDF", like the screen's activity, isn't built (F25). In its place, "Edit rules" opens the
- * edit wizard at the Rules step, which asks for confirmation when saving, not on entry (FR-030;
- * F27, W7). On phones the actions go under the title, and "Edit rules" shows only its icon, so
- * that both fit. A draft's card shows what the draft holds, incomplete rules included, without
- * "Edit rules": the draft's progress and "Continue" lead into its flow (spec 005, S6). Its rules
- * may check data it doesn't request (FR-004), which `catalog` names.
+ * The Summary accordion (S15; FR-046 (b), (i); U82 6396:48191, U91 7203:50531): "Summary" with
+ * the counts "2 documents · 9 data items · 3 variants · 4 rules" and "View summary" / "Hide
+ * summary" (`DetailAccordion`, T078); open, the documents part, a 1px line in action blue at 30 %,
+ * then "Rules" with the variants as tabs and the findings (`RulesSummaryContent`), the parts 24px
+ * apart. "Download PDF", drawn in the header, isn't built (F53), nor is an "Edit rules": the
+ * footer's "Edit connection" is the one way into editing (FR-046 (a); U83 #35).
+ *
+ * The catalog names what the checks read on a published connection (FR-047: the requested
+ * documents with their requested fields, as the approval page checks a draft), and, on a draft,
+ * the data its rules check without requesting it (FR-004). A draft's rules aren't checked. Until
+ * the catalog loads, or if it fails, a published connection's rules show unchecked and a draft's
+ * statements name only the requested documents.
  */
 export default function RulesSummary({
-  formConnectionId,
   branches,
   documents,
+  open,
+  onToggle,
   draft = false,
-  catalog,
 }: RulesSummaryProps) {
-  const [open, setOpen] = useState(false);
-  const titleId = useId();
-  const contentId = useId();
+  // Without `open`, the accordion keeps its own state (both details pages pass `open` today)
+  const [ownOpen, setOwnOpen] = useState(true);
+  const rulesTitleId = useId();
+  const { status, documentTypes } = useDocumentTypes();
   const context = useMemo(
     () => ({
-      documents: catalog ? draftRuleDocumentsOf(documents, catalog) : ruleDocumentsOf(documents),
+      documents: draft
+        ? draftRuleDocumentsOf(documents, documentTypes)
+        : ruleDocumentsOf(documents),
       optionSets: [],
     }),
-    [documents, catalog]
+    [draft, documents, documentTypes]
   );
-  const counts = useMemo(() => rulesCountsOf(branches), [branches]);
+  const checkDocuments = useMemo(
+    () =>
+      !draft && status === 'loaded'
+        ? requestedRuleDocuments(documentTypes, requestedDocumentsOf(documents))
+        : null,
+    [draft, status, documentTypes, documents]
+  );
 
   return (
-    <section
-      aria-labelledby={titleId}
-      className="rounded-kern-large bg-kern-layout-background-default overflow-hidden border border-(--kern-color-decorative-border-default)"
+    <DetailAccordion
+      title={DETAIL_COPY.summaryTitle}
+      counts={summaryCountsOf(documents, branches)}
+      viewLabel={DETAIL_COPY.viewSummary}
+      hideLabel={DETAIL_COPY.hideSummary}
+      open={open ?? ownOpen}
+      onToggle={onToggle ?? (() => setOwnOpen((isOpen) => !isOpen))}
     >
-      <div className="flex flex-wrap items-center gap-8 p-24">
-        {/* Sized by its text, so that the actions wrap under it rather than squeeze it */}
-        <div className="flex min-w-0 flex-auto flex-col">
-          <h2
-            id={titleId}
-            className="text-kern-static-medium text-kern-layout-text-default font-semibold"
+      <div className="flex flex-col gap-24 px-24 pb-24">
+        <DocumentsSummary documents={documents} draft={draft} />
+        {/* U82 6396:48221: decorative, between the two parts */}
+        <div aria-hidden="true" className="bg-kern-action-default h-px opacity-30" />
+        <section aria-labelledby={rulesTitleId} className="flex flex-col gap-24">
+          <h3
+            id={rulesTitleId}
+            className="text-kern-static-medium text-kern-action-default leading-(--kern-typography-line-height-medium-static) font-semibold"
           >
             {DETAIL_COPY.rulesTitle}
-          </h2>
-          <p
-            hidden={open}
-            className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
-          >
-            {counts}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-8">
-          {!draft && (
-            <Link
-              to={generatePath(ROUTES.editFormConnection, { id: formConnectionId })}
-              state={EDIT_RULES_STATE}
-              className="kern-btn kern-btn--secondary"
-            >
-              <span aria-hidden="true" className="kern-icon kern-icon--edit" />
-              <span className="kern-label max-sm:sr-only">{DETAIL_COPY.editRules}</span>
-            </Link>
-          )}
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={contentId}
-            onClick={() => setOpen((isOpen) => !isOpen)}
-            className="kern-btn kern-btn--tertiary kern-btn--small"
-          >
-            <span className="kern-label">
-              {open ? DETAIL_COPY.hideSummary : DETAIL_COPY.viewSummary}
-            </span>
-            <img src={open ? expandLessIcon : expandMoreIcon} alt="" className="size-20" />
-          </button>
-        </div>
+          </h3>
+          <RulesSummaryContent
+            branches={branches}
+            context={context}
+            checkDocuments={checkDocuments}
+          />
+        </section>
       </div>
-      <div id={contentId} hidden={!open} className="flex flex-col gap-24 px-24 pb-24">
-        {open && <RulesSummaryContent branches={branches} context={context} />}
-      </div>
-    </section>
+    </DetailAccordion>
   );
 }

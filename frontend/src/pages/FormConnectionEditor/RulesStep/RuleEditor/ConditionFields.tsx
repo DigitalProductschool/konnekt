@@ -79,7 +79,7 @@ export default function ConditionFields({
             value={typeof condition.value === 'string' ? condition.value : ''}
             invalid={problemField === 'value'}
             describedBy={describedBy('value')}
-            widthClass="min-w-96 max-w-full field-sizing-content"
+            widthClass="narrow:min-w-0 min-w-140 max-w-full field-sizing-content"
             onChange={(text) => onChange({ ...condition, value: text })}
             onBlur={() => dispatch({ type: 'touch', field: 'value' })}
           />
@@ -176,7 +176,7 @@ export default function ConditionFields({
               UNIT_SECTIONS[0].choices.find((choice) => choice.key === condition.unit) ?? null
             }
             sections={UNIT_SECTIONS}
-            widthClass={MENU_WIDTHS.unit}
+            width={MENU_WIDTHS.unit}
             state={state}
             dispatch={dispatch}
             onChoose={(key) => {

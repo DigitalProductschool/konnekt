@@ -12,12 +12,13 @@ import {
   optionsOf,
   suffixOf,
 } from '@connection-portal/rules/conditions';
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
-import { boundaryOf, boundaryPhrase, formatDate } from '@connection-portal/rules/dates';
+import { LICENCE_CLASSES_SET, RELATION_WORDS } from '@connection-portal/rules/constants';
+import { boundaryOf } from '@connection-portal/rules/dates';
 import { lowerFirst, proposedMessage } from '@connection-portal/rules/messages';
 import { ruleFieldLabel } from '@connection-portal/rules/statements';
 import type {
   ConditionKind,
+  DateBoundary,
   OperatorDefinition,
   ResolvedTarget,
   RuleContext,
@@ -29,6 +30,9 @@ import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg
 import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
 import {
   CHECK_SYMBOLS,
+  CHOICE_MENU_METRICS,
+  CLASS_ISSUE_DATE_PART,
+  EXPIRY_DATE_KEYS,
   INITIAL_RULE_EDITOR_STATE,
   NATIONALITIES_FIELD,
   RULE_EDITOR_COPY,
@@ -129,7 +133,7 @@ export function documentChoice(document: RuleDocument | undefined): MenuChoice |
     : null;
 }
 
-/** The data menu: the requested fields, then the images as "Can't be checked" (FR-002). */
+/** The data menu: the requested fields, then the images as "Not for rules" (FR-002). */
 export function dataSections(document: RuleDocument | undefined): MenuSection[] {
   const fields = document?.fields ?? [];
   const toChoice = (field: DocumentField): MenuChoice => ({
@@ -196,11 +200,11 @@ function checkChoice(definition: OperatorDefinition): MenuChoice {
 }
 
 /**
- * The check menu of a kind (FR-003). Dates come in sections (F3): on the Date of birth "Age",
- * "Time from now" and "Date of birth" as in U11; on other dates "Time ago", "Time from now" and
- * "Fixed date" as in U30.
+ * The check menu of a kind (FR-003). Dates, the Date of birth too, come in the sections "Time
+ * ago", "Time from now" and "Fixed date" (U31 6985:50041; F34; CLAR 2026-11-08 #63: the Date of
+ * birth keeps the baseline's fixed-date checks).
  */
-export function checkSections(kind: ConditionKind, dateOfBirth: boolean): MenuSection[] {
+export function checkSections(kind: ConditionKind): MenuSection[] {
   const definitions = operatorsFor(kind);
   if (kind !== 'date') {
     return [{ key: kind, choices: definitions.map(checkChoice) }];
@@ -208,23 +212,13 @@ export function checkSections(kind: ConditionKind, dateOfBirth: boolean): MenuSe
   const inSection = (section: OperatorDefinition['section']) =>
     definitions.filter((definition) => definition.section === section).map(checkChoice);
   return [
-    {
-      key: 'time_ago',
-      heading: dateOfBirth ? RULE_EDITOR_COPY.ageSection : RULE_EDITOR_COPY.timeAgoSection,
-      choices: inSection('time_ago'),
-    },
+    { key: 'time_ago', heading: RULE_EDITOR_COPY.timeAgoSection, choices: inSection('time_ago') },
     {
       key: 'time_from_now',
       heading: RULE_EDITOR_COPY.timeFromNowSection,
       choices: inSection('time_from_now'),
     },
-    {
-      key: 'date',
-      heading: dateOfBirth
-        ? RULE_EDITOR_COPY.dateOfBirthSection
-        : RULE_EDITOR_COPY.fixedDateSection,
-      choices: inSection('date'),
-    },
+    { key: 'date', heading: RULE_EDITOR_COPY.fixedDateSection, choices: inSection('date') },
   ];
 }
 
@@ -302,21 +296,72 @@ export function fieldProblemOf(
   }
 }
 
-/** What a date condition's missing-value note calls the checked date: "date of birth". */
-function checkedDateOf(target: ResolvedTarget): string {
-  if (target.part && target.licenceClass) {
-    return RULE_EDITOR_COPY.classOf(lowerFirst(target.part.label), target.licenceClass);
-  }
-  return lowerFirst((target.part ?? target.field).label);
+/** An ISO date as the design writes it: '2005-10-23' → "23.10.2005" (cosmetic 3). */
+export function dottedDate(date: string): string {
+  const [year, month, day] = date.split('-');
+  return `${day}.${month}.${year}`;
 }
 
 /**
- * The notes under the check row (S3). A field made of parts: U32's hint until its part is
- * chosen. Dates: F3's hint until a check is chosen, the Date of birth's or U30's for any other
- * date, then F4's notes, in error states too: the counting note with today's example for a date
- * counted from the day of sharing, U11's "Applicants who turn 21 that day count." under an age of
- * at least N, and the missing-value note for every date condition; a class's dates add the class
- * note. Text: the spaces hint (F7). Enums: Nationality's (F30) and the licence classes' hints.
+ * A boundary in words, after "that means": "born on or before 23.10.2005" on the Date of birth,
+ * "born between 24.10.2004 and 23.10.2005" for an exact age, "it expires on or after 23.04.2027"
+ * on an expiry date, "on or before 23.10.2024" on any other date.
+ */
+export function boundaryWords(boundary: DateBoundary, prefix: string | null): string {
+  const phrase =
+    boundary.relation === 'between'
+      ? `between ${dottedDate(boundary.from)} and ${dottedDate(boundary.to)}`
+      : `${RELATION_WORDS[boundary.relation]} ${dottedDate(boundary.date)}`;
+  return prefix ? `${prefix} ${phrase}` : phrase;
+}
+
+/** The words before a date's boundary: the Date of birth's "born", an expiry date's "it expires". */
+function boundaryPrefixOf(target: ResolvedTarget): string | null {
+  if (target.dateOfBirth) {
+    return RULE_EDITOR_COPY.bornPrefix;
+  }
+  return EXPIRY_DATE_KEYS.includes((target.part ?? target.field).key)
+    ? RULE_EDITOR_COPY.expiresPrefix
+    : null;
+}
+
+/**
+ * The counting note of a time-ago or from-now condition: from the day of sharing, or, on a
+ * licence class's issue date, from the date the class was first issued (U32 6350:42724); with
+ * today's example once the condition is complete.
+ */
+function countingNoteOf(target: ResolvedTarget, condition: Condition, today: string): string {
+  const counted =
+    target.licenceClass && target.part?.key === CLASS_ISSUE_DATE_PART
+      ? RULE_EDITOR_COPY.countedFromClassIssue(target.licenceClass)
+      : RULE_EDITOR_COPY.countedFrom;
+  const boundary = boundaryOf(condition, today);
+  return boundary
+    ? `${counted} ${RULE_EDITOR_COPY.todayMeans(
+        dottedDate(today),
+        boundaryWords(boundary, boundaryPrefixOf(target))
+      )}`
+    : counted;
+}
+
+/**
+ * The missing-value note of a date condition: the checked date's, "If the date of birth is
+ * missing …", or a licence class's, "If class B is missing …" (U32 6350:42726).
+ */
+function missingNoteOf(target: ResolvedTarget): string {
+  if (target.licenceClass) {
+    return RULE_EDITOR_COPY.classMissing(target.licenceClass);
+  }
+  return RULE_EDITOR_COPY.missingValue(lowerFirst((target.part ?? target.field).label));
+}
+
+/**
+ * The notes under the check row (S10). A field made of parts: U31's hint until its part is
+ * chosen. Dates: F34's hint until a check is chosen, then the notes, in error states too: the
+ * counting note with today's example for a date counted from the day of sharing (the born-between
+ * example for an exact age), "Citizens who turn 21 that day count." under an age of at least N
+ * (F59), and the missing-value note for every date condition (U30, U32, U53). Text: the spaces
+ * hint (F7). Enums: Nationality's (F30) and the licence classes' hints.
  */
 export function hintsOf(
   target: ResolvedTarget,
@@ -331,19 +376,11 @@ export function hintsOf(
   switch (target.kind) {
     case 'date': {
       if (!condition || !definition) {
-        return [target.dateOfBirth ? RULE_EDITOR_COPY.dateHint : RULE_EDITOR_COPY.dateHintOther];
+        return [RULE_EDITOR_COPY.dateHint];
       }
       const hints: string[] = [];
       if (definition.section !== 'date') {
-        const boundary = boundaryOf(condition, today);
-        hints.push(
-          boundary
-            ? `${RULE_EDITOR_COPY.countedFrom} ${RULE_EDITOR_COPY.todayMeans(
-                formatDate(today),
-                boundaryPhrase(boundary, target.dateOfBirth)
-              )}`
-            : RULE_EDITOR_COPY.countedFrom
-        );
+        hints.push(countingNoteOf(target, condition, today));
       }
       if (
         target.dateOfBirth &&
@@ -353,10 +390,7 @@ export function hintsOf(
       ) {
         hints.push(RULE_EDITOR_COPY.turnsThatDay(condition.years ?? 0));
       }
-      hints.push(RULE_EDITOR_COPY.missingValue(checkedDateOf(target)));
-      if (target.licenceClass) {
-        hints.push(RULE_EDITOR_COPY.classMissing(target.licenceClass));
-      }
+      hints.push(missingNoteOf(target));
       return hints;
     }
     case 'text':
@@ -389,6 +423,46 @@ export function yearsSuffix(
   years: number | null
 ) {
   return suffixOf(definition, dateOfBirth, years ?? 2) ?? '';
+}
+
+/**
+ * A menu's height with every choice shown, before it opens (CHOICE_MENU_METRICS): the frame, the
+ * search field, the list (each section's divider, heading and choices, 2px apart) and the
+ * footer, with its divider. Its placement decides from this (utils/popupPlacement.ts)
+ */
+export function choiceMenuHeight(
+  sections: MenuSection[],
+  searchable: boolean,
+  footer: 'none' | 'plain' | 'divided'
+): number {
+  const m = CHOICE_MENU_METRICS;
+  const listParts: number[] = [];
+  sections.forEach((section, index) => {
+    if (index > 0) {
+      listParts.push(m.divider);
+    }
+    if (section.heading) {
+      listParts.push(m.heading);
+    }
+    for (const choice of section.choices) {
+      listParts.push(choice.unavailable || choice.symbol ? m.tallRow : m.row);
+    }
+  });
+  const list =
+    listParts.reduce((sum, part) => sum + part, 0) + Math.max(listParts.length - 1, 0) * m.gap;
+  const parts = [list];
+  if (searchable) {
+    parts.push(m.search);
+  }
+  if (footer === 'divided') {
+    parts.push(m.divider);
+  }
+  if (footer !== 'none') {
+    parts.push(m.footer);
+  }
+  return (
+    m.frame + parts.reduce((sum, part) => sum + part, 0) + Math.max(parts.length - 1, 0) * m.gap
+  );
 }
 
 /**

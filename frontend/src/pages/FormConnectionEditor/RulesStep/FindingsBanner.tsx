@@ -2,27 +2,35 @@ import { bannerOf } from '@connection-portal/rules/checks/findingMessages';
 
 import expandLessIcon from '../../../assets/icons/expand-less-action-small.svg';
 import expandMoreIcon from '../../../assets/icons/expand-more-action-small.svg';
-import { BANNER_LOOKS, findingsListId, RULES_COPY } from './constants';
+import {
+  BANNER_LOOKS,
+  FINDINGS_BANNER_WRAP_CLASSES,
+  FINDINGS_TOGGLE_CLASSES,
+  findingsListId,
+  RULES_COPY,
+} from './constants';
 import FindingsBannerLine from './FindingsBannerLine';
 import type { FindingsBannerProps } from './types';
 import { bannerViewOf } from './utils';
 
 /**
- * The findings banner at the top of the open variant's rules (spec 003, S2, S7; A1, A2, A7, W4,
- * W8, W12, W13, W17, W19; FR-005, FR-006, FR-010, FR-013; Figma `Rules/Findings banner`
- * 6750:40865: U01 6750:40882, U02 6750:40933, U04 6750:41077, U05 6753:40144, U06 6753:40514, U07
- * 6753:40851, U08 6753:41324), 8 px inside the rules card: the warning background with its 1 px
- * border when the variant has a conflict or no applicant can meet it, the info one otherwise, as
- * for a duplicate, covered or always-met item alone or "Every applicant meets the rules of …"
- * (FR-019; a variant no applicant can meet has only its conflicts, W4); padding 8 and 16 on the
- * left, body/small text and no title. It draws what `bannerOf()` returns and builds no text
- * (design-notes.md §3.3): *single*, one line with what follows it, or the notice or FR-010's
- * sentence alone; *collapsed*, the default with
- * two or more lines, the counts row and a chevron "Show findings"; *expanded*, the counts row,
- * the chevron "Hide findings", then one item per line, the notice and FR-010's sentence. Whether
- * a variant's banner is expanded is kept in the step's state while the editor is open, never
- * stored. Nothing is shown before the variant's first check, or without checked rules (W13). The
- * banner isn't a live region: the status region announces the changes (FR-015).
+ * The findings banner (S12; spec 003 S2, S7; FR-013, FR-022, FR-041; Figma `Rules/Findings banner`
+ * 6750:40865: U44 6750:40882 single warning, 6750:40933 and 6750:41008 collapsed, U45 6750:41077,
+ * 6753:40514, 6753:40851 single info, 6753:40144 expanded), first in the rules card after the link
+ * strip, the selection bar and the unrequested-data banner (which then takes the same 8px inset),
+ * 8px inside the card: the warning
+ * background with its 1px border when the variant has a conflict or no citizen can meet it, the
+ * info one otherwise (a duplicate, covered or always-met item alone, or the notice that every
+ * citizen meets the variant); padding 8 8 8 16, gap 8, body/small text and no title. It draws what `bannerOf()`
+ * returns and builds no text (C4: the sentences are `findingMessages.ts`'s): *single*, one line
+ * with its sentence (U44 6750:40882), or the notice or the incomplete sentence alone; *collapsed*, the default with
+ * two or more lines: the counts row (U44 6750:40933) and the
+ * chevron "Show findings"; *expanded*, the counts row, the chevron "Hide findings", then
+ * one sentence per line with its own kind icon, 24px in, the notice and the incomplete sentence
+ * (without links). Whether a variant's banner is expanded is kept in the step's state while the
+ * editor is open, never stored. Nothing is shown before the variant's first check, without
+ * checked rules or without findings (W13). It updates in place; it isn't a live region: the
+ * status region (`FindingsAnnouncer`) announces the changes (FR-015).
  */
 export default function FindingsBanner({
   check,
@@ -41,7 +49,7 @@ export default function FindingsBanner({
   const toggleable = view.state !== 'single';
 
   return (
-    <div className="p-8">
+    <div data-findings-banner="" className={FINDINGS_BANNER_WRAP_CLASSES}>
       <div
         className={`${BANNER_LOOKS[banner.kind]} rounded-kern-default flex flex-col gap-8 border py-8 pr-8 pl-16`}
       >
@@ -52,9 +60,9 @@ export default function FindingsBanner({
               aria-expanded={expanded}
               aria-controls={listId}
               onClick={() => dispatch({ type: 'toggleFindings', branchKey: branch.key })}
-              className="group flex size-48 shrink-0 cursor-pointer items-center justify-center focus-visible:outline-none"
+              className={FINDINGS_TOGGLE_CLASSES.button}
             >
-              <span className="rounded-kern-default group-focus-visible:outline-kern-action-focus-default flex size-40 items-center justify-center group-focus-visible:outline-4 group-focus-visible:outline-offset-2">
+              <span className={FINDINGS_TOGGLE_CLASSES.box}>
                 <img src={expanded ? expandLessIcon : expandMoreIcon} alt="" className="size-20" />
               </span>
               <span className="sr-only">

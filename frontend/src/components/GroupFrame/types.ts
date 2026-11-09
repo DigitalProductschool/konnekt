@@ -7,6 +7,11 @@ import type { ShownFinding } from '../FindingNote/types';
 export interface GroupFrameMember {
   key: string;
   node: ReactNode;
+  /**
+   * Fades the connector before it, as next to a removed item (U47 6185:8569; FR-051 (39)): the
+   * call site's decision. The member fades its own content
+   */
+  faded?: boolean;
 }
 
 export interface GroupFrameProps {
@@ -43,10 +48,22 @@ export interface GroupFrameProps {
   footer?: ReactNode;
   /** How a based variant's group differs from Standard's (FR-023); none elsewhere */
   mark?: Mark | null;
-  /** Removed, or dissolved in its variant (F13): shown as removed, its content faded */
+  /**
+   * Removed, or dissolved in its variant (F13; U47 6185:41165): marked "Removed here", its name
+   * struck through and its header's text, message and connectors faded, the frame, the mark and
+   * the ⋯ at full colour. Its members fade themselves: the call site passes them `faded`
+   */
   inactive?: boolean;
-  /** In a removed or dissolved group, which fades its members already: no fading of its own */
+  /**
+   * Inside a removed or dissolved group (U47 6185:41171): faded part by part, its frame's fill,
+   * border and divider too, its name struck through; its mark keeps its colour (F36, FR-040)
+   */
   faded?: boolean;
+  /**
+   * The group's checkbox in select mode (F33; U36 6344:53557), placed before the frame; the
+   * selected group itself looks unchanged
+   */
+  selectBox?: ReactNode;
 }
 
 export interface GroupHeaderProps {
@@ -64,11 +81,15 @@ export interface GroupHeaderProps {
   identifier?: string;
   actions?: ReactNode;
   mark?: Mark | null;
-  /** Fades the text and strikes the name through */
+  /** Fades the name and the subtitle and strikes the name through; the mark and ⋯ stay */
   inactive?: boolean;
+  /** In a faded frame: the divider under the header fades too */
+  faded?: boolean;
 }
 
 export interface GroupMessageProps {
   message: string;
   field?: { id: string; onChange: (message: string) => void };
+  /** In a removed group or inside one: the card fades (it holds no menu) */
+  faded?: boolean;
 }

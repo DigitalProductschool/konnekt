@@ -48,7 +48,7 @@ export interface RestoreDialogProps {
   title: string;
   /** The draft's name, "Untitled connection" when it has none */
   name: string;
-  /** The record's last change, as "4 Nov 2026, 14:32" */
+  /** The record's last change, as "04.11.2026, 14:32" */
   changedAt: string;
   /** "Restore changes" */
   onRestore: () => void;

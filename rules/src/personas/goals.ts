@@ -1,6 +1,6 @@
 // The goals of generation (specs/004-rule-test-personas, FR-011; research R6, R7 "Item targets";
-// data-model.md, "Generation"): which branches no applicant can meet differently (the branch
-// classes), which outcome vectors some applicant reaches today (the realizable vectors), what the
+// data-model.md, "Generation"): which branches no citizen can meet differently (the branch
+// classes), which outcome vectors some citizen reaches today (the realizable vectors), what the
 // three personas try to cover (the targets of goals 1 to 4), and how well a set of personas covers
 // them (the score, compared goal by goal, never trading a goal for a later one).
 //
@@ -56,8 +56,8 @@ export function branchFormulaOf(checked: CheckedBranch): Formula {
  * A canonical serialisation of a formula: equal for formulas that differ only in the order of an
  * AND's or OR's children, in children kept twice, in an AND nested in an AND (an OR in an OR), in
  * `true` and `false` inside a level, in a level with one child, or in the order of an enum test's
- * values. Valid JSON. Formulas with the same key are met by the same applicants; the converse
- * needn't hold, which costs only targets that no applicant tells apart
+ * values. Valid JSON. Formulas with the same key are met by the same citizens; the converse
+ * needn't hold, which costs only targets that no citizen tells apart
  */
 export function canonicalKeyOf(formula: Formula): string {
   const normal = normalOf(formula);
@@ -142,7 +142,7 @@ function canonicalTest(test: LiteralTest): unknown[] {
 
 /**
  * The branch classes (research R6): branches with the same formula, by `canonicalKeyOf()`, form one
- * class, since no applicant can meet them differently. In tab order of each class's first branch,
+ * class, since no citizen can meet them differently. In tab order of each class's first branch,
  * and each class's branches in tab order. Its formula is its first branch's
  */
 export function branchClassesOf(branches: readonly CheckedBranch[]): BranchClass[] {
@@ -204,7 +204,7 @@ function passed(options: CheckOptions): boolean {
 const MAX_QUESTIONS_BELOW_UNKNOWN = 14;
 
 /**
- * The outcome vectors that some applicant reaches today (research R6): per class, in the order of
+ * The outcome vectors that some citizen reaches today (research R6): per class, in the order of
  * `classes`, meet (`true`) or fail (`false`), and `satisfiable()` answers 'sat' for the conjunction
  * of each class's formula or its negation. `classes` may carry substituted formulas (research R8);
  * only their formulas are read.
@@ -367,7 +367,7 @@ function withVectorPerTarget(
 
 // Items
 
-/** An item's formula that applicants can both meet and fail: a pair of goal-4 targets */
+/** An item's formula that citizens can both meet and fail: a pair of goal-4 targets */
 export interface ItemFormula {
   /** `canonicalKeyOf(formula)`: a rule several branches inherit is one item */
   key: string;

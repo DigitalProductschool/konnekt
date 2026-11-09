@@ -2,9 +2,11 @@ import { BRANCH_MARK_COLOURS, BRANCH_MARK_COPY } from './constants';
 import type { BranchMarkProps } from './types';
 
 /**
- * Figma "Rules/Variant status" (U17 6134:9009, 6134:9064; U18 6163:5856, 6163:5440): how a rule
- * or group of a variant based on Standard differs from Standard's, in its colour and in words,
- * left of the ⋯ menu (FR-023, W4).
+ * Figma "Rules/Variant status" (6118:3681; U57 6522:32682, U58 6522:32977, U47 6185:8555): how a
+ * rule or group of a variant based on Standard differs from Standard's, in its colour and in
+ * words, left of the ⋮ menu (FR-023, W4): a 14/24 semibold label on a tag with radius 4 and
+ * padding 2/8. It shows whatever mark it gets, also on an item faded inside a removed group, so
+ * that "Changed here" stays there (F36, FR-040).
  */
 export default function BranchMark({ mark }: BranchMarkProps) {
   return (

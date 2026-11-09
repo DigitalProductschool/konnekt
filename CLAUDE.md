@@ -91,9 +91,16 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   component: its types in `types.ts`, its constants in `constants.ts`, state-independent helpers
   in `utils.ts`. Several state variables → `useReducer` with actions. JSX mapped over a list → a
   sub-component.
-- **Styling**: Tailwind classes only, no inline styles; custom tokens go into `@theme` in
+- **Styling**: Tailwind classes only, no inline styles (a measured height may be set as a CSS
+  custom property for classes to read, as `WizardLayout` does); custom tokens go into `@theme` in
   `index.css`. Numeric utilities are pixels (`p-16` is 16px). KERN's CSS beats Tailwind on the
   same property: wrap the KERN element, or use the `!` suffix sparingly.
+- **KERN Revamp** (spec 008): the Revamp's values live in the overlay block of `index.css`
+  under KERN's names; a value without a KERN name is a `@theme` token
+  (`docs/KERN-DESIGN-SYSTEM.md` §3.1).
+- **Narrow windows**: below 320 CSS px (a 320 px window at 200 % zoom) use the `narrow:`
+  variant; `index.css`'s narrow block already wraps words and halves the side paddings
+  (`docs/KERN-DESIGN-SYSTEM.md` §3.1).
 - **KERN**: keep the import order in `index.css`, never import
   `@kern-ux-annex/kern-react-kit/kern-react-kit.css`, and add the styles of a kit component that
   ships its own before using it (`docs/KERN-DESIGN-SYSTEM.md` §2). Inside a labelled `kern-btn`,
@@ -107,9 +114,11 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `href` reload the page.
 - **Pages**: route in `App.tsx`, path in `ROUTES` (`src/constants.ts`), tab title with
   `useDocumentTitle()`, exactly one `h1`. Which layout a page uses: ARCHITECTURE, "frontend".
-- **Popups** (menus, popovers, tooltips) pick their side with `placementFrom()`
-  (`src/utils/popupPlacement.ts`); never anchor a fixed-width popup with `left-0` or `right-0`
-  alone.
+- **Popups**: menus, tooltips and popovers are placed by `placementFrom()`'s class sets (side,
+  direction, max-height step; `src/utils/popupPlacement.ts`), never with inline coordinates
+  (ARCHITECTURE, "frontend").
+- **Dialogs**: a scrim click closes a dialog unless it deletes or publishes
+  (`ConfirmDialog`'s `dismissOnScrim={false}`; ARCHITECTURE, "frontend").
 - No `any` without a justification, no `require()`. Never add a `vitest.config.ts` to
   `frontend/`: it would replace the `test` block of `vite.config.ts`.
 
@@ -146,8 +155,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   EUDIPLO (ARCHITECTURE, "Form connections" and "serviceBW's connection URLs").
 - Publishing a draft goes through `create_revision()` with a `DraftGuard`, never a second save
   path (ARCHITECTURE, "Form connections").
-- Only `hooks/useLocalDraftStore.ts` touches `localStorage`; `utils/localDrafts/` stays pure
-  and takes a `StorageLike` (ARCHITECTURE, "Local drafts (spec 005)").
+- Only `useLocalDraftStore` and `useRememberedHomepage` touch `localStorage`;
+  `utils/localDrafts/` stays pure and takes a `StorageLike` (ARCHITECTURE, "Local drafts
+  (spec 005)").
 - Local drafts never hold personas, findings or citizen data, and nothing in
   `utils/localDrafts/` or its hooks logs (ARCHITECTURE, "Local drafts (spec 005)").
 
@@ -157,7 +167,7 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   `npm test` in `mcp/` fails when a tool isn't described (`mcp/src/guidance.test.ts`; details in
   `specs/007-agent-mcp-server/contracts/guidance.md`).
 - The MCP server logs only through `mcp/src/log.ts` (method, tool, status, duration), never
-  arguments, results, tokens, findings or applicants (ARCHITECTURE, "Agent access and the MCP
+  arguments, results, tokens, findings or citizens (ARCHITECTURE, "Agent access and the MCP
   server (spec 007)").
 
 ## Code style

@@ -7,8 +7,8 @@ import { redirectTarget } from './utils';
 
 /**
  * Shows its children to signed-out users. Signed-in users go on to the route that sent
- * them to sign in, or without one to the first-connection screen. This also moves the
- * sign-in screen on after a successful sign-in.
+ * them to sign in, or without one to the homepage "/" (the welcome page or the overview,
+ * FR-027; `redirectTarget`). This also moves the sign-in screen on after a successful sign-in.
  */
 export default function RequireSignedOut({ children }: RequireSignedOutProps) {
   const { status } = useCurrentUser();

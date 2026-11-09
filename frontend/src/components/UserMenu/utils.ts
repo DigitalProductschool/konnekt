@@ -3,15 +3,8 @@ import type { LocalDraftRecord } from '../../utils/localDrafts/types';
 import { SIGN_OUT_COPY, SIGN_OUT_MAX_NAMES } from './constants';
 import type { UserMenuAction, UserMenuState } from './types';
 
-/** Initials for the avatar: "laura.weber" becomes "LW", "alice" becomes "A". */
-export function initialsOf(username: string): string {
-  return username
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('');
-}
+// No initials any more: the account pill shows a person icon and the menu the name (spec 008,
+// FR-030, F17; build note 14 "No initials")
 
 /**
  * The local drafts' names for the sign-out warning: at most 5, as "a, b and c", and then

@@ -27,10 +27,11 @@ function sharedLocalDraftStore(): LocalDraftStore {
  * The local draft store and the signed-in account's username (contracts/local-drafts.md
  * "Hooks"; FR-019, FR-021).
  *
- * This is the only code that touches `window.localStorage`: every other module of the local
- * drafts takes a `StorageLike`, so it stays testable in Node, and every caller shares this one
- * store, so the accounts that `close()` refused at sign-out stay refused for the autosave's
- * flush on unmount too. When the account signs in, the hook reopens it.
+ * Besides `useRememberedHomepage` (one homepage flag per account, spec 008), this is the only
+ * code that touches `window.localStorage`: every other module of the local drafts takes a
+ * `StorageLike`, so it stays testable in Node, and every caller shares this one store, so the
+ * accounts that `close()` refused at sign-out stay refused for the autosave's flush on unmount
+ * too. When the account signs in, the hook reopens it.
  *
  * Nothing here removes a record: an expired session (a 401) signs out without touching the
  * account's local drafts, which are offered again at the next sign-in (FR-019). Only "Log out"

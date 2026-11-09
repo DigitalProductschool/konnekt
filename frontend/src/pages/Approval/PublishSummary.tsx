@@ -1,42 +1,42 @@
-import { useMemo } from 'react';
+import { countRules } from '@connection-portal/rules/tree';
 
-import { useDocumentTypes } from '../../hooks/useDocumentTypes';
-import { DETAIL_COPY } from '../FormConnectionDetail/constants';
-import DocumentsSummary from '../FormConnectionDetail/DocumentsSummary';
-import RulesSummaryContent from '../FormConnectionDetail/RulesSummaryContent';
-import { draftRuleDocumentsOf } from '../FormConnectionDetail/utils';
+import { DETAIL_COPY, SUMMARY_TABLE_CLASSES } from '../FormConnectionDetail/constants';
+import RulesSummary from '../FormConnectionDetail/RulesSummary';
+import { PUBLISH_COPY } from '../FormConnectionEditor/constants';
+import PublishSummaryRow from '../FormConnectionEditor/PublishSummaryRow';
+import ApprovalFindings from './ApprovalFindings';
 import DescriptionLine from './DescriptionLine';
 import type { PublishSummaryProps } from './types';
 
 /**
- * The publish step's summary, as the details page shows a draft (S3 "Body", `publish`): the
- * description line, the documents with their fields, and every variant's rules, open, rules on
- * data the draft doesn't request included, which the catalog names as on the details page.
+ * The body of `publish` (S3 "Body"; S14's look, T076): the description line, the publish dialog's
+ * summary ("Dialog content/Publish · summary", U73 7058:62120: the 8px-round table with the
+ * decorative border, its rows `PublishSummaryRow`, "Personal ID · 7 data items" per document and
+ * "Standard · 2 rules" per variant in tab order), the rule checks' lines as the dialog lists them
+ * (`ApprovalFindings`, C4), then the stored draft in full as the draft details show it: the
+ * Summary card (`RulesSummary`, open) with the documents and their data items and the variants'
+ * rules as tabs, rules on data the draft doesn't request included, which the catalog names. The
+ * card runs no second check: a draft's rules are checked by `ApprovalFindings` only.
  */
 export default function PublishSummary({ draft }: PublishSummaryProps) {
-  // Until the catalog loads, or if it fails, the statements name only the requested documents
-  const { documentTypes } = useDocumentTypes();
-  const context = useMemo(
-    () => ({ documents: draftRuleDocumentsOf(draft.documents, documentTypes), optionSets: [] }),
-    [draft.documents, documentTypes]
+  const documentLines = draft.documents.length
+    ? draft.documents.map((document) =>
+        PUBLISH_COPY.documentLine(document.label, document.fields.length)
+      )
+    : [DETAIL_COPY.noDocumentsYet];
+  const ruleLines = draft.branches.map((branch) =>
+    PUBLISH_COPY.ruleLine(branch.name.trim(), countRules(branch.items))
   );
 
   return (
-    <div className="flex flex-col gap-32">
+    <div className="flex flex-col gap-24">
       {draft.description && <DescriptionLine description={draft.description} />}
-      <DocumentsSummary documents={draft.documents} draft />
-      <section
-        aria-labelledby="approval-rules-title"
-        className="rounded-kern-large bg-kern-layout-background-default flex flex-col gap-24 border border-(--kern-color-decorative-border-default) p-24"
-      >
-        <h2
-          id="approval-rules-title"
-          className="text-kern-adaptive-medium text-kern-layout-text-default font-semibold"
-        >
-          {DETAIL_COPY.rulesTitle}
-        </h2>
-        <RulesSummaryContent branches={draft.branches} context={context} />
-      </section>
+      <dl className={SUMMARY_TABLE_CLASSES}>
+        <PublishSummaryRow label={PUBLISH_COPY.documents} values={documentLines} divided />
+        <PublishSummaryRow label={PUBLISH_COPY.rules} values={ruleLines} />
+      </dl>
+      <ApprovalFindings draft={draft} />
+      <RulesSummary branches={draft.branches} documents={draft.documents} draft />
     </div>
   );
 }

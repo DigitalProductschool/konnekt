@@ -47,12 +47,12 @@ the called branch's rules. See [Rules and branches](#rules-and-branches-spec-002
 Spec 003 ([plan](../specs/003-rule-consistency-checks/plan.md)) adds **rule
 consistency checks**: while the team member edits, the Rules step points out rules and
 groups that conflict, repeat or cover each other, are always met, or make a variant
-that no applicant can meet. They run only in the browser and never reach the server.
+that no citizen can meet. They run only in the browser and never reach the server.
 See [Rule consistency checks](#rule-consistency-checks-spec-003).
 
 Spec 007 ([plan](../specs/007-agent-mcp-server/plan.md)) lets team members connect **LLM
 agents** through an MCP server: the agents find and read connections, build drafts one change
-at a time with the editor's own logic, run the rule checks and test fictitious applicants, and
+at a time with the editor's own logic, run the rule checks and test fictitious citizens, and
 ask for the team member's **approval** to publish or delete a draft or to deactivate,
 reactivate or delete a live connection. See
 [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007).
@@ -141,33 +141,40 @@ frontend/
 │   │                     # document-types.ts, form-connections.ts, option-sets.ts; spec 007:
 │   │                     # agent-access.ts, approvals.ts, oauth.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
-│   ├── components/       # App shell (AppLayout, TopBar, UserMenu, PageTitle), the wizard's
-│   │                     # frame (WizardLayout), the signed-out screens' frame (AuthLayout),
-│   │                     # route guards, sign-in state provider, dialogs, shared form pieces,
-│   │                     # and the read-only rules display that the Rules step and the
-│   │                     # details share: RuleRow, GroupFrame, Connector, BranchMark,
+│   ├── components/       # App shell (AppLayout, TopBar with the header pills, UserMenu,
+│   │                     # PageTitle), the wizard's frame (WizardLayout, WizardProgress), the
+│   │                     # signed-out screens' frame (AuthLayout), route guards, sign-in state
+│   │                     # provider, ConfirmDialog, Toast, ActionMenu, InfoTooltip, shared
+│   │                     # form pieces, and the read-only rules display that the Rules step
+│   │                     # and the details share: RuleRow, GroupFrame, Connector, BranchMark,
 │   │                     # BranchName; FindingNote, the note under a rule or group with a
 │   │                     # finding of the rule checks; LocalDraftsOffer (spec 005);
 │   │                     # AccessLevelChoice, the three access levels as radio buttons (spec 007)
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
 │   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
-│   │                     # useRuleChecks (the rule checks' run and their worker),
-│   │                     # useLocalDraftStore, useLocalDraft, useLocalDrafts (spec 005)
+│   │                     # useRuleChecks (the rule checks' run and their worker), usePersonas,
+│   │                     # useTodayInGermany (spec 004), useLocalDraftStore, useLocalDraft,
+│   │                     # useLocalDrafts (spec 005), useRememberedHomepage (spec 008),
+│   │                     # usePinned, useUndoShortcut
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
-│   │                     # (overview), FirstConnection, FormConnectionEditor (the wizard,
-│   │                     # with RulesStep/ and RulesStep/RuleEditor/), FormConnectionEdit,
-│   │                     # FormConnectionDetail; spec 007: Authorize (the consent page),
-│   │                     # Account (the user page), Approval (an approval request)
-│   ├── utils/            # Shared helpers: documentGlyphs.ts (a document type's icon),
-│   │                     # menuNavigation.ts (arrow keys in menus), popupPlacement.ts
-│   │                     # (the side a popup opens to); localDrafts/: the local drafts'
+│   │                     # (the overview and the welcome page at /), FirstConnection
+│   │                     # (/get-started), FormConnectionEditor (the wizard, with
+│   │                     # DocumentsStep/, RulesStep/, RulesStep/RuleEditor/ and TestStep/),
+│   │                     # FormConnectionEdit, FormConnectionDetail; spec 007: Authorize (the
+│   │                     # consent page), Account (the user page), Approval (an approval
+│   │                     # request)
+│   ├── utils/            # Shared helpers: menuNavigation.ts (arrow keys in menus),
+│   │                     # popupPlacement.ts (where a popup opens), stickyPin.ts,
+│   │                     # undoShortcut.ts, messageField.ts; localDrafts/: the local drafts'
 │   │                     # pure modules (spec 005)
 │   ├── workers/          # The browser Worker entries: checks.ts (the rule checks) and
 │   │                     # personas.ts (the test personas)
-│   ├── constants.ts      # App name, routes, the wizard's steps, the KERN kit's English texts
+│   ├── constants.ts      # App name (Konnekt), routes, the wizard's steps, the KERN kit's
+│   │                     # English texts
 │   ├── App.tsx           # Routes
 │   ├── main.tsx          # Entry point: router, KERN context, sign-in state
-│   └── index.css         # Tailwind, KERN, and the project's design tokens
+│   └── index.css         # Tailwind, KERN, the KERN Revamp overlay, the project's tokens and
+│                         # KERN overrides
 ├── vite.config.ts        # Vite configuration, and Vitest's `test` block (node environment)
 ├── nginx.conf            # Serves the production build, proxies /api to the backend and
 │                         # /mcp to the MCP server
@@ -185,9 +192,12 @@ frontend/
 - Routing with React Router 7 (`BrowserRouter`). `RequireSignIn` sends signed-out
   users to `/login` and back to the requested route afterwards, and `RequireSignedOut`
   sends signed-in users on from `/login` and `/forgot-password`. A sign-in without a
-  requested route, where `/` counts as none, goes to `/get-started`, which opens the
-  create wizard while no form connection exists and the overview otherwise (FR-022);
-  the logo still leads to the overview. `/form-connections/:id/edit` opens the same
+  requested route lands on the homepage `/` (`redirectTarget()`), which is the welcome page
+  while the account's list of connections and drafts is empty and the overview otherwise
+  (spec 008, FR-027; see "The homepage" below). The welcome page's "Create connection" opens
+  `/get-started`, the create wizard headed "Create your first connection", which opens the
+  overview instead once a connection exists. The product name leads to `/`.
+  `/form-connections/:id/edit` opens the same
   wizard, filled in with the connection; for a draft (spec 005), the create flow at the
   draft's stored step. The create routes carry the flow's local draft in `?local=` (see
   [Local drafts](#local-drafts-spec-005)). nginx already falls back to `index.html` for
@@ -195,58 +205,137 @@ frontend/
   only says whom to ask
 - Sign-in state lives in `CurrentUserProvider`, which asks `GET /api/auth/me` once;
   components read it with `useCurrentUser()`
-- **Layouts**: signed-in screens render inside `RequireSignIn` and `AppLayout`, whose top
-  bar is sticky. The create wizard (`/form-connections/new`, and `/get-started` through
-  `pages/FirstConnection/`), editing (`/form-connections/:id/edit`, through
-  `pages/FormConnectionEdit/`) and the details (`/form-connections/:id`, the wizard's last
-  screen in Figma) render their own `WizardLayout` instead, in every state, loading and
-  errors included: a header with a title, a 1120 px column and an action bar. It fills the
-  window and scrolls only the step between header and action bar; from the `split:` variant
-  (`index.css`: 1024 px wide, 640 px tall) its `head` (progress and page title) stays put
-  too. In windows under 480 px tall (`[@media(height<30rem)]`) the whole frame scrolls with
-  the window instead, so that the step stays reachable at 400 % zoom (WCAG 1.4.10, spec 005
-  FR-028). Modal dialogs and toasts render in its `overlay`, outside the scrolling area. The
-  signed-out screens (`/login`, `/forgot-password`) render inside `RequireSignedOut` and
-  `AuthLayout`
+- **Layouts** (spec 008, `contracts/ui-screens.md` L1–L4, research R4). Three route groups in
+  `App.tsx`: the signed-out screens (`/login`, `/forgot-password`) inside `RequireSignedOut`,
+  each in `AuthLayout` (L1: the login art and the card); the consent, account and approval
+  pages inside `RequireSignIn` and `AppLayout` (L2: the header pills over a 1120 px column);
+  and a layout-less group inside `RequireSignIn` whose pages render their own layout in every
+  state, loading and errors included. In that group, `/` renders `AppLayout` itself for the
+  welcome page and the overview, and its loading page has none (the signed-out header and the
+  56 px loader, U10 "loading your workspace"); the create wizard (`/form-connections/new`,
+  and `/get-started` through `pages/FirstConnection/`), editing
+  (`/form-connections/:id/edit`, through `pages/FormConnectionEdit/`) and the details
+  (`/form-connections/:id`) render `WizardLayout` (L3: the header pills, the step header, a
+  1120 px column and the 72 px footer; the details' `details` variant, L4, has no step header
+  and an 832 px column).
+  **The page scrolls** on every layout, not an area inside the frame (the wizard's inner
+  scroll and its `split:` variant are gone); only a few parts scroll inside themselves (the
+  overview's list card, the test step's panel). What stays put:
+  - the header (`TopBar`, its 64 px area with the 48 px pills) is sticky in windows at least
+    320 CSS px wide and 480 px tall (`[@media(width>=20rem)_and_(height>=30rem)]`); in
+    narrower or shorter ones (1280 × 1024 at 400 % zoom, a 320 px window at 200 %) it
+    scrolls away with the page, so that it can't cover half the window (WCAG 1.4.10, T096);
+  - the wizard's step header (progress, title, description) pins under the pills from
+    768 px wide and 640 px tall, the `wizard-pinned:` variant of `index.css`, and scrolls away
+    below that; the rules step pins its variant tab row and selection bar under it;
+  - the wizard's footer (sticky) and the overview's bar with "Create connection" (fixed)
+    stay at the window's bottom from 480 px tall (`[@media(height>=30rem)]`) and sit at the
+    page's end below that, where their wrapped rows would leave the step no room (spec 005
+    FR-028).
+  How much of the window the sticky parts cover is measured, because their height follows
+  their wrapped text: `WizardLayout` sets `--wizard-sticky-top` (the bottom of the pinned
+  step header, or of the header where only that is sticky, else 0) and
+  `--wizard-sticky-bottom` (the sticky footer's height, else 0) on `<html>`, and the rules
+  step sets `--rules-tabs-height` (its pinned tab row's height) on its own root, both with
+  `style.setProperty()` (constitution 1.2.1: a measured value only, the styles are classes).
+  `index.css`'s `scroll-padding` keeps what scrolls into view clear of them (WCAG 2.4.11),
+  and the steps' exceptions read them (the documents step's list, the rules step's pinned
+  selection bar, the test step's panel, the toast above the footer, the menus' edges in
+  `placementFrom()`). Below 320 CSS px (the `narrow:` variant, see the KERN bullet) the
+  toast region is sticky at the window's bottom instead of fixed, so that a toast with an
+  action can't hide the page's last controls. A page change fades the main region in over
+  150 ms and scrolls to the top (`App.tsx`, FR-052c). Modal dialogs and toasts render in the
+  layout's `overlay`
 - **Titles**: every page sets its tab title with `useDocumentTitle()` and has one `h1`:
   `PageTitle` on signed-in screens, except the loaded details, whose header title is the
   `h1` (`titleAsHeading`), and the intro's headline in `AuthLayout` on signed-out ones
-- **Popups**: menus, popovers and tooltips open to the side where they fit.
+- **Popups**: menus, popovers and tooltips open where they fit (research R10).
   `placementFrom()` in `src/utils/popupPlacement.ts`, called in the event that opens them,
-  picks `start`, `end` or `full` (across the rules card or the page, below the control);
-  the component maps it to a set of Tailwind classes, and the wrapper takes
-  `popupWrapperClass()`. A fixed-width popup anchored with `left-0` or `right-0` alone runs
-  off the screen at 320 px and 200 % zoom
+  measures the control against the window and the sticky edges and returns the side
+  (`start`, `end` or `full`: across the rules card or the page, below the control), for a
+  menu also the direction (`down` or `up`) and the largest max-height step that fits
+  (160–480 px, the list scrolling inside); the component maps each to a fixed set of
+  Tailwind classes, and the wrapper takes `popupWrapperClass()`. No inline coordinates: a
+  fixed-width popup anchored with `left-0` or `right-0` alone runs off the screen at 320 px
+  and 200 % zoom
+- **Dialogs** are `ConfirmDialog`, a native modal `<dialog class="kern-dialog">` that fades
+  in and out with its scrim. The ×, Escape and a click on the scrim close it, except for the
+  dialogs that delete or publish (`dismissOnScrim={false}`: deleting a connection or a
+  draft, revoking an agent's access, the publish dialog; FR-052a), where only the buttons,
+  the × and Escape do; a dialog that is busy (publishing, deleting) can't be closed at all
 - KERN design system: `index.css` imports Tailwind, KERN's fonts, `kern.css` and the
   KERN Tailwind theme, in that order. The React kit's own stylesheet is not imported,
   because it bundles an older KERN whose rules override KERN 2.8 (`docs/KERN-DESIGN-SYSTEM.md`
-  §2). `index.css` also keeps KERN's adaptive type at its small-screen values on every
-  width, as the Figma design uses it, and shows the focus ring of KERN's buttons and
-  checkboxes for keyboard focus only (`kern.css` draws it on any `:focus`, so also after a
-  click; `docs/KERN-DESIGN-SYSTEM.md` §7). Its `@theme` adds the tokens KERN lacks: the
-  shadows (`shadow-card`, `shadow-menu`, `shadow-chip`, `shadow-toast`) and the variant
-  marks' `variant-changed` and `variant-new` colours (spec 002). With the KERN Tailwind
-  theme, numeric utilities are pixels (`p-16` is 16px)
+  §2). The UI follows the designer's **KERN Revamp** (spec 008): the **overlay**, one
+  `:root` block right after the imports, sets the Revamp's values under KERN's own names
+  (colours, radii, the type at one size on every width, the disabled opacity of 0.68 and the
+  primary button's pressed shade, both for AA), so that `kern.css`, the kit and the Tailwind
+  theme pick them up. Its `@theme` adds the values KERN has no name for: the shadows
+  (`shadow-card`, `shadow-menu`, `shadow-toast`), three frame colours of the documents step,
+  the variant marks' colours, the motion's durations and keyframes. The scoped overrides
+  that follow (the footer's 40 px buttons, the pressed and disabled states, the checkbox, the
+  alert, the 56 px loader, the danger buttons, the dialog's fade) and the focus ring of
+  KERN's buttons, checkboxes and radios for keyboard focus only (`kern.css` draws it on any
+  `:focus`) are listed in `docs/KERN-DESIGN-SYSTEM.md` §3.1. Two custom variants:
+  `wizard-pinned:` (see Layouts) and `narrow:`, windows under 320 CSS px (a 320 px window at
+  200 % zoom), with a block that wraps long words and halves the side paddings and gaps
+  there (FR-010). Every element that transitions carries `motion`, which the one
+  `prefers-reduced-motion` rule switches off (FR-050). With the KERN Tailwind theme, numeric
+  utilities are pixels (`p-16` is 16px)
 - Light only, as the Figma design has no dark variant: `index.html` pins KERN's light
   theme with `data-kern-theme="light"` on `<html>`, which `kern.css` would otherwise
   switch to dark with the browser's preference, and `index.css` sets
   `color-scheme: only light` for the browser's own controls and against Chromium's auto
   dark theme (`docs/KERN-DESIGN-SYSTEM.md` §7)
-- The visual design comes from Figma; `specs/001-servicebw-eudi-middleware/design-notes.md`
-  records the screens, tokens and decisions, and `specs/002-connection-rules/design-notes.md`
-  those of the rules. Figma is out of step with spec 002, so its
-  `contracts/ui-screens.md` lists the decided deviations (F1–F32, W1–W9) that the UI builds
-  instead
-- The wizard has four steps, Connection, Documents, Rules and Publish (`CONNECTION_STEPS`
-  in `src/constants.ts`), in create and in edit; once a rule exists, the Test step (spec 004)
-  stands between Rules and Publish. The editor's reducer keeps the connection
-  and its documents, the Rules step's own reducer the branches, the open tab, select mode
-  and its dialogs, and the rule editor a third one. Nothing reaches the API before Publish
+- The visual design comes from Figma ("Middleware – V5" on the KERN Revamp). Its decisions
+  are recorded in `specs/008-kern-revamp-redesign/`: `spec.md` (what decides what, and the
+  Clarifications), `contracts/ui-screens.md` (the layouts L1–L4 and screens S1–S22 with
+  their states), `figma-audit/report.md` (the decided deviations F#, W#, C#) and
+  `design-notes.md` (the overlay, the component decisions, the patterns, the verification
+  tables and the history). The design notes of specs 001 and 002 are history; the behaviour
+  they cite stays in force (`docs/FIGMA-WORKFLOW.md`)
+- The wizard has four steps, Connection, Documents, Rules and Test (`CONNECTION_STEPS`
+  in `src/constants.ts`), in create and in edit, shown as "Step n of 4" (`WizardProgress`, a
+  `progressbar`; clickable while editing only). Publishing is a dialog, not a step
+  (`PublishDialog`, spec 008 Q7): the test step's "Publish" (the edit flow's "Save") opens
+  its summary, then its status ("Publishing…", "Published"), a failure with the error ID, or
+  a conflict; while no variant has rules, the rules step's "Publish without rules" (and the
+  edit flow's "Save") opens "Publish without rules?" ("Save without rules?") instead.
+  The editor's reducer keeps the connection and its documents; the documents step's view
+  reducer (`DocumentsStep/reducer.ts`) the shown document, the search, the removal waiting
+  for "Undo", the removal question and the needs-data flags; the Rules step's own reducer
+  the branches, the open tab, select mode and its dialogs; the rule editor a fourth one.
+  Nothing reaches the API before Publish
   or Save, or, in the create flow, "Save and exit", which stores the work as a draft (see
   [Form connections](#form-connections)); until then the work lives in the page's state and,
   in the create flow, in its local draft (see [Local drafts](#local-drafts-spec-005)). The
   details open the edit wizard at a step through the router state `EditLocationState.step`
   (`'connection'`, `'documents'` or `'rules'`)
+- **The header pills and leaving a flow** (L2, FR-026): `TopBar` draws the Konnekt pill
+  (home) and the account pill (`UserMenu`: the name, "Your account", "Log out"); inside a
+  connection a second pill, "Your connections / <name> · <status>", grows out of the first.
+  In a flow, the product name, "Your connections" and "Log out" go through the editor's
+  leave model (`FormConnectionEditor/leaveFlow.ts`, pure, research R9): a new connection's
+  or a stored draft's flow asks "Leave this connection?" ("Save progress" stores it through
+  "Save and exit", "Discard connection" forgets its local draft), the edit flow of a
+  published connection asks "Save your changes?" while it has unsaved changes, and "Log out"
+  with unsaved work asks "Save before you log out?". There is no router blocker: the
+  browser's back button leaves without asking, and closing or reloading the tab gets the
+  browser's own "Leave site?" while the flow has unsaved work
+- **The homepage** (`/`, `pages/FormConnectionList/`, FR-027): the welcome page ("Welcome to
+  Konnekt", "Create connection") while the list of connections and drafts is empty, the
+  overview otherwise. So that a reload shows no flash of the wrong page,
+  `useRememberedHomepage()` keeps one flag per account in `localStorage` (see
+  [Local drafts](#local-drafts-spec-005)), written whenever the list loads and after the last
+  connection is deleted, and the pure `homepageOf(list, remembered)` picks the page while the
+  list loads; without a memory the loading page shows. The local-drafts offer
+  (`LocalDraftsOffer`, spec 005) sits above the welcome page's h1, between the overview's
+  title and its toolbar, and above step 1's card on `/get-started`
+- **The details** (`/form-connections/:id`, L4, S15, S16): the status band with the ⋯ menu
+  or "Activate again", the Links and Summary accordions; the Summary shows the documents, the
+  rules as variant tabs and the rule checks' findings, computed in the browser with
+  `useRuleChecks()` (`RulesSummaryContent`), never by the server. A stored draft's details
+  show the Summary first and the Links card without URLs
 - **Vitest** tests the pure logic in Node, without a DOM: the modules of `rules/src/`
   and the sibling `utils.ts` of components, each with its `*.test.ts` beside it. `npm test`
   is a gate (constitution III), because the rules' propagation between branches runs only
@@ -603,7 +692,7 @@ to R10 in `specs/002-connection-rules/`, the tables its
 
 While the team member edits, the Rules step checks each variant's rules and shows its
 **findings**: rules and groups that conflict, that are duplicates or covered by others,
-or that are always met, and variants that no applicant can meet or that every applicant
+or that are always met, and variants that no citizen can meet or that every citizen
 meets. The decisions are research R1 to R15 in `specs/003-rule-consistency-checks/`.
 The checks have no endpoint, table, setting or dependency of their own.
 
@@ -659,7 +748,7 @@ The checks have no endpoint, table, setting or dependency of their own.
 
 ### The test step and the test personas (spec 004)
 
-Before publishing, the team member sees how three sample applicants (personas) fare against
+Before publishing, the team member sees how three sample citizens (personas) fare against
 each variant's rules. The decisions are research R1 to R16 in
 `specs/004-rule-test-personas/`, the shapes in its `contracts/personas.md`. The step has no
 endpoint, table, setting or dependency of its own.
@@ -739,17 +828,28 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
   `format.ts`, `content.ts` and `store.ts`, each with its `*.test.ts`, beside
   `constants.ts` and `types.ts`. The store takes an injected `StorageLike`, which the tests
   fake in memory (`testStorage.ts`).
-  `hooks/useLocalDraftStore.ts` is the only code that touches `window.localStorage`: it
-  creates the page's one store, inside `try/catch`, and every hook shares it. Every storage
-  access in the store is in `try/catch`: blocked, full or missing storage makes local drafts
-  silently unavailable, and the flow works without them.
+  `hooks/useLocalDraftStore.ts` creates the page's one store, inside `try/catch`, and every
+  hook shares it. Besides it, only `hooks/useRememberedHomepage.ts` (spec 008, see below)
+  touches `window.localStorage`. Every storage access in the store is in `try/catch`:
+  blocked, full or missing storage makes local drafts silently unavailable, and the flow
+  works without them.
+- **The homepage flag** (spec 008, FR-027): `useRememberedHomepage()` keeps one flag per
+  account beside the records, under
+  `connection-portal:local-draft:v1:<username>:homepage:has-connections` (the key helper's
+  `<prefix><account>:` and the tail `homepage:has-connections`), `true` or `false`: whether
+  the account's list of connections and drafts held anything when it last loaded, so that `/`
+  shows the welcome page or the overview while the list loads again. The `:` in its tail
+  keeps the store from taking it for a flow key, so it is never listed, offered, expired or
+  removed with the records. It holds nothing else, every access is in `try/catch`, and
+  nothing is logged.
 - **The hooks**: `useLocalDraft()` is the editor's autosave, for a new connection and a
   stored draft only, with its decisions in pure helpers of `hooks/utils.ts`
   (`isLocalDraftChange`, `localDraftActionOf`, `writeDelayOf`). A published connection's
   edit flow never reads, writes or offers a local draft, and the edit page removes a
   `draft-<id>` record once that connection loads as published. `useLocalDrafts()` lists
-  the account's records for the offers on the overview and the first-connection screen
-  (`components/LocalDraftsOffer/`), and refreshes on `storage` events from other tabs.
+  the account's records for the offers on the welcome page, the overview and the
+  first-connection flow (`components/LocalDraftsOffer/`), and refreshes on `storage` events
+  from other tabs.
 - **`?local=`**: the create routes (`/form-connections/new`, `/get-started`) name the flow's
   local draft in the search parameter `local` (`LOCAL_DRAFT_PARAM`). A fresh flow writes its
   new key there with `replace`, on the same route, so the wizard stays mounted. A URL whose
@@ -774,10 +874,18 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
   (`LOCAL_DRAFT_MAX_AGE_MS`) is removed when the account's records are listed or read.
   Records belong to the signed-in username: the flow writes and the offers list only that
   account's. "Log out" in `UserMenu` flushes, lists the account's records and, if there are
-  any, warns; confirming removes them (`store.removeAll()`) and closes the account
-  (`store.close()`), so that an editor's flush on unmount can't bring one back until the
-  account signs in again (`reopen()` in `useLocalDraftStore`). An expired session (a `401`)
-  keeps them.
+  any, warns with "Log out and discard unsaved work?" (`SignOutDialog`, 005-S7); confirming
+  removes them (`store.removeAll()`) and closes the account (`store.close()`), so that an
+  editor's flush on unmount can't bring one back until the account signs in again
+  (`reopen()` in `useLocalDraftStore`). An expired session (a `401`) keeps them.
+  Spec 008's Q8 (e) replaced that dialog inside a flow: with unsaved work the editor asks
+  "Save before you log out?" (see [frontend](#frontend), "The header pills and leaving a
+  flow") and then calls `UserMenu`'s `logOut(onCancelled?)`. The old dialog stays as the one
+  exception to Q8 (e) (spec 008 #67, decided 2026-11-09): outside a flow, "Log out" with
+  local drafts on the device opens it, and in a flow `logOut()` opens it after the editor's
+  question when the account still has other records (its "Cancel" calls `onCancelled`).
+  `UserMenu`'s dialog, `logOut(onCancelled?)`, `SignOutDialog.tsx`, `SIGN_OUT_COPY` and
+  `signOutNamesOf` stay.
 - **Known limit** (research R11): another tab of the same account, in which the team member
   goes on editing after logging out elsewhere, writes its record again until its next API
   call signs it out. The record is then offered at the next sign-in.
@@ -834,7 +942,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   `authorization` is `None` for the browser. It touches the authorization's `last_used_at` at
   most once a minute. `require_level('drafts')` refuses a bearer below that level with
   `403 insufficient_access` and `needs_access_level`; `require_browser_session` refuses every
-  bearer with `403 browser_only` ("This action is done in the Connection Portal."), on the
+  bearer with `403 browser_only` ("This action is done in Konnekt."), on the
   endpoints that agents reach only through approval requests, `PUT /api/form-connections/{id}`,
   the user page's and the approval page's endpoints and `/api/auth/*`. `get_current_user` stays
   the cookie-only dependency. The table of who may call what is in the spec's
@@ -934,9 +1042,9 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   editor's budgets from `rules/src/checks/constants.ts`; a variant that doesn't finish comes
   back as not checked completely. Run from the sources (`npm run dev`, Vitest), the checks run
   on the main thread with the same deadline. Each finding carries the items involved, why it
-  holds and `resolutionOf()`'s text. `test_applicants` checks each fictitious applicant's
+  holds and `resolutionOf()`'s text. `test_applicants` checks each fictitious citizen's
   values against the variant's persona fields (`mcp/src/applicants.ts`) and evaluates them with
-  `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, applicants and
+  `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, citizens and
   results are never stored, sent on or logged.
 - **Guidance from one source** (research R16; the spec's `contracts/guidance.md`):
   `mcp/plugin/` holds the server instructions (`instructions.md`), the eight skills
@@ -955,7 +1063,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   results, tokens or claims. The client chooses the method and the tool name, so the line
   shows `other` for a method that isn't a method name's shape and `unknown` for a tool the
   server doesn't have. The backend logs ids and counts only, never a token, code, client
-  metadata, applicant, finding or rule content; the token endpoint's refusals are logged as
+  metadata, citizen, finding or rule content; the token endpoint's refusals are logged as
   their error code. The OAuth endpoints read no query, so both access logs, uvicorn's
   (`redact_references()` in `app/main.py`) and nginx's (`$redacted_request_uri`), show
   `/api/oauth/…?<redacted>` in place of any query sent there.
@@ -1187,7 +1295,7 @@ tree and a draft's content are one JSONB column each, since they are always read
 written whole. Autogenerate emits no CHECK constraint, partial unique index or backfill, so
 the drafts migration and spec 007's migration (`uq_agent_authorizations_oauth_client`, the
 variant ids in drafts) add them by hand. No table holds a citizen's documents, an
-evaluation, a finding, a test applicant or a token's secret.
+evaluation, a finding, a test citizen or a token's secret.
 
 ## Environment Variables
 
@@ -1248,7 +1356,7 @@ stops it in any environment. Trailing slashes are removed.
 | `OAUTH_ISSUER` | The authorization server its metadata names; the backend's `OAUTH_ISSUER` | `http://localhost:3000` |
 
 `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` must match the backend's, since tokens are bound to
-`MCP_URL` and links must open the right Connection Portal. `mcp/.env.example` lists them; the
+`MCP_URL` and links must open the right Konnekt installation. `mcp/.env.example` lists them; the
 compose files pass them as `environment:`, and `npm run dev -w mcp` reads them from the shell.
 
 ### Frontend

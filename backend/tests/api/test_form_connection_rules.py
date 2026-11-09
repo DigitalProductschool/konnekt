@@ -166,7 +166,7 @@ def _with_rule(**changes: Any) -> dict[str, Any]:
         ),
         (
             _with_rule(name='Rule 01'),
-            'Another rule in Standard is already called Rule 01.',
+            'There’s already a rule called "Rule 01" in Standard.',
         ),
     ],
 )

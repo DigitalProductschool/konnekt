@@ -1,10 +1,13 @@
 import checkIcon from '../../assets/icons/done-action-small.svg';
-import { CONNECTOR_LABELS } from './constants';
+import { CONNECTOR_LABELS, CONNECTOR_OPTION_STATES } from './constants';
 import type { ConnectorOptionProps } from './types';
 
 /**
- * An operator of Figma "Rules/Connector menu" (U14 6094:7052): its label and what it means. The
- * chosen one is tinted, in the action colour and ticked.
+ * An operator of Figma "Rules/Connector menu" (U34 6094:7052): its label (label/small) over what
+ * it means (body/small, muted), 8px padding, radius 4. The chosen one is tinted
+ * (`layout-background-hued`), its label in the action colour, with the 20px tick. Hover and
+ * pressed are the kit's "states" layers; keyboard focus fills it with the focus colour and turns
+ * its texts and tick white (P33 2:2406), as the ⋯ menus' entries do.
  */
 export default function ConnectorOption({
   operator,
@@ -19,17 +22,25 @@ export default function ConnectorOption({
       aria-checked={checked}
       tabIndex={-1}
       onClick={onChoose}
-      className={`text-kern-static-small rounded-kern-small focus-visible:outline-kern-action-focus-default flex w-full cursor-pointer items-center gap-8 p-8 text-left leading-(--kern-typography-line-height-medium-static) focus-visible:outline-4 focus-visible:-outline-offset-4 ${checked ? 'bg-kern-layout-background-hued' : 'hover:bg-kern-neutral-050 focus-visible:bg-kern-neutral-050'}`}
+      className={`group text-kern-static-small rounded-kern-small flex w-full shrink-0 cursor-pointer items-center gap-8 p-8 text-left leading-(--kern-typography-line-height-medium-static) ${CONNECTOR_OPTION_STATES} ${checked ? 'bg-kern-layout-background-hued' : ''}`}
     >
       <span className="flex min-w-0 flex-1 flex-col">
         <span
-          className={`font-semibold ${checked ? 'text-kern-action-default' : 'text-kern-layout-text-default'}`}
+          className={`group-focus-visible:text-kern-layout-text-inverse font-semibold ${checked ? 'text-kern-action-default' : 'text-kern-layout-text-default'}`}
         >
           {CONNECTOR_LABELS[operator]}
         </span>
-        <span className="text-kern-layout-text-muted">{description}</span>
+        <span className="text-kern-layout-text-muted group-focus-visible:text-kern-layout-text-inverse">
+          {description}
+        </span>
       </span>
-      {checked && <img src={checkIcon} alt="" className="size-20 shrink-0" />}
+      {checked && (
+        <img
+          src={checkIcon}
+          alt=""
+          className="size-20 shrink-0 group-focus-visible:brightness-0 group-focus-visible:invert"
+        />
+      )}
     </button>
   );
 }

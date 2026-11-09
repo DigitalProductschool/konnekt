@@ -2,15 +2,15 @@ import { SKELETON_BARS } from './constants';
 import type { SkeletonResultRowProps } from './types';
 
 /**
- * A row of the skeleton result card (S8.8; F14; Figma "row" 7062:51229, 7062:51516): the 16px
+ * A row of the skeleton result card (S8.8; F14; Figma U74 "row" 7062:51229, 7062:51516): the 16px
  * round placeholder of the status icon, 12px, then the rule column with the name's strong bar
  * and, below it, the statement's light bar (F14: Figma's rows have no statement yet), then the
  * message's light bar. Figma puts the message 60px after each name; here it starts where the
  * message column does, 340px in, as in the result table. The bars are 10px high, their centres
- * level with the icon's
+ * level with the icon's; 4px radius, the icon's placeholder round
  */
 export default function SkeletonResultRow({ name, statement, message }: SkeletonResultRowProps) {
-  const bar = 'rounded-kern-default h-10 max-w-full';
+  const bar = 'rounded-kern-small h-10 max-w-full';
   return (
     <div className="flex items-start gap-12">
       <div className={`rounded-kern-circle size-16 shrink-0 ${SKELETON_BARS.strong}`} />

@@ -252,7 +252,7 @@ function implies(itemId: string, items: string[], givenItems: string[] = []): Re
   };
 }
 
-/** Always met: every applicant meets the item */
+/** Always met: every citizen meets the item */
 function alwaysMet(itemId: string): ItemFinding {
   return { itemId, kind: 'always_met', reason: null, today: false };
 }
@@ -286,7 +286,7 @@ describe('US1-AS1 and AS2: two rules on a field that holds one value', () => {
     ]);
     expect(notes).toEqual({ 'rule-1': withNote('Rule 02'), 'rule-2': withNote('Rule 01') });
     expect(banner).toBe(
-      'Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules of Standard.'
+      'Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard.'
     );
   });
 
@@ -318,12 +318,12 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
       withItems('rule-2', ['rule-1']),
     ]);
     expect(notes).toEqual({
-      'group-1': 'Rule 01 and Rule 02 in this group can’t be met together.',
+      'group-1': 'Rule 01 and Rule 02 in this group contradict each other.',
       'rule-1': withNote('Rule 02'),
       'rule-2': withNote('Rule 01'),
     });
     expect(banner).toBe(
-      'Group 01: Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules ' +
+      'Group 01: Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules ' +
         'of Standard.'
     );
   });
@@ -345,13 +345,13 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
     ]);
     expect(notes).toEqual({
       'group-1': 'Sub-group 02 in this group can’t be met.',
-      'group-2': 'Rule 01 and Rule 02 in this group can’t be met together.',
+      'group-2': 'Rule 01 and Rule 02 in this group contradict each other.',
       'rule-1': withNote('Rule 02'),
       'rule-2': withNote('Rule 01'),
     });
     // Two lines, "Group 01: Sub-group 02 can’t be met." and Sub-group 02's, so collapsed
     expect(banner).toBe(
-      '2 rules can’t be met together. So no applicant can meet the rules of Standard.'
+      '2 rules contradict each other. So no citizen can meet the rules of Standard.'
     );
   });
 });
@@ -371,7 +371,7 @@ describe('US1-AS4: a group that can’t be met, as an alternative', () => {
       withItems('rule-1', ['rule-2']),
       withItems('rule-2', ['rule-1']),
     ]);
-    expect(notes['group-1']).toBe('Rule 01 and Rule 02 in this group can’t be met together.');
+    expect(notes['group-1']).toBe('Rule 01 and Rule 02 in this group contradict each other.');
   });
 });
 
@@ -384,7 +384,7 @@ describe('US1-AS5: a rule in an OR group that conflicts with an AND sibling (W2)
     expect(result).toMatchObject({ complete: true, notice: null, checkedRules: 3 });
     expect(result.findings).toEqual([withItems('rule-2', ['rule-1'])]);
     expect(notes).toEqual({ 'rule-2': withNote('Rule 01') });
-    expect(banner).toBe('Rule 01 and Rule 02 can’t be met together.');
+    expect(banner).toBe('Rule 01 and Rule 02 contradict each other.');
   });
 });
 
@@ -476,7 +476,7 @@ describe('EC-11: a conflict among four rules, any three of which can be met (W3)
       'rule-4': withNote('Rule 01, Rule 02 and Rule 03'),
     });
     expect(banner).toBe(
-      'Rule 01, Rule 02, Rule 03 and Rule 04 can’t be met together. So no applicant can meet the ' +
+      'Rule 01, Rule 02, Rule 03 and Rule 04 contradict each other, so no citizen can meet the ' +
         'rules of Standard.'
     );
   });
@@ -615,8 +615,8 @@ describe('EC-7: a fixed date against the day of sharing (FR-008, W5)', () => {
       'rule-2': withNote('Rule 01', true),
     });
     expect(banner).toBe(
-      'Rule 01 and Rule 02 can’t be met together at the moment. Right now, no applicant can meet ' +
-        'the rules of Standard.'
+      'Rule 01 and Rule 02 contradict each other, so right now no citizen can meet the rules ' +
+        'of Standard.'
     );
   });
 
@@ -635,10 +635,10 @@ describe('EC "An enum rule with every value" (FR-007)', () => {
     expect(result).toMatchObject({ complete: true, notice: NONE_CAN_MEET });
     expect(result.findings).toEqual([condition('rule-1')]);
     expect(notes).toEqual({
-      'rule-1': 'No applicant can meet this rule.',
+      'rule-1': 'No citizen can meet this rule.',
     });
     expect(banner).toBe(
-      'No applicant can meet Rule 01. So no applicant can meet the rules of Standard.'
+      'No citizen can meet Rule 01. So no citizen can meet the rules of Standard.'
     );
   });
 
@@ -651,14 +651,14 @@ describe('EC "An enum rule with every value" (FR-007)', () => {
     expect(result.findings).toEqual([condition('rule-2')]);
   });
 
-  it('"includes one of" every country: every applicant meets the rule, and the branch', () => {
+  it('"includes one of" every country: every citizen meets the rule, and the branch', () => {
     const { result, notes, banner } = scenario([
       on(1, MDL_NATIONALITY, { operator: 'includes_one_of', values: EVERY_COUNTRY }),
     ]);
     expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
     expect(result.findings).toEqual([alwaysMet('rule-1')]);
-    expect(notes).toEqual({ 'rule-1': 'Every applicant meets this rule.' });
-    expect(banner).toContain('Every applicant meets Rule 01, so it doesn’t check anything.');
+    expect(notes).toEqual({ 'rule-1': 'Every citizen meets this rule.' });
+    expect(banner).toContain('Every citizen meets Rule 01, so it doesn’t check anything.');
   });
 
   it('"includes one of" every country beside a rule that checks something: no notice', () => {
@@ -668,7 +668,7 @@ describe('EC "An enum rule with every value" (FR-007)', () => {
     ]);
     expect(result).toMatchObject({ complete: true, notice: null });
     expect(result.findings).toEqual([alwaysMet('rule-2')]);
-    expect(notes).toEqual({ 'rule-2': 'Every applicant meets this rule.' });
+    expect(notes).toEqual({ 'rule-2': 'Every citizen meets this rule.' });
   });
 });
 
@@ -811,15 +811,15 @@ describe('US2-AS4: a class listed, and a date of that class (V3 step 3)', () => 
   });
 });
 
-describe('US2-AS5: an OR group that every applicant meets (V3 step 4)', () => {
+describe('US2-AS5: an OR group that every citizen meets (V3 step 4)', () => {
   it('marks the group as always met, its rules stay plain', () => {
     const { result, notes, banner } = scenario([
       group(1, [ageAbove(1, 18), ageBelow(2, 21)], 'or'),
     ]);
     expect(result).toMatchObject({ complete: true, notice: ALL_MEET });
     expect(result.findings).toEqual([alwaysMet('group-1')]);
-    expect(notes).toEqual({ 'group-1': 'Every applicant meets this group.' });
-    expect(banner).toContain('Every applicant meets Group 01, so it doesn’t check anything.');
+    expect(notes).toEqual({ 'group-1': 'Every citizen meets this group.' });
+    expect(banner).toContain('Every citizen meets Group 01, so it doesn’t check anything.');
   });
 
   it('beside a rule that checks something, the branch has no notice', () => {
@@ -829,8 +829,8 @@ describe('US2-AS5: an OR group that every applicant meets (V3 step 4)', () => {
     ]);
     expect(result).toMatchObject({ complete: true, notice: null });
     expect(result.findings).toEqual([alwaysMet('group-1')]);
-    expect(notes).toEqual({ 'group-1': 'Every applicant meets this group.' });
-    expect(banner).toBe('Every applicant meets Group 01, so it doesn’t check anything.');
+    expect(notes).toEqual({ 'group-1': 'Every citizen meets this group.' });
+    expect(banner).toBe('Every citizen meets Group 01, so it doesn’t check anything.');
   });
 });
 
@@ -855,7 +855,7 @@ describe('US2-AS6: an OR group implied by a rule beside it (V3 step 5)', () => {
 
 describe('US2-AS7: deleting every redundant item changes no outcome (V3 step 6)', () => {
   // On the oracle's fields (testOracle.ts' ORACLE_CONTEXT), so that the oracle can compare
-  // every applicant's outcome on every day from today on
+  // every citizen's outcome on every day from today on
   const height = target('mdl', 'height');
   const classes = target('mdl', 'driving_privileges', 'classes');
   const familyName = target('pid', 'family_name');
@@ -890,7 +890,7 @@ describe('US2-AS7: deleting every redundant item changes no outcome (V3 step 6)'
     ]);
   });
 
-  it('deleting all of them at once changes no applicant’s outcome', () => {
+  it('deleting all of them at once changes no citizen’s outcome', () => {
     expect(oracleOf(branch).changedOutcome(redundant, FROM_TODAY)).toBeNull();
   });
 
@@ -996,7 +996,7 @@ describe('EC "Rules that are redundant only because of each other" (FR-005)', ()
   });
 });
 
-describe('EC-20 (W4): a branch that no applicant can meet, with a duplicate (V3 step 7)', () => {
+describe('EC-20 (W4): a branch that no citizen can meet, with a duplicate (V3 step 7)', () => {
   const conflict = [nationalityOneOf(1, 'DE'), nationalityOneOf(2, 'IT')];
   const duplicated = duplicateRule(conflict, 'rule-1', { rule: 3, group: 1 });
 
@@ -1017,7 +1017,7 @@ describe('EC-20 (W4): a branch that no applicant can meet, with a duplicate (V3 
 });
 
 describe('EC "A branch without rules"', () => {
-  it('has no findings and no notice, although every applicant meets it', () => {
+  it('has no findings and no notice, although every citizen meets it', () => {
     const { result, banner } = scenario([]);
     expect(result).toMatchObject({ complete: true, notice: null, findings: [], checkedRules: 0 });
     expect(banner).toBe('');
@@ -1156,7 +1156,7 @@ const V4_ROWS: V4Row[] = [
     rules: 'Driving licence – Nationality includes none of every country',
     items: [on(1, MDL_NATIONALITY, { operator: 'includes_none_of', values: EVERY_COUNTRY })],
     findings: [condition('rule-1')],
-    notes: { 'rule-1': 'No applicant can meet this rule.' },
+    notes: { 'rule-1': 'No citizen can meet this rule.' },
     notice: NONE_CAN_MEET,
   },
   {

@@ -15,7 +15,7 @@ main variant, called **Standard** until it is renamed. It can't be deleted.
 `empty`), its top-level `operator` and `operator_mark`, and its rules and groups as a tree, each
 with its readable statement, its mark and its link. It also lists the variant's
 `applicant_fields`, the data its rules check, which is what `test_applicants` takes for each
-applicant, and `unrequested_rules`, the rules that check data the connection no longer requests.
+citizen, and `unrequested_rules`, the rules that check data the connection no longer requests.
 
 ## Based and empty variants
 

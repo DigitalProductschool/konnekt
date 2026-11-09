@@ -3,14 +3,16 @@ import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
 import ChoiceField from './ChoiceField';
 import DateOfBirthField from './DateOfBirthField';
 import type { EditorFieldProps } from './types';
-import { ageDraftKey, ageTextOf, entryTextOf } from './utils';
+import { ageDraftKey, ageTextOf, editorLabelOf, entryTextOf } from './utils';
 import ValueField from './ValueField';
 import ValuesField from './ValuesField';
 
 /**
- * The field for one value, by its kind (S8.5; FR-006, F12): a date of birth with "Age today", text,
- * a whole number or a date as typed, one value of a set as a select, several as a picker. A field
- * shows its draft's text while it has one, otherwise the persona's value
+ * The field for one value in the edit-data dialog, by its kind (S8.5; FR-006, F12; spec 008 F40):
+ * a date of birth with "Age today", text, a whole number or a date as typed, one value of a set as
+ * a select (Nationality), several as a picker (licence classes by code). A field shows its draft's
+ * text while it has one, otherwise the dialog's value; its label is `editorLabelOf()`'s ("Date of
+ * birth", "Class B since")
  */
 export default function EditorField({
   field,
@@ -24,12 +26,13 @@ export default function EditorField({
   onValue,
 }: EditorFieldProps) {
   const draft = drafts[field.key];
+  const label = editorLabelOf(field);
   const text = draft?.text ?? entryTextOf(field.kind, value);
   if (field.kind === 'enum') {
     return field.multiple ? (
       <ValuesField
         id={id}
-        label={field.label}
+        label={label}
         choices={choices}
         classes={field.optionSet === LICENCE_CLASSES_SET}
         value={value}
@@ -38,7 +41,7 @@ export default function EditorField({
     ) : (
       <ChoiceField
         id={id}
-        label={field.label}
+        label={label}
         choices={choices}
         value={value}
         onChange={(chosen) => onValue(field, chosen)}
@@ -50,7 +53,7 @@ export default function EditorField({
     return (
       <DateOfBirthField
         id={id}
-        label={field.label}
+        label={label}
         dateText={text}
         dateError={draft?.error ?? null}
         ageText={age?.text ?? ageTextOf(value, today)}
@@ -63,7 +66,7 @@ export default function EditorField({
   return (
     <ValueField
       id={id}
-      label={field.label}
+      label={label}
       text={text}
       kind={field.kind}
       error={draft?.error ?? null}

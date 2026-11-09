@@ -218,7 +218,7 @@ function dissolvedGroups(items: readonly RuleTreeItem[]): string[] {
   });
 }
 
-/** The sets of items met, with the branch's outcome, of each applicant on `day` */
+/** The sets of items met, with the branch's outcome, of each citizen on `day` */
 function metSets(oracle: Oracle, branch: GeneratedBranch, day: number): Set<string> {
   const sets = new Set<string>();
   for (const applicant of oracle.applicantsOn(day)) {
@@ -236,7 +236,7 @@ function metSets(oracle: Oracle, branch: GeneratedBranch, day: number): Set<stri
   return sets;
 }
 
-/** The outcomes of `fieldRules` for the applicant on `day`, a letter each */
+/** The outcomes of `fieldRules` for the citizen on `day`, a letter each */
 function vectorOf(fieldRules: readonly RuleItem[], applicant: Applicant, day: number): string {
   return fieldRules.map((each) => ruleOutcome(each, applicant, day, ORACLE_CONTEXT)).join(',');
 }
@@ -756,7 +756,7 @@ describe('the dates and days the oracle enumerates', () => {
     }
   });
 
-  it('change what applicants can meet only on the days that stand for a range', () => {
+  it('change what citizens can meet only on the days that stand for a range', () => {
     let compared = 0;
     for (let seed = 1; compared < 20; seed += 1) {
       const branch = randomBranch(seed);

@@ -44,7 +44,7 @@ function must<T>(value: T | null): T {
 }
 
 // The spec's example (quickstart §3, "Passenger transport licence"): Standard requires an
-// applicant who is at least 21, lives in Stuttgart, holds class B and has held it for at least 2
+// citizen who is at least 21, lives in Stuttgart, holds class B and has held it for at least 2
 // years; Ambulance, based on it, lowers the age to 19 (Rule 01)
 const AGE = rule(1, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 21 });
 const CITY = rule(2, target('pid', 'address_locality'), {
@@ -300,7 +300,7 @@ describe('realizable vectors and targets', () => {
     }
   });
 
-  it('leaves out items that every applicant meets or none does', () => {
+  it('leaves out items that every citizen meets or none does', () => {
     const always = { or: [height('gt', 2), height('lt', 3)] };
     const never = { and: [weight('gt', 2), weight('lt', 3)] };
     const branch = checked('mixed', [

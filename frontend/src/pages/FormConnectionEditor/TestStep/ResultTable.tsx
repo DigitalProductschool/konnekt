@@ -13,7 +13,8 @@ import type { ResultTableProps } from './types';
  *
  * Figma's 340px column needs a card of 480px or more (a container query on `ResultSection`'s
  * card); in a narrower card (a phone, or 200 % zoom) the two columns share the width, so that the
- * message column isn't cut off (quickstart V9).
+ * message column isn't cut off (quickstart V9). In a window under 320 CSS px the two columns
+ * stack: each message under its rule (T096).
  *
  * A table, so that each message is read with its column's name.
  */
@@ -27,12 +28,12 @@ export default function ResultTable({ view }: ResultTableProps) {
         <tr className="border-b border-(--kern-color-decorative-border-default)">
           <th
             scope="col"
-            className={`${head} pl-40 ${messageColumn ? 'w-1/2 @min-[480px]:w-340' : 'pr-8'}`}
+            className={`${head} pl-40 ${messageColumn ? 'narrow:block narrow:w-full w-1/2 @min-[480px]:w-340' : 'pr-8'}`}
           >
             {view.listHeading ?? TEST_STEP_COPY.rule}
           </th>
           {messageColumn && (
-            <th scope="col" className={`${head} pr-8 pl-12 break-words`}>
+            <th scope="col" className={`${head} narrow:block narrow:pl-20 pr-8 pl-12 break-words`}>
               {view.messageColumn}
             </th>
           )}

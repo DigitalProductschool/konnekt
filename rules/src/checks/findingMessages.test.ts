@@ -178,9 +178,9 @@ describe('noteOf', () => {
       operator: 'and',
       items: ['rule-4', 'rule-5'],
     });
-    expect(noteOf(finding, NAMES)).toBe('Rule 04 and Rule 05 in this group can’t be met together.');
+    expect(noteOf(finding, NAMES)).toBe('Rule 04 and Rule 05 in this group contradict each other.');
     expect(noteOf({ ...finding, today: true }, NAMES)).toBe(
-      'Rule 04 and Rule 05 in this group can’t be met together at the moment.'
+      'Rule 04 and Rule 05 in this group contradict each other at the moment.'
     );
   });
 
@@ -216,11 +216,11 @@ describe('noteOf', () => {
     );
   });
 
-  it('says that no applicant can meet a rule on its own (W18, design-notes.md §2.3)', () => {
+  it('says that no citizen can meet a rule on its own (W18, design-notes.md §2.3)', () => {
     const finding = conflicting('rule-3', { type: 'condition' });
-    expect(noteOf(finding, NAMES)).toBe('No applicant can meet this rule.');
+    expect(noteOf(finding, NAMES)).toBe('No citizen can meet this rule.');
     expect(noteOf({ ...finding, today: true }, NAMES)).toBe(
-      'No applicant can meet this rule at the moment.'
+      'No citizen can meet this rule at the moment.'
     );
   });
 
@@ -277,13 +277,13 @@ describe('noteOf for redundant and always-met findings (US2)', () => {
       'Anyone who meets Rule 02 also meets this rule or Group 01. You can delete the rule.'
     );
     expect(noteOf(impliedBy('rule-4', [], ['group-1']), NAMES)).toBe(
-      'Every applicant meets this rule or Group 01. You can delete the rule.'
+      'Every citizen meets this rule or Group 01. You can delete the rule.'
     );
   });
 
   it('reads U06’s note 6753:40824, and a rule’s (W8)', () => {
-    expect(noteOf(alwaysMet('group-1'), NAMES)).toBe('Every applicant meets this group.');
-    expect(noteOf(alwaysMet('rule-5'), NAMES)).toBe('Every applicant meets this rule.');
+    expect(noteOf(alwaysMet('group-1'), NAMES)).toBe('Every citizen meets this group.');
+    expect(noteOf(alwaysMet('rule-5'), NAMES)).toBe('Every citizen meets this rule.');
   });
 
   it('never shows an id for an item without a current name', () => {
@@ -299,10 +299,10 @@ describe('noteOf for redundant and always-met findings (US2)', () => {
 describe('countsOf', () => {
   it('counts the rules of conflict sets (U02 6750:40933, A2)', () => {
     expect(countsOf(check(conflictSet(['rule-1', 'rule-2'])))).toBe(
-      '2 rules can’t be met together'
+      '2 rules contradict each other'
     );
     expect(countsOf(check(conflictSet(['rule-1', 'group-1'])))).toBe(
-      '1 rule and 1 group can’t be met together'
+      '1 rule and 1 group contradict each other'
     );
   });
 
@@ -311,7 +311,7 @@ describe('countsOf', () => {
       conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
       ...conflictSet(['rule-4', 'rule-5']),
     ];
-    expect(countsOf(check(findings))).toBe('2 rules can’t be met together');
+    expect(countsOf(check(findings))).toBe('2 rules contradict each other');
   });
 
   it('counts the rules that can’t be met on their own after the sets', () => {
@@ -323,7 +323,9 @@ describe('countsOf', () => {
       conflicting('rule-3', { type: 'condition' }),
       conflicting('rule-6', { type: 'condition' }),
     ];
-    expect(countsOf(check(findings))).toBe('2 rules can’t be met together · 2 rules can’t be met');
+    expect(countsOf(check(findings))).toBe(
+      '2 rules contradict each other, and 2 rules can’t be met'
+    );
   });
 
   it('reads U02’s counts row 6750:40933 with a duplicate (A2)', () => {
@@ -332,7 +334,9 @@ describe('countsOf', () => {
       ...conflictSet(['rule-4', 'rule-5']),
       same('rule-6', 'rule-3'),
     ];
-    expect(countsOf(check(findings))).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(countsOf(check(findings))).toBe(
+      '2 rules contradict each other, and 1 rule is a duplicate'
+    );
   });
 
   it('counts duplicates, covered and always-met items after the conflicts (§3.4)', () => {
@@ -346,12 +350,12 @@ describe('countsOf', () => {
       conflicting('rule-2', { type: 'condition' }),
     ];
     expect(countsOf(check(findings))).toBe(
-      '1 rule can’t be met · 2 duplicate rules and 1 duplicate group · 1 rule and 1 group ' +
-        'already covered · 1 group every applicant meets'
+      '1 rule can’t be met, 2 rules and 1 group are duplicates, 1 rule and 1 group ' +
+        'already covered, and 1 group every citizen meets'
     );
     expect(countsOf(check([impliedBy('group-1', ['rule-1'])]))).toBe('1 group already covered');
     expect(countsOf(check([alwaysMet('rule-1'), alwaysMet('rule-6')]))).toBe(
-      '2 rules every applicant meets'
+      '2 rules every citizen meets'
     );
   });
 
@@ -361,7 +365,7 @@ describe('countsOf', () => {
 });
 
 describe('bannerOf', () => {
-  it('reads U01’s banner 6750:40882: one line and the notice (A1, A2)', () => {
+  it('reads U01’s banner 6750:40882 (spec 008 U44): one sentence, line and notice (A1, A2; C4)', () => {
     const banner = bannerOf(
       check(conflictSet(['rule-1', 'rule-2']), NONE_CAN_MEET),
       STANDARD,
@@ -373,39 +377,39 @@ describe('bannerOf', () => {
         {
           kind: 'conflicting',
           tone: 'warning',
-          parts: [ref(1), ' and ', ref(2), ' can’t be met together.'],
+          parts: [ref(1), ' and ', ref(2), ' contradict each other.'],
         },
       ],
       counts: '',
       notice: {
         tone: 'warning',
-        text: 'No applicant can meet the rules of Standard.',
-        appended: 'So no applicant can meet the rules of Standard.',
+        text: 'No citizen can meet the rules of Standard.',
+        appended: 'So no citizen can meet the rules of Standard.',
       },
       incomplete: null,
       head: [
         ref(1),
         ' and ',
         ref(2),
-        ' can’t be met together. So no applicant can meet the rules of Standard.',
+        ' contradict each other, so no citizen can meet the rules of Standard.',
       ],
     });
     expect(head(banner)).toBe(
-      'Rule 01 and Rule 02 can’t be met together. So no applicant can meet the rules of Standard.'
+      'Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard.'
     );
   });
 
-  it('reads U08’s banner 6753:41324 for a conflict that holds today (FR-008, A7)', () => {
+  it('reads U08’s banner 6753:41324 (spec 008 U46) for a conflict that holds today (A7; C4)', () => {
     const banner = bannerOf(
       check(conflictSet(['rule-1', 'rule-2'], true), NONE_CAN_MEET_TODAY),
       STANDARD,
       NAMES
     );
     expect(head(banner)).toBe(
-      'Rule 01 and Rule 02 can’t be met together at the moment. Right now, no applicant can ' +
+      'Rule 01 and Rule 02 contradict each other, so right now no citizen can ' +
         'meet the rules of Standard.'
     );
-    expect(banner?.notice?.text).toBe('Right now, no applicant can meet the rules of Standard.');
+    expect(banner?.notice?.text).toBe('Right now, no citizen can meet the rules of Standard.');
   });
 
   it('reads U05’s line 6753:40144: a set within a group’s own conflict goes on its line', () => {
@@ -424,11 +428,11 @@ describe('bannerOf', () => {
           ref(4),
           ' and ',
           ref(5),
-          ' can’t be met together.',
+          ' contradict each other.',
         ],
       },
     ]);
-    expect(head(banner)).toBe('Sub-group 01: Rule 04 and Rule 05 can’t be met together.');
+    expect(head(banner)).toBe('Sub-group 01: Rule 04 and Rule 05 contradict each other.');
   });
 
   it('puts the four rules of EC-11 on one line (W3)', () => {
@@ -439,7 +443,7 @@ describe('bannerOf', () => {
     );
     expect(banner?.lines).toHaveLength(1);
     expect(head(banner)).toBe(
-      'Rule 01, Rule 02, Rule 03 and Rule 04 can’t be met together. So no applicant can meet the ' +
+      'Rule 01, Rule 02, Rule 03 and Rule 04 contradict each other, so no citizen can meet the ' +
         'rules of Standard.'
     );
   });
@@ -451,14 +455,14 @@ describe('bannerOf', () => {
     ];
     const banner = bannerOf(check(findings, NONE_CAN_MEET), STANDARD, NAMES);
     expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
-      'Rule 01, Rule 02, Rule 03 and Rule 04 can’t be met together.',
-      'Rule 05 and Rule 06 can’t be met together.',
+      'Rule 01, Rule 02, Rule 03 and Rule 04 contradict each other.',
+      'Rule 05 and Rule 06 contradict each other.',
     ]);
-    expect(banner?.counts).toBe('6 rules can’t be met together');
+    expect(banner?.counts).toBe('6 rules contradict each other');
     expect(head(banner)).toBe(
-      '6 rules can’t be met together. So no applicant can meet the rules of Standard.'
+      '6 rules contradict each other. So no citizen can meet the rules of Standard.'
     );
-    expect(head(bannerOf(check(findings), STANDARD, NAMES))).toBe('6 rules can’t be met together');
+    expect(head(bannerOf(check(findings), STANDARD, NAMES))).toBe('6 rules contradict each other');
   });
 
   it('orders the lines by their first item in display order, whatever the findings’ order', () => {
@@ -466,8 +470,8 @@ describe('bannerOf', () => {
     expect(
       bannerOf(check(findings), STANDARD, NAMES)?.lines.map((line) => textOf(line.parts))
     ).toEqual([
-      'Rule 01 and Rule 02 can’t be met together.',
-      'Rule 05 and Rule 06 can’t be met together.',
+      'Rule 01 and Rule 02 contradict each other.',
+      'Rule 05 and Rule 06 contradict each other.',
     ]);
   });
 
@@ -510,32 +514,32 @@ describe('bannerOf', () => {
       STANDARD,
       NAMES
     );
-    expect(banner?.lines[0].parts).toEqual(['No applicant can meet ', ref(1), '.']);
+    expect(banner?.lines[0].parts).toEqual(['No citizen can meet ', ref(1), '.']);
     expect(head(banner)).toBe(
-      'No applicant can meet Rule 01. So no applicant can meet the rules of Standard.'
+      'No citizen can meet Rule 01. So no citizen can meet the rules of Standard.'
     );
     expect(
       head(bannerOf(check([conflicting('rule-1', { type: 'condition' }, true)]), STANDARD, NAMES))
-    ).toBe('No applicant can meet Rule 01 at the moment.');
+    ).toBe('No citizen can meet Rule 01 at the moment.');
   });
 
   it('shows the notice alone as its own item (W17)', () => {
     const banner = bannerOf(check([], NONE_CAN_MEET), AMBULANCE, NAMES);
     expect(banner).toMatchObject({ kind: 'warning', lines: [], counts: '' });
-    expect(head(banner)).toBe('No applicant can meet the rules of Ambulance.');
+    expect(head(banner)).toBe('No citizen can meet the rules of Ambulance.');
   });
 
-  it('is info when every applicant meets the variant (W8)', () => {
+  it('is info when every citizen meets the variant (W8)', () => {
     const banner = bannerOf(check([], ALL_MEET), STANDARD, NAMES);
     expect(banner).toMatchObject({
       kind: 'info',
       notice: {
         tone: 'info',
-        text: 'Every applicant meets the rules of Standard.',
-        appended: 'Every applicant meets the rules of Standard.',
+        text: 'Every citizen meets the rules of Standard.',
+        appended: 'Every citizen meets the rules of Standard.',
       },
     });
-    expect(head(banner)).toBe('Every applicant meets the rules of Standard.');
+    expect(head(banner)).toBe('Every citizen meets the rules of Standard.');
   });
 
   it('adds FR-010’s sentence after an incomplete check, alone without certain findings (W12)', () => {
@@ -554,7 +558,7 @@ describe('bannerOf', () => {
         )
       )
     ).toBe(
-      'Rule 01 and Rule 02 can’t be met together. The rules of Ambulance couldn’t be checked ' +
+      'Rule 01 and Rule 02 contradict each other. The rules of Ambulance couldn’t be checked ' +
         'completely. Only findings that are certain are shown.'
     );
   });
@@ -562,13 +566,13 @@ describe('bannerOf', () => {
   it('ends the counts row with " · couldn’t be checked completely" (§3.2)', () => {
     const findings = [...conflictSet(['rule-1', 'rule-2']), ...conflictSet(['rule-5', 'rule-6'])];
     const banner = bannerOf(check(findings, NONE_CAN_MEET, { complete: false }), STANDARD, NAMES);
-    expect(banner?.counts).toBe('4 rules can’t be met together');
+    expect(banner?.counts).toBe('4 rules contradict each other');
     expect(banner?.incomplete).toBe(
       'The rules of Standard couldn’t be checked completely. Only findings that are certain are ' +
         'shown.'
     );
     expect(head(banner)).toBe(
-      '4 rules can’t be met together · couldn’t be checked completely. So no applicant can meet ' +
+      '4 rules contradict each other · couldn’t be checked completely. So no citizen can meet ' +
         'the rules of Standard.'
     );
   });
@@ -585,7 +589,7 @@ describe('bannerOf', () => {
     expect(
       head(bannerOf(check(conflictSet(['rule-1', 'rule-2']), NONE_CAN_MEET), AMBULANCE, renamed))
     ).toBe(
-      'Rule 01 and Minimum age can’t be met together. So no applicant can meet the rules of ' +
+      'Rule 01 and Minimum age contradict each other, so no citizen can meet the rules of ' +
         'Ambulance.'
     );
   });
@@ -613,13 +617,13 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
         kind: 'always_met',
         tone: 'info',
         parts: [
-          'Every applicant meets ',
+          'Every citizen meets ',
           { itemId: 'group-1', name: 'Group 01' },
           ', so it doesn’t check anything.',
         ],
       },
     ]);
-    expect(head(banner)).toBe('Every applicant meets Group 01, so it doesn’t check anything.');
+    expect(head(banner)).toBe('Every citizen meets Group 01, so it doesn’t check anything.');
   });
 
   it('reads U07’s line 6753:40851 for a covered group', () => {
@@ -656,7 +660,7 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
       'Anyone who meets Rule 02 also meets Rule 04 or Group 01.'
     );
     expect(line(impliedBy('rule-4', [], ['group-1']))).toBe(
-      'Every applicant meets Rule 04 or Group 01.'
+      'Every citizen meets Rule 04 or Group 01.'
     );
   });
 
@@ -668,10 +672,10 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
     ];
     const banner = bannerOf(check(findings), STANDARD, NAMES);
     expect(banner?.kind).toBe('warning');
-    expect(banner?.counts).toBe('2 rules can’t be met together · 1 duplicate rule');
-    expect(head(banner)).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(banner?.counts).toBe('2 rules contradict each other, and 1 rule is a duplicate');
+    expect(head(banner)).toBe('2 rules contradict each other, and 1 rule is a duplicate');
     expect(banner?.lines.map((line) => [line.kind, line.tone, textOf(line.parts)])).toEqual([
-      ['conflicting', 'warning', 'Sub-group 01: Rule 04 and Rule 05 can’t be met together.'],
+      ['conflicting', 'warning', 'Sub-group 01: Rule 04 and Rule 05 contradict each other.'],
       ['redundant', 'info', 'Rule 06 is the same as Rule 03.'],
     ]);
   });
@@ -685,14 +689,14 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
     const banner = bannerOf(check(findings), STANDARD, NAMES);
     expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
       'Rule 03 is the same as Rule 02.',
-      'Rule 04 and Rule 05 can’t be met together.',
-      'Every applicant meets Rule 06, so it doesn’t check anything.',
+      'Rule 04 and Rule 05 contradict each other.',
+      'Every citizen meets Rule 06, so it doesn’t check anything.',
     ]);
   });
 
   it('adds the all_meet notice after a line, and after the counts row (W8, §3.2)', () => {
     expect(head(bannerOf(check([alwaysMet('rule-1')], ALL_MEET), STANDARD, NAMES))).toBe(
-      'Every applicant meets Rule 01, so it doesn’t check anything. Every applicant meets the ' +
+      'Every citizen meets Rule 01, so it doesn’t check anything. Every citizen meets the ' +
         'rules of Standard.'
     );
     const two = bannerOf(
@@ -702,7 +706,7 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
     );
     expect(two?.kind).toBe('info');
     expect(head(two)).toBe(
-      '1 duplicate rule · 1 rule every applicant meets. Every applicant meets the rules of Standard.'
+      '1 rule is a duplicate, and 1 rule every citizen meets. Every citizen meets the rules of Standard.'
     );
   });
 
@@ -722,53 +726,53 @@ describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
     same('rule-6', 'rule-3'),
   ];
 
-  it('reads "<variant>: <counts row>" (W10)', () => {
+  it('reads "<variant>: <counts row>." (W10; spec 008 C4, U77 6760:47979)', () => {
     expect(dialogLineOf(check(u02), 'Ambulance')).toBe(
-      'Ambulance: 2 rules can’t be met together · 1 duplicate rule'
+      'Ambulance: 2 rules contradict each other, and 1 rule is a duplicate.'
     );
     expect(dialogLineOf(check([same('rule-6', 'rule-3')]), 'Standard')).toBe(
-      'Standard: 1 duplicate rule'
+      'Standard: 1 rule is a duplicate.'
     );
     expect(dialogLineOf(check([alwaysMet('rule-5')]), 'Standard')).toBe(
-      'Standard: 1 rule every applicant meets'
+      'Standard: 1 rule every citizen meets.'
     );
   });
 
-  it('adds that no applicant can meet the variant after the counts (FR-017, A7)', () => {
+  it('says that no citizen can meet the rules before the counts (U63 7112:48859, U77 6760:47979)', () => {
     expect(dialogLineOf(check(u02, NONE_CAN_MEET), 'Ambulance')).toBe(
-      'Ambulance: 2 rules can’t be met together · 1 duplicate rule. ' +
-        'No applicant can meet the rules of Ambulance.'
+      'Ambulance: no citizen can meet these rules. ' +
+        '2 rules contradict each other, and 1 rule is a duplicate.'
     );
     expect(dialogLineOf(check(u02, NONE_CAN_MEET_TODAY), 'Ambulance')).toBe(
-      'Ambulance: 2 rules can’t be met together · 1 duplicate rule. ' +
-        'Right now, no applicant can meet the rules of Ambulance.'
+      'Ambulance: right now no citizen can meet these rules. ' +
+        '2 rules contradict each other, and 1 rule is a duplicate.'
     );
   });
 
   it('says only the notice when the variant has no finding to count', () => {
     expect(dialogLineOf(check([], NONE_CAN_MEET), 'Ambulance')).toBe(
-      'No applicant can meet the rules of Ambulance.'
+      'Ambulance: no citizen can meet these rules.'
     );
     expect(dialogLineOf(check([], NONE_CAN_MEET_TODAY), 'Ambulance')).toBe(
-      'Right now, no applicant can meet the rules of Ambulance.'
+      'Ambulance: right now no citizen can meet these rules.'
     );
     expect(dialogLineOf(check([], ALL_MEET), 'Ambulance')).toBe(
-      'Every applicant meets the rules of Ambulance.'
+      'Ambulance: every citizen meets these rules.'
     );
   });
 
-  it('adds that every applicant meets the variant after other findings', () => {
+  it('says that every citizen meets the variant before other findings', () => {
     expect(dialogLineOf(check([same('rule-6', 'rule-3')], ALL_MEET), 'Standard')).toBe(
-      'Standard: 1 duplicate rule. Every applicant meets the rules of Standard.'
+      'Standard: every citizen meets these rules. 1 rule is a duplicate.'
     );
   });
 
   it('doesn’t repeat that the check couldn’t finish (§6)', () => {
     expect(dialogLineOf(check(u02, null, { complete: false }), 'Ambulance')).toBe(
-      'Ambulance: 2 rules can’t be met together · 1 duplicate rule'
+      'Ambulance: 2 rules contradict each other, and 1 rule is a duplicate.'
     );
     expect(dialogLineOf(check([], NONE_CAN_MEET, { complete: false }), 'Ambulance')).toBe(
-      'No applicant can meet the rules of Ambulance.'
+      'Ambulance: no citizen can meet these rules.'
     );
   });
 
@@ -782,16 +786,16 @@ describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
 describe('noticeText (spec 004, FR-018)', () => {
   it('words the notice that the test step shows above the results and in the tab', () => {
     expect(noticeText({ kind: 'none_can_meet', today: false }, 'Standard')).toBe(
-      'No applicant can meet the rules of Standard.'
+      'No citizen can meet the rules of Standard.'
     );
   });
 
   it('keeps its other forms', () => {
     expect(noticeText({ kind: 'none_can_meet', today: true }, 'Standard')).toBe(
-      'Right now, no applicant can meet the rules of Standard.'
+      'Right now, no citizen can meet the rules of Standard.'
     );
     expect(noticeText({ kind: 'all_meet', today: false }, 'Standard')).toBe(
-      'Every applicant meets the rules of Standard.'
+      'Every citizen meets the rules of Standard.'
     );
   });
 });
@@ -810,7 +814,7 @@ describe('tabFindingsOf', () => {
     ).toEqual({
       kind: 'warning',
       text:
-        '1 conflict: Rule 01 and Rule 02 can’t be met together. So no applicant can meet the ' +
+        '1 conflict: Rule 01 and Rule 02 contradict each other, so no citizen can meet the ' +
         'rules of Standard.',
     });
   });
@@ -819,14 +823,14 @@ describe('tabFindingsOf', () => {
     const findings = [...conflictSet(['rule-1', 'rule-2']), ...conflictSet(['rule-5', 'rule-6'])];
     expect(tabFindingsOf(check(findings), STANDARD, NAMES)).toEqual({
       kind: 'warning',
-      text: '4 rules can’t be met together',
+      text: '4 rules contradict each other',
     });
   });
 
   it('reads a notice or FR-010’s sentence alone', () => {
     expect(tabFindingsOf(check([], ALL_MEET), STANDARD, NAMES)).toEqual({
       kind: 'info',
-      text: 'Every applicant meets the rules of Standard.',
+      text: 'Every citizen meets the rules of Standard.',
     });
     expect(tabFindingsOf(check([], null, { complete: false }), AMBULANCE, NAMES)?.text).toBe(
       'The rules of Ambulance couldn’t be checked completely. Only findings that are certain are ' +
@@ -848,8 +852,8 @@ describe('tabFindingsOf', () => {
     expect(tabFindingsOf(check([alwaysMet('group-1')], ALL_MEET), STANDARD, NAMES)).toEqual({
       kind: 'info',
       text:
-        '1 finding: Every applicant meets Group 01, so it doesn’t check anything. Every ' +
-        'applicant meets the rules of Standard.',
+        '1 finding: Every citizen meets Group 01, so it doesn’t check anything. Every ' +
+        'citizen meets the rules of Standard.',
     });
   });
 
@@ -857,7 +861,7 @@ describe('tabFindingsOf', () => {
     const findings = [...conflictSet(['rule-4', 'rule-5']), same('rule-6', 'rule-3')];
     expect(tabFindingsOf(check(findings), STANDARD, NAMES)).toEqual({
       kind: 'warning',
-      text: '2 rules can’t be met together · 1 duplicate rule',
+      text: '2 rules contradict each other, and 1 rule is a duplicate',
     });
   });
 
@@ -907,10 +911,10 @@ describe('announcementOf', () => {
       items: ['rule-4', 'rule-5'],
     });
     expect(announce(appeared(own))).toBe(
-      'Rule 04 and Rule 05 in Sub-group 01 can’t be met together.'
+      'Rule 04 and Rule 05 in Sub-group 01 contradict each other.'
     );
     expect(announce(appeared({ ...own, today: true }))).toBe(
-      'Rule 04 and Rule 05 in Sub-group 01 can’t be met together at the moment.'
+      'Rule 04 and Rule 05 in Sub-group 01 contradict each other at the moment.'
     );
     const or = conflicting('group-1', {
       type: 'members',
@@ -931,9 +935,9 @@ describe('announcementOf', () => {
 
   it('words a rule that can’t be met on its own', () => {
     const finding = conflicting('rule-3', { type: 'condition' });
-    expect(announce(appeared(finding))).toBe('No applicant can meet Rule 03.');
+    expect(announce(appeared(finding))).toBe('No citizen can meet Rule 03.');
     expect(announce(appeared({ ...finding, today: true }))).toBe(
-      'Right now, no applicant can meet Rule 03.'
+      'Right now, no citizen can meet Rule 03.'
     );
     expect(announce(gone(finding))).toBe('Rule 03 is no longer conflicting.');
   });
@@ -954,16 +958,16 @@ describe('announcementOf', () => {
   });
 
   it('announces an always-met finding that appears and goes (FR-015)', () => {
-    expect(announce(appeared(alwaysMet('rule-5')))).toBe('Every applicant meets Rule 05.');
+    expect(announce(appeared(alwaysMet('rule-5')))).toBe('Every citizen meets Rule 05.');
     expect(announce(gone(alwaysMet('rule-5')))).toBe('Rule 05 is no longer always met.');
     expect(announce(appeared(alwaysMet('group-1'), AMBULANCE))).toBe(
-      'In Ambulance: Every applicant meets Group 01.'
+      'In Ambulance: Every citizen meets Group 01.'
     );
   });
 
   it('announces the all_meet notice with its own text', () => {
     expect(announce({ type: 'notice', branch: STANDARD, notice: ALL_MEET })).toBe(
-      'Every applicant meets the rules of Standard.'
+      'Every citizen meets the rules of Standard.'
     );
   });
 
@@ -975,10 +979,10 @@ describe('announcementOf', () => {
 
   it('announces a new notice with its own text, without a prefix', () => {
     expect(announce({ type: 'notice', branch: STANDARD, notice: NONE_CAN_MEET })).toBe(
-      'No applicant can meet the rules of Standard.'
+      'No citizen can meet the rules of Standard.'
     );
     expect(announce({ type: 'notice', branch: AMBULANCE, notice: NONE_CAN_MEET_TODAY })).toBe(
-      'Right now, no applicant can meet the rules of Ambulance.'
+      'Right now, no citizen can meet the rules of Ambulance.'
     );
   });
 
@@ -1024,10 +1028,10 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     );
   });
 
-  it('reads U10’s tooltip segment 6758:43524 for Ambulance, with the warning icon', () => {
+  it('reads U10’s tooltip segment 6758:43524 (spec 008 U46) for Ambulance, word for word (C4)', () => {
     expect(tabFindingsOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES)).toEqual({
       kind: 'warning',
-      text: '2 rules can’t be met together · 1 duplicate rule',
+      text: '2 rules contradict each other, and 1 rule is a duplicate',
     });
   });
 
@@ -1035,12 +1039,14 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     expect(tabFindingsOf(ambulance(AS1, NONE_CAN_MEET), AMBULANCE, AMBULANCE_NAMES)).toEqual({
       kind: 'warning',
       text:
-        '1 conflict: Rule 02 and Rule 05 can’t be met together. So no applicant can meet the ' +
+        '1 conflict: Rule 02 and Rule 05 contradict each other, so no citizen can meet the ' +
         'rules of Ambulance.',
     });
     expect(
       tabFindingsOf(ambulance(U03, null, { complete: false }), AMBULANCE, AMBULANCE_NAMES)?.text
-    ).toBe('2 rules can’t be met together · 1 duplicate rule · couldn’t be checked completely');
+    ).toBe(
+      '2 rules contradict each other, and 1 rule is a duplicate · couldn’t be checked completely'
+    );
     expect(
       tabFindingsOf(ambulance([same('rule-6', 'rule-3')]), AMBULANCE, AMBULANCE_NAMES)
     ).toEqual({ kind: 'info', text: '1 duplicate: Rule 06 is the same as Rule 03.' });
@@ -1057,13 +1063,13 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     const banner = bannerOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES);
     expect(banner).toMatchObject({
       kind: 'warning',
-      counts: '2 rules can’t be met together · 1 duplicate rule',
+      counts: '2 rules contradict each other, and 1 rule is a duplicate',
       notice: null,
       incomplete: null,
     });
-    expect(head(banner)).toBe('2 rules can’t be met together · 1 duplicate rule');
+    expect(head(banner)).toBe('2 rules contradict each other, and 1 rule is a duplicate');
     expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
-      'Rule 02 and Rule 05 can’t be met together.',
+      'Rule 02 and Rule 05 contradict each other.',
       'Rule 06 is the same as Rule 03.',
     ]);
   });
@@ -1095,7 +1101,7 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     expect(texts.filter((text) => /\bvariants?\b/i.test(text))).toEqual([]);
     expect(texts.filter((text) => TEXT_TO_FIX.test(text))).toEqual([]);
     expect(texts.filter((text) => text.includes('Standard'))).toEqual([]);
-    expect(texts).toContain('Right now, no applicant can meet the rules of Ambulance.');
+    expect(texts).toContain('Right now, no citizen can meet the rules of Ambulance.');
   });
 
   it('announces a finding in another variant with "In <variant>: " (design-notes.md §5)', () => {
@@ -1117,7 +1123,7 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     );
     expect(announce(gone(AS1[0]))).toBe('In Ambulance: Rule 02 no longer conflicts with Rule 05.');
     expect(announce(appeared(conflicting('rule-3', { type: 'condition' })))).toBe(
-      'In Ambulance: No applicant can meet Rule 03.'
+      'In Ambulance: No citizen can meet Rule 03.'
     );
     expect(announce(appeared(same('rule-6', 'rule-3')))).toBe(
       'In Ambulance: Rule 06 is the same as Rule 03.'
@@ -1133,7 +1139,7 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     );
     // A notice names its variant already
     expect(announce({ type: 'notice', branch: AMBULANCE, notice: NONE_CAN_MEET })).toBe(
-      'No applicant can meet the rules of Ambulance.'
+      'No citizen can meet the rules of Ambulance.'
     );
     // Shown, Ambulance's findings have no prefix, and Standard's have one
     expect(announce(appeared(AS1[0]), AMBULANCE.key)).toBe('Rule 02 conflicts with Rule 05.');
@@ -1153,7 +1159,7 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
       items: ['rule-4', 'rule-5'],
     });
     expect(announcementOf({ type: 'appeared', branch: AMBULANCE, finding: own }, NAMES, '')).toBe(
-      'In Ambulance: Rule 04 and Rule 05 in Sub-group 01 can’t be met together.'
+      'In Ambulance: Rule 04 and Rule 05 in Sub-group 01 contradict each other.'
     );
     expect(announcementOf({ type: 'gone', branch: AMBULANCE, finding: own }, NAMES, '')).toBe(
       'In Ambulance: Sub-group 01 is no longer conflicting.'
@@ -1172,15 +1178,15 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
 });
 
 describe('resolutionOf (spec 007, FR-032; research R14)', () => {
-  it('says which of the items that can’t be met together to change or delete', () => {
+  it('says which of the items that contradict each other to change or delete', () => {
     expect(resolutionOf(withItems('rule-3', ['rule-2']), NAMES)).toBe(
-      'Change or delete one of Rule 02 and Rule 03; they can’t be met together.'
+      'Change or delete one of Rule 02 and Rule 03; they contradict each other.'
     );
     expect(resolutionOf(withItems('rule-1', ['rule-4', 'rule-2']), NAMES)).toBe(
-      'Change or delete one of Rule 01, Rule 02 and Rule 04; they can’t be met together.'
+      'Change or delete one of Rule 01, Rule 02 and Rule 04; they contradict each other.'
     );
     expect(resolutionOf(withItems('rule-1', ['rule-2'], true), NAMES)).toBe(
-      'Change or delete one of Rule 01 and Rule 02; they can’t be met together at the moment.'
+      'Change or delete one of Rule 01 and Rule 02; they contradict each other at the moment.'
     );
   });
 
@@ -1191,7 +1197,7 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
       items: ['rule-4', 'rule-5'],
     });
     expect(resolutionOf(and, NAMES)).toBe(
-      'Change or delete one of Rule 04 and Rule 05; they can’t be met together.'
+      'Change or delete one of Rule 04 and Rule 05; they contradict each other.'
     );
     const or = conflicting('group-1', {
       type: 'members',
@@ -1212,12 +1218,12 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
     );
   });
 
-  it('says to change or delete a rule that no applicant can meet on its own', () => {
+  it('says to change or delete a rule that no citizen can meet on its own', () => {
     expect(resolutionOf(conflicting('rule-3', { type: 'condition' }), NAMES)).toBe(
-      'Change or delete Rule 03; no applicant can meet it.'
+      'Change or delete Rule 03; no citizen can meet it.'
     );
     expect(resolutionOf(conflicting('rule-3', { type: 'condition' }, true), NAMES)).toBe(
-      'Change or delete Rule 03; no applicant can meet it at the moment.'
+      'Change or delete Rule 03; no citizen can meet it at the moment.'
     );
   });
 
@@ -1259,20 +1265,20 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
 
   it('gives a variant’s notice its resolution (FR-032: one for every kind)', () => {
     expect(resolutionOf(NONE_CAN_MEET)).toBe(
-      'Loosen or delete one of the rules that no applicant can meet together.'
+      'Loosen or delete one of the rules that no citizen can meet together.'
     );
     expect(resolutionOf(NONE_CAN_MEET_TODAY)).toBe(
-      'Loosen or delete one of the rules that no applicant can meet together at the moment.'
+      'Loosen or delete one of the rules that no citizen can meet together at the moment.'
     );
     expect(resolutionOf(ALL_MEET)).toBe(
-      'Add a rule or make one stricter; as it is, the variant accepts every applicant.'
+      'Add a rule or make one stricter; as it is, the variant accepts every citizen.'
     );
   });
 
   it('shows the current names, so that a rename shows at once (FR-011)', () => {
     const renamed = namesOf([rule(1, null, null), rule(2, null, null, 'x', 'Minimum age')]);
     expect(resolutionOf(withItems('rule-1', ['rule-2']), renamed)).toBe(
-      'Change or delete one of Rule 01 and Minimum age; they can’t be met together.'
+      'Change or delete one of Rule 01 and Minimum age; they contradict each other.'
     );
     expect(resolutionOf(alwaysMet('rule-2'), renamed)).toBe(
       'Minimum age’s condition is always met; delete it or make it stricter.'
@@ -1281,7 +1287,7 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
 
   it('never shows an id for an item without a current name', () => {
     expect(resolutionOf(withItems('rule-1', ['rule-9']), NAMES)).toBe(
-      'Change or delete one of Rule 01 and other rules; they can’t be met together.'
+      'Change or delete one of Rule 01 and other rules; they contradict each other.'
     );
     expect(resolutionOf(same('rule-6', 'rule-9'), NAMES)).toBe(
       'You can delete Rule 06; another rule already covers it.'
@@ -1293,7 +1299,7 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
       'The group’s condition is always met; delete it or make it stricter.'
     );
     expect(resolutionOf(conflicting('rule-9', { type: 'condition' }), NAMES)).toBe(
-      'Change or delete the rule; no applicant can meet it.'
+      'Change or delete the rule; no citizen can meet it.'
     );
     const unnamedMembers = conflicting('group-1', {
       type: 'members',

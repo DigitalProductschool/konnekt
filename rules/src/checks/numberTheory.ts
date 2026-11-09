@@ -1,7 +1,7 @@
 // The number theory (specs/003-rule-consistency-checks, FR-007; research R3, R6): whether the
 // literals of one number variable can be met together.
 //
-// An applicant's value is a whole number from 0 (ISO/IEC 18013-5 encodes the number fields as
+// A citizen's value is a whole number from 0 (ISO/IEC 18013-5 encodes the number fields as
 // `uint`). `_number_holds()` in backend/app/services/evaluation.py compares it as a float, so the
 // values are the whole doubles from 0: every whole number below 2^53, and every double from there
 // on. A variable's literals give an interval of them, minus a finite set of excluded values.
@@ -110,7 +110,7 @@ function comparisonOf(literal: Literal<NumberTest>): Comparison {
   return literal.negated ? COMPLEMENT[literal.test.op] : literal.test.op;
 }
 
-/** Whether `value` is a value an applicant can have: a whole double from 0 */
+/** Whether `value` is a value a citizen can have: a whole double from 0 */
 function isWhole(value: number): boolean {
   return Number.isInteger(value) && value >= 0;
 }

@@ -1,63 +1,76 @@
 /*
  * KERN must come after Tailwind and before its theme mapping (docs/KERN-DESIGN-SYSTEM.md §2).
  * The React kit's own stylesheet is not imported: it bundles an older KERN version whose rules
- * conflict with KERN 2.8, which the Figma design uses, and inlines its fonts (1.8 MB). The fonts
- * come from KERN's own files instead. Kit components with styles of their own (Menubar, Menu,
- * Tabs, InputDate, Radio error state) need those styles added before they are used.
+ * conflict with KERN 2.8 (the version under the Revamp overlay below), and inlines its fonts
+ * (1.8 MB). The fonts come from KERN's own files instead. Kit components with styles of their own
+ * (Menubar, Menu, Tabs, InputDate, Radio error state) need those styles added before they are
+ * used.
  */
 @import 'tailwindcss';
 @import '@kern-ux/native/dist/fonts/fira-sans.css';
 @import '@kern-ux/native/dist/kern.css';
 @import '@digitalservicebund/kern-ux-tailwind-theme/theme.css';
 
-@theme {
-  /* KERN's typeface (Fira Sans) for all text, also outside KERN components */
-  --default-font-family: var(--kern-typography-font-family-default);
-
-  /* Figma effects "Elevation/Card" and "Elevation/Menu". KERN defines no shadows */
-  --shadow-card: 0 1px 2px 0 rgb(19 21 37 / 0.05), 0 6px 20px 0 rgb(19 21 37 / 0.05);
-  --shadow-menu: 0 10px 28px 0 rgb(19 21 37 / 0.16);
-  /* The shadow of the check chips in the sign-in illustration, which has no Figma effect style */
-  --shadow-chip: 0 6px 16px 0 rgb(0 113 85 / 0.1);
-  /* Figma "Feedback/Toast", whose drop shadow has no effect style */
-  --shadow-toast: 0 8px 12px 0 rgb(18 20 38 / 0.2);
-
-  /* The number in a step circle of Figma "App/Progress", smaller than any KERN text style */
-  --text-step: 13px;
-  --text-step--line-height: 16px;
-
-  /*
-   * The variant marks "Changed here" and "New addition" (Figma "Rules/Variant status"), which
-   * KERN has no semantic colours for: the warning colours, which Figma also gives "Changed
-   * here", and the violet of KERN's palette
-   */
-  --color-variant-changed: var(--kern-color-feedback-warning);
-  --color-variant-changed-background: var(--kern-color-feedback-warning-background);
-  --color-variant-new: var(--kern-color-violet-650);
-  --color-variant-new-background: var(--kern-color-violet-025);
-}
-
+/* KERN Revamp overlay (spec 008, design-notes §1) */
 /*
- * Windows where the wizard keeps its head (progress and page title) still and scrolls only
- * the step below it (decision 2026-10-12). In narrower or shorter ones the head scrolls too,
- * so that the fixed parts leave room for the step.
- */
-@custom-variant split (@media (width >= 64rem) and (height >= 40rem));
-
-/*
- * The Figma design uses KERN's adaptive type at its small-screen values on every screen
- * width. kern.css switches it to larger values from 768px, so the sizes, line heights and
- * the baseline paddings that belong to them stay at their small-screen values here.
+ * The Revamp's values under KERN's own names, so that kern.css, the React kit and the Tailwind
+ * theme pick them up without a change to their markup. It sets the plain names only: kern.css
+ * derives every -contextual alias the app uses from them (V2). kern.css switches the adaptive
+ * type, its baseline paddings and the alert icon at 768px in @media blocks of the same
+ * specificity, which this block beats by coming later, so the design's single size holds on
+ * every width (V1). The colours beat [data-kern-theme=light] the same way.
  */
 :root {
-  --kern-typography-font-size-medium-adaptive: var(--kern-font-size-21);
-  --kern-typography-line-height-medium-adaptive: var(--kern-font-size-24);
-  --kern-typography-font-size-large-adaptive: var(--kern-font-size-26);
-  --kern-typography-line-height-large-adaptive: var(--kern-font-size-32);
+  /* Colours (design-notes §1.1) */
+  --kern-color-layout-text-default: #0b1220;
+  --kern-color-layout-text-muted: #4a5468;
+  --kern-color-layout-text-inverse: #ffffff;
+  --kern-color-layout-background-hued: #f2f5fb;
+  --kern-color-layout-background-default-surface: #f2f5fb;
+  --kern-color-layout-border: #6b7488;
+  --kern-color-decorative-border-default: #e1e6f0;
+  --kern-color-decorative-border-level-1: #d0d8e6;
+  --kern-color-decorative-brand-default: #4f8cff;
+  --kern-color-action-default: #1d56f0;
+  --kern-color-action-focus-default: #0b1220;
+  --kern-color-form-input-border: #22293a;
+  /*
+   * The design's #0284c7 fails AA as text: 4.1:1 on white and 3.6:1 on the info background
+   * (the "Draft" label of the status pill). The nearest value that passes on both (ΔE2000 6.6):
+   * 5.2:1 on white, 4.5:1 on #e0f2fe (design-notes §1.5)
+   */
+  --kern-color-feedback-info: #0273ae;
+  --kern-color-feedback-info-background: #e0f2fe;
+  --kern-color-feedback-success: #1d7a2e;
+  --kern-color-feedback-success-background: #eaf7e6;
+  --kern-color-feedback-danger: #c4271c;
+  --kern-color-feedback-danger-background: #fef1f0;
+  --kern-color-feedback-warning: #9a4a00;
+  --kern-color-feedback-warning-background: #fff4e0;
+  --kern-color-feedback-default: #4a5468;
+  --kern-color-feedback-default-background: #eef1f6;
+
+  /* Radii (design-notes §1.2) */
+  --kern-metric-border-radius-small: var(--kern-4);
+  --kern-metric-border-radius-default: var(--kern-8);
+  --kern-metric-border-radius-large: var(--kern-12);
+  --kern-metric-border-radius-circle: 9999px;
+
+  /* Type: the static sizes, and the adaptive ones at one size on every width */
+  --kern-typography-font-size-small-static: var(--kern-font-size-14);
+  --kern-typography-font-size-medium-static: var(--kern-font-size-16);
+  --kern-typography-font-size-large-static: var(--kern-font-size-18);
+  --kern-typography-font-size-medium-adaptive: var(--kern-font-size-18);
+  --kern-typography-font-size-large-adaptive: var(--kern-font-size-24);
   --kern-typography-font-size-x-large-adaptive: var(--kern-font-size-32);
+  --kern-typography-font-size-2x-large-adaptive: var(--kern-font-size-40);
+  --kern-typography-line-height-large-static: var(--kern-font-size-24);
+  --kern-typography-line-height-medium-adaptive: var(--kern-font-size-24);
+  --kern-typography-line-height-large-adaptive: var(--kern-font-size-32);
   --kern-typography-line-height-x-large-adaptive: var(--kern-font-size-40);
-  --kern-typography-font-size-2x-large-adaptive: var(--kern-font-size-48);
-  --kern-typography-line-height-2x-large-adaptive: var(--kern-font-size-56);
+  --kern-typography-line-height-2x-large-adaptive: var(--kern-font-size-48);
+
+  /* The baseline paddings at their small-screen values on every width */
   --kern-metric-baseline-heading-display-padding-top: var(--kern-12);
   --kern-metric-baseline-heading-display-padding-bottom: var(--kern-12);
   --kern-metric-baseline-heading-x-large-padding-top: var(--kern-9);
@@ -66,11 +79,407 @@
   --kern-metric-baseline-heading-large-padding-bottom: var(--kern-9);
   --kern-metric-baseline-heading-medium-padding-top: var(--kern-5);
   --kern-metric-baseline-heading-medium-padding-bottom: var(--kern-3);
+  --kern-metric-baseline-heading-small-padding-top: var(--kern-6);
+  --kern-metric-baseline-heading-small-padding-bottom: var(--kern-2);
   --kern-metric-baseline-title-large-padding-top: var(--kern-7);
   --kern-metric-baseline-title-large-padding-bottom: var(--kern-9);
   --kern-metric-baseline-title-default-padding-top: var(--kern-5);
   --kern-metric-baseline-title-default-padding-bottom: var(--kern-3);
+  --kern-metric-baseline-body-default-padding-top: var(--kern-6);
+  --kern-metric-baseline-body-default-padding-bottom: var(--kern-2);
+  --kern-metric-baseline-label-default-padding-top: var(--kern-6);
+  --kern-metric-baseline-label-default-padding-bottom: var(--kern-2);
+
+  /* The alert icon at 32px on every width */
   --kern-component-alert-icon-size: var(--kern-32);
+
+  /*
+   * AA fixes of the states (design-notes §1.5, T098). Disabled controls and the faded inactive
+   * parts at 40 % left their text at 1.8–2.6:1; 68 % is the nearest opacity that gives every
+   * measured pair 3:1 (the white label on the primary button 3.2:1, the blue label of an outline
+   * or tertiary button on white, #f8faff and the info background 3.2:1, muted text 3.4:1)
+   */
+  --kern-color-action-state-opacity-disabled: 0.68;
+  /*
+   * The primary button's pressed shade: KERN mixes 16 % white into the action blue (#4076f6), the
+   * white label on it 4.1:1; 11 % (#356df4) is the nearest mix that passes, 4.5:1. The danger
+   * button sets its own (darker) shade
+   */
+  --kern-color-action-state-indicator-shade-active: color-mix(
+    in oklch,
+    var(--kern-color-action-default),
+    white 11%
+  );
+}
+
+@theme {
+  /* KERN's typeface (Fira Sans) for all text, also outside KERN components */
+  --default-font-family: var(--kern-typography-font-family-default);
+
+  /*
+   * Figma effects "Elevation/Card" (U11 6699:44240, the header pills) and "Elevation/Menu".
+   * KERN defines no shadows (design-notes §1.3)
+   */
+  --shadow-card: 0 1px 2px 0 rgb(19 21 37 / 0.05), 0 6px 20px 0 rgb(19 21 37 / 0.05);
+  --shadow-menu: 0 10px 28px 0 rgb(19 21 37 / 0.16);
+  /* Figma "Rules/Toast" (U51 6197:11098), which uses "Elevation/Menu" */
+  --shadow-toast: 0 10px 28px 0 rgb(19 21 37 / 0.16);
+
+  /*
+   * Frame colours of the documents step without a KERN token (design-notes §1.3, T049, T051):
+   * "Add document" filled, hovered and pressed (U20 7290:60519; KERN 2.8's
+   * action-state-indicator-shade-active computes lighter), "Add document" outlined, hovered and
+   * pressed (U21 7290:61927; KERN's tint-hover at 12 % gives #e4ecfd) and the list card's divider
+   * (U21 7294:61509; not decorative-border-level-1, #d0d8e6)
+   */
+  --color-action-pressed: #1643c1;
+  --color-action-tint: #eef3fe;
+  --color-card-divider: #d0d5dd;
+
+  /*
+   * The variant marks "Changed here" and "Added here" (Figma "Variant status" on U57
+   * 6522:32682 and U58 6522:32977), which KERN has no semantic colours for: the design draws
+   * both in the same purple (cosmetic 22), the text and the tint of the marked rule or group
+   */
+  --color-variant-changed: #8a22b5;
+  --color-variant-changed-background: #f8f1fc;
+  --color-variant-new: #8a22b5;
+  --color-variant-new-background: #f8f1fc;
+
+  /*
+   * The design's motion (FR-050, design-notes §4), used as duration-(--duration-colour) and
+   * so on, on elements that also carry the .motion class below
+   */
+  --duration-pill: 240ms;
+  --duration-colour: 150ms;
+  --duration-height: 200ms;
+  --duration-page: 150ms;
+
+  /*
+   * The connection pill growing out of the Konnekt pill (U03 #40, design-notes §4, T031): it is
+   * revealed from its left edge over 240 ms, ease-out, and its text fades in during the last
+   * 120 ms. Both carry .motion, so under reduced motion the pill just appears. A clip, not a
+   * width transition: the pill's width is its content's (auto), which CSS can't transition in
+   * every browser
+   */
+  --animate-pill-grow: pill-grow var(--duration-pill) ease-out;
+  --animate-pill-text: pill-text calc(var(--duration-pill) / 2) ease-out
+    calc(var(--duration-pill) / 2) backwards;
+
+  @keyframes pill-grow {
+    from {
+      clip-path: inset(0 100% 0 0 round 9999px);
+    }
+    to {
+      clip-path: inset(0 0 0 0 round 9999px);
+    }
+  }
+
+  @keyframes pill-text {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /*
+   * The page change (FR-052c, U06 #94 "Page changes fade the content in 150 ms and scroll to the
+   * top; nothing slides", design-notes §4, T037): the layouts' main region fades in from 0 when
+   * the route's path changes (AppLayout, WizardLayout); App.tsx scrolls to the top. It carries
+   * .motion, so under reduced motion the page just appears; its resting opacity is the end state
+   */
+  --animate-page-in: page-in var(--duration-page) ease-out;
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/*
+ * Windows where the wizard pins its step header under the header pills while the page scrolls
+ * (U03 #43, research R4, T033): from 768px wide, where the pills take one row, and 640px tall.
+ * In narrower or shorter ones it scrolls away with the page, so that the sticky parts leave
+ * room for the step (WCAG 1.4.10, spec 005 FR-028). The steps' exceptions that size themselves
+ * to the visible part of the window use it too (WizardLayout/constants.ts).
+ */
+@custom-variant wizard-pinned (@media (width >= 48rem) and (height >= 40rem));
+
+/*
+ * Windows narrower than WCAG's reflow width of 320 CSS px, such as a 320 px window at 200 %
+ * zoom (160 CSS px; quickstart V11, T096). No frame draws them: the layouts that hold from
+ * 320 px give way here (rows that wrap, pills that grow taller), so that nothing scrolls
+ * sideways and nothing is hidden (FR-010, W2). Wider windows are not affected.
+ */
+@custom-variant narrow (@media (width < 20rem));
+
+/*
+ * In those windows a word longer than its line breaks instead of pushing the page sideways,
+ * also where a utility asks for `break-words` (whose break doesn't count when an element sizes
+ * itself to its content). Unlayered, so it beats the utilities; text cut with "…" by design
+ * (`truncate`) stays cut
+ */
+@media (width < 20rem) {
+  body * {
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * And the horizontal paddings and gaps of 16px and more halve (only those across the line:
+   * the vertical rhythm stays), so that cards, rows and nested groups keep room for their text
+   */
+  .p-16,
+  .px-16 {
+    padding-inline: 0.5rem;
+  }
+
+  .pl-16 {
+    padding-left: 0.5rem;
+  }
+
+  .pr-16 {
+    padding-right: 0.5rem;
+  }
+
+  .gap-16,
+  .gap-x-16 {
+    column-gap: 0.5rem;
+  }
+
+  .p-20,
+  .px-20 {
+    padding-inline: 0.625rem;
+  }
+
+  .pl-20 {
+    padding-left: 0.625rem;
+  }
+
+  .pr-20 {
+    padding-right: 0.625rem;
+  }
+
+  .gap-20,
+  .gap-x-20 {
+    column-gap: 0.625rem;
+  }
+
+  .p-24,
+  .px-24 {
+    padding-inline: 0.75rem;
+  }
+
+  .pl-24 {
+    padding-left: 0.75rem;
+  }
+
+  .pr-24 {
+    padding-right: 0.75rem;
+  }
+
+  .gap-24,
+  .gap-x-24 {
+    column-gap: 0.75rem;
+  }
+
+  .p-32,
+  .px-32 {
+    padding-inline: 1rem;
+  }
+
+  .pl-32 {
+    padding-left: 1rem;
+  }
+
+  .pr-32 {
+    padding-right: 1rem;
+  }
+
+  .gap-32,
+  .gap-x-32 {
+    column-gap: 1rem;
+  }
+
+  .p-40,
+  .px-40 {
+    padding-inline: 1.25rem;
+  }
+
+  .pl-40 {
+    padding-left: 1.25rem;
+  }
+
+  .pr-40 {
+    padding-right: 1.25rem;
+  }
+
+  .gap-40,
+  .gap-x-40 {
+    column-gap: 1.25rem;
+  }
+
+  .p-48,
+  .px-48 {
+    padding-inline: 1.5rem;
+  }
+
+  .pl-48 {
+    padding-left: 1.5rem;
+  }
+
+  .pr-48 {
+    padding-right: 1.5rem;
+  }
+
+  .gap-48,
+  .gap-x-48 {
+    column-gap: 1.5rem;
+  }
+
+  /*
+   * Text kept on one line wraps, and a part that doesn't shrink is still no wider than its
+   * row (text cut with "…" keeps its own `truncate`)
+   */
+  .whitespace-nowrap {
+    white-space: normal;
+  }
+
+  .shrink-0 {
+    max-width: 100%;
+  }
+
+  /* KERN's buttons: 8px at the sides of the button and 4 of its label instead of 16 and 8 */
+  .kern-btn {
+    padding-inline: 0.5rem;
+  }
+
+  .kern-btn .kern-label {
+    padding-inline: 0.25rem;
+  }
+
+  /*
+   * KERN's dialogs: 12px at the sides instead of 32, and the title on a line of its own under
+   * the × (wrap-reverse puts the second line above the first)
+   */
+  .kern-dialog__header {
+    flex-wrap: wrap-reverse;
+    row-gap: 0;
+    padding-left: 0.75rem;
+  }
+
+  .kern-dialog__header > :first-child {
+    flex-basis: 100%;
+  }
+
+  .kern-dialog__header > :last-child:not(:first-child) {
+    margin-left: auto;
+  }
+
+  .kern-dialog__body,
+  .kern-dialog__footer {
+    padding-inline: 0.75rem;
+  }
+
+  /* KERN's alert: the icon above the title, which then has the whole width */
+  .kern-alert__header {
+    flex-wrap: wrap;
+    padding-inline: 0.5rem;
+  }
+
+  .kern-alert__body {
+    padding-inline: 0.75rem;
+  }
+
+  /* The test step's members, indented by level (TestStep/constants.ts MEMBER_INDENT) */
+  .pl-64 {
+    padding-left: 2rem;
+  }
+
+  .pl-96 {
+    padding-left: 3rem;
+  }
+}
+
+/*
+ * Reduced motion (FR-050, F62, design-notes §4): every element that transitions or animates
+ * carries the .motion class, and this one rule turns its transitions and animations off, so
+ * that a growing pill or a fading page just appears. Unlayered, so it beats the transition and
+ * animation utilities. The 0.5 s "Published" delay is behaviour, not a transition, and stays.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .motion,
+  .motion::before,
+  .motion::after {
+    transition: none;
+    animation: none;
+  }
+}
+
+/*
+ * The account pill's glyphs (Figma U11 6699:44242, build note 14; T031): T004's person icon and
+ * icon-expand_more-small fill with currentColor, which an <img> can't take, so they are masks on
+ * a box in the text colour (the design's action/default), as KERN draws its own icons
+ */
+.icon-person,
+.icon-expand-more-small {
+  flex: none;
+  background-color: currentColor;
+}
+
+.icon-person {
+  mask: url('./assets/icons/person.svg') center / contain no-repeat;
+  width: var(--kern-metric-dimension-default);
+  height: var(--kern-metric-dimension-default);
+}
+
+.icon-expand-more-small {
+  mask: url('./assets/icons/expand-more-small.svg') center / contain no-repeat;
+  width: var(--kern-metric-dimension-small);
+  height: var(--kern-metric-dimension-small);
+}
+
+@media (forced-colors: active) {
+  .icon-person,
+  .icon-expand-more-small {
+    forced-color-adjust: none;
+    background-color: ButtonText;
+  }
+}
+
+/*
+ * The wizard footer's glyphs that KERN lacks (T033): Material "save" of "Save and exit" (U17
+ * 6408:72735, "Icon/Material/save-default") and "undo" of "Discard changes" (U98 6731:39850,
+ * "Icon/Reset · undo"), as masks on a `kern-icon`, which KERN's tertiary button colours with the
+ * action colour (and white under forced colours)
+ */
+.icon-save {
+  mask: url('./assets/icons/save.svg') center / contain no-repeat;
+}
+
+.icon-undo {
+  mask: url('./assets/icons/undo.svg') center / contain no-repeat;
+}
+
+/*
+ * The footer bars (Figma "Shell/Footer" 6262:12701, build note U01 #20, design-notes §2
+ * `WizardLayout`, option b; T033): the wizard's and the details' footer (WizardLayout) and the
+ * overview's bar with "Create connection" (FormConnectionList, T043) carry `wizard-footer`.
+ * KERN EXTENSION's small buttons, 40px tall instead of KERN's 48, so that the bar is 72px with
+ * 16px above and below them. The outlined button's 1px border lies outside its label, which
+ * Figma draws inside the 40px: its label gives up 1px above and below
+ */
+.wizard-footer .kern-btn {
+  min-height: 40px;
+}
+
+.wizard-footer .kern-btn--secondary .kern-label {
+  padding-block: calc(var(--kern-metric-space-small) - var(--kern-metric-border-width-light));
 }
 
 /*
@@ -80,6 +489,52 @@
  */
 .kern-btn:focus:not(:focus-visible) {
   outline: none !important;
+}
+
+/*
+ * KERN's primary button keeps its hover shade while pressed: its :hover rule (0,3,0) outranks
+ * :active (0,2,0). The kit draws the pressed state (P09 2:4584) on top of the hover one: design-
+ * notes §2 `CopyableUrl` (T028), for every primary button
+ */
+.kern-btn--primary:not(:disabled):not([aria-disabled='true']):active {
+  background: var(--kern-color-action-state-indicator-shade-active);
+}
+
+/*
+ * The same for the outline and the tertiary buttons, whose pressed tint (16 %) KERN's hover tint
+ * (8 %) hides: the kit's states (P33 "states", state=active) on the dialog's buttons and every
+ * other one (T035)
+ */
+.kern-btn--secondary:not(:disabled):not([aria-disabled='true']):active,
+.kern-btn--tertiary:not(:disabled):not([aria-disabled='true']):active {
+  /*
+   * The pressed tint is drawn over white, not over the surface the button sits on: the blue label
+   * on the 16 % tint passes on white (4.5:1) but not over the tinted surfaces (the info background
+   * 4.0:1, feedback-default-background 4.0:1, the hued panels 4.2:1, the S16 band's gradient
+   * 4.1:1; design-notes §1.5, T098). The same colour as the tint laid on white, as one solid fill
+   * (a gradient layer is dithered by a level, 4.50:1 at its darkest pixels)
+   */
+  background: color-mix(
+    in srgb,
+    var(--kern-color-action-default) var(--pressed-tint-share, 16%),
+    var(--kern-color-layout-background-default)
+  );
+}
+
+/*
+ * Disabled buttons keep their resting fill on hover and while pressed. kern.css means to skip them
+ * (`:not(:disabled):hover, :not([aria-disabled=true]):hover`), but each half of that list matches
+ * the other kind, so a busy "Logging in…" or "Approve" took the lighter hover shade under the
+ * pointer: its white label 2.8:1 at the disabled opacity (design-notes §1.5, T098). The same
+ * rule as ExplainedButton's (T022)
+ */
+.kern-btn--primary:is(:disabled, [aria-disabled='true']):is(:hover, :active) {
+  background: var(--kern-color-action-default-contextual);
+}
+
+.kern-btn--secondary:is(:disabled, [aria-disabled='true']):is(:hover, :active),
+.kern-btn--tertiary:is(:disabled, [aria-disabled='true']):is(:hover, :active) {
+  background: transparent;
 }
 
 /* The same for KERN's checkboxes, which also draw their ring on any :focus */
@@ -104,21 +559,162 @@
 }
 
 /*
- * KERN has no indeterminate checkbox, which "All data" needs when only some fields are
- * selected: a dash in the colour and stroke width of KERN's own check mark.
+ * Checkbox: design-notes §2, option b (T016). KERN's checkbox markup with the design's
+ * "Data/Check item" (Figma V5 6027:17252, build note 2): a 20px box, radius 4, 8px to a 14/24
+ * label, 4px above and below the row. Unchecked: white with a 1px border, hover a 2px
+ * action-blue border on the tint. Checked: the action-blue fill with the design's white tick
+ * (icon-done-small); mixed: a white 10 × 2 dash; hover on either: a 3px tint ring. Keyboard
+ * focus: a 3px ring in the focus colour around the box only (the rule above hides it for
+ * pointer focus). Disabled: KERN's disabled opacity on the box and the label (68 % in the
+ * overlay, T098). Build note 2 forbids KERN's ::before tick (drawn in ink for a 32px box), so
+ * it is switched off and the tick and the dash are background images. kern.css drops the border
+ * on :focus; these rules put it back, at equal or higher specificity and later in the cascade.
  */
-.kern-form-check__checkbox:indeterminate::before {
-  display: block;
-  width: var(--kern-metric-space-default);
-  height: var(--kern-metric-border-width-default);
-  margin: 13px auto 0;
-  background-color: var(--kern-color-form-input-border-contextual);
+.kern-form-check:has(> .kern-form-check__checkbox) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kern-metric-space-small);
+  padding: var(--kern-metric-space-x-small) 0;
+}
+
+.kern-form-check__checkbox ~ .kern-label {
+  padding: 0;
+  font-size: var(--kern-typography-font-size-small-static);
+  font-weight: var(--kern-typography-font-weight-body-default);
+  line-height: var(--kern-typography-line-height-medium-static);
+  cursor: pointer;
+}
+
+.kern-form-check__checkbox,
+.kern-form-check__checkbox:hover,
+.kern-form-check__checkbox:focus,
+.kern-form-check__checkbox:focus-visible {
+  flex: none;
+  /* Centred on the label's first 24px line, also when the label wraps */
+  margin: var(--kern-metric-space-2x-small) 0 0;
+  width: var(--kern-metric-dimension-small);
+  height: var(--kern-metric-dimension-small);
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-layout-border);
+  border-radius: var(--kern-metric-border-radius-small);
+  background: var(--kern-color-layout-background-default) center / 100% 100% no-repeat;
+  cursor: pointer;
+}
+
+.kern-form-check__checkbox::before,
+.kern-form-check__checkbox:checked::before {
+  content: none;
+}
+
+.kern-form-check__checkbox:checked {
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-default);
+  background-image: url('./assets/icons/check-white-small.svg');
+}
+
+.kern-form-check__checkbox:indeterminate {
+  border: var(--kern-metric-border-width-light) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-default);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect x='5' y='9' width='10' height='2' rx='1' fill='white'/%3E%3C/svg%3E");
+}
+
+.kern-form-check__checkbox:not(:checked, :indeterminate, :disabled):hover {
+  border: var(--kern-metric-border-width-default) solid var(--kern-color-action-default);
+  background-color: var(--kern-color-action-state-indicator-tint-contextual);
+}
+
+.kern-form-check__checkbox:is(:checked, :indeterminate):not(:disabled):hover {
+  box-shadow: 0 0 0 var(--kern-3) var(--kern-color-action-state-indicator-tint-contextual);
+}
+
+.kern-form-check__checkbox:focus-visible,
+.kern-form-check__checkbox:checked:focus-visible {
+  outline: var(--kern-3) solid var(--kern-color-action-focus-default-contextual);
+  outline-offset: 0;
+}
+
+.kern-form-check__checkbox:disabled {
+  cursor: default;
 }
 
 /*
- * A destructive primary action, such as "Delete rule" (Figma U14 6113:29056): KERN has no danger
- * button, so the primary button takes the danger colour, with KERN's hover and active shades
- * made from it instead of from the action colour.
+ * Alert: design-notes §2 `ErrorNoticeText` / `FormConnectionLoadState`, option a + b (T017,
+ * coordinator). KERN 2.8.2 draws the alert's 2px border as an outline outside the box, so a
+ * title-only alert shows 68px tall; the kit (P07 1:4097, U02 note 7) strokes inside its 64px.
+ * The outlines move inside: the alert's by its 2px, the body's dividing line by its 1px, with the
+ * body's lower corners rounded like the alert so its side and bottom lines stay under the
+ * alert's own (same colour). Outlines take no space, so the layout doesn't change.
+ */
+.kern-alert {
+  outline-offset: calc(-1 * var(--kern-metric-border-width-default));
+}
+
+.kern-alert .kern-alert__body {
+  outline-offset: calc(-1 * var(--kern-metric-border-width-light));
+  border-radius: 0 0 var(--kern-metric-border-radius-default)
+    var(--kern-metric-border-radius-default);
+}
+
+/*
+ * Loader, 56 px: design-notes §2 `FeedbackLoader`, `PageLoader`, option a + b (T018). KERN's
+ * loader (`kern-loader`, 96 px, the kit's P22) at the size every screen draws it, the V5
+ * component "Loader/Spinner 56" (Figma U10 6401:28662, U78 6387:65280): a 4px ring of radius
+ * 24 (outer 52, 2px inside the 56px box) in the decorative border colour, a quarter arc in the
+ * action blue with round caps, one turn per second. KERN's ::before and ::after, its arc's ends,
+ * become the round caps: 4px dots centred on the ring at the arc's ends (24 × cos 45° from the
+ * centre). The arc sits in the top right quarter as drawn (KERN's left arc turned by 135°), which
+ * is where it stays under reduced motion (.motion stops the turn). In forced colours, KERN's.
+ */
+.kern-loader.kern-loader--56 {
+  width: calc(var(--kern-metric-dimension-2x-large) - 2 * var(--kern-metric-space-2x-small));
+  height: calc(var(--kern-metric-dimension-2x-large) - 2 * var(--kern-metric-space-2x-small));
+  margin: var(--kern-metric-space-2x-small);
+  border-width: var(--kern-metric-border-width-bold);
+  border-color: var(--kern-color-decorative-border-contextual);
+  border-left-color: var(--kern-color-action-default-contextual);
+  rotate: 135deg;
+  animation-duration: 1s;
+}
+
+.kern-loader.kern-loader--56::before,
+.kern-loader.kern-loader--56::after {
+  width: var(--kern-metric-border-width-bold);
+  height: var(--kern-metric-border-width-bold);
+  border-radius: var(--kern-metric-border-radius-circle);
+  left: var(--kern-3);
+  background: var(--kern-color-action-default-contextual);
+  transform: none;
+}
+
+.kern-loader.kern-loader--56::before {
+  top: var(--kern-3);
+}
+
+.kern-loader.kern-loader--56::after {
+  bottom: var(--kern-3);
+}
+
+@media (forced-colors: active) {
+  .kern-loader.kern-loader--56 {
+    border-color: var(--kern-color-layout-background-default)
+      var(--kern-color-layout-background-default) var(--kern-color-layout-background-default)
+      var(--kern-color-layout-background-inverted);
+  }
+
+  .kern-loader.kern-loader--56::before,
+  .kern-loader.kern-loader--56::after {
+    background: var(--kern-color-layout-background-inverted);
+  }
+}
+
+/*
+ * Danger buttons: design-notes §2 `ConfirmDialog`, option a + b (T035). KERN 2.8 has no danger
+ * button, so .kern-btn--danger re-derives the action colour and its state shades from the
+ * overlay's feedback-danger (#c4271c) on the button: on .kern-btn--primary it is the filled
+ * danger button ("Delete connection", U14 6699:44480), on .kern-btn--secondary the danger outline
+ * button ("Discard connection", U17 7173:52682; "Remove 1 document", U25 7299:52174): the 1px
+ * border and the label in the danger colour on white. Hover and pressed are KERN's own, made
+ * from the danger colour: the shades for the filled button, the tints for the outline one.
+ * kern.css computes those shades on :root, so they are set again here, not inherited.
  */
 .kern-btn--danger {
   --kern-color-action-default: var(--kern-color-feedback-danger);
@@ -133,6 +729,53 @@
     var(--kern-color-feedback-danger),
     black calc(100% - var(--kern-color-action-state-opacity-active))
   );
+  --kern-color-action-state-indicator-tint-hover-opacity: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    transparent var(--kern-color-action-state-opacity-hover)
+  );
+  /* 15 %, not KERN's 16 %: the danger label on a 16 % tint is 4.43:1 (design-notes §1.5, T035) */
+  --pressed-tint-share: 15%;
+  --kern-color-action-state-indicator-tint-active-opacity: color-mix(
+    in oklch,
+    var(--kern-color-feedback-danger),
+    transparent 85%
+  );
+}
+
+/*
+ * Dialog: design-notes §4 (T035). A dialog that carries .motion and its scrim fade in when it
+ * opens and out when it closes, in 150 ms (--duration-colour): the opacity from 0
+ * (@starting-style) to its resting value, the dialog's own 1 and the scrim's 72 % (kern.css's
+ * ::backdrop), and back; display and overlay keep the closing dialog in the top layer until it
+ * has faded (where a browser can't, it just goes). Under reduced motion it appears and goes at
+ * once: these selectors outrank the shared .motion rule above, so they repeat it for themselves.
+ */
+.kern-dialog.motion,
+.kern-dialog.motion::backdrop {
+  transition:
+    opacity var(--duration-colour) ease-out,
+    display var(--duration-colour) allow-discrete,
+    overlay var(--duration-colour) allow-discrete;
+}
+
+.kern-dialog.motion:not([open]),
+.kern-dialog.motion:not([open])::backdrop {
+  opacity: 0;
+}
+
+@starting-style {
+  .kern-dialog.motion[open],
+  .kern-dialog.motion[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kern-dialog.motion,
+  .kern-dialog.motion::backdrop {
+    transition: none;
+  }
 }
 
 @layer base {
@@ -143,9 +786,12 @@
      * Chromium's auto dark theme from darkening the page.
      */
     color-scheme: only light;
-    /* The signed-in top bar stays at the top (AppLayout): what scrolls into view, such as the
-       focused element, stops below it */
-    scroll-padding-top: 64px;
+    /* The header area stays at the top (TopBar, U11 6699:44241: 64px, the pills 16px down):
+       what scrolls into view, such as the focused element, stops 16px below it (T031). In the
+       wizard, below its pinned step header, and 16px above its sticky footer (WizardLayout,
+       T033; WCAG 2.4.11); without the wizard's footer the bottom stays at 0 */
+    scroll-padding-top: calc(var(--wizard-sticky-top, 64px) + 16px);
+    scroll-padding-bottom: calc(var(--wizard-sticky-bottom, -16px) + 16px);
     color: var(--kern-color-layout-text-default);
     /* As in the Figma text styles and KERN's own type classes */
     font-variant-numeric: lining-nums tabular-nums slashed-zero;

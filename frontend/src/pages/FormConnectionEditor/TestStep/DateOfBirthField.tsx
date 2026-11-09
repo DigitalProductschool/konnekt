@@ -23,7 +23,7 @@ export default function DateOfBirthField({
 }: DateOfBirthFieldProps) {
   return (
     <div className="flex flex-wrap gap-16">
-      <div className="min-w-140 flex-1">
+      <div className="narrow:min-w-0 narrow:basis-full min-w-140 flex-1">
         <ValueField
           id={id}
           label={label}
@@ -33,7 +33,7 @@ export default function DateOfBirthField({
           onChange={onDateChange}
         />
       </div>
-      <div className="min-w-140 flex-1">
+      <div className="narrow:min-w-0 narrow:basis-full min-w-140 flex-1">
         <ValueField
           id={`${id}-age`}
           label={TEST_STEP_COPY.ageToday}

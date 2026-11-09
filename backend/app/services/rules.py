@@ -596,7 +596,7 @@ def _item_name(item: TreeItem, noun: ItemNoun, check: _BranchCheck) -> str:
     earlier = check.names.get(_folded(name))
     if earlier is not None and earlier.owner_id != item.id:
         raise _validation_error(
-            f'Another {earlier.noun} in {check.name} is already called {earlier.name}.'
+            f'There’s already a {earlier.noun} called "{earlier.name}" in {check.name}.'
         )
     reserved = reserved_name_problem(name, item)
     if reserved is not None:

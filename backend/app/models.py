@@ -5,7 +5,7 @@ branches of specs/002-connection-rules/data-model.md, the drafts of
 specs/005-connection-drafts/data-model.md and the agent access and approval
 requests of specs/007-agent-mcp-server/data-model.md.
 
-No table holds an applicant, a finding, a test result, a token's secret or a
+No table holds a citizen, a finding, a test result, a token's secret or a
 citizen's data.
 """
 

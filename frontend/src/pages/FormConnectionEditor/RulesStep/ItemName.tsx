@@ -2,15 +2,19 @@ import { nameProblem } from '@connection-portal/rules/validation';
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
 
 import { NAME_SIZES, RULES_COPY } from './constants';
+import FieldError from './RuleEditor/FieldError';
 import type { ItemNameProps } from './types';
-import { renameReducer } from './utils';
+import { renameReducer, standingOf } from './utils';
 
 /**
- * A rule's, group's or sub-group's name in the list (U15; U14 6094:6413): a button that starts
- * renaming, which shows the design's hint (dashed underline and pencil) on hover and focus, and
- * the inline field "Rules/Inline rename field" while renaming. Enter saves and Escape cancels; a
- * missing, used or reserved name is refused there, naming the branch (F12). Leaving the field
- * saves a name that fits.
+ * A rule's, group's or sub-group's name in the list (U14 6094:6413): a button that starts
+ * renaming, which shows the design's hint (dashed underline and pencil, its colour in 150 ms) on
+ * hover and focus, and while renaming the inline field (U49 6196:10653, "Rules/Search field": 240
+ * × 40, white, a 1px line, radius 8, 16 at the sides, body/default) with the hint under it. Enter
+ * saves and Escape cancels; a missing, used or reserved name is refused there, naming the branch
+ * (F12, C5, W12), with a red line and "Rules/Field error" 8 under the field (U49 6196:10710).
+ * Leaving the field saves a name that fits. In a variant, a rule or group linked to Standard has
+ * no Rename (FR-036; CLAR #53): its name is plain text there.
  */
 export default function ItemName({
   item,
@@ -26,6 +30,7 @@ export default function ItemName({
   const wasRenaming = useRef(renaming);
   const messageId = useId();
   const textSize = NAME_SIZES[size];
+  const renamable = standingOf(branch, item) !== 'inherited';
 
   useEffect(() => {
     if (renaming) {
@@ -69,6 +74,13 @@ export default function ItemName({
     }
   }
 
+  if (!renamable) {
+    return (
+      <span className={`${textSize} text-kern-action-default self-start font-semibold break-words`}>
+        {item.name}
+      </span>
+    );
+  }
   if (!renaming) {
     return (
       <button
@@ -77,7 +89,7 @@ export default function ItemName({
         onClick={() => dispatch({ type: 'startRename', branchKey: branch.key, itemId: item.id })}
         className={`group ${textSize} text-kern-action-default focus-visible:outline-kern-action-focus-default rounded-kern-small flex cursor-pointer items-center gap-8 self-start text-left font-semibold focus-visible:outline-4 focus-visible:outline-offset-2`}
       >
-        <span className="group-hover:border-kern-action-default group-focus-visible:border-kern-action-default -mb-px border-b border-transparent break-words group-hover:border-dashed group-focus-visible:border-dashed">
+        <span className="group-hover:border-kern-action-default group-focus-visible:border-kern-action-default motion -mb-px border-b border-transparent break-words transition-colors duration-(--duration-colour) group-hover:border-dashed group-focus-visible:border-dashed">
           <span className="sr-only">{RULES_COPY.rename} </span>
           {item.name}
         </span>
@@ -89,7 +101,7 @@ export default function ItemName({
     );
   }
   return (
-    <span className="flex flex-wrap items-center gap-8">
+    <div className="flex flex-col items-start gap-8">
       <input
         ref={inputRef}
         value={field.value}
@@ -99,16 +111,18 @@ export default function ItemName({
         onChange={(event) => dispatchField({ type: 'change', value: event.target.value })}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className={`${textSize} text-kern-action-default [field-sizing:content] min-w-48 border-b-2 bg-transparent px-4 font-semibold outline-none ${field.error ? 'border-kern-feedback-danger border-solid' : 'border-kern-action-default border-dotted'}`}
+        className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default motion h-40 w-240 max-w-full border px-16 leading-(--kern-typography-line-height-medium-static) transition-colors duration-(--duration-colour) focus-visible:outline-4 focus-visible:outline-offset-0 ${field.error ? 'border-kern-feedback-danger' : 'hover:border-kern-form-input-border border-(--kern-color-decorative-border-default)'}`}
       />
-      <span
-        id={messageId}
-        // Live from the start, so that an error replacing the hint is announced
-        aria-live="assertive"
-        className={`text-kern-static-small leading-(--kern-typography-line-height-medium-static) ${field.error ? 'text-kern-feedback-danger' : 'text-kern-layout-text-muted'}`}
-      >
-        {field.error ?? RULES_COPY.renameHint}
-      </span>
-    </span>
+      {/* Live from the start, so that an error replacing the hint is announced */}
+      <div id={messageId} aria-live="assertive">
+        {field.error ? (
+          <FieldError id={`${messageId}-error`} message={field.error} />
+        ) : (
+          <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
+            {RULES_COPY.renameHint}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

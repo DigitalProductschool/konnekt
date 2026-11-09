@@ -1,3 +1,4 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
@@ -40,13 +41,18 @@ export interface CurrentUserContextValue {
 export type FormConnectionState =
   | { status: 'loading'; attempt: number }
   | { status: 'notFound'; attempt: number }
-  | { status: 'failed'; attempt: number }
+  | {
+      status: 'failed';
+      attempt: number;
+      /** What the server answered, with a 5xx answer's error ID (W2); null when it didn't answer */
+      notice: ErrorNotice | null;
+    }
   | { status: 'loaded'; attempt: number; formConnection: FormConnectionOrDraft };
 
 export type FormConnectionAction =
   | { type: 'loaded'; formConnection: FormConnectionOrDraft }
   | { type: 'notFound' }
-  | { type: 'failed' }
+  | { type: 'failed'; notice: ErrorNotice | null }
   | { type: 'retry' };
 
 // useRuleChecks() (specs/003-rule-consistency-checks, contracts/rule-checks.md "useRuleChecks")
@@ -83,4 +89,18 @@ export interface ActiveRun {
   worker: Worker | null;
   /** The watchdog's timer, or null without a worker */
   watchdog: number | null;
+}
+
+// useRememberedHomepage() (spec 008, research R6, FR-027)
+
+/** What the homepage "/" shows: the welcome page or the overview "Your connections" */
+export type Homepage = 'welcome' | 'overview';
+
+/** The homepage memory of the signed-in account on this device */
+export interface RememberedHomepage {
+  /**
+   * Whether the account had connections or drafts when its list last loaded on this device; null
+   * when nothing is remembered (first visit, signed out, blocked storage)
+   */
+  remembered: boolean | null;
 }

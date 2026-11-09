@@ -52,7 +52,7 @@ BASE = '/api/form-connections'
 SIGN_IN_REQUIRED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}
 BROWSER_ONLY = {
     'error': 'browser_only',
-    'message': 'This action is done in the Connection Portal.',
+    'message': 'This action is done in Konnekt.',
 }
 NEEDS_DRAFTS = {
     'error': 'insufficient_access',
@@ -783,7 +783,7 @@ def test_the_level_is_read_at_every_call(
     assert saved.status_code == 403
     assert saved.json() == NEEDS_DRAFTS
 
-    # No level reaches what is done in the Connection Portal
+    # No level reaches what is done in Konnekt
     _update_authorization(authorization_id, access_level='manage')
     deleted = client.request('DELETE', f'{BASE}/{draft_id}/draft', json={})
     assert deleted.status_code == 403
@@ -885,7 +885,7 @@ def test_the_levels_in_order() -> None:
     ]
     assert ACCESS_LEVELS[0].allows == (
         'Find and read connections, variants and rules, run the rule checks and '
-        'test fictitious applicants. Nothing changes.'
+        'test fictitious citizens. Nothing changes.'
     )
 
 

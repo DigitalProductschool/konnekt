@@ -111,7 +111,7 @@ def clean_name(value: str | None) -> str:
     return _required_text(
         value,
         NAME_MAX_LENGTH,
-        'Enter a name.',
+        'Enter a name for the connection.',
         f'The name can have at most {NAME_MAX_LENGTH} characters.',
     )
 

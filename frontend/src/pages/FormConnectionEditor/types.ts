@@ -1,5 +1,4 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   EditorStep,
   FormConnection,
@@ -162,10 +161,6 @@ export type RulesNextAction = 'test' | 'publishWithoutRules';
 export interface EditorErrors {
   name?: string;
   description?: string;
-  /** No document was added */
-  documents?: string;
-  /** By document type: a document without a selected field */
-  fields?: Record<string, string>;
 }
 
 /**
@@ -224,7 +219,10 @@ export interface EditorState {
   toast: ToastContent | null;
   /** "Save and exit" in progress */
   savingDraft: boolean;
-  /** A refused or failed draft save, shown above the step until the step changes (FR-013) */
+  /**
+   * A refused or failed draft save, which the page shows as the failed save's toast (FR-033)
+   * until the step changes, a save starts again or the toast is dismissed
+   */
   draftError: DraftSaveError | null;
   /** The dialog after a refused draft save or publish (S2; R6); `rulesChanged` stays for edits */
   conflict: DraftConflict | null;
@@ -260,8 +258,11 @@ export type EditorAction =
 
 export interface ConnectionStepProps {
   name: string;
-  /** The card's closing note */
-  note: string;
+  /**
+   * The edit flow of a published connection (U98 6731:39821): the card's hint and its note say
+   * that changes take effect once saved, instead of the draft's note
+   */
+  editing: boolean;
   description: string;
   errors: EditorErrors;
   onChangeName: (value: string) => void;
@@ -269,78 +270,70 @@ export interface ConnectionStepProps {
   onSubmit: () => void;
 }
 
-export interface DocumentsStepProps {
-  catalogStatus: 'loading' | 'loaded' | 'failed';
-  documentTypes: DocumentType[];
-  documents: RequestedDocument[];
-  errors: EditorErrors;
+/**
+ * The phases of the publish and save dialog (data-model.md "The publish dialog"; FR-044; S14):
+ * - `summary`: "Ready to publish?" ("Save changes?") with the counts and the findings lines;
+ * - `noRules`: "Publish without rules?" ("Save without rules?"), from the rules step's "Publish
+ *   without rules" or the edit flow's "Save" while no variant has rules (002-S5.6);
+ * - `publishing`: the status dialog "Publishing…" ("Saving…"), which can't be closed (FR-051 (41));
+ * - `published`: the status dialog "Published" ("Saved") for 0.5 s, then the details (FR-044d);
+ * - `failed`: the summary again, under the failure's alert, with "Try again" (F46);
+ * - `conflict`: `409 rules_changed` (W7, W9) or a stored draft's conflict (W3, 005-S2) in U90's
+ *   dialog anatomy, with "Reload" or "Replace their changes".
+ */
+export type PublishDialogPhase =
+  'closed' | 'summary' | 'noRules' | 'publishing' | 'published' | 'failed' | 'conflict';
+
+/**
+ * Why publishing or saving failed: a network failure or a `5xx` gets the design's sentence and
+ * the error ID the server sent (U79 6376:27178; F46); any other answer, such as a `400`, shows the
+ * server's message, which says what went wrong (002-S5.3)
+ */
+export type PublishFailure =
+  { kind: 'general'; errorId?: string } | { kind: 'refused'; notice: ErrorNotice };
+
+/** What publishing or saving met: another team member's rules (W9) or a draft conflict (S2) */
+export type PublishConflict = { kind: 'rules_changed'; message: string } | DraftConflict;
+
+/**
+ * The publish and save dialog's own state, kept by the editor's `publishDialogReducer()`. The
+ * fields other than `phase` stay as they were when it closes, so that the closing dialog's words
+ * don't change while it fades out.
+ */
+export interface PublishDialogState {
+  phase: PublishDialogPhase;
+  /** The step that opened it, which "Back to test" closes back to (FR-044a) */
+  from: EditorStep;
+  /** Opened as "Publish without rules?": its title, intro and "Add rules" stay after a failure */
+  withoutRules: boolean;
+  /** The last attempt's failure, shown while `failed` */
+  failure: PublishFailure | null;
+  /** The last attempt's conflict, shown while `conflict` */
+  conflict: PublishConflict | null;
+  /** The connection the details open after `published` */
+  connectionId: string | null;
+}
+
+export type PublishDialogAction =
+  /** "Publish" or "Save", once the pre-checks have passed */
+  | { type: 'open'; from: EditorStep; withoutRules: boolean }
+  /** "Publish connection", "Save", "Try again", "Replace their changes" */
+  | { type: 'publish' }
+  /** Published or saved: "Published" ("Saved"), then the details */
+  | { type: 'published'; connectionId: string }
+  | { type: 'failed'; failure: PublishFailure }
+  | { type: 'conflict'; conflict: PublishConflict }
   /**
-   * The data the catalog dropped (S8): the note above the picker shows while there is any. Empty
-   * in the published edit flow, which stays as it is (FR-026)
+   * "Back to test", the other cancel buttons, the ×, Escape, a conflict's "Cancel", and the log-out
+   * after the edit flow's "Save and log out"
    */
-  dropped: DroppedData[];
-  /** The note, which takes the focus when the flow moved to this step for it (S8) */
-  droppedNoteRef: Ref<HTMLElement>;
-  /** The note's "Remove it" */
-  onRemoveDropped: () => void;
-  onRetryCatalog: () => void;
-  onAdd: (documentType: DocumentType) => void;
-  onRemove: (documentType: DocumentType) => void;
-  onSetField: (documentType: string, field: string, selected: boolean) => void;
-  onSetAllFields: (documentType: string, fields: string[]) => void;
-}
-
-export interface DocumentPickerProps {
-  documentTypes: DocumentType[];
-  documents: RequestedDocument[];
-  /** The id of the "Add at least one document." message, while it is shown */
-  errorId?: string;
-  onAdd: (documentType: DocumentType) => void;
-  onRemove: (documentType: DocumentType) => void;
-}
-
-export interface DocumentPickerItemProps {
-  documentType: DocumentType;
-  added: boolean;
-  describedBy?: string;
-  onAdd: () => void;
-  onRemove: () => void;
-}
-
-export interface UpcomingDocumentItemProps {
-  name: string;
-}
-
-export interface DocumentCardProps {
-  documentType: DocumentType;
-  selected: string[];
-  error?: string;
-  onSetField: (field: string, selected: boolean) => void;
-  onSetAllFields: (fields: string[]) => void;
-}
-
-export interface FieldChecklistProps {
-  documentType: DocumentType;
-  selected: string[];
-  /** The id of the document's validation message, while it is shown */
-  errorId?: string;
-  onSetField: (field: string, selected: boolean) => void;
-  onSetAllFields: (fields: string[]) => void;
-}
-
-export interface FieldCheckboxProps {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}
+  | { type: 'close' };
 
 export interface PublishDialogProps {
-  open: boolean;
+  /** Its own state (`publishDialogReducer()`): its phase decides what shows */
+  dialog: PublishDialogState;
   /** Saves changes to an existing connection rather than publishing a new one */
   editing: boolean;
-  /** Opened from the documents step, skipping the rules: "Publish without rules?" (U36) */
-  withoutRules: boolean;
   /** One line per document: "Personal ID · 7 data items" */
   documentLines: string[];
   /** One line per branch: "Standard · 2 rules" */
@@ -349,32 +342,35 @@ export interface PublishDialogProps {
   branches: readonly RulesBranch[];
   /** The latest checks per branch key, from `useRuleChecks()` */
   checks: RuleChecks['byBranch'];
-  publishing: boolean;
-  /** Why the last attempt failed, shown in the dialog until it closes or publishing starts */
-  error: ErrorNotice | null;
-  /** The last attempt met rules another team member saved meanwhile (W9) */
-  rulesChanged: boolean;
-  /** "Check rules again", or "Add rules" when publishing without rules */
+  /** A conflict's answer that publishes nothing is running: "Save as new draft" ("Saving…") */
+  busy: boolean;
+  /**
+   * "Back to test" when the test step opened it (FR-044a), "Add rules" when publishing without
+   * rules, "Check rules again" otherwise
+   */
   onCancel: () => void;
-  /** The close button and Escape */
+  /** The close button and Escape, and a draft conflict's "Cancel" */
   onClose: () => void;
+  /** "Publish connection", "Save", "Try again" */
   onConfirm: () => void;
-  /** "Reload", after `rulesChanged` */
+  /** "Reload", after `rules_changed` or `draft_changed` */
   onReload: () => void;
   /**
-   * "Replace their changes", after `rulesChanged` (the same save, replacing their rules) or
+   * "Replace their changes", after `rules_changed` (the same save, replacing their rules) or
    * `draft_changed` (the same publish with `replace: true`)
    */
   onReplace: () => void;
-  /**
-   * The last publish of a draft met another team member's save (S2): the dialog shows its
-   * message and buttons in place of "Publish"
-   */
-  conflict: DraftConflict | null;
   /** "Open the connection", after `draft_published` */
   onOpenConnection: () => void;
   /** "Save as new draft", after `draft_deleted` */
   onSaveAsNew: () => void;
+}
+
+/** The status dialog of the publish and save dialog (U78 6387:65280, 6387:65289) */
+export interface PublishStatusDialogProps {
+  /** `publishing` or `published` while open; anything else closes it */
+  phase: PublishDialogPhase;
+  editing: boolean;
 }
 
 export interface DraftConflictDialogProps {
@@ -405,10 +401,6 @@ export interface RemoveDataDialogProps {
   onConfirm: () => void;
 }
 
-export interface RemovedDataRuleItemProps {
-  rule: RemovedDataRule;
-}
-
 export interface PublishSummaryRowProps {
   label: string;
   values: string[];
@@ -421,14 +413,14 @@ export interface PublishSummaryValueProps {
 }
 
 /**
- * A branch's line in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019): "Ambulance:
- * 2 rules can’t be met together · 1 duplicate rule", from `dialogLineOf()`
+ * A branch's line in the publish and save dialog (spec 003, S5; W10; FR-017, FR-019), from
+ * `dialogLineOf()`: the variant's name, a colon, then the package's sentences
  */
 export interface FindingLine {
   /** The branch's key */
   key: string;
   text: string;
-  /** Warning when the branch has a conflict or no applicant can meet it, info otherwise */
+  /** Warning when the branch has a conflict or no citizen can meet it, info otherwise */
   tone: FindingTone;
 }
 
@@ -447,11 +439,29 @@ export interface EditorFooterProps {
   rulesNextAction: RulesNextAction;
   /** "Back": the previous step; from the test step, the rules step */
   onBack: () => void;
-  /** The documents step's "Add rules →" */
+  /** The documents step's "Set rules →" */
   onAddRules: () => void;
+  /**
+   * Why "Set rules →" can't be used now, "Add a document first" while no document is added
+   * (FR-031; T022's pattern), and the edit flow's "Save" with it; null or absent: usable
+   */
+  addRulesExplanation?: string | null;
+  /**
+   * A rule editor is open: "Test rules" is unusable and explains "Save the rule first" (FR-034,
+   * W21)
+   */
+  ruleOpen: boolean;
+  /** Rules are being chosen for a group: "Test rules" explains "Finish grouping first" */
+  grouping: boolean;
+  /**
+   * The first spec 002 problem of the rules in the server's words, such as "Rule 02 in Standard
+   * checks data that's no longer requested.", or null: while there is one, "Test rules" is
+   * unusable and explains it (FR-034 "in error"; CLAR #66, Implement Q5)
+   */
+  rulesProblem?: string | null;
   /** The rules step's "Test rules →" (spec 004, S2) */
   onTestRules: () => void;
-  /** "… without rules" on the documents and the rules step, or the test step's "Publish" / "Save" */
+  /** "Publish without rules" on the rules step, the test step's "Publish", or the edit flow's "Save" */
   onPublish: () => void;
   /** "Save and exit" shows on every step: the origin is `new` or `draft` (FR-001, FR-026) */
   canSaveDraft: boolean;
@@ -459,15 +469,11 @@ export interface EditorFooterProps {
   savingDraft: boolean;
   /** "Save and exit" */
   onSaveAndExit: () => void;
-}
-
-export interface SaveDraftAlertProps {
-  /** The failed draft save; nothing renders without one */
-  error: DraftSaveError | null;
-  /** "Try again" is running */
-  retrying: boolean;
-  /** "Try again", shown only while `error.retryable` */
-  onRetry: () => void;
+  /**
+   * The edit flow's "Discard changes" beside "Back" (FR-045, U98 6731:39850): runs once
+   * "Discard your changes?" is confirmed (T083); no button without it
+   */
+  onDiscard?: () => void;
 }
 
 export interface CatalogDroppedNoteProps {
@@ -486,4 +492,82 @@ export interface CatalogDroppedItemProps {
 export interface FindingsAnnouncerProps {
   /** The latest change's announcement from `useRuleChecks()`, empty before the first one */
   announcement: string;
+}
+
+/**
+ * Leaving a flow (FR-026; CLAR 2026-11-07 #8, #47; data-model.md "Leaving a flow"): what the
+ * product name, "Your connections" and "Log out" do in the editor, and what each answer of their
+ * questions does (`leaveFlowStep()` in leaveFlow.ts)
+ */
+export type LeaveFlowState =
+  | { status: 'idle' }
+  /** "Leave this connection?", in a new connection's or a stored draft's flow */
+  | { status: 'leaveAsked'; origin: Exclude<EditorOrigin['kind'], 'published'> }
+  /** "Save your changes?", in the edit flow of a published connection (#47) */
+  | { status: 'saveAsked' }
+  /** "Save before you log out?", in any flow with unsaved work */
+  | { status: 'logoutAsked'; origin: EditorOrigin['kind'] }
+  /**
+   * An answer stores the flow: "Save and exit", or the edit flow's save dialog, through the rule
+   * editor's question first; `after` follows once it is stored, and a save that ends without
+   * storing goes back to `idle`
+   */
+  | { status: 'saving'; origin: EditorOrigin['kind']; after: 'leave' | 'logout' };
+
+/** What the editor knows when the team member asks to leave or to log out */
+export interface LeaveFlowContext {
+  origin: EditorOrigin['kind'];
+  /** The flow holds work that isn't stored (`hasUnsavedWork()`) */
+  unsaved: boolean;
+  /** A save or a publish is running: the question waits for it, so the request is ignored */
+  busy: boolean;
+}
+
+export type LeaveFlowAction =
+  /** The product name or "Your connections" */
+  | { type: 'askLeave'; context: LeaveFlowContext }
+  /** "Log out" in the account menu */
+  | { type: 'askLogout'; context: LeaveFlowContext }
+  /** The ×, Escape, the scrim, or "Cancel" of the log-out question: the team member stays */
+  | { type: 'cancel' }
+  /** "Save progress" ("Leave this connection?"), or "Save" ("Save your changes?") */
+  | { type: 'saveProgress' }
+  /** "Discard connection" ("Leave this connection?"), or "Discard changes" ("Save your changes?") */
+  | { type: 'discard' }
+  | { type: 'saveAndLogout' }
+  | { type: 'logoutAnyway' }
+  /** A save stored the flow: from an answer, or from the footer, the conflict dialog or publishing */
+  | { type: 'saved' }
+  /**
+   * A save ended without storing: refused (a missing name, the rules' pre-checks), failed, met a
+   * conflict, or its rule question or save dialog was closed
+   */
+  | { type: 'failed' };
+
+/** What the editor does after a step of the leave model; the model itself only decides */
+export type LeaveEffect =
+  /** Nothing: a question opened or closed, or the action didn't apply */
+  | { type: 'none' }
+  /** Leaves to the overview without storing; `forget` drops the flow's local draft first */
+  | { type: 'leave'; forget: boolean }
+  /**
+   * Stores the flow, through "Save changes to Rule 01?" while the rule editor has unsaved changes
+   * (Q8 (c)): "Save and exit" for a new connection or a stored draft, the save dialog for a
+   * published connection
+   */
+  | { type: 'store'; via: 'saveAndExit' | 'saveDialog' }
+  /**
+   * Logs out (UserMenu's `logOut`); `forget` drops the flow's local draft first, so that the
+   * local-drafts warning doesn't name it
+   */
+  | { type: 'logOut'; forget: boolean }
+  /** The log-out question closed: the focus goes back to the account pill (F20) */
+  | { type: 'focusUserMenu' }
+  /** The flow is stored: the save's own exit follows (the overview with its toast, the details) */
+  | { type: 'exit' };
+
+/** A step of the leave model: the next state, and what the editor does now */
+export interface LeaveFlowStep {
+  state: LeaveFlowState;
+  effect: LeaveEffect;
 }

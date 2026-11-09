@@ -4,17 +4,19 @@ import SymbolChip from './SymbolChip';
 import type { PickerProps } from './types';
 
 /**
- * Figma "Rules/Picker" (6083:3529): a compact, content-wide trigger of a rule editor menu. It is
- * disabled until the choice before it is made, blue while its menu is open, and red when its
- * value has a problem. The open state's 2px border is a 1px border with a 1px inner ring, so
- * that the content stays where it is, as Figma draws strokes inside. Below 768px (200% zoom,
- * small screens) a long choice wraps instead of running out of the editor (WCAG 1.4.10).
+ * Figma "Rules/Picker" (6083:3529; U30 6348:40747, 6350:41179): a compact, content-wide trigger
+ * of a rule editor menu, white with a 1px border, 40 high, 16px before and 8px after its
+ * content; what to choose and the choice both in the ink colour, as drawn. It is disabled until
+ * the choice before it is made (FR-039, W19), drawn on U49 6196:10247: the hued fill with muted
+ * text and the default border, at full opacity; blue while its menu is open, and red when its value has a problem or is missing after "Save
+ * rule" (the inline flag, FR-039). The open state's 2px border is a 1px border with a 1px inner
+ * ring, so that the content stays where it is, as Figma draws strokes inside. Below 768px (200%
+ * zoom, small screens) a long choice wraps instead of running out of the editor (WCAG 1.4.10).
  */
 export default function Picker({
   id,
   name,
   label,
-  placeholder,
   disabled = false,
   open,
   invalid = false,
@@ -31,9 +33,10 @@ export default function Picker({
       : 'border-(--kern-color-decorative-border-default)';
   const text = open
     ? 'text-kern-action-default'
-    : disabled || placeholder
+    : disabled
       ? 'text-kern-layout-text-muted'
       : 'text-kern-layout-text-default';
+  // Under 320 CSS px the label takes a line of its own under the icons (T096)
   return (
     <button
       id={id}
@@ -43,13 +46,14 @@ export default function Picker({
       aria-expanded={open}
       aria-controls={open ? menuId : undefined}
       aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
       onClick={onToggle}
-      className={`rounded-kern-default focus-visible:outline-kern-action-focus-default flex h-40 shrink-0 cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-default max-md:h-auto max-md:min-h-40 max-md:max-w-full max-md:py-7 max-md:text-left ${border} ${disabled ? 'bg-kern-layout-background-hued' : 'bg-kern-layout-background-default'}`}
+      className={`rounded-kern-default focus-visible:outline-kern-action-focus-default bg-kern-layout-background-default disabled:bg-kern-layout-background-hued narrow:flex-wrap flex h-40 shrink-0 cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-default max-md:h-auto max-md:min-h-40 max-md:max-w-full max-md:py-7 max-md:text-left ${border}`}
     >
       {icon && <img src={icon} alt="" className="size-16 shrink-0" />}
       {symbol && <SymbolChip symbol={symbol} />}
       <span
-        className={`text-kern-static-medium min-w-0 leading-(--kern-typography-line-height-medium-static) whitespace-nowrap max-md:whitespace-normal ${text}`}
+        className={`text-kern-static-medium narrow:order-last narrow:basis-full min-w-0 leading-(--kern-typography-line-height-medium-static) whitespace-nowrap max-md:whitespace-normal ${text}`}
       >
         <span className="sr-only">{name}: </span>
         {label}

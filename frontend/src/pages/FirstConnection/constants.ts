@@ -1,5 +1,6 @@
 export const FIRST_CONNECTION_COPY = {
-  // Figma "L1 Loading", between "01 Log in" and "02", with the overview loader's wording
-  // (design-notes.md §5–6) instead of L1's "Loading your workspace…"
+  // The loading state's text, as the homepage's loading page has it (U10 6401:28567)
   loading: 'Loading your connections…',
+  // The page's h1 while it loads, for screen readers: step 1's title in the first-connection flow
+  title: 'Create your first connection',
 };

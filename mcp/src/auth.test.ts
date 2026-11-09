@@ -201,7 +201,7 @@ describe('protectedResourceMetadata', () => {
       authorization_servers: [config.oauthIssuer],
       scopes_supported: ['read', 'drafts', 'manage'],
       bearer_methods_supported: ['header'],
-      resource_name: 'Connection Portal',
+      resource_name: 'Konnekt',
     });
   });
 });

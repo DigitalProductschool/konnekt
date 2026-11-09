@@ -36,7 +36,7 @@ STATE_CHANGING_METHODS = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
 UNAUTHORIZED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}
 BROWSER_ONLY = {
     'error': 'browser_only',
-    'message': 'This action is done in the Connection Portal.',
+    'message': 'This action is done in Konnekt.',
 }
 
 # The three access levels in order, each including the ones before it
@@ -47,7 +47,7 @@ ACCESS_LEVELS: tuple[AccessLevelInfo, ...] = (
         name='Read only',
         allows=(
             'Find and read connections, variants and rules, run the rule checks '
-            'and test fictitious applicants. Nothing changes.'
+            'and test fictitious citizens. Nothing changes.'
         ),
     ),
     AccessLevelInfo(
@@ -419,7 +419,7 @@ def require_browser_session(
 ) -> UserAccount:
     """Refuse every agent with 403 `browser_only`, and return the signed-in user.
 
-    For the endpoints that only a team member uses in the Connection Portal: the
+    For the endpoints that only a team member uses in Konnekt: the
     direct status changes, which agents reach through approval requests, and a
     published connection's content (FR-018, FR-021).
     """

@@ -1,5 +1,6 @@
-// Rules as readable statements (FR-005; F1, F2, F5, F7, F8, F32), such as "Personal ID – Date of
-// birth (Age) is at least 21 years old", for the rules step, the publish dialog and the details
+// Rules as readable statements (FR-005; F1, F2, F5, F7, F8, F32; spec 008 C3, FR-021), such as
+// "Personal ID · Date of birth (Age) is at least 21 years old", for the rules step, the publish
+// dialog and the details
 import type { DocumentField } from '@connection-portal/api-types/document-types';
 import type {
   Condition,
@@ -15,9 +16,10 @@ import {
   resolveTarget,
   suffixOf,
 } from './conditions';
-import { DATE_OF_BIRTH_RULE_LABEL, OPERATOR_SYMBOLS } from './constants';
+import { DATE_OF_BIRTH_RULE_LABEL, NUMBER_OPERATOR_SYMBOLS, OPERATOR_SYMBOLS } from './constants';
 import { formatDate } from './dates';
 import type {
+  ConditionKind,
   PredicateParts,
   ResolvedTarget,
   RuleContext,
@@ -41,13 +43,13 @@ export function ruleFieldLabel(field: DocumentField): string {
 }
 
 /**
- * What a resolved target checks, with "–" between the document, the field and the part:
- * "Personal ID – Place of birth – City or town", "Driving licence – Licence class B – Issue date".
- * A part named like its field, such as the classes held, adds nothing: "Driving licence – Licence
- * classes".
+ * What a resolved target checks, with "·" between the document and the data and "–" before a
+ * part (spec 008 C3): "Personal ID · Place of birth – City or town", "Driving licence · Licence
+ * class B – Issue date". A part named like its field, such as the classes held, adds nothing:
+ * "Driving licence · Licence classes".
  */
 export function subjectOfResolved(target: ResolvedTarget): string {
-  return `${target.document.label} – ${dataOfResolved(target)}`;
+  return `${target.document.label} · ${dataOfResolved(target)}`;
 }
 
 /**
@@ -83,9 +85,15 @@ export function optionLabel(
   return option ? option.label : String(value);
 }
 
-/** The design's chip for a condition (≥, < or =), decoration only, or null. */
-export function symbolOf(operator: string): StatementSymbol | null {
-  return OPERATOR_SYMBOLS[operator] ?? null;
+/**
+ * The design's chip for a condition of a kind (≥, >, <, = or ≠), decoration only, or null: number
+ * conditions and the relative date conditions have one.
+ */
+export function symbolOf(operator: string, kind: ConditionKind | null): StatementSymbol | null {
+  if (kind === 'number') {
+    return NUMBER_OPERATOR_SYMBOLS[operator] ?? null;
+  }
+  return kind === 'date' ? (OPERATOR_SYMBOLS[operator] ?? null) : null;
 }
 
 function count(amount: number, unit: 'year' | 'month'): string {
@@ -112,7 +120,7 @@ export function predicatePartsOf(
     return null;
   }
   const parts = (values: string[], tail: string | null = null): PredicateParts => ({
-    symbol: symbolOf(condition.operator),
+    symbol: symbolOf(condition.operator, kind),
     words: definition.label,
     values,
     tail,
@@ -182,7 +190,7 @@ export function statementOf(
   return {
     subject,
     predicate,
-    symbol: symbolOf(rule.condition?.operator ?? ''),
+    symbol: symbolOf(rule.condition?.operator ?? '', target.kind),
     text: `${subject} ${predicate}`,
   };
 }

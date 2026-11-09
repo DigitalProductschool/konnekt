@@ -5,17 +5,19 @@ import CopyableUrl from '../../components/CopyableUrl';
 import type { LinkCardUrlProps } from './types';
 
 /**
- * A link card's URL with "Copy link" (U37 6396:47732–6396:47749), and with several variants the
- * variant's name above it, with its (i) (F24, F31). The copy button is described by the card's
- * title and the variant's name. The URL copies in full, however it wraps (FYI #13).
+ * A link's URL row with "Copy link" (U80 6809:46454; T028's `CopyableUrl`: one line cut with "…",
+ * copied in full, "✓ Copied" for 2 s), and with several variants the variant's name 4px above
+ * it (label/small), with its ⓘ holding the description (F51; none without one, 002-S4.3). The
+ * copy button's name ends with the card's title and the variant's name. While the connection is
+ * deactivated, the button is off and says why (W21).
  */
-export default function LinkCardUrl({ link, titleId }: LinkCardUrlProps) {
+export default function LinkCardUrl({ link, titleId, deactivated = false }: LinkCardUrlProps) {
   const labelId = useId();
   if (!link.branch) {
-    return <CopyableUrl url={link.url} describedBy={titleId} />;
+    return <CopyableUrl url={link.url} describedBy={titleId} deactivated={deactivated} />;
   }
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       <BranchName name={link.branch.name} description={link.branch.description}>
         <p
           id={labelId}
@@ -24,7 +26,7 @@ export default function LinkCardUrl({ link, titleId }: LinkCardUrlProps) {
           {link.branch.name}
         </p>
       </BranchName>
-      <CopyableUrl url={link.url} describedBy={`${titleId} ${labelId}`} />
+      <CopyableUrl url={link.url} describedBy={`${titleId} ${labelId}`} deactivated={deactivated} />
     </div>
   );
 }

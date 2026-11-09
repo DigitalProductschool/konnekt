@@ -32,13 +32,13 @@ import {
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
   PUBLISH_COPY,
-  REMOVE_DATA_COPY,
   RULES_CHANGED_ERROR,
   VALIDATION_MESSAGES,
 } from './constants';
 import { RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
+import { TEST_STEP_COPY } from './TestStep/constants';
 import type {
   DraftConflict,
   DraftSaveError,
@@ -90,25 +90,19 @@ function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocu
 /** The page title of a step: the heading, its hint and the tab title. */
 export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
   if (step === 'test') {
-    return { title: EDITOR_COPY.testRules, hint: EDITOR_COPY.testRulesHint };
+    return { title: TEST_STEP_COPY.title, hint: TEST_STEP_COPY.intro };
   }
   if (step === 'rules') {
     return { title: RULES_COPY.title, hint: RULES_COPY.hint };
   }
   if (step === 'documents') {
-    return {
-      title: mode === 'edit' ? EDITOR_COPY.editDocumentsTitle : EDITOR_COPY.documentsTitle,
-      hint: EDITOR_COPY.documentsHint,
-    };
+    // The edit flow's step reads as the create flow's (U98 7296:52323)
+    return { title: EDITOR_COPY.documentsTitle, hint: EDITOR_COPY.documentsHint };
   }
-  switch (mode) {
-    case 'edit':
-      return { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint };
-    case 'first':
-      return { title: EDITOR_COPY.firstConnectionTitle, hint: EDITOR_COPY.connectionHint };
-    case 'create':
-      return { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
-  }
+  // The first connection's step 1 is the create flow's (U19 6699:45321, U18 6793:47711)
+  return mode === 'edit'
+    ? { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint }
+    : { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
 }
 
 /**
@@ -141,14 +135,20 @@ export function problemPlaceOf(
 
 /**
  * The header's title: the name as typed once there is one to show, otherwise what is being
- * made, or the edited connection's saved name.
+ * made, or the edited connection's saved name. A new connection reads "New connection" on
+ * step 1 (U19 6699:45350); a stored draft (`stored`) names itself on every step, step 1
+ * included (U19 6716:40925, U18 6793:47713).
  */
-export function headerTitleOf(state: EditorState, formConnection?: FormConnection): string {
+export function headerTitleOf(
+  state: EditorState,
+  formConnection?: FormConnection,
+  stored = false
+): string {
   const name = state.name.trim();
   if (formConnection) {
     return name || formConnection.name;
   }
-  return state.step !== 'connection' && name ? name : EDITOR_COPY.headerTitle;
+  return (stored || state.step !== 'connection') && name ? name : EDITOR_COPY.headerTitle;
 }
 
 /** Keeps documents in catalog order, the order of the API and the cards. */
@@ -156,15 +156,6 @@ function inCatalogOrder(documents: RequestedDocument[], catalogOrder: string[]) 
   return [...documents].sort(
     (a, b) => catalogOrder.indexOf(a.document_type) - catalogOrder.indexOf(b.document_type)
   );
-}
-
-function withoutFieldError(errors: EditorErrors, documentType: string): EditorErrors {
-  if (!errors.fields?.[documentType]) {
-    return errors;
-  }
-  const fields = { ...errors.fields };
-  delete fields[documentType];
-  return { ...errors, fields };
 }
 
 /** The change a removal makes, once it is confirmed or needs no question. */
@@ -203,50 +194,6 @@ export function removedDataRulesOf(
   }));
 }
 
-/**
- * The removal dialog's words for a removal that names `count` rules (U10; F18): a document's
- * removal or a field's deselection, as designed, or "All data" unticked. In the edit flow the
- * rules need changing "before you save". Empty while no removal waits.
- */
-export function removalCopyOf(
-  removal: PendingRemoval | null,
-  count: number,
-  editing: boolean
-): { title: string; text: string; after: string; confirmLabel: string } {
-  if (!removal) {
-    return { title: '', text: '', after: '', confirmLabel: '' };
-  }
-  if (removal.type === 'dropped') {
-    // Spec 002's words for data that stops being requested, naming every dropped item
-    return {
-      title: REMOVE_DATA_COPY.fieldTitle(removal.label),
-      text: REMOVE_DATA_COPY.allFieldsText(count),
-      after: REMOVE_DATA_COPY.fieldAfter(count, editing),
-      confirmLabel: REMOVE_DATA_COPY.stopRequesting,
-    };
-  }
-  if (removal.type === 'document') {
-    return {
-      title: REMOVE_DATA_COPY.documentTitle(removal.label),
-      text: REMOVE_DATA_COPY.documentText(count),
-      after: REMOVE_DATA_COPY.documentAfter(count, editing),
-      confirmLabel: REMOVE_DATA_COPY.removeDocument,
-    };
-  }
-  return {
-    title:
-      removal.type === 'field'
-        ? REMOVE_DATA_COPY.fieldTitle(removal.label)
-        : REMOVE_DATA_COPY.allFieldsTitle(removal.label),
-    text:
-      removal.type === 'field'
-        ? REMOVE_DATA_COPY.fieldText(count)
-        : REMOVE_DATA_COPY.allFieldsText(count),
-    after: REMOVE_DATA_COPY.fieldAfter(count, editing),
-    confirmLabel: REMOVE_DATA_COPY.stopRequesting,
-  };
-}
-
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case 'changeName':
@@ -281,7 +228,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: inCatalogOrder([...state.documents, added], action.catalogOrder),
-        errors: { ...state.errors, documents: undefined },
       };
     }
     case 'removeDocument': {
@@ -294,7 +240,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: state.documents.filter((document) => document !== removed),
-        errors: withoutFieldError(state.errors, action.documentType),
         removed,
         toast: {
           id: (state.toast?.id ?? 0) + 1,
@@ -314,7 +259,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         documents: inCatalogOrder([...state.documents, removed], action.catalogOrder),
-        errors: { ...state.errors, documents: undefined },
         removed: null,
         toast: null,
       };
@@ -331,9 +275,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           const fields = document.fields.filter((field) => field !== action.field);
           return { ...document, fields: action.selected ? [...fields, action.field] : fields };
         }),
-        errors: action.selected
-          ? withoutFieldError(state.errors, action.documentType)
-          : state.errors,
       };
     case 'setAllFields':
       return {
@@ -343,10 +284,6 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
             ? { ...document, fields: action.fields }
             : document
         ),
-        errors:
-          action.fields.length > 0
-            ? withoutFieldError(state.errors, action.documentType)
-            : state.errors,
       };
     case 'askRemoval':
       return { ...state, pendingRemoval: action.removal };
@@ -377,11 +314,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
               }
             : document;
         });
-      return {
-        ...state,
-        documents,
-        errors: goneTypes.reduce(withoutFieldError, state.errors),
-      };
+      return { ...state, documents };
     }
     case 'openDialog':
       return { ...state, dialogOpen: true, publishError: null, rulesChanged: false };
@@ -429,47 +362,15 @@ export function validateConnection(name: string, description: string): EditorErr
   return errors;
 }
 
-/** Step 2: at least one document, and at least one field for each. */
-export function validateDocuments(
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): EditorErrors {
-  if (documents.length === 0) {
-    return { documents: VALIDATION_MESSAGES.noDocuments };
-  }
-  const fields: Record<string, string> = {};
-  for (const document of documents) {
-    if (document.fields.length === 0) {
-      fields[document.document_type] = VALIDATION_MESSAGES.noFields(
-        labelOf(document.document_type, documentTypes)
-      );
-    }
-  }
-  return Object.keys(fields).length > 0 ? { fields } : {};
-}
-
 export function hasErrors(errors: EditorErrors): boolean {
-  return Boolean(
-    errors.name ||
-    errors.description ||
-    errors.documents ||
-    Object.keys(errors.fields ?? {}).length > 0
-  );
+  return Boolean(errors.name || errors.description);
 }
 
 /** The element that gets the focus after a refused step: the first one with a problem. */
-export function firstInvalidElementId(
-  errors: EditorErrors,
-  documents: RequestedDocument[],
-  documentTypes: DocumentType[]
-): string | null {
+export function firstInvalidElementId(errors: EditorErrors): string | null {
   if (errors.name) return ELEMENT_IDS.name;
   if (errors.description) return ELEMENT_IDS.description;
-  if (errors.documents && documentTypes.length > 0) {
-    return ELEMENT_IDS.pickerButton(documentTypes[0].key);
-  }
-  const invalid = documents.find((document) => errors.fields?.[document.document_type]);
-  return invalid ? ELEMENT_IDS.allData(invalid.document_type) : null;
+  return null;
 }
 
 export function labelOf(documentType: string, documentTypes: DocumentType[]): string {
@@ -920,8 +821,8 @@ export function draftSaveErrorOf(error: unknown): DraftSaveError {
 
 /**
  * The style of a branch's line in the publish and save dialog (FR-019): warning when the branch
- * has a conflict or no applicant can meet it, info when it has only duplicate, covered or
- * always-met items, or every applicant meets it.
+ * has a conflict or no citizen can meet it, info when it has only duplicate, covered or
+ * always-met items, or every citizen meets it.
  */
 function dialogToneOf(check: BranchCheck): FindingTone {
   const warning =
@@ -950,6 +851,15 @@ export function findingLinesOf(
     const text = check ? dialogLineOf(check, branch.name.trim()) : null;
     return check && text !== null ? [{ key: branch.key, text, tone: dialogToneOf(check) }] : [];
   });
+}
+
+/**
+ * The findings lines warnings first (FR-044c; U77 6760:47979: Ambulance's warning before
+ * Standard's info), each kind in tab order. `Array.prototype.sort` is stable. The publish dialog
+ * and the approval page (S21) list them so
+ */
+export function warningsFirst(lines: readonly FindingLine[]): FindingLine[] {
+  return [...lines].sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'));
 }
 
 /**

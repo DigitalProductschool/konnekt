@@ -1,4 +1,5 @@
-import type { AccountState, CopyStatus, TokenForm } from './types';
+import type { CopyTexts } from '../../components/CopyableUrl/types';
+import type { AccountState, TokenForm } from './types';
 
 // The user page's copy (specs/007-agent-mcp-server/contracts/ui-screens.md S2)
 export const ACCOUNT_COPY = {
@@ -6,11 +7,13 @@ export const ACCOUNT_COPY = {
   signedInAs: (username: string) => `Signed in as ${username}.`,
   loading: 'Loading your agent access…',
   loadFailedTitle: 'Your agent access couldn’t be loaded',
-  loadFailed: 'Your agent access couldn’t be loaded. Reload the page to try again.',
+  // A failure without the API's message, such as no network (§3 "Error state of a page")
+  loadFailed: 'Check your connection and try again.',
+  backToList: 'Go to connections',
 
   agentsHeading: 'Connected agents',
   agentsEmpty: 'No agent is connected yet.',
-  agentsEmptyLink: 'Add the Connection Portal’s MCP server to your agent',
+  agentsEmptyLink: 'Add Konnekt’s MCP server to your agent',
   agentsEmptyEnd: 'to connect it.',
   tokensHeading: 'Personal access tokens',
   tokensEmpty: 'No personal access token yet.',
@@ -61,10 +64,7 @@ export const ACCOUNT_COPY = {
   createdTitle: (name: string) => `Token ${name} created`,
   createdText: 'Copy it now. It won’t be shown again.',
   tokenLabel: 'Your token',
-  copy: 'Copy',
-  copied: 'Copied',
   done: 'Done',
-  close: 'Close',
 };
 
 /**
@@ -74,15 +74,20 @@ export const ACCOUNT_COPY = {
 export const MCP_README_URL =
   'https://github.com/DigitalProductschool/batch27-faro#installing-the-plugin';
 
-// What the token's status region announces after each copy
-export const COPY_ANNOUNCEMENTS: Record<CopyStatus, string> = {
-  idle: '',
-  copied: 'Token copied',
+/**
+ * What the token's field announces after each copy (FR-048); its button reads "Copy" and
+ * "✓ Copied" for 2 s, `CopyableUrl`'s field texts
+ */
+export const TOKEN_COPY_TEXTS: Partial<CopyTexts> = {
+  announced: 'Token copied',
   failed: 'Copying didn’t work. The token is selected, so you can copy it yourself.',
 };
 
-// How long the button says "Copied", as CopyableUrl's
-export const COPIED_RESET_MS = 3000;
+/**
+ * The toasts that report a finished save in green (`success`, the Figma toast's "saved"); the
+ * others, such as "Access revoked." (removed), are the neutral ink toast (design-notes §3 "Toast")
+ */
+export const SUCCESS_TOASTS: ReadonlySet<string> = new Set([ACCOUNT_COPY.levelChanged]);
 
 // The token's name, as the API takes it
 export const TOKEN_NAME_MAX_LENGTH = 100;
@@ -119,3 +124,29 @@ export const DAY_MS = 24 * HOUR_MS;
 
 // "5 minutes ago", "yesterday", "3 days ago"
 export const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat('en-GB', { numeric: 'auto' });
+
+/**
+ * A section's list (S20; W16, the rule rows' list with a ⋯ per row, U55): the overview's list
+ * card (U11 6699:44252: white, 1px decorative border, radius 12, no shadow), but nothing clips
+ * it, so that a row's menu can open over the rows below and past the card (V6)
+ */
+export const LIST_CARD_CLASSES =
+  'rounded-kern-large bg-kern-layout-background-default flex flex-col border border-(--kern-color-decorative-border-default)';
+
+/**
+ * A row (the rule rows' anatomy, U30 6348:40889: the texts in a column, 4 apart, the 32px ⋯ at
+ * the top right, 16 between them; 16 24 as the overview's rows), a 1px line above every row but
+ * the first; 16 at the left below 640px
+ */
+export const ROW_CLASSES =
+  'flex items-start gap-16 border-(--kern-color-decorative-border-default) py-16 pr-16 pl-16 not-first:border-t sm:pl-24';
+
+/**
+ * A section without items (§3 "Empty state" inside a page with its own h1): the light blue card
+ * (`layout-background-hued`, radius 12) with the one sentence in body/default muted; padding 24
+ * (the pattern's narrow padding: a section's card, no picture, no action of its own: "Create
+ * token" stays beside the heading). The sentence takes the card's width: the pattern's 578px
+ * measure would break the agents' sentence before its last word
+ */
+export const EMPTY_CARD_CLASSES =
+  'rounded-kern-large bg-kern-layout-background-hued text-kern-static-medium text-kern-layout-text-muted p-24 leading-(--kern-typography-line-height-medium-static)';

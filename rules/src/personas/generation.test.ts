@@ -58,7 +58,7 @@ function must<T>(value: T | null): T {
 }
 
 // The spec's example (quickstart §3, "Passenger transport licence"): Standard requires an
-// applicant who is at least 21, lives in Stuttgart, holds class B and has held it for at least 2
+// citizen who is at least 21, lives in Stuttgart, holds class B and has held it for at least 2
 // years; Ambulance, based on it, lowers the age to 19 (Rule 01)
 const AGE = rule(1, target('pid', 'birthdate'), { operator: 'at_least_years_ago', years: 21 });
 const CITY = rule(2, target('pid', 'address_locality'), {
@@ -522,13 +522,13 @@ describe('generatePersonas: a request with a missing rule', () => {
 // The oracle catalogue (SC-002; research R14; tasks.md T020)
 //
 // Rule sets of one to three of `checks/testOracle.ts`'s seeded random branches, each sharing a
-// variable with a branch before it. For each, the oracle enumerates every applicant of its domain
+// variable with a branch before it. For each, the oracle enumerates every citizen of its domain
 // (`oracleOf().applicantsOn()`) on a branch that holds every branch's rules, so that the domain
-// covers every constant of every branch, and evaluates each branch on each applicant. That gives
-// the realizable vectors (which branches an applicant meets), the targets of goals 1 to 3, the best
-// score three personas can reach, and the items applicants can both meet and fail, with no solver
+// covers every constant of every branch, and evaluates each branch on each citizen. That gives
+// the realizable vectors (which branches a citizen meets), the targets of goals 1 to 3, the best
+// score three personas can reach, and the items citizens can both meet and fail, with no solver
 // involved. Then 20 generations with different seeds must each reach that score when it covers
-// every target, and across the catalogue at least 90 % of the items applicants can both meet and
+// every target, and across the catalogue at least 90 % of the items citizens can both meet and
 // fail must be met by one persona and failed by another (SC-002).
 //
 // The targets are counted per branch, where generation counts per class of branches with the same
@@ -569,7 +569,7 @@ const CATALOGUE_CHUNK = 50;
 /** Generations per rule set, each with its own seed (SC-002) */
 const GENERATIONS = 20;
 
-/** The least share of items applicants can both meet and fail that are covered both ways */
+/** The least share of items citizens can both meet and fail that are covered both ways */
 const MIN_ITEM_COVERAGE = 0.9;
 
 /**
@@ -589,7 +589,7 @@ interface RuleSet {
 /** A target of goals 1 to 3 (FR-011), by branch index */
 type VectorTarget = { goal: 1 | 2; branch: number } | { goal: 3; a: number; b: number };
 
-/** One applicant's or persona's outcomes: met per branch, and per branch each item's by id */
+/** One citizen's or persona's outcomes: met per branch, and per branch each item's by id */
 interface RuleSetOutcome {
   vector: boolean[];
   items: Record<string, boolean>[];
@@ -604,7 +604,7 @@ interface OracleAnswer {
   full: number[];
   /** Per goal 1 to 3: the best score of three personas, compared goal by goal */
   best: number[];
-  /** Per branch: the ids of the items some applicant meets and another fails */
+  /** Per branch: the ids of the items some citizen meets and another fails */
   twoWay: string[][];
 }
 
@@ -691,7 +691,7 @@ function labelOf(set: RuleSet): string {
   return `rule set ${set.index} (branch seeds ${set.branches.map((each) => each.seed).join(', ')})`;
 }
 
-/** Which branches the applicant meets, and each item's outcome, on the given day */
+/** Which branches the citizen meets, and each item's outcome, on the given day */
 function ruleSetOutcomeOf(
   branches: readonly EvaluatedBranch[],
   applicant: Applicant,
@@ -778,7 +778,7 @@ function bestScoreOf(targets: readonly VectorTarget[], vectors: readonly boolean
 const oracleAnswers = new Map<number, OracleAnswer>();
 
 /**
- * The oracle's answer for a rule set: every applicant of the domain of a branch that holds every
+ * The oracle's answer for a rule set: every citizen of the domain of a branch that holds every
  * branch's rules (renamed apart, combined with AND, which only the domain reads), each branch
  * evaluated on each of them. Kept per rule set
  */
@@ -907,8 +907,8 @@ describe(`generatePersonas against the oracle, ${CATALOGUE_SIZE} rule sets (SC-0
           BRANCH_COUNTS.filter((each) => each === count).length / BRANCH_COUNTS.length;
         expect(share((_, set) => set.branches.length === count)).toBeCloseTo(planned, 2);
       }
-      // Rule sets with a branch no applicant meets, one every applicant meets, branches that
-      // differ in every way, and items applicants can meet and fail
+      // Rule sets with a branch no citizen meets, one every citizen meets, branches that
+      // differ in every way, and items citizens can meet and fail
       expect(share((answer, set) => answer.full[0] < set.branches.length)).toBeGreaterThan(0.05);
       expect(share((answer, set) => answer.full[1] < set.branches.length)).toBeGreaterThan(0.05);
       expect(share((answer) => answer.vectors.size >= 4)).toBeGreaterThan(0.1);
@@ -961,7 +961,7 @@ function basedAt(main: BranchInput, name: string, years: number): BranchInput {
   );
 }
 
-/** Based on Standard, with a rule no applicant meets together with Rule 01: younger than 21 */
+/** Based on Standard, with a rule no citizen meets together with Rule 01: younger than 21 */
 const NIGHT_SHIFTS = must(
   addRuleToBranch(
     newBranch(STANDARD, 'based', 'Night shifts', null),
@@ -969,7 +969,7 @@ const NIGHT_SHIFTS = must(
   )
 );
 
-/** Every applicant meets it: at least 21 years old, or younger */
+/** Every citizen meets it: at least 21 years old, or younger */
 const DAY_TRIPS: BranchInput = {
   ...newBranch(STANDARD, 'empty', 'Day trips', null),
   operator: 'or',
@@ -1006,12 +1006,12 @@ const HAND_CATALOGUE: HandRuleSet[] = [
     realizable: ['mm', 'ff'],
   },
   {
-    name: 'with a variant no applicant can meet',
+    name: 'with a variant no citizen can meet',
     branches: [...EXAMPLE, keyed(NIGHT_SHIFTS, 'night')],
     realizable: ['mmf', 'fmf', 'fff'],
   },
   {
-    name: 'with a variant every applicant meets',
+    name: 'with a variant every citizen meets',
     branches: [...EXAMPLE, keyed(DAY_TRIPS, 'day')],
     realizable: ['mmm', 'fmm', 'ffm'],
   },

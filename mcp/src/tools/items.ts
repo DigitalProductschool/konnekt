@@ -61,7 +61,7 @@ import { registerTool, toolResult } from './registry';
 const CONNECTION = z
   .string()
   .min(1)
-  .describe('The draft: its id, or any Connection Portal link that names it');
+  .describe('The draft: its id, or any Konnekt link that names it');
 const VARIANT = z
   .string()
   .min(1)

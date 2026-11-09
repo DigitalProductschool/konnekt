@@ -1,10 +1,14 @@
-import { RULE_ROW_COPY } from './constants';
+import { RULE_ROW_COPY, SMALL_TEXT } from './constants';
 import type { RuleMessageProps } from './types';
 
-/** Figma "Rules/Error message": what the applicant reads when the rule isn't met. */
+/**
+ * Figma "Rules/Error message" (6092:3506): what the citizen reads when the rule isn't met, after
+ * "Message for citizens:" in `label/small` muted, 8px apart, in `body/small` (C2). It wraps
+ * under its label on a narrow row.
+ */
 export default function RuleMessage({ message }: RuleMessageProps) {
   return (
-    <p className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static)">
+    <p className={`${SMALL_TEXT} text-kern-layout-text-default break-words`}>
       <span className="text-kern-layout-text-muted mr-8 font-semibold">
         {RULE_ROW_COPY.messageLabel}
       </span>

@@ -1,5 +1,4 @@
-import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
-
+import ConfirmDialog from '../../components/ConfirmDialog';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import WizardLayout from '../../components/WizardLayout';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -7,12 +6,14 @@ import { RESTORE_COPY } from './constants';
 import type { RestoreDialogProps } from './types';
 
 /**
- * The restore question of a stored draft (S5, W6; FR-016), in the wizard's frame with the "Draft"
- * badge, before the editor mounts. KERN's dialog, native and modal: the page behind it is inert,
- * and the focus starts on "Restore changes", which loses nothing. "Discard them" is the only
- * answer that removes the local draft. Escape answers neither: the page leaves for the draft's
- * details and keeps the local draft, which is offered again the next time. It is the screen's
- * only heading, so its title is the page's `h1`.
+ * The restore question of a stored draft (S5, W4/W6; FR-016), in the wizard's frame with the
+ * "Draft" badge, before the editor mounts. `ConfirmDialog`, so it has the anatomy of U17's
+ * dialog (7173:52681): 480 wide, the title, the ×, the text, "Discard them" (secondary) and
+ * "Restore changes" (primary); a native modal, the page behind it inert. "Discard them" is the
+ * only answer that removes the local draft. Escape, the × and the scrim answer neither: the page
+ * leaves for the draft's details and keeps the local draft, which is offered again the next time
+ * (FR-049, F57). The header's connection name is the page's `h1`, as the screen has no title of
+ * its own.
  */
 export default function RestoreDialog({
   title,
@@ -22,74 +23,26 @@ export default function RestoreDialog({
   onDiscard,
   onEscape,
 }: RestoreDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const restoreRef = useRef<HTMLButtonElement>(null);
-  const id = useId();
-  const titleId = `${id}-title`;
-  const textId = `${id}-text`;
-
   useDocumentTitle(RESTORE_COPY.restoreTitle);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) {
-      dialog.showModal();
-      restoreRef.current?.focus();
-    }
-  }, []);
-
-  // Escape leaves for the details; the dialog stays open until the page has gone
-  function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    event.preventDefault();
-    onEscape();
-  }
 
   return (
     <WizardLayout
       title={title}
+      titleAsHeading
       badge={<ConnectionStatusBadge isActive draft />}
       footer={null}
       overlay={
-        <dialog
-          ref={dialogRef}
-          aria-labelledby={titleId}
-          aria-describedby={textId}
-          onCancel={handleCancel}
-          // As ConfirmDialog: centred, its outline inside like Figma's stroke, and the design's
-          // scrim. The !s beat kern.css, which isn't in a cascade layer
-          className="kern-dialog ring-kern-layout-border backdrop:bg-kern-layout-text-default! m-auto w-600 max-w-[calc(100vw-32px)]! border-0! ring-1 ring-inset backdrop:opacity-50!"
-        >
-          <header className="kern-dialog__header">
-            <div className="flex-1 pt-8">
-              <h1 id={titleId} className="kern-title kern-title--large">
-                {RESTORE_COPY.restoreTitle}
-              </h1>
-            </div>
-          </header>
-          <div className="kern-dialog__body">
-            <p id={textId} className="kern-body kern-body--large">
-              {RESTORE_COPY.restoreText(name, changedAt)}
-            </p>
-          </div>
-          {/* 23px: in Figma the top stroke is inside the 24px padding */}
-          <footer className="kern-dialog__footer pt-23!">
-            <button
-              type="button"
-              onClick={onDiscard}
-              className="kern-btn kern-btn--secondary w-full sm:w-[calc(50%-8px)]"
-            >
-              <span className="kern-label">{RESTORE_COPY.discardThem}</span>
-            </button>
-            <button
-              ref={restoreRef}
-              type="button"
-              onClick={onRestore}
-              className="kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)]"
-            >
-              <span className="kern-label">{RESTORE_COPY.restore}</span>
-            </button>
-          </footer>
-        </dialog>
+        <ConfirmDialog
+          open
+          title={RESTORE_COPY.restoreTitle}
+          text={RESTORE_COPY.restoreText(name, changedAt)}
+          secondaryLabel={RESTORE_COPY.discardThem}
+          onSecondary={onDiscard}
+          confirmLabel={RESTORE_COPY.restore}
+          onConfirm={onRestore}
+          // No cancel button: the ×, Escape and the scrim open the details (F57)
+          onCancel={onEscape}
+        />
       }
     >
       {null}

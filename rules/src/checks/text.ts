@@ -1,6 +1,6 @@
 // Text as the evaluator compares it (specs/003-rule-consistency-checks, FR-007, EC "Letter case";
 // research R7): `normalisedText()` is `_normalised_text()` of backend/app/services/evaluation.py,
-// through which both the applicant's text and the rule's own text go. Its folding is Python's
+// through which both the citizen's text and the rule's own text go. Its folding is Python's
 // `str.casefold()`, read from the generated caseFolding.ts, never `toUpperCase().toLowerCase()` or
 // `foldName()` (rules/src/tree.ts), which put the capital sharp s and 58 other code points into
 // other classes than Python does. `caseVariants()` inverts that folding for the text theory's
@@ -77,7 +77,7 @@ export function caseFold(text: string): string {
 /**
  * `_normalised_text(text, match_case)` of the evaluator: Python's whitespace stripped at both ends,
  * then Unicode NFC; when letter case doesn't count, then `caseFold()` and NFC again, which
- * recomposes the folds that aren't in NFC. Spaces inside the text count as written. An applicant's
+ * recomposes the folds that aren't in NFC. Spaces inside the text count as written. A citizen's
  * text that this leaves empty counts as missing; a rule's text is never left empty
  *
  * NFC is the JavaScript engine's. It gives Python's result for every text of characters that

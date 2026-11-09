@@ -9,15 +9,18 @@ import {
   focusAfterDiscard,
   formatChangedAt,
   metaLineOf,
+  textOf,
+  titleOf,
 } from './utils';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** What the machine's own time zone shows, so the tests don't depend on the zone they run in */
+/**
+ * What the machine's own time zone shows, so the tests don't depend on the zone they run in:
+ * "06.11.2026, 14:20" (spec 008 FR-029 and cosmetic 3: the design's numeric dates)
+ */
 function localTextOf(iso: string): string {
   const date = new Date(iso);
   const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}, ${pad(
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${pad(
     date.getHours()
   )}:${pad(date.getMinutes())}`;
 }
@@ -36,7 +39,7 @@ function record(overrides: Partial<LocalDraftRecord> = {}): LocalDraftRecord {
 }
 
 describe('formatChangedAt', () => {
-  it('shows the overview’s date with the 24-hour time in the browser’s zone', () => {
+  it('shows the numeric date with the 24-hour time in the browser’s zone', () => {
     expect(formatChangedAt('2026-11-04T13:32:00.000Z')).toBe(
       localTextOf('2026-11-04T13:32:00.000Z')
     );
@@ -51,19 +54,43 @@ describe('formatChangedAt', () => {
   });
 });
 
+// The texts of spec 008 FR-029 (cosmetic 4; U16 7362:54543, 7362:54614)
 describe('metaLineOf', () => {
-  it('says "New connection" for a record without a stored draft', () => {
+  it('says "New, never saved" for a record without a stored draft', () => {
     const value = record();
-    expect(metaLineOf(value)).toBe(`New connection · Last change ${localTextOf(value.changedAt)}`);
+    expect(metaLineOf(value)).toBe(`New, never saved · ${localTextOf(value.changedAt)}`);
   });
 
-  it('says "Draft" for a stored draft’s record', () => {
+  it('says "Edited" for a stored draft’s record', () => {
     const value = record({
       flowKey: 'draft-00000000-0000-4000-8000-000000000002',
       draftId: '00000000-0000-4000-8000-000000000002',
       draftVersion: 3,
     });
-    expect(metaLineOf(value)).toBe(`Draft · Last change ${localTextOf(value.changedAt)}`);
+    expect(metaLineOf(value)).toBe(`Edited · ${localTextOf(value.changedAt)}`);
+  });
+});
+
+describe('titleOf and textOf', () => {
+  const first = record({ flowKey: 'new-00000000-0000-4000-8000-00000000000a' });
+  const second = record({
+    flowKey: 'new-00000000-0000-4000-8000-00000000000b',
+    content: { ...emptyContent(), name: '  ' },
+  });
+
+  it('names the only draft and dates it in the sub-line (FR-029d)', () => {
+    expect(titleOf([first])).toBe('Unsaved changes in “Parking permit”');
+    expect(titleOf([second])).toBe('Unsaved changes in “Untitled connection”');
+    expect(textOf([first])).toBe(
+      `Saved only on this device on ${localTextOf(first.changedAt)}, when the page closed. Nobody else can see them.`
+    );
+  });
+
+  it('counts several drafts', () => {
+    expect(titleOf([first, second])).toBe('Unsaved changes in 2 connections');
+    expect(textOf([first, second])).toBe(
+      'Saved only on this device when the page closed. Nobody else can see them.'
+    );
   });
 });
 
@@ -86,7 +113,7 @@ describe('focusAfterDiscard', () => {
   const first = record({ flowKey: 'new-00000000-0000-4000-8000-00000000000a' });
   const second = record({ flowKey: 'new-00000000-0000-4000-8000-00000000000b' });
 
-  it('moves to the next item’s "Resume"', () => {
+  it('moves to the next item’s "Resume editing"', () => {
     expect(focusAfterDiscard([first, second], first.flowKey)).toEqual({
       kind: 'resume',
       flowKey: second.flowKey,

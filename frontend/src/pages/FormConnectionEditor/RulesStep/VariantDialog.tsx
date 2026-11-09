@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import TextField from '../../../components/TextField';
 import { ELEMENT_IDS } from '../constants';
-import { RULES_COPY } from './constants';
+import { RULES_COPY, START_WITH_CLASSES, VARIANT_FIELD_CLASSES } from './constants';
 import StartWithOption from './StartWithOption';
 import type { VariantDialogProps } from './types';
 import {
@@ -17,10 +17,13 @@ import {
 } from './utils';
 
 /**
- * "Add variant" (U17 6139:32693) and, from a tab's "Rename", "Edit variant" (W3), which has no
- * intro and no "Start with". A missing or used name is refused under the name, as in U26
- * 6197:12011, announced, and the focus goes back to it. The variant starts based on Standard unless the
- * team member chooses "Start empty" (FR-019, FR-020).
+ * "Add variant" (S11; U37 6139:32693, 600px wide) and, from a tab's "Rename", "Edit variant"
+ * (F28, 002-S4.4), which has no intro and no "Start with": "Variant name" with the design's "*",
+ * "Description (optional)" as a textarea of at most 500 characters with spell check (FR-032) and
+ * the helper under its label. A missing or used name ("Enter a name for the variant.", "There’s
+ * already a variant called "Ambulance"."; W18, C5) is refused under the name, as U52 6197:12011
+ * draws it, announced, and the focus goes back to it. The variant starts linked to Standard
+ * (FR-052h) unless the team member chooses "Start empty" (002-S4.1).
  */
 export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
   const { dialog } = state;
@@ -68,6 +71,7 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
       text=""
       confirmLabel={editing ? RULES_COPY.saveVariant : RULES_COPY.addVariantTitle}
       cancelLabel={RULES_COPY.cancel}
+      wide
       onCancel={() => dispatch({ type: 'closeDialog' })}
       onConfirm={handleConfirm}
     >
@@ -78,48 +82,43 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
             {RULES_COPY.addVariantIntro}
           </p>
         )}
-        <TextField
-          ref={nameRef}
-          id={`${id}-name`}
-          label={RULES_COPY.variantName}
-          value={form.name}
-          error={form.error}
-          errorRole="alert"
-          onChange={(event) =>
-            dispatchForm({ type: 'change', changes: { name: event.target.value } })
-          }
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              handleConfirm();
+        <div className={VARIANT_FIELD_CLASSES.name}>
+          <TextField
+            ref={nameRef}
+            id={`${id}-name`}
+            label={RULES_COPY.variantName}
+            requiredMark
+            value={form.name}
+            error={form.error}
+            errorRole="alert"
+            onChange={(event) =>
+              dispatchForm({ type: 'change', changes: { name: event.target.value } })
             }
-          }}
-        />
-        <div className="kern-form-input">
-          <label htmlFor={`${id}-description`} className="kern-label">
-            {RULES_COPY.description}{' '}
-            <span className="kern-label__optional">{RULES_COPY.optional}</span>
-          </label>
-          <div id={`${id}-description-hint`} className="kern-hint">
-            {RULES_COPY.descriptionHint}
-          </div>
-          <textarea
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleConfirm();
+              }
+            }}
+          />
+        </div>
+        <div className={VARIANT_FIELD_CLASSES.description}>
+          <TextField
             id={`${id}-description`}
-            rows={2}
+            multiline
+            optional
+            label={RULES_COPY.description}
+            hint={RULES_COPY.descriptionHint}
             maxLength={DESCRIPTION_MAX_LENGTH}
             value={form.description}
-            aria-describedby={`${id}-description-hint`}
             onChange={(event) =>
               dispatchForm({ type: 'change', changes: { description: event.target.value } })
             }
-            className="kern-form-input__input h-64! min-h-0!"
           />
         </div>
         {!editing && (
-          <fieldset className="flex flex-col gap-8">
-            <legend className="text-kern-static-medium text-kern-layout-text-default mb-8 leading-(--kern-typography-line-height-medium-static) font-semibold">
-              {RULES_COPY.startWith}
-            </legend>
+          <fieldset className={START_WITH_CLASSES.group}>
+            <legend className={START_WITH_CLASSES.legend}>{RULES_COPY.startWith}</legend>
             <StartWithOption
               name={`${id}-origin`}
               value="based"

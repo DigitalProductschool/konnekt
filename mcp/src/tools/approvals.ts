@@ -103,7 +103,7 @@ export const APPROVAL_MESSAGES = {
   requestReference:
     'Name an approval request by its id or its link, as request_approval answered them.',
   elicitation: (action: ApprovalAction, name: string) =>
-    `Approve ${ACTION_VERBS[action]} '${name}' in the Connection Portal.`,
+    `Approve ${ACTION_VERBS[action]} '${name}' in Konnekt.`,
   whatHappens: (action: ApprovalAction, expiresAt: string) =>
     WHAT_HAPPENS[action](timeOf(expiresAt)),
   handOver:
@@ -293,7 +293,7 @@ registerTool({
     connection: z
       .string()
       .min(1)
-      .describe('The connection or draft: its id, or any Connection Portal link that names it'),
+      .describe('The connection or draft: its id, or any Konnekt link that names it'),
     action: z
       .enum(ACTIONS)
       .describe(

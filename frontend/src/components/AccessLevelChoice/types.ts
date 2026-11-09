@@ -8,11 +8,14 @@ export interface AccessLevelChoiceProps {
   /** The radios' `name`, unique on the page */
   name: string;
   legend: string;
+  /** Greys every radio out (KERN's 40 %) and stops the choice changing */
+  disabled?: boolean;
 }
 
 export interface AccessLevelOptionProps {
   level: AccessLevelInfo;
   name: string;
   checked: boolean;
+  disabled: boolean;
   onSelect: () => void;
 }

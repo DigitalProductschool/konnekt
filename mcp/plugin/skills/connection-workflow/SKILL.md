@@ -1,6 +1,6 @@
 ---
 name: connection-workflow
-description: How to take a serviceBW form from a description to a live connection in the Connection Portal, one change at a time, and what to tell the team member on the way.
+description: How to take a serviceBW form from a description to a live connection in Konnekt, one change at a time, and what to tell the team member on the way.
 ---
 
 # From a description of a form to a live connection
@@ -39,7 +39,7 @@ which countries) rather than guessing. Read the guide's topics before working on
    citizen is asked for each one.
 4. **Rules.** Add the rules the form needs, in Standard first. Group rules when only some of them
    must be met, and add variants when the same form has other rules for some cases.
-5. **Check and test.** Run the rule checks and test the rules with fictitious applicants; resolve
+5. **Check and test.** Run the rule checks and test the rules with fictitious citizens; resolve
    what they find before publishing.
 6. **Publish with approval.** Publishing needs the team member's approval through a link:
    `request_approval` with `action: 'publish'` answers it, and `check_approval` tells the outcome
@@ -70,7 +70,7 @@ which countries) rather than guessing. Read the guide's topics before working on
   `description: null` or `''` clears it. The name can't be empty.
 
 Every tool that changes a draft works on drafts only: a published connection's content is changed
-in the Connection Portal, and the tool answers `published_read_only` for it, whatever your access
+in Konnekt, and the tool answers `published_read_only` for it, whatever your access
 level.
 
 ## One change per call
@@ -86,14 +86,14 @@ concerned, and nothing is stored.
 
 A draft remembers how far its content reaches, as the editor's wizard does: the connection step
 (name and description), the documents step, the rules step and the test step. The team member who
-opens the draft in the Connection Portal continues there. Every change stores the furthest step the
+opens the draft in Konnekt continues there. Every change stores the furthest step the
 content reaches: the rules step once any variant has a rule, the documents step once a document is
 requested, the connection step otherwise. Each answer's text says the draft's version and step.
 
 ## What to tell the team member
 
 - What you changed, with the links of the connection, variants and rules you touched, so that they
-  can open them in the Connection Portal.
+  can open them in Konnekt.
 - What is still missing before the draft can be published: documents without fields, incomplete
   rules, missing messages, findings of the rule checks.
 - For approval: the link that `request_approval` answers, what will happen when they approve (its

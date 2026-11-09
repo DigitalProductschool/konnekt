@@ -2,6 +2,11 @@
 export interface LoginLocationState {
   /** The route that needed a sign-in; the screen returns there afterwards */
   from?: { pathname: string; search: string; hash: string };
+  /**
+   * Set by "Log out" (the user menu): the screen shows the toast "You’re logged out." once
+   * (FR-051 (30)); `from` stays the page the user logged out of. An expired session sets none
+   */
+  loggedOut?: boolean;
 }
 
 /** Router state that the details screen reads */
@@ -30,4 +35,6 @@ export interface EditLocationState {
 export interface OverviewLocationState {
   /** The name of the draft "Save and exit" just stored: the overview confirms it (W1) */
   draftSaved?: string;
+  /** The name of the connection or draft the details just deleted: the overview says so */
+  deleted?: string;
 }

@@ -1,16 +1,24 @@
 import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
+import {
+  DIALOG_ACTIONS_CLASSES,
+  DIALOG_FRAME_CLASSES,
+  DIALOG_WIDTH_CLASSES,
+} from '../../components/ConfirmDialog/constants';
+import { KERN_TRANSLATIONS } from '../../constants';
 import { ACCOUNT_COPY } from './constants';
 import TokenCopyField from './TokenCopyField';
 import type { TokenCreatedDialogProps } from './types';
 
 /**
- * The new personal access token, shown once (S2; FR-004): in a read-only input with "Copy", never
- * in a toast. KERN's dialog in `ConfirmDialog`'s frame, with one button, since there is nothing
- * to confirm or cancel: "Done", the close button and Escape all close it, and the list keeps the
- * token without its secret. The dialog opens with the focus on the token, not on the close
- * button (FR-042): a screen reader reads the dialog's title and warning, then the field's label,
- * the token and the warning again, and the token is selected, ready to copy.
+ * The new personal access token, shown once (S20; 007-S2.13, S2.14, FR-004): in `CopyableUrl`'s
+ * read-only field with "Copy" ("✓ Copied" for 2 s, FR-048), never in a toast. KERN's dialog in
+ * `ConfirmDialog`'s frame at the kit's 600px, fading in and out (`motion`, design-notes §4), with
+ * one button, since there is nothing to confirm or cancel: "Done", the × and Escape close it, and
+ * the list keeps the token without its secret. A click on the scrim doesn't: closing loses the
+ * secret for good (FR-052a's exception, as the restore dialog). The dialog opens with the focus on
+ * the token, not on the ×: a screen reader reads the dialog's title and warning, then the field's
+ * label, the token and the warning again, and the token is selected, ready to copy.
  */
 export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -26,7 +34,7 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
     }
     if (open && !element.open) {
       element.showModal();
-      // showModal() focused the close button, the first control; the token is the one to read
+      // showModal() focused the ×, the first control; the token is the one to read
       element.querySelector<HTMLInputElement>('input')?.focus();
     } else if (!open && element.open) {
       element.close();
@@ -45,8 +53,7 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
       aria-labelledby={titleId}
       aria-describedby={textId}
       onCancel={handleCancel}
-      // As ConfirmDialog: centred, the outline drawn inside, and the design's scrim
-      className="kern-dialog ring-kern-layout-border backdrop:bg-kern-layout-text-default! m-auto w-600 max-w-[calc(100vw-32px)]! border-0! ring-1 ring-inset backdrop:opacity-50!"
+      className={`${DIALOG_FRAME_CLASSES} ${DIALOG_WIDTH_CLASSES.wide}`}
     >
       <header className="kern-dialog__header">
         <div className="flex-1 pt-8 pr-16">
@@ -56,7 +63,7 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
         </div>
         <button type="button" onClick={onClose} className="kern-btn kern-btn--tertiary">
           <span aria-hidden="true" className="kern-icon kern-icon--close" />
-          <span className="kern-sr-only">{ACCOUNT_COPY.close}</span>
+          <span className="sr-only">{KERN_TRANSLATIONS.closeDialog}</span>
         </button>
       </header>
       <div className="kern-dialog__body">
@@ -67,14 +74,13 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
           {open && <TokenCopyField key={dialog.token} token={dialog.token} describedBy={textId} />}
         </div>
       </div>
-      <footer className="kern-dialog__footer pt-23!">
-        <button
-          type="button"
-          onClick={onClose}
-          className="kern-btn kern-btn--primary w-full sm:w-[calc(50%-8px)]"
-        >
-          <span className="kern-label">{ACCOUNT_COPY.done}</span>
-        </button>
+      {/* As ConfirmDialog's: 23px, the footer's top line is inside its 24px padding */}
+      <footer className="kern-dialog__footer @container pt-23!">
+        <div className={`flex w-full flex-1 gap-16 ${DIALOG_ACTIONS_CLASSES[1]}`}>
+          <button type="button" onClick={onClose} className="kern-btn kern-btn--primary">
+            <span className="kern-label">{ACCOUNT_COPY.done}</span>
+          </button>
+        </div>
       </footer>
     </dialog>
   );

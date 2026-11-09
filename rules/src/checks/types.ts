@@ -62,11 +62,11 @@ export type CheckedItem = CheckedRule | CheckedGroup;
 export type EnumValue = string | number;
 
 /**
- * One value an applicant has (FR-009): of a document type's field, of its part for a field made of
+ * One value a citizen has (FR-009): of a document type's field, of its part for a field made of
  * parts, and of a licence class for a class's dates. Variables never constrain each other
  * (FR-007), except that a rule on a class's date also needs the class to be held.
  *
- * The values an applicant can have: number, whole numbers from 0; enum, one value of `values`, or
+ * The values a citizen can have: number, whole numbers from 0; enum, one value of `values`, or
  * a non-empty subset when `multiple`; text, a text that isn't empty after normalisation; date, a
  * day from 0001-01-01 to 9999-12-31. A licence class's date has a value whenever the class is held
  */
@@ -194,7 +194,7 @@ export interface OrFormula {
 }
 
 /**
- * `true` (every applicant meets it), `false` (none does), a literal, or AND and OR over formulas.
+ * `true` (every citizen meets it), `false` (none does), a literal, or AND and OR over formulas.
  * A branch is a positive formula; the negation of a formula is its De Morgan dual, with each
  * literal's `negated` flipped (research R3). Tell the shapes apart with `typeof formula ===
  * 'boolean'`, `'and' in formula` and `'or' in formula`
@@ -203,7 +203,7 @@ export type Formula = boolean | Literal | AndFormula | OrFormula;
 
 /**
  * Days of sharing in day numbers, both included. The questions use today alone (conflicts, the
- * unmeetable branch) or today to 9999-12-31 (redundant, always met, every applicant meets, and
+ * unmeetable branch) or today to 9999-12-31 (redundant, always met, every citizen meets, and
  * whether a conflict holds on later days) (research R4)
  */
 export interface DayRange {
@@ -290,7 +290,7 @@ export interface ImpliesReason {
 /** Why an item is redundant (FR-005) */
 export type RedundantReason = SameReason | ImpliedByReason | ImpliesReason;
 
-/** A rule or group that no applicant can meet together with others, or on its own (FR-003) */
+/** A rule or group that no citizen can meet together with others, or on its own (FR-003) */
 export interface ConflictingFinding {
   /** The rule or group (`rule-{n}`, `group-{n}`) */
   itemId: string;
@@ -313,7 +313,7 @@ export interface RedundantFinding {
   today: false;
 }
 
-/** A rule or group that every applicant meets (FR-006) */
+/** A rule or group that every citizen meets (FR-006) */
 export interface AlwaysMetFinding {
   /** The rule or group (`rule-{n}`, `group-{n}`) */
   itemId: string;
@@ -329,17 +329,17 @@ export type ItemFinding = ConflictingFinding | RedundantFinding | AlwaysMetFindi
 /** The kinds of finding on a rule or group, in the summary's order */
 export type ItemFindingKind = ItemFinding['kind'];
 
-/** No applicant can meet the branch's rules (FR-004) */
+/** No citizen can meet the branch's rules (FR-004) */
 export interface NoneCanMeetNotice {
   kind: 'none_can_meet';
   /**
-   * True when it holds today but not on every later day: "Right now, no applicant can meet …"
+   * True when it holds today but not on every later day: "Right now, no citizen can meet …"
    * (FR-008)
    */
   today: boolean;
 }
 
-/** Every applicant meets the branch's rules, on every day from today on (FR-006) */
+/** Every citizen meets the branch's rules, on every day from today on (FR-006) */
 export interface AllMeetNotice {
   kind: 'all_meet';
   /** `none_can_meet` only */
@@ -554,7 +554,7 @@ export type FindingChange = FindingAppeared | FindingGone | NoticeAppeared;
 
 /**
  * The look of the findings banner, of an item's icon in it and of the tab's icon (A1): warning for
- * a conflict and for "No applicant can meet …", info otherwise
+ * a conflict and for "No citizen can meet …", info otherwise
  */
 export type FindingTone = 'warning' | 'info';
 
@@ -574,7 +574,7 @@ export interface BannerLine {
   kind: ItemFindingKind;
   /** Its icon */
   tone: FindingTone;
-  /** "Rule 01 and Rule 02 can’t be met together.", with the names as references */
+  /** "Rule 01 and Rule 02 contradict each other.", with the names as references */
   parts: BannerPart[];
 }
 
@@ -582,9 +582,9 @@ export interface BannerLine {
 export interface BannerNotice {
   /** Its icon */
   tone: FindingTone;
-  /** As its own item, or alone: "No applicant can meet the rules of Standard." */
+  /** As its own item, or alone: "No citizen can meet the rules of Standard." */
   text: string;
-  /** Appended to a single line or to the counts row: "So no applicant can meet …" */
+  /** Appended to a single line or to the counts row: "So no citizen can meet …" */
   appended: string;
 }
 
@@ -615,7 +615,7 @@ export interface FindingsBanner {
 export interface TabFindings {
   /** Its icon */
   kind: FindingTone;
-  /** "1 conflict: Rule 01 and Rule 02 can’t be met together. So no applicant …" */
+  /** "1 conflict: Rule 01 and Rule 02 contradict each other, so no citizen …" */
   text: string;
 }
 
@@ -635,11 +635,11 @@ export interface AnnouncementContext {
 /** The literals can be met, by `witness` */
 export interface SatAnswer<V> {
   readonly verdict: 'sat';
-  /** A value an applicant can have, for which the theory's `holds()` is true for every literal */
+  /** A value a citizen can have, for which the theory's `holds()` is true for every literal */
   readonly witness: V;
 }
 
-/** No value an applicant can have meets every literal */
+/** No value a citizen can have meets every literal */
 export interface UnsatAnswer {
   readonly verdict: 'unsat';
 }
@@ -660,13 +660,13 @@ export type TheoryAnswer<V> = SatAnswer<V> | UnsatAnswer | UnknownAnswer;
  * The decision procedure of one kind of variable (research R6, R7). `numberTheory.ts`,
  * `enumTheory.ts`, `dateTheory.ts` and `textTheory.ts` each export one as `<kind>Theory`, made of
  * their functions `<kind>Holds()` and `decide<Kind>()`, which may leave out trailing parameters
- * they don't read. `T` is the kind's test, and `V` a value an applicant can have (`Variable`) in
+ * they don't read. `T` is the kind's test, and `V` a value a citizen can have (`Variable`) in
  * the form of the literals' values (`literals.ts`): a whole number, an enum's keys (a list of one
  * without `multiple`), a normalised text, a day number.
  *
  * The literals handed to a theory are all on one variable and of its kind, as `literals.ts` builds
  * them, so the solver narrows `Literal[]` by `Variable.kind`. A theory is pure and exact: its
- * answer covers every value an applicant can have, never a sample. The number, enum and text
+ * answer covers every value a citizen can have, never a sample. The number, enum and text
  * theories don't read the day, so their answer holds on every day: over a range of days, the
  * solver takes `'sat'` for every day of it and `'unsat'` for none. The date theory also answers
  * over a range of days, with the days on which the literals can be met, as sorted, disjoint
@@ -674,7 +674,7 @@ export type TheoryAnswer<V> = SatAnswer<V> | UnsatAnswer | UnknownAnswer;
  */
 export interface Theory<T extends LiteralTest, V> {
   /**
-   * The literal's membership test: whether an applicant whose value is `value` and who shares on
+   * The literal's membership test: whether a citizen whose value is `value` and who shares on
    * `day` (a day number) meets it, by the evaluator's comparison, with `negated` flipping the
    * outcome. Only the date theory reads the day
    */

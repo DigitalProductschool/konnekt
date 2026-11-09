@@ -2,12 +2,7 @@
 // example (F4): dates are ISO strings, 'YYYY-MM-DD', counted in whole calendar days
 import type { Condition } from '@connection-portal/api-types/form-connections';
 
-import {
-  GERMAN_TIME_ZONE,
-  ISO_DATE_PATTERN,
-  MONTH_ABBREVIATIONS,
-  RELATION_WORDS,
-} from './constants';
+import { GERMAN_TIME_ZONE, ISO_DATE_PATTERN, RELATION_WORDS } from './constants';
 import type { CalendarDate, DateBoundary } from './types';
 
 export function isLeapYear(year: number): boolean {
@@ -111,15 +106,19 @@ export function todayInGermany(now: Date = new Date()): string {
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
-/** The design's date format: "23 Oct 2005". */
+/** The design's date format (design-notes §3, "Dates"): "23.10.2005", zero-padded. */
 export function formatDate(date: string): string {
   const { year, month, day } = required(date);
-  return `${day} ${MONTH_ABBREVIATIONS[month - 1]} ${year}`;
+  return [
+    String(day).padStart(2, '0'),
+    String(month).padStart(2, '0'),
+    String(year).padStart(4, '0'),
+  ].join('.');
 }
 
 /**
  * The dates a complete date condition means on `day`, or null for a condition that isn't a
- * complete date condition. "At least 21 years old" on 23 Oct 2026 means on or before 23 Oct 2005.
+ * complete date condition. "At least 21 years old" on 23.10.2026 means on or before 23.10.2005.
  */
 export function boundaryOf(condition: Condition, day: string): DateBoundary | null {
   const years = isWholeCount(condition.years) ? condition.years : null;
@@ -160,8 +159,8 @@ export function boundaryOf(condition: Condition, day: string): DateBoundary | nu
 }
 
 /**
- * A boundary in words, for the example after "Today (23 Oct 2026) this means: ". On the Date of
- * birth it starts with "born": "born on or before 23 Oct 2005".
+ * A boundary in words, for the example after "Today (23.10.2026), that means ". On the Date of
+ * birth it starts with "born": "born on or before 23.10.2005".
  */
 export function boundaryPhrase(boundary: DateBoundary, dateOfBirth: boolean): string {
   const phrase =

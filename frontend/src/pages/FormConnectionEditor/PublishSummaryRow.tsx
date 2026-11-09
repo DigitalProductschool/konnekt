@@ -2,9 +2,10 @@ import PublishSummaryValue from './PublishSummaryValue';
 import type { PublishSummaryRowProps } from './types';
 
 /**
- * A row of the publish dialog's summary (U33): its label in the action colour, then its lines,
- * which are one definition of the label. Below 640px the lines go under the label, which would
- * leave them too little room beside it.
+ * A row of the publish dialog's summary ("Row · Documents" / "Row · Rules", U73 7058:62120,
+ * U77 6760:47979): padding 8 16, the 112 px label in label/default and the action colour, 16 px,
+ * then its lines in body/default, which are one definition of the label. Below 640px the lines go
+ * under the label, which would leave them too little room beside it.
  */
 export default function PublishSummaryRow({
   label,

@@ -651,7 +651,7 @@ describe('the reading tools', () => {
       expect(isError).toBe(true);
       expect(structured).toEqual({
         code: 'foreign_link',
-        message: "This link doesn't belong to this Connection Portal.",
+        message: "This link doesn't belong to Konnekt.",
       });
     });
 
@@ -664,7 +664,7 @@ describe('the reading tools', () => {
   });
 
   describe('get_variant', () => {
-    it('shows the marks of a based variant, with its items and applicant fields', async () => {
+    it('shows the marks of a based variant, with its items and citizen fields', async () => {
       const { isError, structured, text } = await callTool('get_variant', {
         connection: IDS.draft,
         variant: ' ambulance ',
@@ -700,7 +700,10 @@ describe('the reading tools', () => {
           message: 'You must live in Esslingen.',
         },
       ]);
-      expect(structured.items[1].statement).toContain('Esslingen');
+      // The statement in the design's form: "·" after the document (spec 008 C3)
+      expect(structured.items[1].statement).toBe(
+        'Personal ID · City or town is equal to "Esslingen", ignoring letter case'
+      );
       expect(structured.applicant_fields.map((field: { key: string }) => field.key).sort()).toEqual(
         ['pid.address_locality', 'pid.birthdate']
       );
@@ -1077,7 +1080,7 @@ describe('the draft tools', () => {
   const PUBLISHED_READ_ONLY = {
     code: 'published_read_only',
     message:
-      'The content of a published connection is changed in the Connection Portal. Agents can ' +
+      'The content of a published connection is changed in Konnekt. Agents can ' +
       'only change drafts.',
   };
 
@@ -1218,7 +1221,7 @@ describe('the draft tools', () => {
       fake.beforeNextDraftSave((draft) => {
         fake.store.connections.set(draft.id, {
           ...draft,
-          description: 'Changed in the Portal',
+          description: 'Changed in Konnekt',
           version: draft.version + 1,
         });
       });
@@ -1230,7 +1233,7 @@ describe('the draft tools', () => {
       expect(isError).toBe(false);
       expect(storedDraft()).toMatchObject({
         name: 'Parking permit',
-        description: 'Changed in the Portal',
+        description: 'Changed in Konnekt',
         version: 3,
       });
     });
@@ -1374,7 +1377,7 @@ describe('the draft tools', () => {
       expect(isError).toBe(true);
       expect(structured).toEqual({
         code: 'validation',
-        message: 'Another variant is already called Ambulance.',
+        message: 'There’s already a variant called "Ambulance".',
       });
       expect(storedDraft().version).toBe(1);
       expect(variantNames()).toEqual(['Standard', 'Ambulance', 'Pilot']);
@@ -1695,7 +1698,7 @@ describe('the item tools', () => {
       expect(isError).toBe(true);
       expect(structured).toEqual({
         code: 'validation',
-        message: 'Another rule in Ambulance is already called Night.',
+        message: 'There’s already a rule called "Night" in Ambulance.',
       });
       expect(itemOf(0, 'rule-1')?.name).toBe('Rule 01');
     });
@@ -1750,7 +1753,7 @@ describe('the item tools', () => {
       expect(structured.item).toMatchObject({
         target: { document_type: 'mdl', field: 'issue_date' },
         condition: { operator: 'at_least_years_ago', years: 18 },
-        statement: expect.any(String),
+        statement: 'Driving licence · Issue date is at least 18 years ago',
       });
       expect(structured).not.toHaveProperty('dropped_condition');
     });
@@ -1764,7 +1767,10 @@ describe('the item tools', () => {
         condition,
       });
       expect(accepted.isError).toBe(false);
-      expect(accepted.structured.item).toMatchObject({ condition, statement: expect.any(String) });
+      expect(accepted.structured.item).toMatchObject({
+        condition,
+        statement: 'Driving licence · Licence classes includes one of B',
+      });
       expect(accepted.structured).not.toHaveProperty('dropped_condition');
 
       const refused = await onDraft('update_item', {
@@ -1792,7 +1798,7 @@ describe('the item tools', () => {
       expect(structured).toEqual({
         code: 'published_read_only',
         message:
-          'The content of a published connection is changed in the Connection Portal. Agents ' +
+          'The content of a published connection is changed in Konnekt. Agents ' +
           'can only change drafts.',
       });
       expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
@@ -1888,7 +1894,7 @@ describe('the item tools', () => {
       expect(isError).toBe(true);
       expect(structured).toEqual({
         code: 'foreign_link',
-        message: "This link doesn't belong to this Connection Portal.",
+        message: "This link doesn't belong to Konnekt.",
       });
       expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
     });
@@ -2580,7 +2586,7 @@ describe('the approval tools', () => {
             expect.objectContaining({
               mode: 'url',
               url: request.link,
-              message: `Approve ${verb} '${name}' in the Connection Portal.`,
+              message: `Approve ${verb} '${name}' in Konnekt.`,
             }),
           ]);
         }
@@ -2634,7 +2640,7 @@ describe('the approval tools', () => {
           expect.objectContaining({
             mode: 'url',
             url: request.link,
-            message: `Approve publishing '${NAME}' in the Connection Portal.`,
+            message: `Approve publishing '${NAME}' in Konnekt.`,
           }),
         ]);
         // The re-entered call read the request back and answers the ordinary result
@@ -2922,7 +2928,7 @@ describe('the checks and tests', () => {
    * A draft that requests the fixture's data (pid: birthdate, address_locality). Standard: Rule 01
    * and its duplicate Rule 02, Rule 03 without a condition, Rule 04 on data not requested, Rule 07
    * without data. Pilot, started empty: Rule 05 and Rule 06 on the city, which conflict, so that
-   * no applicant can meet it
+   * no citizen can meet it
    */
   function checksDraft(): FormConnectionDraft {
     const base = storedDraft();
@@ -3097,7 +3103,7 @@ describe('the checks and tests', () => {
       };
     }
 
-    it('equals evaluateBranch() for three applicants, today in Germany, as the read caller', async () => {
+    it('equals evaluateBranch() for three citizens, today in Germany, as the read caller', async () => {
       const { isError, structured } = await callTool(
         'test_applicants',
         { connection: IDS.draft, variant: 'Standard', applicants: [ANNA, BEN, UNNAMED] },
@@ -3122,7 +3128,7 @@ describe('the checks and tests', () => {
           { pid: { birthdate: '2000-01-01', address_locality: 'Esslingen' } },
           day
         ),
-        expectedResult('Applicant 3', { pid: { address_locality: 'Stuttgart' } }, day),
+        expectedResult('Citizen 3', { pid: { address_locality: 'Stuttgart' } }, day),
       ]);
       const [anna, ben, unnamed] = structured.results;
       expect(anna.met).toBe(true);
@@ -3134,7 +3140,7 @@ describe('the checks and tests', () => {
       expect(unnamed.items[0]).toEqual({
         item: itemRef(IDS.draft, IDS.draftStandard, 'rule-1', 'Rule 01'),
         outcome: 'not_checked',
-        reason: "The applicant has no value for 'pid.birthdate'.",
+        reason: "The citizen has no value for 'pid.birthdate'.",
         in_group: null,
       });
     });
@@ -3159,7 +3165,7 @@ describe('the checks and tests', () => {
       expect(structured.results[0].items[0].outcome).toBe('not_met');
     });
 
-    it('refuses a bad date with validation, naming the applicant, the field and the kind', async () => {
+    it('refuses a bad date with validation, naming the citizen, the field and the kind', async () => {
       const { isError, structured } = await callTool('test_applicants', {
         connection: IDS.draft,
         variant: 'Standard',
@@ -3168,7 +3174,7 @@ describe('the checks and tests', () => {
       expect(isError).toBe(true);
       expect(structured).toEqual({
         code: 'validation',
-        message: "Applicant 'Anna': 'pid.birthdate' expects a date as YYYY-MM-DD.",
+        message: "Citizen 'Anna': 'pid.birthdate' expects a date as YYYY-MM-DD.",
       });
     });
 
@@ -3200,7 +3206,7 @@ describe('the checks and tests', () => {
       );
     });
 
-    it('takes at most 10 applicants', async () => {
+    it('takes at most 10 citizens', async () => {
       const { isError } = await callTool('test_applicants', {
         connection: IDS.draft,
         variant: 'Standard',

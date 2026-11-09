@@ -1,19 +1,29 @@
 import type { ReactNode } from 'react';
 
 export interface TopBarProps {
-  /** Shown after the logo, behind a separator, as in Figma "App/Header" */
+  /**
+   * Inside a connection: its name, in the second pill "Your connections / <name>" (U17
+   * 7173:52658), which grows out of the Konnekt pill when it appears (U03 #40)
+   */
   title?: string;
-  /** Renders the title as the page's h1, on a screen whose header names it */
+  /** Renders the name as the page's h1, on a screen whose header names it */
   titleAsHeading?: boolean;
-  /** Shown after the title, such as the connection's status badge */
+  /** Shown 8px after the name in the second pill: the connection's status pill */
   badge?: ReactNode;
   /**
-   * Shown before the user's menu in muted text, such as the connection's description; one line,
-   * cut with '…'
+   * Shown after the second pill in muted text, such as the connection's description (W10);
+   * one line, cut with '…'
    */
   meta?: ReactNode;
-  /** Makes the logo a link to this route, as on the signed-in screens */
+  /** Makes the product name a link to this route, as on the signed-in screens */
   logoTo?: string;
-  /** Shown at the right end, such as the signed-in user's menu */
+  /** The sign-in screens: the Konnekt pill is white on the light blue page (U03 #33) */
+  signedOut?: boolean;
+  /**
+   * In a flow (FR-026, T048): the product name and "Your connections" call this instead of
+   * going home, and the editor asks before leaving. Without it they go home (001-S0.6)
+   */
+  onLeave?: () => void;
+  /** Shown at the right end: the account pill (UserMenu) */
   children?: ReactNode;
 }
