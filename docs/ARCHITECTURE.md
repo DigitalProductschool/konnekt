@@ -114,7 +114,9 @@ each package's script of that name.
 Git hooks are repository-wide: they are defined in the root `.pre-commit-config.yaml` and
 cover both stacks, running `ruff check --fix` and `ruff format` on Python files and, from
 the root, `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and
-`mcp/` files, plus the trailing-whitespace, merge-conflict and large-file checks.
+`mcp/` files, plus the trailing-whitespace, merge-conflict and large-file checks and
+gitleaks' scan of the staged changes for secrets. CI scans the history with gitleaks too
+(`README.md`, "Secrets (gitleaks)").
 
 The hooks are installed by the root `package.json`'s `prepare` script, which runs
 `uv run pre-commit install` in `backend/` — so `npm install` at the root is what wires

@@ -210,6 +210,10 @@ Before you finish: Ruff and mypy pass for backend changes (run pytest too), and 
 `npm test` and `npm run build` from the root for changes in `api-types/`, `rules/`, `frontend/`
 or `mcp/`. Everything else is in `README.md`, "Common Commands".
 
+CI (`.github/workflows/ci.yml`) runs the same checks, and gitleaks over the history, on every
+push and pull request: a new check, or a new Python, uv, Node or gitleaks version, goes into it
+too (`README.md`, "Continuous integration").
+
 ## Adding a feature
 
 - **Backend**: model (`app/models.py`) → schemas (`app/schemas.py`) → migration → services
@@ -221,6 +225,8 @@ or `mcp/`. Everything else is in `README.md`, "Common Commands".
 ## Never
 
 - Commit `.env` files (use `.env.example`) or any secret.
+- Get past a gitleaks finding with `--no-verify` or `SKIP=gitleaks`: rotate a real secret, allow
+  a false positive (`README.md`, "Secrets (gitleaks)").
 - Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
   `rules/src/checks/fixtures/evaluator-vectors.json`.
 
