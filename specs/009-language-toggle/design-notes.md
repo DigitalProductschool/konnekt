@@ -244,3 +244,51 @@ may be written from the glossary. Corrections, if any, come from the walk of §3
   200 % with the browser's own zoom (the chat used `document.body.style.zoom` and a 320 CSS px
   viewport), D3's hover shade by eye, and telling the designer D1–D4; Firefox and a screen
   reader (V9's voices) come with phase 6.
+- 2026-11-09: checkpoint of the backend's texts (T021; FR-005, FR-017, FR-018, SC-007; quickstart
+  V3 steps 3 and 4). T014 by one agent, T015 with T020 by a second, T016–T018 by a third, T019 by
+  a fourth, the waves one after another (one test database). Gates: Ruff and mypy clean (82 source
+  files); `export_check_fixtures --check` current; `npm run lint`, `npm test`, `npm run build`
+  green apart from one test, `rules/` 45 files 2362 tests, `frontend/` 31, 988, `mcp/` 15,
+  408, all unchanged. The one: `personas/performance.test.ts`'s 1.5 s budget for "three
+  different 50-item branches" failed under the full `npm test` after waves 1, 2 and 3 (1565,
+  1837 and 1637 ms; no `rules/` source changed) and passed alone each time. The phase's one
+  full pytest: 2160 passed, 0 failed (2062 + 98 new; no test removed; the existing English
+  assertions unchanged; nine test files had only the way they read a raised `Text` adapted).
+  Backend (uvicorn on 3000, `template_db_test`, worker off, debug log, a throwaway account):
+  with `de` a wrong password answers "Benutzername oder Passwort ist falsch. …" with the same
+  `error`; `/api/document-types` 64 German labels (only "Region" equal) and the body without
+  labels identical; `/api/option-sets` 294 labels, 177 German (the 117 equal: 98 country names,
+  the 17 licence class codes, "Inter", "Blond"), the values and order identical; the access
+  levels "Nur lesen", "Lesen und Entwürfe bearbeiten", "Lesen, Entwürfe bearbeiten und aktive
+  Anbindungen verwalten" with the same codes; an empty name "Geben Sie einen Namen für die
+  Anbindung ein."; the `503` of the unconfigured EUDIPLO the German generic message with its
+  `error_id`; `/api/connect/<unknown>/requests` the English `404` with or without the header.
+  The 24 lines of the run's log hold no `Accept-Language` and no German. `grep -rn
+  "Accept-Language\|current_language"` over `worker.py`, `documents.py`, `dcql.py` is empty.
+  The parity fixture `rules/src/fixtures/server-messages.json`: 39 cases (`RULES_MESSAGES` 27
+  for 19 keys, one per noun where the noun varies; `CONDITION_PROBLEM_MESSAGES` 11, the part after
+  the prefix; `EDIT_MESSAGES.unknownVariant` 1) and 4 client-only keys (`variantNameMissing`,
+  `variantNameTaken`, `nameMissing`, `nameTooLong`); `unknownPart` alone carries `params_de`
+  (the German names the field by its German label). Plan changes in this phase: the rules'
+  message templates live in a new leaf `backend/app/services/rules_texts.py` (it imports only
+  `app.language`), because `services/rules.py` imports `app.config` and the fixture script must
+  not; `RULES_MESSAGES` has 23 keys, not the 28 tasks.md counts; T015's API case uses a published
+  connection's `PUT` (a draft's accepts an incomplete rule, spec 005); `routers/oauth.py` changed
+  one line so the consent page's `404` follows the language, while `routers/agent_access.py` and
+  `routers/approval_requests.py` needed no change (their three messages are
+  `ApiResponse.message`, English); the string "EUDIPLO is not available right now. …" that T017
+  names doesn't exist: `NOT_CONFIGURED_MESSAGE` (the `503`) became the `Text` and the `502`
+  carries its caller's message; the approval view carries codes, no sentence, so T018's German
+  outcome is asserted on the `409`s; T019 walks the constants at any depth and also reads every
+  `Text(...)` call in `app/` (113), as the module walk cannot see a raise site's; seven test
+  files outside the task lines had only their reading of a raised `Text` adapted
+  (`test_identifiers.py`, `test_form_connection_drafts.py`, `test_agent_principal.py`,
+  `test_approval_requests.py`, `test_form_connections.py`, `test_form_connection_maintenance.py`,
+  `test_connect.py`), beside the two T015 names. The glossary gained the sex values, the
+  eye and hair colours and the 17 licence class descriptions (T014), nine rules terms such as
+  "Hauptvariante", "Kennung", "Fehlermeldung", "Ergebnislink" (T015), and nineteen sign-in,
+  agent and approval terms such as "Agentenzugriff", "Freigabe", "Weiterleitungs-URI" (T016–T018).
+  Open: a German-speaking team member skims the country names in V11 (phase 6), above all
+  "Kongo", "Korea, Republik", "Russische Föderation", "Palästinensische Gebiete", "Vatikanstadt",
+  "Macau", "Moldau"; and `INVALID_PAYLOAD_MESSAGE` ends the German "Ungültige Anfrage." with a
+  period the English "Invalid request payload" lacks (written so in T008).

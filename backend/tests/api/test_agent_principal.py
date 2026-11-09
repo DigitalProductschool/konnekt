@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, event, func, select, update
 
 from app.db import SessionLocal, engine
+from app.language import resolve_text
 from app.models import (
     AgentAuthorization,
     AgentToken,
@@ -913,4 +914,7 @@ def test_the_manage_refusal_names_its_level() -> None:
     refusal = insufficient_access('manage')
 
     assert refusal.status_code == 403
-    assert refusal.detail == NEEDS_MANAGE
+    # The detail as `errors.py` answers it without a German header (spec 009)
+    detail = refusal.detail
+    assert isinstance(detail, dict)
+    assert {**detail, 'message': resolve_text(detail['message'])} == NEEDS_MANAGE

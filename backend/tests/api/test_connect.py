@@ -26,7 +26,7 @@ from app.models import DocumentRequest, FormConnectionRevision
 from app.routers.connect import PULL_FAILED, TRIGGER_FAILED
 from app.schemas import PullResponse
 from app.services import document_requests, worker
-from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
+from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import day_of_sharing
 from app.services.qr import png_data_uri
 from tests.fake_eudiplo import FakeEudiplo
@@ -56,6 +56,9 @@ from tests.helpers import (
     update_form_connection,
     update_request,
 )
+
+# The messages as answered without a German header (spec 009)
+NOT_CONFIGURED_MESSAGE = NOT_CONFIGURED_MESSAGE_TEXT.en
 
 FORM_CONNECTION_NOT_FOUND = {
     'error': 'Not found',

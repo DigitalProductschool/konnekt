@@ -16,10 +16,14 @@ from app.models import (
     FormConnectionRevision,
     FormConnectionRuleSet,
 )
-from app.routers.form_connections import CONFIG_FAILED
+from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.services.dcql import config_hash
-from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
+from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from tests.fake_eudiplo import FAKE_TRUST_LIST_ID, FakeEudiplo
+
+# The messages as answered without a German header (spec 009)
+CONFIG_FAILED = CONFIG_FAILED_TEXT.en
+NOT_CONFIGURED_MESSAGE = NOT_CONFIGURED_MESSAGE_TEXT.en
 
 BASE_URL = 'https://middleware.test'
 SIGN_IN_REQUIRED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}

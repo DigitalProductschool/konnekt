@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.language import resolve_text
 from app.models import FormConnection, FormConnectionBranch, FormConnectionRuleSet
 from app.schemas import RequestedDocument, RulesInput
 from app.services.rules import (
@@ -39,6 +40,13 @@ DOCUMENTS = [
 INVALID_IDENTIFIER = (
     'The rules contain an invalid identifier. Reload the connection and try again.'
 )
+
+
+def _answered(detail: object) -> object:
+    """An `HTTPException`'s detail with its message as `errors.py` answers it
+    without a German header (spec 009: the message is a `Text`)."""
+    assert isinstance(detail, dict)
+    return {**detail, 'message': resolve_text(detail['message'])}
 
 
 def _city_rule(number: int, *, name: str | None = None) -> dict[str, Any]:
@@ -152,7 +160,7 @@ def _invalid(
             base_version=base_version,
         )
     assert caught.value.status_code == 400
-    assert caught.value.detail == {
+    assert _answered(caught.value.detail) == {
         'error': 'Validation error',
         'message': INVALID_IDENTIFIER,
     }
@@ -462,7 +470,7 @@ def test_a_new_form_connection_cant_take_another_ones_branch_id() -> None:
 
     with SessionLocal() as db, pytest.raises(HTTPException) as caught:
         first_rule_set(db, _new_form_connection(db), save)
-    assert caught.value.detail == {
+    assert _answered(caught.value.detail) == {
         'error': 'Validation error',
         'message': 'Unknown variant.',
     }
@@ -478,7 +486,7 @@ def test_a_new_form_connections_branch_id_must_be_a_uuid() -> None:
 
     with pytest.raises(HTTPException) as caught:
         clean_rules(RulesInput.model_validate(payload), DOCUMENTS, None)
-    assert caught.value.detail == {
+    assert _answered(caught.value.detail) == {
         'error': 'Validation error',
         'message': 'Unknown variant.',
     }

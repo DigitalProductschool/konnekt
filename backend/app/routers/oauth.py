@@ -116,7 +116,7 @@ def get_client(
     except oauth.OauthError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={'error': 'invalid_client', 'message': error.description},
+            detail={'error': 'invalid_client', 'message': error.message},
         ) from None
     return ApiResponse(data=view)
 

@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..errors import describe_error
+from ..language import Text
 from ..models import AgentAuthorization, AgentToken, OauthClient, OauthCode, UserAccount
 from ..schemas import (
     AuthorizeRequest,
@@ -87,18 +88,26 @@ _metadata_transport: httpx2.BaseTransport | None = None
 
 
 class OauthError(Exception):
-    """A refusal the OAuth endpoints answer as an RFC 6749 or RFC 7591 body."""
+    """A refusal the OAuth endpoints answer as an RFC 6749 or RFC 7591 body.
+
+    `description` is the RFC body's `error_description`, always English (spec 009,
+    contracts/api-language.md "What stays English"). `message` is what the consent
+    page shows of a refusal it can meet (an unknown client, a metadata document),
+    in both languages; it defaults to the description.
+    """
 
     def __init__(
         self,
         error: str,
         description: str,
         status_code: int = status.HTTP_400_BAD_REQUEST,
+        message: Text | None = None,
     ) -> None:
         super().__init__(error)
         self.error = error
         self.description = description
         self.status_code = status_code
+        self.message: str | Text = message if message is not None else description
 
     def body(self) -> dict[str, str]:
         """The answer's body: `{error, error_description}`."""
@@ -106,14 +115,62 @@ class OauthError(Exception):
 
 
 def refusal(
-    error: str, description: str, status_code: int = status.HTTP_400_BAD_REQUEST
+    error: str,
+    description: str,
+    status_code: int = status.HTTP_400_BAD_REQUEST,
+    message: Text | None = None,
 ) -> OauthError:
     """An `OauthError`, logged as its error code only."""
     logger.info('OAuth request refused: %s', error)
-    return OauthError(error, description, status_code)
+    return OauthError(error, description, status_code, message)
 
 
-def _invalid_request(message: str) -> HTTPException:
+def _consent_refusal(error: str, message: Text) -> OauthError:
+    """An `OauthError` only the consent page meets: its description is the English."""
+    return refusal(error, message.en, message=message)
+
+
+# The consent page's texts (spec 009): the client's refusals, which reach only
+# the consent page's endpoints, and the checks of `_checked_request`
+CLIENT_UNKNOWN = Text(en='The client is unknown.', de='Der Client ist unbekannt.')
+CLIENT_ID_TOO_LONG = Text(
+    en='The client_id is too long.', de='Die client_id ist zu lang.'
+)
+CLIENT_ID_NOT_A_METADATA_URL = Text(
+    en="The client_id isn't a valid metadata document URL.",
+    de='Die client_id ist keine gültige URL eines Metadatendokuments.',
+)
+METADATA_UNAVAILABLE = Text(
+    en="The client's metadata document could not be fetched.",
+    de='Das Metadatendokument des Clients konnte nicht abgerufen werden.',
+)
+METADATA_INVALID = Text(
+    en="The client's metadata document isn't valid.",
+    de='Das Metadatendokument des Clients ist ungültig.',
+)
+REDIRECT_URI_NOT_THE_CLIENTS = Text(
+    en="The redirect URI isn't one of the client's.",
+    de='Die Weiterleitungs-URI gehört nicht zum Client.',
+)
+CHALLENGE_METHOD_NOT_S256 = Text(
+    en='The code challenge method must be S256.',
+    de='Die Methode der Code-Challenge muss S256 sein.',
+)
+CHALLENGE_INVALID = Text(
+    en='The code challenge must be 43 to 128 URL-safe characters.',
+    de='Die Code-Challenge muss aus 43 bis 128 URL-sicheren Zeichen bestehen.',
+)
+RESOURCE_NOT_MCP = Text(
+    en="The resource isn't Konnekt's MCP server.",
+    de='Die Ressource ist nicht der MCP-Server von Konnekt.',
+)
+SCOPE_INVALID = Text(
+    en='The scope may only contain read, drafts and manage.',
+    de='Der Scope darf nur read, drafts und manage enthalten.',
+)
+
+
+def _invalid_request(message: str | Text) -> HTTPException:
     """The consent page's 400: the request is shown as invalid, without redirecting."""
     logger.info('OAuth request refused: invalid_request')
     return HTTPException(
@@ -245,10 +302,10 @@ def _with_query(uri: str, **params: str) -> str:
 # Clients
 
 
-def _metadata_url_problem(client_id: str) -> str | None:
+def _metadata_url_problem(client_id: str) -> Text | None:
     """Why an `https://` client id can't name a metadata document, or None."""
     if len(client_id) > CLIENT_ID_MAX_LENGTH:
-        return 'The client_id is too long.'
+        return CLIENT_ID_TOO_LONG
     parts = _split(client_id)
     if (
         parts is None
@@ -258,14 +315,12 @@ def _metadata_url_problem(client_id: str) -> str | None:
         or parts.password is not None
         or '#' in client_id
     ):
-        return "The client_id isn't a valid metadata document URL."
+        return CLIENT_ID_NOT_A_METADATA_URL
     return None
 
 
 def _metadata_unavailable() -> OauthError:
-    return refusal(
-        'invalid_client', "The client's metadata document could not be fetched."
-    )
+    return _consent_refusal('invalid_client', METADATA_UNAVAILABLE)
 
 
 def _fetch_metadata(url: str) -> bytes:
@@ -302,7 +357,7 @@ def _fetch_metadata(url: str) -> bytes:
 
 
 def _metadata_invalid() -> OauthError:
-    return refusal('invalid_client', "The client's metadata document isn't valid.")
+    return _consent_refusal('invalid_client', METADATA_INVALID)
 
 
 def _checked_metadata(url: str, body: bytes) -> tuple[str, list[str]]:
@@ -387,11 +442,11 @@ def client_for(
     client = _stored_client(db, client_id)
     if not client_id.startswith('https://'):
         if client is None or client.kind != 'dcr':
-            raise refusal('invalid_client', 'The client is unknown.')
+            raise _consent_refusal('invalid_client', CLIENT_UNKNOWN)
         return client
     problem = _metadata_url_problem(client_id)
     if problem is not None:
-        raise refusal('invalid_client', problem)
+        raise _consent_refusal('invalid_client', problem)
     if (
         client is not None
         and client.kind == 'cimd'
@@ -445,16 +500,19 @@ def register_client(db: Session, data: RegisterRequest) -> RegisterResponse:
     the worker after an hour.
     """
     if data.token_endpoint_auth_method != 'none':
+        # RFC body, English
         raise refusal(
             'invalid_client_metadata',
             'Only public clients can register: token_endpoint_auth_method must '
             'be none.',
         )
     if not data.redirect_uris:
+        # RFC body, English
         raise refusal(
             'invalid_client_metadata', 'redirect_uris must name at least one URI.'
         )
     if not all(redirect_uri_allowed(uri) for uri in data.redirect_uris):
+        # RFC body, English
         raise refusal(
             'invalid_client_metadata',
             'A redirect URI must be an https:// URI, a loopback http:// URI '
@@ -462,6 +520,7 @@ def register_client(db: Session, data: RegisterRequest) -> RegisterResponse:
         )
     client_name = data.client_name.strip()[:CLIENT_NAME_MAX_LENGTH].rstrip()
     if not client_name:
+        # RFC body, English
         raise refusal('invalid_client_metadata', 'client_name is required.')
     client = OauthClient(
         client_id=new_dcr_client_id(),
@@ -492,19 +551,17 @@ def _checked_request(db: Session, request: AuthorizeRequest) -> OauthClient:
     try:
         client = client_for(db, request.client_id, request.redirect_uri)
     except OauthError as error:
-        raise _invalid_request(error.description) from None
+        raise _invalid_request(error.message) from None
     if not redirect_uri_matches(client, request.redirect_uri):
-        raise _invalid_request("The redirect URI isn't one of the client's.")
+        raise _invalid_request(REDIRECT_URI_NOT_THE_CLIENTS)
     if request.code_challenge_method != 'S256':
-        raise _invalid_request('The code challenge method must be S256.')
+        raise _invalid_request(CHALLENGE_METHOD_NOT_S256)
     if _PKCE_VALUE.fullmatch(request.code_challenge) is None:
-        raise _invalid_request(
-            'The code challenge must be 43 to 128 URL-safe characters.'
-        )
+        raise _invalid_request(CHALLENGE_INVALID)
     if request.resource != settings.mcp_url:
-        raise _invalid_request("The resource isn't Konnekt's MCP server.")
+        raise _invalid_request(RESOURCE_NOT_MCP)
     if any(word not in SCOPE_WORDS for word in request.scope.split()):
-        raise _invalid_request('The scope may only contain read, drafts and manage.')
+        raise _invalid_request(SCOPE_INVALID)
     return client
 
 
@@ -562,6 +619,7 @@ def authorize(
 def _required(params: Mapping[str, str], name: str) -> str:
     value = params.get(name)
     if not value:
+        # RFC body, English
         raise refusal('invalid_request', f'The parameter {name} is missing.')
     return value
 
@@ -689,24 +747,31 @@ def exchange_code(db: Session, params: Mapping[str, str]) -> TokenResponse:
         .with_for_update()
     ).first()
     if code is None:
+        # RFC body, English
         raise _invalid_grant('The authorization code is unknown.')
     if code.used_at is not None:
         _revoke_code_tokens(db, code)
+        # RFC body, English
         raise _invalid_grant('The authorization code was already used.')
     if code.expires_at <= now:
+        # RFC body, English
         raise _invalid_grant('The authorization code has expired.')
     client = db.get(OauthClient, code.client_id)
     if client is None or client.client_id != client_id:
+        # RFC body, English
         raise refusal(
             'invalid_client',
             'The authorization code was issued to another client.',
             status.HTTP_401_UNAUTHORIZED,
         )
     if not pkce_matches(code_verifier, code.code_challenge):
+        # RFC body, English
         raise _invalid_grant("The code verifier doesn't match the code challenge.")
     if redirect_uri != code.redirect_uri:
+        # RFC body, English
         raise _invalid_grant("The redirect URI isn't the authorization request's.")
     if resource != code.resource or resource != settings.mcp_url:
+        # RFC body, English
         raise refusal('invalid_target', "The resource isn't Konnekt's MCP server.")
     code.used_at = now
     authorization = _agent_connection(db, code, now)
@@ -742,6 +807,7 @@ def refresh(db: Session, params: Mapping[str, str]) -> TokenResponse:
         .with_for_update()
     ).first()
     if row is None:
+        # RFC body, English
         raise _invalid_grant('The refresh token is unknown.')
     if row.replaced_by_id is not None:
         authorization_id = row.authorization_id
@@ -753,8 +819,10 @@ def refresh(db: Session, params: Mapping[str, str]) -> TokenResponse:
             'Retired refresh token used again: agent connection %s revoked',
             authorization_id,
         )
+        # RFC body, English
         raise _invalid_grant('The refresh token was already used.')
     if row.expires_at <= now:
+        # RFC body, English
         raise _invalid_grant('The refresh token has expired.')
     authorization = db.get(AgentAuthorization, row.authorization_id)
     client = (
@@ -769,8 +837,10 @@ def refresh(db: Session, params: Mapping[str, str]) -> TokenResponse:
         or client.client_id != client_id
         or authorization.access_level not in LEVEL_SCOPES
     ):
+        # RFC body, English
         raise _invalid_grant('The refresh token was issued to another client.')
     if resource and resource != settings.mcp_url:
+        # RFC body, English
         raise refusal('invalid_target', "The resource isn't Konnekt's MCP server.")
     answer, refresh_row = _issue_tokens(db, authorization, now)
     row.replaced_by_id = refresh_row.id
@@ -788,6 +858,7 @@ def token_grant(db: Session, params: Mapping[str, str]) -> TokenResponse:
         return exchange_code(db, params)
     if grant_type == 'refresh_token':
         return refresh(db, params)
+    # RFC body, English
     raise refusal(
         'invalid_request',
         'The grant_type must be authorization_code or refresh_token.',

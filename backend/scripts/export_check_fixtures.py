@@ -1,4 +1,4 @@
-"""Write the rule checks' case-folding table and the evaluator's vectors (spec 003).
+"""Write the rule checks' generated files and the server's messages (specs 003, 009).
 
 Run from backend/: `uv run python -m scripts.export_check_fixtures`. The rule checks
 in the browser (rules/src/checks/) compare texts and count days as
@@ -10,11 +10,25 @@ themselves (research R7, R13) and writes
 - `fixtures/evaluator-vectors.json`: inputs and Python's results for
   `_normalised_text()`, `years_after()`, `months_after()`, `date.toordinal()`,
   rule outcomes and whole-branch evaluations (`evaluate_branch()`: met, results and
-  messages; spec 004, research R2), which the Vitest tests replay.
+  messages; spec 004, research R2), which the Vitest tests replay;
+- `rules/src/fixtures/server-messages.json` (spec 009, research R8): the validation
+  messages of app/services/rules_texts.py that `rules/src/constants.ts` mirrors word
+  for word (`RULES_MESSAGES`, `CONDITION_PROBLEM_MESSAGES`,
+  `EDIT_MESSAGES.unknownVariant`), in English and German, rendered with fixed sample
+  parameters. Each case's `params` are the TS function's arguments by its parameter
+  names, in its parameter order, so `fn(...Object.values(params))` renders the case;
+  `params_de`, where a case has it, replaces them for German (a catalog label in
+  German). A condition problem's case is the part after `condition_problem_prefix`,
+  as the TS table holds it. The keys the server has no message for are listed under
+  `client_only`, each with its reason.
 
-Both are generated, never edited by hand. Run the script again after a Python upgrade
-or a change to the evaluator's comparisons. With --check it writes nothing: it names
-each committed file that differs from what it would write and exits with 1.
+All three are generated, never edited by hand. Run the script again after a Python
+upgrade, a change to the evaluator's comparisons or a change to a mirrored message.
+With --check it writes nothing: it names each committed file that differs from what
+it would write and exits with 1.
+
+The script never imports app.config (ARCHITECTURE, "Developer scripts"), so it takes
+the messages from the leaf module rules_texts.py, not from app/services/rules.py.
 """
 
 import argparse
@@ -28,6 +42,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+from app.language import Text
 from app.schemas import (
     Combinator,
     Condition,
@@ -39,6 +54,7 @@ from app.schemas import (
     RuleTarget,
     SnapshotBranch,
 )
+from app.services import rules_texts
 from app.services.evaluation import (
     _kind_of,
     _normalised_text,
@@ -52,6 +68,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECKS_DIR = Path('rules/src/checks')
 CASE_FOLDING_FILE = CHECKS_DIR / 'caseFolding.ts'
 VECTORS_FILE = CHECKS_DIR / 'fixtures' / 'evaluator-vectors.json'
+SERVER_MESSAGES_FILE = Path('rules/src/fixtures/server-messages.json')
 COMMAND = 'uv run python -m scripts.export_check_fixtures'
 GENERATOR = 'backend/scripts/export_check_fixtures.py'
 
@@ -1541,6 +1558,243 @@ def vectors_json() -> str:
     return json.dumps(vectors, indent=2, sort_keys=True, ensure_ascii=True) + '\n'
 
 
+# The server's messages that the rules step mirrors (spec 009, research R8)
+
+# The sample parameters
+SAMPLE_RULE = 'Rule 01'
+SAMPLE_BRANCH = 'Standard'
+SAMPLE_GROUP = 'Group 01'
+SAMPLE_SUB_GROUP = 'Sub-group 01'
+SAMPLE_VARIANT = 'Taxi'
+SAMPLE_NAME = 'Lives in Stuttgart'
+# A field's catalog label in both languages (catalog.py, glossary §4)
+SAMPLE_FIELD = Text(en='Place of birth', de='Geburtsort')
+# A reserved default name, by the noun it is kept for, with its number
+SAMPLE_RESERVED: dict[rules_texts.ItemNoun, tuple[str, str]] = {
+    'rule': ('Rule 08', '08'),
+    'group': ('Group 02', '02'),
+    'sub-group': ('Sub-group 03', '03'),
+}
+NOUNS: tuple[rules_texts.ItemNoun, ...] = ('rule', 'group', 'sub-group')
+UNITS: tuple[rules_texts.TimeUnit, ...] = ('years', 'months')
+
+MessageTable = Literal['RULES_MESSAGES', 'CONDITION_PROBLEM_MESSAGES', 'EDIT_MESSAGES']
+
+
+@dataclass(frozen=True)
+class _MessageCase:
+    """A key of a TS table, its arguments by name in the TS order, and its text."""
+
+    key: str
+    table: MessageTable
+    params: Mapping[str, str]
+    text: Text
+    # The German arguments where they differ: a catalog label
+    params_de: Mapping[str, str] | None = None
+
+
+def _rules_message_cases() -> Iterator[_MessageCase]:
+    """`RULES_MESSAGES`: one case per key, one per noun where the key takes one."""
+    texts = rules_texts
+    table: MessageTable = 'RULES_MESSAGES'
+    rule = {'rule': SAMPLE_RULE, 'branch': SAMPLE_BRANCH}
+    # The variants: their number, names and descriptions (clean_branches)
+    yield _MessageCase('tooManyBranches', table, {}, texts.too_many_branches())
+    yield _MessageCase('mainBranch', table, {}, texts.main_branch())
+    yield _MessageCase('branchNameMissing', table, {}, texts.branch_name_missing())
+    yield _MessageCase('branchNameTooLong', table, {}, texts.branch_name_too_long())
+    yield _MessageCase(
+        'branchNameTwice',
+        table,
+        {'name': SAMPLE_VARIANT},
+        texts.branch_name_twice(SAMPLE_VARIANT),
+    )
+    yield _MessageCase(
+        'descriptionTooLong',
+        table,
+        {'branch': SAMPLE_BRANCH},
+        texts.description_too_long(SAMPLE_BRANCH),
+    )
+    yield _MessageCase(
+        'tooManyItems',
+        table,
+        {'branch': SAMPLE_BRANCH},
+        texts.too_many_items(SAMPLE_BRANCH),
+    )
+    # A rule's or group's identifier (`_clean_branch`, `_allocate`)
+    yield _MessageCase('invalidIdentifier', table, {}, texts.INVALID_IDENTIFIER)
+    # Names (`_item_name`, `reserved_name_problem`): every noun, since German
+    # declines it
+    for noun in NOUNS:
+        yield _MessageCase(
+            'itemNameMissing',
+            table,
+            {'noun': noun, 'branch': SAMPLE_BRANCH},
+            texts.item_name_missing(noun, SAMPLE_BRANCH),
+        )
+    for noun in NOUNS:
+        yield _MessageCase(
+            'itemNameTooLong',
+            table,
+            {'noun': noun, 'branch': SAMPLE_BRANCH},
+            texts.item_name_too_long(noun, SAMPLE_BRANCH),
+        )
+    for noun in NOUNS:
+        yield _MessageCase(
+            'nameTaken',
+            table,
+            {'noun': noun, 'branch': SAMPLE_BRANCH, 'name': SAMPLE_NAME},
+            texts.name_taken(noun, SAMPLE_BRANCH, SAMPLE_NAME),
+        )
+    for noun in NOUNS:
+        name, number = SAMPLE_RESERVED[noun]
+        yield _MessageCase(
+            'nameReserved',
+            table,
+            {'name': name, 'noun': noun, 'number': number},
+            texts.name_reserved(name, noun, number),
+        )
+    # What a rule checks (`_clean_target`)
+    yield _MessageCase(
+        'chooseData', table, rule, texts.choose_data(SAMPLE_RULE, SAMPLE_BRANCH)
+    )
+    yield _MessageCase(
+        'notRequested', table, rule, texts.not_requested(SAMPLE_RULE, SAMPLE_BRANCH)
+    )
+    yield _MessageCase(
+        'unknownPart',
+        table,
+        rule | {'field': SAMPLE_FIELD.en},
+        texts.unknown_part(SAMPLE_RULE, SAMPLE_BRANCH, SAMPLE_FIELD),
+        params_de=rule | {'field': SAMPLE_FIELD.de},
+    )
+    # A rule's or group's message (`_clean_item`)
+    yield _MessageCase(
+        'noMessage', table, rule, texts.no_message(SAMPLE_RULE, SAMPLE_BRANCH)
+    )
+    yield _MessageCase(
+        'messageTooLong',
+        table,
+        {'item': SAMPLE_GROUP, 'branch': SAMPLE_BRANCH},
+        texts.message_too_long(SAMPLE_GROUP, SAMPLE_BRANCH),
+    )
+    # Groups and sub-groups (`_check_members`)
+    yield _MessageCase(
+        'rulesOnly',
+        table,
+        {'subGroup': SAMPLE_SUB_GROUP, 'branch': SAMPLE_BRANCH},
+        texts.rules_only(SAMPLE_SUB_GROUP, SAMPLE_BRANCH),
+    )
+    yield _MessageCase(
+        'tooFewMembers',
+        table,
+        {'group': SAMPLE_GROUP, 'branch': SAMPLE_BRANCH},
+        texts.too_few_members(SAMPLE_GROUP, SAMPLE_BRANCH),
+    )
+
+
+def _condition_problem_cases() -> Iterator[_MessageCase]:
+    """`CONDITION_PROBLEM_MESSAGES`: the part after the prefix, as the server
+    composes it (`condition_problem`); `amount_at_least_1` once per unit."""
+    table: MessageTable = 'CONDITION_PROBLEM_MESSAGES'
+    problems: list[tuple[str, dict[str, str], Text]] = [
+        (key, {}, problem) for key, problem in rules_texts.CONDITION_PROBLEMS.items()
+    ]
+    problems += [
+        ('amount_at_least_1', {'unit': unit}, rules_texts.amount_at_least_1(unit))
+        for unit in UNITS
+    ]
+    for key, params, problem in problems:
+        yield _MessageCase(key, table, params, _after_prefix(problem))
+
+
+def _condition_prefix() -> Text:
+    return rules_texts.condition_prefix(SAMPLE_RULE, SAMPLE_BRANCH)
+
+
+def _after_prefix(problem: Text) -> Text:
+    """A condition problem's message without its prefix, checked to have it."""
+    message = rules_texts.condition_problem(SAMPLE_RULE, SAMPLE_BRANCH, problem)
+    prefix = _condition_prefix()
+    assert message.en.startswith(prefix.en) and message.de.startswith(prefix.de)
+    return Text(en=message.en[len(prefix.en) :], de=message.de[len(prefix.de) :])
+
+
+def _edit_message_cases() -> Iterator[_MessageCase]:
+    """`EDIT_MESSAGES`: only `unknownVariant` is the server's (`UNKNOWN_BRANCH`)."""
+    yield _MessageCase(
+        'unknownVariant', 'EDIT_MESSAGES', {}, rules_texts.UNKNOWN_BRANCH
+    )
+
+
+def message_cases() -> list[_MessageCase]:
+    """Every mirrored message, in the order of the TS tables."""
+    return [
+        *_rules_message_cases(),
+        *_condition_problem_cases(),
+        *_edit_message_cases(),
+    ]
+
+
+# The keys of `RULES_MESSAGES` that the server has no message for: the rules step's
+# own texts, which its validation mirrors from the design, not from the server
+CLIENT_ONLY: dict[str, str] = {
+    'variantNameMissing': (
+        'The Add variant and Edit variant dialogs; the server answers branchNameMissing'
+    ),
+    'variantNameTaken': (
+        'The Add variant and Edit variant dialogs; the server answers branchNameTwice'
+    ),
+    'nameMissing': 'Inline renaming; the server answers itemNameMissing',
+    'nameTooLong': 'Inline renaming; the server answers itemNameTooLong',
+}
+
+
+def _case_json(case: _MessageCase) -> dict[str, object]:
+    # Insertion order, not sorted: `params` keeps the TS parameter order
+    entry: dict[str, object] = {
+        'key': case.key,
+        'table': case.table,
+        'params': dict(case.params),
+    }
+    if case.params_de is not None:
+        entry['params_de'] = dict(case.params_de)
+    entry['en'] = case.text.en
+    entry['de'] = case.text.de
+    return entry
+
+
+def server_messages_json() -> str:
+    """The text of `rules/src/fixtures/server-messages.json`."""
+    prefix = _condition_prefix()
+    messages: dict[str, object] = {
+        'generator': (
+            f'{GENERATOR}: run `{COMMAND}` from backend/. Never edit this file by hand.'
+        ),
+        'about': (
+            "The server's validation messages that rules/src/constants.ts mirrors "
+            "word for word, in English and German. params: the TS function's "
+            'arguments by parameter name, in its parameter order, so '
+            'fn(...Object.values(params)) renders the case; params_de, where present, '
+            'replaces them for German. A CONDITION_PROBLEM_MESSAGES case is the part '
+            'after condition_problem_prefix. client_only: the keys the server has '
+            'no message for.'
+        ),
+        'condition_problem_prefix': {
+            'params': {'rule': SAMPLE_RULE, 'branch': SAMPLE_BRANCH},
+            'en': prefix.en,
+            'de': prefix.de,
+        },
+        'cases': [_case_json(case) for case in message_cases()],
+        'client_only': [
+            {'key': key, 'table': 'RULES_MESSAGES', 'reason': reason}
+            for key, reason in CLIENT_ONLY.items()
+        ],
+    }
+    # Not sorted (`params`' order counts); German as it reads
+    return json.dumps(messages, indent=2, ensure_ascii=False) + '\n'
+
+
 # Writing and checking
 
 
@@ -1549,6 +1803,7 @@ def generated_files() -> dict[Path, str]:
     return {
         CASE_FOLDING_FILE: case_folding_source(),
         VECTORS_FILE: vectors_json(),
+        SERVER_MESSAGES_FILE: server_messages_json(),
     }
 
 
@@ -1569,8 +1824,8 @@ def main(argv: Sequence[str] | None = None, root: Path = REPO_ROOT) -> int:
         stale = stale_files(root)
         for path in stale:
             print(
-                f'{path.as_posix()} is stale: it differs from what this interpreter '
-                'and the evaluator give.',
+                f'{path.as_posix()} is stale: it differs from what this interpreter, '
+                'the evaluator and the messages give.',
                 file=sys.stderr,
             )
         if stale:
@@ -1595,7 +1850,8 @@ def _parse_arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         prog='python -m scripts.export_check_fixtures',
         description=(
             "Write the rule checks' case-folding table and the evaluator's vectors "
-            'from this interpreter and app/services/evaluation.py.'
+            'from this interpreter and app/services/evaluation.py, and the mirrored '
+            'validation messages from app/services/rules_texts.py.'
         ),
     )
     parser.add_argument(

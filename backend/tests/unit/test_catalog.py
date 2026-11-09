@@ -17,7 +17,8 @@ from app.catalog import (
     label_of,
 )
 from app.language import Language, request_language
-from app.option_sets import OPTION_SETS
+from app.option_sets import OPTION_SETS, Option, description_of
+from app.option_sets import label_of as option_label_of
 from app.schemas import DocumentField
 from app.services.form_connections import document_field_view
 
@@ -504,3 +505,212 @@ def test_a_field_view_changes_only_its_labels(language: Language) -> None:
         assert [part.label for part in view.parts or ()] == [
             part.label_de if german else part.label for part in field.parts or ()
         ]
+
+
+# The option sets' German (spec 009, T014, glossary §4)
+
+# The number of values per set, as before the German was added
+OPTION_COUNTS = {
+    'countries': 249,
+    'sex': 8,
+    'licence_classes': 17,
+    'eye_colours': 10,
+    'hair_colours': 10,
+}
+
+# Labels that are the same in both languages: names the Federal Foreign Office's
+# country list spells as the English list does, and two words German shares. A code
+# as its own label (the licence classes) is equal too
+OPTIONS_EQUAL_IN_BOTH_LANGUAGES = frozenset(
+    {
+        'Afghanistan',
+        'Andorra',
+        'Angola',
+        'Anguilla',
+        'Aruba',
+        'Bahamas',
+        'Bahrain',
+        'Barbados',
+        'Belarus',
+        'Belize',
+        'Benin',
+        'Bermuda',
+        'Bhutan',
+        'Burkina Faso',
+        'Burundi',
+        'Cabo Verde',
+        'Chile',
+        'China',
+        'Costa Rica',
+        'Côte d’Ivoire',
+        'Curaçao',
+        'Dominica',
+        'Ecuador',
+        'El Salvador',
+        'Eritrea',
+        'Eswatini',
+        'Gambia',
+        'Ghana',
+        'Gibraltar',
+        'Grenada',
+        'Guadeloupe',
+        'Guam',
+        'Guatemala',
+        'Guernsey',
+        'Guinea',
+        'Guinea-Bissau',
+        'Guyana',
+        'Haiti',
+        'Honduras',
+        'Iran',
+        'Israel',
+        'Japan',
+        'Jersey',
+        'Kiribati',
+        'Kuwait',
+        'Laos',
+        'Lesotho',
+        'Liberia',
+        'Liechtenstein',
+        'Malawi',
+        'Malaysia',
+        'Mali',
+        'Malta',
+        'Martinique',
+        'Mauritius',
+        'Mayotte',
+        'Monaco',
+        'Montenegro',
+        'Montserrat',
+        'Myanmar',
+        'Namibia',
+        'Nauru',
+        'Nepal',
+        'Nicaragua',
+        'Niger',
+        'Nigeria',
+        'Niue',
+        'Oman',
+        'Pakistan',
+        'Palau',
+        'Panama',
+        'Paraguay',
+        'Peru',
+        'Portugal',
+        'Puerto Rico',
+        'Réunion',
+        'Samoa',
+        'San Marino',
+        'Senegal',
+        'Sierra Leone',
+        'Somalia',
+        'Sri Lanka',
+        'Sudan',
+        'Suriname',
+        'Taiwan',
+        'Thailand',
+        'Timor-Leste',
+        'Togo',
+        'Tokelau',
+        'Tonga',
+        'Turkmenistan',
+        'Tuvalu',
+        'Uganda',
+        'Ukraine',
+        'Uruguay',
+        'Vanuatu',
+        'Venezuela',
+        'Vietnam',
+        # Sex 4 and the hair colour blond
+        'Inter',
+        'Blond',
+    }
+)
+
+
+def _option_in(language: Language, option: Option) -> tuple[str, str | None]:
+    def run() -> tuple[str, str | None]:
+        request_language.set(language)
+        return option_label_of(option), description_of(option)
+
+    return copy_context().run(run)
+
+
+def test_the_option_sets_keep_their_counts() -> None:
+    assert {key: len(options) for key, options in OPTION_SETS.items()} == OPTION_COUNTS
+
+
+@pytest.mark.parametrize('key', list(OPTION_SETS))
+def test_every_option_has_its_german_label(key: str) -> None:
+    options = OPTION_SETS[key]
+    labels_de = [option.label_de for option in options]
+
+    assert len(labels_de) == len(set(labels_de))
+    for option in options:
+        assert option.label_de.strip(), option.label
+        assert (
+            option.label_de != option.label
+            or option.label == option.value
+            or option.label in OPTIONS_EQUAL_IN_BOTH_LANGUAGES
+        ), option.label
+
+
+def test_the_allowlist_names_only_labels_that_are_equal() -> None:
+    equal = {
+        option.label
+        for options in OPTION_SETS.values()
+        for option in options
+        if option.label == option.label_de and option.label != option.value
+    }
+
+    assert equal == OPTIONS_EQUAL_IN_BOTH_LANGUAGES
+
+
+def test_the_glossary_option_labels_are_used() -> None:
+    countries = {option.value: option.label_de for option in OPTION_SETS['countries']}
+    sex = [option.label_de for option in OPTION_SETS['sex']]
+    classes = {option.value: option for option in OPTION_SETS['licence_classes']}
+
+    assert countries['DE'] == 'Deutschland'
+    assert countries['AT'] == 'Österreich'
+    assert countries['CH'] == 'Schweiz'
+    assert countries['GB'] == 'Vereinigtes Königreich'
+    assert countries['US'] == 'Vereinigte Staaten'
+    assert countries['AX'] == 'Åland'
+    assert sex[:3] == ['Unbekannt', 'Männlich', 'Weiblich']
+    assert classes['B'].description_de == 'Pkw bis 3,5 t'
+    assert classes['C'].description_de == 'Lkw über 3,5 t'
+    assert classes['A'].description_de == 'Krafträder'
+
+
+def test_the_licence_classes_have_german_descriptions_and_keep_their_codes() -> None:
+    for option in OPTION_SETS['licence_classes']:
+        assert option.label_de == option.label == option.value
+        assert option.description_de, option.value
+        assert option.description_de != option.description, option.value
+
+
+def test_the_other_sets_have_no_description() -> None:
+    for key, options in OPTION_SETS.items():
+        if key != 'licence_classes':
+            assert all(
+                option.description is None and option.description_de is None
+                for option in options
+            ), key
+
+
+def test_the_option_labels_follow_the_request_language() -> None:
+    germany = next(
+        option for option in OPTION_SETS['countries'] if option.value == 'DE'
+    )
+    class_b = next(
+        option for option in OPTION_SETS['licence_classes'] if option.value == 'B'
+    )
+
+    # Outside a request: English
+    assert option_label_of(germany) == 'Germany'
+    assert description_of(class_b) == 'Cars up to 3.5 t'
+    assert _option_in('en', germany) == ('Germany', None)
+    assert _option_in('de', germany) == ('Deutschland', None)
+    assert _option_in('en', class_b) == ('B', 'Cars up to 3.5 t')
+    assert _option_in('de', class_b) == ('B', 'Pkw bis 3,5 t')

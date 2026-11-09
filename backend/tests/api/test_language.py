@@ -11,6 +11,7 @@ import logging
 import re
 from collections.abc import Awaitable, Callable, Iterator
 from contextvars import copy_context
+from datetime import datetime, timezone
 from typing import Any, cast
 
 import pytest
@@ -18,20 +19,35 @@ from fastapi import HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.db import SessionLocal
 from app.errors import INTERNAL_ERROR_MESSAGE
 from app.language import Language, Text, request_language
 from app.main import LanguageMiddleware, RedactReferencesFilter, app
-from app.schemas import RequestedDocument
-from app.services import document_requests, drafts, form_connections, worker
+from app.models import ApprovalRequest, UserAccount
+from app.schemas import AccessLevel, RequestedDocument
+from app.services import (
+    approvals,
+    document_requests,
+    drafts,
+    form_connections,
+    worker,
+)
+from app.services.auth import ACCESS_LEVELS
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     DELIVERED_DOCUMENTS,
     FORM_CONNECTION,
+    bearer_client,
+    create_agent_authorization,
     create_form_connection,
+    main_branch,
     pull_url,
     requests_url,
+    rule,
+    rules_input,
     share,
     trigger,
 )
@@ -447,3 +463,447 @@ def test_the_delivered_documents_stay_english_with_a_german_header(
     )
 
     assert response.json()['data']['documents'] == DELIVERED_DOCUMENTS
+
+
+# The option sets' labels (T014; glossary §4, contracts/api-language.md)
+
+
+def test_the_option_sets_have_german_labels_and_the_same_values(
+    signed_in_client: TestClient,
+) -> None:
+    """Only labels and descriptions follow the header: keys, values and order stay."""
+    english = signed_in_client.get('/api/option-sets').json()['data']
+    german = signed_in_client.get('/api/option-sets', headers=GERMAN).json()['data']
+
+    assert [option_set['key'] for option_set in german] == [
+        option_set['key'] for option_set in english
+    ]
+    for english_set, german_set in zip(english, german, strict=True):
+        assert [option['value'] for option in german_set['options']] == [
+            option['value'] for option in english_set['options']
+        ]
+    sets_en = {option_set['key']: option_set['options'] for option_set in english}
+    sets_de = {option_set['key']: option_set['options'] for option_set in german}
+    countries_en = {option['value']: option['label'] for option in sets_en['countries']}
+    countries_de = {option['value']: option['label'] for option in sets_de['countries']}
+    assert (countries_en['DE'], countries_de['DE']) == ('Germany', 'Deutschland')
+    assert (countries_en['GB'], countries_de['GB']) == (
+        'United Kingdom',
+        'Vereinigtes Königreich',
+    )
+    assert [option['label'] for option in sets_de['sex']][:3] == [
+        'Unbekannt',
+        'Männlich',
+        'Weiblich',
+    ]
+    assert [option['label'] for option in sets_de['eye_colours']][:3] == [
+        'Schwarz',
+        'Blau',
+        'Braun',
+    ]
+    # The licence classes keep their codes as labels; their descriptions are German
+    classes_en = {option['value']: option for option in sets_en['licence_classes']}
+    classes_de = {option['value']: option for option in sets_de['licence_classes']}
+    assert classes_de['B'] == {
+        'value': 'B',
+        'label': 'B',
+        'description': 'Pkw bis 3,5 t',
+    }
+    assert classes_en['B']['description'] == 'Cars up to 3.5 t'
+    for code, option in classes_de.items():
+        assert option['label'] == classes_en[code]['label'] == code
+        assert option['description']
+        assert option['description'] != classes_en[code]['description']
+    # The other sets have no description in either language
+    for key in ('countries', 'sex', 'eye_colours', 'hair_colours'):
+        assert all(option['description'] is None for option in sets_de[key])
+
+
+# The rules' validation messages (T015; glossary §3, contracts/api-language.md)
+
+
+@pytest.mark.parametrize(
+    ('headers', 'message'),
+    [
+        (GERMAN, 'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.'),
+        ({}, 'Rule 01 in Standard: choose the data to check.'),
+    ],
+)
+def test_a_rules_validation_message_follows_the_header(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    headers: dict[str, str],
+    message: str,
+) -> None:
+    """A connection's `PUT` with a rule without data: German with `de`.
+
+    A draft's `PUT` keeps a rule without data (spec 005, FR-004), so the published
+    connection's `PUT` runs the check. The stored names stay as they are.
+    """
+    form_connection_id = create_form_connection(signed_in_client)
+    created = signed_in_client.get(f'/api/form-connections/{form_connection_id}')
+    data = created.json()['data']
+    rules = rules_input(
+        [
+            main_branch(
+                [rule(1, None, {'operator': 'on', 'date': '2020-01-01'}, 'Hi.')],
+                branch_id=data['branches'][0]['id'],
+            )
+        ],
+        base_version=data['rule_set_version'],
+    )
+
+    response = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}',
+        json={'rules': rules},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'error': 'Validation error', 'message': message}
+
+
+# Sign-in, agent access and the access levels (T016; glossary §2)
+
+
+def test_a_wrong_password_answers_in_german(client: TestClient) -> None:
+    """The sign-in's 401 follows the header; its `error` stays."""
+    create_user()
+    credentials = {'username': TEST_USERNAME, 'password': 'not the password'}
+
+    german = client.post('/api/auth/login', json=credentials, headers=GERMAN)
+    english = client.post('/api/auth/login', json=credentials)
+
+    assert german.status_code == english.status_code == 401
+    assert german.json() == {
+        'error': 'Unauthorized',
+        'message': (
+            'Benutzername oder Passwort ist falsch. Überprüfen Sie beides und '
+            'versuchen Sie es erneut.'
+        ),
+    }
+    assert english.json() == {
+        'error': 'Unauthorized',
+        'message': 'Username or password is wrong. Check both and try again.',
+    }
+
+
+def test_the_access_levels_have_german_names_and_the_same_codes(
+    signed_in_client: TestClient,
+) -> None:
+    """`GET /api/agent-access`: German `name` and `allows`, same levels in order."""
+    german = signed_in_client.get('/api/agent-access', headers=GERMAN)
+    english = signed_in_client.get('/api/agent-access')
+
+    assert german.status_code == english.status_code == 200
+    levels_de = german.json()['data']['levels']
+    levels_en = english.json()['data']['levels']
+    assert [level['level'] for level in levels_de] == ['read', 'drafts', 'manage']
+    assert [level['level'] for level in levels_en] == ['read', 'drafts', 'manage']
+    assert [level['name'] for level in levels_de] == [
+        'Nur lesen',
+        'Lesen und Entwürfe bearbeiten',
+        'Lesen, Entwürfe bearbeiten und aktive Anbindungen verwalten',
+    ]
+    assert levels_en == [info.model_dump() for info in ACCESS_LEVELS]
+    for german_level, english_level in zip(levels_de, levels_en, strict=True):
+        assert german_level.keys() == english_level.keys()
+        assert (
+            german_level['allows']
+            and german_level['allows'] != (english_level['allows'])
+        )
+
+
+def test_an_insufficient_access_answers_in_german(client: TestClient) -> None:
+    """A read-only agent's 403 names the German level; `needs_access_level` stays."""
+    _, token = create_agent_authorization(create_user(), 'read')
+    agent = bearer_client(client, token)
+    body = {'form_connection_id': UNKNOWN_ID, 'action': 'publish'}
+
+    german = agent.post('/api/approval-requests', json=body, headers=GERMAN)
+    english = agent.post('/api/approval-requests', json=body)
+
+    assert german.status_code == english.status_code == 403
+    assert german.json() == {
+        'error': 'insufficient_access',
+        'message': (
+            'Das Bearbeiten von Entwürfen erfordert die Zugriffsstufe „Lesen und '
+            'Entwürfe bearbeiten“.'
+        ),
+        'needs_access_level': 'drafts',
+    }
+    assert english.json() == {
+        'error': 'insufficient_access',
+        'message': "Changing drafts needs the access level 'Read and edit drafts'.",
+        'needs_access_level': 'drafts',
+    }
+
+
+def test_the_consent_page_answers_an_unknown_client_in_german(
+    signed_in_client: TestClient,
+) -> None:
+    """The consent page's `invalid_client` follows the header (T016)."""
+    url = '/api/oauth/clients/cp_client_unknown'
+
+    german = signed_in_client.get(url, headers=GERMAN)
+    english = signed_in_client.get(url)
+
+    assert german.status_code == english.status_code == 404
+    assert german.json() == {
+        'error': 'invalid_client',
+        'message': 'Der Client ist unbekannt.',
+    }
+    assert english.json() == {
+        'error': 'invalid_client',
+        'message': 'The client is unknown.',
+    }
+
+
+def test_the_token_endpoints_rfc_body_stays_english(client: TestClient) -> None:
+    """RFC 6749's body is for clients, not the website: English with `de`."""
+    response = client.post(
+        '/api/oauth/token', data={'grant_type': 'password'}, headers=GERMAN
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': 'invalid_request',
+        'error_description': (
+            'The grant_type must be authorization_code or refresh_token.'
+        ),
+    }
+
+
+# Connections, drafts and EUDIPLO (T017; glossary §2)
+
+
+DRAFT: dict[str, Any] = {
+    'name': 'Führerscheinantrag Entwurf',
+    'description': '',
+    'documents': FORM_CONNECTION['documents'],
+    'rules': {
+        'branches': [main_branch([])],
+        'numbering_base': {'rule': 1, 'group': 1},
+    },
+    'step': 'connection',
+}
+
+
+def _create_draft(client: TestClient) -> str:
+    response = client.post('/api/form-connections/drafts', json=DRAFT)
+    assert response.status_code == 201, response.json()
+    draft_id: str = response.json()['data']['id']
+    return draft_id
+
+
+def test_deactivating_a_draft_answers_in_german(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The 409 `not_published` follows the header; its `error` stays."""
+    draft_id = _create_draft(signed_in_client)
+    url = f'/api/form-connections/{draft_id}/deactivate'
+
+    german = signed_in_client.post(url, json={}, headers=GERMAN)
+    english = signed_in_client.post(url, json={})
+
+    assert german.status_code == english.status_code == 409
+    assert german.json() == {
+        'error': 'not_published',
+        'message': (
+            'Diese Anbindung ist ein Entwurf. Setzen Sie ihn fort, um ihn zu '
+            'speichern oder zu veröffentlichen.'
+        ),
+    }
+    assert english.json() == {
+        'error': 'not_published',
+        'message': 'This connection is a draft. Continue it to save or publish it.',
+    }
+
+
+def test_a_drafts_connection_url_stays_english(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """A draft's trigger URL answers serviceBW's English 409 with `de` (FR-017)."""
+    draft_id = _create_draft(signed_in_client)
+
+    response = signed_in_client.post(requests_url(draft_id), headers=GERMAN)
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'unavailable',
+        'message': 'This form connection is deactivated or deleted',
+    }
+    assert response.json() == document_requests.UNAVAILABLE_DETAIL
+
+
+def test_a_eudiplo_failure_answers_in_german_with_its_error_id(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    error_log: Callable[[str], str],
+) -> None:
+    """The 502 of a failed EUDIPLO call follows the header (G§2 "try again")."""
+    fake_eudiplo.fail('create_config', 503)
+
+    response = signed_in_client.post(
+        '/api/form-connections', json=FORM_CONNECTION, headers=GERMAN
+    )
+
+    assert response.status_code == 502
+    error_id = response.json()['error_id']
+    assert response.json() == {
+        'error': 'Upstream error',
+        'message': (
+            'Der Wallet-Dienst konnte die Anfragekonfiguration nicht erstellen, '
+            'daher wurde nichts gespeichert. Versuchen Sie es in einem Moment '
+            'erneut.'
+        ),
+        'error_id': error_id,
+    }
+    assert 'EudiploUnavailable' in error_log(error_id)
+
+
+# Approval requests (T018; glossary §2 "approval request")
+
+
+def _user_id() -> str:
+    with SessionLocal() as db:
+        user_id = db.scalar(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        )
+    assert user_id is not None
+    return user_id
+
+
+def _agent(level: AccessLevel) -> TestClient:
+    _, token = create_agent_authorization(_user_id(), level)
+    return bearer_client(TestClient(app), token)
+
+
+def _ask(agent: TestClient, form_connection_id: str, action: str) -> str:
+    response = agent.post(
+        '/api/approval-requests',
+        json={'form_connection_id': form_connection_id, 'action': action},
+    )
+    assert response.status_code == 201, response.json()
+    request_id: str = response.json()['data']['id']
+    return request_id
+
+
+DECLINED_DE = {
+    'error': 'approval_declined',
+    'message': 'Sie haben diese Anfrage abgelehnt. Es wurde nichts geändert.',
+}
+DECLINED_EN = {
+    'error': 'approval_declined',
+    'message': 'You declined this request. Nothing has changed.',
+}
+
+
+@pytest.mark.parametrize('call', ['approve', 'decline'])
+def test_a_declined_request_answers_in_german(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, call: str
+) -> None:
+    """Approving or declining a declined request: the German sentence, same code."""
+    draft_id = _create_draft(signed_in_client)
+    request_id = _ask(_agent('drafts'), draft_id, 'publish')
+    url = f'/api/approval-requests/{request_id}'
+    declined = signed_in_client.post(f'{url}/decline', json={}, headers=GERMAN)
+    assert declined.status_code == 200
+    # `ApiResponse.message` stays English (spec 009, R6)
+    assert declined.json()['message'] == 'Declined'
+
+    german = signed_in_client.post(f'{url}/{call}', json={}, headers=GERMAN)
+    english = signed_in_client.post(f'{url}/{call}', json={})
+    view = signed_in_client.get(url, headers=GERMAN)
+
+    assert german.status_code == english.status_code == 409
+    assert german.json() == DECLINED_DE
+    assert english.json() == DECLINED_EN
+    # The page's view carries codes only: the same with `de`
+    assert view.json()['data']['request']['status'] == 'declined'
+    assert view.json()['data']['request']['outcome'] == 'declined'
+
+
+def test_asking_to_deactivate_a_deactivated_connection_answers_in_german(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The approval's 409 `not_allowed` follows the header; its `error` stays."""
+    form_connection_id = create_form_connection(signed_in_client)
+    deactivated = signed_in_client.post(
+        f'/api/form-connections/{form_connection_id}/deactivate', json={}
+    )
+    assert deactivated.status_code == 200
+    body = {'form_connection_id': form_connection_id, 'action': 'deactivate'}
+    agent = _agent('manage')
+
+    german = agent.post('/api/approval-requests', json=body, headers=GERMAN)
+    english = agent.post('/api/approval-requests', json=body)
+
+    assert german.status_code == english.status_code == 409
+    assert german.json() == {
+        'error': 'not_allowed',
+        'message': 'Diese Anbindung ist bereits deaktiviert.',
+    }
+    assert english.json() == {
+        'error': 'not_allowed',
+        'message': 'This connection is already deactivated.',
+    }
+
+
+def _ended_request(**values: Any) -> ApprovalRequest:
+    return ApprovalRequest(
+        id=UNKNOWN_ID,
+        form_connection_id=FORM_CONNECTION_ID,
+        action='deactivate',
+        requested_by='Claude Code',
+        user_account_id=UNKNOWN_ID,
+        status='waiting',
+        expires_at=datetime(2026, 11, 9, 13, 3, tzinfo=timezone.utc),
+        **values,
+    )
+
+
+def test_the_outcome_sentences_fill_both_columns() -> None:
+    """The expired time and the connection's change are in both languages."""
+    expired = approvals.state_text(_ended_request(), approvals.RequestState('expired'))
+    changed = approvals.state_text(
+        _ended_request(was_active=True),
+        approvals.RequestState('cancelled', 'connection_changed'),
+    )
+    reactivated = approvals.state_text(
+        _ended_request(was_active=False),
+        approvals.RequestState('cancelled', 'connection_changed'),
+    )
+
+    assert expired == Text(
+        en='This request expired at 14:03. Nothing has changed. The agent can ask '
+        'again.',
+        de='Diese Anfrage ist um 14:03 Uhr abgelaufen. Es wurde nichts geändert. '
+        'Der Agent kann erneut fragen.',
+    )
+    assert changed == Text(
+        en='The connection was deactivated in the meantime.',
+        de='Die Anbindung wurde in der Zwischenzeit deaktiviert.',
+    )
+    assert reactivated == Text(
+        en='The connection was reactivated in the meantime.',
+        de='Die Anbindung wurde in der Zwischenzeit reaktiviert.',
+    )
+
+
+@pytest.mark.parametrize(('language', 'message'), [('de', 'Weg'), ('en', 'Gone')])
+def test_a_caught_details_text_is_resolved_not_dropped(
+    language: Language, message: str
+) -> None:
+    """V3: a `Text` in a caught detail reads as the request's language, never ''."""
+    refusal = HTTPException(
+        status_code=409,
+        detail={'error': 'gone', 'message': Text(en='Gone', de='Weg')},
+    )
+    token = request_language.set(language)
+    try:
+        assert approvals._detail_of(refusal, 'message') == message
+        assert approvals._detail_of(refusal, 'error') == 'gone'
+        assert approvals._detail_of(refusal, 'error_id') == ''
+    finally:
+        request_language.reset(token)

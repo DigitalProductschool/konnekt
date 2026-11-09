@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..language import Text
 from ..models import LoginSession, UserAccount
 from ..schemas import ApiResponse, LoginRequest, UserView
 from ..services.auth import (
@@ -33,7 +34,13 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 'error': 'Unauthorized',
-                'message': 'Username or password is wrong. Check both and try again.',
+                'message': Text(
+                    en='Username or password is wrong. Check both and try again.',
+                    de=(
+                        'Benutzername oder Passwort ist falsch. Überprüfen Sie beides '
+                        'und versuchen Sie es erneut.'
+                    ),
+                ),
             },
         )
     set_session_cookie(response, create_login_session(db, user))

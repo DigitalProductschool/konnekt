@@ -30,6 +30,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..language import Text, resolve_text
 from ..models import (
     AgentAuthorization,
     ApprovalRequest,
@@ -77,32 +78,53 @@ DRAFT_ACTIONS: frozenset[str] = frozenset({'publish', 'delete_draft'})
 # The reasons stored with a cancellation; the others are computed at every read
 CancelReason = Literal['revoked', 'access_changed']
 
-NOT_FOUND = {'error': 'Not found', 'message': 'Approval request not found'}
+NOT_FOUND = {
+    'error': 'Not found',
+    'message': Text(
+        en='Approval request not found', de='Freigabeanfrage nicht gefunden'
+    ),
+}
 NOT_YOURS = {
     'error': 'not_yours',
-    'message': 'This request was made for another team member.',
+    'message': Text(
+        en='This request was made for another team member.',
+        de='Diese Anfrage wurde für ein anderes Teammitglied gestellt.',
+    ),
 }
 PUBLISHED_ALREADY = {
     'error': 'not_allowed',
-    'message': 'This connection is published already.',
+    'message': Text(
+        en='This connection is published already.',
+        de='Diese Anbindung ist bereits veröffentlicht.',
+    ),
 }
 # deactivate, reactivate and delete need a published connection, deactivate a live
 # one and reactivate a deactivated one (data-model.md section 5.3)
 IS_A_DRAFT = {
     'error': 'not_allowed',
-    'message': 'This connection is a draft: it has nothing live yet.',
+    'message': Text(
+        en='This connection is a draft: it has nothing live yet.',
+        de='Diese Anbindung ist ein Entwurf: Von ihr ist noch nichts aktiv.',
+    ),
 }
 ALREADY_DEACTIVATED = {
     'error': 'not_allowed',
-    'message': 'This connection is already deactivated.',
+    'message': Text(
+        en='This connection is already deactivated.',
+        de='Diese Anbindung ist bereits deaktiviert.',
+    ),
 }
 ALREADY_LIVE = {
     'error': 'not_allowed',
-    'message': 'This connection is already live.',
+    'message': Text(
+        en='This connection is already live.',
+        de='Diese Anbindung ist bereits aktiv.',
+    ),
 }
 
 # The answers' messages when an approved action ran, and when declined
-# (contracts/management-api.md "Approval requests")
+# (contracts/management-api.md "Approval requests"): `ApiResponse.message`, which
+# stays English (spec 009, R6)
 APPROVED_MESSAGES: dict[str, str] = {
     'publish': 'Published',
     'delete_draft': 'Draft deleted',
@@ -114,33 +136,92 @@ DECLINED_MESSAGE = 'Declined'
 
 # The approval page's sentence for each state that isn't waiting
 # (contracts/ui-screens.md S3 "Outcome states"): the message of a 409
-# approval_<status>
-DONE_TEXTS: dict[str, str] = {
-    action: f'{message}.' for action, message in APPROVED_MESSAGES.items()
+# approval_<status>, in both languages (spec 009, glossary "approval request")
+_DONE_TEXTS_DE: dict[str, str] = {
+    'publish': 'Veröffentlicht.',
+    'delete_draft': 'Entwurf gelöscht.',
+    'deactivate': 'Anbindung deaktiviert.',
+    'reactivate': 'Anbindung reaktiviert.',
+    'delete': 'Anbindung gelöscht.',
 }
-DECLINED_TEXT = 'You declined this request. Nothing has changed.'
-EXPIRED_TEXT = (
-    'This request expired at {time}. Nothing has changed. The agent can ask again.'
+DONE_TEXTS: dict[str, Text] = {
+    action: Text(en=f'{message}.', de=_DONE_TEXTS_DE[action])
+    for action, message in APPROVED_MESSAGES.items()
+}
+DONE_TEXT = Text(en='Done.', de='Erledigt.')
+DECLINED_TEXT = Text(
+    en='You declined this request. Nothing has changed.',
+    de='Sie haben diese Anfrage abgelehnt. Es wurde nichts geändert.',
 )
-REPLACED_TEXT = 'The agent made a newer request for this action.'
-CANCELLED_TEXTS: dict[str, str] = {
-    'draft_changed': (
-        'The draft has changed since the agent asked. Nothing has changed; the '
-        'agent has to ask again.'
+EXPIRED_TEXT = Text(
+    en='This request expired at {time}. Nothing has changed. The agent can ask again.',
+    de=(
+        'Diese Anfrage ist um {time} Uhr abgelaufen. Es wurde nichts geändert. Der '
+        'Agent kann erneut fragen.'
     ),
-    'draft_published': 'The draft has been published since the agent asked.',
-    'draft_deleted': 'The draft has been deleted since the agent asked.',
-    'connection_deleted': 'The connection has been deleted in the meantime.',
-    'access_changed': (
-        "The agent's access has changed, so this request was cancelled."
+)
+REPLACED_TEXT = Text(
+    en='The agent made a newer request for this action.',
+    de='Der Agent hat für diese Aktion eine neuere Anfrage gestellt.',
+)
+CANCELLED_TEXTS: dict[str, Text] = {
+    'draft_changed': Text(
+        en=(
+            'The draft has changed since the agent asked. Nothing has changed; the '
+            'agent has to ask again.'
+        ),
+        de=(
+            'Der Entwurf wurde geändert, seit der Agent gefragt hat. Es wurde nichts '
+            'geändert; der Agent muss erneut fragen.'
+        ),
     ),
-    'revoked': "The agent's access was revoked, so this request was cancelled.",
-    'access_ended': "The agent's access has ended, so this request was cancelled.",
+    'draft_published': Text(
+        en='The draft has been published since the agent asked.',
+        de='Der Entwurf wurde veröffentlicht, seit der Agent gefragt hat.',
+    ),
+    'draft_deleted': Text(
+        en='The draft has been deleted since the agent asked.',
+        de='Der Entwurf wurde gelöscht, seit der Agent gefragt hat.',
+    ),
+    'connection_deleted': Text(
+        en='The connection has been deleted in the meantime.',
+        de='Die Anbindung wurde in der Zwischenzeit gelöscht.',
+    ),
+    'access_changed': Text(
+        en="The agent's access has changed, so this request was cancelled.",
+        de=(
+            'Der Zugriff des Agenten wurde geändert, daher wurde diese Anfrage '
+            'abgebrochen.'
+        ),
+    ),
+    'revoked': Text(
+        en="The agent's access was revoked, so this request was cancelled.",
+        de=(
+            'Der Zugriff des Agenten wurde widerrufen, daher wurde diese Anfrage '
+            'abgebrochen.'
+        ),
+    ),
+    'access_ended': Text(
+        en="The agent's access has ended, so this request was cancelled.",
+        de=(
+            'Der Zugriff des Agenten ist abgelaufen, daher wurde diese Anfrage '
+            'abgebrochen.'
+        ),
+    ),
 }
-CANCELLED_TEXT = 'This request was cancelled.'
+CANCELLED_TEXT = Text(
+    en='This request was cancelled.', de='Diese Anfrage wurde abgebrochen.'
+)
 # connection_changed names the change: a request made while the connection was
 # live finds it deactivated, one made while it was deactivated finds it reactivated
-CONNECTION_CHANGED_TEXT = 'The connection was {change} in the meantime.'
+CONNECTION_CHANGED_TEXT = Text(
+    en='The connection was {change} in the meantime.',
+    de='Die Anbindung wurde in der Zwischenzeit {change}.',
+)
+CONNECTION_CHANGES: dict[bool, Text] = {
+    True: Text(en='deactivated', de='deaktiviert'),
+    False: Text(en='reactivated', de='reaktiviert'),
+}
 
 
 def cancel_for(
@@ -258,20 +339,29 @@ def state_of(
     return RequestState('waiting')
 
 
-def state_text(request: ApprovalRequest, state: RequestState) -> str:
-    """The approval page's sentence for a state that isn't waiting."""
+def state_text(request: ApprovalRequest, state: RequestState) -> Text:
+    """The approval page's sentence for a state that isn't waiting.
+
+    In both languages: only the 409's message carries it, which the exception
+    handler answers in the request's language; it is never stored.
+    """
     if state.status == 'done':
-        return DONE_TEXTS.get(request.action, 'Done.')
+        return DONE_TEXTS.get(request.action, DONE_TEXT)
     if state.status == 'declined':
         return DECLINED_TEXT
     if state.status == 'expired':
-        expired_at = request.expires_at.astimezone(GERMANY)
-        return EXPIRED_TEXT.format(time=f'{expired_at:%H:%M}')
+        time = f'{request.expires_at.astimezone(GERMANY):%H:%M}'
+        return Text(
+            en=EXPIRED_TEXT.en.format(time=time), de=EXPIRED_TEXT.de.format(time=time)
+        )
     if state.status == 'replaced':
         return REPLACED_TEXT
     if state.cancel_reason == 'connection_changed':
-        change = 'deactivated' if request.was_active else 'reactivated'
-        return CONNECTION_CHANGED_TEXT.format(change=change)
+        change = CONNECTION_CHANGES[bool(request.was_active)]
+        return Text(
+            en=CONNECTION_CHANGED_TEXT.en.format(change=change.en),
+            de=CONNECTION_CHANGED_TEXT.de.format(change=change.de),
+        )
     return CANCELLED_TEXTS.get(state.cancel_reason or '', CANCELLED_TEXT)
 
 
@@ -499,7 +589,7 @@ def _check_preconditions(
         raise _not_allowed(ALREADY_LIVE)
 
 
-def _not_allowed(detail: dict[str, str]) -> HTTPException:
+def _not_allowed(detail: dict[str, object]) -> HTTPException:
     return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
 
 
@@ -647,9 +737,15 @@ def get_request(db: Session, principal: Principal, request_id: str) -> ApprovalP
 
 
 def _detail_of(error: HTTPException, key: str) -> str:
-    """A text of an `HTTPException`'s `{error, message, ...}` detail, or ''."""
+    """A text of an `HTTPException`'s `{error, message, ...}` detail, or ''.
+
+    A `Text` (a message) is resolved in the request's language, so that it is
+    never dropped (spec 009, V3).
+    """
     detail: object = error.detail
     value = detail.get(key) if isinstance(detail, dict) else None
+    if isinstance(value, Text):
+        return resolve_text(value)
     return value if isinstance(value, str) else ''
 
 
@@ -755,7 +851,7 @@ def _service_call(request: ApprovalRequest) -> Callable[[Session], object] | Non
 
 
 def approve(
-    db: Session, user: UserAccount, request_id: str, upstream_message: str
+    db: Session, user: UserAccount, request_id: str, upstream_message: str | Text
 ) -> ApprovalPreview:
     """Run the approved action through the existing service (FR-024, FR-027).
 

@@ -81,6 +81,34 @@ German column is the one translation of the term everywhere it appears.
 | try again | Erneut versuchen | |
 | search | Suchen | the field's placeholder "Search connections" → "Anbindungen durchsuchen" |
 | today in Germany (the test day) | heute in Deutschland | "Tested as if shared today, 01.11.2026." → "Getestet, als würde heute geteilt: 01.11.2026." |
+| main variant, main branch (the server's word) | Hauptvariante | "The rules need exactly one main branch." → "Die Regeln brauchen genau eine Hauptvariante."; "Standard" stays the name (added 2026-11-09, T015) |
+| identifier (of a rule or group) | Kennung | "an invalid identifier" → "eine ungültige Kennung" (added 2026-11-09, T015) |
+| error message (a rule's or group's message, as the server's validation names it) | Fehlermeldung | "has no error message." → "hat keine Fehlermeldung." (added 2026-11-09, T015) |
+| result link (a variant's pull URL) | Ergebnislink | "with a new result link" → "mit einem neuen Ergebnislink" (added 2026-11-09, T015) |
+| requested (data or documents a connection asks for) | angefordert | "data that’s no longer requested" → "Daten, die nicht mehr angefordert werden" (added 2026-11-09, T015) |
+| reload the connection and try again | Laden Sie die Anbindung neu und versuchen Sie es erneut. | (added 2026-11-09, T015) |
+| out of step (a variant) | nicht auf dem Stand (von …) | "The variant Taxi is out of step with Standard." → "Die Variante Taxi ist nicht auf dem Stand von Standard."; without a main variant "… ist nicht auf dem aktuellen Stand." (added 2026-11-09, T015) |
+| can have at most N characters | darf höchstens N Zeichen lang sein | for a name, description or message; "can have at most N variants / rules and groups" → "kann höchstens N Varianten / Regeln und Gruppen haben" (added 2026-11-09, T015) |
+| kept for the rule numbered 08 (a reserved default name) | für die Regel mit der Nummer 08 reserviert | "Rule 08 is kept for the rule numbered 08." → "Rule 08 ist für die Regel mit der Nummer 08 reserviert." (added 2026-11-09, T015) |
+| sign in to continue (the `401`) | Melden Sie sich an, um fortzufahren | "Sign in to continue" → "Melden Sie sich an, um fortzufahren" (added 2026-11-09, T016/T017/T018) |
+| agent access (the user page's rows) | Agentenzugriff | "Agent access not found" → "Agentenzugriff nicht gefunden" (added 2026-11-09, T016/T017/T018) |
+| endpoint | Endpunkt | "This endpoint is for agents." → "Dieser Endpunkt ist für Agenten." (added 2026-11-09, T016/T017/T018) |
+| fictitious citizens (the access level's text) | fiktive Personen | "test fictitious citizens" → "fiktive Personen testen" (added 2026-11-09, T016/T017/T018) |
+| approval (a team member's, of an agent's request) | Freigabe | "Each of these needs your approval here." → "Dafür ist jeweils hier Ihre Freigabe nötig." (added 2026-11-09, T016/T017/T018) |
+| request (an approval request, short) | Anfrage | "You declined this request." → "Sie haben diese Anfrage abgelehnt."; "ask again" → "erneut fragen" (added 2026-11-09, T016/T017/T018) |
+| cancelled / revoked / ended (a request, an agent's access) | abgebrochen / widerrufen / abgelaufen | "so this request was cancelled" → "daher wurde diese Anfrage abgebrochen" (added 2026-11-09, T016/T017/T018) |
+| in the meantime | in der Zwischenzeit | (added 2026-11-09, T016/T017/T018) |
+| "Done." (an approval request's outcome) | "Erledigt." | (added 2026-11-09, T016/T017/T018) |
+| client (an agent's OAuth client) | Client | "The client is unknown." → "Der Client ist unbekannt."; `client_id` stays as written (added 2026-11-09, T016/T017/T018) |
+| metadata document (a Client ID Metadata Document) | Metadatendokument | (added 2026-11-09, T016/T017/T018) |
+| redirect URI | Weiterleitungs-URI | (added 2026-11-09, T016/T017/T018) |
+| code challenge | Code-Challenge | "S256" stays (added 2026-11-09, T016/T017/T018) |
+| resource, scope (OAuth) | Ressource, Scope | the scope words `read`, `drafts`, `manage` stay (added 2026-11-09, T016/T017/T018) |
+| MCP server | MCP-Server | "Konnekt's MCP server" → "der MCP-Server von Konnekt" (added 2026-11-09, T016/T017/T018) |
+| wallet service (EUDIPLO, as the messages name it) | Wallet-Dienst | (added 2026-11-09, T016/T017/T018) |
+| request configuration | Anfragekonfiguration | (added 2026-11-09, T016/T017/T018) |
+| "Try again in a moment." | "Versuchen Sie es in einem Moment erneut." | the sentence; the button stays "Erneut versuchen" (added 2026-11-09, T016/T017/T018) |
+| cursor (of the search's pages) | Cursor | "Unknown cursor." → "Unbekannter Cursor." (added 2026-11-09, T016/T017/T018) |
 | language switch | Sprache | the switch's own labels "DE" / "EN" and its accessible names "Deutsch" / "English" (FR-011) |
 
 ## 3. The operators and composed phrases of the rules (FR-006)
@@ -143,6 +171,10 @@ templates themselves are in the code, one per language, with their tests.
 | Family name (national characters), Given name (national characters) | Familienname (nationale Schriftzeichen), Vorname (nationale Schriftzeichen) (added 2026-11-09, T009) |
 | Sex (the field's label) | Geschlecht (added 2026-11-09, T009) |
 | Licence classes (the label of the part `classes` of the field Licence classes; the catalog's English part label is "Licence classes", not "Classes") | Führerscheinklassen (added 2026-11-09, T009) |
+| Sex values: Not known, Male, Female, Other, Inter, Diverse, Open, Not applicable | Unbekannt, Männlich, Weiblich, Anderes, Inter, Divers, Offen, Nicht zutreffend (added 2026-11-09, T014) |
+| Eye colours: Black, Blue, Brown, Dichromatic, Grey, Green, Hazel, Maroon, Pink, Unknown | Schwarz, Blau, Braun, Zweifarbig, Grau, Grün, Haselnussbraun, Rotbraun, Rosa, Unbekannt (added 2026-11-09, T014) |
+| Hair colours: Bald, Black, Blond, Brown, Grey, Red, Auburn, Sandy, White, Unknown | Kahl, Schwarz, Blond, Braun, Grau, Rot, Kastanienbraun, Rotblond, Weiß, Unbekannt (added 2026-11-09, T014) |
+| Licence class descriptions: Mopeds up to 45 km/h, Light motorcycles up to 125 cm³, Motorcycles up to 35 kW, All motorcycles, Quadricycles up to 15 kW, Cars up to 3.5 t, Car with a heavy trailer, Trucks 3.5–7.5 t, C1 with a heavy trailer, Trucks over 3.5 t, C with a heavy trailer, Minibuses up to 16 passengers, D1 with a heavy trailer, Buses, D with a heavy trailer, Tractors up to 40 km/h, Tractors up to 60 km/h | Kleinkrafträder bis 45 km/h, Leichtkrafträder bis 125 cm³, Krafträder bis 35 kW, Krafträder, Vierrädrige Kraftfahrzeuge bis 15 kW, Pkw bis 3,5 t, Pkw mit schwerem Anhänger, Lkw 3,5–7,5 t, C1 mit schwerem Anhänger, Lkw über 3,5 t, C mit schwerem Anhänger, Kleinbusse bis 16 Fahrgäste, D1 mit schwerem Anhänger, Busse, D mit schwerem Anhänger, Zugmaschinen bis 40 km/h, Zugmaschinen bis 60 km/h (added 2026-11-09, T014) |
 
 The English column is `backend/app/catalog.py`'s and `option_sets.py`'s labels as of 2026-11-09
 (two document types, 56 fields, 6 parts, 294 option values). The full lists are translated in the

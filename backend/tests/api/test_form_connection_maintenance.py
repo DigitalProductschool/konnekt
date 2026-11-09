@@ -20,11 +20,11 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import SessionLocal
 from app.models import FormConnection, FormConnectionRevision
-from app.routers.form_connections import CONFIG_FAILED
+from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import FormConnectionUpdate, RequestedDocument
 from app.services import form_connections, worker
 from app.services.dcql import config_hash
-from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
+from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     DELIVERED_DOCUMENTS,
@@ -39,6 +39,10 @@ from tests.helpers import (
     trigger,
     update_form_connection,
 )
+
+# The messages as answered without a German header (spec 009)
+CONFIG_FAILED = CONFIG_FAILED_TEXT.en
+NOT_CONFIGURED_MESSAGE = NOT_CONFIGURED_MESSAGE_TEXT.en
 
 NOT_FOUND = {'error': 'Not found', 'message': 'Form connection not found'}
 UNAVAILABLE = {

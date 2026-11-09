@@ -1,9 +1,10 @@
 """scripts/export_check_fixtures: the rule checks' generated files (research R13).
 
 The case-folding table and the evaluator's vectors in rules/src/checks/
-are generated from this interpreter and app/services/evaluation.py. These tests fail
-when they are stale: run `uv run python -m scripts.export_check_fixtures` and commit
-the result.
+are generated from this interpreter and app/services/evaluation.py, and
+rules/src/fixtures/server-messages.json from app/services/rules_texts.py (spec 009,
+research R8). These tests fail when they are stale: run
+`uv run python -m scripts.export_check_fixtures` and commit the result.
 """
 
 import json
@@ -20,9 +21,11 @@ from app.services.rules import (
     NUMBER_OPERATORS,
     TEXT_OPERATORS,
 )
+from scripts import export_check_fixtures
 from scripts.export_check_fixtures import (
     CASE_FOLDING_FILE,
     REPO_ROOT,
+    SERVER_MESSAGES_FILE,
     VECTORS_FILE,
     main,
 )
@@ -168,3 +171,139 @@ def _holds_class(outcome: dict[str, Any]) -> bool:
         entry['vehicle_category_code'].strip().casefold() == wanted
         for entry in outcome['value']
     )
+
+
+# The server's messages that the rules step mirrors (spec 009, research R8)
+
+CONSTANTS_FILE = Path('rules/src/constants.ts')
+# A key of a TS table, and its parameters if it is a function
+_KEY = re.compile(r'^ {2,4}([A-Za-z_][A-Za-z0-9_]*):(?:\s*\(([^)]*)\) =>)?', re.M)
+
+
+def _committed_messages() -> dict[str, Any]:
+    messages = json.loads((REPO_ROOT / SERVER_MESSAGES_FILE).read_text())
+    assert isinstance(messages, dict)
+    return messages
+
+
+def _ts_table(name: str) -> dict[str, list[str]]:
+    """A table of rules/src/constants.ts, read back: each key with the names of
+    its function's parameters, in order ([] for a text)."""
+    source = (REPO_ROOT / CONSTANTS_FILE).read_text()
+    start = source.index(f'export const {name} = ')
+    end = source.index('\n};', start)
+    keys: dict[str, list[str]] = {}
+    for match in _KEY.finditer(source[start:end]):
+        parameters = [
+            parameter.split(':', 1)[0].strip()
+            for parameter in (match[2] or '').split(',')
+            if parameter.strip()
+        ]
+        keys.setdefault(match[1], parameters)
+    return keys
+
+
+def test_the_server_messages_are_written_and_checked() -> None:
+    assert SERVER_MESSAGES_FILE in export_check_fixtures.generated_files()
+    text = (REPO_ROOT / SERVER_MESSAGES_FILE).read_text()
+
+    assert text == export_check_fixtures.server_messages_json()
+    assert text.endswith('}\n')
+    assert (
+        'backend/scripts/export_check_fixtures.py' in _committed_messages()['generator']
+    )
+
+
+def test_check_names_the_server_messages_when_a_sample_changes(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(export_check_fixtures, 'SAMPLE_BRANCH', 'Taxi')
+
+    assert main(['--check']) == 1
+
+    errors = capsys.readouterr().err
+    assert f'{SERVER_MESSAGES_FILE.as_posix()} is stale' in errors
+    assert f'{VECTORS_FILE.as_posix()} is stale' not in errors
+
+
+def test_check_names_the_server_messages_when_the_file_was_edited(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main([], root=tmp_path) == 0
+    messages = tmp_path / SERVER_MESSAGES_FILE
+    messages.write_text(messages.read_text().replace('Wählen Sie', 'Wähle'))
+    capsys.readouterr()
+
+    assert main(['--check'], root=tmp_path) == 1
+    assert f'{SERVER_MESSAGES_FILE.as_posix()} is stale' in capsys.readouterr().err
+
+
+def test_every_rules_message_is_a_case_or_client_only() -> None:
+    messages = _committed_messages()
+    cases = {
+        case['key'] for case in messages['cases'] if case['table'] == 'RULES_MESSAGES'
+    }
+    client_only = {entry['key'] for entry in messages['client_only']}
+
+    assert not cases & client_only
+    assert cases | client_only == set(_ts_table('RULES_MESSAGES'))
+    assert all(entry['reason'] for entry in messages['client_only'])
+
+
+def test_every_condition_problem_is_a_case_and_unknown_variant_too() -> None:
+    cases = _committed_messages()['cases']
+    condition_cases = [
+        case for case in cases if case['table'] == 'CONDITION_PROBLEM_MESSAGES'
+    ]
+
+    assert {case['key'] for case in condition_cases} == set(
+        _ts_table('CONDITION_PROBLEM_MESSAGES')
+    )
+    assert [
+        case['params'] for case in condition_cases if case['key'] == 'amount_at_least_1'
+    ] == [{'unit': 'years'}, {'unit': 'months'}]
+    edits = [case['key'] for case in cases if case['table'] == 'EDIT_MESSAGES']
+    assert edits == ['unknownVariant']
+    assert 'unknownVariant' in _ts_table('EDIT_MESSAGES')
+
+
+def test_each_cases_params_follow_the_ts_parameters_in_order() -> None:
+    """So that `fn(...Object.values(params))` renders the case in the TS test."""
+    tables = {
+        table: _ts_table(table)
+        for table in ('RULES_MESSAGES', 'CONDITION_PROBLEM_MESSAGES', 'EDIT_MESSAGES')
+    }
+
+    for case in _committed_messages()['cases']:
+        parameters = tables[case['table']][case['key']]
+        assert list(case['params']) == parameters, case['key']
+        if 'params_de' in case:
+            assert list(case['params_de']) == parameters, case['key']
+
+
+def test_the_cases_are_complete_and_translated() -> None:
+    messages = _committed_messages()
+    prefix = messages['condition_problem_prefix']
+
+    assert (prefix['en'], prefix['de']) == (
+        'Rule 01 in Standard: ',
+        'Rule 01 in Standard: ',
+    )
+    for case in messages['cases']:
+        assert case['en'] and case['de'], case['key']
+        assert case['en'] != case['de'], case['key']
+
+
+def test_the_reference_sentence_is_the_glossarys() -> None:
+    """Glossary §3's last row, word for word."""
+    [choose_data] = [
+        case for case in _committed_messages()['cases'] if case['key'] == 'chooseData'
+    ]
+
+    assert choose_data == {
+        'key': 'chooseData',
+        'table': 'RULES_MESSAGES',
+        'params': {'rule': 'Rule 01', 'branch': 'Standard'},
+        'en': 'Rule 01 in Standard: choose the data to check.',
+        'de': 'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.',
+    }

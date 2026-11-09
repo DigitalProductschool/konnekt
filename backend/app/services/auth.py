@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import SessionLocal, get_db
+from ..language import Text, resolve_text
 from ..models import AgentAuthorization, AgentToken, LoginSession, UserAccount
 from ..schemas import AccessLevel, AccessLevelInfo
 
@@ -33,46 +34,83 @@ MIN_PASSWORD_LENGTH = 12
 # Methods that need a JSON body, which a cross-site form can't send (CSRF)
 STATE_CHANGING_METHODS = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
 
-UNAUTHORIZED = {'error': 'Unauthorized', 'message': 'Sign in to continue'}
+UNAUTHORIZED = {
+    'error': 'Unauthorized',
+    'message': Text(en='Sign in to continue', de='Melden Sie sich an, um fortzufahren'),
+}
 BROWSER_ONLY = {
     'error': 'browser_only',
-    'message': 'This action is done in Konnekt.',
+    'message': Text(
+        en='This action is done in Konnekt.',
+        de='Diese Aktion wird in Konnekt ausgeführt.',
+    ),
 }
 
-# The three access levels in order, each including the ones before it
-# (data-model.md section 3.1; the texts of contracts/ui-screens.md S1)
-ACCESS_LEVELS: tuple[AccessLevelInfo, ...] = (
-    AccessLevelInfo(
-        level='read',
-        name='Read only',
-        allows=(
-            'Find and read connections, variants and rules, run the rule checks '
-            'and test fictitious citizens. Nothing changes.'
+# The three access levels in order, each including the ones before it, with their
+# name and what they allow in both languages (data-model.md section 3.1; the texts
+# of contracts/ui-screens.md S1; spec 009, glossary "access level")
+ACCESS_LEVEL_TEXTS: dict[AccessLevel, tuple[Text, Text]] = {
+    'read': (
+        Text(en='Read only', de='Nur lesen'),
+        Text(
+            en=(
+                'Find and read connections, variants and rules, run the rule checks '
+                'and test fictitious citizens. Nothing changes.'
+            ),
+            de=(
+                'Anbindungen, Varianten und Regeln finden und lesen, die '
+                'Regelprüfung ausführen und fiktive Personen testen. Es ändert '
+                'sich nichts.'
+            ),
         ),
     ),
-    AccessLevelInfo(
-        level='drafts',
-        name='Read and edit drafts',
-        allows=(
-            'Also create and change drafts, and ask you to publish or delete a '
-            'draft. Published connections stay read-only.'
+    'drafts': (
+        Text(en='Read and edit drafts', de='Lesen und Entwürfe bearbeiten'),
+        Text(
+            en=(
+                'Also create and change drafts, and ask you to publish or delete a '
+                'draft. Published connections stay read-only.'
+            ),
+            de=(
+                'Außerdem Entwürfe erstellen und ändern und Sie bitten, einen '
+                'Entwurf zu veröffentlichen oder zu löschen. Veröffentlichte '
+                'Anbindungen können nur gelesen werden.'
+            ),
         ),
     ),
-    AccessLevelInfo(
-        level='manage',
-        name='Read, edit drafts and manage live connections',
-        allows=(
-            'Also ask you to deactivate, reactivate or delete published '
-            'connections. Each of these needs your approval here.'
+    'manage': (
+        Text(
+            en='Read, edit drafts and manage live connections',
+            de='Lesen, Entwürfe bearbeiten und aktive Anbindungen verwalten',
+        ),
+        Text(
+            en=(
+                'Also ask you to deactivate, reactivate or delete published '
+                'connections. Each of these needs your approval here.'
+            ),
+            de=(
+                'Außerdem Sie bitten, veröffentlichte Anbindungen zu deaktivieren, '
+                'zu reaktivieren oder zu löschen. Dafür ist jeweils hier Ihre '
+                'Freigabe nötig.'
+            ),
         ),
     ),
+}
+# The levels in English, as the MCP server and the tests read them; the API
+# answers `access_levels_view()`, in the request's language
+ACCESS_LEVELS: tuple[AccessLevelInfo, ...] = tuple(
+    AccessLevelInfo(level=level, name=name.en, allows=allows.en)
+    for level, (name, allows) in ACCESS_LEVEL_TEXTS.items()
 )
 _LEVEL_ORDER: tuple[str, ...] = tuple(info.level for info in ACCESS_LEVELS)
 # What a level is needed for, in the message of a 403 insufficient_access
-_NEEDED_FOR: dict[str, str] = {
-    'read': 'Reading connections',
-    'drafts': 'Changing drafts',
-    'manage': 'Deactivating, reactivating and deleting published connections',
+_NEEDED_FOR: dict[str, Text] = {
+    'read': Text(en='Reading connections', de='Das Lesen von Anbindungen'),
+    'drafts': Text(en='Changing drafts', de='Das Bearbeiten von Entwürfen'),
+    'manage': Text(
+        en='Deactivating, reactivating and deleting published connections',
+        de=('Das Deaktivieren, Reaktivieren und Löschen veröffentlichter Anbindungen'),
+    ),
 }
 # The tokens a bearer may send. A refresh token is only for the token endpoint
 BEARER_TOKEN_KINDS = ('access', 'personal')
@@ -243,8 +281,14 @@ def level_allows(have: str, need: AccessLevel) -> bool:
     return _LEVEL_ORDER.index(have) >= _LEVEL_ORDER.index(need)
 
 
-def _level_name(level: str) -> str:
-    return next(info.name for info in ACCESS_LEVELS if info.level == level)
+def access_levels_view() -> list[AccessLevelInfo]:
+    """The three access levels in order, named in the request's language."""
+    return [
+        AccessLevelInfo(
+            level=level, name=resolve_text(name), allows=resolve_text(allows)
+        )
+        for level, (name, allows) in ACCESS_LEVEL_TEXTS.items()
+    ]
 
 
 def insufficient_access(level: AccessLevel) -> HTTPException:
@@ -252,12 +296,15 @@ def insufficient_access(level: AccessLevel) -> HTTPException:
 
     The answer names the level needed, so that the agent can ask for it.
     """
+    needed_for = _NEEDED_FOR[level]
+    name = ACCESS_LEVEL_TEXTS[level][0]
     return HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail={
             'error': 'insufficient_access',
-            'message': (
-                f"{_NEEDED_FOR[level]} needs the access level '{_level_name(level)}'."
+            'message': Text(
+                en=f"{needed_for.en} needs the access level '{name.en}'.",
+                de=f'{needed_for.de} erfordert die Zugriffsstufe „{name.de}“.',
             ),
             'needs_access_level': level,
         },
@@ -443,6 +490,9 @@ def require_json(request: Request) -> None:
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail={
                 'error': 'Unsupported media type',
-                'message': 'Send the request body as JSON.',
+                'message': Text(
+                    en='Send the request body as JSON.',
+                    de='Senden Sie den Inhalt der Anfrage als JSON.',
+                ),
             },
         )

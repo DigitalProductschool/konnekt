@@ -31,10 +31,10 @@ from app.models import (
     FormConnection,
     UserAccount,
 )
-from app.routers.form_connections import CONFIG_FAILED
+from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import AccessLevel, AgentAccessKind
 from app.services import approvals, drafts, form_connections, worker
-from app.services.eudiplo import NOT_CONFIGURED_MESSAGE
+from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import GERMANY
 from tests.api.test_form_connection_drafts import editor_publish_body, published_shape
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
@@ -56,6 +56,10 @@ from tests.helpers import (
     trigger,
     variant,
 )
+
+# The messages as answered without a German header (spec 009)
+CONFIG_FAILED = CONFIG_FAILED_TEXT.en
+NOT_CONFIGURED_MESSAGE = NOT_CONFIGURED_MESSAGE_TEXT.en
 
 BASE = '/api/approval-requests'
 CONNECTIONS = '/api/form-connections'

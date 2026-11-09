@@ -51,7 +51,7 @@ from ..schemas import (
 )
 from ..schemas import FormConnection as FormConnectionView
 from . import dcql, rules
-from .document_requests import FORM_CONNECTION_NOT_FOUND, cancel_open_requests
+from .document_requests import cancel_open_requests
 from .eudiplo import EudiploError, get_eudiplo_client
 
 logger = logging.getLogger(__name__)
@@ -64,29 +64,52 @@ SEARCH_PAGE_SIZE = 25
 # The search's status filter (spec 007, research R9)
 SearchStatus = Literal['draft', 'live', 'deactivated']
 
-NOT_FOUND = FORM_CONNECTION_NOT_FOUND
+# The management side's 404; serviceBW's URLs answer their own, English one
+# (`document_requests.FORM_CONNECTION_NOT_FOUND`, FR-017)
+NOT_FOUND = {
+    'error': 'Not found',
+    'message': Text(en='Form connection not found', de='Anbindung nicht gefunden'),
+}
 NOT_PUBLISHED_DETAIL = {
     'error': 'not_published',
-    'message': 'This connection is a draft. Continue it to save or publish it.',
+    'message': Text(
+        en='This connection is a draft. Continue it to save or publish it.',
+        de=(
+            'Diese Anbindung ist ein Entwurf. Setzen Sie ihn fort, um ihn zu '
+            'speichern oder zu veröffentlichen.'
+        ),
+    ),
 }
 DRAFT_PUBLISHED_DETAIL = {
     'error': 'draft_published',
-    'message': 'This draft has been published since you opened it.',
+    'message': Text(
+        en='This draft has been published since you opened it.',
+        de='Dieser Entwurf wurde veröffentlicht, seit Sie ihn geöffnet haben.',
+    ),
 }
 # No variant of a draft has a pull URL, so the message names none (spec 005, R6)
 DRAFT_CHANGED_DETAIL = {
     'error': 'draft_changed',
-    'message': 'This draft has been modified since you opened it.',
+    'message': Text(
+        en='This draft has been modified since you opened it.',
+        de='Dieser Entwurf wurde geändert, seit Sie ihn geöffnet haben.',
+    ),
 }
 # An approved approval request finds the status it was made for changed (spec 007,
 # research R12); the approval page says which change instead
 STATUS_CHANGED_DETAIL = {
     'error': 'status_changed',
-    'message': 'This connection was deactivated or reactivated in the meantime.',
+    'message': Text(
+        en='This connection was deactivated or reactivated in the meantime.',
+        de='Diese Anbindung wurde in der Zwischenzeit deaktiviert oder reaktiviert.',
+    ),
 }
 
 
-def _validation_error(message: str | Text) -> HTTPException:
+UNKNOWN_CURSOR = Text(en='Unknown cursor.', de='Unbekannter Cursor.')
+
+
+def _validation_error(message: Text) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={'error': 'Validation error', 'message': message},
@@ -100,8 +123,8 @@ def _validation_error(message: str | Text) -> HTTPException:
 def _required_text(
     value: str | None,
     max_length: int,
-    empty_message: str | Text,
-    too_long_message: str | Text,
+    empty_message: Text,
+    too_long_message: Text,
 ) -> str:
     text = (value or '').strip()
     if not text:
@@ -120,7 +143,10 @@ def clean_name(value: str | None) -> str:
             en='Enter a name for the connection.',
             de='Geben Sie einen Namen für die Anbindung ein.',
         ),
-        f'The name can have at most {NAME_MAX_LENGTH} characters.',
+        Text(
+            en=f'The name can have at most {NAME_MAX_LENGTH} characters.',
+            de=f'Der Name darf höchstens {NAME_MAX_LENGTH} Zeichen lang sein.',
+        ),
     )
 
 
@@ -133,7 +159,16 @@ def clean_description(value: str | None) -> str:
     text = (value or '').strip()
     if len(text) > DESCRIPTION_MAX_LENGTH:
         raise _validation_error(
-            f'The description can have at most {DESCRIPTION_MAX_LENGTH} characters.'
+            Text(
+                en=(
+                    f'The description can have at most {DESCRIPTION_MAX_LENGTH} '
+                    'characters.'
+                ),
+                de=(
+                    f'Die Beschreibung darf höchstens {DESCRIPTION_MAX_LENGTH} '
+                    'Zeichen lang sein.'
+                ),
+            )
         )
     return text
 
@@ -149,27 +184,58 @@ def clean_documents(
     listed twice, are still refused.
     """
     if complete and not documents:
-        raise _validation_error('Add at least one document.')
+        raise _validation_error(
+            Text(
+                en='Add at least one document.',
+                de='Fügen Sie mindestens ein Dokument hinzu.',
+            )
+        )
     selected: dict[str, RequestedDocument] = {}
     for document in documents:
         document_type = get_document_type(document.document_type)
         if document_type is None:
             raise _validation_error(
-                f"Unknown document type '{document.document_type}'."
+                Text(
+                    en=f"Unknown document type '{document.document_type}'.",
+                    de=f'Unbekannter Dokumenttyp „{document.document_type}“.',
+                )
             )
-        label = document_type.label
+        label, label_de = document_type.label, document_type.label_de
         if document_type.key in selected:
-            raise _validation_error(f"'{label}' is added more than once.")
+            raise _validation_error(
+                Text(
+                    en=f"'{label}' is added more than once.",
+                    de=f'„{label_de}“ wurde mehr als einmal hinzugefügt.',
+                )
+            )
         if complete and not document.fields:
-            raise _validation_error(f"Select at least one field for '{label}'.")
+            raise _validation_error(
+                Text(
+                    en=f"Select at least one field for '{label}'.",
+                    de=f'Wählen Sie mindestens ein Feld für „{label_de}“ aus.',
+                )
+            )
         keys: set[str] = set()
         for key in document.fields:
             field = document_type.field(key)
             if field is None:
-                raise _validation_error(f"Unknown field '{key}' for '{label}'.")
+                raise _validation_error(
+                    Text(
+                        en=f"Unknown field '{key}' for '{label}'.",
+                        de=f'Unbekanntes Feld „{key}“ für „{label_de}“.',
+                    )
+                )
             if key in keys:
                 raise _validation_error(
-                    f"'{field.label}' is selected more than once for '{label}'."
+                    Text(
+                        en=(
+                            f"'{field.label}' is selected more than once for '{label}'."
+                        ),
+                        de=(
+                            f'„{field.label_de}“ ist für „{label_de}“ mehr als '
+                            'einmal ausgewählt.'
+                        ),
+                    )
                 )
             keys.add(key)
         selected[document_type.key] = RequestedDocument(
@@ -514,9 +580,9 @@ def _decode_cursor(cursor: str) -> tuple[datetime, str]:
         updated_at = datetime.fromisoformat(updated_at_text)
         uuid.UUID(form_connection_id)
     except (ValueError, UnicodeError, binascii.Error):
-        raise _validation_error('Unknown cursor.') from None
+        raise _validation_error(UNKNOWN_CURSOR) from None
     if updated_at.tzinfo is None:
-        raise _validation_error('Unknown cursor.')
+        raise _validation_error(UNKNOWN_CURSOR)
     return updated_at, form_connection_id
 
 
