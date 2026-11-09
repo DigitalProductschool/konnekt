@@ -22,7 +22,10 @@ permissions:
 # backend/.python-version (3.13, whose Unicode version the rule checks' generated fixtures
 # pin). Change them together. `uv sync --locked` fails when uv.lock no longer matches
 # pyproject.toml; `npm ci --ignore-scripts`, as in the Dockerfiles, also skips the root's
-# prepare script, which installs the pre-commit hooks
+# prepare script, which installs the pre-commit hooks.
+# Since v8.0.0, setup-uv publishes only immutable releases and no floating major tag (no
+# `@v10`), so it is pinned to the commit of a release, the version in the comment (its README).
+# actions/checkout and actions/setup-node still move their major tags (`@v7`)
 
 jobs:
   backend-lint:
@@ -36,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.9'
           working-directory: backend
@@ -63,7 +66,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.9'
           working-directory: backend
@@ -106,7 +109,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.9'
           working-directory: backend
