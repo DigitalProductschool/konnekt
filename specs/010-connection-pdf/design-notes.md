@@ -131,7 +131,7 @@ token's name beside each, since the worker can't read CSS.
     `ConnectionVersion`, `ConnectionStatus`): Subject and Keywords carry the ID and the version,
     and readers show those.
 
-## 6. Verification
+## 6. How it is verified
 
 - The button: FIGMA-WORKFLOW §4 at 1440 px (numeric check against `get_design_context`) and the
   narrow check at 320 px / 200 %; the busy, failed and saved states by stubbing the requests.

@@ -231,7 +231,9 @@ says the package ships Fira Mono; the documentation task corrects that.
 - PDF's standard fonts (Helvetica): not KERN's typeface (FR-043), not embedded (PDF/UA-1).
 
 **Known limit**: characters Fira doesn't cover (CJK scripts, emoji) print as the font's
-missing-glyph box; DO.IT's names and messages are German or European. Not tested further.
+missing-glyph box; DO.IT's names and messages are German or European. The spec accepts this
+(its edge case "Characters KERN's typeface doesn't have"), outside FR-040's target; tasks T043
+renders one such name and records what a validator says about it.
 
 ## R8. Layout constants and colours
 
@@ -274,6 +276,12 @@ new pure function in `rules/src/validation.ts` beside `firstProblem()` that walk
 in the same order but collects, one problem per item, each a `RulesProblem` with spec 009's
 `code`. A rule's "Not complete: …" is that code mapped to the create flow's instruction ("Choose
 a check.", "Choose the data to check.", "Write the message for citizens.", …).
+
+**Not gaps** (FR-010): publishing's two checks that aren't about content, the rules' identifiers
+against the draft's counters (`check_first_save`) and a variant's id already in use
+(`check_draft_branch_ids`). The browser can't judge the second and the editor never produces the
+first. Tasks T037 pins the rest against the server: C's publish is refused with the first gap's
+message, D's is accepted.
 
 **Alternatives rejected**: the prototype's two kinds only (the spec's clarification asks for
 everything); `firstProblem()` alone (one gap); the rule checks' findings (FR-010, FR-041).

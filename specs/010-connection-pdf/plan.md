@@ -10,11 +10,12 @@ agreed PDFs `published-ids-top.pdf`, `draft-ids-top.pdf`), and the decisions R1�
 exploration with that prototype produced (given with the planning request; recorded with their
 rejected alternatives in [research.md](research.md)).
 
-**Note**: git isn't reachable from this session's sandbox (the worktree's `.git` points outside
-the readable paths), so nothing here was committed or staged. Specs 008 and 009 are the baseline
-(spec, Assumptions); spec 009 is planned but not yet implemented in this checkout, so this plan
-uses the API its contracts define (`defineTexts`, `Language`, `useLanguage`, `RuleContext.language`,
-`ruleProblemOf`, `ApiFetchOptions.language`) and its tasks must land first.
+**Note**: git works in this checkout only with the two environment variables tasks.md's "Notes"
+name; nothing here was committed or staged. Specs 008 and 009 are the baseline (spec,
+Assumptions); spec 009 is being implemented on its own branch and this branch is rebased on it
+before `/speckit-implement`, so this plan uses the API its contracts define (`defineTexts`,
+`Language`, `useLanguage`, `RuleContext.language`, `ruleProblemOf`, `ApiFetchOptions.language`)
+and its tasks must land first.
 
 ## Summary
 
@@ -146,7 +147,10 @@ specs/010-connection-pdf/
 │   ├── pdf-worker.md    # the hook, the worker, the pure modules
 │   └── pdf-document.md  # the PDF: pages, content, breaks, tags, outline, texts
 ├── checklists/
+├── pr.md                # written at the close (tasks T053): the pull request's text
+├── pdfkit-cidset-issue.md  # written at the close (T053): the report for PDFKit, filed by a person
 └── prototype/           # the exploration's sketch and its agreed PDFs (output not committed)
+    ├── seed.ts          # tasks T028: creates the test connections A–E on a running stack
     └── spike/           # Phase 0: the port to a Vite 8 module worker (sources only)
 ```
 
@@ -179,7 +183,9 @@ frontend/
     ├── assets/fonts/                       + FiraSans-{Regular,Medium,SemiBold}.ttf, FiraMono-{Regular,Medium}.ttf, OFL.txt
     ├── hooks/useConnectionPdf.ts           + fetch → model → worker → save; reducer
     ├── hooks/useFormConnection.ts          ~ replace() takes a draft too (FR-005)
+    ├── hooks/utils.ts  utils.test.ts  types.ts  ~ pdfDownloadReducer, its cases and shapes
     ├── workers/pdf.ts                      + dynamic import of PDFKit and fonts; render; post bytes
+    ├── workers/pdfFonts.ts                 + the five TTFs' ?url imports (loaded by the worker)
     ├── utils/connectionPdf/                + pure, each with *.test.ts:
     │   ├── types.ts  constants.ts           shapes; PDF_TEXTS (defineTexts), layout, colours
     │   ├── model.ts  gaps.ts                content model; gaps and "Not complete"

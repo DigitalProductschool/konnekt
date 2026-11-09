@@ -61,7 +61,9 @@ On `download()`:
 
 **Not sent anywhere** (FR-042, SC-008): the hook makes exactly one request the page makes anyway
 (`GET /api/form-connections/{id}`, plus the option sets and catalog when their cache is cold) and
-no other; the file never leaves the browser.
+no other; the file never leaves the browser. The worker's own requests are static files only
+(its chunk, PDFKit's chunk and the five fonts, on the first run after the page was loaded): the
+same for every connection, so they say nothing about which one was downloaded.
 
 ## 3. The worker
 

@@ -256,8 +256,13 @@ validator and a screen reader.
   A version is a fingerprint, not a counter: it tells whether two copies match, not which is
   newer; the details page is the reference.
 - **Copying a link from the PDF**: every link is printed in full, without added hyphens, and
-  breaks only after a "/". Some PDF readers put a line break into copied text that spans lines;
-  the details page's copy buttons stay the exact source of the links.
+  breaks only after a "/" (a part between two "/" wider than a line, which today's links don't
+  have, breaks at the line's end). Some PDF readers put a line break into copied text that spans
+  lines; the details page's copy buttons stay the exact source of the links.
+- **Characters KERN's typeface doesn't have** (Chinese, Japanese or Korean script, emoji) in a
+  name, description or message: the PDF is still made, and shows the typeface's box for a missing
+  character in their place; the file name keeps them. Such a file is outside FR-040's target and
+  FR-045's limits. DO.IT's names and messages are German or European, which the typeface covers.
 - **Printing in black and white**: statuses, marks, AND/OR and removed items stay readable,
   because none of them is shown by colour alone.
 - **Midnight and daylight saving time**: the date and time of the download and of the draft's
@@ -308,12 +313,15 @@ validator and a screen reader.
   they differ, the copy is out of date. A draft's note MUST add that it isn't live, that its links
   are created when it is published, and that published unchanged it keeps this version.
 - **FR-010**: When a draft has gaps, page 1 MUST show a box "To finish before publishing (n)"
-  listing everything publishing the draft would refuse (spec 005, FR-004 and FR-009), among them
+  listing everything in the draft's content that publishing would refuse (spec 005, FR-004 and
+  FR-009), among them
   incomplete rules, rules without a message for citizens, no documents, a document without data
   items, rules on data that isn't requested, and missing or duplicate names, each in the create
   flow's words and naming its rule and variant where it belongs to one, with a sentence saying
   the draft can be reviewed as it is but published only once they are finished. Without gaps, the
-  box MUST NOT appear. The box MUST NOT contain the rule checks' findings.
+  box MUST NOT appear. The box MUST NOT contain the rule checks' findings. Publishing's two
+  checks that aren't about content a team member can finish (the rules' identifiers against the
+  draft's counters, and a variant's id that is already in use) are not gaps.
 
 **1 Links for your service**
 
@@ -321,7 +329,8 @@ validator and a screen reader.
   for and that there is one for all variants, then the result links, one per variant, each
   labelled "Variant · <name>" in the details' order (Standard first), with what they are for and
   that the service replaces {reference} with the reference the request link returned. Every link
-  MUST be printed in full, without added hyphens, breaking only after a "/".
+  MUST be printed in full, without added hyphens, breaking only after a "/"; only a part
+  between two "/" that is wider than a line on its own MAY break at the line's end.
 - **FR-012**: For a deactivated connection, the section MUST add that its links answer
   "unavailable" until the connection is activated again.
 - **FR-013**: For a draft, the PDF MUST NOT contain any URL of the connection, anywhere (spec 005,
@@ -332,8 +341,8 @@ validator and a screen reader.
 **2 Documents and data items**
 
 - **FR-014**: The section MUST list each requested document in the Summary's order with the
-  number of its data items and their names, as the Summary names them; a draft's empty parts MUST
-  use the Summary's placeholders.
+  number of its data items and their names, as the Summary names them. A draft without documents
+  and a document without data items MUST show the Summary's placeholders ("No documents yet").
 
 **3 Rules per variant**
 
@@ -352,8 +361,9 @@ validator and a screen reader.
 - **FR-018**: An incomplete rule of a draft MUST read as far as it goes and then say what is
   missing, in the create flow's words ("Not complete: Choose a check.", "Not complete: Write the
   message for citizens.").
-- **FR-019**: Empty parts MUST use the Summary's placeholders, among them "No rules. Anyone who
-  shares the requested documents can apply." for a variant without rules.
+- **FR-019**: A variant without rules MUST show the Summary's placeholder ("No rules. Anyone who
+  shares the requested documents can apply."), and a rule or group without a name or message
+  MUST read as the Summary shows it.
 
 **Every page**
 
@@ -365,7 +375,8 @@ validator and a screen reader.
   ("3 Rules per variant › Variant Taxi"), and "(continued)" when the page continues a section,
   variant or group begun on an earlier page.
 - **FR-022**: Every page of a draft's PDF MUST carry a faint diagonal "DRAFT" behind the content,
-  which neither hides nor weakens the content's legibility, on screen or printed.
+  which neither hides nor weakens the content's legibility, on screen or printed: text over the
+  watermark MUST still meet FR-039's contrast.
 
 **Page breaks**
 
@@ -392,7 +403,8 @@ validator and a screen reader.
   number, the date or time, or who downloads the file.
 - **FR-030**: The same content MUST give the same version, on any computer, in either language
   and at any time; any change of content MUST give a different version, with a chance that two
-  different contents share a version too small to matter in practice.
+  different contents share a version too small to matter in practice (twelve hexadecimal
+  characters: about 1 in 2.8 × 10¹⁴ for any two contents).
 - **FR-031**: A draft published without changes MUST keep the version its review PDF showed.
 - **FR-032**: The details page of a published connection and of a stored draft MUST show the
   current version, labelled "Version" and written as in the PDF ("Version 62D0-715F-01D1"), in
@@ -432,12 +444,15 @@ validator and a screen reader.
 - **FR-041**: The PDF MUST NOT contain the rule checks' findings, test personas or any citizen's
   data.
 - **FR-042**: Nothing about a PDF MUST be stored on the server, sent anywhere or logged: no copy
-  of the file, no record of who downloaded what, no event for analytics.
+  of the file, no record of who downloaded what, no event for analytics. Loading the website's
+  own static files that make the PDF (its code and typeface, the same for every connection and
+  every team member) is not such a record.
 
 **File**
 
 - **FR-043**: The file MUST be A4 portrait, in KERN's typeface, and printable on common office
-  printers without cutting content.
+  printers without cutting content: apart from the watermark, nothing is drawn within 5 mm of
+  the paper's edges.
 - **FR-044**: The file MUST be named "<connection name>_<version>.pdf", and for a draft
   "<connection name>_draft_<version>.pdf", with the replacements and shortening the edge cases
   describe.
@@ -492,9 +507,11 @@ validator and a screen reader.
 - **SC-007**: A colleague who has never opened the website can, from a draft's PDF alone, say for
   each variant which documents and data items are asked for, which rules apply, what a citizen is
   told when one isn't met, and what is left to finish; tested with the team on a sample draft.
-- **SC-008**: Downloading every kind of PDF leaves no new stored record, no request that the
-  details page doesn't make anyway, and no log line about the PDF, checked in the server's logs,
-  the database and the browser's list of requests.
+- **SC-008**: Downloading every kind of PDF leaves no new stored record, no request that names
+  or carries a connection other than those the details page makes anyway, and no log line of the
+  application about the PDF, checked in the server's logs, the database and the browser's list
+  of requests. The only other requests are for the website's static files that make the PDF
+  (FR-042), on the first download after the page was loaded.
 
 ## Assumptions
 
@@ -507,7 +524,8 @@ validator and a screen reader.
 - **The PDF is a snapshot**: it shows one moment and is never updated; the product keeps no
   history of versions.
 - **Who can download**: every signed-in team member who can open the details; no new permission.
-  Agents get no PDF (no MCP tool).
+  Agents get no PDF (no MCP tool); they see the connection's version where they read a
+  connection, so that an agent and a printout can be compared too.
 - **The statements, placeholders and "Not complete" texts are the Summary's and the create
   flow's**, in the chosen language, so that the PDF and the screen never word the same rule
   differently.
