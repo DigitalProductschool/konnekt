@@ -234,9 +234,9 @@ its tests. The MCP server changes two comparisons.
   1. **Foundations**: `rules/src/language.ts`; the frontend's resolver, provider, hook pair, the
      request header, `<html lang>`, `KERN_TRANSLATIONS` and `CONNECTION_STEPS`, `copy.test.ts` (an
      empty pass at first); the backend's `app/language.py`, the middleware, the handlers'
-     resolution, `label_of()`, their tests; the glossary review with the team
-     ([contracts/glossary.md](contracts/glossary.md): the task asks the user to confirm the
-     contested terms of R3 and records the answer in the glossary and design-notes §3).
+     resolution, `label_of()`, their tests. The glossary review is **done**: the user accepted
+     [contracts/glossary.md](contracts/glossary.md) as written on 2026-11-09 (design-notes §3.1),
+     so no task waits on it and phases 3–5 write the German from the glossary as it stands.
   2. **The switch** (`LanguageSwitch`, `TopBar`, `index.css`) through the per-node loop on
      `7341:101654` in the four header states, the AA fix and the ink deviation recorded in
      design-notes §1, the table in §2.
@@ -327,4 +327,4 @@ record, for the user to confirm or reverse by amending the spec or the glossary:
 |---|---|---|
 | The switch's inactive label uses `text-kern-layout-text-muted` (#4a5468) instead of the design's #6b7380 (4.38:1 on the pill, under AA for 14 px) | spec 008's AA rule (Clarification 2026-11-06 #2): fix to the nearest passing value and tell the designer | keep #6b7380 and accept a failing pair (FR-015 forbids it) |
 | The switch's current label uses the ink token (#0b1220) instead of the design's tokenless #1f2433 | a `@theme` token for an invisible difference would outlive its reason; KERN's ink is what every other label uses | mint `--color-segment-text` with #1f2433 (FIGMA-WORKFLOW §2's letter) |
-| The glossary's contested terms: "Anbindung", "Befund", "Beispielperson", "Freigabeanfrage", "Zugriffsstufe" (research R3) | one translation per term across four sources; the team reviews the glossary before the copy is written (FR-013) | the team's own words, applied to the glossary before phase 3 |
+| The glossary's contested terms: "Anbindung", "Befund", "Beispielperson", "Freigabeanfrage", "Zugriffsstufe" (research R3) | one translation per term across four sources; **accepted by the user on 2026-11-09** in place of a team review, since no reviewer is available (design-notes §3.1) | the team's own words, applied to the glossary first if the walk of SC-006 finds better ones |

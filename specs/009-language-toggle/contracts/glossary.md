@@ -1,9 +1,11 @@
 # Contract: the German glossary and style of the copy
 
 **Requirements**: FR-013 (one fixed glossary, formal address, KERN's conventions), FR-004,
-FR-006, FR-007, FR-014. **Decisions**: research R3, R4. **Status**: to be reviewed by the team
-before the German copy is written (FR-013); the review's corrections are applied here first and
-then in the code. A term that is not in this table is translated once, added here, and reused.
+FR-006, FR-007, FR-014. **Decisions**: research R3, R4. **Status**: **accepted as written by the
+user on 2026-11-09**, in place of the team review FR-013 asks for, because no one is available to
+review it; this counts as the team's decision (design-notes §3.1). Corrections come from the
+review of the German screens in the running app (SC-006) and are applied here first and then in
+the code. A term that is not in this table is translated once, added here, and reused.
 
 This glossary binds all four sources of copy (the website, the server, the rules logic and the
 design system's texts). The English column is spec 008's copy, word for word (FR-014); the

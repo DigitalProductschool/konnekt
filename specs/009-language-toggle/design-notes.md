@@ -58,9 +58,11 @@ phases 5 and 6; one row per screen of spec 008's contract and width.
 
 ### 3.1 The glossary review (FR-013; phase 1)
 
-Date, who reviewed, and the decisions on the contested terms of research R3 ("Anbindung",
-"Befund", "Beispielperson", "Freigabeanfrage", "Zugriffsstufe"), applied to
-[contracts/glossary.md](contracts/glossary.md) before the German copy is written.
+**2026-11-09**: the user accepted [contracts/glossary.md](contracts/glossary.md) as written,
+including the contested terms of research R3 ("Anbindung", "Befund", "Beispielperson",
+"Freigabeanfrage", "Zugriffsstufe"), because no team member is available to review it. This is
+the team's decision for FR-013; the glossary review step of phase 1 is done, and the German copy
+may be written from the glossary. Corrections, if any, come from the walk of §3.2.
 
 ### 3.2 Corrections from the walk (SC-006; phase 6)
 
