@@ -71,8 +71,10 @@ const RESULTS_CALLS = 5;
 const SOLVER_STEP_MS = 100;
 
 /**
- * Short deadlines, from the request, that cut the hard branch's run while it plans: its runs
- * without a deadline took 250 to 1000 ms, so a deadline of 250 ms no longer cut each of them
+ * Short deadlines, from the request, shortest first, that cut the hard branch's run while it
+ * plans: its runs without a deadline took 250 to 1000 ms, so a deadline of 250 ms no longer cut
+ * each of them. A faster machine ends some runs before the longer ones (94.9 ms against 100 ms on
+ * a GitHub-hosted runner), so only the shortest must cut its run
  */
 const SHORT_DEADLINES_MS = [25, 50, 100];
 
@@ -400,13 +402,15 @@ describe('the time budgets of generation and results (SC-003)', () => {
     () => {
       const branch = hardBranch(1);
       expectCheckedWhole(branch, LARGE_ITEMS);
-      // Deadlines that cut the run while it plans: the overshoot past each
+      // Deadlines that cut the run while it plans: the overshoot past each, negative for a run that
+      // ended before its deadline, which returns by it as well. The shortest deadline cuts its run,
+      // so that an overshoot is measured at all
       const overshoots = SHORT_DEADLINES_MS.map((stopMs) => {
         const run = timedRun([branch], stopMs, stopMs);
         expectAnswered(run);
-        expect(run.elapsed, `cut at ${stopMs} ms`).toBeGreaterThanOrEqual(stopMs);
         return run.elapsed - stopMs;
       });
+      expect(overshoots[0], `cut at ${SHORT_DEADLINES_MS[0]} ms`).toBeGreaterThanOrEqual(0);
       expect(
         Math.max(...overshoots),
         `ms past the deadline: ${shown(overshoots)}`
