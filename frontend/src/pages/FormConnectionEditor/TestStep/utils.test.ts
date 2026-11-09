@@ -1,5 +1,10 @@
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import type { GenerationRun, Persona, PersonaField } from '@connection-portal/rules/personas/types';
+import type {
+  GenerationRun,
+  Persona,
+  PersonaField,
+  ResultRow,
+} from '@connection-portal/rules/personas/types';
 import { ageOn, dataRowsOf } from '@connection-portal/rules/personas/values';
 import { mainBranch } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
@@ -8,13 +13,20 @@ import type { RulesBranch } from '../RulesStep/types';
 import {
   ageDraftKey,
   ageTextOf,
+  changedValuesOf,
+  CLOSED_EDIT_DATA,
   createsAll,
+  dataRowGroupsOf,
+  dataRowLabelOf,
   dataRowTextOf,
   dateOfBirthForAge,
   documentGroupsOf,
   draftsReducer,
+  editDataReducer,
+  editorLabelOf,
   entryTextOf,
   formatDisplayDate,
+  hasEntryError,
   NAME_DRAFT_KEY,
   nameProblem,
   orderedValues,
@@ -22,7 +34,9 @@ import {
   parseEntry,
   parseWholeNumber,
   pickerReducer,
+  resultStatementOf,
   runStatusTextOf,
+  savedToastOf,
   selectedBranchOf,
   valueTextOf,
 } from './utils';
@@ -98,7 +112,6 @@ describe('documentGroupsOf', () => {
 });
 
 describe('valueTextOf', () => {
-  const TODAY = '2026-11-01';
   const OPTION_SETS: OptionSet[] = [
     {
       key: 'licence_classes',
@@ -145,41 +158,41 @@ describe('valueTextOf', () => {
 
   it('writes an empty value of any kind as "Not shared"', () => {
     for (const entry of [birth, classes, city, points]) {
-      expect(valueTextOf(entry, null, OPTION_SETS, TODAY)).toBe('Not shared');
-      expect(valueTextOf(entry, '', OPTION_SETS, TODAY)).toBe('Not shared');
-      expect(valueTextOf(entry, [], OPTION_SETS, TODAY)).toBe('Not shared');
-      expect(valueTextOf(entry, undefined, OPTION_SETS, TODAY)).toBe('Not shared');
+      expect(valueTextOf(entry, null, OPTION_SETS)).toBe('Not shared');
+      expect(valueTextOf(entry, '', OPTION_SETS)).toBe('Not shared');
+      expect(valueTextOf(entry, [], OPTION_SETS)).toBe('Not shared');
+      expect(valueTextOf(entry, undefined, OPTION_SETS)).toBe('Not shared');
     }
   });
 
   it('writes a date as dd.mm.yyyy, a date of birth without its age (spec 008 FR-024)', () => {
-    expect(valueTextOf(issue, '2010-05-02', OPTION_SETS, TODAY)).toBe('02.05.2010');
-    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, TODAY)).toBe('08.07.2007');
-    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS, TODAY)).toBe('01.01.2030');
+    expect(valueTextOf(issue, '2010-05-02', OPTION_SETS)).toBe('02.05.2010');
+    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS)).toBe('08.07.2007');
+    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS)).toBe('01.01.2030');
   });
 
   it('writes an expiry date as "Valid until <date>" (spec 008 FR-024, U65 7057:59084)', () => {
-    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, TODAY)).toBe('Valid until 19.08.2040');
-    expect(valueTextOf(idExpiry, '2031-02-28', OPTION_SETS, TODAY)).toBe('Valid until 28.02.2031');
-    expect(valueTextOf(expiryB, '2030-05-01', OPTION_SETS, TODAY)).toBe('Valid until 01.05.2030');
+    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS)).toBe('Valid until 19.08.2040');
+    expect(valueTextOf(idExpiry, '2031-02-28', OPTION_SETS)).toBe('Valid until 28.02.2031');
+    expect(valueTextOf(expiryB, '2030-05-01', OPTION_SETS)).toBe('Valid until 01.05.2030');
   });
 
   it('writes enums by their labels, several in the value set’s order (F11)', () => {
-    expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS, TODAY)).toBe('B, BE');
-    expect(valueTextOf(nationalities, ['IT', 'DE'], OPTION_SETS, TODAY)).toBe('German, Italian');
-    expect(valueTextOf(nationalities, 'DE', OPTION_SETS, TODAY)).toBe('German');
-    expect(valueTextOf(sex, 2, OPTION_SETS, TODAY)).toBe('Male');
+    expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS)).toBe('B, BE');
+    expect(valueTextOf(nationalities, ['IT', 'DE'], OPTION_SETS)).toBe('German, Italian');
+    expect(valueTextOf(nationalities, 'DE', OPTION_SETS)).toBe('German');
+    expect(valueTextOf(sex, 2, OPTION_SETS)).toBe('Male');
   });
 
   it('writes a value outside its set as it is, after the others', () => {
-    expect(valueTextOf(nationalities, ['XX', 'IT'], OPTION_SETS, TODAY)).toBe('Italian, XX');
-    expect(valueTextOf(sex, 9, [], TODAY)).toBe('9');
+    expect(valueTextOf(nationalities, ['XX', 'IT'], OPTION_SETS)).toBe('Italian, XX');
+    expect(valueTextOf(sex, 9, [])).toBe('9');
   });
 
   it('writes text and numbers as stored', () => {
-    expect(valueTextOf(city, 'Stuttgart', OPTION_SETS, TODAY)).toBe('Stuttgart');
-    expect(valueTextOf(points, 3, OPTION_SETS, TODAY)).toBe('3');
-    expect(valueTextOf(points, 0, OPTION_SETS, TODAY)).toBe('0');
+    expect(valueTextOf(city, 'Stuttgart', OPTION_SETS)).toBe('Stuttgart');
+    expect(valueTextOf(points, 3, OPTION_SETS)).toBe('3');
+    expect(valueTextOf(points, 0, OPTION_SETS)).toBe('0');
   });
 });
 
@@ -251,6 +264,74 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
 
   it('writes no class as "Not shared"', () => {
     expect(textsOf({ [classes.key]: [] })).toEqual(['Not shared', 'Not shared', 'Not shared']);
+  });
+
+  const persona = (values: Persona['values']): Persona => ({
+    id: 'persona-1',
+    name: 'Mia Schulz',
+    values,
+    generated: values,
+    status: 'ready',
+  });
+
+  it('labels the rows as the Test 1 frames do: "Date of birth" without "(Age)" (U66 #14)', () => {
+    const rows = dataRowsOf(persona({ [classes.key]: ['B'], [issueB.key]: '2025-08-20' }), [
+      { ...birth, label: 'Date of birth (Age)' },
+      { ...classes, label: 'Licence classes' },
+      issueB,
+    ]);
+    expect(rows.map(dataRowLabelOf)).toEqual(['Date of birth', 'Licence classes']);
+  });
+
+  it('keeps any other field’s label', () => {
+    const [row] = dataRowsOf(persona({}), [{ ...expiry, label: 'Expiry date' }]);
+    expect(dataRowLabelOf(row)).toBe('Expiry date');
+  });
+
+  it('groups the rows by document in their order, a document’s rows together (F63)', () => {
+    const nationality = field('pid.nationalities', 'enum');
+    const rows = dataRowsOf(persona({ [classes.key]: ['B', 'BE'], [issueB.key]: '2010-05-02' }), [
+      birth,
+      classes,
+      issueB,
+      issueBe,
+      nationality,
+      expiry,
+    ]);
+    expect(dataRowGroupsOf(rows).map((group) => group.documentLabel)).toEqual([
+      'Personal ID',
+      'Driving licence',
+    ]);
+    expect(dataRowGroupsOf(rows).map((group) => group.rows.map((row) => row.field.key))).toEqual([
+      [birth.key, nationality.key],
+      [classes.key, classes.key, expiry.key],
+    ]);
+  });
+
+  it('gives no group without rows', () => {
+    expect(dataRowGroupsOf([])).toEqual([]);
+  });
+});
+
+describe('resultStatementOf (FR-051 (32))', () => {
+  it('words a group’s statement as its frame on the rules step', () => {
+    expect(resultStatementOf({ type: 'group', statement: 'All of these must be met' })).toBe(
+      'All rules must be met'
+    );
+    expect(
+      resultStatementOf({ type: 'group', statement: 'At least one of these must be met' })
+    ).toBe('At least one rule must be met');
+  });
+
+  it('keeps a rule’s statement, and a group’s it doesn’t know', () => {
+    const statement = 'Personal ID · Date of birth (Age) is at least 21 years old';
+    expect(resultStatementOf({ type: 'rule', statement })).toBe(statement);
+    expect(resultStatementOf({ type: 'rule', statement: 'All of these must be met' })).toBe(
+      'All of these must be met'
+    );
+    expect(resultStatementOf({ type: 'group', statement: 'Something else' })).toBe(
+      'Something else'
+    );
   });
 });
 
@@ -505,5 +586,113 @@ describe('pickerReducer', () => {
     const searched = pickerReducer(open, { type: 'search', text: 'ger' });
     expect(searched).toEqual({ open: true, search: 'ger' });
     expect(pickerReducer(searched, { type: 'close' })).toEqual({ open: false, search: '' });
+  });
+});
+
+describe('editDataReducer (spec 008 FR-042)', () => {
+  const mia: Persona = {
+    id: 'persona-1',
+    name: 'Mia Schulz',
+    values: { 'pid.birthdate': '2007-07-08', 'mdl.classes': ['B'] },
+    generated: { 'pid.birthdate': '2007-07-08', 'mdl.classes': ['B'] },
+    status: 'ready',
+  };
+
+  it('starts with a copy of the values and the name as the name’s draft', () => {
+    const state = editDataReducer(CLOSED_EDIT_DATA, { type: 'start', persona: mia });
+    expect(state).toEqual({
+      personaId: 'persona-1',
+      values: mia.values,
+      drafts: { [NAME_DRAFT_KEY]: { text: 'Mia Schulz', error: null } },
+    });
+    expect(state.values).not.toBe(mia.values);
+  });
+
+  it('applies values and drafts to the copy only, and drops them on close', () => {
+    let state = editDataReducer(CLOSED_EDIT_DATA, { type: 'start', persona: mia });
+    state = editDataReducer(state, { type: 'value', key: 'mdl.classes', value: null });
+    state = editDataReducer(state, { type: 'draft', key: 'x', text: '31.02', error: 'bad' });
+    expect(state.values['mdl.classes']).toBeNull();
+    expect(mia.values['mdl.classes']).toEqual(['B']);
+    expect(state.drafts.x).toEqual({ text: '31.02', error: 'bad' });
+    expect(hasEntryError(state.drafts)).toBe(true);
+    expect(editDataReducer(state, { type: 'close' })).toBe(CLOSED_EDIT_DATA);
+  });
+
+  it('has no entry error while every draft is valid', () => {
+    expect(hasEntryError({})).toBe(false);
+    expect(hasEntryError({ a: { text: '1', error: null } })).toBe(false);
+  });
+});
+
+describe('changedValuesOf', () => {
+  it('keeps the values that differ, an equal list as a new array left out', () => {
+    const original = { a: '2007-07-08', b: ['B', 'BE'], c: 'x', d: '2020-01-01' };
+    expect(changedValuesOf(original, { ...original })).toEqual({});
+    expect(
+      changedValuesOf(original, { ...original, a: '2004-07-08', b: ['B', 'BE'], c: null })
+    ).toEqual({ a: '2004-07-08', c: null });
+  });
+});
+
+describe('editorLabelOf (spec 008 F40; U66 7058:60656, 7058:60662)', () => {
+  it('names the date of birth and a class’s issue date as the dialog draws them', () => {
+    expect(editorLabelOf(field('pid.birthdate', 'date', { dateOfBirth: true }))).toBe(
+      'Date of birth'
+    );
+    expect(
+      editorLabelOf(field('mdl.issue_date#B', 'date', { part: 'issue_date', licenceClass: 'B' }))
+    ).toBe('Class B since');
+  });
+
+  it('keeps any other label, a class’s expiry date included', () => {
+    expect(editorLabelOf(field('pid.nationality', 'enum'))).toBe('nationality');
+    expect(
+      editorLabelOf(
+        field('mdl.expiry_date#C1', 'date', {
+          part: 'expiry_date',
+          licenceClass: 'C1',
+          label: 'Licence class C1 – Expiry date',
+        })
+      )
+    ).toBe('Licence class C1 – Expiry date');
+  });
+});
+
+describe('savedToastOf (spec 008 FR-042; U67 7058:61203)', () => {
+  const row = (itemId: string, status: ResultRow['status']) => ({
+    itemId,
+    name: `Rule ${itemId}`,
+    status,
+  });
+  const mia = { name: 'Mia Schulz' };
+
+  it('names the rule the change made met, by the first name', () => {
+    expect(
+      savedToastOf(
+        [row('01', 'not_met'), row('02', 'not_met'), row('03', 'met')],
+        [row('02', 'not_met'), row('01', 'met'), row('03', 'met')],
+        mia
+      )
+    ).toBe('Results updated. Mia now meets Rule 01.');
+  });
+
+  it('lists several, and those no longer met after them', () => {
+    expect(
+      savedToastOf(
+        [row('01', 'not_met'), row('02', 'not_checked'), row('03', 'met'), row('04', 'met')],
+        [row('03', 'not_met'), row('04', 'not_checked'), row('01', 'met'), row('02', 'met')],
+        mia
+      )
+    ).toBe(
+      'Results updated. Mia now meets Rule 01 and Rule 02. Mia no longer meets Rule 03 and Rule 04.'
+    );
+  });
+
+  it('says only "Results updated." when no outcome moved, or for items new or gone', () => {
+    expect(savedToastOf([row('01', 'met')], [row('01', 'met'), row('02', 'met')], mia)).toBe(
+      'Results updated.'
+    );
+    expect(savedToastOf([], [row('01', 'met')], mia)).toBe('Results updated.');
   });
 });

@@ -4,7 +4,7 @@ import { LIVE_REGION_DELAY_MS, LOADING_STATUS_ID } from './constants';
 import type { LoadingStatusProps } from './types';
 
 /**
- * The loading status at the right end of the citizens row (S8.8; FR-004, FR-012; Figma
+ * The loading status at the right end of the citizens row (S8.8; FR-004, FR-012; Figma U74
  * "Status (read out to screen readers)" 7062:51210, 7062:51497): body/small, muted, read out
  * politely (`role="status"`), and empty without a run, so that each run's text is announced when
  * it starts. It is a region of its own, apart from the announcements of S8.10 (research R16).

@@ -39,7 +39,7 @@ import type {
   UnrequestedRule,
 } from './types';
 import UnrequestedBanner from './UnrequestedBanner';
-import { branchOf, focusSoon, groupOf, linkOf, switchNoteOf } from './utils';
+import { branchOf, editorMessageHintOf, focusSoon, groupOf, linkOf, switchNoteOf } from './utils';
 
 /**
  * Keeps the pinned tab row's height in `--rules-tabs-height` on the step's root (constants.ts),
@@ -281,6 +281,7 @@ export default function RulesStep({
         onSave={onSaveRule}
         onCancel={onCancelEditor}
         onAddData={onAddData}
+        messageHint={editorMessageHintOf(branch.items, editor)}
       />
     </div>
   );
@@ -393,7 +394,7 @@ export default function RulesStep({
         aria-labelledby={ELEMENT_IDS.branchTab(branch.key)}
         className={`rounded-kern-large bg-kern-layout-background-default relative border border-(--kern-color-decorative-border-default) ${PINNED_TOP_CLASSES.card} ${selection ? SELECTION_SCROLL_MARGIN : TABS_SCROLL_MARGIN}`}
       >
-        {based && <LinkStrip mainName={state.branches[0].name} />}
+        {based && <LinkStrip branch={branch} mainName={state.branches[0].name} />}
         {selection && (
           <SelectionBar
             selection={selection}

@@ -20,9 +20,11 @@ import { groupOf, menuEntriesOf, menuItemOf, problemFlagOf, switchNoteOf } from 
  * as 002-FR-008 has it). While it, or the group around it, has a message of its own (U35
  * 6324:39410), its rules read "Not shown while this rule is in Group 01. Citizens see the group
  * message instead." in place of their own message, which stays in the data (F32, FR-037). In a
- * based variant it shows its mark (FR-023); removed there, or dissolved (F13), it is shown
- * removed, read-only, with "Restore group" only, and what it holds is faded with it (U23
- * 6185:41164). A group with a finding of spec 003 is outlined,
+ * based variant it shows its mark (FR-023), "Changed here" also for its switched AND or OR
+ * (U39 6163:5440); removed there, or dissolved (F13), it is shown removed, read-only, with
+ * "Restore group" only, and what it holds is faded with it, changed members keeping their
+ * "Changed here" (U47 6185:41167; F36, FR-040). The connector before a removed or dissolved
+ * member fades (U47 6185:41620; FR-051 (39)). A group with a finding of spec 003 is outlined,
  * with its note under its header (FR-012; A4, A5; U02 6171:7091, 6171:7093; U06 6753:40525, U07
  * 6753:40862), unless it is removed, dissolved or faded, which the checks leave out (FR-001).
  */
@@ -47,6 +49,9 @@ export default function GroupListItem({
   const members: GroupFrameMember[] = shownItems(group.items, view.based && !locked).map(
     (entry) => ({
       key: entry.item.id,
+      // The connector before a removed or dissolved member fades, as at the top level (U47
+      // 6185:41620; FR-051 (39)); in a removed group, the frame fades them all
+      faded: entry.dissolved || entry.item.mark === 'removed',
       node: (
         <TreeItem
           view={view}
@@ -88,7 +93,9 @@ export default function GroupListItem({
       id={ELEMENT_IDS.rule(branch.key, group.id)}
       flag={problemFlagOf(state, branch, group.id)}
       finding={locked ? null : (view.findings.get(group.id) ?? null)}
-      mark={view.based ? group.mark : null}
+      // A group dissolved in its variant looks removed, without the tint of what it changed
+      // there: its changes go with it (002-S4.17; U47 6185:41165 draws a removed group's own fill)
+      mark={view.based ? (inactive ? 'removed' : group.mark) : null}
       inactive={inactive}
       faded={faded}
       nameSlot={

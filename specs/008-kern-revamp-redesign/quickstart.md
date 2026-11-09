@@ -127,7 +127,7 @@ Each scenario names the screens of [contracts/ui-screens.md](contracts/ui-screen
    enter 0 → "Enter a whole number greater than 0."; reuse a name → "There's already a rule
    called "Rule 01" in Standard." (C5).
 3. Group two rules from "Group with other rules" (select mode, the sticky bar's texts, checkboxes
-   on groups too); inside the group, "Group with other rules" appears only beside another rule
+   on rules only: grouping a group is deferred, CLAR #64); inside the group, "Group with other rules" appears only beside another rule
    directly in the group (CLAR #61) and forms a sub-group; a sub-group's menu, a rule in a
    sub-group and a group holding a sub-group offer no grouping; "Ungroup" and "Delete group"
    dissolve as the baseline says (F31).
@@ -139,7 +139,7 @@ Each scenario names the screens of [contracts/ui-screens.md](contracts/ui-screen
    the current body (F70), the toast with Undo; "Test rules" disabled with "Save the rule first"
    while a rule is open.
 6. Add a variant (the dialog preselects "Linked to Standard (recommended)"; a taken name shows
-   the error next to the field, W18): the marks "Changed here", "New addition", "Removed" with
+   the error next to the field, W18): the marks "Changed here", "Added here", "Removed here" with
    their texts, the link strip's count, faded connectors, "Reset to Standard", "Copy to variant"
    through the popover (W17) with based variants included; rename through "Edit variant" (F28);
    delete → the tab to the left and a toast with Undo; a Standard-based variant stays linked when
@@ -167,7 +167,8 @@ Each scenario names the screens of [contracts/ui-screens.md](contracts/ui-screen
    and test"; a valid change → the results update and the toast "Results updated. Mia now meets
    Rule 01."; classes picked by code, Nationality and Expiry date fields, "Class B since" (F40).
 3. "Generate again" asks only when the persona was edited; the regenerating chip keeps its name
-   with a ring and the test-day line stays; "Generate all again" in every results state (F45).
+   with a ring and the test-day line stays; "Generate all" (the design's label for the baseline's
+   "Generate all again", cosmetic 12) in every results state (F45).
 4. Contradicting rules → the ⚠ on the tab with its tooltip on hover and focus, no line above the
    heading (CLAR #50); a variant without rules → "<variant> has no rules yet, so every citizen
    meets it."; generation failed → "Couldn't create sample citizens" with "Try again".

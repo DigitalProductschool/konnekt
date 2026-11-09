@@ -6,7 +6,7 @@ import GroupListItem from './GroupListItem';
 import RuleListItem from './RuleListItem';
 import SelectBox from './SelectBox';
 import type { TreeItemProps } from './types';
-import { problemFlagOf, selectableIn } from './utils';
+import { problemFlagOf, selectableIn, unrequestedNoteOf } from './utils';
 
 /**
  * An item of the open branch's tree: a rule, or the rule editor in its place, or a group with
@@ -47,7 +47,8 @@ export default function TreeItem({
   const flag =
     problemFlagOf(state, branch, item.id) ??
     (checkedInBranch(branch, item) && checksUnrequestedData(item, view.documents)
-      ? RULES_MESSAGES.notRequested(item.name.trim(), branch.name.trim())
+      ? (unrequestedNoteOf(item, view.documents, view.context.documents) ??
+        RULES_MESSAGES.notRequested(item.name.trim(), branch.name.trim()))
       : null);
   return (
     <RuleListItem

@@ -1,10 +1,15 @@
 import type { MenuDirection, PopupPlacement } from '../../utils/popupPlacement';
 
 /**
- * The width of a ⋯ menu: Figma's 220px (U55 6530:40192, U57 6522:32824, U88 6417:31045), which
- * the Revamp's 14px labels fit (research R10; spec 002's 248px is history)
+ * The widest a ⋯ menu grows, the width its placement plans for. A ⋯ menu is Figma's 220px (U55
+ * 6530:40192, U57 6522:32824, U88 6417:31045), which the Revamp's 14px labels fit (research R10;
+ * spec 002's 248px is history); a longer label widens it, as Figma's auto-width menus do ("Remove
+ * from Ambulance": 240 in U58 6522:33026, 257 in U57 6522:32732), up to this; a longer one wraps
  */
-export const ACTION_MENU_WIDTH = 220;
+export const ACTION_MENU_MAX_WIDTH = 280;
+
+/** The menu's width classes: at least 220, its longest label's, at most 280 */
+const WIDTH_CLASSES = 'w-max min-w-220 max-w-280';
 
 /** The height of an entry: 8px padding around a 24px line (U55 6530:40192) */
 export const ACTION_MENU_ROW_HEIGHT = 40;
@@ -26,8 +31,14 @@ export const ACTION_MENU_FRAME_HEIGHT = 18;
  * height, the ⋯'s 32px and the two gaps
  */
 export const ACTION_MENU_PLACEMENTS: Record<PopupPlacement, Record<MenuDirection, string>> = {
-  start: { down: 'top-full left-0 mt-8 w-220', up: 'bottom-full left-0 mb-8 w-220' },
-  end: { down: 'top-full right-0 mt-8 w-220', up: 'bottom-full right-0 mb-8 w-220' },
+  start: {
+    down: `top-full left-0 mt-8 ${WIDTH_CLASSES}`,
+    up: `bottom-full left-0 mb-8 ${WIDTH_CLASSES}`,
+  },
+  end: {
+    down: `top-full right-0 mt-8 ${WIDTH_CLASSES}`,
+    up: `bottom-full right-0 mb-8 ${WIDTH_CLASSES}`,
+  },
   full: { down: 'inset-x-16 mt-8', up: 'inset-x-16 mt-8 -translate-y-[calc(100%+48px)]' },
 };
 

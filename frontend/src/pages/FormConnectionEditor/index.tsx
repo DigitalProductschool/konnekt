@@ -1103,14 +1103,15 @@ function ConnectionWizard({
 
   /**
    * Deletes the rule or group, then gives the focus to the item after it in its level, or the
-   * one before it, or to "Add rule". A deleted variant gives it to Standard's tab.
+   * one before it, or to "Add rule". A deleted variant gives it to the tab to its left.
    */
   function handleConfirmDelete() {
     const { dialog } = rules;
     if (dialog?.type === 'deleteVariant') {
-      // Standard opens in the deleted variant's place
+      // The tab to the left opens in the deleted variant's place (FR-051 (33))
+      const index = rules.branches.findIndex((branch) => branch.key === dialog.branchKey);
       dispatchRules({ type: 'confirmDelete' });
-      focusSoon(ELEMENT_IDS.branchTab(rules.branches[0].key));
+      focusSoon(ELEMENT_IDS.branchTab(rules.branches[Math.max(index - 1, 0)].key));
       return;
     }
     if (dialog?.type !== 'deleteRule' && dialog?.type !== 'deleteGroup') {
@@ -1147,7 +1148,11 @@ function ConnectionWizard({
     const { undo } = rules;
     flushSync(() => dispatchRules({ type: 'undo' }));
     if (undo) {
-      document.getElementById(ELEMENT_IDS.rule(undo.branchKey, undo.itemId))?.focus();
+      // An undone variant deletion names no item: the focus goes to the variant's tab
+      const id = undo.itemId
+        ? ELEMENT_IDS.rule(undo.branchKey, undo.itemId)
+        : ELEMENT_IDS.branchTab(undo.branchKey);
+      document.getElementById(id)?.focus();
     }
   }
 
@@ -1396,6 +1401,7 @@ function ConnectionWizard({
               if (optionSetsStatus === 'failed') retryOptionSets();
               if (personas.state.failed) personas.retry();
             }}
+            saveFailed={saveFailureToast !== null}
           />
         );
     }

@@ -29,6 +29,11 @@ export interface RuleEditorProps {
   onRename?: () => void;
   /** The day the example of a date condition counts from, YYYY-MM-DD; today in Germany */
   today?: string;
+  /**
+   * The hint under the message while a group around the rule has its own message (U35
+   * 6965:50822; F32): "Not shown while this rule is in Group 01. …"
+   */
+  messageHint?: string | null;
 }
 
 /** A menu's width in the frames, px */

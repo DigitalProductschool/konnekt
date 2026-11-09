@@ -10,7 +10,7 @@ import renameIcon from '../../../assets/icons/rename.svg';
 import resetIcon from '../../../assets/icons/reset-restore.svg';
 import ungroupIcon from '../../../assets/icons/ungroup-brackets.svg';
 import type { MenuAction } from '../../../components/ActionMenu/types';
-import type { PopupPlacement } from '../../../utils/popupPlacement';
+import type { MenuDirection, PopupPlacement } from '../../../utils/popupPlacement';
 import type { ItemNameSize, MenuEntryId } from './types';
 
 /** The main branch of a new connection, before it is saved (FR-018) */
@@ -73,18 +73,19 @@ export const MENU_ENTRY_LOOKS: Record<
   delete: { icon: { kern: 'kern-icon--delete' }, danger: true, separated: true },
 };
 
-/** The width of the "Copy to variant" popover (U20) */
+/** The width of the "Copy to variant" popover (U41 6344:53981) */
 export const COPY_POPOVER_WIDTH = 300;
 
 /**
- * Where the copy popover opens from its ⋯ (utils/popupPlacement.ts), as a ⋯ menu does
- * (components/ActionMenu): below it, opening to the side that fits, or across the rules card when
- * neither does
+ * Where the copy popover opens from its rule's ⋯ (utils/popupPlacement.ts, T020), as a ⋯ menu
+ * does (components/ActionMenu): 8px below or above it, to the side that fits (U41 6344:53928
+ * draws it above Rule 06, right-aligned with its ⋯), or across the rules card when neither does;
+ * across the card, opening up it moves up by its own height, the ⋯'s 32px and the two gaps
  */
-export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, string> = {
-  start: 'absolute top-full left-0 w-300',
-  end: 'absolute top-full right-0 w-300',
-  full: 'absolute inset-x-16',
+export const COPY_POPOVER_PLACEMENTS: Record<PopupPlacement, Record<MenuDirection, string>> = {
+  start: { down: 'top-full left-0 mt-8 w-300', up: 'bottom-full left-0 mb-8 w-300' },
+  end: { down: 'top-full right-0 mt-8 w-300', up: 'bottom-full right-0 mb-8 w-300' },
+  full: { down: 'inset-x-16 mt-8', up: 'inset-x-16 mt-8 -translate-y-[calc(100%+48px)]' },
 };
 
 /**
@@ -157,6 +158,76 @@ export const EDITOR_WRAP_CLASSES = 'px-16 pt-16 pb-24';
  */
 export const FIRST_RULE_SPACING = 'pb-8';
 
+/**
+ * The variant tab row (U38 6134:9153, U43 6168:7009): the tabs 24px apart, bottom-aligned on the
+ * row's 1px `decorative-border` line; 49px high with "+ Add variant"'s 48px target. No fill, no
+ * `overflow`, no `transform`: the step's pinned wrapper (`PINNED_TABS_CLASSES`) paints it white
+ * and its menus and tooltips must not be clipped (V6). A narrow screen wraps it
+ */
+export const TAB_ROW_CLASSES =
+  'flex flex-wrap items-end gap-x-24 border-b border-(--kern-color-decorative-border-default)';
+
+/** The tabs themselves, 24px apart, wrapping on a narrow screen */
+export const TAB_LIST_CLASSES = 'flex min-w-0 flex-wrap items-end gap-x-24';
+
+/**
+ * A tab's ⋯ (`BranchName`'s `actions`): its 32px target overhangs the 24px label row by 4px above
+ * and below, so that the tab stays 38px high (U38 6134:9160)
+ */
+export const TAB_ACTIONS_CLASSES = '-my-4 shrink-0';
+
+/**
+ * "+ Add variant" and its (i) (U43 6168:7011): KERN's small tertiary button (48px target, 40px
+ * visible, its label 16px from its right edge) pulled 12px towards the (i), so that the (i) sits 4px
+ * after the label (the frame's `mr-[-12px]`); the group centres both in the 48px row
+ */
+export const ADD_VARIANT_CLASSES = 'flex items-center [&>.kern-btn]:-mr-12!';
+
+/**
+ * The Add variant and Edit variant dialogs' fields (U37 "Dialog content/Add variant" 6139:32693):
+ * the labels with the kit's label/default baseline (6 above, 2 below: 32px with the 8px under
+ * them, where `TextField` draws U19's without it), the helper as body/default 16/24 in
+ * `layout-text-default` with its baseline (32px) and 8px under it, and the description's
+ * textarea 64px high (`TextField`'s is 120, Figma "Form/Textarea" of step 1). A refused name
+ * (U52 6197:12011) puts the danger bar beside the label too, as the kit's P26 error does:
+ * `TextField` draws it beside the field and the message only (U19 6699:45398), and its note
+ * leaves it to the screen frame, so the bar moves from `kern-form-input--error` to the wrapper
+ */
+export const VARIANT_FIELD_CLASSES = {
+  name: '[&_label]:pt-6 [&_label]:pb-2 has-[.kern-form-input--error]:border-l-4 has-[.kern-form-input--error]:border-kern-feedback-danger has-[.kern-form-input--error]:pl-16 [&_.kern-form-input--error]:border-l-0! [&_.kern-form-input--error]:pl-0!',
+  description:
+    '[&_label]:pt-6 [&_label]:pb-2 [&_.kern-hint]:text-kern-static-medium [&_.kern-hint]:text-kern-layout-text-default [&_.kern-hint]:pt-6 [&_.kern-hint]:pb-2 [&_.kern-hint]:mb-8 [&_.kern-hint]:leading-(--kern-typography-line-height-medium-static) [&_textarea]:h-64! [&_textarea]:min-h-0!',
+};
+
+/**
+ * "Start with" (U37 6044:16300): its heading label/default 16/24, then the two options, 12px
+ * apart. The legend floats, so that it is a flex item of the fieldset and the gap counts it
+ */
+export const START_WITH_CLASSES = {
+  group: 'flex flex-col gap-12',
+  legend:
+    'text-kern-static-medium text-kern-layout-text-default float-left w-full leading-(--kern-typography-line-height-medium-static) font-semibold',
+};
+
+/**
+ * One "Start with" option (U37 6044:16353, the design's "Data/Radio item" 6387:26931, a KERN
+ * extension matching "Data/Check item"): a 20px radio, white with a 1px `layout-border` ring,
+ * selected the 1px action-blue ring with a 10px action-blue dot; 8px to its label/default 16/24
+ * label; 4px above and below the row; the help body/small 14/24 muted, indented 28px to the
+ * label. States (the component's description): hover unselected a 2px action-blue ring on the
+ * tint, hover selected a 3px tint ring, keyboard focus a 3px ring in the focus colour, never
+ * after a click, disabled 40 %. KERN's radio is 32px with a 12px ink dot and swaps its border
+ * for the ring on any focus (kern.css, unlayered), hence the `!`
+ */
+export const START_WITH_OPTION_CLASSES = {
+  row: 'kern-form-check flex! items-center! gap-8 py-4',
+  radio:
+    'kern-form-check__radio size-20! shrink-0 cursor-pointer border! border-kern-layout-border! bg-kern-layout-background-default! checked:border-kern-action-default! checked:before:size-10! checked:before:bg-kern-action-default! hover:not-checked:border-2! hover:not-checked:border-kern-action-default! hover:not-checked:bg-kern-action-state-indicator-tint! hover:checked:shadow-[0_0_0_3px_var(--kern-color-action-state-indicator-tint)] focus:outline-none! focus-visible:outline-3! focus-visible:outline-solid! focus-visible:outline-kern-action-focus-default! focus-visible:outline-offset-0!',
+  label:
+    'kern-label text-kern-static-medium! text-kern-layout-text-default cursor-pointer p-0! leading-(--kern-typography-line-height-medium-static) font-semibold!',
+  help: 'text-kern-static-small text-kern-layout-text-muted pl-28 leading-(--kern-typography-line-height-medium-static)',
+};
+
 export const RULES_COPY = {
   // The step header, U29 6702:39345, U43 6702:41083 (C1, C2)
   title: 'Set eligibility rules for citizens',
@@ -202,9 +273,10 @@ export const RULES_COPY = {
   // 03 are now in Group 01." (report cosmetic 8, T057)
   groupWithOthers: 'Group with other rules',
   grouped: (rules: string, _branch: string, group: string) => `${rules} are now in ${group}.`,
-  // F29, U19 6344:53873: grouping in a variant based on Standard
-  groupedInVariant: (rules: string, branch: string, group: string, main: string) =>
-    `${rules} in ${branch} are now ${group}. ${main} stays the same.`,
+  // Grouping in a variant based on Standard, as U40 6344:53873 words it (report cosmetic 8, T066):
+  // the variant's name and Standard's, without the rules and the group
+  groupedInVariant: (_rules: string, branch: string, _group: string, main: string) =>
+    `Grouped in ${branch} only. ${main} stays the same.`,
   // F29, U20 6344:54042: the copy toast, whose "Show" opens the variant
   copied: (rule: string, branches: string) => `${rule} copied to ${branches}.`,
   show: 'Show',
@@ -237,16 +309,14 @@ export const RULES_COPY = {
     subGroups === 0
       ? `${group} and the rules in it will be deleted. You can undo this right after.`
       : `${group} and the rules and ${subGroups === 1 ? 'sub-group' : 'sub-groups'} in it will be deleted. You can undo this right after.`,
-  // Deleting in Standard while variants are based on it (F14, W8; design-notes §4 and §5)
-  removedFromVariants: (main: string) =>
-    `This rule will be removed from ${main} and from the variants that follow it.`,
+  // Deleting in Standard while variants are based on it (F14, W8; design-notes §4 and §5). A
+  // rule's body is U47's as drawn (6185:8847; CLAR #56, FR-037): `variants` are the names of the
+  // variants based on Standard, as `joinNames` lists them
+  removedFromVariants: (main: string, variants: string) =>
+    `This deletes it from ${main} and from the variants that follow it: ${variants}. If a variant changed this rule, it keeps its own version.`,
   groupRemovedFromVariants: (noun: string, main: string) =>
     `This ${noun} and the rules in it will be removed from ${main} and from the variants that follow them.`,
   // `variants` are the variants' names as `joinNames` lists them, `count` how many
-  keptByVariants: (variants: string, count: number) =>
-    count === 1
-      ? `${variants} changed it and keeps its own version.`
-      : `${variants} changed it and keep their own versions.`,
   itemKeptByVariants: (variants: string, count: number, item: string) =>
     count === 1
       ? `${variants} changed ${item} and keeps its own version.`
@@ -279,45 +349,60 @@ export const RULES_COPY = {
   restoreRule: 'Restore rule',
   restoreGroup: 'Restore group',
   restoreSubGroup: 'Restore sub-group',
-  // The link strip at the top of a based variant's rules (U18 6344:60020)
+  // The link strip at the top of a based variant's rules (U18 6344:60020; U47 6344:60085,
+  // 6344:60090, 6344:60095), with what the variant removed before its text (FR-051 (38)): "2 of 3
+  // Standard rules are removed here.", or, while only groups are, "Group 01 is removed here."
   linkedTo: (main: string) => `Linked to ${main}`,
-  linkedText: (main: string) => `Rules you don’t change here update with ${main}.`,
-  // The variant tabs (U17 6134:9153; F16) and "+ Add variant" with its (i) while Standard is the
-  // only variant (U17 6162:34206, tooltip 6151:33820)
+  linkedText: (main: string) => `Rules you don’t change follow and update with ${main}.`,
+  removedRules: (removed: number, total: number, main: string) =>
+    `${removed} of ${total} ${main} ${total === 1 ? 'rule' : 'rules'} ${removed === 1 ? 'is' : 'are'} removed here.`,
+  removedGroups: (groups: string, count: number) =>
+    `${groups} ${count === 1 ? 'is' : 'are'} removed here.`,
+  // The variant tabs (U38 6134:9153; F26) and "+ Add variant" with its (i) in every state (F27,
+  // FR-035; U37 6151:33809, its text 6151:33820)
   variants: 'Variants',
   addVariant: 'Add variant',
   aboutVariants: 'About variants',
-  variantsInfo: 'A variant is a separate set of rules for some of your citizens.',
-  // The Add variant and Edit variant dialogs (U17 6139:32693; W3; design-notes §4)
+  variantsInfo:
+    'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
+  // The Add variant and Edit variant dialogs (U37 6139:32693, U52 6197:12011; F28, W18): the
+  // intro repeats the (i)'s text (U37 #20)
   addVariantTitle: 'Add variant',
   addVariantIntro:
-    'A variant is a separate set of rules for some of your citizens. Your form decides which variant applies to each citizen.',
+    'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
   editVariantTitle: 'Edit variant',
   variantName: 'Variant name',
   description: 'Description',
-  optional: '- Optional',
-  descriptionHint: 'Shown when someone hovers the (i) next to the variant name.',
+  descriptionHint: 'Shows when you hover the ⓘ next to the variant name.',
   startWith: 'Start with',
-  basedOn: (main: string) => `Based on ${main} (recommended)`,
+  // "Start with" (FR-052h: "Linked to Standard (recommended)" preselected)
+  basedOn: (main: string) => `Linked to ${main} (recommended)`,
   basedOnHelp: (main: string) =>
-    `Starts with all ${main} rules. Rules you don’t change here update with ${main}.`,
+    `Copies all ${main} rules. Unchanged rules remain the same as ${main} and update with it.`,
   startEmpty: 'Start empty',
   startEmptyHelp: (main: string) => `Starts with no rules. Changes to ${main} don’t affect it.`,
   saveVariant: 'Save changes',
-  // "Copy to variant" (U20 6344:53981)
+  // "Copy to variant" (U41 6344:53981; FR-040: its help text)
   copyTitle: (rule: string) => `Copy ${rule} to`,
-  copyHint: (main: string) => `Variants based on ${main} get it too.`,
+  copyHint: (main: string) => `Variants linked to ${main} get it too.`,
   copy: 'Copy',
-  // A tab's menu (W3), built like the rule menu
+  // A tab's menu ("Rules/Variant menu", U59 6523:37519; F28)
   variantMenuLabel: (variant: string) => `Actions for ${variant}`,
   renameVariant: 'Rename',
-  deleteVariant: 'Delete',
-  // "Delete Ambulance?" (W3; design-notes §4, "Deleting a variant")
-  deleteVariantTitle: (variant: string) => `Delete ${variant}?`,
-  deleteVariantText: 'The variant and its rules will be deleted.',
-  deleteVariantTextEditing:
-    'The variant and its rules will be deleted when you save. Its result link then stops working for good.',
+  deleteVariant: 'Delete variant',
+  // "Delete “School transport”?" as U60 draws it (6523:37869; the active connection's body
+  // 6790:45039; CLAR #38: "the delete-variant body names the broken result link as drawn");
+  // `others` are the other variants' names, as `joinNames` lists them, `count` how many
+  deleteVariantTitle: (variant: string) => `Delete “${variant}”?`,
+  deleteVariantText: (variant: string, others: string, count: number) =>
+    `Rules you changed or added in ${variant} are deleted. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
+  deleteVariantTextEditing: (variant: string, others: string, count: number) =>
+    `The connection is active, so this only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
   deleteVariantConfirm: 'Delete variant',
+  keepVariant: 'Keep variant',
+  // The toast after deleting a variant, with Undo (FR-051 (33); U61 6523:37991): neutral as every
+  // deletion's toast (T036; U61's red type not built)
+  variantDeleted: (variant: string) => `${variant} deleted.`,
   // The unrequested-data banner (F11, F58, C5; U50 6863:47363, 7173:52333; FR-023, Q5): a field
   // no longer requested, or the whole document, naming the variant (FR-023c); the "Add it in
   // Documents" action stays (FR-023f), although the design draws plain text
@@ -326,6 +411,8 @@ export const RULES_COPY = {
   unrequestedDocumentText: (rule: string, branch: string, document: string) =>
     `${rule} in ${branch} checks data from ${document}, which is no longer requested. Add the document again in Documents, or edit or delete the rule.`,
   addInDocuments: 'Add it in Documents',
+  // The note under such a rule (U50 6197:10708, 7173:52351): the field, or the whole document
+  noLongerRequested: (data: string) => `${data} is no longer requested.`,
   // A refused Publish or Save (F11), with the server's message
   refusedPublishTitle: 'Couldn’t publish',
   refusedSaveTitle: 'Couldn’t save',
@@ -363,26 +450,59 @@ export const LINK_NOTICE_ID = 'link-notice';
  * The unrequested-data banner (U50 6863:47363, "Rules/Findings banner" in the danger kind): flush
  * at the top of the rules card's list, `feedback-danger-background` with its 1px
  * `feedback-danger` border, radius 8, padding 8 8 8 16; the action on the first line's right, or
- * under the text where the line is too narrow for both
+ * under the text where the line is too narrow for both. With the findings banner right after it
+ * (no frame draws both), it takes that banner's 8px inset (U44 6750:40882), so that the two stack
+ * 8px apart on the edges of the outlined rows below them
  */
 export const UNREQUESTED_BANNER_CLASSES =
-  'bg-kern-feedback-danger-background border-kern-feedback-danger rounded-kern-default flex flex-wrap items-start gap-x-16 gap-y-4 border py-8 pr-8 pl-16';
+  'bg-kern-feedback-danger-background border-kern-feedback-danger rounded-kern-default flex flex-wrap items-start gap-x-16 gap-y-4 border py-8 pr-8 pl-16 [&:has(+[data-findings-banner])]:mx-8 [&:has(+[data-findings-banner])]:mt-8';
 
 /**
- * The findings banner's looks by kind (spec 003, S2; A1; design-notes.md §7, "Banner"): the
- * warning or info background with its 1 px border. At the variant level the info icon keeps
- * `feedback-info`; the darker `layout-text-muted` is only for the notes inside the rules
- * (decision 2026-11-01)
+ * The findings banner's wrap (U44 6754:44401 "Findings banner · wrap", U46 6754:44401): the banner
+ * 8px inside the card, as the outlined rows. Its `data-findings-banner` attribute lets the
+ * unrequested-data banner before it take the same inset
+ */
+export const FINDINGS_BANNER_WRAP_CLASSES = 'p-8';
+
+/**
+ * The findings banner's looks by kind (Figma `Rules/Findings banner` 6750:40865: U44 6750:40882
+ * warning, U45 6750:41077 info): `feedback-warning-background` #fff4e0 with its 1px
+ * `feedback-warning` #9a4a00 border, or `feedback-info-background` #e0f2fe with its 1px
+ * `feedback-info` border (the §1.5 AA value #0273ae, as the notes' info icon)
  */
 export const BANNER_LOOKS: Record<FindingTone, string> = {
   warning: 'bg-kern-feedback-warning-background border-kern-feedback-warning',
   info: 'bg-kern-feedback-info-background border-kern-feedback-info',
 };
 
-/** The banner's 20 px kind icons, KERN's warning triangle and info icon (A1; research R15) */
+/**
+ * The banner's 20px kind icons (U45 6753:40144: `icon-warning-small`, `icon-info-small`), KERN's
+ * warning triangle and info icon in the kind's colour (research R15)
+ */
 export const BANNER_ICONS: Record<FindingTone, string> = {
   warning: 'kern-icon--warning bg-kern-feedback-warning!',
   info: 'kern-icon--info bg-kern-feedback-info!',
+};
+
+/**
+ * A finding's name link in the banner (F39; Figma `Rules/Finding item` in U45 6753:40144, U44
+ * 6750:40882): body/small in `action-default`, underlined as drawn (`decoration-[8%]`, the
+ * font's underline position, as the toast's action); hovered, KERN's link hover (kit P21: the
+ * 3px underline); KERN's 4px focus ring for keyboard focus only
+ */
+export const FINDING_LINK_CLASSES =
+  'text-kern-action-default rounded-kern-small focus-visible:outline-kern-action-focus-default cursor-pointer text-left underline decoration-[8%] [text-underline-position:from-font] hover:decoration-3 focus-visible:outline-4 focus-visible:outline-offset-2';
+
+/**
+ * The banner's chevron (U45 6753:40144 "Collapse", `button-tertiary-small`): a 48px target around
+ * the drawn 40px box, which takes the kit's hover and pressed layers (P33 2:1985: the action
+ * colour at 8% and 16%, as the ⋯ menus, T021) with the colour transition (design-notes §4), and
+ * KERN's 4px focus ring for keyboard focus only
+ */
+export const FINDINGS_TOGGLE_CLASSES = {
+  button:
+    'group flex size-48 shrink-0 cursor-pointer items-center justify-center focus-visible:outline-none',
+  box: 'rounded-kern-default group-focus-visible:outline-kern-action-focus-default motion group-hover:bg-kern-action-state-indicator-default/8 group-active:bg-kern-action-state-indicator-default/16 flex size-40 items-center justify-center transition-colors duration-(--duration-colour) group-focus-visible:outline-4 group-focus-visible:outline-offset-2',
 };
 
 /** The id of a variant's expanded findings list, which the chevron controls */

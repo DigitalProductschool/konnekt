@@ -442,6 +442,8 @@ export interface MenuContext {
 }
 
 export interface LinkStripProps {
+  /** The based variant it heads, whose removals it counts (FR-051 (38)) */
+  branch: RulesBranch;
   /** The main branch's name */
   mainName: string;
 }
@@ -603,11 +605,13 @@ export interface BranchTabProps {
   selected: boolean;
   /** Whether the branch can be deleted: every branch but the main branch */
   deletable: boolean;
-  /**
-   * Its findings for the tab's icon and tooltip, from `tabFindingsOf()`, or its problem (the
-   * `error` kind); null without (W13)
-   */
+  /** Its findings for the tab's icon and tooltip, from `tabFindingsOf()`; null without (W13) */
   findings: BranchFindings | null;
+  /**
+   * Its spec 002 problem (the `error` kind), such as a rule on data no longer requested: its red
+   * icon wins, its tooltip says the problem, then the findings (FR-041a); null without
+   */
+  problem: BranchFindings | null;
   onSelect: () => void;
   /** Arrow keys, Home and End move between the tabs */
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
@@ -665,7 +669,7 @@ export interface CopyPopoverProps {
   onCopy: (targets: string[]) => void;
   /** Cancel, Escape or a click elsewhere */
   onClose: () => void;
-  /** The focus left it, with Tab: it closes, and the focus stays where it went */
+  /** The focus left it another way than Tab, which stays inside: it closes, the focus stays */
   onDismiss: () => void;
 }
 
@@ -687,5 +691,7 @@ export interface CopyTargetItemProps {
   checked: boolean;
   /** A variant based on Standard while Standard is chosen: included, not chosen on its own */
   included: boolean;
+  /** The id of the help text "Variants linked to Standard get it too.", where it applies */
+  describedBy?: string;
   onToggle: () => void;
 }

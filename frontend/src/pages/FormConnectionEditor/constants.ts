@@ -75,8 +75,6 @@ export const EDITOR_COPY = {
   finishGroupingFirst: 'Finish grouping first',
   // The edit flow's footer (FR-045, U98 6731:39850)
   discardChanges: 'Discard changes',
-  testRulesHint:
-    'Choose a sample citizen to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.',
   saveErrorText: 'Nothing was saved. Check your connection and try again.',
 };
 

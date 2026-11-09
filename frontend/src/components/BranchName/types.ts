@@ -18,6 +18,11 @@ export interface BranchFindings {
   kind: BranchIconKind;
   /** "1 conflict: Rule 01 and Rule 02 contradict each other, so no citizen …" */
   text: string;
+  /**
+   * A second segment under this one, below a divider: under a problem, the variant's findings,
+   * which the problem's red icon stands for too (FR-041, U06 note 8: "then the finding")
+   */
+  more?: BranchFindings | null;
 }
 
 /** The tab a variant's name is when `BranchName` renders the tab itself */
@@ -63,9 +68,15 @@ export interface BranchNameProps {
 }
 
 export interface FindingsSegmentProps {
+  /** What the segment says; its `more`, if any, follows below a divider */
   findings: BranchFindings;
   /** Whether a description is above it, which the divider separates it from */
   divided: boolean;
+}
+
+export interface SegmentLineProps {
+  kind: BranchIconKind;
+  text: string;
 }
 
 export interface BranchIconProps {

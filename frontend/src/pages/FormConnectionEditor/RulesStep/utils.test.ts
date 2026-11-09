@@ -1,7 +1,7 @@
 import type { GroupItem, Mark, RuleTreeItem } from '@connection-portal/api-types/form-connections';
 import type { BannerLine, FindingsBanner } from '@connection-portal/rules/checks/types';
 import * as edits from '@connection-portal/rules/edits';
-import { rule } from '@connection-portal/rules/testData';
+import { MDL, PID, rule, target } from '@connection-portal/rules/testData';
 import { findItem, flattenItems } from '@connection-portal/rules/tree';
 import type { EditResult, EditState } from '@connection-portal/rules/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,12 +20,14 @@ import {
   bannerViewOf,
   copyTargetsOf,
   deleteDialogText,
+  editorMessageHintOf,
   editStateOf,
   findingTargetIdsOf,
   initialRulesState,
   joinNames,
   linkNoticeOf,
   linkOf,
+  linkStripSummaryOf,
   menuEntriesOf,
   menuItemOf,
   neighbourOf,
@@ -33,6 +35,7 @@ import {
   selectableIn,
   selectionText,
   switchNoteOf,
+  unrequestedNoteOf,
 } from './utils';
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
@@ -527,9 +530,7 @@ describe('variants (FR-019 to FR-024)', () => {
       { type: 'groupSelected' }
     );
     expect(item(grouped, 1, 'group-3')?.mark).toBe('added');
-    expect(grouped.toast?.message).toBe(
-      'Rule 02 and Rule 03 in Ambulance are now Sub-group 03. Standard stays the same.'
-    );
+    expect(grouped.toast?.message).toBe('Grouped in Ambulance only. Standard stays the same.');
   });
 
   it('undoes a deletion in Standard in every variant', () => {
@@ -563,6 +564,32 @@ describe('variants (FR-019 to FR-024)', () => {
       run(state, { type: 'askDeleteVariant', branchKey: BRANCH }, { type: 'confirmDelete' })
         .branches
     ).toHaveLength(2);
+  });
+
+  it('FR-051 (33): a deleted variant opens the tab to its left, and Undo brings it back', () => {
+    const state = run(withVariant(), {
+      type: 'addVariant',
+      variant: { name: 'School transport', description: null },
+      origin: 'empty',
+    });
+    const school = state.branches[2].key;
+    const deleted = run(
+      state,
+      { type: 'askDeleteVariant', branchKey: school },
+      { type: 'confirmDelete' }
+    );
+    expect(deleted.branches.map((branch) => branch.name)).toEqual(['Standard', 'Ambulance']);
+    expect(deleted.openBranch).toBe(variantKey(state));
+    expect(deleted.toast).toMatchObject({
+      message: 'School transport deleted.',
+      actionLabel: 'Undo',
+    });
+    expect(deleted.toast?.kind).toBeUndefined();
+    expect(deleted.undo).toMatchObject({ branchKey: school, itemId: '' });
+    const undone = run(deleted, { type: 'undo' });
+    expect(undone.branches).toEqual(state.branches);
+    expect(undone.openBranch).toBe(school);
+    expect(undone.toast).toBeNull();
   });
 
   it('copies a rule to other variants with a toast whose Show opens the first (F29)', () => {
@@ -651,26 +678,18 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     );
   });
 
-  it('names the variants that changed the rule and keep their version', () => {
-    const state = withVariants('based', 'based');
+  it('gives a Standard rule U47’s drawn body, naming the variants that follow it (CLAR #56)', () => {
+    const state = withVariants('based', 'based', 'empty');
     expect(text(state, 'rule-1')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. You can undo this right after.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance and School transport. If a variant changed this rule, it keeps its own version.'
     );
     const changed = run(
-      state,
+      withVariants('based'),
       { type: 'startRename', branchKey: 'new-1', itemId: 'rule-1' },
       { type: 'rename', name: 'Old enough' }
     );
     expect(text(changed, 'rule-1')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. Ambulance changed it and keeps its own version. You can undo this right after.'
-    );
-    const both = run(
-      changed,
-      { type: 'startRename', branchKey: 'new-2', itemId: 'rule-1' },
-      { type: 'rename', name: 'Of age' }
-    );
-    expect(text(both, 'rule-1')).toContain(
-      'Ambulance and School transport changed it and keep their own versions.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance. If a variant changed this rule, it keeps its own version.'
     );
   });
 
@@ -682,7 +701,7 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
       operator: 'or',
     });
     expect(text(switched, 'rule-2')).toBe(
-      'This rule will be removed from Standard and from the variants that follow it. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. Ambulance’s changes to Group 01 go with it. You can undo this right after.'
+      'This deletes it from Standard and from the variants that follow it: Ambulance. If a variant changed this rule, it keeps its own version. Group 01 is left with one rule, so it’s ungrouped in Standard and its variants. Ambulance’s changes to Group 01 go with it.'
     );
   });
 
@@ -695,6 +714,50 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     expect(text(changed, 'group-1')).toBe(
       'This group and the rules in it will be removed from Standard and from the variants that follow them. Ambulance changed Rule 03 and keeps its own version. You can undo this right after.'
     );
+  });
+});
+
+describe('the link strip’s removals (FR-051 (38); U47 6344:60085, 6344:60090, 6344:60095)', () => {
+  const items = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  // Built in each case: the variant's key comes from the mocked `crypto.randomUUID()`
+  const based = () =>
+    run(stateWith(items), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+    });
+  function summary(...removed: string[]): string | null {
+    const state = run(
+      based(),
+      ...removed.map((itemId): RulesAction => ({ type: 'removeItem', branchKey: 'new-1', itemId }))
+    );
+    return linkStripSummaryOf(state.branches[1], 'Standard');
+  }
+
+  it('says nothing while the variant removed nothing, nor while Standard has no rules (F37)', () => {
+    expect(summary()).toBeNull();
+    const empty = run(stateWith([]), {
+      type: 'addVariant',
+      variant: { name: 'Ambulance', description: null },
+      origin: 'based',
+    });
+    expect(linkStripSummaryOf(empty.branches[1], 'Standard')).toBeNull();
+  });
+
+  it('counts the removed Standard rules, as U47 6.1 words it', () => {
+    expect(summary('rule-1')).toBe('1 of 3 Standard rules is removed here.');
+    expect(summary('rule-1', 'rule-3')).toBe('2 of 3 Standard rules are removed here.');
+  });
+
+  it('names removed groups while nothing else is removed, as U47 6.3 and 6.4 word it', () => {
+    expect(summary('group-1')).toBe('Group 01 is removed here.');
+    expect(summary('group-1', 'rule-1')).toBe('3 of 3 Standard rules are removed here.');
+  });
+
+  it('leaves out what the variant added, and counts a dissolved group’s remaining rule (F13)', () => {
+    const added = run(based(), { type: 'duplicateRule', branchKey: 'new-1', ruleId: 'rule-1' });
+    expect(linkStripSummaryOf(added.branches[1], 'Standard')).toBeNull();
+    expect(summary('rule-2')).toBe('1 of 3 Standard rules is removed here.');
   });
 });
 
@@ -2108,5 +2171,72 @@ describe('selectableIn (FR-036, FR-038; CLAR #60, #61, #64)', () => {
 
   it('chooses no removed rule', () => {
     expect(selectableIn({ ...r(1), mark: 'removed' })).toBe(false);
+  });
+});
+
+describe('unrequestedNoteOf (U50 6197:10708, 7173:52351; FR-023)', () => {
+  const onBirthdate = rule(2, target('pid', 'birthdate'), null);
+  const pidWithout = { ...PID, fields: PID.fields.filter((field) => field.key !== 'birthdate') };
+
+  it('names the field no longer requested', () => {
+    expect(unrequestedNoteOf(onBirthdate, [pidWithout, MDL], [PID, MDL])).toBe(
+      'Date of birth is no longer requested.'
+    );
+  });
+
+  it('names the document while the whole document is no longer requested', () => {
+    expect(unrequestedNoteOf(onBirthdate, [MDL], [PID, MDL])).toBe(
+      'Personal ID is no longer requested.'
+    );
+  });
+
+  it('gives null for a target the catalog doesn’t know', () => {
+    expect(unrequestedNoteOf(rule(3, target('xyz', 'a'), null), [MDL], [PID, MDL])).toBeNull();
+    expect(unrequestedNoteOf(rule(4, null, null), [MDL], [PID, MDL])).toBeNull();
+  });
+});
+
+describe('editorMessageHintOf (U35 6965:50822; F32)', () => {
+  const member = rule(2, null, null);
+  const inner: GroupItem = {
+    type: 'group',
+    id: 'group-2',
+    name: 'Sub-group 02',
+    mark: null,
+    operator: 'and',
+    message: null,
+    items: [member, rule(3, null, null)],
+  };
+  const outer: GroupItem = {
+    type: 'group',
+    id: 'group-1',
+    name: 'Group 01',
+    mark: null,
+    operator: 'or',
+    message: 'You need a class C or D licence.',
+    items: [rule(4, null, null), inner],
+  };
+  const first = rule(1, null, null);
+  const items: RuleTreeItem[] = [first, outer];
+  const editing = (original: typeof member | null, parentId: string | null) => ({
+    branchKey: 'main',
+    parentId,
+    original,
+    draft: member,
+  });
+
+  it('names the outermost group with a message around the rule', () => {
+    expect(editorMessageHintOf(items, editing(member, null))).toBe(
+      'Not shown while this rule is in Group 01. Citizens see the group message instead.'
+    );
+  });
+
+  it('takes a new rule’s group', () => {
+    expect(editorMessageHintOf(items, editing(null, 'group-2'))).toContain('Group 01');
+  });
+
+  it('gives null outside a group with a message', () => {
+    expect(editorMessageHintOf(items, editing(first, null))).toBeNull();
+    expect(editorMessageHintOf(items, editing(null, null))).toBeNull();
   });
 });

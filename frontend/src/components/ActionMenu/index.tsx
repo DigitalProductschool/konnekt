@@ -10,11 +10,11 @@ import {
 import {
   ACTION_MENU_DIVIDER_HEIGHT,
   ACTION_MENU_FRAME_HEIGHT,
+  ACTION_MENU_MAX_WIDTH,
   ACTION_MENU_PLACEMENTS,
   ACTION_MENU_ROW_GAP,
   ACTION_MENU_ROW_HEIGHT,
   ACTION_MENU_STATES,
-  ACTION_MENU_WIDTH,
 } from './constants';
 import RuleMenuItem from './RuleMenuItem';
 import type { ActionMenuProps, MenuAction } from './types';
@@ -68,7 +68,7 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
 
   function openMenu() {
     setPlacement(
-      placementFrom(containerRef.current, ACTION_MENU_WIDTH, 'end', 0, menuHeightOf(actions))
+      placementFrom(containerRef.current, ACTION_MENU_MAX_WIDTH, 'end', 0, menuHeightOf(actions))
     );
   }
 

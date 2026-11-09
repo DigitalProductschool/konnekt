@@ -7,19 +7,12 @@ import type { PersonaHeadProps } from './types';
 /**
  * The data card's head (S8.4; FR-004, FR-012; Figma "Head" 7057:58768, heading 7057:58769): "Mia’s
  * data" (title/small), then the persona's small tertiary buttons at its right end. "Edit data"
- * (pencil, 7057:58770) comes before "Generate again" (refresh, 7057:58771), and reads "Done"
- * (check) in edit mode (S8.5; F1), where it turns the fields back into values; the focus then
- * goes back to it, as it stays on one button, also where a press doesn't focus a button. Both are
- * absent while the persona is generated (FR-013). KERN's small button is 40px high with 4px
- * margins, Figma's 48px head
+ * (pencil, 7057:58770) opens the edit-data dialog (spec 008 FR-042), which returns the focus to it
+ * when it closes; it comes before "Generate again" (refresh, 7057:58771), which asks first only
+ * when the persona was edited (U68). Both are absent while the persona is generated (FR-013).
+ * KERN's small button is 40px high with 4px margins, Figma's 48px head
  */
-export default function PersonaHead({
-  persona,
-  editing,
-  onEditData,
-  onDone,
-  onGenerateAgain,
-}: PersonaHeadProps) {
+export default function PersonaHead({ persona, onEditData, onGenerateAgain }: PersonaHeadProps) {
   return (
     <div className="flex flex-wrap items-center justify-between">
       <h2
@@ -34,21 +27,13 @@ export default function PersonaHead({
             type="button"
             className="kern-btn kern-btn--tertiary kern-btn--small"
             onClick={(event) => {
-              if (editing) {
-                event.currentTarget.focus();
-                onDone();
-              } else {
-                onEditData();
-              }
+              // Where a press doesn't focus a button (Safari), so that the dialog returns it there
+              event.currentTarget.focus();
+              onEditData();
             }}
           >
-            <span
-              aria-hidden="true"
-              className={`kern-icon kern-icon--small ${editing ? 'kern-icon--check' : 'kern-icon--edit'}`}
-            />
-            <span className="kern-label">
-              {editing ? TEST_STEP_COPY.done : TEST_STEP_COPY.editData}
-            </span>
+            <span aria-hidden="true" className="kern-icon kern-icon--small kern-icon--edit" />
+            <span className="kern-label">{TEST_STEP_COPY.editData}</span>
           </button>
           <button
             type="button"

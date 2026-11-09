@@ -3,8 +3,8 @@ import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
 
 export const GROUP_FRAME_COPY = {
   // Figma "Rules/Group header" (U34 6094:6413, 6094:6320; FR-051 (32)): how the members combine,
-  // the words of the connector menu's options. The rules package's `GROUP_SUBTITLES` ("All of
-  // these must be met") stays the test results' statement of a group
+  // the words of the connector menu's options. The test results map the rules package's
+  // `GROUP_SUBTITLES` to these words too (`TestStep/utils.ts` `resultStatementOf()`)
   subtitles: {
     and: 'All rules must be met',
     or: 'At least one rule must be met',

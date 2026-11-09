@@ -716,12 +716,15 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
 });
 
 describe('the test step (spec 004, S2, S8)', () => {
-  const TEST_HINT =
-    'Choose a sample citizen to see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.';
+  // Spec 008 cosmetic 12, C2 (U65 7057:58714)
+  const TEST_TITLE = {
+    title: 'Test rules with sample citizen data',
+    hint: 'Choose a sample citizen to check that your rules work as intended. See which rules they meet and which message they’d see. The data is made up.',
+  };
 
-  it('titles the test step "Test rules" with the intro, in both modes (FR-004)', () => {
-    expect(pageTitleOf('test', 'create')).toEqual({ title: 'Test rules', hint: TEST_HINT });
-    expect(pageTitleOf('test', 'edit')).toEqual({ title: 'Test rules', hint: TEST_HINT });
+  it('titles the test step with the intro, in both modes (FR-004)', () => {
+    expect(pageTitleOf('test', 'create')).toEqual(TEST_TITLE);
+    expect(pageTitleOf('test', 'edit')).toEqual(TEST_TITLE);
   });
 
   it('publishes without rules while no branch has a rule (FR-001)', () => {

@@ -10,6 +10,7 @@ import type {
   ResultView,
   TestResults,
 } from '@connection-portal/rules/personas/types';
+import type { DataRow } from '@connection-portal/rules/personas/values';
 import type { RuleContext } from '@connection-portal/rules/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
@@ -36,6 +37,11 @@ export interface TestStepProps {
   editing: boolean;
   /** "Try again" of the failure state */
   onRetry: () => void;
+  /**
+   * The editor's failed save toast is showing: the step's saved toast goes, one toast at a time
+   * (research R8)
+   */
+  saveFailed: boolean;
 }
 
 /** `TestDayLine` (S8.1; W1) */
@@ -60,7 +66,10 @@ export interface VariantTabsProps {
 export interface VariantTabProps {
   branch: RulesBranch;
   selected: boolean;
-  /** Spec 003's check of the variant: its `none_can_meet` notice adds the warning icon (F6) */
+  /**
+   * Spec 003's check of the variant: its `none_can_meet` notice adds the warning icon and its
+   * tooltip (F38, FR-041), the test step's only finding
+   */
   check: BranchCheck | null;
   onSelect: () => void;
   /** The arrow keys, Home and End (WAI-ARIA tabs; research R16) */
@@ -74,7 +83,7 @@ export interface VariantTabProps {
  */
 export interface ApplicantsRowProps {
   /**
-   * `null` while all three are generated (frame 18: first open, "Generate all again", "Try
+   * `null` while all three are generated (frame 18: first open, "Generate all", "Try
    * again"): skeleton pills
    */
   personas: readonly Persona[] | null;
@@ -87,7 +96,7 @@ export interface ApplicantsRowProps {
   run: GenerationRun | null;
   /** Selects a persona: dispatches `select` */
   onSelect: (slot: PersonaSlot) => void;
-  /** "Generate all again" (W9) */
+  /** "Generate all" (W9, F45) */
   onGenerateAll: () => void;
 }
 
@@ -119,20 +128,10 @@ export interface PersonaPanelProps {
   fields: readonly PersonaField[];
   /** For the values' labels (option sets) */
   context: RuleContext;
-  /** `YYYY-MM-DD`, for the age after a date of birth */
-  today: string;
   /** The keys of the fields read by rules failing in the shown variant (K1) */
   failingFields: readonly string[];
-  /** The panel is in edit mode: fields in place of the values (`PersonaState.editing`, S8.5) */
-  editing: boolean;
-  /** "Edit data" */
+  /** "Edit data": opens `EditDataDialog` (`usePersonas().startEditing()`, spec 008 FR-042) */
   onEditData: () => void;
-  /** "Done" */
-  onDone: () => void;
-  /** One valid entry for a field (`usePersonas().setValue()` for the selected persona) */
-  onSetValue: (key: string, value: PersonaValue) => void;
-  /** A new, trimmed, non-empty name (`usePersonas().rename()` for the selected persona) */
-  onRename: (name: string) => void;
   /** "Generate again" */
   onGenerateAgain: () => void;
 }
@@ -153,31 +152,37 @@ export interface PersonaChipProps {
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }
 
-/** `GenerateAllButton` (S8.3; W9; T032) */
+/** `GenerateAllButton` (S8.3; W9; T032, T071): "Generate all" */
 export interface GenerateAllButtonProps {
   onGenerateAll: () => void;
 }
 
-/** `PersonaHead` (S8.4, S8.5; T033, T043): "Mia’s data" and the persona's buttons */
+/** `PersonaHead` (S8.4; T033, T072): "Mia’s data" and the persona's buttons */
 export interface PersonaHeadProps {
   persona: Persona;
-  /** Edit mode: "Done" in place of "Edit data" */
-  editing: boolean;
-  /** "Edit data" */
+  /** "Edit data": opens the edit-data dialog (spec 008 FR-042) */
   onEditData: () => void;
-  /** "Done": the focus goes back to its button, which then reads "Edit data" */
-  onDone: () => void;
   /** "Generate again" */
   onGenerateAgain: () => void;
 }
 
-/** `PersonaData` (S8.4; T033): the shown values, under their documents' headings */
+/**
+ * `PersonaData` (S8.4; T033, T071): the shown values as one flat list (`dataRowsOf()`), each
+ * document's rows under its hidden heading
+ */
 export interface PersonaDataProps {
   persona: Persona;
   fields: readonly PersonaField[];
   context: RuleContext;
-  today: string;
   failingFields: readonly string[];
+}
+
+/** One document's rows of the data card, in the order of `dataRowsOf()` (spec 008 F63, FR-043) */
+export interface DataRowGroup {
+  documentType: string;
+  /** "Personal ID", "Driving licence": the group's hidden heading */
+  documentLabel: string;
+  rows: DataRow[];
 }
 
 /** One document's fields, in the order of the persona fields (F9) */
@@ -188,23 +193,25 @@ export interface DocumentGroup {
   fields: PersonaField[];
 }
 
-/** `DocumentValues` (S8.4; F9; T033): a document's heading and its values */
+/** `DocumentValues` (S8.4; F9; T033, T071): a document's hidden heading and its rows */
 export interface DocumentValuesProps {
-  group: DocumentGroup;
+  group: DataRowGroup;
   persona: Persona;
   context: RuleContext;
-  today: string;
   failingFields: readonly string[];
+  /** The keys of the changed values (K2, `changedKeys()`) */
+  changedFields: readonly string[];
 }
 
-/** `ValueRow` (S8.4; F10, F11, K1; T033): one field's label and value */
+/** `ValueRow` (S8.4; F10, F11, K1; T033, T071): one row's label and value */
 export interface ValueRowProps {
-  field: PersonaField;
-  /** The text `valueTextOf()` gives */
+  /** `dataRowLabelOf()`: "Date of birth", "Licence classes" */
+  label: string;
+  /** The text `dataRowTextOf()` gives */
   text: string;
-  /** Read by a rule shown as failing in the shown variant (K1) */
+  /** Shows a value read by a rule shown as failing in the shown variant (K1) */
   failing: boolean;
-  /** The value differs from the generated one (K2, `changedKeys()`) */
+  /** Shows a value that differs from the generated one (K2, `changedKeys()`) */
   changed: boolean;
 }
 
@@ -214,8 +221,6 @@ export interface ResultSectionProps {
   view: ResultView | null;
   /** The shown variant, for its name (`noRulesNoteOf()`) and its rules */
   branch: RulesBranch;
-  /** Spec 003's check of the shown variant, for the `none_can_meet` notice (F6) */
-  check: BranchCheck | null;
 }
 
 /** `ResultTable` (S8.6; T034): the rows of a variant with rules */
@@ -277,16 +282,17 @@ export interface SkeletonResultRowProps {
 }
 
 /**
- * A field's draft in edit mode (T038; research R12): what the team member typed, and the error
- * it shows under the field, `null` while the entry is valid. A valid entry has been applied to
- * the persona; an invalid one hasn't, so the persona keeps its last valid value (FR-008)
+ * A field's draft in the edit-data dialog (T038, T072; research R12): what the team member typed,
+ * and the error it shows under the field, `null` while the entry is valid. A valid entry has been
+ * applied to the dialog's working values; an invalid one hasn't, and blocks "Save and test"
+ * (spec 008 FR-042)
  */
 export interface Draft {
   text: string;
   error: string | null;
 }
 
-/** The panel's drafts by key: a field's key, `NAME_DRAFT_KEY` or `ageDraftKey(key)` */
+/** The dialog's drafts by key: a field's key, `NAME_DRAFT_KEY` or `ageDraftKey(key)` */
 export type DraftsState = Readonly<Record<string, Draft>>;
 
 /** `draftsReducer()`'s actions */
@@ -302,20 +308,59 @@ export type DraftsAction =
 export type ParseResult<T> = { ok: true; value: T | null } | { ok: false; error: string };
 
 /**
- * `PersonaEditor` (S8.5; T043): the data card's fields in edit mode, in place of `PersonaData`.
- * It owns the drafts (`draftsReducer`) and focuses the name when it mounts, which is when "Edit
- * data" was pressed; "Done" unmounts it, which drops the drafts
+ * The edit-data dialog's working copy (spec 008 FR-042; S8.5; T072): which persona it was opened
+ * for, its values with every valid entry applied, and the drafts with their errors. Nothing of it
+ * reaches the persona before "Save and test"
  */
-export interface PersonaEditorProps {
-  persona: Persona;
+export interface EditDataState {
+  /** The persona the dialog was opened for, `null` while it is closed */
+  personaId: string | null;
+  /**
+   * The persona's values with the valid entries applied; hidden values (a class's date while the
+   * class isn't held) stay, so that they come back with the class (W4)
+   */
+  values: Persona['values'];
+  /** The typed texts and their errors: a field's key, `NAME_DRAFT_KEY` or `ageDraftKey(key)` */
+  drafts: DraftsState;
+}
+
+/** `editDataReducer()`'s actions */
+export type EditDataAction =
+  /** The dialog opens for this persona: its values, its name as the name's draft, no errors */
+  | { type: 'start'; persona: Persona }
+  /** The dialog closed: "Cancel", "Save and test", or the persona went */
+  | { type: 'close' }
+  /** One entry was typed: its text and its error, `null` when it is valid */
+  | { type: 'draft'; key: string; text: string; error: string | null }
+  /** A valid entry's value, applied to the working copy */
+  | { type: 'value'; key: string; value: PersonaValue };
+
+/** What "Save and test" gives the step: the new name and the values that changed */
+export interface EditedData {
+  /** The name, trimmed and never empty */
+  name: string;
+  /** The values that differ from the persona's, by key (`changedValuesOf()`) */
+  values: Record<string, PersonaValue>;
+}
+
+/**
+ * `EditDataDialog` (spec 008 S13, FR-042, F40; T072): "Edit Mia’s data", the persona's fields
+ * over a scrim, "Cancel" and "Save and test". Always mounted, so that closing it returns the
+ * focus to "Edit data"
+ */
+export interface EditDataDialogProps {
+  /** The ready persona being edited (`PersonaState.editing`), `null` while the dialog is closed */
+  persona: Persona | null;
+  /** The persona fields for the current branches, in display order */
   fields: readonly PersonaField[];
-  context: RuleContext;
+  /** For the value sets' choices; `null` while it loads (the dialog is closed then) */
+  context: RuleContext | null;
   /** `YYYY-MM-DD`, for "Age today" */
   today: string;
-  /** One valid entry for a field */
-  onSetValue: (key: string, value: PersonaValue) => void;
-  /** A new, trimmed, non-empty name */
-  onRename: (name: string) => void;
+  /** "Save and test" without an error */
+  onSave: (edited: EditedData) => void;
+  /** "Cancel", the ×, Escape and the scrim: the changes are dropped */
+  onCancel: () => void;
 }
 
 /** What one field's component needs of the editor's drafts and commits (T043, T044) */
@@ -328,10 +373,13 @@ export interface FieldHandlers {
   onValue: (field: PersonaField, value: PersonaValue) => void;
 }
 
-/** `DocumentFields` (S8.5; T043): a document's heading and the fields of its values */
+/** `DocumentFields` (S8.5; T043, T072): a document's heading and the fields of its values */
 export interface DocumentFieldsProps extends FieldHandlers {
   group: DocumentGroup;
-  persona: Persona;
+  /** For the fields' element ids */
+  personaId: string;
+  /** The dialog's working values (`EditDataState.values`) */
+  values: Persona['values'];
   context: RuleContext;
   today: string;
   drafts: DraftsState;

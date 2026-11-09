@@ -221,7 +221,7 @@ it (§5).
 | `AppLayout` | — | c | the header pills (L2) | default, scrolled (white background) | T006: kept c (a page shell); built by T031. **T031 (2026-11-08): kept c.** The signed-in screens outside the wizard on white (`layout-background-default`; the old `neutral-025` is gone: U11 `6699:44240` draws a white page under light blue pills), `TopBar` + `UserMenu` above, the page in the design's 1120 px column centred (`max-w-1120`, was 1040; U11 "Page title" at x 160 of 1440), 32 px under the 64 px header area (`pt-32`, was 40: the title at y 96), the page's parts 16 px apart (`gap-16`, was 24: title 96–160, toolbar 112, list 176), `pb-48` unchanged (no frame decides it); the page scrolls, `scroll-padding-top: 80px` in `index.css` (the 64 px header area + 16). Props unchanged. The page fade is T037's **T037 (2026-11-08)**: the page fade: `main` is keyed by the route's path (`key={pathname}`) and carries `motion animate-page-in`, so it fades in over 150 ms on every path change while the pills stay; a query change (`?local=…`, the overview's state reset) keeps it |
 | `AuthLayout` (+ `AuthIntro`, the art) | L1 | c | the login art and tagline row | 1440, ~1280, <1024, 320 | T006: kept c (layout and art, no KERN counterpart); built by T034. **T034 (2026-11-08): kept c**, own markup: the page `layout-background-hued` with Figma's gradient "Rectangle 1" (`6685:103961`, 249.8°, transparent 29.524 %, `rgb(164 209 225 / .15)` 61.246 %, `rgb(73 195 128 / .3)` 92.968 %) as a `bg-[linear-gradient(…)]` class; `<TopBar signedOut />` (T031); `main` starts under the 64 px header area (`-mt-64`, `min-h-dvh`) so the content centres in the whole window as the frames do; the widths of build note 14 are **container queries** on the page's width (`@container` on the root, so the scrollbar gutter never counts): **≥ 1234** the art (`login-art@2x.png`, 331 × 617, `alt=""`, already cropped: placed at x 0) and the tagline (60 apart, `items-center`) pinned left, the card slot 440 wide 153 from the right edge; between 1374 and 1234 the hero slides left by `clamp(-140px, 100% - 1221px, 0px)` (the tagline keeps 48 from the card; the full 140 reached at 1234); the hero's `-my-80` lets the art reach into the 80 px padding so a short window doesn't scroll for it; **990–1233** the art hidden (its wrapper: KERN's `img` rule beats Tailwind's `hidden` on the `img`), tagline 80 from the left, card 80 from the right, at least 48 apart (80 + 342 + 48 + 440 + 80 = 990); **< 990** (no frame, W2) the tagline above the card in one column, `max-w-440`, 16 px from the edges, 40 apart, the card full width at 320. The tagline stays the screens' `h1` (heading/display 40/48 500, `wrap-break-word` for 160 CSS px) with the sub-line `p` (body/large 18/24 muted), 16 apart, 342 wide from 990. Prop `cardAlign` removed (both frames centre the card); `CheckChip`, `CredentialCard`, `WalletScene` and `--shadow-chip` deleted |
 | `BranchMark` | the rules frames | c | the marks' chips | changed, new, removed | T006: kept c, the marks have no KERN counterpart (the `kern-badge` types are feedback colours); built by T019. **T019 (2026-11-08): kept c.** Built as the V5 component "Rules/Variant status" (`6118:3681`) draws its three marked types on the screens (U57 `6522:32682`, U58 `6522:32977`, U47 `6185:8555`): a tag with radius 4 (`border-radius-small`), padding 2/8, `label/small` 14/24 600, 28 high; changed and new a white tag (`layout-background-default`) with the purple `#8a22b5` of §1.3 (`--color-variant-changed`, `--color-variant-new`), removed `feedback-default-background` `#eef1f6` with `feedback-default` `#4a5468`. The texts are the screens' (report cosmetic 8, "Figma decides wording"): "Changed here", **"Added here"** (was "New addition"), **"Removed here"** (was "Removed"); the component's description still says "New addition" / "Removed", the screens say otherwise (UNCERTAIN, see the report). The tag is never faded by `BranchMark` itself: U47 `6185:8570` fades only the row's content, the tag keeps its colour; it renders whatever mark it gets, so a changed rule inside a removed group keeps "Changed here" (F36, FR-040). Props unchanged (`mark`), no call site changed; `BRANCH_MARK_TINTS` and `INACTIVE_OPACITY` unchanged |
-| `BranchName` (+ `FindingsSegment`) | P29 tabs (kit: "In Bearbeitung", no tab drawn); V5 "Rules/Variant tab · fixes" `6529:39174` | c | the tab with its ⓘ and problem icon | default, selected, hover, focus, with icon | T006: kept c, KERN 2.8.2 ships no tabs CSS (the React kit’s Tabs needs its own styles, not imported); built by T026. **T026 (2026-11-08): kept c, no `index.css` rule.** Kit P29 `2:47775` draws no tab (its status block says "In Bearbeitung"), so the V5 component "Rules/Variant tab · fixes" (`6529:39174`, "KERN EXTENSION") is the source: the tab `pt-4`, column gap 8; the label row (name, 4, the 20 px icon, 4, the actions) 24 high; the name `body/default` 16/24 400 in `layout-text-muted` #4a5468, selected `label/default` 16/24 600 in `layout-text-default` #0b1220; the 2 px "Indicator" under the row across the tab, #0b1220 while selected; the row's 1 px `decorative-border` line and 24 px gap stay the tab row's (T064). The indicator is an own `span`, so no scoped override is needed. New optional props, old ones unchanged: `tab` (`id`, `panelId`, `selected`, `onSelect`, `onKeyDown`: `BranchName` then renders the tab button itself, one control holding the name only, its accessible name "<variant> has findings" while it has findings, W13), `actions` (the ⋯ slot after the icon, F28), `noFindingsInfo` (the grey ⓘ without a description reads "No findings.", FR-041b; Standard passes none, FR-035c); `findings.kind` gains `error`. The icon by severity (build note 26, U06 6760:48852): grey ⓘ `layout-text-muted` (description or "No findings."), blue ⓘ `feedback-info` (§1.5 AA value) for duplicates / always met only, orange ⚠ `feedback-warning` #9a4a00 for a contradiction (U46 6758:43060, U71 7058:61618), red error diamond `kern-icon--danger` in `feedback-danger` for a spec 002 problem (U50 7375:101551, FR-041a). States the V5 frames don't draw (the kit draws no tab): hover and pressed darken an unselected name to #0b1220, weight kept, 150 ms (`.motion`); keyboard focus KERN's 4 px `action-focus-default` ring, offset 2, none after a click. `FindingsSegment` on the dark bubble (U46 6758:43524): divider `layout-text-inverse` white at 24 %, the kind icon white, its parts 8 apart through the bubble's own gap. Call sites unchanged (they keep the `children` form until T064, T073, T079 switch to `tab`) |
+| `BranchName` (+ `FindingsSegment`) | P29 tabs (kit: "In Bearbeitung", no tab drawn); V5 "Rules/Variant tab · fixes" `6529:39174` | c | the tab with its ⓘ and problem icon | default, selected, hover, focus, with icon | T006: kept c, KERN 2.8.2 ships no tabs CSS (the React kit’s Tabs needs its own styles, not imported); built by T026. **T026 (2026-11-08): kept c, no `index.css` rule.** Kit P29 `2:47775` draws no tab (its status block says "In Bearbeitung"), so the V5 component "Rules/Variant tab · fixes" (`6529:39174`, "KERN EXTENSION") is the source: the tab `pt-4`, column gap 8; the label row (name, 4, the 20 px icon, 4, the actions) 24 high; the name `body/default` 16/24 400 in `layout-text-muted` #4a5468, selected `label/default` 16/24 600 in `layout-text-default` #0b1220; the 2 px "Indicator" under the row across the tab, #0b1220 while selected; the row's 1 px `decorative-border` line and 24 px gap stay the tab row's (T064). The indicator is an own `span`, so no scoped override is needed. New optional props, old ones unchanged: `tab` (`id`, `panelId`, `selected`, `onSelect`, `onKeyDown`: `BranchName` then renders the tab button itself, one control holding the name only, its accessible name "<variant> has findings" while it has findings, W13), `actions` (the ⋯ slot after the icon, F28), `noFindingsInfo` (the grey ⓘ without a description reads "No findings.", FR-041b; Standard passes none, FR-035c); `findings.kind` gains `error`. The icon by severity (build note 26, U06 6760:48852): grey ⓘ `layout-text-muted` (description or "No findings."), blue ⓘ `feedback-info` (§1.5 AA value) for duplicates / always met only, orange ⚠ `feedback-warning` #9a4a00 for a contradiction (U46 6758:43060, U71 7058:61618), red error diamond `kern-icon--danger` in `feedback-danger` for a spec 002 problem (U50 7375:101551, FR-041a). States the V5 frames don't draw (the kit draws no tab): hover and pressed darken an unselected name to #0b1220, weight kept, 150 ms (`.motion`); keyboard focus KERN's 4 px `action-focus-default` ring, offset 2, none after a click. `FindingsSegment` on the dark bubble (U46 6758:43524): divider `layout-text-inverse` white at 24 %, the kind icon white, its parts 8 apart through the bubble's own gap. Call sites unchanged (they keep the `children` form until T064, T073, T079 switch to `tab`) **T070 (2026-11-09):** `BranchFindings` gains the optional `more` (a second segment): under a problem, the variant's findings, below their own divider, each with its own white icon (U06 note 8); `FindingsSegment` renders it (`SegmentDivider`, `SegmentLine`). The rules step's `BranchTab` takes `problem` and `findings` separately and passes `{ ...problem, more: findings }`; the test step and the details pass no `more`. |
 | `Checkbox` | V5 "Data/Check item" `6027:17252`, build note 2 (P33 base-checkbox is KERN's 32 px box) | b | `kern-form-check__checkbox` + the scoped override in `index.css` headed with this row: the flex row (4 px above and below, 8 px gap), the 20 px box, radius 4, 1 px `layout-border`, the 14/24 label; checked: action-blue fill with `check-white-small.svg` (= the design's icon-done-small) as a background image; mixed: a white 10 × 2 dash (radius 1) as an SVG background; KERN's `::before` tick switched off (`content: none`); hover, keyboard focus (3 px ring), disabled | default, hover, focus, checked, mixed, disabled | T006: kept b, `KernCheckbox` stays, the 20 px box, tick and mixed dash are the override; built by T016. **T016 (2026-11-08): kept b.** The V5 component "Data/Check item" (not the kit's 32 px base-checkbox) is the design's checkbox on every Flow screen (U26, U36; its description: "Built on Revamp tokens because the KERN Revamp base-checkbox is 32 px"); the override replaces the old `:indeterminate::before` rule. The box sits 2 px below the row's top padding (centred on the label's first 24 px line) so that a wrapping label keeps the box on its first line. New optional `disabled` prop |
 | `ConfirmDialog` | P12, P33 dialog-actions | a + b | `kern-dialog` with 1–3 buttons, × and the scrim rule; `.kern-btn--danger` (filled on `--primary`, outline on `--secondary`) | open, long labels, scrollable, working | T006: kept a + c, on `kern-dialog` already; built by T035. **T035 (2026-11-08): a + b.** KERN's `kern-dialog` markup (`__header`, `__body`, `__footer`) with the overlay; utilities on the element: 480 wide (`w-480`, every screen's dialog: U14 `6699:44480`, U17 `7173:52682`, U25 `7299:52174`, U90 `6417:31599`; `wide` gives the kit's 600), centred with 16 px gutters on a narrow screen (`m-auto! min-w-0! max-w-[calc(100%-32px)]!` beat kern.css's bottom sheet below 768 px), radius `border-radius-large` 12 on every corner, the 1 px `layout-border` drawn inside (`border-0! ring-1 ring-inset`) and the footer's top line inside its 24 px (`pt-23!`), so the dialog is the drawn 480 × 256; the scrim `action-state-indicator-shade` #0b1220 at KERN's overlay 72 % (kern.css's own `::backdrop` opacity; only the colour changes, was black). Buttons (P33 dialog-actions): a grid of equal columns from a footer width of 384 px (2 buttons) / 528 px (3), a full-width stack below (container query on the footer), in the order cancel, secondary, confirm; 3 buttons stack in the 480 dialog (the kit's long-label variant), sit in a row in the 600 one; labels wrap inside the buttons. Cancel is secondary, tertiary with three buttons. **Danger buttons (option b, `index.css`)**: `.kern-btn--danger` re-derives `action-default(-contextual)`, the two shades (filled hover/pressed) and the two tints (outline hover/pressed) from the overlay's `feedback-danger` #c4271c on the button; `kern-btn--primary kern-btn--danger` is the filled danger button ("Delete connection"), `kern-btn--secondary kern-btn--danger` the danger outline button ("Discard connection", "Remove 1 document") — no separate `kern-btn--danger-outline` class. Also in `index.css`: the pressed tint of every secondary and tertiary button (KERN's hover rule hid it, as T028 fixed for primary) and the dialog fade (§4) **T053, 2026-11-08**: third use of the form without cancel ("No data selected in 1 document": `secondaryDanger` "Remove 1 document" + "Choose data", scrim on; ×, Escape and the scrim answer as "Choose data"). |
 | `ConnectionStatusBadge` → status pill | U07 #1 | c | dot + label, tint, radius 8 | active, draft, deactivated | T006: kept c, replacing today’s `KernBadge`: the pill has a dot, not KERN’s icon, and draft/deactivated are no feedback types; built by T019. **T019 (2026-11-08): kept c.** Own markup as V5 "Status/Connection" (`7341:101125`, U11 `6699:44264`, `6699:44277`, `6699:44290`, U93 `I7362:54693;6698:43405`): an inline pill 24 high (the instances' height; the component's 2 px vertical padding does not show at 24), padding 0 10, gap 6, radius 8 (`border-radius-default`), no border; an 8 px decorative dot (`aria-hidden`) and the label in `label/small` 14/24 600. Colours (raw hexes in Figma; the overlay token where the hex equals one): active `#eaf7e6` / dot and label `#1d7a2e` (`feedback-success(-background)`); draft `#e0f2fe` (`feedback-info-background`), dot `#0284c7`, label **`#05669e`** (the design's own blue, 5.38:1 on `#e0f2fe`, so no AA fix; UNCERTAIN against the task's "AA value of §1.5", see the report); deactivated `#eff1f4`, dot `#8c94a1`, label `#4a5468` (`layout-text-muted`). Labels "Active" (was "Live", the design's wording), "Draft", "Deactivated"; the text stays, so the status never rests on colour (005-ACC.1). "Scheduled" is F1 and not a type. The dot is a CSS circle (`rounded-kern-circle size-8`), not `icons/dot.svg`: an `<img>` can't take the per-status `currentColor`, and the circle is the same 8 × 8 geometry. Props unchanged (`isActive`, `draft`), no call site changed |
@@ -241,14 +241,14 @@ it (§5).
 | `NotFound` | P07 | c | the alert and the way back | default | T006: kept a + c; built by T037. **T037 (2026-11-08): c** (the alert part dropped, UNCERTAIN): the design's empty state (§3 "Empty state", U11 `6699:44481`'s anatomy): `PageTitle size="x-large"` "Page not found" as the one heading (heading/x-large 500 32/40, `6699:44486`), then the light blue card (`bg-kern-layout-background-hued`, `rounded-kern-large` 12, padding 48 and gap 48 from `md`, padding 24 below; `6699:44488`) holding the baseline's sentence (body/default 400 16/24 muted, max 578 wide as `6699:44490`), 32 px above the one primary action "Go to connections" with the forward arrow (`kern-btn--primary`, 48 high, `6699:44508`), and the wallet star 200 × 193 at the right (`6699:44509`, `alt=""`, U02 build note 12), hidden below 768 px in a wrapper (kern.css's unlayered `img { display: block }` beats `hidden` on the `img` itself). No alert: a 404 has no reason or error ID to carry, and a title-only alert would repeat the h1 (U02 #5's slim alert is for errors and warnings; the error state of a page keeps it). No eyebrow "Error 404" (no frame draws it). `constants.ts`: `title`, `text` (baseline), `action` "Go to connections"; `eyebrow` removed. Used by the Approval page (unknown request) and `FormConnectionLoadState` (unknown or deleted connection, inside `WizardLayout`, where the column's 32 px gap puts the card 32 under the h1 instead of AppLayout's 16) |
 | `PageTitle` | P31 | a | `kern-heading-display` for the 40/48 page h1 (kit “heading/display”, 2x-large adaptive), `kern-heading-x-large` (32/40) and `kern-heading-large` (24/32) where a frame uses those styles | default | T006: class corrected …; **T017 (2026-11-08): kept a**, with a new optional `size` prop (`display` default, `x-large`, `large`) choosing the KERN class; `py-0!` removes KERN's baseline paddings, because the frames draw the text boxes without them (U11 `6699:44244`: 40 + 24 = the 64 px block; U74 `7062:50965`: 32 + 24), and the hint follows right under the heading (gap 0, was 8), `body/default` 16/24 muted (`body/small` 14/24 under `large`); the heading drops `focus:outline-none` (CLAUDE.md: never `focus:`) for `outline-none` (it is no control); built by T017 (T043 uses `size="x-large"`) |
 | `RuleRow` (+ name, predicate, sentence, message, problem note, value chip) | U30, U55 | c | the row, the statement chips, the symbol chips | default, hover, open menu, selected, removed, problem, linked | T006: kept c; built by T024. **T024 (2026-11-08): kept c**, own markup on Tailwind as V5 "Rules/Rule row" (`6083:3453`) draws it: the row padding 8 16 8 24, gap 16; the content column gap 4 (name row, sentence, message); the name `label/small` 14/24 600 in `action-default`; the sentence (C3) "<glyph 16> Personal ID · <data> <≥> <words> <values>": document `body/small` muted with the separator "·" (was "–", `RULE_ROW_COPY.documentSeparator`), data `label/default` 16/24 600, words `body/default` 16/24 muted, 8 apart and 4 between wrapped lines; the symbol chip (`Rules/Symbol` `6082:3409`: white, 1 px `decorative-border`, fully round, min 24 wide, 0 8 padding, 14/24 600) and the value chips (`Rules/Value chip` `6082:3447`: white, 1 px `decorative-border`, radius 4, 2 8, 14/24 600), cosmetic 22; "Message for citizens:" (C2, was "Error message citizens read:") in `label/small` muted, 8 px before the message in `body/small`; the actions column (mark, ⋯) gap 8, centred, and kept 32 × 32 when empty (U82 `6650:37780`: the read-only row reserves it). Problem and finding: the row 8 px in from the card in an outline (white, 1 px `feedback-danger` for a problem, the finding's colour otherwise, radius 8) with the note under it (24 in, 8 above the bottom; the problem note `Rules/Problem note` level=blocking `6110:3657`: 20 px info icon, 8 gap, 14/24 600 danger); the outline's colours change in 150 ms (`.motion`). Removed (U47 `6185:8570`): name, statement and message fade to 40 %, statement and message struck through, the mark and ⋯ not faded; the message line stays (F36, FR-040; the design hides it). Selected: a new optional `selectBox` slot before the row (U36 `6344:53557`; the row itself is drawn unchanged, no tint). Linked: no link icon (002-S4.31 "on every linked rule or none", spec 002's choice "none", CLAR 2026-11-07 #24 (b); U40's two icons are not built). Read-only (details): `showIdentifier` shows "rule-7" 8 px after the name in `body/small` muted with the hidden word "Identifier" (F35; the design draws no identifier). V6: no `overflow-*`, `transform` or `filter` in the row. No `index.css` rule. Props unchanged except the new optional `selectBox`; no call site changed |
-| `TextField` | P14, P33 base-input-field, base-textarea; V5 "Form/Textarea" `6681:40216` | a | `kern-form-input` text, password, textarea | default, hover, focus, error, disabled, readonly | T006: kept a, on `KernInput` already; built by T015. **T015 (2026-11-08): kept a**, no `index.css` rule: `kern-form-input` / `kern-form-input__input` with the overlay give the kit's states as drawn (48 px, `layer-surface` fill, 2 px `form-input-border` line, radius 4; hover a 4 px line; focus KERN's 4 px `action-focus-default` ring outside, in `feedback-danger` on an error; disabled 40 %; readonly no fill and a 1 px `layout-border` line; error `feedback-danger-background` and a 2 px danger line). Utilities on the KERN markup: the placeholder in `layout-text-muted` (kern.css sets none; U19 draws `#4a5468`), and for `multiline` the V5 "Form/Textarea" (`h-120!`, KERN's own 8/16 padding, `resize-y`, spell check on by default, FR-032). The label row is U19's (`6699:45394`): label 16/24 600 without KERN's baseline padding, 4 px to an addon, 8 px to the field; "(optional)" in the label's own style (was KERN's muted "- Optional"; U19 `6699:45401`, report cosmetic 6); the red "*" (`requiredMark`, `aria-hidden`) as U19 `6699:45396` draws it. The danger bar (`kern-form-input--error`) wraps the field and its message only, not the label (U19 `6699:45398`; the kit's P26 error wraps the label too: the screen frame decides). New optional props, no call site changed: `multiline`, `trailing` (the password toggle's slot inside the field's right end, `pr-56!` on the input, FR-051 (29)), `requiredMark`, `hint` (KERN's `kern-hint`, linked), `invalid` (error state without a message, F16) |
+| `TextField` | P14, P33 base-input-field, base-textarea; V5 "Form/Textarea" `6681:40216` | a | `kern-form-input` text, password, textarea | default, hover, focus, error, disabled, readonly | T006: kept a, on `KernInput` already; built by T015. **T015 (2026-11-08): kept a**, no `index.css` rule: `kern-form-input` / `kern-form-input__input` with the overlay give the kit's states as drawn (48 px, `layer-surface` fill, 2 px `form-input-border` line, radius 4; hover a 4 px line; focus KERN's 4 px `action-focus-default` ring outside, in `feedback-danger` on an error; disabled 40 %; readonly no fill and a 1 px `layout-border` line; error `feedback-danger-background` and a 2 px danger line). Utilities on the KERN markup: the placeholder in `layout-text-muted` (kern.css sets none; U19 draws `#4a5468`), and for `multiline` the V5 "Form/Textarea" (`h-120!`, KERN's own 8/16 padding, `resize-y`, spell check on by default, FR-032). The label row is U19's (`6699:45394`): label 16/24 600 without KERN's baseline padding, 4 px to an addon, 8 px to the field; "(optional)" in the label's own style (was KERN's muted "- Optional"; U19 `6699:45401`, report cosmetic 6); the red "*" (`requiredMark`, `aria-hidden`) as U19 `6699:45396` draws it. The danger bar (`kern-form-input--error`) wraps the field and its message only, not the label (U19 `6699:45398`; the kit's P26 error wraps the label too: the screen frame decides). New optional props, no call site changed: `multiline`, `trailing` (the password toggle's slot inside the field's right end, `pr-56!` on the input, FR-051 (29)), `requiredMark`, `hint` (KERN's `kern-hint`, linked), `invalid` (error state without a message, F16) **T064 (2026-11-09):** the variant dialog (U37 6139:32693, U52 6197:12011) uses `TextField` (`requiredMark`; `multiline optional hint`) with screen-level utilities on a wrapper (`RulesStep/constants.ts` `VARIANT_FIELD_CLASSES`): the labels with the kit's label baseline 6/2 (32 px; U19 draws none), the helper as body/default 16/24 `layout-text-default` with its baseline and 8 px under it, the textarea 64 high (`TextField`'s 120 is step 1's "Form/Textarea"), and on a refused name the danger bar beside the label too (the kit's P26 error, as U52 draws it; the §2 row says "the screen frame decides"). `TextField` itself unchanged. The "Start with" radios are the design's "Data/Radio item" (6387:26931, a KERN extension matching "Data/Check item"): KERN's `kern-form-check__radio` with utilities on the element (`START_WITH_OPTION_CLASSES`: 20 px, 1 px `layout-border`, selected 1 px action blue with a 10 px action-blue dot; hover, focus as the Checkbox override), no `index.css` rule; `AccessLevelChoice` keeps the kit's 32 px radio. |
 | `Toast` (+ message) | U10 #20, U51, U17 #39, U61 #9 | c | the dark toast, bottom centre, optional action | neutral, success, with action, with error ID | T006: kept c, KERN has no toast; **T036, 2026-11-08: built c; kinds `neutral` / `success` (U61's drawn `danger` type built as neutral, UNCERTAIN); `noFooter` for pages without the footer bar** |
 | `TopBar` | L2 | c | the two pills, the connection pill | signed out, signed in, in a connection, scrolled | T006: kept c; built by T031. **T031 (2026-11-08): kept c**, own markup as "Shell/Header · two pills" (`6688:41392`) and "Shell/Header · in a connection" (`6698:43392`) draw it: a `header` (sticky, `z-30`, `pt-16 px-16`, so the header area is 64 high with the pills 16 from the top and the sides), transparent, white (`layout-background-default`, 150 ms `.motion`) once `window.scrollY > 0` (U03 #39). Pills: 48 high, `rounded-kern-circle`, `--shadow-card` ("Elevation/Card"), the Konnekt pill `layout-background-hued` signed in / white signed out (new prop `signedOut`, U03 #33), padding 0 24 0 16, gap 8, the 24 px logo (`assets/illustrations/logo.svg`, new: Figma's export of the "logo" layer, `#1d56f0` squares) and "Konnekt" 16/24 600; the pills' gap 16 (two pills) or 8 (in a connection), the stretching spacer between them. **In a connection** (`title` set): "Pill · Where you are" `layout-background-hued`, padding 0 16, gap 8: "Your connections" (`label/small`, `action-default`, a link home, underlined on hover as U17 6a draws it), "/" (`body/small` muted, `aria-hidden`), the name (`label/small` ink, `truncate`, the h1 with `titleAsHeading`), the status pill 8 px after it (T019's `badge`); a `nav` "Breadcrumb". It grows out of the Konnekt pill on mount: `animate-pill-grow` (a `clip-path: inset()` reveal from its left edge, 240 ms ease-out; `width: auto` can't be transitioned in every browser) and its text `animate-pill-text` (opacity, the last 120 ms), both `.motion` (FR-050, U03 #40). `onLeave` (new, T048): a plain click on the product name or "Your connections" calls it instead of going home (modifier clicks still follow the link). `meta` (the description, W10) stays: muted 14/24, one line with "…", after the second pill (U80/U91's breadcrumb row is T078's to check). No DE/EN switch (F6). Below `md` (no frame) the second pill and the meta take rows of their own (header 120 high with the pill), the name truncating (W2, 320 px: no horizontal scroll). Props `title`, `titleAsHeading`, `badge`, `meta`, `logoTo`, `children` unchanged; `signedOut`, `onLeave` new; `AuthLayout` passes `signedOut` (one-line change) |
 | `UserMenu` (+ `SignOutDialog`) | U13 `6699:44358`, U17 | c + a | the account pill and its menu; the log-out dialog on `ConfirmDialog` | closed, open, focus, the dialog | T006: kept c + a; built by T031. **T031 (2026-11-08): kept c + a.** The account pill (U11 `I6699:44242;6688:41398`, build note 14): 56 × 48, white with an `action-default` layer at 12 % (`::before`), pl 8 pr 4, T004's `person.svg` (24) and `expand-more-small.svg` (20) in `action-default` as masks (`.icon-person`, `.icon-expand-more-small` in `index.css`: the files fill with `currentColor`, which an `<img>` can't take); no initials, no name (FR-030; `initialsOf()` and its test removed); hover / pressed / open the kit's "states" layer on `::after` (8 % / 16 %, 150 ms `.motion`), keyboard focus KERN's 4 px ring offset 2; accessible name "Signed in as <username>". The menu "Shell/Account menu" (U13 `6699:44358`): **260** wide (not the ⋯ menus' 220: the frame draws 260), 1 px `decorative-border`, radius 8, padding 8, gap 4, `--shadow-menu`, `z-40`, placed with `placementFrom()` and own class sets (`ACCOUNT_MENU_PLACEMENTS`, `end` preferred: right edge on the pill's, 8 below); the name in `label/default` 16/24 600 with padding 8 (F17: no email), a divider, then the entries as U13's "Menu item · Log out" draws them: 40 high, padding 8, `body/small` 14/24 **regular**, ink, **no icons** (the old account-circle and logout icons are gone), radius 4; hover / pressed / keyboard focus as the ⋯ menus' entries (T021's `ACTION_MENU_STATES`, the select-option focus fill). "Your account" (a link, 007-S2) then a divider then "Log out" (UNCERTAIN: see the report). Behaviour as the baseline: Escape, Tab, a click outside close it; arrows, Home, End; the local-drafts warning (`SignOutDialog` on `ConfirmDialog`, unchanged; T035 restyles the dialog), focus back on the pill after "Cancel". New: after logging out the sign-in screen gets the router state `{ from, loggedOut: true }` (`LoggedOutLocationState`) for its toast (T040); new optional prop `onLogOut(logOut, trigger)` for the editor's "Save before you log out?" (T048) |
 | `ValuesPicker` (+ option item) | U32 `6357:43090` (menu `6357:43382`), U48 `6191:42065` / `6191:42209`, `6191:42191` | c | the picker with search and "Done" | open, option hover/focus/selected/disabled | T006: kept c; built by T027. **T027 (2026-11-08): kept c**, KERN 2.8.2 has no menu or multi-select. The field is V5 "Rules/Multi-select field" (`6191:41863`, U48 `6191:42191`): 40 high, pl 16 pr 8, gap 8, radius 8, 1 px `decorative-border`, open 2 px `action-default` (1 px border + 1 px inset ring), the chosen values as "Rules/Value chip"s (codes only, 4 apart), unchanged. The menu as U32 "Menu" `6357:43382` draws it: 300 wide, 1 px `decorative-border`, radius 8, padding 8, parts 2 apart, `--shadow-menu`, 8 px below the field at its left edge; T015's `MenuSearchField` (`menu`) on top ("Search classes" / "Search options", from 10 options or for classes); the list (`min-h-0 overflow-y-auto`) under it; the baseline's footer ("Select at least one option." / "No options match “…”.", divider + 14/24 muted, padding 8 0 4 8) kept; then the **"Done"** row (U32 `6357:43428`, FR-039, CLAR Q27): KERN's secondary button right-aligned, which closes the menu, keeps the choice and gives the focus back to the field (Escape does the same). Class options are "Rules/Menu item · class" type=multi (`6358:43249`/`6358:43255`, W19): min 40 high, padding 8, gap 8, radius 4, the box in a 4 px-padded 28 px slot, the code `label/small` 14/24 600 min 32 wide, the description `body/small` 14/24 400 filling the rest (44 high, 64 when it wraps); other values are "Data/Check item" (`6027:17252`, U48): 28 px rows in a list padded 4. The box is KERN's `kern-form-check__checkbox` with T016's `Checkbox` override in `index.css` (no own box any more; `mt-0!` drops the override's 2 px top margin, the slot centres it): default, hover 2 px blue (also over the label), checked with the tick, checked hover the 3 px tint ring, keyboard focus the 3 px `#0b1220` ring on the box only. States the V5 frames don't draw: a class row's hover / pressed as the kit's "states" layers (P33 `2:1985`, 8 % / 16 % action blue, 150 ms, `.motion`), as the ⋯ menus' entries; a disabled option (new optional `ValueChoice.disabled`) at the kit's 40 % (KERN fades the box, the row its texts), not toggled, skipped by the arrow keys. **Placement** with T020's `placementFrom()` and class sets (`VALUES_MENU_PLACEMENTS`): the up/down choice uses the drawn 316 px height (or the menu's own, if shorter) so that it opens down where U32's menu fits ("Rules/Picker": "Menus always open downward"), else up; the frame takes the `max-h-*` step, the list scrolls inside while the search field, the footer and "Done" stay put; where neither side fits (320 px) it spans the rule editor's content (`inset-x-24`), and opening up its static wrapper becomes a flex column so that it starts at the field's top whatever the field's height (wrapped chips). The persona form field (`field`, test step) keeps the baseline: its menu spans the field below it, in the data card that scrolls it, at the 400 step (was a 280 px list). `z-40` (was `z-20`). No `overflow: hidden` on the frame (the search field's 4 px ring shows in the padding). No `index.css` rule. Props unchanged; `ValueChoice` gains optional `disabled`; no call site changed. **T061 (2026-11-08):** the rule editor's `ChoiceMenu` no longer uses `z-20`, `mt-4`, `max-md:left-24`: it uses `placementFrom()`, `z-40` and 8 px as the values menu does (T027's carried note closed). **T062 (2026-11-08):** chips kept in the field, not U32 `6357:43363`'s "B, BE" text (U48's "Rules/Multi-select field" `6191:42191` and 002-S3.39); "Search classes" kept on the licence classes (U32 `6358:61888`, 002-S3.37) where U48 draws "Search options"; footer and error "Choose at least one option." (U48 #16, #23, cosmetic 9) |
 | `WizardLayout` | L3 | c | the sticky step header and footer, page scroll | create, edit, saving, loading, failed | T006: kept c; built by T033. **T033 (2026-11-08): kept c (+ b for the footer buttons).** The design's page L3 (U19 `6699:45321`): white page (`layout-background-default`; the old `neutral-025` is gone), `TopBar` + `UserMenu` (T031; `onLeave` and `onLogOut` passed through for T048), the step header, the content column and the footer, in a `min-h-dvh` column. **The page scrolls** (U01 #15, research R4): no inner scroll container, no `split:`, no `[@media(height<30rem)]`, no `cqh`. The **step header** ("Shell/Step header · compact", U03 #42–#43): a full-width white band (`z-15`) holding the 1120 column with `pt-32 pb-24` and the `head` (T032's step line, then `PageTitle size="large"`: heading/large 600 24/32, body/small 14/24 muted, no gap) 16 apart (the instances' 16, not U02 #1's 8; T032 carry); sticky at `top-64` under the pills where the window has room (`wizard-pinned:`, a new custom variant: ≥ 768 px wide and ≥ 640 px tall), else it scrolls away. The **footer** ("Shell/Footer" `6262:12701`, U01 #20): white, the 1 px `decorative-border` line as an inset shadow (so 16 + 40 + 16 = 72), the 1120 column, gap 8, wrapping into rows (005-ACC.4), sticky at the bottom in windows ≥ 480 px tall (`[@media(height>=30rem)]:sticky`), else at the page's end; option b: `.wizard-footer .kern-btn { min-height: 40px }` and the outlined button's label `padding-block: 7px` (its 1 px border is outside the label, Figma draws it inside the 40) in `index.css`. **How much the sticky parts cover** is measured (ResizeObserver + `resize`, `useLayoutEffect`) and published as `--wizard-sticky-top` / `--wizard-sticky-bottom` on `<html>`, removed on unmount: `index.css` uses them for `scroll-padding-top` / `-bottom` (focus and `scrollIntoView` stay clear of the header and footer, WCAG 2.4.11), `placementFrom()` for the menus' edges, `Toast` for "24 above the footer", the selection bar for its pin line, the documents list and the test panel for the visible height (the exceptions' slots, U01 #16–#19, F43). New props: `variant` (`steps` default, `details`: no step header, the 832 column, L4, for T078), `onLeave`, `onLogOut`; `footer={null}` renders no footer (the restore screen). `constants.ts` new (`STICKY_*_PROPERTY`, `STEP_HEADER_CLASSES`, `FOOTER_CLASSES`, `COLUMN_CLASSES`, `VISIBLE_HEIGHT_CLASSES`). The footer's actions (`EditorFooter`): Back and "Save and exit" (tertiary with the "save" glyph, cosmetic 17) or "Discard changes" (tertiary with the "undo" glyph, FR-045; an `onDiscard` slot, wired by T083) left, 8 apart; the step's action right with `ml-auto`; "Test rules" is T022's `ExplainedButton` ("Save the rule first" / "Finish grouping first", FR-034, W21) **T037 (2026-11-08)**: the page fade on `main` (step header, content, footer), keyed by the path (`key={pathname}`; the path is also in `useStickyEdges`' dependency key, so the observer follows a remounted step header and footer); a module-level `shownPath` (`usePageFade`) keeps a layout that takes over on the same path (loading → loaded, the restore screen → the editor) from fading in a second time. A change of step keeps the path: no fade, no scroll, the step's h1 takes the focus (unchanged, T033) |
 | `WizardProgress` (+ step) | U02 #1–#4 | c | the step line, `role="progressbar"` | 1–4, clickable (edit), not clickable | T006: kept c, the kit’s P25 progress is a bar, not the step line; built by T032. **T032 (2026-11-08): kept c**, no `index.css` rule. Two forms of V5 "Shell/Step line" (`6630:40056`, KERN EXTENSION). **Creating** (U19 `6699:45327`, U63 `7112:48729`): one 24 px row, gap 16: "Step n of 4" (`body/small/regular` 14/24 `layout-text-muted`, `aria-hidden`), the four segments (4 high, 4 apart, radius 2 as `rounded-[2px]` because the overlay's small radius is 4; `action-default` up to and including the current step, `decorative-border-default` after) and "Next: <step>" / "Last step" in the same style; not clickable (no hover, no pointer). The segments are the `role="progressbar"` with `aria-label` "Step n of 4", `aria-valuemin` 1, `aria-valuemax` 4, `aria-valuenow` n and `aria-valuetext` the step's name (FR-025b). **Editing a published connection** (U98 `6731:39827`, F25): the four segments with the steps' names under them (`label/small` 14/24 600, 4 px gap; 32 high), equal widths (277 at 1120), each never narrower than its name's longest word (`min-w-min`, so "Connection" and "Documents" stay whole at 320 px); the current step `action-default` line and name with `aria-current="step"`; every other step a `<button>` ("Shell/Step link" `7139:50059`: `layout-text-muted` line, `layout-text-default` name; hover and pressed both blue, 150 ms `.motion`); keyboard focus KERN's 4 px ring, offset 2; in `<nav aria-label="Steps">` with an `<ol>` (a progress bar can't hold buttons). No numbers (`--text-step` is unused from here, §7/T090), no "Step n of 4" / "Next" in the edit form (as drawn). Past the last step (`current` ≥ 4, the details) it renders nothing (FR-025e). Props: `steps`, `current`, `onSelect` (now: the edit flow only); `reached` removed. The Draft badge is not part of the step line in any frame read (U19 `6699:45321`: no badge on step 1 before the first save; the badge belongs to the header's breadcrumb pill, P08) |
-| The pages' own components (research R11): `StatusBand`, `WelcomePage`, the documents list, detail and search card, the persona chips, data card and result rows, the publish dialog, the variant dialog and popover | the frames of their screens | c | — | the screen's states | T006: kept c; built by T042 (`WelcomePage`), T051 (documents list, detail, search card), T064 and T067 (variant dialog and popover), T071 and T072 (chips, data card, result rows), T076 (publish dialog), T078 (`StatusBand`) |
+| The pages' own components (research R11): `StatusBand`, `WelcomePage`, the documents list, detail and search card, the persona chips, data card and result rows, the publish dialog, the variant dialog and popover | the frames of their screens | c | — | the screen's states | T006: kept c; built by T042 (`WelcomePage`), T051 (documents list, detail, search card), T064 and T067 (variant dialog and popover), T071 and T072 (chips, data card, result rows), T076 (publish dialog), T078 (`StatusBand`) **T071 (2026-11-09): kept c** for the persona chips (`PersonaChip`, `ApplicantsRow`, "Generate all"), the data card (`PersonaPanel`, `PersonaHead`, `PersonaData`, `DocumentValues`, `ValueRow`: one flat list from `dataRowsOf()`, hidden per-document headings, "Date of birth") and the result rows (`ResultSection`, `ResultTable`, `ResultRow`, `MemberRows`: statement, status text, group statements in the frame's words); radius 8 on the area and the cards. **T072 (2026-11-09): new** `EditDataDialog` (on `ConfirmDialog wide`, the scrim on) in place of `PersonaEditor` (deleted); kept c: `DocumentFields` (two columns), `EditorField` ("Date of birth", "Class B since"), `FieldFrame`, `ValueField`, `ValuesField`, `ChoiceField`, `DateOfBirthField`, `RegenerateDialog`. **T073 (2026-11-09): kept c** for the test step's variant tabs (`VariantTab` on `BranchName`'s `tab` form, `VariantTabs` on `TAB_ROW_CLASSES`); `ResultSection` without the notice line (CLAR #50). **T067 (2026-11-09): kept c** for the "Copy to variant" popover (`CopyPopover`: the design's 300 px popover, T020's side and direction, `z-40`, the focus kept inside; FR-040, W17) and its check items (`CopyTargetItem` now the shared `Checkbox`, T016's override: the last own-drawn 20 px box is gone); the variant tab menu is `ActionMenu` with `menuEntriesOf({ kind: 'variant' })`. |
 
 Kit components not drawn on any Flow screen are not built (spec Assumptions): P16 Footer, P17
 Grid, P18 Header, P19 Kopfzeile, P28 Table, and the "Not used on Flow" section (U03 #20).
@@ -268,16 +268,16 @@ later use.
 | Pattern | Source | Anatomy and rules |
 |---|---|---|
 | **Alert, page level** | U02 #5–#7 (build note 7), P07 | the slim KERN alert, title only in one 64 px line, when the alert carries a title alone; with a body (an error ID, a list, "Try again", "Remove it", "Dismiss") the design's alert keeps those parts (F22). Kinds: danger, warning, info, success. The error ID line reads as `ErrorNoticeText` has it |
-| **Unrequested-data banner** | U50 `6863:47363` (T060) | the findings banner's danger kind: `feedback-danger-background`, 1 px `feedback-danger` border, radius 8, padding 8 8 8 16, one 20 px error diamond + body/small line per rule, the action ("Add it in Documents") on the first line's right, wrapping under at narrow widths; flush at the top of the card's list (`UNREQUESTED_BANNER_CLASSES`, RulesStep `constants.ts`); `role="alert"` |
+| **Unrequested-data banner** | U50 `6863:47363` (T060) | the findings banner's danger kind: `feedback-danger-background`, 1 px `feedback-danger` border, radius 8, padding 8 8 8 16, one 20 px error diamond + body/small line per rule, the action ("Add it in Documents") on the first line's right, wrapping under at narrow widths; flush at the top of the card's list (`UNREQUESTED_BANNER_CLASSES`, RulesStep `constants.ts`); `role="alert"` flush at the top of the card's list, or, with the findings banner right after it, at that banner's 8 px inset, the two 8 px apart (T070; `UNREQUESTED_BANNER_CLASSES`, `data-findings-banner` on `FindingsBanner`'s wrap). |
 | **Field error** | U19 `6699:45379`, U49, build note 7 | directly under the field, the field's border and fill in the error state, linked with `aria-describedby`; the focus moves to the first field with a problem Documents step variant: **Field error** (the documents step's variant, T053): a document without data shows its message in its card header in place of the count ("Choose at least one data item, or remove this document.", body/small `feedback-danger`), linked to "All data items" with `aria-describedby`, which takes the focus; the list marks the item (danger tile, glyph, name, KERN's `kern-icon--danger`) and heads the list with "1 document needs data" in red, which describes the marked items. |
 | **Toast** | U10 `7128:74220`, U51 `6197:11098`, U61 `6545:39421` | dark neutral toast, bottom centre, one at a time, announced through the live region; optional action ("Try again", "Undo", "Show"); with an error ID for a 5xx |
 | **Dialog** | P12, P33 dialog-actions; U14 `6699:44480`, U17 `7173:52681`, U25 `7299:52174`, U90 `6417:31453` | the kit's widths, 1–3 buttons with long-label wrapping, ×; Escape, × and the scrim close a dialog that doesn't delete or publish (FR-052a); the focus stays inside and returns to the opener; a danger action is the danger outline button where the design draws one ("Discard connection") and the filled danger button where it draws that ("Delete connection") |
 | **Menu** | U54 `6522:33105` (build note 10), U13 `6699:44358`, build note 3 | anchored to its trigger's wrapper with class sets (no inline styles, R10), 220 px, 40 px rows with icon, inner scroll with a max-height step (160–480 px) fitting the space to the header or footer minus 8 px, downward when it fits above the footer, otherwise upward; no clipping ancestor; Escape and a click outside close it; arrow keys; destructive entries last after a divider, "Copy link" before them |
 | **Menu** (addition, T061) | U30 6350:41316, U31 6350:41548, 6635:36529 | the rule editor's single-select menus (`ChoiceMenu`) follow it: placed from the picker's wrapper with `placementFrom()` as the menu opens (`useLayoutEffect` in `ChoicePicker`: a choice opens the next picker's menu, whose picker may only appear or move in that render), the height it decides with is its estimated height capped at the drawn 294 (U31 parts menu), the frame takes the max-height step and its list scrolls; entries take T021's hover/pressed layers and keyboard fill |
-| **The rules step's menus** (FR-036) | U54 `6522:33105` (build note 10), U55, U56, U57, U58, U59; CLAR #22, #48, #53, #54, #60, #61; 007-S4 | `menuEntriesOf(menuItemOf(branches, branchKey, id), { branchKind, linkable })` in `RulesStep/utils.ts` (pure, tested; T055). The menu shows only what it returns, in `MENU_ENTRY_ORDER`: Edit · Rename · Add message · Remove message · Duplicate · Copy to variant · Group with other rules · Ungroup · Reset to Standard · Restore · Copy link · then, after the divider, Remove from <variant> or Delete …. "Copy link" appears whenever the connection is stored (`linkable`), as the last entry before the destructive one, and also after "Restore". An item linked to Standard in a variant has no Rename, Duplicate or Ungroup, and offers "Remove from <variant>". "Copy to variant" appears only while some other variant could still receive the rule. "Group with other rules" carries its select-mode scope (`'top'` or the group's id). `selectableIn()` decides which items count as neighbours and gets a box. An item faded with a removed or dissolved group has no menu at all **T058 (2026-11-09):** built in `RuleMenu` / `GroupMenu`, each entry mapped to its label and `MENU_ENTRY_LOOKS` (`RulesStep/constants.ts`: icon, `danger`, `separated`); "Restore rule / group / sub-group", "Delete rule / group / sub-group" (a group shown as a sub-group says "sub-group"), "Remove from <variant>"; "Copy link" after "Restore" has no icon; "Add message" on a group with a message only moves the focus to its message field; no "Group with other rules" on groups (#64) |
+| **The rules step's menus** (FR-036) | U54 `6522:33105` (build note 10), U55, U56, U57, U58, U59; CLAR #22, #48, #53, #54, #60, #61; 007-S4 | `menuEntriesOf(menuItemOf(branches, branchKey, id), { branchKind, linkable })` in `RulesStep/utils.ts` (pure, tested; T055). The menu shows only what it returns, in `MENU_ENTRY_ORDER`: Edit · Rename · Add message · Remove message · Duplicate · Copy to variant · Group with other rules · Ungroup · Reset to Standard · Restore · Copy link · then, after the divider, Remove from <variant> or Delete …. "Copy link" appears whenever the connection is stored (`linkable`), as the last entry before the destructive one, and also after "Restore". An item linked to Standard in a variant has no Rename, Duplicate or Ungroup, and offers "Remove from <variant>". "Copy to variant" appears only while some other variant could still receive the rule. "Group with other rules" carries its select-mode scope (`'top'` or the group's id). `selectableIn()` decides which items count as neighbours and gets a box. An item faded with a removed or dissolved group has no menu at all **T058 (2026-11-09):** built in `RuleMenu` / `GroupMenu`, each entry mapped to its label and `MENU_ENTRY_LOOKS` (`RulesStep/constants.ts`: icon, `danger`, `separated`); "Restore rule / group / sub-group", "Delete rule / group / sub-group" (a group shown as a sub-group says "sub-group"), "Remove from <variant>"; "Copy link" after "Restore" has no icon; "Add message" on a group with a message only moves the focus to its message field; no "Group with other rules" on groups (#64) **T067 (2026-11-09):** the variant tab's ⋯ (`BranchMenu`, every tab, F28) shows `menuEntriesOf({ kind: 'variant' }, …)`: "Rename" (opens "Edit variant"), "Copy link" (stored), and after the divider "Delete variant" on every variant but Standard. |
 | **Tooltip** | U37 `6151:33820`, U46 `6758:43524`, U81 `6809:46590`, U07 #16 | the design's tooltip (no arrow: the V5 "Rules/Tooltip" draws none, §1.3), on hover, focus and touch (FR-052g); blue ⓘ on blue backgrounds, muted grey elsewhere; no `title` attribute; a cut text's tooltip (T044, the overview's description, U13 `7366:55276`): on hover of a cut text only, on the keyboard focus of the row's name, on a tap, `aria-hidden` since the text is whole in the page |
 | **Disabled button with explanation** | U29 #18, U30 #46, U89 #13 (W21) | `aria-disabled="true"`, focusable, ignoring activation; the explanation in the tooltip ("Save the rule first", "Finish grouping first", "Add a document first", the copy buttons' reason). **Exception (#65, Implement Q4, T063):** the rule editor's "Save rule" keeps the baseline's press (002-S3.10): while incomplete a press never saves but flags the missing parts, shows the problem under the check row and moves the focus there (`onClickCapture` in `EditorActions.tsx`); its tooltip is the rule's current problem in the server's words. |
-| **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating; the overview's list (T044): the toolbar's 48 px kept empty, the list card with its headers and three skeleton rows 80 high in the rows' columns (name 160 strong + description 220 light, status 72 strong, date 96 light, bars 10 high, radius 4), under a polite status with "Loading your connections…" (`FormConnectionRowSkeleton`) |
+| **Skeleton** | U06 #95, U74 `7062:50960`, U10 #17 | the kit's skeleton rows in the list's shape; the 56 px spinner with "Loading your connections…" for a page; the persona chip keeps its name with a ring while regenerating (T074: a static 16 px ring, 2 px `#e4e8ef`, no arc, as U74 `7062:51495` draws it; the test step's skeleton cards fill the panel, their bars the same greys and radius 4); the overview's list (T044): the toolbar's 48 px kept empty, the list card with its headers and three skeleton rows 80 high in the rows' columns (name 160 strong + description 220 light, status 72 strong, date 96 light, bars 10 high, radius 4), under a polite status with "Loading your connections…" (`FormConnectionRowSkeleton`) |
 | **Empty state** | U11 `6699:44481` (wallet-star 200 × 193), U20 `7290:60367` (128 × 123), U29 `6504:43841` | the page title (heading/x-large) as the one heading; the light blue card (`layout-background-hued`, radius 12, padding 48, gap 48) with one sentence (body/default muted, at most 578 wide), 32 px above the one primary action (48 high, with the forward arrow when it leads away) and the picture at the right (decorative, `alt=""`); below 768 px padding 24 and no picture. A card heading (title/large 600 24/32, 8 above the sentence) where the page has its own h1, as the welcome page (T042). First built: `NotFound` (T037); built as the welcome page by T042: the card heading (`h2`, `text-kern-adaptive-large font-semibold`) and the four-step illustration (`ol`, `IconTile tone="plain" size={48}`, ink glyphs, lines `bg-kern-action-default opacity-32` sharing the free space; a row from a 640 px text column, stacked below, undrawn) |
 | **Error state of a page** | W2, U02 `6637:36656` (build note 7), P07 | under the page's h1 (`PageTitle`, one per route), KERN's danger alert (`KernAlert variant="danger"`, `className="w-full"`) whose title is the one sentence of what failed; its body keeps the 5xx error ID (`ErrorNoticeText notice={…}` with the `notice` from `errorNoticeOf(error, '<fallback>')`), then one row (`flex flex-wrap items-center gap-x-24 gap-y-8`, `mt-10` after an error ID) with "Try again" (`kern-btn--secondary kern-btn--small`) where a retry makes sense and the way back, the link "Go to connections" (`kern-link`, `Link to={ROUTES.overview}`). A documented composition, not a new component; the reference implementation is `FormConnectionLoadState`'s `LoadFailed` (T017; "Go to connections" settled by T037); on the overview (T043) the alert sits right under the title block and before the local-drafts offer, with the footer bar kept and no toolbar |
 | **Status pill** | U07 #1–#4 | dot + coloured label, tint fill, no border, radius 8; active green, draft blue (AA per §1.5), deactivated grey; used in rows, the header pill and the band |
@@ -285,7 +285,7 @@ later use.
 | **Info strip** | U07 #18, U19 `6699:45346` | blue ⓘ, info background, one sentence |
 | **Card** | P10 (`surface`, `interactive`), U11 (the list card), U21 (the search card) | KERN's card; the kit's `surface` variant as the light blue card where drawn; the overview's list card (T043): white, 1 px `decorative-border`, radius 12, no shadow (the V5 card `6699:44252` draws none, §1.3), its column headers on `layout-background-hued` 8 24, label/small muted, `aria-hidden` |
 | **Accordion** | P06, U80, U82 | the heading with "View links" / "Hide links" and the count; one open at a time on the details; heights animate (§4) |
-| **Tabs** | P29, U38, U82 | the variant tabs with the ⓘ and the problem icon; pinned under the step head on the rules step |
+| **Tabs** | P29, U38, U82 | the variant tabs with the ⓘ and the problem icon; pinned under the step head on the rules step a tab with a spec 002 problem shows the red icon, its tooltip the description, the problem, then the findings (T070); the tab's accessible name stays "<variant> has findings". |
 | **Dates** | cosmetic 3, build note 8 | `dd.mm.yyyy` and `dd.mm.yyyy, hh:mm` wherever the frontend formats a date; the test day per C6; first built on the overview's rows (T044, `formatRowDate`, de-DE 2-digit); `formatEditedDate` ("5 Oct 2026") still serves Account, Approval and the details until their tasks switch |
 | **Search in a list** | U11 `6699:44511`, `6699:44570`, `6692:42636`; FR-051 (27) (T043) | a pure filter in the page (`filterConnections`: name and description, `matchesSearch`'s `toLocaleLowerCase` folding and trim, the order kept; nothing sent); the count above the list as a polite status ("3 connections" → "1 of 3 connections"); KERN's input with the search icon (`kern-form-input__input pl-44! pr-48!`) and a visible `kern-label` 16 px before it (stacked over the field below 640 px; the frames draw no label); the × (`kern-btn--tertiary kern-btn--small`, "Clear search") once something is typed, emptying the field and keeping the focus in it; no results: the message with the typed text (label/default), the hint (body/small muted) and "Clear search" (a `kern-link` button) inside the list card under its headers, moving the focus to the field; T051's documents search card follows it; second build (T051): the documents step's search card uses `MenuSearchField variant="panel"` with no visible label and no × (the frames draw neither; Escape or closing the card empties it), a group with no rows is hidden, ↓ moves into the rows and Enter adds the first available match |
 | **List inside a card** | U12 `6699:44915` (T044) | from 768 × 480 the overview's column is capped at the window (`max-h-[calc(100dvh-144px)]`), the card shrinks to fit and its rows scroll inside it under the column headers; below that the page scrolls as a whole; the rows' table layout from a 58rem card (`@container`), wrapped below, the headers hidden then |
@@ -328,7 +328,7 @@ the one rule that switches them off:
 - The rule is unlayered, so it beats Tailwind's `transition-*`, `duration-*` and `animate-*`
   utilities (layer `utilities`) without `!important`; don't move it into an `@layer`.
 - Don't use `motion-reduce:` or `motion-safe:` for the design's motion: one rule, one class.
-  (`TestStep/LoadingRing` keeps `motion-safe:animate-spin` until T074. `FeedbackLoader` is on
+  (T074: `TestStep/LoadingRing` is static now, as U74 draws it. `FeedbackLoader` is on
   `kern-loader` with the `motion` class since T018: the V5 component "Loader/Spinner 56" shows
   its arc static under reduced motion.)
 - Under reduced motion the end state shows at once: write a transition so that the element's
@@ -516,7 +516,7 @@ The kit's skeleton rows as U74 draws them (`7062:51211`), in `FormConnectionLoad
 | frame | state | element | property | Figma | actual | result |
 |---|---|---|---|---|---|---|
 | U74 `7062:51211` | loading | the rows | geometry and fills | as above | as above (see the `FormConnectionLoadState` table) | match |
-| U74 `7062:51206` | loading | persona chip skeleton | pill | white, 1 `#e1e6f0`, radius 999, 130/126/132 × 40 | not in this component | deferred to T074 (the test step's `SkeletonPill.tsx`) |
+| U74 `7062:51206` | loading | persona chip skeleton | pill | white, 1 `#e1e6f0`, radius 999, 130/126/132 × 40 | the same (`SkeletonPill`, T074's table) | match (T074) |
 | U06 #95 | loading | the overview's rows | skeleton rows | "skeletons in the final layout" | not in this component | deferred to T044 |
 
 ### ActionMenu (+ RuleMenuItem) — T021, 2026-11-08
@@ -1061,6 +1061,8 @@ T073) and the details' (T079).
 | U46 6758:43524 | hover / focus / tap on the icon | tooltip | content | description, divider, the finding | `InfoTooltip` (T022) with `FindingsSegment` | match |
 | FR-035c, FR-041b | no findings | ⓘ | when | Standard only with a description; a variant always (description or "No findings.") on the rules step | `noFindingsInfo` from the call site | match |
 | U01 #18 | scrolled | tab row | pinned | with the step header on the rules step | — | deferred to T056 |
+| U38 6134:9153 | — | ⋯ | on which tabs | selected only | every tab of the rules step (F28, CLAR #21); the test step's tabs none (T073) | F28 |
+| U43 6168:7011 | — | after the tabs | "+ Add variant" and its (i) | the (i) 4 after the label (`mr-[-12px]`), action blue | `ADD_VARIANT_CLASSES` (rules step only, F27) | match |
 
 ### GroupFrame (+ GroupHeader, GroupMessage) — T025, 2026-11-08
 
@@ -1702,14 +1704,23 @@ The `NotFound` table above stands for the pattern (U11 `6699:44481`'s card, pict
 | U34 (`6094:6127`, `6094:6597`, `6113:28651`, `6113:29018`, `6113:29056`), U35 (`6324:39410`) | S9 | done (T057, 2026-11-08); the menus in 2.3 and the rule-deleted frames of U35: T058 |
 | U35 (`6113:29132`, `6324:39032`, `6965:49996`, `6965:50045`), U54, U55, U56 | S9 | done (T058, 2026-11-09) |
 | U36, U64 | S9 | done (T059, 2026-11-09); group checkboxes Figma must change (CLAR #64) |
-| U50, U51 | S9 | done (T060, 2026-11-09); two rows moved to T075: FR-034's "in error" on "Test rules" and U51 8.8's outline "Publish without rules" (`EditorFooter.tsx`) |
-| U57, U58 | S9 | pending (T066) |
+| U50, U51 | S9 | done (T060, 2026-11-09); T075 (2026-11-09): "Test rules" disabled with the problem while the rules are in error (#66), "Publish without rules" secondary as U51 8.8 draws it, the flagged rule's note "<field> is no longer requested." (U50 #13, #14) |
 | U30, U31 | S10 | done (T061, 2026-11-08); the editor wrap's padding and the save toast: T056 |
 | U32, U33, U48 | S10 | done (T062, 2026-11-08); the empty field's error, the incomplete message: T063 (notes) |
 | U49, U53, U09 | S10 | done (T063, 2026-11-08); the locked picker's look: coordinator (UNCERTAIN 2); the rename field's look and quotes: T058 / C5 (notes) |
-| U37–U42, U47, U52, U59–U62 | S11 | pending |
-| U44, U45, U46 | S12 | pending |
-| U65–U74 | S13 | pending |
+| U37, U38, U52 | S11 | done (T064, 2026-11-09); the ⋯ on every tab (F28, CLAR #21) |
+| U39, U47 | S11 | done (T065, 2026-11-09); the changed member's 40 % tint in a removed group (U47 6185:41178) left: `RuleRow` (note for phase 11) |
+| U57, U58 (`6522:32682`–`6522:33080`), U40 | S11 | done (T066, 2026-11-09); the menu width for "Remove from <variant>" closed by the coordinator (`ActionMenu` 220–280, auto width) |
+| U58 `6530:40675` (10.11, the details page) | S15/S17 | not S11: the frame draws the details page's status band and connection menu ("Change start date", "Deactivate", "Delete connection"). For the details tasks (T079, T082) |
+| U41, U42, U59 | S11 | done (T067, 2026-11-09); the ⋯ on every tab (F28, CLAR #21), "Copy link" in the tab menu (F10, FR-036) |
+| U60, U61, U62 | S11 | done (T068, 2026-11-09); the inline rename (U60 11.4, U62 11.10) not built (F28); the deleted toast neutral, not U61's red (T036) |
+| U44, U45 | S12 | done (T069, 2026-11-09); the first rule's outline 8 px shorter than U44 5.1 draws (T024's list spacing, UNCERTAIN 2 of T069); the rule notes' "Contradicts Rule 02." where the design draws "Can’t be met together with Rule 02." (C4, T010's text, UNCERTAIN 1 of T069) |
+| U46 | S12 | done (T070, 2026-11-09) |
+| U65 (`7057:58709`, `7057:59123`), U66 (`7057:59536`): page title, chips, data card, results, test-day line | S13 | done (T071, 2026-11-09); the edit-data dialog `7058:60514`: T072; the per-card scroll areas: F43, done (T073); the footer's "Publish" arrow: T075/T084 (note) |
+| U66 (`7058:60514`), U67, U68: the edit-data dialog, a field error, saved with the toast, the regeneration question | S13 | done (T072, 2026-11-09) |
+| U69, U70, U71, U72: variant tabs, a variant without rules, the ⚠ tab and its tooltip, many rules (the panel scrolls) | S13 | done (T073, 2026-11-09) |
+| U74 (`7062:50960`, `7062:51249`, `7062:51536`): loading, one persona regenerating, generation failed | S13 | done (T074, 2026-11-09); the footer's "Publish" arrow: T075/T084 (T071's open row) |
+| U99 (`7114:49683`): the edit flow's test step | S13 | done (T074, 2026-11-09): the step's content and its failure hint; the footer ("Discard changes"), the "Active" badge (F5) and the note (F49): T083/T084 (S18) |
 | U63, U73, U75–U79 | S14 | pending |
 | U80–U92, U94–U97 | S15 | pending |
 | U93 | S16 | pending |
@@ -3167,6 +3178,927 @@ Coordinator, 2026-11-09, after the user's Implement Q5 (#66, A): T075's carried 
 |---|---|---|---|---|---|---|
 | U50 6197:10714 (#21) | a rule on unrequested data | "Test rules" | state, explanation | disabled look | `aria-disabled="true"`, 40 %, tooltip and description "Rule 02 in Standard checks data that’s no longer requested." on keyboard focus; a press stays on the step; a draft without problems: enabled | match (#66) |
 
+### U37, U38, U52 Variant tabs and the variant dialog (S11) — T064, 2026-11-09
+
+Checked in playwright-chrome (Chromium) at 1455 × 1000 (body 1440), and at 320 × 640, signed in as
+`designer`, on T064's own drafts ("T064 no variant": Standard without a description, two rules;
+"T064 two variants": Standard with a description, Ambulance with one, School transport without;
+both deleted afterwards). Variants added in the UI are local state (nothing saved). Fonts:
+`document.fonts.check` true for Fira Sans 600 16px, 400 16px, 600 14px. Dialog values are relative to
+the dialog's top-left (the frames' dialog node 6139:32693 / 6197:12011, 600 wide). The tab itself is
+T026's `BranchName` table (§5.1); the rows here are the row, the dialog and their states.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U43 6168:7009, U38 6134:9153 | every state | tab row | box, line | 160, 216, 1120 × 49; bottom 1 `#e1e6f0`; tabs 24 apart, bottom-aligned | 160, 216, 1120 × 49; 1px solid rgb(225, 230, 240); gap 24 (Ambulance at 286.4 = 160 + 102.4 + 24) | match |
+| U37 6134:8603, U43 6168:7010 | no variant | "Standard" tab | (i) | drawn (Standard always with an (i)) | none without a description; shown with one ("About Standard", grey) | F27 (FR-035c) |
+| U37 6134:8603, U38 6134:9160 | every state | ⋯ | which tabs | the selected tab only | every tab ("Actions for Standard", "Actions for Ambulance", …) | F28 (CLAR #21: "every tab has its ⋯") |
+| U38 6134:9160 | selected | ⋯ | size | 20 (`icon-more_vert-small`) | 32 target (`BranchMenu`), `-my-4` keeps the 38 tab | F28 (the component's note "32px target"; T026's table) |
+| U43 6168:7012 | every state | "+ Add variant" | box, look | button-tertiary-small: 48 slot, visible 40, px 8, icon-add-small 20, label/small 600 14/24 `#1d56f0` | `kern-btn--tertiary kern-btn--small`: 40 visible (margin 4 0 → 48 slot), icon 20, label 600 14px/24px rgb(29, 86, 240) | match |
+| U43 6168:7011 | every state | "+ Add variant" | label line | label 12–36 in the 48 slot (2 px above the tab labels, 14–38) | label line 228–252, tab names 230–254 | match (was 2 px lower, spec 002's "Add variant · aligned" 6542:39560; the 008 frames draw the plain button) |
+| U43 6168:7012, 6168:7013 | every state | "What is a variant" (i) | place | after the button pulled `mr-[-12px]`: 4 after the label | 400.9 (label text ends at 397, 4 before) | match |
+| U43 6168:7013, U37 6151:33809 | every state | (i) | colour, size | `icon-info-small` 20 on action blue `#1d56f0` | 20 × 20, rgb(29, 86, 240) (`tone="action"`) | match (carried from T022, T056) |
+| U37 6134:8722, U38 6134:9163 | with variants | (i) after "Add variant" | shown | not drawn once a variant exists | shown in every state | F27 (FR-035a) |
+| U37 6151:33820 | (i) hovered / focused | tooltip | text | "A separate set of rules for citizens with different requirements. Each variant gets its own result link." | the same (`RULES_COPY.variantsInfo`) | match (F27) |
+| U37 6151:33820 | (i) hovered | tooltip | box, look | 280, `#0b1220`, radius 8, padding 8 16, body/small 14/24 white, three lines ("…citizens with / different requirements. Each variant / gets its own result link.") | 280 × 88, rgb(11, 18, 32), 8px, 8px 16px, 400 14px/24px white, the same breaks | match |
+| U37 6134:8515 | (i) hovered | tooltip | place | 330, 257 (drawn loose, left of the (i)) | 8 below the (i), its left edge 8 past the (i)'s (392.9, 258) | build note 3 (T022's anchor, the Tooltip pattern) |
+| — | (i) keyboard focus | tooltip | opens | not drawn | opens on keyboard focus and on hover (T022) | match (FR-035) |
+| U37 6139:32939 | Ambulance's (i) hovered | tooltip | text, box | the description, 2 lines | "For patient transport vehicles. Drivers also need a class C1 licence.", 280 × 64, breaks after "Drivers" | match |
+| — | a variant without description, no findings | (i) | shown, text | not drawn | grey (i) "About School transport", "No findings." | match (FR-041b; `noFindingsInfo` for every tab but Standard) |
+| U38 6134:9153 | School transport selected | tabs | name font, colour | unselected 400 `#4a5468`, selected 600 `#0b1220` with the 2 px indicator | 400 rgb(74, 84, 104) ×2, 600 rgb(11, 18, 32); `aria-selected` true, `tabIndex` 0 only on it | match |
+| — | keyboard | tab list | keys, focus | WAI-ARIA tabs | ArrowLeft opens and focuses Ambulance, End School transport; 4 px ring on keyboard focus; Tab then goes (i) → ⋯ → "Add variant" → the variant (i) (tooltip opens) | match |
+| U37 6139:32650 | dialog open | dialog | box | 600 × 728, radius 12, 1 px border | 600 × 728 (`ConfirmDialog wide`) | match (carried from T035: `wide`) |
+| U37 6139:32693 | new | header, title | text | "Add variant" title/large 24/32 | "Add variant" (`ConfirmDialog`'s header, T035) | match |
+| U37 6139:32693 | new | intro | text, place, font | "A separate set of rules for citizens with different requirements. Each variant gets its own result link." at 32, 72; 16/24 `#4a5468`, two lines | the same text at 32, 72, 536 × 48, 400 16px/24px muted | match (U37 #20, design copy) |
+| U37 6044:16198 | new | "Variant name" | label | label/default 600 16/24 with baseline 6/2 (32), "*" `#c4271c`, 8 to the field | "Variant name*", 600, padding 6px 0 2px (32), `requiredMark`; field at 184 (144 + 32 + 8) | match (carried from T015: `requiredMark`; the baseline padding through `VARIANT_FIELD_CLASSES`) |
+| U37 6044:16198 | new | name field | box | 536 × 48 at 32, 184 | 536 × 48 at 32, 184; focused on opening | match |
+| U37 6044:16276 | new | "Description (optional)" | label | "Description (optional)" 600 16/24, baseline 6/2 | "Description (optional)" (`TextField optional`), 600, padding 6px 0 2px | match (report cosmetic 6) |
+| U37 6044:16276 | new | helper | text, font | "Shows when you hover the ⓘ next to the variant name." body/default 16/24 `#0b1220`, baseline 6/2 (32), 8 to the field | the same text (`kern-hint`, linked), 400 16px/24px rgb(11, 18, 32), padding 6px 0 2px, margin-bottom 8 | match (U37 #22; was "Shown when someone hovers the (i) …") |
+| U37 6044:16276 | new | helper | ⓘ glyph | drawn | Fira Sans has no U+24D8 and no installed font on this Linux has it: a missing-glyph box in headless Chromium; desktop systems fall back (Segoe UI Symbol, Apple Symbols) | UNCERTAIN (T064: kept the design's character; see below) |
+| U37 6044:16276 | new | textarea | box, look | 536 × 64 at 32, 328; padding 8 16; `layer-surface`, 2 px bottom line, radius 4, resize handle | 536 × 64 at 32, 328; 8px 16px; resize vertical; spell check on; maxLength 500 | match (FR-032; `TextField multiline`, its 120 overridden to the drawn 64) |
+| U37 6044:16300 | new | "Start with" | heading | label/default 600 16/24 at 416, 12 to the options | `legend` 600 16px/24px at 416, the options 12 apart | match |
+| U37 6044:16353 | new | "Linked to Standard (recommended)" | row | radio 20 at 0, 458, 8 to the label 600 16/24 at 28, 456; py 4 | radio 20 × 20 at 0, 458; label 600 at 28, 456 | match |
+| U37 6044:16353 | new | selected radio | look | white, 1 px `#1d56f0`, dot 10 `#1d56f0` | white, 1px solid rgb(29, 86, 240), ::before 10 × 10 rgb(29, 86, 240) | match ("Data/Radio item" 6387:26931) |
+| U37 6044:16353 | new | preselected | which | "Linked to Standard (recommended)" | checked on opening | match (FR-052h) |
+| U37 6053:16254 | new | help | text, place, font | "Copies all Standard rules. Unchanged rules remain the same as Standard and update with it." body/small 14/24 `#4a5468`, pl 28, at 484 | the same text, 400 14px/24px muted, padding-left 28, at 484, two lines | match (was "Starts with all Standard rules. …") |
+| U37 6044:16358 | new | "Start empty" | row, look | radio at 0, 550 white with 1 px `#6b7488`; label at 28, 548; help "Starts with no rules. Changes to Standard don’t affect it." at 576 | 0, 550, 1px solid rgb(107, 116, 136), white; label 548; help at 576 | match |
+| U37 6139:32693 | new | footer | box, buttons | 24 above, 32 below, 1 px top line; "Cancel" secondary and "Add variant" primary, 260 × 48 each | footer at 624, 104 high; "Cancel" 260 × 48 at 32, "Add variant" 260 × 48 at 308 | match (T035) |
+| "Data/Radio item" 6387:26931 (description) | hover, unselected | radio | ring, fill | 2 px blue, the tint (white) | 2px solid rgb(29, 86, 240), white | match |
+| 6387:26931 | hover, selected | radio | ring | 3 px tint ring | box-shadow 0 0 0 3px white | match (as T016's Checkbox) |
+| 6387:26931 | keyboard focus | radio | ring | 3 px `action-focus-default` | outline 3px solid rgb(11, 18, 32), offset 0; none after a click (border 1 kept) | match |
+| U52 6197:12011 | name missing | dialog | box | 600 × 768 | 600 × 768 | match |
+| U52 6197:12011 | name missing | message | text, place | "Enter a name for the variant." with `icon-emergency_home-default` 24 at 52, 246; field `#fef1f0` | the same text (`RULES_MESSAGES.variantNameMissing`), icon 24 at 52, 246; field rgb(254, 241, 240); `role="alert"`, the focus back in the field, `aria-invalid`, described by the message | match (W18) |
+| U52 6197:12011 | name missing | danger bar | extent | 4 px `#c4271c` beside label, field and message (32, 144, 128 high), the label and field 16 in | 4px solid rgb(196, 39, 28) on the field's wrapper at 32, 144, 128 high; label and field at 52 | match (the bar moved from `TextField`'s inner wrapper to the field's wrapper, see §2 note) |
+| — | name taken | message | text | not drawn (W18) | "There’s already a variant called "Standard"." under the field, as the missing name (U52's error state) | match (W18, C5) |
+| — | edit (Ambulance's ⋯ › Rename) | dialog | content | not drawn here (U60 is T068's) | "Edit variant", 600 × 448, no intro, no "Start with", name and description filled, "Cancel" / "Save changes"; the taken name refused as above | match (F28, 002-S4.4) |
+| — | added | focus | after "Add variant" | not drawn | the new tab, selected; the based variant shows the link strip | match (baseline) |
+| — | 320 × 640 | tab row, dialog | reflow | not drawn | row wraps (273 × 163), no horizontal scroll (scrollWidth 305); dialog 273 wide, no inner horizontal scroll | match (FR-010) |
+| U01 #18 | scrolled | tab row | pinned | with the step header | unchanged: T056's wrapper (`PINNED_TABS_CLASSES`), the row transparent, no `overflow` / `transform` | match (T056's table; not rechecked here) |
+
+**Decisions (T064):**
+
+- **The ⋯ on every tab, not the active one only** ("decide here", carried from T026): F28 and CLAR
+  #21 (spec.md, Q21: "every tab shows its ⋯ (Rename for all, Delete for variants other than
+  Standard, "Copy link" per Q22). Not built: … ⋯ on the active tab only") settle it; the frames
+  (U37, U38, U59) and the component's note draw it on the active tab, a decided F item wins over
+  them. `BranchTab` passes `actions` to every tab. Not UNCERTAIN.
+- **The variant (i) in every state** (F27: "On the Rules step the variant ⓘ follows "+ Add
+  variant" in every state"), with the design's text and `tone="action"`.
+- **"+ Add variant" without spec 002's 2 px drop**: U38 6134:9153 and U43 6168:7009 draw the
+  plain button-tertiary-small, bottom-aligned (its label 2 px above the tab labels); the old
+  `-mb-2 pt-2` (002's "Add variant · aligned" 6542:39560) is gone.
+- **Edit variant is 600 wide too** (`wide` on both): U37's dialog is 600; U60 (rename, T068) may
+  draw another width.
+- **Copy (word for word, interpolations kept):** the (i) and the dialog intro "A separate set of
+  rules for citizens with different requirements. Each variant gets its own result link."; the
+  helper "Shows when you hover the ⓘ next to the variant name."; "Linked to ${main}
+  (recommended)"; "Copies all ${main} rules. Unchanged rules remain the same as ${main} and update
+  with it."; "Starts with no rules. Changes to ${main} don’t affect it."; "(optional)" from
+  `TextField` (the old "- Optional" entry `RULES_COPY.optional` removed).
+
+**Open for the user (T064, not core):**
+
+1. The helper's "ⓘ" (U+24D8) is the design's text, but Fira Sans has no such glyph and this
+   machine has no fallback font for it: headless Chromium here shows a missing-glyph box. Windows
+   and macOS fall back to a symbol font. A screen reader reads it as "circled latin small letter
+   i". Kept as drawn (copy rule); alternative: KERN's info icon inline (`aria-hidden`) with
+   "(i)" for screen readers. Not core (copy/glyph only).
+2. The danger bar beside the label (U52) is applied by the variant dialog's wrapper, not by
+   `TextField`, so step 1 and the other fields keep U19's bar beside field and message only. If the
+   design means P26's bar everywhere, `TextField` should change (phase 11 or a §2 decision). Not
+   core.
+
+### U65, U66 (`7057:59536`) The test step, part 1 (S13) — T071, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 900
+  (body 1440; the frames are 1440 × 900) and 320 × 640.
+- Fonts: `document.fonts.check('400 14px "Fira Sans"')` true.
+- Drafts (T071's own, step "test", deleted at the end; nothing saved, no non-GET request during the walks):
+  - "T071 Passenger transport licence": Personal ID (Date of birth, Nationality), Driving licence (Expiry date,
+    Licence classes); Rule 01 · Minimum age 21, Rule 02 · Class B for 2 years (class B issue date ≥ 2 years ago),
+    Rule 03 · Licence not expired (expiry ≥ 1 month from now), Rule 04 · German or EU citizen. As U65.
+  - "T071 groups": Rule 01, Group 01 (AND: Rule 06 age ≥ 25, Rule 05 classes B or BE, with a group message),
+    Rule 03. For the group row's statement.
+- The personas are random per open: Figma's sample names and values are not copy (FR-002). "Couldn’t be checked" was
+  made by clearing a persona's date of birth in edit mode (local editor state, sends nothing).
+- Figma: `get_metadata` on `7057:58709`; `get_design_context` on the variant area `7057:58753` (chips, data card
+  `7057:58767`/`7057:58772`, result `7057:58809`/`7057:58811`/`7057:58825`) and on the met list `7057:59239`;
+  screenshots of `7057:58709`, `7057:59123`, `7057:59536`. U06 #29–#44 read from `figma-audit/units/U06.md`. Every
+  frame matches its audit inventory (U65.md, U66.md); none has changed (the "Generate all" node `7344:96178` is the
+  audit's).
+- Out of scope: the edit-data dialog (`7058:60514`, T072; the inline editor still stands), the variant tabs' look
+  (T026, T064, T073), the per-card scroll areas `7114:49642`/`7114:49643` (F43, CLAR #31 (c): the panel scrolls,
+  T073), the step header and footer (T032, T033), the publish dialog's content (T076). Figma y values are page
+  values; the app's are 40 lower from the tabs on, because of the test-day line the frames don't draw.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U65 7057:58714 | results | page title | copy, type | "Test rules with sample citizen data", heading/large 600 24/32 `#0b1220` | the same text, 600 24px/32px "Fira Sans" rgb(11, 18, 32), 160, 136 | match (cosmetic 12, C2; was "Test rules") |
+| U65 7057:58714 | results | intro | copy, type | "Choose a sample citizen to check that your rules work as intended. See which rules they meet and which message they’d see. The data is made up.", body/small 14/24 `#4a5468` | the same text, 400 14px/24px rgb(74, 84, 104), 160, 168 | match (cosmetic 12, C2; was "… see which rules they meet and which messages they’d see. The data is made up, and nothing is shared.") |
+| — | results | tab title | text | not drawn | "Test rules with sample citizen data · Konnekt" | match (`pageTitleOf()`) |
+| — | results | test-day line | copy, type, place | not drawn (U65 Missing: FR-024e) | "Tested as if shared today, 09.11.2026." 400 14px/24px rgb(74, 84, 104) (as the intro; was 16px), 160, 216, 16 above the tabs | match (C6, FR-024e; the intro's look) |
+| U65 7057:58717 | results | variant tabs | ⓘ | "(i)" after Standard only (its description icon), no variant ⓘ | no "+ Add variant" ⓘ; Standard's (i) only with a description (`BranchName`) | match (F27; T026's rows) |
+| U65 7057:58753 | results | variant area | fill, border, radius | `#f6f8fb` (unbound fill), 1 `#e1e6f0`, 8 | rgb(242, 245, 251) (`layout-background-hued` `#f2f5fb`), 1px rgb(225, 230, 240), 8px (was 12) | match (§1.1 token; UNCERTAIN 2) |
+| U65 7057:58754 | results | citizens row | box, padding, gap | 1118 × 64, pt 16 px 16, gap 8 | 1118 × 64 at 161, 312; 16px 16px, gap 8px (was 60 high: `-my-2` on "Generate all" dropped) | match |
+| U65 7057:58755 | Mia selected | chip | border, padding, height, type | 2 `#1d56f0`, white, pl 12 pr 14, 44 high, 18 below the row's top, label/default 600 16/24 | 2px rgb(29, 86, 240), white, 12px / 14px, 44 high at row + 18, 600 16px/24px | match (F44) |
+| U65 7057:58758 | not selected | chip | border, height | 1 `#e1e6f0`, 42 high, 19 below the row's top | 1px rgb(225, 230, 240), 42 high at row + 19 | match |
+| U65 7057:59056, 7057:59061 | results | chip icon | glyph, colour | `icon-emergency_home-small` red / `icon-check_circle-small` green, 20, 8 before the name | `kern-icon--danger` rgb(196, 39, 28) / `kern-icon--success` rgb(29, 122, 46), 20 × 20, gap 8 | match (F44: name and icon, no outcome text) |
+| — | results | chip | accessible name | not drawn | "Jonas Papadopoulos: doesn’t meet the rules of Standard" (`chipNameOf()`) | match (004-ACC.1) |
+| — | keyboard | chips | keys, focus | not drawn | Right / End / Right (wrap) move the selection and the focus (tab pattern); 4px solid rgb(11, 18, 32) ring, offset 2; after a click no ring | match (004-ACC.2; F44) |
+| U65 7344:96178 | results | "Generate all" | copy, look, box | "Generate all", tertiary small, refresh icon, 130 × 48 at the row's right end (x 972 in the row) | "Generate all" 600 14px rgb(29, 86, 240), `kern-btn--tertiary kern-btn--small` with `kern-icon--autorenew`, 130 × 40 + 4 margins at 1133 (row + 972) | match (F45, cosmetic 12; was "Generate all again") |
+| U65 7057:58767 | Mia | data card | box, padding, radius | 410 wide, p 16, gap 8, radius 8, white, 1 `#e1e6f0` | 410 at 177, 16px, gap 8, 8px (was 12), white, 1px | match |
+| U65 7057:58768 | Mia | data card head | heading, buttons | "Mia’s data" title/small 600 16/24; "Edit data" (pencil), "Generate again" (refresh) tertiary small; 48 high | "Jonas’s data" 600 16px/24px at card + 29; "Edit data", "Generate again" as drawn | match (T033's rows; "Edit data" opens the inline editor until T072) |
+| U65 7057:58772 | Mia | rows | layout | one flat list, no document headings or column, starts 73 below the card's top | one list of `dl` rows at card + 73; each document's rows under a hidden `h3` ("Personal ID", "Driving licence") | match (F63, FR-043, CLAR #46) |
+| U65 7057:59071 | Mia | row | box, label, value | 376 × 41, 1 top border `#e1e6f0`, py 8, gap 16; label body/small `#4a5468` 120; value body/small 240 | 376 × 41, the same; dt 120 at 194, dd 240 at 330 | match |
+| U65 7057:59072 | Mia | date of birth | label | "Date of birth" | "Date of birth" (was "Date of birth (Age)", `dataRowLabelOf()`) | match (cosmetic 12, U66 #14) |
+| U65 7057:59075 | Mia | date of birth | value | "08.07.2007" | "25.05.2006" (no age) | match (C6) |
+| U65 7057:59073 | failing | value | dot, weight | 6 red dot, 6 before the text, label/small 600 | 6 × 6 `feedback-danger`, gap 6, 600; hidden "Fails a rule:" | match (K1) |
+| U65 7057:59079 | Mia | licence classes | value | "B since 20.08.2025" | "B since 26.01.2026" | match (C6, `dataRowsOf()` + `dataRowTextOf()`) |
+| U65 7057:59186 | Anna | licence classes | value | "B, BE since 02.05.2010" (one row per issue date) | classes with the same issue date in one row; a class without a shown issue date in its own "Licence classes" row ("C1") | match (C6, CLAR #46; T012's `dataRowsOf()`) |
+| U65 7057:59084 | Mia | expiry date | label, value | "Expiry date", "Valid until 19.08.2040" | "Expiry date", "Valid until 08.12.2026" | match (C6) |
+| U65 7057:58772 | Mia | rows | order | Date of birth, Nationality, Licence classes, Expiry date | Date of birth, Nationality, Expiry date, Licence classes (per document, catalog order) | F63 (grouped per document in catalog order) |
+| U66 7057:59906 | Yusuf, no licence | empty value | text | "Not shared", dot, bold | "Not shared" (with the dot and 600 when failing) | match (004-S8.4.7) |
+| — | edited | value | marker | not drawn | "Not shared · edited" (regular), hidden ", edited" | match (K2) |
+| U65 7057:58809 | Mia | result card | box, padding, radius | 660 wide at 426, p 16, gap 8, radius 8 | 660 at 603 (177 + 410 + 16), 16px, 8px (was 12) | match |
+| U65 7057:58811 | Mia | result heading | copy, type, row | "Result: doesn’t meet 2 rules", title/small 600 16/24 in a 48 row | "Result: doesn’t meet 4 rules", 600 16px/24px in a 626 × 48 row | match (C6) |
+| U65 7057:59225 | Anna | result heading | copy | "Result: meets the rules" | "Result: meets the rules" | match |
+| U65 7057:58826 | Mia | table head | columns, type | spacer 20, "Rule" at 40 (300 wide), "Message Mia reads" at 352; body/small `#4a5468`, pb 6, 1 bottom border | "Rule" at 660 (card + 40), 340 wide cell; "Message Jonas reads" at 972 (card + 352); 14px rgb(74, 84, 104), 6px | match |
+| U65 7057:59087 | not met | row | tint, padding, icon, name | `#fef3f2` (unbound fill), py 10 px 8, red diamond 20 at 8, 10; name label/default 600 16 | rgb(254, 241, 240) (`feedback-danger-background` `#fef1f0`), 10 / 8, `kern-icon--danger` 20 × 20 at row + 8, + 10; 600 16px | match (§1.1 token; UNCERTAIN 2) |
+| U65 7057:59089 | not met | row | statement, status | none | the statement as `RuleSentence` ("Personal ID · Date of birth (Age) ≥ is at least 21 years old"), then "Not met" 400 14px/24px rgb(11, 18, 32) | F42, FR-043 (C3: "·" after the document) |
+| U65 7057:59091 | not met | message | text, type | "You need to be at least 21 years old.", body/small `#0b1220` | the same, 14px rgb(11, 18, 32) | match |
+| — | couldn’t be checked | row | icon, status | not drawn (U06 #40: designer expects none; F11) | `kern-icon--help` rgb(74, 84, 104), "Couldn’t be checked" 14px rgb(11, 18, 32), the danger tint, the message | F42, F11 (baseline 004-S8.6.4) |
+| U65 7057:59105 | met | row | padding, icon, name, message | p 8, green check 20, name body/default 400 16, "–" `#4a5468` | 8px, `kern-icon--success` rgb(29, 122, 46) at row + 8, 400 16px, "–" muted | match |
+| U65 7057:59105 | met | row | statement | none | the statement (`RuleSentence`); hidden "Met" | F42 (met rows keep the statement) |
+| U65 7057:59239 | Anna (meets) | list | head, columns | "Rules Anna meets", one column, no message column | "Rules Piotr meets", one column (626) | match (F3) |
+| U65 7057:59533 | Anna (meets) | success box | presence | "Message Anna reads" box "Your wallet data meets the requirements. …" | none | F41 (CLAR #31 (a)) |
+| — | a reported group | group row | statement | not drawn | "Group 01 · All rules must be met · Not met", its message; members indented and tinted | FR-051 (32) (the group frame's subtitle, `resultStatementOf()`; decision below) |
+| U65 7057:58897 | results | "Publish" | behaviour | footer "Publish" | opens the publish dialog ("Ready to publish?", the summary); Escape closes it to the step | match (T076 builds the dialog's content) |
+| U65 7057:58897 | results | "Publish" | icon | right arrow after the label | no arrow | **open: `EditorFooter.tsx` (not T071's files): T075/T084** |
+| U65 7114:49642 | results | scroll areas | each card | its own scroll area | the panel scrolls (where pinned), the cards stretch | F43 (CLAR #31 (c); T073) |
+| — | 320 × 640 | data card | rows | not drawn | the label above the value (below `sm`), no horizontal scroll (`scrollWidth` 305) | FR-010 (R10) |
+| — | 320 × 640 | result table | columns | not drawn | the two columns share the width (T034's container query); long rows wrap | FR-010 (unchanged) |
+
+Open rows: one, outside T071's files: the footer "Publish" without its right arrow (`EditorFooter.tsx`).
+
+**Decisions (T071):**
+
+1. **Group statements in the results follow the group frame** (carried from T025): a group's row reads "All rules
+   must be met" / "At least one rule must be met", the words of its frame on the rules step (FR-051 (32),
+   `GROUP_FRAME_COPY.subtitles`), so one group reads the same on both steps. `rules/src/` stays untouched: the test
+   step maps the rules package's `GROUP_SUBTITLES` text to the frame's (`resultStatementOf()` in `TestStep/utils.ts`,
+   with tests); an unknown text stays as it is. The MCP keeps the rules package's wording.
+2. **"Generate all"** is the citizens row's button (cosmetic 12; U65 #13, U66 #12 draw it in every results state).
+   Quickstart V6.3 and F45 still say "Generate all again" for the same button (the baseline's name).
+3. **The page title and intro** moved to `TEST_STEP_COPY.title` / `.intro` (as `RULES_COPY.title`), read by the
+   editor's `pageTitleOf()`; `EDITOR_COPY.testRulesHint` is gone; `EDITOR_COPY.testRules` stays the rules step's
+   "Test rules" button. The editor's `utils.test.ts` expectation changed for cosmetic 12 / C2.
+4. **The test-day line** keeps its place (the first line of the step's content, 16 above the tabs) and now reads in
+   the intro's type (body/small 14/24 muted; was 16px), since the frames draw none.
+5. **The data card's rows** come from `dataRowsOf()` + `dataRowTextOf()` (carried from T012); `valueTextOf()` lost
+   its unused `_today` (its tests' call sites changed); `PersonaData` / `DocumentValues` no longer take `today`.
+   Labels: `dataRowLabelOf()` gives "Date of birth" for the date of birth, any other row its field's label. Each
+   document's rows are a `dl` under a hidden `h3` with the document's name (004-S8.4.2), with no gap, so the list
+   reads as one. Below `sm` a row's label sits above its value (at 320 px the 120 px label left ~80 px for the value,
+   which broke words like "Afghanis|tan").
+6. **Radii**: the variant area and both cards take radius 8 (`rounded-kern-default`; were 12) as the frames draw.
+
+**Open for the user (T071, not core):**
+
+1. **"Generate all" vs "Generate all again" (copy; not core).** Built as the frames and cosmetic 12 have it; quickstart
+   V6.3 and F45's wording still name "Generate all again". If the coordinator reads F45 as keeping "Generate all
+   again", it is `TEST_STEP_COPY.generateAll`.
+2. **Two fills the frames draw unbound (styling; not core).** The variant area `#f6f8fb` (token
+   `layout-background-hued` `#f2f5fb` kept) and the reported rows' tint `#fef3f2` (token `feedback-danger-background`
+   `#fef1f0` kept). Both differ by 2–4 per channel; adding raw values would need `@theme` tokens in `index.css`.
+3. **Group statements (copy; not core).** Decision 1 (no spec item settles it; the task said "decide here").
+
+### U66 (`7058:60514`), U67, U68 "Edit data" and "Generate again" (S13) — T072, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 900
+  (body 1440; the frames are 1440 × 900) and 320 × 640.
+- Fonts: `document.fonts.check('400 14px "Fira Sans"')` true.
+- Draft: T072's own "T072 Passenger transport licence" (step test; Personal ID: Date of birth, Nationality; Driving
+  licence: Expiry date, Licence classes; Rule 01 · Minimum age 21, Rule 02 · Class B for 2 years, Rule 03 · Licence
+  not expired, Rule 04 · German or EU citizen), deleted at the end. Nothing saved: no non-GET request in any walk
+  (the dialog's "Save and test" is local editor state).
+- The personas are random per open: Figma's sample names and values are not copy (FR-002).
+- Figma: `get_design_context` on the dialog `7058:60639` (U66) and the toast `7058:61203` (U67); screenshots of
+  `7058:60670` (U67 frame 5, the error), `7058:60945` (U67 frame 6, saved with the toast), `7058:61209` (U68 frame 7,
+  the question). `7058:60806` / `7058:60824` (intro, buttons) are inside the dialog read at U66 and match it; U68
+  `7057:59952` (frame 8, Mia stays selected on Ambulance) is T071's / T073's chips behaviour and the regeneration
+  question's node `7058:61334` is U04's (T046's table). Every frame matches its audit inventory (U66.md, U67.md,
+  U68.md); none has changed.
+- Scripts: `<scratchpad>/pw/t072-open.mjs`, `t072-flow.mjs`, `t072-err.mjs`; screenshots in
+  `<scratchpad>/phase7/T072/`.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U66 7058:60639 | dialog | dialog | box, scrim | 600 wide, radius 12, 1px border, the shade scrim at 72 % | 600 × 848 at 420, 26 (`ConfirmDialog wide`), the same scrim; the scrim closes it (T035 `dismissOnScrim` on) | match |
+| U66 7058:60644 | dialog | title | copy, type | "Edit Mia’s data", title/large 600 24/32 `#0b1220` | "Edit Emma’s data", 600 24px/32px rgb(11, 18, 32) (`EDIT_DATA_COPY.title(dataHeadingOf())`) | match |
+| U66 7058:60649 | dialog | intro | copy, type | "Change the values to try a particular case. Results update when you save.", body/default 16/24 `#4a5468` | the same text, 400 16px/24px rgb(74, 84, 104), 536 wide; the dialog's `aria-describedby` | match (FR-042) |
+| U66 7058:60648 | dialog | sections | gaps | intro → Name 24, Name → "Personal ID" 24, heading → fields 16, sections 24 | 24 (intro 98–122, label 146), 24 (input end 234, h3 258), 16 (h3 end 282, label 298), 24 | match |
+| U66 7058:60652 | dialog | Name | field | "Name", input 536 × 48, fill `#f2f5fb`, 2px bottom `#22293a`, radius 4 | the same KERN `kern-form-input` (T044), 536 × 48; focus on open | match (004-ACC: the first field takes the focus) |
+| U66 7058:60653, 7058:60658 | dialog | document headings | copy, type | "Personal ID", "Driving licence", title/small 600 16/24 | `h3` "Personal ID", "Driving licence", 600 16px/24px rgb(11, 18, 32) | match (U66 #29, #30; T071 note) |
+| U66 7058:60655 | dialog | Date of birth row | layout | two fields of 260, 16 apart: "Date of birth" `08.07.2007`, "Age today" `19` | 260 + 16 + 260 (452 / 728); "Date of birth" (`TEST_STEP_COPY.dateOfBirth`; the rules say "Date of birth (Age)") | match |
+| U66 7058:60657 | dialog | "Age today" | look | no fill, 1px bottom border (read-only look) | an input like the date (fill, 2px) | F10 (FR-007: either changes the other; T044's decision) |
+| U66 7058:60660 | dialog | "Licence classes" row | layout | "Licence classes" and "Class B since" side by side | "Licence classes" starts a row (`sm:col-start-1`), its class dates beside and under it | match |
+| U66 7058:60661 | dialog | Licence classes | control | a plain text input "B" | the values picker by code with descriptions, "Search classes" (`ValuesField`) | F40 (FR-042d) |
+| U66 7058:60662 | dialog | class date | label | "Class B since" | "Class B since" (`editorLabelOf()`; the rules say "Licence class B – Issue date") | match (F40) |
+| U66 #31 7058:60648 | dialog | Nationality, Expiry date | presence | no fields | "Nationality" (the picker by label, multiple) and "Expiry date" (dd.mm.yyyy) | F40 (FR-042d) |
+| U66 7058:60668 | dialog | buttons | copy, box | "Cancel" secondary, "Save and test" primary, 260 × 48 each, 16 apart | the same, 260 × 48 at 452 / 728 | match |
+| — | dialog | grid | order | not drawn | the document's fields two to a row in catalog order (Expiry date before Licence classes here); the date of birth takes its row | FR-005 (catalog order, F9) |
+| U67 7058:60812 | a date that doesn’t exist | Date of birth | error | "31.02.2007", 4px red bar, pink fill, red bottom border, danger icon, "Enter a date that exists, e.g. 28.02.2007." wrapping in the column | bar 4px rgb(196, 39, 28) with 16 padding, fill rgb(254, 241, 240), 2px rgb(196, 39, 28) bottom (unfocused), icon 24px danger, 16px/24px rgb(11, 18, 32), wraps after "e.g."; `aria-invalid`, `aria-describedby` → the error | match (004-S8.5, 001-S7.5) |
+| U67 7058:60670 | a date that doesn’t exist | "Save and test" | behaviour | frame name "Save and test stays until fixed"; data card still 08.07.2007 | stays enabled; a press saves nothing, keeps the dialog open and moves the focus to the first invalid field; the card unchanged | match (FR-042b) |
+| — | dialog | age ↔ date | behaviour | not drawn | "01.01.2015" gives "Age today" 11; "Age today" 30 gives "01.01.1996" | match (FR-007) |
+| — | an empty name | Name | error | not drawn | "Enter a name." under the field; blocks the save | match (W11) |
+| U67 7058:61203 | saved | toast | look | success: `#1d7a2e`, white filled check 20, 8 before the text, 14/24 white, radius 8, p 16 | rgb(29, 122, 46), 56 high, centred 96 above the window's bottom (`Toast`, `kind: 'success'`) | match (T036 pattern) |
+| U67 7058:61203 | saved, an outcome now met | toast | copy | "Results updated. Mia now meets Rule 01." | "Results updated. Piotr now meets Rule 01 · Minimum age 21." (the seeded rule is named so) | match (FR-042c) |
+| — | saved, an outcome no longer met | toast | copy | not drawn | "Results updated. Piotr no longer meets Rule 01 · Minimum age 21." | FR-042c (decision 2) |
+| U67 7058:61193, 7058:61027 | saved | data card, results | update | "08.07.2004 · edited", "Result: doesn’t meet 1 rule" | "01.01.1996 · edited", heading and rows updated in the same render; the focus back on "Edit data" | match |
+| — | saved | announcement | live region | toast announced | the toast's `role="status"` region; no per-variant hidden announcement | FR-042 (drops 004-S8.10.3) |
+| — | clearing fields | Expiry date | behaviour | not drawn (W14) | cleared and saved → "Not shared · edited" with the failing dot; "Rule 03" no longer met | match (004-S8.5, W14) |
+| — | class dates coming back | Class B since | behaviour | not drawn (W14) | B removed in the picker → "Class B since" goes; B added again → it comes back with "07.12.2012" | match (W4, W14) |
+| — | values menu | Licence classes | placement | not drawn | opens below the field (400 step), the dialog scrolls to show it; "Done" in view at the dialog's bottom; Escape closes the menu, not the dialog | match (carried from T027) |
+| — | dialog | Cancel, ×, Escape, scrim | behaviour | × drawn | each drops the changes and returns the focus to "Edit data" | match |
+| — | keyboard | Tab | order | not drawn | Name, Date of birth, Age today, Nationality, Expiry date, Licence classes, Class B since, Cancel, Save and test, ×; the page behind is inert | match (004-ACC) |
+| U68 7058:61333 | an edited persona | "Generate again" | question | "Generate new data for Mia?", "Your changes to Mia’s data will be replaced. The other two citizens stay as they are.", "Cancel" / "Generate new data", 480 wide | the same texts, 480 × 256 at 480, 322 | match |
+| — | an unedited persona | "Generate again" | question | not drawn | no question, generates at once | match (004-S8.3.5, F45) |
+| — | an edited persona | "Generate all" | question | not drawn | "Generate new data for all citizens?", "Your changes to Mia’s data will be replaced."; the name is kept after generating | match (W9, W14; R10) |
+| U66 7344:96200 | results | "Generate all" | presence | in every results state | present after generating, editing and saving | match (F45; cosmetic 12) |
+| — | 320 × 640 | dialog | layout | not drawn | 273 wide (16 gutters), one field per row, no horizontal scroll (`scrollWidth` 273), the dialog scrolls | match (FR-010) |
+
+Open rows: none.
+
+**Decisions (T072):**
+
+1. **The dialog edits a copy** (`editDataReducer` in `TestStep/utils.ts`, tested): every valid entry applies to the
+   copy at once (so W4's class dates come and go inside the dialog), an invalid one shows its error and blocks
+   "Save and test" (focus to the first `aria-invalid` field). "Save and test" hands the step the trimmed name and the
+   values that differ (`changedValuesOf()`, by `sameValue()`); the step dispatches the reducer's `setValue` per value
+   with empty `before` / `after` (so no per-variant hidden announcement, FR-042 dropping 004-S8.10.3), `rename()`
+   when the name changed, then `stopEditing()`. `PersonaState.editing` is the dialog's open state, so a run that
+   regenerates the persona closes it. `usePersonas.ts` unchanged.
+2. **The toast's wording beyond the drawn case** (FR-042c; decide-here): "Results updated." then, for the shown
+   variant's top-level rules and groups, "<first name> now meets <list>." and "<first name> no longer meets <list>."
+   (`savedToastOf()`, lists as "Rule 01 and Rule 03"); only "Results updated." when no outcome moved. No toast when
+   nothing changed (the dialog just closes). `kind: 'success'` (carried from T036).
+3. **The toast is the step's own `<Toast>`** in `TestStep/index.tsx` (the editor's toast slot isn't reachable without
+   editing `FormConnectionEditor/index.tsx`); it goes with the step. In theory the editor's failed-save toast could
+   show at the same time on the test step (two regions).
+4. **Two columns per document** (`DocumentFields`, `sm:grid-cols-2`): the frames draw rows of two ("Date of birth" |
+   "Age today", "Licence classes" | "Class B since"); the date of birth spans the row, "Licence classes" starts one.
+5. **"Age today" stays an input** (T044's decision, F10/FR-007), not the frame's read-only look.
+6. **"Done" is gone** with the inline editor (`TEST_STEP_COPY.done` removed); "Edit data" focuses itself on press
+   (Safari) so that the dialog returns the focus there.
+
+**Open for the user (T072, not core):**
+
+1. **Toast wording for undrawn cases (copy; not core)**: decision 2 ("no longer meets", several items, no outcome
+   moved). No spec item words them.
+2. ~~**Two toast regions on the test step**~~ closed by the coordinator (2026-11-09): `TestStep` takes `saveFailed` (the editor passes `saveFailureToast !== null`) and drops its saved toast when the failed save's toast shows, one toast at a time (R8). Was: decision 3; "one toast at a time" (R8) holds unless the
+   editor's failed-save toast and this one overlap.
+
+### U39, U47 Marks, the link strip and removing in variants (S11) — T065, 2026-11-09
+
+How I checked:
+- playwright-chrome MCP (Chromium) at 1455 × 1000 (body 1440) and at 320 × 640, signed in as `designer`. Fonts: `document.fonts.check` true for Fira Sans 600 / 400 14px.
+- Own drafts, both deleted at the end (404 afterwards), and the browser's local draft of the first removed:
+  - "T065 variants": U39/U47's tree. Standard = Rule 01 (age ≥ 21), Rule 02 (expiry ≥ 6 months), Group 01 (OR) [Rule 03 (C, D), Sub-group 01 (AND) [Rule 04 (B, BE), Rule 05 (age ≥ 21)]]. Ambulance, based: Group 01 switched to AND (changed), Rule 05 changed to 19, Rule 06 (C1) added. School transport, based, unchanged.
+  - "T065 empty Standard": Standard without rules, Ambulance based on it.
+- Every removal, restore and Standard deletion was local editor state; nothing was saved.
+- Figma: `get_design_context` of the link strip `6344:60085`, the dialog `6185:8847` and Rule 05's row `6163:5453`; screenshots of `6185:8555`, `6185:8805`, `6185:41146`, `6185:41589`, `6163:5419`, `6163:5841`, `6324:39426`, `6344:53697`. Every frame matches its audit inventory; none changed since the audit.
+- Sample data: Rule 05 at 19 sits beside Rule 01 at 21, so the checks put an info finding on it (spec 003); that doesn't change the rows below.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U47 6344:60085 | the link strip | strip | box, padding, gap, fill, corners | 161, 282, 1118 × 56; 16; 8; `feedback-info-background` `#e0f2fe`; top 12 | 161, 282, 1118 × 56; 16px; 8px; rgb(224, 242, 254); 12px | match |
+| U47 6344:19386 | the link strip | link icon | place, size | 177, 300, 20 × 20 | 177, 300, 20 × 20 | match |
+| U47 6344:19387 | the link strip | title | text, place, font, colour | "Linked to Standard" at 205, label/small 600 14/24, `feedback-info` | the same at 205, 600 14px/24px, rgb(2, 115, 174) | match (§1.5 AA value of `feedback-info`) |
+| U47 6344:19388 | the link strip | text | text, place, font | "Rules you don’t change follow and update with Standard." at 335, body/small 400 14/24 | the same at 335, 400 14px/24px | match (was "Rules you don’t change here update with Standard.") |
+| U47 6185:8555 (6344:60085) | 6.1: rules removed | text | removed count | "2 of 3 Standard rules are removed here." before the text, in the same line | "1 of 5 Standard rules is removed here. Rules you don’t change …" with Rule 02 removed (the draft's Standard has 5 rules) | match (FR-051 (38); the count and the singular are the data) |
+| U47 6185:41146 (6344:60090) | 6.3: a group removed | text | removed summary | "Group 01 is removed here." | "Group 01 is removed here." | match |
+| U47 6185:41589 (6344:60095) | 6.4: a sub-group removed | text | removed summary | "Sub-group 01 is removed here." | "Sub-group 01 is removed here." | match |
+| — | a group and a rule removed | text | removed summary | not drawn | the count over every removed rule, also those in the group ("3 of 3 Standard rules are removed here." in `utils.test.ts`; not opened in the browser) | match (Decision 2) |
+| U39 6163:5841 (3.7) | Rule 02 removed | strip | removed count | none drawn | "1 of 5 Standard rules is removed here." | FR-051 (38) (U47 is the frame that draws it) |
+| — | nothing removed, after Restore | strip | text | U39 6163:5419: the text alone | the text alone | match |
+| — | 320 × 640 | strip | wrap | — | 17, 271 × 272, wraps; `scrollWidth` 305, no horizontal scroll | match (FR-010) |
+| U47 6185:8569, 6185:8572 | 6.1: a removed rule | connector before it | opacity | 40 % | pill and line at 0.4 (`Connector faded`) | match (FR-051 (39)) |
+| U47 6185:8555 | 6.1 | connector after a removed rule, before an active item | opacity | — (U39 3.7: the connector after Rule 02 solid) | solid | match |
+| U47 6185:41163, 6185:41170, 6185:41177 | 6.3: Group 01 removed | connectors before and inside it | opacity | 40 % | before Group 01 0.4; inside (OR, AND) 0.4; after it (before Rule 06) solid | match |
+| U47 6185:41620 | 6.4: Sub-group 01 removed inside Group 01 | connector before it, inside the group | opacity | 40 % | 0.4 (`GroupListItem` passes `GroupFrameMember.faded` for a removed or dissolved member) | match (was solid: new in T065) |
+| U47 6185:41610 (#35) | 6.4: Group 01 left with Rule 03 and the removed sub-group | Group 01 | state | stays an active group | dissolved in Ambulance (F13): Rule 03 moves before it, Group 01 shown removed, holding the removed sub-group | F13 (002-S4.18, the baseline; the audit's CONFLICT ? #35) |
+| — | a changed group dissolved in its variant | frame | fill | not drawn | `layout-background-hued` (removed look); was the purple "changed" tint with "Removed here" | match (Decision 3) |
+| U47 6185:8570 | removed rule | row | look | faded, struck, "Removed here", ⋯ | as T024's §5.1 rows (content 0.4, struck, mark 1, ⋯) | match |
+| U47 6185:8570 (#15) | removed rule | message line | shown | hidden | shown, faded and struck | F36 (FR-040) |
+| U47 6185:8802 | removed rule's ⋯ | entries | — | "Restore rule" with the undo icon | "Restore rule" · "Copy link", no icons | F29 (007-S4.2); the icon: T055/T058 (Restore has no icon) |
+| U47 6185:41167 | 6.3: removed group | name | font size | 16 (a raw override on the struck name) | 18 (`title/default`, struck, 0.4) | Decision 1 (closes T025's deferred row) |
+| U47 6185:41586 | 6.3: removed group's ⋯ | entries | — | "Restore group" | "Restore group" · "Copy link" | F29 |
+| U47 6185:42029 | 6.4: removed sub-group's ⋯ | entries | — | "Restore sub-group" | "Restore sub-group" · "Copy link" (Sub-group 01's menu before: "Add message" · "Copy link" · "Remove from Ambulance") | match / F29 |
+| U47 6185:41168, 6185:41182 (#31) | members of a removed group | ⋯, "+ Add rule" | shown | dimmed ⋯ on each member, the sub-group's dimmed "+ Add rule" | no ⋯, no "+ Add rule" in a removed group | baseline (T055: no menu on faded items; 002-S4.7: nothing in a removed group is edited) |
+| U47 6185:41178 (#32) | changed rule in a removed group | mark | shown | no "Changed here" | "Changed here" at full colour (opacity 1) | F36 (FR-040) |
+| U47 6185:41178 | changed rule in a removed group | row tint | opacity | `variant/changed-background` at 40 % | full `#f8f1fc` (rgb(248, 241, 252)) on the row inside the faded sub-group | open item, optional per the task: `RuleRow`'s tint (not T065's files; note for phase 11) |
+| U39 6163:5440 (3.6) | Group 01's AND/OR changed | group frame | fill, border, mark | `#f8f1fc`, 3 `#1d56f0`, "Changed here" `#8a22b5` on white before ⋯ | rgb(248, 241, 252), 3px rgb(29, 86, 240), "Changed here" before ⋯ | match (T025's §5.1 U58 rows) |
+| U39 6163:5440, 6163:5447 | Group 01's AND/OR changed | subtitle | text | "All rules must be met" | "All rules must be met" | match (FR-051 (32)) |
+| U39 6163:5442 | Group 01's AND/OR changed | connector inside | look | the plain AND pill | the plain AND pill | match |
+| U39 6163:5453 | changed rule | row | mark, tint | "Changed here", "Variant outline" tint 8 in from the sub-group | "Changed here"; tint `#f8f1fc` 207–1239 (8 in from the sub-group's 199–1247) | match |
+| U39 6163:5462 | added rule | row | mark, tint | "Added here", tint | "Added here", tint | match (T019, T024) |
+| U39 6324:39971 (3.8) | changed rule's ⋯ | entries | — | Edit rule · Copy to variant · Group with other rules · Reset to Standard · — · Remove from Ambulance | as T058's U56 rows (Copy link before the divider) | match / F29 (T058's table) |
+| U39 6344:53750 (3.9) | linked rule's ⋯ | entries | — | Edit rule · Group with other rules · — · Remove from Ambulance | as T058's U56 10.5 row | match / F29 |
+| U47 6185:8847 | "Delete Rule 01?" in Standard with two based variants | dialog | box | 480 × 304 | 480, 348, 480 × 304; body at 32, 72, 416 × 104 | match |
+| U47 6185:8847 | "Delete Rule 01?" | body | text, font | "This deletes it from Standard and from the variants that follow it: Ambulance and School transport. If a variant changed this rule, it keeps its own version.", body/large 18/24 `#0b1220` | the same text, 18px/24px rgb(11, 18, 32) | match (CLAR #56; was "This rule will be removed from Standard and from the variants that follow it. … You can undo this right after.") |
+| U47 6185:8847 | "Delete Rule 03?" (Group 01 left with one member) | body | text | the body as drawn | the drawn body + "Group 01 is left with one rule, so it’s ungrouped in Standard and its variants." (+ "Ambulance’s changes to Group 01 go with it." where Ambulance changed Group 01) | W12 (002-S4.17; FR-037 "the dissolving group's variant changes named"); UNCERTAIN 1 |
+| U47 6185:8846 | delete dialog | scrim | click | scrim | a click on the scrim closes the dialog, nothing deleted | match (T052/T057 decision) |
+| — | Standard deletes Rule 02, which Ambulance removed | Ambulance | list | not drawn (002-S4.28) | Rule 02 gone from Ambulance; the strip loses its count | W12 (baseline) |
+| — | Standard deletes Rule 05, which Ambulance changed | Ambulance | mark | not drawn (002-S4.27) | Ambulance's Rule 05 stays, "Added here"; toast "Rule 05 deleted." with "Undo" | W12 (baseline) |
+| — | Standard deletes Rule 05: Sub-group 01 left with one rule | Standard, Ambulance | groups | not drawn | the dialog says so ("Sub-group 01 is left with one rule, so it’s ungrouped in Standard and its variants."); ungrouped in both | W12 (`rules/src/branches.ts` unchanged) |
+| U05 #3 (6711:39381) | Standard without rules, Ambulance based on it | Ambulance | link strip | "not linked" drawn | the strip "Linked to Standard / Rules you don’t change follow and update with Standard." above "No rules yet" | F37 |
+
+Open rows: one, optional by the task (the changed member's 40 % tint in a removed group, `RuleRow`).
+
+**Decisions (T065):**
+
+1. **A removed group's struck name keeps `title/default` 18** (carried from T025, "decide here"). U47 6185:41167 draws a raw 16 px override on the struck "Group 01" only; the active Group 01 in 6.4 and every other group frame draw 18, and a sub-group's 16 is its own level's style. A removal doesn't change the size that tells the levels apart, so the component's style stays. `GroupHeader` unchanged. Not UNCERTAIN: the overridden instance reads as a slip in one frame.
+2. **The strip's summary** (`linkStripSummaryOf` in `RulesStep/utils.ts`, with tests): no sentence while nothing of Standard's is removed (also while Standard has no rules, F37); "Group 01 is removed here." / "Group 01 and Sub-group 03 are removed here." while only groups are removed (the outermost removed ones); otherwise "N of M Standard rules are removed here.", M = the rules the variant inherits (changed ones and those it grouped in a group of its own included, added ones not), N = those removed on their own or with a group around them. A group dissolved there (F13) removes nothing: its remaining rule counts. Singular: "1 of 3 Standard rules is removed here.", "1 of 1 Standard rule is removed here.".
+3. **A group dissolved in its variant shows the removed look** (`GroupListItem` passes `mark` 'removed' while `inactive`): a changed group that dissolves kept its purple "changed" fill under "Removed here"; its changes go with it (002-S4.17), and U47 draws a removed group with its own fill.
+4. **Faded connectors inside groups**: `GroupListItem` now sets `GroupFrameMember.faded` for a removed or dissolved member (U47 6185:41620), as the top level did (FR-051 (39)). After a removed item the connector stays solid (U47 6.1, 6.3; U39 3.7).
+
+**Open for the user (T065, not core):**
+
+1. **The drawn delete body and "You can undo this right after." (copy; not core).** CLAR #56 gives a Standard rule with variants "U47's body as drawn", which has no undo sentence; I dropped it there only (groups and the other rule dialogs keep it). Where the deletion dissolves a group, the baseline's sentences follow the drawn body (FR-037: "and the dissolving group's variant changes named"). The drawn body's "If a variant changed this rule, it keeps its own version." replaces the baseline's naming of the variants that changed it ("Ambulance changed it and keeps its own version.", 002 F14); `RULES_COPY.keptByVariants` is gone. If the undo sentence should stay, it is one line in `deleteDialogText` (and three test strings).
+2. **The strip's mixed case (copy; not core).** A removed group together with a rule removed on its own isn't drawn; the count sentence covers it (Decision 2).
+
+### U57, U58, U40 A variant's menus and select mode (S11) — T066, 2026-11-09
+
+How I checked:
+- Browser: playwright-chrome (Chromium), signed in as `designer`, at 1455 × 1000 (body 1440) and 320 × 640. Fonts: label/small 600 14px/24px Fira Sans in every entry (computed).
+- My own drafts, seeded with `<scratchpad>/phase7/T066/seed.py` (T065's shapes) and deleted at the end (`cleanup.py`). Their local drafts were removed from `localStorage` too. Nothing was saved: every change was local editor state.
+  - "T066 U57": Standard (U57's tree), Ambulance as 10.8 (Rule 05 changed to 19, Rule 06 C1 added, Group 03 added with Rule 07 and Rule 08), School transport as 10.6 (Rule 02 changed to 12 months, Rule 06 D1 added).
+  - "T066 U58": Standard, Ambulance as 10.9 (Group 01 changed to AND, Rule 05 changed to 19, Rule 06 added).
+  - "T066 U40": Standard, Ambulance as 3.10 (Rule 05 changed, Rule 06 added).
+  - The sub-group is called "Sub-group 02" (its id is `group-2`): "Sub-group 01" is reserved for the group numbered 01 (W12), which disabled "Test rules" in a first seed. Group numbers follow the counters (the drawn "Group 02" is "Group 03" here). Sample data.
+- The findings banner and notes that the sample data gives (Rule 05 the same as Rule 01; Group 03 making Rule 05 redundant) are T069's / T070's; U57, U58 and U40 draw no findings.
+- The menu's own geometry (40 px rows, 8 padding, divider, shadow, keyboard) is T021's §5.1 rows; entry icons were checked by T058. These rows check what a variant puts in the menus and select mode.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U57 6522:32732 (10.6) | School transport, Rule 02 changed | entries | order, labels | Edit rule · Copy to variant · Group with other rules · Reset to Standard · — · Remove from School transport | Edit rule · Copy to variant · Group with other rules · Reset to Standard · Copy link · — · Remove from School transport | F29 (Copy link last before the divider) |
+| U57 6522:32732 | Rule 02 changed | "Reset to Standard" | icon, colour | "Icon/Reset · restore" 6342:19343, 20, `#0b1220` | `reset-restore.svg`, the same path and fill as Figma's asset; 20 × 20; rgb(11, 18, 32) | match |
+| U57 6522:32732 | Rule 02 changed | "Copy to variant", "Remove from …" | icons, colour | "Icon/Copy to · tab arrow" 6343:19314; "Icon/Remove from this variant · minus circle" 6529:39063, `#c4271c`, after the divider | `copy-to-variant.svg`, `remove-circle-danger.svg` (byte-identical paths to Figma's assets); "Remove from School transport" rgb(196, 39, 28) after the divider | match |
+| U57 6522:32732 | Rule 02 changed | "Copy to variant" | presence | shown (FR-036f: Ambulance could receive it) | shown: Ambulance holds Standard's version (6 months), not the changed one | match (FR-036f) |
+| U57 6522:32732 | Rule 02 changed | menu | place | below the ⋯, right edges aligned | 8 below the ⋯, right edges aligned (⋯ 1223–1255, menu 1035–1255) | match |
+| U57 6522:32732 (metadata) | Rule 02 changed | menu | width, label | 257 wide: the menu grows to fit "Remove from School transport" on one line (entries 239, label 195) | 220 wide (`ACTION_MENU_WIDTH`); the label wraps to two lines (entry 64 high) | **open** (UNCERTAIN 1; `components/ActionMenu`, outside T066's files) |
+| U58 6522:33026 (metadata) | Ambulance, Group 01 changed | menu | width, label | 240 wide (entries 222, "Remove from Ambulance" 159 on one line) | 220; "Remove from Ambulance" wraps to two lines | **open** (the same row as above) |
+| U57 6522:32824 (10.7) | School transport, Rule 05 (linked, unchanged) | entries | — | Edit rule · Duplicate · Copy to variant · Group with other rules · — · Delete rule (anchored at Rule 05; the frame title says "new addition") | Rule 05: Edit rule · Copy link · — · Remove from School transport (no Copy to variant: Standard and Ambulance hold it; no grouping in a sub-group) | F68 (a linked rule has no Duplicate and no Delete), FR-036f, F30 |
+| U57 6522:32824 | School transport, Rule 06 ("Added here") | entries | — | (the drawn menu read as Rule 06's, F68) | Edit rule · Rename · Duplicate · Copy to variant · Group with other rules · Copy link · — · Delete rule | F68 (Rename and Copy link added, F29) |
+| U57 6522:32682 | School transport, Rule 01 (linked, unchanged) | entries | — | not drawn | Edit rule · Group with other rules · Copy link · — · Remove from School transport | match (FR-036e/f) |
+| — | School transport, Group 01 / Sub-group 02 (linked) | entries | — | not drawn | Add message · Copy link · — · Remove from School transport | match (FR-036e: no Rename, Ungroup) |
+| U57 6522:32923 (10.8) | Ambulance, Group 03 ("Added here", Group 02 in Figma) | entries | — | Add message · Duplicate group · Group with other rules · Ungroup · — · Delete group | Rename · Add message · Ungroup · Copy link · — · Delete group | F69 (Rename), F29 (Copy link), CLAR #64 (no grouping on a group), F8 deferred ("Duplicate group"; T058 UNCERTAIN 3, accepted) |
+| U57 6522:32862 (10.8) | Ambulance, Rule 07 in the added Group 03 | entries | — | not drawn | Edit rule · Rename · Duplicate · Copy to variant · Group with other rules · Copy link · — · Delete rule | match (not linked: the whole menu; Rule 08 is a neighbour in the group) |
+| U57 6522:32897 (10.8) | Ambulance, Rule 05 changed in Sub-group 02 | entries | — | not drawn ("Changed here" inside an inherited sub-group) | Edit rule · Copy to variant · Reset to Standard · Copy link · — · Remove from Ambulance (no grouping in a sub-group) | match (FR-036e, F30) |
+| U58 6522:33026 (10.9) | Ambulance, Group 01 changed (holds Sub-group 02) | entries | order, labels | Add message · Group with other rules · Reset to Standard · — · Remove from Ambulance | Add message · Reset to Standard · Copy link · — · Remove from Ambulance | F30 / CLAR #48 (no grouping on a group holding a sub-group; the drawn entry is a Figma error), F29 (Copy link) |
+| U58 6522:33026 | Group 01 changed | icons, colours | per entry | "Icon/Error message · speech bubble", "Icon/Reset · restore", minus circle `#c4271c` | message-alert.svg, reset-restore.svg, remove-circle-danger.svg; ink rgb(11, 18, 32), "Remove from Ambulance" rgb(196, 39, 28) after the divider | match |
+| U58 6522:33026 | Group 01 changed, 1455 × 1000 | menu | direction | down (the frame is 1675 tall) | up, 8 above the ⋯ (211 high, no room above the footer at this height) | match (R10: the direction is measured) |
+| — | Group 01 changed → "Reset to Standard" | group | operator, mark | not drawn | "All rules must be met" → "At least one rule must be met" (Standard's OR); "Changed here" gone; Rule 05 inside keeps its "Changed here" (a member's own change) | match (002-S4.8; `edits.resetItem`) |
+| — | after "Reset to Standard" (rule, by keyboard: Enter on ⋯, ↓ ×3, Enter) | Rule 02 | value, mark, focus, toast | not drawn | 12 → 6 months from now; "Changed here" gone; the focus back on "Actions for Rule 02" (closed); no toast | match (baseline: Undo/Reset has no toast) |
+| — | after "Reset to Standard" | Rule 02's menu | entries | not drawn | Edit rule · Group with other rules · Copy link · — · Remove from School transport ("Copy to variant" gone: every variant holds Standard's version again) | match (FR-036f) |
+| — | Ambulance, Rule 05 in Sub-group 02 → "Reset to Standard" | Rule 05 | value, mark | not drawn | 19 → 21 years old; mark gone | match |
+| U58 6522:33103 (10.10) | removed rule | menu | entries | Restore rule (only) | Restore rule · Copy link | F29 (T058's row; 007-S4.2) |
+| U58 6522:33090 (10.10) | two rules removed | link strip | text | "2 of 3 Standard rules are removed here. Rules you don’t change follow and update with Standard." | `linkStripSummaryOf` (T065's rows) | match (T065) |
+| U40 6344:53751 (3.10) | Ambulance, "Group with other rules" on Rule 01 | entry, focus | behaviour | not drawn (FR-036i) | select mode starts with Rule 01 ticked; the focus on "Select Rule 01" | match (FR-036i) |
+| U40 6616:44263 (3.10) | one ticked | bar | text | not drawn | "Choose at least one more rule to group with Rule 01." | match (T059) |
+| U40 6616:44263 | two ticked (Rule 01, Rule 02) | bar | text | "2 rules selected. The group is added in Ambulance only. Standard stays the same." | the same | match |
+| U40 6616:44263 | two ticked | bar | place, fill, corners | under the link strip, square, `#e0f2fe`, 56 high | 161, 338, 1118 × 56 (strip 281–337); rgb(224, 242, 254); radius 0 | match (T059's `belowStrip`) |
+| U40 6344:53808 – 53810 | two ticked | boxes | which | top-level rules only: Rule 01 ✓, Rule 02 ✓, Rule 06; none on Group 01 or its members | "Select Rule 01" ✓, "Select Rule 02" ✓, "Select Rule 06"; none on groups or in them | match (CLAR #61, #64) |
+| U40 6344:53808 | select mode | box | offset in the row | about level with the rule's name | 22 below the row's top (T059's U36 offset) | T059 UNCERTAIN 3 (accepted) |
+| U40 6344:53805 | select mode | "Test rules" | state | disabled, "Finish grouping first" as text before it | `aria-disabled="true"`, "Finish grouping first" on hover and focus | W21 (T056's, T059's row) |
+| U40 6344:53826 (3.11) | grouped | new group | place, mark | "Group 02" at the top where Rule 01 stood, "Added here", purple tint and border, Rule 01 AND Rule 02, its own "+ Add rule" | "Group 03" first, "Added here", holding Rule 01 and Rule 02 with "+ Add rule"; Standard unchanged (Rule 01, Rule 02, Group 01) | match (002-S4.20; the number is the counter's) |
+| U40 6344:53871, 6344:53872 | grouped | Rule 01, Rule 02 in the new group | link icon | a link icon on each ("rules inside stay linked") | no link icon; no mark (they stay linked) | FR-038 (the link icon on every linked rule or none) |
+| U40 6344:53822, 6344:53865 | grouped | top-level connectors | — | none between Group 02 and Group 01; one after Rule 06 before "+ Add rule" | one connector between every two items (Group 03 AND Group 01 AND Rule 06), none after the last | FR-038 ("exactly one connector sits between items") |
+| U40 6344:53873 | grouped | toast | text, type, action | "Grouped in Ambulance only. Standard stays the same." green, "Undo" | the same, `success` (green, filled check), "Undo" | match (cosmetic 8; was "Rule 01 and Rule 02 in Ambulance are now Group 03. Standard stays the same.") |
+| U40 6344:53811 | grouped | select mode, focus | — | bar and boxes gone | bar and boxes gone; the focus on Group 03's header; "Test rules" enabled | match |
+| U40 6961:56291 (3.17) | Standard | tab, rules | — | "Standard" alone with ⋮ and its (i) tooltip; Rule 05 21 years | Standard's Rule 05 reads 21 while Ambulance's reads 19 | match (the tab and tooltip are T064's rows, the ⋮ T067's) |
+| — | every menu of the U58 draft (changed group, tinted frames) | menu | clipping | — | no ancestor with `overflow`, `transform` or `filter`; `elementFromPoint` 10 px inside each corner hits the menu | match (V6) |
+| — | 320 × 640, Ambulance | menus, bar | stay on screen | not drawn | Group 01's and Rule 05's menus 220 wide at x 36 / 28; the bar 271 × 136 with its buttons wrapped; `scrollWidth` 305, no horizontal scroll | match (FR-010) |
+
+Open rows: one (two frames): "Remove from <variant>" wraps in the 220 px menu where Figma widens the menu to fit it (UNCERTAIN 1).
+
+**Decisions (T066):**
+
+1. **The grouped-in-variant toast takes the design's words** ("Grouped in Ambulance only. Standard stays the same.", U40 6344:53873). Report cosmetic 8 lists this exact toast among the rules-step wordings to adopt. `RULES_COPY.groupedInVariant` keeps its four parameters (rules and group now unused, prefixed `_` as `grouped`'s branch is), so `utils.ts` is unchanged. It is also the toast when a variant's rules become a sub-group inside a group (the existing test case: Rule 02 and Rule 03 in Ambulance's Group 01): "added in Ambulance only" holds there too. One test string changed in `utils.test.ts`.
+2. **Linked names stay plain text** (T058 UNCERTAIN 2, "T066 may revisit"): kept. FR-036e takes Rename off linked items; U57's frames draw no rename and the Figma component description says "Rename: hidden for rules linked to Standard in a variant (follows or Changed here)". A renaming affordance on the name would contradict the menu.
+3. **U58 10.11 (`6530:40675`) is not built here.** It draws the published connection's details page (status band, connection menu), not a variant menu. Read for the frame only; noted for the details tasks.
+
+**Open points (T066):**
+
+1. **The menu width for "Remove from <variant>" (layout; not core). Closed by the coordinator (2026-11-09):** `ActionMenu`'s placement classes are now `w-max min-w-220 max-w-280` and `placementFrom()` plans for 280 (`ACTION_MENU_MAX_WIDTH`); the usual menus measure 220 (Rule 01, Sub-group 02 checked), a longer label widens the menu as Figma's auto-width menus do. Was: Figma's rule and group menus are 220 wide (U57 6522:32824, U55), but widen to fit "Remove from <variant>" on one line: 240 in U58 6522:33026 and U56 6522:32644 ("Remove from Ambulance"), 257 in U57 6522:32732 ("Remove from School transport"). `ActionMenu` is a fixed `w-220` (research R10: "follows the design's 220 px now that the Revamp's 14 px label/small fits"), so these labels wrap to two lines (the entry 64 high). T058 recorded U56's 240 as R10. R10's premise doesn't hold for these labels. A fix is in `frontend/src/components/ActionMenu/constants.ts` (not T066's file): `min-w-220 w-max max-w-[…]` in the four placement classes instead of `w-220`, with `placementFrom()` measuring the menu's real width. I left it open for the coordinator, who may accept R10 (wrapping) or give the fix to phase 11 / T021's owner.
+
+### U69, U70, U71, U72 The variants on the test step and many rules (S13) — T073, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 900
+  (body 1440; the frames are 1440 × 900), 1455 × 640, 800 × 1024 and 320 × 640.
+- Drafts (T073's own, step "test", deleted at the end, 404 afterwards; nothing saved, no non-GET request in any walk):
+  - "T073 variants": Standard (with a description) = Rule 01 · Minimum age 21, Rule 02 · Class B for 2 years,
+    Rule 03 · Licence not expired, Rule 04 · German or EU citizen; Ambulance (based) + Rule 05 · Class C1 (Ambulance);
+    School transport (empty, no rules); Bus (based) + Group 01 (AND: Rule 06 age ≥ 25, Rule 07 class D, a group
+    message). U69, U70, W14.
+  - "T073 contradiction": Standard = Rule 01 (age ≥ 21), Rule 02 · Under 18 (age < 18), Rule 03, Rule 04; Ambulance
+    (based, the same); School transport (empty, meetable rules). U71, the ⚠ on a selected and an unselected tab.
+  - "T073 many rules": Standard with 12 rules over Date of birth, Nationality, Expiry date and Licence classes. U72.
+- The personas are random per open: Figma's sample names and values are not copy (FR-002).
+- Figma: `get_metadata` on `7058:61648` (U72); `get_design_context` on the tab row `7058:61380` (with the ⚠ tab
+  `7058:61618`) and the tooltip `7058:61632`; screenshots of `7057:60393` (U69), `7057:61267` (U70), `7058:61372`
+  (U71), `7058:61648` (U72). `7057:60828`, `7057:61659`, `7057:62051` are the same screens with another chip selected
+  (U69.md, U70.md) and were not read again. Every frame matches its audit inventory (U69.md–U72.md); none has changed.
+- Scripts: `<scratchpad>/pw/t073-measure.mjs`, `t073-keys.mjs`, `t073-wheel.mjs`, `t073-exp.mjs`; seed and cleanup in
+  `<scratchpad>/phase7/T073/`; screenshots there (`u69-amb`, `u70-school`, `u71-hover`, `u71-focus`, `w14-bus`,
+  `many-1455`, `many-1455x640`, `many-800x1024`, `many-320x640`).
+- Figma y values are page values; the app's are 40 lower from the tabs on, because of the test-day line the frames
+  don't draw (T071's note).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U71 7058:61380 | any | tab row | box, line | 1120 × 39, items bottom-aligned, 24 apart, 1 bottom border `#e1e6f0` | 160, 256, 1120 × 39; gap 24; 1px rgb(225, 230, 240) (`TAB_ROW_CLASSES` of the rules step) | match |
+| U71 7058:61618 | selected | tab | label, indicator | label/default 600 16/24 `#0b1220`, pt 4, label row 24, 8, 2px black indicator; 38 high | 600 16px/24px rgb(11, 18, 32), 38 high, indicator 2px rgb(11, 18, 32) (`BranchName`'s `tab` form) | match (carried from T026) |
+| U69 7057:60401 | not selected | tab | label, indicator | body/default 400 16/24 `#4a5468`, no indicator | 400 16px/24px rgb(74, 84, 104), indicator transparent | match |
+| U69 7057:60402 | Standard with a description | tab icon | glyph, place | filled (i) 20, 4 after the name, on Standard only | `kern-icon--info` muted 20 × 20, 4 after "Standard"; "About Standard" | match (F27, FR-035) |
+| U69, U70, U72 | variant tabs | ⋯, variant ⓘ, "Add variant" | presence | none on the test step (U72 7058:61660 hidden) | none (no `actions`, no `noFindingsInfo`) | match (F27, F28; carried from T026, T064) |
+| U71 7058:61618 | no citizen can meet | ⚠ | glyph, colour, place | `icon-warning-small` `#9a4a00` 20, 4 after the name | `kern-icon--warning` rgb(154, 74, 0) 20 × 20, 4 after "Standard" (231, 262) | match |
+| — | no citizen can meet a variant not shown | ⚠ | presence | not drawn | on the unselected "Ambulance" too; its tab's name "Ambulance has findings" | match (004-S8.2.2, W13) |
+| U71 7058:61618 | no citizen can meet | ⚠ | source | the frame's annotation "⚠ on the tab" | spec 003's `none_can_meet` notice of the checks only; no other finding kind on the test tabs | match (F38, FR-041; Q29 (b), (d)) |
+| U71 7058:61632 | hover, focus on the ⚠ | tooltip | look | inverse `#0b1220`, radius 8, py 8 px 16, warning icon 20 white, 8, body/small 14/24 white | `InfoTooltip` with `FindingsSegment` (T022, T026): the same look; opens on hover and on keyboard focus (Tab from the tab), 280 wide under the icon | match |
+| U71 7058:61632 | hover, focus on the ⚠ | tooltip | text | "Rule 01 and Rule 02 contradict each other, so no citizen can meet these rules." | "No citizen can meet the rules of Standard." (`noticeText()`; "Right now, no citizen …" when it holds today only) | F38 (Q29 (b): the contradiction finding stays on the rules step) |
+| U71 7058:61632 | no description | tooltip | divider | a 1px divider above the finding | none: the finding alone | match (T026's `FindingsSegment`: the divider separates the description; decision 3) |
+| U71 7058:61454 | no citizen can meet | result card | above the heading | nothing | nothing (the warning box "No citizen can meet the rules of Standard." removed from `ResultSection`) | match (CLAR #50, FR-041e; drops 004-S8.6.1) |
+| U71 7058:61454 | no citizen can meet | heading | copy | "Result: doesn’t meet 2 rules" | "Result: doesn’t meet 3 rules" | match (C6) |
+| U69 7057:60495 | Ambulance · one rule not met | heading, rows | copy, order | "Result: doesn’t meet 1 rule"; Rule 05 · Class C1 (Ambulance) first, then Rules 01–04 | the variant's rows from the evaluator, reported first ("Result: doesn’t meet 5 rules" for the sample citizen; Rule 05's row with "Licence classes includes one of C1") | match (C6; 004-S8.6.4) |
+| U69 7057:60442 | Ambulance | chips | outcome icons | the variant's outcome per citizen | the icons follow the shown variant; the selected citizen kept across tab changes (arrow keys, Home, End) | match (004-S8.2.5, FR-004) |
+| U70 7057:61369 | a variant without rules | heading | copy | "Result: meets the rules" | "Result: meets the rules" | match |
+| U70 7057:61658 | a variant without rules | note | copy, type | "School transport has no rules yet, so every citizen meets it. Add rules in the Rules step to test them.", body/small `#4a5468` | the same text (`noRulesNoteOf()`), 400 14px/24px rgb(74, 84, 104), 8 under the heading row | match |
+| U70 7057:61655 | a variant without rules | success box | presence | "Message Mia reads" box | none | F41 (CLAR #31 (a)) |
+| U70 7057:61312 | a variant without rules | chips | icons | all three green check circles | all three `kern-icon--success` | match |
+| U70 7057:61330 | a variant without rules | data card | rows | the rows the other variants check | the rows the connection's rules check (Date of birth, Nationality, Expiry date, Licence classes) | match (004-S8.4.8) |
+| U72 7058:61692 | 12 rules, 1455 × 900 | variant area | box | 160, 271 → 764 (64 above the footer) | 160, 311, 1120 × 453 → 764 (`STEP_PINNED_CLASSES`: 24 more than the content's 40 px padding) | match (40 lower from the test-day line) |
+| U72 7058:61693 | 12 rules | citizens row | pinned | stays | stays at 311–376 while the panel scrolls | match (F43) |
+| U72 7114:49671–7114:49674 | 12 rules | scrolling | which part | each card its own scroll area (305 high) with a scrollbar | the panel as a whole (`PANEL_CLASSES`: 1118 × 387, `scrollHeight` 1785), both cards as high as the taller (1753); the page doesn't scroll (`scrollHeight` 900; wheel over the tabs: `scrollY` 0) | F43 (CLAR #31 (c), FR-043) |
+| U72 7058:61648 | 12 rules | header, step header, tabs, footer | pinned | stay | stay (pills 0–64, step header to 216, tabs 256, footer 828) | match (F43) |
+| U70 7057:61326, U71 7058:61431 | few rows | cards | height | both fill the panel (395 in 427) | both 355 in a 387 panel (`PANEL_CONTENT_CLASSES` `grow`) | match (U65 7057:58766 `h-full`; 40 lower from the test-day line) |
+| — | 12 rules, 1455 × 640 | panel | scrolls | not drawn | area 193 high, the panel 127 visible and scrolling, the page 640 (no page scroll) | match (`wizard-pinned` from 768 × 640) |
+| — | 12 rules, 800 × 1024 | panel | layout | not drawn | the cards stacked (below `lg`), the panel 487 high scrolls; step header to 240 | match |
+| — | 12 rules, 320 × 640 | page | scroll | not drawn | the page scrolls (the step header isn't pinned); no horizontal scroll (`scrollWidth` 305) | match (FR-010, R4) |
+| U72 7058:61711 | 12 rules | data rows | labels | "Expiry date" (driving licence), "ID valid until" (Personal ID) with a plain date | the catalog's labels ("Expiry date" for both documents) with "Valid until <date>" | match (CLAR #46: "under the rule's label", "Valid until <date>"; decision 4) |
+| — | a reported group (Bus) | group row | members | not drawn (W14) | "Group 01 · All rules must be met · Not met" with its message, Rules 06 and 07 indented under it | match (W14, 004-S8.6.5; T071's rows) |
+| — | keyboard | variant tabs | keys, focus | not drawn | Right, End, Right (wraps), Home select and focus; Tab goes to the (i) / ⚠, then the selected chip; 4px ring on keyboard focus | match (004-ACC.2, R16) |
+
+Open rows: none.
+
+**Decisions (T073):**
+
+1. **`VariantTab` is `BranchName`'s `tab` form** (carried from T026), with `ELEMENT_IDS.testTab/testPanel`, without
+   `actions` and without `noFindingsInfo`; `VariantTabs` uses the rules step's `TAB_ROW_CLASSES` (imported, unchanged).
+   The finding is spec 003's `none_can_meet` notice as before (Q29 (d): "from the evaluator" = the baseline's checks,
+   FR-003), worded by `noticeText()`; the frame's contradiction sentence stays the rules step's (Q29 (b)).
+2. **CLAR #50**: `ResultSection` lost the warning line and its `check` prop (`ResultSectionProps` in `types.ts`;
+   `TestStep` no longer passes it).
+3. **The tooltip's divider without a description** (U71 7058:61632 draws one above the lone finding): kept as T026
+   built it (`FindingsSegment` `divided` only under a description); the instance's divider has nothing to divide.
+4. **"ID valid until" (U72, carried from T071)**: not built. CLAR #46 keeps "Valid until <date>" under the rule's
+   label, and the rules' label of the Personal ID's expiry is the catalog's "Expiry date"; U72 #22 puts "valid until"
+   in the label with a plain date, which contradicts FR-024b. With both expiry dates checked, the flat list shows
+   "Expiry date" twice; the hidden document headings (`h3.sr-only`) tell them apart for screen readers, the order
+   (Personal ID's rows first) for sighted users. If the coordinator wants a visible difference, it is
+   `dataRowLabelOf()` in `TestStep/utils.ts` (not built: UNCERTAIN, not core).
+5. **F43's panel** (T033's slot): `TestStep/constants.ts`: `STEP_PINNED_CLASSES` (`wizard-pinned:pb-24`, the area
+   64 above the footer as U72 draws), `PANEL_CLASSES` (the scrolling column) and `PANEL_CONTENT_CLASSES` (`grow`, so
+   the cards fill the panel when they are short). `VISIBLE_HEIGHT_CLASSES` stays in `WizardLayout/constants.ts`.
+6. **Bug found and fixed**: with many rules the *page* scrolled too (`scrollHeight` 1363–2127 at 1455 × 900): the
+   cards' `sr-only` texts (absolutely positioned) had the content wrapper (`relative`) as containing block, outside
+   the scroll container, so their static positions far down the panel extended the page. `PANEL_CLASSES` now has
+   `relative`. It pre-dated T073 (T034's hidden "Met", T071's hidden headings).
+7. **`PersonaPlaceholder`**: radius 8 (`rounded-kern-default`) and "Generate all" in its comment (carried from T071).
+   Its cards keep U11's 317 px height (frame 18/19, T074's U74) and don't stretch to the panel.
+
+**Open for the user (T073, not core):**
+
+1. **"ID valid until" vs "Expiry date" (copy; not core)**: decision 4.
+
+### U41, U42, U59 Copy to variant and the tab's ⋯ (S11) — T067, 2026-11-09
+
+Checked in playwright-chrome (Chromium) at 1455 × 1000 (body 1440), and at 320 × 640, signed in
+as `designer`, on T067's own draft "T067 U41" (Standard as U41's tree; Ambulance linked, Rule 05
+changed, Rule 06 "Added here" (C1); School transport linked, Rule 02 changed (12 months), Rule 06
+"Added here" (D1); Night service started empty, one rule; deleted afterwards). Copies are local
+editor state (nothing saved). Fonts: `document.fonts.check` true for Fira Sans 600 14px, 400
+14px, 600 16px. Popover values relative to the popover's top-left (6344:53981, 300 × 226 as
+drawn with two variants; ours lists a third, Night service, so it is 266 tall).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U41 6344:53928 | Ambulance, Rule 06's ⋯ › Copy to variant | popover | box | 300 wide, x 955 (right edge 1255) | 300 wide, x 955, right edge 1255 = the ⋯'s right edge (`end`) | match |
+| U41 6344:53928 | popover open | popover | where | above Rule 06, which sits low on the drawn page | above the ⋯, 8 px (`bottom-full mb-8`) where it doesn't fit below above the sticky footer (928 − 726 < 266 + 8); below it, 8 px, where it does (Standard's Rule 01: top 388 = ⋯ bottom 380 + 8) | match (T020's placement, as the ⋯ menus; FR-009d) |
+| U41 6344:53981 | open | popover | frame | 1 `decorative-border` #e1e6f0, radius 8, padding 16, gap 8, Elevation/Menu 0 10 28 #13152529, white | 1px solid rgb(225, 230, 240), 8px, 16px, 8px, `rgba(19, 21, 37, 0.16) 0px 10px 28px 0px`, white | match |
+| U41 6344:53982 | open | title | text, type, place | "Copy Rule 06 to", label/small 600 14/24 `#0b1220`, x 17 y 17 | "Copy Rule 06 to", 600 14px/24px rgb(11, 18, 32), 17, 17 | match |
+| U41 6344:53983 | open | "Standard" check item | row, box, gap | "Data/Check item": 32 high (4 + 24 + 4), box 20 radius 4 1 `layout-border` #6b7488, 8 to the 14/24 400 label; y 49 | KERN's `kern-form-check__checkbox` with T016's override (shared `Checkbox`): 266 × 32, box 20 at y 55, label x +28 (20 + 8), 400 14px/24px rgb(11, 18, 32); y 49 | match |
+| U41 6344:53984 | open | help text | text, type, place | "Variants linked to Standard get it too.", body/small 14/24 `layout-text-muted` #4a5468, y 89 | same text (was "Variants based on Standard get it too."), 400 14px/24px rgb(74, 84, 104), y 89; it describes Standard's box and every included one (`aria-describedby`) | match (FR-040: the design's help text) |
+| U41 6344:53985 | School transport chosen | check item | look, place | box filled `action-default` #1d56f0 with the white `icon-done-small`, y 121 | rgb(29, 86, 240) with `check-white-small.svg` (T016), y 121 | match |
+| U41 6344:53981 | open | list | which variants | Standard, School transport (the open Ambulance not listed) | Standard, School transport, Night service, in tab order; the open variant not listed | match (002-S4.12; the third variant is the sample's) |
+| — | Standard chosen | School transport (linked) | state | not drawn (U41 #24) | ticked, `disabled`, box and name at KERN's 40 %, described by the help text; Night service (started empty) stays choosable | W17 (FR-040, 002-S4.13) |
+| U41 6344:53986 | open | actions | layout | right-aligned, 8 apart; y 161 | `justify-end gap-8`; Cancel at x 1069.9, Copy at 1152.1 (8 apart) | match |
+| U41 6344:53987 | open | "Cancel" | look | button-tertiary-small 74 × 48 (40 visible), label 600 14/24 underlined `action-default` | `kern-btn--tertiary kern-btn--small` 74.2 × 40, 600 14px/24px underline rgb(29, 86, 240) | match |
+| U41 6344:53988 | School transport chosen | "Copy" | look | button-secondary 84 × 48, 1 `action-default`, radius 8, label 600 16/24 `action-default` | `kern-btn--secondary` 85.9 × 48, 1px rgb(29, 86, 240), 8px, 600 16px/24px rgb(29, 86, 240) | match (±2 text width, as T027's "Done") |
+| — | nothing chosen | "Copy" | state | not drawn | `aria-disabled="true"`, KERN's 40 %, focusable, does nothing | match (baseline) |
+| — | open | focus | where | not drawn | moves to the first choosable variant ("Standard"); Tab and Shift+Tab go round its controls (Copy → Standard, Standard → Copy), skipping an included one; Escape and Cancel close it with the focus on Rule 06's ⋯ | FR-040 (Q28c: "keeps the focus inside and returns it"; the baseline closed it on Tab out) |
+| — | open | click on a name | behaviour | not drawn | ticks the box, the popover stays open (bug copy-popover-label-click) | match (baseline) |
+| U41 6344:54042 (3.14) | after "Copy" | toast | look, text | "Rules/Toast" type=success: `feedback-success` #1d7a2e, padding 16, gap 24, white check (filled), "Rule 06 copied to School transport." 14/24, "Show" 600 underlined | rgb(29, 122, 46), 16px, 24px, "Rule 06 copied to School transport." + "Show"; 343 × 56, bottom centre | match (T036's toast, T058's `kind: 'success'`) |
+| U42 6344:54043 (3.15) | "Show" | School transport | the copy | the last top-level item, "Added here", no link icon, Rule 07 (C1) | the open tab is School transport (focus on its tab); the copy is the last top-level item "Rule 08" (the draft's next number), C1, "Added here", no link icon | match (002-S4.12, FR-040; the number is the sample's numbering base) |
+| — | copy Rule 06 from Ambulance to Standard | Standard, Ambulance | the copy | not drawn (U41 "Missing here" 002-S4.14) | "Rule 06 copied to Standard."; Standard gets Rule 09 at its end; Ambulance (the source, linked) shows Rule 09 linked and unmarked before its own additions; School transport (linked) gets it too | match (002-S4.14, FR-040: "copies to Standard stay linked in the source branch") |
+| — | Standard, Rule 01 › Copy to variant | list | which variants | not drawn | Ambulance, School transport (both hold Rule 01 unchanged) and Night service (doesn't): every other variant | 002-S4.12 (decision 1 below) |
+| U59 6523:37385 (11.2) | School transport's ⋯ open | menu | entries | "Rules/Variant menu" 220 × 103: Rename (T icon), divider, "Delete variant" (red, `icon-delete-small`) | 220 × 145: Rename (`rename.svg`), Copy link (`link-ink.svg`), divider, "Delete variant" (`kern-icon--delete`, rgb(196, 39, 28)); entries 202 × 40, 600 14px; from `menuEntriesOf({ kind: 'variant' })` | F10, FR-036 (Copy link before the destructive entry; stored draft) |
+| U59 6523:37385 | open | menu | frame | 1 #e1e6f0, radius 8, padding 8, entries 2 apart, Elevation/Menu | 1px solid rgb(225, 230, 240), 8px, 8px, 2 (`ActionMenu`) | match |
+| U59 6523:37385 | open | menu | place | x 379–599 under the tab whose ⋮ ends at 574; top 272 (20 under the ⋮ icon, 7 under the row's line) | right edge on the ⋯'s right edge (x 437.9–657.9, `end`), top 266 = the 32 px ⋯'s bottom + 8 (1 under the row's line) | match (T021's Menu pattern: to the left of its ⋯ where it fits, 8 px; FR-009d) |
+| U59 6523:37251 (11.1) | every state | ⋯ | on which tabs | the active tab only | every tab of the rules step | F28 (CLAR #21; T064's table) |
+| U59 6523:37251 | Standard's ⋯ | menu | entries | "with Rename only" (frame title) | Rename, Copy link (no Delete); opens to the right at 1440 (`ActionMenu` plans for its 280 px maximum, 287 − 280 < 16) | F10, FR-036 (Copy link); placement: coordinator (`ActionMenu` 220–280) |
+| U59 6523:37532 (11.3) | Rename | rename | how | inline in the tab, double-click, "Enter saves · Esc cancels" | "Rename" opens "Edit variant" (name and description filled), Escape returns the focus to the tab's ⋯; no double-click | F28 (OUT-19) |
+| — | "Delete variant" | dialog | text | not drawn (U59 "Missing here" 002-S4.5) | "Delete School transport?", "The variant and its rules will be deleted.", Cancel / "Delete variant"; Cancel returns the focus to the ⋯ | match (baseline; U61 is T068's) |
+| — | "Copy link" | toast | text | not drawn | "Link copied." with `…/edit?step=rules&variant=<id>` on the clipboard | match (spec 007, S4.4) |
+| — | 320 × 640 | popover | place | not drawn | across the rules card (`full`, `inset-x-16`, 239 wide), below the ⋯; it fits on neither side, so it keeps its 290 px and the page scrolls: Shift+Tab to "Copy" brings it clear of the sticky footer (Copy's bottom 320 < 472); no horizontal scroll (scrollWidth 305) | match (FR-010; decision 2 below) |
+| — | 320 × 640 | tab menu | place | not drawn | x 16, 273 wide (`full`), no horizontal scroll | match |
+
+Screenshots: `<scratchpad>/phase7/T067/*.png` (app), `T067/figma/*.png` (Figma).
+
+**Decisions (T067):**
+
+1. **The popover lists every other variant** (W17's call, carried from T055/T058). Since CLAR #53
+   the menu entry shows only while some variant could still receive the rule; the popover keeps
+   002-S4.12's list (every other variant, in tab order), so a variant that already holds the rule
+   (linked, unchanged) can still be chosen and gets a separate, unlinked copy, as the baseline
+   does. W17 itself concerns only the linked variants while Standard is chosen (included, not
+   choosable), which is built. `copyTargetsOf()` and its tests are unchanged. Not UNCERTAIN
+   (002-S4.12 settles it); the coordinator may still prefer hiding such targets.
+2. **No max-height step on the popover.** T020's placement decides the side (the caller, as
+   before) and now the direction (measured in the popover before it paints, from its own
+   height; `COPY_POPOVER_PLACEMENTS[side][direction]`, 8 px from the ⋯, `z-40` like the menus).
+   A max-height step (tried first) left a 22 px list at 320 × 640, where the popover fits on
+   neither side; the popover keeps its height there and the page scrolls to it.
+3. **The focus stays inside** (FR-040, Q28c): Tab and Shift+Tab wrap round the popover's
+   controls (baseline: Tab out closed it). The focus leaving another way (a screen reader's
+   cursor, a script) still closes it (`onDismiss`).
+4. **The included variants are described by the help text** (`aria-describedby`), so that a
+   ticked, disabled box says why; Standard's box too.
+5. **`BranchMenu` builds its entries from `menuEntriesOf({ kind: 'variant' }, { branchKind,
+   linkable })`** (carried from T055), with `MENU_ENTRY_LOOKS` and the label "Delete variant"
+   (U59 #11; was "Delete"); props unchanged (Standard = `deletable` false).
+
+### U74, U99 (`7114:49683`) Loading, failure and the edit flow's test step (S13) — T074, 2026-11-09
+
+Setup:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`), signed in as `designer`. Sizes: 1455 × 900
+  (body 1440; the frames are 1440 × 900) and 320 × 640.
+- Draft (T074's own, step "test", deleted at the end, 404 afterwards): "T074 Passenger transport licence": Standard
+  (a description) = Rule 01 · Minimum age 21, Rule 02 · Class B for 2 years, Rule 03 · Licence not expired, Rule 04 ·
+  German or EU citizen; Ambulance (based) + Rule 05 · Class C1 (Ambulance); School transport (empty). As U74's tabs.
+  No non-GET request in any walk.
+- The loading states are made in the browser only (an init script wraps `Worker`; nothing in the source): its answers
+  are held while `window.__hold` is set (frame 18 on first open, frame 19 after "Generate again"), and its constructor
+  throws while `window.__failWorker` is set (generation failed: `createWorker()` returns null and the run fails). The
+  watchdog (5.5 s) bounds a held run; the measurements are taken before it.
+- The edit flow (U99 E6): no connection can be published here (EUDIPLO isn't configured), so `page.route` answers the
+  draft's `GET /api/form-connections/<id>` as a published `FormConnection` (api-types shape: `status: 'published'`,
+  `is_active`, `trigger_url`, `pull_url`, branches with `is_main` / `pull_url`, `rule_set_version`); the flow opens at
+  step 1 and the step line's "Test" opens the test step. No mutation sent.
+- Figma: `get_metadata` on `7062:50960`; `get_design_context` on the variant area `7062:51004` (frame 18: pills, status,
+  "Generate all", both skeleton cards), the chip `7062:51295` (with the ring `7062:51495`, its SVG read: circle r 7,
+  stroke 2 `#E4E8EF`, no arc) and the failure's panel `7062:51592`; screenshots of `7062:51536` (frame 20),
+  `7062:51249` (frame 19) and `7114:49683` (U99 E6). Every frame matches its audit inventory (U74.md, U99.md); none
+  has changed.
+- Scripts: `<scratchpad>/pw/t074-states.mjs` (modes `loading`, `one`, `failed`), `<scratchpad>/pw/t074-edit.mjs`
+  (`fail` for the edit flow's failure); seed and cleanup in `<scratchpad>/phase7/T074/`; screenshots there
+  (`s-loading`, `s-one`, `s-failed`, `s-edit`, `s-edit-fail`, `n320-loading`, `n320-failed`).
+- Figma y values are page values. Frames 18 and 20 have no test-day line, as the app (the variant area at 271 in both);
+  in frame 19 the app shows it (Q32, 004-S8.1.2), so its y values are 40 lower from the tabs on (T071's note).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U74 7062:50960 | loading (first open) | test-day line | presence | none | none | match (004-S8.8.3) |
+| U74 7062:51004 | loading | variant area | box | 160, 271, 1120 × 493 | 160, 271, 1120 × 493 | match |
+| U74 7062:51005 | loading | citizens row | box | 1118 × 64, pt 16 px 16 | 161, 272, 1118 × 64 | match |
+| U74 7062:51206–7062:51208 | loading | skeleton pills | box, look | 130 / 126 / 132 × 40 at row + 16, + 20, 8 apart; white, 1 `#e1e6f0`, radius 999 | 177 / 315 / 449, 292, 130 / 126 / 132 × 40; oklch(1 0 0), 1px rgb(225, 230, 240), round; `aria-hidden` | match |
+| U74 7062:51210 | loading | status | copy, type, place | "Creating 3 sample citizens…", body/small 14/24 `#4a5468`, at row + 788, + 28 | the same text, 14px/24px rgb(74, 84, 104), 949, 300 (row + 788, + 28); `role="status"`, polite | match (004-S8.8.2, FR-020) |
+| U74 7344:96354 | loading | "Generate all" | presence, box | tertiary small with the refresh icon at row + 972, 130 × 48 | 1133, 292, 130 × 40 + 4 margins | match (decision 1; was hidden in frame 18) |
+| — | loading | "Generate all" pressed | behaviour | not drawn | nothing changes (the run already creates all three), the focus stays on the button, the status unchanged | decision 1 |
+| U74 7062:51016 | loading | panel | box | 1118 × 427, p 16 | 161, 336, 1118 × 427, 16px | match |
+| U74 7062:51018, 7062:51040 | loading | skeleton cards | box, look | 410 × 395 and 660 × 395 (fill the panel), white, 1 `#e1e6f0`, radius 8, p 16 | 177, 352, 410 × 395; 603, 352, 660 × 395; white, 1px, 8px, 16px; `aria-hidden` | match (decision 2; were 317 high) |
+| U74 7062:51212, 7062:51227 | loading | heading bars | size, radius, fill | 110 × 14 and 200 × 14, radius 4, `#e4e8ef` | 110 × 14 at card + 17, 200 × 14; 4px; rgb(228, 232, 239) | match (carried from T017: were `#eef1f6` / radius 8) |
+| U74 7062:51214–7062:51225 | loading | data rows | bars, pitch | label 90 × 10 `#eff1f5`, value 96 / 70 / 130 / 140 × 10 `#e4e8ef` 24 further, radius 4; rows 28 apart from y 56 | 90 × 10 rgb(239, 241, 245), values 96 / 70 / 130 / 140 at + 114, rgb(228, 232, 239), 4px; at 425, 453, 481, 509 (heading + 56, pitch 28) | match (carried from T017: light was `#f2f5fb`) |
+| U74 7062:51229 | loading | result rows | icon, name, place | 16 circle `#e4e8ef`, name bar 180 × 10 at + 28, + 3; first row 50 below the heading bar | 16 × 16 round, name bar 180 × 10 at 648, 422 (heading + 53 = row + 3) | match |
+| U74 7062:51233 | loading | result rows | message bar | 60 after the name bar, no statement bar | the message bar where the message column starts (340 in), a light statement bar under each name | F14 (T035's rows: the statement placeholder; the message column) |
+| U74 7062:51249 | one persona | test-day line | presence | none | "Tested as if shared today, 09.11.2026." | Q32 (004-S8.1.2: the line shows during one persona's regeneration) |
+| U74 7062:51295 | one persona | chip | box, look | 2 `#1d56f0`, pl 12 pr 14, 44 high, the name stays | 177, 330, 142 × 44, the selected chip's look, "Lena Nowak" (unchanged before and after) | match (Q32, 004-S8.7.4, W14: the name kept) |
+| U74 7062:51495 | one persona | ring | size, look, motion | 16 × 16, circle r 7, stroke 2 `#e4e8ef`, no arc | 16 × 16 at chip + 14, + 14 (pl 12 + 2 border), 2px rgb(228, 232, 239) all round, radius 9999px, `animation-name: none`; `aria-hidden` | match (carried from T018: was a spinning arc in `action-default`; decision 3) |
+| U74 7062:51298, 7062:51301 | one persona | other chips | icons, use | check circle / diamond, usable | "Yusuf Schneider: meets the rules of Standard" (check), "Sophie Hartmann: doesn’t meet …" (diamond); Right moves the selection to Yusuf during the run | match (004-S8.8.5) |
+| U74 7062:51497 | one persona | status | copy | "Creating new data for Mia…" | "Creating new data for Lena…", 944, 340 | match (sample name) |
+| U74 7344:96365 | one persona | "Generate all" | presence | at the row's right end | 1133, 332, 130 × 40 | match (F45) |
+| U74 7062:51498, 7062:51513 | one persona | the selected persona's cards | look | skeletons without "Edit data" / "Generate again", fill the panel | the skeleton cards, 410 × 355 and 660 × 355 in the 387 panel (40 lower: the test-day line), `aria-busy` on the panel | match (004-S8.8.4) |
+| — | one persona | focus | after "Generate again" (keyboard) | not drawn | the button gives way to the skeleton; the focus moves to the selected chip, and stays there when the run ends | match (004-ACC, quickstart V9; W14) |
+| — | one persona done | names | kept | not drawn | the three names unchanged after the run | match (004-S8.7.4, R10; W14) |
+| U74 7062:51536 | failed | test-day line, row, cards | presence | none: the message replaces the row and the panel | none; the tabs and the footer stay | match (004-S8.9.1, 004-S8.9.4) |
+| U74 7062:51782 | failed | message | place | 16 + 40 below the area's top, centred | title at 606, 328 (area 271 + 57), centred on 720 | match (was centred vertically) |
+| U74 7062:51783 | failed | title | copy, type | "Couldn’t create sample citizens", title/small 600 16/24 `#0b1220` | the same, 600 16px/24px rgb(11, 18, 32), `h2` | match |
+| U74 7062:51784 | failed | hint | copy, type | "Your rules are saved. Try again, or publish without testing.", body/default 16/24 `#4a5468`, 8 below | "Try again, or publish without testing.", 400 16px/24px rgb(74, 84, 104), 8 below | match (OUT-33, F7, 004-S8.9.3: "Your rules are saved." not built) |
+| U74 7062:51785 | failed | "Try again" | look, place | tertiary small, refresh icon, 48 high, 8 below | `kern-btn--tertiary kern-btn--small` with `kern-icon--autorenew`, 665, 396, 110 × 40 + 4 margins; described by the title and the hint | match |
+| — | failed → "Try again" | focus, state | not drawn | frame 18 with the focus on the status ("Creating 3 sample citizens…"), then on the selected chip when the results show | match (004-S8.9.2, quickstart V9) |
+| U99 7114:49683 | edit flow, results | content | title, intro, tabs, chips, card, results | as the create flow (E6) | "Test rules with sample citizen data", the intro, the three tabs, chips, data card and results as in the create flow; the step line's "Test" current; the focus on the h1 when the step opens | match (004-ACC.3) |
+| U99 7114:49738 | edit flow | "Generate all" | presence | none (an empty spacer) | "Generate all" | F45 (cosmetic 12: in every results state) |
+| U99 7114:49688 | edit flow | test-day line | presence | none | "Tested as if shared today, 09.11.2026." | 004-S8.1.1 (U99 Missing; FR-016) |
+| — | edit flow, failed | hint | copy | not drawn (U99 Missing: 004-S7.2) | "Try again, or save without testing." | match (004-S7.2) |
+| U99 7114:49808 | edit flow | footer | buttons | "← Back", "Discard changes"; "Save" primary | "Back", "Save" primary | **open: `EditorFooter.tsx` / `FormConnectionEdit` (not T074's files): "Discard changes" is T083/T084** |
+| U99 7114:49835 | edit flow | header badge | status | "Scheduled · 01.12.2026" | none | not built (CONFLICT: 002-S5.8; scheduled connections); "Active" (F5): T084 |
+| — | 320 × 640 | loading | layout | not drawn | pills wrap one per line, the status and "Generate all" under them, the two skeleton cards stacked, 239 × 317 each; no horizontal scroll (`scrollWidth` 305) | match (FR-010) |
+| — | 320 × 640 | failed | layout | not drawn | the hint wraps (239 wide, two lines), "Try again" centred; no horizontal scroll (`scrollWidth` 305) | match (FR-010) |
+| — | reduced motion | ring, skeleton | motion | none drawn | none (no animation at all) | match (design-notes §4) |
+
+Open rows: one, outside T074's files: the edit flow's footer without "Discard changes" (`EditorFooter.tsx`, T083/T084).
+
+**Decisions (T074):**
+
+1. **"Generate all" during frame 18** (U74 #13, 7344:96354; the baseline doesn't say): built as drawn, in the first
+   open's loading state too (one line in `ApplicantsRow.tsx`: the button no longer waits for the personas). A press
+   while all three are created changes nothing: the reducer's `requestRun` keeps a run that already covers all three
+   slots (`rules/src/` untouched), and the focus stays on the button. "Try again" still gives way to frame 18, so the
+   focus parks on the status there as before (T035).
+2. **The skeleton cards fill the panel** (carried from T073; U74 7062:51018, 7062:51040: 395 in the 427 panel), as the
+   loaded cards do; `PersonaPlaceholder`'s cards went from `h-317` to `min-h-317`, so that stacked (below `lg`) or in a
+   short window they keep a card's shape (the old U11 height). Their bars take radius 4 (`rounded-kern-small`).
+3. **The ring as drawn** (carried from T018; U74 7062:51495, SVG read: circle r 7, stroke 2 `#E4E8EF`, no arc): a
+   static grey ring like the skeleton beside it, not `FeedbackLoader` and no motion (it was a spinning `action-default`
+   arc under `motion-safe:animate-spin`, design-notes §4's exception "until T074"). The status in the row reads the
+   loading out; the ring is `aria-hidden`.
+4. **The skeleton's greys** (carried from T017): `TestStep/constants.ts` re-exports `SKELETON_BARS` from
+   `components/FormConnectionLoadState/constants.ts` (`#e4e8ef` / `#eff1f5`, Figma binds no variable), one source for
+   the three skeletons; `LOADING_RING_CLASSES` holds the ring's `border-[#e4e8ef]`.
+5. **The failure's place**: at the top of the variant area (16 + 40 down), centred across it, as frame 20 draws it (it
+   was centred vertically); the title and hint keep their 24px line height explicitly and wrap at 320 px.
+6. **`PersonasAnnouncer`** (carried from T072): left mounted and silent, its comment updated; 004-ACC's announcements
+   are now the loading status (runs) and the step's toast (a saved edit, FR-042, its `role="status"`), so it has
+   nothing to say. T092 removes it with `PersonasAnnouncerProps` (its carried note stands).
+7. **The edit flow's test step** (U99 E6) needs nothing of its own in `TestStep/`: the `editing` prop already gives
+   "Try again, or save without testing." (004-S7.2); "Generate all" and the test-day line stay (F45, 004-S8.1.1) where
+   E6 draws neither. Its footer, badge and note are S18's (T083/T084).
+
+**Open for the user (T074, not core):**
+
+1. **"Generate all" in frame 18 (behaviour; not core)**: decision 1. The frame draws it; no spec item says whether it
+   shows during the first creation. If the coordinator prefers the baseline's hidden button, it is the one condition
+   in `ApplicantsRow.tsx` (`personas !== null &&`).
+
+### U60, U61, U62 Renaming and deleting variants (S11) — T068, 2026-11-09
+
+How I checked:
+- Browser: Chromium (playwright-core 1.48.2, `/usr/bin/chromium`, scripts `<scratchpad>/pw/t068-a.mjs`, `t068-b.mjs`), signed in as `designer`, at 1455 × 1000 (body 1440) and 320 × 640. Fonts: computed 600 24px/32px (titles), 400 18px/24px (bodies), 400 14px/24px (toast) in Fira Sans.
+- Own draft "T068 U61" (`<scratchpad>/phase7/T068/seed.py`), deleted at the end (`cleanup.py`: 200, then 404): Standard with a description, Ambulance linked (Rule 05 changed to 19, Rule 06 C1 added; the frame's description), School transport linked (Rule 02 changed, Rule 06 D1 added). Every deletion, undo and rename was local editor state; no request other than GET was sent (checked in every run).
+- The edit flow (U60 11.5b): no connection can be published here, so `page.route` answers the draft's GET as a published `FormConnection` (api-types shape, T074's way); nothing is sent.
+- Figma: `get_design_context` of the dialogs `6523:37869` (11.5) and `6790:45039` (11.5b) and of the toast `6523:37991`; screenshots of `6523:37675`, `6523:37941`, `6545:39421`, `7112:48216`, `7112:48608`, `7112:48676` (`<scratchpad>/phase7/T068/figma/`). Every frame matches its audit inventory; none changed since the audit.
+- Dialog values are relative to the dialog's top-left. The tab menu itself is T067's rows (U59), the "Edit variant" dialog's fields T064's (U37, U52).
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U60 6523:37675 (11.4) | rename | where | how | inline field in the tab, red underline, the error beside the tab | ⋯ › "Rename" opens "Edit variant" (600 × 448, name and description filled, no intro, no "Start with") | F28 (CLAR #21, OUT-19) |
+| U60 6523:37808 | name taken | error | text, place | "There’s already a variant called "Ambulance"." in the tab row | "There’s already a variant called "Ambulance"." under the name field in the dialog, `role="alert"`, `aria-invalid`, the focus back in the field | W18, F28 |
+| U60 6523:37808 | name taken | error | quotes | typographic “Ambulance” in the frame's sample | straight "Ambulance" (`rules/src/constants.ts` `variantNameTaken`, word for word with the server) | C5 (copy:server, as U49's rule name: T063 / T058 rows) |
+| U52 6197:12011 (the error state U60 refers to) | name taken (renaming Standard to "Ambulance") | danger bar, field | extent, place | 4 px `#c4271c` beside label, field and message; label and field 16 in | 4px solid rgb(196, 39, 28) on the wrapper at 32, 72, 536 × 128; field at 52, 112, 516 × 48; dialog 600 × 488 | match (T064's `VARIANT_FIELD_CLASSES.name`) |
+| U60 (no dialog drawn for rename) | rename | dialog | width | — (U37's dialog is 600) | 600 (`wide`) | match (T064's note: U60 draws no 480 dialog, nothing to adjust) |
+| U60 6523:37869 (11.5) | delete School transport (draft) | dialog | box, radius | 480 × 280, 12 | 480, 360, 480 × 280; 12px | match |
+| U60 6523:37869 | delete | title | text, font | "Delete “School transport”?" title/large 600 24/32 `#0b1220` | the same (typographic quotes), 600 24px/32px | match (was "Delete School transport?") |
+| U60 6523:37869 | delete | body | text, font | "Rules you changed or added in School transport are deleted. Standard and Ambulance remain unchanged." body/large 400 18/24 `#0b1220`, three lines | the same, 400 18px/24px rgb(11, 18, 32), the same three lines | match (CLAR #38 "as drawn"; was "The variant and its rules will be deleted.") |
+| — | delete Ambulance (Standard and School transport stay) | body | others | not drawn | "… Standard and School transport remain unchanged." (the other variants in tab order, `joinNames`); one other: "Standard remains unchanged." | match (the drawn sentence's data) |
+| U60 6523:37869 | delete | buttons | labels, look, place | "Keep variant" secondary, "Delete variant" danger, 200 × 48 each, 16 apart; × 48 at the top right | "Keep variant" `kern-btn--secondary` 32, 200, 200 × 48; "Delete variant" `kern-btn--danger` rgb(196, 39, 28) 248, 200, 200 × 48; "Close" 48 × 48 at 424, 8 | match (was "Cancel") |
+| — | "Keep variant", Escape | focus | where | not drawn | back on the tab's ⋯ ("Actions for School transport"), nothing deleted | match (T067's row) |
+| U60 6790:45039 (11.5b) | edit flow of a published connection | body | text, box | "The connection is active, so this only takes effect when you save. Once saved, School transport and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. Standard and Ambulance remain unchanged."; 480 × 328 | the same text, 480 × 328, buttons at 248 | match (CLAR #38: "the delete-variant body names the broken result link as drawn"; was "… will be deleted when you save. Its result link then stops working for good.") |
+| U60 6790:44985 | edit flow | header | badge | "Active" + "Draft changes" | not T068's (F5, T084) | — |
+| U61 6523:37941 (11.6) | School transport (open) deleted | tabs | which opens | Ambulance, the tab to its left, selected | "Standard", "Ambulance" (selected); the focus on Ambulance's tab | match (FR-051 (33); was: Standard opened) |
+| U61 6523:37991 | deleted | toast | text, action | "School transport deleted." + "Undo" | the same; announced ("School transport deleted.Undo" in the live region) | match (FR-051 (33)) |
+| U61 6523:37991 | deleted | toast | type | `type=danger`: `#c4271c` fill with the white delete icon | neutral: rgb(11, 18, 32), no icon | T036 (coordinator: deleted toasts stay neutral with "Undo"; U61's red type not built) |
+| U61 6523:37991 | deleted | toast | box | padding 16, gap 24, radius 8, message 400 14/24 white, "Undo" 600 14 underlined | 594, 848, 252 × 56 (bottom centre of 1440); 16px, 24px, 8px; 400 14px/24px white; "Undo" 600 14px underline white | match |
+| — | "Undo" | variant | back | not drawn | School transport back in its place (the branches as before, `toEqual`), selected, the focus on its tab; the toast gone | match (FR-051 (33); 002-S4.5 kept: the deletion takes effect when saved) |
+| — | toast gone (6 s), Ctrl+Z | variant | back | not drawn | the same as "Undo" (B4: Undo stands until the next change) | match |
+| — | School transport deleted from Standard's view (its ⋯ while Standard is open) | tabs | which opens | not drawn | Ambulance, the tab to its left, with the focus | match (FR-051 (33); decision 1) |
+| U61 6523:37946 | deleted | tab row | ⋯ | on the selected tab only | on every tab | F28 (CLAR #21) |
+| U61 6545:39598 (11.7) | Standard's ⋯ | menu | entries | "Rename" only | Rename · Copy link | F10, FR-036 (T067's row) |
+| U62 7112:48213 (11.10) | rename Standard | how | inline | the tab name becomes a field | ⋯ › "Rename" opens "Edit variant" with "Standard" | F28 |
+| U62 7112:48226 (11.11) | Standard renamed "Taxi and rental cars" | tab | name, focus | "Taxi and rental cars" first, (i), ⋯ | "Taxi and rental cars" first with its (i) and ⋯; the focus on its tab after "Save changes" | match |
+| U62 7112:48622 (11.12) | Ambulance after the rename | link strip | text | "Linked to Taxi and rental cars" "Rules you don’t change follow and update with Taxi and rental cars." | the same | match |
+| — | Ambulance after the rename | Rule 05's ⋯ | entry | not drawn | "Reset to Taxi and rental cars" | match |
+| — | after the rename | delete dialog body | others | not drawn | "… Taxi and rental cars and School transport remain unchanged." | match |
+| U62 7112:48723 (11.13) | "Add variant" after the rename | "Start with" | texts | "Linked to Taxi and rental cars (recommended)", "Copies all Taxi and rental cars rules. Unchanged rules remain the same as Taxi and rental cars and update with it.", "Starts with no rules. Changes to Taxi and rental cars don’t affect it." | the same | match |
+| U62 7112:48628, 7112:48673 (11.12) | Ambulance | Group 02 "Added here", link icons on two rules, connectors | — | sample data / OUT-22 / FR-038 (T066's U40 rows) | — |
+| — | publish summary and findings after renaming | — | — | — | T076 | — |
+| — | 320 × 640 | delete dialog, toast | reflow | not drawn | dialog 16, 92, 273 × 456, no inner horizontal scroll; toast 27, 392, 252 × 56; `scrollWidth` 305, no horizontal scroll | match (FR-010) |
+
+Open rows: none.
+
+Screenshots: `<scratchpad>/phase7/T068/*.png` (app), `T068/figma/*.png` (Figma).
+
+**Decisions (T068):**
+
+1. **The tab to the left opens after every variant deletion**, also when the variant was deleted through its ⋯ while another tab was open (possible since every tab has its ⋯, CLAR #21). FR-051 (33) says "the tab to the left opens" without a condition; the focus has to leave the deleted tab's ⋯, and the tabs open on focus (automatic activation), so the focus and the open tab go to the same place. Undo opens the restored variant and focuses its tab.
+2. **The variant deletion is undoable as the rule and group deletions are** (`undoable()` in `RulesStep/utils.ts`): the toast "School transport deleted." with "Undo" (neutral), Undo puts every branch back; `RulesUndo.itemId` is `''` for a variant, and the editor's `undoRules` then focuses the variant's tab instead of an item (one line in `FormConnectionEditor/index.tsx`).
+3. **The delete-variant dialog reads as U60 draws it** (CLAR #38, "Adopt as drawn", which names U60 #34): the title with typographic quotes, the body naming the variants that stay (tab order, `joinNames`; "remains" for one), "Keep variant" for "Cancel"; in the edit flow of a published connection 11.5b's body. The dialog keeps its scrim (T052/T057's reading).
+4. **The rename dialog stays 600 wide**: U60 draws no rename dialog (only the inline field, F28), so U37's width stands (T064's note).
+
+**Open for the user (T068, not core):**
+
+1. **11.5b's body says "The connection is active"** (copy; not core). The editor knows only that it edits a published connection (`editing`), not whether it is active; a deactivated connection's edit flow shows the same body. Wording only; a fix would pass the published connection's `is_active` down to `RulesDialogs`.
+
+### U44, U45 The findings banner, notes and outlines (S12) — T069, 2026-11-09
+
+Own drafts, seeded and deleted (`<scratchpad>/phase7/T069/seed.py`, `cleanup.py`): "T069 U44 5.1"
+(Rule 01 Nationality includes one of Germany, Rule 02 includes none of Germany, Austria, Rule 03
+classes B, BE), "T069 U44 5.2" (U44 5.2 = U45 5.5: Group 01 OR with Rule 03 C, D, "Sub-group 02"
+AND with Rule 04 one of B, BE and Rule 05 none of B, BE, Rule 06 C, D), "T069 U44 5.3" (Ambulance:
+Rule 05 changed to the conflict, Rule 06 added, the same as Rule 01), "T069 U45 5.4" (Rule 06 the
+same as Rule 03 only), "T069 U45 5.6" (Group 01: Age in years > 18 OR < 21), "T069 U45 5.7" (Rule
+01 ≥ 21 covers Group 01: ≥ 18 OR Nationality). Chromium at 1455 × 1000 (1440 + gutter), the card
+1120 wide as drawn. Screenshots: `<scratchpad>/phase7/T069/app-*.png`, `banner-*.png`; Figma's in
+`T069/figma/`. Sample data, not compared: the connection name, "Sub-group 02" for the drawn
+"Sub-group 01" (W12 reserves 01 for the group numbered 01), the country labels ("Germany" for
+"German", the option set's), Standard's ⓘ in 5.3 (the seed's Standard has no description; FR-035c).
+The `FindingNote` and `RuleRow` / `GroupFrame` outline geometry are T024's / T025's §5.1 rows;
+these rows check the screen.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U44 6171:6749 (5.1) | conflict, single | banner | place, size | first in the card, 8 in (card 1120, banner 1102 × 42) | wrapper `p-8`; banner x 9, y 9, 1102 × 42 | match |
+| U44 6750:40882 | conflict, single | banner | fill, border, radius, padding, gap | `feedback-warning-background` #fff4e0, 1 `feedback-warning` #9a4a00, 8, 8 8 8 16, 8 | rgb(255, 244, 224), 1px rgb(154, 74, 0), 8px, 8px 8px 8px 16px, 8px | match |
+| U44 6750:40882 | conflict, single | kind icon | glyph, size, colour | `icon-warning-small` 20, #9a4a00 | `kern-icon--warning` 20 × 20, rgb(154, 74, 0), `aria-hidden` | match |
+| U44 6750:40882 | conflict, single | text | wording | "Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard." | the same (`bannerOf()`, T010) | match (C4) |
+| U44 6750:40882 | conflict, single | text | font, colour | body/small 400 14/24 #0b1220, numerals "zero" "lnum" "tnum" | 400 14px/24px rgb(11, 18, 32), `tabular-nums slashed-zero` (inherited, the html rule) | match |
+| U44 6750:40882 | conflict, single | names | look | plain text | links (buttons) to Rule 01 and Rule 02 | F39 |
+| U44 6750:40882 | conflict, single | kind | hidden text | — | "Conflicting:" `sr-only` before the sentence | match (W13) |
+| U44 6750:40933, 6750:41008 (5.2, 5.3) | collapsed | counts row | wording | "2 rules contradict each other, and 1 rule is a duplicate" | the same | match (C4) |
+| U44 6750:40933 | collapsed | chevron | size, icon | `button-tertiary-small` 48 target, 40 box, radius 8, `icon-expand_more-small` 20 action blue | 48 × 48 button, 40 × 40 box, 8px, `expand-more-action-small.svg` 20 × 20; "Show findings" `sr-only`, `aria-expanded="false"`, `aria-controls` the list | match |
+| U44 6750:41008 | collapsed | banner | height | 66 (48 + 2 × 8 + 2) | 66 | match |
+| U44 6171:7535 (5.3) | Ambulance, collapsed | banner | place | under the link strip "Linked to Standard", 8 in | under `LinkStrip`, wrapper `p-8` | match |
+| U44 6171:7569 (5.3) | Ambulance, Rule 05 changed with a conflict | row | tint, outline, mark | the variant tint (lavender) kept, 1 px warning outline, "Changed here" | tint kept, 1px rgb(154, 74, 0) outline, "Changed here" | match (T065's question: the tint stays) |
+| U44 6171:7578 (5.3) | Ambulance, Rule 06 added and a duplicate | row | tint, outline, note | tint kept, 1 px info outline, "Same as Rule 01. You can delete one of them." | the same | match |
+| U44 6171:7008, 6171:7022 | conflict | rule outline | colour, width, inset | 1 #9a4a00, radius 8, 8 in from the card | the same (T024's `RuleRow`) | match |
+| U44 6171:7008 | conflict, first rule | rule outline | height | 144 (the list's first row, 16 under the content, inside the outline) | 136, the extra 8 under the outline (`FIRST_RULE_SPACING` on the `li`) | T024 (the extra 8 belongs to the list); UNCERTAIN 2 |
+| U44 6171:7010, 6171:7024 | conflict | rule note | wording | "Can’t be met together with Rule 02." | "Contradicts Rule 02." (`noteOf()`) | C4 (T010's text; UNCERTAIN 1) |
+| U44 6171:7091, 6750:41000 | conflict in a sub-group | group | outline, note | warning outline replacing the left border; "Rule 04 and Rule 05 in this group contradict each other." under the header | the same | match |
+| U44 6171:7094 | conflict in a sub-group | members | notes | each member keeps its outline and note | the same | match |
+| U44 (5.1, 5.2) | any finding | "Test rules" | state | enabled ("doesn’t block") | enabled | match (003-S2.22) |
+| U45 6753:40144 (5.5) | expanded | banner | padding, gap, height | 8 8 8 16, 8, 130 | 8px 8px 8px 16px, 8px, 130 | match |
+| U45 6753:40144 | expanded | chevron | icon | `icon-expand_less-small` | `expand-less-action-small.svg`; "Hide findings", `aria-expanded="true"` | match |
+| U45 6753:40144 | expanded | list | padding, gap | 0 0 4 24, 4 | 0px 0px 4px 24px, 4px | match |
+| U45 6753:40144 | expanded | lines | icon, gap, height | the line's own kind icon 20 (warning / info), 8, 24 | `kern-icon--warning` / `--info` 20 × 20, 8px, 24 | match |
+| U45 6753:40144 | expanded | line 1 | wording, names | "Sub-group 01: Rule 04 and Rule 05 contradict each other.", plain text | "Sub-group 02: Rule 04 and Rule 05 contradict each other.", each name a link | match (C4; the name is sample data); F39 for the links |
+| U45 6753:40144 | expanded | line 2 | wording, names | "Rule 06 is the same as Rule 03.", the names links | the same | match |
+| U45 6753:40144 | expanded | links | colour, underline | #1d56f0, underlined, thickness 8 %, the font's underline position | rgb(29, 86, 240), `decoration-[8%]`, `text-underline-position: from-font` (was `auto`, fixed here) | match |
+| — | link hover | links | underline | not drawn | 3px underline (KERN's link hover, kit P21) | match (P21) |
+| — | link keyboard focus | links | ring | not drawn | KERN's 4px `action-focus-default` ring, offset 2, keyboard only | match (§3, focus) |
+| — | chevron hover / pressed | chevron | layer | not drawn (`button-tertiary-small`) | the kit's states: action colour at 8 % / 16 % on the 40 box, 150 ms | match (P33 2:1985, as `ActionMenu`) |
+| — | chevron keyboard focus | chevron | ring | not drawn | 4px #0b1220 ring around the 40 box, offset 2 | match |
+| U45 6753:40144 | link pressed | focus | target | — ("Go to rule" scrolls to the rule and focuses it) | click "Rule 06": the focus on Rule 06's row, scrolled into view below the pinned header; Enter on "Sub-group 02": the focus on its header, `:focus-visible` | match (F39, 003-ACC.3) |
+| U45 6750:41077 (5.4) | redundant only, single | banner | fill, border | `feedback-info-background` #e0f2fe, 1 `feedback-info` #0284c7 | rgb(224, 242, 254), 1px rgb(2, 115, 174) | §1.5 AA fix |
+| U45 6750:41077 | redundant only | kind icon | colour | #0284c7 | rgb(2, 115, 174) | §1.5 AA fix |
+| U45 6750:41077 | redundant only | text | wording, links | "Rule 06 is the same as Rule 03." with links | the same, "Redundant:" hidden before it | match |
+| U45 6178:7806, 6753:40507, 6753:40844 | info only | Standard tab | icon | blue ⓘ | blue ⓘ (`feedback-info`) | match (T026) |
+| U45 6753:40137 | conflict | Standard tab | icon | warning ⚠ | ⚠ #9a4a00 | match (T026) |
+| U45 6178:8214, 6178:8216 | redundant only | Rule 06 | outline, note | 1 px info outline, "Same as Rule 03. You can delete one of them." | the same | match |
+| U45 6753:40514 (5.6) | always met | banner | wording, names | "Every citizen meets Group 01, so it doesn’t check anything.", plain text | the same, "Group 01" a link | match (C4); F39 |
+| U45 6753:40525, 6753:40824 | always met | group | outline, note | info outline, "Every citizen meets this group." under the header; members plain | the same | match |
+| U45 6753:40851 (5.7) | covered group | banner | wording, links | "Anyone who meets Rule 01 also meets Group 01." with links | the same | match |
+| U45 6753:40862, 6753:41298 | covered group | group | note | "Anyone who meets Rule 01 also meets this group. You can delete the group."; members and Rule 01 plain | the same | match |
+| — | the rule open in the editor | banner | its name | — | plain text, the others links ("Rule 06 is the same as Rule 03." with only "Rule 03" a link while Rule 06 is edited) | match (baseline, `plainItemId`) |
+| — | select mode | banner | place | not drawn | under the selection bar, 8 in, as under the link strip (T066's question) | match (decision) |
+| — | no findings (after switching 5.1's AND to OR) | banner, notes, outlines | presence | none | the banner, notes and outlines gone at once; Standard's tab without icon | match (003-S2.18) |
+| — | after an update | status region | text | — | polite `role="status"`, `sr-only`, outside the steps: "Rule 01 no longer conflicts with Rule 02. Rule 02 no longer conflicts with Rule 01." | match (W13, 003-S2.21, CP.18; the texts are `findingMessages.ts`'s) |
+| — | any | requests, console | — | — | nothing sent while switching, editing, select mode, expanding; no `console.*` in `useRuleChecks.ts`, `workers/checks.ts`, `checks/` | match (FR-047) |
+```
+
+**Decisions (T069):**
+
+1. **The finding links take the drawn underline** (`decoration-[8%]`, `text-underline-position:
+   from-font`, as `ToastMessage`'s action) and KERN's link hover (3px underline, kit P21; contract
+   §P21 names "the banner's finding links"); the chevron takes the kit's tertiary states (8 % / 16 %
+   with the colour transition). Both live in `RulesStep/constants.ts` (`FINDING_LINK_CLASSES`,
+   `FINDINGS_TOGGLE_CLASSES`).
+2. **Every name in the banner is a link** (F39), also where U44 6750:40882, U45 6753:40144 line 1
+   and 6753:40514 draw plain text; the rule open in the editor stays plain (baseline).
+3. **The banner under the selection bar in select mode**, as under the link strip: the same 8 px
+   wrapper; no frame draws both.
+4. **A changed or added rule with a finding keeps its variant tint** under the finding outline
+   (U44 6171:7569, 6171:7578), as T024 built it: answers T065's carried question; nothing changed.
+
+**Open points (T069, not core):**
+
+1. The rule notes read "Contradicts Rule 02." (T010's `noteOf()`), where U44 6171:7010 / 7024 and U45
+   6753:40171 / 40178 draw "Can’t be met together with Rule 02." FR-022 says the notes take the
+   design's sentences; T010 replaced "can’t be met together" by "contradict" throughout (C4).
+   `rules/src/` stays untouched in phase 7, so it stays; T025 recorded the same row as W13/C4.
+   Not the task's core behaviour (copy only). For the coordinator / a clarify question.
+2. The list's first rule with an outline is 8 px shorter than drawn (U44 5.1: 144 vs 136): T024
+   put the first row's extra 8 on the list item (`FIRST_RULE_SPACING`), outside the outline, where
+   U44 draws it inside. The connector below lands within 1 px of the frame. Moving it inside needs
+   a `RuleRow` prop (not T069's files). Not core behaviour (8 px of geometry).
+
+### U46 The findings, part 2: today only, an unselected tab, the tab tooltip, duplicates only (S12) — T070, 2026-11-09
+
+Own drafts, seeded and deleted (`<scratchpad>/phase7/T070/seed.py`, `seed2.py`, `seed3.py`, `cleanup.py`): "T070 U46 5.8"
+(Rule 01 Date of birth is after 01.01.2010, Rule 02 at least 21 years old, Rule 03 classes B, BE), "T070 U46 5.9" (= 5.11:
+Standard with its description, Group 01 OR with Rule 06 the same as Rule 03; Ambulance based, Rule 05 changed to the
+conflict), "T070 U46 5.10" (Standard with its description and no findings; Ambulance with the description, the conflict
+in Sub-group 02 and Rule 06 added, the same as Rule 01), "T070 W13 kinds" and "T070 W13 kinds 2" (one variant started
+empty per finding kind, so each is checked alone), "T070 problem" (Rule 01 > 30 and Rule 02 < 20 contradicting, Rule 03 on
+Personal ID Sex, which isn't requested; Ambulance based on it). Chromium (playwright-core) at 1455 × 1000 (1440 + gutter),
+and 320 × 640. Fonts as T069's. Figma read: `get_metadata` 6753:41307 (unchanged since the audit, its node ids are
+U46.md's), `get_design_context` on the 5.8 banner 6753:41324 and 5.11's tooltip 6758:43967, screenshots of 6753:41595,
+6758:43049, 6758:43539; none changed since the audit. Screenshots: `<scratchpad>/phase7/T070/app-*.png`, `tip-*.png`,
+`after-problem.png`, `before-problem.png`, `w320-*.png`; dumps `<scratchpad>/phase7/T070/kinds.json.txt`. Sample data, not
+compared: the connection's name, "Sub-group 02" for "Sub-group 01" (W12), the rule rows' value chips ("1 Jan 2010" for the
+drawn "01.01.2010": the rule row, T024/T062). The banner's shell, the links and the chevron are T069's rows; the tab's and
+the bubble's geometry T026's (§5.1, "BranchName"); these rows check U46's states.
+
+| frame | state | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|
+| U46 6753:41324 (5.8) | today-only conflict, single | banner | place, size, look | in its 8 wrap (6754:44401), 1102 × 42, warning kind | 169, 290 (card 160, 281), 1102 × 42, `feedback-warning-background`, 1px rgb(154, 74, 0) | match |
+| U46 6753:41324 | today-only conflict | text | wording | "Rule 01 and Rule 02 contradict each other, so right now no citizen can meet the rules of Standard." | the same (`bannerOf()`), "Conflicting:" hidden before it | match (C4) |
+| U46 6753:41324 | today-only conflict | names | look | plain text | links to Rule 01, Rule 02 | F39 (T069 decision 2) |
+| U46 6753:41332, 6753:41339 | today-only conflict | rule notes | wording | "Can’t be met together with Rule 02 at the moment." | "Contradicts Rule 02 at the moment." (`noteOf()`) | C4 (T069's open point 1: T010's text, `rules/src/` untouched) |
+| U46 6753:41317 | today-only conflict | Standard tab | icon, name | ⚠ after "Standard", no (i) (no description) | `kern-icon--warning` rgb(154, 74, 0); tab and icon named "Standard has findings" | match (FR-035c, 003-S4.4) |
+| U46 6753:41317 | today-only conflict | Standard tab | tooltip | not drawn | "1 conflict: Rule 01 and Rule 02 contradict each other, so right now no citizen can meet the rules of Standard." | match (003-CP.16, C4; no description, so no divider) |
+| U46 6753:41605, 6753:41694 (5.9) | Standard open, Ambulance with a conflict | tabs | icons | Standard blue (i) + ⋮; Ambulance unselected with ⚠ | Standard `kern-icon--info` rgb(2, 115, 174) + ⋮; Ambulance unselected, `kern-icon--warning` rgb(154, 74, 0), named "Ambulance has findings", + ⋮ | match; the unselected ⋮ F28 |
+| U46 6753:41612 | duplicates only, single | banner | kind, wording, links | info, "[Rule 06] is the same as [Rule 03].", underlined | info (1px rgb(2, 115, 174)), the same, both links, "Redundant:" hidden | match (§1.5 AA border) |
+| U46 6753:41641, 6753:41644 | duplicates only | Rule 06 in Group 01 | outline, note | info outline, ⓘ "Same as Rule 03. You can delete one of them." | the same | match |
+| U46 6758:43059 (5.10) | Ambulance open | Standard tab | icon | grey (i) (description, no findings) | `kern-icon--info` rgb(74, 84, 104), "About Standard", tooltip the description only | match (FR-041b) |
+| U46 6758:43524 (5.10) | Ambulance's ⚠ hovered | tooltip | text | "For patient transport vehicles. Drivers also need a class C1 licence." / divider / ⚠ "2 rules contradict each other, and 1 rule is a duplicate" | the same, breaks after "Drivers" and "and" as drawn; bubble 280 × 129 (+ its 8 px offset) | match (C4; geometry T026's rows) |
+| U46 6758:43524 | Ambulance's ⚠ by keyboard | tooltip | opens | "on hover and on focus" (FR-041) | Tab from the open tab reaches the unselected tab's ⚠ (`:focus-visible`, 4px ring), the bubble opens (`display: flex`) | match |
+| U46 6758:43061 | 5.10 | (i) after "+ Add variant" | presence | not drawn in 5.10 (drawn in 5.8, 5.9, 5.11) | shown | F27 (FR-035a; T064's row) |
+| U46 6758:43067 | 5.10 | banner | collapsed | counts row "2 rules contradict e…" + chevron, under the link strip | "2 rules contradict each other, and 1 rule is a duplicate" + "Show findings"; expanded: "Sub-group 02: Rule 04 and Rule 05 contradict each other." and "Rule 06 is the same as Rule 01." | match (T069's shell rows) |
+| U46 6758:43967 (5.11) | Standard's (i) hovered, duplicates only | tooltip | text, icon | the description / divider / white ⓘ "1 duplicate: Rule 06 is the same as Rule 03." | the same; 280 × 129 | match (003-CP.16) |
+| U46 6758:43967 | 5.11 | tooltip | line breaks | "… is the same as / Rule 03." | "… is the same / as Rule 03." (220 px text column; one word earlier) | match (font metrics; text and box as drawn) |
+| — | a tab with a problem only (U50 7375:101551) | tab, icon | accessible name | not drawn | "Standard has findings" for the tab and the icon (003-S4.4's name); the bubble, the icon's description, says the problem | decision 1 (UNCERTAIN 1) |
+| — | a problem and findings in the same variant | tab | icon | not drawn | the red error diamond (error > warning > info) | match (T026's carried order) |
+| — | a problem and findings | tooltip | content | not drawn (U06 note 8: "the description first, then the finding") | the description (if any), the white error diamond with the problem's sentence(s), a 1px divider (white 24 %), the white ⚠ with "1 conflict: Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard."; 280 × 225 | decision 2 (FR-041a, Q29 (a) "spec 002 problems and findings") |
+| — | the based Ambulance of the same draft | tab | icon | not drawn | ⚠ (the inherited conflict); the problem stays on Standard's tab (the rule is named once, for Standard, T060) | match (002-S2.22, FR-006) |
+| — | another spec 002 problem (an incomplete rule, a missing message, too few members) | tab | icon | not drawn | none: only data no longer requested puts the red icon on a tab; the others show as the refused attempt's alert, the row's flag and "Test rules"'s explanation (#66) | decision 3 (UNCERTAIN 2) |
+| — | the unrequested banner with the findings banner (U50 with U44/U46) | both banners | place | not drawn together (U50: flush 161, 1118 wide; U44/U46: 8 in, 1102 wide) | the unrequested banner takes the findings banner's inset: 169, 290, 1102 × 42; the findings banner 8 below it, 169, 340, 1102 × 42; both on the outlined rows' edges; alone it stays flush (T060's row) | decision 4 |
+| — | 320 × 640, both banners | banners | reflow | not drawn | 255 wide each, 8 apart; the unrequested text wraps over five lines with "Add it in Documents" under it, the conflict sentence over three; no horizontal scroll (`scrollWidth` 305) | match (FR-010, 003-ACC.6) |
+| — | 320 × 640, today-only single banner | banner | reflow | not drawn | 255 × 114, the sentence over four lines (`wrap-anywhere`), the icon centred on the text as the drawn summary row (`items-center`) | match (003-ACC.6); see "Notes for later tasks", T075 |
+| — | 320 × 640, collapsed and expanded | banner | reflow | not drawn | collapsed 255 × 90 (the counts row over three lines beside the 48 chevron); expanded 255 × 226, the lines 177 wide, 24 in | match |
+| — | 320 × 640, the tab tooltip | bubble | reflow | not drawn | 273 wide (the 16 px gutters), above the tab (`placementFrom()`), no horizontal scroll | match (T022's pattern) |
+| — | every finding kind (W13) | banner, notes, tooltips | wording | undrawn texts (FR-022b) | as below; every one from `findingMessages.ts`, none built in the frontend | match (C4, W13) |
+| — | any | requests, console | — | — | nothing sent while switching tabs, expanding, hovering (no non-GET request); console: Vite's and React's notices only | match (FR-047) |
+
+The undrawn texts seen once each (W13; one variant per kind, banner as shown / expanded lines; notes; tab tooltip):
+
+| kind | banner (single, or collapsed → expanded) | notes | tab tooltip | icon |
+|---|---|---|---|---|
+| a group's own AND conflict, with another line | collapsed "2 rules contradict each other. So no citizen can meet the rules of Sub-group." → "Group 01: Sub-group 02 can’t be met.", "Sub-group 02: Rule 01 and Rule 02 contradict each other.", "No citizen can meet the rules of Sub-group." (no links, no hidden kind) | "Sub-group 02 in this group can’t be met.", "Rule 01 and Rule 02 in this group contradict each other.", "Contradicts Rule 02." | the counts row with the notice | ⚠ |
+| the same, today only | "2 rules contradict each other. Right now, no citizen can meet the rules of Today." → "… can’t be met at the moment.", "… contradict each other at the moment.", "Right now, no citizen can meet the rules of Today." | "… can’t be met at the moment.", "… contradict each other at the moment.", "Contradicts Rule 02 at the moment." | the same | ⚠ |
+| a group with a rule ("with" on a group), a rule that can’t be met | "2 rules and 1 group contradict each other, and 1 rule can’t be met. So no citizen …" → "Group 01 and Rule 03 contradict each other.", "No citizen can meet Rule 01.", "Rule 02 and Rule 03 contradict each other." | "Contradicts Group 01.", "No citizen can meet this rule." | the counts row | ⚠ |
+| an OR group of two that can’t be met | "Group 01: neither Rule 01 nor Rule 02 can be met. So no citizen can meet the rules of Neither." | "Neither Rule 01 nor Rule 02 in this group can be met." | "1 conflict: …" | ⚠ |
+| an OR group of three | "Group 01: none of Rule 01, Rule 02 and Rule 03 can be met. So no citizen …" | "None of Rule 01, Rule 02 and Rule 03 in this group can be met." | "1 conflict: …" | ⚠ |
+| a rule no citizen can meet | "No citizen can meet Rule 01. So no citizen can meet the rules of Condition." | "No citizen can meet this rule." | "1 conflict: …" | ⚠ |
+| two rules that can’t be met, in an OR group that can | collapsed "2 rules can’t be met" → "No citizen can meet Rule 01.", "No citizen can meet Rule 03." | "No citizen can meet this rule." ×2 | "2 rules can’t be met" | ⚠ |
+| always met, and the variant's notice | "Every citizen meets Rule 01, so it doesn’t check anything. Every citizen meets the rules of All meet." | "Every citizen meets this rule." | "1 finding: …" | blue ⓘ |
+| covered in an AND level | "Anyone who meets Rule 02 also meets Rule 01." | "Anyone who meets Rule 02 also meets this rule. You can delete the rule." | "1 finding: …" | blue ⓘ |
+| covered in an OR level | "Anyone who meets Rule 02 also meets Rule 01." | "Anyone who meets this rule also meets Rule 01. You can delete the rule." | "1 finding: …" | blue ⓘ |
+| one conflict ("contradicts another") and a duplicate | "1 rule contradicts another, and 1 rule is a duplicate" → "Rule 01 and Rule 02 contradict each other.", "Rule 04 is the same as Rule 01." | "Contradicts Rule 01.", "Same as Rule 01. You can delete one of them." | the counts row | ⚠ |
+| duplicates, covered and always met together | "2 rules are duplicates, 1 rule already covered, and 1 group every citizen meets" | the three notes | the counts row | blue ⓘ |
+| not produced in the stack | FR-010's "The rules of <variant> couldn’t be checked completely. Only findings that are certain are shown." (and " · couldn’t be checked completely" after the counts) needs a check that runs out of time; "Every citizen meets <item> or Group 03." (covered with no item, through an OR level) has no seedable case found here | — | — | — (`findingMessages.test.ts` covers them) |
+
+Open rows: none.
+
+**Decisions (T070):**
+
+1. **The tab's accessible name with a problem stays "<variant> has findings"** (`tabLabelOf()`, 003-S4.4), for the tab and
+   its icon: no spec item or frame names a problem's tab, and the finding texts come only from `findingMessages.ts`; the
+   icon's description (the bubble) reads the problem's sentence, so a screen reader hears what it is. Changing it is a
+   new sentence and a change to `BranchName/index.tsx` (UNCERTAIN 1).
+2. **The tooltip adds the findings under the problem**: a variant with a problem and findings shows the red icon (error
+   wins), and its bubble says the description, the problem, then, below a divider, the findings' segment with its own
+   icon. Q29 (a) puts "spec 002 problems and findings" in the tab's tooltip, and U06 note 8 says "the description
+   first, then the finding"; otherwise the red icon would hide a conflict that the tab no longer shows. Built as
+   `BranchFindings.more` (`FindingsSegment` renders it), set by `BranchTab` from its new `problem` prop.
+3. **Only data no longer requested puts the red icon on a tab** (as T060 built it, `tabProblemsOf()`): the step can't
+   hold an incomplete rule or one without a message from the editor (the editor refuses to save it), and the other
+   spec 002 problems (from a refused attempt, a loaded draft, an agent's edit) show as the refused attempt's alert, the
+   row's flag and "Test rules"'s explanation (#66). FR-041a's "a tab with a problem" and U06 note 7's "error (e.g. a rule
+   uses data that’s no longer requested, 8.4)" would also cover them; building it needs a per-branch problem in the
+   step's `index.tsx` (UNCERTAIN 2).
+4. **The unrequested banner beside the findings banner**: alone, flush as U50 draws it (T060); with the findings banner
+   right after it, it takes that banner's 8 px inset (`[&:has(+[data-findings-banner])]:mx-8 mt-8`), so the two stack
+   8 px apart on the outlined rows' edges (U44/U46's wrap); no frame draws both.
+
+**UNCERTAIN (T070, none touches the core behaviour):**
+
+1. The tab's and icon's accessible name with a spec 002 problem: "Standard has findings" (copy; a problem isn't a spec
+   003 finding). An alternative ("Standard has a problem") is a new sentence and a `BranchName` change. Not core.
+2. Whether other spec 002 problems put the red icon on the tab (decision 3). Behaviour at the edge of FR-041a: the
+   frames draw only 8.4's case. Not the task's core (the findings' texts and the drawn states).
+
 ## 6. Pass I: the screenshot matrix and the accessibility review
 
 Filled by pass I (quickstart V10–V13): one row per route × state × width (1440 px; 320 px at
@@ -3261,6 +4193,49 @@ the audit (every task's report). Open for a person: V3.6's "Leave site?" prompt 
 (Chrome, Firefox, Safari: shown with unsaved work, absent without it and after "Save progress",
 "Discard connection", "Save and log out", "Log out anyway"), then the restore dialog after the
 forced reload; the screen reader's reading of the failed-save toast and "Saving draft…" (T048).
+
+### 6.4 US3 checkpoint (T075, 2026-11-09)
+
+Quickstart V5 (steps 1–9) and V6 (steps 1–5), by the coordinator with playwright-core 1.48.2 and
+Chromium (`/usr/bin/chromium`) at 1455 × 900 / 1000, one check in Firefox (playwright-firefox MCP),
+against the dev server, on the coordinator's own drafts ("T075 rules", "T075 empty", "T075
+unrequested", "T075 variants", "T075 contradiction", "T075 many rules"; deleted afterwards). No
+mutation was sent in any walk (every rules-step and test-step change is local state); the seeded
+drafts were not opened for saving. Each task's own walk (T055–T074, §5.2) covers the frames state by
+state; this checkpoint walks the steps across them.
+
+| step | result |
+|---|---|
+| V5.1 | an empty Standard: "Set eligibility rules for citizens", the intro naming Konnekt, the tab row "Standard" with its ⋯, "+ Add variant" and the ⓘ "About variants" (action tone), "No rules yet" with "Add rule"; the footer's "Publish without rules" now secondary (U51 8.8, fixed here): pass |
+| V5.2 | "Add rule": the pickers unlock in order (Choose document → Personal ID → Date of birth (Age) → the check menu with "Time ago" / "Time from now" sections and their symbols → "is at least"); 0 → "Enter a whole number greater than 0."; 21 → the counting note "Today (09.11.2026), that means born on or before 09.11.2005.", "Citizens who turn 21 that day count.", the missing note, the proposed message "You need to be at least 21 years old."; the other kinds, the empty-field error and the duplicate name: T061–T063's tables: pass |
+| V5.3, V5.4 | Standard's menus: Rule 01 "Edit rule, Rename, Duplicate, Copy to variant, Group with other rules, Copy link, Delete rule"; Group 01 "Rename, Add message, Ungroup, Copy link, Delete group" (no grouping, #64); Sub-group 02 "… Delete sub-group"; Rule 04 inside the sub-group without "Group with other rules" (#61); "Add message" on Group 01 → its three member rules read "Not shown while this rule is in Group 01. Citizens see the group message instead." (F32); select mode and the connector menu: T057, T059's tables: pass |
+| V5.4 (editor) | editing Rule 04 inside Sub-group 02 of Group 01 with a message: its own message stays editable, the hint "Not shown while this rule is in Group 01. Citizens see the group message instead." under it (U35 `6965:50822`, built here: `editorMessageHintOf()`, the editor's `messageHint`): pass |
+| V5.5 | every ⋯ menu 220 wide with 40 px entries, "Copy link" before the destructive entry; Standard's tab menu "Rename, Copy link"; "Test rules" disabled with its explanation while a rule is open or the rules are in error (#66): pass |
+| V5.6 | Ambulance (based): "Linked to Standard", "Rules you don’t change follow and update with Standard.", "Changed here", "Added here"; Rule 01 (linked) "Edit rule, Copy to variant, Group with other rules, Copy link, Remove from Ambulance" (no Rename, Duplicate); Group 01 (changed) "Add message, Reset to Standard, Copy link, Remove from Ambulance"; Rule 06 (added) the full menu with "Delete rule"; "Remove from Ambulance" on Rule 02 → "1 of 5 Standard rules is removed here.", "Removed here", its menu "Restore rule, Copy link"; the tab menu "Rename, Copy link, Delete variant"; the dialogs, the popover and the deletion with Undo: T064, T067, T068's tables: pass |
+| V5.7 | the findings: "Rule 05 is the same as Rule 01." with both names as links, the tab names "Standard has findings", "Ambulance has findings", the notes and outlines; the other kinds and the tooltips: T069, T070's tables (W13: every kind seen once): pass |
+| V5.8 | a rule on Nationality no longer requested: the banner "Rule 02 in Standard checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule." with "Add it in Documents", the tab's red icon, the rule's note now "Nationality is no longer requested." (U50 #13, #14; built here: `unrequestedNoteOf()`, the server's sentence kept for a target the catalog doesn't know), "Test rules" disabled: pass |
+| V5.9 | "Copy link" on Ambulance's Group 01 → "Link copied.", the clipboard (read with Chromium's clipboard permission) holds `…/edit?step=rules&variant=<id>&item=group-1`; opening it selects Ambulance and focuses Group 01's header; without `item` the tab takes the focus; a stale item → "This link points to a rule or group that no longer exists." with "Dismiss", focused; a stale variant → "This link points to a variant that no longer exists." on Standard: pass |
+| V6.1 | "T075 variants": "Creating 3 sample citizens…" first, then the chips, the data card's flat list, "Result: …", "Tested as if shared today, 09.11.2026.", "Generate all", "Edit data", "Generate again", no variant ⓘ; tab title "Test rules with sample citizen data · Konnekt"; the page doesn't scroll at 1455 × 900: pass |
+| V6.2 | (T072's script) "Edit data" → the dialog; an impossible date → "Enter a date that exists, e.g. 28.02.2007." under the field, the save blocked with the focus on it; saved → "Results updated. Emre no longer meets Rule 01 · Minimum age 21." (green) and back; classes by code, "Class B since" coming and going; Escape → focus on "Edit data": pass |
+| V6.3 | "Generate again" asks only for an edited citizen ("Generate new data for Mia?"), "Generate all" asks for all, names kept: pass |
+| V6.4 | "T075 contradiction": the ⚠ on Standard and Ambulance, no line above the heading; a variant without rules: T073's table; generation failed (the Worker blocked in the browser by T074's init script) → "Couldn’t create sample citizens" and "Try again" → "Creating 3 sample citizens…" → the results, focus on the first chip: pass |
+| V6.5 | "T075 many rules" (12): the page stays at 900, only the panel scrolls (F43); arrow keys between chips: T073's table: pass |
+| Firefox | the connector line (T057's carried note): `rgb(79, 140, 255)` (`--kern-color-decorative-brand-default` `#4f8cff`) as in Chromium: pass |
+
+Fixed by the coordinator during the phase: `TestStep` drops its saved-edit toast while the editor's
+failed save shows (`saveFailed`, R8, T072's open point); `ActionMenu` sizes `w-max min-w-220
+max-w-280` and plans for 280 (T066's open point: "Remove from <variant>" fits as Figma's auto-width
+menus draw it); "Publish without rules" secondary (U51 8.8); the flagged rule's note in the design's
+words (U50); the editor's group-message hint (U35); the "Generate all" wording in quickstart V6.3
+and the stale V5.3 / V5.6 wording (#64, cosmetic 8). `rules/src/` is unchanged since T014 (`git
+diff --stat -- rules/src` empty); no `console.*` added under `checks/`, `personas/`, `workers/`, the
+hooks.
+
+Open for the user (copy in the rules package, which phase 7 leaves alone): the rule notes'
+"Contradicts Rule 02." where U44 / U45 / U46 draw "Can’t be met together with Rule 02." (FR-022);
+the number statements' symbol chip (">" / "<", U45 `6753:40528`). Open for a person: V5.7's and
+V6.5's announcements and focus moves, and the "Save rule" press (#65), read by a screen reader
+(NVDA or VoiceOver); the variant dialog's "ⓘ" glyph on a desktop system (T064).
 
 ## 7. Removal checklist (pass H, FR-015, SC-003)
 

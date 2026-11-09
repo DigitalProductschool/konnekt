@@ -17,7 +17,7 @@ import {
   newRule,
   numberOfId,
 } from '@connection-portal/rules/tree';
-import type { EditResult, EditState } from '@connection-portal/rules/types';
+import type { EditResult, EditState, RuleDocument } from '@connection-portal/rules/types';
 import { variantNameProblem } from '@connection-portal/rules/validation';
 import { generatePath } from 'react-router';
 
@@ -552,6 +552,62 @@ export function ungroupedText(branch: RulesBranch, group: GroupItem): string {
 }
 
 /** The refused Publish's problem, if it names this item of the branch (F11). */
+/**
+ * The group whose message citizens read instead of a rule's at `parentId` (F32, FR-037): the
+ * outermost group on the way up that has a message, as the list shows its members
+ * (`GroupListItem`); null when none has one
+ */
+export function messageGroupOf(items: RuleTreeItem[], parentId: string | null): GroupItem | null {
+  let found: GroupItem | null = null;
+  let id = parentId;
+  while (id !== null) {
+    const entry = findItem(items, id);
+    if (!entry || entry.item.type !== 'group') {
+      break;
+    }
+    if (entry.item.message !== null) {
+      found = entry.item;
+    }
+    id = entry.parentId;
+  }
+  return found;
+}
+
+/**
+ * The message hint of the open rule editor (U35 6965:50822; F32): the rule's group, or the group
+ * a new rule goes into, decides
+ */
+export function editorMessageHintOf(items: RuleTreeItem[], editing: RuleEditing): string | null {
+  const parentId = editing.original
+    ? (findItem(items, editing.original.id)?.parentId ?? null)
+    : editing.parentId;
+  const group = messageGroupOf(items, parentId);
+  return group ? RULES_COPY.notShownInGroup(group.name.trim()) : null;
+}
+
+/**
+ * The note under a rule on data no longer requested (U50 6197:10708, 7173:52351; FR-023): "<field>
+ * is no longer requested.", or the document's label while the whole document is no longer
+ * requested; `null` when the catalog doesn't know the target, so that the caller keeps the
+ * server's sentence. `requested` are the requested documents, `catalog` all of them
+ */
+export function unrequestedNoteOf(
+  rule: RuleItem,
+  requested: RuleDocument[],
+  catalog: RuleDocument[]
+): string | null {
+  const { target } = rule;
+  const document = target && catalog.find((entry) => entry.key === target.document_type);
+  if (!target || !document) {
+    return null;
+  }
+  if (!requested.some((entry) => entry.key === target.document_type)) {
+    return RULES_COPY.noLongerRequested(document.label.trim());
+  }
+  const field = document.fields.find((entry) => entry.key === target.field);
+  return field ? RULES_COPY.noLongerRequested(field.label.trim()) : null;
+}
+
 export function problemFlagOf(
   state: RulesState,
   branch: RulesBranch,
@@ -567,9 +623,11 @@ export function problemFlagOf(
 /**
  * The body of "Delete Rule 03?" or "Delete Group 01?" (U14 6113:29056; F14, W8). In Standard,
  * while variants are based on it, it says what the deletion does to them instead (design-notes
- * §4 and §5): the variants that changed what is deleted keep their version, and a group the
- * deletion leaves with one member is ungrouped everywhere, also where a variant changed it
- * (FR-022's one exception). `statement` is the deleted rule's, if it reads.
+ * §4 and §5): a rule's is U47's drawn body naming the variants that follow Standard (6185:8847;
+ * CLAR #56, FR-037), a group's names the variants that changed what is deleted and keep their
+ * version; and a group the deletion leaves with one member is ungrouped everywhere, also where a
+ * variant changed it (FR-022's one exception). Only the drawn rule body goes without "You can
+ * undo this right after.", as U47 draws it. `statement` is the deleted rule's, if it reads.
  */
 export function deleteDialogText(
   state: RulesState,
@@ -597,11 +655,9 @@ export function deleteDialogText(
       .map((effect) => effect.branch.name.trim());
   const sentences: string[] = [];
   if (deleted.type === 'rule') {
-    sentences.push(RULES_COPY.removedFromVariants(main));
-    const variants = keptBy(deleted.id);
-    if (variants.length > 0) {
-      sentences.push(RULES_COPY.keptByVariants(joinNames(variants), variants.length));
-    }
+    sentences.push(
+      RULES_COPY.removedFromVariants(main, joinNames(based.map((entry) => entry.name.trim())))
+    );
   } else {
     sentences.push(RULES_COPY.groupRemovedFromVariants(depth > 0 ? 'sub-group' : 'group', main));
     for (const entry of flattenItems([deleted])) {
@@ -624,8 +680,52 @@ export function deleteDialogText(
       sentences.push(RULES_COPY.changesGo(owners, dissolved.name.trim()));
     }
   }
-  sentences.push(RULES_COPY.undoRightAfter);
+  if (deleted.type !== 'rule') {
+    sentences.push(RULES_COPY.undoRightAfter);
+  }
   return sentences.join(' ');
+}
+
+/**
+ * What a based variant's link strip says it removed (U47 6344:60085, 6344:60090, 6344:60095;
+ * FR-051 (38)), or null while it removed nothing of Standard's: "Group 01 is removed here." while
+ * only groups are removed (the outermost ones, with what they hold), or else "2 of 3 Standard
+ * rules are removed here.", counting the rules it inherits from Standard (changed ones too, and
+ * those it put into a group of its own) and,
+ * among them, those removed on their own or with a group around them. A group dissolved there
+ * removes nothing (F13): the rule that remains counts.
+ */
+export function linkStripSummaryOf(branch: RulesBranch, mainName: string): string | null {
+  const removedGroups: string[] = [];
+  let removedRules = 0;
+  let removedOnTheirOwn = 0;
+  let total = 0;
+  const walk = (items: RuleTreeItem[], inRemoved: boolean) => {
+    for (const item of items) {
+      const removed = inRemoved || item.mark === 'removed';
+      // A group the variant added may hold rules it inherits (grouped there)
+      if (item.type === 'group') {
+        if (!inRemoved && item.mark === 'removed') {
+          removedGroups.push(item.name.trim());
+        }
+        walk(item.items, removed);
+        continue;
+      }
+      if (!isInherited(branch, item)) {
+        continue;
+      }
+      total += 1;
+      if (removed) {
+        removedRules += 1;
+        removedOnTheirOwn += inRemoved ? 0 : 1;
+      }
+    }
+  };
+  walk(branch.items, false);
+  if (removedOnTheirOwn === 0 && removedGroups.length > 0) {
+    return RULES_COPY.removedGroups(joinNames(removedGroups), removedGroups.length);
+  }
+  return removedRules > 0 ? RULES_COPY.removedRules(removedRules, total, mainName.trim()) : null;
 }
 
 /**
@@ -864,20 +964,27 @@ function deleteFromState(state: RulesState, branchKey: string, itemId: string): 
   };
 }
 
-/** Deletes a variant, which takes effect when the connection is saved (FR-020). */
+/**
+ * Deletes a variant, which takes effect when the connection is saved (FR-020). The tab to its
+ * left opens, and the toast offers Undo, which brings the variant back and opens it (FR-051
+ * (33); U61 6523:37941): the undo names no item, so the focus goes to the variant's tab.
+ */
 function deleteVariant(state: RulesState, branchKey: string): RulesState {
   const deleted = edits.deleteVariant(editStateOf(state), branchKey);
   if (!deleted.ok) {
     return { ...state, dialog: null };
   }
+  const index = state.branches.findIndex((branch) => branch.key === branchKey);
   const editing = state.editing?.branchKey === branchKey ? null : state.editing;
   return {
-    ...changed(state, deleted.state),
-    openBranch: state.openBranch === branchKey ? state.branches[0].key : state.openBranch,
+    ...undoable(state, deleted.state, RULES_COPY.variantDeleted(deleted.branch.name.trim()), {
+      branchKey,
+      itemId: '',
+    }),
+    openBranch: state.branches[index - 1].key,
     counters: editing === state.editing ? state.counters : releaseNumber(state),
     editing,
     renaming: state.renaming?.branchKey === branchKey ? null : state.renaming,
-    showBranch: state.showBranch === branchKey ? null : state.showBranch,
     dialog: null,
   };
 }

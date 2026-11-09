@@ -39,6 +39,7 @@ import {
 import { RULES_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
+import { TEST_STEP_COPY } from './TestStep/constants';
 import type {
   DraftConflict,
   DraftSaveError,
@@ -90,7 +91,7 @@ function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocu
 /** The page title of a step: the heading, its hint and the tab title. */
 export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
   if (step === 'test') {
-    return { title: EDITOR_COPY.testRules, hint: EDITOR_COPY.testRulesHint };
+    return { title: TEST_STEP_COPY.title, hint: TEST_STEP_COPY.intro };
   }
   if (step === 'rules') {
     return { title: RULES_COPY.title, hint: RULES_COPY.hint };

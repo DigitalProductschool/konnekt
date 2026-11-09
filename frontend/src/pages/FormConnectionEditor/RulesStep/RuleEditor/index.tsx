@@ -69,6 +69,7 @@ export default function RuleEditor({
   onAddData,
   onRename,
   today,
+  messageHint = null,
 }: RuleEditorProps) {
   const context: RuleContext = useMemo(
     () => ({ documents: catalog.documents, optionSets: catalog.optionSets }),
@@ -353,6 +354,7 @@ export default function RuleEditor({
         errorId={describedIf('message')}
         onChange={changeMessage}
       />
+      {messageHint && <EditorHints hints={[messageHint]} />}
       <EditorActions explanation={blocker} onCancel={onCancel} onSave={save} />
     </section>
   );

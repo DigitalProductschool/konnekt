@@ -3,9 +3,15 @@ import { useState } from 'react';
 import type { PersonasAnnouncerProps } from './types';
 
 /**
- * The announcements (S8.10; FR-017; F2): a visually hidden, polite `role="status"` region that
+ * The announcements (S8.10; FR-017): a visually hidden, polite `role="status"` region that
  * says, after an edit, which persona's outcome moved in which variant ("Mia Schulz now meets the
- * rules of Standard."). It never moves the focus, and there is no visible toast (F2).
+ * rules of Standard."). It never moves the focus.
+ *
+ * Silent since spec 008 FR-042 (T072, T074): the edit-data dialog's "Save and test" applies its
+ * values without the per-variant announcement (004-S8.10.3 dropped), and the step's success toast
+ * ("Results updated. Mia now meets Rule 01.", its own `role="status"`) announces the change; the
+ * loading status announces the runs (004-ACC.6). Nothing sets `state.announcement` any more, so
+ * the region stays empty; T092 removes it with `PersonasAnnouncerProps`.
  *
  * - **The same sentence twice** is announced twice: the text sits in an element keyed by
  *   `announcementId`, which `setValue` raises for every announcement, so React replaces the

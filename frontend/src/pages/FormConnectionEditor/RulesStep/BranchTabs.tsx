@@ -4,20 +4,24 @@ import type { KeyboardEvent } from 'react';
 import InfoTooltip from '../../../components/InfoTooltip';
 import { ELEMENT_IDS } from '../constants';
 import BranchTab from './BranchTab';
-import { RULES_COPY } from './constants';
+import { ADD_VARIANT_CLASSES, RULES_COPY, TAB_LIST_CLASSES, TAB_ROW_CLASSES } from './constants';
 import type { BranchTabsProps } from './types';
 import { tabAfterKey } from './utils';
 
 /**
- * Figma "Variant tabs" (U17 6134:9153; F16): one tab per variant, Standard first, and "+ Add
- * variant", from the start of the step: before the first rule and while a rule is edited too
- * (FR-019). While Standard is the only variant, an (i) after "Add variant" says what a variant
- * is (U17 6162:34206). The tabs follow WAI-ARIA's tab pattern: the arrow keys, Home and End
- * open another tab and move the focus there. Each tab has its (i) and ⋯ beside it, which a tab
- * list mustn't contain, so the tab list is an empty element that owns the tabs (`aria-owns`),
- * and the row lays out the tabs with their buttons. Every tab whose variant has findings shows
- * their icon, selected or not (spec 003, S4; A6, W12, W13; FR-014; Figma U09 6753:41605): only
- * certain findings count, and a variant without checked rules or before its first check shows none.
+ * The variant tab row (S11; Figma "Variant tabs" U38 6134:9153, U37 6134:8515, U43 6168:7009):
+ * one tab per variant, Standard first, and "+ Add variant", from the start of the step: before
+ * the first rule and while a rule is edited too (F26), the tabs 24px apart and bottom-aligned
+ * over the row's 1px line. The (i) after "Add variant" says what a variant is, in every state, on
+ * hover, keyboard focus and a tap (F27, FR-035; U37 6151:33809, 6151:33820), in the action blue.
+ * The tabs follow WAI-ARIA's tab pattern: the arrow keys, Home and End open another tab and move
+ * the focus there. Each tab has its (i) and ⋯ beside it, which a tab list mustn't contain, so the
+ * tab list is an empty element that owns the tabs (`aria-owns`), and the row lays out the tabs
+ * with their buttons. Every tab whose variant has findings shows their icon, selected or not
+ * (spec 003, S4; W13; FR-041): only certain findings count, and a variant without checked rules
+ * or before its first check shows none; a spec 002 problem wins over them (U50 7375:101551).
+ * The row stays transparent and unclipped: it sits in the step's pinned wrapper (U01 #18), whose
+ * height is measured, so a wrapping row is fine.
  */
 export default function BranchTabs({
   state,
@@ -40,7 +44,7 @@ export default function BranchTabs({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-x-24 border-b border-(--kern-color-decorative-border-default)">
+    <div className={TAB_ROW_CLASSES}>
       <div
         role="tablist"
         aria-label={RULES_COPY.variants}
@@ -48,7 +52,7 @@ export default function BranchTabs({
         // Out of the row's flow, so that the row's gap doesn't count it
         className="absolute"
       />
-      <div className="flex min-w-0 flex-wrap items-end gap-x-24">
+      <div className={TAB_LIST_CLASSES}>
         {branches.map((branch, index) => {
           const check = checks[branch.key];
           return (
@@ -57,10 +61,8 @@ export default function BranchTabs({
               branch={branch}
               selected={branch.key === openBranch}
               deletable={index > 0}
-              findings={
-                problems?.[branch.key] ??
-                (check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null)
-              }
+              findings={check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null}
+              problem={problems?.[branch.key] ?? null}
               onSelect={() => dispatch({ type: 'selectBranch', branchKey: branch.key })}
               onKeyDown={(event) => handleKeyDown(event, index)}
               onRename={() => dispatch({ type: 'askEditVariant', branchKey: branch.key })}
@@ -70,10 +72,7 @@ export default function BranchTabs({
           );
         })}
       </div>
-      {/* 2px lower than KERN's margins put it, so that its label is on the line of the tab
-          labels, 22px above the border (Figma "Add variant · aligned" 6542:39560, B2); the
-          negative margin keeps the row 48px tall */}
-      <div className="-mb-2 flex items-center pt-2">
+      <div className={ADD_VARIANT_CLASSES}>
         <button
           id={ELEMENT_IDS.addVariant}
           type="button"
@@ -83,13 +82,12 @@ export default function BranchTabs({
           <span aria-hidden="true" className="kern-icon kern-icon--add kern-icon--small" />
           <span className="kern-label">{RULES_COPY.addVariant}</span>
         </button>
-        {branches.length === 1 && (
-          <InfoTooltip
-            label={RULES_COPY.aboutVariants}
-            text={RULES_COPY.variantsInfo}
-            iconSize="small"
-          />
-        )}
+        <InfoTooltip
+          label={RULES_COPY.aboutVariants}
+          text={RULES_COPY.variantsInfo}
+          iconSize="small"
+          tone="action"
+        />
       </div>
     </div>
   );

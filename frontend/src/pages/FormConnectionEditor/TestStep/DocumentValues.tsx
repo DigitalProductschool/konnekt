@@ -1,38 +1,34 @@
-import { changedKeys } from '@connection-portal/rules/personas/values';
-
 import type { DocumentValuesProps } from './types';
-import { valueTextOf } from './utils';
+import { dataRowLabelOf, dataRowTextOf } from './utils';
 import ValueRow from './ValueRow';
 
 /**
- * One document's values in the data card (S8.4; F9): its heading, "Personal ID" or "Driving
- * licence" (title/small, as the edit dialog's document headings, Figma U02 7058:60654,
- * 7058:60659), then a row per shown field, in catalog order, labelled without the document
+ * One document's rows in the data card (S8.4; F9; spec 008 F63, FR-043): its name, "Personal ID"
+ * or "Driving licence", as the group's heading for assistive technology only (the frames draw no
+ * document headings or column, U65 7057:58772), then a row per `dataRowsOf()` row. The groups
+ * follow each other without a gap, so the card reads as one list
  */
 export default function DocumentValues({
   group,
   persona,
   context,
-  today,
   failingFields,
+  changedFields,
 }: DocumentValuesProps) {
-  const changed = changedKeys(persona, group.fields);
   return (
-    <div className="flex flex-col gap-8">
-      <h3 className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words">
-        {group.documentLabel}
-      </h3>
+    <>
+      <h3 className="sr-only">{group.documentLabel}</h3>
       <dl className="flex flex-col">
-        {group.fields.map((field) => (
+        {group.rows.map((row) => (
           <ValueRow
-            key={field.key}
-            field={field}
-            text={valueTextOf(field, persona.values[field.key], context.optionSets, today)}
-            failing={failingFields.includes(field.key)}
-            changed={changed.includes(field.key)}
+            key={`${row.field.key}@${row.since ?? ''}`}
+            label={dataRowLabelOf(row)}
+            text={dataRowTextOf(row, persona.values, context.optionSets)}
+            failing={row.keys.some((key) => failingFields.includes(key))}
+            changed={row.keys.some((key) => changedFields.includes(key))}
           />
         ))}
       </dl>
-    </div>
+    </>
   );
 }

@@ -100,9 +100,9 @@ export default function EditorFooter({
             type="button"
             onClick={publishing ? undefined : onPublish}
             aria-disabled={publishing}
-            className="kern-btn kern-btn--primary ml-auto"
+            className="kern-btn kern-btn--secondary ml-auto"
           >
-            {/* U11 6348:40892: no arrow, since publishing ends the wizard */}
+            {/* U51 8.8 6198:12366: secondary, and no arrow, since publishing ends the wizard */}
             <span className="kern-label">{withoutRulesLabel}</span>
           </button>
         ) : (

@@ -1,10 +1,15 @@
 // The test step's pure helpers (specs/004-rule-test-personas, S8)
+import type { Combinator } from '@connection-portal/api-types/form-connections';
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import { sameValue } from '@connection-portal/rules/branches';
 import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
+import { listOf } from '@connection-portal/rules/checks/findingMessages';
 import { optionsOf } from '@connection-portal/rules/conditions';
+import { GROUP_SUBTITLES } from '@connection-portal/rules/personas/constants';
 import {
   classesSinceOf,
   displayDateOf,
+  firstName,
   runStatusOf,
   validUntilOf,
 } from '@connection-portal/rules/personas/messages';
@@ -13,6 +18,7 @@ import type {
   Persona,
   PersonaField,
   PersonaValue,
+  ResultRow,
 } from '@connection-portal/rules/personas/types';
 import {
   ageOn,
@@ -21,17 +27,24 @@ import {
   isExpiryDate,
 } from '@connection-portal/rules/personas/values';
 
+import { GROUP_FRAME_COPY } from '../../../components/GroupFrame/constants';
 import type { ValueChoice } from '../../../components/ValuesPicker/types';
 import type { RulesBranch } from '../RulesStep/types';
-import { TEST_STEP_COPY } from './constants';
+import { EDIT_DATA_COPY, ISSUE_DATE_PART, TEST_STEP_COPY } from './constants';
 import type {
+  DataRowGroup,
   DocumentGroup,
   DraftsAction,
   DraftsState,
+  EditDataAction,
+  EditDataState,
   ParseResult,
   PickerAction,
   PickerState,
 } from './types';
+
+/** A group's two ways of combining its members, for `resultStatementOf()` */
+const COMBINATORS: readonly Combinator[] = ['and', 'or'];
 
 /**
  * `YYYY-MM-DD` as the panel writes dates, `dd.mm.yyyy` ("08.07.2007"); anything else unchanged
@@ -81,15 +94,11 @@ export function documentGroupsOf(fields: readonly PersonaField[]): DocumentGroup
  * - an enum by its labels, several in the value set's order: "German", "B, BE" (F11); a value
  *   outside the set as it is, after the others;
  * - text and numbers as stored
- *
- * `_today` is no longer read (the age is gone, FR-024); it stays until the data card moves to
- * `dataRowTextOf()` (T071)
  */
 export function valueTextOf(
   field: PersonaField,
   value: PersonaValue | undefined,
-  optionSets: OptionSet[],
-  _today: string
+  optionSets: OptionSet[]
 ): string {
   if (value === undefined || value === null || isEmptyValue(value)) {
     return TEST_STEP_COPY.notShared;
@@ -124,10 +133,56 @@ export function dataRowTextOf(
   optionSets: OptionSet[]
 ): string {
   if (row.classes === null) {
-    return valueTextOf(row.field, values[row.field.key], optionSets, '');
+    return valueTextOf(row.field, values[row.field.key], optionSets);
   }
-  const classes = valueTextOf(row.field, row.classes, optionSets, '');
+  const classes = valueTextOf(row.field, row.classes, optionSets);
   return row.classes.length === 0 ? classes : classesSinceOf(classes, row.since);
+}
+
+/**
+ * A data row's label (spec 008 CLAR #46, cosmetic 12; U65 7057:59072, U66 #14): "Date of birth"
+ * for the date of birth, which the rules call "Date of birth (Age)"; "Licence classes" for a row
+ * of classes; any other row its field's label
+ */
+export function dataRowLabelOf(row: DataRow): string {
+  return row.field.dateOfBirth ? TEST_STEP_COPY.dateOfBirth : row.field.label;
+}
+
+/**
+ * The data card's rows grouped by document (spec 008 F63, FR-043; 004-S8.4.2): the documents in
+ * the order of their first row, each document's rows in the order of `rows`, which is the
+ * catalog's. The card shows them as one flat list; each group's document name is its hidden
+ * heading
+ */
+export function dataRowGroupsOf(rows: readonly DataRow[]): DataRowGroup[] {
+  const groups: DataRowGroup[] = [];
+  for (const row of rows) {
+    const group = groups.find((entry) => entry.documentType === row.field.documentType);
+    if (group) {
+      group.rows.push(row);
+    } else {
+      groups.push({
+        documentType: row.field.documentType,
+        documentLabel: row.field.documentLabel,
+        rows: [row],
+      });
+    }
+  }
+  return groups;
+}
+
+/**
+ * A result row's statement as the step shows it: a rule's as the rules package words it (C3); a
+ * group's as its frame on the rules step says how its members combine, "All rules must be met" /
+ * "At least one rule must be met" (FR-051 (32); `GROUP_FRAME_COPY`), in place of the rules
+ * package's `GROUP_SUBTITLES` ("All of these must be met"), which `rules/src/` keeps
+ */
+export function resultStatementOf(row: Pick<ResultRow, 'type' | 'statement'>): string {
+  if (row.type !== 'group') {
+    return row.statement;
+  }
+  const operator = COMBINATORS.find((entry) => GROUP_SUBTITLES[entry] === row.statement);
+  return operator === undefined ? row.statement : GROUP_FRAME_COPY.subtitles[operator];
 }
 
 /**
@@ -146,7 +201,7 @@ export function runStatusTextOf(run: GenerationRun | null, personas: readonly Pe
 }
 
 /**
- * Whether the step shows frame 18 (S8.8): the first generation, "Generate all again" and "Try
+ * Whether the step shows frame 18 (S8.8): the first generation, "Generate all" and "Try
  * again", which generate all three personas anew, as opposed to frame 19, where only the personas
  * being generated are placeholders
  */
@@ -248,8 +303,9 @@ export function ageDraftKey(fieldKey: string): string {
 }
 
 /**
- * The panel's drafts by key, with their errors (research R12; design-notes §5.3). "Done" and
- * 'reset' drop the invalid ones: the persona kept its last valid value all along
+ * The drafts by key, with their errors (research R12; design-notes §5.3): 'edit' records a typed
+ * text, 'done' drops the invalid ones and 'reset' all (the edit-data dialog uses 'edit' through
+ * `editDataReducer()`)
  */
 export function draftsReducer(state: DraftsState, action: DraftsAction): DraftsState {
   switch (action.type) {
@@ -260,6 +316,102 @@ export function draftsReducer(state: DraftsState, action: DraftsAction): DraftsS
     case 'reset':
       return {};
   }
+}
+
+/** The edit-data dialog while it is closed: no persona, no values, no drafts */
+export const CLOSED_EDIT_DATA: EditDataState = { personaId: null, values: {}, drafts: {} };
+
+/**
+ * The edit-data dialog's working copy (spec 008 FR-042; T072): 'start' copies the persona's values
+ * and puts its name in the name's draft, 'draft' records a typed text and its error
+ * (`draftsReducer`), 'value' applies a valid entry to the copy only, and 'close' drops it all
+ */
+export function editDataReducer(state: EditDataState, action: EditDataAction): EditDataState {
+  switch (action.type) {
+    case 'start':
+      return {
+        personaId: action.persona.id,
+        values: { ...action.persona.values },
+        drafts: { [NAME_DRAFT_KEY]: { text: action.persona.name, error: null } },
+      };
+    case 'close':
+      return CLOSED_EDIT_DATA;
+    case 'draft':
+      return {
+        ...state,
+        drafts: draftsReducer(state.drafts, {
+          type: 'edit',
+          key: action.key,
+          text: action.text,
+          error: action.error,
+        }),
+      };
+    case 'value':
+      return { ...state, values: { ...state.values, [action.key]: action.value } };
+  }
+}
+
+/** Whether any of the dialog's entries is invalid, which blocks "Save and test" (FR-042) */
+export function hasEntryError(drafts: DraftsState): boolean {
+  return Object.values(drafts).some((draft) => draft.error !== null);
+}
+
+/**
+ * The values of `edited` that differ from `original` by `sameValue()`, by key: what "Save and
+ * test" applies to the persona. A hidden value (a class's date while the class isn't held)
+ * counts as well, as the dialog kept it
+ */
+export function changedValuesOf(
+  original: Persona['values'],
+  edited: Persona['values']
+): Record<string, PersonaValue> {
+  return Object.fromEntries(
+    Object.entries(edited).filter(([key, value]) => !sameValue(value, original[key]))
+  );
+}
+
+/**
+ * A field's label in the edit-data dialog (spec 008 F40; U66 7058:60656, 7058:60662): "Date of
+ * birth" for the date of birth (the rules say "Date of birth (Age)"), "Class B since" for a
+ * licence class's issue date (the rules say "Licence class B – Issue date"), any other field its
+ * label as the rules name it
+ */
+export function editorLabelOf(field: PersonaField): string {
+  if (field.dateOfBirth) {
+    return TEST_STEP_COPY.dateOfBirth;
+  }
+  if (field.licenceClass !== null && field.part === ISSUE_DATE_PART) {
+    return EDIT_DATA_COPY.classSince(field.licenceClass);
+  }
+  return field.label;
+}
+
+/**
+ * The toast after "Save and test" (spec 008 FR-042; U67 7058:61203): "Results updated.", then
+ * the top-level rules and groups of the shown variant that the change made met, "Mia now meets
+ * Rule 01.", and those it made unmet, "Mia no longer meets Rule 02 and Rule 03.", each list in
+ * the order of `after`. `before` and `after` are the variant's result rows (`ResultView.rows`)
+ * before and after the change; an item in only one of them is left out
+ */
+export function savedToastOf(
+  before: readonly Pick<ResultRow, 'itemId' | 'name' | 'status'>[],
+  after: readonly Pick<ResultRow, 'itemId' | 'name' | 'status'>[],
+  persona: Pick<Persona, 'name'>
+): string {
+  const wasMet = new Map(before.map((row) => [row.itemId, row.status === 'met']));
+  const moved = (met: boolean) =>
+    after
+      .filter((row) => wasMet.has(row.itemId) && wasMet.get(row.itemId) !== met)
+      .filter((row) => (row.status === 'met') === met)
+      .map((row) => row.name);
+  const name = firstName(persona);
+  const nowMet = moved(true);
+  const noLonger = moved(false);
+  return [
+    TEST_STEP_COPY.resultsUpdated,
+    ...(nowMet.length > 0 ? [EDIT_DATA_COPY.nowMeets(name, listOf(nowMet))] : []),
+    ...(noLonger.length > 0 ? [EDIT_DATA_COPY.noLongerMeets(name, listOf(noLonger))] : []),
+  ].join(' ');
 }
 
 /**

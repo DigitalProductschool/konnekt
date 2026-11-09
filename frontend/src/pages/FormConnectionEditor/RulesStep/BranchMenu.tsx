@@ -1,15 +1,16 @@
-import linkIcon from '../../../assets/icons/link-ink.svg';
-import renameIcon from '../../../assets/icons/rename.svg';
 import ActionMenu from '../../../components/ActionMenu';
 import type { MenuAction } from '../../../components/ActionMenu/types';
-import { RULES_COPY } from './constants';
-import type { BranchMenuProps } from './types';
+import { MENU_ENTRY_LOOKS, RULES_COPY } from './constants';
+import type { BranchMenuProps, MenuEntryId, MenuHandlers } from './types';
+import { menuEntriesOf } from './utils';
 
 /**
- * A variant tab's ⋯ menu (W3; design-notes §4), built like the rule menu (U14 6113:28988), since
- * no frame draws it: "Rename" for every variant, Standard included, which opens Edit variant,
- * "Copy link" for a stored draft or a published connection (spec 007, S4; FR-028), and "Delete"
- * for every other one, after a confirmation.
+ * A variant tab's ⋯ menu ("Rules/Variant menu", U59 6523:37519), on every tab of the rules step
+ * (F28, CLAR #21), with what `menuEntriesOf({ kind: 'variant' })` gives it, in its order
+ * (FR-036): "Rename", which opens "Edit variant" (F28: no inline rename), "Copy link" for a
+ * stored draft or a published connection (spec 007, S4; F10), and after the divider "Delete
+ * variant", after a confirmation, on every variant but Standard. "Unlink from Standard" stays out
+ * (F10). Built on the ⋯ menus' `ActionMenu`, which places it (FR-009d).
  */
 export default function BranchMenu({
   branchName,
@@ -18,22 +19,24 @@ export default function BranchMenu({
   onDelete,
   onCopyLink,
 }: BranchMenuProps) {
-  const actions: MenuAction[] = [
-    { label: RULES_COPY.renameVariant, icon: { src: renameIcon }, onSelect: onRename },
-    ...(onCopyLink
-      ? [{ label: RULES_COPY.copyLink, icon: { src: linkIcon }, onSelect: onCopyLink }]
-      : []),
-    ...(deletable
-      ? [
-          {
-            label: RULES_COPY.deleteVariant,
-            icon: { kern: 'kern-icon--delete' },
-            danger: true,
-            separated: true,
-            onSelect: onDelete,
-          },
-        ]
-      : []),
-  ];
+  const entries = menuEntriesOf(
+    { kind: 'variant' },
+    { branchKind: deletable ? 'variant' : 'standard', linkable: onCopyLink !== null }
+  );
+  const labels: Partial<Record<MenuEntryId, string>> = {
+    rename: RULES_COPY.renameVariant,
+    copyLink: RULES_COPY.copyLink,
+    delete: RULES_COPY.deleteVariant,
+  };
+  const handlers: MenuHandlers = {
+    rename: onRename,
+    copyLink: onCopyLink ?? undefined,
+    delete: onDelete,
+  };
+  const actions: MenuAction[] = entries.flatMap(({ id }) => {
+    const label = labels[id];
+    const onSelect = handlers[id];
+    return label && onSelect ? [{ label, ...MENU_ENTRY_LOOKS[id], onSelect }] : [];
+  });
   return <ActionMenu label={RULES_COPY.variantMenuLabel(branchName)} actions={actions} />;
 }
