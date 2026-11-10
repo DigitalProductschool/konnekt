@@ -1,5 +1,5 @@
 import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '@connection-portal/api-types/api';
-import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
+import { DEFAULT_LANGUAGE, defineTexts, type Language } from '@connection-portal/rules/language';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.
@@ -24,6 +24,13 @@ let requestLanguage: Language = DEFAULT_LANGUAGE;
 export function setRequestLanguage(language: Language): void {
   requestLanguage = language;
 }
+
+// The message of an error answer that isn't the API's envelope, in the request language; its
+// `error` code stays English (spec 009, research R6)
+const UNEXPECTED_ERROR_MESSAGE = defineTexts(
+  'An unexpected error occurred',
+  'Ein unerwarteter Fehler ist aufgetreten'
+);
 
 export class ApiError extends Error {
   status: number;
@@ -72,7 +79,7 @@ export async function handleResponse<T>(response: Response): Promise<T> {
       ? payload
       : {
           error: 'Unknown error',
-          message: 'An unexpected error occurred',
+          message: UNEXPECTED_ERROR_MESSAGE[requestLanguage],
         };
     throw new ApiError(response.status, data);
   }
@@ -83,17 +90,25 @@ export async function handleResponse<T>(response: Response): Promise<T> {
 interface ApiFetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
+  /**
+   * The language this call asks the answer's texts in, in place of the website's: the background
+   * fetch of the catalog's other language (spec 009, research R6)
+   */
+  language?: Language;
 }
 
 /**
  * Call the backend with the session cookie and return the `data` of its answer.
  *
- * Every call sends the website's language as `Accept-Language`. POST, PUT and DELETE always
- * send JSON, `{}` when there is no body. An error answer throws an `ApiError`.
+ * Every call sends the website's language as `Accept-Language`, or the call's own `language`.
+ * POST, PUT and DELETE always send JSON, `{}` when there is no body. An error answer throws an
+ * `ApiError`.
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
-  const headers: Record<string, string> = { 'Accept-Language': requestLanguage };
+  const headers: Record<string, string> = {
+    'Accept-Language': options.language ?? requestLanguage,
+  };
   const init: RequestInit = { method, credentials: 'include', headers };
 
   if (STATE_CHANGING_METHODS.has(method)) {

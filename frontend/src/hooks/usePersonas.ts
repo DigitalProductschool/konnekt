@@ -51,6 +51,7 @@ import {
   useState,
 } from 'react';
 
+import { useLanguage } from './useLanguage';
 import { useTodayInGermany } from './useTodayInGermany';
 
 /** What `usePersonas()` reads from the editor page */
@@ -321,8 +322,22 @@ function useResultsModule(
  *   the reducer announce the change; "Generate again" asks first for a persona with changes.
  * - `fields`, `results` and `viewOf` follow the branches, the personas, the context and today.
  * - The worker is terminated on unmount. Nothing is stored, sent or logged (FR-021)
+ * - The texts (the fields' labels, the results' headings, the announcements) are composed in the
+ *   website's language (spec 009, R4): the context carries it, and `setValue` hands it to the
+ *   reducer. The worker gets data only: the personas don't depend on the language
  */
-export function usePersonas({ active, branches, context, openBranchKey }: PersonasInput): Personas {
+export function usePersonas({
+  active,
+  branches,
+  context: pageContext,
+  openBranchKey,
+}: PersonasInput): Personas {
+  const { language } = useLanguage();
+  // The page's context in the website's language, so that a switch recomposes every text
+  const context = useMemo(
+    () => (pageContext ? { ...pageContext, language } : null),
+    [pageContext, language]
+  );
   const [state, dispatch] = useReducer(personaStateReducer, initialPersonaState);
   const [load, setLoad] = useResultsModule(active, dispatch);
   const today = useTodayInGermany();
@@ -493,9 +508,18 @@ export function usePersonas({ active, branches, context, openBranchKey }: Person
           resultsModule.testResultsOf([changed], fields, branches, context, today)[persona.id]
         );
       }
-      dispatch({ type: 'setValue', slot, key, value, before, after, branches: announced });
+      dispatch({
+        type: 'setValue',
+        slot,
+        key,
+        value,
+        before,
+        after,
+        branches: announced,
+        language,
+      });
     },
-    [personas, resultsModule, context, results, fields, branches, today, announced]
+    [personas, resultsModule, context, results, fields, branches, today, announced, language]
   );
 
   const rename = useCallback(

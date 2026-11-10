@@ -23,15 +23,22 @@ describe('the step line (FR-025)', () => {
   });
 
   it('counts the steps as "Step n of 4"', () => {
-    expect(stepCountOf(0, CONNECTION_STEPS.length)).toBe('Step 1 of 4');
-    expect(stepCountOf(3, CONNECTION_STEPS.length)).toBe('Step 4 of 4');
+    expect(stepCountOf(0, CONNECTION_STEPS.length, 'en')).toBe('Step 1 of 4');
+    expect(stepCountOf(3, CONNECTION_STEPS.length, 'en')).toBe('Step 4 of 4');
   });
 
   it('names the next step, and the last step as "Last step"', () => {
-    expect(nextLabelOf(stepNames, 0)).toBe('Next: Documents');
-    expect(nextLabelOf(stepNames, 1)).toBe('Next: Rules');
-    expect(nextLabelOf(stepNames, 2)).toBe('Next: Test');
-    expect(nextLabelOf(stepNames, 3)).toBe('Last step');
+    expect(nextLabelOf(stepNames, 0, 'en')).toBe('Next: Documents');
+    expect(nextLabelOf(stepNames, 1, 'en')).toBe('Next: Rules');
+    expect(nextLabelOf(stepNames, 2, 'en')).toBe('Next: Test');
+    expect(nextLabelOf(stepNames, 3, 'en')).toBe('Last step');
+  });
+
+  it('says the step line in German (spec 009)', () => {
+    const germanNames = CONNECTION_STEPS.map((step) => CONNECTION_STEP_LABELS.de[step]);
+    expect(stepCountOf(1, CONNECTION_STEPS.length, 'de')).toBe('Schritt 2 von 4');
+    expect(nextLabelOf(germanNames, 0, 'de')).toBe('Weiter: Dokumente');
+    expect(nextLabelOf(germanNames, 3, 'de')).toBe('Letzter Schritt');
   });
 
   it('shows no step line past the last step (the details)', () => {

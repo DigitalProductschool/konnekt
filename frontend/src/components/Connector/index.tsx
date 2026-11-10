@@ -2,13 +2,13 @@ import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import expandActionIcon from '../../assets/icons/expand-more-action-small.svg';
 import expandWhiteIcon from '../../assets/icons/expand-more-white-small.svg';
+import { useCopy } from '../../hooks/useLanguage';
 import { type MenuPlacement, placementFrom, popupWrapperClass } from '../../utils/popupPlacement';
 import BranchMark from '../BranchMark';
 import ConnectorMenu from './ConnectorMenu';
 import {
   CONNECTOR_COPY,
   CONNECTOR_FADED,
-  CONNECTOR_LABELS,
   CONNECTOR_MENU_HEIGHT,
   CONNECTOR_MENU_WIDTH,
   CONNECTOR_PILL_STATES,
@@ -37,6 +37,7 @@ export default function Connector({
   mark = null,
   faded = false,
 }: ConnectorProps) {
+  const copy = useCopy(CONNECTOR_COPY);
   // Where the open menu is placed; null while it is closed
   const [placement, setPlacement] = useState<MenuPlacement | null>(null);
   const open = placement !== null;
@@ -94,13 +95,13 @@ export default function Connector({
               onKeyDown={handleTriggerKeyDown}
               className={`${CONNECTOR_PILLS[operator]} ${CONNECTOR_PILL_STATES[operator]} ${fade} focus-visible:outline-kern-action-focus-default flex cursor-pointer items-center gap-2 py-2 pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2`}
             >
-              {CONNECTOR_LABELS[operator]}
+              {copy.labels[operator]}
               <img
                 src={operator === 'and' ? expandWhiteIcon : expandActionIcon}
                 alt=""
                 className="size-20"
               />
-              <span className="sr-only">{CONNECTOR_COPY.switchLevel(levelName)}</span>
+              <span className="sr-only">{copy.switchLevel(levelName)}</span>
             </button>
             {placement && (
               <ConnectorMenu
@@ -122,7 +123,7 @@ export default function Connector({
           </div>
         ) : (
           <span className={`${CONNECTOR_PILLS[operator]} ${fade} shrink-0 px-16 py-2`}>
-            {CONNECTOR_LABELS[operator]}
+            {copy.labels[operator]}
           </span>
         )}
         <span

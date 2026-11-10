@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Toast from '../../../components/Toast';
 import { VISIBLE_HEIGHT_CLASSES } from '../../../components/WizardLayout/constants';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import ApplicantsRow from './ApplicantsRow';
 import {
@@ -46,7 +47,10 @@ import VariantTabs from './VariantTabs';
  * "Edit data" opens `EditDataDialog` (spec 008 FR-042; `state.editing`); "Save and test" applies
  * its name and values to the persona at once (no per-value announcement: FR-042 drops 004-S8.10.3)
  * and shows the success toast "Results updated. Mia now meets Rule 01." for the shown variant,
- * worded from its rows before and after (`savedToastOf()`) in the render that has the new results.
+ * worded from its rows before and after (`savedToastOf()`), which the render that has the new
+ * results keeps; the toast is worded in the language of the moment, so a switch while it shows
+ * words it anew (spec 009, FR-003). Every text of the step follows the website's language
+ * (`useLanguage()`); the personas and their outcomes don't depend on it.
  *
  * The focus is never lost (quickstart V9): when a state change removes the focused element (the
  * button that started a run, which gives way to a skeleton, or "Try again"), it moves to what
@@ -84,6 +88,7 @@ export default function TestStep({
     cancelled,
     viewOf,
   } = personas;
+  const { language } = useLanguage();
   const branch = selectedBranchOf(branches, state.branchKey);
   const failed = state.failed || contextFailed;
   const loaded =
@@ -101,21 +106,26 @@ export default function TestStep({
   const view = shown && ready && result ? shown.viewOf(result, branch, ready) : null;
 
   // The last saved edit's toast (FR-042): the shown variant's rows before the save, until the
-  // render with the new results words the toast, which then stays until it is dismissed
+  // render with the new results keeps its rows after and the persona's name (`'none'`: no toast),
+  // from which the toast is worded until it is dismissed
   const [saved, setSaved] = useState<{
     id: number;
     personaId: string;
     branchKey: string;
     before: readonly ResultRow[];
-    message: string | null;
+    after: { rows: readonly ResultRow[]; name: string } | 'none' | null;
   } | null>(null);
-  if (saved !== null && saved.message === null) {
+  if (saved !== null && saved.after === null) {
     const shownAfter = ready?.id === saved.personaId && branch.key === saved.branchKey;
     setSaved({
       ...saved,
-      message: shownAfter && ready && view ? savedToastOf(saved.before, view.rows, ready) : '',
+      after: shownAfter && ready && view ? { rows: view.rows, name: ready.name } : 'none',
     });
   }
+  const savedMessage =
+    saved !== null && saved.after !== null && saved.after !== 'none'
+      ? savedToastOf(saved.before, saved.after.rows, saved.after, language)
+      : '';
   // The editor's failed save replaces it (research R8: one toast at a time)
   if (saveFailed && saved !== null) {
     setSaved(null);
@@ -147,7 +157,7 @@ export default function TestStep({
         personaId: editingPersona.id,
         branchKey: branch.key,
         before: view && ready?.id === editingPersona.id ? view.rows : [],
-        message: null,
+        after: null,
       });
     }
   }
@@ -278,7 +288,11 @@ export default function TestStep({
         onCancel={cancelled}
       />
       <Toast
-        toast={saved?.message ? { id: saved.id, kind: 'success', message: saved.message } : null}
+        toast={
+          saved !== null && savedMessage
+            ? { id: saved.id, kind: 'success', message: savedMessage }
+            : null
+        }
         onDismiss={dismissSaved}
       />
     </>

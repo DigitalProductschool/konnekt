@@ -1,6 +1,7 @@
 import ActionMenu from '../../../components/ActionMenu';
 import type { MenuAction } from '../../../components/ActionMenu/types';
-import { MENU_ENTRY_LOOKS, RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { MENU_ENTRY_LOOKS, RULES_STEP_COPY } from './constants';
 import type { MenuEntryId, RuleMenuProps } from './types';
 
 /**
@@ -20,17 +21,18 @@ export default function RuleMenu({
   mainName,
   handlers,
 }: RuleMenuProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   const labels: Partial<Record<MenuEntryId, string>> = {
-    edit: RULES_COPY.editRule,
-    rename: RULES_COPY.rename,
-    duplicate: RULES_COPY.duplicate,
-    copyToVariant: RULES_COPY.copyToVariant,
-    group: RULES_COPY.groupWithOthers,
-    reset: RULES_COPY.resetTo(mainName),
-    restore: RULES_COPY.restoreRule,
-    copyLink: RULES_COPY.copyLink,
-    remove: RULES_COPY.removeFrom(branchName),
-    delete: RULES_COPY.deleteRule,
+    edit: copy.editRule,
+    rename: copy.rename,
+    duplicate: copy.duplicate,
+    copyToVariant: copy.copyToVariant,
+    group: copy.groupWithOthers,
+    reset: copy.resetTo(mainName),
+    restore: copy.restoreRule,
+    copyLink: copy.copyLink,
+    remove: copy.removeFrom(branchName),
+    delete: copy.deleteRule,
   };
   const restoring = entries.some((entry) => entry.id === 'restore');
   const actions: MenuAction[] = entries.flatMap(({ id }) => {
@@ -42,5 +44,5 @@ export default function RuleMenu({
     const look = id === 'copyLink' && restoring ? {} : MENU_ENTRY_LOOKS[id];
     return [{ label, ...look, onSelect }];
   });
-  return <ActionMenu label={RULES_COPY.menuLabel(ruleName)} actions={actions} />;
+  return <ActionMenu label={copy.menuLabel(ruleName)} actions={actions} />;
 }

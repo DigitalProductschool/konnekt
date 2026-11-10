@@ -1,24 +1,33 @@
+import type { Language } from '@connection-portal/rules/language';
 import type { ConfirmText } from '@connection-portal/rules/personas/messages';
 import { confirmAllOf, confirmOneOf } from '@connection-portal/rules/personas/messages';
 import type { Persona, PersonaConfirm } from '@connection-portal/rules/personas/types';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import type { RegenerateDialogProps } from './types';
 
 /**
- * The question's title and text, from the personas' names, in the chips' order. Empty while no
- * question is open (the closed dialog is hidden) or when a persona is missing
+ * The question's title and text in `language`, from the personas' names, in the chips' order.
+ * Empty while no question is open (the closed dialog is hidden) or when a persona is missing
  */
-function textOf(confirm: PersonaConfirm | null, personas: readonly Persona[] | null): ConfirmText {
+function textOf(
+  confirm: PersonaConfirm | null,
+  personas: readonly Persona[] | null,
+  language: Language
+): ConfirmText {
   if (confirm === null || personas === null) {
     return { title: '', body: '' };
   }
   if (confirm.type === 'one') {
     const persona = personas[confirm.slot];
-    return persona ? confirmOneOf(persona) : { title: '', body: '' };
+    return persona ? confirmOneOf(persona, language) : { title: '', body: '' };
   }
-  return confirmAllOf(confirm.changed.flatMap((slot) => personas[slot] ?? []));
+  return confirmAllOf(
+    confirm.changed.flatMap((slot) => personas[slot] ?? []),
+    language
+  );
 }
 
 /**
@@ -38,14 +47,16 @@ export default function RegenerateDialog({
   onConfirm,
   onCancel,
 }: RegenerateDialogProps) {
-  const text = textOf(confirm, personas);
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
+  const text = textOf(confirm, personas, language);
   return (
     <ConfirmDialog
       open={confirm !== null}
       title={text.title}
       text={text.body}
-      confirmLabel={TEST_STEP_COPY.generateNewData}
-      cancelLabel={TEST_STEP_COPY.cancel}
+      confirmLabel={copy.generateNewData}
+      cancelLabel={copy.cancel}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

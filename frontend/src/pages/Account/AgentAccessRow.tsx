@@ -1,4 +1,5 @@
 import ActionMenu from '../../components/ActionMenu';
+import { useLanguage } from '../../hooks/useLanguage';
 import { ACCOUNT_COPY, ROW_CLASSES } from './constants';
 import DatedLine from './DatedLine';
 import type { AgentAccessRowProps } from './types';
@@ -20,7 +21,9 @@ export default function AgentAccessRow({
   onChangeLevel,
   onRevoke,
 }: AgentAccessRowProps) {
-  const texts = rowTextsOf(item, now, levels);
+  const { language } = useLanguage();
+  const copy = ACCOUNT_COPY[language];
+  const texts = rowTextsOf(item, now, language, levels);
   return (
     <li className={ROW_CLASSES}>
       <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -31,23 +34,19 @@ export default function AgentAccessRow({
         <p className={`${SMALL_TEXT} text-kern-layout-text-muted flex flex-wrap gap-x-16 gap-y-4`}>
           <DatedLine text={texts.since} />
           {texts.expires && <DatedLine text={texts.expires} />}
-          {texts.lastUse ? (
-            <DatedLine text={texts.lastUse} />
-          ) : (
-            <span>{ACCOUNT_COPY.neverUsed}</span>
-          )}
+          {texts.lastUse ? <DatedLine text={texts.lastUse} /> : <span>{copy.neverUsed}</span>}
         </p>
       </div>
       <ActionMenu
-        label={ACCOUNT_COPY.menuLabel(texts.name)}
+        label={copy.menuLabel(texts.name)}
         actions={[
           {
-            label: ACCOUNT_COPY.changeLevel,
+            label: copy.changeLevel,
             icon: { kern: 'kern-icon--edit' },
             onSelect: () => onChangeLevel(item),
           },
           {
-            label: ACCOUNT_COPY.revoke,
+            label: copy.revoke,
             icon: { kern: 'kern-icon--delete' },
             danger: true,
             separated: true,

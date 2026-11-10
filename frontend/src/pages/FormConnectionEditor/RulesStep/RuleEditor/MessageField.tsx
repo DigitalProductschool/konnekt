@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 
+import { useCopy } from '../../../../hooks/useLanguage';
 import { focusMessageOnPress } from '../../../../utils/messageField';
 import { RULE_EDITOR_COPY } from './constants';
 import type { MessageFieldProps } from './types';
@@ -18,6 +19,7 @@ const MESSAGE_MAX_LENGTH = 500;
  * the pencil or anywhere else in the field focuses the message, with the caret at its end.
  */
 export default function MessageField({ id, message, errorId, onChange }: MessageFieldProps) {
+  const copy = useCopy(RULE_EDITOR_COPY);
   const empty = message === '';
   const flagged = errorId !== undefined;
 
@@ -40,7 +42,7 @@ export default function MessageField({ id, message, errorId, onChange }: Message
         htmlFor={id}
         className={`text-kern-static-small leading-(--kern-typography-line-height-medium-static) font-semibold ${empty ? 'text-kern-layout-text-muted' : 'text-kern-action-default'}`}
       >
-        {RULE_EDITOR_COPY.messageLabel}
+        {copy.messageLabel}
       </label>
       <textarea
         id={id}
@@ -49,7 +51,7 @@ export default function MessageField({ id, message, errorId, onChange }: Message
         maxLength={MESSAGE_MAX_LENGTH}
         aria-invalid={flagged || undefined}
         aria-describedby={errorId}
-        placeholder={RULE_EDITOR_COPY.messagePlaceholder}
+        placeholder={copy.messagePlaceholder}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
         className="text-kern-static-small text-kern-layout-text-default placeholder:text-kern-layout-text-muted field-sizing-content min-h-0! min-w-0 flex-1 basis-160 resize-none bg-transparent p-0! leading-(--kern-typography-line-height-medium-static) outline-none"

@@ -20,6 +20,7 @@ import {
 } from '../../components/InfoTooltip/constants';
 import { bubblePlacementClass, isOpen, tooltipReducer } from '../../components/InfoTooltip/utils';
 import { ROUTES } from '../../constants';
+import { useLanguage } from '../../hooks/useLanguage';
 import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
 import { LIST_COPY, ROW_CLASSES, ROW_EDIT_CLASSES, SKELETON_ROW_BARS } from './constants';
 import type { FormConnectionRowProps, RowDescriptionHandle, RowDescriptionProps } from './types';
@@ -158,6 +159,8 @@ export default function FormConnectionRow({
   onDelete,
   onEdit,
 }: FormConnectionRowProps) {
+  const { language } = useLanguage();
+  const copy = LIST_COPY[language];
   const { id, name, is_active: isActive, status } = formConnection;
   const draft = status === 'draft';
   const description = descriptionOf(formConnection);
@@ -167,7 +170,7 @@ export default function FormConnectionRow({
     <>
       <span aria-hidden="true" className="kern-icon kern-icon--edit" />
       <span className="kern-label">
-        {LIST_COPY.edit}
+        {copy.edit}
         <span className="sr-only"> {name}</span>
       </span>
     </>
@@ -196,13 +199,13 @@ export default function FormConnectionRow({
       <div className={ROW_CLASSES.status}>
         <ConnectionStatusBadge isActive={isActive} draft={draft} />
       </div>
-      <p className={ROW_CLASSES.date}>{rowMetaOf(formConnection)}</p>
+      <p className={ROW_CLASSES.date}>{rowMetaOf(formConnection, language)}</p>
       <div aria-hidden="true" className={ROW_CLASSES.spacer} />
       <div className={ROW_CLASSES.actions}>
         <Link to={detailsPath} className="kern-btn kern-btn--tertiary kern-btn--small">
           <span aria-hidden="true" className="kern-icon kern-icon--visibility" />
           <span className="kern-label">
-            {LIST_COPY.view}
+            {copy.view}
             {/* "View" alone doesn't say which connection. Not kern-sr-only: inside a labelled
                 kern-btn it makes the button icon-sized */}
             <span className="sr-only"> {name}</span>
@@ -227,7 +230,7 @@ export default function FormConnectionRow({
             aria-hidden="true"
             className="kern-icon kern-icon--delete bg-kern-feedback-danger!"
           />
-          <span className="kern-sr-only">{LIST_COPY.deleteLabel(name)}</span>
+          <span className="kern-sr-only">{copy.deleteLabel(name)}</span>
         </button>
       </div>
     </li>

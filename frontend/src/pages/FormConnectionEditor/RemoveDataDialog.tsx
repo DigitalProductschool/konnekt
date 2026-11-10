@@ -1,4 +1,5 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useLanguage } from '../../hooks/useLanguage';
 import { removalDialogCopyOf } from './DocumentsStep/utils';
 import type { RemoveDataDialogProps } from './types';
 
@@ -11,7 +12,8 @@ import type { RemoveDataDialogProps } from './types';
  * names the rules with their variants (`ruleListText()`), so that it also describes the dialog.
  * Confirming applies the change and keeps the rules, which refuse publishing and saving while
  * they remain (002-S1.3). The ×, Escape and the scrim answer as the cancel button: nothing goes,
- * and a removal stays undoable through its toast, so the scrim stays on (FR-052a, T035).
+ * and a removal stays undoable through its toast, so the scrim stays on (FR-052a, T035). Its words
+ * are in the language of the moment; the editor names the data from the catalog of the moment.
  */
 export default function RemoveDataDialog({
   removal,
@@ -20,7 +22,8 @@ export default function RemoveDataDialog({
   onCancel,
   onConfirm,
 }: RemoveDataDialogProps) {
-  const copy = removalDialogCopyOf(removal, rules, editing);
+  const { language } = useLanguage();
+  const copy = removalDialogCopyOf(removal, rules, editing, language);
   return (
     <ConfirmDialog
       open={removal !== null}

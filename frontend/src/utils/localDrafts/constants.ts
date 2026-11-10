@@ -1,5 +1,6 @@
 // The local drafts' fixed values (specs/005-connection-drafts/contracts/local-drafts.md "Format";
-// research R9, R10)
+// research R9, R10) and the one text this folder words
+import { defineTexts } from '@connection-portal/rules/language';
 
 /**
  * What every key of this app's local drafts starts with. The app's name keeps them apart from
@@ -32,3 +33,12 @@ export const LOCAL_DRAFT_WRITE_INTERVAL_MS = 1000;
  * survives the sign-in round trip after an expired session, which router state doesn't (R10)
  */
 export const LOCAL_DRAFT_PARAM = 'local';
+
+/**
+ * The name shown for a content without one (`displayNameOf`; spec 009, G§2 "connection"). A
+ * text the page shows, never stored: a record keeps its name as typed, the empty one included
+ */
+export const LOCAL_DRAFT_COPY = defineTexts(
+  { untitled: 'Untitled connection' },
+  { untitled: 'Unbenannte Anbindung' }
+);

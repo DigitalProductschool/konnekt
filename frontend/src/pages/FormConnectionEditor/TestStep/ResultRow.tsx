@@ -1,5 +1,8 @@
+import { outcomeNameOf } from '@connection-portal/rules/personas/messages';
+
 import RuleSentence from '../../../components/RuleRow/RuleSentence';
-import { MEMBER_INDENT, RESULT_STATUS_LOOKS, TEST_STEP_COPY } from './constants';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { MEMBER_INDENT, RESULT_STATUS_ICONS, TEST_STEP_COPY } from './constants';
 import MemberRows from './MemberRows';
 import type { ResultRowProps } from './types';
 import { resultStatementOf } from './utils';
@@ -17,7 +20,8 @@ import { resultStatementOf } from './utils';
  * decorative divider under each row. No success message under a met variant (F41)
  */
 export default function ResultRow({ row, depth, messageColumn }: ResultRowProps) {
-  const look = RESULT_STATUS_LOOKS[row.status];
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
   const tinted = row.reported || depth > 0;
   const padding = tinted ? 'py-10' : 'py-8';
   return (
@@ -31,9 +35,13 @@ export default function ResultRow({ row, depth, messageColumn }: ResultRowProps)
           >
             <span
               aria-hidden="true"
-              className={`kern-icon ${look.icon} kern-icon--small shrink-0`}
+              className={`kern-icon ${RESULT_STATUS_ICONS[row.status]} kern-icon--small shrink-0`}
             />
-            <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {/*
+             * The statement's parts (`RuleSentence`) may break inside a word that is wider than
+             * the column, as a German catalog label is at 320 px ("Personalausweis", spec 009 R9)
+             */}
+            <div className="flex min-w-0 flex-1 flex-col gap-4 [&_p>span]:min-w-0 [&_p>span]:break-words">
               <p
                 className={`text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) break-words ${row.reported ? 'font-semibold' : ''}`}
               >
@@ -43,15 +51,15 @@ export default function ResultRow({ row, depth, messageColumn }: ResultRowProps)
                 <RuleSentence parts={row.parts} text={row.statement} />
               ) : (
                 <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words">
-                  {resultStatementOf(row)}
+                  {resultStatementOf(row, language)}
                 </p>
               )}
-              {look.text ? (
-                <p className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static)">
-                  {look.text}
-                </p>
+              {row.status === 'met' ? (
+                <p className="sr-only">{copy.met}</p>
               ) : (
-                <p className="sr-only">{TEST_STEP_COPY.met}</p>
+                <p className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static)">
+                  {outcomeNameOf(row.status, language)}
+                </p>
               )}
             </div>
           </div>
@@ -60,7 +68,7 @@ export default function ResultRow({ row, depth, messageColumn }: ResultRowProps)
           <td
             className={`${padding} text-kern-static-small narrow:block narrow:pt-0 narrow:pl-36 pr-8 pl-12 align-top leading-(--kern-typography-line-height-medium-static) break-words ${row.message ? 'text-kern-layout-text-default' : 'text-kern-layout-text-muted'}`}
           >
-            {row.message ?? TEST_STEP_COPY.noMessage}
+            {row.message ?? copy.noMessage}
           </td>
         )}
       </tr>

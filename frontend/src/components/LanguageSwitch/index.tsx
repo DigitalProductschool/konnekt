@@ -23,7 +23,8 @@ export default function LanguageSwitch() {
   const { language, setLanguage } = useLanguage();
   const copy = useCopy(LANGUAGE_SWITCH_COPY);
   return (
-    <div role="group" aria-label={copy.language} className={SWITCH_CLASSES}>
+    // `data-language-switch` is LANGUAGE_SWITCH_ATTRIBUTE, which `isLanguageSwitchTarget()` finds
+    <div role="group" aria-label={copy.language} className={SWITCH_CLASSES} data-language-switch>
       {SWITCH_ORDER.map((code) => (
         <LanguageSegment
           key={code}

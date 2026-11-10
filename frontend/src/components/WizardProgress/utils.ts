@@ -1,4 +1,6 @@
-import { LAST_STEP } from './constants';
+import type { Language } from '@connection-portal/rules/language';
+
+import { WIZARD_PROGRESS_COPY } from './constants';
 import type { WizardStepState } from './types';
 
 /**
@@ -20,13 +22,24 @@ export function hasStepLine(current: number, total: number): boolean {
   return current >= 0 && current < total;
 }
 
-/** "Step 2 of 4": the line's text before the segments and the progress bar's name (FR-025). */
-export function stepCountOf(current: number, total: number): string {
-  return `Step ${current + 1} of ${total}`;
+/**
+ * "Step 2 of 4" ("Schritt 2 von 4"): the line's text before the segments and the progress bar's
+ * name (FR-025).
+ */
+export function stepCountOf(current: number, total: number, language: Language): string {
+  return WIZARD_PROGRESS_COPY[language].stepCount(current + 1, total);
 }
 
-/** "Next: Documents" after the segments, or "Last step" on the last step (FR-025). */
-export function nextLabelOf(labels: readonly string[], current: number): string {
+/**
+ * "Next: Documents" ("Weiter: Dokumente") after the segments, or "Last step" ("Letzter Schritt")
+ * on the last step (FR-025). `labels` are the steps' names in the same language.
+ */
+export function nextLabelOf(
+  labels: readonly string[],
+  current: number,
+  language: Language
+): string {
+  const copy = WIZARD_PROGRESS_COPY[language];
   const next = labels[current + 1];
-  return next === undefined ? LAST_STEP : `Next: ${next}`;
+  return next === undefined ? copy.lastStep : copy.next(next);
 }

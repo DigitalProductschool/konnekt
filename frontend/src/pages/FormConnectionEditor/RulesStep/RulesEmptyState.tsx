@@ -1,4 +1,5 @@
-import { RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY } from './constants';
 import type { RulesEmptyStateProps } from './types';
 
 /**
@@ -8,15 +9,16 @@ import type { RulesEmptyStateProps } from './types';
  * B1). The text names Konnekt (C1).
  */
 export default function RulesEmptyState({ addRuleId, onAddRule }: RulesEmptyStateProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   return (
     <div className="p-24">
       <div className="rounded-kern-default border-kern-action-default flex flex-col items-center gap-8 border border-dashed py-40 text-center">
         <div className="flex flex-col items-center gap-4">
           <h2 className="text-kern-adaptive-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-adaptive) font-semibold">
-            {RULES_COPY.emptyTitle}
+            {copy.emptyTitle}
           </h2>
           <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {RULES_COPY.emptyText}
+            {copy.emptyText}
           </p>
         </div>
         <div className="flex pt-8">
@@ -27,7 +29,7 @@ export default function RulesEmptyState({ addRuleId, onAddRule }: RulesEmptyStat
             className="kern-btn kern-btn--primary kern-btn--small"
           >
             <span aria-hidden="true" className="kern-icon kern-icon--add kern-icon--small" />
-            <span className="kern-label">{RULES_COPY.addRule}</span>
+            <span className="kern-label">{copy.addRule}</span>
           </button>
         </div>
       </div>

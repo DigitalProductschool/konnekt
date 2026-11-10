@@ -133,8 +133,10 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
           className={`rounded-kern-default bg-kern-layout-background-default shadow-menu absolute z-40 flex flex-col border border-(--kern-color-decorative-border-default) p-8 ${MENU_MAX_HEIGHT_CLASSES[placement.maxHeight]} ${ACTION_MENU_PLACEMENTS[placement.side][placement.direction]}`}
         >
           <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-            {actions.map((action) => (
-              <Fragment key={action.label}>
+            {/* Keyed by position, not by label: a label follows the language, and an entry
+                keeps its element, and the focus, when the language changes (spec 009, FR-016) */}
+            {actions.map((action, index) => (
+              <Fragment key={index}>
                 {action.separated && (
                   <div
                     role="separator"

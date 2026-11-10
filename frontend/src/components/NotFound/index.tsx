@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 
 import walletStar from '../../assets/illustrations/wallet-star@2x.png';
 import { ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import PageTitle from '../PageTitle';
 import { NOT_FOUND_COPY } from './constants';
 
@@ -15,16 +16,17 @@ import { NOT_FOUND_COPY } from './constants';
  * and the picture goes, so that the text and the action keep the width (FR-010).
  */
 export default function NotFound() {
+  const copy = useCopy(NOT_FOUND_COPY);
   return (
     <>
-      <PageTitle title={NOT_FOUND_COPY.title} size="x-large" />
+      <PageTitle title={copy.title} size="x-large" />
       <div className="bg-kern-layout-background-hued rounded-kern-large flex w-full items-center gap-48 p-24 md:p-48">
         <div className="flex min-w-0 flex-1 flex-col items-start gap-32">
           <p className="text-kern-static-medium text-kern-layout-text-muted max-w-578 break-words">
-            {NOT_FOUND_COPY.text}
+            {copy.text}
           </p>
           <Link to={ROUTES.overview} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{NOT_FOUND_COPY.action}</span>
+            <span className="kern-label">{copy.action}</span>
             <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
           </Link>
         </div>

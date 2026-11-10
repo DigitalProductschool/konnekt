@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../hooks/useLanguage';
 import type { DocumentValuesProps } from './types';
 import { dataRowLabelOf, dataRowTextOf } from './utils';
 import ValueRow from './ValueRow';
@@ -15,6 +16,7 @@ export default function DocumentValues({
   failingFields,
   changedFields,
 }: DocumentValuesProps) {
+  const { language } = useLanguage();
   return (
     <>
       <h3 className="sr-only">{group.documentLabel}</h3>
@@ -22,8 +24,8 @@ export default function DocumentValues({
         {group.rows.map((row) => (
           <ValueRow
             key={`${row.field.key}@${row.since ?? ''}`}
-            label={dataRowLabelOf(row)}
-            text={dataRowTextOf(row, persona.values, context.optionSets)}
+            label={dataRowLabelOf(row, language)}
+            text={dataRowTextOf(row, persona.values, context.optionSets, language)}
             failing={row.keys.some((key) => failingFields.includes(key))}
             changed={row.keys.some((key) => changedFields.includes(key))}
           />

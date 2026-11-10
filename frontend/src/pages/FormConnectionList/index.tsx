@@ -1,5 +1,6 @@
 import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
 import type { OverviewLocationState } from '@connection-portal/api-types/routing';
+import type { Language } from '@connection-portal/rules/language';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
 import { generatePath, Link, useLocation, useNavigate } from 'react-router';
@@ -17,13 +18,14 @@ import type { ToastContent } from '../../components/Toast/types';
 import TopBar from '../../components/TopBar';
 import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useRememberedHomepage } from '../../hooks/useRememberedHomepage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { EDIT_ENTRY_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
+import { EDIT_ENTRY_DIALOG_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import {
   COLUMN_HEADER_CLASSES,
   COLUMN_HEADERS,
-  DELETE_DIALOG_COPY,
+  DELETE_CONNECTION_COPY,
   INITIAL_LIST_STATE,
   INITIAL_ROW_DELETE_STATE,
   LIST_CARD_CLASSES,
@@ -56,12 +58,13 @@ import WelcomePage from './WelcomePage';
  * frame draws no title; the page's one h1 is there for screen readers (FR-012)
  */
 function HomepageLoader() {
+  const copy = useCopy(LIST_COPY);
   return (
     <div className="bg-kern-layout-background-default flex min-h-dvh flex-col">
       <TopBar signedOut />
       <main className="-mt-64">
-        <h1 className="sr-only">{LIST_COPY.title}</h1>
-        <PageLoader label={LIST_COPY.loading} />
+        <h1 className="sr-only">{copy.title}</h1>
+        <PageLoader label={copy.loading} />
       </main>
     </div>
   );
@@ -72,11 +75,12 @@ function HomepageLoader() {
  * (F14: no select-all checkbox); hidden where the rows wrap
  */
 function ColumnHeaders() {
+  const headers = useCopy(COLUMN_HEADERS);
   return (
     <div aria-hidden="true" className={COLUMN_HEADER_CLASSES}>
-      <span className="w-280 shrink-0">{COLUMN_HEADERS.name}</span>
-      <span className="w-130 shrink-0">{COLUMN_HEADERS.status}</span>
-      <span className="w-160 shrink-0">{COLUMN_HEADERS.date}</span>
+      <span className="w-280 shrink-0">{headers.name}</span>
+      <span className="w-130 shrink-0">{headers.status}</span>
+      <span className="w-160 shrink-0">{headers.date}</span>
     </div>
   );
 }
@@ -87,9 +91,10 @@ function ColumnHeaders() {
  * readers hear "Loading your connections…"
  */
 function ListSkeleton() {
+  const copy = useCopy(LIST_COPY);
   return (
     <div role="status" className="flex min-h-0 flex-col gap-16">
-      <span className="sr-only">{LIST_COPY.loading}</span>
+      <span className="sr-only">{copy.loading}</span>
       {/* The toolbar's 48px, so that the card doesn't move when the list arrives */}
       <div aria-hidden="true" className="h-48 shrink-0" />
       <div aria-hidden="true" className={LIST_CARD_CLASSES}>
@@ -108,21 +113,20 @@ function ListSkeleton() {
  * (27)). The count above says "0 of 3 connections"
  */
 function NoMatches({ query, onClear }: NoMatchesProps) {
+  const copy = useCopy(SEARCH_COPY);
   // "Clear search" as drawn: label/default in the action colour, its underline on hover only
   return (
     <div className="flex flex-col items-start gap-8 px-24 py-32 leading-(--kern-typography-line-height-medium-static)">
       <p className="text-kern-static-medium text-kern-layout-text-default font-semibold break-words">
-        {SEARCH_COPY.noMatches(query)}
+        {copy.noMatches(query)}
       </p>
-      <p className="text-kern-static-small text-kern-layout-text-muted">
-        {SEARCH_COPY.noMatchesHint}
-      </p>
+      <p className="text-kern-static-small text-kern-layout-text-muted">{copy.noMatchesHint}</p>
       <button
         type="button"
         onClick={onClear}
         className="kern-link text-kern-static-medium py-0! font-semibold! no-underline! hover:underline!"
       >
-        {SEARCH_COPY.clear}
+        {copy.clear}
       </button>
     </div>
   );
@@ -133,12 +137,15 @@ function NoMatches({ query, onClear }: NoMatchesProps) {
  * 6699:48002); after a delete on the details the toast a row delete shows, "“<name>” deleted."
  * (U90 6699:48098, neutral, no Undo: F4)
  */
-function arrivalToastOf(arrival: OverviewLocationState | null): ToastContent | null {
+function arrivalToastOf(
+  arrival: OverviewLocationState | null,
+  language: Language
+): ToastContent | null {
   if (arrival?.draftSaved !== undefined) {
-    return { id: 1, kind: 'success', message: LIST_COPY.draftSaved };
+    return { id: 1, kind: 'success', message: LIST_COPY[language].draftSaved };
   }
   if (arrival?.deleted !== undefined) {
-    return { id: 1, message: LIST_COPY.deleted(arrival.deleted) };
+    return { id: 1, message: LIST_COPY[language].deleted(arrival.deleted) };
   }
   return null;
 }
@@ -170,6 +177,17 @@ function arrivalToastOf(arrival: OverviewLocationState | null): ToastContent | n
  * opens the edit flow at step 1, and "Cancel", the ×, Escape and the scrim keep the overview.
  */
 export default function FormConnectionListPage() {
+  const { language } = useLanguage();
+  const copy = LIST_COPY[language];
+  const welcomeCopy = WELCOME_COPY[language];
+  const deleteCopy = DELETE_CONNECTION_COPY[language];
+  const editEntryCopy = EDIT_ENTRY_DIALOG_COPY[language];
+  // The list loads once per attempt, not per language: a failure's fallback text takes the
+  // language of the moment it fails
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
   const [state, dispatch] = useReducer(listReducer, INITIAL_LIST_STATE);
   const [rowDelete, dispatchDelete] = useReducer(rowDeleteReducer, INITIAL_ROW_DELETE_STATE);
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -188,7 +206,7 @@ export default function FormConnectionListPage() {
   // Read once: the router state is cleared below, so the toast goes at the next navigation
   const [arrival] = useState(() => location.state as OverviewLocationState | null);
   const draftSaved = arrival?.draftSaved ?? null;
-  const [toast, setToast] = useState<ToastContent | null>(() => arrivalToastOf(arrival));
+  const [toast, setToast] = useState<ToastContent | null>(() => arrivalToastOf(arrival, language));
   const dismissToast = useCallback(() => setToast(null), []);
   // The edit entry question (F48): there once a row asked, keeping its name while it closes
   const [editEntry, setEditEntry] = useState<{
@@ -208,7 +226,7 @@ export default function FormConnectionListPage() {
       : list === null && expected === null
         ? 'loading'
         : homepageOf(list, expected);
-  useDocumentTitle(view === 'welcome' ? WELCOME_COPY.pageTitle : LIST_COPY.pageTitle);
+  useDocumentTitle(view === 'welcome' ? welcomeCopy.pageTitle : copy.pageTitle);
 
   useEffect(() => {
     if (arrival?.draftSaved !== undefined || arrival?.deleted !== undefined) {
@@ -224,7 +242,10 @@ export default function FormConnectionListPage() {
       },
       (error: unknown) => {
         if (!ignore && !handleUnauthorized(error)) {
-          dispatch({ type: 'failed', notice: errorNoticeOf(error, LIST_COPY.errorText) });
+          dispatch({
+            type: 'failed',
+            notice: errorNoticeOf(error, LIST_COPY[languageRef.current].errorText),
+          });
         }
       }
     );
@@ -254,10 +275,10 @@ export default function FormConnectionListPage() {
       focusTitleAfterDelete.current = true;
       dispatchDelete({ type: 'done' });
       dispatch({ type: 'removed', id: target.id });
-      setToast((shown) => ({ id: (shown?.id ?? 0) + 1, message: LIST_COPY.deleted(target.name) }));
+      setToast((shown) => ({ id: (shown?.id ?? 0) + 1, message: copy.deleted(target.name) }));
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatchDelete({ type: 'failed', ...rowDeleteFailureOf(error) });
+        dispatchDelete({ type: 'failed', ...rowDeleteFailureOf(error, language) });
       }
     }
   }
@@ -284,15 +305,15 @@ export default function FormConnectionListPage() {
       {target && (
         <ConfirmDialog
           open={rowDelete.open}
-          {...deleteDialogCopyOf(target)}
-          confirmLabel={DELETE_DIALOG_COPY.confirm}
-          cancelLabel={DELETE_DIALOG_COPY.cancel}
+          {...deleteDialogCopyOf(target, language)}
+          confirmLabel={deleteCopy.confirm}
+          cancelLabel={deleteCopy.cancel}
           danger
-          busyLabel={DELETE_DIALOG_COPY.busy}
+          busyLabel={deleteCopy.busy}
           busy={rowDelete.deleting}
           error={rowDelete.error}
-          errorTitle={DELETE_DIALOG_COPY.errorTitle}
-          retryLabel={DELETE_DIALOG_COPY.retry}
+          errorTitle={deleteCopy.errorTitle}
+          retryLabel={deleteCopy.retry}
           dismissOnScrim={false}
           onCancel={closeDelete}
           onConfirm={() => void deleteRow(target)}
@@ -301,10 +322,10 @@ export default function FormConnectionListPage() {
       {editEntry && (
         <ConfirmDialog
           open={editEntry.open}
-          title={EDIT_ENTRY_COPY.title(editEntry.target.name)}
-          text={EDIT_ENTRY_COPY.text}
-          cancelLabel={EDIT_ENTRY_COPY.cancel}
-          confirmLabel={EDIT_ENTRY_COPY.confirm}
+          title={editEntryCopy.title(editEntry.target.name)}
+          text={editEntryCopy.text}
+          cancelLabel={editEntryCopy.cancel}
+          confirmLabel={editEntryCopy.confirm}
           onCancel={() => setEditEntry({ ...editEntry, open: false })}
           onConfirm={() =>
             navigate(generatePath(ROUTES.editFormConnection, { id: editEntry.target.id }), {
@@ -334,10 +355,10 @@ export default function FormConnectionListPage() {
   return (
     <AppLayout>
       <div className={OVERVIEW_COLUMN_CLASSES}>
-        <PageTitle ref={titleRef} size="x-large" title={LIST_COPY.title} hint={LIST_COPY.hint} />
+        <PageTitle ref={titleRef} size="x-large" title={copy.title} hint={copy.hint} />
 
         {state.status === 'failed' && (
-          <KernAlert variant="danger" title={LIST_COPY.errorTitle} className="w-full shrink-0">
+          <KernAlert variant="danger" title={copy.errorTitle} className="w-full shrink-0">
             <ErrorNoticeText notice={state.notice} />
             <span className="mt-10 flex flex-wrap items-center gap-x-24 gap-y-8">
               <button
@@ -345,7 +366,7 @@ export default function FormConnectionListPage() {
                 onClick={() => dispatch({ type: 'retry' })}
                 className="kern-btn kern-btn--secondary kern-btn--small"
               >
-                <span className="kern-label">{LIST_COPY.retry}</span>
+                <span className="kern-label">{copy.retry}</span>
               </button>
             </span>
           </KernAlert>
@@ -394,7 +415,7 @@ export default function FormConnectionListPage() {
           <div className={OVERVIEW_FOOTER_CLASSES.bar}>
             <div className="mx-auto flex w-full max-w-1120 justify-end">
               <Link to={ROUTES.newFormConnection} className="kern-btn kern-btn--primary">
-                <span className="kern-label">{LIST_COPY.createConnection}</span>
+                <span className="kern-label">{copy.createConnection}</span>
                 <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
               </Link>
             </div>

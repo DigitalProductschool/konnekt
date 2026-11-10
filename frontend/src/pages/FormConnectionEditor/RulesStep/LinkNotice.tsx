@@ -1,6 +1,7 @@
 import { useId } from 'react';
 
-import { LINK_NOTICE_ID, RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { LINK_NOTICE_ID, RULES_STEP_COPY } from './constants';
 import type { LinkNoticeProps } from './types';
 
 /**
@@ -13,6 +14,7 @@ import type { LinkNoticeProps } from './types';
  * announces its title, and it stays until it is dismissed.
  */
 export default function LinkNotice({ kind, onDismiss }: LinkNoticeProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   const titleId = useId();
   return (
     <section
@@ -24,7 +26,7 @@ export default function LinkNotice({ kind, onDismiss }: LinkNoticeProps) {
       <div className="kern-alert__header">
         <span aria-hidden="true" className="kern-icon kern-icon--warning kern-icon--small" />
         <span id={titleId} className="kern-title">
-          {kind === 'variant' ? RULES_COPY.missingVariant : RULES_COPY.missingItem}
+          {kind === 'variant' ? copy.missingVariant : copy.missingItem}
         </span>
       </div>
       <div className="kern-alert__body flex flex-col items-start">
@@ -33,7 +35,7 @@ export default function LinkNotice({ kind, onDismiss }: LinkNoticeProps) {
           onClick={onDismiss}
           className="kern-btn kern-btn--secondary kern-btn--small"
         >
-          <span className="kern-label">{RULES_COPY.dismiss}</span>
+          <span className="kern-label">{copy.dismiss}</span>
         </button>
       </div>
     </section>

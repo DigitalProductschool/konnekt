@@ -1,7 +1,16 @@
-export const AUTH_INTRO_COPY = {
-  headline: 'Connect to the EUDI Wallet',
-  lead: 'Receive verified citizen data with ease',
-};
+import { defineTexts } from '@connection-portal/rules/language';
+
+/** The signed-out screens' tagline (G§2 "wallet, EUDI Wallet") */
+export const AUTH_INTRO_COPY = defineTexts(
+  {
+    headline: 'Connect to the EUDI Wallet',
+    lead: 'Receive verified citizen data with ease',
+  },
+  {
+    headline: 'Mit der EUDI-Wallet verbinden',
+    lead: 'Geprüfte Daten von Bürgerinnen und Bürgern einfach empfangen',
+  }
+);
 
 /**
  * Figma "Rectangle 1" (U10 6685:103961): the light blue page with a green glow from the bottom

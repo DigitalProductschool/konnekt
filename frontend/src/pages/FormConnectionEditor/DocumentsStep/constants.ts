@@ -1,3 +1,5 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import documentActionGlyph from '../../../assets/icons/document-action.svg';
 import documentDangerGlyph from '../../../assets/icons/document-danger.svg';
 import documentInkGlyph from '../../../assets/icons/document-ink.svg';
@@ -14,62 +16,101 @@ import type { DocumentGlyphs, DocumentsViewState } from './types';
 
 // "1 rule checks" / "2 rules check", in the removal question (REMOVAL_DIALOG_COPY)
 const rulesCheck = (count: number) => `${count} ${count === 1 ? 'rule checks' : 'rules check'}`;
+// "1 Regel prüft" / "2 Regeln prüfen"
+const rulesCheckDe = (count: number) => `${count} ${count === 1 ? 'Regel prüft' : 'Regeln prüfen'}`;
 
 /**
  * The documents step's copy (FR-031, FR-051 (37), FR-052e, F67, F72, Clarification #55), from U20
- * to U25. The singular and plural forms are chosen in `utils.ts` (`needsDataText()`,
- * `noDataTitle()`, `removeDocumentsLabel()`); the plurals the frames don't draw follow #55's
- * "Remove <n> documents"
+ * to U25, in both languages (spec 009, R1; glossary G§2 "document", "field", "data item"). The
+ * singular and plural forms are chosen in `utils.ts` (`needsDataText()`, `noDataTitle()`,
+ * `removeDocumentsLabel()`); the plurals the frames don't draw follow #55's "Remove <n>
+ * documents". The documents' and data items' names come from the catalog, in the language of the
+ * moment (`useDocumentTypes`, G§4)
  */
-export const DOCUMENTS_STEP_COPY = {
-  // The pager under the shown document (U21 #17, U22 #20)
-  pager: (position: number, count: number) => `Document ${position} of ${count}`,
-  // The list's title (U20 #8, U22 #9)
-  addedDocuments: (count: number) => `Added documents (${count})`,
-  // The search card's groups (U20 #17, U21 #23–#24; FR-052e)
-  availableGroup: (count: number) => `Available (${count})`,
-  addedGroup: (count: number) => `Added (${count})`,
-  // The search card without a result (U20 #20)
-  noMatches: (query: string) => `No documents match “${query}”.`,
-  // The shown document's count (FR-051 (37); U21 #12, U22 #14)
-  dataChosen: (chosen: number, total: number) => `${chosen} of ${total} data items chosen`,
-  noDataChosen: 'No data items chosen yet',
-  // Over the list once "Set rules →" found documents without data (U25 #22)
-  needsDataOne: '1 document needs data',
-  needsDataMany: (count: number) => `${count} documents need data`,
-  // In a flagged document's header, in place of its count (U25 #24, 7298:62838)
-  needsDataLine: 'Choose at least one data item, or remove this document.',
-  // The dialog on "Set rules →" (U25 7299:52174; #55): its title and its text naming the
-  // documents ("Driving licence", "Personal ID and Driving licence"); the plural isn't drawn
-  noDataTitleOne: 'No data selected in 1 document',
-  noDataTitleMany: (count: number) => `No data selected in ${count} documents`,
-  noDataTextOne: (document: string) =>
-    `${document} has no data chosen yet. Choose data for it or remove it.`,
-  noDataTextMany: (documents: string) =>
-    `${documents} have no data chosen yet. Choose data for them or remove them.`,
-  chooseData: 'Choose data',
-  removeDocumentsOne: 'Remove 1 document',
-  removeDocumentsMany: (count: number) => `Remove ${count} documents`,
-  // "Set rules →" while no document is added (U20 #14; FR-031)
-  addDocumentFirst: 'Add a document first',
-  // The removal question (U23 #22, U24 #24; F72)
-  keepDocument: 'Keep document',
-  removeDocument: 'Remove document',
-  // The list card (U20 7290:60377, U21 7290:61198) and its search card (U20 7290:60525)
-  addDocument: 'Add document',
-  findDocument: 'Find a document',
-  addedTag: 'Added',
-  // The trash's accessible name (U21 #11)
-  removeDocumentLabel: (document: string) => `Remove ${document}`,
-  // The empty panel (U20 7290:60384)
-  emptyTitle: 'No documents yet',
-  emptyText: 'Documents you add show up here, with the data you can choose.',
-  // The shown document's select-all (U21 7290:61211; 002-S1.2)
-  allDataItems: 'All data items',
-  // The pager's arrows (U21 7290:61258, 7290:61260), named for screen readers
-  previousDocument: 'Previous document',
-  nextDocument: 'Next document',
-};
+export const DOCUMENTS_COPY = defineTexts(
+  {
+    // The pager under the shown document (U21 #17, U22 #20)
+    pager: (position: number, count: number) => `Document ${position} of ${count}`,
+    // The list's title (U20 #8, U22 #9)
+    addedDocuments: (count: number) => `Added documents (${count})`,
+    // The search card's groups (U20 #17, U21 #23–#24; FR-052e)
+    availableGroup: (count: number) => `Available (${count})`,
+    addedGroup: (count: number) => `Added (${count})`,
+    // The search card without a result (U20 #20)
+    noMatches: (query: string) => `No documents match “${query}”.`,
+    // The shown document's count (FR-051 (37); U21 #12, U22 #14)
+    dataChosen: (chosen: number, total: number) => `${chosen} of ${total} data items chosen`,
+    noDataChosen: 'No data items chosen yet',
+    // Over the list once "Set rules →" found documents without data (U25 #22)
+    needsDataOne: '1 document needs data',
+    needsDataMany: (count: number) => `${count} documents need data`,
+    // In a flagged document's header, in place of its count (U25 #24, 7298:62838)
+    needsDataLine: 'Choose at least one data item, or remove this document.',
+    // The dialog on "Set rules →" (U25 7299:52174; #55): its title and its text naming the
+    // documents ("Driving licence", "Personal ID and Driving licence"); the plural isn't drawn
+    noDataTitleOne: 'No data selected in 1 document',
+    noDataTitleMany: (count: number) => `No data selected in ${count} documents`,
+    noDataTextOne: (document: string) =>
+      `${document} has no data chosen yet. Choose data for it or remove it.`,
+    noDataTextMany: (documents: string) =>
+      `${documents} have no data chosen yet. Choose data for them or remove them.`,
+    chooseData: 'Choose data',
+    removeDocumentsOne: 'Remove 1 document',
+    removeDocumentsMany: (count: number) => `Remove ${count} documents`,
+    // "Set rules →" while no document is added (U20 #14; FR-031)
+    addDocumentFirst: 'Add a document first',
+    // The removal question (U23 #22, U24 #24; F72)
+    keepDocument: 'Keep document',
+    removeDocument: 'Remove document',
+    // The list card (U20 7290:60377, U21 7290:61198) and its search card (U20 7290:60525)
+    addDocument: 'Add document',
+    findDocument: 'Find a document',
+    addedTag: 'Added',
+    // The trash's accessible name (U21 #11)
+    removeDocumentLabel: (document: string) => `Remove ${document}`,
+    // The empty panel (U20 7290:60384)
+    emptyTitle: 'No documents yet',
+    emptyText: 'Documents you add show up here, with the data you can choose.',
+    // The shown document's select-all (U21 7290:61211; 002-S1.2)
+    allDataItems: 'All data items',
+    // The pager's arrows (U21 7290:61258, 7290:61260), named for screen readers
+    previousDocument: 'Previous document',
+    nextDocument: 'Next document',
+  },
+  {
+    pager: (position, count) => `Dokument ${position} von ${count}`,
+    addedDocuments: (count) => `Hinzugefügte Dokumente (${count})`,
+    availableGroup: (count) => `Verfügbar (${count})`,
+    addedGroup: (count) => `Hinzugefügt (${count})`,
+    noMatches: (query) => `Keine Dokumente passen zu „${query}“.`,
+    dataChosen: (chosen, total) => `${chosen} von ${total} Feldern ausgewählt`,
+    noDataChosen: 'Noch keine Felder ausgewählt',
+    needsDataOne: '1 Dokument braucht Daten',
+    needsDataMany: (count) => `${count} Dokumente brauchen Daten`,
+    needsDataLine: 'Wählen Sie mindestens ein Feld aus oder entfernen Sie dieses Dokument.',
+    noDataTitleOne: 'Keine Daten in 1 Dokument ausgewählt',
+    noDataTitleMany: (count) => `Keine Daten in ${count} Dokumenten ausgewählt`,
+    noDataTextOne: (document) =>
+      `Für ${document} sind noch keine Daten ausgewählt. Wählen Sie Daten aus oder entfernen Sie das Dokument.`,
+    noDataTextMany: (documents) =>
+      `Für ${documents} sind noch keine Daten ausgewählt. Wählen Sie Daten aus oder entfernen Sie die Dokumente.`,
+    chooseData: 'Daten auswählen',
+    removeDocumentsOne: '1 Dokument entfernen',
+    removeDocumentsMany: (count) => `${count} Dokumente entfernen`,
+    addDocumentFirst: 'Fügen Sie zuerst ein Dokument hinzu',
+    keepDocument: 'Dokument behalten',
+    removeDocument: 'Dokument entfernen',
+    addDocument: 'Dokument hinzufügen',
+    findDocument: 'Dokument suchen',
+    addedTag: 'Hinzugefügt',
+    removeDocumentLabel: (document) => `${document} entfernen`,
+    emptyTitle: 'Noch keine Dokumente',
+    emptyText: 'Hinzugefügte Dokumente erscheinen hier, mit den Daten, die Sie auswählen können.',
+    allDataItems: 'Alle Felder',
+    previousDocument: 'Vorheriges Dokument',
+    nextDocument: 'Nächstes Dokument',
+  }
+);
 
 /**
  * The question before data stops being requested (F72, 002-S1.1; FR-029): the document's
@@ -77,28 +118,50 @@ export const DOCUMENTS_STEP_COPY = {
  * item's "Stop requesting Date of birth?" (U26 6324:40396). The frames name the rules in one
  * sentence, grouped by variant ("Rule 02 and Rule 03 in Standard", `ruleListText()`); in the edit
  * flow they need changing "before you save" (002-S1.7). "All data items" and the note's "Remove
- * it" aren't drawn: they keep the baseline's title and "this data", without a first sentence
+ * it" aren't drawn: they keep the baseline's title and "this data", without a first sentence.
+ * The German names a data item in quotes („Geburtsdatum“), so that no article has to agree with
+ * it (G§1 "Quotes"), and keeps its capital (`inSentence()`)
  */
-export const REMOVAL_DIALOG_COPY = {
-  documentTitle: (document: string) => `Remove ${document}?`,
-  documentLead: 'Citizens won’t be asked for this document any more.',
-  documentRules: (count: number) => `${rulesCheck(count)} its data:`,
-  fieldTitle: (field: string) => `Stop requesting ${field}?`,
-  // The data item's name inside the sentence, its first letter lower case ("date of birth")
-  fieldLead: (field: string) => `Citizens won’t share their ${field} any more.`,
-  fieldRules: (count: number) => `${rulesCheck(count)} it:`,
-  allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
-  dataRules: (count: number) => `${rulesCheck(count)} this data:`,
-  after: (count: number, editing: boolean) =>
-    `Edit or delete ${count === 1 ? 'it' : 'them'} before you ${editing ? 'save' : 'publish'}.`,
-  // "Rule 02 and Rule 03 in Standard"
-  rulesIn: (rules: string, branch: string) => `${rules} in ${branch}`,
-  and: ' and ',
-  comma: ', ',
-  // A data item's buttons (U26); a document's are DOCUMENTS_STEP_COPY.keepDocument / removeDocument
-  cancel: 'Cancel',
-  stopRequesting: 'Stop requesting',
-};
+export const REMOVAL_DIALOG_COPY = defineTexts(
+  {
+    documentTitle: (document: string) => `Remove ${document}?`,
+    documentLead: 'Citizens won’t be asked for this document any more.',
+    documentRules: (count: number) => `${rulesCheck(count)} its data:`,
+    fieldTitle: (field: string) => `Stop requesting ${field}?`,
+    // The data item's name inside the sentence, its first letter lower case ("date of birth")
+    fieldLead: (field: string) => `Citizens won’t share their ${field} any more.`,
+    fieldRules: (count: number) => `${rulesCheck(count)} it:`,
+    allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
+    dataRules: (count: number) => `${rulesCheck(count)} this data:`,
+    after: (count: number, editing: boolean) =>
+      `Edit or delete ${count === 1 ? 'it' : 'them'} before you ${editing ? 'save' : 'publish'}.`,
+    // "Rule 02 and Rule 03 in Standard"
+    rulesIn: (rules: string, branch: string) => `${rules} in ${branch}`,
+    and: ' and ',
+    comma: ', ',
+    // A data item's buttons (U26); a document's are DOCUMENTS_COPY's keepDocument and
+    // removeDocument
+    cancel: 'Cancel',
+    stopRequesting: 'Stop requesting',
+  },
+  {
+    documentTitle: (document) => `${document} entfernen?`,
+    documentLead: 'Bürgerinnen und Bürger werden nicht mehr nach diesem Dokument gefragt.',
+    documentRules: (count) => `${rulesCheckDe(count)} seine Daten:`,
+    fieldTitle: (field) => `„${field}“ nicht mehr anfordern?`,
+    fieldLead: (field) => `Bürgerinnen und Bürger werden nicht mehr nach „${field}“ gefragt.`,
+    fieldRules: (count) => `${rulesCheckDe(count)} dieses Feld:`,
+    allFieldsTitle: (document) => `Alle Daten aus „${document}“ nicht mehr anfordern?`,
+    dataRules: (count) => `${rulesCheckDe(count)} diese Daten:`,
+    after: (count, editing) =>
+      `Bearbeiten oder löschen Sie ${count === 1 ? 'die Regel' : 'die Regeln'} vor dem ${editing ? 'Speichern' : 'Veröffentlichen'}.`,
+    rulesIn: (rules, branch) => `${rules} in ${branch}`,
+    and: ' und ',
+    comma: ', ',
+    cancel: 'Abbrechen',
+    stopRequesting: 'Nicht mehr anfordern',
+  }
+);
 
 /**
  * At 800px tall and more, side by side (`lg:`, 992px), the list card, the shown document and the

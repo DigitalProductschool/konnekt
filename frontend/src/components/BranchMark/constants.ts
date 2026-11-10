@@ -1,13 +1,13 @@
 import type { Mark } from '@connection-portal/api-types/form-connections';
+import { defineTexts } from '@connection-portal/rules/language';
 
 // Figma "Rules/Variant status" on the screens (U57 I6522:32701;6118:3685,
 // U58 I6522:33021;6118:3685, U47 I6185:8570;6118:3685): the mark's text, so that it never rests
 // on colour alone (FR-023); the design's wording (report cosmetic 8: "Added here", "Removed here")
-export const BRANCH_MARK_COPY: Record<Mark, string> = {
-  changed: 'Changed here',
-  added: 'Added here',
-  removed: 'Removed here',
-};
+export const BRANCH_MARK_COPY = defineTexts<Record<Mark, string>>(
+  { changed: 'Changed here', added: 'Added here', removed: 'Removed here' },
+  { changed: 'Hier geändert', added: 'Hier hinzugefügt', removed: 'Hier entfernt' }
+);
 
 // The tag's colours ("Rules/Variant status" 6118:3681; design-notes §1.3): a white tag in the
 // mark's purple, or KERN's neutral feedback colours for a removed item. The tag keeps its full

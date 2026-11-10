@@ -1,5 +1,6 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
 import type { FindingTone } from '@connection-portal/rules/checks/types';
+import { defineTexts } from '@connection-portal/rules/language';
 
 import copyToIcon from '../../../assets/icons/copy-to-variant.svg';
 import groupIcon from '../../../assets/icons/group-brackets.svg';
@@ -229,210 +230,369 @@ export const START_WITH_OPTION_CLASSES = {
   help: 'text-kern-static-small text-kern-layout-text-muted pl-28 leading-(--kern-typography-line-height-medium-static)',
 };
 
-export const RULES_COPY = {
-  // The step header, U29 6702:39345, U43 6702:41083 (C1, C2)
-  title: 'Set eligibility rules for citizens',
-  hint: 'A rule is a condition the citizen’s data has to meet. Konnekt checks each rule and tells your service whether it’s met.',
-  loading: 'Loading the documents and their values…',
-  loadErrorTitle: 'Couldn’t load the documents and their values',
-  loadErrorText: 'Check your connection and try again.',
-  retry: 'Try again',
-  // U29 6504:43841 (W5; C1)
-  emptyTitle: 'No rules yet',
-  emptyText:
-    'Without rules, Konnekt still passes the verified data to your service. Your team decides who can apply.',
-  addRule: 'Add rule',
-  // The rule menu, U14 6113:28988
-  menuLabel: (rule: string) => `Actions for ${rule}`,
-  editRule: 'Edit rule',
-  rename: 'Rename',
-  duplicate: 'Duplicate',
-  deleteRule: 'Delete rule',
-  // Renaming inline, U15 6344:53317–6344:53481
-  renameLabel: (rule: string) => `Name of ${rule}`,
-  renameHint: 'Enter saves · Esc cancels',
-  // "Delete Rule 03?", U14 6113:29056 (design-notes §4, "Deleting a rule")
-  deleteTitle: (rule: string) => `Delete ${rule}?`,
-  deleteText: (statement: string | null) =>
-    statement
-      ? `Citizens will no longer be checked for “${statement}”. You can undo this right after.`
-      : 'You can undo this right after.',
-  cancel: 'Cancel',
-  // "Save changes to Rule 01?", U28 6197:10989 (F10); the body and "Discard changes" as U50 8.5
-  // (6197:10989) words them (FR-002, cosmetic 8)
-  saveChangesTitle: (rule: string) => `Save changes to ${rule}?`,
-  saveChangesText: 'If you leave without saving, your changes are lost.',
-  discard: 'Discard changes',
-  saveChanges: 'Save changes',
-  undo: 'Undo',
-  // F29: toasts name the rule with its branch; the save toast as U30 #37 words it, "Rule 01
-  // saved." (report cosmetic 8)
-  ruleSaved: (rule: string, _branch: string) => `${rule} saved.`,
-  // "Rule 03 deleted.", as U35 6113:29469 words it (report cosmetic 8)
-  ruleDeleted: (rule: string, _branch: string) => `${rule} deleted.`,
-  // Grouping (U14 6344:53529, U16), with the toast as U36 6344:53623 words it: "Rule 02 and Rule
-  // 03 are now in Group 01." (report cosmetic 8, T057)
-  groupWithOthers: 'Group with other rules',
-  grouped: (rules: string, _branch: string, group: string) => `${rules} are now in ${group}.`,
-  // Grouping in a variant based on Standard, as U40 6344:53873 words it (report cosmetic 8, T066):
-  // the variant's name and Standard's, without the rules and the group
-  groupedInVariant: (_rules: string, branch: string, _group: string, main: string) =>
-    `Grouped in ${branch} only. ${main} stays the same.`,
-  // F29, U20 6344:54042: the copy toast, whose "Show" opens the variant
-  copied: (rule: string, branches: string) => `${rule} copied to ${branches}.`,
-  show: 'Show',
-  and: 'and',
-  // The selection bar (U36 6616:44187, 6616:44214, 6616:44240); the one for no rule chosen has
-  // no frame and takes the drawn verb
-  selectOneMore: (rule: string) => `Choose at least one more rule to group with ${rule}.`,
-  selectTwo: 'Choose two or more rules to group.',
-  selected: (count: number) => `${count} rules selected`,
-  selectedSubGroup: (count: number, group: string) =>
-    `${count} rules selected. They become a sub-group of ${group}.`,
-  // U64 6616:44355: two or more rules chosen at the top level of a variant based on Standard
-  selectedInVariant: (count: number, branch: string, main: string) =>
-    `${count} rules selected. The group is added in ${branch} only. ${main} stays the same.`,
-  groupRules: 'Group rules',
-  selectRule: (rule: string) => `Select ${rule}`,
-  // The note after switching a level, as U34 6329:19219 words it (FR-051 (32)); the one for AND
-  // has no frame and says the same of all rules
-  switchedToOr: (level: string) => `${level} now needs only one rule to be true.`,
-  switchedToAnd: (level: string) => `${level} now needs all its rules to be true.`,
-  // A group's and a sub-group's menu (U55 6522:32424, U56 6522:32540; W22; report cosmetic 8)
-  groupMenuLabel: (group: string) => `Actions for ${group}`,
-  addMessage: 'Add message',
-  removeMessage: 'Remove message',
-  ungroup: 'Ungroup',
-  deleteGroup: 'Delete group',
-  deleteSubGroup: 'Delete sub-group',
-  // "Delete Group 01?" and the toasts (design-notes §5)
-  deleteGroupText: (group: string, subGroups: number) =>
-    subGroups === 0
-      ? `${group} and the rules in it will be deleted. You can undo this right after.`
-      : `${group} and the rules and ${subGroups === 1 ? 'sub-group' : 'sub-groups'} in it will be deleted. You can undo this right after.`,
-  // Deleting in Standard while variants are based on it (F14, W8; design-notes §4 and §5). A
-  // rule's body is U47's as drawn (6185:8847; CLAR #56, FR-037): `variants` are the names of the
-  // variants based on Standard, as `joinNames` lists them
-  removedFromVariants: (main: string, variants: string) =>
-    `This deletes it from ${main} and from the variants that follow it: ${variants}. If a variant changed this rule, it keeps its own version.`,
-  groupRemovedFromVariants: (noun: string, main: string) =>
-    `This ${noun} and the rules in it will be removed from ${main} and from the variants that follow them.`,
-  // `variants` are the variants' names as `joinNames` lists them, `count` how many
-  itemKeptByVariants: (variants: string, count: number, item: string) =>
-    count === 1
-      ? `${variants} changed ${item} and keeps its own version.`
-      : `${variants} changed ${item} and keep their own versions.`,
-  ungroupedEverywhere: (group: string, main: string) =>
-    `${group} is left with one rule, so it’s ungrouped in ${main} and its variants.`,
-  possessive: (variant: string) => `${variant}’s`,
-  changesGo: (variants: string, group: string) => `${variants} changes to ${group} go with it.`,
-  undoRightAfter: 'You can undo this right after.',
-  ungrouped: (group: string, branch: string) => `${group} in ${branch} ungrouped.`,
-  // Ungrouping a group with its own message, as U35 6965:50849 words it: "Ungrouped. Rules 03 to
-  // 05 use their own messages again." (report cosmetic 8, T057); `rules` are the names of the
-  // rules it held, as `joinNames` lists them, `count` how many
-  ungroupedOwnMessages: (rules: string, count: number) =>
-    count === 1
-      ? `Ungrouped. ${rules} uses its own message again.`
-      : `Ungrouped. ${rules} use their own messages again.`,
-  // A member's message line while a group it is in has its own message (F32, FR-037; U35
-  // 6965:50822): the rule keeps its message, citizens read the group's
-  notShownInGroup: (group: string) =>
-    `Not shown while this rule is in ${group}. Citizens see the group message instead.`,
-  // Worded as "Rule 03 deleted." is (U35 6113:29469; report cosmetic 8)
-  groupDeleted: (group: string, _branch: string) => `${group} deleted.`,
-  // A based variant's menus (U56 6522:32644; U23 6185:8802, 6185:41586; W8; report cosmetic 8):
-  // in a variant, Delete becomes "Remove from School transport" for what follows Standard, and a
-  // removed rule or group only offers "Restore"
-  copyToVariant: 'Copy to variant',
-  resetTo: (main: string) => `Reset to ${main}`,
-  removeFrom: (variant: string) => `Remove from ${variant}`,
-  restoreRule: 'Restore rule',
-  restoreGroup: 'Restore group',
-  restoreSubGroup: 'Restore sub-group',
-  // The link strip at the top of a based variant's rules (U18 6344:60020; U47 6344:60085,
-  // 6344:60090, 6344:60095), with what the variant removed before its text (FR-051 (38)): "2 of 3
-  // Standard rules are removed here.", or, while only groups are, "Group 01 is removed here."
-  linkedTo: (main: string) => `Linked to ${main}`,
-  linkedText: (main: string) => `Rules you don’t change follow and update with ${main}.`,
-  removedRules: (removed: number, total: number, main: string) =>
-    `${removed} of ${total} ${main} ${total === 1 ? 'rule' : 'rules'} ${removed === 1 ? 'is' : 'are'} removed here.`,
-  removedGroups: (groups: string, count: number) =>
-    `${groups} ${count === 1 ? 'is' : 'are'} removed here.`,
-  // The variant tabs (U38 6134:9153; F26) and "+ Add variant" with its (i) in every state (F27,
-  // FR-035; U37 6151:33809, its text 6151:33820)
-  variants: 'Variants',
-  addVariant: 'Add variant',
-  aboutVariants: 'About variants',
-  variantsInfo:
-    'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
-  // The Add variant and Edit variant dialogs (U37 6139:32693, U52 6197:12011; F28, W18): the
-  // intro repeats the (i)'s text (U37 #20)
-  addVariantTitle: 'Add variant',
-  addVariantIntro:
-    'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
-  editVariantTitle: 'Edit variant',
-  variantName: 'Variant name',
-  description: 'Description',
-  descriptionHint: 'Shows when you hover the ⓘ next to the variant name.',
-  startWith: 'Start with',
-  // "Start with" (FR-052h: "Linked to Standard (recommended)" preselected)
-  basedOn: (main: string) => `Linked to ${main} (recommended)`,
-  basedOnHelp: (main: string) =>
-    `Copies all ${main} rules. Unchanged rules remain the same as ${main} and update with it.`,
-  startEmpty: 'Start empty',
-  startEmptyHelp: (main: string) => `Starts with no rules. Changes to ${main} don’t affect it.`,
-  saveVariant: 'Save changes',
-  // "Copy to variant" (U41 6344:53981; FR-040: its help text)
-  copyTitle: (rule: string) => `Copy ${rule} to`,
-  copyHint: (main: string) => `Variants linked to ${main} get it too.`,
-  copy: 'Copy',
-  // A tab's menu ("Rules/Variant menu", U59 6523:37519; F28)
-  variantMenuLabel: (variant: string) => `Actions for ${variant}`,
-  renameVariant: 'Rename',
-  deleteVariant: 'Delete variant',
-  // "Delete “School transport”?" as U60 draws it (6523:37869; the active connection's body
-  // 6790:45039; CLAR #38: "the delete-variant body names the broken result link as drawn");
-  // `others` are the other variants' names, as `joinNames` lists them, `count` how many
-  deleteVariantTitle: (variant: string) => `Delete “${variant}”?`,
-  deleteVariantText: (variant: string, others: string, count: number) =>
-    `Rules you changed or added in ${variant} are deleted. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
-  deleteVariantTextEditing: (variant: string, others: string, count: number) =>
-    `The connection is active, so this only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
-  // A deactivated connection's edit flow (no frame): 11.5b's body without its first clause
-  deleteVariantTextEditingInactive: (variant: string, others: string, count: number) =>
-    `This only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
-  deleteVariantConfirm: 'Delete variant',
-  keepVariant: 'Keep variant',
-  // The toast after deleting a variant, with Undo (FR-051 (33); U61 6523:37991): neutral as every
-  // deletion's toast (T036; U61's red type not built)
-  variantDeleted: (variant: string) => `${variant} deleted.`,
-  // The unrequested-data banner (F11, F58, C5; U50 6863:47363, 7173:52333; FR-023, Q5): a field
-  // no longer requested, or the whole document, naming the variant (FR-023c); the "Add it in
-  // Documents" action stays (FR-023f), although the design draws plain text
-  unrequestedText: (rule: string, branch: string) =>
-    `${rule} in ${branch} checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule.`,
-  unrequestedDocumentText: (rule: string, branch: string, document: string) =>
-    `${rule} in ${branch} checks data from ${document}, which is no longer requested. Add the document again in Documents, or edit or delete the rule.`,
-  addInDocuments: 'Add it in Documents',
-  // The note under such a rule (U50 6197:10708, 7173:52351): the field, or the whole document
-  noLongerRequested: (data: string) => `${data} is no longer requested.`,
-  // A refused Publish or Save (F11), with the server's message
-  refusedPublishTitle: 'Couldn’t publish',
-  refusedSaveTitle: 'Couldn’t save',
-  // The findings banner's chevron (spec 003, S2; A1, W19)
-  showFindings: 'Show findings',
-  hideFindings: 'Hide findings',
-  // Links (spec 007, contracts/ui-screens.md S4, S5; FR-028, FR-031): the ⋯ menus' entry, its
-  // toasts, and the notice of a link to what no longer exists
-  copyLink: 'Copy link',
-  linkCopied: 'Link copied.',
-  linkNotCopied:
-    'The link couldn’t be copied. Copy it from the address bar after opening the item.',
-  missingVariant: 'This link points to a variant that no longer exists.',
-  missingItem: 'This link points to a rule or group that no longer exists.',
-  dismiss: 'Dismiss',
-};
+/**
+ * The rules step's copy, the variants' and the findings' (S9, S11, S12): English as spec 008 words
+ * it, German from the glossary (contracts/glossary.md G§2, G§3; spec 009, T037). Names, variant
+ * names and statements are inserted as they are (FR-007)
+ */
+export const RULES_STEP_COPY = defineTexts(
+  {
+    // The step header, U29 6702:39345, U43 6702:41083 (C1, C2)
+    title: 'Set eligibility rules for citizens',
+    hint: 'A rule is a condition the citizen’s data has to meet. Konnekt checks each rule and tells your service whether it’s met.',
+    loading: 'Loading the documents and their values…',
+    loadErrorTitle: 'Couldn’t load the documents and their values',
+    loadErrorText: 'Check your connection and try again.',
+    retry: 'Try again',
+    // U29 6504:43841 (W5; C1)
+    emptyTitle: 'No rules yet',
+    emptyText:
+      'Without rules, Konnekt still passes the verified data to your service. Your team decides who can apply.',
+    addRule: 'Add rule',
+    // The rule menu, U14 6113:28988
+    menuLabel: (rule: string) => `Actions for ${rule}`,
+    editRule: 'Edit rule',
+    rename: 'Rename',
+    duplicate: 'Duplicate',
+    deleteRule: 'Delete rule',
+    // Renaming inline, U15 6344:53317–6344:53481
+    renameLabel: (rule: string) => `Name of ${rule}`,
+    renameHint: 'Enter saves · Esc cancels',
+    // "Delete Rule 03?", U14 6113:29056 (design-notes §4, "Deleting a rule")
+    deleteTitle: (rule: string) => `Delete ${rule}?`,
+    deleteText: (statement: string | null) =>
+      statement
+        ? `Citizens will no longer be checked for “${statement}”. You can undo this right after.`
+        : 'You can undo this right after.',
+    cancel: 'Cancel',
+    // "Save changes to Rule 01?", U28 6197:10989 (F10); the body and "Discard changes" as U50 8.5
+    // (6197:10989) words them (FR-002, cosmetic 8)
+    saveChangesTitle: (rule: string) => `Save changes to ${rule}?`,
+    saveChangesText: 'If you leave without saving, your changes are lost.',
+    discard: 'Discard changes',
+    saveChanges: 'Save changes',
+    undo: 'Undo',
+    // F29: toasts name the rule with its branch; the save toast as U30 #37 words it, "Rule 01
+    // saved." (report cosmetic 8)
+    ruleSaved: (rule: string, _branch: string) => `${rule} saved.`,
+    // "Rule 03 deleted.", as U35 6113:29469 words it (report cosmetic 8)
+    ruleDeleted: (rule: string, _branch: string) => `${rule} deleted.`,
+    // Grouping (U14 6344:53529, U16), with the toast as U36 6344:53623 words it: "Rule 02 and Rule
+    // 03 are now in Group 01." (report cosmetic 8, T057)
+    groupWithOthers: 'Group with other rules',
+    grouped: (rules: string, _branch: string, group: string) => `${rules} are now in ${group}.`,
+    // Grouping in a variant based on Standard, as U40 6344:53873 words it (report cosmetic 8, T066):
+    // the variant's name and Standard's, without the rules and the group
+    groupedInVariant: (_rules: string, branch: string, _group: string, main: string) =>
+      `Grouped in ${branch} only. ${main} stays the same.`,
+    // F29, U20 6344:54042: the copy toast, whose "Show" opens the variant
+    copied: (rule: string, branches: string) => `${rule} copied to ${branches}.`,
+    show: 'Show',
+    and: 'and',
+    // The selection bar (U36 6616:44187, 6616:44214, 6616:44240); the one for no rule chosen has
+    // no frame and takes the drawn verb
+    selectOneMore: (rule: string) => `Choose at least one more rule to group with ${rule}.`,
+    selectTwo: 'Choose two or more rules to group.',
+    selected: (count: number) => `${count} rules selected`,
+    selectedSubGroup: (count: number, group: string) =>
+      `${count} rules selected. They become a sub-group of ${group}.`,
+    // U64 6616:44355: two or more rules chosen at the top level of a variant based on Standard
+    selectedInVariant: (count: number, branch: string, main: string) =>
+      `${count} rules selected. The group is added in ${branch} only. ${main} stays the same.`,
+    groupRules: 'Group rules',
+    selectRule: (rule: string) => `Select ${rule}`,
+    // The note after switching a level, as U34 6329:19219 words it (FR-051 (32)); the one for AND
+    // has no frame and says the same of all rules
+    switchedToOr: (level: string) => `${level} now needs only one rule to be true.`,
+    switchedToAnd: (level: string) => `${level} now needs all its rules to be true.`,
+    // A group's and a sub-group's menu (U55 6522:32424, U56 6522:32540; W22; report cosmetic 8)
+    groupMenuLabel: (group: string) => `Actions for ${group}`,
+    addMessage: 'Add message',
+    removeMessage: 'Remove message',
+    ungroup: 'Ungroup',
+    deleteGroup: 'Delete group',
+    deleteSubGroup: 'Delete sub-group',
+    // "Delete Group 01?" and the toasts (design-notes §5)
+    deleteGroupText: (group: string, subGroups: number) =>
+      subGroups === 0
+        ? `${group} and the rules in it will be deleted. You can undo this right after.`
+        : `${group} and the rules and ${subGroups === 1 ? 'sub-group' : 'sub-groups'} in it will be deleted. You can undo this right after.`,
+    // Deleting in Standard while variants are based on it (F14, W8; design-notes §4 and §5). A
+    // rule's body is U47's as drawn (6185:8847; CLAR #56, FR-037): `variants` are the names of the
+    // variants based on Standard, as `joinNames` lists them
+    removedFromVariants: (main: string, variants: string) =>
+      `This deletes it from ${main} and from the variants that follow it: ${variants}. If a variant changed this rule, it keeps its own version.`,
+    groupRemovedFromVariants: (noun: string, main: string) =>
+      `This ${noun} and the rules in it will be removed from ${main} and from the variants that follow them.`,
+    // `variants` are the variants' names as `joinNames` lists them, `count` how many
+    itemKeptByVariants: (variants: string, count: number, item: string) =>
+      count === 1
+        ? `${variants} changed ${item} and keeps its own version.`
+        : `${variants} changed ${item} and keep their own versions.`,
+    ungroupedEverywhere: (group: string, main: string) =>
+      `${group} is left with one rule, so it’s ungrouped in ${main} and its variants.`,
+    possessive: (variant: string) => `${variant}’s`,
+    changesGo: (variants: string, group: string) => `${variants} changes to ${group} go with it.`,
+    undoRightAfter: 'You can undo this right after.',
+    ungrouped: (group: string, branch: string) => `${group} in ${branch} ungrouped.`,
+    // Ungrouping a group with its own message, as U35 6965:50849 words it: "Ungrouped. Rules 03 to
+    // 05 use their own messages again." (report cosmetic 8, T057); `rules` are the names of the
+    // rules it held, as `joinNames` lists them, `count` how many
+    ungroupedOwnMessages: (rules: string, count: number) =>
+      count === 1
+        ? `Ungrouped. ${rules} uses its own message again.`
+        : `Ungrouped. ${rules} use their own messages again.`,
+    // A member's message line while a group it is in has its own message (F32, FR-037; U35
+    // 6965:50822): the rule keeps its message, citizens read the group's
+    notShownInGroup: (group: string) =>
+      `Not shown while this rule is in ${group}. Citizens see the group message instead.`,
+    // Worded as "Rule 03 deleted." is (U35 6113:29469; report cosmetic 8)
+    groupDeleted: (group: string, _branch: string) => `${group} deleted.`,
+    // A based variant's menus (U56 6522:32644; U23 6185:8802, 6185:41586; W8; report cosmetic 8):
+    // in a variant, Delete becomes "Remove from School transport" for what follows Standard, and a
+    // removed rule or group only offers "Restore"
+    copyToVariant: 'Copy to variant',
+    resetTo: (main: string) => `Reset to ${main}`,
+    removeFrom: (variant: string) => `Remove from ${variant}`,
+    restoreRule: 'Restore rule',
+    restoreGroup: 'Restore group',
+    restoreSubGroup: 'Restore sub-group',
+    // The link strip at the top of a based variant's rules (U18 6344:60020; U47 6344:60085,
+    // 6344:60090, 6344:60095), with what the variant removed before its text (FR-051 (38)): "2 of 3
+    // Standard rules are removed here.", or, while only groups are, "Group 01 is removed here."
+    linkedTo: (main: string) => `Linked to ${main}`,
+    linkedText: (main: string) => `Rules you don’t change follow and update with ${main}.`,
+    removedRules: (removed: number, total: number, main: string) =>
+      `${removed} of ${total} ${main} ${total === 1 ? 'rule' : 'rules'} ${removed === 1 ? 'is' : 'are'} removed here.`,
+    removedGroups: (groups: string, count: number) =>
+      `${groups} ${count === 1 ? 'is' : 'are'} removed here.`,
+    // The variant tabs (U38 6134:9153; F26) and "+ Add variant" with its (i) in every state (F27,
+    // FR-035; U37 6151:33809, its text 6151:33820)
+    variants: 'Variants',
+    addVariant: 'Add variant',
+    aboutVariants: 'About variants',
+    variantsInfo:
+      'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
+    // The Add variant and Edit variant dialogs (U37 6139:32693, U52 6197:12011; F28, W18): the
+    // intro repeats the (i)'s text (U37 #20)
+    addVariantTitle: 'Add variant',
+    addVariantIntro:
+      'A separate set of rules for citizens with different requirements. Each variant gets its own result link.',
+    editVariantTitle: 'Edit variant',
+    variantName: 'Variant name',
+    description: 'Description',
+    descriptionHint: 'Shows when you hover the ⓘ next to the variant name.',
+    startWith: 'Start with',
+    // "Start with" (FR-052h: "Linked to Standard (recommended)" preselected)
+    basedOn: (main: string) => `Linked to ${main} (recommended)`,
+    basedOnHelp: (main: string) =>
+      `Copies all ${main} rules. Unchanged rules remain the same as ${main} and update with it.`,
+    startEmpty: 'Start empty',
+    startEmptyHelp: (main: string) => `Starts with no rules. Changes to ${main} don’t affect it.`,
+    saveVariant: 'Save changes',
+    // "Copy to variant" (U41 6344:53981; FR-040: its help text)
+    copyTitle: (rule: string) => `Copy ${rule} to`,
+    copyHint: (main: string) => `Variants linked to ${main} get it too.`,
+    copy: 'Copy',
+    // A tab's menu ("Rules/Variant menu", U59 6523:37519; F28)
+    variantMenuLabel: (variant: string) => `Actions for ${variant}`,
+    renameVariant: 'Rename',
+    deleteVariant: 'Delete variant',
+    // "Delete “School transport”?" as U60 draws it (6523:37869; the active connection's body
+    // 6790:45039; CLAR #38: "the delete-variant body names the broken result link as drawn");
+    // `others` are the other variants' names, as `joinNames` lists them, `count` how many
+    deleteVariantTitle: (variant: string) => `Delete “${variant}”?`,
+    deleteVariantText: (variant: string, others: string, count: number) =>
+      `Rules you changed or added in ${variant} are deleted. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
+    deleteVariantTextEditing: (variant: string, others: string, count: number) =>
+      `The connection is active, so this only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
+    // A deactivated connection's edit flow (no frame): 11.5b's body without its first clause
+    deleteVariantTextEditingInactive: (variant: string, others: string, count: number) =>
+      `This only takes effect when you save. Once saved, ${variant} and its rules are deleted, and its result link stops working. Make sure your service no longer needs it. ${others} ${count === 1 ? 'remains' : 'remain'} unchanged.`,
+    deleteVariantConfirm: 'Delete variant',
+    keepVariant: 'Keep variant',
+    // The toast after deleting a variant, with Undo (FR-051 (33); U61 6523:37991): neutral as every
+    // deletion's toast (T036; U61's red type not built)
+    variantDeleted: (variant: string) => `${variant} deleted.`,
+    // The unrequested-data banner (F11, F58, C5; U50 6863:47363, 7173:52333; FR-023, Q5): a field
+    // no longer requested, or the whole document, naming the variant (FR-023c); the "Add it in
+    // Documents" action stays (FR-023f), although the design draws plain text
+    unrequestedText: (rule: string, branch: string) =>
+      `${rule} in ${branch} checks data that’s no longer requested. Add it again in Documents, or edit or delete the rule.`,
+    unrequestedDocumentText: (rule: string, branch: string, document: string) =>
+      `${rule} in ${branch} checks data from ${document}, which is no longer requested. Add the document again in Documents, or edit or delete the rule.`,
+    addInDocuments: 'Add it in Documents',
+    // The note under such a rule (U50 6197:10708, 7173:52351): the field, or the whole document
+    noLongerRequested: (data: string) => `${data} is no longer requested.`,
+    // A refused Publish or Save (F11), with the server's message
+    refusedPublishTitle: 'Couldn’t publish',
+    refusedSaveTitle: 'Couldn’t save',
+    // The findings banner's chevron (spec 003, S2; A1, W19)
+    showFindings: 'Show findings',
+    hideFindings: 'Hide findings',
+    // Links (spec 007, contracts/ui-screens.md S4, S5; FR-028, FR-031): the ⋯ menus' entry, its
+    // toasts, and the notice of a link to what no longer exists
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied.',
+    linkNotCopied:
+      'The link couldn’t be copied. Copy it from the address bar after opening the item.',
+    missingVariant: 'This link points to a variant that no longer exists.',
+    missingItem: 'This link points to a rule or group that no longer exists.',
+    dismiss: 'Dismiss',
+  },
+  {
+    title: 'Regeln zur Antragsberechtigung festlegen',
+    hint: 'Eine Regel ist eine Bedingung, die die Daten der antragstellenden Person erfüllen müssen. Konnekt prüft jede Regel und teilt Ihrem Dienst mit, ob sie erfüllt ist.',
+    loading: 'Die Dokumente und ihre Werte werden geladen …',
+    loadErrorTitle: 'Die Dokumente und ihre Werte konnten nicht geladen werden',
+    loadErrorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+    emptyTitle: 'Noch keine Regeln',
+    emptyText:
+      'Auch ohne Regeln gibt Konnekt die geprüften Daten an Ihren Dienst weiter. Ihr Team entscheidet, wer einen Antrag stellen kann.',
+    addRule: 'Regel hinzufügen',
+    menuLabel: (rule: string) => `Aktionen für ${rule}`,
+    editRule: 'Regel bearbeiten',
+    rename: 'Umbenennen',
+    duplicate: 'Duplizieren',
+    deleteRule: 'Regel löschen',
+    renameLabel: (rule: string) => `Name von ${rule}`,
+    renameHint: 'Enter speichert · Esc bricht ab',
+    deleteTitle: (rule: string) => `${rule} löschen?`,
+    deleteText: (statement: string | null) =>
+      statement
+        ? `Bürgerinnen und Bürger werden nicht mehr auf „${statement}“ geprüft. Sie können das direkt danach rückgängig machen.`
+        : 'Sie können das direkt danach rückgängig machen.',
+    cancel: 'Abbrechen',
+    saveChangesTitle: (rule: string) => `Änderungen an ${rule} speichern?`,
+    saveChangesText: 'Wenn Sie ohne Speichern verlassen, gehen Ihre Änderungen verloren.',
+    discard: 'Änderungen verwerfen',
+    saveChanges: 'Änderungen speichern',
+    undo: 'Rückgängig',
+    ruleSaved: (rule: string, _branch: string) => `${rule} gespeichert.`,
+    ruleDeleted: (rule: string, _branch: string) => `${rule} gelöscht.`,
+    groupWithOthers: 'Mit anderen Regeln gruppieren',
+    grouped: (rules: string, _branch: string, group: string) => `${rules} sind jetzt in ${group}.`,
+    groupedInVariant: (_rules: string, branch: string, _group: string, main: string) =>
+      `Nur in ${branch} gruppiert. ${main} bleibt unverändert.`,
+    copied: (rule: string, branches: string) => `${rule} in ${branches} kopiert.`,
+    show: 'Anzeigen',
+    and: 'und',
+    selectOneMore: (rule: string) =>
+      `Wählen Sie mindestens eine weitere Regel, um sie mit ${rule} zu gruppieren.`,
+    selectTwo: 'Wählen Sie zwei oder mehr Regeln zum Gruppieren.',
+    selected: (count: number) => `${count} Regeln ausgewählt`,
+    selectedSubGroup: (count: number, group: string) =>
+      `${count} Regeln ausgewählt. Sie werden zu einer Untergruppe von ${group}.`,
+    selectedInVariant: (count: number, branch: string, main: string) =>
+      `${count} Regeln ausgewählt. Die Gruppe wird nur in ${branch} hinzugefügt. ${main} bleibt unverändert.`,
+    groupRules: 'Regeln gruppieren',
+    selectRule: (rule: string) => `${rule} auswählen`,
+    switchedToOr: (level: string) => `Für ${level} muss jetzt nur noch eine Regel erfüllt sein.`,
+    switchedToAnd: (level: string) => `Für ${level} müssen jetzt alle Regeln erfüllt sein.`,
+    groupMenuLabel: (group: string) => `Aktionen für ${group}`,
+    addMessage: 'Nachricht hinzufügen',
+    removeMessage: 'Nachricht entfernen',
+    ungroup: 'Gruppierung aufheben',
+    deleteGroup: 'Gruppe löschen',
+    deleteSubGroup: 'Untergruppe löschen',
+    deleteGroupText: (group: string, subGroups: number) =>
+      subGroups === 0
+        ? `${group} und die Regeln darin werden gelöscht. Sie können das direkt danach rückgängig machen.`
+        : `${group} und die Regeln und ${subGroups === 1 ? 'die Untergruppe' : 'Untergruppen'} darin werden gelöscht. Sie können das direkt danach rückgängig machen.`,
+    removedFromVariants: (main: string, variants: string) =>
+      `Dadurch wird die Regel aus ${main} und aus den Varianten gelöscht, die ${main} folgen: ${variants}. Hat eine Variante diese Regel geändert, behält sie ihre eigene Version.`,
+    groupRemovedFromVariants: (noun: string, main: string) =>
+      `Diese ${noun} und die Regeln darin werden aus ${main} und aus den Varianten entfernt, die ${main} folgen.`,
+    itemKeptByVariants: (variants: string, count: number, item: string) =>
+      count === 1
+        ? `${variants} hat ${item} geändert und behält ihre eigene Version.`
+        : `${variants} haben ${item} geändert und behalten ihre eigenen Versionen.`,
+    ungroupedEverywhere: (group: string, main: string) =>
+      `${group} enthält nur noch eine Regel, daher wird die Gruppierung in ${main} und den darauf basierenden Varianten aufgehoben.`,
+    // German names the variants after the noun ("die Änderungen von Ambulance", glossary G§2 "a
+    // sample citizen's"), so the name stays as it is and `changesGo` says "von"
+    possessive: (variant: string) => variant,
+    changesGo: (variants: string, group: string) =>
+      `Die Änderungen von ${variants} an ${group} entfallen damit.`,
+    undoRightAfter: 'Sie können das direkt danach rückgängig machen.',
+    ungrouped: (group: string, branch: string) =>
+      `Gruppierung von ${group} in ${branch} aufgehoben.`,
+    ungroupedOwnMessages: (rules: string, count: number) =>
+      count === 1
+        ? `Gruppierung aufgehoben. ${rules} verwendet wieder ihre eigene Nachricht.`
+        : `Gruppierung aufgehoben. ${rules} verwenden wieder ihre eigenen Nachrichten.`,
+    notShownInGroup: (group: string) =>
+      `Wird nicht angezeigt, solange diese Regel in ${group} ist. Bürgerinnen und Bürger sehen stattdessen die Nachricht der Gruppe.`,
+    groupDeleted: (group: string, _branch: string) => `${group} gelöscht.`,
+    copyToVariant: 'In Variante kopieren',
+    resetTo: (main: string) => `Auf ${main} zurücksetzen`,
+    removeFrom: (variant: string) => `Aus ${variant} entfernen`,
+    restoreRule: 'Regel wiederherstellen',
+    restoreGroup: 'Gruppe wiederherstellen',
+    restoreSubGroup: 'Untergruppe wiederherstellen',
+    linkedTo: (main: string) => `Mit ${main} verknüpft`,
+    linkedText: (main: string) =>
+      `Regeln, die Sie nicht ändern, folgen ${main} und werden mit ${main} aktualisiert.`,
+    removedRules: (removed: number, total: number, main: string) =>
+      `${removed} von ${total} ${total === 1 ? 'Regel' : 'Regeln'} aus ${main} ${removed === 1 ? 'ist' : 'sind'} hier entfernt.`,
+    removedGroups: (groups: string, count: number) =>
+      `${groups} ${count === 1 ? 'ist' : 'sind'} hier entfernt.`,
+    variants: 'Varianten',
+    addVariant: 'Variante hinzufügen',
+    aboutVariants: 'Informationen zu Varianten',
+    variantsInfo:
+      'Eigene Regeln für Bürgerinnen und Bürger mit anderen Voraussetzungen. Jede Variante erhält einen eigenen Ergebnislink.',
+    addVariantTitle: 'Variante hinzufügen',
+    addVariantIntro:
+      'Eigene Regeln für Bürgerinnen und Bürger mit anderen Voraussetzungen. Jede Variante erhält einen eigenen Ergebnislink.',
+    editVariantTitle: 'Variante bearbeiten',
+    variantName: 'Name der Variante',
+    description: 'Beschreibung',
+    descriptionHint: 'Wird angezeigt, wenn Sie auf das ⓘ neben dem Namen der Variante zeigen.',
+    startWith: 'Beginnen mit',
+    basedOn: (main: string) => `Mit ${main} verknüpft (empfohlen)`,
+    basedOnHelp: (main: string) =>
+      `Übernimmt alle Regeln aus ${main}. Unveränderte Regeln bleiben wie in ${main} und werden mit ${main} aktualisiert.`,
+    startEmpty: 'Leer beginnen',
+    startEmptyHelp: (main: string) =>
+      `Beginnt ohne Regeln. Änderungen an ${main} wirken sich nicht darauf aus.`,
+    saveVariant: 'Änderungen speichern',
+    copyTitle: (rule: string) => `${rule} in Varianten kopieren`,
+    copyHint: (main: string) => `Mit ${main} verknüpfte Varianten erhalten sie auch.`,
+    copy: 'Kopieren',
+    variantMenuLabel: (variant: string) => `Aktionen für ${variant}`,
+    renameVariant: 'Umbenennen',
+    deleteVariant: 'Variante löschen',
+    deleteVariantTitle: (variant: string) => `„${variant}“ löschen?`,
+    deleteVariantText: (variant: string, others: string, count: number) =>
+      `Regeln, die Sie in ${variant} geändert oder hinzugefügt haben, werden gelöscht. ${others} ${count === 1 ? 'bleibt' : 'bleiben'} unverändert.`,
+    deleteVariantTextEditing: (variant: string, others: string, count: number) =>
+      `Die Anbindung ist aktiv, daher wird dies erst beim Speichern wirksam. Nach dem Speichern werden die Variante ${variant} und ihre Regeln gelöscht, und ihr Ergebnislink funktioniert nicht mehr. Stellen Sie sicher, dass Ihr Dienst ihn nicht mehr braucht. ${others} ${count === 1 ? 'bleibt' : 'bleiben'} unverändert.`,
+    deleteVariantTextEditingInactive: (variant: string, others: string, count: number) =>
+      `Dies wird erst beim Speichern wirksam. Nach dem Speichern werden die Variante ${variant} und ihre Regeln gelöscht, und ihr Ergebnislink funktioniert nicht mehr. Stellen Sie sicher, dass Ihr Dienst ihn nicht mehr braucht. ${others} ${count === 1 ? 'bleibt' : 'bleiben'} unverändert.`,
+    deleteVariantConfirm: 'Variante löschen',
+    keepVariant: 'Variante behalten',
+    variantDeleted: (variant: string) => `${variant} gelöscht.`,
+    unrequestedText: (rule: string, branch: string) =>
+      `${rule} in ${branch} prüft Daten, die nicht mehr angefordert werden. Fügen Sie die Daten im Schritt „Dokumente“ wieder hinzu oder bearbeiten oder löschen Sie die Regel.`,
+    unrequestedDocumentText: (rule: string, branch: string, document: string) =>
+      `${rule} in ${branch} prüft Daten aus dem Dokument „${document}“, das nicht mehr angefordert wird. Fügen Sie das Dokument im Schritt „Dokumente“ wieder hinzu oder bearbeiten oder löschen Sie die Regel.`,
+    addInDocuments: 'In „Dokumente“ hinzufügen',
+    noLongerRequested: (data: string) => `${data} wird nicht mehr angefordert.`,
+    refusedPublishTitle: 'Konnte nicht veröffentlicht werden',
+    refusedSaveTitle: 'Konnte nicht gespeichert werden',
+    showFindings: 'Befunde anzeigen',
+    hideFindings: 'Befunde ausblenden',
+    copyLink: 'Link kopieren',
+    linkCopied: 'Link kopiert.',
+    linkNotCopied:
+      'Der Link konnte nicht kopiert werden. Kopieren Sie ihn nach dem Öffnen des Elements aus der Adressleiste.',
+    missingVariant: 'Dieser Link verweist auf eine Variante, die es nicht mehr gibt.',
+    missingItem: 'Dieser Link verweist auf eine Regel oder Gruppe, die es nicht mehr gibt.',
+    dismiss: 'Ausblenden',
+  }
+);
 
 /**
  * The search parameters of a link to a variant, rule or group (spec 007, research R11):

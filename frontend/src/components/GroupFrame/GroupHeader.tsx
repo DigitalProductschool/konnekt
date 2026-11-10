@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import BranchMark from '../BranchMark';
 import { INACTIVE_OPACITY } from '../BranchMark/constants';
 import { GROUP_FRAME_COPY, GROUP_HEADER_DIVIDERS } from './constants';
@@ -27,6 +28,7 @@ export default function GroupHeader({
   inactive = false,
   faded = false,
 }: GroupHeaderProps) {
+  const copy = useCopy(GROUP_FRAME_COPY);
   const nameSize = subGroup
     ? 'text-kern-static-medium leading-(--kern-typography-line-height-medium-static)'
     : 'text-kern-adaptive-medium leading-(--kern-typography-line-height-medium-adaptive)';
@@ -51,14 +53,14 @@ export default function GroupHeader({
             </span>
             {identifier && (
               <span className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-                <span className="sr-only">{GROUP_FRAME_COPY.identifier} </span>
+                <span className="sr-only">{copy.identifier} </span>
                 {identifier}
               </span>
             )}
           </p>
         )}
         <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-          {GROUP_FRAME_COPY.subtitles[operator]}
+          {copy.subtitles[operator]}
         </p>
       </div>
       {(mark || actions) && (

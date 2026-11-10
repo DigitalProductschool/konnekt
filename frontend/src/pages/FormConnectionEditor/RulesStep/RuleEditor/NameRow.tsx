@@ -1,3 +1,4 @@
+import { useCopy } from '../../../../hooks/useLanguage';
 import { RULE_EDITOR_COPY } from './constants';
 import type { NameRowProps } from './types';
 
@@ -6,6 +7,7 @@ import type { NameRowProps } from './types';
  * pencil that starts renaming it, where the page offers that.
  */
 export default function NameRow({ id, name, onRename }: NameRowProps) {
+  const copy = useCopy(RULE_EDITOR_COPY);
   return (
     <div className="flex items-center gap-4">
       <p
@@ -24,7 +26,7 @@ export default function NameRow({ id, name, onRename }: NameRowProps) {
             aria-hidden="true"
             className="kern-icon kern-icon--edit kern-icon--small bg-kern-layout-text-muted!"
           />
-          <span className="sr-only">{RULE_EDITOR_COPY.rename(name)}</span>
+          <span className="sr-only">{copy.rename(name)}</span>
         </button>
       )}
     </div>

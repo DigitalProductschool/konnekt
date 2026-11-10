@@ -1,4 +1,5 @@
-import { DETAIL_COPY } from './constants';
+import { useLanguage } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import DetailAccordion from './DetailAccordion';
 import LinkCard from './LinkCard';
 import type { ConnectionLinksProps } from './types';
@@ -15,30 +16,32 @@ import { linksCountsOf, resultLinksOf } from './utils';
  */
 export default function ConnectionLinks({ formConnection, open, onToggle }: ConnectionLinksProps) {
   const deactivated = !formConnection.is_active;
+  const { language } = useLanguage();
+  const copy = CONNECTION_DETAIL_COPY[language];
   return (
     <DetailAccordion
-      title={DETAIL_COPY.linksTitle}
-      counts={linksCountsOf(formConnection)}
-      viewLabel={DETAIL_COPY.viewLinks}
-      hideLabel={DETAIL_COPY.hideLinks}
+      title={copy.linksTitle}
+      counts={linksCountsOf(formConnection, language)}
+      viewLabel={copy.viewLinks}
+      hideLabel={copy.hideLinks}
       open={open}
       onToggle={onToggle}
     >
       <ol className="flex flex-col divide-y divide-(--kern-color-decorative-border-default)">
         <LinkCard
           number={1}
-          title={DETAIL_COPY.requestLink}
+          title={copy.requestLink}
           links={[{ key: 'trigger', url: formConnection.trigger_url, branch: null }]}
-          infoLabel={DETAIL_COPY.requestLinkInfoLabel}
-          info={DETAIL_COPY.requestLinkInfo}
+          infoLabel={copy.requestLinkInfoLabel}
+          info={copy.requestLinkInfo}
           deactivated={deactivated}
         />
         <LinkCard
           number={2}
-          title={DETAIL_COPY.resultLink}
+          title={copy.resultLink}
           links={resultLinksOf(formConnection)}
-          infoLabel={DETAIL_COPY.resultLinkInfoLabel}
-          info={DETAIL_COPY.resultLinkInfo}
+          infoLabel={copy.resultLinkInfoLabel}
+          info={copy.resultLinkInfo}
           deactivated={deactivated}
         />
       </ol>

@@ -1,31 +1,12 @@
 import Checkbox from '../../../../components/Checkbox';
 import ValuesPicker from '../../../../components/ValuesPicker';
-import type { ValuesPickerCopy } from '../../../../components/ValuesPicker/types';
 import { valueChoices } from '../../../../components/ValuesPicker/utils';
+import { useLanguage } from '../../../../hooks/useLanguage';
 import ChoicePicker from './ChoicePicker';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';
 import type { ConditionFieldsProps } from './types';
-import { parseCount, parseNumber, yearsSuffix } from './utils';
+import { parseCount, parseNumber, unitSections, valuesCopyOf, yearsSuffix } from './utils';
 import ValueInput from './ValueInput';
-
-const VALUES_COPY: ValuesPickerCopy = {
-  menu: RULE_EDITOR_COPY.valuesMenu,
-  placeholder: RULE_EDITOR_COPY.chooseOptions,
-  searchClasses: RULE_EDITOR_COPY.searchClasses,
-  searchOptions: RULE_EDITOR_COPY.searchOptions,
-  footer: RULE_EDITOR_COPY.selectAtLeastOne,
-  noMatch: RULE_EDITOR_COPY.noMatch,
-};
-
-const UNIT_SECTIONS = [
-  {
-    key: 'units',
-    choices: [
-      { key: 'years', label: RULE_EDITOR_COPY.years },
-      { key: 'months', label: RULE_EDITOR_COPY.months },
-    ],
-  },
-];
 
 const SUFFIX_CLASSES =
   'text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) whitespace-nowrap';
@@ -48,6 +29,8 @@ export default function ConditionFields({
   dispatch,
   onChange,
 }: ConditionFieldsProps) {
+  const { language } = useLanguage();
+  const copy = RULE_EDITOR_COPY[language];
   const describedBy = (field: string) => (problemField === field ? errorId : undefined);
   const typed = (field: 'value' | 'years' | 'amount', number: number | null | undefined) =>
     state.typed[field] ?? (number === null || number === undefined ? '' : String(number));
@@ -57,7 +40,7 @@ export default function ConditionFields({
       return (
         <ValueInput
           id={`${idBase}-value`}
-          label={RULE_EDITOR_COPY.numberLabel}
+          label={copy.numberLabel}
           value={typed('value', typeof condition.value === 'number' ? condition.value : null)}
           inputMode="decimal"
           invalid={problemField === 'value'}
@@ -75,7 +58,7 @@ export default function ConditionFields({
         <>
           <ValueInput
             id={`${idBase}-value`}
-            label={RULE_EDITOR_COPY.textLabel}
+            label={copy.textLabel}
             value={typeof condition.value === 'string' ? condition.value : ''}
             invalid={problemField === 'value'}
             describedBy={describedBy('value')}
@@ -85,7 +68,7 @@ export default function ConditionFields({
           />
           <Checkbox
             id={`${idBase}-match-case`}
-            label={RULE_EDITOR_COPY.matchCase}
+            label={copy.matchCase}
             checked={condition.match_case ?? false}
             onChange={(checked) => onChange({ ...condition, match_case: checked })}
           />
@@ -100,7 +83,7 @@ export default function ConditionFields({
           values={condition.values ?? []}
           invalid={problemField === 'values'}
           describedBy={describedBy('values')}
-          copy={VALUES_COPY}
+          copy={valuesCopyOf(language)}
           open={state.openMenu === 'values'}
           search={state.search}
           onOpenChange={(open) =>
@@ -114,7 +97,7 @@ export default function ConditionFields({
       return (
         <ValueInput
           id={`${idBase}-value`}
-          label={RULE_EDITOR_COPY.dateLabel}
+          label={copy.dateLabel}
           type="date"
           value={condition.date ?? ''}
           invalid={problemField === 'date'}
@@ -129,7 +112,7 @@ export default function ConditionFields({
         <>
           <ValueInput
             id={`${idBase}-value`}
-            label={RULE_EDITOR_COPY.yearsLabel}
+            label={copy.yearsLabel}
             value={typed('years', condition.years)}
             inputMode="numeric"
             invalid={problemField === 'years'}
@@ -144,7 +127,7 @@ export default function ConditionFields({
             onBlur={() => dispatch({ type: 'touch', field: 'years' })}
           />
           <span className={SUFFIX_CLASSES}>
-            {yearsSuffix(definition, dateOfBirth, condition.years ?? null)}
+            {yearsSuffix(definition, dateOfBirth, condition.years ?? null, language)}
           </span>
         </>
       );
@@ -153,7 +136,7 @@ export default function ConditionFields({
         <>
           <ValueInput
             id={`${idBase}-value`}
-            label={RULE_EDITOR_COPY.amountLabel}
+            label={copy.amountLabel}
             value={typed('amount', condition.amount)}
             inputMode="numeric"
             invalid={problemField === 'amount'}
@@ -170,12 +153,13 @@ export default function ConditionFields({
           <ChoicePicker
             idBase={idBase}
             menu="unit"
-            label={RULE_EDITOR_COPY.unitsMenu}
-            placeholder={RULE_EDITOR_COPY.years}
+            label={copy.unitsMenu}
+            placeholder={copy.years}
             chosen={
-              UNIT_SECTIONS[0].choices.find((choice) => choice.key === condition.unit) ?? null
+              unitSections(language)[0].choices.find((choice) => choice.key === condition.unit) ??
+              null
             }
-            sections={UNIT_SECTIONS}
+            sections={unitSections(language)}
             width={MENU_WIDTHS.unit}
             state={state}
             dispatch={dispatch}
@@ -185,7 +169,7 @@ export default function ConditionFields({
               document.getElementById(`${idBase}-unit`)?.focus();
             }}
           />
-          <span className={SUFFIX_CLASSES}>{RULE_EDITOR_COPY.fromNow}</span>
+          <span className={SUFFIX_CLASSES}>{copy.fromNow}</span>
         </>
       );
   }

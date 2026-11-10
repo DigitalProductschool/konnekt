@@ -13,7 +13,8 @@ import type { AuthLayoutProps } from './types';
  * account pill, the login art and the tagline pinned to the left edge, the page's card 153px
  * from the right edge, both centred vertically in the window (under the header pills). Narrower
  * pages slide the art left, then hide it with the tagline and the card 80px from the edges;
- * below 990px the tagline sits above the card, full width at 320px (W2). No DE/EN switch (F6).
+ * below 990px the tagline sits above the card, full width at 320px (W2). The language switch
+ * (spec 009) is `TopBar`'s, in the header's right group.
  */
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (

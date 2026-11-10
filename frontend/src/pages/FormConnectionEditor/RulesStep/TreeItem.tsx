@@ -1,6 +1,7 @@
 import { RULES_MESSAGES } from '@connection-portal/rules/constants';
 import { checkedInBranch, checksUnrequestedData } from '@connection-portal/rules/validation';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import GroupListItem from './GroupListItem';
 import RuleListItem from './RuleListItem';
@@ -28,6 +29,7 @@ export default function TreeItem({
   faded = false,
 }: TreeItemProps) {
   const { branch, state, dispatch } = view;
+  const { language } = useLanguage();
   if (item.type === 'group') {
     return (
       <GroupListItem view={view} group={item} depth={depth} dissolved={dissolved} faded={faded} />
@@ -47,9 +49,8 @@ export default function TreeItem({
   const flag =
     problemFlagOf(state, branch, item.id) ??
     (checkedInBranch(branch, item) && checksUnrequestedData(item, view.documents)
-      ? (unrequestedNoteOf(item, view.documents, view.context.documents) ??
-        // TODO(009, T037): the language's message
-        RULES_MESSAGES.en.notRequested(item.name.trim(), branch.name.trim()))
+      ? (unrequestedNoteOf(item, view.documents, view.context.documents, language) ??
+        RULES_MESSAGES[language].notRequested(item.name.trim(), branch.name.trim()))
       : null);
   return (
     <RuleListItem

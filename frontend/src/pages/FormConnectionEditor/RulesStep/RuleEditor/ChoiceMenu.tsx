@@ -1,7 +1,9 @@
 import { type FocusEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
+import { isLanguageSwitchTarget } from '../../../../components/LanguageSwitch/utils';
 import MenuSearchField from '../../../../components/MenuSearchField';
 import { matchesSearch } from '../../../../components/ValuesPicker/utils';
+import { useCopy } from '../../../../hooks/useLanguage';
 import { MENU_MAX_HEIGHT_CLASSES } from '../../../../utils/popupPlacement';
 import { CHOICE_MENU_PLACEMENTS, MENU_WIDTH_CLASSES, RULE_EDITOR_COPY } from './constants';
 import MenuSectionGroup from './MenuSectionGroup';
@@ -36,6 +38,7 @@ export default function ChoiceMenu({
   onClose,
   onDismiss,
 }: ChoiceMenuProps) {
+  const copy = useCopy(RULE_EDITOR_COPY);
   const listRef = useRef<HTMLDivElement>(null);
   const searchId = `${id}-search`;
   const listId = `${id}-list`;
@@ -96,10 +99,10 @@ export default function ChoiceMenu({
   }
 
   // Tab or Shift+Tab out of the menu. A choice moves the focus on itself, and a pointer outside
-  // closes the menu through its picker
+  // closes the menu through its picker; a press on the language switch keeps it open (spec 009)
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
-    if (next && !event.currentTarget.contains(next)) {
+    if (next && !event.currentTarget.contains(next) && !isLanguageSwitchTarget(next)) {
       onDismiss();
     }
   }
@@ -148,7 +151,7 @@ export default function ChoiceMenu({
             : 'sr-only'
         }
       >
-        {shown.length === 0 ? RULE_EDITOR_COPY.noMatch(search.trim()) : ''}
+        {shown.length === 0 ? copy.noMatch(search.trim()) : ''}
       </p>
       {footer}
     </div>

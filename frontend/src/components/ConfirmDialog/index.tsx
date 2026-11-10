@@ -1,6 +1,7 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { type MouseEvent, type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import ErrorNoticeText from '../ErrorNoticeText';
 import {
   CONFIRM_DIALOG_COPY,
@@ -60,6 +61,7 @@ export default function ConfirmDialog({
   dismissOnScrim = true,
   wide = false,
 }: ConfirmDialogProps) {
+  const copy = useCopy(CONFIRM_DIALOG_COPY);
   const dialogRef = useRef<HTMLDialogElement>(null);
   // Whether the press that ends in a click began on the scrim too, so that selecting text in
   // the dialog and letting go outside it doesn't close it
@@ -144,7 +146,7 @@ export default function ConfirmDialog({
           className="kern-btn kern-btn--tertiary"
         >
           <span aria-hidden="true" className="kern-icon kern-icon--close" />
-          <span className="kern-sr-only">{CONFIRM_DIALOG_COPY.close}</span>
+          <span className="kern-sr-only">{copy.close}</span>
         </button>
       </header>
       <div className="kern-dialog__body">

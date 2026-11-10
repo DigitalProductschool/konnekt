@@ -5,6 +5,7 @@ import { sameValue } from '@connection-portal/rules/branches';
 import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
 import { listOf } from '@connection-portal/rules/checks/findingMessages';
 import { optionsOf } from '@connection-portal/rules/conditions';
+import { type Language, LANGUAGES } from '@connection-portal/rules/language';
 import { GROUP_SUBTITLES } from '@connection-portal/rules/personas/constants';
 import {
   classesSinceOf,
@@ -87,7 +88,7 @@ export function documentGroupsOf(fields: readonly PersonaField[]): DocumentGroup
 }
 
 /**
- * How the panel writes a value (S8.4; design-notes §4.1; spec 008 FR-024, C6):
+ * How the panel writes a value in `language` (S8.4; design-notes §4.1; spec 008 FR-024, C6):
  * - an empty value, of any kind: "Not shared";
  * - a date as `dd.mm.yyyy`, a date of birth without its age: "08.07.2007"; an expiry date as
  *   "Valid until 19.08.2040";
@@ -98,13 +99,14 @@ export function documentGroupsOf(fields: readonly PersonaField[]): DocumentGroup
 export function valueTextOf(
   field: PersonaField,
   value: PersonaValue | undefined,
-  optionSets: OptionSet[]
+  optionSets: OptionSet[],
+  language: Language
 ): string {
   if (value === undefined || value === null || isEmptyValue(value)) {
-    return TEST_STEP_COPY.notShared;
+    return TEST_STEP_COPY[language].notShared;
   }
   if (field.kind === 'date' && typeof value === 'string') {
-    return isExpiryDate(field) ? validUntilOf(value) : formatDisplayDate(value);
+    return isExpiryDate(field) ? validUntilOf(value, language) : formatDisplayDate(value);
   }
   const values = Array.isArray(value) ? value : [value as string | number];
   if (field.kind !== 'enum') {
@@ -122,7 +124,8 @@ export function valueTextOf(
 }
 
 /**
- * How the data card writes one of `dataRowsOf()`'s rows (spec 008 FR-024, CLAR #46): a row of
+ * How the data card writes one of `dataRowsOf()`'s rows in `language` (spec 008 FR-024, CLAR
+ * #46): a row of
  * licence classes as "B, BE since 02.05.2010" (the classes by `valueTextOf()`, "B, BE" without a
  * shown issue date, "Not shared" without a class), any other row as `valueTextOf()` writes its
  * value
@@ -130,13 +133,14 @@ export function valueTextOf(
 export function dataRowTextOf(
   row: DataRow,
   values: Persona['values'],
-  optionSets: OptionSet[]
+  optionSets: OptionSet[],
+  language: Language
 ): string {
   if (row.classes === null) {
-    return valueTextOf(row.field, values[row.field.key], optionSets);
+    return valueTextOf(row.field, values[row.field.key], optionSets, language);
   }
-  const classes = valueTextOf(row.field, row.classes, optionSets);
-  return row.classes.length === 0 ? classes : classesSinceOf(classes, row.since);
+  const classes = valueTextOf(row.field, row.classes, optionSets, language);
+  return row.classes.length === 0 ? classes : classesSinceOf(classes, row.since, language);
 }
 
 /**
@@ -144,8 +148,8 @@ export function dataRowTextOf(
  * for the date of birth, which the rules call "Date of birth (Age)"; "Licence classes" for a row
  * of classes; any other row its field's label
  */
-export function dataRowLabelOf(row: DataRow): string {
-  return row.field.dateOfBirth ? TEST_STEP_COPY.dateOfBirth : row.field.label;
+export function dataRowLabelOf(row: DataRow, language: Language): string {
+  return row.field.dateOfBirth ? TEST_STEP_COPY[language].dateOfBirth : row.field.label;
 }
 
 /**
@@ -172,33 +176,43 @@ export function dataRowGroupsOf(rows: readonly DataRow[]): DataRowGroup[] {
 }
 
 /**
- * A result row's statement as the step shows it: a rule's as the rules package words it (C3); a
- * group's as its frame on the rules step says how its members combine, "All rules must be met" /
- * "At least one rule must be met" (FR-051 (32); `GROUP_FRAME_COPY`), in place of the rules
- * package's `GROUP_SUBTITLES` ("All of these must be met"), which `rules/src/` keeps
+ * A result row's statement as the step shows it in `language`: a rule's as the rules package
+ * words it (C3); a group's as its frame on the rules step says how its members combine, "All
+ * rules must be met" / "At least one rule must be met" (FR-051 (32); `GROUP_FRAME_COPY`), in place
+ * of the rules package's `GROUP_SUBTITLES` ("All of these must be met"), which `rules/src/` keeps.
+ * The group's statement is recognised in either language, as the results were composed in the
+ * language of their moment
  */
-export function resultStatementOf(row: Pick<ResultRow, 'type' | 'statement'>): string {
+export function resultStatementOf(
+  row: Pick<ResultRow, 'type' | 'statement'>,
+  language: Language
+): string {
   if (row.type !== 'group') {
     return row.statement;
   }
-  // TODO(009, T039): the language of the moment (`GROUP_SUBTITLES[language]`)
-  const operator = COMBINATORS.find((entry) => GROUP_SUBTITLES.en[entry] === row.statement);
-  return operator === undefined ? row.statement : GROUP_FRAME_COPY.subtitles[operator];
+  const operator = COMBINATORS.find((entry) =>
+    LANGUAGES.some((composed) => GROUP_SUBTITLES[composed][entry] === row.statement)
+  );
+  return operator === undefined ? row.statement : GROUP_FRAME_COPY[language].subtitles[operator];
 }
 
 /**
- * The loading status of a run (S8.8; design-notes §8), from the personas of its free slots and of
- * its filled slots, in the chips' order: "Creating new data for Mia…", "Adding new data for Mia
+ * The loading status of a run in `language` (S8.8; design-notes §8), from the personas of its free
+ * slots and of its filled slots, in the chips' order: "Creating new data for Mia…", "Adding new data for Mia
  * and Anna…", "Creating 3 sample citizens…" when all three are free; '' without a run, so that
  * the next run's text is announced when it starts
  */
-export function runStatusTextOf(run: GenerationRun | null, personas: readonly Persona[]): string {
+export function runStatusTextOf(
+  run: GenerationRun | null,
+  personas: readonly Persona[],
+  language: Language
+): string {
   if (run === null) {
     return '';
   }
   const slotsOf = (kind: GenerationRun['slots'][number]) =>
     personas.filter((_, index) => run.slots[index] === kind);
-  return runStatusOf(slotsOf('free'), slotsOf('filled'));
+  return runStatusOf(slotsOf('free'), slotsOf('filled'), language);
 }
 
 /**
@@ -213,9 +227,9 @@ export function createsAll(run: GenerationRun | null): boolean {
 /**
  * A `dd.mm.yyyy` entry as `YYYY-MM-DD`; an empty entry gives `null` (surrounding spaces ignored);
  * anything else, including a date the calendar doesn't have, such as 31.02.2007 or year 0000,
- * gives the error (FR-008)
+ * gives the error in `language` (FR-008). `dd.mm.yyyy` in both languages (spec 009, FR-012)
  */
-export function parseDisplayDate(text: string): ParseResult<string> {
+export function parseDisplayDate(text: string, language: Language): ParseResult<string> {
   const entry = text.trim();
   if (entry === '') {
     return { ok: true, value: null };
@@ -228,14 +242,14 @@ export function parseDisplayDate(text: string): ParseResult<string> {
       return { ok: true, value: iso };
     }
   }
-  return { ok: false, error: TEST_STEP_COPY.enterDate };
+  return { ok: false, error: TEST_STEP_COPY[language].enterDate };
 }
 
 /**
  * Digits as a number; an empty entry gives `null`; letters, decimals, signs and anything else
- * give the error (FR-008, W11)
+ * give the error in `language` (FR-008, W11)
  */
-export function parseWholeNumber(text: string): ParseResult<number> {
+export function parseWholeNumber(text: string, language: Language): ParseResult<number> {
   const entry = text.trim();
   if (entry === '') {
     return { ok: true, value: null };
@@ -246,7 +260,7 @@ export function parseWholeNumber(text: string): ParseResult<number> {
       return { ok: true, value };
     }
   }
-  return { ok: false, error: TEST_STEP_COPY.enterWholeNumber };
+  return { ok: false, error: TEST_STEP_COPY[language].enterWholeNumber };
 }
 
 /**
@@ -254,15 +268,19 @@ export function parseWholeNumber(text: string): ParseResult<number> {
  * `current`; a 29 February becomes 1 March in a year without it (R12), and where no date with that day and
  * month gives `age`, today's, or 28 February, are kept. With a `current` that isn't
  * a date, today's day and month are kept (design-notes §5.2). When no date of birth from year 1 on
- * gives `age`, the error "Enter a smaller age, e.g. 25." (design-notes §5.2). For every age it
- * accepts, `ageOn(result, today) === age` (FR-007)
+ * gives `age`, the error "Enter a smaller age, e.g. 25." in `language` (design-notes §5.2). For
+ * every age it accepts, `ageOn(result, today) === age` (FR-007)
  */
 export function dateOfBirthForAge(
   age: number,
   current: string | null | undefined,
-  today: string
+  today: string,
+  language: Language
 ): ParseResult<string> {
-  const tooLarge: ParseResult<string> = { ok: false, error: TEST_STEP_COPY.enterSmallerAge };
+  const tooLarge: ParseResult<string> = {
+    ok: false,
+    error: TEST_STEP_COPY[language].enterSmallerAge,
+  };
   if (!Number.isSafeInteger(age) || age < 0) {
     return tooLarge;
   }
@@ -290,9 +308,12 @@ export function dateOfBirthForAge(
   return tooLarge;
 }
 
-/** "Enter a name." for a name that is empty after trimming, `null` for a valid one (FR-009) */
-export function nameProblem(text: string): string | null {
-  return text.trim() === '' ? TEST_STEP_COPY.enterName : null;
+/**
+ * "Enter a name." in `language` for a name that is empty after trimming, `null` for a valid one
+ * (FR-009)
+ */
+export function nameProblem(text: string, language: Language): string | null {
+  return text.trim() === '' ? TEST_STEP_COPY[language].enterName : null;
 }
 
 /** The key of the name's draft; no persona field has it (field keys are variable keys) */
@@ -353,6 +374,54 @@ export function hasEntryError(drafts: DraftsState): boolean {
 }
 
 /**
+ * The edit-data dialog's drafts with their errors in `language` (spec 009, FR-003): a draft keeps
+ * the error of the moment it was typed, so after a switch each invalid draft's error is worded
+ * again from its text, as the dialog checked it (the name, a field's entry, an "Age today" with
+ * the date of birth it would change, `values` holding its last valid value). A valid draft, and
+ * one whose field isn't in `fields`, stays as it is; the verdict never changes
+ */
+export function draftsInLanguage(
+  drafts: DraftsState,
+  fields: readonly PersonaField[],
+  values: Persona['values'],
+  today: string,
+  language: Language
+): DraftsState {
+  const errorOf = (key: string, text: string): string | null => {
+    if (key === NAME_DRAFT_KEY) {
+      return nameProblem(text, language);
+    }
+    const field = fields.find((entry) => entry.key === key);
+    if (field) {
+      const parsed = parseEntry(field.kind, text, language);
+      return parsed.ok ? null : parsed.error;
+    }
+    const aged = fields.find((entry) => ageDraftKey(entry.key) === key);
+    if (!aged) {
+      return null;
+    }
+    const entered = parseWholeNumber(text, language);
+    if (!entered.ok || entered.value === null) {
+      return entered.ok ? null : entered.error;
+    }
+    const current = values[aged.key];
+    const born = dateOfBirthForAge(
+      entered.value,
+      typeof current === 'string' ? current : null,
+      today,
+      language
+    );
+    return born.ok ? null : born.error;
+  };
+  return Object.fromEntries(
+    Object.entries(drafts).map(([key, draft]) => [
+      key,
+      draft.error === null ? draft : { ...draft, error: errorOf(key, draft.text) ?? draft.error },
+    ])
+  );
+}
+
+/**
  * The values of `edited` that differ from `original` by `sameValue()`, by key: what "Save and
  * test" applies to the persona. A hidden value (a class's date while the class isn't held)
  * counts as well, as the dialog kept it
@@ -367,23 +436,24 @@ export function changedValuesOf(
 }
 
 /**
- * A field's label in the edit-data dialog (spec 008 F40; U66 7058:60656, 7058:60662): "Date of
- * birth" for the date of birth (the rules say "Date of birth (Age)"), "Class B since" for a
- * licence class's issue date (the rules say "Licence class B – Issue date"), any other field its
- * label as the rules name it
+ * A field's label in the edit-data dialog in `language` (spec 008 F40; U66 7058:60656,
+ * 7058:60662): "Date of birth" for the date of birth (the rules say "Date of birth (Age)"), "Class
+ * B since" for a licence class's issue date (the rules say "Licence class B – Issue date"), any
+ * other field its label as the rules name it
  */
-export function editorLabelOf(field: PersonaField): string {
+export function editorLabelOf(field: PersonaField, language: Language): string {
   if (field.dateOfBirth) {
-    return TEST_STEP_COPY.dateOfBirth;
+    return TEST_STEP_COPY[language].dateOfBirth;
   }
   if (field.licenceClass !== null && field.part === ISSUE_DATE_PART) {
-    return EDIT_DATA_COPY.classSince(field.licenceClass);
+    return EDIT_DATA_COPY[language].classSince(field.licenceClass);
   }
   return field.label;
 }
 
 /**
- * The toast after "Save and test" (spec 008 FR-042; U67 7058:61203): "Results updated.", then
+ * The toast after "Save and test" in `language` (spec 008 FR-042; U67 7058:61203): "Results
+ * updated.", then
  * the top-level rules and groups of the shown variant that the change made met, "Mia now meets
  * Rule 01.", and those it made unmet, "Mia no longer meets Rule 02 and Rule 03.", each list in
  * the order of `after`. `before` and `after` are the variant's result rows (`ResultView.rows`)
@@ -392,8 +462,11 @@ export function editorLabelOf(field: PersonaField): string {
 export function savedToastOf(
   before: readonly Pick<ResultRow, 'itemId' | 'name' | 'status'>[],
   after: readonly Pick<ResultRow, 'itemId' | 'name' | 'status'>[],
-  persona: Pick<Persona, 'name'>
+  persona: Pick<Persona, 'name'>,
+  language: Language
 ): string {
+  const copy = TEST_STEP_COPY[language];
+  const sentences = EDIT_DATA_COPY[language];
   const wasMet = new Map(before.map((row) => [row.itemId, row.status === 'met']));
   const moved = (met: boolean) =>
     after
@@ -404,23 +477,29 @@ export function savedToastOf(
   const nowMet = moved(true);
   const noLonger = moved(false);
   return [
-    TEST_STEP_COPY.resultsUpdated,
-    ...(nowMet.length > 0 ? [EDIT_DATA_COPY.nowMeets(name, listOf(nowMet))] : []),
-    ...(noLonger.length > 0 ? [EDIT_DATA_COPY.noLongerMeets(name, listOf(noLonger))] : []),
+    copy.resultsUpdated,
+    ...(nowMet.length > 0 ? [sentences.nowMeets(name, listOf(nowMet, 'and', language))] : []),
+    ...(noLonger.length > 0
+      ? [sentences.noLongerMeets(name, listOf(noLonger, 'and', language))]
+      : []),
   ].join(' ');
 }
 
 /**
  * What a field's entry gives (T043, T044): text as typed, with an empty text as `null`; a whole
- * number for a number field; a date as `YYYY-MM-DD`; otherwise the error to show under the field
- * (FR-008). A date or a number takes surrounding spaces; a text keeps them (SC-001)
+ * number for a number field; a date as `YYYY-MM-DD`; otherwise the error to show under the field,
+ * in `language` (FR-008). A date or a number takes surrounding spaces; a text keeps them (SC-001)
  */
-export function parseEntry(kind: PersonaField['kind'], text: string): ParseResult<PersonaValue> {
+export function parseEntry(
+  kind: PersonaField['kind'],
+  text: string,
+  language: Language
+): ParseResult<PersonaValue> {
   switch (kind) {
     case 'number':
-      return parseWholeNumber(text);
+      return parseWholeNumber(text, language);
     case 'date':
-      return parseDisplayDate(text);
+      return parseDisplayDate(text, language);
     case 'text':
     case 'enum':
       return { ok: true, value: text === '' ? null : text };

@@ -1,37 +1,63 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { DiscardState } from './types';
 
 /**
  * The copy of the local drafts' offer: U16 `7362:54543` (one draft) and `7362:54614` (several),
- * cosmetic 4 and FR-029 (S5, W5). The discard dialog keeps 005-S4's copy
+ * cosmetic 4 and FR-029 (S5, W5). The discard dialog keeps 005-S4's copy (spec 009: G§2 "local
+ * draft", "unsaved work / unsaved changes", "discard", "cancel")
  */
-export const LOCAL_DRAFTS_COPY = {
-  /** One draft: its name in the heading (FR-029d) */
-  titleOne: (name: string) => `Unsaved changes in “${name}”`,
-  titleSeveral: (count: number) => `Unsaved changes in ${count} connections`,
-  /** One draft: the sub-line carries the date, as no item line shows it */
-  textOne: (date: string) =>
-    `Saved only on this device on ${date}, when the page closed. Nobody else can see them.`,
-  textSeveral: 'Saved only on this device when the page closed. Nobody else can see them.',
-  /** The item line of a stored draft's local changes */
-  edited: (date: string) => `Edited · ${date}`,
-  /** The item line of a connection never saved */
-  neverSaved: (date: string) => `New, never saved · ${date}`,
-  /** Also for a connection never saved (FR-029e) */
-  resume: 'Resume editing',
-  /** The button's text as drawn; its accessible name adds `discardHidden` */
-  discard: 'Discard',
-  /** Hidden after "Discard": "Discard changes in <name>", the layer's name with the connection */
-  discardHidden: (name: string) => `changes in ${name}`,
-  cancel: 'Cancel',
-  discardTitle: 'Discard unsaved work?',
-  discardText: (name: string) =>
-    `The unsaved changes to ${name} will be deleted from this device. This can’t be undone.`,
-  /** Added to `discardText` for a stored draft (S4) */
-  draftStays: 'The saved draft stays as it is.',
-  /** The dialog's danger button (005-S4.9) */
-  confirmDiscard: 'Discard',
-  discarded: 'Unsaved work discarded.',
-};
+export const LOCAL_DRAFTS_COPY = defineTexts(
+  {
+    /** One draft: its name in the heading (FR-029d) */
+    titleOne: (name: string) => `Unsaved changes in “${name}”`,
+    titleSeveral: (count: number) => `Unsaved changes in ${count} connections`,
+    /** One draft: the sub-line carries the date, as no item line shows it */
+    textOne: (date: string) =>
+      `Saved only on this device on ${date}, when the page closed. Nobody else can see them.`,
+    textSeveral: 'Saved only on this device when the page closed. Nobody else can see them.',
+    /** The item line of a stored draft's local changes */
+    edited: (date: string) => `Edited · ${date}`,
+    /** The item line of a connection never saved */
+    neverSaved: (date: string) => `New, never saved · ${date}`,
+    /** Also for a connection never saved (FR-029e) */
+    resume: 'Resume editing',
+    /** The button's text as drawn; its accessible name adds `discardHidden` */
+    discard: 'Discard',
+    /** Hidden after "Discard": "Discard changes in <name>", the layer's name with the connection */
+    discardHidden: (name: string) => `changes in ${name}`,
+    cancel: 'Cancel',
+    discardTitle: 'Discard unsaved work?',
+    discardText: (name: string) =>
+      `The unsaved changes to ${name} will be deleted from this device. This can’t be undone.`,
+    /** Added to `discardText` for a stored draft (S4) */
+    draftStays: 'The saved draft stays as it is.',
+    /** The dialog's danger button (005-S4.9) */
+    confirmDiscard: 'Discard',
+    discarded: 'Unsaved work discarded.',
+  },
+  {
+    titleOne: (name: string) => `Nicht gespeicherte Änderungen in „${name}“`,
+    titleSeveral: (count: number) => `Nicht gespeicherte Änderungen in ${count} Anbindungen`,
+    textOne: (date: string) =>
+      `Am ${date} beim Schließen der Seite nur auf diesem Gerät gespeichert. Niemand sonst kann sie sehen.`,
+    textSeveral:
+      'Beim Schließen der Seite nur auf diesem Gerät gespeichert. Niemand sonst kann sie sehen.',
+    edited: (date: string) => `Bearbeitet · ${date}`,
+    neverSaved: (date: string) => `Neu, nie gespeichert · ${date}`,
+    resume: 'Fortsetzen',
+    discard: 'Verwerfen',
+    /** "Verwerfen der Änderungen in <name>": the visible word first, as in English */
+    discardHidden: (name: string) => `der Änderungen in ${name}`,
+    cancel: 'Abbrechen',
+    discardTitle: 'Nicht gespeicherte Arbeit verwerfen?',
+    discardText: (name: string) =>
+      `Die nicht gespeicherten Änderungen an ${name} werden von diesem Gerät gelöscht. Das kann nicht rückgängig gemacht werden.`,
+    draftStays: 'Der gespeicherte Entwurf bleibt unverändert.',
+    confirmDiscard: 'Verwerfen',
+    discarded: 'Nicht gespeicherte Arbeit verworfen.',
+  }
+);
 
 /**
  * The date of the last change as the design writes dates and times (cosmetic 3): "06.11.2026,

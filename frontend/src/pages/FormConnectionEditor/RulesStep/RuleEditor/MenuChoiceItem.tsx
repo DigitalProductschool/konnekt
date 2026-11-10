@@ -1,3 +1,4 @@
+import { useCopy } from '../../../../hooks/useLanguage';
 import { CHOICE_STATES, RULE_EDITOR_COPY } from './constants';
 import SymbolChip from './SymbolChip';
 import type { MenuChoiceItemProps } from './types';
@@ -17,6 +18,7 @@ export default function MenuChoiceItem({
   onChoose,
   onKeyDown,
 }: MenuChoiceItemProps) {
+  const copy = useCopy(RULE_EDITOR_COPY);
   const { label, icon, symbol, unavailable } = choice;
   return (
     <li
@@ -45,7 +47,7 @@ export default function MenuChoiceItem({
       {unavailable && (
         // Figma "Data/Status tag" (6241:12485, U31 6350:41624)
         <span className="rounded-kern-small text-kern-static-small text-kern-layout-text-muted shrink-0 border border-(--kern-color-decorative-border-default) px-8 leading-(--kern-typography-line-height-medium-static)">
-          {RULE_EDITOR_COPY.notForRules}
+          {copy.notForRules}
         </span>
       )}
     </li>

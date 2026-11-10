@@ -1,4 +1,3 @@
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
 import {
@@ -7,6 +6,7 @@ import {
   DIALOG_WIDTH_CLASSES,
 } from '../../components/ConfirmDialog/constants';
 import { KERN_TRANSLATIONS } from '../../constants';
+import { useLanguage } from '../../hooks/useLanguage';
 import { ACCOUNT_COPY } from './constants';
 import TokenCopyField from './TokenCopyField';
 import type { TokenCreatedDialogProps } from './types';
@@ -22,6 +22,8 @@ import type { TokenCreatedDialogProps } from './types';
  * label, the token and the warning again, and the token is selected, ready to copy.
  */
 export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDialogProps) {
+  const { language } = useLanguage();
+  const copy = ACCOUNT_COPY[language];
   const dialogRef = useRef<HTMLDialogElement>(null);
   const id = useId();
   const titleId = `${id}-title`;
@@ -59,19 +61,18 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
       <header className="kern-dialog__header">
         <div className="flex-1 pt-8 pr-16">
           <h2 id={titleId} className="kern-title kern-title--large break-words">
-            {open ? ACCOUNT_COPY.createdTitle(dialog.name) : ''}
+            {open ? copy.createdTitle(dialog.name) : ''}
           </h2>
         </div>
         <button type="button" onClick={onClose} className="kern-btn kern-btn--tertiary">
           <span aria-hidden="true" className="kern-icon kern-icon--close" />
-          {/* TODO(009, phase 5): useCopy */}
-          <span className="sr-only">{KERN_TRANSLATIONS[DEFAULT_LANGUAGE].closeDialog}</span>
+          <span className="sr-only">{KERN_TRANSLATIONS[language].closeDialog}</span>
         </button>
       </header>
       <div className="kern-dialog__body">
         <div className="flex w-full flex-col gap-16">
           <p id={textId} className="kern-body kern-body--large">
-            {ACCOUNT_COPY.createdText}
+            {copy.createdText}
           </p>
           {open && <TokenCopyField key={dialog.token} token={dialog.token} describedBy={textId} />}
         </div>
@@ -80,7 +81,7 @@ export default function TokenCreatedDialog({ dialog, onClose }: TokenCreatedDial
       <footer className="kern-dialog__footer @container pt-23!">
         <div className={`flex w-full flex-1 gap-16 ${DIALOG_ACTIONS_CLASSES[1]}`}>
           <button type="button" onClick={onClose} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{ACCOUNT_COPY.done}</span>
+            <span className="kern-label">{copy.done}</span>
           </button>
         </div>
       </footer>

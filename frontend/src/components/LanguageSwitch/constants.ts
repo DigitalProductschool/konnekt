@@ -10,6 +10,12 @@ export const LANGUAGE_SWITCH_COPY = defineTexts({ language: 'Language' }, { lang
 /** Each button's visible label, a prefix of the language's own name (WCAG 2.5.3) */
 export const LANGUAGE_LABELS: Record<Language, string> = { de: 'DE', en: 'EN' };
 
+/**
+ * The attribute on the switch's group. A popup that closes on a press outside it can let a press
+ * on the switch through (`isLanguageSwitchTarget()`), so that switching keeps what it holds
+ */
+export const LANGUAGE_SWITCH_ATTRIBUTE = 'data-language-switch';
+
 /** The buttons in the design's order: DE, then EN */
 export const SWITCH_ORDER: readonly Language[] = ['de', 'en'];
 

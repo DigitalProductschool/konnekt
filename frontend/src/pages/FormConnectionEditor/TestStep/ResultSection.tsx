@@ -1,5 +1,6 @@
 import { noRulesNoteOf } from '@connection-portal/rules/personas/messages';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import ResultTable from './ResultTable';
 import type { ResultSectionProps } from './types';
 
@@ -18,6 +19,7 @@ import type { ResultSectionProps } from './types';
  * at 320px nothing is cut off).
  */
 export default function ResultSection({ view, branch }: ResultSectionProps) {
+  const { language } = useLanguage();
   return (
     <div className="rounded-kern-default bg-kern-layout-background-default @container flex min-w-0 flex-1 flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16">
       {view && (
@@ -29,7 +31,7 @@ export default function ResultSection({ view, branch }: ResultSectionProps) {
           </div>
           {view.rows.length === 0 ? (
             <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words">
-              {noRulesNoteOf(branch.name)}
+              {noRulesNoteOf(branch.name, language)}
             </p>
           ) : (
             <ResultTable view={view} />

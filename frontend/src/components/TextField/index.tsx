@@ -1,8 +1,9 @@
+import { useCopy } from '../../hooks/useLanguage';
 import FormErrorMessage from '../FormErrorMessage';
 import {
   INPUT_CLASS,
-  OPTIONAL_MARKER,
   REQUIRED_MARKER,
+  TEXT_FIELD_COPY,
   TEXTAREA_CLASS,
   TRAILING_PADDING_CLASS,
 } from './constants';
@@ -27,6 +28,7 @@ import type {
  */
 export default function TextField(props: TextFieldProps) {
   const { id, label, labelAddon, optional, requiredMark, hint, error, errorRole, invalid } = props;
+  const copy = useCopy(TEXT_FIELD_COPY);
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy =
@@ -51,7 +53,7 @@ export default function TextField(props: TextFieldProps) {
               {REQUIRED_MARKER}
             </span>
           )}
-          {optional && ` ${OPTIONAL_MARKER}`}
+          {optional && ` (${copy.optional})`}
         </label>
         {labelAddon}
       </div>

@@ -1,11 +1,15 @@
 // "Shell/Header · two pills" and "Shell/Header · in a connection" (Figma U11 6699:44242,
 // U17 7173:52658, U10 6701:39367; build notes U03 #29–#40)
+import { defineTexts } from '@connection-portal/rules/language';
 
-/** The second pill's link home (U17 7173:52658) */
-export const YOUR_CONNECTIONS_LABEL = 'Your connections';
-
-/** The second pill's landmark: it says where you are */
-export const BREADCRUMB_LABEL = 'Breadcrumb';
+/**
+ * The second pill's texts (G§2 "connection"): its link home (U17 7173:52658) and its landmark,
+ * which says where you are ("Brotkrümelnavigation", as KERN names it)
+ */
+export const TOP_BAR_COPY = defineTexts(
+  { yourConnections: 'Your connections', breadcrumb: 'Breadcrumb' },
+  { yourConnections: 'Ihre Anbindungen', breadcrumb: 'Brotkrümelnavigation' }
+);
 
 /** A header pill: 48px, fully round, the card's elevation (U11 6699:44242) */
 export const PILL_CLASSES = 'rounded-kern-circle shadow-card flex h-48 items-center';

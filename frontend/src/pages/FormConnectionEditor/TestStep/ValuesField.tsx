@@ -1,6 +1,7 @@
 import { useReducer } from 'react';
 
 import ValuesPicker from '../../../components/ValuesPicker';
+import { useCopy } from '../../../hooks/useLanguage';
 import { VALUES_PICKER_COPY } from './constants';
 import FieldFrame from './FieldFrame';
 import type { ValuesFieldProps } from './types';
@@ -21,6 +22,7 @@ export default function ValuesField({
   value,
   onChange,
 }: ValuesFieldProps) {
+  const pickerCopy = useCopy(VALUES_PICKER_COPY);
   const [picker, dispatch] = useReducer(pickerReducer, { open: false, search: '' });
   const values = Array.isArray(value) ? value : [];
   return (
@@ -32,7 +34,7 @@ export default function ValuesField({
         values={[...values]}
         invalid={false}
         field
-        copy={{ ...VALUES_PICKER_COPY, menu: label }}
+        copy={{ ...pickerCopy, menu: label }}
         open={picker.open}
         search={picker.search}
         onOpenChange={(open) => dispatch({ type: open ? 'open' : 'close' })}

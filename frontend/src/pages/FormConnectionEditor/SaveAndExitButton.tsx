@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { DRAFT_COPY, ELEMENT_IDS } from './constants';
 import type { EditorFooterProps } from './types';
 
@@ -13,6 +14,7 @@ export default function SaveAndExitButton({
   savingDraft,
   onSaveAndExit,
 }: Pick<EditorFooterProps, 'savingDraft' | 'onSaveAndExit'>) {
+  const copy = useCopy(DRAFT_COPY);
   return (
     <button
       id={ELEMENT_IDS.saveAndExit}
@@ -22,7 +24,7 @@ export default function SaveAndExitButton({
       className="kern-btn kern-btn--tertiary"
     >
       <span aria-hidden="true" className="kern-icon icon-save" />
-      <span className="kern-label">{savingDraft ? DRAFT_COPY.saving : DRAFT_COPY.saveAndExit}</span>
+      <span className="kern-label">{savingDraft ? copy.saving : copy.saveAndExit}</span>
     </button>
   );
 }

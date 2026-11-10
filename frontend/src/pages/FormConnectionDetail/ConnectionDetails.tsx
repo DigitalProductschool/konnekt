@@ -15,13 +15,14 @@ import Toast from '../../components/Toast';
 import WizardLayout from '../../components/WizardLayout';
 import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { EDIT_ENTRY_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
+import { EDIT_ENTRY_DIALOG_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import PublishSummaryRow from '../FormConnectionEditor/PublishSummaryRow';
 import ConnectionLinks from './ConnectionLinks';
 import {
+  CONNECTION_DETAIL_COPY,
   DELETE_ICON,
-  DETAIL_COPY,
   LINK_OFF_ICON,
   SUMMARY_INTRO_CLASSES,
   SUMMARY_TABLE_CLASSES,
@@ -69,7 +70,18 @@ export default function ConnectionDetails({
   arrival,
   onChange,
 }: ConnectionDetailsProps) {
-  const [state, dispatch] = useReducer(actionsReducer, arrival, initialActionsState);
+  const { language } = useLanguage();
+  const copy = CONNECTION_DETAIL_COPY[language];
+  const editEntryCopy = EDIT_ENTRY_DIALOG_COPY[language];
+  // The toast after saving an edit in the language of the arrival; a later switch words the next
+  const [state, dispatch] = useReducer(actionsReducer, arrival, (first) =>
+    initialActionsState(first, language)
+  );
+  // A request in flight during a switch: its toast or failure takes the language it arrives in
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
   const navigate = useNavigate();
   const handleUnauthorized = useSignOutOnUnauthorized();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -119,10 +131,10 @@ export default function ConnectionDetails({
       // Deactivating returns the focus to the ⋯, which stays (the dialog's native return)
       focusHeadingAfterDialog.current = action === 'activate';
       onChange(changed);
-      dispatch({ type: 'succeeded', message: successMessageOf(action) });
+      dispatch({ type: 'succeeded', message: successMessageOf(action, languageRef.current) });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatch({ type: 'failed', error: actionErrorNotice(error) });
+        dispatch({ type: 'failed', error: actionErrorNotice(error, languageRef.current) });
       }
     }
   }
@@ -131,22 +143,22 @@ export default function ConnectionDetails({
     ...(isActive
       ? [
           {
-            label: DETAIL_COPY.deactivate,
+            label: copy.deactivate,
             icon: LINK_OFF_ICON,
             onSelect: () => dispatch({ type: 'openDialog', dialog: 'deactivate' }),
           },
         ]
       : []),
     {
-      label: DETAIL_COPY.delete,
+      label: copy.delete,
       icon: DELETE_ICON,
       danger: true,
       separated: isActive,
       onSelect: () => dispatch({ type: 'openDialog', dialog: 'delete' }),
     },
   ];
-  const dialog = dialogCopyOf(state.dialog, formConnection);
-  const summary = reactivateSummaryOf(formConnection);
+  const dialog = dialogCopyOf(state.dialog, formConnection, language);
+  const summary = reactivateSummaryOf(formConnection, language);
   return (
     <WizardLayout
       variant="details"
@@ -162,7 +174,7 @@ export default function ConnectionDetails({
             textClassName={state.dialog === 'activate' ? SUMMARY_INTRO_CLASSES : undefined}
             busy={state.running !== null}
             error={state.dialogOpen ? state.error : null}
-            retryLabel={DETAIL_COPY.retry}
+            retryLabel={copy.retry}
             dismissOnScrim={state.dialog !== 'delete'}
             onCancel={() => dispatch({ type: 'closeDialog' })}
             onConfirm={() => run(state.dialog)}
@@ -171,20 +183,20 @@ export default function ConnectionDetails({
               // "Dialog content/Publish · summary" without "Active from" (F1)
               <dl className={SUMMARY_TABLE_CLASSES}>
                 <PublishSummaryRow
-                  label={DETAIL_COPY.documentsTitle}
+                  label={copy.documentsTitle}
                   values={summary.documentLines}
                   divided
                 />
-                <PublishSummaryRow label={DETAIL_COPY.rulesTitle} values={summary.ruleLines} />
+                <PublishSummaryRow label={copy.rulesTitle} values={summary.ruleLines} />
               </dl>
             )}
           </ConfirmDialog>
           <ConfirmDialog
             open={editAsked}
-            title={EDIT_ENTRY_COPY.title(name)}
-            text={EDIT_ENTRY_COPY.text}
-            cancelLabel={EDIT_ENTRY_COPY.cancel}
-            confirmLabel={EDIT_ENTRY_COPY.confirm}
+            title={editEntryCopy.title(name)}
+            text={editEntryCopy.text}
+            cancelLabel={editEntryCopy.cancel}
+            confirmLabel={editEntryCopy.confirm}
             onCancel={() => setEditAsked(false)}
             onConfirm={() =>
               navigate(generatePath(ROUTES.editFormConnection, { id }), {
@@ -200,8 +212,8 @@ export default function ConnectionDetails({
       <div className="flex flex-col gap-16">
         <StatusBand
           tone={isActive ? 'active' : 'deactivated'}
-          title={isActive ? DETAIL_COPY.activeTitle : DETAIL_COPY.deactivatedTitle}
-          text={isActive ? DETAIL_COPY.activeText : DETAIL_COPY.deactivatedText}
+          title={isActive ? copy.activeTitle : copy.deactivatedTitle}
+          text={isActive ? copy.activeText : copy.deactivatedText}
           headingRef={headingRef}
           mainAction={
             !isActive && (
@@ -210,11 +222,11 @@ export default function ConnectionDetails({
                 onClick={() => dispatch({ type: 'openDialog', dialog: 'activate' })}
                 className="kern-btn kern-btn--primary"
               >
-                <span className="kern-label">{DETAIL_COPY.activateAgain}</span>
+                <span className="kern-label">{copy.activateAgain}</span>
               </button>
             )
           }
-          actions={<ActionMenu label={DETAIL_COPY.connectionActions} actions={menuActions} />}
+          actions={<ActionMenu label={copy.connectionActions} actions={menuActions} />}
         />
         <ConnectionLinks
           formConnection={formConnection}

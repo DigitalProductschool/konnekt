@@ -1,6 +1,7 @@
 import { useId } from 'react';
 
-import { DETAIL_COPY } from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import SummaryDocument from './SummaryDocument';
 import type { DocumentsSummaryProps } from './types';
 
@@ -11,17 +12,18 @@ import type { DocumentsSummaryProps } from './types';
  */
 export default function DocumentsSummary({ documents, draft = false }: DocumentsSummaryProps) {
   const titleId = useId();
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-24">
       <h3
         id={titleId}
         className="text-kern-static-medium text-kern-action-default leading-(--kern-typography-line-height-medium-static) font-semibold"
       >
-        {DETAIL_COPY.documentsTitle}
+        {copy.documentsTitle}
       </h3>
       {draft && documents.length === 0 ? (
         <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-          {DETAIL_COPY.noDocumentsYet}
+          {copy.noDocumentsYet}
         </p>
       ) : (
         <ul className="flex flex-col gap-24">

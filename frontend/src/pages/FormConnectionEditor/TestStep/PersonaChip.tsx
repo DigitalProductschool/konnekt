@@ -1,5 +1,6 @@
 import { chipNameOf } from '@connection-portal/rules/personas/messages';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import { CHIP_ICONS } from './constants';
 import LoadingRing from './LoadingRing';
@@ -38,6 +39,7 @@ export default function PersonaChip({
   onSelect,
   onKeyDown,
 }: PersonaChipProps) {
+  const { language } = useLanguage();
   return (
     <button
       id={ELEMENT_IDS.personaChip(persona.id)}
@@ -45,7 +47,7 @@ export default function PersonaChip({
       role="tab"
       aria-selected={selected}
       aria-controls={ELEMENT_IDS.personaPanel(persona.id)}
-      aria-label={meets === null ? undefined : chipNameOf(persona, branchName, meets)}
+      aria-label={meets === null ? undefined : chipNameOf(persona, branchName, meets, language)}
       tabIndex={selected ? 0 : -1}
       onClick={onSelect}
       onKeyDown={onKeyDown}

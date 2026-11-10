@@ -24,6 +24,7 @@ import {
   editStateOf,
   findingTargetIdsOf,
   initialRulesState,
+  initialVariantForm,
   joinNames,
   linkNoticeOf,
   linkOf,
@@ -36,6 +37,7 @@ import {
   selectionText,
   switchNoteOf,
   unrequestedNoteOf,
+  variantFormProblem,
 } from './utils';
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
@@ -112,7 +114,7 @@ describe('grouping in select mode (FR-008; U16)', () => {
       parentId: null,
       ids: ['rule-2', 'rule-3'],
     });
-    const grouped = run(selecting, { type: 'groupSelected' });
+    const grouped = run(selecting, { type: 'groupSelected', language: 'en' });
     expect(ids(grouped)).toEqual(['rule-1', 'group-3', 'rule-2', 'rule-3']);
     expect(grouped.selection).toBeNull();
     expect(grouped.counters).toEqual({ rule: 9, group: 4 });
@@ -127,7 +129,7 @@ describe('grouping in select mode (FR-008; U16)', () => {
       stateWith(FLAT),
       { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-3' },
       { type: 'toggleSelect', itemId: 'rule-1' },
-      { type: 'groupSelected' }
+      { type: 'groupSelected', language: 'en' }
     );
     const undone = run(grouped, { type: 'undo' });
     expect(undone.branches[0].items).toEqual(FLAT);
@@ -141,7 +143,7 @@ describe('grouping in select mode (FR-008; U16)', () => {
       stateWith(items),
       { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' },
       { type: 'toggleSelect', itemId: 'rule-2' },
-      { type: 'groupSelected' }
+      { type: 'groupSelected', language: 'en' }
     );
     expect(findItem(grouped.branches[0].items, 'group-3')).toMatchObject({
       parentId: 'group-1',
@@ -151,7 +153,7 @@ describe('grouping in select mode (FR-008; U16)', () => {
 
   it('groups nothing with fewer than two rules, and ends select mode on Cancel', () => {
     const one = run(stateWith(FLAT), { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' });
-    expect(run(one, { type: 'groupSelected' })).toBe(one);
+    expect(run(one, { type: 'groupSelected', language: 'en' })).toBe(one);
     expect(run(one, { type: 'toggleSelect', itemId: 'rule-1' }).selection?.ids).toEqual([]);
     expect(run(one, { type: 'cancelSelect' }).selection).toBeNull();
   });
@@ -159,24 +161,28 @@ describe('grouping in select mode (FR-008; U16)', () => {
   it('says what is chosen and what grouping makes', () => {
     const state = stateWith([group(1, FLAT)]);
     const branch = state.branches[0];
-    expect(selectionText({ branchKey: BRANCH, parentId: null, ids: [] }, branch)).toBe(
+    expect(selectionText({ branchKey: BRANCH, parentId: null, ids: [] }, branch, 'en')).toBe(
       'Choose two or more rules to group.'
     );
-    expect(selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2'] }, branch)).toBe(
-      'Choose at least one more rule to group with Rule 02.'
-    );
     expect(
-      selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2', 'rule-1'] }, branch)
+      selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2'] }, branch, 'en')
+    ).toBe('Choose at least one more rule to group with Rule 02.');
+    expect(
+      selectionText(
+        { branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2', 'rule-1'] },
+        branch,
+        'en'
+      )
     ).toBe('2 rules selected. They become a sub-group of Group 01.');
-    expect(selectionText({ branchKey: BRANCH, parentId: null, ids: ['a', 'b', 'c'] }, branch)).toBe(
-      '3 rules selected'
-    );
+    expect(
+      selectionText({ branchKey: BRANCH, parentId: null, ids: ['a', 'b', 'c'] }, branch, 'en')
+    ).toBe('3 rules selected');
   });
 
   it('lists names as the toasts do', () => {
-    expect(joinNames(['Rule 01'])).toBe('Rule 01');
-    expect(joinNames(['Rule 01', 'Rule 02'])).toBe('Rule 01 and Rule 02');
-    expect(joinNames(['Rule 01', 'Rule 02', 'Rule 03'])).toBe('Rule 01, Rule 02 and Rule 03');
+    expect(joinNames(['Rule 01'], 'en')).toBe('Rule 01');
+    expect(joinNames(['Rule 01', 'Rule 02'], 'en')).toBe('Rule 01 and Rule 02');
+    expect(joinNames(['Rule 01', 'Rule 02', 'Rule 03'], 'en')).toBe('Rule 01, Rule 02 and Rule 03');
   });
 });
 
@@ -188,6 +194,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
       type: 'ungroup',
       branchKey: BRANCH,
       groupId: 'group-1',
+      language: 'en',
     });
     expect(ids(ungrouped)).toEqual(['rule-1', 'rule-2', 'rule-3']);
     expect(ungrouped.toast).toMatchObject({
@@ -211,7 +218,8 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
       ),
     ];
     const toastOf = (items: RuleTreeItem[], groupId: string) =>
-      run(stateWith(items), { type: 'ungroup', branchKey: BRANCH, groupId }).toast?.message;
+      run(stateWith(items), { type: 'ungroup', branchKey: BRANCH, groupId, language: 'en' }).toast
+        ?.message;
     expect(toastOf(tree('Group message.', null), 'group-1')).toBe(
       'Ungrouped. Rule 03, Rule 04 and Rule 05 use their own messages again.'
     );
@@ -235,7 +243,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
       groupId: 'group-1',
     });
     expect(asked.dialog).toEqual({ type: 'deleteGroup', branchKey: BRANCH, groupId: 'group-1' });
-    const deleted = run(asked, { type: 'confirmDelete' });
+    const deleted = run(asked, { type: 'confirmDelete', language: 'en' });
     expect(ids(deleted)).toEqual(['rule-1']);
     expect(deleted.toast).toMatchObject({
       message: 'Group 01 deleted.',
@@ -248,7 +256,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
     const deleted = run(
       stateWith(items),
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-2' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     expect(ids(deleted)).toEqual(['rule-1', 'rule-3']);
     expect(deleted.toast?.message).toBe('Rule 02 deleted.');
@@ -265,7 +273,7 @@ describe('ungrouping and deleting groups (FR-008; W8)', () => {
     const deleted = run(
       editing,
       { type: 'askDeleteGroup', branchKey: BRANCH, groupId: 'group-1' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     expect(deleted.editing).toBeNull();
   });
@@ -284,7 +292,7 @@ describe('undo after other changes', () => {
     const deleted = run(
       stateWith(FLAT),
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     const renamed = run(
       deleted,
@@ -299,7 +307,7 @@ describe('undo after other changes', () => {
     const deleted = run(
       stateWith(FLAT),
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     const timedOut = run(deleted, { type: 'dismissToast' });
     expect(timedOut.toast).toBeNull();
@@ -311,7 +319,7 @@ describe('undo after other changes', () => {
     const changed = run(
       stateWith(FLAT),
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'confirmDelete' },
+      { type: 'confirmDelete', language: 'en' },
       { type: 'dismissToast' },
       { type: 'startRename', branchKey: BRANCH, itemId: 'rule-2' },
       { type: 'rename', name: 'Old enough' }
@@ -330,10 +338,10 @@ describe('switching AND and OR (FR-007)', () => {
       operator: 'or',
     });
     expect(switched.branches[0].operator).toBe('or');
-    expect(switchNoteOf(switched, switched.branches[0], null)).toBe(
+    expect(switchNoteOf(switched, switched.branches[0], null, 'en')).toBe(
       'Standard now needs only one rule to be true.'
     );
-    expect(switchNoteOf(switched, switched.branches[0], 'group-1')).toBeNull();
+    expect(switchNoteOf(switched, switched.branches[0], 'group-1', 'en')).toBeNull();
   });
 
   it('switches a group, and drops the note with the next change', () => {
@@ -344,7 +352,7 @@ describe('switching AND and OR (FR-007)', () => {
       operator: 'or',
     });
     expect(findItem(switched.branches[0].items, 'group-1')?.item).toMatchObject({ operator: 'or' });
-    expect(switchNoteOf(switched, switched.branches[0], 'group-1')).toBe(
+    expect(switchNoteOf(switched, switched.branches[0], 'group-1', 'en')).toBe(
       'Group 01 now needs only one rule to be true.'
     );
     const back = run(switched, {
@@ -353,7 +361,7 @@ describe('switching AND and OR (FR-007)', () => {
       parentId: 'group-1',
       operator: 'and',
     });
-    expect(switchNoteOf(back, back.branches[0], 'group-1')).toBe(
+    expect(switchNoteOf(back, back.branches[0], 'group-1', 'en')).toBe(
       'Group 01 now needs all its rules to be true.'
     );
     const renamed = run(
@@ -406,13 +414,20 @@ describe('adding a rule in a group', () => {
       parentId: 'group-1',
     });
     expect(adding.editing).toMatchObject({ parentId: 'group-1', draft: { id: 'rule-9' } });
-    expect(findItem(run(adding, { type: 'saveRule' }).branches[0].items, 'rule-9')).toMatchObject({
+    expect(
+      findItem(run(adding, { type: 'saveRule', language: 'en' }).branches[0].items, 'rule-9')
+    ).toMatchObject({
       parentId: 'group-1',
       index: 2,
     });
-    const ungrouped = run(adding, { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1' });
+    const ungrouped = run(adding, {
+      type: 'ungroup',
+      branchKey: BRANCH,
+      groupId: 'group-1',
+      language: 'en',
+    });
     expect(
-      findItem(run(ungrouped, { type: 'saveRule' }).branches[0].items, 'rule-9')
+      findItem(run(ungrouped, { type: 'saveRule', language: 'en' }).branches[0].items, 'rule-9')
     ).toMatchObject({
       parentId: null,
       index: 2,
@@ -459,7 +474,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const added = run(
       state,
       { type: 'addRule', branchKey: BRANCH, parentId: null },
-      { type: 'saveRule' }
+      { type: 'saveRule', language: 'en' }
     );
     expect(item(added, 1, 'rule-9')).toMatchObject({ mark: null });
     const renamed = run(
@@ -472,7 +487,7 @@ describe('variants (FR-019 to FR-024)', () => {
       run(
         withVariant('empty'),
         { type: 'addRule', branchKey: BRANCH, parentId: null },
-        { type: 'saveRule' }
+        { type: 'saveRule', language: 'en' }
       ).branches[1].items
     ).toEqual([]);
   });
@@ -514,7 +529,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const added = run(
       state,
       { type: 'addRule', branchKey: key, parentId: 'group-1' },
-      { type: 'saveRule' }
+      { type: 'saveRule', language: 'en' }
     );
     expect(item(added, 1, 'rule-9')?.mark).toBe('added');
     expect(item(added, 0, 'rule-9')).toBeUndefined();
@@ -527,7 +542,7 @@ describe('variants (FR-019 to FR-024)', () => {
       state,
       { type: 'startSelect', branchKey: key, itemId: 'rule-2' },
       { type: 'toggleSelect', itemId: 'rule-3' },
-      { type: 'groupSelected' }
+      { type: 'groupSelected', language: 'en' }
     );
     expect(item(grouped, 1, 'group-3')?.mark).toBe('added');
     expect(grouped.toast?.message).toBe('Grouped in Ambulance only. Standard stays the same.');
@@ -538,7 +553,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const deleted = run(
       state,
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     expect(item(deleted, 1, 'rule-1')).toBeUndefined();
     const undone = run(deleted, { type: 'undo' });
@@ -557,12 +572,15 @@ describe('variants (FR-019 to FR-024)', () => {
     expect(edited.branches[1]).toMatchObject({ name: 'School transport', description: null });
     const asked = run(edited, { type: 'askDeleteVariant', branchKey: key });
     expect(asked.dialog).toEqual({ type: 'deleteVariant', branchKey: key });
-    const deleted = run(asked, { type: 'confirmDelete' });
+    const deleted = run(asked, { type: 'confirmDelete', language: 'en' });
     expect(deleted.branches.map((branch) => branch.key)).toEqual([BRANCH]);
     expect(deleted.openBranch).toBe(BRANCH);
     expect(
-      run(state, { type: 'askDeleteVariant', branchKey: BRANCH }, { type: 'confirmDelete' })
-        .branches
+      run(
+        state,
+        { type: 'askDeleteVariant', branchKey: BRANCH },
+        { type: 'confirmDelete', language: 'en' }
+      ).branches
     ).toHaveLength(2);
   });
 
@@ -576,7 +594,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const deleted = run(
       state,
       { type: 'askDeleteVariant', branchKey: school },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     expect(deleted.branches.map((branch) => branch.name)).toEqual(['Standard', 'Ambulance']);
     expect(deleted.openBranch).toBe(variantKey(state));
@@ -601,7 +619,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const copied = run(
       state,
       { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'copyRule', targets: ['new-1', 'new-2'] }
+      { type: 'copyRule', targets: ['new-1', 'new-2'], language: 'en' }
     );
     expect(item(copied, 1, 'rule-9')).toMatchObject({ name: 'Rule 09', mark: null });
     expect(item(copied, 2, 'rule-10')).toMatchObject({ name: 'Rule 10', mark: 'added' });
@@ -628,7 +646,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const copied = run(
       withVariant('empty'),
       { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'copyRule', targets: ['new-1'] }
+      { type: 'copyRule', targets: ['new-1'], language: 'en' }
     );
     const renamed = run(
       copied,
@@ -642,7 +660,7 @@ describe('variants (FR-019 to FR-024)', () => {
     const timedOut = run(
       withVariant('empty'),
       { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'copyRule', targets: ['new-1'] },
+      { type: 'copyRule', targets: ['new-1'], language: 'en' },
       { type: 'dismissToast' }
     );
     expect(timedOut.toast).toBeNull();
@@ -663,7 +681,7 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     );
   }
   const text = (state: RulesState, itemId: string, statement: string | null = null) =>
-    deleteDialogText(state, { branchKey: BRANCH, itemId }, statement);
+    deleteDialogText(state, { branchKey: BRANCH, itemId }, statement, 'en');
 
   it('keeps U14’s body without variants based on Standard, and in a variant', () => {
     expect(
@@ -673,7 +691,7 @@ describe('Standard’s delete confirmations (F14, W8; design-notes §4 and §5)'
     );
     expect(text(withVariants('empty'), 'rule-1')).toBe('You can undo this right after.');
     const state = withVariants('based');
-    expect(deleteDialogText(state, { branchKey: 'new-1', itemId: 'group-1' }, null)).toBe(
+    expect(deleteDialogText(state, { branchKey: 'new-1', itemId: 'group-1' }, null, 'en')).toBe(
       'Group 01 and the rules in it will be deleted. You can undo this right after.'
     );
   });
@@ -731,7 +749,7 @@ describe('the link strip’s removals (FR-051 (38); U47 6344:60085, 6344:60090, 
       based(),
       ...removed.map((itemId): RulesAction => ({ type: 'removeItem', branchKey: 'new-1', itemId }))
     );
-    return linkStripSummaryOf(state.branches[1], 'Standard');
+    return linkStripSummaryOf(state.branches[1], 'Standard', 'en');
   }
 
   it('says nothing while the variant removed nothing, nor while Standard has no rules (F37)', () => {
@@ -741,7 +759,7 @@ describe('the link strip’s removals (FR-051 (38); U47 6344:60085, 6344:60090, 
       variant: { name: 'Ambulance', description: null },
       origin: 'based',
     });
-    expect(linkStripSummaryOf(empty.branches[1], 'Standard')).toBeNull();
+    expect(linkStripSummaryOf(empty.branches[1], 'Standard', 'en')).toBeNull();
   });
 
   it('counts the removed Standard rules, as U47 6.1 words it', () => {
@@ -756,7 +774,7 @@ describe('the link strip’s removals (FR-051 (38); U47 6344:60085, 6344:60090, 
 
   it('leaves out what the variant added, and counts a dissolved group’s remaining rule (F13)', () => {
     const added = run(based(), { type: 'duplicateRule', branchKey: 'new-1', ruleId: 'rule-1' });
-    expect(linkStripSummaryOf(added.branches[1], 'Standard')).toBeNull();
+    expect(linkStripSummaryOf(added.branches[1], 'Standard', 'en')).toBeNull();
     expect(summary('rule-2')).toBe('1 of 3 Standard rules is removed here.');
   });
 });
@@ -829,7 +847,7 @@ describe('bannerViewOf', () => {
     const head = [...U01_LINE.parts, ' So no citizen can meet the rules of Standard.'];
     const u01 = banner({ lines: [U01_LINE], notice: NOTICE, head });
     for (const expanded of [false, true]) {
-      expect(bannerViewOf(u01, expanded)).toEqual({
+      expect(bannerViewOf(u01, expanded, 'en')).toEqual({
         state: 'single',
         summary: { key: 'summary', tone: 'warning', kindText: 'Conflicting:', parts: head },
         items: [],
@@ -839,7 +857,7 @@ describe('bannerViewOf', () => {
 
   it('shows the notice or FR-010’s sentence alone without a kind text (W12, W17)', () => {
     const alone = banner({ kind: 'info', incomplete: INCOMPLETE, head: [INCOMPLETE] });
-    expect(bannerViewOf(alone, false)).toMatchObject({
+    expect(bannerViewOf(alone, false, 'en')).toMatchObject({
       state: 'single',
       summary: { tone: 'info', kindText: null, parts: [INCOMPLETE] },
     });
@@ -855,7 +873,7 @@ describe('bannerViewOf', () => {
   });
 
   it('is collapsed by default with two lines, showing the head (U02, W17)', () => {
-    expect(bannerViewOf(two, false)).toEqual({
+    expect(bannerViewOf(two, false, 'en')).toEqual({
       state: 'collapsed',
       summary: { key: 'summary', tone: 'warning', kindText: null, parts: two.head },
       items: [],
@@ -863,7 +881,7 @@ describe('bannerViewOf', () => {
   });
 
   it('lists the lines, then the notice and FR-010’s sentence when expanded (U05)', () => {
-    const view = bannerViewOf(two, true);
+    const view = bannerViewOf(two, true, 'en');
     expect(view.state).toBe('expanded');
     expect(view.summary).toMatchObject({ kindText: null, parts: [counts] });
     expect(view.items).toEqual([
@@ -885,7 +903,7 @@ describe('bannerViewOf', () => {
 
   it('shows a duplicate or always-met line alone in the info look, with its kind text (U04, U06)', () => {
     const u04 = banner({ kind: 'info', lines: [U04_LINE], head: U04_LINE.parts });
-    expect(bannerViewOf(u04, false)).toEqual({
+    expect(bannerViewOf(u04, false, 'en')).toEqual({
       state: 'single',
       summary: { key: 'summary', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
       items: [],
@@ -896,7 +914,10 @@ describe('bannerViewOf', () => {
       lines: [{ kind: 'always_met', tone: 'info', parts }],
       head: parts,
     });
-    expect(bannerViewOf(u06, false).summary).toMatchObject({ kindText: 'Always met:', parts });
+    expect(bannerViewOf(u06, false, 'en').summary).toMatchObject({
+      kindText: 'Always met:',
+      parts,
+    });
   });
 
   it('lists a duplicate with its info icon in a warning banner (U05)', () => {
@@ -905,7 +926,7 @@ describe('bannerViewOf', () => {
       counts: '2 rules can’t be met together · 1 duplicate rule',
       head: ['2 rules can’t be met together · 1 duplicate rule'],
     });
-    expect(bannerViewOf(u05, true).items).toEqual([
+    expect(bannerViewOf(u05, true, 'en').items).toEqual([
       { key: 'line-0', tone: 'warning', kindText: 'Conflicting:', parts: U05_LINE.parts },
       { key: 'line-1', tone: 'info', kindText: 'Redundant:', parts: U04_LINE.parts },
     ]);
@@ -918,7 +939,7 @@ describe('bannerViewOf', () => {
       notice: { tone: 'info', text, appended: text },
       head: [text],
     });
-    expect(bannerViewOf(w8, false)).toEqual({
+    expect(bannerViewOf(w8, false, 'en')).toEqual({
       state: 'single',
       summary: { key: 'summary', tone: 'info', kindText: null, parts: [text] },
       items: [],
@@ -1011,7 +1032,7 @@ describe('showToast (spec 007, S4)', () => {
     const deleted = run(
       stateWith(FLAT),
       { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     const copied = run(deleted, { type: 'showToast', message: 'Link copied.' });
     expect(copied.toast).toEqual({ id: (deleted.toast?.id ?? 0) + 1, message: 'Link copied.' });
@@ -1028,7 +1049,7 @@ describe('showToast (spec 007, S4)', () => {
     const shown = run(
       withVariant,
       { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-      { type: 'copyRule', targets: [withVariant.branches[1].key] }
+      { type: 'copyRule', targets: [withVariant.branches[1].key], language: 'en' }
     );
     expect(shown.showBranch).not.toBeNull();
     expect(run(shown, { type: 'showToast', message: 'Link copied.' }).showBranch).toBeNull();
@@ -1084,7 +1105,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
           stateWith(FLAT),
           { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-2' },
           { type: 'toggleSelect', itemId: 'rule-3' },
-          { type: 'groupSelected' }
+          { type: 'groupSelected', language: 'en' }
         ),
       edited: () => replay(from(FLAT), (c) => edits.groupItems(c, BRANCH, ['rule-2', 'rule-3'])),
     },
@@ -1095,7 +1116,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
           stateWith(FLAT),
           { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-3' },
           { type: 'toggleSelect', itemId: 'rule-1' },
-          { type: 'groupSelected' }
+          { type: 'groupSelected', language: 'en' }
         ),
       edited: () => replay(from(FLAT), (c) => edits.groupItems(c, BRANCH, ['rule-3', 'rule-1'])),
     },
@@ -1106,7 +1127,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
           stateWith([group(1, FLAT)]),
           { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' },
           { type: 'toggleSelect', itemId: 'rule-2' },
-          { type: 'groupSelected' }
+          { type: 'groupSelected', language: 'en' }
         ),
       edited: () =>
         replay(from([group(1, FLAT)]), (c) => edits.groupItems(c, BRANCH, ['rule-1', 'rule-2'])),
@@ -1114,7 +1135,12 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
     {
       name: 'ungroups',
       reducer: () =>
-        run(stateWith(ITEMS), { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1' }),
+        run(stateWith(ITEMS), {
+          type: 'ungroup',
+          branchKey: BRANCH,
+          groupId: 'group-1',
+          language: 'en',
+        }),
       edited: () => replay(from(ITEMS), (c) => edits.ungroup(c, BRANCH, 'group-1')),
     },
     {
@@ -1123,7 +1149,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           stateWith(ITEMS),
           { type: 'askDeleteGroup', branchKey: BRANCH, groupId: 'group-1' },
-          { type: 'confirmDelete' }
+          { type: 'confirmDelete', language: 'en' }
         ),
       edited: () => replay(from(ITEMS), (c) => edits.deleteItem(c, BRANCH, 'group-1')),
     },
@@ -1133,7 +1159,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           stateWith(ITEMS),
           { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-2' },
-          { type: 'confirmDelete' }
+          { type: 'confirmDelete', language: 'en' }
         ),
       edited: () => replay(from(ITEMS), (c) => edits.deleteItem(c, BRANCH, 'rule-2')),
     },
@@ -1143,7 +1169,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           stateWith(FLAT),
           { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-          { type: 'confirmDelete' },
+          { type: 'confirmDelete', language: 'en' },
           ...renameIn(BRANCH, 'rule-2', 'Old enough')
         ),
       edited: () =>
@@ -1209,7 +1235,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           stateWith([group(1, [rule(1, null, null), rule(2, null, null)])]),
           { type: 'addRule', branchKey: BRANCH, parentId: 'group-1' },
-          { type: 'saveRule' }
+          { type: 'saveRule', language: 'en' }
         ),
       edited: () =>
         replay(from([group(1, [rule(1, null, null), rule(2, null, null)])]), (c) =>
@@ -1222,8 +1248,8 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           stateWith([group(1, [rule(1, null, null), rule(2, null, null)])]),
           { type: 'addRule', branchKey: BRANCH, parentId: 'group-1' },
-          { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1' },
-          { type: 'saveRule' }
+          { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1', language: 'en' },
+          { type: 'saveRule', language: 'en' }
         ),
       edited: () =>
         replay(
@@ -1248,7 +1274,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant(),
           { type: 'addRule', branchKey: BRANCH, parentId: null },
-          { type: 'saveRule' },
+          { type: 'saveRule', language: 'en' },
           ...renameIn(BRANCH, 'rule-1', 'Old enough')
         ),
       edited: () =>
@@ -1265,7 +1291,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant('empty'),
           { type: 'addRule', branchKey: BRANCH, parentId: null },
-          { type: 'saveRule' }
+          { type: 'saveRule', language: 'en' }
         ),
       edited: () =>
         replay(from(ITEMS), addVariant(' Ambulance ', 'empty', 'new-1', ' For ambulances '), (c) =>
@@ -1340,7 +1366,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant(),
           { type: 'addRule', branchKey: 'new-1', parentId: 'group-1' },
-          { type: 'saveRule' }
+          { type: 'saveRule', language: 'en' }
         ),
       edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.addRule(c, 'new-1', 'group-1')),
     },
@@ -1351,7 +1377,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
           withVariant(),
           { type: 'startSelect', branchKey: 'new-1', itemId: 'rule-2' },
           { type: 'toggleSelect', itemId: 'rule-3' },
-          { type: 'groupSelected' }
+          { type: 'groupSelected', language: 'en' }
         ),
       edited: () =>
         replay(from(ITEMS), AMBULANCE, (c) => edits.groupItems(c, 'new-1', ['rule-2', 'rule-3'])),
@@ -1362,7 +1388,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant(),
           { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
-          { type: 'confirmDelete' }
+          { type: 'confirmDelete', language: 'en' }
         ),
       edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.deleteItem(c, BRANCH, 'rule-1')),
     },
@@ -1385,7 +1411,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant(),
           { type: 'askDeleteVariant', branchKey: 'new-1' },
-          { type: 'confirmDelete' }
+          { type: 'confirmDelete', language: 'en' }
         ),
       edited: () => replay(from(ITEMS), AMBULANCE, (c) => edits.deleteVariant(c, 'new-1')),
     },
@@ -1400,7 +1426,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
             origin: 'based',
           },
           { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-          { type: 'copyRule', targets: ['new-1', 'new-2'] }
+          { type: 'copyRule', targets: ['new-1', 'new-2'], language: 'en' }
         ),
       edited: () =>
         replay(
@@ -1416,7 +1442,7 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
         run(
           withVariant('empty'),
           { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
-          { type: 'copyRule', targets: ['new-1'] },
+          { type: 'copyRule', targets: ['new-1'], language: 'en' },
           ...renameIn(BRANCH, 'rule-2', 'Old enough')
         ),
       edited: () =>
@@ -1520,13 +1546,13 @@ describe('the cases above, replayed through edits.ts (SC-003)', () => {
 
   it('refuses what the reducer leaves as it was', () => {
     const one = run(stateWith(FLAT), { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-1' });
-    expect(run(one, { type: 'groupSelected' })).toBe(one);
+    expect(run(one, { type: 'groupSelected', language: 'en' })).toBe(one);
     expect(edits.groupItems(from(FLAT), BRANCH, ['rule-1']).ok).toBe(false);
     const state = withVariant();
     const kept = run(
       state,
       { type: 'askDeleteVariant', branchKey: BRANCH },
-      { type: 'confirmDelete' }
+      { type: 'confirmDelete', language: 'en' }
     );
     expect(kept.branches).toEqual(state.branches);
     expect(edits.deleteVariant(editStateOf(state), BRANCH).ok).toBe(false);
@@ -1583,11 +1609,11 @@ describe('variants keyed by id (spec 007, research R10)', () => {
         id: ID,
       },
       { type: 'addRule', branchKey: main, parentId: null },
-      { type: 'saveRule' },
+      { type: 'saveRule', language: 'en' },
       { type: 'startRename', branchKey: ID, itemId: 'rule-1' },
       { type: 'rename', name: 'Old enough' },
       { type: 'askDelete', branchKey: main, ruleId: 'rule-2' },
-      { type: 'confirmDelete' },
+      { type: 'confirmDelete', language: 'en' },
     ];
     const state = steps.reduce(rulesReducer, start);
     expect(ids(state)).toEqual(['rule-1', 'rule-3', 'rule-9']);
@@ -2179,20 +2205,22 @@ describe('unrequestedNoteOf (U50 6197:10708, 7173:52351; FR-023)', () => {
   const pidWithout = { ...PID, fields: PID.fields.filter((field) => field.key !== 'birthdate') };
 
   it('names the field no longer requested', () => {
-    expect(unrequestedNoteOf(onBirthdate, [pidWithout, MDL], [PID, MDL])).toBe(
+    expect(unrequestedNoteOf(onBirthdate, [pidWithout, MDL], [PID, MDL], 'en')).toBe(
       'Date of birth is no longer requested.'
     );
   });
 
   it('names the document while the whole document is no longer requested', () => {
-    expect(unrequestedNoteOf(onBirthdate, [MDL], [PID, MDL])).toBe(
+    expect(unrequestedNoteOf(onBirthdate, [MDL], [PID, MDL], 'en')).toBe(
       'Personal ID is no longer requested.'
     );
   });
 
   it('gives null for a target the catalog doesn’t know', () => {
-    expect(unrequestedNoteOf(rule(3, target('xyz', 'a'), null), [MDL], [PID, MDL])).toBeNull();
-    expect(unrequestedNoteOf(rule(4, null, null), [MDL], [PID, MDL])).toBeNull();
+    expect(
+      unrequestedNoteOf(rule(3, target('xyz', 'a'), null), [MDL], [PID, MDL], 'en')
+    ).toBeNull();
+    expect(unrequestedNoteOf(rule(4, null, null), [MDL], [PID, MDL], 'en')).toBeNull();
   });
 });
 
@@ -2226,17 +2254,250 @@ describe('editorMessageHintOf (U35 6965:50822; F32)', () => {
   });
 
   it('names the outermost group with a message around the rule', () => {
-    expect(editorMessageHintOf(items, editing(member, null))).toBe(
+    expect(editorMessageHintOf(items, editing(member, null), 'en')).toBe(
       'Not shown while this rule is in Group 01. Citizens see the group message instead.'
     );
   });
 
   it('takes a new rule’s group', () => {
-    expect(editorMessageHintOf(items, editing(null, 'group-2'))).toContain('Group 01');
+    expect(editorMessageHintOf(items, editing(null, 'group-2'), 'en')).toContain('Group 01');
   });
 
   it('gives null outside a group with a message', () => {
-    expect(editorMessageHintOf(items, editing(first, null))).toBeNull();
-    expect(editorMessageHintOf(items, editing(null, null))).toBeNull();
+    expect(editorMessageHintOf(items, editing(first, null), 'en')).toBeNull();
+    expect(editorMessageHintOf(items, editing(null, null), 'en')).toBeNull();
+  });
+});
+
+describe('in German (spec 009, T037; glossary G§2, G§3)', () => {
+  const items = [rule(1, null, null), group(1, [rule(2, null, null), rule(3, null, null)])];
+  function withVariants(...origins: ('based' | 'empty')[]): RulesState {
+    return run(
+      stateWith(items),
+      ...origins.map((origin, index): RulesAction => ({
+        type: 'addVariant',
+        variant: { name: ['Ambulance', 'School transport', 'Taxi'][index], description: null },
+        origin,
+      }))
+    );
+  }
+
+  it('lists names with "und"', () => {
+    expect(joinNames(['Rule 01', 'Rule 02', 'Rule 03'], 'de')).toBe('Rule 01, Rule 02 und Rule 03');
+  });
+
+  it('says what is chosen and what grouping makes', () => {
+    const branch = stateWith([group(1, FLAT)]).branches[0];
+    expect(selectionText({ branchKey: BRANCH, parentId: null, ids: [] }, branch, 'de')).toBe(
+      'Wählen Sie zwei oder mehr Regeln zum Gruppieren.'
+    );
+    expect(
+      selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2'] }, branch, 'de')
+    ).toBe('Wählen Sie mindestens eine weitere Regel, um sie mit Rule 02 zu gruppieren.');
+    expect(
+      selectionText(
+        { branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2', 'rule-1'] },
+        branch,
+        'de'
+      )
+    ).toBe('2 Regeln ausgewählt. Sie werden zu einer Untergruppe von Group 01.');
+    expect(
+      selectionText({ branchKey: BRANCH, parentId: null, ids: ['a', 'b', 'c'] }, branch, 'de')
+    ).toBe('3 Regeln ausgewählt');
+  });
+
+  it('words the toasts in the language of the action, the stored names unchanged', () => {
+    const grouped = run(
+      stateWith(FLAT),
+      { type: 'startSelect', branchKey: BRANCH, itemId: 'rule-2' },
+      { type: 'toggleSelect', itemId: 'rule-3' },
+      { type: 'groupSelected', language: 'de' }
+    );
+    expect(grouped.toast).toMatchObject({
+      message: 'Rule 02 und Rule 03 sind jetzt in Group 03.',
+      actionLabel: 'Rückgängig',
+    });
+    const ungrouped = run(stateWith(items), {
+      type: 'ungroup',
+      branchKey: BRANCH,
+      groupId: 'group-1',
+      language: 'de',
+    });
+    expect(ungrouped.toast?.message).toBe('Gruppierung von Group 01 in Standard aufgehoben.');
+    const withMessage = stateWith([rule(1, null, null), { ...group(1, FLAT), message: 'Both.' }]);
+    expect(
+      run(withMessage, { type: 'ungroup', branchKey: BRANCH, groupId: 'group-1', language: 'de' })
+        .toast?.message
+    ).toBe(
+      'Gruppierung aufgehoben. Rule 01, Rule 02 und Rule 03 verwenden wieder ihre eigenen Nachrichten.'
+    );
+    const deleted = run(
+      stateWith(items),
+      { type: 'askDelete', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'confirmDelete', language: 'de' }
+    );
+    expect(deleted.toast).toMatchObject({
+      message: 'Rule 01 gelöscht.',
+      actionLabel: 'Rückgängig',
+    });
+    const saved = run(
+      stateWith(items),
+      { type: 'editRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'saveRule', language: 'de' }
+    );
+    expect(saved.toast?.message).toBe('Rule 01 gespeichert.');
+    const state = withVariants('based', 'based');
+    const inVariant = run(
+      state,
+      { type: 'startSelect', branchKey: 'new-1', itemId: 'rule-2' },
+      { type: 'toggleSelect', itemId: 'rule-3' },
+      { type: 'groupSelected', language: 'de' }
+    );
+    expect(inVariant.toast?.message).toBe(
+      'Nur in Ambulance gruppiert. Standard bleibt unverändert.'
+    );
+    const copied = run(
+      withVariants('empty', 'empty'),
+      { type: 'askCopyRule', branchKey: BRANCH, ruleId: 'rule-1' },
+      { type: 'copyRule', targets: ['new-1', 'new-2'], language: 'de' }
+    );
+    expect(copied.toast).toMatchObject({
+      message: 'Rule 01 in Ambulance und School transport kopiert.',
+      actionLabel: 'Anzeigen',
+    });
+    const variantDeleted = run(
+      state,
+      { type: 'askDeleteVariant', branchKey: 'new-2' },
+      { type: 'confirmDelete', language: 'de' }
+    );
+    expect(variantDeleted.toast?.message).toBe('School transport gelöscht.');
+  });
+
+  it('words the note after switching AND or OR', () => {
+    const switched = run(stateWith(items), {
+      type: 'switchOperator',
+      branchKey: BRANCH,
+      parentId: 'group-1',
+      operator: 'or',
+    });
+    expect(switchNoteOf(switched, switched.branches[0], 'group-1', 'de')).toBe(
+      'Für Group 01 muss jetzt nur noch eine Regel erfüllt sein.'
+    );
+    const back = run(switched, {
+      type: 'switchOperator',
+      branchKey: BRANCH,
+      parentId: null,
+      operator: 'or',
+    });
+    expect(switchNoteOf(back, back.branches[0], null, 'de')).toBe(
+      'Für Standard muss jetzt nur noch eine Regel erfüllt sein.'
+    );
+  });
+
+  it('words Standard’s delete confirmations', () => {
+    const text = (state: RulesState, itemId: string, statement: string | null = null) =>
+      deleteDialogText(state, { branchKey: BRANCH, itemId }, statement, 'de');
+    expect(
+      text(
+        stateWith(items),
+        'rule-1',
+        'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+      )
+    ).toBe(
+      'Bürgerinnen und Bürger werden nicht mehr auf „Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt“ geprüft. Sie können das direkt danach rückgängig machen.'
+    );
+    expect(text(stateWith(items), 'group-1')).toBe(
+      'Group 01 und die Regeln darin werden gelöscht. Sie können das direkt danach rückgängig machen.'
+    );
+    const switched = run(withVariants('based', 'based', 'empty'), {
+      type: 'switchOperator',
+      branchKey: 'new-1',
+      parentId: 'group-1',
+      operator: 'or',
+    });
+    expect(text(switched, 'rule-2')).toBe(
+      'Dadurch wird die Regel aus Standard und aus den Varianten gelöscht, die Standard folgen: Ambulance und School transport. Hat eine Variante diese Regel geändert, behält sie ihre eigene Version. Group 01 enthält nur noch eine Regel, daher wird die Gruppierung in Standard und den darauf basierenden Varianten aufgehoben. Die Änderungen von Ambulance an Group 01 entfallen damit.'
+    );
+    const changed = run(
+      withVariants('based'),
+      { type: 'startRename', branchKey: 'new-1', itemId: 'rule-3' },
+      { type: 'rename', name: 'Held B' }
+    );
+    expect(text(changed, 'group-1')).toBe(
+      'Diese Gruppe und die Regeln darin werden aus Standard und aus den Varianten entfernt, die Standard folgen. Ambulance hat Rule 03 geändert und behält ihre eigene Version. Sie können das direkt danach rückgängig machen.'
+    );
+  });
+
+  it('words the link strip’s removals with explicit plural forms', () => {
+    const removed = (...ids: string[]) =>
+      linkStripSummaryOf(
+        run(
+          withVariants('based'),
+          ...ids.map((itemId): RulesAction => ({ type: 'removeItem', branchKey: 'new-1', itemId }))
+        ).branches[1],
+        'Standard',
+        'de'
+      );
+    expect(removed('rule-1')).toBe('1 von 3 Regeln aus Standard ist hier entfernt.');
+    expect(removed('rule-1', 'rule-3')).toBe('2 von 3 Regeln aus Standard sind hier entfernt.');
+    expect(removed('group-1')).toBe('Group 01 ist hier entfernt.');
+  });
+
+  it('words the notes on data no longer requested and on a group’s message', () => {
+    const onBirthdate = rule(2, target('pid', 'birthdate'), null);
+    expect(unrequestedNoteOf(onBirthdate, [MDL], [PID, MDL], 'de')).toBe(
+      'Personal ID wird nicht mehr angefordert.'
+    );
+    const withMessage = [{ ...group(1, FLAT), message: 'Both.' }];
+    expect(
+      editorMessageHintOf(
+        withMessage,
+        { branchKey: BRANCH, parentId: null, original: FLAT[0], draft: FLAT[0] },
+        'de'
+      )
+    ).toBe(
+      'Wird nicht angezeigt, solange diese Regel in Group 01 ist. Bürgerinnen und Bürger sehen stattdessen die Nachricht der Gruppe.'
+    );
+  });
+
+  it('refuses a variant name in the server’s German', () => {
+    const state = withVariants('based');
+    const form = (name: string) => ({ ...initialVariantForm(), name });
+    expect(variantFormProblem(form(''), state, null, 'de')).toBe(
+      'Geben Sie einen Namen für die Variante ein.'
+    );
+    expect(variantFormProblem(form('ambulance'), state, null, 'de')).toBe(
+      'Es gibt bereits eine Variante namens „Ambulance“.'
+    );
+    expect(variantFormProblem(form('Taxi'), state, null, 'de')).toBeNull();
+  });
+
+  it('gives the kind text of a single line in German', () => {
+    const line: BannerLine = {
+      kind: 'redundant',
+      tone: 'info',
+      parts: [{ itemId: 'rule-1', name: 'Rule 01' }, ' ist gleich wie Rule 02.'],
+    };
+    const view = bannerViewOf(
+      { kind: 'info', lines: [line], counts: '', notice: null, incomplete: null, head: line.parts },
+      false,
+      'de'
+    );
+    expect(view.summary.kindText).toBe('Redundant:');
+    const conflict: BannerLine = { ...line, kind: 'conflicting', tone: 'warning' };
+    expect(
+      bannerViewOf(
+        {
+          kind: 'warning',
+          lines: [conflict, line],
+          counts: '',
+          notice: null,
+          incomplete: null,
+          head: [],
+        },
+        true,
+        'de'
+      ).items.map((item) => item.kindText)
+    ).toEqual(['Widersprüchlich:', 'Redundant:']);
   });
 });

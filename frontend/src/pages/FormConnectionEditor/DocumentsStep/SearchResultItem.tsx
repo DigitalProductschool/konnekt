@@ -1,10 +1,13 @@
-import { DOCUMENTS_STEP_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { DOCUMENTS_COPY } from './constants';
 import type { SearchResultItemProps } from './types';
 import { documentGlyphOf } from './utils';
 
 const ROW = 'flex min-h-40 w-full items-center gap-8 px-8 py-4 rounded-kern-default';
+// A long name beside the "Added" tag breaks rather than run into it ("Personalausweis" at
+// 320 px / 200 %, spec 009 R9: `break-words`, hyphenated where the browser knows the language)
 const NAME =
-  'text-kern-static-small min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static)';
+  'text-kern-static-small min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static) break-words hyphens-auto';
 
 /**
  * Figma "Documents/Search result" (U20 7290:60715, U21 7290:62279): a document of the search
@@ -18,13 +21,14 @@ export default function SearchResultItem({
   onPick,
   onKeyDown,
 }: SearchResultItemProps) {
+  const copy = useCopy(DOCUMENTS_COPY);
   if (added) {
     return (
       <li className={ROW}>
         <img src={documentGlyphOf(documentType.key, 'muted')} alt="" className="size-24 shrink-0" />
         <span className={`${NAME} text-kern-layout-text-muted`}>{documentType.label}</span>
         <span className="rounded-kern-small text-kern-static-small text-kern-layout-text-muted shrink-0 bg-(--kern-color-decorative-border-default) px-8 leading-(--kern-typography-line-height-medium-static)">
-          {DOCUMENTS_STEP_COPY.addedTag}
+          {copy.addedTag}
         </span>
       </li>
     );

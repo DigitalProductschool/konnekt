@@ -2,6 +2,7 @@ import { changeAccessLevel } from '../../api/agent-access';
 import { errorNoticeOf } from '../../api/client';
 import AccessLevelChoice from '../../components/AccessLevelChoice';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { ACCOUNT_COPY } from './constants';
 import type { LevelDialogProps } from './types';
@@ -20,6 +21,8 @@ export default function AccessLevelDialog({
   error,
   dispatch,
 }: LevelDialogProps) {
+  const { language } = useLanguage();
+  const copy = ACCOUNT_COPY[language];
   const handleUnauthorized = useSignOutOnUnauthorized();
   const open = dialog?.type === 'level';
 
@@ -30,10 +33,10 @@ export default function AccessLevelDialog({
     dispatch({ type: 'submitted' });
     try {
       const item = await changeAccessLevel(dialog.item.id, { access_level: dialog.level });
-      dispatch({ type: 'levelChanged', item });
+      dispatch({ type: 'levelChanged', item, language });
     } catch (failure) {
       if (!handleUnauthorized(failure)) {
-        dispatch({ type: 'failed', error: errorNoticeOf(failure, ACCOUNT_COPY.levelFailed) });
+        dispatch({ type: 'failed', error: errorNoticeOf(failure, copy.levelFailed) });
       }
     }
   }
@@ -41,15 +44,15 @@ export default function AccessLevelDialog({
   return (
     <ConfirmDialog
       open={open}
-      title={open ? ACCOUNT_COPY.levelTitle(nameOf(dialog.item)) : ''}
+      title={open ? copy.levelTitle(nameOf(dialog.item, language)) : ''}
       text=""
-      confirmLabel={ACCOUNT_COPY.save}
-      cancelLabel={ACCOUNT_COPY.cancel}
-      busyLabel={ACCOUNT_COPY.saving}
+      confirmLabel={copy.save}
+      cancelLabel={copy.cancel}
+      busyLabel={copy.saving}
       busy={busy}
       error={open ? error : null}
-      errorTitle={ACCOUNT_COPY.levelFailedTitle}
-      retryLabel={ACCOUNT_COPY.retry}
+      errorTitle={copy.levelFailedTitle}
+      retryLabel={copy.retry}
       onCancel={() => dispatch({ type: 'dialogClosed' })}
       onConfirm={save}
       wide
@@ -60,7 +63,7 @@ export default function AccessLevelDialog({
           value={dialog.level}
           onChange={(level) => dispatch({ type: 'levelChosen', level })}
           name="agent-access-level"
-          legend={ACCOUNT_COPY.accessLevel}
+          legend={copy.accessLevel}
           disabled={busy}
         />
       )}

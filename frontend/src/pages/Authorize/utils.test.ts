@@ -46,7 +46,7 @@ function ready(overrides: Partial<Extract<ConsentState, { status: 'ready' }>> = 
 
 describe('requestOf', () => {
   it('reads every parameter of a complete request', () => {
-    expect(requestOf(new URLSearchParams(FULL_QUERY))).toEqual({
+    expect(requestOf(new URLSearchParams(FULL_QUERY), 'en')).toEqual({
       ok: true,
       request: {
         client_id: 'https://claude.ai/client.json',
@@ -61,18 +61,18 @@ describe('requestOf', () => {
   });
 
   it('accepts a request without a scope, as an empty one', () => {
-    const reading = requestOf(paramsWithout('scope'));
+    const reading = requestOf(paramsWithout('scope'), 'en');
     expect(reading.ok && reading.request.scope).toBe('');
   });
 
   it('names what is missing, in the order of the request', () => {
-    expect(requestOf(paramsWithout('state', 'client_id'))).toEqual({
+    expect(requestOf(paramsWithout('state', 'client_id'), 'en')).toEqual({
       ok: false,
       message: 'The request is missing client_id, state.',
     });
-    expect(requestOf(new URLSearchParams())).toEqual({
+    expect(requestOf(new URLSearchParams(), 'en')).toEqual({
       ok: false,
-      message: CONSENT_COPY.missing([
+      message: CONSENT_COPY.en.missing([
         'response_type',
         'client_id',
         'redirect_uri',
@@ -87,7 +87,7 @@ describe('requestOf', () => {
   it('counts an empty parameter as missing', () => {
     const params = new URLSearchParams(FULL_QUERY);
     params.set('resource', '');
-    expect(requestOf(params)).toEqual({
+    expect(requestOf(params, 'en')).toEqual({
       ok: false,
       message: 'The request is missing resource.',
     });
@@ -96,7 +96,30 @@ describe('requestOf', () => {
   it('refuses a response type other than code', () => {
     const params = new URLSearchParams(FULL_QUERY);
     params.set('response_type', 'token');
-    expect(requestOf(params)).toEqual({ ok: false, message: CONSENT_COPY.responseType });
+    expect(requestOf(params, 'en')).toEqual({ ok: false, message: CONSENT_COPY.en.responseType });
+  });
+
+  it('says why in German, with the verb agreeing with what is missing', () => {
+    expect(requestOf(paramsWithout('state'), 'de')).toEqual({
+      ok: false,
+      message: 'In der Anfrage fehlt state.',
+    });
+    expect(requestOf(paramsWithout('state', 'client_id'), 'de')).toEqual({
+      ok: false,
+      message: 'In der Anfrage fehlen client_id, state.',
+    });
+    const params = new URLSearchParams(FULL_QUERY);
+    params.set('response_type', 'token');
+    expect(requestOf(params, 'de')).toEqual({
+      ok: false,
+      message: 'Die Anfrage muss einen Autorisierungscode anfordern (response_type=code).',
+    });
+  });
+
+  it('reads the same request in either language', () => {
+    expect(requestOf(new URLSearchParams(FULL_QUERY), 'de')).toEqual(
+      requestOf(new URLSearchParams(FULL_QUERY), 'en')
+    );
   });
 });
 
@@ -161,13 +184,13 @@ describe('isInvalidRequestError', () => {
 
 describe('initialConsentState', () => {
   it('loads the client for a usable request', () => {
-    expect(initialConsentState(requestOf(new URLSearchParams(FULL_QUERY)))).toEqual({
+    expect(initialConsentState(requestOf(new URLSearchParams(FULL_QUERY), 'en'))).toEqual({
       status: 'loading',
     });
   });
 
   it('shows the alert for a request it can’t use', () => {
-    expect(initialConsentState(requestOf(paramsWithout('state')))).toEqual({
+    expect(initialConsentState(requestOf(paramsWithout('state'), 'en'))).toEqual({
       status: 'invalid',
       message: 'The request is missing state.',
     });

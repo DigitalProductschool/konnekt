@@ -1,9 +1,9 @@
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import {
   editedHiddenTextOf,
   failingValueHiddenTextOf,
 } from '@connection-portal/rules/personas/messages';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import type { ValueRowProps } from './types';
 
@@ -20,6 +20,7 @@ import type { ValueRowProps } from './types';
  * that the value isn't squeezed into a few letters a line (FR-010; no frame)
  */
 export default function ValueRow({ label, text, failing, changed }: ValueRowProps) {
+  const { language } = useLanguage();
   return (
     <div className="text-kern-static-small flex flex-col border-t border-(--kern-color-decorative-border-default) py-8 leading-(--kern-typography-line-height-medium-static) sm:flex-row sm:items-center sm:gap-16">
       <dt className="text-kern-layout-text-muted shrink-0 break-words sm:w-120">{label}</dt>
@@ -31,18 +32,15 @@ export default function ValueRow({ label, text, failing, changed }: ValueRowProp
           />
         )}
         <span className={`min-w-0 flex-1 break-words ${failing ? 'font-semibold' : ''}`}>
-          {/* TODO(009, T039): the language of the moment, here and for the edited text */}
-          {failing && (
-            <span className="sr-only">{failingValueHiddenTextOf(DEFAULT_LANGUAGE)} </span>
-          )}
+          {failing && <span className="sr-only">{failingValueHiddenTextOf(language)} </span>}
           {text}
           {changed && (
             <>
               <span aria-hidden="true" className="font-normal">
                 {' '}
-                {TEST_STEP_COPY.edited}
+                {TEST_STEP_COPY[language].edited}
               </span>
-              <span className="sr-only">{editedHiddenTextOf(DEFAULT_LANGUAGE)}</span>
+              <span className="sr-only">{editedHiddenTextOf(language)}</span>
             </>
           )}
         </span>

@@ -2,8 +2,9 @@ import type { EditLocationState } from '@connection-portal/api-types/routing';
 import { generatePath, Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import { EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
-import { DETAIL_COPY } from './constants';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import type { DetailFooterProps } from './types';
 
 /**
@@ -16,13 +17,14 @@ import type { DetailFooterProps } from './types';
  * →" alone, where it will stay. The footer wraps where they don't fit.
  */
 export default function DetailFooter({ formConnectionId, draft, onEdit }: DetailFooterProps) {
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   const editState: EditLocationState = draft ? { step: draft.step } : EDIT_ENTRY_STATE;
   // Only a published connection asks first: a draft was never live (F48, T081)
   const asksFirst = onEdit !== undefined && !draft;
   const editContent = (
     <>
       <span aria-hidden="true" className="kern-icon kern-icon--edit" />
-      <span className="kern-label">{DETAIL_COPY.editConnection}</span>
+      <span className="kern-label">{copy.editConnection}</span>
     </>
   );
   return (
@@ -42,7 +44,7 @@ export default function DetailFooter({ formConnectionId, draft, onEdit }: Detail
         </Link>
       )}
       <Link to={ROUTES.overview} className="kern-btn kern-btn--primary ml-auto">
-        <span className="kern-label">{DETAIL_COPY.goToConnections}</span>
+        <span className="kern-label">{copy.goToConnections}</span>
         <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
       </Link>
     </>

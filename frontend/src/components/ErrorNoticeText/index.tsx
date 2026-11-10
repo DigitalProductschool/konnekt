@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { ERROR_NOTICE_COPY } from './constants';
 import type { ErrorNoticeTextProps } from './types';
 
@@ -10,13 +11,13 @@ import type { ErrorNoticeTextProps } from './types';
  * anywhere, so that it fits at 320px (FR-010).
  */
 export default function ErrorNoticeText({ notice }: ErrorNoticeTextProps) {
+  const copy = useCopy(ERROR_NOTICE_COPY);
   return (
     <>
       {notice.message}
       {notice.error_id && (
         <span className="block">
-          {ERROR_NOTICE_COPY.errorId}{' '}
-          <span className="wrap-anywhere select-all">{notice.error_id}</span>
+          {copy.errorId} <span className="wrap-anywhere select-all">{notice.error_id}</span>
         </span>
       )}
     </>

@@ -1,3 +1,4 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
@@ -9,17 +10,18 @@ import type {
 import type { DetailLocationState } from '@connection-portal/api-types/routing';
 import type { RuleChecks } from '@connection-portal/rules/checks/types';
 import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import type { Language } from '@connection-portal/rules/language';
 import { countRules } from '@connection-portal/rules/tree';
 import type { RuleDocument } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
-import { PUBLISH_COPY } from '../FormConnectionEditor/constants';
+import { PUBLISH_DIALOG_COPY } from '../FormConnectionEditor/constants';
 import type { BannerItem, RulesBranch } from '../FormConnectionEditor/RulesStep/types';
 import type { FindingLine } from '../FormConnectionEditor/types';
 import { findingLinesOf } from '../FormConnectionEditor/utils';
-import { DELETE_DIALOG_COPY } from '../FormConnectionList/constants';
+import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import { deleteDialogCopyOf, formatRowDate } from '../FormConnectionList/utils';
-import { DETAIL_COPY, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMAT } from './constants';
+import { CONNECTION_DETAIL_COPY, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMATS } from './constants';
 import type {
   ActionDialogCopy,
   ActionsAction,
@@ -43,10 +45,11 @@ export function arrivalOf(state: unknown): Arrival {
 }
 
 /** The first state: after saving an edit, a success toast confirms it (FR-051 (42)). */
-export function initialActionsState(arrival: Arrival): ActionsState {
+export function initialActionsState(arrival: Arrival, language: Language): ActionsState {
+  const message = CONNECTION_DETAIL_COPY[language].saved;
   return {
     ...INITIAL_ACTIONS_STATE,
-    toast: arrival === 'saved' ? { id: 1, kind: 'success', message: DETAIL_COPY.saved } : null,
+    toast: arrival === 'saved' ? { id: 1, kind: 'success', message } : null,
   };
 }
 
@@ -82,38 +85,42 @@ export function actionsReducer(state: ActionsState, action: ActionsAction): Acti
  */
 export function dialogCopyOf(
   action: ConfirmedAction,
-  formConnection: Pick<FormConnection, 'name' | 'status' | 'is_active'>
+  formConnection: Pick<FormConnection, 'name' | 'status' | 'is_active'>,
+  language: Language
 ): ActionDialogCopy {
+  const copy = CONNECTION_DETAIL_COPY[language];
   switch (action) {
-    case 'delete':
+    case 'delete': {
+      const deleteCopy = DELETE_CONNECTION_COPY[language];
       return {
-        ...deleteDialogCopyOf(formConnection),
-        confirmLabel: DELETE_DIALOG_COPY.confirm,
-        cancelLabel: DELETE_DIALOG_COPY.cancel,
-        busyLabel: DELETE_DIALOG_COPY.busy,
-        errorTitle: DELETE_DIALOG_COPY.errorTitle,
+        ...deleteDialogCopyOf(formConnection, language),
+        confirmLabel: deleteCopy.confirm,
+        cancelLabel: deleteCopy.cancel,
+        busyLabel: deleteCopy.busy,
+        errorTitle: deleteCopy.errorTitle,
         danger: true,
         wide: false,
       };
+    }
     case 'deactivate':
       return {
-        title: DETAIL_COPY.deactivateTitle,
-        text: DETAIL_COPY.deactivateText,
-        confirmLabel: DETAIL_COPY.deactivate,
-        cancelLabel: DETAIL_COPY.keepActive,
-        busyLabel: DETAIL_COPY.deactivating,
-        errorTitle: DETAIL_COPY.deactivateError,
+        title: copy.deactivateTitle,
+        text: copy.deactivateText,
+        confirmLabel: copy.deactivate,
+        cancelLabel: copy.keepActive,
+        busyLabel: copy.deactivating,
+        errorTitle: copy.deactivateError,
         danger: false,
         wide: false,
       };
     case 'activate':
       return {
-        title: DETAIL_COPY.activateTitle,
-        text: DETAIL_COPY.activateText,
-        confirmLabel: DETAIL_COPY.activate,
-        cancelLabel: DETAIL_COPY.cancel,
-        busyLabel: DETAIL_COPY.activating,
-        errorTitle: DETAIL_COPY.activateError,
+        title: copy.activateTitle,
+        text: copy.activateText,
+        confirmLabel: copy.activate,
+        cancelLabel: copy.cancel,
+        busyLabel: copy.activating,
+        errorTitle: copy.activateError,
         danger: false,
         wide: true,
       };
@@ -125,26 +132,32 @@ export function dialogCopyOf(
  * it: "Personal ID · 7 data items" per document, "Standard · 2 rules" per variant in tab order.
  */
 export function reactivateSummaryOf(
-  formConnection: Pick<FormConnection, 'documents' | 'branches'>
+  formConnection: Pick<FormConnection, 'documents' | 'branches'>,
+  language: Language
 ): ReactivateSummary {
+  const copy = PUBLISH_DIALOG_COPY[language];
   return {
     documentLines: formConnection.documents.map((document) =>
-      PUBLISH_COPY.documentLine(document.label, document.fields.length)
+      copy.documentLine(document.label, document.fields.length)
     ),
     ruleLines: formConnection.branches.map((branch) =>
-      PUBLISH_COPY.ruleLine(branch.name.trim(), countRules(branch.items))
+      copy.ruleLine(branch.name.trim(), countRules(branch.items))
     ),
   };
 }
 
 /** The API's message, with the error ID of a 5xx answer, or "Nothing changed. …". */
-export function actionErrorNotice(error: unknown) {
-  return errorNoticeOf(error, DETAIL_COPY.actionErrorText);
+export function actionErrorNotice(error: unknown, language: Language) {
+  return errorNoticeOf(error, CONNECTION_DETAIL_COPY[language].actionErrorText);
 }
 
 /** The toast after an action that keeps the connection. */
-export function successMessageOf(action: Exclude<StatusAction, 'delete'>): string {
-  return action === 'deactivate' ? DETAIL_COPY.deactivated : DETAIL_COPY.activated;
+export function successMessageOf(
+  action: Exclude<StatusAction, 'delete'>,
+  language: Language
+): string {
+  const copy = CONNECTION_DETAIL_COPY[language];
+  return action === 'deactivate' ? copy.deactivated : copy.activated;
 }
 
 /**
@@ -160,8 +173,8 @@ export function resultLinksOf(formConnection: FormConnection): LinkCardLink[] {
 }
 
 /** The Links accordion's counts (FR-052f): "1 request link · 3 result links". */
-export function linksCountsOf(formConnection: FormConnection): string {
-  return DETAIL_COPY.linksCounts(resultLinksOf(formConnection).length);
+export function linksCountsOf(formConnection: FormConnection, language: Language): string {
+  return CONNECTION_DETAIL_COPY[language].linksCounts(resultLinksOf(formConnection).length);
 }
 
 /**
@@ -196,9 +209,9 @@ function countableRuleIds(items: RuleTreeItem[]): string[] {
  * (data-model.md), so summing the variants would count them twice; a rule a variant removes
  * still counts, in Standard. Grouped rules count one by one, groups don't.
  */
-export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
+export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[], language: Language): string {
   const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
-  return DETAIL_COPY.rulesCounts(branches.length, ruleIds.size);
+  return CONNECTION_DETAIL_COPY[language].rulesCounts(branches.length, ruleIds.size);
 }
 
 /**
@@ -208,10 +221,15 @@ export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[]): string {
  */
 export function summaryCountsOf(
   documents: Pick<RequestedDocumentView, 'fields'>[],
-  branches: Pick<BranchInput, 'items'>[]
+  branches: Pick<BranchInput, 'items'>[],
+  language: Language
 ): string {
   const dataItems = documents.reduce((count, document) => count + document.fields.length, 0);
-  return DETAIL_COPY.summaryCounts(documents.length, dataItems, rulesCountsOf(branches));
+  return CONNECTION_DETAIL_COPY[language].summaryCounts(
+    documents.length,
+    dataItems,
+    rulesCountsOf(branches, language)
+  );
 }
 
 /**
@@ -239,9 +257,10 @@ export function requestedDocumentsOf(documents: RequestedDocumentView[]): Reques
  */
 export function summaryFindingsOf(
   branches: readonly RulesBranch[],
-  byBranch: RuleChecks['byBranch']
+  byBranch: RuleChecks['byBranch'],
+  language: Language
 ): BannerItem[] {
-  const lines: FindingLine[] = findingLinesOf(branches, byBranch);
+  const lines: FindingLine[] = findingLinesOf(branches, byBranch, language);
   return [...lines]
     .sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'))
     .map((line) => ({ key: line.key, tone: line.tone, kindText: null, parts: [line.text] }));
@@ -275,9 +294,9 @@ export function draftRuleDocumentsOf(
  * dates and the 24-hour time in the browser's time zone, "Edited 03.10.2026, 14:32" (design-notes
  * §3 "Dates").
  */
-export function editedLineOf(updatedAt: string): string {
-  const time = SAVED_TIME_FORMAT.format(new Date(updatedAt));
-  return DETAIL_COPY.edited(`${formatRowDate(updatedAt)}, ${time}`);
+export function editedLineOf(updatedAt: string, language: Language): string {
+  const time = SAVED_TIME_FORMATS[language].format(new Date(updatedAt));
+  return CONNECTION_DETAIL_COPY[language].edited(`${formatRowDate(updatedAt)}, ${time}`);
 }
 
 /**
@@ -285,14 +304,38 @@ export function editedLineOf(updatedAt: string): string {
  * meanwhile (`404`), or anything else, with the API's message and a 5xx answer's error ID. A
  * `401` signs out before this is asked.
  */
-export function deleteDraftErrorOf(error: unknown): DeleteDraftFailure {
+export function deleteDraftErrorOf(error: unknown, language: Language): DeleteDraftFailure {
+  const copy = CONNECTION_DETAIL_COPY[language];
   if (error instanceof ApiError && error.status === 409 && error.data.error === 'draft_published') {
-    return { kind: 'published', notice: { message: DETAIL_COPY.draftPublishedSince } };
+    return { kind: 'published', notice: { message: copy.draftPublishedSince } };
   }
   if (error instanceof ApiError && error.status === 404) {
-    return { kind: 'deleted', notice: { message: DETAIL_COPY.draftAlreadyDeleted } };
+    return { kind: 'deleted', notice: { message: copy.draftAlreadyDeleted } };
   }
-  return { kind: 'failed', notice: errorNoticeOf(error, DETAIL_COPY.actionErrorText) };
+  return { kind: 'failed', notice: errorNoticeOf(error, copy.actionErrorText) };
+}
+
+/**
+ * The notice of a failed draft delete as the dialog shows it (S6): for a draft published or
+ * deleted meanwhile the page's own words, in the language of the moment, so that they follow a
+ * switch (spec 009); otherwise the notice as it arrived (the API's message, or the fallback).
+ */
+export function deleteDraftNoticeOf(
+  failure: DeleteDraftFailure | null,
+  language: Language
+): ErrorNotice | null {
+  if (!failure) {
+    return null;
+  }
+  const copy = CONNECTION_DETAIL_COPY[language];
+  switch (failure.kind) {
+    case 'published':
+      return { message: copy.draftPublishedSince };
+    case 'deleted':
+      return { message: copy.draftAlreadyDeleted };
+    default:
+      return failure.notice;
+  }
 }
 
 export function draftDeleteReducer(
@@ -317,21 +360,22 @@ export function draftDeleteReducer(
  * meanwhile, it opens the connection; deleted meanwhile, the overview; otherwise it retries.
  * Only deleting is in the danger colour.
  */
-export function deleteDraftDialogOf(failure: DeleteDraftFailure | null) {
+export function deleteDraftDialogOf(failure: DeleteDraftFailure | null, language: Language) {
+  const copy = CONNECTION_DETAIL_COPY[language];
   switch (failure?.kind) {
     case 'published':
       return {
-        errorTitle: DETAIL_COPY.deleteError,
-        retryLabel: DETAIL_COPY.openConnection,
+        errorTitle: copy.deleteError,
+        retryLabel: copy.openConnection,
         danger: false,
       };
     case 'deleted':
       return {
-        errorTitle: DETAIL_COPY.deleteError,
-        retryLabel: DETAIL_COPY.toOverview,
+        errorTitle: copy.deleteError,
+        retryLabel: copy.toOverview,
         danger: false,
       };
     default:
-      return { errorTitle: DETAIL_COPY.deleteError, retryLabel: DETAIL_COPY.retry, danger: true };
+      return { errorTitle: copy.deleteError, retryLabel: copy.retry, danger: true };
   }
 }

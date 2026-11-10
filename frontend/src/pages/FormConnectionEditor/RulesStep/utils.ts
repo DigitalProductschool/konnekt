@@ -9,12 +9,14 @@ import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
 import type { FindingsBanner } from '@connection-portal/rules/checks/types';
 import { MAX_BRANCHES, RULES_MESSAGES } from '@connection-portal/rules/constants';
 import * as edits from '@connection-portal/rules/edits';
+import type { Language } from '@connection-portal/rules/language';
 import {
   deleteItem,
   findItem,
   flattenItems,
   isDissolved,
   newRule,
+  nounTextOf,
   numberOfId,
 } from '@connection-portal/rules/tree';
 import type { EditResult, EditState, RuleDocument } from '@connection-portal/rules/types';
@@ -30,7 +32,7 @@ import {
   LINK_STEP,
   MAIN_BRANCH_NAME,
   MENU_ENTRY_ORDER,
-  RULES_COPY,
+  RULES_STEP_COPY,
 } from './constants';
 import type {
   BannerItem,
@@ -134,10 +136,14 @@ export function focusSoon(id: string, fallbackId?: string, onlyIfLost = false) {
  * hidden kind text, then the notice and FR-010's sentence without a link or kind text. No text is
  * built here.
  */
-export function bannerViewOf(banner: FindingsBanner, expanded: boolean): BannerView {
+export function bannerViewOf(
+  banner: FindingsBanner,
+  expanded: boolean,
+  language: Language
+): BannerView {
   const { kind, lines, counts, notice, incomplete, head } = banner;
   if (lines.length < 2) {
-    const kindText = lines.length === 1 ? kindTextOf(lines[0].kind) : null;
+    const kindText = lines.length === 1 ? kindTextOf(lines[0].kind, language) : null;
     return {
       state: 'single',
       summary: { key: 'summary', tone: kind, kindText, parts: head },
@@ -155,7 +161,7 @@ export function bannerViewOf(banner: FindingsBanner, expanded: boolean): BannerV
     ...lines.map((line, index) => ({
       key: `line-${index}`,
       tone: line.tone,
-      kindText: kindTextOf(line.kind),
+      kindText: kindTextOf(line.kind, language),
       parts: line.parts,
     })),
     ...(notice ? [{ key: 'notice', tone: notice.tone, kindText: null, parts: [notice.text] }] : []),
@@ -488,35 +494,43 @@ export function hasUnsavedChanges(state: RulesState): boolean {
   return JSON.stringify(draft) !== JSON.stringify(original);
 }
 
-/** Names as the toasts list them: "Rule 02 and Rule 03", "Rule 02, Rule 03 and Rule 04". */
-export function joinNames(names: string[]): string {
+/**
+ * Names as the toasts list them: "Rule 02 and Rule 03", "Rule 02, Rule 03 and Rule 04" ("Rule 02,
+ * Rule 03 und Rule 04").
+ */
+export function joinNames(names: string[], language: Language): string {
   if (names.length < 2) {
     return names.join('');
   }
-  return `${names.slice(0, -1).join(', ')} ${RULES_COPY.and} ${names[names.length - 1]}`;
+  const { and } = RULES_STEP_COPY[language];
+  return `${names.slice(0, -1).join(', ')} ${and} ${names[names.length - 1]}`;
 }
 
 /** The selection bar's text (U16): what is chosen, and what grouping it makes. */
-export function selectionText(selection: RulesSelection, branch: RulesBranch): string {
+export function selectionText(
+  selection: RulesSelection,
+  branch: RulesBranch,
+  language: Language
+): string {
+  const copy = RULES_STEP_COPY[language];
   const { ids, parentId } = selection;
   if (ids.length === 0) {
-    return RULES_COPY.selectTwo;
+    return copy.selectTwo;
   }
   if (ids.length === 1) {
     const rule = findItem(branch.items, ids[0])?.item;
-    return RULES_COPY.selectOneMore(rule?.name ?? '');
+    return copy.selectOneMore(rule?.name ?? '');
   }
   const group = parentId === null ? null : findItem(branch.items, parentId)?.item;
-  return group
-    ? RULES_COPY.selectedSubGroup(ids.length, group.name)
-    : RULES_COPY.selected(ids.length);
+  return group ? copy.selectedSubGroup(ids.length, group.name) : copy.selected(ids.length);
 }
 
 /** The note after switching a level's AND or OR, if this level was just switched. */
 export function switchNoteOf(
   state: RulesState,
   branch: RulesBranch,
-  parentId: string | null
+  parentId: string | null,
+  language: Language
 ): string | null {
   const { switched } = state;
   if (!switched || switched.branchKey !== branch.key || switched.parentId !== parentId) {
@@ -524,9 +538,8 @@ export function switchNoteOf(
   }
   const level =
     parentId === null ? branch.name.trim() : (findItem(branch.items, parentId)?.item.name ?? '');
-  return switched.operator === 'or'
-    ? RULES_COPY.switchedToOr(level)
-    : RULES_COPY.switchedToAnd(level);
+  const copy = RULES_STEP_COPY[language];
+  return switched.operator === 'or' ? copy.switchedToOr(level) : copy.switchedToAnd(level);
 }
 
 /**
@@ -534,7 +547,8 @@ export function switchNoteOf(
  * their own messages back, as U35 6965:50849 says (F32): not those of a sub-group with its own
  * message, and none while a group around it has one; otherwise the baseline's toast.
  */
-export function ungroupedText(branch: RulesBranch, group: GroupItem): string {
+export function ungroupedText(branch: RulesBranch, group: GroupItem, language: Language): string {
+  const copy = RULES_STEP_COPY[language];
   const parentId = findItem(branch.items, group.id)?.parentId ?? null;
   const parent = parentId === null ? null : groupOf(branch, parentId);
   const freed =
@@ -544,11 +558,14 @@ export function ungroupedText(branch: RulesBranch, group: GroupItem): string {
           item.type === 'rule' ? [item] : item.message === null ? item.items : []
         );
   return freed.length > 0
-    ? RULES_COPY.ungroupedOwnMessages(
-        joinNames(freed.map((item) => item.name.trim())),
+    ? copy.ungroupedOwnMessages(
+        joinNames(
+          freed.map((item) => item.name.trim()),
+          language
+        ),
         freed.length
       )
-    : RULES_COPY.ungrouped(group.name, branch.name);
+    : copy.ungrouped(group.name, branch.name);
 }
 
 /** The refused Publish's problem, if it names this item of the branch (F11). */
@@ -577,12 +594,16 @@ export function messageGroupOf(items: RuleTreeItem[], parentId: string | null): 
  * The message hint of the open rule editor (U35 6965:50822; F32): the rule's group, or the group
  * a new rule goes into, decides
  */
-export function editorMessageHintOf(items: RuleTreeItem[], editing: RuleEditing): string | null {
+export function editorMessageHintOf(
+  items: RuleTreeItem[],
+  editing: RuleEditing,
+  language: Language
+): string | null {
   const parentId = editing.original
     ? (findItem(items, editing.original.id)?.parentId ?? null)
     : editing.parentId;
   const group = messageGroupOf(items, parentId);
-  return group ? RULES_COPY.notShownInGroup(group.name.trim()) : null;
+  return group ? RULES_STEP_COPY[language].notShownInGroup(group.name.trim()) : null;
 }
 
 /**
@@ -594,18 +615,20 @@ export function editorMessageHintOf(items: RuleTreeItem[], editing: RuleEditing)
 export function unrequestedNoteOf(
   rule: RuleItem,
   requested: RuleDocument[],
-  catalog: RuleDocument[]
+  catalog: RuleDocument[],
+  language: Language
 ): string | null {
+  const { noLongerRequested } = RULES_STEP_COPY[language];
   const { target } = rule;
   const document = target && catalog.find((entry) => entry.key === target.document_type);
   if (!target || !document) {
     return null;
   }
   if (!requested.some((entry) => entry.key === target.document_type)) {
-    return RULES_COPY.noLongerRequested(document.label.trim());
+    return noLongerRequested(document.label.trim());
   }
   const field = document.fields.find((entry) => entry.key === target.field);
-  return field ? RULES_COPY.noLongerRequested(field.label.trim()) : null;
+  return field ? noLongerRequested(field.label.trim()) : null;
 }
 
 export function problemFlagOf(
@@ -632,8 +655,10 @@ export function problemFlagOf(
 export function deleteDialogText(
   state: RulesState,
   dialog: { branchKey: string; itemId: string },
-  statement: string | null
+  statement: string | null,
+  language: Language
 ): string {
+  const copy = RULES_STEP_COPY[language];
   const branch = branchOf(state, dialog.branchKey);
   const item = branch && findItem(branch.items, dialog.itemId);
   if (!branch || !item) {
@@ -643,8 +668,8 @@ export function deleteDialogText(
   const based = state.branches.filter((entry) => entry.origin === 'based');
   if (branch.origin !== 'main' || based.length === 0) {
     return deleted.type === 'rule'
-      ? RULES_COPY.deleteText(statement)
-      : RULES_COPY.deleteGroupText(deleted.name, subGroupCount(deleted));
+      ? copy.deleteText(statement)
+      : copy.deleteGroupText(deleted.name, subGroupCount(deleted));
   }
   const main = branch.name.trim();
   const after = deleteItem(branch.items, deleted.id);
@@ -656,32 +681,42 @@ export function deleteDialogText(
   const sentences: string[] = [];
   if (deleted.type === 'rule') {
     sentences.push(
-      RULES_COPY.removedFromVariants(main, joinNames(based.map((entry) => entry.name.trim())))
+      copy.removedFromVariants(
+        main,
+        joinNames(
+          based.map((entry) => entry.name.trim()),
+          language
+        )
+      )
     );
   } else {
-    sentences.push(RULES_COPY.groupRemovedFromVariants(depth > 0 ? 'sub-group' : 'group', main));
+    const noun = nounTextOf(depth > 0 ? 'sub-group' : 'group', language);
+    sentences.push(copy.groupRemovedFromVariants(noun, main));
     for (const entry of flattenItems([deleted])) {
       const variants = keptBy(entry.id);
       if (variants.length > 0) {
         sentences.push(
-          RULES_COPY.itemKeptByVariants(joinNames(variants), variants.length, entry.name.trim())
+          copy.itemKeptByVariants(joinNames(variants, language), variants.length, entry.name.trim())
         );
       }
     }
   }
   const dissolved = after?.dissolved;
   if (dissolved) {
-    sentences.push(RULES_COPY.ungroupedEverywhere(dissolved.name.trim(), main));
+    sentences.push(copy.ungroupedEverywhere(dissolved.name.trim(), main));
     const lost = effects
       .filter((effect) => effect.dissolved.some((group) => group.id === dissolved.id))
       .map((effect) => effect.branch.name.trim());
     if (lost.length > 0) {
-      const owners = joinNames(lost.map((variant) => RULES_COPY.possessive(variant)));
-      sentences.push(RULES_COPY.changesGo(owners, dissolved.name.trim()));
+      const owners = joinNames(
+        lost.map((variant) => copy.possessive(variant)),
+        language
+      );
+      sentences.push(copy.changesGo(owners, dissolved.name.trim()));
     }
   }
   if (deleted.type !== 'rule') {
-    sentences.push(RULES_COPY.undoRightAfter);
+    sentences.push(copy.undoRightAfter);
   }
   return sentences.join(' ');
 }
@@ -695,7 +730,11 @@ export function deleteDialogText(
  * among them, those removed on their own or with a group around them. A group dissolved there
  * removes nothing (F13): the rule that remains counts.
  */
-export function linkStripSummaryOf(branch: RulesBranch, mainName: string): string | null {
+export function linkStripSummaryOf(
+  branch: RulesBranch,
+  mainName: string,
+  language: Language
+): string | null {
   const removedGroups: string[] = [];
   let removedRules = 0;
   let removedOnTheirOwn = 0;
@@ -722,10 +761,11 @@ export function linkStripSummaryOf(branch: RulesBranch, mainName: string): strin
     }
   };
   walk(branch.items, false);
+  const copy = RULES_STEP_COPY[language];
   if (removedOnTheirOwn === 0 && removedGroups.length > 0) {
-    return RULES_COPY.removedGroups(joinNames(removedGroups), removedGroups.length);
+    return copy.removedGroups(joinNames(removedGroups, language), removedGroups.length);
   }
-  return removedRules > 0 ? RULES_COPY.removedRules(removedRules, total, mainName.trim()) : null;
+  return removedRules > 0 ? copy.removedRules(removedRules, total, mainName.trim()) : null;
 }
 
 /**
@@ -802,16 +842,17 @@ export function variantFormReducer(form: VariantForm, action: VariantFormAction)
 export function variantFormProblem(
   form: VariantForm,
   state: RulesState,
-  ownKey: string | null
+  ownKey: string | null,
+  language: Language
 ): string | null {
   if (ownKey === null && state.branches.length >= MAX_BRANCHES) {
-    // TODO(009, T037): the language's message
-    return RULES_MESSAGES.en.tooManyBranches;
+    return RULES_MESSAGES[language].tooManyBranches;
   }
   const others = state.branches.filter((branch) => branch.key !== ownKey);
   return variantNameProblem(
     form.name,
-    others.map((branch) => branch.name)
+    others.map((branch) => branch.name),
+    language
   );
 }
 
@@ -871,6 +912,7 @@ function undoable(
   content: EditState,
   message: string,
   focus: Omit<RulesUndo, 'branches'>,
+  language: Language,
   kind: ToastKind = 'neutral'
 ): RulesState {
   return {
@@ -881,7 +923,7 @@ function undoable(
       id: nextToastId(state),
       ...(kind === 'success' ? { kind } : {}),
       message,
-      actionLabel: RULES_COPY.undo,
+      actionLabel: RULES_STEP_COPY[language].undo,
     },
   };
 }
@@ -944,8 +986,13 @@ function renamed(state: RulesState, { branchKey, itemId }: RenamingItem, name: s
     : edits.changeRule(content, branchKey, itemId, { name });
 }
 
-/** Deletes the rule or group the dialog asks about, with an Undo toast. */
-function deleteFromState(state: RulesState, branchKey: string, itemId: string): RulesState {
+/** Deletes the rule or group the dialog asks about, with an Undo toast in `language`. */
+function deleteFromState(
+  state: RulesState,
+  branchKey: string,
+  itemId: string,
+  language: Language
+): RulesState {
   const branch = branchOf(state, branchKey);
   const deleted = edits.deleteItem(editStateOf(state), branchKey, itemId);
   // The dialog deletes; what a based variant inherits isn't asked about, but removed there
@@ -953,12 +1000,13 @@ function deleteFromState(state: RulesState, branchKey: string, itemId: string): 
     return { ...state, dialog: null };
   }
   const { item } = deleted;
+  const copy = RULES_STEP_COPY[language];
   const message =
     item.type === 'rule'
-      ? RULES_COPY.ruleDeleted(item.name, branch.name)
-      : RULES_COPY.groupDeleted(item.name, branch.name);
+      ? copy.ruleDeleted(item.name, branch.name)
+      : copy.groupDeleted(item.name, branch.name);
   return {
-    ...undoable(state, deleted.state, message, { branchKey, itemId }),
+    ...undoable(state, deleted.state, message, { branchKey, itemId }, language),
     // A rule open in the editor goes with its deletion
     editing: editorIsIn(state, item) ? null : state.editing,
     dialog: null,
@@ -970,7 +1018,7 @@ function deleteFromState(state: RulesState, branchKey: string, itemId: string): 
  * left opens, and the toast offers Undo, which brings the variant back and opens it (FR-051
  * (33); U61 6523:37941): the undo names no item, so the focus goes to the variant's tab.
  */
-function deleteVariant(state: RulesState, branchKey: string): RulesState {
+function deleteVariant(state: RulesState, branchKey: string, language: Language): RulesState {
   const deleted = edits.deleteVariant(editStateOf(state), branchKey);
   if (!deleted.ok) {
     return { ...state, dialog: null };
@@ -978,10 +1026,13 @@ function deleteVariant(state: RulesState, branchKey: string): RulesState {
   const index = state.branches.findIndex((branch) => branch.key === branchKey);
   const editing = state.editing?.branchKey === branchKey ? null : state.editing;
   return {
-    ...undoable(state, deleted.state, RULES_COPY.variantDeleted(deleted.branch.name.trim()), {
-      branchKey,
-      itemId: '',
-    }),
+    ...undoable(
+      state,
+      deleted.state,
+      RULES_STEP_COPY[language].variantDeleted(deleted.branch.name.trim()),
+      { branchKey, itemId: '' },
+      language
+    ),
     openBranch: state.branches[index - 1].key,
     counters: editing === state.editing ? state.counters : releaseNumber(state),
     editing,
@@ -990,8 +1041,11 @@ function deleteVariant(state: RulesState, branchKey: string): RulesState {
   };
 }
 
-/** Copies the rule the dialog names to the branches `targets` (FR-022), with F29's toast. */
-function copyFromDialog(state: RulesState, targets: string[]): RulesState {
+/**
+ * Copies the rule the dialog names to the branches `targets` (FR-022), with F29's toast in
+ * `language`.
+ */
+function copyFromDialog(state: RulesState, targets: string[], language: Language): RulesState {
   const { dialog } = state;
   if (dialog?.type !== 'copyRule') {
     return state;
@@ -1007,6 +1061,7 @@ function copyFromDialog(state: RulesState, targets: string[]): RulesState {
     return { ...state, dialog: null };
   }
   const names = copied.copies.map(({ branchId }) => branchOf(state, branchId)?.name.trim() ?? '');
+  const copy = RULES_STEP_COPY[language];
   return {
     ...changed(state, copied.state),
     dialog: null,
@@ -1014,8 +1069,8 @@ function copyFromDialog(state: RulesState, targets: string[]): RulesState {
     toast: {
       id: nextToastId(state),
       kind: 'success',
-      message: RULES_COPY.copied(rule.name, joinNames(names)),
-      actionLabel: RULES_COPY.show,
+      message: copy.copied(rule.name, joinNames(names, language)),
+      actionLabel: copy.show,
     },
   };
 }
@@ -1088,7 +1143,10 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
           id: nextToastId(state),
           // A finished action: the Figma toast's success type ("saved, grouped, …"; T036)
           kind: 'success',
-          message: RULES_COPY.ruleSaved(editing.draft.name, branch?.name ?? ''),
+          message: RULES_STEP_COPY[action.language].ruleSaved(
+            editing.draft.name,
+            branch?.name ?? ''
+          ),
         },
       };
     }
@@ -1122,13 +1180,14 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
       };
     case 'confirmDelete': {
       const { dialog } = state;
+      const { language } = action;
       switch (dialog?.type) {
         case 'deleteRule':
-          return deleteFromState(state, dialog.branchKey, dialog.ruleId);
+          return deleteFromState(state, dialog.branchKey, dialog.ruleId, language);
         case 'deleteGroup':
-          return deleteFromState(state, dialog.branchKey, dialog.groupId);
+          return deleteFromState(state, dialog.branchKey, dialog.groupId, language);
         case 'deleteVariant':
-          return deleteVariant(state, dialog.branchKey);
+          return deleteVariant(state, dialog.branchKey, language);
         default:
           return state;
       }
@@ -1233,16 +1292,21 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         return state;
       }
       const group = grouped.item;
-      const names = joinNames(group.items.map((member) => member.name));
+      const copy = RULES_STEP_COPY[action.language];
+      const names = joinNames(
+        group.items.map((member) => member.name),
+        action.language
+      );
       const message =
         branch.origin === 'based'
-          ? RULES_COPY.groupedInVariant(names, branch.name, group.name, state.branches[0].name)
-          : RULES_COPY.grouped(names, branch.name, group.name);
+          ? copy.groupedInVariant(names, branch.name, group.name, state.branches[0].name)
+          : copy.grouped(names, branch.name, group.name);
       return undoable(
         state,
         grouped.state,
         message,
         { branchKey: branch.key, itemId: group.items[0].id, groupNumber: state.counters.group },
+        action.language,
         'success'
       );
     }
@@ -1256,8 +1320,9 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
       return undoable(
         state,
         ungrouped.state,
-        ungroupedText(branch, group),
+        ungroupedText(branch, group, action.language),
         { branchKey: branch.key, itemId: group.id },
+        action.language,
         'success'
       );
     }
@@ -1308,6 +1373,6 @@ export function rulesReducer(state: RulesState, action: RulesAction): RulesState
         dialog: { type: 'copyRule', branchKey: action.branchKey, ruleId: action.ruleId },
       };
     case 'copyRule':
-      return copyFromDialog(state, action.targets);
+      return copyFromDialog(state, action.targets, action.language);
   }
 }

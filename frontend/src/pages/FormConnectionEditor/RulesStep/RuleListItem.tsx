@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import RuleRow from '../../../components/RuleRow';
+import { useLanguage } from '../../../hooks/useLanguage';
 import {
   placementFrom,
   type PopupPlacement,
@@ -30,6 +31,7 @@ export default function RuleListItem({
   selectBox,
 }: RuleListItemProps) {
   const { branch, state, dispatch, onCopyLink: copyLink } = view;
+  const { language } = useLanguage();
   const standing = standingOf(branch, rule);
   const main = state.branches[0];
   const renaming = state.renaming?.branchKey === branch.key && state.renaming.itemId === rule.id;
@@ -63,7 +65,7 @@ export default function RuleListItem({
 
   /** Copies the rule to these branches, by key, with the focus back on the rule's ⋯. */
   function copyTo(targets: string[]) {
-    dispatch({ type: 'copyRule', targets });
+    dispatch({ type: 'copyRule', targets, language });
     focusActions();
   }
   return (

@@ -1,5 +1,6 @@
 import AuthLayout from '../../components/AuthLayout';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy } from '../../hooks/useLanguage';
 import { FORGOT_PASSWORD_COPY } from './constants';
 import ForgotPasswordCard from './ForgotPasswordCard';
 
@@ -9,7 +10,7 @@ import ForgotPasswordCard from './ForgotPasswordCard';
  * with the account CLI, so the screen only says whom to ask.
  */
 export default function ForgotPasswordPage() {
-  useDocumentTitle(FORGOT_PASSWORD_COPY.pageTitle);
+  useDocumentTitle(useCopy(FORGOT_PASSWORD_COPY).pageTitle);
 
   return (
     <AuthLayout>

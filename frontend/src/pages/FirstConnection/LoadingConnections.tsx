@@ -1,6 +1,7 @@
 import FeedbackLoader from '../../components/FeedbackLoader';
 import WizardLayout from '../../components/WizardLayout';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy } from '../../hooks/useLanguage';
 import { FIRST_CONNECTION_COPY } from './constants';
 
 /**
@@ -11,13 +12,14 @@ import { FIRST_CONNECTION_COPY } from './constants';
  * over.
  */
 export default function LoadingConnections() {
-  useDocumentTitle(FIRST_CONNECTION_COPY.loading);
+  const copy = useCopy(FIRST_CONNECTION_COPY);
+  useDocumentTitle(copy.loading);
 
   return (
     <WizardLayout footer={null}>
-      <h1 className="sr-only">{FIRST_CONNECTION_COPY.title}</h1>
+      <h1 className="sr-only">{copy.title}</h1>
       <div className="flex flex-1 flex-col items-center justify-center">
-        <FeedbackLoader label={FIRST_CONNECTION_COPY.loading} />
+        <FeedbackLoader label={copy.loading} />
       </div>
     </WizardLayout>
   );

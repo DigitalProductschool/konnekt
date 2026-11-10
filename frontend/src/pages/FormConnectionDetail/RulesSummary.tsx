@@ -2,7 +2,8 @@ import { requestedRuleDocuments, ruleDocumentsOf } from '@connection-portal/rule
 import { useId, useMemo, useState } from 'react';
 
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
-import { DETAIL_COPY } from './constants';
+import { useLanguage } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import DetailAccordion from './DetailAccordion';
 import DocumentsSummary from './DocumentsSummary';
 import RulesSummaryContent from './RulesSummaryContent';
@@ -34,14 +35,18 @@ export default function RulesSummary({
   const [ownOpen, setOwnOpen] = useState(true);
   const rulesTitleId = useId();
   const { status, documentTypes } = useDocumentTypes();
+  const { language } = useLanguage();
+  const copy = CONNECTION_DETAIL_COPY[language];
+  // The statements in the language (spec 009, R4): a switch rebuilds the context
   const context = useMemo(
     () => ({
       documents: draft
         ? draftRuleDocumentsOf(documents, documentTypes)
         : ruleDocumentsOf(documents),
       optionSets: [],
+      language,
     }),
-    [draft, documents, documentTypes]
+    [draft, documents, documentTypes, language]
   );
   const checkDocuments = useMemo(
     () =>
@@ -53,10 +58,10 @@ export default function RulesSummary({
 
   return (
     <DetailAccordion
-      title={DETAIL_COPY.summaryTitle}
-      counts={summaryCountsOf(documents, branches)}
-      viewLabel={DETAIL_COPY.viewSummary}
-      hideLabel={DETAIL_COPY.hideSummary}
+      title={copy.summaryTitle}
+      counts={summaryCountsOf(documents, branches, language)}
+      viewLabel={copy.viewSummary}
+      hideLabel={copy.hideSummary}
       open={open ?? ownOpen}
       onToggle={onToggle ?? (() => setOwnOpen((isOpen) => !isOpen))}
     >
@@ -69,7 +74,7 @@ export default function RulesSummary({
             id={rulesTitleId}
             className="text-kern-static-medium text-kern-action-default leading-(--kern-typography-line-height-medium-static) font-semibold"
           >
-            {DETAIL_COPY.rulesTitle}
+            {copy.rulesTitle}
           </h3>
           <RulesSummaryContent
             branches={branches}

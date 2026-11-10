@@ -1,5 +1,5 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { approveRequest, declineRequest, getApprovalRequest } from '../../api/approvals';
@@ -10,8 +10,9 @@ import PageLoader from '../../components/PageLoader';
 import PageTitle from '../../components/PageTitle';
 import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { DETAIL_COPY } from '../FormConnectionDetail/constants';
+import { CONNECTION_DETAIL_COPY } from '../FormConnectionDetail/constants';
 import ApprovalActions from './ApprovalActions';
 import ApprovalOutcome from './ApprovalOutcome';
 import ApprovalSummary from './ApprovalSummary';
@@ -42,11 +43,18 @@ import {
 function ApprovalScreen({ id }: ApprovalScreenProps) {
   const [state, dispatch] = useReducer(approvalReducer, INITIAL_APPROVAL_STATE);
   const handleUnauthorized = useSignOutOnUnauthorized();
+  const { language } = useLanguage();
+  const copy = APPROVAL_COPY[language];
+  // A load or call in flight during a switch: its failure takes the language it arrives in
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
   const request = state.status === 'loaded' ? state.preview.request : null;
-  const title = request ? titleOf(request.action, request.connection_name) : null;
+  const title = request ? titleOf(request.action, request.connection_name, language) : null;
 
   useDocumentTitle(
-    title ?? (state.status === 'notFound' ? NOT_FOUND_COPY.title : APPROVAL_COPY.fallbackTitle)
+    title ?? (state.status === 'notFound' ? NOT_FOUND_COPY[language].title : copy.fallbackTitle)
   );
 
   useEffect(() => {
@@ -56,7 +64,9 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
         if (!ignore) dispatch({ type: 'loaded', preview });
       },
       (error: unknown) => {
-        if (!ignore && !handleUnauthorized(error)) dispatch(loadFailureActionOf(error));
+        if (!ignore && !handleUnauthorized(error)) {
+          dispatch(loadFailureActionOf(error, languageRef.current));
+        }
       }
     );
     return () => {
@@ -76,7 +86,7 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
       dispatch(
         outcome
           ? { type: 'conflicted', outcome }
-          : { type: 'callFailed', failure: callFailureOf(call, error) }
+          : { type: 'callFailed', failure: callFailureOf(call, error, languageRef.current) }
       );
     }
   }
@@ -89,20 +99,20 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
     case 'notYours':
       return (
         <>
-          <PageTitle title={APPROVAL_COPY.fallbackTitle} size="x-large" />
-          <KernAlert variant="info" title={APPROVAL_COPY.notYours} className="w-full" />
+          <PageTitle title={copy.fallbackTitle} size="x-large" />
+          <KernAlert variant="info" title={copy.notYours} className="w-full" />
         </>
       );
     case 'failed':
       // design-notes §3 "Error state of a page": the reason with a 5xx's error ID, the way back
       return (
         <>
-          <PageTitle title={APPROVAL_COPY.fallbackTitle} size="x-large" />
-          <KernAlert variant="danger" title={APPROVAL_COPY.loadFailedTitle} className="w-full">
+          <PageTitle title={copy.fallbackTitle} size="x-large" />
+          <KernAlert variant="danger" title={copy.loadFailedTitle} className="w-full">
             <ErrorNoticeText notice={state.notice} />
             <span className="mt-10 flex flex-wrap items-center gap-x-24 gap-y-8">
               <Link to={ROUTES.overview} className="kern-link">
-                {DETAIL_COPY.goToConnections}
+                {CONNECTION_DETAIL_COPY[language].goToConnections}
               </Link>
             </span>
           </KernAlert>
@@ -112,10 +122,10 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
 
   const { preview, running, retry } = state;
   const { action } = preview.request;
-  const view = outcomeViewOf(state);
+  const view = outcomeViewOf(state, language);
   return (
     <>
-      <PageTitle title={title ?? ''} hint={subtitleOf(preview.request)} size="x-large" />
+      <PageTitle title={title ?? ''} hint={subtitleOf(preview.request, language)} size="x-large" />
       {view?.kind === 'final' ? (
         <ApprovalOutcome
           view={view}

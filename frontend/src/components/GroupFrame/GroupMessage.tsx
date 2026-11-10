@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import { focusMessageOnPress } from '../../utils/messageField';
 import { INACTIVE_OPACITY } from '../BranchMark/constants';
 import { GROUP_FRAME_COPY, GROUP_MESSAGE_MAX_LENGTH } from './constants';
@@ -18,6 +19,7 @@ import type { GroupMessageProps } from './types';
  * caret at its end. In a removed group, or inside one, the card fades (U47 6185:41171).
  */
 export default function GroupMessage({ message, field, faded = false }: GroupMessageProps) {
+  const copy = useCopy(GROUP_FRAME_COPY);
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -37,7 +39,7 @@ export default function GroupMessage({ message, field, faded = false }: GroupMes
         {field ? (
           <>
             <label htmlFor={field.id} className={labelClasses}>
-              {GROUP_FRAME_COPY.messageLabel}
+              {copy.messageLabel}
             </label>
             <textarea
               id={field.id}
@@ -55,7 +57,7 @@ export default function GroupMessage({ message, field, faded = false }: GroupMes
           </>
         ) : (
           <p className="text-kern-static-small min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static)">
-            <span className={`${labelClasses} mr-8`}>{GROUP_FRAME_COPY.messageLabel}</span>
+            <span className={`${labelClasses} mr-8`}>{copy.messageLabel}</span>
             <span className="text-kern-layout-text-default break-words">{message}</span>
           </p>
         )}
@@ -65,7 +67,7 @@ export default function GroupMessage({ message, field, faded = false }: GroupMes
           aria-hidden="true"
           className="kern-icon kern-icon--info kern-icon--small bg-kern-feedback-info! shrink-0"
         />
-        {GROUP_FRAME_COPY.messageHint}
+        {copy.messageHint}
       </p>
     </div>
   );

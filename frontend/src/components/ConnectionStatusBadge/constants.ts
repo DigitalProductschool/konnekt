@@ -1,12 +1,13 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { ConnectionStatus, StatusPillTone } from './types';
 
 // Figma "Status/Connection" (7341:101125; U11 6699:44264, 6699:44277, 6699:44290): the label,
-// so that the status never rests on colour alone (005-ACC.1)
-export const STATUS_PILL_COPY: Record<ConnectionStatus, string> = {
-  active: 'Active',
-  draft: 'Draft',
-  deactivated: 'Deactivated',
-};
+// so that the status never rests on colour alone (005-ACC.1); G§2 "active / deactivated"
+export const STATUS_PILL_COPY = defineTexts<Record<ConnectionStatus, string>>(
+  { active: 'Active', draft: 'Draft', deactivated: 'Deactivated' },
+  { active: 'Aktiv', draft: 'Entwurf', deactivated: 'Deaktiviert' }
+);
 
 /**
  * The pill's colours as "Status/Connection" draws them (raw hexes in Figma, no variables): where

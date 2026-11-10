@@ -1,4 +1,5 @@
 import type { AccessLevel } from '@connection-portal/api-types/agent-access';
+import type { Language } from '@connection-portal/rules/language';
 
 import { ApiError } from '../../api/client';
 import { CONSENT_COPY, INITIAL_CONSENT_STATE, REQUIRED_PARAMETERS } from './constants';
@@ -10,15 +11,16 @@ const LEVEL_ORDER: AccessLevel[] = ['read', 'drafts', 'manage'];
 /**
  * Reads the authorization request from the page's query string (contracts/oauth.md
  * "Authorization"). Every parameter but `scope` is required, and an empty one counts as missing;
- * the server checks the values themselves.
+ * the server checks the values themselves. Why a request can't be used is worded in `language`.
  */
-export function requestOf(searchParams: URLSearchParams): RequestReading {
+export function requestOf(searchParams: URLSearchParams, language: Language): RequestReading {
+  const copy = CONSENT_COPY[language];
   const missing = REQUIRED_PARAMETERS.filter((name) => !searchParams.get(name));
   if (missing.length > 0) {
-    return { ok: false, message: CONSENT_COPY.missing(missing) };
+    return { ok: false, message: copy.missing(missing) };
   }
   if (searchParams.get('response_type') !== 'code') {
-    return { ok: false, message: CONSENT_COPY.responseType };
+    return { ok: false, message: copy.responseType };
   }
   const value = (name: string) => searchParams.get(name) ?? '';
   return {

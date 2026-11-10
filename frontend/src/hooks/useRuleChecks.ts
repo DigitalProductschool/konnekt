@@ -27,8 +27,9 @@ import {
 } from 'react';
 
 import type { ActiveRun, CheckableBranch, CheckedTreeModule, SentChange } from './types';
+import { useLanguage } from './useLanguage';
 import { useTodayInGermany } from './useTodayInGermany';
-import { actionOf, byBranchFor, causeOf, runBranchesOf, sameRunBranches } from './utils';
+import { actionOf, byBranchFor, causeOf, runBranchesOf, sameChange } from './utils';
 
 /** The clock of the deadline and the watchdog, the same as the worker's */
 function clockNow(): number {
@@ -129,6 +130,10 @@ function stopRun(activeRef: RefObject<ActiveRun | null>): void {
  * branch's checked tree on the main thread and hands the change to the run state, which reuses
  * cached results and starts a run for the rest. The run's worker checks them in the background:
  * the hook never blocks rendering, and nothing waits for it (FR-010, FR-016)
+ *
+ * The announcements are composed in the website's language at the latest change (spec 009, R4):
+ * a switch is handed on as a change of its own, which starts no run, so that the results of a run
+ * in flight are announced in the new language; an announcement already made keeps its words
  */
 export function useRuleChecks(
   branches: readonly CheckableBranch[],
@@ -138,6 +143,7 @@ export function useRuleChecks(
   const [state, dispatch] = useReducer(runStateReducer, initialRunState);
   const checkedTree = useCheckedTree(context !== null);
   const today = useTodayInGermany();
+  const { language } = useLanguage();
   const shownRef = useRef(shownBranchKey);
   const sentRef = useRef<SentChange | null>(null);
   const activeRef = useRef<ActiveRun | null>(null);
@@ -156,18 +162,20 @@ export function useRuleChecks(
     const now = clockNow();
     const runBranches = runBranchesOf(branches, context, today, checkedTree);
     const sent = sentRef.current;
-    if (sent && sameRunBranches(sent.branches, runBranches)) {
+    const next: SentChange = { branches: runBranches, today, language };
+    if (sent && sameChange(sent, next)) {
       return;
     }
-    sentRef.current = { branches: runBranches, today };
+    sentRef.current = next;
     dispatch({
       type: 'change',
       branches: runBranches,
       shownBranchKey: shownRef.current,
       cause: causeOf(sent?.today ?? null, today),
       now,
+      language,
     });
-  }, [branches, context, today, checkedTree]);
+  }, [branches, context, today, checkedTree, language]);
 
   // One worker at a time, for the current run: a new run terminates the worker of the one before,
   // whose results already posted stay, and an ended run terminates its own

@@ -1,10 +1,10 @@
 // A local draft's content: the empty flow, comparison and the name shown for it
 // (specs/005-connection-drafts/contracts/local-drafts.md "Pure modules"; data-model.md, section 6).
 // Pure: it never imports the editor, whose `localContentOf` the test pins `emptyContent()` against
-import type { LocalDraftContent } from './types';
+import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 
-/** The name shown for a content without one */
-const UNTITLED_NAME = 'Untitled connection';
+import { LOCAL_DRAFT_COPY } from './constants';
+import type { LocalDraftContent } from './types';
 
 /**
  * The content of a fresh create flow, its baseline: no name, no description, no documents, and the
@@ -40,9 +40,15 @@ export function sameContent(a: LocalDraftContent, b: LocalDraftContent): boolean
   return sameStructure(a, b);
 }
 
-/** The name shown for a content: its trimmed name, or "Untitled connection" when it has none. */
-export function displayNameOf(content: LocalDraftContent): string {
-  return content.name.trim() || UNTITLED_NAME;
+/**
+ * The name shown for a content: its trimmed name, or "Untitled connection" ("Unbenannte
+ * Anbindung") in the given language when it has none.
+ */
+export function displayNameOf(
+  content: LocalDraftContent,
+  language: Language = DEFAULT_LANGUAGE
+): string {
+  return content.name.trim() || LOCAL_DRAFT_COPY[language].untitled;
 }
 
 /** Whether two JSON-like values are structurally equal; `undefined` equals a missing key. */

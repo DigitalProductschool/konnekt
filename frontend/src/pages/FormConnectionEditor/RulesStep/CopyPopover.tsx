@@ -8,8 +8,9 @@ import {
   useState,
 } from 'react';
 
+import { useCopy } from '../../../hooks/useLanguage';
 import { type MenuDirection, placementFrom } from '../../../utils/popupPlacement';
-import { COPY_POPOVER_PLACEMENTS, COPY_POPOVER_WIDTH, RULES_COPY } from './constants';
+import { COPY_POPOVER_PLACEMENTS, COPY_POPOVER_WIDTH, RULES_STEP_COPY } from './constants';
 import CopyTargetItem from './CopyTargetItem';
 import type { CopyPopoverProps } from './types';
 import { copyTargetsOf } from './utils';
@@ -44,6 +45,7 @@ export default function CopyPopover({
   onClose,
   onDismiss,
 }: CopyPopoverProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   const [chosen, setChosen] = useState<string[]>([]);
   // Whether it opens below or above the ⋯, measured once it has rendered
   const [direction, setDirection] = useState<MenuDirection>('down');
@@ -145,7 +147,7 @@ export default function CopyPopover({
         id={`${id}-title`}
         className="text-kern-static-small text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold"
       >
-        {RULES_COPY.copyTitle(ruleName)}
+        {copy.copyTitle(ruleName)}
       </p>
       {targets.map((target) => (
         <div key={target.branch.key} className="flex flex-col gap-8">
@@ -162,7 +164,7 @@ export default function CopyPopover({
               id={hintId}
               className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
             >
-              {RULES_COPY.copyHint(main.name)}
+              {copy.copyHint(main.name)}
             </p>
           )}
         </div>
@@ -173,7 +175,7 @@ export default function CopyPopover({
           onClick={() => onClose()}
           className="kern-btn kern-btn--tertiary kern-btn--small"
         >
-          <span className="kern-label">{RULES_COPY.cancel}</span>
+          <span className="kern-label">{copy.cancel}</span>
         </button>
         <button
           type="button"
@@ -181,7 +183,7 @@ export default function CopyPopover({
           onClick={nothingChosen ? undefined : () => onCopy(chosen)}
           className="kern-btn kern-btn--secondary"
         >
-          <span className="kern-label">{RULES_COPY.copy}</span>
+          <span className="kern-label">{copy.copy}</span>
         </button>
       </div>
     </div>

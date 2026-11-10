@@ -7,6 +7,7 @@ import type {
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import {
   conditionProblem,
+  labelOf,
   operatorDefinition,
   operatorsFor,
   optionsOf,
@@ -14,8 +15,9 @@ import {
 } from '@connection-portal/rules/conditions';
 import { LICENCE_CLASSES_SET, RELATION_WORDS } from '@connection-portal/rules/constants';
 import { boundaryOf } from '@connection-portal/rules/dates';
-import { lowerFirst, proposedMessage } from '@connection-portal/rules/messages';
-import { ruleFieldLabel } from '@connection-portal/rules/statements';
+import { type Language, LANGUAGES } from '@connection-portal/rules/language';
+import { proposedMessage } from '@connection-portal/rules/messages';
+import { ruleFieldLabel, STATEMENT_TEXTS } from '@connection-portal/rules/statements';
 import type {
   ConditionKind,
   DateBoundary,
@@ -28,6 +30,7 @@ import { ruleProblem } from '@connection-portal/rules/validation';
 
 import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
 import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';
+import type { ValuesPickerCopy } from '../../../../components/ValuesPicker/types';
 import {
   CHECK_SYMBOLS,
   CHOICE_MENU_METRICS,
@@ -53,7 +56,22 @@ const DOCUMENT_ICONS: Record<string, string> = {
   mdl: drivingLicenceIcon,
 };
 
-/** The editor's first state: a saved message follows its condition only if it is the proposal. */
+/**
+ * Whether a message is the rule's proposed message in one of the languages (spec 009, R10, V8): a
+ * proposal made in English stays a proposal under German, so that it follows the switch.
+ */
+export function isProposal(
+  message: string,
+  draft: Pick<RuleItem, 'target' | 'condition'>,
+  context: RuleContext
+): boolean {
+  return LANGUAGES.some((language) => message === proposedMessage(draft, { ...context, language }));
+}
+
+/**
+ * The editor's first state: a saved message follows its condition only if it is the proposal, in
+ * any language; any other saved message is the team member's and is shown as saved (FR-007).
+ */
 export function initialRuleEditorState({
   draft,
   context,
@@ -64,7 +82,7 @@ export function initialRuleEditorState({
   const message = draft.message.trim();
   return {
     ...INITIAL_RULE_EDITOR_STATE,
-    messageEdited: message !== '' && message !== proposedMessage(draft, context),
+    messageEdited: message !== '' && !isProposal(message, draft, context),
   };
 }
 
@@ -134,11 +152,14 @@ export function documentChoice(document: RuleDocument | undefined): MenuChoice |
 }
 
 /** The data menu: the requested fields, then the images as "Not for rules" (FR-002). */
-export function dataSections(document: RuleDocument | undefined): MenuSection[] {
+export function dataSections(
+  document: RuleDocument | undefined,
+  language: Language
+): MenuSection[] {
   const fields = document?.fields ?? [];
   const toChoice = (field: DocumentField): MenuChoice => ({
     key: field.key,
-    label: ruleFieldLabel(field),
+    label: ruleFieldLabel(field, language),
     unavailable: field.kind === 'image',
   });
   const sections: MenuSection[] = [
@@ -149,6 +170,33 @@ export function dataSections(document: RuleDocument | undefined): MenuSection[] 
     sections.push({ key: 'images', choices: images.map(toChoice) });
   }
   return sections;
+}
+
+/** The texts of the values picker in the rule editor (FR-039): "Choose options", "Values" … */
+export function valuesCopyOf(language: Language): ValuesPickerCopy {
+  const copy = RULE_EDITOR_COPY[language];
+  return {
+    menu: copy.valuesMenu,
+    placeholder: copy.chooseOptions,
+    searchClasses: copy.searchClasses,
+    searchOptions: copy.searchOptions,
+    footer: copy.selectAtLeastOne,
+    noMatch: copy.noMatch,
+  };
+}
+
+/** The unit picker of a from-now condition: years or months (6350:42585). */
+export function unitSections(language: Language): MenuSection[] {
+  const copy = RULE_EDITOR_COPY[language];
+  return [
+    {
+      key: 'units',
+      choices: [
+        { key: 'years', label: copy.years },
+        { key: 'months', label: copy.months },
+      ],
+    },
+  ];
 }
 
 /** The key of a part choice: the part, and a per-class part's class. */
@@ -163,7 +211,11 @@ export function partKeyOf(target: RuleTarget | null): string | null {
  * The part picker of a field made of parts (F5): the place of birth's three parts, or the
  * licence classes held and, for every class, its issue and expiry date.
  */
-export function partSections(field: DocumentField, optionSets: OptionSet[]): MenuSection[] {
+export function partSections(
+  field: DocumentField,
+  optionSets: OptionSet[],
+  language: Language
+): MenuSection[] {
   const parts = field.parts ?? [];
   const choices: MenuChoice[] = [];
   const classes = optionsOf(optionSets, LICENCE_CLASSES_SET) ?? [];
@@ -175,7 +227,7 @@ export function partSections(field: DocumentField, optionSets: OptionSet[]): Men
     for (const part of perClass) {
       choices.push({
         key: `${part.key}:${option.value}`,
-        label: RULE_EDITOR_COPY.classPart(String(option.value), part.label),
+        label: RULE_EDITOR_COPY[language].classPart(String(option.value), part.label),
       });
     }
   }
@@ -188,10 +240,31 @@ export function targetOfPart(target: RuleTarget, key: string): RuleTarget {
   return { ...target, part, licence_class: licenceClass ?? null };
 }
 
-function checkChoice(definition: OperatorDefinition): MenuChoice {
+/**
+ * A check's words in the menus and the picker: the operator's label, and on a date that isn't the
+ * Date of birth the years-ago words the statement uses ("liegt mindestens" before "2 Jahre
+ * zurück", where the age reads "ist mindestens 21 Jahre alt"; the same words in English)
+ */
+export function checkLabelOf(
+  definition: OperatorDefinition,
+  dateOfBirth: boolean,
+  language: Language
+): string {
+  if (definition.input === 'years' && !dateOfBirth) {
+    const words: Record<string, string> = STATEMENT_TEXTS[language].yearsAgoWords;
+    return words[definition.operator] ?? labelOf(definition, language);
+  }
+  return labelOf(definition, language);
+}
+
+function checkChoice(
+  definition: OperatorDefinition,
+  dateOfBirth: boolean,
+  language: Language
+): MenuChoice {
   return {
     key: definition.operator,
-    label: definition.label,
+    label: checkLabelOf(definition, dateOfBirth, language),
     symbol:
       definition.kind === 'number' || definition.kind === 'date'
         ? CHECK_SYMBOLS[definition.operator]
@@ -204,30 +277,39 @@ function checkChoice(definition: OperatorDefinition): MenuChoice {
  * ago", "Time from now" and "Fixed date" (U31 6985:50041; F34; CLAR 2026-11-08 #63: the Date of
  * birth keeps the baseline's fixed-date checks).
  */
-export function checkSections(kind: ConditionKind): MenuSection[] {
+export function checkSections(
+  kind: ConditionKind,
+  dateOfBirth: boolean,
+  language: Language
+): MenuSection[] {
+  const copy = RULE_EDITOR_COPY[language];
+  const toChoice = (definition: OperatorDefinition) =>
+    checkChoice(definition, dateOfBirth, language);
   const definitions = operatorsFor(kind);
   if (kind !== 'date') {
-    return [{ key: kind, choices: definitions.map(checkChoice) }];
+    return [{ key: kind, choices: definitions.map(toChoice) }];
   }
   const inSection = (section: OperatorDefinition['section']) =>
-    definitions.filter((definition) => definition.section === section).map(checkChoice);
+    definitions.filter((definition) => definition.section === section).map(toChoice);
   return [
-    { key: 'time_ago', heading: RULE_EDITOR_COPY.timeAgoSection, choices: inSection('time_ago') },
+    { key: 'time_ago', heading: copy.timeAgoSection, choices: inSection('time_ago') },
     {
       key: 'time_from_now',
-      heading: RULE_EDITOR_COPY.timeFromNowSection,
+      heading: copy.timeFromNowSection,
       choices: inSection('time_from_now'),
     },
-    { key: 'date', heading: RULE_EDITOR_COPY.fixedDateSection, choices: inSection('date') },
+    { key: 'date', heading: copy.fixedDateSection, choices: inSection('date') },
   ];
 }
 
 export function checkChoiceOf(
   condition: Condition | null,
-  kind: ConditionKind | null
+  kind: ConditionKind | null,
+  dateOfBirth: boolean,
+  language: Language
 ): MenuChoice | null {
   const definition = condition && kind ? operatorDefinition(condition.operator, kind) : undefined;
-  return definition ? checkChoice(definition) : null;
+  return definition ? checkChoice(definition, dateOfBirth, language) : null;
 }
 
 /** The message follows the condition until the team member writes one (F9). */
@@ -265,33 +347,35 @@ export function fieldProblemOf(
   condition: Condition,
   definition: OperatorDefinition,
   optionSet: OptionSet | null,
-  touched: RuleEditorState['touched']
+  touched: RuleEditorState['touched'],
+  language: Language
 ): { field: ValueField; message: string } | null {
+  const copy = RULE_EDITOR_COPY[language];
   const problem = conditionProblem(condition, definition.kind, optionSet?.options ?? null);
   switch (definition.input) {
     case 'number':
       return touched.value && problem === 'enter_number'
-        ? { field: 'value', message: RULE_EDITOR_COPY.enterNumber }
+        ? { field: 'value', message: copy.enterNumber }
         : null;
     case 'text':
       return touched.value && problem === 'enter_text'
-        ? { field: 'value', message: RULE_EDITOR_COPY.enterText }
+        ? { field: 'value', message: copy.enterText }
         : null;
     case 'values':
       return touched.values && problem !== null
-        ? { field: 'values', message: RULE_EDITOR_COPY.selectAtLeastOne }
+        ? { field: 'values', message: copy.selectAtLeastOne }
         : null;
     case 'date':
       return touched.date && problem === 'enter_date'
-        ? { field: 'date', message: RULE_EDITOR_COPY.enterDate }
+        ? { field: 'date', message: copy.enterDate }
         : null;
     case 'years':
       return touched.years && problem === 'years_at_least_1'
-        ? { field: 'years', message: RULE_EDITOR_COPY.enterCount }
+        ? { field: 'years', message: copy.enterCount }
         : null;
     case 'amount':
       return touched.amount && problem === 'amount_at_least_1'
-        ? { field: 'amount', message: RULE_EDITOR_COPY.enterCount }
+        ? { field: 'amount', message: copy.enterCount }
         : null;
   }
 }
@@ -305,25 +389,29 @@ export function dottedDate(date: string): string {
 /**
  * A boundary in words, after "that means": "born on or before 23.10.2005" on the Date of birth,
  * "born between 24.10.2004 and 23.10.2005" for an exact age, "it expires on or after 23.04.2027"
- * on an expiry date, "on or before 23.10.2024" on any other date.
+ * on an expiry date, "on or before 23.10.2024" on any other date; in German "geboren am oder vor
+ * dem 23.10.2005", "geboren zwischen dem 24.10.2004 und dem 23.10.2005", "Ablauf am oder nach dem
+ * 23.04.2027", "am oder vor dem 23.10.2024" (glossary G§3 `RELATION_WORDS`).
  */
-export function boundaryWords(boundary: DateBoundary, prefix: string | null): string {
+export function boundaryWords(
+  boundary: DateBoundary,
+  prefix: string | null,
+  language: Language
+): string {
   const phrase =
     boundary.relation === 'between'
-      ? `between ${dottedDate(boundary.from)} and ${dottedDate(boundary.to)}`
-      : // TODO(009, T038): the language's words
-        `${RELATION_WORDS.en[boundary.relation]} ${dottedDate(boundary.date)}`;
+      ? RULE_EDITOR_COPY[language].between(dottedDate(boundary.from), dottedDate(boundary.to))
+      : `${RELATION_WORDS[language][boundary.relation]} ${dottedDate(boundary.date)}`;
   return prefix ? `${prefix} ${phrase}` : phrase;
 }
 
 /** The words before a date's boundary: the Date of birth's "born", an expiry date's "it expires". */
-function boundaryPrefixOf(target: ResolvedTarget): string | null {
+function boundaryPrefixOf(target: ResolvedTarget, language: Language): string | null {
+  const copy = RULE_EDITOR_COPY[language];
   if (target.dateOfBirth) {
-    return RULE_EDITOR_COPY.bornPrefix;
+    return copy.bornPrefix;
   }
-  return EXPIRY_DATE_KEYS.includes((target.part ?? target.field).key)
-    ? RULE_EDITOR_COPY.expiresPrefix
-    : null;
+  return EXPIRY_DATE_KEYS.includes((target.part ?? target.field).key) ? copy.expiresPrefix : null;
 }
 
 /**
@@ -331,16 +419,22 @@ function boundaryPrefixOf(target: ResolvedTarget): string | null {
  * licence class's issue date, from the date the class was first issued (U32 6350:42724); with
  * today's example once the condition is complete.
  */
-function countingNoteOf(target: ResolvedTarget, condition: Condition, today: string): string {
+function countingNoteOf(
+  target: ResolvedTarget,
+  condition: Condition,
+  today: string,
+  language: Language
+): string {
+  const copy = RULE_EDITOR_COPY[language];
   const counted =
     target.licenceClass && target.part?.key === CLASS_ISSUE_DATE_PART
-      ? RULE_EDITOR_COPY.countedFromClassIssue(target.licenceClass)
-      : RULE_EDITOR_COPY.countedFrom;
+      ? copy.countedFromClassIssue(target.licenceClass)
+      : copy.countedFrom;
   const boundary = boundaryOf(condition, today);
   return boundary
-    ? `${counted} ${RULE_EDITOR_COPY.todayMeans(
+    ? `${counted} ${copy.todayMeans(
         dottedDate(today),
-        boundaryWords(boundary, boundaryPrefixOf(target))
+        boundaryWords(boundary, boundaryPrefixOf(target, language), language)
       )}`
     : counted;
 }
@@ -349,11 +443,12 @@ function countingNoteOf(target: ResolvedTarget, condition: Condition, today: str
  * The missing-value note of a date condition: the checked date's, "If the date of birth is
  * missing …", or a licence class's, "If class B is missing …" (U32 6350:42726).
  */
-function missingNoteOf(target: ResolvedTarget): string {
+function missingNoteOf(target: ResolvedTarget, language: Language): string {
+  const copy = RULE_EDITOR_COPY[language];
   if (target.licenceClass) {
-    return RULE_EDITOR_COPY.classMissing(target.licenceClass);
+    return copy.classMissing(target.licenceClass);
   }
-  return RULE_EDITOR_COPY.missingValue(lowerFirst((target.part ?? target.field).label));
+  return copy.missingValue((target.part ?? target.field).label);
 }
 
 /**
@@ -367,21 +462,23 @@ function missingNoteOf(target: ResolvedTarget): string {
 export function hintsOf(
   target: ResolvedTarget,
   condition: Condition | null,
-  today: string
+  today: string,
+  language: Language
 ): string[] {
+  const copy = RULE_EDITOR_COPY[language];
   if (target.field.kind === 'parts' && !target.part) {
-    return [RULE_EDITOR_COPY.partsHint(target.field.label)];
+    return [copy.partsHint(target.field.label)];
   }
   const definition =
     condition && target.kind ? operatorDefinition(condition.operator, target.kind) : undefined;
   switch (target.kind) {
     case 'date': {
       if (!condition || !definition) {
-        return [RULE_EDITOR_COPY.dateHint];
+        return [copy.dateHint];
       }
       const hints: string[] = [];
       if (definition.section !== 'date') {
-        hints.push(countingNoteOf(target, condition, today));
+        hints.push(countingNoteOf(target, condition, today, language));
       }
       if (
         target.dateOfBirth &&
@@ -389,25 +486,25 @@ export function hintsOf(
         Number.isInteger(condition.years) &&
         (condition.years ?? 0) >= 1
       ) {
-        hints.push(RULE_EDITOR_COPY.turnsThatDay(condition.years ?? 0));
+        hints.push(copy.turnsThatDay(condition.years ?? 0));
       }
-      hints.push(missingNoteOf(target));
+      hints.push(missingNoteOf(target, language));
       return hints;
     }
     case 'text':
-      return condition ? [RULE_EDITOR_COPY.textHint] : [];
+      return condition ? [copy.textHint] : [];
     case 'enum': {
       if (!condition) {
         return [];
       }
       if (`${target.document.key}.${target.field.key}` === NATIONALITIES_FIELD) {
-        return [RULE_EDITOR_COPY.nationalityHint];
+        return [copy.nationalityHint];
       }
       if (target.optionSet === LICENCE_CLASSES_SET) {
         return [
           condition.operator === 'includes_none_of'
-            ? RULE_EDITOR_COPY.classesHintNoneOf
-            : RULE_EDITOR_COPY.classesHintOneOf,
+            ? copy.classesHintNoneOf
+            : copy.classesHintOneOf,
         ];
       }
       return [];
@@ -417,13 +514,17 @@ export function hintsOf(
   }
 }
 
-/** The fixed words after a years-ago value: "years old" or "years ago", "1 year old" (F1). */
+/**
+ * The fixed words after a years-ago value: "years old" or "years ago", "1 year old" (F1); in
+ * German "Jahre alt", "Jahre zurück", "1 Jahr alt".
+ */
 export function yearsSuffix(
   definition: OperatorDefinition,
   dateOfBirth: boolean,
-  years: number | null
+  years: number | null,
+  language: Language
 ) {
-  return suffixOf(definition, dateOfBirth, years ?? 2) ?? '';
+  return suffixOf(definition, dateOfBirth, years ?? 2, language) ?? '';
 }
 
 /**

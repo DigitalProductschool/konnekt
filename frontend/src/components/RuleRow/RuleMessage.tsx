@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { RULE_ROW_COPY, SMALL_TEXT } from './constants';
 import type { RuleMessageProps } from './types';
 
@@ -7,11 +8,10 @@ import type { RuleMessageProps } from './types';
  * under its label on a narrow row.
  */
 export default function RuleMessage({ message }: RuleMessageProps) {
+  const copy = useCopy(RULE_ROW_COPY);
   return (
     <p className={`${SMALL_TEXT} text-kern-layout-text-default break-words`}>
-      <span className="text-kern-layout-text-muted mr-8 font-semibold">
-        {RULE_ROW_COPY.messageLabel}
-      </span>
+      <span className="text-kern-layout-text-muted mr-8 font-semibold">{copy.messageLabel}</span>
       {message}
     </p>
   );

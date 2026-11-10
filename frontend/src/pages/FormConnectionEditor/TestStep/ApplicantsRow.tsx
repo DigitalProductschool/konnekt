@@ -1,8 +1,8 @@
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { creatingAllTextOf } from '@connection-portal/rules/personas/messages';
 import type { PersonaSlot } from '@connection-portal/rules/personas/types';
 import type { KeyboardEvent } from 'react';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import { tabAfterKey } from '../RulesStep/utils';
 import { SKELETON_PILL_WIDTHS, TEST_STEP_COPY } from './constants';
@@ -45,6 +45,9 @@ export default function ApplicantsRow({
   onSelect,
   onGenerateAll,
 }: ApplicantsRowProps) {
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
+
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, slot: number) {
     if (personas === null) {
       return;
@@ -69,7 +72,7 @@ export default function ApplicantsRow({
       ) : (
         <div
           role="tablist"
-          aria-label={TEST_STEP_COPY.applicants}
+          aria-label={copy.applicants}
           className="flex flex-wrap items-center gap-8"
         >
           {personas.map((persona, slot) => (
@@ -91,10 +94,11 @@ export default function ApplicantsRow({
       )}
       {/* Figma's spacer (7057:58764) */}
       <div className="flex-1" />
+      {/* In the language of the moment: a run still going when the language is switched is named
+          in the new one (spec 009, FR-003) */}
       <LoadingStatus
-        // TODO(009, T039): the language of the moment
         text={
-          personas === null ? creatingAllTextOf(DEFAULT_LANGUAGE) : runStatusTextOf(run, personas)
+          personas === null ? creatingAllTextOf(language) : runStatusTextOf(run, personas, language)
         }
       />
       <GenerateAllButton onGenerateAll={onGenerateAll} />

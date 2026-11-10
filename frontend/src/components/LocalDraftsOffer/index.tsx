@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useReducer, useRef } from 'react';
 
 import { LIVE_REGION_DELAY_MS } from '../../constants';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useLocalDrafts } from '../../hooks/useLocalDrafts';
 import { displayNameOf } from '../../utils/localDrafts/content';
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
@@ -26,6 +27,8 @@ import { discardReducer, discardTextOf, focusAfterDiscard, textOf, titleOf } fro
  * local draft is logged or sent (FR-020).
  */
 export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: LocalDraftsOfferProps) {
+  const { language } = useLanguage();
+  const copy = LOCAL_DRAFTS_COPY[language];
   const { drafts, discard } = useLocalDrafts(exceptFlowKey);
   const [state, dispatch] = useReducer(discardReducer, INITIAL_DISCARD_STATE);
   const headingId = useId();
@@ -82,14 +85,14 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
     return null;
   }
 
-  const pendingName = state.pending ? displayNameOf(state.pending.content) : '';
+  const pendingName = state.pending ? displayNameOf(state.pending.content, language) : '';
   // One draft is offered heading-only, its item a one-item list for screen readers (FR-029d)
   const only = drafts.length === 1;
 
   return (
     <>
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {state.announced && LOCAL_DRAFTS_COPY.discarded}
+        {state.announced && copy.discarded}
       </p>
       {drafts.length > 0 && (
         <section
@@ -103,9 +106,11 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
               tabIndex={-1}
               className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold wrap-break-word outline-none"
             >
-              {titleOf(drafts)}
+              {titleOf(drafts, language)}
             </h2>
-            <p className={`${SMALL_TEXT} text-kern-layout-text-muted`}>{textOf(drafts)}</p>
+            <p className={`${SMALL_TEXT} text-kern-layout-text-muted`}>
+              {textOf(drafts, language)}
+            </p>
           </div>
           <ul className={only ? 'shrink-0' : 'flex flex-col'}>
             {drafts.map((record) => (
@@ -122,10 +127,10 @@ export default function LocalDraftsOffer({ exceptFlowKey, emptyFocusRef }: Local
       )}
       <ConfirmDialog
         open={state.pending !== null}
-        title={LOCAL_DRAFTS_COPY.discardTitle}
-        text={state.pending ? discardTextOf(state.pending, pendingName) : ''}
-        confirmLabel={LOCAL_DRAFTS_COPY.confirmDiscard}
-        cancelLabel={LOCAL_DRAFTS_COPY.cancel}
+        title={copy.discardTitle}
+        text={state.pending ? discardTextOf(state.pending, pendingName, language) : ''}
+        confirmLabel={copy.confirmDiscard}
+        cancelLabel={copy.cancel}
         danger
         onCancel={() => dispatch({ type: 'cancel' })}
         onConfirm={handleConfirm}

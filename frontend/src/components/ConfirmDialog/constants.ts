@@ -1,12 +1,15 @@
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
+import { defineTexts } from '@connection-portal/rules/language';
 
 import { KERN_TRANSLATIONS } from '../../constants';
 
-export const CONFIRM_DIALOG_COPY = {
-  // The kit's own word for the ×, so that the React kit's dialogs and this one agree
-  // TODO(009, phase 5): useCopy
-  close: KERN_TRANSLATIONS[DEFAULT_LANGUAGE].closeDialog,
-};
+/**
+ * The ×'s hidden name: the kit's own word for it, so that the React kit's dialogs and this one
+ * agree (G§2 "close")
+ */
+export const CONFIRM_DIALOG_COPY = defineTexts(
+  { close: KERN_TRANSLATIONS.en.closeDialog },
+  { close: KERN_TRANSLATIONS.de.closeDialog }
+);
 
 /**
  * The dialog's frame (centred, radius 12, the 1px outline drawn inside, the design's scrim, the

@@ -1,7 +1,8 @@
 import { generatePath, Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
-import { DETAIL_COPY } from '../FormConnectionDetail/constants';
+import { useLanguage } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from '../FormConnectionDetail/constants';
 import ApprovalLinkCards from './ApprovalLinkCards';
 import { APPROVAL_COPY } from './constants';
 import type { ApprovalUrlsProps } from './types';
@@ -16,14 +17,19 @@ export default function ApprovalUrls({
   formConnectionId,
   deactivated = false,
 }: ApprovalUrlsProps) {
+  const { language } = useLanguage();
   return (
     <div className="flex w-full flex-col items-start gap-24">
-      <ApprovalLinkCards urls={urls} lead={DETAIL_COPY.linksLead} deactivated={deactivated} />
+      <ApprovalLinkCards
+        urls={urls}
+        lead={CONNECTION_DETAIL_COPY[language].linksLead}
+        deactivated={deactivated}
+      />
       <Link
         to={generatePath(ROUTES.formConnection, { id: formConnectionId })}
         className="kern-link"
       >
-        {APPROVAL_COPY.openConnection}
+        {APPROVAL_COPY[language].openConnection}
       </Link>
     </div>
   );

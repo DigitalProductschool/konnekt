@@ -1,20 +1,38 @@
 import type { Combinator, Mark } from '@connection-portal/api-types/form-connections';
 import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
+import { defineTexts } from '@connection-portal/rules/language';
 
-export const GROUP_FRAME_COPY = {
-  // Figma "Rules/Group header" (U34 6094:6413, 6094:6320; FR-051 (32)): how the members combine,
-  // the words of the connector menu's options. The test results map the rules package's
-  // `GROUP_SUBTITLES` to these words too (`TestStep/utils.ts` `resultStatementOf()`)
-  subtitles: {
-    and: 'All rules must be met',
-    or: 'At least one rule must be met',
-  } satisfies Record<Combinator, string>,
-  // The group's own message (U35 6324:39411; C2) and its hint (6324:39419)
-  messageLabel: 'Message for citizens:',
-  messageHint: 'Shown instead of the rules’ own messages when this group isn’t met.',
-  // Read before a group's identifier on the details (W1)
-  identifier: 'Identifier',
-};
+export const GROUP_FRAME_COPY = defineTexts<{
+  subtitles: Record<Combinator, string>;
+  messageLabel: string;
+  messageHint: string;
+  identifier: string;
+}>(
+  {
+    // Figma "Rules/Group header" (U34 6094:6413, 6094:6320; FR-051 (32)): how the members
+    // combine, the words of the connector menu's options. The test results map the rules
+    // package's `GROUP_SUBTITLES` to these words too (`TestStep/utils.ts` `resultStatementOf()`)
+    subtitles: {
+      and: 'All rules must be met',
+      or: 'At least one rule must be met',
+    },
+    // The group's own message (U35 6324:39411; C2) and its hint (6324:39419)
+    messageLabel: 'Message for citizens:',
+    messageHint: 'Shown instead of the rules’ own messages when this group isn’t met.',
+    // Read before a group's identifier on the details (W1)
+    identifier: 'Identifier',
+  },
+  {
+    subtitles: {
+      and: 'Alle Regeln müssen erfüllt sein',
+      or: 'Mindestens eine Regel muss erfüllt sein',
+    },
+    messageLabel: 'Nachricht für Bürgerinnen und Bürger:',
+    messageHint:
+      'Wird anstelle der Nachrichten der einzelnen Regeln angezeigt, wenn diese Gruppe nicht erfüllt ist.',
+    identifier: 'Kennung',
+  }
+);
 
 // A group's own message, like a rule's: at most 500 characters (data-model.md, "Group")
 export const GROUP_MESSAGE_MAX_LENGTH = 500;

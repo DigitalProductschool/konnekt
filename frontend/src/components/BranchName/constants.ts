@@ -1,11 +1,19 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { BranchIconKind } from './types';
 
-export const BRANCH_NAME_COPY = {
-  // The (i)'s accessible name
-  about: (name: string) => `About ${name}`,
-  // The grey (i)'s tooltip on a variant without a description and without findings (FR-041b)
-  noFindings: 'No findings.',
-};
+export const BRANCH_NAME_COPY = defineTexts(
+  {
+    // The (i)'s accessible name
+    about: (name: string) => `About ${name}`,
+    // The grey (i)'s tooltip on a variant without a description and without findings (FR-041b)
+    noFindings: 'No findings.',
+  },
+  {
+    about: (name: string) => `Informationen zu ${name}`,
+    noFindings: 'Keine Befunde.',
+  }
+);
 
 /**
  * The 20px icon after a variant's name by severity (build note 26, U06 6760:48852): KERN's

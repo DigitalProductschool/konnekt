@@ -1,5 +1,6 @@
 import { useId } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import CatalogDroppedItem from './CatalogDroppedItem';
 import { DRAFT_COPY } from './constants';
 import type { CatalogDroppedNoteProps } from './types';
@@ -20,6 +21,7 @@ import type { CatalogDroppedNoteProps } from './types';
  */
 export default function CatalogDroppedNote({ items, onRemove, ref }: CatalogDroppedNoteProps) {
   const titleId = useId();
+  const copy = useCopy(DRAFT_COPY);
   return (
     <section
       ref={ref}
@@ -30,7 +32,7 @@ export default function CatalogDroppedNote({ items, onRemove, ref }: CatalogDrop
       <div className="kern-alert__header">
         <span aria-hidden="true" className="kern-icon kern-icon--warning" />
         <span id={titleId} className="kern-title">
-          {DRAFT_COPY.catalogDroppedTitle}
+          {copy.catalogDroppedTitle}
         </span>
       </div>
       <div className="kern-alert__body flex flex-col items-start gap-24">
@@ -44,7 +46,7 @@ export default function CatalogDroppedNote({ items, onRemove, ref }: CatalogDrop
           onClick={onRemove}
           className="kern-btn kern-btn--secondary kern-btn--small"
         >
-          <span className="kern-label">{DRAFT_COPY.removeIt}</span>
+          <span className="kern-label">{copy.removeIt}</span>
         </button>
       </div>
     </section>

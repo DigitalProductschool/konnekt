@@ -1,4 +1,5 @@
 import type { EditorStep } from '@connection-portal/api-types/form-connections';
+import { defineTexts } from '@connection-portal/rules/language';
 
 import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';
@@ -6,63 +7,121 @@ import publicInk from '../../assets/icons/public-ink.svg';
 import scienceInk from '../../assets/icons/science-ink.svg';
 import type { ListState, RowDeleteState, WelcomeStep } from './types';
 
-// S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570)
-export const LIST_COPY = {
-  pageTitle: 'Your connections',
-  title: 'Your connections',
-  // The design's one hint in every state (FR-029a; U11 #5)
-  hint: 'Each connection links one of your services to the EUDI Wallet. Open a draft to continue, or view an active connection to get its links.',
-  // The footer bar's primary action (cosmetic 1; U11 6699:44298)
-  createConnection: 'Create connection',
-  loading: 'Loading your connections…',
-  errorTitle: 'Couldn’t load your connections',
-  errorText: 'Check your connection and try again.',
-  retry: 'Try again',
-  // A row's meta (FR-048, FR-052d; U17 6699:48031): "Edited 28.10.2026", a draft adding its step
-  edited: (date: string) => `Edited ${date}`,
-  step: (label: string) => `${label} step`,
-  metaSeparator: ' · ',
-  // The row's actions (U13 6739:40602) and their per-row accessible names (FR-028)
-  view: 'View',
-  edit: 'Edit',
-  deleteLabel: (name: string) => `Delete ${name}`,
-  // The toasts (U17 6699:48002; U90 6699:48098 without its Undo, F4)
-  draftSaved: 'Draft saved. You can pick it up any time.',
-  deleted: (name: string) => `“${name}” deleted.`,
-};
+// S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570; spec 009: G§2 "connection",
+// "overview", "draft", "delete", "try again")
+export const LIST_COPY = defineTexts(
+  {
+    pageTitle: 'Your connections',
+    title: 'Your connections',
+    // The design's one hint in every state (FR-029a; U11 #5)
+    hint: 'Each connection links one of your services to the EUDI Wallet. Open a draft to continue, or view an active connection to get its links.',
+    // The footer bar's primary action (cosmetic 1; U11 6699:44298)
+    createConnection: 'Create connection',
+    loading: 'Loading your connections…',
+    errorTitle: 'Couldn’t load your connections',
+    errorText: 'Check your connection and try again.',
+    retry: 'Try again',
+    // A row's meta (FR-048, FR-052d; U17 6699:48031): "Edited 28.10.2026", a draft adding its step
+    edited: (date: string) => `Edited ${date}`,
+    step: (label: string) => `${label} step`,
+    metaSeparator: ' · ',
+    // The row's actions (U13 6739:40602) and their per-row accessible names (FR-028)
+    view: 'View',
+    edit: 'Edit',
+    deleteLabel: (name: string) => `Delete ${name}`,
+    // The toasts (U17 6699:48002; U90 6699:48098 without its Undo, F4)
+    draftSaved: 'Draft saved. You can pick it up any time.',
+    deleted: (name: string) => `“${name}” deleted.`,
+  },
+  {
+    pageTitle: 'Ihre Anbindungen',
+    title: 'Ihre Anbindungen',
+    hint: 'Jede Anbindung verbindet einen Ihrer Dienste mit der EUDI-Wallet. Öffnen Sie einen Entwurf, um weiterzuarbeiten, oder sehen Sie sich eine aktive Anbindung an, um ihre Links zu erhalten.',
+    createConnection: 'Anbindung erstellen',
+    loading: 'Ihre Anbindungen werden geladen …',
+    errorTitle: 'Ihre Anbindungen konnten nicht geladen werden',
+    errorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+    edited: (date: string) => `Bearbeitet ${date}`,
+    step: (label: string) => `Schritt „${label}“`,
+    metaSeparator: ' · ',
+    view: 'Ansehen',
+    edit: 'Bearbeiten',
+    deleteLabel: (name: string) => `${name} löschen`,
+    draftSaved: 'Entwurf gespeichert. Sie können jederzeit weiterarbeiten.',
+    deleted: (name: string) => `„${name}“ gelöscht.`,
+  }
+);
 
 // The list card's column headers (U11 6699:44253; no checkbox column, F14)
-export const COLUMN_HEADERS = { name: 'Name', status: 'Status', date: 'Date' };
+export const COLUMN_HEADERS = defineTexts(
+  { name: 'Name', status: 'Status', date: 'Date' },
+  { name: 'Name', status: 'Status', date: 'Datum' }
+);
 
-// The toolbar's search (FR-051 (27), (28); U11 6699:44247, 6699:44518, 6699:44628)
-export const SEARCH_COPY = {
-  label: 'Search',
-  placeholder: 'Search connections',
-  clear: 'Clear search',
-  count: (total: number) => `${total} ${total === 1 ? 'connection' : 'connections'}`,
-  countOf: (shown: number, total: number) =>
-    `${shown} of ${total} ${total === 1 ? 'connection' : 'connections'}`,
-  noMatches: (query: string) => `No connections match “${query}”.`,
-  noMatchesHint: 'Check the spelling or try another name.',
-};
+// The toolbar's search (FR-051 (27), (28); U11 6699:44247, 6699:44518, 6699:44628; G§2 "search")
+export const SEARCH_COPY = defineTexts(
+  {
+    label: 'Search',
+    placeholder: 'Search connections',
+    clear: 'Clear search',
+    count: (total: number) => `${total} ${total === 1 ? 'connection' : 'connections'}`,
+    countOf: (shown: number, total: number) =>
+      `${shown} of ${total} ${total === 1 ? 'connection' : 'connections'}`,
+    noMatches: (query: string) => `No connections match “${query}”.`,
+    noMatchesHint: 'Check the spelling or try another name.',
+  },
+  {
+    label: 'Suchen',
+    placeholder: 'Anbindungen durchsuchen',
+    clear: 'Suche leeren',
+    count: (total: number) => `${total} ${total === 1 ? 'Anbindung' : 'Anbindungen'}`,
+    countOf: (shown: number, total: number) =>
+      `${shown} von ${total} ${total === 1 ? 'Anbindung' : 'Anbindungen'}`,
+    noMatches: (query: string) => `Keine Anbindung passt zu „${query}“.`,
+    noMatchesHint: 'Prüfen Sie die Schreibweise oder versuchen Sie einen anderen Namen.',
+  }
+);
 
 // S3, the welcome page (Figma U11 6699:44481, "1b")
-export const WELCOME_COPY = {
-  pageTitle: 'Welcome',
-  title: 'Welcome to Konnekt',
-  heading: 'Create your first connection',
-  text: 'Link your services to the EUDI Wallet. Set your own rules and get verified citizen data.',
-  stepsLabel: 'How a connection comes together',
-  createConnection: 'Create connection',
-};
+export const WELCOME_COPY = defineTexts(
+  {
+    pageTitle: 'Welcome',
+    title: 'Welcome to Konnekt',
+    heading: 'Create your first connection',
+    text: 'Link your services to the EUDI Wallet. Set your own rules and get verified citizen data.',
+    stepsLabel: 'How a connection comes together',
+    createConnection: 'Create connection',
+  },
+  {
+    pageTitle: 'Willkommen',
+    title: 'Willkommen bei Konnekt',
+    heading: 'Erstellen Sie Ihre erste Anbindung',
+    text: 'Verbinden Sie Ihre Dienste mit der EUDI-Wallet. Legen Sie eigene Regeln fest und erhalten Sie geprüfte Daten von Bürgerinnen und Bürgern.',
+    stepsLabel: 'So entsteht eine Anbindung',
+    createConnection: 'Anbindung erstellen',
+  }
+);
 
-// The welcome page's steps illustration (U11 6699:44493): the design's four labels and glyphs
-export const WELCOME_STEPS: readonly WelcomeStep[] = [
-  { label: 'Choose documents', glyph: documentInk },
-  { label: 'Set rules', glyph: factCheckInk },
-  { label: 'Test', glyph: scienceInk },
-  { label: 'Publish', glyph: publicInk },
-];
+/**
+ * The welcome page's steps illustration (U11 6699:44493): the design's four labels and glyphs,
+ * in each language (the glyphs the same in both; the list is keyed by its glyph, so a switch
+ * re-keys nothing)
+ */
+export const WELCOME_STEPS = defineTexts<readonly WelcomeStep[]>(
+  [
+    { label: 'Choose documents', glyph: documentInk },
+    { label: 'Set rules', glyph: factCheckInk },
+    { label: 'Test', glyph: scienceInk },
+    { label: 'Publish', glyph: publicInk },
+  ],
+  [
+    { label: 'Dokumente auswählen', glyph: documentInk },
+    { label: 'Regeln festlegen', glyph: factCheckInk },
+    { label: 'Testen', glyph: scienceInk },
+    { label: 'Veröffentlichen', glyph: publicInk },
+  ]
+);
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
 
@@ -72,20 +131,37 @@ export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
  * body (F55, 005-S6.10); a deactivated connection takes the design's "Its documents and rules
  * …", an active one the active warning. The failure texts are the details' (FR-008)
  */
-export const DELETE_DIALOG_COPY = {
-  title: (name: string) => `Delete “${name}”?`,
-  draft: (name: string) =>
-    `${name} will be deleted for good. It was never live, so nothing changes for serviceBW.`,
-  active:
-    'This connection is active. Citizens won’t be able to use it, and its links stop working.',
-  deactivated: 'Its documents and rules will be deleted too.',
-  confirm: 'Delete connection',
-  cancel: 'Keep connection',
-  busy: 'Deleting…',
-  errorTitle: 'Couldn’t delete',
-  errorText: 'Nothing changed. Check your connection and try again.',
-  retry: 'Try again',
-};
+export const DELETE_CONNECTION_COPY = defineTexts(
+  {
+    title: (name: string) => `Delete “${name}”?`,
+    draft: (name: string) =>
+      `${name} will be deleted for good. It was never live, so nothing changes for serviceBW.`,
+    active:
+      'This connection is active. Citizens won’t be able to use it, and its links stop working.',
+    deactivated: 'Its documents and rules will be deleted too.',
+    confirm: 'Delete connection',
+    cancel: 'Keep connection',
+    busy: 'Deleting…',
+    errorTitle: 'Couldn’t delete',
+    errorText: 'Nothing changed. Check your connection and try again.',
+    retry: 'Try again',
+  },
+  {
+    title: (name: string) => `„${name}“ löschen?`,
+    draft: (name: string) =>
+      `${name} wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für serviceBW nichts.`,
+    active:
+      'Diese Anbindung ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen, und ihre Links funktionieren nicht mehr.',
+    deactivated: 'Die Dokumente und Regeln der Anbindung werden ebenfalls gelöscht.',
+    confirm: 'Anbindung löschen',
+    cancel: 'Anbindung behalten',
+    busy: 'Wird gelöscht …',
+    errorTitle: 'Konnte nicht gelöscht werden',
+    errorText:
+      'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+  }
+);
 
 /**
  * A row's "Edit" (U13 6739:40602): a link for a draft, a button for a published connection, which
@@ -103,12 +179,10 @@ export const INITIAL_ROW_DELETE_STATE: RowDeleteState = {
 };
 
 /** The step a draft was saved in, as its row names it ("Rules step"; the wizard's step names) */
-export const STEP_LABELS: Record<EditorStep, string> = {
-  connection: 'Connection',
-  documents: 'Documents',
-  rules: 'Rules',
-  test: 'Test',
-};
+export const STEP_LABELS = defineTexts<Record<EditorStep, string>>(
+  { connection: 'Connection', documents: 'Documents', rules: 'Rules', test: 'Test' },
+  { connection: 'Anbindung', documents: 'Dokumente', rules: 'Regeln', test: 'Test' }
+);
 
 // "28.10.2026": a row's date (cosmetic 3, design-notes §3 "Dates"; U13 6739:40556)
 export const ROW_DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {

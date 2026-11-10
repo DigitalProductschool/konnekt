@@ -4,12 +4,13 @@ import { type KeyboardEvent, useId, useMemo, useState } from 'react';
 
 import BranchName from '../../components/BranchName';
 import FeedbackLoader from '../../components/FeedbackLoader';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useOptionSets } from '../../hooks/useOptionSets';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { TAB_ROW_CLASSES } from '../FormConnectionEditor/RulesStep/constants';
 import FindingsBannerLine from '../FormConnectionEditor/RulesStep/FindingsBannerLine';
 import { tabAfterKey } from '../FormConnectionEditor/RulesStep/utils';
-import { DETAIL_COPY } from './constants';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import SummaryBranch from './SummaryBranch';
 import type { RulesSummaryContentProps } from './types';
 import { keyedBranchesOf, summaryFindingsOf } from './utils';
@@ -40,6 +41,8 @@ export default function RulesSummaryContent({
   checkDocuments = null,
 }: RulesSummaryContentProps) {
   const { status, optionSets, retry } = useOptionSets();
+  const { language } = useLanguage();
+  const copy = CONNECTION_DETAIL_COPY[language];
   const keyed = useMemo(() => keyedBranchesOf(branches), [branches]);
   const [selected, setSelected] = useState(keyed[0]?.key ?? '');
   const baseId = useId();
@@ -54,16 +57,16 @@ export default function RulesSummaryContent({
   const panelId = `${baseId}-panel`;
 
   if (status === 'loading') {
-    return <FeedbackLoader label={DETAIL_COPY.loadingRules} />;
+    return <FeedbackLoader label={copy.loadingRules} />;
   }
   if (status === 'failed') {
     return (
       <div className="flex flex-col items-start gap-16">
-        <KernAlert variant="danger" title={DETAIL_COPY.rulesErrorTitle} className="w-full">
-          {DETAIL_COPY.rulesErrorText}
+        <KernAlert variant="danger" title={copy.rulesErrorTitle} className="w-full">
+          {copy.rulesErrorText}
         </KernAlert>
         <button type="button" onClick={retry} className="kern-btn kern-btn--secondary">
-          <span className="kern-label">{DETAIL_COPY.retry}</span>
+          <span className="kern-label">{copy.retry}</span>
         </button>
       </div>
     );
@@ -71,7 +74,7 @@ export default function RulesSummaryContent({
   if (!shown) {
     return (
       <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-        {DETAIL_COPY.noRules}
+        {copy.noRules}
       </p>
     );
   }
@@ -86,7 +89,7 @@ export default function RulesSummaryContent({
     document.getElementById(tabId(next))?.focus();
   }
 
-  const findings = summaryFindingsOf(keyed, byBranch);
+  const findings = summaryFindingsOf(keyed, byBranch, language);
   const shownIndex = keyed.indexOf(shown);
   return (
     <>
@@ -103,7 +106,7 @@ export default function RulesSummaryContent({
       <div className={TAB_ROW_CLASSES}>
         <div
           role="tablist"
-          aria-label={DETAIL_COPY.variants}
+          aria-label={copy.variants}
           aria-owns={keyed.map((_, index) => tabId(index)).join(' ')}
           // Out of the row's flow, so that the row's gap doesn't count it
           className="absolute"
@@ -115,7 +118,9 @@ export default function RulesSummaryContent({
               key={branch.key}
               name={branch.name}
               description={branch.description}
-              findings={check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null}
+              findings={
+                check ? tabFindingsOf(check, branch, namesOf(branch.items), language) : null
+              }
               tab={{
                 id: tabId(index),
                 panelId,

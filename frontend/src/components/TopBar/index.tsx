@@ -3,14 +3,9 @@ import { Link } from 'react-router';
 
 import logo from '../../assets/illustrations/logo.svg';
 import { APP_NAME, ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import LanguageSwitch from '../LanguageSwitch';
-import {
-  BREADCRUMB_LABEL,
-  FOCUS_RING_CLASSES,
-  PILL_CLASSES,
-  SMALL_TEXT_CLASSES,
-  YOUR_CONNECTIONS_LABEL,
-} from './constants';
+import { FOCUS_RING_CLASSES, PILL_CLASSES, SMALL_TEXT_CLASSES, TOP_BAR_COPY } from './constants';
 import type { TopBarProps } from './types';
 
 /**
@@ -102,9 +97,10 @@ interface ConnectionPillProps {
  */
 function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPillProps) {
   const NameTag = titleAsHeading ? 'h1' : 'span';
+  const copy = useCopy(TOP_BAR_COPY);
   return (
     <nav
-      aria-label={BREADCRUMB_LABEL}
+      aria-label={copy.breadcrumb}
       className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
     >
       {/* Under 320 CSS px its parts wrap (T096) */}
@@ -114,7 +110,7 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
           onClick={onLeave}
           className={`${SMALL_TEXT_CLASSES} text-kern-action-default rounded-kern-small narrow:whitespace-normal font-semibold hover:underline ${FOCUS_RING_CLASSES}`}
         >
-          {YOUR_CONNECTIONS_LABEL}
+          {copy.yourConnections}
         </Link>
         <span aria-hidden="true" className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-muted`}>
           /

@@ -4,7 +4,7 @@ import { US1_RULES } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';
-import { DOCUMENT_GLYPHS, DOCUMENTS_STEP_COPY, GENERIC_DOCUMENT_GLYPHS } from './constants';
+import { DOCUMENT_GLYPHS, DOCUMENTS_COPY, GENERIC_DOCUMENT_GLYPHS } from './constants';
 import {
   dataCountOf,
   dataCountText,
@@ -107,27 +107,36 @@ describe('shownIndexOf and shownDocumentOf', () => {
 
 describe('pagerOf ("Document n of m")', () => {
   it('reads the shown document’s place, counting from 1', () => {
-    expect(pagerOf(1, 2).text).toBe('Document 2 of 2');
-    expect(pagerOf(0, 1).text).toBe('Document 1 of 1');
+    expect(pagerOf(1, 2, 'en').text).toBe('Document 2 of 2');
+    expect(pagerOf(0, 1, 'en').text).toBe('Document 1 of 1');
   });
 
   it('disables the previous arrow on the first document and the next on the last', () => {
-    expect(pagerOf(0, 1)).toEqual({
+    expect(pagerOf(0, 1, 'en')).toEqual({
       index: 0,
       text: 'Document 1 of 1',
       previousIndex: null,
       nextIndex: null,
     });
-    expect(pagerOf(1, 2)).toMatchObject({ previousIndex: 0, nextIndex: null });
-    expect(pagerOf(1, 3)).toMatchObject({ previousIndex: 0, nextIndex: 2 });
+    expect(pagerOf(1, 2, 'en')).toMatchObject({ previousIndex: 0, nextIndex: null });
+    expect(pagerOf(1, 3, 'en')).toMatchObject({ previousIndex: 0, nextIndex: 2 });
   });
 
   it('reads a selection past the end as the last document', () => {
-    expect(pagerOf(4, 2)).toMatchObject({ index: 1, text: 'Document 2 of 2' });
+    expect(pagerOf(4, 2, 'en')).toMatchObject({ index: 1, text: 'Document 2 of 2' });
+  });
+
+  it('reads „Dokument n von m“ in German', () => {
+    expect(pagerOf(1, 2, 'de').text).toBe('Dokument 2 von 2');
   });
 
   it('has no text without a document', () => {
-    expect(pagerOf(0, 0)).toEqual({ index: 0, text: '', previousIndex: null, nextIndex: null });
+    expect(pagerOf(0, 0, 'en')).toEqual({
+      index: 0,
+      text: '',
+      previousIndex: null,
+      nextIndex: null,
+    });
   });
 });
 
@@ -207,7 +216,7 @@ describe('searchGroupsOf (the search card; FR-031, FR-052e)', () => {
       added: [],
       noMatches: true,
     });
-    expect(DOCUMENTS_STEP_COPY.noMatches('taxi')).toBe('No documents match “taxi”.');
+    expect(DOCUMENTS_COPY.en.noMatches('taxi')).toBe('No documents match “taxi”.');
   });
 
   it('counts a query of spaces as no query', () => {
@@ -219,14 +228,19 @@ describe('dataCountOf and dataCountText (FR-051 (37))', () => {
   it('counts the chosen data items of all the catalog offers', () => {
     const count = dataCountOf({ document_type: 'pid', fields: ['birthdate', 'given_name'] }, PID);
     expect(count).toEqual({ chosen: 2, total: 4 });
-    expect(dataCountText(count)).toBe('2 of 4 data items chosen');
-    expect(dataCountText({ chosen: 6, total: 25 })).toBe('6 of 25 data items chosen');
+    expect(dataCountText(count, 'en')).toBe('2 of 4 data items chosen');
+    expect(dataCountText({ chosen: 6, total: 25 }, 'en')).toBe('6 of 25 data items chosen');
   });
 
   it('reads "No data items chosen yet" while none is chosen', () => {
     const count = dataCountOf({ document_type: 'mdl', fields: [] }, MDL);
     expect(count).toEqual({ chosen: 0, total: 3 });
-    expect(dataCountText(count)).toBe('No data items chosen yet');
+    expect(dataCountText(count, 'en')).toBe('No data items chosen yet');
+  });
+
+  it('counts in German', () => {
+    expect(dataCountText({ chosen: 6, total: 25 }, 'de')).toBe('6 von 25 Feldern ausgewählt');
+    expect(dataCountText({ chosen: 0, total: 25 }, 'de')).toBe('Noch keine Felder ausgewählt');
   });
 
   it('leaves out a chosen item the catalog dropped', () => {
@@ -340,30 +354,29 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
   } as const;
 
   it('joins a list as a sentence does', () => {
-    expect(listText([])).toBe('');
-    expect(listText(['Rule 01'])).toBe('Rule 01');
-    expect(listText(['Rule 01', 'Rule 02'])).toBe('Rule 01 and Rule 02');
-    expect(listText(['Rule 01', 'Rule 02', 'Rule 03'])).toBe('Rule 01, Rule 02 and Rule 03');
+    expect(listText([], 'en')).toBe('');
+    expect(listText(['Rule 01'], 'en')).toBe('Rule 01');
+    expect(listText(['Rule 01', 'Rule 02'], 'en')).toBe('Rule 01 and Rule 02');
+    expect(listText(['Rule 01', 'Rule 02', 'Rule 03'], 'en')).toBe('Rule 01, Rule 02 and Rule 03');
   });
 
   it('names the rules grouped by variant, in their order', () => {
-    expect(ruleListText([rule('Rule 02', 'Standard'), rule('Rule 03', 'Standard')])).toBe(
+    expect(ruleListText([rule('Rule 02', 'Standard'), rule('Rule 03', 'Standard')], 'en')).toBe(
       'Rule 02 and Rule 03 in Standard'
     );
-    expect(ruleListText([rule('Rule 01', 'Standard'), rule('Rule 05', 'Ambulance')])).toBe(
+    expect(ruleListText([rule('Rule 01', 'Standard'), rule('Rule 05', 'Ambulance')], 'en')).toBe(
       'Rule 01 in Standard and Rule 05 in Ambulance'
     );
     expect(
-      ruleListText([
-        rule('Rule 01', 'Standard'),
-        rule('Rule 01', 'Ambulance'),
-        rule('Rule 02', 'Standard'),
-      ])
+      ruleListText(
+        [rule('Rule 01', 'Standard'), rule('Rule 01', 'Ambulance'), rule('Rule 02', 'Standard')],
+        'en'
+      )
     ).toBe('Rule 01 and Rule 02 in Standard and Rule 01 in Ambulance');
   });
 
   it('asks before removing a document no rule checks (U23 A10)', () => {
-    expect(removalDialogCopyOf(MDL_REMOVAL, [], false)).toEqual({
+    expect(removalDialogCopyOf(MDL_REMOVAL, [], false, 'en')).toEqual({
       title: 'Remove Driving licence?',
       text: 'Citizens won’t be asked for this document any more.',
       cancelLabel: 'Keep document',
@@ -373,11 +386,11 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
 
   it('names the rules that check the document (U24 A11), "before you save" when editing', () => {
     const rules = [rule('Rule 02', 'Standard'), rule('Rule 03', 'Standard')];
-    expect(removalDialogCopyOf(MDL_REMOVAL, rules, false).text).toBe(
+    expect(removalDialogCopyOf(MDL_REMOVAL, rules, false, 'en').text).toBe(
       'Citizens won’t be asked for this document any more. 2 rules check its data: Rule 02 and ' +
         'Rule 03 in Standard. Edit or delete them before you publish.'
     );
-    expect(removalDialogCopyOf(MDL_REMOVAL, rules.slice(0, 1), true).text).toBe(
+    expect(removalDialogCopyOf(MDL_REMOVAL, rules.slice(0, 1), true, 'en').text).toBe(
       'Citizens won’t be asked for this document any more. 1 rule checks its data: Rule 02 in ' +
         'Standard. Edit or delete it before you save.'
     );
@@ -385,7 +398,12 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
 
   it('words a data item’s deselection as U26 draws it', () => {
     expect(
-      removalDialogCopyOf(BIRTH, [rule('Rule 01', 'Standard'), rule('Rule 05', 'Ambulance')], false)
+      removalDialogCopyOf(
+        BIRTH,
+        [rule('Rule 01', 'Standard'), rule('Rule 05', 'Ambulance')],
+        false,
+        'en'
+      )
     ).toEqual({
       title: 'Stop requesting Date of birth?',
       text:
@@ -402,7 +420,8 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
       removalDialogCopyOf(
         { type: 'allFields', documentType: 'pid', label: 'Personal ID' },
         rules,
-        false
+        false,
+        'en'
       )
     ).toEqual({
       title: 'Stop requesting all data from Personal ID?',
@@ -411,57 +430,115 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
       confirmLabel: 'Stop requesting',
     });
     expect(
-      removalDialogCopyOf({ type: 'dropped', items: [], label: 'Personal ID: Sex' }, rules, true)
-        .title
+      removalDialogCopyOf(
+        { type: 'dropped', items: [], label: 'Personal ID: Sex' },
+        rules,
+        true,
+        'en'
+      ).title
     ).toBe('Stop requesting Personal ID: Sex?');
   });
 
+  it('asks in German, naming a data item in quotes with its capital', () => {
+    const rules = [rule('Rule 01', 'Standard'), rule('Rule 05', 'Ambulance')];
+    expect(listText(['Rule 01', 'Rule 02', 'Rule 03'], 'de')).toBe('Rule 01, Rule 02 und Rule 03');
+    expect(
+      removalDialogCopyOf(
+        { type: 'document', documentType: 'mdl', label: 'Führerschein' },
+        rules.slice(0, 1),
+        false,
+        'de'
+      )
+    ).toEqual({
+      title: 'Führerschein entfernen?',
+      text:
+        'Bürgerinnen und Bürger werden nicht mehr nach diesem Dokument gefragt. 1 Regel prüft ' +
+        'seine Daten: Rule 01 in Standard. Bearbeiten oder löschen Sie die Regel vor dem ' +
+        'Veröffentlichen.',
+      cancelLabel: 'Dokument behalten',
+      confirmLabel: 'Dokument entfernen',
+    });
+    expect(removalDialogCopyOf({ ...BIRTH, label: 'Geburtsdatum' }, rules, true, 'de')).toEqual({
+      title: '„Geburtsdatum“ nicht mehr anfordern?',
+      text:
+        'Bürgerinnen und Bürger werden nicht mehr nach „Geburtsdatum“ gefragt. 2 Regeln prüfen ' +
+        'dieses Feld: Rule 01 in Standard und Rule 05 in Ambulance. Bearbeiten oder löschen Sie ' +
+        'die Regeln vor dem Speichern.',
+      cancelLabel: 'Abbrechen',
+      confirmLabel: 'Nicht mehr anfordern',
+    });
+    expect(
+      removalDialogCopyOf(
+        { type: 'allFields', documentType: 'pid', label: 'Personalausweis' },
+        rules,
+        false,
+        'de'
+      ).title
+    ).toBe('Alle Daten aus „Personalausweis“ nicht mehr anfordern?');
+  });
+
   it('is empty while nothing is asked', () => {
-    expect(removalDialogCopyOf(null, [], false).title).toBe('');
+    expect(removalDialogCopyOf(null, [], false, 'en').title).toBe('');
   });
 
   it('writes a data item’s name in lower case inside the sentence, abbreviations aside', () => {
-    expect(inSentence('Date of birth')).toBe('date of birth');
-    expect(inSentence('City or town')).toBe('city or town');
-    expect(inSentence('UN distinguishing sign')).toBe('UN distinguishing sign');
-    expect(inSentence('Sex')).toBe('sex');
-    expect(inSentence('A')).toBe('a');
-    expect(inSentence('')).toBe('');
+    expect(inSentence('Date of birth', 'en')).toBe('date of birth');
+    expect(inSentence('City or town', 'en')).toBe('city or town');
+    expect(inSentence('UN distinguishing sign', 'en')).toBe('UN distinguishing sign');
+    expect(inSentence('Sex', 'en')).toBe('sex');
+    expect(inSentence('A', 'en')).toBe('a');
+    expect(inSentence('', 'en')).toBe('');
+  });
+
+  it('keeps a German name’s capital', () => {
+    expect(inSentence('Geburtsdatum', 'de')).toBe('Geburtsdatum');
   });
 });
 
 describe('the plural texts (F67, Clarification #55)', () => {
   it('"1 document needs data" / "2 documents need data"', () => {
-    expect(needsDataText(1)).toBe('1 document needs data');
-    expect(needsDataText(2)).toBe('2 documents need data');
+    expect(needsDataText(1, 'en')).toBe('1 document needs data');
+    expect(needsDataText(2, 'en')).toBe('2 documents need data');
   });
 
   it('"No data selected in 1 document" / "… in 3 documents"', () => {
-    expect(noDataTitle(1)).toBe('No data selected in 1 document');
-    expect(noDataTitle(3)).toBe('No data selected in 3 documents');
+    expect(noDataTitle(1, 'en')).toBe('No data selected in 1 document');
+    expect(noDataTitle(3, 'en')).toBe('No data selected in 3 documents');
   });
 
   it('names the documents in the dialog’s text (#55; the plural isn’t drawn)', () => {
-    expect(noDataText(['Driving licence'])).toBe(
+    expect(noDataText(['Driving licence'], 'en')).toBe(
       'Driving licence has no data chosen yet. Choose data for it or remove it.'
     );
-    expect(noDataText(['Personal ID', 'Driving licence'])).toBe(
+    expect(noDataText(['Personal ID', 'Driving licence'], 'en')).toBe(
       'Personal ID and Driving licence have no data chosen yet. Choose data for them or remove them.'
     );
-    expect(noDataText(['A', 'B', 'C'])).toBe(
+    expect(noDataText(['A', 'B', 'C'], 'en')).toBe(
       'A, B and C have no data chosen yet. Choose data for them or remove them.'
     );
   });
 
   it('"Remove 1 document" / "Remove 3 documents"', () => {
-    expect(removeDocumentsLabel(1)).toBe('Remove 1 document');
-    expect(removeDocumentsLabel(3)).toBe('Remove 3 documents');
+    expect(removeDocumentsLabel(1, 'en')).toBe('Remove 1 document');
+    expect(removeDocumentsLabel(3, 'en')).toBe('Remove 3 documents');
+  });
+
+  it('words the plurals in German', () => {
+    expect(needsDataText(1, 'de')).toBe('1 Dokument braucht Daten');
+    expect(needsDataText(2, 'de')).toBe('2 Dokumente brauchen Daten');
+    expect(noDataTitle(1, 'de')).toBe('Keine Daten in 1 Dokument ausgewählt');
+    expect(noDataTitle(3, 'de')).toBe('Keine Daten in 3 Dokumenten ausgewählt');
+    expect(noDataText(['Personalausweis', 'Führerschein'], 'de')).toBe(
+      'Für Personalausweis und Führerschein sind noch keine Daten ausgewählt. Wählen Sie Daten ' +
+        'aus oder entfernen Sie die Dokumente.'
+    );
+    expect(removeDocumentsLabel(3, 'de')).toBe('3 Dokumente entfernen');
   });
 
   it('counts the lists and the search card’s groups', () => {
-    expect(DOCUMENTS_STEP_COPY.addedDocuments(2)).toBe('Added documents (2)');
-    expect(DOCUMENTS_STEP_COPY.availableGroup(1)).toBe('Available (1)');
-    expect(DOCUMENTS_STEP_COPY.addedGroup(2)).toBe('Added (2)');
+    expect(DOCUMENTS_COPY.en.addedDocuments(2)).toBe('Added documents (2)');
+    expect(DOCUMENTS_COPY.en.availableGroup(1)).toBe('Available (1)');
+    expect(DOCUMENTS_COPY.en.addedGroup(2)).toBe('Added (2)');
   });
 });
 

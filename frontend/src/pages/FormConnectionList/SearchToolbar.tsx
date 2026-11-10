@@ -1,5 +1,6 @@
 import { useId } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import { SEARCH_COPY } from './constants';
 import type { SearchToolbarProps } from './types';
 
@@ -22,6 +23,7 @@ export default function SearchToolbar({
   countId,
   listId,
 }: SearchToolbarProps) {
+  const copy = useCopy(SEARCH_COPY);
   const fieldId = useId();
   const searching = query.trim() !== '';
   const clear = () => {
@@ -35,14 +37,14 @@ export default function SearchToolbar({
         role="status"
         className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold"
       >
-        {searching ? SEARCH_COPY.countOf(shown, total) : SEARCH_COPY.count(total)}
+        {searching ? copy.countOf(shown, total) : copy.count(total)}
       </p>
       <div
         role="search"
         className="flex w-full flex-col gap-8 sm:w-auto sm:flex-row sm:items-center sm:gap-16"
       >
         <label htmlFor={fieldId} className="kern-label shrink-0 py-0!">
-          {SEARCH_COPY.label}
+          {copy.label}
         </label>
         <div className="relative w-full sm:w-360">
           <input
@@ -50,12 +52,14 @@ export default function SearchToolbar({
             id={fieldId}
             type="text"
             value={query}
-            placeholder={SEARCH_COPY.placeholder}
+            placeholder={copy.placeholder}
             aria-controls={listId}
             autoComplete="off"
             spellCheck={false}
             onChange={(event) => onQueryChange(event.target.value)}
-            className="kern-form-input__input placeholder:text-kern-layout-text-muted pr-48! pl-44!"
+            // The ×'s 48px only once it shows: the empty field's placeholder takes the room (the
+            // German "Anbindungen durchsuchen" fits whole at 320px; spec 009, design-notes §2.2)
+            className={`kern-form-input__input placeholder:text-kern-layout-text-muted pl-44! ${query === '' ? 'pr-16!' : 'pr-48!'}`}
           />
           <span
             aria-hidden="true"
@@ -71,7 +75,7 @@ export default function SearchToolbar({
                 className="kern-btn kern-btn--tertiary kern-btn--small w-40! px-0!"
               >
                 <span aria-hidden="true" className="kern-icon kern-icon--close kern-icon--small" />
-                <span className="sr-only">{SEARCH_COPY.clear}</span>
+                <span className="sr-only">{copy.clear}</span>
               </button>
             </span>
           )}

@@ -1,6 +1,7 @@
 import { useId } from 'react';
 
-import { DETAIL_COPY } from '../FormConnectionDetail/constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from '../FormConnectionDetail/constants';
 import LinkCard from '../FormConnectionDetail/LinkCard';
 import { BODY_TEXT_CLASSES, CARD_CLASSES, SECTION_TITLE_CLASSES } from './constants';
 import type { ApprovalLinkCardsProps } from './types';
@@ -22,13 +23,14 @@ export default function ApprovalLinkCards({
   deactivated = false,
 }: ApprovalLinkCardsProps) {
   const titleId = useId();
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   const links = urls ? urlsLinksOf(urls) : null;
   return (
     <section aria-labelledby={titleId} className={`${CARD_CLASSES} w-full`}>
       {/* The cards' own 24px padding follows the lead, so the header keeps none at its bottom */}
       <div className={`flex flex-col gap-4 px-24 pt-24 ${links ? '' : 'pb-24'}`}>
         <h2 id={titleId} className={SECTION_TITLE_CLASSES}>
-          {DETAIL_COPY.linksTitle}
+          {copy.linksTitle}
         </h2>
         <p className={BODY_TEXT_CLASSES}>{lead}</p>
       </div>
@@ -36,18 +38,18 @@ export default function ApprovalLinkCards({
         <ol className="flex flex-col divide-y divide-(--kern-color-decorative-border-default)">
           <LinkCard
             number={1}
-            title={DETAIL_COPY.requestLink}
+            title={copy.requestLink}
             links={links.trigger}
-            infoLabel={DETAIL_COPY.requestLinkInfoLabel}
-            info={DETAIL_COPY.requestLinkInfo}
+            infoLabel={copy.requestLinkInfoLabel}
+            info={copy.requestLinkInfo}
             deactivated={deactivated}
           />
           <LinkCard
             number={2}
-            title={DETAIL_COPY.resultLink}
+            title={copy.resultLink}
             links={links.result}
-            infoLabel={DETAIL_COPY.resultLinkInfoLabel}
-            info={DETAIL_COPY.resultLinkInfo}
+            infoLabel={copy.resultLinkInfoLabel}
+            info={copy.resultLinkInfo}
             deactivated={deactivated}
           />
         </ol>

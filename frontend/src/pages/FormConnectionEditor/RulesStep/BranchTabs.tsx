@@ -2,9 +2,15 @@ import { namesOf, tabFindingsOf } from '@connection-portal/rules/checks/findingM
 import type { KeyboardEvent } from 'react';
 
 import InfoTooltip from '../../../components/InfoTooltip';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import BranchTab from './BranchTab';
-import { ADD_VARIANT_CLASSES, RULES_COPY, TAB_LIST_CLASSES, TAB_ROW_CLASSES } from './constants';
+import {
+  ADD_VARIANT_CLASSES,
+  RULES_STEP_COPY,
+  TAB_LIST_CLASSES,
+  TAB_ROW_CLASSES,
+} from './constants';
 import type { BranchTabsProps } from './types';
 import { tabAfterKey } from './utils';
 
@@ -31,6 +37,8 @@ export default function BranchTabs({
   problems,
 }: BranchTabsProps) {
   const { branches, openBranch } = state;
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const next = tabAfterKey(event.key, index, branches.length);
@@ -47,7 +55,7 @@ export default function BranchTabs({
     <div className={TAB_ROW_CLASSES}>
       <div
         role="tablist"
-        aria-label={RULES_COPY.variants}
+        aria-label={copy.variants}
         aria-owns={branches.map((branch) => ELEMENT_IDS.branchTab(branch.key)).join(' ')}
         // Out of the row's flow, so that the row's gap doesn't count it
         className="absolute"
@@ -61,7 +69,9 @@ export default function BranchTabs({
               branch={branch}
               selected={branch.key === openBranch}
               deletable={index > 0}
-              findings={check ? tabFindingsOf(check, branch, namesOf(branch.items)) : null}
+              findings={
+                check ? tabFindingsOf(check, branch, namesOf(branch.items), language) : null
+              }
               problem={problems?.[branch.key] ?? null}
               onSelect={() => dispatch({ type: 'selectBranch', branchKey: branch.key })}
               onKeyDown={(event) => handleKeyDown(event, index)}
@@ -80,11 +90,11 @@ export default function BranchTabs({
           className="kern-btn kern-btn--tertiary kern-btn--small"
         >
           <span aria-hidden="true" className="kern-icon kern-icon--add kern-icon--small" />
-          <span className="kern-label">{RULES_COPY.addVariant}</span>
+          <span className="kern-label">{copy.addVariant}</span>
         </button>
         <InfoTooltip
-          label={RULES_COPY.aboutVariants}
-          text={RULES_COPY.variantsInfo}
+          label={copy.aboutVariants}
+          text={copy.variantsInfo}
           iconSize="small"
           tone="action"
         />

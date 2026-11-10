@@ -1,3 +1,4 @@
+import { useCopy } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import ResultRow from './ResultRow';
 import type { ResultTableProps } from './types';
@@ -19,6 +20,7 @@ import type { ResultTableProps } from './types';
  * A table, so that each message is read with its column's name.
  */
 export default function ResultTable({ view }: ResultTableProps) {
+  const copy = useCopy(TEST_STEP_COPY);
   const messageColumn = view.messageColumn !== null;
   const head =
     'text-kern-static-small text-kern-layout-text-muted pb-6 text-left align-top leading-(--kern-typography-line-height-medium-static) font-normal';
@@ -30,7 +32,7 @@ export default function ResultTable({ view }: ResultTableProps) {
             scope="col"
             className={`${head} pl-40 ${messageColumn ? 'narrow:block narrow:w-full w-1/2 @min-[480px]:w-340' : 'pr-8'}`}
           >
-            {view.listHeading ?? TEST_STEP_COPY.rule}
+            {view.listHeading ?? copy.rule}
           </th>
           {messageColumn && (
             <th scope="col" className={`${head} narrow:block narrow:pl-20 pr-8 pl-12 break-words`}>

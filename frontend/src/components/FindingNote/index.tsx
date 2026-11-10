@@ -1,5 +1,6 @@
 import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
 
+import { useLanguage } from '../../hooks/useLanguage';
 import { FINDING_LOOKS } from './constants';
 import type { FindingNoteProps } from './types';
 
@@ -14,6 +15,7 @@ import type { FindingNoteProps } from './types';
  * texts come from `findingMessages.ts` (W13).
  */
 export default function FindingNote({ id, kind, text }: FindingNoteProps) {
+  const { language } = useLanguage();
   return (
     <p
       id={id}
@@ -23,7 +25,7 @@ export default function FindingNote({ id, kind, text }: FindingNoteProps) {
         aria-hidden="true"
         className={`kern-icon ${FINDING_LOOKS[kind].icon} kern-icon--small shrink-0`}
       />
-      <span className="sr-only">{kindTextOf(kind)} </span>
+      <span className="sr-only">{kindTextOf(kind, language)} </span>
       {text}
     </p>
   );
