@@ -1,9 +1,9 @@
-# Requirements index — spec.md mtime 1794316749 (2026-11-10 13:19:09 UTC)
+# Requirements index — spec.md mtime 1794348238 (2026-11-10 22:03:58 UTC)
 
-Flags: `copy` = text quoted from the frames (word for word); `undrawn` = the spec names this place as not drawn,
-copy/layout written in this feature; `supersedes <id>` = baseline item the spec's Context table says this item
-replaces (spec.md has no "Behaviour baseline" heading, so those contracts are not indexed here);
-`clarif <date> #n` = settled by a Clarification.
+Flags: `copy` = text quoted from the frames or the spec (word for word); `undrawn` = the spec names this place as not drawn,
+copy/layout written in this feature; `supersedes <id>` = baseline item the spec's Context table (or the requirement) says this
+item replaces (spec.md has no "Behaviour baseline" heading, so those contracts are not indexed here);
+`clarif <date> #n` = settled by a Clarification. `CLAR-<n>` = a requirement stated only in Clarification #n.
 
 | ID | Requirement (≤ 20 words) | Prio | UI | Surface | State | Flags | Spec § |
 |---|---|---|---|---|---|---|---|
@@ -18,6 +18,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-003b | Empty, today, past or non-date: field error state, "Enter a date after today." under it; nothing published | P1 | Y | Publish dialog | error | copy | FR-003 |
 | FR-003c | "Schedule" stays enabled and shows the error when chosen | P1 | Y | Publish dialog | error | | FR-003 |
 | FR-003d | Same refusal when the day changes between opening the dialog and confirming | P1 | Y | Publish dialog | error | | FR-003 |
+| FR-003e | The same day-change refusal in "Change start date" and "Activate again", each with P1c's error state | P1 | Y | Change start date dialog; Activate again dialog | error | undrawn; clarif 2026-11-10 #11 | FR-003 |
 | FR-004a | Scheduling publishes the connection (no draft) except it is not active yet; its links exist at once | P1 | N | ? | ? | supersedes 002-S5.7, 002-S5.8, 002-S6.7 | FR-004 |
 | FR-004b | A scheduled connection's links are shown on its details and can be copied | P1 | Y | Details | default | | FR-004 |
 | FR-004c | Until the start, its links answer serviceBW exactly as a deactivated connection's | P1 | N | serviceBW links | ? | | FR-004 |
@@ -35,7 +36,8 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-008b | "Change start date" dialog: title, "Choose when citizens can use this connection.", "Now", "On a date", "Cancel", "Save date" | P1 | Y | Change start date dialog | default | copy | FR-008 |
 | FR-008c | A new date (checked as FR-003) replaces the start everywhere it shows | P1 | Y | Change start date dialog | success | | FR-008 |
 | FR-008d | "Now" in "Change start date" makes the scheduled connection active at once | P1 | Y | Change start date dialog | success | | FR-008 |
-| FR-008e | A toast confirms the start date change | P1 | Y | Toast | success | undrawn | FR-008 |
+| FR-008e | A success toast reads "Start date saved.", placed as the other toasts are | P1 | Y | Toast | success | copy; undrawn; clarif 2026-11-10 #11 | FR-008 |
+| FR-008f | After "Now", the details show the active band with "Active since <date>, <time>" | P1 | Y | Details | success | copy; undrawn; clarif 2026-11-10 #11 | FR-008 |
 | FR-009a | Active connection's ⋯ menu also holds "Change start date", before "Deactivate" | P1 | Y | Details ⋯ menu | default | copy; clarif 2026-11-10 #1 | FR-009 |
 | FR-009b | Its dialog opens with "Now (active since <date>, <time>)" selected; saving "Now" changes nothing | P1 | Y | Change start date dialog | default | copy | FR-009 |
 | FR-009c | Saving "On a date" schedules an active connection: links answer as deactivated until start, requests in progress cancelled | P1 | N | Change start date dialog | success | clarif 2026-11-10 #1 | FR-009 |
@@ -47,13 +49,22 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-011b | "Now" with "Activate" works as today | P1 | Y | Activate again dialog | success | copy | FR-011 |
 | FR-011c | "On a date" schedules the deactivated connection for that day (FR-003 to FR-006) | P1 | Y | Activate again dialog | success | | FR-011 |
 | FR-011d | Button for the "On a date" case reads "Schedule" | P1 | Y | Activate again dialog | default | undrawn | FR-011 |
+| FR-011e | With "On a date": date field under the radios as in the publish dialog; hint written in this feature | P1 | Y | Activate again dialog | default | undrawn; clarif 2026-11-10 #11 | FR-011 |
 | FR-012a | Deactivating a scheduled connection cancels its schedule; "Deactivated since" that time; can be activated again | P1 | Y | Details | success | | FR-012 |
 | FR-012b | Deactivate dialog's sentence for a connection that was never active | P1 | Y | Deactivate dialog | default | undrawn | FR-012 |
 | FR-013a | Editing a scheduled connection uses active's entry confirmation and edit flow, header pill "Scheduled · <date>" | P1 | Y | Edit flow | default | copy | FR-013 |
 | FR-013b | What is saved becomes active on the date; saving does not change the date | P1 | N | Edit flow | success | | FR-013 |
 | FR-013c | Save dialog's sentence for a scheduled connection | P1 | Y | Save changes dialog | default | undrawn | FR-013 |
+| FR-013d | Scheduled entry confirmation title "Edit this scheduled connection?"; the row's "Edit “<name>”?" stays | P1 | Y | Edit entry confirmation | default | copy; undrawn; clarif 2026-11-10 #24 | FR-013 |
+| FR-013e | Scheduled entry body "Your changes only take effect when you save them. Saved changes become active on <date>." | P1 | Y | Edit entry confirmation | default | copy; undrawn; clarif 2026-11-10 #24 | FR-013 |
+| FR-013f | First step's note "Scheduled. Your changes become active on <date> once you save them." | P1 | Y | Edit flow (connection step) | default | copy; undrawn; clarif 2026-11-10 #24 | FR-013 |
+| FR-013g | Leave dialog: "If you leave now, your changes are lost. Save them, or discard them and keep the scheduled version." | P1 | Y | Save your changes dialog | default | copy; undrawn; clarif 2026-11-10 #24 | FR-013 |
+| FR-013h | Discard dialog: "The connection goes back to the version that becomes active on <date>. Citizens aren't affected." | P1 | Y | Discard changes dialog | default | copy; undrawn; clarif 2026-11-10 #24 | FR-013 |
 | FR-014a | After "Schedule", publish dialog states follow spec 008: publishing, done, failed with error ID | P1 | Y | Publish dialog | loading | | FR-014 |
 | FR-014b | A failure leaves the draft a draft; failed reactivation or date change leaves the connection unchanged | P1 | Y | Publish dialog; Activate again dialog; Change start date dialog | error | | FR-014 |
+| FR-014c | A server failure shows spec 008's failure alert with its error ID, slim but wrapping where needed | P1 | Y | Publish dialog; Activate again dialog; Change start date dialog | error | clarif 2026-11-10 #23 | FR-014 |
+| FR-014d | "Couldn’t publish, so nothing has changed. Check your internet connection and try again." only when no answer came | P1 | Y | Publish dialog | error | copy; clarif 2026-11-10 #23 | FR-014 |
+| FR-014e | "Try again" repeats the same choice: "Now", or "On a date" with the entered date | P1 | Y | Publish dialog; Activate again dialog; Change start date dialog | error | copy; clarif 2026-11-10 #23 | FR-014 |
 | FR-015a | Published connection's details show a date pill under the status sentence, with date and time | P2 | Y | Details | default | supersedes 005-S3.3 | FR-015 (Status dates) |
 | FR-015b | Pill while active: "Active since <date>, <time>" | P2 | Y | Details | default | copy | FR-015 |
 | FR-015c | Pill while scheduled: "Active from <date>, 00:00" | P2 | Y | Details | default | copy | FR-015 |
@@ -72,6 +83,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-019a | Draft row names the step last saved: "Connection step", "Documents step", "Rules step", "Test step" | P2 | Y | Overview | default | copy; supersedes 008 #62 | FR-019 |
 | FR-019b | The step is recorded whoever saved, team member or agent | P2 | N | ? | ? | | FR-019 |
 | FR-019c | A published connection's row names no step | P2 | Y | Overview | default | | FR-019 |
+| FR-019d | A draft without a recorded step reads "Edited <date>" alone | P2 | Y | Overview | default | copy; clarif 2026-11-10 #12 | FR-019 |
 | FR-020a | Dates read DD.MM.YYYY, with time "DD.MM.YYYY, HH:MM", in both languages | P2 | Y | ? | default | | FR-020 |
 | FR-020b | A start date and its "00:00" read the same for every team member, as Germany's day | P2 | Y | ? | default | | FR-020 |
 | FR-021a | Pre-existing connection: publication as stored, "Active since" = publication, "Deactivated" = last change time | P2 | N | ? | ? | | FR-021 |
@@ -96,6 +108,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-025j | Activity records activation again | P3 | Y | Activity card | default | undrawn | FR-025 |
 | FR-025k | Activity records deletion and restore | P3 | Y | Activity card | default | undrawn | FR-025 |
 | FR-025l | Drawn event wording used word for word; others written in the same style | P3 | Y | Activity card | default | copy | FR-025 |
+| FR-025m | Undrawn entries (also FR-027's and FR-032's) show in the drawn row: date and time · event · person | P3 | Y | Activity card | default | undrawn; clarif 2026-11-10 #13 | FR-025 |
 | FR-026a | One save changing several things gives one entry per kind of change | P3 | N | Activity card | ? | | FR-026 |
 | FR-026b | Same kind, same person, same variant, nothing between: one entry with the latest time | P3 | N | Activity card | ? | | FR-026 |
 | FR-027a | An entry's person is the team member who acted, by the name the user menu shows | P3 | Y | Activity card | default | | FR-027 |
@@ -117,15 +130,16 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-034b | "Undo" restores status: a draft with its step; others with their dates and start date | P4 | N | ? | ? | | FR-034 |
 | FR-034c | "Undo" restores the activity and, for a published connection, the same links, working as status says | P4 | N | ? | ? | | FR-034 |
 | FR-034d | The restored connection appears in the list without a reload | P4 | Y | Overview | success | | FR-034 |
-| FR-034e | The restore is announced | P4 | Y | Overview | success | | FR-034 |
+| FR-034e | The restore is announced politely: "“<name>” restored." | P4 | Y | Overview | success | copy; undrawn; clarif 2026-11-10 #14 | FR-034 |
 | FR-035a | Deletion takes effect at once: gone from overview, search, details, agents' reads; its links stop | P4 | Y | Overview | success | | FR-035 |
 | FR-035b | Requests in progress are cancelled on deletion | P4 | N | ? | ? | | FR-035 |
 | FR-035c | "Undo" brings back no cancelled requests and no waiting approval requests | P4 | N | ? | ? | | FR-035 |
 | FR-036a | A deletion is restorable for a limited time, 5 minutes unless settings say otherwise | P4 | N | ? | ? | | FR-036 |
 | FR-036b | Restore only through the toast's "Undo" of the team member who deleted | P4 | Y | Toast | default | | FR-036 |
-| FR-036c | The toast keeps "Undo" as long as it shows (until used, dismissed or replaced) | P4 | Y | Toast | default | | FR-036 |
-| FR-036d | "Undo" after the time changes nothing and says the connection can no longer be restored | P4 | Y | Toast | error | | FR-036 |
+| FR-036c | The toast offers "Undo" while it shows and closes by itself after 6 seconds (FR-082) | P4 | Y | Toast | default | clarif 2026-11-10 #22 | FR-036 |
+| FR-036d | "Undo" after the time, or a second "Undo", changes nothing; toast says "“<name>” can no longer be restored." | P4 | Y | Toast | error | copy; undrawn; clarif 2026-11-10 #14 | FR-036 |
 | FR-036e | After the time, the deletion is final as a deletion is today | P4 | N | ? | ? | | FR-036 |
+| FR-036f | The restore time is the server's limit; it matters only while a toast is held open | P4 | N | ? | ? | clarif 2026-11-10 #22 | FR-036 |
 | FR-037a | Deleting the last connection shows the welcome page with the toast | P4 | Y | Welcome page | empty | | FR-037 |
 | FR-037b | "Undo" there brings back the overview with the connection (spec 008 FR-027) | P4 | Y | Welcome page; Overview | success | | FR-037 |
 | FR-038a | Every overview row has a checkbox, the list's header a select-all checkbox, as drawn | P5 | Y | Overview | default | supersedes 008 FR-028 | FR-038 (Bulk delete) |
@@ -146,10 +160,10 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-042a | "Keep connections", × and Escape close without change and return focus to the bar | P5 | Y | Bulk delete dialog | default | | FR-042 |
 | FR-042b | A scrim click does not close it; nothing closes it while the deletion runs | P5 | Y | Bulk delete dialog | loading | | FR-042 |
 | FR-043a | "Delete connections" deletes all selected connections or none | P5 | N | Bulk delete dialog | ? | | FR-043 |
-| FR-043b | If one vanished or changed status: nothing deleted, dialog names it, list shows current state | P5 | Y | Bulk delete dialog | error | | FR-043 |
+| FR-043b | One vanished or changed: nothing deleted, list current; dialog: "Nothing was deleted: “<name>” was deleted or changed in the meantime." | P5 | Y | Bulk delete dialog | error | copy; undrawn; clarif 2026-11-10 #15 | FR-043 |
 | FR-043c | A failure shows as spec 008's failures do, with the error ID where there is one | P5 | Y | Bulk delete dialog | error | | FR-043 |
 | FR-044a | After bulk deletion: rows gone, selection cleared, toolbar back | P5 | Y | Overview | success | | FR-044 |
-| FR-044b | Toast says how many were deleted, with "Undo" restoring all or none | P5 | Y | Toast | success | undrawn | FR-044 |
+| FR-044b | Toast "<n> connections deleted." with "Undo" restoring all or none | P5 | Y | Toast | success | copy; undrawn; clarif 2026-11-10 #15 | FR-044 |
 | FR-044c | Each connection's deletion and restore shows in its activity | P5 | Y | Activity card | default | | FR-044 |
 | FR-045a | A connection's documents are kept in the order the team member gives them | P6 | N | ? | ? | supersedes 002-S1, 008 FR-031j | FR-045 (Document order) |
 | FR-045b | An added document goes to the end; removing one keeps the others' order | P6 | Y | Documents step | default | | FR-045 |
@@ -162,17 +176,20 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-047a | Every document also movable by "Move up" and "Move down", by keyboard and single pointer | P6 | Y | Documents step | default | copy; undrawn (build note 37, spec 008 menu pattern) | FR-047 |
 | FR-047b | The first document has no "Move up", the last no "Move down" | P6 | Y | Documents step | default | undrawn | FR-047 |
 | FR-047c | After a move the focus stays with the moved document | P6 | Y | Documents step | default | | FR-047 |
-| FR-047d | The move is announced with the document's name and new position | P6 | Y | Documents step | default | undrawn | FR-047 |
+| FR-047d | The move is announced: "“<document>” moved to position <n> of <m>." | P6 | Y | Documents step | default | copy; undrawn; clarif 2026-11-10 #16 | FR-047 |
+| FR-047e | A ⋯ menu button on each document row holds "Move up" and "Move down"; one document, no menu | P6 | Y | Documents step | default | copy; undrawn; clarif 2026-11-10 #16 | FR-047 |
 | FR-048a | Reordering does not change which document is open | P6 | Y | Documents step | default | | FR-048 |
 | FR-048b | The pager ("Document n of m") counts in the list's order | P6 | Y | Documents step | default | copy | FR-048 |
 | FR-049a | Reordering works in the create flow, in a draft and in a published connection's edit flow | P6 | Y | Wizard; Edit flow | default | | FR-049 |
 | FR-049b | The order is saved with the draft, with publishing, and with "Save" in the edit flow | P6 | N | ? | ? | | FR-049 |
 | FR-049c | A draft kept on the device (spec 005) keeps the order too | P6 | N | ? | ? | | FR-049 |
+| FR-049d | The edit flow's documents step gets the create flow's dragging and ⋯ menu, though undrawn | P6 | Y | Edit flow (documents step) | default | undrawn; clarif 2026-11-10 #16 | FR-049 |
 | FR-050a | Stored order used in the documents step, its pager and the test step's data | P6 | Y | Documents step; Test step | default | | FR-050 |
 | FR-050b | Stored order used in the publish, save and reactivate dialogs' summaries and the details' Summary | P6 | Y | Publish dialog; Save changes dialog; Activate again dialog; Details | default | | FR-050 |
 | FR-050c | Stored order used on the approval page | P6 | Y | Approval page | default | | FR-050 |
 | FR-050d | Stored order used in agents' reads | P6 | N | MCP | ? | | FR-050 |
 | FR-050e | Data items inside a document stay in the catalog's order | P6 | Y | Documents step | default | | FR-050 |
+| FR-050f | Where a document has data groups, its data items keep catalog order inside each group (FR-077) | P6 | Y | Documents step | default | clarif 2026-11-10 #6 | FR-050 |
 | FR-051 | The order changes nothing serviceBW receives, the wallet is asked for, requests in progress or links | P6 | N | serviceBW links | ? | | FR-051 |
 | FR-052 | A pre-existing connection keeps the document order it shows today | P6 | N | ? | ? | | FR-052 |
 | FR-053a | While no connection exists, the welcome page offers "Start from an example" beside "Create connection" | P7 | Y | Welcome page | empty | copy; supersedes 008 FR-027 | FR-053 (Example) |
@@ -194,6 +211,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-058c | Rules step, Ambulance: "Ambulance is more lenient than Standard. Rules 01 and 02 are changed here." | P7 | Y | Wizard (rules step) | default | copy | FR-058 |
 | FR-058d | Documents and test steps show the connection step's banner sentence | P7 | Y | Wizard (documents, test steps) | default | undrawn | FR-058 |
 | FR-058e | A banner is information only: no action, cannot be dismissed | P7 | Y | Wizard | default | | FR-058 |
+| FR-058f | On the test step the example banner sits above the variant tabs, as on the rules step | P7 | Y | Wizard (test step) | default | undrawn; clarif 2026-11-10 #18 | FR-058 |
 | FR-059 | A draft stops being the example when published; until then it stays the example; no banner after | P7 | Y | Wizard; Details | default | | FR-059 |
 | FR-060a | Unchanged example: publish dialog adds "This is still the example. Check that the name, documents and rules fit your service." | P7 | Y | Publish dialog | default | copy | FR-060 |
 | FR-060b | Unchanged means name, description, documents, data items, variants, rules are the example's; after a saved change no line | P7 | Y | Publish dialog | default | | FR-060 |
@@ -212,6 +230,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-065e | A date not after today at request time is refused with the reason; no approval request made | P8 | N | MCP | error | | FR-065 |
 | FR-065f | A date no longer after today at approval is refused with the reason | P8 | Y | Approval page | error | | FR-065 |
 | FR-065g | The agent can learn the outcome, with the date the connection is scheduled for | P8 | N | MCP | ? | | FR-065 |
+| FR-065h | Everything new on the approval page is built on spec 007's existing page, with this spec's wording | P8 | Y | Approval page | default | undrawn; clarif 2026-11-10 #17 | FR-065 |
 | FR-066a | Deactivate and delete requests accepted for scheduled connections; approval pages say what happens (as FR-010, FR-012) | P8 | Y | Approval page | default | | FR-066 |
 | FR-066b | A request for a scheduled connection does nothing once it became active or its date changed; page says why | P8 | Y | Approval page | error | | FR-066 |
 | FR-067a | An approved request acts exactly as the browser action, including its activity entry | P8 | N | ? | ? | | FR-067 |
@@ -221,15 +240,65 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | FR-069b | What agents receive stays English | P8 | N | MCP | ? | | FR-069 |
 | FR-070a | Every frame of the eight items ported as drawn (layout, styling, wording), verified as spec 008 | - | Y | ? | ? | copy | FR-070 (Across the feature) |
 | FR-070b | What these frames show of a still-deferred item (FR-074) is not built | - | Y | ? | ? | | FR-070 |
+| FR-070c | The data groups' frames (the ninth item) are ported as drawn too, verified as spec 008 | - | Y | Documents step; Edit flow | ? | copy; clarif 2026-11-10 #6 | FR-070 |
 | FR-071a | Every new text exists in English and German, German written with spec 009's glossary | - | Y | ? | ? | | FR-071 |
 | FR-071b | The glossary gains scheduled, start date, activity, example, selected | - | N | ? | ? | | FR-071 |
 | FR-071c | The frames' English copy is used word for word | - | Y | ? | ? | copy | FR-071 |
+| FR-071d | The page's language mark follows the chosen language (en or de), not build note 1's fixed "en" | - | Y | ? | ? | clarif 2026-11-10 #26 | FR-071 |
 | FR-072a | New screens, states, controls: keyboard-operable, visible focus, status changes announced, no colour-only information | - | Y | ? | ? | | FR-072 |
 | FR-072b | AA contrast, light only, usable at 320 px and 200 % zoom without horizontal scroll | - | Y | ? | ? | | FR-072 |
 | FR-073a | Nothing stored holds anything about a citizen, request, finding or test persona | - | N | ? | ? | | FR-073 |
 | FR-073b | Nothing logged beyond what the middleware logs today (identifiers and counts) | - | N | ? | ? | | FR-073 |
 | FR-074 | Everything else stays as specs 001–009 leave it; deferred items F5, F13, Q13, Q31 (a), Q37 (b), F54 unbuilt | - | N | ? | ? | | FR-074 |
 | FR-075 | serviceBW sees one change only: scheduled links answer as deactivated until the start date | - | N | serviceBW links | ? | | FR-075 |
+| FR-076a | Edit flow header of an active or scheduled connection: only the status pill ("Active", "Scheduled · <date>"), never "Draft changes" | - | Y | Edit flow (header) | default | copy; clarif 2026-11-10 #3 | FR-076 (In place of out-of-scope items) |
+| FR-076b | Edit flow footer reads "Back · Discard changes · <next step> · Save", without "Keep draft and exit" | - | Y | Edit flow (footer) | default | copy; clarif 2026-11-10 #3 | FR-076 |
+| FR-076c | Konnekt and "Your connections" open "Save your changes?" with "Discard changes" and "Save" | - | Y | Save your changes dialog | default | copy; clarif 2026-11-10 #3 | FR-076 |
+| FR-076d | Its body: "If you leave now, your changes are lost. Save them, or discard them and keep the active version." | - | Y | Save your changes dialog | default | copy; clarif 2026-11-10 #3 | FR-076 |
+| FR-076e | No toast reads "Draft kept. Your changes take effect when you save them." | - | Y | Toast | default | copy; clarif 2026-11-10 #3 | FR-076 |
+| FR-076f | No overview row reads "Changes not published" | - | Y | Overview | default | copy; clarif 2026-11-10 #3 | FR-076 |
+| FR-076g | Details' Summary card has no "Download PDF"; header shows "Summary", count line, "View summary" / "Hide summary" | - | Y | Details (Summary card) | default | copy; clarif 2026-11-10 #4 | FR-076 |
+| FR-076h | Deactivation toast reads "Connection deactivated." (success type), without "Undo" | - | Y | Toast | success | copy; clarif 2026-11-10 #5 | FR-076 |
+| FR-076i | Only deleting a connection, removing a document and the rules step's existing undos offer "Undo" | - | Y | Toast | default | clarif 2026-11-10 #5 | FR-076 |
+| FR-076j | Add document card lists only the wallet's documents ("Available", "Added"), no hint line about coming-soon documents | - | Y | Documents step (Add document card) | default | copy; clarif 2026-11-10 #6 | FR-076 |
+| FR-076k | With every wallet document added, the card reads "Everything in the wallet is added." | - | Y | Documents step (Add document card) | empty | copy; clarif 2026-11-10 #6 | FR-076 |
+| FR-076l | The Add document card's search finds wallet documents only | - | Y | Documents step (Add document card) | default | clarif 2026-11-10 #6 | FR-076 |
+| FR-076m | Applicant meeting every rule: result "Result: meets the rules" with the list "Rules <name> meets" | - | Y | Test step | success | copy; clarif 2026-11-10 #8 | FR-076 |
+| FR-076n | No "Message <name> reads" box for an applicant who meets every rule | - | Y | Test step | success | copy; clarif 2026-11-10 #8 | FR-076 |
+| FR-076o | Group ⋯ menu: no "Group with other rules"; in a variant "Add message", "Reset to Standard", divider, "Remove from <variant>" | - | Y | Rules step (group menu) | default | copy; clarif 2026-11-10 #9 | FR-076 |
+| FR-076p | User menu shows the name, a divider and "Log out", without an email | - | Y | User menu | default | copy; clarif 2026-11-10 #10 | FR-076 |
+| FR-076q | The details' Summary shows no rule findings (spec 003 FR-020) | - | Y | Details (Summary card) | default | clarif 2026-11-10 #21 | FR-076 |
+| FR-076r | A variant tab's ⓘ in the Summary shows only the variant's description | - | Y | Details (Summary card) | default | clarif 2026-11-10 #21 | FR-076 |
+| FR-076s | Hidden "badge-small (Live, replaced)" layers stay hidden | - | Y | Overview | default | clarif 2026-11-10 #3 | FR-076; Clarifications #3 |
+| FR-077a | A document with more than 10 data items shows them under group headings in the data item panel | P9 | Y | Documents step (data item panel) | default | supersedes 002-S1, 008 FR-031; clarif 2026-11-10 #6 | FR-077 (Data groups) |
+| FR-077b | Grouped panel: three columns under "All data items": "Name", "Birth", "Address", "Document", own groups, "Other details" | P9 | Y | Documents step (data item panel) | default | copy | FR-077 |
+| FR-077c | The grouping shows in the create flow, in a draft and in the edit flow | P9 | Y | Wizard; Edit flow | default | | FR-077 |
+| FR-077d | A document with 10 data items or fewer keeps today's list without groups | P9 | Y | Documents step (data item panel) | default | | FR-077 |
+| FR-077e | Elsewhere data items stay ungrouped: details' Summary, the dialogs' summaries, the approval page | P9 | Y | Details; Publish dialog; Save changes dialog; Activate again dialog; Approval page | default | | FR-077 |
+| FR-078a | The data groups come from the catalog, with its mirror for the frontend | P9 | N | ? | ? | | FR-078 |
+| FR-078b | Every data item of a grouped document belongs to exactly one group | P9 | N | ? | ? | | FR-078 |
+| FR-078c | A group keeps its name across documents and holds at least 2 data items; the rest go to "Other details" | P9 | N | ? | ? | | FR-078 |
+| FR-078d | Driving licence groups: Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6, Other details 1 | P9 | Y | Documents step (data item panel) | default | copy | FR-078 |
+| FR-078e | Group names are catalog labels, in English and German | P9 | Y | Documents step (data item panel) | default | | FR-078 |
+| FR-079a | Every group heading has a checkbox that selects all of its group's data items | P9 | Y | Documents step (data item panel) | default | | FR-079 |
+| FR-079b | The group checkbox shows its mixed state while some of its data items are chosen | P9 | Y | Documents step (data item panel) | default | | FR-079 |
+| FR-079c | It does for its group what "All data items" does, including the question naming the rules (002-S1.1) | P9 | Y | Documents step (data item panel) | default | | FR-079 |
+| FR-079d | That question's wording for a group is written in this feature | P9 | Y | Documents step (rules question dialog) | default | undrawn | FR-079 |
+| FR-080a | Agents' read of the catalog carries each data item's group, in English | P9 | N | MCP | ? | | FR-080 |
+| FR-080b | The agents' guidance describes the groups in the same change | P9 | N | MCP guidance | ? | | FR-080 |
+| FR-080c | Agents keep choosing data items one by one; no way to choose a whole group | P9 | N | MCP | ? | | FR-080 |
+| FR-081a | With work kept on this device, the overview shows the drawn banner (1m, 1n) above the toolbar | P5 | Y | Overview (local drafts banner) | default | clarif 2026-11-10 #20 | FR-081 (Local drafts banner) |
+| FR-081b | One connection: title "Unsaved changes in “<name>”", buttons "Discard" and "Resume editing" | P5 | Y | Overview (local drafts banner) | default | copy | FR-081 |
+| FR-081c | One connection's text: "Saved only on this device on <date>, <time>, when the page closed. Nobody else can see them." | P5 | Y | Overview (local drafts banner) | default | copy | FR-081 |
+| FR-081d | Several: "Unsaved changes in <n> connections", "Saved only on this device when the page closed. Nobody else can see them." | P5 | Y | Overview (local drafts banner) | default | copy | FR-081 |
+| FR-081e | Several: one line per connection, "Edited · <date>, <time>" or "New, never saved · <date>, <time>" | P5 | Y | Overview (local drafts banner) | default | copy | FR-081 |
+| FR-081f | The banner stays above the selection bar while rows are selected | P5 | Y | Overview; Selection bar | default | | FR-081 |
+| FR-081g | A connection that exists only on this device is neither counted nor selectable | P5 | Y | Overview; Selection bar | default | | FR-081 |
+| FR-081h | The existing local drafts banner is checked against 1m and 1n; what differs is changed | P5 | Y | Overview (local drafts banner) | default | | FR-081 |
+| FR-082a | Every toast, with or without an action, closes by itself after 6 seconds | - | Y | Toast | default | supersedes 008's toast-with-action rule; clarif 2026-11-10 #22 | FR-082 (Toasts) |
+| FR-082b | The time runs only while neither the pointer nor the keyboard focus is on the toast | - | Y | Toast | default | clarif 2026-11-10 #22 | FR-082 |
+| FR-082c | Holds for deletion, bulk, start date toasts and existing ones: document removal "Undo", "Try again", rules undos | - | Y | Toast | default | exception to FR-074; clarif 2026-11-10 #22 | FR-082 |
+| CLAR-7 | "Generate all" (spec 004's regenerate) is built as drawn, asking first like "Generate again" | - | Y | Test step | default | copy; clarif 2026-11-10 #7 | Clarifications #7; FR-074 |
 | US1-AS1 | Publish dialog opens: "Active from", "Now" selected, "On a date", ready sentence, "Publish connection"; "Now" goes live | P1 | Y | Publish dialog | default | copy | US1 AS1 |
 | US1-AS2 | "On a date": sentence "The connection becomes active on the date you choose…", field "DD.MM.YYYY", button "Schedule" | P1 | Y | Publish dialog | default | copy | US1 AS2 |
 | US1-AS3 | No, today's, past or invalid date + "Schedule": field error, "Enter a date after today.", nothing published | P1 | Y | Publish dialog | error | copy | US1 AS3 |
@@ -256,12 +325,13 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | US4-AS1 | Deleted from overview or details: toast ""<name>" deleted." with "Undo" | P4 | Y | Toast | success | copy | US4 AS1 |
 | US4-AS2 | "Undo": connection back with name, description, documents, variants, rules, status, dates, activity, same links | P4 | Y | Overview | success | | US4 AS2 |
 | US4-AS3 | Last connection deleted, welcome page: "Undo" brings back the overview with the connection | P4 | Y | Welcome page; Overview | success | | US4 AS3 |
-| US4-AS4 | "Undo" after the restore time: told it can no longer be restored; nothing changes | P4 | Y | Toast | error | | US4 AS4 |
+| US4-AS4 | Toast held open past the restore time, then "Undo": told it can't be restored; an untouched toast closes after 6 s | P4 | Y | Toast | error | clarif 2026-11-10 #22 | US4 AS4 |
 | US5-AS1 | Two of three rows ticked: toolbar replaced by "2 selected", "Cancel", "Delete"; select-all mixed | P5 | Y | Selection bar; Overview | default | copy | US5 AS1 |
 | US5-AS2 | Active + draft, "Delete": "Delete 2 connections?", lines with status, active warning, "Keep connections", "Delete connections" | P5 | Y | Bulk delete dialog | default | copy | US5 AS2 |
 | US5-AS3 | "Delete connections": both deleted together, selection cleared, toolbar back, toast with "Undo" restoring both | P5 | Y | Overview; Toast | success | | US5 AS3 |
 | US5-AS4 | A selected connection deleted or changed meanwhile: nothing deleted, dialog names it, list current | P5 | Y | Bulk delete dialog | error | | US5 AS4 |
 | US5-AS5 | "Cancel": selection cleared, toolbar back as it was | P5 | Y | Selection bar | default | copy | US5 AS5 |
+| US5-AS6 | Local drafts banner and rows selected: banner stays above the selection bar; device-only connections neither counted nor selectable | P5 | Y | Overview; Selection bar | default | copy | US5 AS6 |
 | US6-AS1 | Drag above: landing line, faded copy; new order, open document stays open, pager "Document 1 of 2" | P6 | Y | Documents step | default | copy | US6 AS1 |
 | US6-AS2 | Touch: press and hold drags as with the mouse; a short touch still scrolls | P6 | Y | Documents step | default | | US6 AS2 |
 | US6-AS3 | Keyboard "Move up" on second document: becomes first, focus stays, move announced with new position | P6 | Y | Documents step | default | undrawn | US6 AS3 |
@@ -278,13 +348,18 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | US8-AS3 | Agent asks to publish on 01.12.2026: approval page shows "Active from 01.12.2026"; approving schedules it | P8 | Y | Approval page | default | copy; clarif 2026-11-10 #2 | US8 AS3 |
 | US8-AS4 | "Read only" agent asks for activity: same entries as the Activity card | P8 | N | MCP | ? | | US8 AS4 |
 | US8-AS5 | No agent way to restore a deleted connection, delete several, or create the example | P8 | N | MCP | ? | | US8 AS5 |
+| US9-AS1 | Driving licence: three columns; Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6, Other details 1; checkboxes | P9 | Y | Documents step (data item panel) | default | copy | US9 AS1 |
+| US9-AS2 | Ticking an empty group's checkbox chooses all its data items, as if each had been ticked | P9 | Y | Documents step (data item panel) | default | | US9 AS2 |
+| US9-AS3 | A group with some of its data items chosen shows its checkbox's mixed state | P9 | Y | Documents step (data item panel) | default | | US9 AS3 |
+| US9-AS4 | Clearing a group with data a rule checks first shows the question naming those rules | P9 | Y | Documents step (rules question dialog) | default | | US9 AS4 |
+| US9-AS5 | An agent reading the catalog gets each grouped data item's group; it still chooses data items one by one | P9 | N | MCP | ? | | US9 AS5 |
 | EC-1 | Dialog opened 30.11. with 01.12., confirmed after midnight: "Enter a date after today."; nothing changed | P1 | Y | Publish dialog; Change start date dialog | error | copy | Edge Cases |
 | EC-2 | Service down at the start date: becomes active once it runs; "Active since" is the scheduled start | P1 | N | worker | ? | | Edge Cases |
 | EC-3 | Scheduled connection deactivated: schedule cancelled; can be activated again, now or on a date | P1 | Y | Details | default | | Edge Cases |
 | EC-4 | Scheduled connection deleted and restored after its date: becomes active at once | P4 | N | ? | ? | | Edge Cases |
 | EC-5 | Requests in progress cancelled on deletion stay cancelled after "Undo"; waiting approval requests too | P4 | N | ? | ? | | Edge Cases |
 | EC-6 | "Undo" twice, or after a colleague's later action: second changes nothing and says so | P4 | Y | Toast | error | | Edge Cases |
-| EC-7 | Undo toast replaced by a later toast or page left: deletion stands, no other restore place | P4 | Y | Toast | default | | Edge Cases |
+| EC-7 | Undo toast closes after its 6 seconds, is replaced by a later toast, or page left: deletion stands, no other restore place | P4 | Y | Toast | default | clarif 2026-11-10 #22 | Edge Cases |
 | EC-8a | Pre-existing connections: rows and pills show the known dates (FR-021) | P2 | Y | Overview; Details | default | | Edge Cases |
 | EC-8b | Pre-existing connections: documents keep their current order | P6 | N | ? | ? | | Edge Cases |
 | EC-8c | Pre-existing connections: activity starts with what is known, without a person (FR-032) | P3 | Y | Activity card | default | | Edge Cases |
@@ -318,6 +393,9 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | ENT-DocumentOrder.position | Each document's position; part of a draft's and a published connection's content | P6 | Y | Documents step | default | | Key Entities |
 | ENT-ExampleMark.isExample | Draft created by "Start from an example" and not yet published | P7 | Y | Wizard | default | | Key Entities |
 | ENT-ExampleMark.changed | Whether anything in the example changed since it was created | P7 | Y | Publish dialog | default | | Key Entities |
+| ENT-DataGroup.name | A named set of a document's data items in the catalog ("Name", "Birth", …, "Other details") | P9 | Y | Documents step (data item panel) | default | | Key Entities |
+| ENT-DataGroup.membership | Every data item of a document with more than 10 data items belongs to exactly one | P9 | N | ? | ? | | Key Entities |
+| ENT-DataGroup.effect | Arranges the documents step's checkboxes; changes nothing a connection stores | P9 | N | ? | ? | | Key Entities |
 | ENT-Selection.rows | The overview rows a team member ticked; page only, never stored | P5 | Y | Overview | default | | Key Entities |
 
 ## Exclusions
@@ -329,8 +407,8 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | OUT-3 | The email line in the user menu (Q13) | Out of Scope; FR-074 |
 | OUT-4 | A success message for met citizens (Q31 (a)) | Out of Scope; FR-074 |
 | OUT-5 | "Download PDF" (Q37 (b)) | Out of Scope; FR-074 |
-| OUT-6 | Group B/C rules-package actions: remove from group, duplicate group, add into group, unlink from Standard, grouping a group, persona generation | Out of Scope |
-| OUT-7 | Group B/C: upcoming documents, roles and view-only users, field groups | Out of Scope |
+| OUT-6 | Group B/C rules-package actions: remove from group, duplicate group, add into group, unlink from Standard, grouping a group, persona generation making every rule testable (F11); "Generate all"/"Generate again" stay | Out of Scope; Clarifications #7 |
+| OUT-7 | Group B/C: upcoming documents (F3), roles and view-only users (data groups are in scope) | Out of Scope; Clarifications #6 |
 | OUT-8 | "Undo" after deactivating (F54) | Out of Scope; FR-074 |
 | OUT-9 | "Undo" after deleting a variant, a rule or a group beyond what exists | Out of Scope |
 | OUT-10 | "Undo" on the approval page | Out of Scope; FR-067 |
@@ -344,6 +422,7 @@ replaces (spec.md has no "Behaviour baseline" heading, so those contracts are no
 | OUT-18 | Bulk actions other than delete (deactivate, activate, export) | Out of Scope |
 | OUT-19 | Anything the citizen sees and the shape of what serviceBW receives | Out of Scope; FR-075 |
 | OUT-20 | Agents restoring a deleted connection, deleting several with one request, or creating the example | FR-068; US8 AS5 |
+| OUT-21 | Rule findings in the published Summary (P9d, build note 26) | Clarifications #21; FR-076 |
 
 ## Glossary
 
@@ -356,37 +435,43 @@ scheduled = Scheduled, geplant, pending activation, "Active from"
 deactivated = inactive, Deactivated, deaktiviert, "Activate again"
 start date = Active from, go-live date, schedule date, Startdatum, date field (DD.MM.YYYY)
 status dates = date pill, status pill, chip, badge, "Published <date>", "Active since", "Deactivated since"
-header pill = status pill, status badge, "Scheduled · <date>"
+header pill = status pill, status badge, "Scheduled · <date>", "badge-small" (hidden "Live, replaced" layers)
 ⋯ menu = overflow menu, kebab, more menu, actions menu, connection menu
-Change start date = reschedule, edit date, Startdatum ändern
+Change start date = reschedule, edit date, Startdatum ändern, "Save date", "Start date saved."
 publish dialog = publish modal, P1, "Publish connection", "Schedule"
 Activate again = reactivate, reactivation dialog, "Activate this connection again?"
 activity = Activity card, activity log, history, audit log, changelog, timeline, Aktivität
 activity entry = event, log item, row, "Last edited by"
 Undo = restore, Rückgängig, toast action
-toast = snackbar, notification, alert, P18
+toast = snackbar, notification, alert, P18, auto-dismiss (6 s; note 30's "5 s")
 deleted connection = restorable deletion, trash (none), bin (none)
 selection = selected rows, checked rows, "<n> selected", ausgewählt
 selection bar = bulk bar, bulk action bar, toolbar (replaced)
 select-all = header checkbox, master checkbox, mixed/indeterminate state
 bulk delete dialog = "Delete <n> connections?", multi-delete modal
+local drafts banner = unsaved work on this device, "Unsaved changes in …", 1m, 1n, note 34, "Resume editing"
 document = credential, ID document, Nachweis, Dokument (Personal ID, Driving licence)
+Add document card = document picker, "Available", "Added", upcoming / coming-soon documents (excluded)
 document order = reorder, drag handle, sort, drag and drop, "Move up", "Move down", R1/R2/R3
 data item = field, attribute, claim
+data group = field group, group heading, group checkbox, "All data items", Name, Birth, Address, Document, Licence, Appearance, "Other details", Datengruppe
 pager = "Document n of m", document pagination
 example = sample, demo, template, "Start from an example", "Start with an example" (slip), "Passenger transport licence (example)", Beispiel
-example banner = info banner, hint, notice, callout
-welcome page = empty state, homepage, start page, first-run screen
-overview = connections list, dashboard, connection list, table
-details = connection details, detail page, status band, Links card, Summary card
+example banner = info banner, hint, notice, callout, "Rules/Findings banner"
+welcome page = empty state, homepage, start page, first-run screen, 1b
+overview = connections list, dashboard, connection list, table, "Your connections"
+details = connection details, detail page, status band, Links card, Summary card ("View summary", "Hide summary")
 wizard = create flow, stepper, steps (Connection, Documents, Rules, Test step)
-edit flow = edit mode, "Edit connection", "Save changes?"
+edit flow = edit mode, "Edit connection", "Save changes?", E1–E7, "Draft changes" / "Keep draft and exit" (excluded)
+entry confirmation = "Edit this scheduled connection?", "Edit “<name>”?", edit entry dialog
+leave dialog = "Save your changes?", E5b, E5a (replaced)
+discard dialog = "Discard changes?", E7
 rule = condition, Regel, Rule 01/Rule 02
-group = rule group, AND/OR group
+group = rule group, AND/OR group, "Group with other rules" (excluded)
 finding = rule check result, warning
-persona = test persona, test person, test data
+persona = test persona, test person, test data, applicant, "Generate all", "Generate again"
 approval page = approval request, Freigabe, approve/decline page
 agent = MCP client, LLM agent, assistant
 team member = user, account, username, name in user menu
 links = connection URLs, serviceBW links, copy link
-middleware = connection portal, product, management UI
+middleware = connection portal, product, management UI, Konnekt
