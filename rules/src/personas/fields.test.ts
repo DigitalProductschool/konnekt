@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { addRuleToBranch, changeItem, newBranch, removeItem } from '../branches';
 import { buildCheckedBranch, type KeyedBranch } from '../checks/checkedTree';
-import { CONTEXT, mainBranch, OPTION_SETS, PID, rule, target } from '../testData';
+import { CONTEXT, CONTEXT_DE, mainBranch, OPTION_SETS, PID, rule, target } from '../testData';
 import type { RuleContext } from '../types';
 import { checkedBranchesOf, personaFieldsOf } from './fields';
 import type { PersonaField } from './types';
@@ -125,6 +125,20 @@ describe('personaFieldsOf', () => {
       },
     ]);
     expect(keysOf(fields)).not.toContain('pid.family_name');
+  });
+
+  it('names the fields from a German context, and changes nothing else (spec 009, FR-016)', () => {
+    const english = personaFieldsOf(EXAMPLE, CONTEXT);
+    const german = personaFieldsOf(EXAMPLE, CONTEXT_DE);
+    expect(german.map((field) => [field.documentLabel, field.label])).toEqual([
+      ['Personalausweis', 'Geburtsdatum (Alter)'],
+      ['Personalausweis', 'Ort'],
+      ['Führerschein', 'Führerscheinklassen'],
+      ['Führerschein', 'Führerscheinklasse B – Ausstellungsdatum'],
+    ]);
+    const withoutLabels = (fields: PersonaField[]) =>
+      fields.map(({ documentLabel: _document, label: _label, ...rest }) => rest);
+    expect(withoutLabels(german)).toEqual(withoutLabels(english));
   });
 
   it('keeps the data of a rule removed in a based branch while the main branch checks it', () => {

@@ -2,7 +2,10 @@
 // "A check run: lifecycle"): the pure reducer behind `useRuleChecks()`. Per branch key, a branch
 // is pending from a change that gives it a new fingerprint until its result is posted, or done.
 // A cached result with the same fingerprint, such as the one before an undo, is used at once. The
-// hook does what touches the browser: the worker, its messages, the clock and the watchdog
+// hook does what touches the browser: the worker, its messages, the clock and the watchdog. The
+// announcements are composed in the language of the latest change (spec 009, R4); one already
+// stored isn't recomposed when the language switches
+import { DEFAULT_LANGUAGE } from '../language';
 import { announcementsFor } from './announcements';
 import { MAX_EARLIER_RESULTS, WATCHDOG_MS, WORKER_STOP_MS } from './constants';
 import type {
@@ -28,6 +31,7 @@ export const initialRunState: RunState = {
   nextRunId: 1,
   cache: { latest: {}, earlier: [] },
   announcement: '',
+  language: DEFAULT_LANGUAGE,
 };
 
 // The cache
@@ -166,6 +170,7 @@ function settle(state: RunState, results: readonly BranchCheck[]): RunState {
         branch: entry.branch,
         names: entry.names,
         shownBranch: state.shownBranchKey,
+        language: state.language,
       })
     );
     cache = remember(cache, check);
@@ -215,7 +220,13 @@ function change(state: RunState, action: ChangeAction): RunState {
     earlier: gone.reduce((earlier, [, check]) => setAside(earlier, check), state.cache.earlier),
   };
   const settled = settle(
-    { ...state, branches, shownBranchKey: action.shownBranchKey, cache },
+    {
+      ...state,
+      branches,
+      shownBranchKey: action.shownBranchKey,
+      cache,
+      language: action.language ?? DEFAULT_LANGUAGE,
+    },
     cached
   );
   if (!changed) {

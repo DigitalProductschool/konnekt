@@ -18,6 +18,6 @@ export const isLanguage = (value: unknown): value is Language =>
 
 /**
  * A copy table: the English column and the German one under their languages. `de` is typed by
- * `en`, so a German column that lacks a key or adds one fails the type check.
+ * `en` alone (`NoInfer`), so a German column that lacks a key or adds one fails the type check.
  */
-export const defineTexts = <T>(en: T, de: T): Record<Language, T> => ({ en, de });
+export const defineTexts = <T>(en: T, de: NoInfer<T>): Record<Language, T> => ({ en, de });

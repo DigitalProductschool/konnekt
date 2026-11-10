@@ -747,6 +747,7 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
 
   it('opens the branch the problem names and focuses its rule, then the message', () => {
     const problem = {
+      code: 'noMessage' as const,
       message: 'Rule 01 in Standard has no error message.',
       branchIndex: 0,
       itemId: ruleId,
@@ -758,7 +759,12 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
   });
 
   it('focuses the message when the problem names a branch but no rule', () => {
-    const problem = { message: 'Enter a name for the variant.', branchIndex: 0, itemId: null };
+    const problem = {
+      code: 'variantNameMissing' as const,
+      message: 'Enter a name for the variant.',
+      branchIndex: 0,
+      itemId: null,
+    };
     expect(problemPlaceOf(rules.branches, problem)).toEqual({
       branchKey: standard.key,
       focusIds: ['rules-problem'],
@@ -767,6 +773,7 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
 
   it('keeps the open branch when the problem names none', () => {
     const problem = {
+      code: 'tooManyBranches' as const,
       message: 'There can be at most 10 variants.',
       branchIndex: null,
       itemId: null,

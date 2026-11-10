@@ -7,6 +7,7 @@ import type { RuleItem } from '@connection-portal/api-types/form-connections';
 
 import type { CheckedBranch, Formula, Literal } from '../checks/types';
 import type { EvaluatedItem } from '../evaluation';
+import type { Language } from '../language';
 import type { RuleContext, StatementParts } from '../types';
 import type { AnnouncedBranch, MetByBranch } from './announcements';
 
@@ -225,6 +226,11 @@ export type PersonaAction =
       before: MetByBranch;
       after: MetByBranch;
       branches: readonly AnnouncedBranch[];
+      /**
+       * The language of the moment (spec 009, R4), in which the announcement is composed; English
+       * when omitted
+       */
+      language?: Language;
     }
   | {
       /** A non-empty name (an empty or blank one is ignored); changes no result, no announcement */

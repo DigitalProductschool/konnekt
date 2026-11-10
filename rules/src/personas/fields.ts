@@ -20,6 +20,7 @@ import { variableKey } from '../checks/literals';
 import type { CheckedBranch, CheckedItem } from '../checks/types';
 import { resolveTarget } from '../conditions';
 import { LICENCE_CLASSES_SET } from '../constants';
+import { DEFAULT_LANGUAGE } from '../language';
 import { dataOfResolved } from '../statements';
 import { effectiveItems } from '../tree';
 import type { RuleContext, RuleDocument } from '../types';
@@ -56,7 +57,8 @@ export interface CheckedBranchWithRules {
  *   their part's place: they follow "Licence classes", class by class in the licence-class set's
  *   order, and for each class in part order (the issue date before the expiry date).
  * - **What**: `label` is `dataOfResolved()` ("Date of birth (Age)", "Licence class B – Issue
- *   date"), `documentLabel` the document's label; kind, value set, `multiple` (`multiple_values`
+ *   date"; "Führerscheinklasse B – Ausstellungsdatum" in a German context, spec 009),
+ *   `documentLabel` the document's label; kind, value set, `multiple` (`multiple_values`
  *   of the part, or of the field without parts, for enums) and `dateOfBirth` come from the catalog.
  *
  * Total: it never throws on a branch of the rules state, whatever its problems
@@ -201,7 +203,7 @@ function personaFieldOf(
     key: variableKey(target),
     documentType: document.key,
     documentLabel: document.label,
-    label: dataOfResolved(resolved),
+    label: dataOfResolved(resolved, context.language ?? DEFAULT_LANGUAGE),
     field: field.key,
     part: part?.key ?? null,
     licenceClass: resolved.licenceClass,

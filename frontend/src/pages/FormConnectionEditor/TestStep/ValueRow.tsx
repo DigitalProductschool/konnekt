@@ -1,6 +1,7 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import {
-  editedHiddenText,
-  failingValueHiddenText,
+  editedHiddenTextOf,
+  failingValueHiddenTextOf,
 } from '@connection-portal/rules/personas/messages';
 
 import { TEST_STEP_COPY } from './constants';
@@ -30,7 +31,10 @@ export default function ValueRow({ label, text, failing, changed }: ValueRowProp
           />
         )}
         <span className={`min-w-0 flex-1 break-words ${failing ? 'font-semibold' : ''}`}>
-          {failing && <span className="sr-only">{failingValueHiddenText} </span>}
+          {/* TODO(009, T039): the language of the moment, here and for the edited text */}
+          {failing && (
+            <span className="sr-only">{failingValueHiddenTextOf(DEFAULT_LANGUAGE)} </span>
+          )}
           {text}
           {changed && (
             <>
@@ -38,7 +42,7 @@ export default function ValueRow({ label, text, failing, changed }: ValueRowProp
                 {' '}
                 {TEST_STEP_COPY.edited}
               </span>
-              <span className="sr-only">{editedHiddenText}</span>
+              <span className="sr-only">{editedHiddenTextOf(DEFAULT_LANGUAGE)}</span>
             </>
           )}
         </span>

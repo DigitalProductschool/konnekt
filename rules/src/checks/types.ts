@@ -4,6 +4,7 @@
 // plain data, so that it can be posted to the worker
 import type { Combinator } from '@connection-portal/api-types/form-connections';
 
+import type { Language } from '../language';
 import type { ConditionKind } from '../types';
 
 // The checked tree (data-model.md, "Checked branch")
@@ -468,6 +469,11 @@ export interface RunState {
   cache: ResultCache;
   /** `RuleChecks.announcement` */
   announcement: string;
+  /**
+   * The language of the latest change (spec 009, R4), in which the next announcements are
+   * composed. An announcement already stored keeps its language: it is transient (a live region)
+   */
+  language: Language;
 }
 
 /** A change of the branches or of their context (FR-011), or a new day in Germany */
@@ -479,6 +485,11 @@ export interface ChangeAction {
   cause: ChangeCause;
   /** The change's time, in milliseconds of `performance.timeOrigin + performance.now()` */
   now: number;
+  /**
+   * The language of the moment (spec 009, R4), in which the announcements of this change and of
+   * the results that follow it are composed. Default `'en'`
+   */
+  language?: Language;
 }
 
 /** Another branch is shown: no run, only the next run's order and the announcements' wording */
@@ -627,6 +638,8 @@ export interface AnnouncementContext {
   names: ItemNames;
   /** The key of the branch shown: a finding in another branch names its variant */
   shownBranch: string;
+  /** The language the announcements are composed in (spec 009, R4). Default `'en'` */
+  language?: Language;
 }
 
 // The theories (research R5, R6, R7): one module per kind decides the literals of one variable,

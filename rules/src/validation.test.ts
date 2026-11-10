@@ -8,18 +8,28 @@ import { describe, expect, it } from 'vitest';
 
 import { addRuleToBranch, changeItem, newBranch, removeItem } from './branches';
 import { requestedRuleDocuments } from './conditions';
+import { CONDITION_PROBLEM_MESSAGES, EDIT_MESSAGES, RULES_MESSAGES } from './constants';
+import serverMessages from './fixtures/server-messages.json';
+import type { Language } from './language';
 import { CONTEXT, mainBranch, MDL, OPTION_SETS, PID, rule, target, US1_RULES } from './testData';
 import { findItem, foldName } from './tree';
-import type { RuleContext } from './types';
+import type { ItemNoun, RuleContext, RulesProblemCode } from './types';
 import {
   checkedInBranch,
   checksUnrequestedData,
   firstProblem,
+  groupProblem,
+  groupProblemOf,
+  isConditionProblem,
   nameProblem,
+  nameProblemOf,
   reservedNameProblem,
+  ruleProblem,
+  ruleProblemOf,
   rulesCheckingData,
   unrequestedRules,
   variantNameProblem,
+  variantNameProblemOf,
 } from './validation';
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
@@ -43,6 +53,14 @@ function problemOf(items: RuleTreeItem[], context: RuleContext = CONTEXT): strin
   return firstProblem([mainBranch(items)], context)?.message;
 }
 
+/** The first problem's code of a main branch with these items (spec 009, R10). */
+function codeOf(
+  items: RuleTreeItem[],
+  context: RuleContext = CONTEXT
+): RulesProblemCode | undefined {
+  return firstProblem([mainBranch(items)], context)?.code;
+}
+
 function must<T>(value: T | null): T {
   if (value === null) {
     throw new Error('expected a result');
@@ -55,6 +73,21 @@ function ageRule(changes: Partial<RuleItem> = {}): RuleItem {
   return { ...US1_RULES[0], ...changes };
 }
 
+/**
+ * CONTEXT in German (spec 009, R4), the Date of birth with the German label the catalog gives
+ * with `Accept-Language: de`
+ */
+const GERMAN: RuleContext = {
+  ...CONTEXT,
+  language: 'de',
+  documents: CONTEXT.documents.map((document) => ({
+    ...document,
+    fields: document.fields.map((field) =>
+      field.key === 'birthdate' ? { ...field, label: 'Geburtsdatum' } : field
+    ),
+  })),
+};
+
 describe('firstProblem', () => {
   it('accepts US1’s rules, and a main branch without rules', () => {
     expect(firstProblem([mainBranch()], CONTEXT)).toBeNull();
@@ -66,6 +99,7 @@ describe('firstProblem', () => {
       const others = Array.from({ length: 20 }, (_, index) => branch(`Variant ${index}`, []));
       expect(firstProblem([mainBranch(), ...others.slice(0, 19)], CONTEXT)).toBeNull();
       expect(firstProblem([mainBranch(), ...others], CONTEXT)).toEqual({
+        code: 'tooManyBranches',
         message: 'A connection can have at most 20 variants.',
         branchIndex: null,
         itemId: null,
@@ -81,16 +115,21 @@ describe('firstProblem', () => {
       expect(firstProblem(branches, CONTEXT)?.message).toBe(
         'The rules need exactly one main branch.'
       );
+      expect(firstProblem(branches, CONTEXT)?.code).toBe('mainBranch');
     });
 
     it('needs a name for every variant', () => {
       expect(firstProblem([mainBranch(), branch('  ', [])], CONTEXT)).toEqual({
+        code: 'branchNameMissing',
         message: 'Enter a name for every variant.',
         branchIndex: 1,
         itemId: null,
       });
       expect(firstProblem([mainBranch(), branch('x'.repeat(101), [])], CONTEXT)?.message).toBe(
         'A variant’s name can have at most 100 characters.'
+      );
+      expect(firstProblem([mainBranch(), branch('x'.repeat(101), [])], CONTEXT)?.code).toBe(
+        'branchNameTooLong'
       );
       expect(firstProblem([mainBranch(), branch('x'.repeat(100), [])], CONTEXT)).toBeNull();
     });
@@ -99,6 +138,7 @@ describe('firstProblem', () => {
       expect(
         firstProblem([mainBranch(), branch('Ambulance', []), branch(' AMBULANCE ', [])], CONTEXT)
       ).toEqual({
+        code: 'branchNameTwice',
         message: 'Two variants are called AMBULANCE. Give each variant its own name.',
         branchIndex: 2,
         itemId: null,
@@ -110,6 +150,7 @@ describe('firstProblem', () => {
       expect(firstProblem([long], CONTEXT)?.message).toBe(
         'The description of Standard can have at most 500 characters.'
       );
+      expect(firstProblem([long], CONTEXT)?.code).toBe('descriptionTooLong');
       expect(firstProblem([{ ...long, description: `${'d'.repeat(500)} ` }], CONTEXT)).toBeNull();
     });
 
@@ -122,9 +163,11 @@ describe('firstProblem', () => {
       expect(firstProblem([branch('Taxi', twoHundred, 'main')], CONTEXT)?.message).not.toContain(
         'at most 200'
       );
+      expect(firstProblem([branch('Taxi', twoHundred, 'main')], CONTEXT)?.code).toBe('chooseData');
       expect(
         firstProblem([branch('Taxi', [...twoHundred, rule(200, null, null)], 'main')], CONTEXT)
       ).toEqual({
+        code: 'tooManyItems',
         message: 'Taxi can have at most 200 rules and groups.',
         branchIndex: 0,
         itemId: null,
@@ -141,14 +184,19 @@ describe('firstProblem', () => {
       expect(problemOf([ageRule({ id, name: 'Old enough' })])).toBe(
         'The rules contain an invalid identifier. Reload the connection and try again.'
       );
+      expect(codeOf([ageRule({ id, name: 'Old enough' })])).toBe('invalidIdentifier');
     });
 
     it('refuses an identifier twice in a branch, but not in two branches', () => {
       expect(problemOf([ageRule(), ageRule({ name: 'Copy' })])).toBe(
         'The rules contain an invalid identifier. Reload the connection and try again.'
       );
+      expect(codeOf([ageRule(), ageRule({ name: 'Copy' })])).toBe('invalidIdentifier');
       expect(problemOf([group(1, US1_RULES.slice(0, 2)), { ...group(1, []), name: 'Again' }])).toBe(
         'The rules contain an invalid identifier. Reload the connection and try again.'
+      );
+      expect(codeOf([group(1, US1_RULES.slice(0, 2)), { ...group(1, []), name: 'Again' }])).toBe(
+        'invalidIdentifier'
       );
       expect(firstProblem([mainBranch(), branch('Ambulance', US1_RULES)], CONTEXT)).toBeNull();
     });
@@ -157,6 +205,7 @@ describe('firstProblem', () => {
   describe('names', () => {
     it('needs a name for every rule, group and sub-group', () => {
       expect(firstProblem([mainBranch([ageRule({ name: ' ' })])], CONTEXT)).toEqual({
+        code: 'itemNameMissing',
         message: 'Enter a name for every rule in Standard.',
         branchIndex: 0,
         itemId: 'rule-1',
@@ -164,8 +213,12 @@ describe('firstProblem', () => {
       expect(problemOf([group(1, US1_RULES.slice(0, 2), '')])).toBe(
         'Enter a name for every group in Standard.'
       );
+      expect(codeOf([group(1, US1_RULES.slice(0, 2), '')])).toBe('itemNameMissing');
       expect(problemOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), '  ')])])).toBe(
         'Enter a name for every sub-group in Standard.'
+      );
+      expect(codeOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), '  ')])])).toBe(
+        'itemNameMissing'
       );
     });
 
@@ -173,12 +226,14 @@ describe('firstProblem', () => {
       expect(problemOf([ageRule({ name: 'n'.repeat(101) })])).toBe(
         'A rule in Standard has a name longer than 100 characters.'
       );
+      expect(codeOf([ageRule({ name: 'n'.repeat(101) })])).toBe('itemNameTooLong');
       expect(problemOf([ageRule({ name: 'n'.repeat(100) })])).toBeUndefined();
     });
 
     it('refuses a name twice in a branch, ignoring letter case and outer spaces (F12)', () => {
       const items = [ageRule({ name: 'Old enough' }), { ...US1_RULES[1], name: ' OLD ENOUGH ' }];
       expect(firstProblem([mainBranch(items)], CONTEXT)).toEqual({
+        code: 'nameTaken',
         message: 'There’s already a rule called "Old enough" in Standard.',
         branchIndex: 0,
         itemId: 'rule-2',
@@ -193,11 +248,20 @@ describe('firstProblem', () => {
         ])
       ).toBe('There’s already a group called "Licence" in Standard.');
       expect(
+        codeOf([group(1, US1_RULES.slice(0, 2), 'Licence'), { ...US1_RULES[2], name: 'licence' }])
+      ).toBe('nameTaken');
+      expect(
         problemOf([
           group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Held B')]),
           { ...rule(4, US1_RULES[0].target, US1_RULES[0].condition), name: 'Held b' },
         ])
       ).toBe('There’s already a sub-group called "Held B" in Standard.');
+      expect(
+        codeOf([
+          group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Held B')]),
+          { ...rule(4, US1_RULES[0].target, US1_RULES[0].condition), name: 'Held b' },
+        ])
+      ).toBe('nameTaken');
     });
 
     it('allows the same name in two branches', () => {
@@ -213,6 +277,7 @@ describe('firstProblem', () => {
       ['Rule 0', 'Rule 0 is kept for the rule numbered 00.'],
     ])('keeps "%s" for its own item (FR-005)', (name, message) => {
       expect(problemOf([ageRule({ name: ` ${name} ` })])).toBe(message);
+      expect(codeOf([ageRule({ name: ` ${name} ` })])).toBe('nameReserved');
     });
 
     it.each(['Rule 1', 'rule 01', 'RULE 001', 'Rule  8', 'Rule 8b', 'Rules 8'])(
@@ -227,6 +292,7 @@ describe('firstProblem', () => {
       expect(problemOf([group(3, US1_RULES.slice(0, 2), 'Rule 3')])).toBe(
         'Rule 3 is kept for the rule numbered 03.'
       );
+      expect(codeOf([group(3, US1_RULES.slice(0, 2), 'Rule 3')])).toBe('nameReserved');
     });
   });
 
@@ -240,17 +306,23 @@ describe('firstProblem', () => {
       expect(problemOf([ageRule({ target: null })])).toBe(
         'Rule 01 in Standard: choose the data to check.'
       );
+      expect(codeOf([ageRule({ target: null })])).toBe('chooseData');
       expect(problemOf([ageRule({ target: target('mdl', 'driving_privileges') })])).toBe(
         'Rule 01 in Standard: choose the data to check.'
       );
+      expect(codeOf([ageRule({ target: target('mdl', 'driving_privileges') })])).toBe('chooseData');
       expect(
         problemOf([ageRule({ target: target('mdl', 'driving_privileges', 'issue_date') })])
       ).toBe('Rule 01 in Standard: choose the data to check.');
+      expect(codeOf([ageRule({ target: target('mdl', 'driving_privileges', 'issue_date') })])).toBe(
+        'chooseData'
+      );
     });
 
     it('refuses data that is no longer requested (F11)', () => {
       const context = requested([{ document_type: 'mdl', fields: ['driving_privileges'] }]);
       expect(firstProblem([mainBranch()], context)).toEqual({
+        code: 'notRequested',
         message: 'Rule 01 in Standard checks data that’s no longer requested.',
         branchIndex: 0,
         itemId: 'rule-1',
@@ -259,15 +331,18 @@ describe('firstProblem', () => {
       expect(problemOf(US1_RULES, withoutClasses)).toBe(
         'Rule 02 in Standard checks data that’s no longer requested.'
       );
+      expect(codeOf(US1_RULES, withoutClasses)).toBe('notRequested');
     });
 
     it('refuses images and unknown fields', () => {
       expect(problemOf([ageRule({ target: target('pid', 'picture') })])).toBe(
         'Rule 01 in Standard checks data that’s no longer requested.'
       );
+      expect(codeOf([ageRule({ target: target('pid', 'picture') })])).toBe('notRequested');
       expect(problemOf([ageRule({ target: target('pid', 'shoe_size') })])).toBe(
         'Rule 01 in Standard checks data that’s no longer requested.'
       );
+      expect(codeOf([ageRule({ target: target('pid', 'shoe_size') })])).toBe('notRequested');
     });
 
     it.each([
@@ -288,6 +363,7 @@ describe('firstProblem', () => {
       expect(problemOf([ageRule({ target: ruleTarget })])).toBe(
         `Rule 01 in Standard checks a part that ${field} doesn’t have.`
       );
+      expect(codeOf([ageRule({ target: ruleTarget })])).toBe('unknownPart');
     });
 
     it('accepts every class of the set, and any class before the sets load', () => {
@@ -300,83 +376,97 @@ describe('firstProblem', () => {
 
   describe('conditions', () => {
     it.each([
-      ['no check', target('pid', 'birthdate'), null, 'choose a check.'],
+      ['no check', target('pid', 'birthdate'), null, 'choose a check.', 'choose_check'],
       [
         'another kind’s check',
         target('mdl', 'height'),
         { operator: 'contains', value: 'x' },
         'choose a check.',
+        'choose_check',
       ],
       [
         'no number',
         target('mdl', 'height'),
         { operator: 'less_than', value: null },
         'enter a number.',
+        'enter_number',
       ],
       [
         'spaces only',
         target('pid', 'address_locality'),
         { operator: 'equal_to', value: '  ', match_case: false },
         'enter a text to compare with.',
+        'enter_text',
       ],
       [
         'no value',
         target('pid', 'nationalities'),
         { operator: 'includes_one_of', values: [] },
         'choose at least one value.',
+        'choose_value',
       ],
       [
         'a value outside the set',
         target('pid', 'nationalities'),
         { operator: 'includes_one_of', values: ['DE', 'XX'] },
         'choose values from the list.',
+        'values_from_list',
       ],
       [
         'a value twice',
         target('pid', 'nationalities'),
         { operator: 'includes_one_of', values: ['DE', 'DE'] },
         'choose each value only once.',
+        'value_once',
       ],
       [
         'an invalid date',
         target('pid', 'birthdate'),
         { operator: 'before', date: '2023-02-29' },
         'enter a date.',
+        'enter_date',
       ],
       [
         '0 years',
         target('pid', 'birthdate'),
         { operator: 'at_least_years_ago', years: 0 },
         'enter a number of years of at least 1.',
+        'years_at_least_1',
       ],
       [
         '1.5 years',
         target('pid', 'birthdate'),
         { operator: 'exactly_years_ago', years: 1.5 },
         'enter a number of years of at least 1.',
+        'years_at_least_1',
       ],
       [
         'no unit',
         target('mdl', 'expiry_date'),
         { operator: 'at_least_from_now', amount: 6, unit: null },
         'choose years or months.',
+        'choose_unit',
       ],
       [
         '0 months',
         target('mdl', 'expiry_date'),
         { operator: 'at_least_from_now', amount: 0, unit: 'months' as const },
         'enter a number of months of at least 1.',
+        'amount_at_least_1',
       ],
       [
         'no years from now',
         target('mdl', 'expiry_date'),
         { operator: 'less_than_from_now', amount: null, unit: 'years' as const },
         'enter a number of years of at least 1.',
+        'amount_at_least_1',
       ],
-    ])('refuses %s', (_name, ruleTarget, condition, problem) => {
+    ])('refuses %s', (_name, ruleTarget, condition, problem, code) => {
       expect(problemOf([ageRule({ target: ruleTarget, condition })])).toBe(
         `Rule 01 in Standard: ${problem}`
       );
+      // The incomplete condition's code is its `ConditionProblem`
+      expect(codeOf([ageRule({ target: ruleTarget, condition })])).toBe(code);
     });
 
     it('checks the classes held against the licence classes', () => {
@@ -388,6 +478,14 @@ describe('firstProblem', () => {
           }),
         ])
       ).toBe('Rule 01 in Standard: choose values from the list.');
+      expect(
+        codeOf([
+          ageRule({
+            target: target('mdl', 'driving_privileges', 'classes'),
+            condition: { operator: 'includes_one_of', values: ['B', 'XL'] },
+          }),
+        ])
+      ).toBe('values_from_list');
     });
   });
 
@@ -396,12 +494,14 @@ describe('firstProblem', () => {
       expect(problemOf([ageRule({ message: ' \n ' })])).toBe(
         'Rule 01 in Standard has no error message.'
       );
+      expect(codeOf([ageRule({ message: ' \n ' })])).toBe('noMessage');
     });
 
     it('limits it to 500 characters after trimming', () => {
       expect(problemOf([ageRule({ message: 'm'.repeat(501) })])).toBe(
         'The error message of Rule 01 in Standard can have at most 500 characters.'
       );
+      expect(codeOf([ageRule({ message: 'm'.repeat(501) })])).toBe('messageTooLong');
       expect(problemOf([ageRule({ message: ` ${'m'.repeat(500)} ` })])).toBeUndefined();
     });
 
@@ -440,17 +540,20 @@ describe('firstProblem', () => {
 
     it('needs at least two rules in a group or sub-group', () => {
       expect(firstProblem([mainBranch([group(1, [US1_RULES[0]])])], CONTEXT)).toEqual({
+        code: 'tooFewMembers',
         message: 'Group 01 in Standard needs at least two rules.',
         branchIndex: 0,
         itemId: 'group-1',
       });
       expect(problemOf([group(1, [])])).toBe('Group 01 in Standard needs at least two rules.');
+      expect(codeOf([group(1, [])])).toBe('tooFewMembers');
       expect(
         firstProblem(
           [mainBranch([group(1, [US1_RULES[0], group(2, [US1_RULES[1]], 'Sub-group 02')])])],
           CONTEXT
         )
       ).toEqual({
+        code: 'tooFewMembers',
         message: 'Sub-group 02 in Standard needs at least two rules.',
         branchIndex: 0,
         itemId: 'group-2',
@@ -466,6 +569,12 @@ describe('firstProblem', () => {
           CONTEXT
         )?.message
       ).toBe('Group 01 in Ambulance needs at least two rules.');
+      expect(
+        firstProblem(
+          [mainBranch(), branch('Ambulance', [own([US1_RULES[0], removed])], 'based')],
+          CONTEXT
+        )?.code
+      ).toBe('tooFewMembers');
       expect(
         firstProblem(
           [
@@ -504,6 +613,7 @@ describe('firstProblem', () => {
           CONTEXT
         )
       ).toEqual({
+        code: 'rulesOnly',
         message: 'Sub-group 02 in Standard can only hold rules.',
         branchIndex: 0,
         itemId: 'group-2',
@@ -517,6 +627,7 @@ describe('firstProblem', () => {
       expect(problemOf(withMessage('m'.repeat(501)))).toBe(
         'The error message of Group 01 in Standard can have at most 500 characters.'
       );
+      expect(codeOf(withMessage('m'.repeat(501)))).toBe('messageTooLong');
       expect(problemOf(withMessage(` ${'m'.repeat(500)} `))).toBeUndefined();
       expect(problemOf(withMessage('😀'.repeat(500)))).toBeUndefined();
       expect(problemOf(withMessage('   '))).toBeUndefined();
@@ -528,6 +639,7 @@ describe('firstProblem', () => {
       expect(problemOf([group(1, [US1_RULES[0], subGroup])])).toBe(
         'The error message of Sub-group 02 in Standard can have at most 500 characters.'
       );
+      expect(codeOf([group(1, [US1_RULES[0], subGroup])])).toBe('messageTooLong');
     });
 
     it('checks group names like rule names, naming the earlier group', () => {
@@ -542,6 +654,7 @@ describe('firstProblem', () => {
           CONTEXT
         )
       ).toEqual({
+        code: 'nameTaken',
         message: 'There’s already a group called "Older drivers" in Standard.',
         branchIndex: 0,
         itemId: 'group-2',
@@ -549,15 +662,22 @@ describe('firstProblem', () => {
       expect(
         problemOf([group(1, US1_RULES.slice(0, 2)), { ...US1_RULES[2], name: 'group 01' }])
       ).toBe('There’s already a group called "Group 01" in Standard.');
+      expect(codeOf([group(1, US1_RULES.slice(0, 2)), { ...US1_RULES[2], name: 'group 01' }])).toBe(
+        'nameTaken'
+      );
     });
 
     it('keeps "Group NN" and "Sub-group NN" for the group numbered NN', () => {
       expect(problemOf([group(1, US1_RULES.slice(0, 2), 'Group 03')])).toBe(
         'Group 03 is kept for the group numbered 03.'
       );
+      expect(codeOf([group(1, US1_RULES.slice(0, 2), 'Group 03')])).toBe('nameReserved');
       expect(
         problemOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Sub-group 3')])])
       ).toBe('Sub-group 3 is kept for the sub-group numbered 03.');
+      expect(codeOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Sub-group 3')])])).toBe(
+        'nameReserved'
+      );
       expect(
         problemOf([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), 'Group 2')])])
       ).toBeUndefined();
@@ -569,6 +689,9 @@ describe('firstProblem', () => {
       expect(
         problemOf([ageRule({ name: '', target: null }), { ...US1_RULES[1], message: '' }])
       ).toBe('Enter a name for every rule in Standard.');
+      expect(codeOf([ageRule({ name: '', target: null }), { ...US1_RULES[1], message: '' }])).toBe(
+        'itemNameMissing'
+      );
       expect(
         problemOf([
           US1_RULES[0],
@@ -576,6 +699,9 @@ describe('firstProblem', () => {
           { ...US1_RULES[2], target: null },
         ])
       ).toBe('Rule 02 in Standard has no error message.');
+      expect(
+        codeOf([US1_RULES[0], { ...US1_RULES[1], message: '' }, { ...US1_RULES[2], target: null }])
+      ).toBe('noMessage');
     });
 
     it('checks a group’s members after the group, and names each with its branch', () => {
@@ -588,6 +714,7 @@ describe('firstProblem', () => {
           CONTEXT
         )
       ).toEqual({
+        code: 'choose_check',
         message: 'Rule 02 in Ambulance: choose a check.',
         branchIndex: 1,
         itemId: 'rule-2',
@@ -599,21 +726,30 @@ describe('firstProblem', () => {
       expect(problemOf([group(1, [US1_RULES[0]], ' ')])).toBe(
         'Enter a name for every group in Standard.'
       );
+      expect(codeOf([group(1, [US1_RULES[0]], ' ')])).toBe('itemNameMissing');
       expect(problemOf([group(1, [US1_RULES[0], group(2, [group(3, US1_RULES.slice(1))])])])).toBe(
         'Group 02 in Standard can only hold rules.'
+      );
+      expect(codeOf([group(1, [US1_RULES[0], group(2, [group(3, US1_RULES.slice(1))])])])).toBe(
+        'rulesOnly'
       );
       expect(problemOf([{ ...group(1, [US1_RULES[0]]), message: tooLong }])).toBe(
         'Group 01 in Standard needs at least two rules.'
       );
+      expect(codeOf([{ ...group(1, [US1_RULES[0]]), message: tooLong }])).toBe('tooFewMembers');
       expect(
         problemOf([{ ...group(1, [ageRule({ message: '' }), US1_RULES[1]]), message: tooLong }])
       ).toBe('The error message of Group 01 in Standard can have at most 500 characters.');
+      expect(
+        codeOf([{ ...group(1, [ageRule({ message: '' }), US1_RULES[1]]), message: tooLong }])
+      ).toBe('messageTooLong');
     });
 
     it('checks a group before its members, and its members before the next item', () => {
       expect(problemOf([group(1, [ageRule({ target: null })])])).toBe(
         'Group 01 in Standard needs at least two rules.'
       );
+      expect(codeOf([group(1, [ageRule({ target: null })])])).toBe('tooFewMembers');
       expect(
         problemOf([
           group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }]),
@@ -621,11 +757,23 @@ describe('firstProblem', () => {
         ])
       ).toBe('Rule 02 in Standard has no error message.');
       expect(
+        codeOf([
+          group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }]),
+          { ...US1_RULES[2], target: null },
+        ])
+      ).toBe('noMessage');
+      expect(
         problemOf([
           group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }], ''),
           { ...US1_RULES[2], target: null },
         ])
       ).toBe('Enter a name for every group in Standard.');
+      expect(
+        codeOf([
+          group(1, [US1_RULES[0], { ...US1_RULES[1], message: '' }], ''),
+          { ...US1_RULES[2], target: null },
+        ])
+      ).toBe('itemNameMissing');
     });
 
     it('reports a problem the main branch shares with a variant once, for the main branch', () => {
@@ -633,6 +781,7 @@ describe('firstProblem', () => {
       expect(
         firstProblem([mainBranch(broken), branch('Ambulance', broken, 'based')], CONTEXT)
       ).toEqual({
+        code: 'noMessage',
         message: 'Rule 01 in Standard has no error message.',
         branchIndex: 0,
         itemId: 'rule-1',
@@ -643,6 +792,9 @@ describe('firstProblem', () => {
       expect(
         firstProblem([mainBranch(), branch(' Taxi ', [ageRule({ message: '' })])], CONTEXT)?.message
       ).toBe('Rule 01 in Taxi has no error message.');
+      expect(
+        firstProblem([mainBranch(), branch(' Taxi ', [ageRule({ message: '' })])], CONTEXT)?.code
+      ).toBe('noMessage');
     });
   });
 });
@@ -727,6 +879,404 @@ describe('reservedNameProblem', () => {
     expect(reservedNameProblem('Rule 000123456789012345', item)).toBeNull();
     expect(reservedNameProblem('Rule 123456789012346', item)).toBe(
       'Rule 123456789012346 is kept for the rule numbered 123456789012346.'
+    );
+  });
+});
+
+describe('ruleProblemOf and ruleProblem (spec 009, R4, R10)', () => {
+  const amountOf = (amount: number) =>
+    ageRule({
+      target: target('mdl', 'expiry_date'),
+      condition: { operator: 'at_least_from_now', amount, unit: 'months' },
+    });
+
+  it.each([
+    [
+      'no data',
+      ageRule({ target: null }),
+      'chooseData',
+      'Rule 01 in Standard: choose the data to check.',
+      'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.',
+    ],
+    [
+      'an image',
+      ageRule({ target: target('pid', 'picture') }),
+      'notRequested',
+      'Rule 01 in Standard checks data that’s no longer requested.',
+      'Rule 01 in Standard prüft Daten, die nicht mehr angefordert werden.',
+    ],
+    [
+      'a part the field doesn’t have',
+      ageRule({ target: target('pid', 'birthdate', 'country') }),
+      'unknownPart',
+      'Rule 01 in Standard checks a part that Date of birth doesn’t have.',
+      'Rule 01 in Standard prüft einen Bestandteil, den das Feld „Geburtsdatum“ nicht hat.',
+    ],
+    [
+      'no check',
+      ageRule({ condition: null }),
+      'choose_check',
+      'Rule 01 in Standard: choose a check.',
+      'Rule 01 in Standard: Wählen Sie eine Prüfung.',
+    ],
+    [
+      '0 months',
+      amountOf(0),
+      'amount_at_least_1',
+      'Rule 01 in Standard: enter a number of months of at least 1.',
+      'Rule 01 in Standard: Geben Sie als Anzahl der Monate mindestens 1 ein.',
+    ],
+    [
+      'no message',
+      ageRule({ message: ' ' }),
+      'noMessage',
+      'Rule 01 in Standard has no error message.',
+      'Rule 01 in Standard hat keine Fehlermeldung.',
+    ],
+    [
+      'a long message',
+      ageRule({ message: 'm'.repeat(501) }),
+      'messageTooLong',
+      'The error message of Rule 01 in Standard can have at most 500 characters.',
+      'Die Fehlermeldung von Rule 01 in Standard darf höchstens 500 Zeichen lang sein.',
+    ],
+  ])('names %s by its code, in both languages', (_name, checked, code, english, german) => {
+    expect(ruleProblemOf(checked, ' Standard ', CONTEXT)).toEqual({ code, message: english });
+    // ruleProblem() is the message, as it was: English by default
+    expect(ruleProblem(checked, ' Standard ', CONTEXT)).toBe(english);
+    expect(ruleProblem(checked, ' Standard ', { ...CONTEXT, language: 'en' })).toBe(english);
+    expect(ruleProblemOf(checked, ' Standard ', GERMAN)).toEqual({ code, message: german });
+    expect(ruleProblem(checked, ' Standard ', GERMAN)).toBe(german);
+  });
+
+  it('finds nothing in a complete rule, in either language', () => {
+    expect(ruleProblemOf(ageRule(), 'Standard', CONTEXT)).toBeNull();
+    expect(ruleProblemOf(amountOf(6), 'Standard', GERMAN)).toBeNull();
+  });
+
+  it('tells an incomplete condition’s code from the others', () => {
+    expect(isConditionProblem('choose_check')).toBe(true);
+    expect(isConditionProblem('amount_at_least_1')).toBe(true);
+    expect(isConditionProblem('chooseData')).toBe(false);
+    expect(isConditionProblem('noMessage')).toBe(false);
+    expect(isConditionProblem('unknownVariant')).toBe(false);
+  });
+});
+
+describe('groupProblemOf and groupProblem (spec 009, R4, R10)', () => {
+  it.each([
+    [
+      'too few members',
+      group(1, [US1_RULES[0]]),
+      'group',
+      'tooFewMembers',
+      'Group 01 in Standard needs at least two rules.',
+      'Group 01 in Standard braucht mindestens zwei Regeln.',
+    ],
+    [
+      'a group in a sub-group',
+      group(2, [group(3, US1_RULES.slice(1)), US1_RULES[0]], 'Sub-group 02'),
+      'sub-group',
+      'rulesOnly',
+      'Sub-group 02 in Standard can only hold rules.',
+      'Sub-group 02 in Standard kann nur Regeln enthalten.',
+    ],
+    [
+      'a long message',
+      { ...group(1, US1_RULES.slice(0, 2)), message: 'm'.repeat(501) },
+      'group',
+      'messageTooLong',
+      'The error message of Group 01 in Standard can have at most 500 characters.',
+      'Die Fehlermeldung von Group 01 in Standard darf höchstens 500 Zeichen lang sein.',
+    ],
+  ] as [string, GroupItem, ItemNoun, RulesProblemCode, string, string][])(
+    'names %s by its code, in both languages',
+    (_name, checked, noun, code, english, german) => {
+      expect(groupProblemOf(checked, noun, ' Standard ')).toEqual({ code, message: english });
+      expect(groupProblem(checked, noun, ' Standard ')).toBe(english);
+      expect(groupProblemOf(checked, noun, ' Standard ', false, 'de')).toEqual({
+        code,
+        message: german,
+      });
+      expect(groupProblem(checked, noun, ' Standard ', false, 'de')).toBe(german);
+    }
+  );
+
+  it('finds nothing in a group that holds two rules', () => {
+    expect(groupProblemOf(group(1, US1_RULES.slice(0, 2)), 'group', 'Standard', false, 'de')).toBe(
+      null
+    );
+  });
+});
+
+describe('firstProblem in German (spec 009, R4)', () => {
+  const ambulance = (items: RuleTreeItem[]) => branch('Ambulance', items);
+
+  it.each([
+    [
+      'a 21st variant',
+      [mainBranch(), ...Array.from({ length: 20 }, (_, index) => branch(`Variant ${index}`, []))],
+      'Eine Anbindung kann höchstens 20 Varianten haben.',
+    ],
+    ['no main branch', [ambulance([])], 'Die Regeln brauchen genau eine Hauptvariante.'],
+    [
+      'a variant without a name',
+      [mainBranch(), branch('  ', [])],
+      'Geben Sie für jede Variante einen Namen ein.',
+    ],
+    [
+      'two variants of one name',
+      [mainBranch(), ambulance([]), branch(' AMBULANCE ', [])],
+      'Zwei Varianten heißen AMBULANCE. Geben Sie jeder Variante einen eigenen Namen.',
+    ],
+    [
+      'a long description',
+      [{ ...mainBranch(), description: 'd'.repeat(501) }],
+      'Die Beschreibung von Standard darf höchstens 500 Zeichen lang sein.',
+    ],
+    [
+      'an invalid identifier',
+      [mainBranch([ageRule({ id: 'rule-01' })])],
+      'Die Regeln enthalten eine ungültige Kennung. Laden Sie die Anbindung neu und versuchen Sie es erneut.',
+    ],
+    [
+      'a sub-group without a name',
+      [mainBranch([group(1, [US1_RULES[0], group(2, US1_RULES.slice(1), '  ')])])],
+      'Geben Sie für jede Untergruppe in Standard einen Namen ein.',
+    ],
+    [
+      'a long name',
+      [mainBranch([ageRule({ name: 'n'.repeat(101) })])],
+      'Eine Regel in Standard hat einen Namen mit mehr als 100 Zeichen.',
+    ],
+    [
+      'a name twice',
+      [mainBranch([ageRule({ name: 'Old enough' }), { ...US1_RULES[1], name: 'old enough' }])],
+      'In Standard gibt es bereits eine Regel namens „Old enough“.',
+    ],
+    [
+      'a reserved name',
+      [mainBranch([group(1, US1_RULES.slice(0, 2), 'Group 03')])],
+      'Group 03 ist für die Gruppe mit der Nummer 03 reserviert.',
+    ],
+    [
+      'a rule without data in a variant',
+      [mainBranch(), ambulance([group(1, [US1_RULES[0], { ...US1_RULES[1], target: null }])])],
+      'Rule 02 in Ambulance: Wählen Sie die zu prüfenden Daten.',
+    ],
+    [
+      'a group with one rule',
+      [mainBranch([group(1, [US1_RULES[0]])])],
+      'Group 01 in Standard braucht mindestens zwei Regeln.',
+    ],
+  ] as [string, BranchInput[], string][])(
+    'refuses %s in German, with the English problem’s code and place',
+    (_name, branches, german) => {
+      const english = firstProblem(branches, CONTEXT);
+      expect(english).not.toBeNull();
+      expect(firstProblem(branches, GERMAN)).toEqual({ ...english, message: german });
+    }
+  );
+
+  it('accepts what it accepts in English', () => {
+    expect(firstProblem([mainBranch(), branch('Ambulance', US1_RULES)], GERMAN)).toBeNull();
+  });
+});
+
+describe('nameProblem and variantNameProblem in German, with codes (spec 009, R4, R10)', () => {
+  const standard = mainBranch([
+    ...US1_RULES.slice(0, 2),
+    group(1, [US1_RULES[2], group(2, [rule(4, null, null), rule(5, null, null)], 'Held B')]),
+  ]);
+
+  it.each([
+    ['no name', '  ', 'nameMissing', 'Enter a name.', 'Geben Sie einen Namen ein.'],
+    [
+      'a long name',
+      'n'.repeat(101),
+      'nameTooLong',
+      'A name can have at most 100 characters.',
+      'Ein Name darf höchstens 100 Zeichen lang sein.',
+    ],
+    [
+      'a rule’s name',
+      ' RULE 02 ',
+      'nameTaken',
+      'There’s already a rule called "Rule 02" in Standard.',
+      'In Standard gibt es bereits eine Regel namens „Rule 02“.',
+    ],
+    [
+      'a group’s name',
+      'Group 01',
+      'nameTaken',
+      'There’s already a group called "Group 01" in Standard.',
+      'In Standard gibt es bereits eine Gruppe namens „Group 01“.',
+    ],
+    [
+      'a sub-group’s name',
+      'held b',
+      'nameTaken',
+      'There’s already a sub-group called "Held B" in Standard.',
+      'In Standard gibt es bereits eine Untergruppe namens „Held B“.',
+    ],
+    [
+      'a rule’s reserved name',
+      'Rule 08',
+      'nameReserved',
+      'Rule 08 is kept for the rule numbered 08.',
+      'Rule 08 ist für die Regel mit der Nummer 08 reserviert.',
+    ],
+    [
+      'a sub-group’s reserved name',
+      'Sub-group 7',
+      'nameReserved',
+      'Sub-group 7 is kept for the sub-group numbered 07.',
+      'Sub-group 7 ist für die Untergruppe mit der Nummer 07 reserviert.',
+    ],
+  ])('refuses %s by its code, in both languages', (_name, name, code, english, german) => {
+    expect(nameProblemOf(name, US1_RULES[0], standard, [standard])).toEqual({
+      code,
+      message: english,
+    });
+    expect(nameProblem(name, US1_RULES[0], standard, [standard], 'de')).toBe(german);
+    expect(nameProblemOf(name, US1_RULES[0], standard, [standard], 'de')).toEqual({
+      code,
+      message: german,
+    });
+  });
+
+  it('keeps the stored English names reserved in German, and no German ones (FR-007)', () => {
+    expect(nameProblem('Regel 08', US1_RULES[0], standard, [standard], 'de')).toBeNull();
+    expect(reservedNameProblem('Rule 08', US1_RULES[0], 'de')).toBe(
+      'Rule 08 ist für die Regel mit der Nummer 08 reserviert.'
+    );
+    expect(reservedNameProblem('Rule 01', US1_RULES[0], 'de')).toBeNull();
+  });
+
+  it('names the based variant a rename in the main branch clashes in (rule 7)', () => {
+    const main = mainBranch();
+    const renamed = must(
+      changeItem(main, newBranch(main, 'based', 'Ambulance', null), {
+        ...US1_RULES[0],
+        name: 'Minimum age',
+      })
+    );
+    expect(nameProblemOf('minimum age', US1_RULES[1], main, [main, renamed], 'de')).toEqual({
+      code: 'nameTaken',
+      message: 'In Ambulance gibt es bereits eine Regel namens „Minimum age“.',
+    });
+  });
+
+  const others = ['Standard', ' Ambulance '];
+
+  it.each([
+    [
+      'no name',
+      '  ',
+      'variantNameMissing',
+      'Enter a name for the variant.',
+      'Geben Sie einen Namen für die Variante ein.',
+    ],
+    [
+      'a long name',
+      'v'.repeat(101),
+      'branchNameTooLong',
+      'A variant’s name can have at most 100 characters.',
+      'Der Name einer Variante darf höchstens 100 Zeichen lang sein.',
+    ],
+    [
+      'another variant’s name',
+      ' ambulance',
+      'variantNameTaken',
+      'There’s already a variant called "Ambulance".',
+      'Es gibt bereits eine Variante namens „Ambulance“.',
+    ],
+  ])(
+    'refuses a variant %s by its code, in both languages',
+    (_name, name, code, english, german) => {
+      expect(variantNameProblemOf(name, others)).toEqual({ code, message: english });
+      expect(variantNameProblem(name, others, 'de')).toBe(german);
+      expect(variantNameProblemOf(name, others, 'de')).toEqual({ code, message: german });
+    }
+  );
+
+  it('accepts a free variant name in German', () => {
+    expect(variantNameProblemOf('Schulweg', others, 'de')).toBeNull();
+  });
+});
+
+/**
+ * A case's arguments, by parameter name, in the TS function's parameter order (the JSON's type
+ * gives every case every name of the file, those it lacks as undefined)
+ */
+type ParityParams = Record<string, string | undefined>;
+
+/** A parity case of `fixtures/server-messages.json` (its `about`) */
+interface ParityCase {
+  key: string;
+  table: string;
+  params: ParityParams;
+  /** Where present, the German case's arguments */
+  params_de?: ParityParams;
+  en: string;
+  de: string;
+}
+
+interface ServerMessages {
+  condition_problem_prefix: { params: { rule: string; branch: string }; en: string; de: string };
+  cases: ParityCase[];
+  client_only: { key: string; table: string; reason: string }[];
+}
+
+const SERVER_MESSAGES: ServerMessages = serverMessages;
+
+// The tables the server's messages are mirrored in, by the names the fixture gives them
+const MIRRORED: Record<string, Record<Language, Record<string, unknown>>> = {
+  RULES_MESSAGES,
+  CONDITION_PROBLEM_MESSAGES,
+  EDIT_MESSAGES,
+};
+
+/** A table's entry rendered with a case's arguments: `fn(...Object.values(params))`. */
+function rendered(entry: unknown, params: ParityParams): unknown {
+  return typeof entry === 'function'
+    ? (entry as (...args: unknown[]) => string)(...Object.values(params))
+    : entry;
+}
+
+describe('the server’s messages, word for word in both languages (spec 009, R8)', () => {
+  it.each(SERVER_MESSAGES.cases.map((parity) => [`${parity.table}.${parity.key}`, parity]))(
+    '%s',
+    (_name, parity) => {
+      const table = MIRRORED[parity.table];
+      expect(rendered(table.en[parity.key], parity.params)).toBe(parity.en);
+      expect(rendered(table.de[parity.key], parity.params_de ?? parity.params)).toBe(parity.de);
+    }
+  );
+
+  it('mirrors every message the server has; only the client’s own are left out', () => {
+    const keysOf = (name: string) =>
+      new Set(SERVER_MESSAGES.cases.filter(({ table }) => table === name).map(({ key }) => key));
+    const clientOnly = SERVER_MESSAGES.client_only.map(({ key }) => key);
+    expect(SERVER_MESSAGES.client_only.every(({ table }) => table === 'RULES_MESSAGES')).toBe(true);
+    expect(new Set([...keysOf('RULES_MESSAGES'), ...clientOnly])).toEqual(
+      new Set(Object.keys(RULES_MESSAGES.en))
+    );
+    expect([...keysOf('RULES_MESSAGES')].filter((key) => clientOnly.includes(key))).toEqual([]);
+    expect(keysOf('CONDITION_PROBLEM_MESSAGES')).toEqual(
+      new Set(Object.keys(CONDITION_PROBLEM_MESSAGES.en))
+    );
+    expect(keysOf('EDIT_MESSAGES')).toEqual(new Set(['unknownVariant']));
+  });
+
+  it('puts an incomplete condition’s message after the server’s prefix, in both languages', () => {
+    const { params, en, de } = SERVER_MESSAGES.condition_problem_prefix;
+    const incomplete = ageRule({ name: params.rule, condition: null });
+    expect(ruleProblem(incomplete, params.branch, CONTEXT)).toBe(
+      `${en}${CONDITION_PROBLEM_MESSAGES.en.choose_check}`
+    );
+    expect(ruleProblem(incomplete, params.branch, GERMAN)).toBe(
+      `${de}${CONDITION_PROBLEM_MESSAGES.de.choose_check}`
     );
   });
 });
@@ -858,6 +1408,7 @@ describe('the branches of a based branch (T060)', () => {
     const broken = mainBranch([{ ...US1_RULES[0], message: '' }]);
     const branch = newBranch(broken, 'based', 'Ambulance', null);
     expect(firstProblem([broken, branch], CONTEXT)).toEqual({
+      code: 'noMessage',
       message: 'Rule 01 in Standard has no error message.',
       branchIndex: 0,
       itemId: 'rule-1',
@@ -867,6 +1418,7 @@ describe('the branches of a based branch (T060)', () => {
   it('checks a changed or added rule in its branch', () => {
     const changed = must(changeItem(main, based(), { ...US1_RULES[0], message: ' ' }));
     expect(firstProblem([main, changed], CONTEXT)).toEqual({
+      code: 'noMessage',
       message: 'Rule 01 in Ambulance has no error message.',
       branchIndex: 1,
       itemId: 'rule-1',
@@ -875,6 +1427,7 @@ describe('the branches of a based branch (T060)', () => {
     expect(firstProblem([main, added], CONTEXT)?.message).toBe(
       'Rule 09 in Ambulance: choose the data to check.'
     );
+    expect(firstProblem([main, added], CONTEXT)?.code).toBe('chooseData');
   });
 
   it('checks removed items like the others, in the main branch they mirror', () => {
@@ -883,6 +1436,7 @@ describe('the branches of a based branch (T060)', () => {
       removeItem(broken, newBranch(broken, 'based', 'Ambulance', null), 'rule-1')
     );
     expect(firstProblem([broken, removed], CONTEXT)?.branchIndex).toBe(0);
+    expect(firstProblem([broken, removed], CONTEXT)?.code).toBe('noMessage');
   });
 
   it('takes the names an undo gives back in a based branch (FR-005)', () => {
@@ -891,6 +1445,7 @@ describe('the branches of a based branch (T060)', () => {
       addRuleToBranch(renamed, { ...US1_RULES[0], id: 'rule-9', name: 'rule 01' })
     );
     expect(firstProblem([main, added], CONTEXT)).toEqual({
+      code: 'nameTaken',
       message: 'There’s already a rule called "Rule 01" in Ambulance.',
       branchIndex: 1,
       itemId: 'rule-9',
@@ -907,6 +1462,7 @@ describe('the branches of a based branch (T060)', () => {
     expect(firstProblem([main, added], CONTEXT)?.message).toBe(
       'There’s already a rule called "Rule 02" in Ambulance.'
     );
+    expect(firstProblem([main, added], CONTEXT)?.code).toBe('nameTaken');
   });
 });
 

@@ -10,8 +10,9 @@ import type {
 } from '@connection-portal/api-types/form-connections';
 import type { Option, OptionSet } from '@connection-portal/api-types/option-sets';
 
-import { OPERATORS } from './constants';
+import { OPERATOR_LABELS, OPERATORS, TIME_UNITS } from './constants';
 import { isValidIsoDate, isWholeCount } from './dates';
+import { DEFAULT_LANGUAGE, defineTexts, type Language } from './language';
 import type {
   ConditionKind,
   ConditionProblem,
@@ -114,19 +115,50 @@ export function operatorDefinition(
 }
 
 /**
+ * An operator's words in a language, for the pickers and the statements: FR-003's English
+ * (`definition.label`, which the MCP server's catalog reads) or the German of `OPERATOR_LABELS`
+ * (glossary G§3 "operators").
+ */
+export function labelOf(
+  definition: OperatorDefinition,
+  language: Language = DEFAULT_LANGUAGE
+): string {
+  if (language === 'en') {
+    return definition.label;
+  }
+  const labels: Record<string, string> = OPERATOR_LABELS[language][definition.kind];
+  return labels[definition.operator] ?? definition.label;
+}
+
+// The words after a years-ago or from-now value, in each language (glossary G§3 "is at least N
+// years old / years ago / from now"): the unit comes from `TIME_UNITS`
+export const SUFFIX_TEXTS = defineTexts<{
+  old: (unit: string) => string;
+  ago: (unit: string) => string;
+  fromNow: string;
+}>(
+  { old: (unit) => `${unit} old`, ago: (unit) => `${unit} ago`, fromNow: 'from now' },
+  { old: (unit) => `${unit} alt`, ago: (unit) => `${unit} zurück`, fromNow: 'in der Zukunft' }
+);
+
+/**
  * The words after a years-ago or from-now value: "years old" on the Date of birth, "years ago"
- * on every other date (F1), and "from now" (F2). Null for the other operators.
+ * on every other date (F1), and "from now" (F2); in German "Jahre alt", "Jahre zurück" and "in der
+ * Zukunft". Null for the other operators.
  */
 export function suffixOf(
   definition: OperatorDefinition,
   dateOfBirth: boolean,
-  amount = 2
+  amount = 2,
+  language: Language = DEFAULT_LANGUAGE
 ): string | null {
+  const texts = SUFFIX_TEXTS[language];
   if (definition.input === 'years') {
-    const unit = amount === 1 ? 'year' : 'years';
-    return dateOfBirth ? `${unit} old` : `${unit} ago`;
+    const forms = TIME_UNITS[language].years;
+    const unit = amount === 1 ? forms.one : forms.other;
+    return dateOfBirth ? texts.old(unit) : texts.ago(unit);
   }
-  return definition.input === 'amount' ? 'from now' : null;
+  return definition.input === 'amount' ? texts.fromNow : null;
 }
 
 /** The empty values of a new condition: text ignores letter case at first (FR-013). */

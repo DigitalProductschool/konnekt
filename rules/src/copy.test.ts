@@ -30,6 +30,8 @@ const EQUAL_IN_BOTH_LANGUAGES = new Set([
   'EUDI Wallet',
   '/',
   '…',
+  // The redundant finding's hidden kind text (glossary §2: "redundant")
+  'Redundant:',
 ]);
 
 // Only punctuation, symbols and spaces ("/", " · ", "…")
@@ -38,11 +40,14 @@ const PUNCTUATION_ONLY = /^[\p{P}\p{S}\s]*$/u;
 // More modules than this means the glob reached the package's subfolders, not just a few files
 const MIN_MODULES = 20;
 
-// The rules logic has no copy table yet: phase 4 (research R4) turns its texts into tables and
-// raises this to 1, so that a glob that finds none fails as the frontend's does
-const MIN_TABLES = 0;
+// At least one table, so that a glob that finds none fails as the frontend's does
+const MIN_TABLES = 1;
 
-type CopyTable = { en: Record<string, unknown>; de: Record<string, unknown> };
+// The languages' own names: each language's name in that language, not a translation
+const NOT_TABLES = new Set(['./language.ts languageNames']);
+
+type Column = Record<string, unknown>;
+type CopyTable = { en: Column; de: Column };
 
 const modules = import.meta.glob<Record<string, unknown>>(
   ['./**/*.ts', '!./**/*.test.ts', '!./testData.ts', '!./checks/fixtures/**'],
@@ -58,22 +63,36 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * A copy table: a plain object whose own keys are exactly `en` and `de`, both objects (so
- * `languageNames`, whose columns are strings, is not one).
+ * A copy table: a plain object whose own keys are exactly `en` and `de`, both objects, or both
+ * strings (a table of one text, such as `DATE_OF_BIRTH_RULE_LABEL`).
  */
-function isCopyTable(value: unknown): value is CopyTable {
+function isCopyTable(value: unknown): value is { en: unknown; de: unknown } {
   if (!isPlainObject(value)) {
     return false;
   }
   const keys = Object.keys(value).sort();
+  const columns = [value.en, value.de];
   return (
     keys.length === 2 &&
     keys[0] === 'de' &&
     keys[1] === 'en' &&
-    typeof value.en === 'object' &&
-    value.en !== null &&
-    typeof value.de === 'object' &&
-    value.de !== null
+    (columns.every((column) => typeof column === 'object' && column !== null) ||
+      columns.every((column) => typeof column === 'string'))
+  );
+}
+
+/**
+ * A column with its nested columns' entries under dotted keys (`OPERATOR_LABELS`' `date.on`), so
+ * that every text of a table is checked; a column that is one text is the entry `text`.
+ */
+function flatColumn(column: unknown, path = ''): Column {
+  if (!isPlainObject(column)) {
+    return { [path || 'text']: column };
+  }
+  return Object.fromEntries(
+    Object.entries(column).flatMap(([key, value]) =>
+      Object.entries(flatColumn(value, path ? `${path}.${key}` : key))
+    )
   );
 }
 
@@ -87,8 +106,12 @@ function isEqualInBothLanguages(english: string): boolean {
 
 const tables = Object.entries(modules).flatMap(([path, module]) =>
   Object.entries(module)
-    .filter((entry): entry is [string, CopyTable] => isCopyTable(entry[1]))
-    .map(([name, table]) => ({ name: `${path} ${name}`, table }))
+    .filter(([name, value]) => isCopyTable(value) && !NOT_TABLES.has(`${path} ${name}`))
+    .map(([name, value]) => {
+      const { en, de } = value as { en: unknown; de: unknown };
+      const table: CopyTable = { en: flatColumn(en), de: flatColumn(de) };
+      return { name: `${path} ${name}`, table };
+    })
 );
 
 describe('the copy tables (R8)', () => {
@@ -100,7 +123,7 @@ describe('the copy tables (R8)', () => {
     expect(paths.filter((path) => path.endsWith('.test.ts'))).toEqual([]);
   });
 
-  it('finds the tables', () => {
+  it(`finds the tables (${tables.length})`, () => {
     expect(tables.length).toBeGreaterThanOrEqual(MIN_TABLES);
   });
 

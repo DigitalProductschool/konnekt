@@ -187,11 +187,12 @@ def _committed_messages() -> dict[str, Any]:
 
 
 def _ts_table(name: str) -> dict[str, list[str]]:
-    """A table of rules/src/constants.ts, read back: each key with the names of
-    its function's parameters, in order ([] for a text)."""
+    """A table of rules/src/constants.ts, read back from its English column
+    (`const <name>_EN = {…}`, which the German column's type follows): each key
+    with the names of its function's parameters, in order ([] for a text)."""
     source = (REPO_ROOT / CONSTANTS_FILE).read_text()
-    start = source.index(f'export const {name} = ')
-    end = source.index('\n};', start)
+    start = source.index(f'const {name}_EN = {{')
+    end = source.index('\n}', start)
     keys: dict[str, list[str]] = {}
     for match in _KEY.finditer(source[start:end]):
         parameters = [

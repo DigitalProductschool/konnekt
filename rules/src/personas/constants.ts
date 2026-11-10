@@ -4,18 +4,20 @@
 // fact (research R7, step 1). Times are in milliseconds
 import type { Combinator } from '@connection-portal/api-types/form-connections';
 
+import { defineTexts } from '../language';
 import type { PersonaId } from './types';
 
 // The three personas, in their fixed order (data-model.md, "Persona")
 export const PERSONA_IDS: readonly PersonaId[] = ['persona-1', 'persona-2', 'persona-3'];
 
 // How a group's members combine, as its header says it (Figma "Rules/Group header", U14
-// 6094:6413, 6094:6320): a group's statement in the test results. The SPA's group frame builds
+// 6094:6413, 6094:6320): a group's statement in the test results, in each language (spec 009,
+// glossary §3 "group subtitles"); read `GROUP_SUBTITLES[language]`. The SPA's group frame builds
 // its subtitles from these
-export const GROUP_SUBTITLES = {
-  and: 'All of these must be met',
-  or: 'At least one of these must be met',
-} satisfies Record<Combinator, string>;
+export const GROUP_SUBTITLES = defineTexts<Record<Combinator, string>>(
+  { and: 'All of these must be met', or: 'At least one of these must be met' },
+  { and: 'Alle davon müssen erfüllt sein', or: 'Mindestens eine davon muss erfüllt sein' }
+);
 
 // A run's personas are due 5 seconds after the request (FR-013, SC-003). The worker stops planning
 // 4.5 seconds after it and posts the best personas found: the `deadline` of its 'generate' message

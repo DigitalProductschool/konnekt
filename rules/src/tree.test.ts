@@ -23,6 +23,7 @@ import {
   hasAnyRule,
   isDissolved,
   newRule,
+  nounTextOf,
   numberOfId,
   operatorOf,
   renameItem,
@@ -101,6 +102,23 @@ describe('numbering (research R5)', () => {
     expect(numberOfId('rule-4')).toBe(4);
     expect(numberOfId('group-12')).toBe(12);
     expect(numberOfId('rule-x')).toBeNull();
+  });
+});
+
+describe('nounTextOf (spec 009)', () => {
+  it('names the items in a sentence’s language', () => {
+    expect(nounTextOf('rule')).toBe('rule');
+    expect(nounTextOf('group')).toBe('group');
+    expect(nounTextOf('sub-group')).toBe('sub-group');
+    expect(nounTextOf('rule', 'de')).toBe('Regel');
+    expect(nounTextOf('group', 'de')).toBe('Gruppe');
+    expect(nounTextOf('sub-group', 'de')).toBe('Untergruppe');
+  });
+
+  it('leaves the stored default names English (FR-007)', () => {
+    expect(defaultRuleName(7)).toBe('Rule 07');
+    expect(defaultGroupName(3)).toBe('Group 03');
+    expect(defaultGroupName(4, true)).toBe('Sub-group 04');
   });
 });
 

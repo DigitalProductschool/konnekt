@@ -311,7 +311,8 @@ export function boundaryWords(boundary: DateBoundary, prefix: string | null): st
   const phrase =
     boundary.relation === 'between'
       ? `between ${dottedDate(boundary.from)} and ${dottedDate(boundary.to)}`
-      : `${RELATION_WORDS[boundary.relation]} ${dottedDate(boundary.date)}`;
+      : // TODO(009, T038): the language's words
+        `${RELATION_WORDS.en[boundary.relation]} ${dottedDate(boundary.date)}`;
   return prefix ? `${prefix} ${phrase}` : phrase;
 }
 

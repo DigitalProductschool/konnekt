@@ -186,6 +186,22 @@ function scenarioOf(branch: BranchInput, today = TODAY, key = 'branch-1'): Scena
   return { checked, result, names, notes, banner: banner ? textOf(banner.head) : '' };
 }
 
+/**
+ * A scenario's notes and banner in German (spec 009, FR-006): the same result, worded in the
+ * other language, with the branch's stored name unchanged
+ */
+function inGerman(
+  { result, names }: Scenario,
+  name = 'Standard',
+  key = 'branch-1'
+): { notes: Record<string, string>; banner: string } {
+  const notes = Object.fromEntries(
+    result.findings.map((finding) => [finding.itemId, noteOf(finding, names, 'de')])
+  );
+  const banner = bannerOf(result, { key, name }, names, 'de');
+  return { notes, banner: banner ? textOf(banner.head) : '' };
+}
+
 /** The main branch "Standard" with these items at a top level combined with `operator` */
 function scenario(items: RuleTreeItem[], operator: Combinator = 'and', today = TODAY): Scenario {
   return scenarioOf({ ...mainBranch(items), operator }, today);
@@ -325,6 +341,19 @@ describe('US1-AS3: rules that can’t be met together, at every level', () => {
     expect(banner).toBe(
       'Group 01: Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules ' +
         'of Standard.'
+    );
+  });
+
+  it('in a group, in German: the same marks, worded in German (spec 009)', () => {
+    const { notes, banner } = inGerman(scenario([group(1, [ageAbove(1, 30), ageBelow(2, 20)])]));
+    expect(notes).toEqual({
+      'group-1': 'Rule 01 und Rule 02 in dieser Gruppe widersprechen einander.',
+      'rule-1': 'Kann nicht zusammen mit Rule 02 erfüllt werden.',
+      'rule-2': 'Kann nicht zusammen mit Rule 01 erfüllt werden.',
+    });
+    expect(banner).toBe(
+      'Group 01: Rule 01 und Rule 02 widersprechen einander, daher kann niemand die Regeln ' +
+        'von Standard erfüllen.'
     );
   });
 
@@ -620,6 +649,18 @@ describe('EC-7: a fixed date against the day of sharing (FR-008, W5)', () => {
     );
   });
 
+  it('conflicts at the moment, in German: "im Moment" and "derzeit" (spec 009)', () => {
+    const { notes, banner } = inGerman(scenario(items));
+    expect(notes).toEqual({
+      'rule-1': 'Kann im Moment nicht zusammen mit Rule 02 erfüllt werden.',
+      'rule-2': 'Kann im Moment nicht zusammen mit Rule 01 erfüllt werden.',
+    });
+    expect(banner).toBe(
+      'Rule 01 und Rule 02 widersprechen einander, daher kann derzeit niemand die Regeln von ' +
+        'Standard erfüllen.'
+    );
+  });
+
   it('still conflicts on 1 Jan 2031, and no longer on 2 Jan 2031', () => {
     expect(scenario(items, 'and', '2031-01-01').result.findings).toHaveLength(2);
     const { result } = scenario(items, 'and', '2031-01-02');
@@ -850,6 +891,26 @@ describe('US2-AS6: an OR group implied by a rule beside it (V3 step 5)', () => {
     expect(result).toMatchObject({ complete: true, notice: null });
     expect(result.findings).toEqual([impliedBy('group-1', ['rule-1'])]);
     expect(notes).toEqual({ 'group-1': impliedNote('Rule 01', 'group') });
+  });
+
+  it('words the covered group in German (spec 009)', () => {
+    const { notes, banner } = inGerman(
+      scenario([
+        yearsAgo(1, 'at_least_years_ago', 21),
+        group(
+          1,
+          [
+            yearsAgo(2, 'at_least_years_ago', 18),
+            on(3, PID_NATIONALITY, { operator: 'includes_one_of', values: ['DE'] }),
+          ],
+          'or'
+        ),
+      ])
+    );
+    expect(notes).toEqual({
+      'group-1': 'Wer Rule 01 erfüllt, erfüllt auch diese Gruppe. Sie können die Gruppe löschen.',
+    });
+    expect(banner).toBe('Wer Rule 01 erfüllt, erfüllt auch Group 01.');
   });
 });
 

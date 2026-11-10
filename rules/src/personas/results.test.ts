@@ -10,7 +10,8 @@ import { parseDayNumber } from '../checks/calendar';
 import type { KeyedBranch } from '../checks/checkedTree';
 import { evaluateBranch } from '../evaluation';
 import { statementOf, statementPartsOf } from '../statements';
-import { CONTEXT, mainBranch, rule, target } from '../testData';
+import { CONTEXT, CONTEXT_DE, mainBranch, rule, target } from '../testData';
+import type { RuleContext } from '../types';
 import { applicantOf } from './applicant';
 import { GROUP_SUBTITLES } from './constants';
 import * as fieldsModule from './fields';
@@ -77,18 +78,22 @@ function persona(
   };
 }
 
-/** The evaluation of `items` (an AND branch unless said otherwise) and its view for `subject` */
+/**
+ * The evaluation of `items` (an AND branch unless said otherwise) and its view for `subject`, in
+ * `context` (English unless said otherwise)
+ */
 function viewOf(
   items: RuleTreeItem[],
   subject: Persona = persona(),
-  operator: Combinator = 'and'
+  operator: Combinator = 'and',
+  context: RuleContext = CONTEXT
 ): { result: PersonaBranchResult; view: ReturnType<typeof resultViewOf> } {
   const branch = keyed({ ...mainBranch(items), operator }, 'branch-1');
-  const fields = personaFieldsOf([branch], CONTEXT);
-  const result = testResultsOf([subject], fields, [branch], CONTEXT, TODAY)[subject.id]?.[
+  const fields = personaFieldsOf([branch], context);
+  const result = testResultsOf([subject], fields, [branch], context, TODAY)[subject.id]?.[
     branch.key
   ] as PersonaBranchResult;
-  return { result, view: resultViewOf(result, branch, subject, CONTEXT, fields) };
+  return { result, view: resultViewOf(result, branch, subject, context, fields) };
 }
 
 /** A row's outline: id, status, message, reported, and its members' outlines */
@@ -261,7 +266,7 @@ describe('resultViewOf', () => {
     expect([groupRow.type, groupRow.name, groupRow.statement, groupRow.parts]).toEqual([
       'group',
       'Group 01',
-      GROUP_SUBTITLES.and,
+      GROUP_SUBTITLES.en.and,
       null,
     ]);
     expect([groupRow.members[1].name, groupRow.members[1].statement]).toEqual([
@@ -382,7 +387,7 @@ describe('resultViewOf', () => {
     const view = resultViewOf(result, { items: renamed }, persona(), CONTEXT, fields);
     expect(view.rows.map((row) => [row.name, row.statement])).toEqual([
       ['Old enough', statementOf(AGE, CONTEXT)?.text],
-      ['Home', GROUP_SUBTITLES.and],
+      ['Home', GROUP_SUBTITLES.en.and],
     ]);
   });
 
@@ -442,5 +447,73 @@ describe('resultViewOf', () => {
       const narrowed = resultViewOf(result, mainBranch([AGE, CITY]), persona(), CONTEXT, fields);
       expect(narrowed.failingFields).toEqual([]);
     });
+  });
+});
+
+// Spec 009 (R4, FR-006, FR-016): the same results, worded in the context's language
+describe('resultViewOf in German (spec 009)', () => {
+  const failing = persona({ 'pid.birthdate': '2010-01-01', 'pid.address_locality': 'Berlin' });
+
+  it('words the headings and statements in German (glossary §3 "Result", §2 "message")', () => {
+    const { view } = viewOf([AGE, CITY, CLASS_B, HELD_B], failing, 'and', CONTEXT_DE);
+    expect(view.heading).toBe('Ergebnis: erfüllt 2 Regeln nicht');
+    expect(view.listHeading).toBeNull();
+    expect(view.messageColumn).toBe('Nachricht für Mia');
+    expect(view.rows[0].statement).toBe(
+      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+    );
+    expect(view.rows[0].parts).toEqual(statementPartsOf(AGE, CONTEXT_DE));
+  });
+
+  it('gives the same rows, outcomes, messages and failing fields as in English (FR-016)', () => {
+    for (const items of [
+      [AGE, CITY, CLASS_B, HELD_B],
+      [AGE, group(1, 'or', [CITY, FAMILY], 'Live here.')],
+      [group(1, 'and', [CLASS_B, HELD_B, group(2, 'or', [FAMILY, NATIONALITY])], 'Licence.')],
+    ]) {
+      const english = viewOf(items, failing);
+      const german = viewOf(items, failing, 'and', CONTEXT_DE);
+      expect(german.result).toEqual(english.result);
+      expect(outline(german.view.rows)).toEqual(outline(english.view.rows));
+      expect(german.view.rows.map((row) => row.name)).toEqual(
+        english.view.rows.map((row) => row.name)
+      );
+      expect(german.view.meets).toBe(english.view.meets);
+      expect(german.view.failingFields).toEqual(english.view.failingFields);
+    }
+  });
+
+  it('counts one rule, and words a met variant', () => {
+    const one = viewOf([AGE, CITY], persona({ 'pid.address_locality': null }), 'and', CONTEXT_DE);
+    expect(one.view.heading).toBe('Ergebnis: erfüllt 1 Regel nicht');
+    const met = viewOf([AGE, group(1, 'or', [CITY, FAMILY])], persona(), 'and', CONTEXT_DE);
+    expect(met.view.heading).toBe('Ergebnis: erfüllt alle Regeln');
+    expect(met.view.listHeading).toBe('Regeln, die Mia erfüllt');
+    expect(met.view.messageColumn).toBeNull();
+  });
+
+  it('words the groups by their German subtitles (glossary §3 "group subtitles")', () => {
+    const subGroup = group(2, 'or', [FAMILY, NATIONALITY], null, 'Sub-group 01');
+    const { view } = viewOf(
+      [AGE, group(1, 'and', [CLASS_B, HELD_B, subGroup], 'You need a licence.')],
+      persona({
+        'mdl.driving_privileges.issue_date#B': '2026-01-01',
+        'pid.family_name': 'Schulz',
+        'pid.nationalities': [],
+      }),
+      'and',
+      CONTEXT_DE
+    );
+    const [groupRow] = view.rows;
+    expect([groupRow.name, groupRow.statement]).toEqual([
+      'Group 01',
+      'Alle davon müssen erfüllt sein',
+    ]);
+    expect(groupRow.statement).toBe(GROUP_SUBTITLES.de.and);
+    expect([groupRow.members[1].name, groupRow.members[1].statement]).toEqual([
+      'Sub-group 01',
+      'Mindestens eine davon muss erfüllt sein',
+    ]);
+    expect(groupRow.message).toBe('You need a licence.');
   });
 });

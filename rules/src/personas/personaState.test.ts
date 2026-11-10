@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Language } from '../language';
 import { initialPersonaState, personaStateReducer } from './personaState';
 import type {
   GeneratedMessage,
@@ -619,7 +620,8 @@ function setCity(
   value: PersonaValue,
   before: Record<string, boolean | undefined> = {},
   after: Record<string, boolean | undefined> = {},
-  key = CITY
+  key = CITY,
+  language?: Language
 ): PersonaAction {
   return {
     type: 'setValue',
@@ -632,6 +634,7 @@ function setCity(
       { key: 'b-main', name: 'Standard' },
       { key: 'b-ambulance', name: 'Ambulance' },
     ],
+    ...(language === undefined ? {} : { language }),
   };
 }
 
@@ -660,6 +663,44 @@ describe('setValue', () => {
         'Mia Schulz no longer meets the rules of Ambulance.'
     );
     expect(state.announcementId).toBe(1);
+  });
+
+  it('announces in the language the action carries, the language of the moment (spec 009)', () => {
+    const before = { 'b-main': true, 'b-ambulance': false };
+    const after = { 'b-main': false, 'b-ambulance': true };
+    const edit = setCity(0, 'Ulm', before, after);
+    const german = reduce(ready(), setCity(0, 'Ulm', before, after, CITY, 'de'));
+    expect(german.announcement).toBe(
+      'Mia Schulz erfüllt die Regeln von Standard nicht mehr. ' +
+        'Mia Schulz erfüllt jetzt die Regeln von Ambulance.'
+    );
+    expect(german.announcementId).toBe(1);
+    // Omitted, the language is English; an explicit 'en' is the same
+    expect(reduce(ready(), setCity(0, 'Ulm', before, after, CITY, 'en')).announcement).toBe(
+      reduce(ready(), edit).announcement
+    );
+    // The next change follows a switch; the persona's values are the same in both languages
+    const back = reduce(
+      german,
+      setCity(0, 'Stuttgart', { 'b-main': false }, { 'b-main': true }, CITY, 'en')
+    );
+    expect(back.announcement).toBe('Mia Schulz now meets the rules of Standard.');
+    expect(back.announcementId).toBe(2);
+    expect(german.personas).toEqual(reduce(ready(), edit).personas);
+  });
+
+  it('keeps a stored announcement as it was composed when other actions come (R4)', () => {
+    const german = reduce(
+      ready(),
+      setCity(0, 'Ulm', { 'b-main': true }, { 'b-main': false }, CITY, 'de')
+    );
+    const state = reduce(
+      german,
+      { type: 'select', slot: 1 },
+      { type: 'rename', slot: 0, name: 'Mia Roth' }
+    );
+    expect(state.announcement).toBe('Mia Schulz erfüllt die Regeln von Standard nicht mehr.');
+    expect(state.announcementId).toBe(german.announcementId);
   });
 
   it('announces nothing when no outcome changed, and clears the earlier text', () => {

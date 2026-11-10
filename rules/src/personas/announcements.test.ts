@@ -26,6 +26,15 @@ describe('announcementOf (FR-017)', () => {
     ).toBe('Mia Schulz no longer meets the rules of Standard.');
   });
 
+  it('announces both in German, the names unchanged (spec 009, R4)', () => {
+    expect(
+      announcementOf({ main: false, amb: true }, { main: true, amb: true }, MIA, BRANCHES, 'de')
+    ).toBe('Mia Schulz erfüllt jetzt die Regeln von Standard.');
+    expect(
+      announcementOf({ main: true, amb: true }, { main: false, amb: true }, MIA, BRANCHES, 'de')
+    ).toBe('Mia Schulz erfüllt die Regeln von Standard nicht mehr.');
+  });
+
   it('joins several changes with a space, in tab order', () => {
     expect(
       announcementOf({ main: true, amb: false }, { main: false, amb: true }, MIA, BRANCHES)
@@ -40,6 +49,17 @@ describe('announcementOf (FR-017)', () => {
     ).toBe(
       'Mia Schulz now meets the rules of Ambulance. Mia Schulz no longer meets the rules of Standard.'
     );
+  });
+
+  it('joins several changes in German, in tab order', () => {
+    expect(
+      announcementOf({ main: true, amb: false }, { main: false, amb: true }, MIA, BRANCHES, 'de')
+    ).toBe(
+      'Mia Schulz erfüllt die Regeln von Standard nicht mehr. ' +
+        'Mia Schulz erfüllt jetzt die Regeln von Ambulance.'
+    );
+    const met = { main: true, amb: false };
+    expect(announcementOf(met, { ...met }, MIA, BRANCHES, 'de')).toBe('');
   });
 
   it('leaves out a branch without an outcome on either side', () => {

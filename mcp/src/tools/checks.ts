@@ -21,9 +21,10 @@ import {
   type EvaluatedItem,
   type Outcome,
 } from '@connection-portal/rules/evaluation';
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { effectiveItems } from '@connection-portal/rules/tree';
 import type { RuleContext } from '@connection-portal/rules/types';
-import { ruleProblem } from '@connection-portal/rules/validation';
+import { ruleProblemOf } from '@connection-portal/rules/validation';
 import { z } from 'zod';
 
 import { checkApplicant, type TestApplicant, toApplicant } from '../applicants';
@@ -214,9 +215,9 @@ function hasValue(values: Readonly<Record<string, unknown>>, key: string): boole
 /**
  * The first problem that keeps the evaluation from taking the variant's rules, in the rules
  * step's words, or null. The evaluation reads the items that count (`effectiveItems()`): every
- * rule needs data the connection requests and a complete condition (`ruleProblem()`; a missing
- * or long message doesn't change who meets it), and a group of the variant's own needs two
- * members that count
+ * rule needs data the connection requests and a complete condition (`ruleProblemOf()`; a missing
+ * or long message, by its code, doesn't change who meets it), and a group of the variant's own
+ * needs two members that count. The texts are English: no language is passed (FR-017)
  */
 function untestableProblemOf(
   branch: Pick<BranchInput, 'name' | 'origin' | 'items'>,
@@ -227,20 +228,15 @@ function untestableProblemOf(
   const walk = (items: RuleTreeItem[]): string | null => {
     for (const item of effectiveItems(items, based)) {
       if (item.type === 'rule') {
-        const problem = ruleProblem(item, branch.name, context);
-        const itemName = item.name.trim();
-        if (
-          problem !== null &&
-          problem !== RULES_MESSAGES.noMessage(itemName, name) &&
-          problem !== RULES_MESSAGES.messageTooLong(itemName, name)
-        ) {
-          return problem;
+        const problem = ruleProblemOf(item, branch.name, context);
+        if (problem !== null && problem.code !== 'noMessage' && problem.code !== 'messageTooLong') {
+          return problem.message;
         }
         continue;
       }
       const counted = !based || item.mark === 'added';
       if (counted && effectiveItems(item.items, based).length < 2) {
-        return RULES_MESSAGES.tooFewMembers(item.name.trim(), name);
+        return RULES_MESSAGES[DEFAULT_LANGUAGE].tooFewMembers(item.name.trim(), name);
       }
       const problem = walk(item.items);
       if (problem !== null) {

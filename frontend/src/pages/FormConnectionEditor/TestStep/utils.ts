@@ -181,7 +181,8 @@ export function resultStatementOf(row: Pick<ResultRow, 'type' | 'statement'>): s
   if (row.type !== 'group') {
     return row.statement;
   }
-  const operator = COMBINATORS.find((entry) => GROUP_SUBTITLES[entry] === row.statement);
+  // TODO(009, T039): the language of the moment (`GROUP_SUBTITLES[language]`)
+  const operator = COMBINATORS.find((entry) => GROUP_SUBTITLES.en[entry] === row.statement);
   return operator === undefined ? row.statement : GROUP_FRAME_COPY.subtitles[operator];
 }
 

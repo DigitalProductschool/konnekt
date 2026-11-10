@@ -110,6 +110,19 @@ German column is the one translation of the term everywhere it appears.
 | "Try again in a moment." | "Versuchen Sie es in einem Moment erneut." | the sentence; the button stays "Erneut versuchen" (added 2026-11-09, T016/T017/T018) |
 | cursor (of the search's pages) | Cursor | "Unknown cursor." → "Unbekannter Cursor." (added 2026-11-09, T016/T017/T018) |
 | language switch | Sprache | the switch's own labels "DE" / "EN" and its accessible names "Deutsch" / "English" (FR-011) |
+| remove (an item from a based variant) / removed | entfernen / entfernt | "Rule 01 is removed in Ambulance. Restore it first." → "Rule 01 ist in Ambulance entfernt. Stellen Sie sie zuerst wieder her." ("sie": Regel, Gruppe and Untergruppe are all feminine) (added 2026-11-09, T023) |
+| restore (a removed item) | wiederherstellen | "there is nothing to restore" → "es gibt nichts wiederherzustellen" (added 2026-11-09, T023) |
+| reset (to the main variant) | zurücksetzen | "nothing to reset or restore" → "nichts zurückzusetzen oder wiederherzustellen" (added 2026-11-09, T023) |
+| follows (an inherited item follows the main variant) / changed (an item a variant changed) | folgt / geändert | "isn’t changed: it follows Standard already" → "ist nicht geändert und folgt bereits Standard" (added 2026-11-09, T023) |
+| based on (a variant based on the main variant) | basiert auf | "Taxi isn’t based on Standard" → "Taxi basiert nicht auf Standard" (added 2026-11-09, T023) |
+| group / ungroup (the actions) | gruppieren / die Gruppierung aufheben | "it can only be ungrouped in Standard" → "die Gruppierung kann nur in Standard aufgehoben werden" (added 2026-11-09, T023) |
+| level (of the rules' tree) | Ebene | "two or more rules of one level" → "zwei oder mehr Regeln einer Ebene" (added 2026-11-09, T023) |
+| copy (a rule to a variant) | kopieren | "Choose another variant to copy Rule 01 to." → "Wählen Sie eine andere Variante, in die Rule 01 kopiert werden soll." (added 2026-11-09, T023) |
+| a sample citizen's (the possessive "Mia’s") | von Mia (after the noun, no genitive) | "Mia’s data" → "Daten von Mia"; "Your changes to Mia’s and Anna’s data" → "Ihre Änderungen an den Daten von Mia und Anna" (added 2026-11-09, T028) |
+| generate (a sample citizen's data) / add (data a fill run adds) | erstellen / ergänzen | "Generate new data for Mia?" → "Neue Daten für Mia erstellen?"; "Adding new data for Mia…" → "Neue Daten für Mia werden ergänzt …" (added 2026-11-09, T028) |
+| edited (a sample citizen's value the team member changed) | bearbeitet | the hidden text ", edited" → ", bearbeitet" (added 2026-11-09, T028) |
+| valid until / since (a date on the data card) | gültig bis / seit | "Valid until 19.08.2040" → "Gültig bis 19.08.2040"; "B, BE since 02.05.2010" → "B, BE seit 02.05.2010" (added 2026-11-09, T028) |
+| without testing | ohne zu testen | "Try again, or publish without testing." → "Versuchen Sie es erneut oder veröffentlichen Sie, ohne zu testen." ("speichern Sie" when editing) (added 2026-11-09, T028) |
 
 ## 3. The operators and composed phrases of the rules (FR-006)
 
@@ -124,14 +137,33 @@ templates themselves are in the code, one per language, with their tests.
 | includes one of / includes none of | enthält eines von / enthält keines von | option statements |
 | is before / is after / is (a date) / is exactly | liegt vor dem / liegt nach dem / ist der / ist genau | date statements |
 | is at least N years old / years ago / from now | ist mindestens N Jahre alt / liegt mindestens N Jahre zurück / liegt mindestens N Jahre in der Zukunft | the date-of-birth and date-distance forms |
+| is less than N years old / years ago / from now | ist weniger als N Jahre alt / liegt weniger als N Jahre zurück / liegt weniger als N Jahre in der Zukunft | the same forms (added 2026-11-09, T023) |
+| is at least / is less than / is exactly (the "Time ago" operators' labels alone) | ist mindestens / ist weniger als / ist genau | `OPERATOR_LABELS`, keyed by kind and operator, not by field: the Date of birth's age form ("ist mindestens 21 Jahre alt") (added 2026-11-09, T023) |
+| is at least / is less than (the "Time from now" operators' labels alone) | liegt mindestens / liegt weniger als | `OPERATOR_LABELS`, before "… in der Zukunft" (added 2026-11-09, T023) |
 | N years / months (plural rules) | N Jahre / Monate, 1 Jahr / Monat | |
 | on or before / before / after / on or after / on | am oder vor dem / vor dem / nach dem / am oder nach dem / am | `RELATION_WORDS` |
+| is exactly N years old / years ago | ist genau N Jahre alt / liegt genau N Jahre zurück | the same forms; a statement on a date that isn't the Date of birth says "liegt mindestens / weniger als / genau", the age "ist …" (`STATEMENT_TEXTS.yearsAgoWords`) (added 2026-11-09, T024) |
+| matching letter case / ignoring letter case, after a quoted text | „Stuttgart“, Groß-/Kleinschreibung beachtet / ignoriert | the statement's tail after a comma, the value in German quotes (added 2026-11-09, T024) |
+| born on or before 23.10.2005 / between 24.10.2004 and 23.10.2005 (the date example) | geboren am oder vor dem 23.10.2005 / zwischen dem 24.10.2004 und dem 23.10.2005 | `boundaryPhrase` (`DATE_TEXTS`) (added 2026-11-09, T024) |
 | A, B or C / A, B and C | A, B oder C / A, B und C | `orList`, `listOf` |
 | "You need to be at least 21 years old." | "Sie müssen mindestens 21 Jahre alt sein." | proposed messages |
 | "You need to live in Stuttgart." | "Sie müssen in Stuttgart wohnen." | |
 | "You need a class B or BE licence." | "Sie brauchen einen Führerschein der Klasse B oder BE." | |
 | "Your height must be greater than 150." | "Ihre Körpergröße muss größer als 150 sein." | |
 | "You need a personal ID that's valid for at least 6 more months." | "Sie brauchen einen Personalausweis, der noch mindestens 6 Monate gültig ist." | |
+| N years / months after "for" and "in" (holding, expiring) | seit / in N Jahren / Monaten, 1 Jahr / Monat | the dative plural (`TIME_UNITS.otherDative`) (added 2026-11-09, T025) |
+| "You must not live in Esslingen." / "You need to be born in Köln." / "You must not have been born in Köln." | "Sie dürfen nicht in Esslingen wohnen." / "Sie müssen in Köln geboren sein." / "Sie dürfen nicht in Köln geboren sein." | proposed messages, the negations (added 2026-11-09, T025) |
+| "You must not hold a class C licence." | "Sie dürfen keinen Führerschein der Klasse C besitzen." | (added 2026-11-09, T025) |
+| "You need the nationality of Germany or Austria." / "You must not be a national of France." | "Sie brauchen die Staatsangehörigkeit von Deutschland oder Österreich." / "Sie dürfen nicht die Staatsangehörigkeit von Frankreich besitzen." | (added 2026-11-09, T025) |
+| "You need a personal ID issued in Germany." / "Your personal ID must not have been issued in France." | "Sie brauchen einen Personalausweis, der in Deutschland ausgestellt wurde." / "Ihr Personalausweis darf nicht in Frankreich ausgestellt worden sein." | (added 2026-11-09, T025) |
+| "You need to be under 18 years old." / "You need to be exactly 18 years old." | "Sie müssen jünger als 18 Jahre sein." / "Sie müssen genau 18 Jahre alt sein." | (added 2026-11-09, T025) |
+| "You need to be born before / after / on 01.01.2000." | "Sie müssen vor dem / nach dem / am 01.01.2000 geboren sein." | `RELATION_WORDS` (added 2026-11-09, T025) |
+| "You need to have held a class B driving licence for at least / less than / exactly 2 years." | "Sie müssen seit mindestens / weniger als / genau 2 Jahren einen Führerschein der Klasse B besitzen." | (added 2026-11-09, T025) |
+| "You need a personal ID that expires in less than 1 year." / "You need a class C licence that's valid for at least 1 more month." | "Sie brauchen einen Personalausweis, der in weniger als 1 Jahr abläuft." / "Sie brauchen einen Führerschein der Klasse C, der noch mindestens 1 Monat gültig ist." | (added 2026-11-09, T025) |
+| "Your family name must (not) be / must (not) contain "Müller"." | "Ihr Familienname muss „Müller“ sein / darf nicht „Müller“ sein / muss „Müller“ enthalten / darf „Müller“ nicht enthalten." | plain fields: "Ihr" / "Ihre" by the German label's gender; a number "muss größer als / kleiner als 180 sein", "darf nicht 180 sein" (added 2026-11-09, T025) |
+| "The region of your place of birth …" / "The issue date of your driving licence …" / "The expiry date of your class B …" | "Die Region Ihres Geburtsorts …" / "Das Ausstellungsdatum Ihres Führerscheins …" / "Das Ablaufdatum Ihrer Klasse B …" | the article by the label's gender, the document in the genitive (added 2026-11-09, T025) |
+| "… must be before 01.01.2020." / "… must be 01.01.2020." / "… must be at least 2 years ago." / "… must be at least 3 months from now." | "… muss vor dem 01.01.2020 liegen." / "… muss der 01.01.2020 sein." / "… muss mindestens 2 Jahre zurückliegen." / "… muss mindestens 3 Monate in der Zukunft liegen." | dates of other fields (added 2026-11-09, T025) |
+| a field whose German label has no known gender (an adjective first, two nouns, a field added later) | Das Feld „Ausstellende Behörde“ … | the messages' fallback subject; an unknown document "des Dokuments „…“" (added 2026-11-09, T025) |
 | "Can't be met together with Rule 02." | "Kann nicht zusammen mit Rule 02 erfüllt werden." | findings (stored names stay) |
 | "Same as Rule 03. You can delete one of them." | "Gleich wie Rule 03. Sie können eine der beiden löschen." | |
 | "Every citizen meets this rule." | "Alle erfüllen diese Regel." | |
@@ -142,6 +174,26 @@ templates themselves are in the code, one per language, with their tests.
 | "Rules Mia meets" | "Regeln, die Mia erfüllt" | |
 | "All of these must be met" / "At least one of these must be met" | "Alle davon müssen erfüllt sein" / "Mindestens eine davon muss erfüllt sein" | group subtitles |
 | "Rule 01 in Standard: choose the data to check." | "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten." | validation (server and client, word for word) |
+| Conflicting: / Redundant: / Always met: (a kind icon's hidden text) | Widersprüchlich: / Redundant: / Immer erfüllt: | findings; "Redundant:" is the same in both (added 2026-11-09, T026) |
+| 1 conflict / 1 duplicate / 1 finding (the tab tooltip's label of a single line) | 1 Widerspruch / 1 Duplikat / 1 Befund | findings (added 2026-11-09, T026) |
+| contradict each other / contradicts another / conflicts with | widersprechen einander / widerspricht einer anderen / widerspricht | findings and counts; "Rule 02 conflicts with Rule 01." → "Rule 02 widerspricht Rule 01." (added 2026-11-09, T026) |
+| at the moment / right now (a finding that holds only for citizens who share today) | im Moment / derzeit | "Can't be met together with Rule 02 at the moment." → "Kann im Moment nicht zusammen mit Rule 02 erfüllt werden."; "…, so right now no citizen can meet …" → "…, daher kann derzeit niemand … erfüllen." (added 2026-11-09, T026) |
+| "Rule 01 and Rule 02 contradict each other, so no citizen can meet the rules of Standard." | "Rule 01 und Rule 02 widersprechen einander, daher kann niemand die Regeln von Standard erfüllen." | the banner's one sentence; "So no citizen can meet …" alone → "Daher kann niemand … erfüllen." (added 2026-11-09, T026) |
+| "No citizen can meet the rules of Standard." / "Every citizen meets the rules of Standard." | "Niemand kann die Regeln von Standard erfüllen." / "Alle erfüllen die Regeln von Standard." | notices; after "<variant>: " in the dialog a full sentence: "Niemand kann diese Regeln erfüllen." (added 2026-11-09, T026) |
+| neither A nor B … can be met / none of A, B and C … can be met / A … can't be met | weder A noch B … kann erfüllt werden / keine von A, B und C … kann erfüllt werden / A … kann nicht erfüllt werden | a group's own conflict (added 2026-11-09, T026) |
+| "Anyone who meets Rule 01 also meets this group. You can delete the group." | "Wer Rule 01 erfüllt, erfüllt auch diese Gruppe. Sie können die Gruppe löschen." | a covered item (added 2026-11-09, T026) |
+| is the same as / makes no difference beside / is no longer … | ist gleich wie / macht neben … keinen Unterschied / ist nicht mehr … | lines and announcements: "Rule 06 ist gleich wie Rule 03."; "Rule 01 ist nicht mehr redundant." (added 2026-11-09, T026) |
+| (already) covered / covers | (bereits) abgedeckt / deckt … ab | counts "1 Regel ist bereits abgedeckt"; agents "Rule 03 deckt sie bereits ab" (added 2026-11-09, T026) |
+| other rules (items without a current name) | andere Regeln; after "mit" or "von": anderen Regeln | (added 2026-11-09, T026) |
+| couldn't be checked completely; findings that are certain | konnten nicht vollständig geprüft werden; sichere Befunde | "The rules of Standard couldn't be checked completely. Only findings that are certain are shown." → "Die Regeln von Standard konnten nicht vollständig geprüft werden. Nur sichere Befunde werden angezeigt."; after the counts row " · nicht vollständig geprüft" (added 2026-11-09, T026) |
+| loosen / make stricter (agents' resolutions) | lockern / strenger machen | (added 2026-11-09, T026) |
+| "Mia Schulz: doesn’t meet the rules of Standard" | "Mia Schulz: erfüllt die Regeln von Standard nicht" | persona chips (added 2026-11-09, T028) |
+| "Result: meets the rules" / "Result: doesn’t meet 1 rule" | "Ergebnis: erfüllt alle Regeln" / "Ergebnis: erfüllt 1 Regel nicht" | the result's heading (added 2026-11-09, T028) |
+| "Mia Schulz now meets the rules of Standard." / "Mia Schulz no longer meets the rules of Standard." | "Mia Schulz erfüllt jetzt die Regeln von Standard." / "Mia Schulz erfüllt die Regeln von Standard nicht mehr." | the personas' announcements (added 2026-11-09, T028) |
+| "Fails a rule:" (a failing value's hidden text) | "Erfüllt eine Regel nicht:" | the data card (added 2026-11-09, T028) |
+| "School transport has no rules yet, so every citizen meets it. Add rules in the Rules step to test them." | "School transport hat noch keine Regeln und wird daher von allen erfüllt. Fügen Sie im Schritt „Regeln“ Regeln hinzu, um sie zu testen." | a variant without rules (added 2026-11-09, T028) |
+| "Your changes to Mia’s data will be replaced. The other two citizens stay as they are." / "Generate new data for all citizens?" | "Ihre Änderungen an den Daten von Mia werden ersetzt. Die beiden anderen Beispielpersonen bleiben unverändert." / "Neue Daten für alle Beispielpersonen erstellen?" | the question before generating anew (added 2026-11-09, T028) |
+| "Creating new data for Mia and Anna…" / "Creating new data for Yusuf. Adding new data for Mia…" | "Neue Daten für Mia und Anna werden erstellt …" / "Neue Daten für Yusuf werden erstellt. Neue Daten für Mia werden ergänzt …" | the loading status (added 2026-11-09, T028) |
 
 ## 4. The catalog and the option sets (FR-005)
 

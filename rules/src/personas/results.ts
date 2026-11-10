@@ -19,6 +19,7 @@ import { dayNumber } from '../checks/calendar';
 import type { KeyedBranch } from '../checks/checkedTree';
 import { variableKey } from '../checks/literals';
 import { evaluateBranch, type EvaluatedItem } from '../evaluation';
+import { DEFAULT_LANGUAGE } from '../language';
 import { statementOf, statementPartsOf } from '../statements';
 import type { RuleContext, StatementParts } from '../types';
 import { applicantOf } from './applicant';
@@ -98,7 +99,11 @@ export function testResultsOf(
  * Names, statements and group operators are the branch's current ones, looked up by id in
  * `branch`, so a rename shows without evaluating anew. Statements are worded as the rules step
  * words them: a rule's by `statementOf()` with `context` (`statementPartsOf()` for `RuleSentence`),
- * a group's by its header's subtitle (design-notes.md §6.2)
+ * a group's by its header's subtitle (design-notes.md §6.2).
+ *
+ * The texts are composed in `context.language` (spec 009, R4; English by default): the headings,
+ * the statements and the group subtitles. The rows, outcomes and failing fields are the same in
+ * both languages; names and messages are shown as stored
  */
 export function resultViewOf(
   result: PersonaBranchResult,
@@ -107,6 +112,7 @@ export function resultViewOf(
   context: RuleContext,
   fields: readonly PersonaField[]
 ): ResultView {
+  const language = context.language ?? DEFAULT_LANGUAGE;
   const current = currentItemsOf(branch.items);
   const evaluated = evaluatedById(result.items);
   const row = (entry: EvaluatedItem, message: string | null, members: ResultRow[]): ResultRow =>
@@ -134,9 +140,9 @@ export function resultViewOf(
 
   return {
     meets: result.met,
-    heading: resultHeadingOf(result.met ? 0 : unmetRulesOf(rows)),
-    listHeading: result.met ? meetsHeadingOf(persona) : null,
-    messageColumn: result.met ? null : messageColumnOf(persona),
+    heading: resultHeadingOf(result.met ? 0 : unmetRulesOf(rows), language),
+    listHeading: result.met ? meetsHeadingOf(persona, language) : null,
+    messageColumn: result.met ? null : messageColumnOf(persona, language),
     rows,
     failingFields: failingFieldsOf(result.items, persona, fields),
   };
@@ -206,7 +212,10 @@ function rowOf(
   const { statement, parts } =
     item.type === 'rule'
       ? ruleStatementOf(item, context)
-      : { statement: GROUP_SUBTITLES[item.operator], parts: null };
+      : {
+          statement: GROUP_SUBTITLES[context.language ?? DEFAULT_LANGUAGE][item.operator],
+          parts: null,
+        };
   return {
     itemId: entry.item.id,
     type: entry.item.type,

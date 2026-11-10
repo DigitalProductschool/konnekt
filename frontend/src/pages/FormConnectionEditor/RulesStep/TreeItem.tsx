@@ -48,7 +48,8 @@ export default function TreeItem({
     problemFlagOf(state, branch, item.id) ??
     (checkedInBranch(branch, item) && checksUnrequestedData(item, view.documents)
       ? (unrequestedNoteOf(item, view.documents, view.context.documents) ??
-        RULES_MESSAGES.notRequested(item.name.trim(), branch.name.trim()))
+        // TODO(009, T037): the language's message
+        RULES_MESSAGES.en.notRequested(item.name.trim(), branch.name.trim()))
       : null);
   return (
     <RuleListItem

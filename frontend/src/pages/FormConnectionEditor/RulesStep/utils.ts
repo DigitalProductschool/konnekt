@@ -805,7 +805,8 @@ export function variantFormProblem(
   ownKey: string | null
 ): string | null {
   if (ownKey === null && state.branches.length >= MAX_BRANCHES) {
-    return RULES_MESSAGES.tooManyBranches;
+    // TODO(009, T037): the language's message
+    return RULES_MESSAGES.en.tooManyBranches;
   }
   const others = state.branches.filter((branch) => branch.key !== ownKey);
   return variantNameProblem(

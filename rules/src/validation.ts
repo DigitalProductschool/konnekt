@@ -1,6 +1,8 @@
 // The checks that refuse publishing or saving (FR-005, FR-006; data-model.md, "Validation"), with
 // the server's messages, so that the rules step can name the problem, the rule and its branch
-// before calling the API and move the focus there
+// before calling the API and move the focus there. Each problem comes with its code, the key of
+// its message, which callers branch on (spec 009, R10), and its message in the language asked for
+// (R4): a context's `language`, or a trailing `language`, English by default
 import type {
   BranchInput,
   GroupItem,
@@ -23,15 +25,28 @@ import {
   RULE_ID_PATTERN,
   RULES_MESSAGES,
 } from './constants';
+import { DEFAULT_LANGUAGE, type Language } from './language';
 import { effectiveItems, flattenItems, foldName, itemsWithNouns, twoDigits } from './tree';
 import type {
+  ConditionProblem,
   ItemAtDepth,
   ItemNoun,
   RuleContext,
   RuleDocument,
+  RuleProblemDetail,
   RulesProblem,
+  RulesProblemCode,
   TakenName,
 } from './types';
+
+function detail(code: RulesProblemCode, message: string): RuleProblemDetail {
+  return { code, message };
+}
+
+/** Whether a problem's code is an incomplete condition's (`ConditionProblem`). */
+export function isConditionProblem(code: RulesProblemCode): code is ConditionProblem {
+  return Object.hasOwn(CONDITION_PROBLEM_MESSAGES[DEFAULT_LANGUAGE], code);
+}
 
 /** A text's length in characters, as the server counts it (code points, not UTF-16 units). */
 export function textLength(text: string): number {
@@ -44,12 +59,13 @@ function idDigits(id: string): string | null {
   return match ? match[1].replace(/^0+/, '') || '0' : null;
 }
 
-/**
- * "Rule NN" is kept for the rule `rule-{NN}`, "Group NN" and "Sub-group NN" for the group
- * `group-{NN}`, with or without leading zeros (FR-005). The message for a trimmed name that
- * another item may not take, or null.
- */
-export function reservedNameProblem(name: string, item: RuleTreeItem): string | null {
+/** `reservedNameProblem` with its code, `'nameReserved'`. */
+function reservedNameProblemOf(
+  name: string,
+  item: RuleTreeItem,
+  language: Language
+): RuleProblemDetail | null {
+  // The stored default names are English in every language (FR-007), so is the pattern
   const match = RESERVED_NAME_PATTERN.exec(name);
   if (!match) {
     return null;
@@ -60,7 +76,61 @@ export function reservedNameProblem(name: string, item: RuleTreeItem): string | 
   if (item.type === ownType && idDigits(item.id) === digits) {
     return null;
   }
-  return RULES_MESSAGES.nameReserved(name, word, twoDigits(digits));
+  return detail(
+    'nameReserved',
+    RULES_MESSAGES[language].nameReserved(name, word, twoDigits(digits))
+  );
+}
+
+/**
+ * "Rule NN" is kept for the rule `rule-{NN}`, "Group NN" and "Sub-group NN" for the group
+ * `group-{NN}`, with or without leading zeros (FR-005). The message for a trimmed name that
+ * another item may not take, or null.
+ */
+export function reservedNameProblem(
+  name: string,
+  item: RuleTreeItem,
+  language: Language = DEFAULT_LANGUAGE
+): string | null {
+  return reservedNameProblemOf(name, item, language)?.message ?? null;
+}
+
+/** `nameProblem` with the problem's code. */
+export function nameProblemOf(
+  name: string,
+  item: RuleTreeItem,
+  branch: BranchInput,
+  branches: BranchInput[],
+  language: Language = DEFAULT_LANGUAGE
+): RuleProblemDetail | null {
+  const messages = RULES_MESSAGES[language];
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return detail('nameMissing', messages.nameMissing);
+  }
+  if (textLength(trimmed) > NAME_MAX_LENGTH) {
+    return detail('nameTooLong', messages.nameTooLong);
+  }
+  const folded = foldName(trimmed);
+  const [main] = branches;
+  const other = takenNames(main, branch).find(
+    (entry) => entry.ownerId !== item.id && foldName(entry.name) === folded
+  );
+  if (other) {
+    return detail('nameTaken', messages.nameTaken(other.noun, branch.name.trim(), other.name));
+  }
+  const reserved = reservedNameProblemOf(trimmed, item, language);
+  if (reserved || branch.origin !== 'main') {
+    return reserved;
+  }
+  const clash = renameClash(branches, item.id, trimmed);
+  return (
+    clash &&
+    detail(
+      'nameTaken',
+      messages.nameTaken(clash.taken.noun, clash.branch.name.trim(), clash.taken.name)
+    )
+  );
 }
 
 /**
@@ -75,31 +145,30 @@ export function nameProblem(
   name: string,
   item: RuleTreeItem,
   branch: BranchInput,
-  branches: BranchInput[]
+  branches: BranchInput[],
+  language: Language = DEFAULT_LANGUAGE
 ): string | null {
+  return nameProblemOf(name, item, branch, branches, language)?.message ?? null;
+}
+
+/** `variantNameProblem` with the problem's code. */
+export function variantNameProblemOf(
+  name: string,
+  otherNames: string[],
+  language: Language = DEFAULT_LANGUAGE
+): RuleProblemDetail | null {
+  const messages = RULES_MESSAGES[language];
   const trimmed = name.trim();
   if (!trimmed) {
-    return RULES_MESSAGES.nameMissing;
+    return detail('variantNameMissing', messages.variantNameMissing);
   }
   if (textLength(trimmed) > NAME_MAX_LENGTH) {
-    return RULES_MESSAGES.nameTooLong;
+    return detail('branchNameTooLong', messages.branchNameTooLong);
   }
-  const folded = foldName(trimmed);
-  const [main] = branches;
-  const other = takenNames(main, branch).find(
-    (entry) => entry.ownerId !== item.id && foldName(entry.name) === folded
-  );
-  if (other) {
-    return RULES_MESSAGES.nameTaken(other.noun, branch.name.trim(), other.name);
-  }
-  const reserved = reservedNameProblem(trimmed, item);
-  if (reserved || branch.origin !== 'main') {
-    return reserved;
-  }
-  const clash = renameClash(branches, item.id, trimmed);
-  return (
-    clash && RULES_MESSAGES.nameTaken(clash.taken.noun, clash.branch.name.trim(), clash.taken.name)
-  );
+  const other = otherNames.find((entry) => foldName(entry) === foldName(trimmed));
+  return other === undefined
+    ? null
+    : detail('variantNameTaken', messages.variantNameTaken(other.trim()));
 }
 
 /**
@@ -107,16 +176,12 @@ export function nameProblem(
  * design-notes.md §4): missing, too long, or another variant's, ignoring letter case and outer
  * spaces (FR-020). `otherNames` are the other variants' names. Null when it can.
  */
-export function variantNameProblem(name: string, otherNames: string[]): string | null {
-  const trimmed = name.trim();
-  if (!trimmed) {
-    return RULES_MESSAGES.variantNameMissing;
-  }
-  if (textLength(trimmed) > NAME_MAX_LENGTH) {
-    return RULES_MESSAGES.branchNameTooLong;
-  }
-  const other = otherNames.find((entry) => foldName(entry) === foldName(trimmed));
-  return other === undefined ? null : RULES_MESSAGES.variantNameTaken(other.trim());
+export function variantNameProblem(
+  name: string,
+  otherNames: string[],
+  language: Language = DEFAULT_LANGUAGE
+): string | null {
+  return variantNameProblemOf(name, otherNames, language)?.message ?? null;
 }
 
 /**
@@ -186,37 +251,44 @@ export function rulesCheckingData(
 }
 
 /**
- * The first problem of a rule's target, condition or message, in the server's words, or null
- * (FR-006). `context.documents` are the requested documents with their requested fields.
+ * The first problem of a rule's target, condition or message, with its code, or null (FR-006;
+ * R10): `'chooseData'`, `'notRequested'`, `'unknownPart'`, an incomplete condition's
+ * `ConditionProblem`, `'noMessage'` or `'messageTooLong'`. The message is the server's, in the
+ * context's language. `context.documents` are the requested documents with their requested
+ * fields.
  */
-export function ruleProblem(
+export function ruleProblemOf(
   rule: RuleItem,
   branchName: string,
   context: RuleContext
-): string | null {
+): RuleProblemDetail | null {
+  const language = context.language ?? DEFAULT_LANGUAGE;
+  const messages = RULES_MESSAGES[language];
   const name = rule.name.trim();
   const branch = branchName.trim();
+  const chooseData = () => detail('chooseData', messages.chooseData(name, branch));
+  const notRequested = () => detail('notRequested', messages.notRequested(name, branch));
   const { target } = rule;
   if (!target) {
-    return RULES_MESSAGES.chooseData(name, branch);
+    return chooseData();
   }
   if (checksUnrequestedData(rule, context.documents)) {
-    return RULES_MESSAGES.notRequested(name, branch);
+    return notRequested();
   }
   const field = context.documents
     .find((document) => document.key === target.document_type)
     ?.fields.find((entry) => entry.key === target.field);
   if (!field) {
-    return RULES_MESSAGES.notRequested(name, branch);
+    return notRequested();
   }
   const partKey = target.part ?? null;
   const licenceClass = target.licence_class ?? null;
-  const unknownPart = RULES_MESSAGES.unknownPart(name, branch, field.label);
+  const unknownPart = detail('unknownPart', messages.unknownPart(name, branch, field.label));
   let kind = field.kind;
   let optionSet = field.option_set;
   if (field.kind === 'parts') {
     if (partKey === null) {
-      return RULES_MESSAGES.chooseData(name, branch);
+      return chooseData();
     }
     const part = field.parts?.find((entry) => entry.key === partKey);
     if (!part) {
@@ -224,7 +296,7 @@ export function ruleProblem(
     }
     if (part.per_licence_class) {
       if (licenceClass === null) {
-        return RULES_MESSAGES.chooseData(name, branch);
+        return chooseData();
       }
       const classes = optionsOf(context.optionSets, LICENCE_CLASSES_SET);
       if (classes && !classes.some((option) => option.value === licenceClass)) {
@@ -239,25 +311,64 @@ export function ruleProblem(
     return unknownPart;
   }
   if (kind === 'image' || kind === 'parts') {
-    return RULES_MESSAGES.notRequested(name, branch);
+    return notRequested();
   }
   const options = kind === 'enum' ? optionsOf(context.optionSets, optionSet) : null;
   const problem = conditionProblem(rule.condition, kind, options);
   if (problem) {
-    const detail =
+    const conditionMessages = CONDITION_PROBLEM_MESSAGES[language];
+    const text =
       problem === 'amount_at_least_1'
-        ? CONDITION_PROBLEM_MESSAGES.amount_at_least_1(
+        ? conditionMessages.amount_at_least_1(
             rule.condition?.unit === 'months' ? 'months' : 'years'
           )
-        : CONDITION_PROBLEM_MESSAGES[problem];
-    return `${name} in ${branch}: ${detail}`;
+        : conditionMessages[problem];
+    // "{rule} in {branch}: " is the same in both languages, as the server's
+    return detail(problem, `${name} in ${branch}: ${text}`);
   }
   const message = (rule.message ?? '').trim();
   if (!message) {
-    return RULES_MESSAGES.noMessage(name, branch);
+    return detail('noMessage', messages.noMessage(name, branch));
   }
   if (textLength(message) > MESSAGE_MAX_LENGTH) {
-    return RULES_MESSAGES.messageTooLong(name, branch);
+    return detail('messageTooLong', messages.messageTooLong(name, branch));
+  }
+  return null;
+}
+
+/**
+ * The first problem of a rule's target, condition or message, in the server's words and the
+ * context's language, or null (FR-006). `context.documents` are the requested documents with
+ * their requested fields.
+ */
+export function ruleProblem(
+  rule: RuleItem,
+  branchName: string,
+  context: RuleContext
+): string | null {
+  return ruleProblemOf(rule, branchName, context)?.message ?? null;
+}
+
+/** `groupProblem` with the problem's code: `'rulesOnly'`, `'tooFewMembers'`, `'messageTooLong'`. */
+export function groupProblemOf(
+  group: GroupItem,
+  noun: ItemNoun,
+  branchName: string,
+  based = false,
+  language: Language = DEFAULT_LANGUAGE
+): RuleProblemDetail | null {
+  const messages = RULES_MESSAGES[language];
+  const name = group.name.trim();
+  const branch = branchName.trim();
+  if (noun === 'sub-group' && group.items.some((member) => member.type === 'group')) {
+    return detail('rulesOnly', messages.rulesOnly(name, branch));
+  }
+  const counted = !based || group.mark === 'added';
+  if (counted && effectiveItems(group.items, based).length < 2) {
+    return detail('tooFewMembers', messages.tooFewMembers(name, branch));
+  }
+  if (textLength((group.message ?? '').trim()) > MESSAGE_MAX_LENGTH) {
+    return detail('messageTooLong', messages.messageTooLong(name, branch));
   }
   return null;
 }
@@ -273,21 +384,10 @@ export function groupProblem(
   group: GroupItem,
   noun: ItemNoun,
   branchName: string,
-  based = false
+  based = false,
+  language: Language = DEFAULT_LANGUAGE
 ): string | null {
-  const name = group.name.trim();
-  const branch = branchName.trim();
-  if (noun === 'sub-group' && group.items.some((member) => member.type === 'group')) {
-    return RULES_MESSAGES.rulesOnly(name, branch);
-  }
-  const counted = !based || group.mark === 'added';
-  if (counted && effectiveItems(group.items, based).length < 2) {
-    return RULES_MESSAGES.tooFewMembers(name, branch);
-  }
-  if (textLength((group.message ?? '').trim()) > MESSAGE_MAX_LENGTH) {
-    return RULES_MESSAGES.messageTooLong(name, branch);
-  }
-  return null;
+  return groupProblemOf(group, noun, branchName, based, language)?.message ?? null;
 }
 
 /**
@@ -299,12 +399,13 @@ function contentProblem(
   { item, noun }: ItemAtDepth,
   branch: BranchInput,
   context: RuleContext
-): string | null {
+): RuleProblemDetail | null {
   const based = branch.origin === 'based';
   if (item.type === 'group') {
-    return groupProblem(item, noun, branch.name, based);
+    const language = context.language ?? DEFAULT_LANGUAGE;
+    return groupProblemOf(item, noun, branch.name, based, language);
   }
-  return checkedInBranch(branch, item) ? ruleProblem(item, branch.name, context) : null;
+  return checkedInBranch(branch, item) ? ruleProblemOf(item, branch.name, context) : null;
 }
 
 function identifiersAreValid(items: RuleTreeItem[]): boolean {
@@ -323,31 +424,34 @@ function identifiersAreValid(items: RuleTreeItem[]): boolean {
 function branchProblem(
   branch: BranchInput,
   branchIndex: number,
-  earlierNames: Set<string>
+  earlierNames: Set<string>,
+  language: Language
 ): RulesProblem | null {
+  const messages = RULES_MESSAGES[language];
   const name = branch.name.trim();
-  const problem = (message: string, itemId: string | null = null): RulesProblem => ({
+  const problem = (code: RulesProblemCode, message: string): RulesProblem => ({
+    code,
     message,
     branchIndex,
-    itemId,
+    itemId: null,
   });
   if (!name) {
-    return problem(RULES_MESSAGES.branchNameMissing);
+    return problem('branchNameMissing', messages.branchNameMissing);
   }
   if (textLength(name) > NAME_MAX_LENGTH) {
-    return problem(RULES_MESSAGES.branchNameTooLong);
+    return problem('branchNameTooLong', messages.branchNameTooLong);
   }
   if (earlierNames.has(foldName(name))) {
-    return problem(RULES_MESSAGES.branchNameTwice(name));
+    return problem('branchNameTwice', messages.branchNameTwice(name));
   }
   if (textLength((branch.description ?? '').trim()) > DESCRIPTION_MAX_LENGTH) {
-    return problem(RULES_MESSAGES.descriptionTooLong(name));
+    return problem('descriptionTooLong', messages.descriptionTooLong(name));
   }
   if (flattenItems(branch.items).length > MAX_ITEMS_PER_BRANCH) {
-    return problem(RULES_MESSAGES.tooManyItems(name));
+    return problem('tooManyItems', messages.tooManyItems(name));
   }
   if (!identifiersAreValid(branch.items)) {
-    return problem(RULES_MESSAGES.invalidIdentifier);
+    return problem('invalidIdentifier', messages.invalidIdentifier);
   }
   return null;
 }
@@ -359,20 +463,22 @@ function branchProblem(
 function itemNameProblem(
   { item, noun }: ItemAtDepth,
   branch: string,
-  taken: Map<string, TakenName>
-): string | null {
+  taken: Map<string, TakenName>,
+  language: Language
+): RuleProblemDetail | null {
+  const messages = RULES_MESSAGES[language];
   const name = item.name.trim();
   if (!name) {
-    return RULES_MESSAGES.itemNameMissing(noun, branch);
+    return detail('itemNameMissing', messages.itemNameMissing(noun, branch));
   }
   if (textLength(name) > NAME_MAX_LENGTH) {
-    return RULES_MESSAGES.itemNameTooLong(noun, branch);
+    return detail('itemNameTooLong', messages.itemNameTooLong(noun, branch));
   }
   const other = taken.get(foldName(name));
   if (other && other.ownerId !== item.id) {
-    return RULES_MESSAGES.nameTaken(other.noun, branch, other.name);
+    return detail('nameTaken', messages.nameTaken(other.noun, branch, other.name));
   }
-  return reservedNameProblem(name, item);
+  return reservedNameProblemOf(name, item, language);
 }
 
 /**
@@ -383,22 +489,30 @@ function itemNameProblem(
  * before what it holds, its number of members and its message. In a based branch, the names an
  * undo gives back are taken, and what it inherits unchanged is checked once, in the main branch.
  * A problem that names a branch and an item comes with both, so that the UI can open the branch
- * and move the focus to the item.
+ * and move the focus to the item. Every problem comes with its code (R10), its message in the
+ * context's language.
  *
  * `context.documents` are the requested documents with only their requested fields
  * (`requestedRuleDocuments`).
  */
 export function firstProblem(branches: BranchInput[], context: RuleContext): RulesProblem | null {
+  const language = context.language ?? DEFAULT_LANGUAGE;
+  const messages = RULES_MESSAGES[language];
   if (branches.length > MAX_BRANCHES) {
-    return { message: RULES_MESSAGES.tooManyBranches, branchIndex: null, itemId: null };
+    return {
+      code: 'tooManyBranches',
+      message: messages.tooManyBranches,
+      branchIndex: null,
+      itemId: null,
+    };
   }
   const mainBranches = branches.filter((branch) => branch.origin === 'main');
   if (mainBranches.length !== 1 || branches[0].origin !== 'main') {
-    return { message: RULES_MESSAGES.mainBranch, branchIndex: null, itemId: null };
+    return { code: 'mainBranch', message: messages.mainBranch, branchIndex: null, itemId: null };
   }
   const branchNames = new Set<string>();
   for (const [branchIndex, branch] of branches.entries()) {
-    const problem = branchProblem(branch, branchIndex, branchNames);
+    const problem = branchProblem(branch, branchIndex, branchNames, language);
     if (problem) {
       return problem;
     }
@@ -409,10 +523,11 @@ export function firstProblem(branches: BranchInput[], context: RuleContext): Rul
       namesGivenBackByUndo(branches[0], branch).map((entry) => [foldName(entry.name), entry])
     );
     for (const entry of itemsWithNouns(branch.items)) {
-      const message =
-        itemNameProblem(entry, branchName, taken) ?? contentProblem(entry, branch, context);
-      if (message) {
-        return { message, branchIndex, itemId: entry.item.id };
+      const found =
+        itemNameProblem(entry, branchName, taken, language) ??
+        contentProblem(entry, branch, context);
+      if (found) {
+        return { ...found, branchIndex, itemId: entry.item.id };
       }
       const name = entry.item.name.trim();
       taken.set(foldName(name), { name, noun: entry.noun, ownerId: entry.item.id });

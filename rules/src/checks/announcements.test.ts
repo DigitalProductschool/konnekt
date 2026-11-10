@@ -275,6 +275,34 @@ describe('announcementsFor', () => {
       ).toEqual(['Rule 02 conflicts with Rule 05.']);
     });
 
+    it('announces Ambulance’s changes in German, its stored names unchanged (spec 009)', () => {
+      const de: AnnouncementContext = { ...IN_AMBULANCE, language: 'de' };
+      const next = ambulance([conflict('rule-2', ['rule-5']), conflict('rule-5', ['rule-2'])], {
+        notice: { kind: 'none_can_meet', today: false },
+      });
+      expect(announce(ambulance([]), next, de)).toEqual([
+        'In Ambulance: Rule 02 widerspricht Rule 05.',
+        'In Ambulance: Rule 05 widerspricht Rule 02.',
+        'Niemand kann die Regeln von Ambulance erfüllen.',
+      ]);
+      const previous = ambulance([same('rule-4', 'rule-3'), alwaysMet('rule-1')]);
+      const covered = ambulance([impliedBy('rule-2', ['rule-5'])], {
+        notice: { kind: 'all_meet', today: false },
+      });
+      expect(announce(previous, covered, de)).toEqual([
+        'In Ambulance: Rule 01 ist nicht mehr immer erfüllt.',
+        'In Ambulance: Rule 02 macht neben Rule 05 keinen Unterschied.',
+        'In Ambulance: Rule 04 ist nicht mehr redundant.',
+        'Alle erfüllen die Regeln von Ambulance.',
+      ]);
+      expect(
+        announce(ambulance([]), ambulance([conflict('rule-2', ['rule-5'])]), {
+          ...de,
+          shownBranch: AMBULANCE.key,
+        })
+      ).toEqual(['Rule 02 widerspricht Rule 05.']);
+    });
+
     it('announces nothing on a new variant’s first result', () => {
       expect(
         announcementsFor(null, ambulance([conflict('rule-2', ['rule-5'])]), 'action', IN_AMBULANCE)
@@ -290,5 +318,63 @@ describe('announcementsFor', () => {
     expect(announce(NONE, check([alwaysMet('rule-3')]), context)).toEqual([
       'In Ambulance: Every citizen meets Rule 03.',
     ]);
+  });
+
+  it('announces in the context’s language, German (spec 009, R4)', () => {
+    const de: AnnouncementContext = { ...SHOWN, language: 'de' };
+    expect(announce(NONE, check([conflict('rule-2', ['rule-1'])]), de)).toEqual([
+      'Rule 02 widerspricht Rule 01.',
+    ]);
+    expect(announce(check([conflict('rule-2', ['rule-1'])]), NONE, de)).toEqual([
+      'Rule 02 widerspricht Rule 01 nicht mehr.',
+    ]);
+    expect(
+      announce(
+        check([conflict('rule-3', ['rule-1'])]),
+        check([conflict('rule-3', ['rule-1'], true)]),
+        de
+      )
+    ).toEqual(['Rule 03 widerspricht Rule 01 im Moment.']);
+    expect(
+      announce(check([conflict('rule-2', ['rule-1'])]), check([same('rule-2', 'rule-1')]), de)
+    ).toEqual(['Rule 02 widerspricht Rule 01 nicht mehr.', 'Rule 02 ist gleich wie Rule 01.']);
+    expect(announce(NONE, check([implies('rule-4', ['rule-1'], ['rule-3'])]), de)).toEqual([
+      'Rule 04 macht neben Rule 01 und Rule 03 keinen Unterschied.',
+    ]);
+    expect(announce(check([same('rule-4', 'rule-3')]), NONE, de)).toEqual([
+      'Rule 04 ist nicht mehr redundant.',
+    ]);
+    expect(announce(NONE, check([alwaysMet('rule-3')]), de)).toEqual(['Alle erfüllen Rule 03.']);
+    expect(announce(check([alwaysMet('rule-3')]), NONE, de)).toEqual([
+      'Rule 03 ist nicht mehr immer erfüllt.',
+    ]);
+  });
+
+  it('announces the notices and the display order in German (spec 009, R4)', () => {
+    const de: AnnouncementContext = { ...SHOWN, language: 'de' };
+    const none: BranchNotice = { kind: 'none_can_meet', today: false };
+    expect(
+      announce(check([], { notice: none }), check([], { notice: { ...none, today: true } }), de)
+    ).toEqual(['Derzeit kann niemand die Regeln von Standard erfüllen.']);
+    expect(announce(NONE, check([], { notice: { kind: 'all_meet', today: false } }), de)).toEqual([
+      'Alle erfüllen die Regeln von Standard.',
+    ]);
+    const previous = check([conflict('rule-4', ['rule-1']), conflict('rule-2', ['rule-3'])]);
+    const next = check(
+      [conflict('rule-1', ['rule-3']), conflict('rule-3', ['rule-1']), same('rule-2', 'rule-3')],
+      { notice: none }
+    );
+    expect(announce(previous, next, de)).toEqual([
+      'Rule 01 widerspricht Rule 03.',
+      'Rule 02 widerspricht Rule 03 nicht mehr.',
+      'Rule 02 ist gleich wie Rule 03.',
+      'Rule 03 widerspricht Rule 01.',
+      'Rule 04 widerspricht Rule 01 nicht mehr.',
+      'Niemand kann die Regeln von Standard erfüllen.',
+    ]);
+    // What is announced, and when, is the same in both languages (FR-016)
+    expect(announcementsFor(NONE, next, 'first', de)).toEqual([]);
+    expect(announcementsFor(NONE, next, 'new_day', de)).toEqual([]);
+    expect(announce(previous, next, de)).toHaveLength(announce(previous, next).length);
   });
 });

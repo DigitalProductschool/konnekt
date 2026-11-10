@@ -292,3 +292,55 @@ may be written from the glossary. Corrections, if any, come from the walk of §3
   "Kongo", "Korea, Republik", "Russische Föderation", "Palästinensische Gebiete", "Vatikanstadt",
   "Macau", "Moldau"; and `INVALID_PAYLOAD_MESSAGE` ends the German "Ungültige Anfrage." with a
   period the English "Invalid request payload" lacks (written so in T008).
+- 2026-11-10: checkpoint of the rules package (T029; FR-006, FR-014, FR-017, SC-006 for the
+  composed sentences, SC-007). T022 with T023 by one agent (xhigh); T024 with T025 and T026 with
+  T027 by two agents side by side (high); T028 by a fourth (high). Gates: `npm run lint`,
+  `npm test`, `npm run build` green: `rules/` 45 files, 2642 tests (2362 + 280, none removed);
+  `frontend/` 31, 988 and `mcp/` 15, 408, both unchanged, with `mcp/src/*.test.ts`,
+  `guidance.test.ts` and `mcp/plugin/` untouched. Ruff and mypy clean (82 source files),
+  `export_check_fixtures --check` current, and the phase's one full pytest: 2160 passed, 0
+  failed (phase 3's count; no backend test added). `rules/src/copy.test.ts` finds 16 tables
+  (`RULES_MESSAGES`, `EDIT_MESSAGES`, `CONDITION_PROBLEM_MESSAGES`, `RELATION_WORDS`,
+  `DATE_OF_BIRTH_RULE_LABEL`, `OPERATOR_LABELS`, `ITEM_NOUNS`, `TIME_UNITS`, `SUFFIX_TEXTS`,
+  `STATEMENT_TEXTS`, `DATE_TEXTS`, `MESSAGE_TEXTS`, `DROPPED_TEXTS`, `FINDING_TEXTS`,
+  `PERSONA_TEXTS`, `GROUP_SUBTITLES`), all complete and translated, with one allowlist entry
+  ("Redundant:"). `validation.test.ts` renders all 39 cases of the parity fixture in both languages
+  (`params_de` for `unknownPart`), checks that the 4 client-only keys are the only ones left
+  out, and checks the condition prefix: 41 tests. `grep -rn "language" mcp/src` finds only the
+  `DEFAULT_LANGUAGE` import in `tools/checks.ts` and two doc comments: no language is passed,
+  and the agents' texts stay English. English assertions: of the 20 test files changed, none has
+  fewer `expect(` than before, and every English literal on a removed line is still in its file
+  (the removed lines are imports, a helper's signature, `toEqual` objects that gained `code`,
+  and three persona constants now read as `…Of('en')`). Every German sentence of G§3 comes out of
+  a composer and is asserted in a test (two with other sample values: "01.01.2010", "3 Jahren").
+  No `console.*` in `rules/src/`, `workers/`, `usePersonas` or `useRuleChecks`. The glossary
+  gained 52 rows and changed none: T023 11 (remove, restore, reset, follows, based on, ungroup,
+  level, copy; the "weniger als" and "Time ago" / "Time from now" labels), T024 3, T025 13 (the
+  proposed messages' sentences, the dative counts, the subjects), T026 13 (the kinds, the banner,
+  the notices, the counts, the agents' resolutions), T028 12 (the persona chips, headings,
+  announcements, "von Mia", "erstellen / ergänzen", "Gültig bis"). Plan changes in this phase:
+  `defineTexts` types `de` as `NoInfer<T>` (the coordinator, after wave 1: its doc promised the
+  check of a missing or extra German key, which an inline column didn't get);
+  `backend/tests/unit/test_check_fixtures.py`'s `_ts_table` reads the English column `const
+  <NAME>_EN = {…}` (the coordinator: T023's table shape broke three of its tests, which the
+  phase's Node gates don't run); T027 made no `ANNOUNCEMENT_TEXTS` table, because
+  `checks/announcements.ts` had no strings ("Checking the rules…" is the frontend's
+  `Approval/constants.ts`, T042's); T024's `formatDate` was `dd.mm.yyyy` in English before the
+  feature (the task's "23 Oct 2005" didn't exist), so its `language` is unused; `EditRefusal`'s
+  `code` is optional (the MCP's `draftEdit.ts` builds refusals without one), and validation gained
+  `nameProblemOf`, `variantNameProblemOf` and `isConditionProblem` beside `ruleProblemOf` and
+  `groupProblemOf`; T028 also edited `personas/types.ts` (the `setValue` action carries the
+  language) and added `outcomeNameOf(outcome, language)` for T039, since `resultViewOf` composes
+  no outcome names; the German proposed messages need each label's gender, kept in a private
+  table in `messages.ts` keyed by catalog keys, with "Das Feld „…“" as the fallback (to follow
+  if a German catalog label changes its gender). For phase 5: T030 dispatches `language` on the
+  checks' `'change'` action and adds it to `sameRunBranches`'s comparison, and `usePersonas`
+  passes a context with `language` and `language` on `'setValue'`; T038's operator picker joins
+  `labelOf()` and `suffixOf()`, which for a German date other than the date of birth would read
+  "ist mindestens 2 Jahre zurück": it needs the field-aware words of
+  `STATEMENT_TEXTS.yearsAgoWords` ("liegt mindestens"); T039 uses `outcomeNameOf`. Open for V11
+  (phase 6): the server's German copied word for word that reads stiffly ("Geben Sie als Anzahl
+  der Jahre mindestens 1 ein.", "… prüft einen Bestandteil, den das Feld „X“ nicht hat."), and
+  the agents' choices "jünger als 18 Jahre", "Ihrer Klasse B", "Sie brauchen die
+  Staatsangehörigkeit von …", "Gültig bis" (capitalised); the German of the 12 agent-only
+  `EDIT_MESSAGES` is never shown.

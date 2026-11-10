@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveTarget } from './conditions';
 import {
   dataOfResolved,
+  licenceClassLabel,
   optionLabel,
   ruleFieldLabel,
   statementOf,
@@ -11,10 +12,25 @@ import {
   subjectOf,
   symbolOf,
 } from './statements';
-import { CONTEXT, MDL, OPTION_SETS, PID, target, US1_RULES } from './testData';
+import {
+  CONTEXT,
+  CONTEXT_DE,
+  MDL,
+  MDL_DE,
+  OPTION_SETS,
+  PID,
+  PID_DE,
+  target,
+  US1_RULES,
+} from './testData';
 
 function statement(ruleTarget: RuleTarget, condition: Condition): string | undefined {
   return statementOf({ target: ruleTarget, condition }, CONTEXT)?.text;
+}
+
+/** `statement()` with the German context (spec 009). */
+function germanStatement(ruleTarget: RuleTarget, condition: Condition): string | undefined {
+  return statementOf({ target: ruleTarget, condition }, CONTEXT_DE)?.text;
 }
 
 describe('statementOf', () => {
@@ -33,6 +49,27 @@ describe('statementOf', () => {
       symbol: '≥',
       text: 'Personal ID · Date of birth (Age) is at least 21 years old',
     });
+  });
+
+  it('reads US1’s rules in German (spec 009, glossary G§3)', () => {
+    expect(US1_RULES.map((rule) => statementOf(rule, CONTEXT_DE)?.text)).toEqual([
+      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt',
+      'Führerschein · Führerscheinklassen enthält eines von B',
+      'Führerschein · Führerscheinklasse B – Ausstellungsdatum liegt mindestens 2 Jahre zurück',
+    ]);
+    expect(statementOf(US1_RULES[0], CONTEXT_DE)).toEqual({
+      subject: 'Personalausweis · Geburtsdatum (Alter)',
+      predicate: 'ist mindestens 21 Jahre alt',
+      symbol: '≥',
+      text: 'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt',
+    });
+  });
+
+  it('reads in English without a language (the MCP server’s context)', () => {
+    const { language: _language, ...withoutLanguage } = CONTEXT_DE;
+    expect(statementOf(US1_RULES[0], withoutLanguage)?.text).toBe(
+      'Personalausweis · Date of birth (Age) is at least 21 years old'
+    );
   });
 
   describe('dates', () => {
@@ -94,6 +131,67 @@ describe('statementOf', () => {
         })
       ).toBe('Driving licence · Licence class CE – Expiry date is at least 2 years from now');
     });
+
+    it.each([
+      ['at_least_years_ago', 18, 'ist mindestens 18 Jahre alt'],
+      ['less_than_years_ago', 66, 'ist weniger als 66 Jahre alt'],
+      ['exactly_years_ago', 1, 'ist genau 1 Jahr alt'],
+    ])('words %s on a Date of birth as an age in German', (operator, years, predicate) => {
+      expect(germanStatement(target('pid', 'birthdate'), { operator, years })).toBe(
+        `Personalausweis · Geburtsdatum (Alter) ${predicate}`
+      );
+      expect(germanStatement(target('mdl', 'birth_date'), { operator, years })).toBe(
+        `Führerschein · Geburtsdatum (Alter) ${predicate}`
+      );
+    });
+
+    it.each([
+      ['at_least_years_ago', 2, 'liegt mindestens 2 Jahre zurück'],
+      ['less_than_years_ago', 1, 'liegt weniger als 1 Jahr zurück'],
+      ['exactly_years_ago', 3, 'liegt genau 3 Jahre zurück'],
+    ])('words %s on every other date as years ago in German', (operator, years, predicate) => {
+      expect(germanStatement(target('pid', 'date_of_issuance'), { operator, years })).toBe(
+        `Personalausweis · Ausstellungsdatum ${predicate}`
+      );
+    });
+
+    it('counts from now in German, with "1 Jahr" and "1 Monat"', () => {
+      const expiry = target('mdl', 'expiry_date');
+      expect(
+        germanStatement(expiry, { operator: 'at_least_from_now', amount: 6, unit: 'months' })
+      ).toBe('Führerschein · Ablaufdatum liegt mindestens 6 Monate in der Zukunft');
+      expect(
+        germanStatement(expiry, { operator: 'less_than_from_now', amount: 1, unit: 'years' })
+      ).toBe('Führerschein · Ablaufdatum liegt weniger als 1 Jahr in der Zukunft');
+      expect(
+        germanStatement(expiry, { operator: 'at_least_from_now', amount: 1, unit: 'months' })
+      ).toBe('Führerschein · Ablaufdatum liegt mindestens 1 Monat in der Zukunft');
+    });
+
+    it('writes fixed dates in German', () => {
+      const issued = target('pid', 'date_of_issuance');
+      expect(germanStatement(issued, { operator: 'before', date: '2020-01-01' })).toBe(
+        'Personalausweis · Ausstellungsdatum liegt vor dem 01.01.2020'
+      );
+      expect(germanStatement(issued, { operator: 'after', date: '2020-01-01' })).toBe(
+        'Personalausweis · Ausstellungsdatum liegt nach dem 01.01.2020'
+      );
+      expect(germanStatement(issued, { operator: 'on', date: '2005-10-23' })).toBe(
+        'Personalausweis · Ausstellungsdatum ist der 23.10.2005'
+      );
+    });
+
+    it('reads a class’s expiry date with the class in German', () => {
+      expect(
+        germanStatement(target('mdl', 'driving_privileges', 'expiry_date', 'CE'), {
+          operator: 'at_least_from_now',
+          amount: 2,
+          unit: 'years',
+        })
+      ).toBe(
+        'Führerschein · Führerscheinklasse CE – Ablaufdatum liegt mindestens 2 Jahre in der Zukunft'
+      );
+    });
   });
 
   it.each([
@@ -104,6 +202,17 @@ describe('statementOf', () => {
   ])('reads the number condition %s', (operator, value, predicate) => {
     expect(statement(target('mdl', 'height'), { operator, value })).toBe(
       `Driving licence · Height (cm) ${predicate}`
+    );
+  });
+
+  it.each([
+    ['greater_than', 180, 'ist größer als 180'],
+    ['less_than', 150, 'ist kleiner als 150'],
+    ['equal_to', 175.5, 'ist gleich 175.5'],
+    ['not_equal_to', 0, 'ist ungleich 0'],
+  ])('reads the number condition %s in German', (operator, value, predicate) => {
+    expect(germanStatement(target('mdl', 'height'), { operator, value })).toBe(
+      `Führerschein · Körpergröße (cm) ${predicate}`
     );
   });
 
@@ -122,6 +231,24 @@ describe('statementOf', () => {
     ).toBe(`Personal ID · City or town ${predicate}`);
   });
 
+  it.each([
+    ['equal_to', false, 'ist gleich „Stuttgart“, Groß-/Kleinschreibung ignoriert'],
+    ['not_equal_to', true, 'ist ungleich „Stuttgart“, Groß-/Kleinschreibung beachtet'],
+    ['contains', false, 'enthält „Stuttgart“, Groß-/Kleinschreibung ignoriert'],
+    ['not_contains', true, 'enthält nicht „Stuttgart“, Groß-/Kleinschreibung beachtet'],
+  ])(
+    'reads the text condition %s in German, in German quotes',
+    (operator, matchCase, predicate) => {
+      expect(
+        germanStatement(target('pid', 'address_locality'), {
+          operator,
+          value: ' Stuttgart ',
+          match_case: matchCase,
+        })
+      ).toBe(`Personalausweis · Ort ${predicate}`);
+    }
+  );
+
   it('reads enum values by their label (F8)', () => {
     const nationality = target('pid', 'nationalities');
     expect(statement(nationality, { operator: 'includes_one_of', values: ['DE'] })).toBe(
@@ -133,6 +260,25 @@ describe('statementOf', () => {
     expect(statement(target('pid', 'sex'), { operator: 'includes_one_of', values: [2, 0] })).toBe(
       'Personal ID · Sex includes one of Female, Not known'
     );
+  });
+
+  it('reads enum values by their German label (the glossary’s example)', () => {
+    const nationality = target('pid', 'nationalities');
+    expect(
+      germanStatement(nationality, { operator: 'includes_one_of', values: ['DE', 'AT'] })
+    ).toBe('Personalausweis · Staatsangehörigkeit enthält eines von Deutschland, Österreich');
+    expect(germanStatement(nationality, { operator: 'includes_none_of', values: ['FR'] })).toBe(
+      'Personalausweis · Staatsangehörigkeit enthält keines von Frankreich'
+    );
+    expect(
+      germanStatement(target('pid', 'sex'), { operator: 'includes_one_of', values: [2, 0] })
+    ).toBe('Personalausweis · Geschlecht enthält eines von Weiblich, Unbekannt');
+    expect(
+      germanStatement(target('mdl', 'driving_privileges', 'classes'), {
+        operator: 'includes_none_of',
+        values: ['B', 'BE'],
+      })
+    ).toBe('Führerschein · Führerscheinklassen enthält keines von B, BE');
   });
 
   it('reads the licence classes by their code only (F32)', () => {
@@ -160,6 +306,22 @@ describe('statementOf', () => {
     ).toBe('Personal ID · Place of birth – City or town contains "Stutt", ignoring letter case');
   });
 
+  it('names the place of birth’s parts in German', () => {
+    expect(
+      germanStatement(target('pid', 'place_of_birth', 'country'), {
+        operator: 'includes_one_of',
+        values: ['AT'],
+      })
+    ).toBe('Personalausweis · Geburtsort – Land enthält eines von Österreich');
+    expect(
+      germanStatement(target('pid', 'place_of_birth', 'locality'), {
+        operator: 'contains',
+        value: 'Stutt',
+        match_case: false,
+      })
+    ).toBe('Personalausweis · Geburtsort – Ort enthält „Stutt“, Groß-/Kleinschreibung ignoriert');
+  });
+
   it.each([
     ['no target', null, { operator: 'equal_to', value: 'x', match_case: false }],
     ['no condition', target('pid', 'address_locality'), null],
@@ -177,6 +339,7 @@ describe('statementOf', () => {
     ['another kind’s operator', target('mdl', 'height'), { operator: 'contains', value: 'x' }],
   ])('is null for %s', (_name, ruleTarget, condition) => {
     expect(statementOf({ target: ruleTarget, condition }, CONTEXT)).toBeNull();
+    expect(statementOf({ target: ruleTarget, condition }, CONTEXT_DE)).toBeNull();
   });
 
   it('is null when the documents don’t have the field', () => {
@@ -195,6 +358,15 @@ describe('subjectOf', () => {
       'Driving licence · Licence classes'
     );
     expect(subjectOf(null, CONTEXT.documents)).toBeNull();
+  });
+
+  it('names them in German', () => {
+    expect(subjectOf(target('pid', 'place_of_birth', 'region'), CONTEXT_DE.documents, 'de')).toBe(
+      'Personalausweis · Geburtsort – Region'
+    );
+    expect(
+      subjectOf(target('mdl', 'driving_privileges', 'issue_date', 'B'), CONTEXT_DE.documents, 'de')
+    ).toBe('Führerschein · Führerscheinklasse B – Ausstellungsdatum');
   });
 });
 
@@ -229,8 +401,8 @@ describe('symbolOf', () => {
 
 describe('statementPartsOf', () => {
   /** The parts joined as `statementOf` writes them. */
-  function joined(ruleTarget: RuleTarget, condition: Condition): string | null {
-    const parts = statementPartsOf({ target: ruleTarget, condition }, CONTEXT);
+  function joined(ruleTarget: RuleTarget, condition: Condition, context = CONTEXT): string | null {
+    const parts = statementPartsOf({ target: ruleTarget, condition }, context);
     if (!parts?.predicate) {
       return null;
     }
@@ -238,6 +410,39 @@ describe('statementPartsOf', () => {
     const predicate = `${words} ${values.join(', ')}${tail ? `, ${tail}` : ''}`;
     return `${parts.document} · ${parts.data} ${predicate}`;
   }
+
+  it('splits US1’s rules in German', () => {
+    expect(US1_RULES.map((rule) => statementPartsOf(rule, CONTEXT_DE))).toEqual([
+      {
+        document: 'Personalausweis',
+        documentType: 'pid',
+        data: 'Geburtsdatum (Alter)',
+        predicate: {
+          symbol: '≥',
+          words: 'ist mindestens',
+          values: ['21 Jahre alt'],
+          tail: null,
+        },
+      },
+      {
+        document: 'Führerschein',
+        documentType: 'mdl',
+        data: 'Führerscheinklassen',
+        predicate: { symbol: null, words: 'enthält eines von', values: ['B'], tail: null },
+      },
+      {
+        document: 'Führerschein',
+        documentType: 'mdl',
+        data: 'Führerscheinklasse B – Ausstellungsdatum',
+        predicate: {
+          symbol: '≥',
+          words: 'liegt mindestens',
+          values: ['2 Jahre zurück'],
+          tail: null,
+        },
+      },
+    ]);
+  });
 
   it('splits US1’s rules into the document, the data, the words and the chips', () => {
     expect(US1_RULES.map((rule) => statementPartsOf(rule, CONTEXT))).toEqual([
@@ -279,6 +484,9 @@ describe('statementPartsOf', () => {
     expect(joined(ruleTarget, condition)).toBe(
       statementOf({ target: ruleTarget, condition }, CONTEXT)?.text
     );
+    expect(joined(ruleTarget, condition, CONTEXT_DE)).toBe(
+      statementOf({ target: ruleTarget, condition }, CONTEXT_DE)?.text
+    );
   });
 
   it('gives each enum value a chip of its own, by label', () => {
@@ -307,6 +515,20 @@ describe('statementPartsOf', () => {
       words: 'is equal to',
       values: ['"Stuttgart"'],
       tail: 'ignoring letter case',
+    });
+    expect(
+      statementPartsOf(
+        {
+          target: target('pid', 'address_locality'),
+          condition: { operator: 'equal_to', value: ' Stuttgart ', match_case: false },
+        },
+        CONTEXT_DE
+      )?.predicate
+    ).toEqual({
+      symbol: null,
+      words: 'ist gleich',
+      values: ['„Stuttgart“'],
+      tail: 'Groß-/Kleinschreibung ignoriert',
     });
   });
 
@@ -345,6 +567,19 @@ describe('dataOfResolved', () => {
       'Licence class C1E – Expiry date'
     );
   });
+
+  it('names them in German', () => {
+    const data = (ruleTarget: RuleTarget) => {
+      const resolved = resolveTarget(ruleTarget, CONTEXT_DE.documents);
+      return resolved && dataOfResolved(resolved, 'de');
+    };
+    expect(data(target('pid', 'birthdate'))).toBe('Geburtsdatum (Alter)');
+    expect(data(target('pid', 'place_of_birth', 'country'))).toBe('Geburtsort – Land');
+    expect(data(target('mdl', 'driving_privileges', 'classes'))).toBe('Führerscheinklassen');
+    expect(data(target('mdl', 'driving_privileges', 'expiry_date', 'C1E'))).toBe(
+      'Führerscheinklasse C1E – Ablaufdatum'
+    );
+  });
 });
 
 describe('ruleFieldLabel', () => {
@@ -366,5 +601,18 @@ describe('ruleFieldLabel', () => {
       fieldOf(PID, 'date_of_expiry').label
     );
     expect(ruleFieldLabel(fieldOf(PID, 'place_of_birth'))).toBe('Place of birth');
+  });
+
+  it('names the date of birth as an age in German, and keeps the German catalog’s labels', () => {
+    expect(ruleFieldLabel(fieldOf(PID_DE, 'birthdate'), 'de')).toBe('Geburtsdatum (Alter)');
+    expect(ruleFieldLabel(fieldOf(MDL_DE, 'birth_date'), 'de')).toBe('Geburtsdatum (Alter)');
+    expect(ruleFieldLabel(fieldOf(PID_DE, 'place_of_birth'), 'de')).toBe('Geburtsort');
+  });
+});
+
+describe('licenceClassLabel', () => {
+  it('names one class’s parts in each language', () => {
+    expect(licenceClassLabel('B')).toBe('Licence class B');
+    expect(licenceClassLabel('B', 'de')).toBe('Führerscheinklasse B');
   });
 });

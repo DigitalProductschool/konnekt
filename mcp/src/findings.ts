@@ -18,10 +18,9 @@ import type {
   ItemFinding,
   ItemNames,
 } from '@connection-portal/rules/checks/types';
-import { RULES_MESSAGES } from '@connection-portal/rules/constants';
 import { flattenItems } from '@connection-portal/rules/tree';
 import type { RuleContext } from '@connection-portal/rules/types';
-import { ruleProblem } from '@connection-portal/rules/validation';
+import { isConditionProblem, ruleProblemOf } from '@connection-portal/rules/validation';
 
 import {
   type ConnectionLike,
@@ -126,12 +125,12 @@ function reasonIdsOf(finding: ItemFinding): string[] {
 
 /**
  * Why the checks left `rule` out, and the text, from the rules step's problem of the rule
- * (`ruleProblem()`, which its problem note and the refused Publish show; F11): "choose the data to
- * check" is no data, "checks data that’s no longer requested" (the banner's) is data not
- * requested, "{rule} in {variant}: <what to complete>" is an incomplete condition. Anything else,
- * such as a part the field doesn't have, is unreadable, with the problem's text when it names
- * the target, and a text of its own when the problem is only the message's, which the checks
- * don't read
+ * (`ruleProblemOf()`, whose message its problem note and the refused Publish show; F11), by its
+ * code (spec 009, R10): "choose the data to check" is no data, "checks data that’s no longer
+ * requested" (the banner's) is data not requested, "{rule} in {variant}: <what to complete>" is an
+ * incomplete condition. Anything else, such as a part the field doesn't have, is unreadable, with
+ * the problem's text when it names the target, and a text of its own when the problem is only the
+ * message's, which the checks don't read. The texts are English: no language is passed (FR-017)
  */
 function notCoveredReasonOf(
   rule: RuleItem,
@@ -140,21 +139,22 @@ function notCoveredReasonOf(
 ): { reason: NotCoveredReason; text: string } {
   const name = rule.name.trim();
   const variant = variantName.trim();
-  const problem = ruleProblem(rule, variantName, context);
-  if (problem === RULES_MESSAGES.chooseData(name, variant)) {
-    return { reason: 'no_data', text: problem };
+  const problem = ruleProblemOf(rule, variantName, context);
+  if (problem?.code === 'chooseData') {
+    return { reason: 'no_data', text: problem.message };
   }
-  if (problem === RULES_MESSAGES.notRequested(name, variant)) {
-    return { reason: 'data_not_requested', text: problem };
+  if (problem?.code === 'notRequested') {
+    return { reason: 'data_not_requested', text: problem.message };
   }
-  if (problem !== null && problem.startsWith(`${name} in ${variant}: `)) {
-    return { reason: 'condition_incomplete', text: problem };
+  if (problem !== null && isConditionProblem(problem.code)) {
+    return { reason: 'condition_incomplete', text: problem.message };
   }
   const aboutMessage =
-    problem === null ||
-    problem === RULES_MESSAGES.noMessage(name, variant) ||
-    problem === RULES_MESSAGES.messageTooLong(name, variant);
-  return { reason: 'unreadable', text: aboutMessage ? unreadableText(name, variant) : problem };
+    problem === null || problem.code === 'noMessage' || problem.code === 'messageTooLong';
+  return {
+    reason: 'unreadable',
+    text: aboutMessage ? unreadableText(name, variant) : problem.message,
+  };
 }
 
 /**

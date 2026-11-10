@@ -5,12 +5,12 @@ import {
   classesSinceOf,
   confirmAllOf,
   confirmOneOf,
-  creatingAllText,
+  creatingAllTextOf,
   creatingOneOf,
   dataHeadingOf,
   displayDateOf,
-  editedHiddenText,
-  failingValueHiddenText,
+  editedHiddenTextOf,
+  failingValueHiddenTextOf,
   failureHintOf,
   firstName,
   meetsHeadingOf,
@@ -18,6 +18,7 @@ import {
   noLongerMeetsOf,
   noRulesNoteOf,
   nowMeetsOf,
+  outcomeNameOf,
   possessiveOf,
   resultHeadingOf,
   runStatusOf,
@@ -39,6 +40,10 @@ const TODAY = '2026-11-01';
 describe('testDayLineOf (FR-016, W1; spec 008 FR-024)', () => {
   it('words the day the results assume, in dd.mm.yyyy', () => {
     expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026.');
+  });
+
+  it('words it in German, the date still dd.mm.yyyy (glossary §2 "today in Germany")', () => {
+    expect(testDayLineOf(TODAY, 'de')).toBe('Getestet, als würde heute geteilt: 01.11.2026.');
   });
 });
 
@@ -68,6 +73,12 @@ describe('the data card’s formats (spec 008 FR-024, CLAR #46)', () => {
   it('writes classes without an issue date alone', () => {
     expect(classesSinceOf('AM', null)).toBe('AM');
   });
+
+  it('writes them in German, the dates still dd.mm.yyyy', () => {
+    expect(validUntilOf('2040-08-19', 'de')).toBe('Gültig bis 19.08.2040');
+    expect(classesSinceOf('B, BE', '2010-05-02', 'de')).toBe('B, BE seit 02.05.2010');
+    expect(classesSinceOf('AM', null, 'de')).toBe('AM');
+  });
 });
 
 describe('chipNameOf (FR-015)', () => {
@@ -75,6 +86,15 @@ describe('chipNameOf (FR-015)', () => {
     expect(chipNameOf(MIA, 'Standard', true)).toBe('Mia Schulz: meets the rules of Standard');
     expect(chipNameOf(MIA, 'Standard', false)).toBe(
       'Mia Schulz: doesn’t meet the rules of Standard'
+    );
+  });
+
+  it('gives them in German, the names unchanged (glossary §3 "persona chips")', () => {
+    expect(chipNameOf(MIA, 'Standard', true, 'de')).toBe(
+      'Mia Schulz: erfüllt die Regeln von Standard'
+    );
+    expect(chipNameOf(MIA, 'Standard', false, 'de')).toBe(
+      'Mia Schulz: erfüllt die Regeln von Standard nicht'
     );
   });
 });
@@ -91,6 +111,12 @@ describe('firstName and possessiveOf (design-notes §1.1)', () => {
     expect(possessiveOf('Jonas')).toBe('Jonas’s');
     expect(dataHeadingOf(persona('Hans Maier'))).toBe('Hans’s data');
   });
+
+  it('has no genitive in German: "von" after the noun', () => {
+    expect(possessiveOf('Mia', 'de')).toBe('von Mia');
+    expect(possessiveOf('Jonas', 'de')).toBe('von Jonas');
+    expect(dataHeadingOf(persona('Hans Maier'), 'de')).toBe('Daten von Hans');
+  });
 });
 
 describe('the panel and result headings (FR-004, FR-015)', () => {
@@ -98,6 +124,12 @@ describe('the panel and result headings (FR-004, FR-015)', () => {
     expect(dataHeadingOf(MIA)).toBe('Mia’s data');
     expect(meetsHeadingOf(MIA)).toBe('Rules Mia meets');
     expect(messageColumnOf(MIA)).toBe('Message Mia reads');
+  });
+
+  it('uses the first name in German (glossary §2 "message", §3 "Rules Mia meets")', () => {
+    expect(dataHeadingOf(MIA, 'de')).toBe('Daten von Mia');
+    expect(meetsHeadingOf(MIA, 'de')).toBe('Regeln, die Mia erfüllt');
+    expect(messageColumnOf(MIA, 'de')).toBe('Nachricht für Mia');
   });
 });
 
@@ -110,6 +142,27 @@ describe('resultHeadingOf (FR-015; spec 008 FR-024, U65 7057:58811)', () => {
   ])('%i rules not met give "%s"', (rules, heading) => {
     expect(resultHeadingOf(rules)).toBe(heading);
   });
+
+  it.each([
+    [0, 'Ergebnis: erfüllt alle Regeln'],
+    [1, 'Ergebnis: erfüllt 1 Regel nicht'],
+    [2, 'Ergebnis: erfüllt 2 Regeln nicht'],
+    [3, 'Ergebnis: erfüllt 3 Regeln nicht'],
+  ])('%i rules not met give "%s" in German', (rules, heading) => {
+    expect(resultHeadingOf(rules, 'de')).toBe(heading);
+  });
+});
+
+describe('outcomeNameOf (FR-015; glossary §2 "meets / doesn’t meet")', () => {
+  it('names the outcomes of rows that are not met', () => {
+    expect(outcomeNameOf('not_met')).toBe('Not met');
+    expect(outcomeNameOf('not_checked')).toBe('Couldn’t be checked');
+  });
+
+  it('names them in German', () => {
+    expect(outcomeNameOf('not_met', 'de')).toBe('Nicht erfüllt');
+    expect(outcomeNameOf('not_checked', 'de')).toBe('Konnte nicht geprüft werden');
+  });
 });
 
 describe('noRulesNoteOf (U06)', () => {
@@ -117,6 +170,13 @@ describe('noRulesNoteOf (U06)', () => {
     expect(noRulesNoteOf('School transport')).toBe(
       'School transport has no rules yet, so every citizen meets it. ' +
         'Add rules in the Rules step to test them.'
+    );
+  });
+
+  it('names the variant in German', () => {
+    expect(noRulesNoteOf('School transport', 'de')).toBe(
+      'School transport hat noch keine Regeln und wird daher von allen erfüllt. ' +
+        'Fügen Sie im Schritt „Regeln“ Regeln hinzu, um sie zu testen.'
     );
   });
 });
@@ -152,11 +212,34 @@ describe('confirmOneOf and confirmAllOf (FR-012, W9; design-notes §7)', () => {
       'Your changes to Mia’s and Mia’s data will be replaced.'
     );
   });
+
+  it('asks in German, without a genitive', () => {
+    expect(confirmOneOf(MIA, 'de')).toEqual({
+      title: 'Neue Daten für Mia erstellen?',
+      body:
+        'Ihre Änderungen an den Daten von Mia werden ersetzt. ' +
+        'Die beiden anderen Beispielpersonen bleiben unverändert.',
+    });
+    const title = 'Neue Daten für alle Beispielpersonen erstellen?';
+    expect(confirmAllOf([MIA], 'de')).toEqual({
+      title,
+      body: 'Ihre Änderungen an den Daten von Mia werden ersetzt.',
+    });
+    expect(confirmAllOf([MIA, ANNA], 'de').body).toBe(
+      'Ihre Änderungen an den Daten von Mia und Anna werden ersetzt.'
+    );
+    expect(confirmAllOf([MIA, ANNA, YUSUF], 'de').body).toBe(
+      'Ihre Änderungen an den Daten von Mia, Anna und Yusuf werden ersetzt.'
+    );
+    expect(confirmAllOf([MIA, persona('Mia Roth')], 'de').body).toBe(
+      'Ihre Änderungen an den Daten von Mia und Mia werden ersetzt.'
+    );
+  });
 });
 
 describe('the loading status (U11; design-notes §8)', () => {
   it('words a run of all three citizens', () => {
-    expect(creatingAllText).toBe('Creating 3 sample citizens…');
+    expect(creatingAllTextOf('en')).toBe('Creating 3 sample citizens…');
     expect(runStatusOf([MIA, ANNA, YUSUF], [])).toBe('Creating 3 sample citizens…');
   });
 
@@ -180,12 +263,37 @@ describe('the loading status (U11; design-notes §8)', () => {
   it('is empty without a run', () => {
     expect(runStatusOf([], [])).toBe('');
   });
+
+  it('words every run in German (glossary §2 "sample citizen")', () => {
+    expect(creatingAllTextOf('de')).toBe('3 Beispielpersonen werden erstellt …');
+    expect(runStatusOf([MIA, ANNA, YUSUF], [], 'de')).toBe('3 Beispielpersonen werden erstellt …');
+    expect(creatingOneOf(MIA, 'de')).toBe('Neue Daten für Mia werden erstellt …');
+    expect(runStatusOf([MIA, ANNA], [], 'de')).toBe(
+      'Neue Daten für Mia und Anna werden erstellt …'
+    );
+    expect(runStatusOf([], [MIA, ANNA, YUSUF], 'de')).toBe(
+      'Neue Daten für Mia, Anna und Yusuf werden ergänzt …'
+    );
+    expect(runStatusOf([YUSUF], [MIA], 'de')).toBe(
+      'Neue Daten für Yusuf werden erstellt. Neue Daten für Mia werden ergänzt …'
+    );
+    expect(runStatusOf([], [], 'de')).toBe('');
+  });
 });
 
 describe('failureHintOf (FR-013, F7)', () => {
   it('says publish for a new connection and save when editing', () => {
     expect(failureHintOf(false)).toBe('Try again, or publish without testing.');
     expect(failureHintOf(true)).toBe('Try again, or save without testing.');
+  });
+
+  it('says it in German', () => {
+    expect(failureHintOf(false, 'de')).toBe(
+      'Versuchen Sie es erneut oder veröffentlichen Sie, ohne zu testen.'
+    );
+    expect(failureHintOf(true, 'de')).toBe(
+      'Versuchen Sie es erneut oder speichern Sie, ohne zu testen.'
+    );
   });
 });
 
@@ -196,11 +304,25 @@ describe('announcements (FR-017)', () => {
       'Mia Schulz no longer meets the rules of Standard.'
     );
   });
+
+  it('uses the full name in German', () => {
+    expect(nowMeetsOf(MIA, 'Standard', 'de')).toBe(
+      'Mia Schulz erfüllt jetzt die Regeln von Standard.'
+    );
+    expect(noLongerMeetsOf(MIA, 'Standard', 'de')).toBe(
+      'Mia Schulz erfüllt die Regeln von Standard nicht mehr.'
+    );
+  });
 });
 
 describe('hidden texts (K1, K2; design-notes §4.2)', () => {
   it('marks a failing and a changed value', () => {
-    expect(failingValueHiddenText).toBe('Fails a rule:');
-    expect(editedHiddenText).toBe(', edited');
+    expect(failingValueHiddenTextOf('en')).toBe('Fails a rule:');
+    expect(editedHiddenTextOf('en')).toBe(', edited');
+  });
+
+  it('marks them in German', () => {
+    expect(failingValueHiddenTextOf('de')).toBe('Erfüllt eine Regel nicht:');
+    expect(editedHiddenTextOf('de')).toBe(', bearbeitet');
   });
 });

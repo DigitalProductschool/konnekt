@@ -1,4 +1,5 @@
-import { creatingAllText } from '@connection-portal/rules/personas/messages';
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
+import { creatingAllTextOf } from '@connection-portal/rules/personas/messages';
 import type { PersonaSlot } from '@connection-portal/rules/personas/types';
 import type { KeyboardEvent } from 'react';
 
@@ -90,7 +91,12 @@ export default function ApplicantsRow({
       )}
       {/* Figma's spacer (7057:58764) */}
       <div className="flex-1" />
-      <LoadingStatus text={personas === null ? creatingAllText : runStatusTextOf(run, personas)} />
+      <LoadingStatus
+        // TODO(009, T039): the language of the moment
+        text={
+          personas === null ? creatingAllTextOf(DEFAULT_LANGUAGE) : runStatusTextOf(run, personas)
+        }
+      />
       <GenerateAllButton onGenerateAll={onGenerateAll} />
     </div>
   );
