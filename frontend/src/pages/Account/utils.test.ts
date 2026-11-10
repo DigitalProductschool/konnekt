@@ -215,8 +215,19 @@ describe('accountReducer', () => {
     expect(state.items).toEqual([changed]);
     expect(state.dialog).toBeNull();
     expect(state.busy).toBe(false);
-    expect(state.toast).toEqual({ id: 1, message: ACCOUNT_COPY.en.levelChanged });
+    expect(state.toast).toEqual({ id: 1, kind: 'success', message: ACCOUNT_COPY.en.levelChanged });
   });
+
+  it.each(['en', 'de'] as const)(
+    'styles the toasts by their action, not their text (%s)',
+    (language) => {
+      const item = agent();
+      const changed = accountReducer(loaded([item]), { type: 'levelChanged', item, language });
+      expect(changed.toast?.kind).toBe('success');
+      const revoked = accountReducer(loaded([item]), { type: 'revoked', id: item.id, language });
+      expect(revoked.toast).not.toHaveProperty('kind');
+    }
+  );
 
   it('keeps a dialog open while its request runs, and shows why it failed', () => {
     const item = agent();

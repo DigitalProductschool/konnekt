@@ -130,7 +130,8 @@ particular:
 - **Status messages**: results that appear without a page change, such as "copied", "saved" or an
   error from the API, are announced to screen readers.
 - **Structure**: each route has its own page title and one main heading. The page language is set
-  to the language of the UI.
+  to the language of the UI. *001-S7.9, superseded by spec 009 (FR-010): the page declares the
+  chosen language.*
 - **Contrast and resizing**: text and controls meet the AA contrast ratios. The screens still work
   at 200% zoom and at a width of 320 px.
 - **Checking it**: the Figma review and the review before release are described in research R16;

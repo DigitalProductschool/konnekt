@@ -6,6 +6,7 @@ import type {
 import type { Language } from '@connection-portal/rules/language';
 
 import { ACCESS_LEVELS } from '../../components/AccessLevelChoice/constants';
+import type { ToastKind } from '../../components/Toast/types';
 import { SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';
 import { formatRowDate } from '../FormConnectionList/utils';
 import {
@@ -117,10 +118,14 @@ export function rowTextsOf(
   };
 }
 
-/** The page's toast, each with its own id so that it gets its own timer */
-function withToast(state: AccountState, message: string): AccountState {
+/**
+ * The page's toast, each with its own id so that it gets its own timer; `kind` is left out for
+ * the neutral toast (R10: the style rests on a code, not on the toast's text)
+ */
+function withToast(state: AccountState, message: string, kind?: ToastKind): AccountState {
   const toastCount = state.toastCount + 1;
-  return { ...state, toast: { id: toastCount, message }, toastCount };
+  const toast = kind ? { id: toastCount, kind, message } : { id: toastCount, message };
+  return { ...state, toast, toastCount };
 }
 
 /** A dialog closes and its request's state goes with it */
@@ -212,7 +217,9 @@ export function accountReducer(state: AccountState, action: AccountAction): Acco
           ...withoutDialog(state),
           items: state.items.map((item) => (item.id === action.item.id ? action.item : item)),
         },
-        ACCOUNT_COPY[action.language].levelChanged
+        ACCOUNT_COPY[action.language].levelChanged,
+        // A finished save: the green toast (design-notes §3 "Toast")
+        'success'
       );
     case 'revoked':
       return withToast(

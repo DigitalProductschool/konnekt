@@ -70,7 +70,7 @@ Updated as `/speckit-clarify` (session 2026-11-07) runs; items Q# come from
 | # | Feature | Frames | Design's wording | Needs | Would supersede |
 |---|---|---|---|---|---|
 | F3 | "Coming soon" / "Upcoming" documents in the catalog | U04 #39 (6711:39375); U20 #18, #19; U21 #25; U22 #24 | "Coming soon", "Upcoming" | catalog entries flagged as upcoming | 002-S1.8 (only the catalog's documents are offered) |
-| F6 | DE/EN language switch | header of every frame U10–U100 (e.g. U15 6699:45201, U19 6699:45323, U98 6731:39823); U03 #31 | "DE" / "EN" | translated server, rules and findings copy | 001-S7.9 (one English UI, `lang="en"`) |
+| F6 | DE/EN language switch (built by spec 009, `specs/009-language-toggle/`) | header of every frame U10–U100 (e.g. U15 6699:45201, U19 6699:45323, U98 6731:39823); U03 #31 | "DE" / "EN" | translated server, rules and findings copy | 001-S7.9 (one English UI, `lang="en"`) |
 | F12 | View-only users, roles, a view-only draft page | U06 #27; U07 #29; U08 #6; U93 #22 | — | roles on team members and per-endpoint authorisation | OUT-2 (every team member has the same rights) |
 
 | Q14 (f) | Field groups (Name, Birth, Address, Document, Other details) with tri-state group checkboxes; the mixed state opens 002-S1.1's dialog for rule-checked fields | U28 #17; U98 #25; U04 #44, #46; U21 #14; U22 #16; U24 #14; U25 #13; U26 #14; U27 #17 | "Name", "Birth", "Address", "Document", "Other details" | the grouping in the catalog (backend) and its mirror in api-types | 002-S1 (fields in catalog order) |

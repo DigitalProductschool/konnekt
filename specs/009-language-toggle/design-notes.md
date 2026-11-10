@@ -14,10 +14,10 @@ German copy (§3). It is appended to; nothing here is re-decided.
 
 | # | Property | Figma | Built | Reason | Told the designer |
 |---|---|---|---|---|---|
-| D1 | inactive label colour | `#6b7380` on `#f2f5fb` (4.38:1) | `text-kern-layout-text-muted` `#4a5468` | AA for 14 px text (spec 008, Clarification 2026-11-06 #2) | pending |
-| D2 | current label colour | `#1f2433` (no KERN name) | `text-kern-layout-text-default` `#0b1220` | the ink every label uses; no visible difference | pending |
-| D3 | hover of the inactive segment | not drawn | `hover:bg-kern-action-default/8`, 150 ms `.motion` | spec 008's hover shade for transparent controls | pending |
-| D4 | the right group below `md` (found by T012) | one row: Konnekt, spacer, switch and account (contract; the design has no frame below `md`) | below 350 px signed in (334 px in a connection) the right group takes a row of its own under the Konnekt pill, at the right end (`ml-auto`); signed out it fits row 1 down to 320 px | the Konnekt pill (133) and the right group (152) with spec 008's padding and gaps need 350 px; shrinking spec 008's pills or gaps is out of scope, and the end keeps the right group where every other width has it | pending |
+| D1 | inactive label colour | `#6b7380` on `#f2f5fb` (4.38:1) | `text-kern-layout-text-muted` `#4a5468` | AA for 14 px text (spec 008, Clarification 2026-11-06 #2) | listed for the designer in §5, 2026-11-10; to be told by a person |
+| D2 | current label colour | `#1f2433` (no KERN name) | `text-kern-layout-text-default` `#0b1220` | the ink every label uses; no visible difference | listed for the designer in §5, 2026-11-10; to be told by a person |
+| D3 | hover of the inactive segment | not drawn | `hover:bg-kern-action-default/8`, 150 ms `.motion` | spec 008's hover shade for transparent controls | listed for the designer in §5, 2026-11-10; to be told by a person |
+| D4 | the right group below `md` (found by T012) | one row: Konnekt, spacer, switch and account (contract; the design has no frame below `md`) | below 350 px signed in (334 px in a connection) the right group takes a row of its own under the Konnekt pill, at the right end (`ml-auto`); signed out it fits row 1 down to 320 px | the Konnekt pill (133) and the right group (152) with spec 008's padding and gaps need 350 px; shrinking spec 008's pills or gaps is out of scope, and the end keeps the right group where every other width has it | listed for the designer in §5, 2026-11-10; to be told by a person |
 
 A task that finds another difference between the node and the build lists it here with its
 reason, or fixes the build.
@@ -1018,3 +1018,88 @@ live screens is still advisable and would be logged here.
   T049 stays unchecked while one step under "Needs a person" remains: the screen-reader pass
   (Orca or NVDA: the two buttons in their voices, "current", the page read in German after a
   switch, the checks' and personas' announcements, the three dialog titles read whole; V9 9).
+- 2026-11-10: documentation and close (phase 7: T050, T053, T051, T052). T050 by the coordinator:
+  `/speckit-converge` checked 18 FRs, 7 SCs, 16 acceptance scenarios, 10 edge cases, R1–R13, the
+  plan's touch-points and the constitution's principles I–V, and found one thing, LOW, partial
+  against R10: the account page chose its toast's style by comparing the toast's text with both
+  languages' "Access level changed." (phase 5's "kept on purpose" above). Appended as phase 8,
+  T053, and done by a medium agent: the reducer sets `kind: 'success'` on the level-change toast,
+  `SUCCESS_TOASTS` is gone, the branch taken is unchanged in both languages, plus 2 tests (en, de).
+  T051 by a medium agent: ARCHITECTURE's new section "Languages (spec 009)" and the updates in
+  "frontend", "Error Handling", "Local drafts", "Rules and branches", "Rule consistency checks"
+  and the repository structure; CLAUDE.md's one-line rules (backend, frontend, rules,
+  `localStorage`, the fixture, "Never"), and two existing rules made accurate (the findings' words
+  live in `checks/findingTexts.ts`; `validation.ts` uses the server's messages word for word in
+  both languages); README's `Accept-Language` paragraph and the fixture command's third file;
+  001-S7.9 marked superseded; spec 008's F6 marked "built by spec 009". R10's two frontend call
+  sites (`TreeItem.tsx`, `RulesStep/utils.ts`) decide structurally and compare no message; only
+  the MCP's `findings.ts` and `tools/checks.ts` read a problem's `code`. T052 by a medium agent:
+  §5 below, §1.1's "Told the designer" column and `pr.md`. Gates after T053 and T051: `npm run
+  lint`, `npm run format:check`, `npm run build` green; `npm test`: `rules/` 45 files 2642 tests,
+  `frontend/` 31 files 1267 (1265 + T053's 2), `mcp/` 15 files 408; `personas/performance.test.ts`'s
+  1.5 s budget failed under the full run once more (1569 ms) and passed alone (7/7), as in phases
+  3–6. Backend (no backend file changed in phase 7): Ruff and `ruff format --check` clean, mypy
+  clean over 82 source files, `export_check_fixtures --check` current; the full pytest, run once
+  by the coordinator: 2161 passed, 0 failed (T049's count). Plan changes in this phase: the converge appended a task
+  (T053, phase 8) and it ran before T051; 001-S7.9 is in
+  `specs/001-servicebw-eudi-middleware/contracts/ui-screens.md` ("Accessibility (SC-009)"), not
+  in `spec.md` as T051's line said, so the note went there; the full pytest ran once, at the
+  coordinator; T052 lists D1–D4 for the designer, not D1–D3 (T012 added D4), and leaves the
+  telling to a person: §1.1's column says so instead of a date; T052's line says git is
+  read-only here, which is out of date: git works in this checkout, but nothing is committed in
+  this run, the user commits and opens the PR with `pr.md`. Open for a person: T049's screen-reader
+  pass (V9 9), a German-speaking team member's skim (§3.2), telling the designer D1–D4, the
+  commit and the PR.
+
+## 5. Closing report
+
+**2026-11-10**, written by T052 from §1–§4. The feature is built and verified apart from one step
+for a person (the screen reader, SC-005); the German copy is reviewed by the user standing in for
+the team (SC-006). "Met" below means met by the evidence in this file; "open" names what a person
+still does.
+
+### 5.1 The success criteria
+
+| SC | evidence | status |
+|---|---|---|
+| SC-001 one activation, every text within a second, nothing lost | V1 (T044): 70 states per browser switched by one click or from another tab, no reload (a `window` sentinel kept), typed values, open dialogs, menus, the editor's open state and the scroll kept, nothing saved (the draft's `updated_at` unchanged, no request but GETs); from the pointer press to `lang="de"` 160 ms in Chromium (median, max 323) and 189 ms in Firefox (median, max 588); phase 5 (T036): the catalog's German labels 121–156 ms after the switch (the prefetched catalog); a person checked the one-second bound by hand (2026-11-10) | met |
+| SC-002 no English left in German, no German in English; all four sources in both languages | V1 at 1440 (22 rows, 70 states per browser) and V7 at 320 (22 rows): 0 English texts left apart from content, identifiers and a server's message already on screen before the switch (spec Edge Cases; it follows at the next request, S17); the English after a round trip identical to the English before it in every state; phase 5's 177 per-screen rows clean or fixed. Copy tables: `frontend/src/copy.test.ts` checks 61 tables in 36 `constants.ts` files, `rules/src/copy.test.ts` 16 tables, all with the same keys and kinds, no empty text and German that differs from the English (both re-counted by T052, see below); the server's 113 `Text`s read by `backend/tests/unit/test_texts.py` (T019's count, §4); the catalog's 64 labels (63 German, "Region" shared) and the option sets' 311 labels and descriptions (194 German, the 117 equal as phase 3 listed; V3 4) | met |
+| SC-003 the choice shown again in 100 % of the cases | V2 (T044), 9 rows, all pass in Chromium and Firefox: a closed and reopened browser, a second tab (both directions, the `storage` event), sign-out and sign-in, an agent's approval link, a colleague's connection link, fresh profiles `de-AT`, `de-CH` → German and `en-US`, `fr`, `fr-CH` → English with the choice winning after a reload, blocked storage working for the visit, `fr` or garbage stored treated as no choice; a person confirmed the first visit and the private window in a real browser (2026-11-10) | met |
+| SC-004 spec 008's checks in German as in English | V7 (T046): 22 rows over S1–S22 at 320 px (device scale 2) in both browsers, clean after the fixes: no sideways scroll, no clipped text without "…", no text past its box, no overlap, every dialog's × inside it; "…" only where spec 008 cuts. R9's fixes in phase 6, each re-checked in English at 320 (unchanged): the short forms "Daten suchen", "Klassen suchen", "Optionen suchen"; `break-words` on the link strip's text; soft hyphens in "Veröffent&shy;lichen?" (two titles) and "wieder&shy;herstellen?"; `break-words hyphens-auto` on the rule editor's picker label; phase 5's six fixes (§4, T043). Keyboard: V9 1–4; contrast: §2.3 (6.97:1 and 18.72:1). A person confirmed the browser's own 200 % zoom (2026-11-10). Kept as spec 008's, the same in English: the details' ⋯ menu 18 px wide from 320 to about 350 px; the data menu at its 160 px step showing no list at 320; "Search Driving licence" and the name field's example cut at 320; keyboard focus on a sticky header control scrolls Chromium to the top | met (spec 008's items kept as they were) |
+| SC-005 the screen reader | V9 1–8 (T047), both browsers: the switch is the first stop in the header, the browsers' own trees name the group "Language" / "Sprache" and the buttons "Deutsch" and "English", `lang="de"` / `lang="en"` on them, `aria-current` on the current one; Enter and Space switch, `<html lang>` and the tab title follow, the focus stays with its ring; the checks' and personas' live regions announce in German; the soft-hyphen titles named without U+00AD (T047's `ConfirmDialog` fix) | **open**: V9 9, the pass with Orca or NVDA heard by a person (what to listen for is in V9 9's row); T049 stays unchecked until then |
+| SC-006 the team's review of the German | V11 (T048, §3.2): every German text of the website read (734 rows in 60 frontend tables, 248 in the rules package's 17 tables, 113 `Text`s, 64 catalog labels, 311 option labels), 13 corrections decided and applied, the glossary changed first where it had an entry; after them no product term is used against the glossary and no composed sentence is known to be ungrammatical. The reviewer was the user standing in for the team, as for the glossary (§3.1), and the user does not read German | met as the team decided; a German-speaking team member's skim of the live screens is still advisable (§3.2) |
+| SC-007 the existing checks pass, spec 008's behaviour unchanged | T001's baseline → phase 7: `rules/` 43 files 2351 tests → 45 files 2642; `frontend/` 29 files 969 → 31 files 1267; `mcp/` 15 files 408 → 15 files 408; pytest 1998 passed → 2161 passed, 0 failed; mypy 77 → 82 source files clean; Ruff, `ruff format --check`, `npm run lint`, `npm run format:check`, `npm run build` and `export_check_fixtures --check` green. Assertions since `6b7f438` (V10, T047): 8368 → 9493 (`rules/` 3330 → 3831, `frontend/` 1538 → 1891, `mcp/` 818 → 818, `backend/tests/` 2682 → 2953), no test file with fewer than before, no English literal lost; T053's 2 tests came after that count. English word for word: V1's round trips; phase 5's 857 English literals and JSX texts all still in the sources. `personas/performance.test.ts`'s 1.5 s budget fails now and then under the full `npm test` (1569 ms in phase 7) and passes alone, as in phases 3–6 | met, with the pytest result above |
+
+Re-counted by T052 (2026-11-10): `npx vitest run src/copy.test.ts --reporter=verbose` in
+`frontend/` lists 61 tables ("has the same keys in both languages" once per table) in 36
+distinct `constants.ts` paths; the same in `rules/` lists 16 tables. The 113 `Text`s are T019's
+count (§4); not re-counted.
+
+### 5.2 For the designer: the deviations of the switch (§1.1)
+
+Listed here for a person to tell the designer; nobody has told the designer yet.
+
+- **D1**: the inactive label is `#4a5468` (`text-kern-layout-text-muted`), not the node's
+  `#6b7380`, which gives 4.38:1 on `#f2f5fb`, below AA for 14 px text; built 6.97:1.
+- **D2**: the current label is `#0b1220` (`text-kern-layout-text-default`), not `#1f2433`, which
+  has no KERN name; the ink every label uses, no visible difference.
+- **D3**: the inactive segment has a hover shade (`hover:bg-kern-action-default/8`, 150 ms), which
+  the node doesn't draw; spec 008's hover for transparent controls. A person confirmed it by eye.
+- **D4**: below 350 px signed in (334 px in a connection) the header's right group (the switch
+  and the account) takes a row of its own under the Konnekt pill, at the right end; signed out it
+  fits the first row down to 320 px. The design has no frame below `md`.
+
+### 5.3 The glossary's contested terms
+
+Accepted by the team's decision of 2026-11-09 (§3.1) and kept through V11 (§3.2): "Anbindung"
+(connection), "Befund" (finding), "Beispielperson" (sample citizen), "Freigabeanfrage" (approval
+request), "Zugriffsstufe" (access level).
+
+### 5.4 Open, for a person
+
+- The screen-reader pass (Orca or NVDA; V9 9); T049 is checked after it.
+- A German-speaking team member's skim of the live German screens (§3.2), logged in §3.2 if it
+  finds anything.
+- Telling the designer D1–D4 (§5.2), then the date in §1.1's last column.
+- Spec 008's items kept as they were (SC-004's row), for a person or the designer to decide.
+- The commit of the branch and the PR, opened with [pr.md](pr.md) by the user.

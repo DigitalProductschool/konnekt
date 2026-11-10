@@ -16,7 +16,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import AccessLevelDialog from './AccessLevelDialog';
 import AgentAccessList from './AgentAccessList';
-import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_README_URL, SUCCESS_TOASTS } from './constants';
+import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_README_URL } from './constants';
 import CreateTokenDialog from './CreateTokenDialog';
 import RevokeDialog from './RevokeDialog';
 import TokenCreatedDialog from './TokenCreatedDialog';
@@ -124,11 +124,6 @@ function AccountView({ onRetry, retried }: AccountViewProps) {
     error: state.error,
     dispatch,
   };
-  // "Access level changed." is a finished save (green); "Access revoked." the neutral toast
-  const toast = state.toast && {
-    ...state.toast,
-    kind: SUCCESS_TOASTS.has(state.toast.message) ? ('success' as const) : ('neutral' as const),
-  };
   return (
     <>
       <PageTitle
@@ -204,7 +199,7 @@ function AccountView({ onRetry, retried }: AccountViewProps) {
       <RevokeDialog {...dialogProps} />
       <CreateTokenDialog {...dialogProps} levels={state.levels} />
       <TokenCreatedDialog dialog={state.dialog} onClose={closeDialog} />
-      <Toast toast={toast} onDismiss={dismissToast} noFooter />
+      <Toast toast={state.toast} onDismiss={dismissToast} noFooter />
     </>
   );
 }

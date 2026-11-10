@@ -1,4 +1,4 @@
-import { defineTexts, LANGUAGES } from '@connection-portal/rules/language';
+import { defineTexts } from '@connection-portal/rules/language';
 
 import type { CopyTexts } from '../../components/CopyableUrl/types';
 import type { AccountState, TokenForm } from './types';
@@ -158,15 +158,6 @@ export const TOKEN_COPY_TEXTS = defineTexts<Partial<CopyTexts>>(
     failed:
       'Das Kopieren hat nicht funktioniert. Das Token ist markiert, sodass Sie es selbst kopieren können.',
   }
-);
-
-/**
- * The toasts that report a finished save in green (`success`, the Figma toast's "saved"); the
- * others, such as "Access revoked." (removed), are the neutral ink toast (design-notes §3 "Toast").
- * In both languages: a toast keeps the language it was shown in
- */
-export const SUCCESS_TOASTS: ReadonlySet<string> = new Set(
-  LANGUAGES.map((language) => ACCOUNT_COPY[language].levelChanged)
 );
 
 // The token's name, as the API takes it
