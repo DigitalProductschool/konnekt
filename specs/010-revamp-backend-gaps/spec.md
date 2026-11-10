@@ -21,8 +21,9 @@ Spec 008 ported the redesigned management UI ("KERN Revamp", Figma "Middleware �
 `s8mU9oJDq3411e8bxMjQO9`) and changed nothing outside the frontend: whatever the design draws
 that needs data the middleware does not keep was left out and recorded in
 `specs/008-kern-revamp-redesign/deferred.md` (spec 008, Clarification 2026-11-06 #1). This
-feature builds eight items of that file's group A, each with the data it needs. Spec 008's
-screens and behaviour and spec 009's two languages are the baseline and are taken as complete.
+feature builds eight items of that file's group A and one of its group C, the data groups
+(Clarification 2026-11-10 #6), each with the data it needs. Spec 008's screens and behaviour and
+spec 009's two languages are the baseline and are taken as complete.
 
 | # | Item (id in `deferred.md`) | What the middleware lacks today | Baseline it supersedes |
 |---|---|---|---|
@@ -34,6 +35,7 @@ screens and behaviour and spec 009's two languages are the baseline and are take
 | 6 | Bulk delete on the overview (Q11) | deleting several connections in one step | spec 008 FR-028 (row delete only) |
 | 7 | A stored document order with drag reordering (Q14 (e)) | the order of a connection's documents | 002-S1, spec 008 FR-031j (catalog order, no reordering) |
 | 8 | The example draft (Q9 (b)) | a draft that knows it is the example | spec 008 FR-027 (the welcome page without the entry) |
+| 9 | Data groups (Q14 (f), group C; Clarification 2026-11-10 #6) | the group each data item of a document belongs to, in the catalog | 002-S1, spec 008 FR-031 (data items in catalog order without group rows) |
 
 **The design decides the screens.** The frames are listed per item in `deferred.md`, group A,
 and are ported as drawn, wording included, under spec 008's rules (its sources table, "Figma
@@ -51,10 +53,13 @@ frame; these are the ones that hold the text):
 | Bulk delete | selection bar `6699:45199` (`6699:45206`); dialog `6699:45259` (`6699:45320`) |
 | Document order | R1 `7298:63317`, R2 `7298:63736`, R3 `7298:64157`; build notes 19 and 37 (`7370:55193`) |
 | Example | section `7321:52067`: entry 1b `6699:44481`, dialog 1g `6793:47676` (`6793:47710`), step 1 `6793:47711`, rules `7344:96387`, `7344:96414`, `7344:96442`, the list `6793:47768`; publish dialog `7137:50083` (`7137:50210`) |
+| Data groups | build note 20 `6711:39378`; the data item panel in `7290:61214`–`7290:61255`, `7290:61956` (mixed state), `7290:62357`, `7290:62967`, `7298:61791`, `7298:62400`–`7298:62447`, `7298:62579`–`7298:62613`, `7298:63343`–`7298:63380`, `7298:64184`–`7298:64220`; the edit flow `7296:52340` (nodes as the Figma audit of 2026-11-10 lists them) |
 
 **What the design leaves undrawn** (a result page, a toast, a state, a text for a second case) is
 built from spec 008's patterns for undrawn states, with copy written in this feature in the
-drawn style and recorded in its contracts. Each such place is named where it occurs below.
+drawn style and recorded in its contracts. Each such place is named where it occurs below. The
+Figma audit of 2026-11-10 (`figma-audit/report.md`) listed these places and where the frames and
+this spec disagree; Clarifications 2026-11-10 #3 to #26 settle them, and none waits for a frame.
 
 ## Clarifications
 
@@ -72,6 +77,237 @@ drawn style and recorded in its contracts. Each such place is named where it occ
   start date? → A: Yes, with approval. A request to publish or to reactivate may name a start
   date, and agents with "Read, edit drafts and manage live connections" may ask to change a
   connection's start date; the approval page shows the date, and approving schedules it (FR-065).
+- Q: The edit flow's frames keep a live connection's pending changes as a draft ("Draft changes",
+  "Keep draft and exit", "Changes not published"; F5), which this spec excludes. Keep it
+  excluded, or bring F5 into scope? (Figma audit Q1, C1) → A: Keep it excluded; Figma changes.
+  The header shows only the status pill: "Active", or "Scheduled · <date>" as E6 draws it (U99
+  `7114:49835`). The footer is "Back · Discard changes · <next step> · Save". Konnekt and "Your
+  connections" open E5b "Save your changes?" ("If you leave now, your changes are lost. Save
+  them, or discard them and keep the active version.", with "Discard changes" and "Save")
+  instead of E5a. There is no "Draft kept" toast, and rows never show "Changes not published".
+  Figma removes "Draft changes", "Keep draft and exit", E5a's annotation and note 14's sentence.
+  Surfaces: the edit flow's header (U98 `6730:39124` (E2); U99 `6890:46199` (E5a), `7173:52812`
+  (E5b); U100 `7173:52748` (E7); note 25, U05 `6730:40340`, item 30); its footer (note 25, item
+  29, and note 30, U06 `7127:49610`; the frames E1–E7 already draw it without "Keep draft and
+  exit": U98 `6731:39850`, `7296:52389`, `6730:39145`; U99 `6890:46220`, `7114:49808`; U100
+  `7173:52769`); leaving the edit flow (E5a, U99 `6890:46197`; note 25, item 37; note 30; E5b,
+  U99 `7173:52836`); the toast "Draft kept. Your changes take effect when you save them." (note
+  25, item 33); the overview rows' "Changes not published" (note 14, U03 `6703:39311`). The
+  hidden "badge-small (Live, replaced)" layers (U11, U12, U13, U15) stay hidden (FR-076).
+- Q: "Download PDF" (Q37 (b)) is drawn in the details' Summary card for every status, and this
+  spec excludes it. Not built, or bring it into scope? (Figma audit Q2, C2) → A: Not built
+  (FR-070). The Summary header shows "Summary", the count line and "View summary" / "Hide
+  summary". Figma hides the button and note 36's PDF sentence. Surfaces: the details' Summary
+  card at every node the audit lists: active (U58 `6530:40742`, U63 `7112:48928`, U80
+  `6396:47755`, U81 `6809:46580`, U82 `6396:48196`, U86 `6396:48385`, U87 `6396:48846`, U88
+  `6417:30965`, U90 `6417:31518`, U91 `7203:50536`, `7246:51508`, U92 `7246:52087`,
+  `7246:52713`, U99 `6730:39800`); scheduled (U86 `6396:48655`, U94 `7246:52805`, `7246:53935`,
+  U95 `7246:54516`, `7246:55144`); deactivated (U89 `6417:31343`, U96 `7246:55236`,
+  `7246:56372`, U97 `7246:56956`, `7246:57587`); draft (U93 `7362:54813`, `7362:55045`); note
+  36 (U07 `7370:55192`) (FR-076).
+- Q: The deactivation toast offers "Undo" (F54), and note 24 promises "Undo" for every
+  destructive action. Keep F54 excluded, or bring it in? (Figma audit Q3, C3) → A: Keep it
+  excluded. The toast reads "Connection deactivated." (success type, note 24) without "Undo".
+  Only deleting a connection (FR-033), removing a document (FR-045) and the rules step's
+  existing undos offer "Undo". Figma trims note 24's list to "deleted, removed". Unlinking stays
+  deferred (note 37). Surfaces: the toasts P16 (U89 `6417:31447`) and note 24 (U05
+  `6720:39042`, items 21 and 24); not affected are the deletion toast (U90 `6699:48098`) and the
+  document removal toast (U24 `7298:62627`) (FR-076).
+- Q: The Documents frames show "coming soon" documents and data groups, which look like the
+  excluded "upcoming documents" and "field groups". Are they excluded, already built by spec
+  008, or to be adopted now? (Figma audit Q4, C4, C5) → A: Upcoming documents: excluded. The Add
+  document card lists only the wallet's documents ("Available", "Added") with no hint line. The
+  all-added state reads "Everything in the wallet is added.", and search finds wallet documents
+  only. Surfaces: the Add document card (U21 `7295:61184` (A6), U22 `7294:61852` (A8), note 19,
+  U04 `6711:39375`) (FR-076). Data groups (formerly referred to as "field groups"; `deferred.md`,
+  group C, Q14 (f)): adopt now, as a ninth item of this feature. Data items sit under the group
+  headings Name, Birth, Address, Document, Licence, Appearance and Other details, each with a
+  group checkbox that can show a mixed state, in catalog order inside each group; the grouping
+  comes from the catalog, with its mirror for the frontend. Surfaces: the data item panel of the
+  create and edit flows (U21 `7290:61214`–`7290:61255`, `7290:61956`; U22 `7290:62357`,
+  `7290:62967`; U23 `7298:61791`; U24 `7298:62400`–`7298:62447`, `7298:62579`–`7298:62613`; U27
+  `7298:63343`–`7298:63380`; U28 `7298:64184`–`7298:64220`; U98 `7296:52340`; note 20, U04
+  `6711:39378`). Not affected: the details' Summary lists data items flat (U82 `6396:48199`,
+  U91 `7203:50539`). Asked in addition, because the grouping is new data: do agents get the
+  groups? Yes: agents' read of the catalog carries each data item's group, the guidance
+  describes it in the same change, and agents still choose data items one by one (FR-077 to
+  FR-080).
+- Q: "Generate all" is new in the design's v9 (note 23), and this spec excludes "persona
+  generation". Is it excluded, or part of spec 004's regenerate? (Figma audit Q5, C6) → A: Both
+  "Generate all" and "Generate again" are spec 004's regenerate (one applicant or all), which
+  the product already has: "Generate all" is built as drawn, asking first like "Generate again"
+  (FR-074). The excluded "persona generation" is `deferred.md`'s F11, persona generation that
+  makes every rule testable ("Couldn't be checked" stays). Surfaces: the test step's applicants
+  row (U65 `7344:96178`, `7344:96189`; U73 `7344:96343`); the applicant data's head (U65
+  `7057:58771`, `7057:59185`; U73 `7058:62054`; U99 `7114:49742` (E6)); note 23 (U05
+  `6716:41045`), note 29 (U06 `7058:63148`), note 30 (U06 `7127:49610`). The Test section (U66
+  to U72, U74) was not audited.
+- Q: The test step shows a success message for an applicant who meets every rule (Q31 (a)),
+  which this spec excludes. Keep it excluded, or adopt it? (Figma audit Q6, C7) → A: Keep it
+  excluded. The result reads "Result: meets the rules" with the list "Rules Anna meets", and
+  there is no "Message Anna reads" box. Surfaces: the test result for a met applicant (U65
+  `7057:59533`–`7057:59535` and `7057:59239`); note 29 (U06 `7058:63148`). The Test section (U66
+  to U72) was not audited (FR-076).
+- Q: A group's ⋯ menu offers "Group with other rules", which groups a group and which this spec
+  excludes. Keep it excluded, or adopt it? (Figma audit Q7, C8) → A: Keep it excluded. In a
+  variant, a group's menu shows "Add message", "Reset to Standard", a divider and "Remove from
+  Ambulance". Surfaces: the rules step's group menu (U58 `6522:33026`). The Rules sections U29
+  to U57, U59 to U62 and U64 were not audited and may draw the same entry; it is not built
+  there either (FR-076).
+- Q: The account menu shows an email line (Q13), which this spec excludes. Keep it excluded, or
+  adopt it? (Figma audit Q8, C9) → A: Keep it excluded. The menu shows the name ("Laura
+  Weber"), a divider and "Log out". Surfaces: the user menu (U13 `6699:44358`); the menu button
+  in every header is unchanged (FR-076).
+- Q: Six states of go-live scheduling have no frame. Build them from the spec on the nearest
+  frame, or have the designer draw them first? (Figma audit Q9, S1 to S5, P5) → A: Build them
+  without frames, with the spec's wording. The day change (FR-003): P1c's error (U76
+  `6635:36265`) also shows when the day changed while the dialog was open, in the publish dialog
+  and in "Change start date" (U87 `6396:48860`) and "Activate again". "Now" on a scheduled
+  connection (FR-008): P12 (U87 `6396:48860`) with "Now" selected; "Save date" makes it active
+  at once, and the details then show the active band with "Active since <date>, <time>" (U80
+  `7355:61155`). "Activate again" on a date (FR-011): P16b (U89 `7173:52959`) with "On a date",
+  the date field under the radios as in P1b (U75 `6383:66119`), the hint written in this feature
+  and the button "Schedule". Deactivating a scheduled connection (FR-012): P15 (U88
+  `6417:31206`) with this feature's sentence for a connection that was never active. Saving a
+  scheduled connection (FR-013): E3 (U98 `6730:39464`) with this feature's sentence and no
+  "Active from". The toast after a start date change (FR-008): a success toast (note 24, U05
+  `6720:39042`), placed like P16's toast (U89 `6417:31447`), reading "Start date saved.".
+  Clarification #1 is kept.
+- Q: What do the dates of pre-existing and reactivated connections read, and what does a draft
+  without a recorded step read? (Figma audit Q10, P8, S6, S7) → A: (1) A draft without a
+  recorded step reads "Edited <date>" alone, as U17 draws it (the draft row with no step, U17
+  `6699:47974`). (2) Build from the spec; nothing visible changes: rows read "Published <stored
+  publication date>" or "Deactivated <last change time>", pills read "Active since
+  <publication>" (FR-021), and reactivation moves only "Active since" (User Story 2, scenario
+  6). Surfaces: the overview's date column (U11 to U18, U90); the details' date pill (U80
+  `7355:61155` and the other details units) (FR-019, FR-021).
+- Q: Activity entries and states that are not drawn: build them from the spec, or have them
+  drawn first? (Figma audit Q11, P6, S8 to S12) → A: Build them without frames, using the drawn
+  row (date and time · event · person) and the spec's wording in the same style (FR-025): the
+  scheduling entry with its date; name or description changed, became active on the date with
+  no person, activated again, deleted, restored; the team member together with the agent, the
+  approver together with the asking agent, and middleware entries without a person; a
+  pre-existing connection's "Created" and "Published" without a person, and a closed line with
+  the time alone; the open card's list scrolls down to the oldest entry; the card is readable
+  for every team member. Surfaces: the open card (U86 `6396:48527`; U92 `7246:52096`; U95
+  `7246:54525`–`7246:54545`; U97 `7246:56965`); the closed line (U80 `6396:47761`; U89
+  `6417:31345`; U96 `7246:55328`; U97 `7246:57191`) (FR-025, FR-027, FR-031, FR-032).
+- Q: The undo and restore states are not drawn: build them from P18 and 1b, or have them drawn
+  first? (Figma audit Q12, S13 to S16) → A: Build them without frames. After "Undo", the row
+  comes back in the list without a reload and a polite announcement says so: "“<name>”
+  restored.". "Undo" after the restore time, or a second time, changes nothing, and the toast
+  says so: "“<name>” can no longer be restored.". Deleting the last connection shows 1b with
+  the toast, and "Undo" brings back the overview with the row. A replaced toast or a left page
+  leaves the deletion standing. Surfaces: the overview and the toast, P18 (U90 `6699:48039`,
+  `6699:48098`); the welcome page, 1b (U11 `6699:44481`). How long the toast stays is
+  Clarification #22 (FR-034, FR-036, FR-037).
+- Q: The bulk-delete outcomes are not drawn: build them from frames 8, 9 and P18, or have them
+  drawn first? (Figma audit Q13, S17 to S20) → A: Build them without frames. The count is
+  announced when it changes. When a selected connection vanished or changed, nothing is deleted
+  and the dialog names it: "Nothing was deleted: “<name>” was deleted or changed in the
+  meantime.". After deletion, the rows are gone, the selection clears, the toolbar comes back
+  and a toast shows the count with "Undo": "<n> connections deleted.". Each deletion appears in
+  the connection's activity. A selected row that vanishes on refresh leaves the selection. A
+  long list scrolls inside the dialog while its buttons stay in view. Surfaces: the selection
+  bar (U15 `6699:45206`); the bulk delete dialog (U15 `6699:45320`); the toast (U90
+  `6699:48098`) (FR-039, FR-043, FR-044).
+- Q: Reordering without dragging (WCAG 2.5.7), and in the edit flow: build from the spec, or
+  have it drawn first? (Figma audit Q14, P4, S21, S22) → A: Build it without frames. A ⋯ menu
+  button on each document row (spec 008's menu pattern) holds "Move up" and "Move down". The
+  first row has no "Move up" and the last no "Move down" (FR-047). With one document there is no
+  menu (as A5 shows, U21 `7290:61204`). Focus stays on the moved row, and the move is announced:
+  "“<document>” moved to position <n> of <m>.". Escape, or a drop outside the list, restores
+  the order. E1b gets the same drag and menu (FR-049; User Story 6, scenario 5). Surfaces: the
+  document rows of the create flow (U22 `7290:62348`, `7290:62349`; U23 `7298:61782`,
+  `7298:61783`; U24 `7298:62391`, `7298:62392`; U27; U28 `7298:64174`, `7298:64175`); the
+  document rows of the edit flow (E1b, U98 `7298:63260`); note 19 (U04 `6711:39375`), note 23
+  (U05 `6716:41045`), note 37 (U08 `7370:55195`). The user then decided for the session: where
+  a question's options are to build from the spec or to wait for the design, the answer is to
+  build from the spec; Clarifications #17 to #19 follow from that.
+- Q: The approval page is not in the Figma file. Build its new content on spec 007's existing
+  page, or have the designer draw it? (Figma audit Q15, S23, S26, S27) → A: Build it on the
+  existing page with the spec's wording: the stored document order (FR-050); "This is still the
+  example. Check that the name, documents and rules fit your service." (FR-060); "Active from
+  <date>", or that the connection goes live at once (FR-065); FR-065's sentence for an active
+  connection that gets a later date, written in this feature; the refusal reasons (FR-065,
+  FR-066); deactivating and deleting a scheduled connection (FR-066). Surfaces: the approval
+  page, which no unit of the file draws. Clarification #2 is kept.
+- Q: The example's banner on the documents and test steps, and the example after publishing and
+  across languages: build from 1h, or have them drawn first? (Figma audit Q16, P7, S24, S25) →
+  A: Build them without frames. The "Rules/Findings banner" instance from 1h reads "This is an
+  example. Change anything to see how it works." on the documents step and the test step; on
+  the test step it sits above the variant tabs, as on the rules step. There is no banner and no
+  publish line after publishing. The example's texts are created in the current language.
+  Surfaces: the example banner (U18 `6798:122695` (1h), `7344:96396` (1i), `7344:96451`
+  (1i-c)); the example's test step, 16b (U73 `7137:50086`); the example's documents step, which
+  is not drawn. The Test frames U66 to U72 and U74 were not audited (FR-058, FR-059, FR-061).
+- Q: No frame shows the new controls at 320 px and 200 % zoom. Build them by the narrow rules,
+  or have them drawn first? (Figma audit Q17, S28) → A: Build them without frames, following the
+  `narrow:` variant and `docs/KERN-DESIGN-SYSTEM.md` §3.1. Surfaces: the date pill with its ⋯
+  (U80 `7355:61155`); the "Active from" group and date field (U75 `6383:66119`); the selection
+  bar (U15 `6699:45206`) and the bulk dialog (U15 `6699:45320`); the Activity card (U92
+  `7246:52096`); the reorder menu (Clarification #16) (FR-072).
+- Q: The overview banner for unsaved work on this device (note 34) is a change of the design's
+  v9 that no requirement covers. Keep spec 005's current handling, or build 1m and 1n now?
+  (Figma audit Q18, B1) → A: Build them as drawn. One connection: "Unsaved changes in
+  “<name>”", "Saved only on this device on <date>, <time>, when the page closed. Nobody else
+  can see them.", "Discard", "Resume editing". Several: "Unsaved changes in <n> connections",
+  "Saved only on this device when the page closed. Nobody else can see them.", and one line
+  each with "Edited · <date>, <time>" or "New, never saved · <date>, <time>". The banner stays
+  above the selection bar while rows are selected. Device-only connections are neither counted
+  nor selectable. This needs German copy (FR-071) and a new requirement (FR-081). Surfaces: the
+  overview (U16 `7362:54550`–`7362:54557`, `7362:54621`–`7362:54634`); note 34 (U07
+  `7370:55186`), note 16 (U04 `6703:39317`), note 23 (U05 `6716:41045`). Found when the question
+  was asked: the product already shows a banner for local drafts with this wording in both
+  languages (spec 008), so the build checks it against 1m and 1n, changes what differs and
+  adds the two rules for the selection.
+- Q: Show rule findings in the published Summary (P9d, note 26), or keep spec 003's FR-020?
+  (Figma audit Q19, B2) → A: Keep spec 003's FR-020 (FR-074). The Summary shows no findings, and
+  the tab's ⓘ only shows the variant's description, as in 1i-b (U18 `7344:96441`). Figma drops
+  P9d and note 26's clause about the published summary. Surfaces: the rule tabs of the details'
+  Summary (U94 `7246:52833`; U91 `7203:50562`; U93 `7362:54840`; U96 `7246:55263`); note 26 (U06
+  `6760:48852`). P9d (U85 `6760:48437`) was not audited (FR-076).
+- Q: Does the deletion toast close after 5 s, or keep "Undo" until it is used, dismissed or
+  replaced? (Figma audit Q20, P1) → A: It closes by itself, as note 30 says of every toast, so
+  a deletion can be undone only for as long as its toast shows. Asked in addition, because the
+  product's toasts without an action close after 6 s today (spec 008, from the design's
+  "Rules/Toast" component) and its toasts with an action stay until used: the time is 6 s, not
+  note 30's 5 s, and it holds for every toast, with or without an action: the deletion toasts,
+  the document removal's "Undo", "Try again" after a failed save and the rules step's undos.
+  The time runs only while the pointer and the keyboard focus are not on the toast. FR-036 and
+  User Story 4, scenario 4, change accordingly; FR-036's 5 minutes stay as the server's limit
+  and matter only while a toast is held open. This changes spec 008's rule that a toast with an
+  action stays until it is used or dismissed, is an exception to FR-074, and weakens FR-072
+  (timing). Figma changes the "5 s" of note 30 and of A12 to 6 s. Surfaces: the deletion toast
+  (U90 `6699:48098`) and the bulk toast; note 30 (U06 `7127:49610`), A12 (U24 `7298:62552`);
+  the other toasts (U24 `7298:62627`, U99 `6730:39810`, U17 `6699:48002`) (FR-036, FR-082).
+- Q: Should failures show the error ID, as spec 008 does, and does "Try again" keep the chosen
+  date? (Figma audit Q21, P2) → A: Spec 008. A server failure shows spec 008's failure alert
+  with its error ID. P5's sentence "Couldn’t publish, so nothing has changed. Check your
+  internet connection and try again." shows only when no answer came. The alert stays slim but
+  may wrap to fit the error ID. "Try again" repeats the same choice: "Now", or "On a date" with
+  the entered date. Surfaces: the failed states, P5 (U79 `6376:27178`), note 7 (U02
+  `6637:36658`), the failures of "Schedule", "Activate again" and "Save date" (FR-014, not
+  drawn) and the bulk dialog (FR-043).
+- Q: What wording do the edit dialogs use for a scheduled connection? (Figma audit Q22, P3) → A:
+  Scheduled wording. The entry's title: "Edit this scheduled connection?" (the row's "Edit
+  “<name>”?" stays). The entry's body: "Your changes only take effect when you save them. Saved
+  changes become active on <date>.". The step-1 note: "Scheduled. Your changes become active on
+  <date> once you save them.". The leave dialog: "If you leave now, your changes are lost. Save
+  them, or discard them and keep the scheduled version.". The discard dialog: "The connection
+  goes back to the version that becomes active on <date>. Citizens aren't affected.". Each text
+  also needs German (FR-071). Surfaces: the entry confirmation (U87 `6396:49030`, details, and
+  U15 `6699:47905`, row); the step-1 note (U98 `6731:39846`); the leave dialog (U99
+  `7173:52836`); the discard dialog (U100 `7173:52772`) (FR-013).
+- Q: Under reduced motion, should dragging and reordering keep fades (note 31) or have no
+  transitions? (Figma audit Q23, P9) → A: No transitions, as the edge case "Reduced motion"
+  says. With reduced motion, dragging and reordering have no transitions, and the drop just
+  updates the list. Everything else follows spec 008's rule. Surfaces: the documents step's
+  reorder (U27, U28); note 31 (U06 `7137:50569`).
+- Q: Does the page language follow the chosen language, or stay "en" as note 1 says?
+  (Figma audit Q24, P10) → A: `lang` follows the chosen language ("en" or "de", spec 009, as
+  built). Note 1's `data-kern-theme="light"` and color-scheme meta stay. Surfaces: every page's
+  `<html>` element, note 1 (U01 `6637:36640`) (FR-071).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -231,9 +467,10 @@ comparing the connection before and after.
    activity, and a published connection has the same links as before.
 3. **Given** the last connection was deleted and the welcome page shows, **When** the team member
    chooses "Undo", **Then** the overview shows again with the connection.
-4. **Given** the time in which a deletion can be taken back has passed, **When** the team member
-   chooses "Undo", **Then** they are told that the connection can no longer be restored, and
-   nothing changes.
+4. **Given** a toast held open by the pointer or the keyboard focus until the time in which a
+   deletion can be taken back has passed, **When** the team member chooses "Undo", **Then** they
+   are told that the connection can no longer be restored, and nothing changes; a toast that is
+   left alone closes by itself after 6 seconds, and the deletion stands.
 
 ---
 
@@ -268,6 +505,9 @@ another tab before confirming.
    connection changed, and the list shows the current state.
 5. **Given** rows are selected, **When** the team member chooses "Cancel", **Then** the selection
    is cleared and the toolbar is back as it was.
+6. **Given** the banner for unsaved work kept on this device shows ("Unsaved changes in …"),
+   **When** rows are selected, **Then** the banner stays above the selection bar, and a
+   connection that exists only on this device is neither counted nor selectable.
 
 ---
 
@@ -380,6 +620,40 @@ draft, and asking for a scheduled publication and approving it in the browser.
 
 ---
 
+### User Story 9 - Choose a document's data by group (Priority: P9)
+
+A document such as the driving licence offers some thirty data items in one list, and a team
+member looks for the few they need. With this feature a document with more than 10 data items
+shows them under group headings (Name, Birth, Address, Document, the document's own groups such
+as Licence and Appearance, and Other details), and each heading has a checkbox that chooses or
+clears its whole group. The story was added by Clarification 2026-11-10 #6, which brought the
+data groups into this feature.
+
+**Why this priority**: it makes a long list easier to read; every data item can already be
+chosen one by one.
+
+**Independent Test**: can be fully tested by adding the driving licence to a connection,
+choosing data through group checkboxes and single data items in the create flow and in the edit
+flow, clearing a group whose data a rule checks, and reading the catalog as an agent.
+
+**Acceptance Scenarios**:
+
+1. **Given** the driving licence in the documents step, **When** its data item panel shows,
+   **Then** its data items stand in three columns under "All data items", under the headings
+   "Name" (4 data items), "Birth" (6), "Address" (5), "Licence" (3), "Document" (6),
+   "Appearance" (6) and "Other details" (1), each heading with a checkbox.
+2. **Given** a group with no data item chosen, **When** the team member ticks the group's
+   checkbox, **Then** all of its data items are chosen, as if each had been ticked.
+3. **Given** a group with some of its data items chosen, **When** the panel shows, **Then** the
+   group's checkbox shows its mixed state.
+4. **Given** a group with data that a rule checks, **When** the team member clears the group,
+   **Then** the question that names those rules shows first, as it does for "All data items"
+   today.
+5. **Given** an agent, **When** it reads the catalog, **Then** each data item of a grouped
+   document carries its group, and the agent still chooses data items one by one.
+
+---
+
 ### Edge Cases
 
 - **Midnight between opening and confirming**: a dialog opened on 30.11. with the date 01.12.
@@ -395,16 +669,16 @@ draft, and asking for a scheduled publication and approving it in the browser.
   and stay cancelled after "Undo"; citizens start again. Approval requests that were waiting for
   the connection stay cancelled too.
 - **Undo is chosen twice, or after a colleague's later action**: the second Undo changes nothing
-  and says so.
-- **The toast with "Undo" is replaced by a later toast or the page is left**: the deletion
-  stands; there is no other place to restore from.
+  and says so, with FR-036's sentence.
+- **The toast with "Undo" closes by itself after its 6 seconds, is replaced by a later toast, or
+  the page is left**: the deletion stands; there is no other place to restore from.
 - **Connections that existed before this feature**: their rows and pills show the dates that are
   known (FR-021), their documents keep the order they have today, and their activity starts
   with what is known, without a person (FR-032).
 - **A team member's account is removed**: the activity keeps the name as it was when the entry
   was made.
-- **A long activity**: the list stays usable with hundreds of entries and reaches the oldest one;
-  no frame draws this.
+- **A long activity**: the list stays usable with hundreds of entries and reaches the oldest one:
+  the open card's list scrolls down to it. No frame draws this (Clarification 2026-11-10 #13).
 - **A selection and the search**: select-all selects the rows that are listed, that is, those the
   search shows; rows hidden by the search are not selected.
 - **A selected row disappears** (a colleague deleted it and the list refreshed): it leaves the
@@ -415,7 +689,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
 - **A drag is dropped outside the list or ended with Escape**: the order is unchanged.
 - **A removed document is brought back with the documents step's "Undo"** (spec 008): it returns
   to the place it had.
-- **Reduced motion**: dragging and reordering follow spec 008's rule (transitions off).
+- **Reduced motion**: dragging and reordering follow spec 008's rule (transitions off): they
+  have no transitions, not the "fades only" of build note 31, and the drop just updates the list
+  (Clarification 2026-11-10 #25).
 - **The example is created twice** (two team members on a fresh installation at the same
   moment): two example drafts exist; each is a normal draft.
 - **The example and the language** (spec 009): the example is created in the language the team
@@ -423,7 +699,10 @@ draft, and asking for a scheduled publication and approving it in the browser.
 - **The catalog changes**: the example always fits the catalog it is created from; a catalog
   without one of its documents must not ship with a broken example.
 - **Narrow windows, zoom, keyboard**: every new control and state keeps spec 008's bar (320 px
-  at 200 % zoom, no horizontal scroll, visible keyboard focus).
+  at 200 % zoom, no horizontal scroll, visible keyboard focus). No frame is narrower than 1440
+  px: the date pill with its ⋯, the "Active from" group and its date field, the selection bar,
+  the bulk dialog, the Activity card and the reorder menu are built for narrow windows by spec
+  008's rules for them, without frames (Clarification 2026-11-10 #19).
 
 ## Requirements *(mandatory)*
 
@@ -442,7 +721,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   today, a past day or something that is no date, the field MUST turn to its error state with
   "Enter a date after today." under it, and nothing MUST be published or changed; "Schedule"
   stays enabled and shows the error. The same refusal MUST hold when the day changes between
-  opening the dialog and confirming.
+  opening the dialog and confirming, in the publish dialog, in "Change start date" and in
+  "Activate this connection again?", each with the error state the publish dialog draws (P1c;
+  Clarification 2026-11-10 #11).
 - **FR-004**: Scheduling MUST publish the connection in every respect except that it is not
   active yet: it is a published connection, no draft; its links exist from that moment, are shown
   on its details and can be copied; and until the start its links MUST answer serviceBW exactly
@@ -465,7 +746,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   dialog as drawn: the title "Change start date", "Choose when citizens can use this
   connection.", the choices "Now" and "On a date" with the date field, "Cancel" and "Save date".
   A new date (checked as FR-003) MUST replace the start everywhere it shows; "Now" MUST make the
-  connection active at once. A toast MUST confirm the change (copy written in this feature).
+  connection active at once, and the details then MUST show the active band with "Active since
+  <date>, <time>". A success toast MUST confirm the change, placed as the other toasts are:
+  "Start date saved." (not drawn; Clarification 2026-11-10 #11).
 - **FR-009**: An active connection's ⋯ menu MUST also hold "Change start date", before
   "Deactivate", as drawn ("also after 'Now'"). Its dialog MUST open with "Now (active since
   <date>, <time>)" selected, and saving with "Now" MUST change nothing. Saving with "On a date"
@@ -482,20 +765,35 @@ draft, and asking for a scheduled publication and approving it in the browser.
   the delete dialog spec 008 built.
 - **FR-011**: "Activate this connection again?" MUST show "Active from" with "Now" (selected) and
   "On a date" under its summary. "Now" with "Activate" MUST work as today. "On a date" MUST
-  schedule the deactivated connection for that day (FR-003 to FR-006); the button's label for
-  that case is not drawn and reads "Schedule", as in the publish dialog.
+  schedule the deactivated connection for that day (FR-003 to FR-006); that case is not drawn
+  and is built on the drawn dialog: the date field shows under the radios as in the publish
+  dialog, the hint is written in this feature and the button reads "Schedule" (Clarification
+  2026-11-10 #11).
 - **FR-012**: Deactivating a scheduled connection MUST cancel its schedule: it is deactivated,
   with "Deactivated since" the time of that action, and can be activated again, now or on a date.
   The deactivate dialog's sentence for a connection that was never active is not drawn and is
-  written in this feature.
+  written in this feature, in the drawn deactivate dialog (Clarification 2026-11-10 #11).
 - **FR-013**: Editing a scheduled connection MUST go through the entry confirmation and the edit
   flow of an active connection (spec 008, FR-045), with the header pill "Scheduled · <date>".
   What is saved MUST be what becomes active on the date, and saving MUST NOT change the date. The
-  save dialog's sentence for this case is not drawn and is written in this feature.
+  save dialog's sentence for this case is not drawn and is written in this feature, in the
+  drawn "Save changes?" without "Active from" (Clarification 2026-11-10 #11). Where the active
+  connection's texts say "active", a scheduled connection's MUST read, though no frame draws
+  them (Clarification 2026-11-10 #24): the entry confirmation's title "Edit this scheduled
+  connection?" (the row's "Edit “<name>”?" stays) and its body "Your changes only take effect
+  when you save them. Saved changes become active on <date>."; the first step's note
+  "Scheduled. Your changes become active on <date> once you save them."; the leave dialog's "If
+  you leave now, your changes are lost. Save them, or discard them and keep the scheduled
+  version."; and the discard dialog's "The connection goes back to the version that becomes
+  active on <date>. Citizens aren't affected.".
 - **FR-014**: After "Schedule", the publish dialog's states and the way to the details MUST follow
   spec 008's publish dialog (publishing, done, failed with the error ID); a failure MUST leave
   the draft a draft, and a failed reactivation or change of the date MUST leave the connection
-  as it was.
+  as it was. A server failure MUST show spec 008's failure alert with its error ID, slim but
+  wrapping where the error ID needs it; the drawn sentence "Couldn’t publish, so nothing has
+  changed. Check your internet connection and try again." MUST show only when no answer came.
+  "Try again" MUST repeat the same choice: "Now", or "On a date" with the entered date
+  (Clarification 2026-11-10 #23).
 
 #### Status dates and the draft's step (User Story 2)
 
@@ -516,7 +814,8 @@ draft, and asking for a scheduled publication and approving it in the browser.
   deactivated. Saving changes, renaming and reordering MUST NOT change any of them.
 - **FR-019**: A draft's row MUST name the step the draft was last saved in, for each of the four
   steps ("Connection step", "Documents step", "Rules step", "Test step"), whoever saved it, a
-  team member or an agent. A published connection's row names no step.
+  team member or an agent. A published connection's row names no step. Should a draft have no
+  recorded step, its row MUST read "Edited <date>" alone (Clarification 2026-11-10 #12).
 - **FR-020**: Dates MUST read DD.MM.YYYY, and dates with a time "DD.MM.YYYY, HH:MM", in both
   languages (spec 009, FR-012). A start date and its "00:00" MUST read the same for every team
   member, as the day in Germany.
@@ -544,7 +843,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   became active on its start date; that it was deactivated; that it was activated again; that
   it was deleted and that it was restored. The drawn wording is used word for word ("Created",
   "Documents changed", "Variant added: <name>", "Rules changed in <variant>", "Published",
-  "Deactivated"); the others are written in this feature in the same style.
+  "Deactivated"); the others are written in this feature in the same style and shown in the
+  drawn row (date and time · event · person), without frames of their own, as are the entries
+  of FR-027 and FR-032 (Clarification 2026-11-10 #13).
 - **FR-026**: One save that changes several things MUST give one entry per kind of change. The
   same kind of change by the same person on the same variant, with no other entry in between,
   MUST show as one entry with the latest time, so that an agent's twenty rule edits or a team
@@ -578,17 +879,18 @@ draft, and asking for a scheduled publication and approving it in the browser.
   an active, scheduled or deactivated connection with its dates and start date), its activity
   and, for a published connection, the same links, which work again as its status says. The
   restored connection MUST appear in the list without a reload, and the restore MUST be
-  announced.
+  announced politely: "“<name>” restored." (not drawn; Clarification 2026-11-10 #14).
 - **FR-035**: A deletion MUST take effect at once, as today: the connection is gone from the
   overview, the search, the details and agents' reads, its links stop, and requests in progress
   are cancelled. "Undo" MUST NOT bring back requests that were cancelled or approval requests
   that were waiting.
 - **FR-036**: A deletion MUST be restorable for a limited time, 5 minutes unless the middleware's
   settings say otherwise, and only through the toast's "Undo" of the team member who deleted.
-  The toast keeps "Undo" for as long as it shows (spec 008: a toast with an action stays until
-  it is used, dismissed or replaced). An "Undo" after the time MUST change nothing and MUST say
-  that the connection can no longer be restored. After the time, the deletion MUST be final
-  exactly as a deletion is today.
+  The toast offers "Undo" for as long as it shows, and it closes by itself after 6 seconds, as
+  every toast does (FR-082): the restore time is the server's limit and matters only while a
+  toast is held open. An "Undo" after the time, or a second "Undo", MUST change nothing, and the
+  toast MUST say so: "“<name>” can no longer be restored." (not drawn; Clarification 2026-11-10
+  #14). After the time, the deletion MUST be final exactly as a deletion is today.
 - **FR-037**: When the last connection is deleted, the welcome page MUST show with the toast, and
   "Undo" MUST bring back the overview with the connection (spec 008, FR-027).
 
@@ -615,12 +917,15 @@ draft, and asking for a scheduled publication and approving it in the browser.
   not close it; nothing closes it while the deletion runs.
 - **FR-043**: "Delete connections" MUST delete all selected connections or none. If one of them
   no longer exists or no longer has the status the dialog showed, nothing MUST be deleted, the
-  dialog MUST say which connection changed, and the list MUST show the current state. A failure
+  dialog MUST say which connection changed ("Nothing was deleted: “<name>” was deleted or
+  changed in the meantime."; not drawn, Clarification 2026-11-10 #15), and the list MUST show
+  the current state. A failure
   MUST show as spec 008's failures do, with the error ID where there is one.
 - **FR-044**: After a bulk deletion the rows MUST be gone, the selection cleared, the toolbar back,
   and a toast MUST say how many connections were deleted, with "Undo" that brings all of them
-  back or none (FR-034 to FR-036). The toast's sentence is not drawn and is written in this
-  feature. Each connection's deletion and restore MUST show in its activity.
+  back or none (FR-034 to FR-036). The toast's sentence is not drawn: "<n> connections
+  deleted." (Clarification 2026-11-10 #15). Each connection's deletion and restore MUST show in
+  its activity.
 
 #### Document order (User Story 6)
 
@@ -634,19 +939,22 @@ draft, and asking for a scheduled publication and approving it in the browser.
 - **FR-047**: Every document MUST also be movable without dragging, by "Move up" and "Move
   down", operable with the keyboard and with a single pointer; the first document has no "Move
   up" and the last no "Move down". After a move the focus MUST stay with the moved document and
-  the move MUST be announced with the document's name and new position. The design names this
-  need without drawing it (build note 37), so the controls' place and texts are decided in this
-  feature from spec 008's menu pattern.
+  the move MUST be announced with the document's name and new position: "“<document>” moved to
+  position <n> of <m>.". The design names this need without drawing it (build note 37), so the
+  controls follow spec 008's menu pattern: a ⋯ menu button on each document row holds "Move up"
+  and "Move down", and with one document there is no menu (Clarification 2026-11-10 #16).
 - **FR-048**: Reordering MUST NOT change which document is open, and the pager ("Document n of
   m") MUST count in the list's order.
 - **FR-049**: Reordering MUST work in the create flow, in a draft and in the edit flow of a
   published connection, and MUST be saved as every other change of that flow is: with the draft,
   with publishing, and with "Save" in the edit flow. A draft kept on the device (spec 005) MUST
-  keep the order too.
+  keep the order too. The edit flow's documents step draws no reordering; it MUST get the same
+  dragging and the same menu as the create flow (Clarification 2026-11-10 #16).
 - **FR-050**: Wherever a connection's documents are listed, they MUST be in the stored order: the
   documents step and its pager, the test step's data, the summaries of the publish, save and
   reactivate dialogs, the details' Summary, the approval page and agents' reads. The data items
-  inside a document stay in the catalog's order.
+  inside a document stay in the catalog's order, inside each data group where the document has
+  groups (FR-077).
 - **FR-051**: The order MUST NOT change what serviceBW receives or what the wallet is asked for:
   reordering alone changes nothing for citizens, for requests in progress or for the links.
 - **FR-052**: A connection that existed before this feature MUST keep the order its documents
@@ -680,8 +988,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   rules step, for Standard, "Try changing the age to 18 or adding a rule. Then use Test rules to
   check the result." and, for Ambulance, "Ambulance is more lenient than Standard. Rules 01 and
   02 are changed here.". The design asks for a banner on each step and draws none for the
-  documents and test steps; they show the connection step's sentence. A banner is information
-  only: it has no action and cannot be dismissed.
+  documents and test steps; they show the connection step's sentence in the connection step's
+  banner, on the test step above the variant tabs, as on the rules step (Clarification
+  2026-11-10 #18). A banner is information only: it has no action and cannot be dismissed.
 - **FR-059**: A draft MUST stop being the example when it is published; a published connection
   shows no example banner. Until then it stays the example, whatever is changed in it.
 - **FR-060**: When the example is published while nothing in it was changed since it was created
@@ -715,7 +1024,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   requests in progress are cancelled. A date that is not after today, when the request is made
   or when it is approved, MUST be refused with the reason; at the request, no approval request
   is made (spec 007, FR-022). The agent MUST be able to learn the outcome, with the date the
-  connection is scheduled for (Clarification 2026-11-10 #2).
+  connection is scheduled for (Clarification 2026-11-10 #2). The approval page is not in the
+  design file: everything this feature adds to it (here and in FR-050, FR-060 and FR-066) MUST
+  be built on spec 007's existing page, with this spec's wording (Clarification 2026-11-10 #17).
 - **FR-066**: Requests to deactivate or delete MUST be accepted for a scheduled connection too,
   and their approval pages MUST say what happens in that case, as the dialogs of FR-010 and
   FR-012 do. For spec 007's FR-024, a connection's status includes "scheduled" and its start
@@ -732,26 +1043,101 @@ draft, and asking for a scheduled publication and approving it in the browser.
 
 #### Across the feature
 
-- **FR-070**: Every frame of group A that belongs to the eight items MUST be ported as drawn,
+- **FR-070**: Every frame that belongs to the nine items (the eight of group A and the data
+  groups) MUST be ported as drawn,
   layout, styling and wording, and verified as spec 008 verifies its screens. What a frame of
   these items shows of an item that stays deferred (FR-074) MUST NOT be built.
 - **FR-071**: Every text this feature adds MUST exist in English and German (spec 009, FR-004),
   the German written in this feature with spec 009's glossary, which gains this feature's terms
   (scheduled, start date, activity, example, selected). The English copy of the frames is used
-  word for word.
+  word for word. The page's language mark MUST keep following the chosen language, English or
+  German, as spec 009 built it, not the fixed "en" of build note 1 (Clarification 2026-11-10
+  #26).
 - **FR-072**: Every new screen, state and control MUST keep spec 008's quality bar: operable with
   the keyboard alone, keyboard focus visible, status changes announced, no information by colour
   alone, AA contrast, light only, usable at 320 px and at 200 % zoom without horizontal scroll.
 - **FR-073**: Nothing this feature stores MUST hold anything about a citizen, a request, a
   finding or a test persona, and nothing of it MUST be written to the logs beyond what the
   middleware logs today (identifiers and counts).
-- **FR-074**: Everything else MUST stay as specs 001 to 009 leave it. In particular the items of
+- **FR-074**: Everything else MUST stay as specs 001 to 009 leave it, but for the time after
+  which a toast closes (FR-082). In particular the items of
   group A that this feature does not build stay as spec 008 built around them: no pending
   changes kept as a draft beside a live connection (F5), requests in progress are cancelled by a
   deactivation (F13), no email line in the user menu (Q13), no success message for met citizens
   (Q31 (a)), no "Download PDF" (Q37 (b)), and no "Undo" after deactivating (spec 008, F54).
 - **FR-075**: What serviceBW receives MUST change in one respect only: a scheduled connection's
   links answer as a deactivated connection's do until its start date.
+- **FR-076**: Where a frame of the nine items draws something that stays out of scope (FR-070,
+  FR-074), this MUST be built in its place:
+  - **Pending changes kept as a draft (F5)**: the edit flow of an active or a scheduled
+    connection shows only the status pill in its header ("Active", or "Scheduled · <date>"),
+    never "Draft changes"; its footer reads "Back · Discard changes · <next step> · Save",
+    without "Keep draft and exit"; Konnekt and "Your connections" open "Save your changes?"
+    ("If you leave now, your changes are lost. Save them, or discard them and keep the active
+    version.", for a scheduled connection FR-013's sentence, with "Discard changes" and
+    "Save"); no toast reads "Draft kept. Your changes take
+    effect when you save them."; and no overview row reads "Changes not published"
+    (Clarification 2026-11-10 #3).
+  - **"Download PDF" (Q37 (b))**: the details' Summary card has no "Download PDF" button, for a
+    connection of any status; its header shows "Summary", the count line and "View summary" /
+    "Hide summary" (Clarification 2026-11-10 #4).
+  - **"Undo" after deactivating (F54)**: the deactivation toast reads "Connection deactivated."
+    (success type) without "Undo". Only deleting a connection (FR-033), removing a document
+    (FR-045) and the rules step's existing undos offer "Undo" (Clarification 2026-11-10 #5).
+  - **Upcoming documents (F3)**: the Add document card lists only the wallet's documents
+    ("Available", "Added") and has no hint line about documents that are coming soon; when
+    every wallet document is added it reads "Everything in the wallet is added."; and its search
+    finds wallet documents only (Clarification 2026-11-10 #6).
+  - **A success message for met citizens (Q31 (a))**: for an applicant who meets every rule,
+    the test step's result reads "Result: meets the rules" with the list "Rules <name> meets",
+    and no "Message <name> reads" box shows (Clarification 2026-11-10 #8).
+  - **Grouping a group**: a group's ⋯ menu has no "Group with other rules", on any frame that
+    draws it; the menu keeps the entries spec 008 gives it, in a variant "Add message", "Reset
+    to Standard", a divider and "Remove from <variant>" (Clarification 2026-11-10 #9).
+  - **The email line (Q13)**: the user menu shows the name, a divider and "Log out", without an
+    email (Clarification 2026-11-10 #10).
+  - **Findings in the published Summary (P9d, build note 26)**: the details' Summary shows no
+    findings, as spec 003's FR-020 says, and the ⓘ of a variant's tab shows only the variant's
+    description (Clarification 2026-11-10 #21).
+- **FR-077**: In the documents step's data item panel, in the create flow, in a draft and in the
+  edit flow, a document with more than 10 data items MUST show its data items under group
+  headings, as drawn: in three columns under "All data items", the groups "Name", "Birth",
+  "Address" and "Document", the document's own groups ("Licence", "Appearance") and "Other
+  details". A document with 10 data items or fewer keeps today's list without groups. Everywhere
+  else data items MUST stay listed without groups, as today: the details' Summary, the dialogs'
+  summaries and the approval page (Clarification 2026-11-10 #6).
+- **FR-078**: The data groups MUST come from the catalog. Every data item of a grouped document
+  MUST belong to exactly one group; a group MUST keep its name across documents and MUST hold at
+  least 2 data items, and what is left goes into "Other details" (build note 20). The Driving
+  licence's groups MUST hold Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6 and
+  Other details 1 data items, as drawn. The groups' names are labels of the catalog, in English
+  and German (FR-071; Clarification 2026-11-10 #6).
+- **FR-079**: Every group heading MUST have a checkbox, as drawn, that selects all of its group's
+  data items and shows its mixed state while some of them are chosen. It MUST do for its group
+  what "All data items" does for the document today, including the question that names the
+  rules before data that a rule checks stops being requested (002-S1.1); that dialog's wording
+  for a group is not drawn and is written in this feature (Clarification 2026-11-10 #6).
+- **FR-080**: Agents' read of the catalog MUST carry each data item's group, in English, and the
+  guidance for agents MUST describe it in the same change (FR-069). Agents MUST keep choosing
+  data items one by one: there is no way to choose a whole group (Clarification 2026-11-10 #6).
+- **FR-081**: While work kept on this device exists (spec 005's local drafts), the overview MUST
+  show the banner the design draws above the toolbar (frames 1m and 1n). For one connection it
+  MUST read "Unsaved changes in “<name>”" and "Saved only on this device on <date>, <time>, when
+  the page closed. Nobody else can see them.", with "Discard" and "Resume editing". For several
+  it MUST read "Unsaved changes in <n> connections" and "Saved only on this device when the page
+  closed. Nobody else can see them.", with one line per connection that reads "Edited · <date>,
+  <time>" or "New, never saved · <date>, <time>". The banner MUST stay above the selection bar
+  while rows are selected (FR-039), and a connection that exists only on this device MUST be
+  neither counted nor selectable (FR-038, FR-040). The product already shows a banner for local
+  drafts with this wording (spec 008): this feature checks it against the frames, changes what
+  differs and adds its behaviour with the selection (Clarification 2026-11-10 #20).
+- **FR-082**: Every toast, with or without an action, MUST close by itself after 6 seconds, and
+  the time MUST run only while neither the pointer nor the keyboard focus is on the toast. This
+  holds for this feature's toasts (a deletion, a bulk deletion, a start date change) and for the
+  existing toasts with an action (the document removal's "Undo", "Try again" after a failed
+  save, the rules step's undos). It supersedes spec 008's rule that a toast with an action
+  stays until it is used or dismissed, and is an exception to FR-074 (Clarification 2026-11-10
+  #22).
 
 ### Key Entities
 
@@ -774,6 +1160,10 @@ draft, and asking for a scheduled publication and approving it in the browser.
   draft's and of a published connection's content.
 - **Example mark**: the fact that a draft was created by "Start from an example" and not yet
   published, and whether anything in it has been changed since.
+- **Data group**: a named set of a document's data items in the catalog ("Name", "Birth",
+  "Address", "Document", a document's own groups, "Other details"). Every data item of a
+  document with more than 10 data items belongs to exactly one; it arranges the documents
+  step's checkboxes and changes nothing a connection stores.
 - **Selection**: the overview rows a team member has ticked; it lives in the page only and is
   never stored.
 
@@ -795,7 +1185,8 @@ draft, and asking for a scheduled publication and approving it in the browser.
   approval, the Activity card shows an entry with the right time, event and person within five
   seconds of reopening the details, and a review of the stored activity finds nothing that
   FR-029 excludes.
-- **SC-005**: "Undo", used within the restore time, brings back 100 % of what FR-034 lists, for
+- **SC-005**: "Undo", used while its toast shows and within the restore time, brings back 100 %
+  of what FR-034 lists, for
   a connection of each status and for a bulk deletion; after the restore time, a deleted
   connection cannot be brought back by any means the product offers.
 - **SC-006**: Ten connections are deleted with one confirmation in under 30 seconds, and a bulk
@@ -806,7 +1197,7 @@ draft, and asking for a scheduled publication and approving it in the browser.
 - **SC-008**: On an installation without connections, a team member gets from the welcome page to
   a complete example draft in the wizard with two activations and in under 10 seconds, and can
   publish it unchanged.
-- **SC-009**: Every frame of the eight items passes spec 008's visual verification, and every new
+- **SC-009**: Every frame of the nine items passes spec 008's visual verification, and every new
   screen and state passes spec 008's checks (keyboard walkthrough, 320 px at 200 % zoom, AA
   contrast) in both languages.
 - **SC-010**: An agent reads the scheduled status, the dates, the step, the document order, the
@@ -814,6 +1205,9 @@ draft, and asking for a scheduled publication and approving it in the browser.
   in the Activity card; the tools' guidance describes each of these.
 - **SC-011**: Every existing automated check of the product still passes, and the behaviours this
   feature does not name are unchanged.
+- **SC-012**: A team member chooses or clears all data items of a group with one activation, with
+  the same result as ticking each data item, in 100 % of the cases tested, and an agent reads
+  each data item's group from the catalog.
 
 ## Assumptions
 
@@ -821,13 +1215,15 @@ draft, and asking for a scheduled publication and approving it in the browser.
   accordions of the details, the delete dialogs and the two languages are in place; this feature
   adds to them.
 - **The frontend side is decided by the frames**, as `deferred.md` says: the later feature ports
-  them and does not re-decide them. A Figma audit of the group's frames against this spec is
-  expected before planning (`deferred.md`, "How to use it"), and it settles the undrawn places
-  this spec names: the toast after scheduling or changing a date, the button of "Activate again"
-  on a date, the save dialog's sentence for a scheduled connection, the ⋯ menu of a scheduled
-  connection, the activity's undrawn events and its long lists, the bulk toast and its warnings
-  for several connections, "Move up" and "Move down" and their announcements, the banners of the
-  documents and test steps, and the German of everything.
+  them and does not re-decide them. The Figma audit of the group's frames against this spec
+  (`deferred.md`, "How to use it") ran on 2026-11-10, and Clarifications 2026-11-10 #3 to #26
+  settle what it found. The undrawn places this spec names are built from the spec without
+  waiting for frames, and what the Clarifications do not word is written in this feature: the
+  toast after scheduling or changing a date, the button of "Activate again" on a date, the save
+  dialog's sentence for a scheduled connection, the ⋯ menu of a scheduled connection, the
+  activity's undrawn events and its long lists, the bulk toast and its warnings for several
+  connections, "Move up" and "Move down" and their announcements, the banners of the documents
+  and test steps, and the German of everything.
 - **Each item brings its data along**: what the server stores and answers, its mirror for the
   frontend and the MCP server, and the agents' tool and guidance where FR-062 to FR-069 name one,
   in one change per item (constitution, Principle I; spec 007, FR-038).
@@ -849,9 +1245,10 @@ draft, and asking for a scheduled publication and approving it in the browser.
   deletion that can be restored), rather than holding the deletion back until the toast is gone.
   Requests in progress are therefore cancelled as today and not brought back; the delete dialog
   already says that citizens won't be able to use the connection.
-- **The restore time is 5 minutes** by default. The design's toast shows for 5 or 6 seconds, but
-  spec 008's toasts with an action stay until used or dismissed, so that nobody has to hurry;
-  the time limits how long a deleted connection is kept.
+- **The restore time is 5 minutes** by default. Every toast, the deletion toast included, closes
+  by itself after 6 seconds (Clarification 2026-11-10 #22), so in practice a deletion can be
+  undone for as long as its toast shows; the restore time limits how long a deleted connection
+  is kept and matters only while a toast is held open by the pointer or the keyboard focus.
 - **Only the team member who deleted can undo**, from their toast; there is no bin and no list
   of deleted connections.
 - **The document order belongs to the management UI.** It does not reorder what serviceBW
@@ -865,7 +1262,8 @@ draft, and asking for a scheduled publication and approving it in the browser.
   reads "Start from an example", as the dialog's title and `deferred.md` do; one frame's "Start
   with an example" is a slip.
 - **Every draft row shows its step.** The frames that show a draft row without one are sample
-  data; every stored draft has a step (spec 005).
+  data; every stored draft has a step (spec 005). A draft without one would read "Edited <date>"
+  alone (Clarification 2026-11-10 #12).
 - **Agents get what they need to stay consistent with people** (spec 007's "every read", "every
   change the create flow offers", and approval for what changes a live connection): reads of all
   new data, moving a document, and a start date with approval (Clarification 2026-11-10 #2).
@@ -880,8 +1278,11 @@ draft, and asking for a scheduled publication and approving it in the browser.
   started requests finish (F13); the email line in the user menu (Q13); a success message for met
   citizens (Q31 (a)); "Download PDF" (Q37 (b)).
 - Groups B and C of `deferred.md`: the rules-package actions (remove from group, duplicate
-  group, add into a group, unlink from Standard, grouping a group, persona generation), upcoming
-  documents, roles and view-only users, field groups.
+  group, add into a group, unlink from Standard, grouping a group, persona generation that makes
+  every rule testable (F11)), upcoming documents, roles and view-only users. The test step's
+  "Generate all" and "Generate again" are not that persona generation: they are spec 004's
+  regenerate and stay (Clarification 2026-11-10 #7). The data groups of group C are in scope
+  (Clarification 2026-11-10 #6).
 - "Undo" after deactivating, after deleting a variant, a rule or a group beyond what exists, and
   "Undo" on the approval page.
 - A bin or a list of deleted connections, and restoring after the restore time.
