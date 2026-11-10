@@ -1,6 +1,7 @@
 import { noticeText } from '@connection-portal/rules/checks/findingMessages';
 
 import BranchName from '../../../components/BranchName';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import type { VariantTabProps } from './types';
 
@@ -27,9 +28,10 @@ export default function VariantTab({
   onSelect,
   onKeyDown,
 }: VariantTabProps) {
+  const { language } = useLanguage();
   const notice = check?.notice?.kind === 'none_can_meet' ? check.notice : null;
   const findings = notice
-    ? { kind: 'warning' as const, text: noticeText(notice, branch.name) }
+    ? { kind: 'warning' as const, text: noticeText(notice, branch.name, language) }
     : null;
   return (
     <BranchName

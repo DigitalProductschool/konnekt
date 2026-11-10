@@ -2,7 +2,8 @@
 // example (F4): dates are ISO strings, 'YYYY-MM-DD', counted in whole calendar days
 import type { Condition } from '@connection-portal/api-types/form-connections';
 
-import { GERMAN_TIME_ZONE, ISO_DATE_PATTERN, RELATION_WORDS } from './constants';
+import { GERMAN_TIME_ZONE, ISO_DATE_PATTERN, RELATION_WORDS, TIME_UNITS } from './constants';
+import { DEFAULT_LANGUAGE, defineTexts, type Language } from './language';
 import type { CalendarDate, DateBoundary } from './types';
 
 export function isLeapYear(year: number): boolean {
@@ -106,8 +107,12 @@ export function todayInGermany(now: Date = new Date()): string {
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
-/** The design's date format (design-notes §3, "Dates"): "23.10.2005", zero-padded. */
-export function formatDate(date: string): string {
+/**
+ * The design's date format (design-notes §3, "Dates"): "23.10.2005", zero-padded, built by string
+ * parts without `Intl`. German writes dates the same way in the rules (glossary G§1 "Dates",
+ * research R5), so the language changes nothing today; it is taken so that callers pass theirs.
+ */
+export function formatDate(date: string, _language: Language = DEFAULT_LANGUAGE): string {
   const { year, month, day } = required(date);
   return [
     String(day).padStart(2, '0'),
@@ -158,14 +163,53 @@ export function boundaryOf(condition: Condition, day: string): DateBoundary | nu
   }
 }
 
+// The date example's frame around `RELATION_WORDS`, in each language (glossary G§3 "the date
+// example")
+export const DATE_TEXTS = defineTexts<{
+  between: (from: string, to: string) => string;
+  born: (phrase: string) => string;
+}>(
+  {
+    between: (from, to) => `between ${from} and ${to}`,
+    born: (phrase) => `born ${phrase}`,
+  },
+  {
+    between: (from, to) => `zwischen dem ${from} und dem ${to}`,
+    born: (phrase) => `geboren ${phrase}`,
+  }
+);
+
 /**
  * A boundary in words, for the example after "Today (23.10.2026), that means ". On the Date of
- * birth it starts with "born": "born on or before 23.10.2005".
+ * birth it starts with "born": "born on or before 23.10.2005" ("geboren am oder vor dem
+ * 23.10.2005").
  */
-export function boundaryPhrase(boundary: DateBoundary, dateOfBirth: boolean): string {
+export function boundaryPhrase(
+  boundary: DateBoundary,
+  dateOfBirth: boolean,
+  language: Language = DEFAULT_LANGUAGE
+): string {
+  const texts = DATE_TEXTS[language];
   const phrase =
     boundary.relation === 'between'
-      ? `between ${formatDate(boundary.from)} and ${formatDate(boundary.to)}`
-      : `${RELATION_WORDS[boundary.relation]} ${formatDate(boundary.date)}`;
-  return dateOfBirth ? `born ${phrase}` : phrase;
+      ? texts.between(formatDate(boundary.from, language), formatDate(boundary.to, language))
+      : `${RELATION_WORDS[language][boundary.relation]} ${formatDate(boundary.date, language)}`;
+  return dateOfBirth ? texts.born(phrase) : phrase;
+}
+
+/**
+ * A number of years or months in words: "1 year", "6 months"; "1 Jahr", "6 Monate", and with
+ * `dative` German's form after "seit" and "in": "2 Jahren" (glossary G§3).
+ */
+export function countOf(
+  amount: number,
+  unit: 'years' | 'months',
+  language: Language = DEFAULT_LANGUAGE,
+  dative = false
+): string {
+  const forms = TIME_UNITS[language][unit];
+  if (amount === 1) {
+    return `${amount} ${forms.one}`;
+  }
+  return `${amount} ${dative ? forms.otherDative : forms.other}`;
 }

@@ -3,13 +3,9 @@ import { Link } from 'react-router';
 
 import logo from '../../assets/illustrations/logo.svg';
 import { APP_NAME, ROUTES } from '../../constants';
-import {
-  BREADCRUMB_LABEL,
-  FOCUS_RING_CLASSES,
-  PILL_CLASSES,
-  SMALL_TEXT_CLASSES,
-  YOUR_CONNECTIONS_LABEL,
-} from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import LanguageSwitch from '../LanguageSwitch';
+import { FOCUS_RING_CLASSES, PILL_CLASSES, SMALL_TEXT_CLASSES, TOP_BAR_COPY } from './constants';
 import type { TopBarProps } from './types';
 
 /**
@@ -20,8 +16,9 @@ import type { TopBarProps } from './types';
  * second pill, "Your connections / <name> · <status>", grows out of the Konnekt pill (#34, #40),
  * the name cut with "…" (#38). The header area, 64px, turns white once the page scrolls under it
  * (#39). The product name and "Your connections" go home, or in a flow call `onLeave` (FR-026).
- * No DE/EN switch (F6). Below `md`, which the design has no frame for, the second pill and the
- * description take rows of their own (W2). In a window under 320 CSS px or 480px tall (such as
+ * The language switch (spec 009, R2) sits in the right group before the account pill. Below
+ * `md`, which the design has no frame for, the second pill and the description take rows of
+ * their own (W2). In a window under 320 CSS px or 480px tall (such as
  * 1280 × 1024 at 400 % zoom) it scrolls away with the page instead of covering half of it
  * (WCAG 1.4.10, T096), as the wizard's footer does
  */
@@ -75,7 +72,12 @@ export default function TopBar({
           {meta}
         </p>
       )}
-      {children && <div className="order-3 flex shrink-0 md:order-5">{children}</div>}
+      {/* The switch and the account pill. Below 350px (334px in a connection) they don't fit
+          beside the Konnekt pill and take a row of their own, kept at the right end (D4) */}
+      <div className="order-3 ml-auto flex shrink-0 items-center gap-4 md:order-5">
+        <LanguageSwitch />
+        {children}
+      </div>
     </header>
   );
 }
@@ -95,9 +97,10 @@ interface ConnectionPillProps {
  */
 function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPillProps) {
   const NameTag = titleAsHeading ? 'h1' : 'span';
+  const copy = useCopy(TOP_BAR_COPY);
   return (
     <nav
-      aria-label={BREADCRUMB_LABEL}
+      aria-label={copy.breadcrumb}
       className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
     >
       {/* Under 320 CSS px its parts wrap (T096) */}
@@ -107,7 +110,7 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
           onClick={onLeave}
           className={`${SMALL_TEXT_CLASSES} text-kern-action-default rounded-kern-small narrow:whitespace-normal font-semibold hover:underline ${FOCUS_RING_CLASSES}`}
         >
-          {YOUR_CONNECTIONS_LABEL}
+          {copy.yourConnections}
         </Link>
         <span aria-hidden="true" className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-muted`}>
           /

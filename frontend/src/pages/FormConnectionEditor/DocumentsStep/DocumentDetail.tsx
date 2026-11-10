@@ -1,7 +1,8 @@
 import Checkbox from '../../../components/Checkbox';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import { offeredFieldsOf } from '../utils';
-import { DOCUMENTS_STEP_COPY, DOCUMENTS_STEP_IDS, PANEL_HEIGHT_CLASSES } from './constants';
+import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS, PANEL_HEIGHT_CLASSES } from './constants';
 import FieldRow from './FieldRow';
 import type { DocumentDetailProps, PagerButtonProps } from './types';
 import { dataCountOf, dataCountText, documentGlyphOf } from './utils';
@@ -25,6 +26,8 @@ export default function DocumentDetail({
   onSetField,
   onSetAllFields,
 }: DocumentDetailProps) {
+  const { language } = useLanguage();
+  const copy = DOCUMENTS_COPY[language];
   const { document, documentType } = shown;
   const key = documentType.key;
   const titleId = ELEMENT_IDS.title(key);
@@ -50,17 +53,17 @@ export default function DocumentDetail({
           </h2>
           {needsData ? (
             <p id={errorId} className="text-kern-static-small text-kern-feedback-danger">
-              {DOCUMENTS_STEP_COPY.needsDataLine}
+              {copy.needsDataLine}
             </p>
           ) : (
             <p className="text-kern-static-small text-kern-layout-text-muted">
-              {dataCountText(dataCountOf(document, documentType))}
+              {dataCountText(dataCountOf(document, documentType), language)}
             </p>
           )}
         </div>
         <Checkbox
           id={ELEMENT_IDS.allData(key)}
-          label={DOCUMENTS_STEP_COPY.allDataItems}
+          label={copy.allDataItems}
           checked={allSelected}
           indeterminate={selected.length > 0 && !allSelected}
           describedBy={errorId}
@@ -88,7 +91,7 @@ export default function DocumentDetail({
       </div>
       <div className="flex shrink-0 items-center justify-center gap-4 border-t border-(--kern-color-decorative-border-level-1) px-16">
         <PagerButton
-          label={DOCUMENTS_STEP_COPY.previousDocument}
+          label={copy.previousDocument}
           icon="kern-icon--chevron-left"
           target={pager.previousIndex}
           onSelect={onSelect}
@@ -97,7 +100,7 @@ export default function DocumentDetail({
           {pager.text}
         </p>
         <PagerButton
-          label={DOCUMENTS_STEP_COPY.nextDocument}
+          label={copy.nextDocument}
           icon="kern-icon--chevron-right"
           target={pager.nextIndex}
           onSelect={onSelect}

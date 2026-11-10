@@ -1,7 +1,9 @@
 import { nameProblem } from '@connection-portal/rules/validation';
-import { type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
+import { type FocusEvent, type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
 
-import { NAME_SIZES, RULES_COPY } from './constants';
+import { isLanguageSwitchTarget } from '../../../components/LanguageSwitch/utils';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { NAME_SIZES, RULES_STEP_COPY } from './constants';
 import FieldError from './RuleEditor/FieldError';
 import type { ItemNameProps } from './types';
 import { renameReducer, standingOf } from './utils';
@@ -14,7 +16,9 @@ import { renameReducer, standingOf } from './utils';
  * saves and Escape cancels; a missing, used or reserved name is refused there, naming the branch
  * (F12, C5, W12), with a red line and "Rules/Field error" 8 under the field (U49 6196:10710).
  * Leaving the field saves a name that fits. In a variant, a rule or group linked to Standard has
- * no Rename (FR-036; CLAR #53): its name is plain text there.
+ * no Rename (FR-036; CLAR #53): its name is plain text there. A press on the header's language
+ * switch keeps the field, what is typed and its refusal, which follows the language (spec 009,
+ * FR-003); the next press elsewhere ends it as leaving the field does.
  */
 export default function ItemName({
   item,
@@ -31,6 +35,38 @@ export default function ItemName({
   const messageId = useId();
   const textSize = NAME_SIZES[size];
   const renamable = standingOf(branch, item) !== 'inherited';
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
+  // The refusal in the language shown: the same check again, as the value hasn't changed since
+  const error =
+    field.error === null
+      ? null
+      : (nameProblem(field.value, item, branch, branches, language) ?? field.error);
+  // Ends the rename as leaving the field does, for a press elsewhere after one on the switch
+  const leaveRef = useRef(leave);
+
+  useEffect(() => {
+    leaveRef.current = leave;
+  });
+
+  useEffect(() => {
+    if (!renaming) {
+      return;
+    }
+    function leaveOnOutsidePointer(event: PointerEvent) {
+      const input = inputRef.current;
+      if (
+        input &&
+        document.activeElement !== input &&
+        !input.contains(event.target as Node) &&
+        !isLanguageSwitchTarget(event.target)
+      ) {
+        leaveRef.current();
+      }
+    }
+    document.addEventListener('pointerdown', leaveOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', leaveOnOutsidePointer);
+  }, [renaming]);
 
   useEffect(() => {
     if (renaming) {
@@ -48,7 +84,7 @@ export default function ItemName({
       dispatch({ type: 'cancelRename' });
       return true;
     }
-    const problem = nameProblem(field.value, item, branch, branches);
+    const problem = nameProblem(field.value, item, branch, branches, language);
     if (problem) {
       dispatchField({ type: 'refuse', error: problem });
       return false;
@@ -68,9 +104,15 @@ export default function ItemName({
     }
   }
 
-  function handleBlur() {
+  function leave() {
     if (!save()) {
       dispatch({ type: 'cancelRename' });
+    }
+  }
+
+  function handleBlur(event: FocusEvent<HTMLInputElement>) {
+    if (!isLanguageSwitchTarget(event.relatedTarget)) {
+      leave();
     }
   }
 
@@ -90,7 +132,7 @@ export default function ItemName({
         className={`group ${textSize} text-kern-action-default focus-visible:outline-kern-action-focus-default rounded-kern-small flex cursor-pointer items-center gap-8 self-start text-left font-semibold focus-visible:outline-4 focus-visible:outline-offset-2`}
       >
         <span className="group-hover:border-kern-action-default group-focus-visible:border-kern-action-default motion -mb-px border-b border-transparent break-words transition-colors duration-(--duration-colour) group-hover:border-dashed group-focus-visible:border-dashed">
-          <span className="sr-only">{RULES_COPY.rename} </span>
+          <span className="sr-only">{copy.rename} </span>
           {item.name}
         </span>
         <span
@@ -105,21 +147,21 @@ export default function ItemName({
       <input
         ref={inputRef}
         value={field.value}
-        aria-label={RULES_COPY.renameLabel(item.name)}
-        aria-invalid={field.error ? true : undefined}
+        aria-label={copy.renameLabel(item.name)}
+        aria-invalid={error ? true : undefined}
         aria-describedby={messageId}
         onChange={(event) => dispatchField({ type: 'change', value: event.target.value })}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default motion h-40 w-240 max-w-full border px-16 leading-(--kern-typography-line-height-medium-static) transition-colors duration-(--duration-colour) focus-visible:outline-4 focus-visible:outline-offset-0 ${field.error ? 'border-kern-feedback-danger' : 'hover:border-kern-form-input-border border-(--kern-color-decorative-border-default)'}`}
+        className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default motion h-40 w-240 max-w-full border px-16 leading-(--kern-typography-line-height-medium-static) transition-colors duration-(--duration-colour) focus-visible:outline-4 focus-visible:outline-offset-0 ${error ? 'border-kern-feedback-danger' : 'hover:border-kern-form-input-border border-(--kern-color-decorative-border-default)'}`}
       />
       {/* Live from the start, so that an error replacing the hint is announced */}
       <div id={messageId} aria-live="assertive">
-        {field.error ? (
-          <FieldError id={`${messageId}-error`} message={field.error} />
+        {error ? (
+          <FieldError id={`${messageId}-error`} message={error} />
         ) : (
           <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {RULES_COPY.renameHint}
+            {copy.renameHint}
           </p>
         )}
       </div>

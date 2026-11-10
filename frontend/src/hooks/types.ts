@@ -5,26 +5,57 @@ import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-co
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import type { buildCheckedBranch, KeyedBranch } from '@connection-portal/rules/checks/checkedTree';
 import type { RunBranch } from '@connection-portal/rules/checks/types';
+import type { Language } from '@connection-portal/rules/language';
 
-export interface DocumentTypesState {
-  status: 'loading' | 'loaded' | 'failed';
+/** Whether a list of the catalog, in the website's language, is there (spec 009, research R6) */
+export type CatalogStatus = 'loading' | 'loaded' | 'failed';
+
+/**
+ * A list of the catalog that the server answers in the request's language (GET
+ * /api/document-types, GET /api/option-sets), cached per language (spec 009, research R6, V9):
+ * the current language's list is fetched first, then the other language's in the background, so
+ * that a switch shows the other language's labels at once. What the hooks report is
+ * `catalogViewOf()`'s
+ */
+export interface CatalogCacheState<T> {
+  /** The website's language the state follows: its list is the one shown once it is there */
+  language: Language;
+  /** The current language's fetch: `'loaded'` once its answer is there */
+  status: CatalogStatus;
   /** Counts the loads; a retry starts the next one */
   attempt: number;
-  documentTypes: DocumentType[];
+  /** The answers so far, per language */
+  loaded: Partial<Record<Language, T[]>>;
+  /**
+   * The other language's background fetch failed since the last switch: it isn't tried again
+   * until the next switch, which fetches the language it lacks first
+   */
+  prefetchFailed: boolean;
 }
 
-export type DocumentTypesAction =
-  { type: 'loaded'; documentTypes: DocumentType[] } | { type: 'failed' } | { type: 'retry' };
-
-export interface OptionSetsState {
-  status: 'loading' | 'loaded' | 'failed';
-  /** Counts the loads; a retry starts the next one */
-  attempt: number;
-  optionSets: OptionSet[];
+/**
+ * What a catalog hook reports (spec 009, FR-003): `'loaded'` with a list once one has been on
+ * screen, whichever language it is in, so that a switch never replaces the screen with a loader
+ * or a failed state; before that, the current language's fetch
+ */
+export interface CatalogView<T> {
+  status: CatalogStatus;
+  items: T[];
 }
 
-export type OptionSetsAction =
-  { type: 'loaded'; optionSets: OptionSet[] } | { type: 'failed' } | { type: 'retry' };
+export type CatalogCacheAction<T> =
+  | { type: 'language'; language: Language }
+  | { type: 'loaded'; language: Language; items: T[] }
+  | { type: 'failed'; language: Language }
+  | { type: 'retry' };
+
+export type DocumentTypesState = CatalogCacheState<DocumentType>;
+
+export type DocumentTypesAction = CatalogCacheAction<DocumentType>;
+
+export type OptionSetsState = CatalogCacheState<OptionSet>;
+
+export type OptionSetsAction = CatalogCacheAction<OptionSet>;
 
 export type SignInStatus = 'loading' | 'signedIn' | 'signedOut';
 
@@ -49,10 +80,14 @@ export type FormConnectionState =
     }
   | { status: 'loaded'; attempt: number; formConnection: FormConnectionOrDraft };
 
+/**
+ * `refresh`: the answer of a refetch for the language alone (spec 009, research R6), whose failure
+ * keeps a loaded connection on screen; the next request tells what has become of it
+ */
 export type FormConnectionAction =
   | { type: 'loaded'; formConnection: FormConnectionOrDraft }
-  | { type: 'notFound' }
-  | { type: 'failed'; notice: ErrorNotice | null }
+  | { type: 'notFound'; refresh?: boolean }
+  | { type: 'failed'; notice: ErrorNotice | null; refresh?: boolean }
   | { type: 'retry' };
 
 // useRuleChecks() (specs/003-rule-consistency-checks, contracts/rule-checks.md "useRuleChecks")
@@ -80,6 +115,8 @@ export interface SentChange {
   branches: RunBranch[];
   /** `YYYY-MM-DD`, today in Germany when they were built */
   today: string;
+  /** The website's language at the change, which the announcements are composed in (spec 009) */
+  language: Language;
 }
 
 /** The worker of the current run, one at a time, with its watchdog */

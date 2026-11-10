@@ -21,6 +21,7 @@ from pydantic.alias_generators import to_camel
 
 from ..config import Settings, settings
 from ..errors import log_server_error
+from ..language import Text
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,16 @@ SESSION_PAGE_SIZE = 100
 # Settings every call needs, in the order a missing one is reported
 _CONNECTION_SETTINGS = ('eudiplo_url', 'eudiplo_client_id', 'eudiplo_client_secret')
 # The message of the 503 while a setting is empty. Only the log names the setting
-NOT_CONFIGURED_MESSAGE = (
-    'Something went wrong on our side, so nothing was saved. Contact an '
-    'administrator and give them the error ID.'
+NOT_CONFIGURED_MESSAGE = Text(
+    en=(
+        'Something went wrong on our side, so nothing was saved. Contact an '
+        'administrator and give them the error ID.'
+    ),
+    de=(
+        'Etwas ist auf unserer Seite schiefgelaufen, daher wurde nichts gespeichert. '
+        'Wenden Sie sich an eine Administratorin oder einen Administrator und '
+        'nennen Sie die Fehler-ID.'
+    ),
 )
 
 
@@ -362,11 +370,13 @@ def get_eudiplo_client() -> EudiploClient:
         return _client
 
 
-def http_error_for(error: EudiploError, upstream_message: str) -> HTTPException:
+def http_error_for(error: EudiploError, upstream_message: str | Text) -> HTTPException:
     """Turn a client error into the API's answer: 503 when not configured, else 502.
 
     What went wrong, such as which setting is empty, goes to the log only, under the
-    error id that the answer carries.
+    error id that the answer carries. The messages may be `Text`s: the exception
+    handler answers them in the request's language (spec 009, R6); serviceBW's
+    connection URLs pass plain English strings and are answered in English anyway.
     """
     if isinstance(error, EudiploNotConfigured):
         error_id = log_server_error(

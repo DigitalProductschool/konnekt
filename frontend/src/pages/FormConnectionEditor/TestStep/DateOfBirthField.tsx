@@ -1,3 +1,4 @@
+import { useCopy } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import type { DateOfBirthFieldProps } from './types';
 import ValueField from './ValueField';
@@ -21,6 +22,7 @@ export default function DateOfBirthField({
   onDateChange,
   onAgeChange,
 }: DateOfBirthFieldProps) {
+  const copy = useCopy(TEST_STEP_COPY);
   return (
     <div className="flex flex-wrap gap-16">
       <div className="narrow:min-w-0 narrow:basis-full min-w-140 flex-1">
@@ -36,7 +38,7 @@ export default function DateOfBirthField({
       <div className="narrow:min-w-0 narrow:basis-full min-w-140 flex-1">
         <ValueField
           id={`${id}-age`}
-          label={TEST_STEP_COPY.ageToday}
+          label={copy.ageToday}
           text={ageText}
           kind="number"
           error={ageError}

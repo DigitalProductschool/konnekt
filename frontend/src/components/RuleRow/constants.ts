@@ -1,15 +1,24 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import documentIcon from '../../assets/icons/document.svg';
 import drivingLicenceInkIcon from '../../assets/icons/driving-licence-ink.svg';
 import personalIdInkIcon from '../../assets/icons/personal-id-ink.svg';
 
-export const RULE_ROW_COPY = {
-  // Figma "Rules/Error message" (6092:3506; U30 6348:40889): the label before the message (C2)
-  messageLabel: 'Message for citizens:',
-  // Read before a rule's identifier on the details (F35)
-  identifier: 'Identifier',
-  // After the document's name in the statement: "Personal ID · Date of birth (Age)" (C3)
-  documentSeparator: '·',
-};
+export const RULE_ROW_COPY = defineTexts(
+  {
+    // Figma "Rules/Error message" (6092:3506; U30 6348:40889): the label before the message (C2)
+    messageLabel: 'Message for citizens:',
+    // Read before a rule's identifier on the details (F35)
+    identifier: 'Identifier',
+    // After the document's name in the statement: "Personal ID · Date of birth (Age)" (C3)
+    documentSeparator: '·',
+  },
+  {
+    messageLabel: 'Nachricht für Bürgerinnen und Bürger:',
+    identifier: 'Kennung',
+    documentSeparator: '·',
+  }
+);
 
 // Figma "Icon/Glyph" in tone ink, the document marker before a statement (6083:3463)
 export const DOCUMENT_GLYPHS: Record<string, string> = {

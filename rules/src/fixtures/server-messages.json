@@ -1,0 +1,388 @@
+{
+  "generator": "backend/scripts/export_check_fixtures.py: run `uv run python -m scripts.export_check_fixtures` from backend/. Never edit this file by hand.",
+  "about": "The server's validation messages that rules/src/constants.ts mirrors word for word, in English and German. params: the TS function's arguments by parameter name, in its parameter order, so fn(...Object.values(params)) renders the case; params_de, where present, replaces them for German. A CONDITION_PROBLEM_MESSAGES case is the part after condition_problem_prefix. client_only: the keys the server has no message for.",
+  "condition_problem_prefix": {
+    "params": {
+      "rule": "Rule 01",
+      "branch": "Standard"
+    },
+    "en": "Rule 01 in Standard: ",
+    "de": "Rule 01 in Standard: "
+  },
+  "cases": [
+    {
+      "key": "tooManyBranches",
+      "table": "RULES_MESSAGES",
+      "params": {},
+      "en": "A connection can have at most 20 variants.",
+      "de": "Eine Anbindung kann höchstens 20 Varianten haben."
+    },
+    {
+      "key": "mainBranch",
+      "table": "RULES_MESSAGES",
+      "params": {},
+      "en": "The rules need exactly one main branch.",
+      "de": "Die Regeln brauchen genau eine Hauptvariante."
+    },
+    {
+      "key": "branchNameMissing",
+      "table": "RULES_MESSAGES",
+      "params": {},
+      "en": "Enter a name for every variant.",
+      "de": "Geben Sie für jede Variante einen Namen ein."
+    },
+    {
+      "key": "branchNameTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {},
+      "en": "A variant’s name can have at most 100 characters.",
+      "de": "Der Name einer Variante darf höchstens 100 Zeichen lang sein."
+    },
+    {
+      "key": "branchNameTwice",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "name": "Taxi"
+      },
+      "en": "Two variants are called Taxi. Give each variant its own name.",
+      "de": "Zwei Varianten heißen Taxi. Geben Sie jeder Variante einen eigenen Namen."
+    },
+    {
+      "key": "descriptionTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "branch": "Standard"
+      },
+      "en": "The description of Standard can have at most 500 characters.",
+      "de": "Die Beschreibung von Standard darf höchstens 500 Zeichen lang sein."
+    },
+    {
+      "key": "tooManyItems",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "branch": "Standard"
+      },
+      "en": "Standard can have at most 200 rules and groups.",
+      "de": "Standard kann höchstens 200 Regeln und Gruppen haben."
+    },
+    {
+      "key": "invalidIdentifier",
+      "table": "RULES_MESSAGES",
+      "params": {},
+      "en": "The rules contain an invalid identifier. Reload the connection and try again.",
+      "de": "Die Regeln enthalten eine ungültige Kennung. Laden Sie die Anbindung neu und versuchen Sie es erneut."
+    },
+    {
+      "key": "itemNameMissing",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "rule",
+        "branch": "Standard"
+      },
+      "en": "Enter a name for every rule in Standard.",
+      "de": "Geben Sie für jede Regel in Standard einen Namen ein."
+    },
+    {
+      "key": "itemNameMissing",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "group",
+        "branch": "Standard"
+      },
+      "en": "Enter a name for every group in Standard.",
+      "de": "Geben Sie für jede Gruppe in Standard einen Namen ein."
+    },
+    {
+      "key": "itemNameMissing",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "sub-group",
+        "branch": "Standard"
+      },
+      "en": "Enter a name for every sub-group in Standard.",
+      "de": "Geben Sie für jede Untergruppe in Standard einen Namen ein."
+    },
+    {
+      "key": "itemNameTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "rule",
+        "branch": "Standard"
+      },
+      "en": "A rule in Standard has a name longer than 100 characters.",
+      "de": "Eine Regel in Standard hat einen Namen mit mehr als 100 Zeichen."
+    },
+    {
+      "key": "itemNameTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "group",
+        "branch": "Standard"
+      },
+      "en": "A group in Standard has a name longer than 100 characters.",
+      "de": "Eine Gruppe in Standard hat einen Namen mit mehr als 100 Zeichen."
+    },
+    {
+      "key": "itemNameTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "sub-group",
+        "branch": "Standard"
+      },
+      "en": "A sub-group in Standard has a name longer than 100 characters.",
+      "de": "Eine Untergruppe in Standard hat einen Namen mit mehr als 100 Zeichen."
+    },
+    {
+      "key": "nameTaken",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "rule",
+        "branch": "Standard",
+        "name": "Lives in Stuttgart"
+      },
+      "en": "There’s already a rule called \"Lives in Stuttgart\" in Standard.",
+      "de": "In Standard gibt es bereits eine Regel namens „Lives in Stuttgart“."
+    },
+    {
+      "key": "nameTaken",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "group",
+        "branch": "Standard",
+        "name": "Lives in Stuttgart"
+      },
+      "en": "There’s already a group called \"Lives in Stuttgart\" in Standard.",
+      "de": "In Standard gibt es bereits eine Gruppe namens „Lives in Stuttgart“."
+    },
+    {
+      "key": "nameTaken",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "noun": "sub-group",
+        "branch": "Standard",
+        "name": "Lives in Stuttgart"
+      },
+      "en": "There’s already a sub-group called \"Lives in Stuttgart\" in Standard.",
+      "de": "In Standard gibt es bereits eine Untergruppe namens „Lives in Stuttgart“."
+    },
+    {
+      "key": "nameReserved",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "name": "Rule 08",
+        "noun": "rule",
+        "number": "08"
+      },
+      "en": "Rule 08 is kept for the rule numbered 08.",
+      "de": "Rule 08 ist für die Regel mit der Nummer 08 reserviert."
+    },
+    {
+      "key": "nameReserved",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "name": "Group 02",
+        "noun": "group",
+        "number": "02"
+      },
+      "en": "Group 02 is kept for the group numbered 02.",
+      "de": "Group 02 ist für die Gruppe mit der Nummer 02 reserviert."
+    },
+    {
+      "key": "nameReserved",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "name": "Sub-group 03",
+        "noun": "sub-group",
+        "number": "03"
+      },
+      "en": "Sub-group 03 is kept for the sub-group numbered 03.",
+      "de": "Sub-group 03 ist für die Untergruppe mit der Nummer 03 reserviert."
+    },
+    {
+      "key": "chooseData",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "rule": "Rule 01",
+        "branch": "Standard"
+      },
+      "en": "Rule 01 in Standard: choose the data to check.",
+      "de": "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten."
+    },
+    {
+      "key": "notRequested",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "rule": "Rule 01",
+        "branch": "Standard"
+      },
+      "en": "Rule 01 in Standard checks data that’s no longer requested.",
+      "de": "Rule 01 in Standard prüft Daten, die nicht mehr angefordert werden."
+    },
+    {
+      "key": "unknownPart",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "rule": "Rule 01",
+        "branch": "Standard",
+        "field": "Place of birth"
+      },
+      "params_de": {
+        "rule": "Rule 01",
+        "branch": "Standard",
+        "field": "Geburtsort"
+      },
+      "en": "Rule 01 in Standard checks a part that Place of birth doesn’t have.",
+      "de": "Rule 01 in Standard prüft einen Bestandteil, den das Feld „Geburtsort“ nicht hat."
+    },
+    {
+      "key": "noMessage",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "rule": "Rule 01",
+        "branch": "Standard"
+      },
+      "en": "Rule 01 in Standard has no error message.",
+      "de": "Rule 01 in Standard hat keine Fehlermeldung."
+    },
+    {
+      "key": "messageTooLong",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "item": "Group 01",
+        "branch": "Standard"
+      },
+      "en": "The error message of Group 01 in Standard can have at most 500 characters.",
+      "de": "Die Fehlermeldung von Group 01 in Standard darf höchstens 500 Zeichen lang sein."
+    },
+    {
+      "key": "rulesOnly",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "subGroup": "Sub-group 01",
+        "branch": "Standard"
+      },
+      "en": "Sub-group 01 in Standard can only hold rules.",
+      "de": "Sub-group 01 in Standard kann nur Regeln enthalten."
+    },
+    {
+      "key": "tooFewMembers",
+      "table": "RULES_MESSAGES",
+      "params": {
+        "group": "Group 01",
+        "branch": "Standard"
+      },
+      "en": "Group 01 in Standard needs at least two rules.",
+      "de": "Group 01 in Standard braucht mindestens zwei Regeln."
+    },
+    {
+      "key": "choose_check",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "choose a check.",
+      "de": "Wählen Sie eine Prüfung."
+    },
+    {
+      "key": "enter_number",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "enter a number.",
+      "de": "Geben Sie eine Zahl ein."
+    },
+    {
+      "key": "enter_text",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "enter a text to compare with.",
+      "de": "Geben Sie einen Text zum Vergleichen ein."
+    },
+    {
+      "key": "choose_value",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "choose at least one value.",
+      "de": "Wählen Sie mindestens einen Wert."
+    },
+    {
+      "key": "values_from_list",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "choose values from the list.",
+      "de": "Wählen Sie Werte aus der Liste."
+    },
+    {
+      "key": "value_once",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "choose each value only once.",
+      "de": "Wählen Sie jeden Wert nur einmal."
+    },
+    {
+      "key": "enter_date",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "enter a date.",
+      "de": "Geben Sie ein Datum ein."
+    },
+    {
+      "key": "years_at_least_1",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "enter a number of years of at least 1.",
+      "de": "Geben Sie mindestens 1 Jahr ein."
+    },
+    {
+      "key": "choose_unit",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {},
+      "en": "choose years or months.",
+      "de": "Wählen Sie Jahre oder Monate."
+    },
+    {
+      "key": "amount_at_least_1",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {
+        "unit": "years"
+      },
+      "en": "enter a number of years of at least 1.",
+      "de": "Geben Sie mindestens 1 Jahr ein."
+    },
+    {
+      "key": "amount_at_least_1",
+      "table": "CONDITION_PROBLEM_MESSAGES",
+      "params": {
+        "unit": "months"
+      },
+      "en": "enter a number of months of at least 1.",
+      "de": "Geben Sie mindestens 1 Monat ein."
+    },
+    {
+      "key": "unknownVariant",
+      "table": "EDIT_MESSAGES",
+      "params": {},
+      "en": "Unknown variant.",
+      "de": "Unbekannte Variante."
+    }
+  ],
+  "client_only": [
+    {
+      "key": "variantNameMissing",
+      "table": "RULES_MESSAGES",
+      "reason": "The Add variant and Edit variant dialogs; the server answers branchNameMissing"
+    },
+    {
+      "key": "variantNameTaken",
+      "table": "RULES_MESSAGES",
+      "reason": "The Add variant and Edit variant dialogs; the server answers branchNameTwice"
+    },
+    {
+      "key": "nameMissing",
+      "table": "RULES_MESSAGES",
+      "reason": "Inline renaming; the server answers itemNameMissing"
+    },
+    {
+      "key": "nameTooLong",
+      "table": "RULES_MESSAGES",
+      "reason": "Inline renaming; the server answers itemNameTooLong"
+    }
+  ]
+}

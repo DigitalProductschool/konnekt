@@ -2,9 +2,10 @@ import { findItem, shownItems } from '@connection-portal/rules/tree';
 
 import GroupFrame from '../../../components/GroupFrame';
 import type { GroupFrameMember } from '../../../components/GroupFrame/types';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
-import { RULES_COPY } from './constants';
+import { RULES_STEP_COPY } from './constants';
 import GroupMenu from './GroupMenu';
 import ItemName from './ItemName';
 import SwitchNote from './SwitchNote';
@@ -36,6 +37,8 @@ export default function GroupListItem({
   faded,
 }: GroupListItemProps) {
   const { branch, state, dispatch, onCopyLink: copyLink } = view;
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
   const subGroup = depth > 0;
   const inactive = dissolved || group.mark === 'removed';
   // Nothing in a removed or dissolved group changes until it is restored (FR-024)
@@ -57,7 +60,7 @@ export default function GroupListItem({
           view={view}
           item={
             messageGroup && entry.item.type === 'rule'
-              ? { ...entry.item, message: RULES_COPY.notShownInGroup(messageGroup.name.trim()) }
+              ? { ...entry.item, message: copy.notShownInGroup(messageGroup.name.trim()) }
               : entry.item
           }
           parentId={group.id}
@@ -156,7 +159,7 @@ export default function GroupListItem({
                 }),
             }
       }
-      note={<SwitchNote text={switchNoteOf(state, branch, group.id)} />}
+      note={<SwitchNote text={switchNoteOf(state, branch, group.id, language)} />}
       members={members}
       onSwitchOperator={
         locked

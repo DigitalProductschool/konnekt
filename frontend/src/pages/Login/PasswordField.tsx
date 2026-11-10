@@ -1,4 +1,5 @@
 import TextField from '../../components/TextField';
+import { useCopy } from '../../hooks/useLanguage';
 import { LOGIN_COPY } from './constants';
 import type { PasswordFieldProps } from './types';
 
@@ -18,6 +19,7 @@ export default function PasswordField({
   onChange,
   onToggleVisible,
 }: PasswordFieldProps) {
+  const copy = useCopy(LOGIN_COPY);
   const toggle = (
     <button
       type="button"
@@ -30,7 +32,7 @@ export default function PasswordField({
         aria-hidden="true"
         className={`kern-icon bg-kern-action-default! ${visible ? 'kern-icon--visibility' : 'kern-icon--visibility-off'}`}
       />
-      <span className="sr-only">{LOGIN_COPY.showPassword}</span>
+      <span className="sr-only">{copy.showPassword}</span>
     </button>
   );
 

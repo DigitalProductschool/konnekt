@@ -17,6 +17,7 @@ import type { RuleContext } from '@connection-portal/rules/types';
 import { ruleProblem } from '@connection-portal/rules/validation';
 import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
 
+import { useLanguage } from '../../../../hooks/useLanguage';
 import ChoicePicker from './ChoicePicker';
 import ConditionFields from './ConditionFields';
 import { MENU_WIDTHS, RULE_EDITOR_COPY } from './constants';
@@ -71,9 +72,13 @@ export default function RuleEditor({
   today,
   messageHint = null,
 }: RuleEditorProps) {
+  const { language } = useLanguage();
+  const copy = RULE_EDITOR_COPY[language];
+  // A switch of the language rebuilds it, so that the proposal, the explanations and the problems
+  // follow (spec 009, R4)
   const context: RuleContext = useMemo(
-    () => ({ documents: catalog.documents, optionSets: catalog.optionSets }),
-    [catalog.documents, catalog.optionSets]
+    () => ({ documents: catalog.documents, optionSets: catalog.optionSets, language }),
+    [catalog.documents, catalog.optionSets, language]
   );
   const [state, dispatch] = useReducer(
     ruleEditorReducer,
@@ -85,6 +90,7 @@ export default function RuleEditor({
   const errorId = `${idBase}-error`;
   const issueId = `${idBase}-issue`;
   const focusNext = useRef<string | null>(null);
+  const proposedWith = useRef(context);
   const day = today ?? todayInGermany();
 
   // A value field takes the focus once its check is chosen, the missing part after "Save rule"
@@ -111,10 +117,12 @@ export default function RuleEditor({
     : null;
   const problem =
     draft.condition && definition
-      ? fieldProblemOf(draft.condition, definition, optionSet, state.touched)
+      ? fieldProblemOf(draft.condition, definition, optionSet, state.touched, language)
       : null;
   // A field made of parts has a hint before its part, which leaves no kind yet
-  const hints = target && (kind || !target.part) ? hintsOf(target, draft.condition, day) : [];
+  const hints =
+    target && (kind || !target.part) ? hintsOf(target, draft.condition, day, language) : [];
+  const dateOfBirth = target?.dateOfBirth ?? false;
   // What keeps the rule from being saved, in the server's words: "Save rule"'s explanation (W21)
   const complete = isRuleComplete(draft, branchName, context);
   const blocker = complete ? null : ruleProblem(draft, branchName, context);
@@ -143,6 +151,27 @@ export default function RuleEditor({
   function change(next: RuleItem) {
     onChange(withProposal(next, context, state.messageEdited));
   }
+
+  // A switch of the language proposes an untouched proposal anew in the new language, so that it
+  // follows the switch, also once the catalog's labels in that language arrive; a written message
+  // stays, and a message saved earlier shows as saved until the language or the condition changes
+  // (spec 009, R10, V8; US1-AS2, US3-AS3, FR-007)
+  useEffect(() => {
+    if (proposedWith.current === context) {
+      return;
+    }
+    proposedWith.current = context;
+    if (state.messageEdited) {
+      return;
+    }
+    const proposed = withProposal(draft, context, false);
+    if (proposed.message !== draft.message) {
+      onChange(proposed);
+    }
+    // Only when the language or the catalog changes: the condition's changes propose through
+    // change()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context]);
 
   function open(menu: MenuKey) {
     dispatch({ type: 'openMenu', menu });
@@ -244,8 +273,8 @@ export default function RuleEditor({
           <ChoicePicker
             idBase={idBase}
             menu="document"
-            label={RULE_EDITOR_COPY.documentsMenu}
-            placeholder={RULE_EDITOR_COPY.chooseDocument}
+            label={copy.documentsMenu}
+            placeholder={copy.chooseDocument}
             chosen={documentChoice(
               ruleDocument ??
                 catalog.allDocuments.find((entry) => entry.key === draft.target?.document_type)
@@ -254,7 +283,7 @@ export default function RuleEditor({
             width={MENU_WIDTHS.document}
             invalid={flagged('document')}
             describedBy={describedIf('document')}
-            footer={<MenuFooter divided text={RULE_EDITOR_COPY.documentsFooter} />}
+            footer={<MenuFooter divided text={copy.documentsFooter} />}
             footerDivided
             state={state}
             dispatch={dispatch}
@@ -263,20 +292,18 @@ export default function RuleEditor({
           <ChoicePicker
             idBase={idBase}
             menu="data"
-            label={RULE_EDITOR_COPY.dataMenu}
-            placeholder={RULE_EDITOR_COPY.chooseData}
-            chosen={field ? { key: field.key, label: ruleFieldLabel(field) } : null}
+            label={copy.dataMenu}
+            placeholder={copy.chooseData}
+            chosen={field ? { key: field.key, label: ruleFieldLabel(field, language) } : null}
             disabled={!documentKey}
             invalid={unrequested || flagged('data')}
             describedBy={describedIf('data')}
-            sections={dataSections(ruleDocument)}
+            sections={dataSections(ruleDocument, language)}
             width={MENU_WIDTHS.data}
-            searchPlaceholder={
-              ruleDocument ? RULE_EDITOR_COPY.searchDocument(ruleDocument.label) : undefined
-            }
+            searchPlaceholder={ruleDocument ? copy.searchDocument(ruleDocument.label) : undefined}
             footer={
               <MenuFooter
-                text={RULE_EDITOR_COPY.needOtherData}
+                text={copy.needOtherData}
                 onAddData={() => {
                   dispatch({ type: 'closeMenu' });
                   onAddData();
@@ -291,21 +318,19 @@ export default function RuleEditor({
             <ChoicePicker
               idBase={idBase}
               menu="part"
-              label={RULE_EDITOR_COPY.partsMenu}
-              placeholder={RULE_EDITOR_COPY.choosePart}
+              label={copy.partsMenu}
+              placeholder={copy.choosePart}
               chosen={
-                partSections(field, catalog.optionSets)[0].choices.find(
+                partSections(field, catalog.optionSets, language)[0].choices.find(
                   (choice) => choice.key === partKeyOf(draft.target)
                 ) ?? null
               }
-              sections={partSections(field, catalog.optionSets)}
+              sections={partSections(field, catalog.optionSets, language)}
               invalid={flagged('part')}
               describedBy={describedIf('part')}
               width={MENU_WIDTHS.part}
               searchPlaceholder={
-                field.parts?.some((part) => part.per_licence_class)
-                  ? RULE_EDITOR_COPY.searchClasses
-                  : undefined
+                field.parts?.some((part) => part.per_licence_class) ? copy.searchClasses : undefined
               }
               state={state}
               dispatch={dispatch}
@@ -315,11 +340,11 @@ export default function RuleEditor({
           <ChoicePicker
             idBase={idBase}
             menu="check"
-            label={RULE_EDITOR_COPY.checksMenu}
-            placeholder={RULE_EDITOR_COPY.chooseCheck}
-            chosen={checkChoiceOf(draft.condition, kind)}
+            label={copy.checksMenu}
+            placeholder={copy.chooseCheck}
+            chosen={checkChoiceOf(draft.condition, kind, dateOfBirth, language)}
             disabled={!kind}
-            sections={kind ? checkSections(kind) : []}
+            sections={kind ? checkSections(kind, dateOfBirth, language) : []}
             invalid={flagged('check')}
             describedBy={describedIf('check')}
             width={kind === 'text' ? MENU_WIDTHS.textCheck : MENU_WIDTHS.check}
@@ -332,7 +357,7 @@ export default function RuleEditor({
               idBase={idBase}
               definition={definition}
               condition={draft.condition}
-              dateOfBirth={target?.dateOfBirth ?? false}
+              dateOfBirth={dateOfBirth}
               optionSet={optionSet}
               classes={classes}
               errorId={problem ? errorId : undefined}

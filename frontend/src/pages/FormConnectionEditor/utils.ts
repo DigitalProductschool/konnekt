@@ -13,11 +13,14 @@ import type {
 import { sameValue } from '@connection-portal/rules/branches';
 import { dialogLineOf } from '@connection-portal/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
+import { droppedFieldLabel } from '@connection-portal/rules/dropped';
 import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
+import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
 import type { RulesProblem } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
+import type { ToastContent } from '../../components/Toast/types';
 import { emptyContent } from '../../utils/localDrafts/content';
 import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
@@ -31,11 +34,11 @@ import {
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
   NAME_MAX_LENGTH,
-  PUBLISH_COPY,
+  PUBLISH_DIALOG_COPY,
   RULES_CHANGED_ERROR,
   VALIDATION_MESSAGES,
 } from './constants';
-import { RULES_COPY } from './RulesStep/constants';
+import { RULES_STEP_COPY } from './RulesStep/constants';
 import type { RulesBranch, RulesState } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
 import { TEST_STEP_COPY } from './TestStep/constants';
@@ -87,22 +90,29 @@ function requestedDocumentsOf(documents: RequestedDocumentView[]): RequestedDocu
   }));
 }
 
-/** The page title of a step: the heading, its hint and the tab title. */
-export function pageTitleOf(step: EditorStep, mode: EditorMode): { title: string; hint: string } {
+/** The page title of a step in `language`: the heading, its hint and the tab title. */
+export function pageTitleOf(
+  step: EditorStep,
+  mode: EditorMode,
+  language: Language
+): { title: string; hint: string } {
+  const copy = EDITOR_COPY[language];
   if (step === 'test') {
-    return { title: TEST_STEP_COPY.title, hint: TEST_STEP_COPY.intro };
+    const testCopy = TEST_STEP_COPY[language];
+    return { title: testCopy.title, hint: testCopy.intro };
   }
   if (step === 'rules') {
-    return { title: RULES_COPY.title, hint: RULES_COPY.hint };
+    const rulesCopy = RULES_STEP_COPY[language];
+    return { title: rulesCopy.title, hint: rulesCopy.hint };
   }
   if (step === 'documents') {
     // The edit flow's step reads as the create flow's (U98 7296:52323)
-    return { title: EDITOR_COPY.documentsTitle, hint: EDITOR_COPY.documentsHint };
+    return { title: copy.documentsTitle, hint: copy.documentsHint };
   }
   // The first connection's step 1 is the create flow's (U19 6699:45321, U18 6793:47711)
   return mode === 'edit'
-    ? { title: EDITOR_COPY.editConnectionTitle, hint: EDITOR_COPY.editConnectionHint }
-    : { title: EDITOR_COPY.connectionTitle, hint: EDITOR_COPY.connectionHint };
+    ? { title: copy.editConnectionTitle, hint: copy.editConnectionHint }
+    : { title: copy.connectionTitle, hint: copy.connectionHint };
 }
 
 /**
@@ -137,10 +147,12 @@ export function problemPlaceOf(
  * The header's title: the name as typed once there is one to show, otherwise what is being
  * made, or the edited connection's saved name. A new connection reads "New connection" on
  * step 1 (U19 6699:45350); a stored draft (`stored`) names itself on every step, step 1
- * included (U19 6716:40925, U18 6793:47713).
+ * included (U19 6716:40925, U18 6793:47713). The name is content; only "New connection" is in
+ * `language`.
  */
 export function headerTitleOf(
   state: EditorState,
+  language: Language,
   formConnection?: FormConnection,
   stored = false
 ): string {
@@ -148,7 +160,7 @@ export function headerTitleOf(
   if (formConnection) {
     return name || formConnection.name;
   }
-  return (stored || state.step !== 'connection') && name ? name : EDITOR_COPY.headerTitle;
+  return (stored || state.step !== 'connection') && name ? name : EDITOR_COPY[language].headerTitle;
 }
 
 /** Keeps documents in catalog order, the order of the API and the cards. */
@@ -241,10 +253,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         documents: state.documents.filter((document) => document !== removed),
         removed,
+        // In the default language: the page shows it in the language of the moment, also after a
+        // switch while it shows (`documentsToastOf()`)
         toast: {
           id: (state.toast?.id ?? 0) + 1,
-          message: EDITOR_COPY.removed(action.label),
-          actionLabel: EDITOR_COPY.undo,
+          message: EDITOR_COPY[DEFAULT_LANGUAGE].removed(action.label),
+          actionLabel: EDITOR_COPY[DEFAULT_LANGUAGE].undo,
         },
       };
     }
@@ -347,19 +361,45 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   }
 }
 
-/** Step 1: the name, required, and the optional description, with the API's rules and messages. */
-export function validateConnection(name: string, description: string): EditorErrors {
+/**
+ * Step 1: the name, required, and the optional description, with the API's rules and messages,
+ * in `language`.
+ */
+export function validateConnection(
+  name: string,
+  description: string,
+  language: Language
+): EditorErrors {
+  const messages = VALIDATION_MESSAGES[language];
   const errors: EditorErrors = {};
   const trimmedName = name.trim();
   if (!trimmedName) {
-    errors.name = VALIDATION_MESSAGES.nameRequired;
+    errors.name = messages.nameRequired;
   } else if (trimmedName.length > NAME_MAX_LENGTH) {
-    errors.name = VALIDATION_MESSAGES.nameTooLong;
+    errors.name = messages.nameTooLong;
   }
   if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
-    errors.description = VALIDATION_MESSAGES.descriptionTooLong;
+    errors.description = messages.descriptionTooLong;
   }
   return errors;
+}
+
+/**
+ * Step 1's messages shown, in `language` (spec 009, FR-003): a message stays until its field
+ * changes, so the field still has the problem it was refused for, and the check words it again
+ * in the language of the moment. A field without a message keeps none.
+ */
+export function connectionErrorsOf(
+  errors: EditorErrors,
+  name: string,
+  description: string,
+  language: Language
+): EditorErrors {
+  const now = validateConnection(name, description, language);
+  return {
+    name: errors.name && (now.name ?? errors.name),
+    description: errors.description && (now.description ?? errors.description),
+  };
 }
 
 export function hasErrors(errors: EditorErrors): boolean {
@@ -380,6 +420,61 @@ export function labelOf(documentType: string, documentTypes: DocumentType[]): st
 /** The note's "Remove it" (S8): every dropped item at once, named in the removal dialog. */
 export function droppedRemovalOf(items: DroppedData[]): PendingRemoval {
   return { type: 'dropped', items, label: items.map((item) => item.label).join(', ') };
+}
+
+/**
+ * The removal asked about, named from the catalog of the moment (spec 009, FR-003): the question
+ * stores the data's keys, and its names follow a switch of the language while it is open ("Stop
+ * requesting Date of birth?" ↔ "„Geburtsdatum“ nicht mehr anfordern?"). `documentTypes` are the
+ * catalog in `language`; a key the catalog lacks keeps its stored name.
+ */
+export function removalInLanguage(
+  removal: PendingRemoval,
+  documentTypes: DocumentType[],
+  language: Language
+): PendingRemoval {
+  switch (removal.type) {
+    case 'document':
+    case 'allFields':
+      return { ...removal, label: labelOf(removal.documentType, documentTypes) };
+    case 'field':
+      return {
+        ...removal,
+        label: fieldLabelOf(removal.documentType, removal.field, documentTypes),
+      };
+    case 'dropped':
+      return droppedRemovalOf(
+        removal.items.map((item) => ({
+          ...item,
+          label:
+            item.field === null
+              ? item.label
+              : droppedFieldLabel(labelOf(item.documentType, documentTypes), item.field, language),
+        }))
+      );
+  }
+}
+
+/**
+ * The documents step's toast as it shows (FR-003): "Driving licence removed." with "Undo", in
+ * `language` and with the catalog's name of the moment, so that a switch while it shows words it
+ * anew; its id stays, so it is neither shown nor timed again. Null while there is none.
+ */
+export function documentsToastOf(
+  toast: ToastContent | null,
+  removed: RequestedDocument | null,
+  documentTypes: DocumentType[],
+  language: Language
+): ToastContent | null {
+  if (toast === null || removed === null) {
+    return toast;
+  }
+  const copy = EDITOR_COPY[language];
+  return {
+    ...toast,
+    message: copy.removed(labelOf(removed.document_type, documentTypes)),
+    actionLabel: copy.undo,
+  };
 }
 
 /**
@@ -412,13 +507,17 @@ export function fieldLabelOf(
   );
 }
 
-/** The publish dialog's documents: "Personal ID · 7 data items", one line each (U33). */
+/**
+ * The publish dialog's documents: "Personal ID · 7 data items", one line each (U33), in
+ * `language` with the catalog's labels in it.
+ */
 export function documentLines(
   documents: RequestedDocument[],
-  documentTypes: DocumentType[]
+  documentTypes: DocumentType[],
+  language: Language
 ): string[] {
   return documents.map((document) =>
-    PUBLISH_COPY.documentLine(
+    PUBLISH_DIALOG_COPY[language].documentLine(
       labelOf(document.document_type, documentTypes),
       document.fields.length
     )
@@ -427,14 +526,16 @@ export function documentLines(
 
 /**
  * The publish dialog's rules: one line per branch in tab order, "Standard · 2 rules", counting
- * the rules that apply in it (design-notes.md §6); "No rules" when publishing without them.
+ * the rules that apply in it (design-notes.md §6); "No rules" when publishing without them. The
+ * variants' names are content; the rest is in `language`.
  */
-export function ruleLines(rules: RulesState, withoutRules: boolean): string[] {
+export function ruleLines(rules: RulesState, withoutRules: boolean, language: Language): string[] {
+  const copy = PUBLISH_DIALOG_COPY[language];
   if (withoutRules) {
-    return [PUBLISH_COPY.noRules];
+    return [copy.noRules];
   }
   return rules.branches.map((branch) =>
-    PUBLISH_COPY.ruleLine(branch.name.trim(), countRules(branch.items))
+    copy.ruleLine(branch.name.trim(), countRules(branch.items))
   );
 }
 
@@ -510,12 +611,14 @@ export function isRulesChanged(error: unknown): error is ApiError {
  * The conflict a draft's save or publish met (S2; R6; contracts/local-drafts.md): `409
  * draft_changed` or `draft_published` with the server's message, or a `404` while the flow edits a
  * stored draft, which another team member deleted. Anything else, and every failure of a new or a
- * published origin, is null, so the existing handling applies (`rules_changed` among them).
+ * published origin, is null, so the existing handling applies (`rules_changed` among them). The
+ * deleted text is in `language` (the dialogs word it anew after a switch).
  */
 export function conflictOf(
   error: unknown,
   origin: EditorOrigin,
-  during: 'save' | 'publish'
+  during: 'save' | 'publish',
+  language: Language
 ): DraftConflict | null {
   if (origin.kind !== 'draft' || !(error instanceof ApiError)) {
     return null;
@@ -527,7 +630,7 @@ export function conflictOf(
     return { kind: error.data.error, during, message: error.data.message };
   }
   if (error.status === 404) {
-    return { kind: 'draft_deleted', during, message: DRAFT_COPY.draftDeletedText };
+    return { kind: 'draft_deleted', during, message: DRAFT_COPY[language].draftDeletedText };
   }
   return null;
 }
@@ -535,13 +638,19 @@ export function conflictOf(
 /**
  * The API's message, which says what went wrong, with the error ID of a 5xx answer, or a general
  * message without them. After `409 rules_changed`, the message, which names the variants that
- * replacing deletes or brings back, says what Reload and replacing do (W9).
+ * replacing deletes or brings back, says what Reload and replacing do (W9). The server's message
+ * is in the language it answered in; the website's own words in `language`.
  */
-export function publishErrorNotice(error: unknown, editing = false): ErrorNotice {
+export function publishErrorNotice(
+  error: unknown,
+  editing: boolean,
+  language: Language
+): ErrorNotice {
   if (isRulesChanged(error)) {
-    return { message: `${error.data.message} ${PUBLISH_COPY.rulesChangedHint}` };
+    return { message: `${error.data.message} ${PUBLISH_DIALOG_COPY[language].rulesChangedHint}` };
   }
-  return errorNoticeOf(error, editing ? EDITOR_COPY.saveErrorText : EDITOR_COPY.publishErrorText);
+  const copy = EDITOR_COPY[language];
+  return errorNoticeOf(error, editing ? copy.saveErrorText : copy.publishErrorText);
 }
 
 /**
@@ -551,7 +660,10 @@ export function publishErrorNotice(error: unknown, editing = false): ErrorNotice
  * counts as kept, complete or not, as "Save changes" would keep it (R9, FR-012).
  */
 export function localContentOf(state: EditorState, rules: RulesState): LocalDraftContent {
-  const kept = rules.editing ? rulesReducer(rules, { type: 'saveRule' }) : rules;
+  // Only the branches count, not the toast's words
+  const kept = rules.editing
+    ? rulesReducer(rules, { type: 'saveRule', language: DEFAULT_LANGUAGE })
+    : rules;
   return {
     name: state.name,
     description: state.description,
@@ -795,9 +907,12 @@ export function startOfOrigin({
   };
 }
 
-/** The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them. */
-export function draftNameErrors(name: string): EditorErrors {
-  const errors = validateConnection(name, '');
+/**
+ * The checks "Save and exit" makes before storing (R12): the name's only, as step 1 makes them, in
+ * `language`.
+ */
+export function draftNameErrors(name: string, language: Language): EditorErrors {
+  const errors = validateConnection(name, '', language);
   return errors.name ? { name: errors.name } : {};
 }
 
@@ -805,18 +920,40 @@ export function draftNameErrors(name: string): EditorErrors {
  * The alert after a failed "Save and exit" (S1.5; W3; FR-013). A `5xx`, nginx's `502` or `503`
  * without JSON included, or a network failure gets U28's text, the error ID the server sent, and
  * "Try again". Any other answer, such as a `400`, shows the server's message, without "Try again".
+ * The website's own words are in `language`.
  */
-export function draftSaveErrorOf(error: unknown): DraftSaveError {
+export function draftSaveErrorOf(error: unknown, language: Language): DraftSaveError {
+  const { saveNetworkError } = DRAFT_COPY[language];
   if (!(error instanceof ApiError) || error.status >= 500) {
     const errorId = error instanceof ApiError ? error.data.error_id : undefined;
     return {
       notice: errorId
-        ? { message: DRAFT_COPY.saveNetworkError, error_id: errorId }
-        : { message: DRAFT_COPY.saveNetworkError },
+        ? { message: saveNetworkError, error_id: errorId }
+        : { message: saveNetworkError },
       retryable: true,
     };
   }
-  return { notice: errorNoticeOf(error, DRAFT_COPY.saveNetworkError), retryable: false };
+  return { notice: errorNoticeOf(error, saveNetworkError), retryable: false };
+}
+
+/**
+ * The failed save's toast (FR-033, F67) as it shows, with its `id`: after a network failure or a
+ * `5xx` the website's own sentence and "Try again" in `language`, so that a switch while it shows
+ * words it anew (FR-003); after any other answer the server's message, which keeps the language
+ * it came in (the spec's edge case "A notice from the server").
+ */
+export function saveFailureToastOf(
+  failure: DraftSaveError,
+  id: number,
+  language: Language
+): ToastContent {
+  const copy = DRAFT_COPY[language];
+  return {
+    id,
+    message: failure.retryable ? copy.saveNetworkError : failure.notice.message,
+    actionLabel: failure.retryable ? copy.tryAgain : undefined,
+    errorId: failure.notice.error_id,
+  };
 }
 
 /**
@@ -840,15 +977,17 @@ function dialogToneOf(check: BranchCheck): FindingTone {
  * findings: the dialog is then as in spec 002.
  *
  * This is the one test of "a branch with findings" for the dialog and for "Check rules again"
- * (`firstBranchWithFindings()`), so that the button always opens a branch the dialog names.
+ * (`firstBranchWithFindings()`), so that the button always opens a branch the dialog names. The
+ * lines are in `language` (`dialogLineOf()`, spec 009 R4).
  */
 export function findingLinesOf(
   branches: readonly RulesBranch[],
-  byBranch: RuleChecks['byBranch']
+  byBranch: RuleChecks['byBranch'],
+  language: Language
 ): FindingLine[] {
   return branches.flatMap((branch) => {
     const check = byBranch[branch.key];
-    const text = check ? dialogLineOf(check, branch.name.trim()) : null;
+    const text = check ? dialogLineOf(check, branch.name.trim(), language) : null;
     return check && text !== null ? [{ key: branch.key, text, tone: dialogToneOf(check) }] : [];
   });
 }
@@ -871,5 +1010,6 @@ export function firstBranchWithFindings(
   branches: readonly RulesBranch[],
   byBranch: RuleChecks['byBranch']
 ): string | null {
-  return findingLinesOf(branches, byBranch)[0]?.key ?? null;
+  // Only the keys count, which are the same in every language
+  return findingLinesOf(branches, byBranch, DEFAULT_LANGUAGE)[0]?.key ?? null;
 }

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
+import { useLanguage } from '../../hooks/useLanguage';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
 import { displayNameOf } from '../../utils/localDrafts/content';
 import { ITEM_DIVIDER, LOCAL_DRAFTS_COPY, SMALL_TEXT } from './constants';
@@ -20,7 +21,9 @@ export default function LocalDraftItem({
   resumeRef,
   onDiscard,
 }: LocalDraftItemProps) {
-  const name = displayNameOf(record.content);
+  const { language } = useLanguage();
+  const copy = LOCAL_DRAFTS_COPY[language];
+  const name = displayNameOf(record.content, language);
   const search = new URLSearchParams({ [LOCAL_DRAFT_PARAM]: record.flowKey });
   // As the only draft, the name and line are for screen readers alone
   const nameClass = only
@@ -36,7 +39,7 @@ export default function LocalDraftItem({
       }
     >
       <p className={nameClass}>{name}</p>
-      <p className={lineClass}>{metaLineOf(record)}</p>
+      <p className={lineClass}>{metaLineOf(record, language)}</p>
       {/* The two buttons wrap together on narrow screens */}
       <div className="flex shrink-0 flex-wrap gap-16">
         <button
@@ -45,9 +48,9 @@ export default function LocalDraftItem({
           className="kern-btn kern-btn--tertiary kern-btn--small"
         >
           <span className="kern-label">
-            {LOCAL_DRAFTS_COPY.discard}
+            {copy.discard}
             {/* Not kern-sr-only: inside a kern-btn it makes the button icon-sized */}
-            <span className="sr-only"> {LOCAL_DRAFTS_COPY.discardHidden(name)}</span>
+            <span className="sr-only"> {copy.discardHidden(name)}</span>
           </span>
         </button>
         <Link
@@ -57,7 +60,7 @@ export default function LocalDraftItem({
         >
           <span aria-hidden="true" className="kern-icon kern-icon--edit" />
           <span className="kern-label">
-            {LOCAL_DRAFTS_COPY.resume}
+            {copy.resume}
             <span className="sr-only"> {name}</span>
           </span>
         </Link>

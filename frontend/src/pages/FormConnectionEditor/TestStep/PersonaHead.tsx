@@ -1,5 +1,6 @@
 import { dataHeadingOf } from '@connection-portal/rules/personas/messages';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import { TEST_STEP_COPY } from './constants';
 import type { PersonaHeadProps } from './types';
@@ -13,13 +14,15 @@ import type { PersonaHeadProps } from './types';
  * KERN's small button is 40px high with 4px margins, Figma's 48px head
  */
 export default function PersonaHead({ persona, onEditData, onGenerateAgain }: PersonaHeadProps) {
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
   return (
     <div className="flex flex-wrap items-center justify-between">
       <h2
         id={ELEMENT_IDS.personaHeading(persona.id)}
         className="text-kern-static-medium text-kern-layout-text-default min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
       >
-        {dataHeadingOf(persona)}
+        {dataHeadingOf(persona, language)}
       </h2>
       {persona.status === 'ready' && (
         <>
@@ -33,7 +36,7 @@ export default function PersonaHead({ persona, onEditData, onGenerateAgain }: Pe
             }}
           >
             <span aria-hidden="true" className="kern-icon kern-icon--small kern-icon--edit" />
-            <span className="kern-label">{TEST_STEP_COPY.editData}</span>
+            <span className="kern-label">{copy.editData}</span>
           </button>
           <button
             type="button"
@@ -41,7 +44,7 @@ export default function PersonaHead({ persona, onEditData, onGenerateAgain }: Pe
             onClick={onGenerateAgain}
           >
             <span aria-hidden="true" className="kern-icon kern-icon--autorenew kern-icon--small" />
-            <span className="kern-label">{TEST_STEP_COPY.generateAgain}</span>
+            <span className="kern-label">{copy.generateAgain}</span>
           </button>
         </>
       )}

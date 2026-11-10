@@ -1,4 +1,5 @@
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useCopy } from '../../hooks/useLanguage';
 import { DRAFT_COPY } from './constants';
 import type { DraftConflictDialogProps } from './types';
 
@@ -19,6 +20,8 @@ export default function DraftConflictDialog({
   onSaveAsNew,
   onCancel,
 }: DraftConflictDialogProps) {
+  const copy = useCopy(DRAFT_COPY);
+
   function handleCancel() {
     if (!busy) {
       onCancel();
@@ -27,9 +30,11 @@ export default function DraftConflictDialog({
 
   const common = {
     open: conflict !== null,
-    text: conflict?.message ?? '',
-    cancelLabel: DRAFT_COPY.cancel,
-    busyLabel: DRAFT_COPY.saving,
+    // The deleted text is the website's own, in the language of the moment; the server's
+    // messages keep the language they came in
+    text: conflict?.kind === 'draft_deleted' ? copy.draftDeletedText : (conflict?.message ?? ''),
+    cancelLabel: copy.cancel,
+    busyLabel: copy.saving,
     busy,
     onCancel: handleCancel,
   };
@@ -38,13 +43,13 @@ export default function DraftConflictDialog({
     return (
       <ConfirmDialog
         {...common}
-        title={DRAFT_COPY.draftChangedTitle}
-        secondaryLabel={DRAFT_COPY.reload}
+        title={copy.draftChangedTitle}
+        secondaryLabel={copy.reload}
         onSecondary={onReload}
-        confirmLabel={DRAFT_COPY.replaceTheirChanges}
+        confirmLabel={copy.replaceTheirChanges}
         onConfirm={onReplace}
       >
-        <p className="kern-body kern-body--large">{DRAFT_COPY.draftChangedHint}</p>
+        <p className="kern-body kern-body--large">{copy.draftChangedHint}</p>
       </ConfirmDialog>
     );
   }
@@ -52,11 +57,11 @@ export default function DraftConflictDialog({
     return (
       <ConfirmDialog
         {...common}
-        title={DRAFT_COPY.draftPublishedTitle}
-        confirmLabel={DRAFT_COPY.openConnection}
+        title={copy.draftPublishedTitle}
+        confirmLabel={copy.openConnection}
         onConfirm={onOpenConnection}
       >
-        <p className="kern-body kern-body--large">{DRAFT_COPY.draftPublishedHint}</p>
+        <p className="kern-body kern-body--large">{copy.draftPublishedHint}</p>
       </ConfirmDialog>
     );
   }
@@ -64,8 +69,8 @@ export default function DraftConflictDialog({
   return (
     <ConfirmDialog
       {...common}
-      title={DRAFT_COPY.draftDeletedTitle}
-      confirmLabel={DRAFT_COPY.saveAsNewDraft}
+      title={copy.draftDeletedTitle}
+      confirmLabel={copy.saveAsNewDraft}
       onConfirm={onSaveAsNew}
     />
   );

@@ -1,8 +1,24 @@
-// The edit flow's step line is a navigation landmark of this name (F25)
-export const PROGRESS_LABEL = 'Steps';
+import { defineTexts } from '@connection-portal/rules/language';
 
-// After the last step's segment, in place of "Next: <step>" (FR-025)
-export const LAST_STEP = 'Last step';
+/**
+ * The step line's texts (FR-025; G§2 "wizard steps", "cancel/back/next/save"): the name of the
+ * edit flow's navigation landmark (F25), "Step n of 4" before the segments, "Next: <step>" after
+ * them and, on the last step, "Last step" in its place
+ */
+export const WIZARD_PROGRESS_COPY = defineTexts(
+  {
+    progressLabel: 'Steps',
+    stepCount: (step: number, total: number) => `Step ${step} of ${total}`,
+    next: (step: string) => `Next: ${step}`,
+    lastStep: 'Last step',
+  },
+  {
+    progressLabel: 'Schritte',
+    stepCount: (step: number, total: number) => `Schritt ${step} von ${total}`,
+    next: (step: string) => `Weiter: ${step}`,
+    lastStep: 'Letzter Schritt',
+  }
+);
 
 // Figma "body/small/regular" in `layout-text-muted`: "Step n of 4" and "Next: <step>"
 export const LINE_TEXT_CLASSES =

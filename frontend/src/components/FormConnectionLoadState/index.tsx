@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import NotFound from '../NotFound';
 import WizardLayout from '../WizardLayout';
 import { LOAD_STATE_COPY, SKELETON_BARS, SKELETON_VALUE_WIDTHS } from './constants';
@@ -26,9 +27,10 @@ function SkeletonRow({ value }: SkeletonRowProps) {
  * the polite status instead of the bars.
  */
 function LoadingSkeleton({ skeleton }: LoadingSkeletonProps) {
+  const copy = useCopy(LOAD_STATE_COPY);
   return (
     <div role="status" className="w-full">
-      <span className="sr-only">{LOAD_STATE_COPY.loading}</span>
+      <span className="sr-only">{copy.loading}</span>
       {skeleton ? (
         <div aria-hidden="true">{skeleton}</div>
       ) : (
@@ -61,7 +63,8 @@ export default function FormConnectionLoadState({
   variant,
   skeleton,
 }: FormConnectionLoadStateProps) {
-  useDocumentTitle(documentTitleOf(state));
+  const { language } = useLanguage();
+  useDocumentTitle(documentTitleOf(state, language));
   return (
     <WizardLayout
       variant={variant}
@@ -69,7 +72,7 @@ export default function FormConnectionLoadState({
         footer === undefined ? (
           <Link to={ROUTES.overview} className="kern-btn kern-btn--tertiary">
             <span aria-hidden="true" className="kern-icon kern-icon--home" />
-            <span className="kern-label">{LOAD_STATE_COPY.home}</span>
+            <span className="kern-label">{LOAD_STATE_COPY[language].home}</span>
           </Link>
         ) : (
           footer

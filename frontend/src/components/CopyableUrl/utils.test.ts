@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { INITIAL_COPY_STATE } from './constants';
-import { copyReducer, isCut } from './utils';
+import { copyReducer, copyTextsOf, isCut } from './utils';
 
 describe('copyReducer', () => {
   it('reads "Copied" after copying and counts each attempt', () => {
@@ -22,5 +22,36 @@ describe('isCut', () => {
     expect(isCut({ scrollWidth: 700, clientWidth: 571 })).toBe(true);
     expect(isCut({ scrollWidth: 571, clientWidth: 571 })).toBe(false);
     expect(isCut({ scrollWidth: 300, clientWidth: 571 })).toBe(false);
+  });
+});
+
+describe('copyTextsOf', () => {
+  it('gives the link\'s texts in English, "Copied" after copying', () => {
+    expect(copyTextsOf('link', 'en')).toEqual({
+      copy: 'Copy link',
+      copied: 'Copied',
+      announced: 'Link copied',
+      failed: 'Copying didn’t work. The link is selected, so you can copy it yourself.',
+    });
+  });
+
+  it('gives the link\'s texts in German, "Kopiert" after copying', () => {
+    const texts = copyTextsOf('link', 'de');
+    expect(texts.copy).toBe('Link kopieren');
+    expect(texts.copied).toBe('Kopiert');
+    expect(texts.announced).toBe('Link kopiert');
+    expect(texts.failed).toBe(
+      'Das Kopieren hat nicht funktioniert. Der Link ist markiert, sodass Sie ihn selbst kopieren können.'
+    );
+  });
+
+  it('keeps the texts a caller replaces and fills the rest in the language', () => {
+    expect(copyTextsOf('field', 'en', { announced: 'Token copied' })).toEqual({
+      copy: 'Copy',
+      copied: 'Copied',
+      announced: 'Token copied',
+      failed: 'Copying didn’t work. The text is selected, so you can copy it yourself.',
+    });
+    expect(copyTextsOf('field', 'de', { announced: 'Token kopiert' }).copy).toBe('Kopieren');
   });
 });

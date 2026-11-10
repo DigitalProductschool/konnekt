@@ -27,22 +27,18 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.db import SessionLocal, engine
+from app.language import resolve_text
 from app.models import (
     FormConnection,
     FormConnectionBranch,
     FormConnectionRevision,
     FormConnectionRuleSet,
 )
-from app.routers.form_connections import CONFIG_FAILED
+from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import DraftPublish, DraftUpdate
 from app.schemas import FormConnection as FormConnectionView
-from app.services import drafts
+from app.services import drafts, form_connections
 from app.services.dcql import config_hash
-from app.services.form_connections import (
-    DRAFT_CHANGED_DETAIL,
-    DRAFT_PUBLISHED_DETAIL,
-    NOT_PUBLISHED_DETAIL,
-)
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     AGE_RULE,
@@ -59,6 +55,18 @@ from tests.helpers import (
     us2_items,
     variant,
 )
+
+
+def _answered(detail: Any) -> dict[str, Any]:
+    """A detail as `errors.py` answers it without a German header (spec 009)."""
+    return {**detail, 'message': resolve_text(detail['message'])}
+
+
+# The messages as answered without a German header (spec 009)
+CONFIG_FAILED = CONFIG_FAILED_TEXT.en
+DRAFT_CHANGED_DETAIL = _answered(form_connections.DRAFT_CHANGED_DETAIL)
+DRAFT_PUBLISHED_DETAIL = _answered(form_connections.DRAFT_PUBLISHED_DETAIL)
+NOT_PUBLISHED_DETAIL = _answered(form_connections.NOT_PUBLISHED_DETAIL)
 
 BASE = '/api/form-connections'
 BASE_URL = 'https://middleware.test'
@@ -1400,7 +1408,7 @@ def test_two_publishes_of_one_draft_publish_it_once(
     [winner] = [o for o in outcomes if isinstance(o, FormConnectionView)]
     [loser] = [o for o in outcomes if isinstance(o, HTTPException)]
     assert loser.status_code == 409
-    assert loser.detail == DRAFT_PUBLISHED_DETAIL
+    assert _answered(loser.detail) == DRAFT_PUBLISHED_DETAIL
     assert (winner.id, winner.status, winner.rule_set_version) == (
         draft_id,
         'published',
@@ -2284,7 +2292,10 @@ def test_check_publishable_refuses_as_publishing_does(
 
     assert published.status_code == refusal.status_code == 400
     assert published.json()['error'] == 'Validation error'
-    assert refusal.detail == published.json()
+    # The message as `errors.py` answers it without a German header (spec 009)
+    assert isinstance(refusal.detail, dict)
+    answered = {**refusal.detail, 'message': resolve_text(refusal.detail['message'])}
+    assert answered == published.json()
     # Nothing is written
     assert get(signed_in_client, draft_id) == draft
     assert rows(draft_id) == (0, 0, 0)
@@ -2324,7 +2335,7 @@ def test_check_publishable_refuses_a_published_connection(
     refusal = check_publishable_refusal(form_connection_id)
 
     assert refusal.status_code == 409
-    assert refusal.detail == DRAFT_PUBLISHED_DETAIL
+    assert _answered(refusal.detail) == DRAFT_PUBLISHED_DETAIL
 
 
 def test_publish_stored_draft_publishes_as_the_editor_does(
@@ -2386,7 +2397,7 @@ def test_publish_stored_draft_publishes_only_its_version(
         drafts.publish_stored_draft(db, draft_id, 1)
 
     assert refused.value.status_code == 409
-    assert refused.value.detail == DRAFT_CHANGED_DETAIL
+    assert _answered(refused.value.detail) == DRAFT_CHANGED_DETAIL
     assert get(signed_in_client, draft_id) == before
     assert rows(draft_id) == (0, 0, 0)
     assert fake_eudiplo.calls == []

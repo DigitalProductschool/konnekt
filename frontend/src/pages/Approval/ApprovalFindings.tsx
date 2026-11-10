@@ -1,7 +1,7 @@
 import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { useId, useMemo } from 'react';
 
-import { useDocumentTypes } from '../../hooks/useDocumentTypes';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useOptionSets } from '../../hooks/useOptionSets';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import PublishFindingLine from '../FormConnectionEditor/PublishFindingLine';
@@ -19,9 +19,11 @@ import { checkedBranchesOf, requestedDocumentsOf } from './utils';
  * region, which stays rendered so that its text is announced. The findings never block approving,
  * and nothing about them is stored, sent or logged.
  */
-export default function ApprovalFindings({ draft }: ApprovalFindingsProps) {
+export default function ApprovalFindings({ draft, catalog }: ApprovalFindingsProps) {
   const titleId = useId();
-  const { status: catalogStatus, documentTypes } = useDocumentTypes();
+  const { language } = useLanguage();
+  const copy = APPROVAL_COPY[language];
+  const { status: catalogStatus, documentTypes } = catalog;
   const { status: optionSetsStatus, optionSets } = useOptionSets();
   const branches = useMemo(() => checkedBranchesOf(draft), [draft]);
   const loaded = catalogStatus === 'loaded' && optionSetsStatus === 'loaded';
@@ -38,27 +40,28 @@ export default function ApprovalFindings({ draft }: ApprovalFindingsProps) {
   );
   const { byBranch } = useRuleChecks(branches, context, branches[0]?.key ?? '');
   const pending = !failed && (!loaded || branches.some((branch) => !byBranch[branch.key]));
-  const lines = pending || failed ? [] : warningsFirst(findingLinesOf(branches, byBranch));
+  const lines =
+    pending || failed ? [] : warningsFirst(findingLinesOf(branches, byBranch, language));
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-8">
       <h2 id={titleId} className={SECTION_TITLE_CLASSES}>
-        {APPROVAL_COPY.checksTitle}
+        {copy.checksTitle}
       </h2>
       {/* Empty, it leaves the flow (no gap) but stays rendered, so its text is announced */}
       <p
         role="status"
         className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) empty:absolute"
       >
-        {pending ? APPROVAL_COPY.checking : ''}
+        {pending ? copy.checking : ''}
       </p>
       {failed && (
         <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-          {APPROVAL_COPY.checksFailed}
+          {copy.checksFailed}
         </p>
       )}
       {!pending && !failed && lines.length === 0 && (
-        <p className={BODY_TEXT_CLASSES}>{APPROVAL_COPY.noFindings}</p>
+        <p className={BODY_TEXT_CLASSES}>{copy.noFindings}</p>
       )}
       {lines.length > 0 && (
         // "Rule findings" (U77 6760:47353): 4 between the lines

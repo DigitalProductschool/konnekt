@@ -8,13 +8,15 @@ import type {
 import type { BranchCheck, BranchNotice, ItemFinding } from '@connection-portal/rules/checks/types';
 import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { mainBranch, US1_RULES } from '@connection-portal/rules/testData';
+import { countRules } from '@connection-portal/rules/tree';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError, handleResponse } from '../../api/client';
 import { emptyContent, sameContent } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_COPY } from './constants';
+import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_DIALOG_COPY } from './constants';
+import { RULES_STEP_COPY } from './RulesStep/constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
 import type {
@@ -26,7 +28,10 @@ import type {
 } from './types';
 import {
   conflictOf,
+  connectionErrorsOf,
   createPayload,
+  documentLines,
+  documentsToastOf,
   draftNameErrors,
   draftPayload,
   draftSaveErrorOf,
@@ -49,9 +54,12 @@ import {
   problemPlaceOf,
   publishErrorNotice,
   removalAction,
+  removalInLanguage,
   removedDataRulesOf,
+  ruleLines,
   rulesChanged,
   rulesNextActionOf,
+  saveFailureToastOf,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -234,8 +242,8 @@ describe('isRulesChanged and publishErrorNotice (W9)', () => {
   });
 
   it('shows the API’s message, then what Reload and replacing do', () => {
-    expect(publishErrorNotice(rulesChangedError(), true)).toEqual({
-      message: `${RULES_CHANGED_MESSAGE} ${PUBLISH_COPY.rulesChangedHint}`,
+    expect(publishErrorNotice(rulesChangedError(), true, 'en')).toEqual({
+      message: `${RULES_CHANGED_MESSAGE} ${PUBLISH_DIALOG_COPY.en.rulesChangedHint}`,
     });
   });
 });
@@ -245,7 +253,7 @@ describe('editorReducer and rules_changed', () => {
     { ...INITIAL_EDITOR_STATE, dialogOpen: true, publishing: true },
     {
       type: 'publishFailed',
-      error: publishErrorNotice(rulesChangedError(), true),
+      error: publishErrorNotice(rulesChangedError(), true, 'en'),
       rulesChanged: true,
     }
   );
@@ -283,7 +291,7 @@ describe('editorReducer and the toast on leaving a step (B4)', () => {
 
 describe('editorReducer and saving a draft (FR-013, S1.5)', () => {
   const failure: DraftSaveError = {
-    notice: { message: DRAFT_COPY.saveNetworkError, error_id: 'abc123' },
+    notice: { message: DRAFT_COPY.en.saveNetworkError, error_id: 'abc123' },
     retryable: true,
   };
 
@@ -332,16 +340,16 @@ describe('conflictOf (S2; R6)', () => {
   const deleted = new ApiError(404, { error: 'not_found', message: 'Draft not found.' });
 
   it('gives draft_changed with the server message and what was running', () => {
-    expect(conflictOf(changed, draftOrigin, 'save')).toEqual({
+    expect(conflictOf(changed, draftOrigin, 'save', 'en')).toEqual({
       kind: 'draft_changed',
       during: 'save',
       message: 'Kim saved this draft at 14:32.',
     });
-    expect(conflictOf(changed, draftOrigin, 'publish')?.during).toBe('publish');
+    expect(conflictOf(changed, draftOrigin, 'publish', 'en')?.during).toBe('publish');
   });
 
   it('gives draft_published with the server message', () => {
-    expect(conflictOf(published, draftOrigin, 'publish')).toEqual({
+    expect(conflictOf(published, draftOrigin, 'publish', 'en')).toEqual({
       kind: 'draft_published',
       during: 'publish',
       message: 'Kim published this draft at 14:32.',
@@ -349,10 +357,10 @@ describe('conflictOf (S2; R6)', () => {
   });
 
   it('gives draft_deleted with the deleted text for a 404 of a stored draft', () => {
-    expect(conflictOf(deleted, draftOrigin, 'save')).toEqual({
+    expect(conflictOf(deleted, draftOrigin, 'save', 'en')).toEqual({
       kind: 'draft_deleted',
       during: 'save',
-      message: DRAFT_COPY.draftDeletedText,
+      message: DRAFT_COPY.en.draftDeletedText,
     });
   });
 
@@ -360,18 +368,18 @@ describe('conflictOf (S2; R6)', () => {
     const other409 = new ApiError(409, { error: 'rules_changed', message: 'Changed.' });
     const badRequest = new ApiError(400, { error: 'draft_changed', message: 'Invalid.' });
     const serverError = new ApiError(500, { error: 'server_error', message: 'Failed.' });
-    expect(conflictOf(other409, draftOrigin, 'save')).toBeNull();
-    expect(conflictOf(badRequest, draftOrigin, 'save')).toBeNull();
-    expect(conflictOf(serverError, draftOrigin, 'publish')).toBeNull();
-    expect(conflictOf(new TypeError('Failed to fetch'), draftOrigin, 'save')).toBeNull();
-    expect(conflictOf(undefined, draftOrigin, 'save')).toBeNull();
+    expect(conflictOf(other409, draftOrigin, 'save', 'en')).toBeNull();
+    expect(conflictOf(badRequest, draftOrigin, 'save', 'en')).toBeNull();
+    expect(conflictOf(serverError, draftOrigin, 'publish', 'en')).toBeNull();
+    expect(conflictOf(new TypeError('Failed to fetch'), draftOrigin, 'save', 'en')).toBeNull();
+    expect(conflictOf(undefined, draftOrigin, 'save', 'en')).toBeNull();
   });
 
   it('is null for a new or a published origin', () => {
     for (const origin of [newOrigin, publishedOrigin]) {
-      expect(conflictOf(changed, origin, 'save')).toBeNull();
-      expect(conflictOf(published, origin, 'publish')).toBeNull();
-      expect(conflictOf(deleted, origin, 'publish')).toBeNull();
+      expect(conflictOf(changed, origin, 'save', 'en')).toBeNull();
+      expect(conflictOf(published, origin, 'publish', 'en')).toBeNull();
+      expect(conflictOf(deleted, origin, 'publish', 'en')).toBeNull();
     }
   });
 });
@@ -611,7 +619,7 @@ describe('firstBranchWithFindings', () => {
       b3: check('b3', conflict),
     };
     expect(firstBranchWithFindings(BRANCHES, byBranch)).toBe(
-      findingLinesOf(BRANCHES, byBranch)[0].key
+      findingLinesOf(BRANCHES, byBranch, 'en')[0].key
     );
   });
 });
@@ -627,17 +635,21 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
   ];
 
   it('is empty without findings', () => {
-    expect(findingLinesOf(BRANCHES, {})).toEqual([]);
+    expect(findingLinesOf(BRANCHES, {}, 'en')).toEqual([]);
     expect(
-      findingLinesOf(BRANCHES, { main: check('main', []), b2: null, b3: check('b3', []) })
+      findingLinesOf(BRANCHES, { main: check('main', []), b2: null, b3: check('b3', []) }, 'en')
     ).toEqual([]);
   });
 
   it('gives one line per branch with findings, in tab order, under the name the tab shows', () => {
-    const lines = findingLinesOf([branch('main', 'Standard'), branch('b2', ' Ambulance ')], {
-      b2: check('b2', conflict),
-      main: check('main', duplicate),
-    });
+    const lines = findingLinesOf(
+      [branch('main', 'Standard'), branch('b2', ' Ambulance ')],
+      {
+        b2: check('b2', conflict),
+        main: check('main', duplicate),
+      },
+      'en'
+    );
     expect(lines).toEqual([
       { key: 'main', text: 'Standard: 1 rule is a duplicate.', tone: 'info' },
       { key: 'b2', text: 'Ambulance: 2 rules contradict each other.', tone: 'warning' },
@@ -646,10 +658,14 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
 
   it('adds the notice of a branch no citizen can meet, in the warning style', () => {
     expect(
-      findingLinesOf(BRANCHES, {
-        b2: check('b2', conflict, { kind: 'none_can_meet', today: false }),
-        b3: check('b3', [], { kind: 'none_can_meet', today: true }),
-      })
+      findingLinesOf(
+        BRANCHES,
+        {
+          b2: check('b2', conflict, { kind: 'none_can_meet', today: false }),
+          b3: check('b3', [], { kind: 'none_can_meet', today: true }),
+        },
+        'en'
+      )
     ).toEqual([
       {
         key: 'b2',
@@ -662,10 +678,14 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
 
   it('shows duplicate, always-met and all-meet findings in the info style', () => {
     expect(
-      findingLinesOf(BRANCHES, {
-        main: check('main', alwaysMet),
-        b2: check('b2', [], { kind: 'all_meet', today: false }),
-      })
+      findingLinesOf(
+        BRANCHES,
+        {
+          main: check('main', alwaysMet),
+          b2: check('b2', [], { kind: 'all_meet', today: false }),
+        },
+        'en'
+      )
     ).toEqual([
       { key: 'main', text: 'Standard: 1 rule every citizen meets.', tone: 'info' },
       { key: 'b2', text: 'Ambulance: every citizen meets these rules.', tone: 'info' },
@@ -673,7 +693,9 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
   });
 
   it('takes the warning style for a conflict next to info findings', () => {
-    expect(findingLinesOf(BRANCHES, { main: check('main', [...conflict, ...duplicate]) })).toEqual([
+    expect(
+      findingLinesOf(BRANCHES, { main: check('main', [...conflict, ...duplicate]) }, 'en')
+    ).toEqual([
       {
         key: 'main',
         text: 'Standard: 2 rules contradict each other, and 1 rule is a duplicate.',
@@ -684,11 +706,15 @@ describe('findingLinesOf (US4-AS1, AS2, AS4)', () => {
 
   it('leaves out branches without checked rules or only checked incompletely', () => {
     expect(
-      findingLinesOf(BRANCHES, {
-        main: { ...check('main', conflict), checkedRules: 0 },
-        b2: { ...check('b2', []), complete: false },
-        b3: { ...check('b3', duplicate), complete: false },
-      })
+      findingLinesOf(
+        BRANCHES,
+        {
+          main: { ...check('main', conflict), checkedRules: 0 },
+          b2: { ...check('b2', []), complete: false },
+          b3: { ...check('b3', duplicate), complete: false },
+        },
+        'en'
+      )
     ).toEqual([{ key: 'b3', text: 'Taxi: 1 rule is a duplicate.', tone: 'info' }]);
   });
 });
@@ -701,8 +727,8 @@ describe('the test step (spec 004, S2, S8)', () => {
   };
 
   it('titles the test step with the intro, in both modes (FR-004)', () => {
-    expect(pageTitleOf('test', 'create')).toEqual(TEST_TITLE);
-    expect(pageTitleOf('test', 'edit')).toEqual(TEST_TITLE);
+    expect(pageTitleOf('test', 'create', 'en')).toEqual(TEST_TITLE);
+    expect(pageTitleOf('test', 'edit', 'en')).toEqual(TEST_TITLE);
   });
 
   it('publishes without rules while no branch has a rule (FR-001)', () => {
@@ -747,6 +773,7 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
 
   it('opens the branch the problem names and focuses its rule, then the message', () => {
     const problem = {
+      code: 'noMessage' as const,
       message: 'Rule 01 in Standard has no error message.',
       branchIndex: 0,
       itemId: ruleId,
@@ -758,7 +785,12 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
   });
 
   it('focuses the message when the problem names a branch but no rule', () => {
-    const problem = { message: 'Enter a name for the variant.', branchIndex: 0, itemId: null };
+    const problem = {
+      code: 'variantNameMissing' as const,
+      message: 'Enter a name for the variant.',
+      branchIndex: 0,
+      itemId: null,
+    };
     expect(problemPlaceOf(rules.branches, problem)).toEqual({
       branchKey: standard.key,
       focusIds: ['rules-problem'],
@@ -767,6 +799,7 @@ describe('problemPlaceOf (spec 004, FR-002; W3)', () => {
 
   it('keeps the open branch when the problem names none', () => {
     const problem = {
+      code: 'tooManyBranches' as const,
       message: 'There can be at most 10 variants.',
       branchIndex: null,
       itemId: null,
@@ -1348,12 +1381,12 @@ describe('step 1 and the header (S7; T049, U19, U98)', () => {
   };
 
   it('titles step 1 as U19 draws it, also for the first connection (U18 6793:47711)', () => {
-    expect(pageTitleOf('connection', 'create')).toEqual(STEP_1);
-    expect(pageTitleOf('connection', 'first')).toEqual(STEP_1);
+    expect(pageTitleOf('connection', 'create', 'en')).toEqual(STEP_1);
+    expect(pageTitleOf('connection', 'first', 'en')).toEqual(STEP_1);
   });
 
   it('titles the edit flow’s step 1 "Connection details" (U98, build note U05 #27)', () => {
-    expect(pageTitleOf('connection', 'edit')).toEqual({
+    expect(pageTitleOf('connection', 'edit', 'en')).toEqual({
       title: 'Connection details',
       hint: 'Rename this connection or update its description.',
     });
@@ -1361,20 +1394,20 @@ describe('step 1 and the header (S7; T049, U19, U98)', () => {
 
   it('reads "New connection" on a new connection’s step 1, the name after it (U19 6699:45350)', () => {
     const named = { ...INITIAL_EDITOR_STATE, name: ' Taxi licence ' };
-    expect(headerTitleOf(INITIAL_EDITOR_STATE)).toBe('New connection');
-    expect(headerTitleOf(named)).toBe('New connection');
-    expect(headerTitleOf({ ...named, step: 'documents' })).toBe('Taxi licence');
+    expect(headerTitleOf(INITIAL_EDITOR_STATE, 'en')).toBe('New connection');
+    expect(headerTitleOf(named, 'en')).toBe('New connection');
+    expect(headerTitleOf({ ...named, step: 'documents' }, 'en')).toBe('Taxi licence');
   });
 
   it('names a stored draft on step 1 too, the adopted header of U19 6716:40925', () => {
     const named = { ...INITIAL_EDITOR_STATE, name: 'Taxi licence' };
-    expect(headerTitleOf(named, undefined, true)).toBe('Taxi licence');
-    expect(headerTitleOf({ ...named, name: '  ' }, undefined, true)).toBe('New connection');
+    expect(headerTitleOf(named, 'en', undefined, true)).toBe('Taxi licence');
+    expect(headerTitleOf({ ...named, name: '  ' }, 'en', undefined, true)).toBe('New connection');
   });
 
   it('names a published connection by the name as typed, or its saved one', () => {
-    expect(headerTitleOf({ ...INITIAL_EDITOR_STATE, name: 'Taxi' }, LOADED)).toBe('Taxi');
-    expect(headerTitleOf(INITIAL_EDITOR_STATE, LOADED)).toBe(LOADED.name);
+    expect(headerTitleOf({ ...INITIAL_EDITOR_STATE, name: 'Taxi' }, 'en', LOADED)).toBe('Taxi');
+    expect(headerTitleOf(INITIAL_EDITOR_STATE, 'en', LOADED)).toBe(LOADED.name);
   });
 });
 
@@ -1382,21 +1415,21 @@ describe('validateConnection (FR-002, FR-003)', () => {
   const NAME = 'Passenger transport licence';
 
   it('takes an empty or space-only description', () => {
-    expect(validateConnection(NAME, '')).toEqual({});
-    expect(validateConnection(NAME, '   ')).toEqual({});
+    expect(validateConnection(NAME, '', 'en')).toEqual({});
+    expect(validateConnection(NAME, '   ', 'en')).toEqual({});
   });
 
   it('takes 500 characters and refuses 501', () => {
-    expect(validateConnection(NAME, 'a'.repeat(500))).toEqual({});
-    expect(validateConnection(NAME, ` ${'a'.repeat(500)} `)).toEqual({});
-    const errors = validateConnection(NAME, 'a'.repeat(501));
+    expect(validateConnection(NAME, 'a'.repeat(500), 'en')).toEqual({});
+    expect(validateConnection(NAME, ` ${'a'.repeat(500)} `, 'en')).toEqual({});
+    const errors = validateConnection(NAME, 'a'.repeat(501), 'en');
     expect(errors).toEqual({ description: 'The description can have at most 500 characters.' });
     expect(firstInvalidElementId(errors)).toBe('connection-description');
   });
 
   it('still gives the name’s error first', () => {
-    expect(validateConnection('', '')).toEqual({ name: 'Enter a name for the connection.' });
-    const errors = validateConnection('  ', 'a'.repeat(501));
+    expect(validateConnection('', '', 'en')).toEqual({ name: 'Enter a name for the connection.' });
+    const errors = validateConnection('  ', 'a'.repeat(501), 'en');
     expect(errors).toEqual({
       name: 'Enter a name for the connection.',
       description: 'The description can have at most 500 characters.',
@@ -1407,19 +1440,19 @@ describe('validateConnection (FR-002, FR-003)', () => {
 
 describe('draftNameErrors (R12)', () => {
   it('asks for a name', () => {
-    expect(draftNameErrors('')).toEqual({ name: 'Enter a name for the connection.' });
-    expect(draftNameErrors('   ')).toEqual({ name: 'Enter a name for the connection.' });
+    expect(draftNameErrors('', 'en')).toEqual({ name: 'Enter a name for the connection.' });
+    expect(draftNameErrors('   ', 'en')).toEqual({ name: 'Enter a name for the connection.' });
   });
 
   it('takes 200 characters and refuses 201', () => {
-    expect(draftNameErrors('a'.repeat(200))).toEqual({});
-    expect(draftNameErrors('a'.repeat(201))).toEqual({
+    expect(draftNameErrors('a'.repeat(200), 'en')).toEqual({});
+    expect(draftNameErrors('a'.repeat(201), 'en')).toEqual({
       name: 'The name can have at most 200 characters.',
     });
   });
 
   it('never asks for a description', () => {
-    expect(draftNameErrors('Passenger transport licence')).toEqual({});
+    expect(draftNameErrors('Passenger transport licence', 'en')).toEqual({});
   });
 });
 
@@ -1431,7 +1464,7 @@ describe('draftSaveErrorOf (S1.5, W3)', () => {
       error: 'validation_error',
       message: 'The name can have at most 200 characters.',
     });
-    expect(draftSaveErrorOf(error)).toEqual({
+    expect(draftSaveErrorOf(error, 'en')).toEqual({
       notice: { message: 'The name can have at most 200 characters.' },
       retryable: false,
     });
@@ -1439,7 +1472,7 @@ describe('draftSaveErrorOf (S1.5, W3)', () => {
 
   it('shows a 404’s message, without "Try again"', () => {
     const error = new ApiError(404, { error: 'not_found', message: 'Draft not found.' });
-    expect(draftSaveErrorOf(error)).toEqual({
+    expect(draftSaveErrorOf(error, 'en')).toEqual({
       notice: { message: 'Draft not found.' },
       retryable: false,
     });
@@ -1451,7 +1484,7 @@ describe('draftSaveErrorOf (S1.5, W3)', () => {
       message: 'Something went wrong.',
       error_id: 'abc123',
     });
-    expect(draftSaveErrorOf(error)).toEqual({
+    expect(draftSaveErrorOf(error, 'en')).toEqual({
       notice: { message: NETWORK, error_id: 'abc123' },
       retryable: true,
     });
@@ -1461,11 +1494,14 @@ describe('draftSaveErrorOf (S1.5, W3)', () => {
     const response = new Response('<html>502 Bad Gateway</html>', { status: 502 });
     const error: unknown = await handleResponse(response).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ApiError);
-    expect(draftSaveErrorOf(error)).toEqual({ notice: { message: NETWORK }, retryable: true });
+    expect(draftSaveErrorOf(error, 'en')).toEqual({
+      notice: { message: NETWORK },
+      retryable: true,
+    });
   });
 
   it('shows U28’s text for a network failure, and "Try again"', () => {
-    expect(draftSaveErrorOf(new TypeError('Failed to fetch'))).toEqual({
+    expect(draftSaveErrorOf(new TypeError('Failed to fetch'), 'en')).toEqual({
       notice: { message: NETWORK },
       retryable: true,
     });
@@ -1621,5 +1657,212 @@ describe('warningsFirst (FR-044c)', () => {
     ];
     expect(warningsFirst(lines).map((line) => line.key)).toEqual(['b2', 'b4', 'main', 'b3']);
     expect(lines.map((line) => line.key)).toEqual(['main', 'b2', 'b3', 'b4']);
+  });
+});
+
+describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', () => {
+  function field(key: string, label: string): DocumentField {
+    return {
+      key,
+      label,
+      kind: 'text',
+      option_set: null,
+      date_of_birth: false,
+      parts: null,
+      multiple_values: false,
+    };
+  }
+
+  // The catalog as `useDocumentTypes` delivers it in German (glossary G§4)
+  const GERMAN_CATALOG: DocumentType[] = [
+    { key: 'pid', label: 'Personalausweis', fields: [field('birthdate', 'Geburtsdatum')] },
+    { key: 'mdl', label: 'Führerschein', fields: [] },
+  ];
+  const ENGLISH_CATALOG: DocumentType[] = [
+    { key: 'pid', label: 'Personal ID', fields: [field('birthdate', 'Date of birth')] },
+    { key: 'mdl', label: 'Driving licence', fields: [] },
+  ];
+
+  it('titles step 1 and the documents step in German', () => {
+    expect(pageTitleOf('connection', 'create', 'de')).toEqual({
+      title: 'Benennen Sie Ihre Anbindung',
+      hint: 'Verbinden Sie einen Dienst mit der EUDI-Wallet, damit Bürgerinnen und Bürger geprüfte Daten teilen können.',
+    });
+    expect(pageTitleOf('connection', 'edit', 'de').title).toBe('Details der Anbindung');
+    expect(pageTitleOf('documents', 'create', 'de').title).toBe('Dokumente und Daten auswählen');
+    expect(pageTitleOf('rules', 'edit', 'de')).toEqual({
+      title: RULES_STEP_COPY.de.title,
+      hint: RULES_STEP_COPY.de.hint,
+    });
+  });
+
+  it('names a new connection in German, and a name as typed in both', () => {
+    expect(headerTitleOf(INITIAL_EDITOR_STATE, 'de')).toBe('Neue Anbindung');
+    const named = { ...INITIAL_EDITOR_STATE, name: 'Taxi licence', step: 'documents' as const };
+    expect(headerTitleOf(named, 'de')).toBe('Taxi licence');
+  });
+
+  it('refuses step 1 with the server’s German messages, word for word', () => {
+    expect(validateConnection('', 'a'.repeat(501), 'de')).toEqual({
+      name: 'Geben Sie einen Namen für die Anbindung ein.',
+      description: 'Die Beschreibung darf höchstens 500 Zeichen lang sein.',
+    });
+    expect(draftNameErrors('a'.repeat(201), 'de')).toEqual({
+      name: 'Der Name darf höchstens 200 Zeichen lang sein.',
+    });
+  });
+
+  it('words the messages shown again in the language of the moment, only where there are any', () => {
+    const shown = validateConnection('', 'a'.repeat(501), 'en');
+    expect(connectionErrorsOf(shown, '', 'a'.repeat(501), 'de')).toEqual({
+      name: 'Geben Sie einen Namen für die Anbindung ein.',
+      description: 'Die Beschreibung darf höchstens 500 Zeichen lang sein.',
+    });
+    expect(connectionErrorsOf(shown, '', 'a'.repeat(501), 'en')).toEqual(shown);
+    // "Save and exit" checks the name only: a long description gets no message
+    const nameOnly = draftNameErrors('', 'de');
+    expect(connectionErrorsOf(nameOnly, '', 'a'.repeat(501), 'en')).toEqual({
+      name: 'Enter a name for the connection.',
+      description: undefined,
+    });
+    expect(connectionErrorsOf({}, '', '', 'de')).toEqual({
+      name: undefined,
+      description: undefined,
+    });
+  });
+
+  it('names the data of an open removal question from the catalog of the moment', () => {
+    const asked: PendingRemoval = {
+      type: 'field',
+      documentType: 'pid',
+      field: 'birthdate',
+      label: 'Date of birth',
+    };
+    expect(removalInLanguage(asked, GERMAN_CATALOG, 'de')).toEqual({
+      ...asked,
+      label: 'Geburtsdatum',
+    });
+    expect(removalInLanguage(asked, ENGLISH_CATALOG, 'en')).toEqual(asked);
+    const document: PendingRemoval = { type: 'document', documentType: 'mdl', label: 'x' };
+    expect(removalInLanguage(document, GERMAN_CATALOG, 'de').label).toBe('Führerschein');
+    const all: PendingRemoval = { type: 'allFields', documentType: 'pid', label: 'x' };
+    expect(removalInLanguage(all, GERMAN_CATALOG, 'de').label).toBe('Personalausweis');
+    // A key the catalog lacks keeps its key, as the catalog has no name for it
+    const unknown: PendingRemoval = { type: 'document', documentType: 'permit', label: 'permit' };
+    expect(removalInLanguage(unknown, GERMAN_CATALOG, 'de').label).toBe('permit');
+  });
+
+  it('names the dropped data of the note’s question in the language of the moment', () => {
+    const dropped = droppedRemovalOf([
+      { documentType: 'pid', field: 'eye_colour', label: 'Personal ID – eye_colour' },
+      { documentType: 'residence_permit', field: null, label: 'residence_permit' },
+    ]);
+    expect(removalInLanguage(dropped, GERMAN_CATALOG, 'de')).toEqual({
+      type: 'dropped',
+      items: [
+        { documentType: 'pid', field: 'eye_colour', label: 'Personalausweis – eye_colour' },
+        { documentType: 'residence_permit', field: null, label: 'residence_permit' },
+      ],
+      label: 'Personalausweis – eye_colour, residence_permit',
+    });
+    expect(removalInLanguage(dropped, ENGLISH_CATALOG, 'en')).toEqual(dropped);
+  });
+
+  it('words the documents’ toast as it shows, keeping its id', () => {
+    const removed = editorReducer(
+      { ...INITIAL_EDITOR_STATE, documents: [{ document_type: 'mdl', fields: [] }] },
+      { type: 'removeDocument', documentType: 'mdl', label: 'Driving licence' }
+    );
+    expect(documentsToastOf(removed.toast, removed.removed, GERMAN_CATALOG, 'de')).toEqual({
+      id: removed.toast?.id,
+      message: 'Führerschein entfernt.',
+      actionLabel: 'Rückgängig',
+    });
+    expect(documentsToastOf(removed.toast, removed.removed, ENGLISH_CATALOG, 'en')).toEqual(
+      removed.toast
+    );
+    expect(documentsToastOf(null, null, GERMAN_CATALOG, 'de')).toBeNull();
+  });
+
+  it('counts the publish dialog’s summary in German', () => {
+    const documents = [
+      { document_type: 'pid', fields: ['birthdate'] },
+      { document_type: 'mdl', fields: ['a', 'b'] },
+    ];
+    expect(documentLines(documents, GERMAN_CATALOG, 'de')).toEqual([
+      'Personalausweis · 1 Feld',
+      'Führerschein · 2 Felder',
+    ]);
+    expect(documentLines(documents, ENGLISH_CATALOG, 'en')).toEqual([
+      'Personal ID · 1 data item',
+      'Driving licence · 2 data items',
+    ]);
+    const rules = initialRulesState(LOADED);
+    expect(ruleLines(rules, false, 'de')).toEqual([
+      `Standard · ${countRules(rules.branches[0].items)} Regeln`,
+    ]);
+    expect(ruleLines(rules, true, 'de')).toEqual(['Keine Regeln']);
+    expect(ruleLines(initialRulesState(), false, 'de')).toEqual(['Standard · Keine Regeln']);
+  });
+
+  it('gives the findings’ lines in German, the variants’ names as they are', () => {
+    expect(
+      findingLinesOf(
+        [branch('main', 'Standard'), branch('b2', ' Ambulance ')],
+        { main: check('main', []), b2: check('b2', conflict) },
+        'de'
+      )
+    ).toEqual([
+      {
+        key: 'b2',
+        text: 'Ambulance: 2 Regeln widersprechen einander.',
+        tone: 'warning',
+      },
+    ]);
+  });
+
+  it('words a failed save in German, and keeps the server’s message', () => {
+    const network = draftSaveErrorOf(new TypeError('Failed to fetch'), 'de');
+    expect(saveFailureToastOf(network, -1, 'de')).toEqual({
+      id: -1,
+      message:
+        'Der Entwurf konnte nicht gespeichert werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      actionLabel: 'Erneut versuchen',
+      errorId: undefined,
+    });
+    // A switch while it shows: the website's own sentence follows the language
+    expect(saveFailureToastOf(network, -1, 'en')).toMatchObject({
+      message: DRAFT_COPY.en.saveNetworkError,
+      actionLabel: 'Try again',
+    });
+    const refused = draftSaveErrorOf(
+      new ApiError(400, {
+        error: 'invalid',
+        message: 'Der Name darf höchstens 200 Zeichen lang sein.',
+      }),
+      'en'
+    );
+    expect(saveFailureToastOf(refused, -2, 'en')).toEqual({
+      id: -2,
+      message: 'Der Name darf höchstens 200 Zeichen lang sein.',
+      actionLabel: undefined,
+      errorId: undefined,
+    });
+  });
+
+  it('gives the deleted draft’s text and the rules’ conflict hint in German', () => {
+    const deleted = new ApiError(404, { error: 'not_found', message: 'Entwurf nicht gefunden.' });
+    const origin: EditorOrigin = {
+      kind: 'draft',
+      draftId: 'd1',
+      draftVersion: 1,
+      flowKey: flowKeyOfDraft('d1'),
+    };
+    expect(conflictOf(deleted, origin, 'publish', 'de')?.message).toBe(
+      'Dieser Entwurf wurde gelöscht, nachdem Sie ihn geöffnet haben. Speichern Sie Ihre Arbeit als neuen Entwurf, um sie zu behalten.'
+    );
+    expect(publishErrorNotice(rulesChangedError(), true, 'de').message).toBe(
+      `${RULES_CHANGED_MESSAGE} ${PUBLISH_DIALOG_COPY.de.rulesChangedHint}`
+    );
   });
 });

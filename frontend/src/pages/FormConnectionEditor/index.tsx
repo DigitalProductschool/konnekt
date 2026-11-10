@@ -8,6 +8,7 @@ import type {
 import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
+import type { Language } from '@connection-portal/rules/language';
 import { firstProblem } from '@connection-portal/rules/validation';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -26,12 +27,12 @@ import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageTitle from '../../components/PageTitle';
 import Toast from '../../components/Toast';
-import type { ToastContent } from '../../components/Toast/types';
 import WizardLayout from '../../components/WizardLayout';
 import WizardProgress from '../../components/WizardProgress';
 import { CONNECTION_STEPS, ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useLocalDraft } from '../../hooks/useLocalDraft';
 import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { useOptionSets } from '../../hooks/useOptionSets';
@@ -52,7 +53,7 @@ import {
 } from './constants';
 import DocumentsStep from './DocumentsStep';
 import {
-  DOCUMENTS_STEP_COPY,
+  DOCUMENTS_COPY,
   DOCUMENTS_STEP_IDS,
   INITIAL_DOCUMENTS_VIEW_STATE,
 } from './DocumentsStep/constants';
@@ -112,8 +113,10 @@ import type {
 } from './types';
 import {
   conflictOf,
+  connectionErrorsOf,
   createPayload,
   documentLines,
+  documentsToastOf,
   draftNameErrors,
   draftPayload,
   draftSaveErrorOf,
@@ -132,9 +135,11 @@ import {
   problemPlaceOf,
   publishErrorNotice,
   removalAction,
+  removalInLanguage,
   removedDataRulesOf,
   ruleLines,
   rulesNextActionOf,
+  saveFailureToastOf,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -328,12 +333,12 @@ function publishDialogReducer(
  * sent; any other answer, such as a `400`, the server's message (002-S5.3). A `409 rules_changed`
  * is a conflict, not a failure.
  */
-function publishFailureOf(error: unknown, editing: boolean): PublishFailure {
+function publishFailureOf(error: unknown, editing: boolean, language: Language): PublishFailure {
   if (!(error instanceof ApiError) || error.status >= 500) {
     const errorId = error instanceof ApiError ? error.data.error_id : undefined;
     return errorId ? { kind: 'general', errorId } : { kind: 'general' };
   }
-  return { kind: 'refused', notice: publishErrorNotice(error, editing) };
+  return { kind: 'refused', notice: publishErrorNotice(error, editing, language) };
 }
 
 /**
@@ -431,13 +436,19 @@ function ConnectionWizard({
     trigger: HTMLButtonElement | null;
   } | null>(null);
   // The failed save's toast (FR-033), shown while its failure is the editor's `draftError`: a
-  // change of step or a new save takes it away, as does Escape on the toast
-  const [saveFailure, setSaveFailure] = useState<{
-    error: DraftSaveError;
-    toast: ToastContent;
-  } | null>(null);
+  // change of step or a new save takes it away, as does Escape on the toast. Its words are
+  // composed as it shows (`saveFailureToastOf()`), so that a switch of the language words it anew
+  const [saveFailure, setSaveFailure] = useState<{ error: DraftSaveError; id: number } | null>(
+    null
+  );
   // Counts the failures, so that each toast is new and announced again
   const saveFailures = useRef(0);
+  // The website's language (spec 009): the catalog's labels come in it, the rules' texts compose
+  // in it through the context below, and a switch rewords what shows without re-keying anything
+  const { language } = useLanguage();
+  const draftCopy = useCopy(DRAFT_COPY);
+  const leaveCopy = useCopy(LEAVE_COPY);
+  const documentsCopy = useCopy(DOCUMENTS_COPY);
   const { status: catalogStatus, documentTypes, retry } = useDocumentTypes();
   const { status: optionSetsStatus, optionSets, retry: retryOptionSets } = useOptionSets();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -464,18 +475,22 @@ function ConnectionWizard({
   const askedDocumentRemoval: PendingRemoval | null = askedDocumentType
     ? { type: 'document', documentType: askedDocumentType.key, label: askedDocumentType.label }
     : null;
-  // The names of the documents "Set rules →" last flagged as having no data, in list order, which
-  // the dialog about them shows (F67, #55); kept as they were, so that the dialog's words don't
-  // change while it fades out after "Remove 1 document"
-  const [noDataNames, setNoDataNames] = useState<string[]>([]);
+  // The documents "Set rules →" last flagged as having no data, in list order, which the dialog
+  // about them names (F67, #55): their keys, kept as they were, so that the dialog's words don't
+  // change while it fades out after "Remove 1 document"; their names are the catalog's of the
+  // moment, so that they follow a switch of the language while it is open
+  const [noDataIds, setNoDataIds] = useState<string[]>([]);
+  const noDataNames = noDataIds.map((id) => labelOf(id, documentTypes));
   // The edit flow's "Save" asked about them (not "Set rules →"): "Remove n documents" then goes on
   // to the save dialog
   const saveAfterNoData = useRef(false);
   // Data the catalog dropped, once it has loaded; never in the published edit flow (FR-026)
   const dropped = useMemo(
     () =>
-      catalogStatus === 'loaded' && !editing ? droppedDataOf(state.documents, documentTypes) : [],
-    [catalogStatus, editing, state.documents, documentTypes]
+      catalogStatus === 'loaded' && !editing
+        ? droppedDataOf(state.documents, documentTypes, language)
+        : [],
+    [catalogStatus, editing, state.documents, documentTypes, language]
   );
   // The Rules step needs the catalog and the value sets
   const rulesStatus =
@@ -484,13 +499,17 @@ function ConnectionWizard({
       : catalogStatus === 'loaded' && optionSetsStatus === 'loaded'
         ? 'loaded'
         : 'loading';
-  const ruleCatalog: RulesCatalog = useMemo(
+  // A `RuleContext` with the language (spec 009, R4; contracts/rules-texts.md "The language on
+  // the context"): a switch rebuilds it, so every text the rules logic composes from it follows,
+  // with the catalog's labels in the same language
+  const ruleCatalog: RulesCatalog & { language: Language } = useMemo(
     () => ({
       documents: requestedRuleDocuments(documentTypes, state.documents),
       allDocuments: documentTypes,
       optionSets,
+      language,
     }),
-    [documentTypes, state.documents, optionSets]
+    [documentTypes, state.documents, optionSets, language]
   );
   // The checks of every branch's rules, once the catalog and the value sets are loaded, in the
   // create and the edit flow (FR-011; W14). The rule open in the editor counts as last saved:
@@ -520,10 +539,13 @@ function ConnectionWizard({
   // in the publish dialog (S2), whose own state holds it
   const saveConflict = state.conflict?.during === 'save' ? state.conflict : null;
   const saveFailureToast =
-    saveFailure !== null && saveFailure.error === state.draftError ? saveFailure.toast : null;
+    saveFailure !== null && saveFailure.error === state.draftError
+      ? saveFailureToastOf(saveFailure.error, saveFailure.id, language)
+      : null;
   const pageTitle = pageTitleOf(
     state.step,
-    editing ? 'edit' : firstConnection ? 'first' : 'create'
+    editing ? 'edit' : firstConnection ? 'first' : 'create',
+    language
   );
 
   useDocumentTitle(pageTitle.title);
@@ -656,7 +678,7 @@ function ConnectionWizard({
   }
 
   function handleContinue() {
-    const errors = validateConnection(state.name, state.description);
+    const errors = validateConnection(state.name, state.description, language);
     if (hasErrors(errors)) {
       refuse(errors);
       return;
@@ -683,10 +705,10 @@ function ConnectionWizard({
   function flagNeedsData(ids: string[]) {
     dispatchView({ type: 'flagNeedsData', documentIds: ids });
     if (ids.length > 0) {
-      setNoDataNames(
+      setNoDataIds(
         listed
           .filter(({ documentType }) => ids.includes(documentType.key))
-          .map(({ documentType }) => documentType.label)
+          .map(({ documentType }) => documentType.key)
       );
     }
   }
@@ -817,7 +839,7 @@ function ConnectionWizard({
    * #55), whose "Remove 1 document" goes on with the save. Whether they pass.
    */
   function passesSaveChecks(documents: RequestedDocument[]): boolean {
-    const errors = validateConnection(state.name, state.description);
+    const errors = validateConnection(state.name, state.description, language);
     if (hasErrors(errors)) {
       if (state.step !== 'connection') {
         flushSync(() => dispatch({ type: 'goToStep', step: 'connection' }));
@@ -908,7 +930,7 @@ function ConnectionWizard({
    * over their changes.
    */
   async function saveDraftAndExit(current: RulesState, replace = false) {
-    const errors = draftNameErrors(state.name);
+    const errors = draftNameErrors(state.name, language);
     if (hasErrors(errors)) {
       // "Save progress" or "Save and log out" stays in the flow too (FR-026, F18)
       stepLeave({ type: 'failed' });
@@ -933,7 +955,7 @@ function ConnectionWizard({
       if (handleUnauthorized(error)) {
         return;
       }
-      const conflict = conflictOf(error, origin, 'save');
+      const conflict = conflictOf(error, origin, 'save', language);
       if (conflict) {
         dispatch({ type: 'draftConflict', conflict });
         return;
@@ -970,23 +992,15 @@ function ConnectionWizard({
     if (state.conflict) {
       flushSync(() => dispatch({ type: 'closeConflict' }));
     }
-    const failure = draftSaveErrorOf(error);
+    const failure = draftSaveErrorOf(error, language);
     saveFailures.current += 1;
     dispatch({ type: 'saveDraftFailed', error: failure });
     // One toast at a time (research R8): the failure replaces the step's
     dispatch({ type: 'dismissToast' });
     dispatchView({ type: 'expireRemoval' });
     dispatchRules({ type: 'dismissToast' });
-    setSaveFailure({
-      error: failure,
-      toast: {
-        // Negative, so that it never shares an id with the step's toasts in the one region
-        id: -saveFailures.current,
-        message: failure.notice.message,
-        actionLabel: failure.retryable ? DRAFT_COPY.tryAgain : undefined,
-        errorId: failure.notice.error_id,
-      },
-    });
+    // Negative, so that it never shares an id with the step's toasts in the one region
+    setSaveFailure({ error: failure, id: -saveFailures.current });
   }
 
   /**
@@ -1009,7 +1023,7 @@ function ConnectionWizard({
     }
     dispatch({
       type: 'publishFailed',
-      error: publishErrorNotice(error, editing),
+      error: publishErrorNotice(error, editing, language),
       rulesChanged: isRulesChanged(error),
     });
     dispatchPublishDialog(
@@ -1018,7 +1032,7 @@ function ConnectionWizard({
             type: 'conflict',
             conflict: { kind: 'rules_changed', message: error.data.message },
           }
-        : { type: 'failed', failure: publishFailureOf(error, editing) }
+        : { type: 'failed', failure: publishFailureOf(error, editing, language) }
     );
   }
 
@@ -1183,7 +1197,9 @@ function ConnectionWizard({
     if (dialog?.type !== 'saveChanges') {
       return;
     }
-    const action = keep ? ({ type: 'saveRule' } as const) : ({ type: 'closeEditor' } as const);
+    const action = keep
+      ? ({ type: 'saveRule', language } as const)
+      : ({ type: 'closeEditor' } as const);
     const after = rulesReducer(rules, action);
     dispatchRules(action);
     continueWith(dialog.next, after);
@@ -1230,7 +1246,7 @@ function ConnectionWizard({
       if (handleUnauthorized(error)) {
         return;
       }
-      const conflict = conflictOf(error, origin, 'publish');
+      const conflict = conflictOf(error, origin, 'publish', language);
       if (conflict) {
         dispatch({ type: 'draftConflict', conflict });
         dispatchPublishDialog({ type: 'conflict', conflict });
@@ -1264,7 +1280,7 @@ function ConnectionWizard({
     if (dialog?.type === 'deleteVariant') {
       // The tab to the left opens in the deleted variant's place (FR-051 (33))
       const index = rules.branches.findIndex((branch) => branch.key === dialog.branchKey);
-      dispatchRules({ type: 'confirmDelete' });
+      dispatchRules({ type: 'confirmDelete', language });
       focusSoon(ELEMENT_IDS.branchTab(rules.branches[Math.max(index - 1, 0)].key));
       return;
     }
@@ -1273,7 +1289,7 @@ function ConnectionWizard({
     }
     const itemId = dialog.type === 'deleteRule' ? dialog.ruleId : dialog.groupId;
     const neighbour = neighbourOf(rules, dialog.branchKey, itemId);
-    dispatchRules({ type: 'confirmDelete' });
+    dispatchRules({ type: 'confirmDelete', language });
     focusSoon(
       neighbour ? ELEMENT_IDS.rule(dialog.branchKey, neighbour) : '',
       ELEMENT_IDS.addRule(dialog.branchKey)
@@ -1506,7 +1522,7 @@ function ConnectionWizard({
             name={state.name}
             editing={editing}
             description={state.description}
-            errors={state.errors}
+            errors={connectionErrorsOf(state.errors, state.name, state.description, language)}
             onChangeName={(value) => dispatch({ type: 'changeName', value })}
             onChangeDescription={(value) => dispatch({ type: 'changeDescription', value })}
             onSubmit={handleContinue}
@@ -1549,7 +1565,7 @@ function ConnectionWizard({
             onAddRule={(branchKey, parentId) => leaveEditor({ type: 'add', branchKey, parentId })}
             onEditRule={(branchKey, ruleId) => leaveEditor({ type: 'edit', branchKey, ruleId })}
             onAddData={() => leaveEditor({ type: 'documents' })}
-            onSaveRule={() => dispatchRules({ type: 'saveRule' })}
+            onSaveRule={() => dispatchRules({ type: 'saveRule', language })}
             onCancelEditor={() => leaveEditor({ type: 'cancel' })}
           />
         );
@@ -1575,7 +1591,7 @@ function ConnectionWizard({
 
   return (
     <WizardLayout
-      title={headerTitleOf(state, formConnection, origin.kind === 'draft')}
+      title={headerTitleOf(state, language, formConnection, origin.kind === 'draft')}
       badge={
         origin.kind === 'draft' ? (
           <ConnectionStatusBadge isActive draft />
@@ -1607,9 +1623,7 @@ function ConnectionWizard({
           rulesProblem={rulesProblem}
           onBack={goBack}
           onAddRules={handleAddRules}
-          addRulesExplanation={
-            state.documents.length === 0 ? DOCUMENTS_STEP_COPY.addDocumentFirst : null
-          }
+          addRulesExplanation={state.documents.length === 0 ? documentsCopy.addDocumentFirst : null}
           onTestRules={() => leaveEditor({ type: 'test' })}
           onPublish={handlePublish}
           canSaveDraft={origin.kind !== 'published'}
@@ -1628,8 +1642,8 @@ function ConnectionWizard({
           <PublishDialog
             dialog={publishDialog}
             editing={editing}
-            documentLines={documentLines(state.documents, documentTypes)}
-            ruleLines={ruleLines(rules, publishDialog.withoutRules)}
+            documentLines={documentLines(state.documents, documentTypes, language)}
+            ruleLines={ruleLines(rules, publishDialog.withoutRules, language)}
             branches={rules.branches}
             checks={ruleChecks.byBranch}
             busy={state.publishing}
@@ -1655,39 +1669,42 @@ function ConnectionWizard({
               6408:72919 with the "Cancel" of F20 */}
           <ConfirmDialog
             open={leave.status === 'leaveAsked'}
-            title={LEAVE_COPY.leaveTitle}
-            text={LEAVE_COPY.leaveText}
-            secondaryLabel={LEAVE_COPY.discardConnection}
+            title={leaveCopy.leaveTitle}
+            text={leaveCopy.leaveText}
+            secondaryLabel={leaveCopy.discardConnection}
             secondaryDanger
             onSecondary={() => answerLeave({ type: 'discard' })}
-            confirmLabel={LEAVE_COPY.saveProgress}
+            confirmLabel={leaveCopy.saveProgress}
             onCancel={() => answerLeave({ type: 'cancel' })}
             onConfirm={() => answerLeave({ type: 'saveProgress' })}
           />
           <ConfirmDialog
             open={leave.status === 'saveAsked'}
-            title={LEAVE_COPY.saveTitle}
-            text={LEAVE_COPY.saveText}
-            secondaryLabel={LEAVE_COPY.discardChanges}
+            title={leaveCopy.saveTitle}
+            text={leaveCopy.saveText}
+            secondaryLabel={leaveCopy.discardChanges}
             secondaryDanger
             onSecondary={() => answerLeave({ type: 'discard' })}
-            confirmLabel={LEAVE_COPY.save}
+            confirmLabel={leaveCopy.save}
             onCancel={() => answerLeave({ type: 'cancel' })}
             onConfirm={() => answerLeave({ type: 'saveProgress' })}
           />
           <ConfirmDialog
             open={leave.status === 'logoutAsked'}
-            title={LEAVE_COPY.logoutTitle}
-            text={LEAVE_COPY.logoutText}
-            cancelLabel={LEAVE_COPY.cancel}
-            secondaryLabel={LEAVE_COPY.logOutAnyway}
+            title={leaveCopy.logoutTitle}
+            text={leaveCopy.logoutText}
+            cancelLabel={leaveCopy.cancel}
+            secondaryLabel={leaveCopy.logOutAnyway}
             onSecondary={() => answerLeave({ type: 'logoutAnyway' })}
-            confirmLabel={LEAVE_COPY.saveAndLogOut}
+            confirmLabel={leaveCopy.saveAndLogOut}
             onCancel={() => answerLeave({ type: 'cancel' })}
             onConfirm={() => answerLeave({ type: 'saveAndLogout' })}
           />
           <RemoveDataDialog
-            removal={state.pendingRemoval}
+            removal={
+              state.pendingRemoval &&
+              removalInLanguage(state.pendingRemoval, documentTypes, language)
+            }
             rules={
               state.pendingRemoval
                 ? removedDataRulesOf(state.pendingRemoval, rules.branches, state.documents)
@@ -1708,18 +1725,18 @@ function ConnectionWizard({
           {/* "Set rules →" with documents without data (U25 7299:52174; F67, #55; T035's form) */}
           <ConfirmDialog
             open={documentsView.needsData.asking}
-            title={noDataTitle(noDataNames.length)}
-            text={noDataText(noDataNames)}
-            secondaryLabel={removeDocumentsLabel(noDataNames.length)}
+            title={noDataTitle(noDataNames.length, language)}
+            text={noDataText(noDataNames, language)}
+            secondaryLabel={removeDocumentsLabel(noDataNames.length, language)}
             secondaryDanger
             onSecondary={handleRemoveNeedingData}
-            confirmLabel={DOCUMENTS_STEP_COPY.chooseData}
+            confirmLabel={documentsCopy.chooseData}
             onCancel={handleChooseData}
             onConfirm={handleChooseData}
           />
           <RulesDialogs
             state={rules}
-            context={{ documents: ruleCatalog.allDocuments, optionSets }}
+            context={{ documents: ruleCatalog.allDocuments, optionSets, language }}
             editing={editing}
             active={formConnection?.is_active ?? true}
             dispatch={dispatchRules}
@@ -1742,13 +1759,17 @@ function ConnectionWizard({
               onDismiss={dismissRulesToast}
             />
           ) : (
-            <Toast toast={state.toast} onAction={handleUndo} onDismiss={dismissToast} />
+            <Toast
+              toast={documentsToastOf(state.toast, state.removed, documentTypes, language)}
+              onAction={handleUndo}
+              onDismiss={dismissToast}
+            />
           )}
           {/* Outside the steps, so that it stays across a change of step (FR-015) */}
           <FindingsAnnouncer announcement={ruleChecks.announcement} />
           {/* "Save and exit" in progress (S1.3): always in the page, so that its text is read */}
           <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-            {state.savingDraft ? DRAFT_COPY.savingStatus : ''}
+            {state.savingDraft ? draftCopy.savingStatus : ''}
           </div>
         </>
       }

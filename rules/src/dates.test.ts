@@ -5,6 +5,7 @@ import {
   anniversary,
   boundaryOf,
   boundaryPhrase,
+  countOf,
   formatDate,
   isValidIsoDate,
   isWholeCount,
@@ -37,6 +38,13 @@ describe('the design example (F4)', () => {
   it('leaves out "born" on other dates', () => {
     const boundary = boundaryOf({ operator: 'at_least_years_ago', years: 2 }, '2026-10-23');
     expect(boundary && boundaryPhrase(boundary, false)).toBe('on or before 23.10.2024');
+  });
+
+  it('words the example in German (glossary G§3 `RELATION_WORDS`)', () => {
+    const born = boundaryOf({ operator: 'at_least_years_ago', years: 21 }, '2026-10-23');
+    expect(born && boundaryPhrase(born, true, 'de')).toBe('geboren am oder vor dem 23.10.2005');
+    const issued = boundaryOf({ operator: 'at_least_years_ago', years: 2 }, '2026-10-23');
+    expect(issued && boundaryPhrase(issued, false, 'de')).toBe('am oder vor dem 23.10.2024');
   });
 });
 
@@ -114,6 +122,9 @@ describe('boundaryOf', () => {
     expect(boundary && boundaryPhrase(boundary, true)).toBe(
       'born between 24.10.2004 and 23.10.2005'
     );
+    expect(boundary && boundaryPhrase(boundary, true, 'de')).toBe(
+      'geboren zwischen dem 24.10.2004 und dem 23.10.2005'
+    );
   });
 
   it('matches "is exactly" with the anniversaries around 29 February', () => {
@@ -154,6 +165,9 @@ describe('boundaryOf', () => {
     });
     const on = boundaryOf({ operator: 'on', date: '2020-01-01' }, day);
     expect(on && boundaryPhrase(on, false)).toBe('on 01.01.2020');
+    expect(on && boundaryPhrase(on, false, 'de')).toBe('am 01.01.2020');
+    const after = boundaryOf({ operator: 'less_than_years_ago', years: 21 }, day);
+    expect(after && boundaryPhrase(after, true, 'de')).toBe('geboren nach dem 23.10.2005');
   });
 
   it.each([
@@ -173,6 +187,30 @@ describe('formatDate', () => {
     expect(formatDate('2005-10-23')).toBe('23.10.2005');
     expect(formatDate('2020-01-01')).toBe('01.01.2020');
     expect(formatDate('2027-09-09')).toBe('09.09.2027');
+  });
+
+  it('writes German dates the same way, dd.mm.yyyy (glossary G§1 "Dates", research R5)', () => {
+    expect(formatDate('2005-10-23', 'de')).toBe('23.10.2005');
+    expect(formatDate('2027-09-09', 'de')).toBe('09.09.2027');
+  });
+});
+
+describe('countOf', () => {
+  it('writes one and other forms in English', () => {
+    expect(countOf(1, 'years')).toBe('1 year');
+    expect(countOf(2, 'years')).toBe('2 years');
+    expect(countOf(1, 'months')).toBe('1 month');
+    expect(countOf(6, 'months')).toBe('6 months');
+  });
+
+  it('writes one and other forms in German, and the dative after "seit" and "in"', () => {
+    expect(countOf(1, 'years', 'de')).toBe('1 Jahr');
+    expect(countOf(2, 'years', 'de')).toBe('2 Jahre');
+    expect(countOf(1, 'months', 'de')).toBe('1 Monat');
+    expect(countOf(6, 'months', 'de')).toBe('6 Monate');
+    expect(countOf(2, 'years', 'de', true)).toBe('2 Jahren');
+    expect(countOf(1, 'years', 'de', true)).toBe('1 Jahr');
+    expect(countOf(3, 'months', 'de', true)).toBe('3 Monaten');
   });
 });
 

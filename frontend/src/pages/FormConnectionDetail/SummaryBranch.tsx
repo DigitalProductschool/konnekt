@@ -1,7 +1,8 @@
 import { shownItems } from '@connection-portal/rules/tree';
 
 import Connector from '../../components/Connector';
-import { DETAIL_COPY } from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import SummaryItem from './SummaryItem';
 import type { SummaryBranchProps } from './types';
 
@@ -16,11 +17,12 @@ import type { SummaryBranchProps } from './types';
  */
 export default function SummaryBranch({ branch, context, panelId, tabId }: SummaryBranchProps) {
   const based = branch.origin === 'based';
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   return (
     <div id={panelId} role="tabpanel" aria-labelledby={tabId}>
       {branch.items.length === 0 ? (
         <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-          {DETAIL_COPY.noRules}
+          {copy.noRules}
         </p>
       ) : (
         <ol className="rounded-kern-large bg-kern-layout-background-default border border-(--kern-color-decorative-border-default)">

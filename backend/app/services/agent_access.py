@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..language import Text
 from ..models import AgentAuthorization, AgentToken, OauthClient, UserAccount
 from ..schemas import (
     AccessLevel,
@@ -29,7 +30,7 @@ from ..schemas import (
     to_iso_utc,
 )
 from . import approvals
-from .auth import ACCESS_LEVELS, UNAUTHORIZED, Principal
+from .auth import UNAUTHORIZED, Principal, access_levels_view
 from .evaluation import GERMANY
 from .oauth import new_secret, token_hash
 
@@ -38,14 +39,22 @@ logger = logging.getLogger(__name__)
 PERSONAL_TOKEN_PREFIX = 'cp_pat_'
 TOKEN_NAME_MAX_LENGTH = 100
 
-NOT_FOUND = {'error': 'Not found', 'message': 'Agent access not found'}
-BEARER_ONLY = {'error': 'bearer_only', 'message': 'This endpoint is for agents.'}
+NOT_FOUND = {
+    'error': 'Not found',
+    'message': Text(en='Agent access not found', de='Agentenzugriff nicht gefunden'),
+}
+BEARER_ONLY = {
+    'error': 'bearer_only',
+    'message': Text(
+        en='This endpoint is for agents.', de='Dieser Endpunkt ist für Agenten.'
+    ),
+}
 
 # The draft limit's fixed window (research R17)
 DRAFT_WINDOW = timedelta(hours=1)
 
 
-def _validation_error(message: str) -> HTTPException:
+def _validation_error(message: Text) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={'error': 'Validation error', 'message': message},
@@ -111,7 +120,7 @@ def list_agent_access(db: Session, user: UserAccount) -> AgentAccessList:
     ).all()
     return AgentAccessList(
         items=[_item(authorization, name) for authorization, name in rows],
-        levels=list(ACCESS_LEVELS),
+        levels=access_levels_view(),
     )
 
 
@@ -151,15 +160,27 @@ def _token_name(value: str) -> str:
     name = value.strip()
     if not 1 <= len(name) <= TOKEN_NAME_MAX_LENGTH:
         raise _validation_error(
-            f'Give the token a name of 1 to {TOKEN_NAME_MAX_LENGTH} characters.'
+            Text(
+                en=(
+                    f'Give the token a name of 1 to {TOKEN_NAME_MAX_LENGTH} characters.'
+                ),
+                de=(
+                    f'Geben Sie dem Token einen Namen mit 1 bis '
+                    f'{TOKEN_NAME_MAX_LENGTH} Zeichen.'
+                ),
+            )
         )
     return name
 
 
 def _token_lifetime(days: int) -> timedelta:
     if not 1 <= days <= settings.agent_token_max_days:
+        max_days = settings.agent_token_max_days
         raise _validation_error(
-            f'A token can be valid for at most {settings.agent_token_max_days} days.'
+            Text(
+                en=f'A token can be valid for at most {max_days} days.',
+                de=f'Ein Token kann höchstens {max_days} Tage gültig sein.',
+            )
         )
     return timedelta(days=days)
 
@@ -210,7 +231,7 @@ def agent_me(db: Session, principal: Principal) -> AgentMe:
             'client_name': _client_name(db, authorization),
             'kind': authorization.kind,
             'access_level': authorization.access_level,
-            'levels': list(ACCESS_LEVELS),
+            'levels': access_levels_view(),
         }
     )
 
@@ -252,7 +273,13 @@ def count_draft_creation(db: Session, authorization_id: str) -> None:
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
                 'error': 'rate_limited',
-                'message': f'This agent can create drafts again at {again_at:%H:%M}.',
+                'message': Text(
+                    en=f'This agent can create drafts again at {again_at:%H:%M}.',
+                    de=(
+                        'Dieser Agent kann ab '
+                        f'{again_at:%H:%M} Uhr wieder Entwürfe erstellen.'
+                    ),
+                ),
             },
         )
     db.flush()

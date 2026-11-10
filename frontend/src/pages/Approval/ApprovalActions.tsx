@@ -1,3 +1,4 @@
+import { useLanguage } from '../../hooks/useLanguage';
 import { APPROVAL_COPY } from './constants';
 import type { ApprovalActionsProps } from './types';
 import { busyTextOf } from './utils';
@@ -17,6 +18,8 @@ export default function ApprovalActions({
   onApprove,
   onDecline,
 }: ApprovalActionsProps) {
+  const { language } = useLanguage();
+  const copy = APPROVAL_COPY[language];
   const busy = running !== null;
   const danger = action === 'delete_draft' || action === 'delete';
   return (
@@ -28,7 +31,7 @@ export default function ApprovalActions({
           onClick={busy ? undefined : onApprove}
           className={`kern-btn kern-btn--primary ${danger ? 'kern-btn--danger' : ''}`}
         >
-          <span className="kern-label">{retry ? APPROVAL_COPY.retry : APPROVAL_COPY.approve}</span>
+          <span className="kern-label">{retry ? copy.retry : copy.approve}</span>
         </button>
         <button
           type="button"
@@ -36,7 +39,7 @@ export default function ApprovalActions({
           onClick={busy ? undefined : onDecline}
           className="kern-btn kern-btn--secondary"
         >
-          <span className="kern-label">{APPROVAL_COPY.decline}</span>
+          <span className="kern-label">{copy.decline}</span>
         </button>
       </div>
       {/* Empty, it leaves the flow (no gap) but stays rendered, so its text is announced */}
@@ -44,7 +47,7 @@ export default function ApprovalActions({
         role="status"
         className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) empty:absolute"
       >
-        {busyTextOf(action, running)}
+        {busyTextOf(action, running, language)}
       </p>
     </div>
   );

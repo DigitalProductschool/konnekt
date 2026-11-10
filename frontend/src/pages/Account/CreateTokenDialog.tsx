@@ -6,6 +6,7 @@ import { errorNoticeOf } from '../../api/client';
 import AccessLevelChoice from '../../components/AccessLevelChoice';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import TextField from '../../components/TextField';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { ACCOUNT_COPY, TOKEN_NAME_MAX_LENGTH, TOKEN_VALIDITY_DAYS } from './constants';
 import type { LevelDialogProps } from './types';
@@ -24,6 +25,8 @@ export default function CreateTokenDialog({
   error,
   dispatch,
 }: LevelDialogProps) {
+  const { language } = useLanguage();
+  const copy = ACCOUNT_COPY[language];
   const handleUnauthorized = useSignOutOnUnauthorized();
   const nameRef = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -44,7 +47,7 @@ export default function CreateTokenDialog({
     const name = form.name.trim();
     if (name === '') {
       // Rendered first, so that the name is invalid and described when it takes the focus
-      flushSync(() => dispatch({ type: 'tokenNameRefused', error: ACCOUNT_COPY.tokenNameMissing }));
+      flushSync(() => dispatch({ type: 'tokenNameRefused', error: copy.tokenNameMissing }));
       nameRef.current?.focus();
       return;
     }
@@ -55,10 +58,10 @@ export default function CreateTokenDialog({
         access_level: form.level,
         expires_in_days: form.days,
       });
-      dispatch({ type: 'tokenCreated', created });
+      dispatch({ type: 'tokenCreated', created, language });
     } catch (failure) {
       if (!handleUnauthorized(failure)) {
-        dispatch({ type: 'failed', error: errorNoticeOf(failure, ACCOUNT_COPY.createFailed) });
+        dispatch({ type: 'failed', error: errorNoticeOf(failure, copy.createFailed) });
       }
     }
   }
@@ -66,16 +69,16 @@ export default function CreateTokenDialog({
   return (
     <ConfirmDialog
       open={open}
-      title={ACCOUNT_COPY.createTitle}
-      text={ACCOUNT_COPY.createText}
+      title={copy.createTitle}
+      text={copy.createText}
       textClassName="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
-      confirmLabel={ACCOUNT_COPY.createToken}
-      cancelLabel={ACCOUNT_COPY.cancel}
-      busyLabel={ACCOUNT_COPY.creating}
+      confirmLabel={copy.createToken}
+      cancelLabel={copy.cancel}
+      busyLabel={copy.creating}
       busy={busy}
       error={open ? error : null}
-      errorTitle={ACCOUNT_COPY.createFailedTitle}
-      retryLabel={ACCOUNT_COPY.retry}
+      errorTitle={copy.createFailedTitle}
+      retryLabel={copy.retry}
       onCancel={() => dispatch({ type: 'dialogClosed' })}
       onConfirm={create}
       wide
@@ -85,12 +88,13 @@ export default function CreateTokenDialog({
           <TextField
             ref={nameRef}
             id={`${id}-name`}
-            label={ACCOUNT_COPY.tokenName}
+            label={copy.tokenName}
             value={dialog.form.name}
             required
             maxLength={TOKEN_NAME_MAX_LENGTH}
             autoComplete="off"
-            error={dialog.form.nameError}
+            // The one reason a name is refused, worded in the language of the moment
+            error={dialog.form.nameError === null ? null : copy.tokenNameMissing}
             errorRole="alert"
             onChange={(event) =>
               dispatch({ type: 'tokenFormChanged', changes: { name: event.target.value } })
@@ -107,12 +111,12 @@ export default function CreateTokenDialog({
             value={dialog.form.level}
             onChange={(level) => dispatch({ type: 'levelChosen', level })}
             name="token-access-level"
-            legend={ACCOUNT_COPY.accessLevel}
+            legend={copy.accessLevel}
             disabled={busy}
           />
           <div className="kern-form-input">
             <label htmlFor={`${id}-days`} className="kern-label">
-              {ACCOUNT_COPY.validFor}
+              {copy.validFor}
             </label>
             <div className="kern-form-input__select-wrapper">
               <select
@@ -128,7 +132,7 @@ export default function CreateTokenDialog({
               >
                 {TOKEN_VALIDITY_DAYS.map((days) => (
                   <option key={days} value={String(days)}>
-                    {ACCOUNT_COPY.days(days)}
+                    {copy.days(days)}
                   </option>
                 ))}
               </select>

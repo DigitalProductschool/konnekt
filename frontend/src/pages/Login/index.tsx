@@ -4,8 +4,8 @@ import { useLocation, useNavigate } from 'react-router';
 
 import AuthLayout from '../../components/AuthLayout';
 import Toast from '../../components/Toast';
-import type { ToastContent } from '../../components/Toast/types';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy } from '../../hooks/useLanguage';
 import { LOGIN_COPY } from './constants';
 import LoginCard from './LoginCard';
 
@@ -18,19 +18,21 @@ import LoginCard from './LoginCard';
  * the toast again.
  */
 export default function LoginPage() {
-  useDocumentTitle(LOGIN_COPY.pageTitle);
+  const copy = useCopy(LOGIN_COPY);
+  useDocumentTitle(copy.pageTitle);
   const location = useLocation();
   const navigate = useNavigate();
   const loggedOut = (location.state as LoginLocationState | null)?.loggedOut === true;
-  const [toast, setToast] = useState<ToastContent | null>(null);
+  // The shown toast's id; its one message is the website's own and follows the language
+  const [toastId, setToastId] = useState<number | null>(null);
   // The history entry whose flag has been shown. "Log out" sets the flag on the screen the
   // sign-in guard has already shown, so the page is mounted by then and reacts to the change
   const [shownKey, setShownKey] = useState<string | null>(null);
   if (loggedOut && shownKey !== location.key) {
     setShownKey(location.key);
-    setToast((shown) => ({ id: (shown?.id ?? 0) + 1, message: LOGIN_COPY.loggedOut }));
+    setToastId((shown) => (shown ?? 0) + 1);
   }
-  const dismissToast = useCallback(() => setToast(null), []);
+  const dismissToast = useCallback(() => setToastId(null), []);
 
   useEffect(() => {
     if (loggedOut) {
@@ -45,7 +47,11 @@ export default function LoginPage() {
         <LoginCard />
       </AuthLayout>
       {/* Outside the layout: its container query would make the fixed toast relative to it */}
-      <Toast toast={toast} onDismiss={dismissToast} noFooter />
+      <Toast
+        toast={toastId === null ? null : { id: toastId, message: copy.loggedOut }}
+        onDismiss={dismissToast}
+        noFooter
+      />
     </>
   );
 }

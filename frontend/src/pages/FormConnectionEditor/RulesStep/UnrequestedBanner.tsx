@@ -1,4 +1,5 @@
-import { RULES_COPY, UNREQUESTED_BANNER_CLASSES } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY, UNREQUESTED_BANNER_CLASSES } from './constants';
 import type { UnrequestedBannerProps } from './types';
 import UnrequestedRuleLine from './UnrequestedRuleLine';
 
@@ -12,6 +13,7 @@ import UnrequestedRuleLine from './UnrequestedRuleLine';
  * It is announced when it appears (`role="alert"`, as the baseline's KERN alert was).
  */
 export default function UnrequestedBanner({ rules, onAddData }: UnrequestedBannerProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   return (
     <div role="alert" className={UNREQUESTED_BANNER_CLASSES}>
       <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-8">
@@ -24,7 +26,7 @@ export default function UnrequestedBanner({ rules, onAddData }: UnrequestedBanne
         onClick={onAddData}
         className="text-kern-action-default rounded-kern-small focus-visible:outline-kern-action-focus-default text-kern-static-small shrink-0 cursor-pointer leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap hover:underline focus-visible:outline-4 focus-visible:outline-offset-2"
       >
-        {RULES_COPY.addInDocuments}
+        {copy.addInDocuments}
       </button>
     </div>
   );

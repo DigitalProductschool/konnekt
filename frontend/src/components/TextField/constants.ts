@@ -1,8 +1,11 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 /**
- * The marker after the label of an optional field, in the label's own style: the design
- * writes "Description (optional)" (U19 6699:45401; figma-audit report, cosmetic 6)
+ * The word in the marker after the label of an optional field, in the label's own style: the
+ * design writes "Description (optional)" (U19 6699:45401; figma-audit report, cosmetic 6); the
+ * field puts it in brackets. KERN's German hint is "optional" too (G§2 "optional")
  */
-export const OPTIONAL_MARKER = '(optional)';
+export const TEXT_FIELD_COPY = defineTexts({ optional: 'optional' }, { optional: 'optional' });
 
 /** The design's sign after the label of a required field (U19 6699:45396) */
 export const REQUIRED_MARKER = '*';

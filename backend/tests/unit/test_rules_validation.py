@@ -12,8 +12,10 @@ import pytest
 from fastapi import HTTPException
 
 from app.db import SessionLocal
+from app.language import Text
 from app.models import FormConnection, FormConnectionBranch, FormConnectionRuleSet
 from app.schemas import RequestedDocument, RulesInput
+from app.services import rules_texts
 from app.services.rules import (
     RulesSave,
     check_first_save,
@@ -78,20 +80,39 @@ def _clean(
     return clean_rules(RulesInput.model_validate(payload), documents, main_branch_id)
 
 
-def _problem(
+def _refusal(
     payload: dict[str, Any],
     documents: list[RequestedDocument] = DOCUMENTS,
     main_branch_id: str | None = None,
-) -> str:
-    """The message of the 400 that refuses `payload`."""
+) -> Text:
+    """The message of the 400 that refuses `payload`, in both languages."""
     with pytest.raises(HTTPException) as caught:
         _clean(payload, documents, main_branch_id)
     assert caught.value.status_code == 400
     detail = caught.value.detail
     assert isinstance(detail, dict)
     assert detail['error'] == 'Validation error'
-    message: str = detail['message']
+    message = detail['message']
+    assert isinstance(message, Text)
     return message
+
+
+def _problem(
+    payload: dict[str, Any],
+    documents: list[RequestedDocument] = DOCUMENTS,
+    main_branch_id: str | None = None,
+) -> str:
+    """The message of the 400 that refuses `payload`, in English."""
+    return _refusal(payload, documents, main_branch_id).en
+
+
+def _german(
+    payload: dict[str, Any],
+    documents: list[RequestedDocument] = DOCUMENTS,
+    main_branch_id: str | None = None,
+) -> str:
+    """The message of the 400 that refuses `payload`, in German (spec 009)."""
+    return _refusal(payload, documents, main_branch_id).de
 
 
 def _rule_with(
@@ -1172,8 +1193,9 @@ def _save_problem(ids: dict[str, str], branches: list[dict[str, Any]]) -> str | 
         except HTTPException as error:
             assert error.status_code == 400
             assert isinstance(error.detail, dict)
-            message: str = error.detail['message']
-            return message
+            message = error.detail['message']
+            assert isinstance(message, Text)
+            return message.en
     return None
 
 
@@ -1260,4 +1282,232 @@ def test_a_new_connections_variants_keep_the_uuids_they_were_given() -> None:
     assert (
         _problem(rules_input([main_branch([]), variant([], branch_id='variant-2')]))
         == UNKNOWN_VARIANT
+    )
+
+
+# German (spec 009, T015; glossary §3): the same refusals, with the stored names as
+# they are and the sentence around them in German
+
+
+def test_a_rule_needs_its_data_in_german() -> None:
+    assert _german(_rule_with(None, {'operator': 'on', 'date': '2020-01-01'})) == (
+        'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.'
+    )
+
+
+def test_a_rule_checks_requested_data_only_in_german() -> None:
+    assert _german(
+        _rule_with(target('pid', 'nationalities'), {'operator': 'on', 'date': 'x'})
+    ) == ('Rule 01 in Standard prüft Daten, die nicht mehr angefordert werden.')
+
+
+def test_a_rules_part_fits_its_field_in_german() -> None:
+    """The field is named by its German catalog label."""
+    assert _german(
+        _rule_with(
+            target('pid', 'place_of_birth', 'locality', 'B'),
+            {'operator': 'on', 'date': '2020-01-01'},
+        ),
+        ALL_KINDS,
+    ) == (
+        'Rule 01 in Standard prüft einen Bestandteil, den das Feld „Geburtsort“ '
+        'nicht hat.'
+    )
+
+
+@pytest.mark.parametrize(
+    ('message', 'problem'),
+    [
+        ('', 'Rule 01 in Standard hat keine Fehlermeldung.'),
+        (
+            'x' * 501,
+            'Die Fehlermeldung von Rule 01 in Standard darf höchstens 500 Zeichen '
+            'lang sein.',
+        ),
+    ],
+)
+def test_every_rule_has_a_short_error_message_in_german(
+    message: str, problem: str
+) -> None:
+    assert _german(_rules(AGE_RULE | {'message': message})) == problem
+
+
+def test_the_message_names_the_branch_by_its_name_in_german() -> None:
+    assert _german(_rules(AGE_RULE | {'message': ''}, name=' Taxi ')) == (
+        'Rule 01 in Taxi hat keine Fehlermeldung.'
+    )
+
+
+def test_names_are_unique_in_german() -> None:
+    assert _german(
+        _rules(
+            AGE_RULE | {'name': 'Lives in Stuttgart'},
+            CLASS_RULE | {'name': ' LIVES IN STUTTGART '},
+        )
+    ) == ('In Standard gibt es bereits eine Regel namens „Lives in Stuttgart“.')
+
+
+@pytest.mark.parametrize(
+    ('name', 'message'),
+    [
+        ('Rule 8', 'Rule 8 ist für die Regel mit der Nummer 08 reserviert.'),
+        ('Group 02', 'Group 02 ist für die Gruppe mit der Nummer 02 reserviert.'),
+        (
+            'Sub-group 2',
+            'Sub-group 2 ist für die Untergruppe mit der Nummer 02 reserviert.',
+        ),
+    ],
+)
+def test_default_names_are_kept_for_their_number_in_german(
+    name: str, message: str
+) -> None:
+    assert _german(_rules(AGE_RULE | {'name': name})) == message
+
+
+@pytest.mark.parametrize(
+    ('name', 'message'),
+    [
+        ('  ', 'Geben Sie für jede Regel in Standard einen Namen ein.'),
+        ('x' * 101, 'Eine Regel in Standard hat einen Namen mit mehr als 100 Zeichen.'),
+    ],
+)
+def test_a_rule_needs_a_name_in_german(name: str, message: str) -> None:
+    assert _german(_rules(AGE_RULE | {'name': name})) == message
+
+
+def test_a_group_needs_at_least_two_rules_in_german() -> None:
+    assert _german(_rules(group(1, [AGE_21_RULE]))) == (
+        'Group 01 in Standard braucht mindestens zwei Regeln.'
+    )
+
+
+def test_a_sub_group_can_only_hold_rules_in_german() -> None:
+    inner = group(3, [AGE_19_RULE, HELD_3_YEARS_RULE])
+    sub_group = group(2, [STUTTGART_RULE, inner], name='Sub-group 02')
+
+    assert _german(_rules(group(1, [AGE_21_RULE, sub_group]))) == (
+        'Sub-group 02 in Standard kann nur Regeln enthalten.'
+    )
+
+
+def test_two_variants_cant_share_a_name_in_german() -> None:
+    ambulance = main_branch([]) | {'origin': 'empty', 'name': 'Ambulance'}
+
+    assert _german(
+        rules_input([main_branch([]), ambulance, ambulance | {'name': ' AMBULANCE '}])
+    ) == (
+        'Zwei Varianten heißen AMBULANCE. Geben Sie jeder Variante einen eigenen Namen.'
+    )
+
+
+@pytest.mark.parametrize(
+    ('rule_target', 'condition', 'problem'),
+    [
+        (CITY, None, 'Wählen Sie eine Prüfung.'),
+        (HEIGHT, {'operator': 'greater_than'}, 'Geben Sie eine Zahl ein.'),
+        (
+            CITY,
+            {'operator': 'equal_to', 'value': ' '},
+            'Geben Sie einen Text zum Vergleichen ein.',
+        ),
+        (
+            CLASS_RULE['target'],
+            {'operator': 'includes_one_of', 'values': []},
+            'Wählen Sie mindestens einen Wert.',
+        ),
+        (
+            CLASS_RULE['target'],
+            {'operator': 'includes_one_of', 'values': ['XL']},
+            'Wählen Sie Werte aus der Liste.',
+        ),
+        (
+            CLASS_RULE['target'],
+            {'operator': 'includes_one_of', 'values': ['B', 'B']},
+            'Wählen Sie jeden Wert nur einmal.',
+        ),
+        (
+            EXPIRY,
+            {'operator': 'after', 'date': '2020-02-30'},
+            'Geben Sie ein Datum ein.',
+        ),
+        (
+            EXPIRY,
+            {'operator': 'less_than_years_ago', 'years': 0},
+            'Geben Sie mindestens 1 Jahr ein.',
+        ),
+        (
+            EXPIRY,
+            {'operator': 'at_least_from_now', 'amount': 6, 'unit': None},
+            'Wählen Sie Jahre oder Monate.',
+        ),
+        (
+            EXPIRY,
+            {'operator': 'at_least_from_now', 'amount': 0, 'unit': 'months'},
+            'Geben Sie mindestens 1 Monat ein.',
+        ),
+        (
+            EXPIRY,
+            {'operator': 'at_least_from_now', 'amount': 2.5, 'unit': 'years'},
+            'Geben Sie mindestens 1 Jahr ein.',
+        ),
+    ],
+)
+def test_every_condition_problem_in_german(
+    rule_target: dict[str, Any], condition: dict[str, Any] | None, problem: str
+) -> None:
+    assert _german(_rule_with(rule_target, condition), ALL_KINDS) == (
+        f'Rule 01 in Standard: {problem}'
+    )
+
+
+def test_a_variant_out_of_step_in_german() -> None:
+    assert _german(
+        _with_ambulance(US1_ITEMS, [AGE_RULE, CLASS_RULE], origin='based')
+    ) == (
+        'Die Variante Ambulance ist nicht auf dem Stand von Standard. Laden Sie die '
+        'Anbindung neu und versuchen Sie es erneut.'
+    )
+
+
+@pytest.mark.parametrize(
+    ('deleted', 'returning', 'english', 'german'),
+    [
+        ([], [], '', ''),
+        (
+            ['Taxi'],
+            [],
+            ' Replacing their changes deletes the variant Taxi.',
+            ' Wenn Sie diese Änderungen ersetzen, löschen Sie die Variante Taxi.',
+        ),
+        (
+            [],
+            ['Bus'],
+            ' Replacing their changes brings back the variant Bus with a new result '
+            'link.',
+            ' Wenn Sie diese Änderungen ersetzen, stellen Sie die Variante Bus mit '
+            'einem neuen Ergebnislink wieder her.',
+        ),
+        (
+            ['Taxi', 'Bus'],
+            ['A', 'B', 'C'],
+            ' Replacing their changes deletes the variants Taxi and Bus and brings '
+            'back the variants A, B and C with new result links.',
+            ' Wenn Sie diese Änderungen ersetzen, löschen Sie die Varianten Taxi und '
+            'Bus und stellen die Varianten A, B und C mit neuen Ergebnislinks wieder '
+            'her.',
+        ),
+    ],
+)
+def test_the_rules_changed_message_in_both_languages(
+    deleted: list[str], returning: list[str], english: str, german: str
+) -> None:
+    message = rules_texts.rules_changed(deleted, returning)
+
+    assert message.en == (
+        'Another team member saved the rules of this connection after you opened '
+        f'it.{english}'
+    )
+    assert message.de == (
+        'Ein anderes Teammitglied hat die Regeln dieser Anbindung gespeichert, '
+        f'nachdem Sie sie geöffnet haben.{german}'
     )

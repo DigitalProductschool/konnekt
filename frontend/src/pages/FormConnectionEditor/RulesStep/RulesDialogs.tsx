@@ -2,7 +2,8 @@ import { statementOf } from '@connection-portal/rules/statements';
 import { findItem } from '@connection-portal/rules/tree';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { RULES_COPY } from './constants';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY } from './constants';
 import type { RulesDialogsProps } from './types';
 import { branchOf, deleteDialogText, groupOf, joinNames, ruleOf } from './utils';
 import VariantDialog from './VariantDialog';
@@ -34,6 +35,8 @@ export default function RulesDialogs({
   onDiscardChanges,
 }: RulesDialogsProps) {
   const { dialog } = state;
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
   const deleting =
     dialog?.type === 'deleteRule' ? ruleOf(branchOf(state, dialog.branchKey), dialog.ruleId) : null;
   const deletingGroup =
@@ -50,13 +53,15 @@ export default function RulesDialogs({
   const others = state.branches
     .filter((branch) => branch !== deletingVariant)
     .map((branch) => branch.name.trim());
-  const statement = deleting ? statementOf(deleting, context) : null;
+  // The statement in the language shown, whatever the editor's context says (spec 009, R4)
+  const statement = deleting ? statementOf(deleting, { ...context, language }) : null;
   const deletedText =
     dialog && (deleting || deletingGroup) && 'branchKey' in dialog
       ? deleteDialogText(
           state,
           { branchKey: dialog.branchKey, itemId: (deleting ?? deletingGroup)?.id ?? '' },
-          statement?.text ?? null
+          statement?.text ?? null,
+          language
         )
       : '';
   const editedName = state.editing?.draft.name ?? '';
@@ -64,30 +69,30 @@ export default function RulesDialogs({
     <>
       <ConfirmDialog
         open={deleting !== null}
-        title={RULES_COPY.deleteTitle(deleting?.name ?? '')}
+        title={copy.deleteTitle(deleting?.name ?? '')}
         text={deletedText}
-        confirmLabel={RULES_COPY.deleteRule}
-        cancelLabel={RULES_COPY.cancel}
+        confirmLabel={copy.deleteRule}
+        cancelLabel={copy.cancel}
         danger
         onCancel={onCancel}
         onConfirm={onConfirmDelete}
       />
       <ConfirmDialog
         open={deletingGroup !== null}
-        title={RULES_COPY.deleteTitle(deletingGroup?.name ?? '')}
+        title={copy.deleteTitle(deletingGroup?.name ?? '')}
         text={deletedText}
-        confirmLabel={deletingSubGroup ? RULES_COPY.deleteSubGroup : RULES_COPY.deleteGroup}
-        cancelLabel={RULES_COPY.cancel}
+        confirmLabel={deletingSubGroup ? copy.deleteSubGroup : copy.deleteGroup}
+        cancelLabel={copy.cancel}
         danger
         onCancel={onCancel}
         onConfirm={onConfirmDelete}
       />
       <ConfirmDialog
         open={dialog?.type === 'saveChanges'}
-        title={RULES_COPY.saveChangesTitle(editedName)}
-        text={RULES_COPY.saveChangesText}
-        confirmLabel={RULES_COPY.saveChanges}
-        cancelLabel={RULES_COPY.discard}
+        title={copy.saveChangesTitle(editedName)}
+        text={copy.saveChangesText}
+        confirmLabel={copy.saveChanges}
+        cancelLabel={copy.discard}
         onCancel={onDiscardChanges}
         onClose={onCancel}
         onConfirm={onSaveChanges}
@@ -95,22 +100,22 @@ export default function RulesDialogs({
       <VariantDialog state={state} dispatch={dispatch} />
       <ConfirmDialog
         open={deletingVariant !== undefined}
-        title={RULES_COPY.deleteVariantTitle(deletingVariant?.name.trim() ?? '')}
+        title={copy.deleteVariantTitle(deletingVariant?.name.trim() ?? '')}
         text={
           deletingVariant
             ? (editing
                 ? active
-                  ? RULES_COPY.deleteVariantTextEditing
-                  : RULES_COPY.deleteVariantTextEditingInactive
-                : RULES_COPY.deleteVariantText)(
+                  ? copy.deleteVariantTextEditing
+                  : copy.deleteVariantTextEditingInactive
+                : copy.deleteVariantText)(
                 deletingVariant.name.trim(),
-                joinNames(others),
+                joinNames(others, language),
                 others.length
               )
             : ''
         }
-        confirmLabel={RULES_COPY.deleteVariantConfirm}
-        cancelLabel={RULES_COPY.keepVariant}
+        confirmLabel={copy.deleteVariantConfirm}
+        cancelLabel={copy.keepVariant}
         danger
         onCancel={onCancel}
         onConfirm={onConfirmDelete}

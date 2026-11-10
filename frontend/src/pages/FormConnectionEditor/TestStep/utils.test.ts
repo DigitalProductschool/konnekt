@@ -1,4 +1,5 @@
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { Language } from '@connection-portal/rules/language';
 import type {
   GenerationRun,
   Persona,
@@ -20,6 +21,7 @@ import {
   dataRowTextOf,
   dateOfBirthForAge,
   documentGroupsOf,
+  draftsInLanguage,
   draftsReducer,
   editDataReducer,
   editorLabelOf,
@@ -157,41 +159,49 @@ describe('valueTextOf', () => {
 
   it('writes an empty value of any kind as "Not shared"', () => {
     for (const entry of [birth, classes, city, points]) {
-      expect(valueTextOf(entry, null, OPTION_SETS)).toBe('Not shared');
-      expect(valueTextOf(entry, '', OPTION_SETS)).toBe('Not shared');
-      expect(valueTextOf(entry, [], OPTION_SETS)).toBe('Not shared');
-      expect(valueTextOf(entry, undefined, OPTION_SETS)).toBe('Not shared');
+      expect(valueTextOf(entry, null, OPTION_SETS, 'en')).toBe('Not shared');
+      expect(valueTextOf(entry, '', OPTION_SETS, 'en')).toBe('Not shared');
+      expect(valueTextOf(entry, [], OPTION_SETS, 'en')).toBe('Not shared');
+      expect(valueTextOf(entry, undefined, OPTION_SETS, 'en')).toBe('Not shared');
     }
   });
 
   it('writes a date as dd.mm.yyyy, a date of birth without its age (spec 008 FR-024)', () => {
-    expect(valueTextOf(issue, '2010-05-02', OPTION_SETS)).toBe('02.05.2010');
-    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS)).toBe('08.07.2007');
-    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS)).toBe('01.01.2030');
+    expect(valueTextOf(issue, '2010-05-02', OPTION_SETS, 'en')).toBe('02.05.2010');
+    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, 'en')).toBe('08.07.2007');
+    expect(valueTextOf(birth, '2030-01-01', OPTION_SETS, 'en')).toBe('01.01.2030');
   });
 
   it('writes an expiry date as "Valid until <date>" (spec 008 FR-024, U65 7057:59084)', () => {
-    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS)).toBe('Valid until 19.08.2040');
-    expect(valueTextOf(idExpiry, '2031-02-28', OPTION_SETS)).toBe('Valid until 28.02.2031');
-    expect(valueTextOf(expiryB, '2030-05-01', OPTION_SETS)).toBe('Valid until 01.05.2030');
+    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, 'en')).toBe('Valid until 19.08.2040');
+    expect(valueTextOf(idExpiry, '2031-02-28', OPTION_SETS, 'en')).toBe('Valid until 28.02.2031');
+    expect(valueTextOf(expiryB, '2030-05-01', OPTION_SETS, 'en')).toBe('Valid until 01.05.2030');
   });
 
   it('writes enums by their labels, several in the value set’s order (F11)', () => {
-    expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS)).toBe('B, BE');
-    expect(valueTextOf(nationalities, ['IT', 'DE'], OPTION_SETS)).toBe('German, Italian');
-    expect(valueTextOf(nationalities, 'DE', OPTION_SETS)).toBe('German');
-    expect(valueTextOf(sex, 2, OPTION_SETS)).toBe('Male');
+    expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS, 'en')).toBe('B, BE');
+    expect(valueTextOf(nationalities, ['IT', 'DE'], OPTION_SETS, 'en')).toBe('German, Italian');
+    expect(valueTextOf(nationalities, 'DE', OPTION_SETS, 'en')).toBe('German');
+    expect(valueTextOf(sex, 2, OPTION_SETS, 'en')).toBe('Male');
   });
 
   it('writes a value outside its set as it is, after the others', () => {
-    expect(valueTextOf(nationalities, ['XX', 'IT'], OPTION_SETS)).toBe('Italian, XX');
-    expect(valueTextOf(sex, 9, [])).toBe('9');
+    expect(valueTextOf(nationalities, ['XX', 'IT'], OPTION_SETS, 'en')).toBe('Italian, XX');
+    expect(valueTextOf(sex, 9, [], 'en')).toBe('9');
+  });
+
+  it('writes an empty value and an expiry date in German, a date as dd.mm.yyyy (spec 009)', () => {
+    expect(valueTextOf(birth, null, OPTION_SETS, 'de')).toBe('Nicht geteilt');
+    expect(valueTextOf(classes, [], OPTION_SETS, 'de')).toBe('Nicht geteilt');
+    expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, 'de')).toBe('Gültig bis 19.08.2040');
+    expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, 'de')).toBe('08.07.2007');
+    expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS, 'de')).toBe('B, BE');
   });
 
   it('writes text and numbers as stored', () => {
-    expect(valueTextOf(city, 'Stuttgart', OPTION_SETS)).toBe('Stuttgart');
-    expect(valueTextOf(points, 3, OPTION_SETS)).toBe('3');
-    expect(valueTextOf(points, 0, OPTION_SETS)).toBe('0');
+    expect(valueTextOf(city, 'Stuttgart', OPTION_SETS, 'en')).toBe('Stuttgart');
+    expect(valueTextOf(points, 3, OPTION_SETS, 'en')).toBe('3');
+    expect(valueTextOf(points, 0, OPTION_SETS, 'en')).toBe('0');
   });
 });
 
@@ -217,7 +227,7 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
   const issueBe = classDate('issue_date', 'BE');
   const expiry = field('mdl.expiry_date', 'date');
   const fields = [birth, classes, issueB, issueBe, expiry];
-  const textsOf = (values: Persona['values']): string[] => {
+  const textsOf = (values: Persona['values'], language: Language = 'en'): string[] => {
     const subject: Persona = {
       id: 'persona-1',
       name: 'Anna Keller',
@@ -225,7 +235,9 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
       generated: values,
       status: 'ready',
     };
-    return dataRowsOf(subject, fields).map((row) => dataRowTextOf(row, values, OPTION_SETS));
+    return dataRowsOf(subject, fields).map((row) =>
+      dataRowTextOf(row, values, OPTION_SETS, language)
+    );
   };
 
   it('writes Anna’s data as the Test 1 frames do', () => {
@@ -265,6 +277,20 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
     expect(textsOf({ [classes.key]: [] })).toEqual(['Not shared', 'Not shared', 'Not shared']);
   });
 
+  it('writes Anna’s data in German, the dates as dd.mm.yyyy (spec 009, FR-012)', () => {
+    expect(
+      textsOf(
+        {
+          [birth.key]: '1992-03-14',
+          [classes.key]: ['AM', 'B', 'BE'],
+          [issueB.key]: '2010-05-02',
+          [issueBe.key]: '2010-05-02',
+        },
+        'de'
+      )
+    ).toEqual(['14.03.1992', 'AM', 'B, BE seit 02.05.2010', 'Nicht geteilt']);
+  });
+
   const persona = (values: Persona['values']): Persona => ({
     id: 'persona-1',
     name: 'Mia Schulz',
@@ -279,12 +305,23 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
       { ...classes, label: 'Licence classes' },
       issueB,
     ]);
-    expect(rows.map(dataRowLabelOf)).toEqual(['Date of birth', 'Licence classes']);
+    expect(rows.map((row) => dataRowLabelOf(row, 'en'))).toEqual([
+      'Date of birth',
+      'Licence classes',
+    ]);
   });
 
   it('keeps any other field’s label', () => {
     const [row] = dataRowsOf(persona({}), [{ ...expiry, label: 'Expiry date' }]);
-    expect(dataRowLabelOf(row)).toBe('Expiry date');
+    expect(dataRowLabelOf(row, 'en')).toBe('Expiry date');
+  });
+
+  it('labels the date of birth in German, any other row by its (German) label (spec 009)', () => {
+    const rows = dataRowsOf(persona({}), [
+      { ...birth, label: 'Geburtsdatum (Alter)' },
+      { ...expiry, label: 'Ablaufdatum' },
+    ]);
+    expect(rows.map((row) => dataRowLabelOf(row, 'de'))).toEqual(['Geburtsdatum', 'Ablaufdatum']);
   });
 
   it('groups the rows by document in their order, a document’s rows together (F63)', () => {
@@ -314,23 +351,42 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
 
 describe('resultStatementOf (FR-051 (32))', () => {
   it('words a group’s statement as its frame on the rules step', () => {
-    expect(resultStatementOf({ type: 'group', statement: 'All of these must be met' })).toBe(
+    expect(resultStatementOf({ type: 'group', statement: 'All of these must be met' }, 'en')).toBe(
       'All rules must be met'
     );
     expect(
-      resultStatementOf({ type: 'group', statement: 'At least one of these must be met' })
+      resultStatementOf({ type: 'group', statement: 'At least one of these must be met' }, 'en')
     ).toBe('At least one rule must be met');
   });
 
   it('keeps a rule’s statement, and a group’s it doesn’t know', () => {
     const statement = 'Personal ID · Date of birth (Age) is at least 21 years old';
-    expect(resultStatementOf({ type: 'rule', statement })).toBe(statement);
-    expect(resultStatementOf({ type: 'rule', statement: 'All of these must be met' })).toBe(
+    expect(resultStatementOf({ type: 'rule', statement }, 'en')).toBe(statement);
+    expect(resultStatementOf({ type: 'rule', statement: 'All of these must be met' }, 'en')).toBe(
       'All of these must be met'
     );
-    expect(resultStatementOf({ type: 'group', statement: 'Something else' })).toBe(
+    expect(resultStatementOf({ type: 'group', statement: 'Something else' }, 'en')).toBe(
       'Something else'
     );
+  });
+});
+
+describe('resultStatementOf in German (spec 009, FR-006)', () => {
+  it('words a group’s statement as its German frame, from either language’s statement', () => {
+    expect(resultStatementOf({ type: 'group', statement: 'Alle müssen erfüllt sein' }, 'de')).toBe(
+      'Alle Regeln müssen erfüllt sein'
+    );
+    expect(
+      resultStatementOf({ type: 'group', statement: 'At least one of these must be met' }, 'de')
+    ).toBe('Mindestens eine Regel muss erfüllt sein');
+    expect(
+      resultStatementOf({ type: 'group', statement: 'Mindestens eine muss erfüllt sein' }, 'en')
+    ).toBe('At least one rule must be met');
+  });
+
+  it('keeps a rule’s statement as composed', () => {
+    const statement = 'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt';
+    expect(resultStatementOf({ type: 'rule', statement }, 'de')).toBe(statement);
   });
 });
 
@@ -350,23 +406,36 @@ describe('runStatusTextOf and createsAll', () => {
   const run = (slots: GenerationRun['slots']): GenerationRun => ({ runId: 1, startedAt: 0, slots });
 
   it('is empty without a run', () => {
-    expect(runStatusTextOf(null, personas)).toBe('');
+    expect(runStatusTextOf(null, personas, 'en')).toBe('');
     expect(createsAll(null)).toBe(false);
   });
 
   it('names the personas of a run in the chips’ order (design-notes §8)', () => {
-    expect(runStatusTextOf(run(['free', 'free', 'free']), personas)).toBe(
+    expect(runStatusTextOf(run(['free', 'free', 'free']), personas, 'en')).toBe(
       'Creating 3 sample citizens…'
     );
-    expect(runStatusTextOf(run(['free', 'kept', 'kept']), personas)).toBe(
+    expect(runStatusTextOf(run(['free', 'kept', 'kept']), personas, 'en')).toBe(
       'Creating new data for Mia…'
     );
-    expect(runStatusTextOf(run(['kept', 'filled', 'filled']), personas)).toBe(
+    expect(runStatusTextOf(run(['kept', 'filled', 'filled']), personas, 'en')).toBe(
       'Adding new data for Anna and Yusuf…'
     );
-    expect(runStatusTextOf(run(['filled', 'kept', 'free']), personas)).toBe(
+    expect(runStatusTextOf(run(['filled', 'kept', 'free']), personas, 'en')).toBe(
       'Creating new data for Yusuf. Adding new data for Mia…'
     );
+  });
+
+  it('names them in German (spec 009; glossary §2 "sample citizen", §3)', () => {
+    expect(runStatusTextOf(run(['free', 'free', 'free']), personas, 'de')).toBe(
+      '3 Beispielpersonen werden erstellt …'
+    );
+    expect(runStatusTextOf(run(['free', 'kept', 'kept']), personas, 'de')).toBe(
+      'Neue Daten für Mia werden erstellt …'
+    );
+    expect(runStatusTextOf(run(['filled', 'kept', 'free']), personas, 'de')).toBe(
+      'Neue Daten für Yusuf werden erstellt. Neue Daten für Mia werden ergänzt …'
+    );
+    expect(runStatusTextOf(null, personas, 'de')).toBe('');
   });
 
   it('shows frame 18 only for a run that generates all three anew', () => {
@@ -378,20 +447,20 @@ describe('runStatusTextOf and createsAll', () => {
 
 describe('parseDisplayDate', () => {
   it('reads dd.mm.yyyy as YYYY-MM-DD', () => {
-    expect(parseDisplayDate('28.02.2007')).toEqual({ ok: true, value: '2007-02-28' });
-    expect(parseDisplayDate(' 08.07.2007 ')).toEqual({ ok: true, value: '2007-07-08' });
+    expect(parseDisplayDate('28.02.2007', 'en')).toEqual({ ok: true, value: '2007-02-28' });
+    expect(parseDisplayDate(' 08.07.2007 ', 'en')).toEqual({ ok: true, value: '2007-07-08' });
   });
 
   it('gives null for an empty entry', () => {
-    expect(parseDisplayDate('')).toEqual({ ok: true, value: null });
-    expect(parseDisplayDate('  ')).toEqual({ ok: true, value: null });
+    expect(parseDisplayDate('', 'en')).toEqual({ ok: true, value: null });
+    expect(parseDisplayDate('  ', 'en')).toEqual({ ok: true, value: null });
   });
 
   it('knows leap years', () => {
-    expect(parseDisplayDate('29.02.2008')).toEqual({ ok: true, value: '2008-02-29' });
-    expect(parseDisplayDate('29.02.2007')).toEqual({ ok: false, error: expect.any(String) });
-    expect(parseDisplayDate('29.02.1900').ok).toBe(false);
-    expect(parseDisplayDate('29.02.2000').ok).toBe(true);
+    expect(parseDisplayDate('29.02.2008', 'en')).toEqual({ ok: true, value: '2008-02-29' });
+    expect(parseDisplayDate('29.02.2007', 'en')).toEqual({ ok: false, error: expect.any(String) });
+    expect(parseDisplayDate('29.02.1900', 'en').ok).toBe(false);
+    expect(parseDisplayDate('29.02.2000', 'en').ok).toBe(true);
   });
 
   it('points out dates that do not exist and other text', () => {
@@ -405,78 +474,84 @@ describe('parseDisplayDate', () => {
       '8.7.2007',
       'abc',
     ]) {
-      expect(parseDisplayDate(text)).toEqual(error);
+      expect(parseDisplayDate(text, 'en')).toEqual(error);
     }
   });
 });
 
 describe('parseWholeNumber', () => {
   it('reads digits', () => {
-    expect(parseWholeNumber('25')).toEqual({ ok: true, value: 25 });
-    expect(parseWholeNumber(' 0 ')).toEqual({ ok: true, value: 0 });
+    expect(parseWholeNumber('25', 'en')).toEqual({ ok: true, value: 25 });
+    expect(parseWholeNumber(' 0 ', 'en')).toEqual({ ok: true, value: 0 });
   });
 
   it('gives null for an empty entry', () => {
-    expect(parseWholeNumber('')).toEqual({ ok: true, value: null });
+    expect(parseWholeNumber('', 'en')).toEqual({ ok: true, value: null });
   });
 
   it('points out decimals, letters and signs', () => {
     const error = { ok: false, error: 'Enter a whole number, e.g. 25.' };
     for (const text of ['2.5', '12a', 'a', '-3', '1,5', '99999999999999999999']) {
-      expect(parseWholeNumber(text)).toEqual(error);
+      expect(parseWholeNumber(text, 'en')).toEqual(error);
     }
   });
 });
 
 describe('dateOfBirthForAge', () => {
   it('keeps the day and month (US2-AS1: age 20)', () => {
-    expect(dateOfBirthForAge(20, '2007-07-08', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(20, '2007-07-08', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '2006-07-08',
     });
   });
 
   it('gives the day 21 years before today (US2-AS2)', () => {
-    expect(dateOfBirthForAge(21, '2007-11-02', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(21, '2007-11-02', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '2005-11-02',
     });
   });
 
   it('goes one year further back when the day and month are still to come this year', () => {
-    expect(dateOfBirthForAge(20, '2007-12-24', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(20, '2007-12-24', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '2005-12-24',
     });
   });
 
   it('turns a 29 February into 1 March in a year without it', () => {
-    expect(dateOfBirthForAge(19, '2008-02-29', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(19, '2008-02-29', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '2007-03-01',
     });
-    expect(dateOfBirthForAge(22, '2008-02-29', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(22, '2008-02-29', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '2004-02-29',
     });
   });
 
   it('uses today for an empty or invalid current date', () => {
-    expect(dateOfBirthForAge(30, null, '2026-11-02')).toEqual({ ok: true, value: '1996-11-02' });
-    expect(dateOfBirthForAge(30, '', '2026-11-02')).toEqual({ ok: true, value: '1996-11-02' });
-    expect(dateOfBirthForAge(30, '2007-02-30', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(30, null, '2026-11-02', 'en')).toEqual({
+      ok: true,
+      value: '1996-11-02',
+    });
+    expect(dateOfBirthForAge(30, '', '2026-11-02', 'en')).toEqual({
+      ok: true,
+      value: '1996-11-02',
+    });
+    expect(dateOfBirthForAge(30, '2007-02-30', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '1996-11-02',
     });
   });
 
   it('accepts 200 and rejects an age before year 1', () => {
-    expect(dateOfBirthForAge(200, '2007-07-08', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(200, '2007-07-08', '2026-11-02', 'en')).toEqual({
       ok: true,
       value: '1826-07-08',
     });
-    expect(dateOfBirthForAge(2026, '2007-07-08', '2026-11-02').ok).toBe(false);
-    expect(dateOfBirthForAge(5000, '2007-07-08', '2026-11-02')).toEqual({
+    expect(dateOfBirthForAge(2026, '2007-07-08', '2026-11-02', 'en').ok).toBe(false);
+    expect(dateOfBirthForAge(5000, '2007-07-08', '2026-11-02', 'en')).toEqual({
       ok: false,
       error: 'Enter a smaller age, e.g. 25.',
     });
@@ -488,7 +563,7 @@ describe('dateOfBirthForAge', () => {
     for (const today of todays) {
       for (const current of currents) {
         for (let age = 0; age <= 300; age++) {
-          const result = dateOfBirthForAge(age, current, today);
+          const result = dateOfBirthForAge(age, current, today, 'en');
           if (result.ok) {
             expect(ageOn(result.value, today)).toBe(age);
           } else {
@@ -502,9 +577,87 @@ describe('dateOfBirthForAge', () => {
 
 describe('nameProblem', () => {
   it('points out an empty name', () => {
-    expect(nameProblem('')).toBe('Enter a name.');
-    expect(nameProblem('   ')).toBe('Enter a name.');
-    expect(nameProblem(' Mia ')).toBeNull();
+    expect(nameProblem('', 'en')).toBe('Enter a name.');
+    expect(nameProblem('   ', 'en')).toBe('Enter a name.');
+    expect(nameProblem(' Mia ', 'en')).toBeNull();
+  });
+});
+
+describe('the entry errors in German (spec 009)', () => {
+  it('words each error in German, the dates as dd.mm.yyyy', () => {
+    expect(parseDisplayDate('31.02.2007', 'de')).toEqual({
+      ok: false,
+      error: 'Geben Sie ein gültiges Datum ein, z. B. 28.02.2007.',
+    });
+    expect(parseDisplayDate('28.02.2007', 'de')).toEqual({ ok: true, value: '2007-02-28' });
+    expect(parseWholeNumber('2.5', 'de')).toEqual({
+      ok: false,
+      error: 'Geben Sie eine ganze Zahl ein, z. B. 25.',
+    });
+    expect(dateOfBirthForAge(5000, '2007-07-08', '2026-11-02', 'de')).toEqual({
+      ok: false,
+      error: 'Geben Sie ein niedrigeres Alter ein, z. B. 25.',
+    });
+    expect(nameProblem(' ', 'de')).toBe('Geben Sie einen Namen ein.');
+    expect(parseEntry('number', 'a', 'de')).toEqual(parseWholeNumber('a', 'de'));
+  });
+
+  it('gives the same verdicts in both languages', () => {
+    for (const text of ['31.02.2007', '28.02.2007', '', 'abc']) {
+      expect(parseDisplayDate(text, 'de').ok).toBe(parseDisplayDate(text, 'en').ok);
+    }
+    expect(dateOfBirthForAge(30, null, '2026-11-02', 'de')).toEqual(
+      dateOfBirthForAge(30, null, '2026-11-02', 'en')
+    );
+  });
+});
+
+describe('draftsInLanguage (spec 009, FR-003)', () => {
+  const birth = field('pid.birthdate', 'date', { dateOfBirth: true });
+  const points = field('mdl.penalty_points', 'number');
+  const city = field('pid.address_locality', 'text');
+  const fields = [birth, points, city];
+  const values = { [birth.key]: '2007-07-08' };
+  const typed = (language: Language) => ({
+    [NAME_DRAFT_KEY]: { text: ' ', error: nameProblem(' ', language) },
+    [birth.key]: { text: '31.02.2007', error: 'stale' },
+    [`age:${birth.key}`]: { text: '5000', error: 'stale' },
+    [points.key]: { text: '2.5', error: 'stale' },
+    [city.key]: { text: 'Stuttgart', error: null },
+  });
+
+  it('words every invalid draft’s error in the language asked for, keeping the texts', () => {
+    expect(draftsInLanguage(typed('en'), fields, values, '2026-11-02', 'de')).toEqual({
+      [NAME_DRAFT_KEY]: { text: ' ', error: 'Geben Sie einen Namen ein.' },
+      [birth.key]: {
+        text: '31.02.2007',
+        error: 'Geben Sie ein gültiges Datum ein, z. B. 28.02.2007.',
+      },
+      [`age:${birth.key}`]: {
+        text: '5000',
+        error: 'Geben Sie ein niedrigeres Alter ein, z. B. 25.',
+      },
+      [points.key]: { text: '2.5', error: 'Geben Sie eine ganze Zahl ein, z. B. 25.' },
+      [city.key]: { text: 'Stuttgart', error: null },
+    });
+    expect(draftsInLanguage(typed('de'), fields, values, '2026-11-02', 'en')).toEqual({
+      [NAME_DRAFT_KEY]: { text: ' ', error: 'Enter a name.' },
+      [birth.key]: { text: '31.02.2007', error: 'Enter a date that exists, e.g. 28.02.2007.' },
+      [`age:${birth.key}`]: { text: '5000', error: 'Enter a smaller age, e.g. 25.' },
+      [points.key]: { text: '2.5', error: 'Enter a whole number, e.g. 25.' },
+      [city.key]: { text: 'Stuttgart', error: null },
+    });
+  });
+
+  it('keeps a valid draft, and the error of a draft whose field it doesn’t know', () => {
+    const drafts = {
+      [city.key]: { text: 'Stuttgart', error: null },
+      unknown: { text: 'x', error: 'kept' },
+    };
+    expect(draftsInLanguage(drafts, fields, values, '2026-11-02', 'de')).toEqual(drafts);
+    expect(hasEntryError(draftsInLanguage(typed('en'), fields, values, '2026-11-02', 'de'))).toBe(
+      true
+    );
   });
 });
 
@@ -519,16 +672,16 @@ describe('draftsReducer', () => {
 
 describe('parseEntry', () => {
   it('commits a text as typed, and an empty one as null', () => {
-    expect(parseEntry('text', ' Stuttgart ')).toEqual({ ok: true, value: ' Stuttgart ' });
-    expect(parseEntry('text', '')).toEqual({ ok: true, value: null });
+    expect(parseEntry('text', ' Stuttgart ', 'en')).toEqual({ ok: true, value: ' Stuttgart ' });
+    expect(parseEntry('text', '', 'en')).toEqual({ ok: true, value: null });
   });
 
   it('parses a number and a date as their parsers do', () => {
-    expect(parseEntry('number', ' 25 ')).toEqual({ ok: true, value: 25 });
-    expect(parseEntry('number', '2.5')).toEqual(parseWholeNumber('2.5'));
-    expect(parseEntry('date', '08.07.2007')).toEqual({ ok: true, value: '2007-07-08' });
-    expect(parseEntry('date', '31.02.2007')).toEqual(parseDisplayDate('31.02.2007'));
-    expect(parseEntry('date', '')).toEqual({ ok: true, value: null });
+    expect(parseEntry('number', ' 25 ', 'en')).toEqual({ ok: true, value: 25 });
+    expect(parseEntry('number', '2.5', 'en')).toEqual(parseWholeNumber('2.5', 'en'));
+    expect(parseEntry('date', '08.07.2007', 'en')).toEqual({ ok: true, value: '2007-07-08' });
+    expect(parseEntry('date', '31.02.2007', 'en')).toEqual(parseDisplayDate('31.02.2007', 'en'));
+    expect(parseEntry('date', '', 'en')).toEqual({ ok: true, value: null });
   });
 });
 
@@ -622,23 +775,39 @@ describe('changedValuesOf', () => {
 
 describe('editorLabelOf (spec 008 F40; U66 7058:60656, 7058:60662)', () => {
   it('names the date of birth and a class’s issue date as the dialog draws them', () => {
-    expect(editorLabelOf(field('pid.birthdate', 'date', { dateOfBirth: true }))).toBe(
+    expect(editorLabelOf(field('pid.birthdate', 'date', { dateOfBirth: true }), 'en')).toBe(
       'Date of birth'
     );
     expect(
-      editorLabelOf(field('mdl.issue_date#B', 'date', { part: 'issue_date', licenceClass: 'B' }))
+      editorLabelOf(
+        field('mdl.issue_date#B', 'date', { part: 'issue_date', licenceClass: 'B' }),
+        'en'
+      )
     ).toBe('Class B since');
   });
 
+  it('names them in German (spec 009)', () => {
+    expect(editorLabelOf(field('pid.birthdate', 'date', { dateOfBirth: true }), 'de')).toBe(
+      'Geburtsdatum'
+    );
+    expect(
+      editorLabelOf(
+        field('mdl.issue_date#B', 'date', { part: 'issue_date', licenceClass: 'B' }),
+        'de'
+      )
+    ).toBe('Klasse B seit');
+  });
+
   it('keeps any other label, a class’s expiry date included', () => {
-    expect(editorLabelOf(field('pid.nationality', 'enum'))).toBe('nationality');
+    expect(editorLabelOf(field('pid.nationality', 'enum'), 'en')).toBe('nationality');
     expect(
       editorLabelOf(
         field('mdl.expiry_date#C1', 'date', {
           part: 'expiry_date',
           licenceClass: 'C1',
           label: 'Licence class C1 – Expiry date',
-        })
+        }),
+        'en'
       )
     ).toBe('Licence class C1 – Expiry date');
   });
@@ -657,7 +826,8 @@ describe('savedToastOf (spec 008 FR-042; U67 7058:61203)', () => {
       savedToastOf(
         [row('01', 'not_met'), row('02', 'not_met'), row('03', 'met')],
         [row('02', 'not_met'), row('01', 'met'), row('03', 'met')],
-        mia
+        mia,
+        'en'
       )
     ).toBe('Results updated. Mia now meets Rule 01.');
   });
@@ -667,7 +837,8 @@ describe('savedToastOf (spec 008 FR-042; U67 7058:61203)', () => {
       savedToastOf(
         [row('01', 'not_met'), row('02', 'not_checked'), row('03', 'met'), row('04', 'met')],
         [row('03', 'not_met'), row('04', 'not_checked'), row('01', 'met'), row('02', 'met')],
-        mia
+        mia,
+        'en'
       )
     ).toBe(
       'Results updated. Mia now meets Rule 01 and Rule 02. Mia no longer meets Rule 03 and Rule 04.'
@@ -675,9 +846,25 @@ describe('savedToastOf (spec 008 FR-042; U67 7058:61203)', () => {
   });
 
   it('says only "Results updated." when no outcome moved, or for items new or gone', () => {
-    expect(savedToastOf([row('01', 'met')], [row('01', 'met'), row('02', 'met')], mia)).toBe(
+    expect(savedToastOf([row('01', 'met')], [row('01', 'met'), row('02', 'met')], mia, 'en')).toBe(
       'Results updated.'
     );
-    expect(savedToastOf([], [row('01', 'met')], mia)).toBe('Results updated.');
+    expect(savedToastOf([], [row('01', 'met')], mia, 'en')).toBe('Results updated.');
+  });
+
+  it('words the toast in German (spec 009; glossary §2 "meets")', () => {
+    expect(
+      savedToastOf(
+        [row('01', 'not_met'), row('02', 'not_checked'), row('03', 'met'), row('04', 'met')],
+        [row('03', 'not_met'), row('04', 'not_checked'), row('01', 'met'), row('02', 'met')],
+        mia,
+        'de'
+      )
+    ).toBe(
+      'Ergebnisse aktualisiert. Mia erfüllt jetzt Rule 01 und Rule 02. Mia erfüllt Rule 03 und Rule 04 nicht mehr.'
+    );
+    expect(savedToastOf([row('01', 'met')], [row('01', 'met')], mia, 'de')).toBe(
+      'Ergebnisse aktualisiert.'
+    );
   });
 });

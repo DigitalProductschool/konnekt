@@ -13,8 +13,9 @@ import type { ApprovalOutcomeProps } from './types';
  * actions' words, declined (info), expired, replaced, or cancelled with its reason (warning). A
  * failed call keeps the body and the actions, and shows the service's message with the error ID
  * in the danger alert's body (F22, FR-033: an alert with a body keeps it); "Try again" takes the
- * place of "Approve". The alert takes the focus when it appears and again for a new text;
- * `KernAlert` takes no ref, so the wrapper holds it.
+ * place of "Approve". The alert takes the focus when it appears and again for a new outcome or
+ * failure, not when a switch of the language words it anew (spec 009: the focus stays on the
+ * switch); `KernAlert` takes no ref, so the wrapper holds it.
  */
 export default function ApprovalOutcome({
   view,
@@ -23,7 +24,10 @@ export default function ApprovalOutcome({
   deactivated = false,
 }: ApprovalOutcomeProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const key = view.kind === 'final' ? view.outcome.text : `${view.title} ${view.notice.message}`;
+  // What the alert stands for, without its words, which a switch changes. A new failure comes
+  // after the old one went (a call that starts takes it away), so it mounts the alert anew
+  const key =
+    view.kind === 'final' ? `final ${view.outcome.status}` : `failed ${view.notice.error_id ?? ''}`;
 
   useEffect(() => {
     wrapperRef.current?.querySelector<HTMLElement>('.kern-alert')?.focus();

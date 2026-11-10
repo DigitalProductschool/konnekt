@@ -7,6 +7,7 @@ import {
   conditionProblem,
   isComplete,
   kindOfTarget,
+  labelOf,
   newCondition,
   operatorDefinition,
   operatorsFor,
@@ -50,6 +51,35 @@ describe('operatorsFor', () => {
     ],
   ])('words the %s operators as FR-003 does', (kind, labels) => {
     expect(operatorsFor(kind).map((entry) => entry.label)).toEqual(labels);
+  });
+
+  it.each<[ConditionKind, string[]]>([
+    ['number', ['ist größer als', 'ist kleiner als', 'ist gleich', 'ist ungleich']],
+    ['text', ['ist gleich', 'ist ungleich', 'enthält', 'enthält nicht']],
+    ['enum', ['enthält eines von', 'enthält keines von']],
+    [
+      'date',
+      [
+        'liegt vor dem',
+        'liegt nach dem',
+        'ist der',
+        'ist mindestens',
+        'ist weniger als',
+        'ist genau',
+        'liegt mindestens',
+        'liegt weniger als',
+      ],
+    ],
+  ])('words the %s operators in German (labelOf, glossary G§3)', (kind, labels) => {
+    expect(operatorsFor(kind).map((entry) => labelOf(entry, 'de'))).toEqual(labels);
+  });
+
+  it('keeps FR-003’s English words in labelOf without a language, as in `label`', () => {
+    for (const kind of ['number', 'text', 'enum', 'date'] as const) {
+      expect(operatorsFor(kind).map((entry) => labelOf(entry))).toEqual(
+        operatorsFor(kind).map((entry) => entry.label)
+      );
+    }
   });
 
   it('names the API’s operators', () => {
@@ -107,6 +137,21 @@ describe('suffixOf', () => {
   it('has none for the other operators', () => {
     expect(suffixOf(definition('before', 'date'), true)).toBeNull();
     expect(suffixOf(definition('equal_to', 'text'), false)).toBeNull();
+  });
+
+  it('says "Jahre alt" on the Date of birth and "Jahre zurück" elsewhere in German', () => {
+    const atLeast = definition('at_least_years_ago', 'date');
+    expect(suffixOf(atLeast, true, 2, 'de')).toBe('Jahre alt');
+    expect(suffixOf(atLeast, false, 2, 'de')).toBe('Jahre zurück');
+    expect(suffixOf(atLeast, true, 1, 'de')).toBe('Jahr alt');
+    expect(suffixOf(atLeast, false, 1, 'de')).toBe('Jahr zurück');
+  });
+
+  it('says "in der Zukunft" on from-now conditions in German, and nothing on the others', () => {
+    expect(suffixOf(definition('less_than_from_now', 'date'), true, 2, 'de')).toBe(
+      'in der Zukunft'
+    );
+    expect(suffixOf(definition('before', 'date'), true, 2, 'de')).toBeNull();
   });
 });
 

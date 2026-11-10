@@ -4,6 +4,7 @@ import { shownFieldsOf } from '@connection-portal/rules/personas/values';
 import { useEffect, useReducer, useRef } from 'react';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import { EDIT_DATA_COPY, TEST_STEP_COPY } from './constants';
 import DocumentFields from './DocumentFields';
@@ -15,6 +16,7 @@ import {
   CLOSED_EDIT_DATA,
   dateOfBirthForAge,
   documentGroupsOf,
+  draftsInLanguage,
   editDataReducer,
   formatDisplayDate,
   hasEntryError,
@@ -42,7 +44,10 @@ import ValueField from './ValueField';
  *
  * It stays mounted while closed, so that closing it returns the focus to "Edit data" (the browser
  * does that); it opens with the focus on the name. Its copy starts anew with every opening: the
- * render that sees a new persona (or none) resets it
+ * render that sees a new persona (or none) resets it.
+ *
+ * Its texts follow the website's language while it is open (spec 009, FR-003): the typed entries
+ * stay, and the errors shown are worded again in the language of the moment (`draftsInLanguage()`)
  */
 export default function EditDataDialog({
   persona,
@@ -52,6 +57,8 @@ export default function EditDataDialog({
   onSave,
   onCancel,
 }: EditDataDialogProps) {
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
   const [state, dispatch] = useReducer(editDataReducer, CLOSED_EDIT_DATA);
   const formRef = useRef<HTMLDivElement>(null);
   const open = persona !== null && context !== null;
@@ -75,13 +82,14 @@ export default function EditDataDialog({
 
   const ready = open && state.personaId === persona.id;
   const { values, drafts } = state;
+  const shownDrafts = draftsInLanguage(drafts, fields, values, today, language);
 
   function changeName(text: string) {
-    dispatch({ type: 'draft', key: NAME_DRAFT_KEY, text, error: nameProblem(text) });
+    dispatch({ type: 'draft', key: NAME_DRAFT_KEY, text, error: nameProblem(text, language) });
   }
 
   function changeText(key: string, kind: PersonaField['kind'], text: string, dateOfBirth: boolean) {
-    const parsed = parseEntry(kind, text);
+    const parsed = parseEntry(kind, text, language);
     if (!parsed.ok) {
       dispatch({ type: 'draft', key, text, error: parsed.error });
       return;
@@ -101,7 +109,7 @@ export default function EditDataDialog({
 
   function changeAge(key: string, text: string) {
     const draftKey = ageDraftKey(key);
-    const entered = parseWholeNumber(text);
+    const entered = parseWholeNumber(text, language);
     if (!entered.ok) {
       dispatch({ type: 'draft', key: draftKey, text, error: entered.error });
       return;
@@ -117,7 +125,8 @@ export default function EditDataDialog({
     const born = dateOfBirthForAge(
       entered.value,
       typeof current === 'string' ? current : null,
-      today
+      today,
+      language
     );
     if (!born.ok) {
       dispatch({ type: 'draft', key: draftKey, text, error: born.error });
@@ -150,11 +159,11 @@ export default function EditDataDialog({
     <ConfirmDialog
       open={open}
       wide
-      title={persona ? EDIT_DATA_COPY.title(dataHeadingOf(persona)) : ''}
-      text={open ? TEST_STEP_COPY.editDataIntro : ''}
+      title={persona ? EDIT_DATA_COPY[language].title(dataHeadingOf(persona, language)) : ''}
+      text={open ? copy.editDataIntro : ''}
       textClassName="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)"
-      confirmLabel={TEST_STEP_COPY.saveAndTest}
-      cancelLabel={TEST_STEP_COPY.cancel}
+      confirmLabel={copy.saveAndTest}
+      cancelLabel={copy.cancel}
       onCancel={onCancel}
       onConfirm={save}
     >
@@ -163,10 +172,10 @@ export default function EditDataDialog({
         <div ref={formRef} className="mt-8 flex flex-col gap-24">
           <ValueField
             id={nameId}
-            label={TEST_STEP_COPY.name}
+            label={copy.name}
             text={drafts[NAME_DRAFT_KEY]?.text ?? persona.name}
             kind="text"
-            error={drafts[NAME_DRAFT_KEY]?.error ?? null}
+            error={shownDrafts[NAME_DRAFT_KEY]?.error ?? null}
             onChange={changeName}
           />
           {documentGroupsOf(shownFieldsOf({ ...persona, values }, fields)).map((group) => (
@@ -177,7 +186,7 @@ export default function EditDataDialog({
               values={values}
               context={context}
               today={today}
-              drafts={drafts}
+              drafts={shownDrafts}
               onText={(field, text) => changeText(field.key, field.kind, text, field.dateOfBirth)}
               onAge={(field, text) => changeAge(field.key, text)}
               onValue={(field, value) => dispatch({ type: 'value', key: field.key, value })}

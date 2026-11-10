@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { placementFrom, popupWrapperClass } from '../../utils/popupPlacement';
 import { ExplainedButton } from '../InfoTooltip';
 import { TOOLTIP_BOX, TOOLTIP_HEIGHT } from '../InfoTooltip/constants';
@@ -15,8 +16,7 @@ import { bubblePlacementClass } from '../InfoTooltip/utils';
 import {
   COPIED_RESET_MS,
   COPY_BUTTON,
-  COPY_TEXTS,
-  DEACTIVATED_EXPLANATION,
+  COPYABLE_URL_COPY,
   FULL_URL_WIDTH,
   INITIAL_COPY_STATE,
   URL_BOX,
@@ -28,7 +28,7 @@ import type {
   FullUrlFrameProps,
   FullUrlState,
 } from './types';
-import { copyReducer, copyToClipboard, isCut, selectText } from './utils';
+import { copyReducer, copyTextsOf, copyToClipboard, isCut, selectText } from './utils';
 
 const CLOSED: FullUrlState = { open: false, placement: { side: 'start', direction: 'down' } };
 
@@ -123,9 +123,10 @@ function FullUrlFrame({ text, boxRef, children }: FullUrlFrameProps) {
  */
 function CopyButton({ copied, texts, labelledBy, deactivated, onCopy }: CopyButtonProps) {
   const labelId = useId();
+  const copy = useCopy(COPYABLE_URL_COPY);
   return (
     <ExplainedButton
-      explanation={deactivated ? DEACTIVATED_EXPLANATION : null}
+      explanation={deactivated ? copy.deactivatedExplanation : null}
       align="end"
       wrapperClassName="shrink-0 self-start sm:self-auto"
       onClick={onCopy}
@@ -155,7 +156,8 @@ export default function CopyableUrl(props: CopyableUrlProps) {
   const { describedBy, deactivated = false } = props;
   const variant = props.variant ?? 'link';
   const value = props.variant === 'field' ? props.value : props.url;
-  const texts = { ...COPY_TEXTS[variant], ...props.texts };
+  const { language } = useLanguage();
+  const texts = copyTextsOf(variant, language, props.texts);
   const [state, dispatch] = useReducer(copyReducer, INITIAL_COPY_STATE);
   const urlRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { RULE_ROW_COPY, SMALL_TEXT } from './constants';
 import type { RuleNameProps } from './types';
 
@@ -7,12 +8,13 @@ import type { RuleNameProps } from './types';
  * ("rule-7", F35; the design draws no identifier).
  */
 export default function RuleName({ name, identifier }: RuleNameProps) {
+  const copy = useCopy(RULE_ROW_COPY);
   return (
     <p className={`${SMALL_TEXT} flex flex-wrap items-center gap-x-8`}>
       <span className="text-kern-action-default font-semibold break-words">{name}</span>
       {identifier && (
         <span className="text-kern-layout-text-muted">
-          <span className="sr-only">{RULE_ROW_COPY.identifier} </span>
+          <span className="sr-only">{copy.identifier} </span>
           {identifier}
         </span>
       )}

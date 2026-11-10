@@ -8,6 +8,7 @@ import ErrorNoticeText from '../../components/ErrorNoticeText';
 import TextField from '../../components/TextField';
 import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { INITIAL_LOGIN_FORM, LOGIN_COPY } from './constants';
 import PasswordField from './PasswordField';
 import type { SignInAlertProps } from './types';
@@ -25,6 +26,8 @@ const ALERT_ID = 'login-error';
  */
 export default function LoginCard() {
   const { signIn } = useCurrentUser();
+  const { language } = useLanguage();
+  const copy = useCopy(LOGIN_COPY);
   const location = useLocation();
   const [state, dispatch] = useReducer(loginFormReducer, INITIAL_LOGIN_FORM);
   const wrongCredentials = state.failure?.kind === 'credentials';
@@ -42,7 +45,7 @@ export default function LoginCard() {
     try {
       await signIn({ username: state.username, password: state.password });
     } catch (error) {
-      dispatch({ type: 'fail', failure: signInFailureOf(error) });
+      dispatch({ type: 'fail', failure: signInFailureOf(error, language) });
     }
   }
 
@@ -55,7 +58,7 @@ export default function LoginCard() {
         id="login-title"
         className="text-kern-adaptive-large text-kern-layout-text-default font-semibold"
       >
-        {LOGIN_COPY.cardTitle}
+        {copy.cardTitle}
       </h2>
 
       {/* The kit's input labels keep their baseline padding here (U10: 6 above, 2 below) */}
@@ -69,7 +72,7 @@ export default function LoginCard() {
         )}
         <TextField
           id="login-username"
-          label={LOGIN_COPY.username}
+          label={copy.username}
           required
           autoComplete="username"
           autoCapitalize="none"
@@ -82,7 +85,7 @@ export default function LoginCard() {
         <div className="flex flex-col">
           <PasswordField
             id="login-password"
-            label={LOGIN_COPY.password}
+            label={copy.password}
             value={state.password}
             visible={state.showPassword}
             invalid={wrongCredentials}
@@ -98,7 +101,7 @@ export default function LoginCard() {
               className="kern-link kern-link--no-visited-state"
             >
               <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
-              {LOGIN_COPY.forgotPassword}
+              {copy.forgotPassword}
             </Link>
           </div>
         </div>
@@ -108,15 +111,13 @@ export default function LoginCard() {
           aria-disabled={state.submitting || undefined}
           className="kern-btn kern-btn--primary kern-btn--block"
         >
-          <span className="kern-label">
-            {state.submitting ? LOGIN_COPY.submitting : LOGIN_COPY.submit}
-          </span>
+          <span className="kern-label">{state.submitting ? copy.submitting : copy.submit}</span>
         </button>
       </form>
 
       <p className="text-kern-static-small text-kern-layout-text-muted flex items-center justify-center gap-8 leading-(--kern-typography-line-height-medium-static)">
         <img src={lockIcon} alt="" className="size-16 shrink-0" />
-        {LOGIN_COPY.secureNote}
+        {copy.secureNote}
       </p>
     </section>
   );
@@ -126,12 +127,15 @@ export default function LoginCard() {
  * The failed sign-in's danger alert. A wrong username or password is the design's title-only
  * alert, its first sentence bold and the second regular in the same line box (U10 6401:28435),
  * which `KernAlert` can't take, so it is KERN's markup; any other failure is `KernAlert` with the
- * server's message and the error ID in its body (§3 "Alert, page level", F22).
+ * server's message and the error ID in its body (§3 "Alert, page level", F22). The first is the
+ * server's 401 message, so it stays in the attempt's language after a switch; the second's title
+ * is the website's own and follows the language, its body is the server's (spec 009).
  */
 function SignInAlert({ id, failure }: SignInAlertProps) {
+  const copy = useCopy(LOGIN_COPY);
   if (failure.kind === 'failed') {
     return (
-      <KernAlert id={id} variant="danger" title={LOGIN_COPY.signInFailedTitle} className="w-full">
+      <KernAlert id={id} variant="danger" title={copy.signInFailedTitle} className="w-full">
         <ErrorNoticeText notice={failure.notice} />
       </KernAlert>
     );
@@ -141,9 +145,9 @@ function SignInAlert({ id, failure }: SignInAlertProps) {
       <div className="kern-alert__header">
         <span aria-hidden="true" className="kern-icon kern-icon--danger kern-icon--small" />
         <span className="kern-title">
-          {LOGIN_COPY.invalidCredentialsTitle}{' '}
+          {LOGIN_COPY[failure.language].invalidCredentialsTitle}{' '}
           <span className="text-kern-static-medium font-normal">
-            {LOGIN_COPY.invalidCredentialsText}
+            {LOGIN_COPY[failure.language].invalidCredentialsText}
           </span>
         </span>
       </div>

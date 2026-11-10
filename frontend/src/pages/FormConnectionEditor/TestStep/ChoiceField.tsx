@@ -1,3 +1,4 @@
+import { useCopy } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import FieldFrame from './FieldFrame';
 import type { ChoiceFieldProps } from './types';
@@ -10,6 +11,7 @@ import { entryTextOf } from './utils';
  * so that the field shows what the persona has
  */
 export default function ChoiceField({ id, label, choices, value, onChange }: ChoiceFieldProps) {
+  const copy = useCopy(TEST_STEP_COPY);
   const current = entryTextOf('enum', value);
   const outside = current !== '' && !choices.some((choice) => String(choice.value) === current);
   return (
@@ -24,7 +26,7 @@ export default function ChoiceField({ id, label, choices, value, onChange }: Cho
             onChange(chosen ? chosen.value : event.target.value === '' ? null : event.target.value);
           }}
         >
-          <option value="">{TEST_STEP_COPY.notShared}</option>
+          <option value="">{copy.notShared}</option>
           {choices.map((choice) => (
             <option key={choice.value} value={String(choice.value)}>
               {choice.label}

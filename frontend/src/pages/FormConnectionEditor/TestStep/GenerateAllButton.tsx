@@ -1,3 +1,4 @@
+import { useCopy } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import type { GenerateAllButtonProps } from './types';
 
@@ -10,6 +11,7 @@ import type { GenerateAllButtonProps } from './types';
  * so 64px; the 44px selected chip centred in it)
  */
 export default function GenerateAllButton({ onGenerateAll }: GenerateAllButtonProps) {
+  const copy = useCopy(TEST_STEP_COPY);
   return (
     <button
       type="button"
@@ -17,7 +19,7 @@ export default function GenerateAllButton({ onGenerateAll }: GenerateAllButtonPr
       onClick={onGenerateAll}
     >
       <span aria-hidden="true" className="kern-icon kern-icon--autorenew kern-icon--small" />
-      <span className="kern-label">{TEST_STEP_COPY.generateAll}</span>
+      <span className="kern-label">{copy.generateAll}</span>
     </button>
   );
 }

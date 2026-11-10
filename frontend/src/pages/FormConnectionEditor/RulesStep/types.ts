@@ -14,6 +14,7 @@ import type {
   ItemNames,
   ItemReference,
 } from '@connection-portal/rules/checks/types';
+import type { Language } from '@connection-portal/rules/language';
 import type { RuleContext, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
@@ -139,8 +140,11 @@ export type RulesAction =
   | { type: 'addRule'; branchKey: string; parentId: string | null }
   | { type: 'editRule'; branchKey: string; ruleId: string }
   | { type: 'changeDraft'; draft: RuleItem }
-  /** Puts the edited rule into its branch, complete or not, and closes the editor */
-  | { type: 'saveRule' }
+  /**
+   * Puts the edited rule into its branch, complete or not, and closes the editor. `language` is
+   * the toast's ("Rule 01 saved.")
+   */
+  | { type: 'saveRule'; language: Language }
   /** Closes the editor and drops its changes */
   | { type: 'closeEditor' }
   | { type: 'startRename'; branchKey: string; itemId: string }
@@ -149,8 +153,11 @@ export type RulesAction =
   | { type: 'duplicateRule'; branchKey: string; ruleId: string }
   | { type: 'askDelete'; branchKey: string; ruleId: string }
   | { type: 'askDeleteGroup'; branchKey: string; groupId: string }
-  /** Deletes the rule or group the dialog asks about */
-  | { type: 'confirmDelete' }
+  /**
+   * Deletes the rule, group or variant the dialog asks about; `language` is the toast's ("Rule 03
+   * deleted.")
+   */
+  | { type: 'confirmDelete'; language: Language }
   | { type: 'askSaveChanges'; next: LeaveEditorAction }
   | { type: 'closeDialog' }
   | { type: 'undo' }
@@ -167,9 +174,9 @@ export type RulesAction =
   | { type: 'cancelSelect' }
   /** Opens or closes a variant's findings banner (A1) */
   | { type: 'toggleFindings'; branchKey: string }
-  /** "Group rules": the chosen rules become a group or sub-group */
-  | { type: 'groupSelected' }
-  | { type: 'ungroup'; branchKey: string; groupId: string }
+  /** "Group rules": the chosen rules become a group or sub-group; `language` is the toast's */
+  | { type: 'groupSelected'; language: Language }
+  | { type: 'ungroup'; branchKey: string; groupId: string; language: Language }
   /** Adds (with ''), changes or removes (with null) a group's own message */
   | { type: 'setGroupMessage'; branchKey: string; groupId: string; message: string | null }
   | { type: 'askAddVariant' }
@@ -189,8 +196,8 @@ export type RulesAction =
   /** The top level's AND/OR follows the main branch again (FR-024) */
   | { type: 'resetOperator'; branchKey: string }
   | { type: 'askCopyRule'; branchKey: string; ruleId: string }
-  /** Copies the rule the dialog names to these branches (FR-022) */
-  | { type: 'copyRule'; targets: string[] };
+  /** Copies the rule the dialog names to these branches (FR-022); `language` is the toast's */
+  | { type: 'copyRule'; targets: string[]; language: Language };
 
 /** A variant's name and description, as the Add variant and Edit variant dialogs give them */
 export interface VariantFields {

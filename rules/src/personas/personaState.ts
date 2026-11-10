@@ -3,7 +3,10 @@
 // and with which slot kinds, merges a request into the running run, ignores answers of superseded
 // runs, and keeps the selections. Pure: the hook passes the request's time as `now`. Bundle rule
 // (research R9, R16): this module is in the main bundle and imports neither `results.ts`,
-// `fields.ts`, `evaluation.ts` nor anything that reaches `checks/checkedTree.ts` or `checks/text.ts`
+// `fields.ts`, `evaluation.ts` nor anything that reaches `checks/checkedTree.ts` or `checks/text.ts`.
+// The announcement is composed in the language `setValue` carries (spec 009, R4), the language of
+// the moment; one already stored isn't recomposed when the language switches (a live region)
+import { DEFAULT_LANGUAGE } from '../language';
 import { announcementOf } from './announcements';
 import { PERSONA_IDS } from './constants';
 import type {
@@ -143,14 +146,21 @@ function confirmed(state: PersonaState, now: number): PersonaState {
 
 /**
  * One value of a ready persona changes; `generated` never does. The announcement is the text of
- * the outcome changes, or '' when none moved (FR-017); every text raises `announcementId`
+ * the outcome changes, or '' when none moved (FR-017), in the action's language (English when it
+ * has none); every text raises `announcementId`
  */
 function setValue(state: PersonaState, action: SetValueAction): PersonaState {
   const persona = readyPersona(state, action.slot);
   if (persona === null || state.personas === null) {
     return state;
   }
-  const announcement = announcementOf(action.before, action.after, persona, action.branches);
+  const announcement = announcementOf(
+    action.before,
+    action.after,
+    persona,
+    action.branches,
+    action.language ?? DEFAULT_LANGUAGE
+  );
   const personas = state.personas.map((other, index) =>
     index === action.slot
       ? { ...other, values: { ...other.values, [action.key]: action.value } }

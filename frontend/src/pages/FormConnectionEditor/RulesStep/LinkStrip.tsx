@@ -1,5 +1,6 @@
 import linkIcon from '../../../assets/icons/link.svg';
-import { RULES_COPY } from './constants';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY } from './constants';
 import type { LinkStripProps } from './types';
 import { linkStripSummaryOf } from './utils';
 
@@ -12,14 +13,18 @@ import { linkStripSummaryOf } from './utils';
  * 2026-10-25, design-notes §4).
  */
 export default function LinkStrip({ branch, mainName }: LinkStripProps) {
-  const summary = linkStripSummaryOf(branch, mainName);
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
+  const summary = linkStripSummaryOf(branch, mainName, language);
   return (
     <p className="bg-kern-feedback-info-background text-kern-static-small text-kern-feedback-info rounded-t-kern-large flex flex-wrap items-center gap-8 p-16 leading-(--kern-typography-line-height-medium-static)">
       <img src={linkIcon} alt="" className="size-20 shrink-0" />
-      <span className="font-semibold">{RULES_COPY.linkedTo(mainName)}</span>
-      <span className="min-w-0 flex-1">
+      <span className="font-semibold">{copy.linkedTo(mainName)}</span>
+      {/* A word longer than the column beside the label breaks inside it (R9; at 320px the
+          German "aktualisiert." ran past the strip; spec 009, T046) */}
+      <span className="min-w-0 flex-1 break-words">
         {summary && `${summary} `}
-        {RULES_COPY.linkedText(mainName)}
+        {copy.linkedText(mainName)}
       </span>
     </p>
   );

@@ -1,3 +1,5 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { MenuDirection, PopupPlacement } from '../../utils/popupPlacement';
 
 // Value sets with more options than this get a search field ("Search options")
@@ -34,7 +36,7 @@ export const VALUES_MENU_METRICS = {
 };
 
 /** The "Done" button (U32 6357:43417; FR-039, CLAR Q27): closes the menu, keeping the choice */
-export const VALUES_PICKER_DONE = 'Done';
+export const VALUES_PICKER_TEXTS = defineTexts({ done: 'Done' }, { done: 'Fertig' });
 
 /**
  * Where the menu opens from its field (utils/popupPlacement.ts), 8px from it (design-notes §3

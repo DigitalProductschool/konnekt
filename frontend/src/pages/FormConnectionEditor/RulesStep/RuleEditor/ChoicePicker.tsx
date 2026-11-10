@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { isLanguageSwitchTarget } from '../../../../components/LanguageSwitch/utils';
 import {
   type MenuPlacement,
   placementFrom,
@@ -13,7 +14,8 @@ import { choiceMenuHeight } from './utils';
 
 /**
  * A picker with its menu: document, data, part, check or unit (S10). Its menu is open while the
- * editor's state says so; a pointer outside closes it. The menu is placed from its picker as it
+ * editor's state says so; a pointer outside closes it, except on the language switch, which keeps
+ * the menu and its search (spec 009, US1-AS2). The menu is placed from its picker as it
  * opens, before it shows (utils/popupPlacement.ts, research R10; T021's placement): a choice opens
  * the next picker's menu, whose picker may only appear, or move, in that same change, so it is
  * measured once the picker is where it ends up.
@@ -72,7 +74,10 @@ export default function ChoicePicker({
       return;
     }
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (
+        !containerRef.current?.contains(event.target as Node) &&
+        !isLanguageSwitchTarget(event.target)
+      ) {
         dispatch({ type: 'closeMenu' });
       }
     }

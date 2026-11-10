@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../utils/menuNavigation';
 import { MENU_MAX_HEIGHT_CLASSES } from '../../utils/popupPlacement';
 import ConnectorOption from './ConnectorOption';
@@ -25,6 +26,7 @@ export default function ConnectorMenu({
   onClose,
   onLeave,
 }: ConnectorMenuProps) {
+  const copy = useCopy(CONNECTOR_COPY);
   const menuRef = useRef<HTMLDivElement>(null);
   const footerId = useId();
 
@@ -64,11 +66,11 @@ export default function ConnectorMenu({
       >
         {CONNECTOR_OPTIONS.map((option) => (
           <ConnectorOption
-            key={option.operator}
-            operator={option.operator}
-            description={option.description}
-            checked={option.operator === operator}
-            onChoose={() => onChoose(option.operator)}
+            key={option}
+            operator={option}
+            description={copy.descriptions[option]}
+            checked={option === operator}
+            onChoose={() => onChoose(option)}
           />
         ))}
       </div>
@@ -80,7 +82,7 @@ export default function ConnectorMenu({
         id={footerId}
         className="text-kern-static-small text-kern-layout-text-muted w-258 max-w-full shrink-0 px-8 pt-8 pb-4 leading-(--kern-typography-line-height-medium-static)"
       >
-        {CONNECTOR_COPY.appliesTo(levelName)}
+        {copy.appliesTo(levelName)}
       </p>
     </div>
   );

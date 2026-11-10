@@ -40,6 +40,7 @@ import {
   RULE_ID_PATTERN,
   RULES_MESSAGES,
 } from './constants';
+import { DEFAULT_LANGUAGE } from './language';
 import { canGroup, defaultRuleName, findItem, flattenItems, newRule, numberOfId } from './tree';
 import type {
   DataRemoval,
@@ -51,9 +52,16 @@ import type {
   NewRule,
   RuleChanges,
   RuleInBranch,
+  RuleProblemDetail,
+  RulesProblemCode,
   VariantChanges,
 } from './types';
-import { nameProblem, rulesCheckingData, textLength, variantNameProblem } from './validation';
+import { nameProblemOf, rulesCheckingData, textLength, variantNameProblemOf } from './validation';
+
+// The refusals are in English: they reach the agents only (spec 009, FR-017), as the rules step
+// doesn't offer an action in a state that refuses it and checks a name before it renames
+const editMessages = EDIT_MESSAGES[DEFAULT_LANGUAGE];
+const rulesMessages = RULES_MESSAGES[DEFAULT_LANGUAGE];
 
 type Refused = { ok: false; refusal: EditRefusal };
 
@@ -68,12 +76,23 @@ interface ItemAt<I extends RuleTreeItem = RuleTreeItem> extends BranchAt {
   item: I;
 }
 
+/** A refusal with its code, the key of its message (spec 009, R10). */
 function refuse(
+  code: RulesProblemCode,
   message: string,
   branchIndex: number | null = null,
   itemId: string | null = null
 ): Refused {
-  return { ok: false, refusal: { message, branchIndex, itemId } };
+  return { ok: false, refusal: { code, message, branchIndex, itemId } };
+}
+
+/** The refusal of a problem of validation.ts. */
+function refuseProblem(
+  { code, message }: RuleProblemDetail,
+  branchIndex: number | null = null,
+  itemId: string | null = null
+): Refused {
+  return refuse(code, message, branchIndex, itemId);
 }
 
 /** A branch's id; every branch an action names has one (`EditState`). */
@@ -89,7 +108,7 @@ function mainName(state: EditState): string {
 function branchAt(state: EditState, branchId: string): BranchAt | Refused {
   const index = state.branches.findIndex((branch) => branch.id === branchId);
   return index < 0
-    ? refuse(EDIT_MESSAGES.unknownVariant)
+    ? refuse('unknownVariant', editMessages.unknownVariant)
     : { branch: state.branches[index], index };
 }
 
@@ -101,7 +120,12 @@ function itemAt(state: EditState, branchId: string, itemId: string): ItemAt | Re
   const item = findItem(at.branch.items, itemId)?.item;
   return item
     ? { ...at, item }
-    : refuse(EDIT_MESSAGES.unknownItem(itemId, at.branch.name.trim()), at.index, null);
+    : refuse(
+        'unknownItem',
+        editMessages.unknownItem(itemId, at.branch.name.trim()),
+        at.index,
+        null
+      );
 }
 
 function ruleAt(state: EditState, branchId: string, ruleId: string): ItemAt<RuleItem> | Refused {
@@ -110,7 +134,8 @@ function ruleAt(state: EditState, branchId: string, ruleId: string): ItemAt<Rule
     return at as ItemAt<RuleItem> | Refused;
   }
   return refuse(
-    EDIT_MESSAGES.notRule(at.item.name.trim(), at.branch.name.trim()),
+    'notRule',
+    editMessages.notRule(at.item.name.trim(), at.branch.name.trim()),
     at.index,
     ruleId
   );
@@ -122,7 +147,8 @@ function groupAt(state: EditState, branchId: string, groupId: string): ItemAt<Gr
     return at as ItemAt<GroupItem> | Refused;
   }
   return refuse(
-    EDIT_MESSAGES.notGroup(at.item.name.trim(), at.branch.name.trim()),
+    'notGroup',
+    editMessages.notGroup(at.item.name.trim(), at.branch.name.trim()),
     at.index,
     groupId
   );
@@ -130,7 +156,8 @@ function groupAt(state: EditState, branchId: string, groupId: string): ItemAt<Gr
 
 /** The refusal of a change to an item removed in its branch, which can only be restored. */
 function refuseRemoved({ item, branch, index }: ItemAt): Refused {
-  return refuse(EDIT_MESSAGES.removed(item.name.trim(), branch.name.trim()), index, item.id);
+  const message = editMessages.removed(item.name.trim(), branch.name.trim());
+  return refuse('removed', message, index, item.id);
 }
 
 /**
@@ -202,9 +229,9 @@ function changeContent<I extends RuleTreeItem>(
   }
   const name: string | undefined = changes.name;
   if (name !== undefined && name.trim() !== item.name.trim()) {
-    const problem = nameProblem(name, item, branch, state.branches);
+    const problem = nameProblemOf(name, item, branch, state.branches);
     if (problem) {
-      return refuse(problem, index, item.id);
+      return refuseProblem(problem, index, item.id);
     }
   }
   const changed = changeItem(state.branches[0], branch, { ...item, ...definedOf(changes) });
@@ -245,7 +272,7 @@ export function addRule(
   }
   const { id, name, ...content } = rule;
   if (id !== undefined && !RULE_ID_PATTERN.test(id)) {
-    return refuse(RULES_MESSAGES.invalidIdentifier, index, null);
+    return refuse('invalidIdentifier', rulesMessages.invalidIdentifier, index, null);
   }
   const numbered =
     id === undefined
@@ -258,7 +285,7 @@ export function addRule(
   const added = addRuleToBranch(branch, created, parentId);
   if (!added) {
     // Only a removed group refuses a new rule
-    return parent ? refuseRemoved(parent) : refuse(EDIT_MESSAGES.unknownVariant);
+    return parent ? refuseRemoved(parent) : refuse('unknownVariant', editMessages.unknownVariant);
   }
   const next = withBranch(state, index, added, numbered.counters);
   if (name !== undefined && name.trim() !== created.name.trim()) {
@@ -358,12 +385,12 @@ export function ungroup(
   }
   const ungrouped = ungroupInBranch(branch, groupId);
   if (!ungrouped) {
-    const message = EDIT_MESSAGES.inheritedGroup(
+    const message = editMessages.inheritedGroup(
       item.name.trim(),
       branch.name.trim(),
       mainName(state)
     );
-    return refuse(message, index, groupId);
+    return refuse('inheritedGroup', message, index, groupId);
   }
   return {
     ok: true,
@@ -405,12 +432,17 @@ export function deleteItem(
   }
   if (isInherited(branch, item)) {
     if (item.mark === 'removed') {
-      const message = EDIT_MESSAGES.alreadyRemoved(item.name.trim(), branch.name.trim());
-      return refuse(message, index, itemId);
+      const message = editMessages.alreadyRemoved(item.name.trim(), branch.name.trim());
+      return refuse('alreadyRemoved', message, index, itemId);
     }
     const removed = removeItem(main, branch, itemId);
     if (!removed) {
-      return refuse(EDIT_MESSAGES.unknownItem(itemId, mainName(state)), index, itemId);
+      return refuse(
+        'unknownItem',
+        editMessages.unknownItem(itemId, mainName(state)),
+        index,
+        itemId
+      );
     }
     return {
       ok: true,
@@ -422,7 +454,8 @@ export function deleteItem(
   }
   const deleted = deleteFromBranch(main, branch, itemId);
   if (!deleted) {
-    return refuse(EDIT_MESSAGES.unknownItem(itemId, branch.name.trim()), index, itemId);
+    const message = editMessages.unknownItem(itemId, branch.name.trim());
+    return refuse('unknownItem', message, index, itemId);
   }
   return {
     ok: true,
@@ -435,7 +468,8 @@ export function deleteItem(
 
 /** The refusal of "Reset to Standard" or "Restore" in a branch not based on the main branch. */
 function refuseNotBased(state: EditState, { branch, index }: BranchAt): Refused {
-  return refuse(EDIT_MESSAGES.notBased(branch.name.trim(), mainName(state)), index, null);
+  const message = editMessages.notBased(branch.name.trim(), mainName(state));
+  return refuse('notBased', message, index, null);
 }
 
 /**
@@ -457,7 +491,8 @@ export function restoreItem(
   }
   const restored = restoreInBranch(state.branches[0], branch, itemId);
   if (!restored) {
-    return refuse(EDIT_MESSAGES.notRemoved(item.name.trim(), branch.name.trim()), index, itemId);
+    const message = editMessages.notRemoved(item.name.trim(), branch.name.trim());
+    return refuse('notRemoved', message, index, itemId);
   }
   const next = withBranch(state, index, restored);
   return { ok: true, state: next, item: itemIn(next, index, itemId) };
@@ -485,8 +520,8 @@ export function resetItem(
   }
   const reset = resetInBranch(state.branches[0], branch, itemId);
   if (!reset) {
-    const message = EDIT_MESSAGES.notChanged(item.name.trim(), branch.name.trim(), mainName(state));
-    return refuse(message, index, itemId);
+    const message = editMessages.notChanged(item.name.trim(), branch.name.trim(), mainName(state));
+    return refuse('notChanged', message, index, itemId);
   }
   const next = withBranch(state, index, reset);
   return { ok: true, state: next, item: itemIn(next, index, itemId) };
@@ -521,7 +556,7 @@ export function groupItems(
   }
   const grouped = canGroup(branch.items, ids) ? groupInBranch(branch, ids, state.counters) : null;
   if (!grouped) {
-    return refuse(EDIT_MESSAGES.cantGroup(branch.name.trim()), index, ids[0] ?? null);
+    return refuse('cantGroup', editMessages.cantGroup(branch.name.trim()), index, ids[0] ?? null);
   }
   const next = withBranch(state, index, grouped.branch, grouped.counters);
   const groupId = grouped.group.id;
@@ -589,11 +624,12 @@ export function copyRule(
     state.branches.findIndex((branch) => branch.id === id)
   );
   if (targets.some((target) => target < 0)) {
-    return refuse(EDIT_MESSAGES.unknownVariant);
+    return refuse('unknownVariant', editMessages.unknownVariant);
   }
   const copied = copyRuleToBranches(state.branches, at.index, ruleId, targets, state.counters);
   if (!copied) {
-    return refuse(EDIT_MESSAGES.noCopyTarget(at.item.name.trim()), at.index, ruleId);
+    const message = editMessages.noCopyTarget(at.item.name.trim());
+    return refuse('noCopyTarget', message, at.index, ruleId);
   }
   const next = { branches: copied.branches, counters: copied.counters };
   const toMain = copied.copies.find(({ branchIndex }) => branchIndex === 0);
@@ -609,9 +645,15 @@ export function copyRule(
 }
 
 /** Why a variant can't have this description: longer than 500 characters (FR-020), or null. */
-function descriptionProblem(description: string | null, variantName: string): string | null {
+function descriptionProblem(
+  description: string | null,
+  variantName: string
+): RuleProblemDetail | null {
   return textLength(description?.trim() ?? '') > DESCRIPTION_MAX_LENGTH
-    ? RULES_MESSAGES.descriptionTooLong(variantName.trim())
+    ? {
+        code: 'descriptionTooLong',
+        message: rulesMessages.descriptionTooLong(variantName.trim()),
+      }
     : null;
 }
 
@@ -629,18 +671,18 @@ export function addVariant(
   id: string
 ): EditResult<{ branch: BranchInput }> {
   if (state.branches.length >= MAX_BRANCHES) {
-    return refuse(RULES_MESSAGES.tooManyBranches);
+    return refuse('tooManyBranches', rulesMessages.tooManyBranches);
   }
   const problem =
-    variantNameProblem(
+    variantNameProblemOf(
       name,
       state.branches.map((branch) => branch.name)
     ) ?? descriptionProblem(description, name);
   if (problem) {
-    return refuse(problem);
+    return refuseProblem(problem);
   }
   if (state.branches.some((branch) => branch.id === id)) {
-    return refuse(EDIT_MESSAGES.unknownVariant);
+    return refuse('unknownVariant', editMessages.unknownVariant);
   }
   const branch = { ...newBranch(state.branches[0], origin, name, description), id };
   return {
@@ -669,7 +711,7 @@ export function editVariant(
   const problem =
     (changes.name === undefined
       ? null
-      : variantNameProblem(
+      : variantNameProblemOf(
           changes.name,
           others.map((other) => other.name)
         )) ??
@@ -677,7 +719,7 @@ export function editVariant(
       ? null
       : descriptionProblem(changes.description, changes.name ?? branch.name));
   if (problem) {
-    return refuse(problem, index, null);
+    return refuseProblem(problem, index, null);
   }
   const edited: BranchInput = {
     ...branch,
@@ -705,7 +747,7 @@ export function deleteVariant(
     return at;
   }
   if (at.index === 0) {
-    return refuse(EDIT_MESSAGES.mainVariant(mainName(state)), 0, null);
+    return refuse('mainVariant', editMessages.mainVariant(mainName(state)), 0, null);
   }
   return {
     ok: true,

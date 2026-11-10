@@ -1,5 +1,5 @@
 import type { ApprovalPreview, ApprovalRequest } from '@connection-portal/api-types/approvals';
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   FormConnection,
   FormConnectionDraft,
@@ -7,7 +7,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';
-import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
+import { SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';
 import { formatRowDate } from '../FormConnectionList/utils';
 import { APPROVAL_COPY, INITIAL_APPROVAL_STATE } from './constants';
 import type { ApprovalPageState, LoadedApprovalState } from './types';
@@ -17,6 +17,7 @@ import {
   callFailureOf,
   cancelledTextOf,
   checkedBranchesOf,
+  documentsInLanguageOf,
   doneShowsUrls,
   failureOfPreview,
   finalOutcomeOf,
@@ -33,7 +34,7 @@ import {
 } from './utils';
 
 const EXPIRES_AT = '2026-11-06T13:32:00Z';
-const TIME = SAVED_TIME_FORMAT.format(new Date(EXPIRES_AT));
+const TIME = SAVED_TIME_FORMATS.en.format(new Date(EXPIRES_AT));
 
 const REQUEST: ApprovalRequest = {
   id: 'req-1',
@@ -144,74 +145,82 @@ function loaded(state: ApprovalPageState): LoadedApprovalState {
 
 describe('titleOf', () => {
   it('names the connection by action', () => {
-    expect(titleOf('publish', 'Parking permit')).toBe('Publish ‘Parking permit’?');
-    expect(titleOf('delete_draft', 'Parking permit')).toBe('Delete the draft ‘Parking permit’?');
+    expect(titleOf('publish', 'Parking permit', 'en')).toBe('Publish ‘Parking permit’?');
+    expect(titleOf('delete_draft', 'Parking permit', 'en')).toBe(
+      'Delete the draft ‘Parking permit’?'
+    );
   });
 
   it('names the connection for the actions on a published one', () => {
-    expect(titleOf('deactivate', 'Parking permit')).toBe('Deactivate ‘Parking permit’?');
-    expect(titleOf('reactivate', 'Parking permit')).toBe('Reactivate ‘Parking permit’?');
-    expect(titleOf('delete', 'Parking permit')).toBe('Delete ‘Parking permit’?');
-    expect(titleOf('deactivate', '')).toBe('Deactivate the connection?');
-    expect(titleOf('reactivate', '')).toBe('Reactivate the connection?');
-    expect(titleOf('delete', '')).toBe('Delete the connection?');
+    expect(titleOf('deactivate', 'Parking permit', 'en')).toBe('Deactivate ‘Parking permit’?');
+    expect(titleOf('reactivate', 'Parking permit', 'en')).toBe('Reactivate ‘Parking permit’?');
+    expect(titleOf('delete', 'Parking permit', 'en')).toBe('Delete ‘Parking permit’?');
+    expect(titleOf('deactivate', '', 'en')).toBe('Deactivate the connection?');
+    expect(titleOf('reactivate', '', 'en')).toBe('Reactivate the connection?');
+    expect(titleOf('delete', '', 'en')).toBe('Delete the connection?');
   });
 
   it('leaves the name out once a deleted draft’s row is gone', () => {
-    expect(titleOf('publish', '')).toBe('Publish the draft?');
-    expect(titleOf('delete_draft', '')).toBe('Delete the draft?');
-    expect(titleOf('delete_draft', '  ')).toBe('Delete the draft?');
+    expect(titleOf('publish', '', 'en')).toBe('Publish the draft?');
+    expect(titleOf('delete_draft', '', 'en')).toBe('Delete the draft?');
+    expect(titleOf('delete_draft', '  ', 'en')).toBe('Delete the draft?');
   });
 });
 
 describe('subtitleOf', () => {
   it('names the agent and the expiry time', () => {
-    expect(subtitleOf(REQUEST)).toBe(`Requested by Claude Code · expires at ${TIME}`);
+    expect(subtitleOf(REQUEST, 'en')).toBe(`Requested by Claude Code · expires at ${TIME}`);
   });
 });
 
 describe('lastSavedLineOf', () => {
   it('writes the date as dd.mm.yyyy and the 24-hour time (cosmetic 3)', () => {
     const updatedAt = DRAFT.updated_at;
-    expect(lastSavedLineOf(updatedAt)).toBe(
-      `Last saved ${formatRowDate(updatedAt)}, ${SAVED_TIME_FORMAT.format(new Date(updatedAt))}`
+    expect(lastSavedLineOf(updatedAt, 'en')).toBe(
+      `Last saved ${formatRowDate(updatedAt)}, ${SAVED_TIME_FORMATS.en.format(new Date(updatedAt))}`
     );
   });
 });
 
 describe('outcomeTextOf', () => {
   it('has no sentence while the request waits, failed or not', () => {
-    expect(outcomeTextOf(REQUEST)).toBeNull();
-    expect(outcomeTextOf({ ...REQUEST, outcome: 'failed', error_id: 'e1' })).toBeNull();
+    expect(outcomeTextOf(REQUEST, null, 'en')).toBeNull();
+    expect(outcomeTextOf({ ...REQUEST, outcome: 'failed', error_id: 'e1' }, null, 'en')).toBeNull();
   });
 
   it('words a done request by its action', () => {
-    expect(outcomeTextOf({ ...REQUEST, status: 'done', outcome: 'done' })).toBe('Published.');
+    expect(outcomeTextOf({ ...REQUEST, status: 'done', outcome: 'done' }, null, 'en')).toBe(
+      'Published.'
+    );
     expect(
-      outcomeTextOf({ ...REQUEST, action: 'delete_draft', status: 'done', outcome: 'done' })
+      outcomeTextOf(
+        { ...REQUEST, action: 'delete_draft', status: 'done', outcome: 'done' },
+        null,
+        'en'
+      )
     ).toBe('Draft deleted.');
     const done = (action: ApprovalRequest['action']) =>
-      outcomeTextOf({ ...REQUEST, action, status: 'done', outcome: 'done' });
+      outcomeTextOf({ ...REQUEST, action, status: 'done', outcome: 'done' }, null, 'en');
     expect(done('deactivate')).toBe('Connection deactivated.');
     expect(done('reactivate')).toBe('Connection reactivated.');
     expect(done('delete')).toBe('Connection deleted.');
   });
 
   it('words declined, expired and replaced', () => {
-    expect(outcomeTextOf({ ...REQUEST, status: 'declined' })).toBe(
+    expect(outcomeTextOf({ ...REQUEST, status: 'declined' }, null, 'en')).toBe(
       'You declined this request. Nothing has changed.'
     );
-    expect(outcomeTextOf({ ...REQUEST, status: 'expired' })).toBe(
+    expect(outcomeTextOf({ ...REQUEST, status: 'expired' }, null, 'en')).toBe(
       `This request expired at ${TIME}. Nothing has changed. The agent can ask again.`
     );
-    expect(outcomeTextOf({ ...REQUEST, status: 'replaced' })).toBe(
+    expect(outcomeTextOf({ ...REQUEST, status: 'replaced' }, null, 'en')).toBe(
       'The agent made a newer request for this action.'
     );
   });
 
   it('words a cancellation by its reason', () => {
     const cancelled = (reason: string | null) =>
-      outcomeTextOf({ ...REQUEST, status: 'cancelled', cancel_reason: reason });
+      outcomeTextOf({ ...REQUEST, status: 'cancelled', cancel_reason: reason }, null, 'en');
     expect(cancelled('draft_changed')).toBe(
       'The draft has changed since the agent asked. Nothing has changed; the agent has to ask again.'
     );
@@ -237,12 +246,13 @@ describe('outcomeTextOf', () => {
   it('words a changed connection by whether it is live now', () => {
     const changed = { ...REQUEST, action: 'deactivate' as const, status: 'cancelled' as const };
     expect(
-      outcomeTextOf({ ...changed, cancel_reason: 'connection_changed' }, connectionOf(false))
+      outcomeTextOf({ ...changed, cancel_reason: 'connection_changed' }, connectionOf(false), 'en')
     ).toBe('The connection was deactivated in the meantime.');
     expect(
       outcomeTextOf(
         { ...changed, action: 'reactivate', cancel_reason: 'connection_changed' },
-        connectionOf(true)
+        connectionOf(true),
+        'en'
       )
     ).toBe('The connection was reactivated in the meantime.');
   });
@@ -250,8 +260,8 @@ describe('outcomeTextOf', () => {
 
 describe('cancelledTextOf', () => {
   it('falls back to the general sentence without the connection', () => {
-    expect(cancelledTextOf('connection_changed', null)).toBe('This request was cancelled.');
-    expect(cancelledTextOf('connection_deleted', null)).toBe(
+    expect(cancelledTextOf('connection_changed', null, 'en')).toBe('This request was cancelled.');
+    expect(cancelledTextOf('connection_deleted', null, 'en')).toBe(
       'The connection has been deleted in the meantime.'
     );
   });
@@ -277,11 +287,11 @@ describe('isStatusAction and doneShowsUrls', () => {
 
 describe('finalOutcomeOf', () => {
   it('pairs a final status with its sentence', () => {
-    expect(finalOutcomeOf({ ...REQUEST, status: 'replaced' })).toEqual({
+    expect(finalOutcomeOf({ ...REQUEST, status: 'replaced' }, null, 'en')).toEqual({
       status: 'replaced',
       text: 'The agent made a newer request for this action.',
     });
-    expect(finalOutcomeOf(REQUEST)).toBeNull();
+    expect(finalOutcomeOf(REQUEST, null, 'en')).toBeNull();
   });
 });
 
@@ -330,23 +340,25 @@ describe('loadFailureActionOf', () => {
         new ApiError(403, {
           error: 'not_yours',
           message: 'This request was made for another team member.',
-        })
+        }),
+        'en'
       )
     ).toEqual({ type: 'notYours' });
     expect(
-      loadFailureActionOf(new ApiError(404, { error: 'Not found', message: 'Not found' }))
+      loadFailureActionOf(new ApiError(404, { error: 'Not found', message: 'Not found' }), 'en')
     ).toEqual({ type: 'notFound' });
   });
 
   it('keeps the message and the error ID of any other failure', () => {
     expect(
       loadFailureActionOf(
-        new ApiError(500, { error: 'Internal', message: 'Something went wrong', error_id: 'e7' })
+        new ApiError(500, { error: 'Internal', message: 'Something went wrong', error_id: 'e7' }),
+        'en'
       )
     ).toEqual({ type: 'loadFailed', notice: { message: 'Something went wrong', error_id: 'e7' } });
-    expect(loadFailureActionOf(new TypeError('Failed to fetch'))).toEqual({
+    expect(loadFailureActionOf(new TypeError('Failed to fetch'), 'en')).toEqual({
       type: 'loadFailed',
-      notice: { message: APPROVAL_COPY.loadFailed },
+      notice: { message: APPROVAL_COPY.en.loadFailed },
     });
   });
 });
@@ -401,11 +413,12 @@ describe('requestedDocumentsOf and checkedBranchesOf', () => {
 
 describe('failureOfPreview', () => {
   it('shows a failed approve with the error ID the request keeps', () => {
-    expect(failureOfPreview(previewOf({ outcome: 'failed', error_id: 'e9' }))).toEqual({
+    expect(failureOfPreview(previewOf({ outcome: 'failed', error_id: 'e9' }), 'en')).toEqual({
       call: 'approve',
-      notice: { message: APPROVAL_COPY.failedBefore, error_id: 'e9' },
+      notice: { message: APPROVAL_COPY.en.failedBefore, error_id: 'e9' },
+      readAgain: true,
     });
-    expect(failureOfPreview(previewOf())).toBeNull();
+    expect(failureOfPreview(previewOf(), 'en')).toBeNull();
   });
 });
 
@@ -499,18 +512,24 @@ describe('outcomeViewOf', () => {
   );
 
   it('shows nothing while the request simply waits', () => {
-    expect(outcomeViewOf(waiting)).toBeNull();
+    expect(outcomeViewOf(waiting, 'en')).toBeNull();
   });
 
   it('shows the final state, the one a 409 answered first', () => {
     expect(
-      outcomeViewOf({ ...waiting, preview: previewOf({ status: 'declined', outcome: 'declined' }) })
+      outcomeViewOf(
+        { ...waiting, preview: previewOf({ status: 'declined', outcome: 'declined' }) },
+        'en'
+      )
     ).toEqual({
       kind: 'final',
       outcome: { status: 'declined', text: 'You declined this request. Nothing has changed.' },
     });
     const conflict = { status: 'replaced' as const, text: 'Replaced.' };
-    expect(outcomeViewOf({ ...waiting, conflict })).toEqual({ kind: 'final', outcome: conflict });
+    expect(outcomeViewOf({ ...waiting, conflict }, 'en')).toEqual({
+      kind: 'final',
+      outcome: conflict,
+    });
   });
 
   it('words a changed connection from the preview’s connection', () => {
@@ -524,7 +543,7 @@ describe('outcomeViewOf', () => {
       draft: null,
       connection: connectionOf(false),
     };
-    expect(outcomeViewOf({ ...waiting, preview })).toEqual({
+    expect(outcomeViewOf({ ...waiting, preview }, 'en')).toEqual({
       kind: 'final',
       outcome: { status: 'cancelled', text: 'The connection was deactivated in the meantime.' },
     });
@@ -532,12 +551,12 @@ describe('outcomeViewOf', () => {
 
   it('titles a failed call by what failed', () => {
     const notice = { message: 'Nothing has changed.', error_id: 'e2' };
-    expect(outcomeViewOf({ ...waiting, failure: { call: 'approve', notice } })).toEqual({
+    expect(outcomeViewOf({ ...waiting, failure: { call: 'approve', notice } }, 'en')).toEqual({
       kind: 'failed',
       title: 'Couldn’t publish',
       notice,
     });
-    expect(outcomeViewOf({ ...waiting, failure: { call: 'decline', notice } })).toEqual({
+    expect(outcomeViewOf({ ...waiting, failure: { call: 'decline', notice } }, 'en')).toEqual({
       kind: 'failed',
       title: 'Couldn’t decline',
       notice,
@@ -547,25 +566,195 @@ describe('outcomeViewOf', () => {
 
 describe('busyTextOf and callFailureOf', () => {
   it('says what runs', () => {
-    expect(busyTextOf('publish', null)).toBe('');
-    expect(busyTextOf('publish', 'approve')).toBe('Publishing…');
-    expect(busyTextOf('publish', 'decline')).toBe('Working…');
-    expect(busyTextOf('delete_draft', 'approve')).toBe('Working…');
-    expect(busyTextOf('deactivate', 'approve')).toBe('Working…');
-    expect(busyTextOf('reactivate', 'approve')).toBe('Working…');
-    expect(busyTextOf('delete', 'approve')).toBe('Working…');
+    expect(busyTextOf('publish', null, 'en')).toBe('');
+    expect(busyTextOf('publish', 'approve', 'en')).toBe('Publishing…');
+    expect(busyTextOf('publish', 'decline', 'en')).toBe('Working…');
+    expect(busyTextOf('delete_draft', 'approve', 'en')).toBe('Working…');
+    expect(busyTextOf('deactivate', 'approve', 'en')).toBe('Working…');
+    expect(busyTextOf('reactivate', 'approve', 'en')).toBe('Working…');
+    expect(busyTextOf('delete', 'approve', 'en')).toBe('Working…');
   });
 
   it('keeps a 5xx answer’s message and error ID, and words any other failure', () => {
     expect(
       callFailureOf(
         'approve',
-        new ApiError(503, { error: 'unavailable', message: 'Try later.', error_id: 'e3' })
+        new ApiError(503, { error: 'unavailable', message: 'Try later.', error_id: 'e3' }),
+        'en'
       )
     ).toEqual({ call: 'approve', notice: { message: 'Try later.', error_id: 'e3' } });
-    expect(callFailureOf('decline', new TypeError('Failed to fetch'))).toEqual({
+    expect(callFailureOf('decline', new TypeError('Failed to fetch'), 'en')).toEqual({
       call: 'decline',
-      notice: { message: APPROVAL_COPY.callFailed },
+      notice: { message: APPROVAL_COPY.en.callFailed },
     });
+  });
+});
+
+// Spec 009: the page's own sentences in German, from the glossary (G§2 "approval request"); the
+// outcome sentences word for word as the server's (`services/approvals.py`, T018)
+describe('in German', () => {
+  const TIME_DE = SAVED_TIME_FORMATS.de.format(new Date(EXPIRES_AT));
+
+  it('titles the request by action, the name in German quotes', () => {
+    expect(titleOf('publish', 'Parking permit', 'de')).toBe('„Parking permit“ veröffentlichen?');
+    expect(titleOf('delete_draft', 'Parking permit', 'de')).toBe(
+      'Entwurf „Parking permit“ löschen?'
+    );
+    expect(titleOf('deactivate', 'Parking permit', 'de')).toBe('„Parking permit“ deaktivieren?');
+    expect(titleOf('reactivate', 'Parking permit', 'de')).toBe('„Parking permit“ reaktivieren?');
+    expect(titleOf('delete', 'Parking permit', 'de')).toBe('„Parking permit“ löschen?');
+    expect(titleOf('publish', '', 'de')).toBe('Entwurf veröffentlichen?');
+    expect(titleOf('delete_draft', ' ', 'de')).toBe('Entwurf löschen?');
+    expect(titleOf('delete', '', 'de')).toBe('Anbindung löschen?');
+  });
+
+  it('names the agent as it registered and the expiry time', () => {
+    expect(TIME_DE).toBe(TIME);
+    expect(subtitleOf(REQUEST, 'de')).toBe(
+      `Angefordert von Claude Code · läuft um ${TIME_DE} Uhr ab`
+    );
+    const updatedAt = DRAFT.updated_at;
+    expect(lastSavedLineOf(updatedAt, 'de')).toBe(
+      `Zuletzt gespeichert am ${formatRowDate(updatedAt)}, ${SAVED_TIME_FORMATS.de.format(new Date(updatedAt))}`
+    );
+  });
+
+  it('words the outcomes as the server does', () => {
+    const done = (action: ApprovalRequest['action']) =>
+      outcomeTextOf({ ...REQUEST, action, status: 'done', outcome: 'done' }, null, 'de');
+    expect(done('publish')).toBe('Veröffentlicht.');
+    expect(done('delete_draft')).toBe('Entwurf gelöscht.');
+    expect(done('deactivate')).toBe('Anbindung deaktiviert.');
+    expect(done('reactivate')).toBe('Anbindung reaktiviert.');
+    expect(done('delete')).toBe('Anbindung gelöscht.');
+    expect(outcomeTextOf({ ...REQUEST, status: 'declined' }, null, 'de')).toBe(
+      'Sie haben diese Anfrage abgelehnt. Es wurde nichts geändert.'
+    );
+    expect(outcomeTextOf({ ...REQUEST, status: 'expired' }, null, 'de')).toBe(
+      `Diese Anfrage ist um ${TIME_DE} Uhr abgelaufen. Es wurde nichts geändert. Der Agent kann erneut fragen.`
+    );
+    expect(outcomeTextOf({ ...REQUEST, status: 'replaced' }, null, 'de')).toBe(
+      'Der Agent hat für diese Aktion eine neuere Anfrage gestellt.'
+    );
+  });
+
+  it('words a cancellation by its reason', () => {
+    expect(cancelledTextOf('draft_changed', null, 'de')).toBe(
+      'Der Entwurf wurde geändert, seit der Agent gefragt hat. Es wurde nichts geändert; der Agent muss erneut fragen.'
+    );
+    expect(cancelledTextOf('revoked', null, 'de')).toBe(
+      'Der Zugriff des Agenten wurde widerrufen, daher wurde diese Anfrage abgebrochen.'
+    );
+    expect(cancelledTextOf('connection_changed', connectionOf(false), 'de')).toBe(
+      'Die Anbindung wurde in der Zwischenzeit deaktiviert.'
+    );
+    expect(cancelledTextOf('connection_changed', connectionOf(true), 'de')).toBe(
+      'Die Anbindung wurde in der Zwischenzeit reaktiviert.'
+    );
+    expect(cancelledTextOf('connection_changed', null, 'de')).toBe(
+      'Diese Anfrage wurde abgebrochen.'
+    );
+    expect(cancelledTextOf('unknown', null, 'de')).toBe('Diese Anfrage wurde abgebrochen.');
+  });
+
+  it('words a failed attempt read again in the language of the moment', () => {
+    const state = loaded(
+      approvalReducer(INITIAL_APPROVAL_STATE, {
+        type: 'loaded',
+        preview: previewOf({ outcome: 'failed', error_id: 'e9' }),
+      })
+    );
+    expect(outcomeViewOf(state, 'de')).toEqual({
+      kind: 'failed',
+      title: 'Der Entwurf konnte nicht veröffentlicht werden',
+      notice: {
+        message: 'Der letzte Versuch hat nicht funktioniert. Es wurde nichts geändert.',
+        error_id: 'e9',
+      },
+    });
+    expect(outcomeViewOf(state, 'en')).toEqual({
+      kind: 'failed',
+      title: 'Couldn’t publish',
+      notice: { message: 'The last attempt didn’t work. Nothing has changed.', error_id: 'e9' },
+    });
+  });
+
+  it('keeps the server’s message of a failed call, and titles it in the language', () => {
+    const notice = { message: 'Der Wallet-Dienst ist nicht erreichbar.', error_id: 'e1' };
+    const waiting = loaded(
+      approvalReducer(INITIAL_APPROVAL_STATE, {
+        type: 'loaded',
+        preview: previewOf({ action: 'deactivate' }),
+      })
+    );
+    expect(outcomeViewOf({ ...waiting, failure: { call: 'approve', notice } }, 'de')).toEqual({
+      kind: 'failed',
+      title: 'Die Anfrage konnte nicht freigegeben werden',
+      notice,
+    });
+    expect(outcomeViewOf({ ...waiting, failure: { call: 'decline', notice } }, 'de')).toEqual({
+      kind: 'failed',
+      title: 'Die Anfrage konnte nicht abgelehnt werden',
+      notice,
+    });
+    const conflict = { status: 'expired' as const, text: 'This request expired at 14:32.' };
+    expect(outcomeViewOf({ ...waiting, conflict }, 'de')).toEqual({
+      kind: 'final',
+      outcome: conflict,
+    });
+  });
+
+  it('says what runs, and words a failure without an answer', () => {
+    expect(busyTextOf('publish', 'approve', 'de')).toBe('Wird veröffentlicht …');
+    expect(busyTextOf('delete', 'approve', 'de')).toBe('Wird ausgeführt …');
+    expect(busyTextOf('publish', null, 'de')).toBe('');
+    expect(callFailureOf('approve', new TypeError('Failed to fetch'), 'de')).toEqual({
+      call: 'approve',
+      notice: {
+        message:
+          'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      },
+    });
+    expect(loadFailureActionOf(new TypeError('Failed to fetch'), 'de')).toEqual({
+      type: 'loadFailed',
+      notice: { message: 'Prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.' },
+    });
+  });
+});
+
+describe('documentsInLanguageOf', () => {
+  const CATALOG_DE: DocumentType[] = [
+    {
+      key: 'pid',
+      label: 'Personalausweis',
+      fields: [
+        { ...TEXT_FIELD, key: 'given_name', label: 'Vorname' },
+        { ...TEXT_FIELD, key: 'birth_date', label: 'Geburtsdatum', kind: 'date' },
+      ],
+    },
+  ];
+
+  it('labels the documents and their data items from the catalog, keys and order kept', () => {
+    expect(documentsInLanguageOf(DRAFT.documents, CATALOG_DE)).toEqual([
+      {
+        document_type: 'pid',
+        label: 'Personalausweis',
+        fields: [
+          { ...TEXT_FIELD, key: 'given_name', label: 'Vorname' },
+          { ...TEXT_FIELD, key: 'birth_date', label: 'Geburtsdatum', kind: 'date' },
+        ],
+      },
+    ]);
+  });
+
+  it('keeps what the catalog doesn’t know, and everything while it isn’t there', () => {
+    const unknown = { document_type: 'old', label: 'old', fields: [] };
+    const gone = { ...TEXT_FIELD, key: 'gone', label: 'gone', kind: 'image' as const };
+    const documents = [unknown, { ...DRAFT.documents[0], fields: [gone] }];
+    expect(documentsInLanguageOf(documents, CATALOG_DE)).toEqual([
+      unknown,
+      { document_type: 'pid', label: 'Personalausweis', fields: [gone] },
+    ]);
+    expect(documentsInLanguageOf(DRAFT.documents, [])).toEqual(DRAFT.documents);
   });
 });

@@ -4,12 +4,14 @@ import type {
   ApprovalPreview,
   ApprovalStatus,
 } from '@connection-portal/api-types/approvals';
+import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   ConnectionUrls,
   FormConnection,
   FormConnectionDraft,
 } from '@connection-portal/api-types/form-connections';
 
+import type { DocumentTypesState } from '../../hooks/types';
 import type { LinkCardLink } from '../FormConnectionDetail/types';
 
 /** The calls the page makes on the request */
@@ -40,6 +42,11 @@ export interface FinalOutcome {
 export interface CallFailure {
   call: ApprovalCall;
   notice: ErrorNotice;
+  /**
+   * A failed attempt read again with the request (`failureOfPreview()`): its sentence is the
+   * page's own, worded in the language of the moment at render time (spec 009)
+   */
+  readAgain?: true;
 }
 
 export interface LoadedApprovalState {
@@ -109,6 +116,8 @@ export interface DescriptionLineProps {
 
 export interface ApprovalFindingsProps {
   draft: FormConnectionDraft;
+  /** The catalog in the website's language, as `PublishSummary` reads it (`useDocumentTypes()`) */
+  catalog: { status: DocumentTypesState['status']; documentTypes: DocumentType[] };
 }
 
 export interface ApprovalActionsProps {

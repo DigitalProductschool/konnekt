@@ -1,4 +1,5 @@
 import { ExplainedButton } from '../../../../components/InfoTooltip';
+import { useCopy } from '../../../../hooks/useLanguage';
 import { RULE_EDITOR_COPY } from './constants';
 import type { EditorActionsProps } from './types';
 
@@ -12,6 +13,7 @@ import type { EditorActionsProps } from './types';
  * the button's own ignored activation doesn't stop, and the editor then flags the missing part.
  */
 export default function EditorActions({ explanation, onCancel, onSave }: EditorActionsProps) {
+  const copy = useCopy(RULE_EDITOR_COPY);
   return (
     <div className="flex flex-wrap items-center justify-end gap-16">
       <button
@@ -19,7 +21,7 @@ export default function EditorActions({ explanation, onCancel, onSave }: EditorA
         onClick={onCancel}
         className="kern-btn kern-btn--tertiary kern-btn--small"
       >
-        <span className="kern-label">{RULE_EDITOR_COPY.discardRule}</span>
+        <span className="kern-label">{copy.discardRule}</span>
       </button>
       <ExplainedButton
         explanation={explanation}
@@ -28,7 +30,7 @@ export default function EditorActions({ explanation, onCancel, onSave }: EditorA
         onClickCapture={explanation ? onSave : undefined}
         className="kern-btn kern-btn--primary kern-btn--small"
       >
-        <span className="kern-label">{RULE_EDITOR_COPY.saveRule}</span>
+        <span className="kern-label">{copy.saveRule}</span>
       </ExplainedButton>
     </div>
   );

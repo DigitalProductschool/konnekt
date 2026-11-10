@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 
 import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { flushPendingLocalDrafts } from '../../utils/localDrafts/store';
 import { MENU_NAVIGATION_KEYS, nextMenuIndex } from '../../utils/menuNavigation';
@@ -20,12 +21,10 @@ import {
   ACCOUNT_MENU_WIDTH,
   ACCOUNT_PILL_CLASSES,
   INITIAL_USER_MENU_STATE,
-  LOG_OUT_LABEL,
   MENU_ITEM_CLASSES,
   SIGN_IN_SCREEN_POLL_MS,
   SIGN_IN_SCREEN_WAIT_MS,
-  SIGNED_IN_AS,
-  YOUR_ACCOUNT_LABEL,
+  USER_MENU_COPY,
 } from './constants';
 import SignOutDialog from './SignOutDialog';
 import type { UserMenuProps } from './types';
@@ -51,10 +50,12 @@ const DIVIDER_CLASSES = 'h-px shrink-0 bg-(--kern-color-decorative-border-defaul
 export default function UserMenu({ onLogOut }: UserMenuProps) {
   const { user, signOut } = useCurrentUser();
   const { store, username } = useLocalDraftStore();
+  const { language } = useLanguage();
+  const copy = USER_MENU_COPY[language];
   const navigate = useNavigate();
   const location = useLocation();
   const [state, dispatch] = useReducer(userMenuReducer, INITIAL_USER_MENU_STATE);
-  const { open, signOutNames, signingOut } = state;
+  const { open, signOutRecords, signingOut } = state;
   // Measured when the menu opens (research R10); read only while it is open
   const [placement, setPlacement] = useState<MenuPlacement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,11 +85,11 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
 
   // Runs after ConfirmDialog's effect has closed the native dialog, so the focus stays here
   useEffect(() => {
-    if (signOutNames === null && returnFocus.current) {
+    if (signOutRecords === null && returnFocus.current) {
       returnFocus.current = false;
       triggerRef.current?.focus();
     }
-  }, [signOutNames]);
+  }, [signOutRecords]);
 
   if (user === null) {
     return null;
@@ -151,7 +152,7 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
       await finishSignOut();
       return;
     }
-    dispatch({ type: 'signOutAsked', names: signOutNamesOf(records) });
+    dispatch({ type: 'signOutAsked', records });
   }
 
   function handleLogOut() {
@@ -197,7 +198,7 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
         <span aria-hidden="true" className="icon-person" />
         <span aria-hidden="true" className="icon-expand-more-small" />
         <span className="sr-only">
-          {SIGNED_IN_AS} {user.username}
+          {copy.signedInAs} {user.username}
         </span>
       </button>
       {shown && (
@@ -223,7 +224,7 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
               onClick={() => dispatch({ type: 'closed' })}
               className={`${MENU_ITEM_CLASSES} ${ACTION_MENU_STATES}`}
             >
-              {YOUR_ACCOUNT_LABEL}
+              {copy.yourAccount}
             </Link>
             <div role="separator" className={DIVIDER_CLASSES} />
             <button
@@ -233,13 +234,14 @@ export default function UserMenu({ onLogOut }: UserMenuProps) {
               onClick={handleLogOut}
               className={`${MENU_ITEM_CLASSES} ${ACTION_MENU_STATES}`}
             >
-              {LOG_OUT_LABEL}
+              {copy.logOut}
             </button>
           </div>
         </div>
       )}
       <SignOutDialog
-        names={signOutNames}
+        // Joined in the current language, so that a switch while it is open words it again
+        names={signOutRecords === null ? null : signOutNamesOf(signOutRecords, language)}
         busy={signingOut}
         onCancel={handleSignOutCancel}
         onConfirm={handleSignOutConfirm}

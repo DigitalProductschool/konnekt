@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { MEDIUM_TEXT, RULE_ROW_COPY, SMALL_TEXT } from './constants';
 import RulePredicate from './RulePredicate';
 import type { RuleSentenceProps } from './types';
@@ -11,12 +12,13 @@ import { glyphOf } from './utils';
  * (002-S2.6).
  */
 export default function RuleSentence({ parts, text }: RuleSentenceProps) {
+  const copy = useCopy(RULE_ROW_COPY);
   return (
     <>
       <p aria-hidden="true" className="flex w-full flex-wrap items-center gap-x-8 gap-y-4">
         <img src={glyphOf(parts.documentType)} alt="" className="size-16 shrink-0" />
         <span className={`${SMALL_TEXT} text-kern-layout-text-muted`}>
-          {parts.document} {RULE_ROW_COPY.documentSeparator}
+          {parts.document} {copy.documentSeparator}
         </span>
         <span className={`${MEDIUM_TEXT} text-kern-layout-text-default font-semibold`}>
           {parts.data}

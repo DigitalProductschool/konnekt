@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import AccessLevelOption from './AccessLevelOption';
 import { ACCESS_LEVELS } from './constants';
 import type { AccessLevelChoiceProps } from './types';
@@ -17,7 +18,8 @@ export default function AccessLevelChoice({
   legend,
   disabled = false,
 }: AccessLevelChoiceProps) {
-  const options = levels && levels.length > 0 ? levels : ACCESS_LEVELS;
+  const fallback = useCopy(ACCESS_LEVELS);
+  const options = levels && levels.length > 0 ? levels : fallback;
   return (
     <fieldset className="flex flex-col gap-16">
       <legend className="text-kern-static-medium text-kern-layout-text-default mb-8 pt-6 pb-2 leading-(--kern-typography-line-height-medium-static) font-semibold">

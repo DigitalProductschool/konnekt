@@ -6,7 +6,7 @@ task touches its subject.
 
 | Document | Read it when |
 |---|---|
-| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
+| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the languages (spec 009), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
@@ -75,6 +75,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Approval requests** run the existing services (`publish_stored_draft()`, `delete_draft()`,
   `deactivate_form_connection()` …), never a second path (ARCHITECTURE, "Agent access and the
   MCP server (spec 007)").
+- **Languages** (spec 009): server messages are `Text(en, de)` resolved by `errors.py`;
+  `/api/connect/` is always English; `label_of()` for the catalog's and option sets' labels
+  (ARCHITECTURE, "Languages (spec 009)").
 - **Settings**: a new environment variable is a field on `Settings` in `app/config.py`.
 - **Developer scripts** (`backend/scripts/`) never ship: `app/` never imports them, and they
   never import `app.config`.
@@ -87,6 +90,8 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   resource in `src/api/`, types in `api-types/src/`. A page passes failures through
   `useSignOutOnUnauthorized()` and shows them with `errorNoticeOf(error, '<fallback>')` and
   `ErrorNoticeText`, so that a `5xx`'s `error_id` appears.
+- **Copy** lives in `defineTexts(en, de)` tables in the sibling `constants.ts` and is read with
+  `useCopy()`; a helper that builds text takes `language` (ARCHITECTURE, "Languages (spec 009)").
 - **Components** stay small; extract new functionality into new components. Next to a
   component: its types in `types.ts`, its constants in `constants.ts`, state-independent helpers
   in `utils.ts`. Several state variables → `useReducer` with actions. JSX mapped over a list → a
@@ -132,16 +137,21 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   (`propagateMain`); the server only checks the invariants (`backend/app/services/rules.py`).
   Every change to `branches.ts` comes with a case in `branches.test.ts`, and a change to a
   propagation rule or mark transition also updates the server's checks.
-- `rules/src/validation.ts` uses the server's messages word for word.
+- `rules/src/validation.ts` uses the server's messages word for word, in both languages (pinned
+  by the parity fixture `rules/src/fixtures/server-messages.json`).
+- **Languages** (spec 009): the composers take the language and default to English; `mcp/src/`
+  never passes one; callers branch on a problem's `code`, never its message (ARCHITECTURE,
+  "Languages (spec 009)").
 - **Rule checks** (`rules/src/checks/`) judge conditions as `backend/app/services/evaluation.py`
   does. `rules/src/checks/caseFolding.ts` and `rules/src/checks/fixtures/evaluator-vectors.json`
   are generated: never edit them by hand. After a Python upgrade or a change to the evaluator's
   comparisons, run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the
-  result.
+  result; it also writes `rules/src/fixtures/server-messages.json`, so run it after a change to
+  the rules' messages (`backend/app/services/rules_texts.py`) too.
 - **Findings** are never stored, sent or logged (no `console.*` in `checks/`, `workers/checks.ts`
-  or `useRuleChecks`), every finding text comes from `checks/findingMessages.ts`, and only the
-  Rules step passes the `finding` / `findings` props. Only `frontend/src/workers/` and the hooks
-  touch browser APIs; `rules/src/` stays pure.
+  or `useRuleChecks`), every finding text comes from `checks/findingMessages.ts` (its words in
+  `checks/findingTexts.ts`), and only the Rules step passes the `finding` / `findings` props.
+  Only `frontend/src/workers/` and the hooks touch browser APIs; `rules/src/` stays pure.
 - **Test personas** (spec 004; ARCHITECTURE, "The test step and the test personas"): the evaluator
   is `rules/src/evaluation.ts`, the port of `evaluation.py` pinned by the generated vectors
   (`rule_outcomes`, `branch_evaluations`). Personas live in `rules/src/personas/`, pure, every
@@ -155,9 +165,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   EUDIPLO (ARCHITECTURE, "Form connections" and "serviceBW's connection URLs").
 - Publishing a draft goes through `create_revision()` with a `DraftGuard`, never a second save
   path (ARCHITECTURE, "Form connections").
-- Only `useLocalDraftStore` and `useRememberedHomepage` touch `localStorage`;
-  `utils/localDrafts/` stays pure and takes a `StorageLike` (ARCHITECTURE, "Local drafts
-  (spec 005)").
+- Only `useLocalDraftStore`, `useRememberedHomepage` and `LanguageProvider` touch
+  `localStorage`; `utils/localDrafts/` stays pure and takes a `StorageLike` (ARCHITECTURE, "Local
+  drafts (spec 005)").
 - Local drafts never hold personas, findings or citizen data, and nothing in
   `utils/localDrafts/` or its hooks logs (ARCHITECTURE, "Local drafts (spec 005)").
 
@@ -228,7 +238,7 @@ too (`README.md`, "Continuous integration").
 - Get past a gitleaks finding with `--no-verify` or `SKIP=gitleaks`: rotate a real secret, allow
   a false positive (`README.md`, "Secrets (gitleaks)").
 - Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
-  `rules/src/checks/fixtures/evaluator-vectors.json`.
+  `rules/src/checks/fixtures/evaluator-vectors.json`, `rules/src/fixtures/server-messages.json`.
 
 ## Documentation checklist
 

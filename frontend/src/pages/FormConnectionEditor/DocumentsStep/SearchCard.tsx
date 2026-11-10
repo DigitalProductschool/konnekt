@@ -1,7 +1,9 @@
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import { type FocusEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
+import { isLanguageSwitchTarget } from '../../../components/LanguageSwitch/utils';
 import MenuSearchField from '../../../components/MenuSearchField';
+import { useCopy } from '../../../hooks/useLanguage';
 import {
   MENU_MAX_HEIGHT_CLASSES,
   type MenuPlacement,
@@ -9,7 +11,7 @@ import {
   popupWrapperClass,
 } from '../../../utils/popupPlacement';
 import {
-  DOCUMENTS_STEP_COPY,
+  DOCUMENTS_COPY,
   DOCUMENTS_STEP_IDS,
   SEARCH_CARD_FULL_WRAPPERS,
   SEARCH_CARD_PLACEMENTS,
@@ -29,6 +31,7 @@ const FILLED_OPEN = 'bg-action-pressed text-kern-action-on-default';
 const OUTLINE =
   'border border-dashed border-kern-action-default bg-kern-layout-background-default text-kern-action-default hover:bg-action-tint';
 const OUTLINE_OPEN = 'border border-kern-action-default bg-action-tint text-kern-action-default';
+
 const GROUP_LABEL =
   'text-kern-static-small text-kern-layout-text-muted pt-8 pb-4 pl-8 leading-(--kern-typography-line-height-medium-static) font-semibold';
 
@@ -40,8 +43,9 @@ const GROUP_LABEL =
  * document adds it and closes the card (U21 A5); no "Coming soon" (F3). From the field, ↓ moves
  * into the documents and Enter adds the first available one; ↑ / ↓ move between them, ↑ from the
  * first back to the field; Escape closes the card with the focus on the button; leaving it with
- * Tab or a click outside closes it. Its side and direction come from `placementFrom()` (R10); its
- * results scroll inside the card where it is taller than the space.
+ * Tab or a click outside closes it, but for a press on the header's language switch, which keeps
+ * the card and its typed search (spec 009, FR-003). Its side and direction come from
+ * `placementFrom()` (R10); its results scroll inside the card where it is taller than the space.
  */
 export default function SearchCard({
   documentTypes,
@@ -52,11 +56,14 @@ export default function SearchCard({
   onClearSearch,
   onAdd,
 }: SearchCardProps) {
+  const copy = useCopy(DOCUMENTS_COPY);
   // Where the open card is placed; null while it is closed
   const [placement, setPlacement] = useState<MenuPlacement | null>(null);
   const open = placement !== null;
   const containerRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  // The last press was on the language switch: the blur it causes keeps the card open
+  const pressedSwitchRef = useRef(false);
   const groups = searchGroupsOf(documentTypes, documents, query);
   const pickable = groups.available;
 
@@ -66,7 +73,8 @@ export default function SearchCard({
     }
     document.getElementById(DOCUMENTS_STEP_IDS.searchField)?.focus({ preventScroll: true });
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      pressedSwitchRef.current = isLanguageSwitchTarget(event.target);
+      if (!pressedSwitchRef.current && !containerRef.current?.contains(event.target as Node)) {
         close(false);
       }
     }
@@ -135,9 +143,13 @@ export default function SearchCard({
   }
 
   // Tab or Shift+Tab out of the button and its card. A press on a row's text blurs to nowhere
-  // (relatedTarget null) and must not close it; a pointer outside closes it through the listener
+  // (relatedTarget null) and must not close it; a pointer outside closes it through the listener;
+  // a press on the language switch moves the focus there and keeps it open
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
+    if (pressedSwitchRef.current && isLanguageSwitchTarget(next)) {
+      return;
+    }
     if (open && next && !containerRef.current?.contains(next)) {
       close(false);
     }
@@ -168,7 +180,7 @@ export default function SearchCard({
           aria-hidden="true"
           className={`kern-icon kern-icon--add kern-icon--small ${iconColour}`}
         />
-        {DOCUMENTS_STEP_COPY.addDocument}
+        {copy.addDocument}
       </button>
       {placement && (
         <div
@@ -179,7 +191,7 @@ export default function SearchCard({
           <MenuSearchField
             id={DOCUMENTS_STEP_IDS.searchField}
             variant="panel"
-            placeholder={DOCUMENTS_STEP_COPY.findDocument}
+            placeholder={copy.findDocument}
             value={query}
             controls={`${DOCUMENTS_STEP_IDS.searchCard}-results`}
             onChange={onSearch}
@@ -193,7 +205,7 @@ export default function SearchCard({
             {groups.available.length > 0 && (
               <div role="group" aria-labelledby={DOCUMENTS_STEP_IDS.availableGroup}>
                 <p id={DOCUMENTS_STEP_IDS.availableGroup} className={GROUP_LABEL}>
-                  {DOCUMENTS_STEP_COPY.availableGroup(groups.available.length)}
+                  {copy.availableGroup(groups.available.length)}
                 </p>
                 <ul>
                   {groups.available.map((documentType) => (
@@ -211,7 +223,7 @@ export default function SearchCard({
             {groups.added.length > 0 && (
               <div role="group" aria-labelledby={DOCUMENTS_STEP_IDS.addedGroup}>
                 <p id={DOCUMENTS_STEP_IDS.addedGroup} className={GROUP_LABEL}>
-                  {DOCUMENTS_STEP_COPY.addedGroup(groups.added.length)}
+                  {copy.addedGroup(groups.added.length)}
                 </p>
                 <ul>
                   {groups.added.map((documentType) => (
@@ -229,7 +241,7 @@ export default function SearchCard({
                   : 'sr-only'
               }
             >
-              {groups.noMatches ? DOCUMENTS_STEP_COPY.noMatches(query.trim()) : ''}
+              {groups.noMatches ? copy.noMatches(query.trim()) : ''}
             </p>
           </div>
         </div>

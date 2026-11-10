@@ -1,3 +1,4 @@
+import { useLanguage } from '../../hooks/useLanguage';
 import { APPROVAL_COPY, BODY_TEXT_CLASSES } from './constants';
 import DescriptionLine from './DescriptionLine';
 import PublishSummary from './PublishSummary';
@@ -14,6 +15,7 @@ import { isStatusAction, lastSavedLineOf } from './utils';
  * gone.
  */
 export default function ApprovalSummary({ action, draft, connection, urls }: ApprovalSummaryProps) {
+  const { language } = useLanguage();
   if (isStatusAction(action)) {
     return connection && <StatusSummary action={action} connection={connection} urls={urls} />;
   }
@@ -26,8 +28,8 @@ export default function ApprovalSummary({ action, draft, connection, urls }: App
   return (
     <div className="flex flex-col gap-8">
       {draft.description && <DescriptionLine description={draft.description} />}
-      <p className={BODY_TEXT_CLASSES}>{lastSavedLineOf(draft.updated_at)}</p>
-      <p className={`${BODY_TEXT_CLASSES} font-semibold`}>{APPROVAL_COPY.goneForGood}</p>
+      <p className={BODY_TEXT_CLASSES}>{lastSavedLineOf(draft.updated_at, language)}</p>
+      <p className={`${BODY_TEXT_CLASSES} font-semibold`}>{APPROVAL_COPY[language].goneForGood}</p>
     </div>
   );
 }

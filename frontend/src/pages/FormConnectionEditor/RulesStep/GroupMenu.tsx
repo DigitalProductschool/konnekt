@@ -1,6 +1,7 @@
 import ActionMenu from '../../../components/ActionMenu';
 import type { MenuAction } from '../../../components/ActionMenu/types';
-import { MENU_ENTRY_LOOKS, RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { MENU_ENTRY_LOOKS, RULES_STEP_COPY } from './constants';
 import type { GroupMenuProps, MenuEntryId } from './types';
 
 /**
@@ -22,16 +23,17 @@ export default function GroupMenu({
   mainName,
   handlers,
 }: GroupMenuProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   const labels: Partial<Record<MenuEntryId, string>> = {
-    rename: RULES_COPY.rename,
-    addMessage: RULES_COPY.addMessage,
-    removeMessage: RULES_COPY.removeMessage,
-    ungroup: RULES_COPY.ungroup,
-    reset: RULES_COPY.resetTo(mainName),
-    restore: subGroup ? RULES_COPY.restoreSubGroup : RULES_COPY.restoreGroup,
-    copyLink: RULES_COPY.copyLink,
-    remove: RULES_COPY.removeFrom(branchName),
-    delete: subGroup ? RULES_COPY.deleteSubGroup : RULES_COPY.deleteGroup,
+    rename: copy.rename,
+    addMessage: copy.addMessage,
+    removeMessage: copy.removeMessage,
+    ungroup: copy.ungroup,
+    reset: copy.resetTo(mainName),
+    restore: subGroup ? copy.restoreSubGroup : copy.restoreGroup,
+    copyLink: copy.copyLink,
+    remove: copy.removeFrom(branchName),
+    delete: subGroup ? copy.deleteSubGroup : copy.deleteGroup,
   };
   const restoring = entries.some((entry) => entry.id === 'restore');
   const actions: MenuAction[] = entries.flatMap(({ id }) => {
@@ -43,5 +45,5 @@ export default function GroupMenu({
     const look = id === 'copyLink' && restoring ? {} : MENU_ENTRY_LOOKS[id];
     return [{ label, ...look, onSelect }];
   });
-  return <ActionMenu label={RULES_COPY.groupMenuLabel(groupName)} actions={actions} />;
+  return <ActionMenu label={copy.groupMenuLabel(groupName)} actions={actions} />;
 }

@@ -1,15 +1,17 @@
 import { namesOf, noteOf } from '@connection-portal/rules/checks/findingMessages';
+import type { Language } from '@connection-portal/rules/language';
 import { groupIdOf, ruleIdOf, shownItems } from '@connection-portal/rules/tree';
 import type { RuleContext } from '@connection-portal/rules/types';
 import { unrequestedRules } from '@connection-portal/rules/validation';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
+import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
 import type { BranchFindings } from '../../../components/BranchName/types';
 import Connector from '../../../components/Connector';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import type { ShownFinding } from '../../../components/FindingNote/types';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
@@ -18,7 +20,7 @@ import {
   FIRST_RULE_SPACING,
   PINNED_TABS_CLASSES,
   PINNED_TOP_CLASSES,
-  RULES_COPY,
+  RULES_STEP_COPY,
   SELECTION_SCROLL_MARGIN,
   TABS_HEIGHT_PROPERTY,
   TABS_SCROLL_MARGIN,
@@ -85,8 +87,10 @@ function usePinnedTabsHeight(
  */
 function unrequestedOf(
   branches: RulesState['branches'],
-  catalog: RulesCatalog
+  catalog: RulesCatalog,
+  language: Language
 ): { branchKey: string; entry: UnrequestedRule }[] {
+  const copy = RULES_STEP_COPY[language];
   return unrequestedRules(branches, catalog.documents).map(({ branchIndex, rule }) => {
     const branch = branches[branchIndex];
     const documentType = rule.target?.document_type;
@@ -98,8 +102,8 @@ function unrequestedOf(
     const branchName = branch.name.trim();
     const text =
       label === undefined
-        ? RULES_COPY.unrequestedText(name, branchName)
-        : RULES_COPY.unrequestedDocumentText(name, branchName, label.trim());
+        ? copy.unrequestedText(name, branchName)
+        : copy.unrequestedDocumentText(name, branchName, label.trim());
     return { branchKey: branch.key, entry: { key: `${branch.key}-${rule.id}`, text } };
   });
 }
@@ -167,6 +171,14 @@ export default function RulesStep({
   const rootRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   usePinnedTabsHeight(rootRef, tabsRef, status);
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
+  // Statements read from the whole catalog, so that a rule on data no longer requested reads; a
+  // switch of the language rebuilds it, and every statement follows (spec 009, R4)
+  const context = useMemo<RuleContext>(
+    () => ({ documents: catalog.allDocuments, optionSets: catalog.optionSets, language }),
+    [catalog.allDocuments, catalog.optionSets, language]
+  );
   const editedId = state.editing?.draft.id;
   const editedBranch = state.editing?.branchKey;
   const editedParent = state.editing?.parentId ?? null;
@@ -191,16 +203,16 @@ export default function RulesStep({
   }, [editedId, editedBranch, editedParent]);
 
   if (status === 'loading') {
-    return <FeedbackLoader label={RULES_COPY.loading} />;
+    return <FeedbackLoader label={copy.loading} />;
   }
   if (status === 'failed') {
     return (
       <div className="flex flex-col items-start gap-16">
-        <KernAlert variant="danger" title={RULES_COPY.loadErrorTitle} className="w-full">
-          {RULES_COPY.loadErrorText}
+        <KernAlert variant="danger" title={copy.loadErrorTitle} className="w-full">
+          {copy.loadErrorText}
         </KernAlert>
         <button type="button" onClick={onRetry} className="kern-btn kern-btn--secondary">
-          <span className="kern-label">{RULES_COPY.retry}</span>
+          <span className="kern-label">{copy.retry}</span>
         </button>
       </div>
     );
@@ -209,9 +221,7 @@ export default function RulesStep({
   const branch = branchOf(state, state.openBranch) ?? state.branches[0];
   const based = branch.origin === 'based';
   const shown = shownItems(branch.items, based);
-  // Statements read from the whole catalog, so that a rule on data no longer requested reads
-  const context: RuleContext = { documents: catalog.allDocuments, optionSets: catalog.optionSets };
-  const unrequested = unrequestedOf(state.branches, catalog);
+  const unrequested = unrequestedOf(state.branches, catalog, language);
   const tabProblems = tabProblemsOf(unrequested);
   const editor = state.editing?.branchKey === branch.key ? state.editing : null;
   const { items } = branch;
@@ -224,7 +234,7 @@ export default function RulesStep({
   const findings = new Map<string, ShownFinding>(
     (checks[branch.key]?.findings ?? []).map((finding) => [
       finding.itemId,
-      { kind: finding.kind, text: noteOf(finding, names) },
+      { kind: finding.kind, text: noteOf(finding, names, language) },
     ])
   );
 
@@ -260,8 +270,8 @@ export default function RulesStep({
     void Promise.resolve()
       .then(() => navigator.clipboard.writeText(link))
       .then(
-        () => dispatch({ type: 'showToast', message: RULES_COPY.linkCopied }),
-        () => dispatch({ type: 'showToast', message: RULES_COPY.linkNotCopied })
+        () => dispatch({ type: 'showToast', message: copy.linkCopied }),
+        () => dispatch({ type: 'showToast', message: copy.linkNotCopied })
       );
   }
 
@@ -281,7 +291,7 @@ export default function RulesStep({
         onSave={onSaveRule}
         onCancel={onCancelEditor}
         onAddData={onAddData}
-        messageHint={editorMessageHintOf(branch.items, editor)}
+        messageHint={editorMessageHintOf(branch.items, editor, language)}
       />
     </div>
   );
@@ -310,7 +320,7 @@ export default function RulesStep({
     onUngroup: (groupId) => {
       const first = groupOf(branch, groupId)?.items[0];
       thenFocus(
-        () => dispatch({ type: 'ungroup', branchKey: branch.key, groupId }),
+        () => dispatch({ type: 'ungroup', branchKey: branch.key, groupId, language }),
         first ? ELEMENT_IDS.rule(branch.key, first.id) : ''
       );
     },
@@ -353,7 +363,7 @@ export default function RulesStep({
 
   function groupSelected() {
     thenFocus(
-      () => dispatch({ type: 'groupSelected' }),
+      () => dispatch({ type: 'groupSelected', language }),
       ELEMENT_IDS.rule(branch.key, groupIdOf(state.counters.group))
     );
   }
@@ -379,7 +389,7 @@ export default function RulesStep({
           id={ELEMENT_IDS.rulesProblem}
           tabIndex={-1}
           variant="danger"
-          title={editing ? RULES_COPY.refusedSaveTitle : RULES_COPY.refusedPublishTitle}
+          title={editing ? copy.refusedSaveTitle : copy.refusedPublishTitle}
           className={`w-full ${TABS_SCROLL_MARGIN}`}
         >
           {problem.message}
@@ -415,7 +425,7 @@ export default function RulesStep({
           dispatch={dispatch}
           plainItemId={editor && editor.original !== null ? editor.draft.id : null}
         />
-        <SwitchNote text={switchNoteOf(state, branch, null)} topLevel />
+        <SwitchNote text={switchNoteOf(state, branch, null, language)} topLevel />
         {items.length === 0 && !editor ? (
           <RulesEmptyState
             addRuleId={ELEMENT_IDS.addRule(branch.key)}

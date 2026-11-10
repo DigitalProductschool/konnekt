@@ -1,6 +1,7 @@
 import { revokeAgentAccess } from '../../api/agent-access';
 import { errorNoticeOf } from '../../api/client';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { ACCOUNT_COPY } from './constants';
 import type { AccountDialogProps } from './types';
@@ -14,6 +15,8 @@ import { nameOf } from './utils';
  * dialog, with a 5xx answer's error ID.
  */
 export default function RevokeDialog({ dialog, busy, error, dispatch }: AccountDialogProps) {
+  const { language } = useLanguage();
+  const copy = ACCOUNT_COPY[language];
   const handleUnauthorized = useSignOutOnUnauthorized();
   const open = dialog?.type === 'revoke';
 
@@ -24,10 +27,10 @@ export default function RevokeDialog({ dialog, busy, error, dispatch }: AccountD
     dispatch({ type: 'submitted' });
     try {
       await revokeAgentAccess(dialog.item.id);
-      dispatch({ type: 'revoked', id: dialog.item.id });
+      dispatch({ type: 'revoked', id: dialog.item.id, language });
     } catch (failure) {
       if (!handleUnauthorized(failure)) {
-        dispatch({ type: 'failed', error: errorNoticeOf(failure, ACCOUNT_COPY.revokeFailed) });
+        dispatch({ type: 'failed', error: errorNoticeOf(failure, copy.revokeFailed) });
       }
     }
   }
@@ -35,17 +38,17 @@ export default function RevokeDialog({ dialog, busy, error, dispatch }: AccountD
   return (
     <ConfirmDialog
       open={open}
-      title={open ? ACCOUNT_COPY.revokeTitle(nameOf(dialog.item)) : ''}
-      text={ACCOUNT_COPY.revokeText}
-      confirmLabel={ACCOUNT_COPY.revoke}
-      cancelLabel={ACCOUNT_COPY.cancel}
+      title={open ? copy.revokeTitle(nameOf(dialog.item, language)) : ''}
+      text={copy.revokeText}
+      confirmLabel={copy.revoke}
+      cancelLabel={copy.cancel}
       danger
       dismissOnScrim={false}
-      busyLabel={ACCOUNT_COPY.revoking}
+      busyLabel={copy.revoking}
       busy={busy}
       error={open ? error : null}
-      errorTitle={ACCOUNT_COPY.revokeFailedTitle}
-      retryLabel={ACCOUNT_COPY.retry}
+      errorTitle={copy.revokeFailedTitle}
+      retryLabel={copy.retry}
       onCancel={() => dispatch({ type: 'dialogClosed' })}
       onConfirm={revoke}
     />

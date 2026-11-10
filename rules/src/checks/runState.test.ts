@@ -1,6 +1,7 @@
 import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
+import type { Language } from '../language';
 import { rule } from '../testData';
 import { MAX_EARLIER_RESULTS, WATCHDOG_MS, WORKER_STOP_MS } from './constants';
 import { namesOf } from './findingMessages';
@@ -74,6 +75,15 @@ function changeTo(
   }> = {}
 ): RunAction {
   return { type: 'change', branches, shownBranchKey: shown, cause, now };
+}
+
+/** A change in `language` (spec 009, R4), as the hook dispatches it */
+function changeIn(
+  language: Language | undefined,
+  branches: RunBranch[],
+  { shown = STANDARD.key, now = 1000 }: Partial<{ shown: string; now: number }> = {}
+): RunAction {
+  return { type: 'change', branches, shownBranchKey: shown, cause: 'action', now, language };
 }
 
 function conflict(itemId: string, items: string[]): ConflictingFinding {
@@ -360,6 +370,64 @@ describe('runStateReducer', () => {
       check: result(STANDARD, 'c', [conflict('rule-2', ['rule-1'])]),
     });
     expect(state.announcement).toBe('In Standard: Rule 02 conflicts with Rule 01.');
+  });
+
+  it('composes the announcements in the language of the change (spec 009, R4)', () => {
+    let state = checkedOnce();
+    expect(state.language).toBe('en');
+    state = reduce(state, changeIn('de', [input(STANDARD, 'b')], { now: 2000 }));
+    expect(state.language).toBe('de');
+    state = reduce(state, {
+      type: 'result',
+      runId: 2,
+      check: result(STANDARD, 'b', [conflict('rule-2', ['rule-1'])]),
+    });
+    expect(state.announcement).toBe('Rule 02 widerspricht Rule 01.');
+    // An undo answered from the cache is announced in the language of the moment too
+    state = reduce(state, { type: 'done', runId: 2 }, changeIn('de', [input(STANDARD, 'a')]));
+    expect(state.run).toBeNull();
+    expect(state.announcement).toBe('Rule 02 widerspricht Rule 01 nicht mehr.');
+  });
+
+  it('doesn’t recompose a stored announcement on a switch, nor run (spec 009, R4; FR-016)', () => {
+    let state = checkedOnce();
+    state = reduce(state, changeTo([input(STANDARD, 'b')], { now: 2000 }));
+    state = reduce(
+      state,
+      { type: 'result', runId: 2, check: result(STANDARD, 'b', [conflict('rule-2', ['rule-1'])]) },
+      { type: 'done', runId: 2 }
+    );
+    expect(state.announcement).toBe('Rule 02 conflicts with Rule 01.');
+    const switched = reduce(state, changeIn('de', [input(STANDARD, 'b')]));
+    expect(switched.announcement).toBe('Rule 02 conflicts with Rule 01.');
+    expect(switched.run).toBeNull();
+    expect(switched.byBranch).toEqual(state.byBranch);
+    expect(switched.language).toBe('de');
+    // The next change is announced in German, and one without a language in English again
+    const undone = reduce(switched, changeIn('de', [input(STANDARD, 'a')]));
+    expect(undone.announcement).toBe('Rule 02 widerspricht Rule 01 nicht mehr.');
+    const redone = reduce(undone, changeIn(undefined, [input(STANDARD, 'b')]));
+    expect(redone.language).toBe('en');
+    expect(redone.announcement).toBe('Rule 02 conflicts with Rule 01.');
+  });
+
+  it('words a finding in the variant not shown with "In <variant>: " in German', () => {
+    let state = reduce(initialRunState, changeTo([input(STANDARD, 'a'), input(AMBULANCE, 'b')]));
+    state = reduce(
+      state,
+      { type: 'result', runId: 1, check: result(STANDARD, 'a') },
+      { type: 'result', runId: 1, check: result(AMBULANCE, 'b') }
+    );
+    state = reduce(
+      state,
+      changeIn('de', [input(STANDARD, 'c'), input(AMBULANCE, 'd')], { shown: AMBULANCE.key })
+    );
+    state = reduce(state, {
+      type: 'result',
+      runId: 2,
+      check: result(STANDARD, 'c', [conflict('rule-2', ['rule-1'])]),
+    });
+    expect(state.announcement).toBe('In Standard: Rule 02 widerspricht Rule 01.');
   });
 });
 

@@ -159,6 +159,114 @@ export const OPTION_SETS: OptionSet[] = [
 /** Both documents with every field above requested. */
 export const CONTEXT: RuleContext = { documents: [PID, MDL], optionSets: OPTION_SETS };
 
+/**
+ * A document with the German labels of the catalog (glossary G§4), as the backend answers in
+ * German: the same keys, kinds and value sets. `labels` names fields by key and parts by
+ * `{field}.{part}`; every field and part must have one.
+ */
+function inGerman(document: RuleDocument, label: string, labels: Record<string, string>) {
+  const german = (key: string): string => {
+    const found = labels[key];
+    if (!found) {
+      throw new Error(`No German label for ${document.key}.${key}`);
+    }
+    return found;
+  };
+  return {
+    ...document,
+    label,
+    fields: document.fields.map((entry) => ({
+      ...entry,
+      label: german(entry.key),
+      parts:
+        entry.parts?.map((part) => ({ ...part, label: german(`${entry.key}.${part.key}`) })) ??
+        null,
+    })),
+  };
+}
+
+/** `PID` with the catalog's German labels (spec 009, glossary G§4). */
+export const PID_DE: RuleDocument = inGerman(PID, 'Personalausweis', {
+  family_name: 'Familienname',
+  birthdate: 'Geburtsdatum',
+  place_of_birth: 'Geburtsort',
+  'place_of_birth.country': 'Land',
+  'place_of_birth.region': 'Region',
+  'place_of_birth.locality': 'Ort',
+  nationalities: 'Staatsangehörigkeit',
+  address_locality: 'Ort',
+  address_country: 'Wohnsitzland',
+  picture: 'Foto',
+  sex: 'Geschlecht',
+  date_of_issuance: 'Ausstellungsdatum',
+  date_of_expiry: 'Ablaufdatum',
+  issuing_country: 'Ausstellungsland',
+});
+
+/** `MDL` with the catalog's German labels (spec 009, glossary G§4). */
+export const MDL_DE: RuleDocument = inGerman(MDL, 'Führerschein', {
+  birth_date: 'Geburtsdatum',
+  issue_date: 'Ausstellungsdatum',
+  expiry_date: 'Ablaufdatum',
+  portrait: 'Lichtbild',
+  driving_privileges: 'Führerscheinklassen',
+  'driving_privileges.classes': 'Führerscheinklassen',
+  'driving_privileges.issue_date': 'Ausstellungsdatum',
+  'driving_privileges.expiry_date': 'Ablaufdatum',
+  un_distinguishing_sign: 'Unterscheidungszeichen (UN)',
+  height: 'Körpergröße (cm)',
+  eye_colour: 'Augenfarbe',
+  resident_city: 'Wohnort',
+  nationality: 'Staatsangehörigkeit',
+});
+
+/** `OPTION_SETS` with the German labels and descriptions of the option sets (glossary G§4). */
+export const OPTION_SETS_DE: OptionSet[] = [
+  {
+    key: 'countries',
+    options: [
+      { value: 'DE', label: 'Deutschland', description: null },
+      { value: 'AT', label: 'Österreich', description: null },
+      { value: 'FR', label: 'Frankreich', description: null },
+    ],
+  },
+  {
+    key: 'sex',
+    options: [
+      { value: 0, label: 'Unbekannt', description: null },
+      { value: 1, label: 'Männlich', description: null },
+      { value: 2, label: 'Weiblich', description: null },
+    ],
+  },
+  {
+    key: 'licence_classes',
+    options: [
+      { value: 'A', label: 'A', description: 'Krafträder' },
+      { value: 'B', label: 'B', description: 'Pkw bis 3,5 t' },
+      { value: 'BE', label: 'BE', description: 'Pkw mit schwerem Anhänger' },
+      { value: 'C', label: 'C', description: 'Lkw über 3,5 t' },
+    ],
+  },
+  {
+    key: 'eye_colours',
+    options: [
+      { value: 'blue', label: 'Blau', description: null },
+      { value: 'green', label: 'Grün', description: null },
+    ],
+  },
+];
+
+/**
+ * `CONTEXT` in German (spec 009, R4): the catalog's German labels and `language: 'de'`, as the
+ * editor builds it when the website is in German. The German cases of the rules modules' tests
+ * use it beside `CONTEXT`.
+ */
+export const CONTEXT_DE: RuleContext = {
+  documents: [PID_DE, MDL_DE],
+  optionSets: OPTION_SETS_DE,
+  language: 'de',
+};
+
 export function target(
   documentType: string,
   fieldKey: string,

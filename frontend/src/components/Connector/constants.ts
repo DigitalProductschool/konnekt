@@ -1,15 +1,10 @@
 import type { Combinator } from '@connection-portal/api-types/form-connections';
+import { defineTexts } from '@connection-portal/rules/language';
 
 import type { MenuDirection, PopupPlacement } from '../../utils/popupPlacement';
 
-// Figma "Rules/Connector": the pill's label
-export const CONNECTOR_LABELS: Record<Combinator, string> = { and: 'AND', or: 'OR' };
-
 // Figma "Rules/Connector menu" (U34 6094:7052), in the order it lists the operators
-export const CONNECTOR_OPTIONS: { operator: Combinator; description: string }[] = [
-  { operator: 'and', description: 'All rules must be met' },
-  { operator: 'or', description: 'At least one rule must be met' },
-];
+export const CONNECTOR_OPTIONS: readonly Combinator[] = ['and', 'or'];
 
 /** The menu's width, Figma's 300px (U34 6094:7052) */
 export const CONNECTOR_MENU_WIDTH = 300;
@@ -88,9 +83,29 @@ export const CONNECTOR_FADED = 'opacity-(--kern-color-action-state-opacity-disab
 export const CONNECTOR_OPTION_STATES =
   'motion relative isolate before:absolute before:inset-0 before:-z-10 before:rounded-kern-small before:transition-colors before:duration-(--duration-colour) hover:before:bg-kern-action-state-indicator-default/8 active:before:bg-kern-action-state-indicator-default/16 focus-visible:bg-kern-action-focus-default focus-visible:outline-none';
 
-export const CONNECTOR_COPY = {
-  // Read after the pill's label, so that the button's name says which level it switches
-  switchLevel: (level: string) => `, switch ${level} to AND or OR`,
-  // The menu's footer
-  appliesTo: (level: string) => `Applies to every rule in ${level}`,
-};
+export const CONNECTOR_COPY = defineTexts<{
+  labels: Record<Combinator, string>;
+  descriptions: Record<Combinator, string>;
+  switchLevel: (level: string) => string;
+  appliesTo: (level: string) => string;
+}>(
+  {
+    // Figma "Rules/Connector": the pill's label
+    labels: { and: 'AND', or: 'OR' },
+    // Figma "Rules/Connector menu" (U34 6094:7052): what each operator means
+    descriptions: { and: 'All rules must be met', or: 'At least one rule must be met' },
+    // Read after the pill's label, so that the button's name says which level it switches
+    switchLevel: (level: string) => `, switch ${level} to AND or OR`,
+    // The menu's footer
+    appliesTo: (level: string) => `Applies to every rule in ${level}`,
+  },
+  {
+    labels: { and: 'UND', or: 'ODER' },
+    descriptions: {
+      and: 'Alle Regeln müssen erfüllt sein',
+      or: 'Mindestens eine Regel muss erfüllt sein',
+    },
+    switchLevel: (level: string) => `, ${level} auf UND oder ODER umstellen`,
+    appliesTo: (level: string) => `Gilt für jede Regel in ${level}`,
+  }
+);

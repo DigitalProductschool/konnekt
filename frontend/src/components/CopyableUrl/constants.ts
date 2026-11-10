@@ -1,31 +1,56 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { CopyableUrlVariant, CopyState, CopyTexts } from './types';
 
 /**
  * The texts of each variant. The link's are the design's ("Copy link", "Copied", U80 6396:47721,
  * U81 6396:47841); the field's are generic, and a caller names what it copies (the account
- * page's token: "Token copied")
+ * page's token: "Token copied"). `copyTextsOf()` reads them in a language
  */
-export const COPY_TEXTS: Record<CopyableUrlVariant, CopyTexts> = {
-  link: {
-    copy: 'Copy link',
-    copied: 'Copied',
-    announced: 'Link copied',
-    failed: 'Copying didn’t work. The link is selected, so you can copy it yourself.',
+export const COPY_TEXTS = defineTexts<Record<CopyableUrlVariant, CopyTexts>>(
+  {
+    link: {
+      copy: 'Copy link',
+      copied: 'Copied',
+      announced: 'Link copied',
+      failed: 'Copying didn’t work. The link is selected, so you can copy it yourself.',
+    },
+    field: {
+      copy: 'Copy',
+      copied: 'Copied',
+      announced: 'Copied',
+      failed: 'Copying didn’t work. The text is selected, so you can copy it yourself.',
+    },
   },
-  field: {
-    copy: 'Copy',
-    copied: 'Copied',
-    announced: 'Copied',
-    failed: 'Copying didn’t work. The text is selected, so you can copy it yourself.',
-  },
-};
+  {
+    link: {
+      copy: 'Link kopieren',
+      copied: 'Kopiert',
+      announced: 'Link kopiert',
+      failed:
+        'Das Kopieren hat nicht funktioniert. Der Link ist markiert, sodass Sie ihn selbst kopieren können.',
+    },
+    field: {
+      copy: 'Kopieren',
+      copied: 'Kopiert',
+      announced: 'Kopiert',
+      failed:
+        'Das Kopieren hat nicht funktioniert. Der Text ist markiert, sodass Sie ihn selbst kopieren können.',
+    },
+  }
+);
 
-/**
- * Why the copy button is off while the connection is deactivated (FR-046, W21; U89 6417:31309):
- * the design draws the button at 40 % without its explanation (FR-052b), so the text follows the
- * other explanations' pattern ("Save the rule first")
- */
-export const DEACTIVATED_EXPLANATION = 'Activate the connection first';
+export const COPYABLE_URL_COPY = defineTexts(
+  {
+    /**
+     * Why the copy button is off while the connection is deactivated (FR-046, W21; U89
+     * 6417:31309): the design draws the button at 40 % without its explanation (FR-052b), so the
+     * text follows the other explanations' pattern ("Save the rule first")
+     */
+    deactivatedExplanation: 'Activate the connection first',
+  },
+  { deactivatedExplanation: 'Aktivieren Sie zuerst die Anbindung' }
+);
 
 /** How long the button reads "✓ Copied" after copying (FR-048) */
 export const COPIED_RESET_MS = 2000;

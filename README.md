@@ -152,6 +152,15 @@ This starts everything with hot reload:
 - MCP server for agents: http://localhost:3100/mcp (see
   [Agents and the MCP server](#agents-and-the-mcp-server))
 
+Konnekt speaks English and German (spec 009, [009-language-toggle/](specs/009-language-toggle/)):
+the "DE | EN" switch in the header changes the language, and the browser remembers the choice.
+The API answers in the language of the request's `Accept-Language` header, which the frontend
+sends on every call: German for `de` (and `de-AT`, `de-CH` …), English for anything else or
+without the header. Only the texts change (error messages, the catalog's and option sets'
+labels), never a field, key or code; serviceBW's connection URLs under `/api/connect/`, the MCP
+server and the logs stay English. The two languages add no dependency and no environment
+variable. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Languages (spec 009)".
+
 The backend container reads `backend/.env` if it exists; the values set in
 `docker-compose.yml` take precedence. The `mcp` service gets its settings from
 `docker-compose.yml` alone.
@@ -267,7 +276,7 @@ uv run alembic upgrade head
 # Issue a test PID and driving licence to a test wallet (see Test credentials below)
 uv run python -m scripts.issue_test_credentials
 
-# Regenerate the rule checks' fixtures (see Rule checks' fixtures below)
+# Regenerate the rule checks' fixtures and the server messages' parity fixture (see below)
 uv run python -m scripts.export_check_fixtures           # write them
 uv run python -m scripts.export_check_fixtures --check   # only check they are current
 ```
@@ -288,9 +297,14 @@ the browser's evaluator `rules/src/evaluation.ts`, which the test step uses to
 evaluate its sample citizens. `scripts/export_check_fixtures` writes both from the current
 interpreter and evaluator; it needs no database, EUDIPLO or setting. Never edit the files by hand.
 
+The same script writes a third file (spec 009): `rules/src/fixtures/server-messages.json`, the
+server's rules messages (`app/services/rules_texts.py`) rendered in English and German with
+sample parameters. The Rules step repeats these messages word for word in both languages, and
+`rules/src/validation.test.ts` checks its tables against the file.
+
 Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can
-bring a new Unicode version, and with it other case folding) **or a change to the evaluator's
-comparisons**:
+bring a new Unicode version, and with it other case folding), **a change to the evaluator's
+comparisons or a change to the rules' messages**:
 
 ```bash
 cd backend

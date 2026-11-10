@@ -29,7 +29,7 @@ import uuid
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Literal
+from typing import cast
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -43,6 +43,7 @@ from ..catalog import (
     get_document_type,
 )
 from ..config import settings
+from ..language import Text
 from ..models import FormConnection, FormConnectionBranch, FormConnectionRuleSet
 from ..option_sets import OPTION_SETS
 from ..schemas import (
@@ -57,23 +58,27 @@ from ..schemas import (
     RuleTarget,
     SnapshotBranch,
 )
+from . import rules_texts as texts
 from .evaluation import effective_items
+from .rules_texts import (
+    DESCRIPTION_MAX_LENGTH,
+    INVALID_IDENTIFIER,
+    MAX_BRANCHES,
+    MAX_ITEMS_PER_BRANCH,
+    MESSAGE_MAX_LENGTH,
+    NAME_MAX_LENGTH,
+    UNKNOWN_BRANCH,
+    ItemNoun,
+    Label,
+)
 
 logger = logging.getLogger(__name__)
 
 MAIN_BRANCH_NAME = 'Standard'
 
-# Size limits (spec Assumptions)
-MAX_BRANCHES = 20
-MAX_ITEMS_PER_BRANCH = 200
-NAME_MAX_LENGTH = 100
-DESCRIPTION_MAX_LENGTH = 500
-MESSAGE_MAX_LENGTH = 500
-
-INVALID_IDENTIFIER = (
-    'The rules contain an invalid identifier. Reload the connection and try again.'
-)
-UNKNOWN_BRANCH = 'Unknown variant.'
+# The size limits (MAX_BRANCHES, …) and the messages, INVALID_IDENTIFIER and
+# UNKNOWN_BRANCH among them, are in `rules_texts.py`, in English and German (spec
+# 009), so that the fixture script renders them without this module's settings
 
 # The operators of each kind of value, and the keys each one uses
 # (data-model.md "Conditions")
@@ -94,23 +99,19 @@ _RESERVED_NAME = re.compile(r'(rule|group|sub-group) ([0-9]+)', re.IGNORECASE)
 _ISO_DATE = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}')
 
 TreeItem = RuleItem | GroupItem
-ItemNoun = Literal['rule', 'group', 'sub-group']
 
 
-def _validation_error(message: str) -> HTTPException:
+def _validation_error(message: Text) -> HTTPException:
+    """A 400 whose message `errors.py` answers in the request's language."""
     return HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={'error': 'Validation error', 'message': message},
     )
 
 
-def _out_of_step(branch_name: str, main_name: str) -> HTTPException:
+def _out_of_step(branch_name: Label, main_name: Label) -> HTTPException:
     """A branch that no correct propagation gives (research R4)."""
-    with_main = '' if branch_name == main_name else f' with {main_name}'
-    return _validation_error(
-        f'The variant {branch_name} is out of step{with_main}. Reload the connection '
-        'and try again.'
-    )
+    return _validation_error(texts.out_of_step(branch_name, main_name))
 
 
 def main_branch_snapshot(branch_id: str) -> SnapshotBranch:
@@ -275,16 +276,14 @@ def clean_branches(
     connection's save.
     """
     if len(branches) > MAX_BRANCHES:
-        raise _validation_error(
-            f'A connection can have at most {MAX_BRANCHES} variants.'
-        )
+        raise _validation_error(texts.too_many_branches())
     mains = [branch for branch in branches if branch.origin == 'main']
     if (
         len(mains) != 1
         or branches[0].origin != 'main'
         or (main_branch_id is not None and branches[0].id != main_branch_id)
     ):
-        raise _validation_error('The rules need exactly one main branch.')
+        raise _validation_error(texts.main_branch())
     # The main branch's id is checked already when the form connection has one
     _check_id_format(branches[1:] if main_branch_id is not None else branches)
 
@@ -326,29 +325,25 @@ def _check_id_format(branches: Sequence[BranchInput]) -> None:
         seen.add(branch.id)
 
 
-def _variant_label(name: str, position: int) -> str:
+def _variant_label(name: str, position: int) -> Text:
     """How a message names a variant: its name, or "Variant <n>" while it has none.
 
     Only a draft's variant can be unnamed (spec 005, data-model.md "Validation").
     """
-    return name or f'Variant {position}'
+    return texts.variant_label(name, position)
 
 
 def _branch_name(value: str, earlier_names: set[str], *, complete: bool) -> str:
     name = value.strip()
     if complete and not name:
-        raise _validation_error('Enter a name for every variant.')
+        raise _validation_error(texts.branch_name_missing())
     if len(name) > NAME_MAX_LENGTH:
-        raise _validation_error(
-            f'A variant’s name can have at most {NAME_MAX_LENGTH} characters.'
-        )
+        raise _validation_error(texts.branch_name_too_long())
     if not complete:
         # A draft's variants may be unnamed or share a name (spec 005, FR-004)
         return name
     if _folded(name) in earlier_names:
-        raise _validation_error(
-            f'Two variants are called {name}. Give each variant its own name.'
-        )
+        raise _validation_error(texts.branch_name_twice(name))
     earlier_names.add(_folded(name))
     return name
 
@@ -367,7 +362,7 @@ class _BranchCheck:
     """What the checks of one branch's items need."""
 
     # How messages name the branch (`_variant_label`)
-    name: str
+    name: Text
     requested: dict[tuple[str, str], _RequestedField]
     # Taken names by their folded form, filled while the items are checked
     names: dict[str, _TakenName]
@@ -382,7 +377,7 @@ class _BranchCheck:
 def _clean_branch(
     branch: BranchInput,
     name: str,
-    label: str,
+    label: Text,
     requested: dict[tuple[str, str], _RequestedField],
     main: BranchInput | None,
     *,
@@ -394,15 +389,10 @@ def _clean_branch(
     """
     description = (branch.description or '').strip() or None
     if description is not None and len(description) > DESCRIPTION_MAX_LENGTH:
-        raise _validation_error(
-            f'The description of {label} can have at most {DESCRIPTION_MAX_LENGTH} '
-            'characters.'
-        )
+        raise _validation_error(texts.description_too_long(label))
     entries = list(walk(branch.items))
     if len(entries) > MAX_ITEMS_PER_BRANCH:
-        raise _validation_error(
-            f'{label} can have at most {MAX_ITEMS_PER_BRANCH} rules and groups.'
-        )
+        raise _validation_error(texts.too_many_items(label))
     identifiers: set[str] = set()
     for item, _depth in entries:
         expected = _RULE_ID if isinstance(item, RuleItem) else _GROUP_ID
@@ -484,18 +474,34 @@ def _names_taken_by_undo(
     return taken
 
 
+@dataclass(frozen=True)
+class _Subject:
+    """The rule or group a message is about: its name and its branch's label."""
+
+    item: str
+    branch: Label
+
+
+def _condition_problem(subject: _Subject, problem: str) -> HTTPException:
+    """The 400 of a condition problem without a parameter ("choose a check.")."""
+    return _validation_error(
+        texts.condition_problem(
+            subject.item, subject.branch, texts.CONDITION_PROBLEMS[problem]
+        )
+    )
+
+
 def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
     noun = _noun(item, depth)
     name = _item_name(item, noun, check)
     # An unnamed item of a draft is named by its identifier (spec 005)
-    subject = f'{name or item.id} in {check.name}'
+    subject = _Subject(name or item.id, check.name)
     if isinstance(item, GroupItem):
         _check_members(item, depth, subject, check)
         message = (item.message or '').strip() or None
         if message is not None and len(message) > MESSAGE_MAX_LENGTH:
             raise _validation_error(
-                f'The error message of {subject} can have at most '
-                f'{MESSAGE_MAX_LENGTH} characters.'
+                texts.message_too_long(subject.item, subject.branch)
             )
         cleaned_group = item.model_copy(update={'name': name, 'message': message})
         _check_follows(cleaned_group, check)
@@ -510,17 +516,14 @@ def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
     if check.complete:
         target, kind, entry = _clean_target(item.target, subject, check.requested)
         if item.condition is None:
-            raise _validation_error(f'{subject}: choose a check.')
+            raise _condition_problem(subject, 'choose_check')
         condition = _clean_condition(item.condition, kind, entry, target, subject)
     # A draft's rule keeps its data and check as sent (spec 005, FR-004)
     message = item.message.strip()
     if check.complete and not message:
-        raise _validation_error(f'{subject} has no error message.')
+        raise _validation_error(texts.no_message(subject.item, subject.branch))
     if len(message) > MESSAGE_MAX_LENGTH:
-        raise _validation_error(
-            f'The error message of {subject} can have at most {MESSAGE_MAX_LENGTH} '
-            'characters.'
-        )
+        raise _validation_error(texts.message_too_long(subject.item, subject.branch))
     cleaned_rule = item.model_copy(
         update={'name': name, 'condition': condition, 'message': message}
     )
@@ -529,7 +532,7 @@ def _clean_item(item: TreeItem, depth: int, check: _BranchCheck) -> TreeItem:
 
 
 def _check_members(
-    group: GroupItem, depth: int, subject: str, check: _BranchCheck
+    group: GroupItem, depth: int, subject: _Subject, check: _BranchCheck
 ) -> None:
     """A group holds rules and sub-groups, a sub-group rules only (FR-008).
 
@@ -539,12 +542,12 @@ def _check_members(
     (data-model.md, "Dissolution"); a group the branch added needs two.
     """
     if depth > 0 and any(isinstance(member, GroupItem) for member in group.items):
-        raise _validation_error(f'{subject} can only hold rules.')
+        raise _validation_error(texts.rules_only(subject.item, subject.branch))
     based = check.inherited is not None
     if based and group.mark != 'added':
         return
     if len(effective_items(group.items, based)) < 2:
-        raise _validation_error(f'{subject} needs at least two rules.')
+        raise _validation_error(texts.too_few_members(subject.item, subject.branch))
 
 
 def _change_of(item: TreeItem) -> tuple[object, ...]:
@@ -585,18 +588,15 @@ def _item_name(item: TreeItem, noun: ItemNoun, check: _BranchCheck) -> str:
     """
     name = item.name.strip()
     if check.complete and not name:
-        raise _validation_error(f'Enter a name for every {noun} in {check.name}.')
+        raise _validation_error(texts.item_name_missing(noun, check.name))
     if len(name) > NAME_MAX_LENGTH:
-        raise _validation_error(
-            f'A {noun} in {check.name} has a name longer than {NAME_MAX_LENGTH} '
-            'characters.'
-        )
+        raise _validation_error(texts.item_name_too_long(noun, check.name))
     if not check.complete:
         return name
     earlier = check.names.get(_folded(name))
     if earlier is not None and earlier.owner_id != item.id:
         raise _validation_error(
-            f'There’s already a {earlier.noun} called "{earlier.name}" in {check.name}.'
+            texts.name_taken(earlier.noun, check.name, earlier.name)
         )
     reserved = reserved_name_problem(name, item)
     if reserved is not None:
@@ -605,7 +605,7 @@ def _item_name(item: TreeItem, noun: ItemNoun, check: _BranchCheck) -> str:
     return name
 
 
-def reserved_name_problem(name: str, item: TreeItem) -> str | None:
+def reserved_name_problem(name: str, item: TreeItem) -> Text | None:
     """Why `name` is kept for another item, or None (FR-005).
 
     "Rule NN" belongs to the rule `rule-{NN}`, "Group NN" and "Sub-group NN" to the
@@ -614,40 +614,44 @@ def reserved_name_problem(name: str, item: TreeItem) -> str | None:
     match = _RESERVED_NAME.fullmatch(name.strip())
     if match is None:
         return None
-    word, number = match.group(1).lower(), int(match.group(2))
+    word = cast(ItemNoun, match.group(1).lower())
+    number = int(match.group(2))
     owner_id = f'rule-{number}' if word == 'rule' else f'group-{number}'
     if item.id == owner_id:
         return None
-    return f'{name.strip()} is kept for the {word} numbered {number:02d}.'
+    return texts.name_reserved(name.strip(), word, f'{number:02d}')
 
 
 def _clean_target(
     target: RuleTarget | None,
-    subject: str,
+    subject: _Subject,
     requested: dict[tuple[str, str], _RequestedField],
 ) -> tuple[RuleTarget, FieldKind, _RequestedField]:
     """Check what a rule checks; return it with its kind of value (FR-002, FR-003)."""
+    choose_data = _validation_error(texts.choose_data(subject.item, subject.branch))
     if target is None:
-        raise _validation_error(f'{subject}: choose the data to check.')
+        raise choose_data
     entry = requested.get((target.document_type, target.field))
     if entry is None or entry.field.kind == 'image':
-        raise _validation_error(f'{subject} checks data that’s no longer requested.')
+        raise _validation_error(texts.not_requested(subject.item, subject.branch))
     field = entry.field
     wrong_part = _validation_error(
-        f'{subject} checks a part that {field.label} doesn’t have.'
+        texts.unknown_part(
+            subject.item, subject.branch, Text(en=field.label, de=field.label_de)
+        )
     )
     if field.parts is None:
         if target.part is not None or target.licence_class is not None:
             raise wrong_part
         return target, field.kind, entry
     if target.part is None:
-        raise _validation_error(f'{subject}: choose the data to check.')
+        raise choose_data
     part = _part_of(field, target.part)
     if part is None:
         raise wrong_part
     if part.per_licence_class:
         if target.licence_class is None:
-            raise _validation_error(f'{subject}: choose the data to check.')
+            raise choose_data
         if target.licence_class not in _option_values(LICENCE_CLASSES):
             raise wrong_part
     elif target.licence_class is not None:
@@ -675,18 +679,18 @@ def _clean_condition(
     kind: FieldKind,
     entry: _RequestedField,
     target: RuleTarget,
-    subject: str,
+    subject: _Subject,
 ) -> Condition:
     """Check a condition against its target's kind; keep only its operator's keys."""
     operator = condition.operator
     if kind == 'number' and operator in NUMBER_OPERATORS:
         value = condition.value
         if not isinstance(value, float | int) or not math.isfinite(value):
-            raise _validation_error(f'{subject}: enter a number.')
+            raise _condition_problem(subject, 'enter_number')
         return Condition(operator=operator, value=value)
     if kind == 'text' and operator in TEXT_OPERATORS:
         if not isinstance(condition.value, str) or not condition.value.strip():
-            raise _validation_error(f'{subject}: enter a text to compare with.')
+            raise _condition_problem(subject, 'enter_text')
         return Condition(
             operator=operator,
             value=condition.value,
@@ -699,43 +703,43 @@ def _clean_condition(
         )
     if kind == 'date' and operator in FIXED_DATE_OPERATORS:
         if not _is_date(condition.date):
-            raise _validation_error(f'{subject}: enter a date.')
+            raise _condition_problem(subject, 'enter_date')
         return Condition(operator=operator, date=condition.date)
     if kind == 'date' and operator in YEARS_AGO_OPERATORS:
         years = _whole_number(condition.years)
         if years is None:
-            raise _validation_error(
-                f'{subject}: enter a number of years of at least 1.'
-            )
+            raise _condition_problem(subject, 'years_at_least_1')
         return Condition(operator=operator, years=years)
     if kind == 'date' and operator in FROM_NOW_OPERATORS:
         unit = condition.unit
         if unit not in ('years', 'months'):
-            raise _validation_error(f'{subject}: choose years or months.')
+            raise _condition_problem(subject, 'choose_unit')
         amount = _whole_number(condition.amount)
         if amount is None:
             raise _validation_error(
-                f'{subject}: enter a number of {unit} of at least 1.'
+                texts.condition_problem(
+                    subject.item, subject.branch, texts.amount_at_least_1(unit)
+                )
             )
         return Condition(operator=operator, amount=amount, unit=unit)
-    raise _validation_error(f'{subject}: choose a check.')
+    raise _condition_problem(subject, 'choose_check')
 
 
 def _enum_values(
-    condition: Condition, field: CatalogField, target: RuleTarget, subject: str
+    condition: Condition, field: CatalogField, target: RuleTarget, subject: _Subject
 ) -> list[str | int]:
     values = condition.values or []
     if not values:
-        raise _validation_error(f'{subject}: choose at least one value.')
+        raise _condition_problem(subject, 'choose_value')
     option_set = _enum_set(field, target)
     allowed = _option_values(option_set) if option_set else []
     seen: list[str | int] = []
     for value in values:
         # 1 and True are equal in Python, but True is never a value of a set
         if isinstance(value, bool) or value not in allowed:
-            raise _validation_error(f'{subject}: choose values from the list.')
+            raise _condition_problem(subject, 'values_from_list')
         if value in seen:
-            raise _validation_error(f'{subject}: choose each value only once.')
+            raise _condition_problem(subject, 'value_once')
         seen.append(value)
     return seen
 
@@ -1014,28 +1018,13 @@ def check_rules_version(
 
 def _rules_changed(deleted: Sequence[str], returning: Sequence[str]) -> HTTPException:
     """The 409 of a stale save, in the UI's words: "variant", "result link"."""
-    effects: list[str] = []
-    if deleted:
-        effects.append(f'deletes {_variants(deleted)}')
-    if returning:
-        links = 'a new result link' if len(returning) == 1 else 'new result links'
-        effects.append(f'brings back {_variants(returning)} with {links}')
-    message = (
-        'Another team member saved the rules of this connection after you opened it.'
-    )
-    if effects:
-        message += f' Replacing their changes {" and ".join(effects)}.'
     return HTTPException(
         status_code=status.HTTP_409_CONFLICT,
-        detail={'error': 'rules_changed', 'message': message},
+        detail={
+            'error': 'rules_changed',
+            'message': texts.rules_changed(deleted, returning),
+        },
     )
-
-
-def _variants(names: Sequence[str]) -> str:
-    """'the variant Taxi', 'the variants Taxi and Bus', 'the variants A, B and C'."""
-    if len(names) == 1:
-        return f'the variant {names[0]}'
-    return f'the variants {", ".join(names[:-1])} and {names[-1]}'
 
 
 @dataclass(frozen=True)

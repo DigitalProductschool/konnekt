@@ -1,4 +1,5 @@
-import { RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY } from './constants';
 import type { SelectBoxProps } from './types';
 
 /**
@@ -11,6 +12,7 @@ import type { SelectBoxProps } from './types';
  * and the override's 2px margin. Its name says which rule it chooses.
  */
 export default function SelectBox({ id, ruleName, checked, onToggle }: SelectBoxProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   return (
     <span className="absolute left-15 mt-20 flex">
       <input
@@ -18,7 +20,7 @@ export default function SelectBox({ id, ruleName, checked, onToggle }: SelectBox
         type="checkbox"
         checked={checked}
         onChange={onToggle}
-        aria-label={RULES_COPY.selectRule(ruleName)}
+        aria-label={copy.selectRule(ruleName)}
         className="kern-form-check__checkbox motion transition-colors duration-(--duration-colour)"
       />
     </span>

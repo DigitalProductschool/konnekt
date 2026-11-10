@@ -1,5 +1,19 @@
-import { INITIAL_COPY_STATE } from './constants';
-import type { CopyAction, CopyState } from './types';
+import type { Language } from '@connection-portal/rules/language';
+
+import { COPY_TEXTS, INITIAL_COPY_STATE } from './constants';
+import type { CopyableUrlVariant, CopyAction, CopyState, CopyTexts } from './types';
+
+/**
+ * A variant's button labels and announcements in a language ("Copy link", "Copied" / "Link
+ * kopieren", "Kopiert"), with the texts a caller replaces, such as the token's "Token copied"
+ */
+export function copyTextsOf(
+  variant: CopyableUrlVariant,
+  language: Language,
+  replaced: Partial<CopyTexts> = {}
+): CopyTexts {
+  return { ...COPY_TEXTS[language][variant], ...replaced };
+}
 
 /** Select an element's text, so that it can be copied by hand. */
 export function selectText(element: HTMLElement): void {

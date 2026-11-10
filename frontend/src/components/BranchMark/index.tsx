@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { BRANCH_MARK_COLOURS, BRANCH_MARK_COPY } from './constants';
 import type { BranchMarkProps } from './types';
 
@@ -9,11 +10,12 @@ import type { BranchMarkProps } from './types';
  * that "Changed here" stays there (F36, FR-040).
  */
 export default function BranchMark({ mark }: BranchMarkProps) {
+  const copy = useCopy(BRANCH_MARK_COPY);
   return (
     <span
       className={`${BRANCH_MARK_COLOURS[mark]} rounded-kern-small text-kern-static-small shrink-0 px-8 py-2 leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap`}
     >
-      {BRANCH_MARK_COPY[mark]}
+      {copy[mark]}
     </span>
   );
 }

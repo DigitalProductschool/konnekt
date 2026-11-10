@@ -1,6 +1,6 @@
 import type { AccessLevel } from '@connection-portal/api-types/agent-access';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useEffect, useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
 import { errorNoticeOf } from '../../api/client';
@@ -11,6 +11,7 @@ import PageTitle from '../../components/PageTitle';
 import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import ConsentForm from './ConsentForm';
 import { ALERT_ACTIONS_CLASSES, CONSENT_CARD_CLASSES, CONSENT_COPY, SMALL_TEXT } from './constants';
@@ -31,12 +32,13 @@ import {
  * what failed, its body the server's message with the error ID (F22), then the way back
  */
 function LoadFailedAlert({ notice }: LoadFailedAlertProps) {
+  const copy = useCopy(CONSENT_COPY);
   return (
-    <KernAlert variant="danger" title={CONSENT_COPY.loadErrorTitle} className="w-full">
+    <KernAlert variant="danger" title={copy.loadErrorTitle} className="w-full">
       <ErrorNoticeText notice={notice} />
       <span className={ALERT_ACTIONS_CLASSES}>
         <Link to={ROUTES.overview} className="kern-link">
-          {CONSENT_COPY.backToList}
+          {copy.backToList}
         </Link>
       </span>
     </KernAlert>
@@ -51,12 +53,22 @@ function LoadFailedAlert({ notice }: LoadFailedAlertProps) {
  * leaves for the redirect URI the server answers with, a URI the client registered. Every state
  * is one card (kit P10) under the header pills: the h1 and the sentence (title/large with
  * body/default 8px under it, as the §3 card heading), then the loader, the alert of an invalid
- * request or a failed load, or the form and the footer line.
+ * request or a failed load, or the form and the footer line. A switch of the language words the
+ * page anew, the reason a request can't be used included; a message from the server keeps its
+ * language until the next request.
  */
 export default function AuthorizePage() {
-  useDocumentTitle(CONSENT_COPY.pageTitle);
+  const { language } = useLanguage();
+  const copy = CONSENT_COPY[language];
+  useDocumentTitle(copy.pageTitle);
+  // The client loads once per request, not per language: a failure's fallback text takes the
+  // language of the moment it fails
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
   const [searchParams] = useSearchParams();
-  const reading = useMemo(() => requestOf(searchParams), [searchParams]);
+  const reading = useMemo(() => requestOf(searchParams, language), [searchParams, language]);
   const [state, dispatch] = useReducer(consentReducer, reading, initialConsentState);
   const handleUnauthorized = useSignOutOnUnauthorized();
   const { user } = useCurrentUser();
@@ -76,7 +88,10 @@ export default function AuthorizePage() {
         if (isInvalidRequestError(error)) {
           dispatch({ type: 'invalid', message: error.data.message });
         } else {
-          dispatch({ type: 'failed', notice: errorNoticeOf(error, CONSENT_COPY.loadFailed) });
+          dispatch({
+            type: 'failed',
+            notice: errorNoticeOf(error, CONSENT_COPY[languageRef.current].loadFailed),
+          });
         }
       }
     );
@@ -103,7 +118,7 @@ export default function AuthorizePage() {
       if (isInvalidRequestError(error)) {
         dispatch({ type: 'invalid', message: error.data.message });
       } else {
-        dispatch({ type: 'sendFailed', notice: errorNoticeOf(error, CONSENT_COPY.sendFailed) });
+        dispatch({ type: 'sendFailed', notice: errorNoticeOf(error, copy.sendFailed) });
       }
     }
   }
@@ -115,18 +130,22 @@ export default function AuthorizePage() {
       <div className="flex flex-col gap-8">
         <PageTitle
           size="large"
-          title={clientName === null ? CONSENT_COPY.fallbackTitle : CONSENT_COPY.title(clientName)}
+          title={clientName === null ? copy.fallbackTitle : copy.title(clientName)}
         />
         {clientName !== null && (
           <p className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) text-pretty break-words">
-            {CONSENT_COPY.intro(clientName)}
+            {copy.intro(clientName)}
           </p>
         )}
       </div>
 
-      {state.status === 'loading' && <FeedbackLoader label={CONSENT_COPY.loading} />}
+      {state.status === 'loading' && <FeedbackLoader label={copy.loading} />}
 
-      {state.status === 'invalid' && <InvalidRequestAlert message={state.message} />}
+      {/* A request the page itself can't use stays so, and its reason follows the language; the
+          server's reason keeps the language it came in */}
+      {state.status === 'invalid' && (
+        <InvalidRequestAlert message={reading.ok ? state.message : reading.message} />
+      )}
 
       {state.status === 'failed' && <LoadFailedAlert notice={state.notice} />}
 
@@ -146,11 +165,11 @@ export default function AuthorizePage() {
               line keeps the 24px line height */}
           {user && (
             <p className={`text-kern-layout-text-muted text-pretty ${SMALL_TEXT}`}>
-              {CONSENT_COPY.signedInAs(user.username)} {CONSENT_COPY.changeLater}{' '}
+              {copy.signedInAs(user.username)} {copy.changeLater}{' '}
               <Link to={ROUTES.account} className="kern-link kern-link--small py-0!">
-                {CONSENT_COPY.userPage}
+                {copy.userPage}
               </Link>
-              .
+              {copy.changeLaterEnd}
             </p>
           )}
         </>

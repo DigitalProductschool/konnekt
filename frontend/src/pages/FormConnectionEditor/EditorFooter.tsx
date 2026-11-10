@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { ExplainedButton } from '../../components/InfoTooltip';
+import { useCopy } from '../../hooks/useLanguage';
 import { DISCARD_COPY } from '../FormConnectionEdit/constants';
 import { EDITOR_COPY, ELEMENT_IDS } from './constants';
 import SaveAndExitButton from './SaveAndExitButton';
@@ -60,12 +61,14 @@ export default function EditorFooter({
   onSaveAndExit,
   onDiscard,
 }: EditorFooterProps) {
+  const copy = useCopy(EDITOR_COPY);
+  const discardCopy = useCopy(DISCARD_COPY);
   // "Discard your changes?" is open, or closed and fading out
   const [discardAsked, setDiscardAsked] = useState(false);
   const back = step !== 'connection' && (
     <button type="button" onClick={onBack} className="kern-btn kern-btn--tertiary">
       <span aria-hidden="true" className="kern-icon kern-icon--arrow-back" />
-      <span className="kern-label">{EDITOR_COPY.back}</span>
+      <span className="kern-label">{copy.back}</span>
     </button>
   );
   const saveAndExit = canSaveDraft && (
@@ -80,17 +83,17 @@ export default function EditorFooter({
         className="kern-btn kern-btn--tertiary"
       >
         <span aria-hidden="true" className="kern-icon icon-undo" />
-        <span className="kern-label">{EDITOR_COPY.discardChanges}</span>
+        <span className="kern-label">{copy.discardChanges}</span>
       </button>
       {/* In the body, not in the footer, whose 40px buttons (`.wizard-footer .kern-btn`) would
           shrink the dialog's 48px ones */}
       {createPortal(
         <ConfirmDialog
           open={discardAsked}
-          title={DISCARD_COPY.title}
-          text={DISCARD_COPY.text}
-          cancelLabel={DISCARD_COPY.keepEditing}
-          confirmLabel={DISCARD_COPY.discard}
+          title={discardCopy.title}
+          text={discardCopy.text}
+          cancelLabel={discardCopy.keepEditing}
+          confirmLabel={discardCopy.discard}
           danger
           onCancel={() => setDiscardAsked(false)}
           onConfirm={onDiscard}
@@ -111,9 +114,9 @@ export default function EditorFooter({
   // Why "Test rules" (and the edit flow's "Save" on the rules step) can't be used now (FR-034,
   // W21; CLAR #47 (b), #66): the open editor and grouping explain themselves first
   const rulesExplanation = ruleOpen
-    ? EDITOR_COPY.saveRuleFirst
+    ? copy.saveRuleFirst
     : grouping
-      ? EDITOR_COPY.finishGroupingFirst
+      ? copy.finishGroupingFirst
       : rulesProblem;
   const testRules = (secondary: boolean) => (
     <ExplainedButton
@@ -123,7 +126,7 @@ export default function EditorFooter({
       onClick={onTestRules}
       className={`kern-btn ${secondary ? 'kern-btn--secondary' : 'kern-btn--primary'}`}
     >
-      <span className="kern-label">{EDITOR_COPY.testRules}</span>
+      <span className="kern-label">{copy.testRules}</span>
       <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
     </ExplainedButton>
   );
@@ -136,7 +139,7 @@ export default function EditorFooter({
         <div className="ml-auto flex flex-wrap items-center justify-end gap-8">
           {step === 'connection' && (
             <button type="submit" form={ELEMENT_IDS.form} className="kern-btn kern-btn--secondary">
-              <span className="kern-label">{EDITOR_COPY.continue}</span>
+              <span className="kern-label">{copy.continue}</span>
               <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
             </button>
           )}
@@ -147,7 +150,7 @@ export default function EditorFooter({
               onClick={onAddRules}
               className="kern-btn kern-btn--secondary"
             >
-              <span className="kern-label">{EDITOR_COPY.addRules}</span>
+              <span className="kern-label">{copy.addRules}</span>
               <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
             </ExplainedButton>
           )}
@@ -160,7 +163,7 @@ export default function EditorFooter({
             className="kern-btn kern-btn--primary"
           >
             {/* No arrow: saving ends the flow (U99 7114:49808) */}
-            <span className="kern-label">{EDITOR_COPY.save}</span>
+            <span className="kern-label">{copy.save}</span>
           </ExplainedButton>
         </div>
       </>
@@ -175,7 +178,7 @@ export default function EditorFooter({
           form={ELEMENT_IDS.form}
           className="kern-btn kern-btn--primary ml-auto"
         >
-          <span className="kern-label">{EDITOR_COPY.continue}</span>
+          <span className="kern-label">{copy.continue}</span>
           <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
         </button>
       )}
@@ -187,7 +190,7 @@ export default function EditorFooter({
           onClick={onAddRules}
           className="kern-btn kern-btn--primary"
         >
-          <span className="kern-label">{EDITOR_COPY.addRules}</span>
+          <span className="kern-label">{copy.addRules}</span>
           <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
         </ExplainedButton>
       )}
@@ -200,7 +203,7 @@ export default function EditorFooter({
             className="kern-btn kern-btn--secondary ml-auto"
           >
             {/* U51 8.8 6198:12366: secondary, and no arrow, since publishing ends the wizard */}
-            <span className="kern-label">{EDITOR_COPY.publishWithoutRules}</span>
+            <span className="kern-label">{copy.publishWithoutRules}</span>
           </button>
         ) : (
           testRules(false)
@@ -213,7 +216,7 @@ export default function EditorFooter({
           className="kern-btn kern-btn--primary ml-auto"
         >
           {/* U65 7057:58897, U74 7062:50960: "Publish →" (it opens the publish dialog) */}
-          <span className="kern-label">{EDITOR_COPY.publish}</span>
+          <span className="kern-label">{copy.publish}</span>
           <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
         </button>
       )}

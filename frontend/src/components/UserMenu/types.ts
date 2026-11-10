@@ -1,3 +1,5 @@
+import type { LocalDraftRecord } from '../../utils/localDrafts/types';
+
 export interface UserMenuProps {
   /**
    * In a flow (FR-026, T048): "Log out" calls this instead of logging out, so that the editor
@@ -24,8 +26,11 @@ export interface SignOutDialogProps {
 export interface UserMenuState {
   /** The menu panel */
   open: boolean;
-  /** The names in the sign-out warning; null while it is closed */
-  signOutNames: string | null;
+  /**
+   * The local drafts the sign-out warning names, as they were when it opened; null while it is
+   * closed. Their names are joined at render, so that a switch words the list again (spec 009)
+   */
+  signOutRecords: LocalDraftRecord[] | null;
   /** The confirmed sign-out runs */
   signingOut: boolean;
 }
@@ -34,6 +39,6 @@ export type UserMenuAction =
   | { type: 'toggled' }
   | { type: 'opened' }
   | { type: 'closed' }
-  | { type: 'signOutAsked'; names: string }
+  | { type: 'signOutAsked'; records: LocalDraftRecord[] }
   | { type: 'signOutCancelled' }
   | { type: 'signOutConfirmed' };

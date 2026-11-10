@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 
+from app.language import Language, Text, request_language, resolve_text
 from app.schemas import RequestedDocument, RulesInput
 from app.services.form_connections import (
     clean_description,
@@ -70,22 +71,28 @@ def _create_rules(
     check_first_save(save)
 
 
-def _problem(call: Callable[[], object]) -> str:
-    """The message of the 400 that `call` raises."""
+def _problem(call: Callable[[], object], language: Language = 'en') -> str:
+    """The message of the 400 that `call` raises, as `errors.py` answers it."""
     with pytest.raises(HTTPException) as caught:
         call()
     assert caught.value.status_code == 400
     detail = caught.value.detail
     assert isinstance(detail, dict)
     assert detail['error'] == 'Validation error'
-    message: str = detail['message']
-    return message
+    message: str | Text = detail['message']
+    token = request_language.set(language)
+    try:
+        return resolve_text(message)
+    finally:
+        request_language.reset(token)
 
 
 def _draft_problem(
-    payload: dict[str, Any], documents: list[RequestedDocument] = DOCUMENTS
+    payload: dict[str, Any],
+    documents: list[RequestedDocument] = DOCUMENTS,
+    language: Language = 'en',
 ) -> str:
-    return _problem(lambda: _draft_rules(payload, documents))
+    return _problem(lambda: _draft_rules(payload, documents), language)
 
 
 def _items(numbering: DraftNumbering, position: int = 0) -> list[dict[str, Any]]:
@@ -548,3 +555,43 @@ def test_a_save_without_rules_keeps_the_draft_counters() -> None:
     numbering = number_draft(save, (4, 2))
 
     assert (numbering.next_rule_number, numbering.next_group_number) == (4, 2)
+
+
+# German (spec 009, T015): a draft's messages name what the English ones do
+
+
+def test_an_unnamed_variant_is_named_by_its_position_in_german() -> None:
+    message = _draft_problem(
+        rules_input(
+            [
+                main_branch([_unnamed(1)]),
+                variant([_unnamed(1)], name='Taxi'),
+                variant([], name=''),
+            ]
+        ),
+        language='de',
+    )
+
+    assert message == (
+        'Die Variante Variante 3 ist nicht auf dem Stand von Standard. '
+        'Laden Sie die Anbindung neu und versuchen Sie es erneut.'
+    )
+
+
+def test_201_items_are_refused_in_german() -> None:
+    items = [_unnamed(number) for number in range(1, 202)]
+
+    message = _draft_problem(rules_input([main_branch(items)]), language='de')
+
+    assert message == 'Standard kann höchstens 200 Regeln und Gruppen haben.'
+
+
+def test_an_invalid_identifier_is_refused_in_german() -> None:
+    message = _draft_problem(
+        rules_input([main_branch([_unnamed(1), _unnamed(1)])]), language='de'
+    )
+
+    assert message == (
+        'Die Regeln enthalten eine ungültige Kennung. Laden Sie die Anbindung neu '
+        'und versuchen Sie es erneut.'
+    )

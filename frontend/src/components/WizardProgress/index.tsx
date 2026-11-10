@@ -1,4 +1,6 @@
-import { LINE_TEXT_CLASSES, PROGRESS_LABEL } from './constants';
+import { CONNECTION_STEP_LABELS } from '../../constants';
+import { useLanguage } from '../../hooks/useLanguage';
+import { LINE_TEXT_CLASSES, WIZARD_PROGRESS_COPY } from './constants';
 import type { WizardProgressProps } from './types';
 import { hasStepLine, nextLabelOf, stepCountOf, stepStateOf } from './utils';
 import WizardStep from './WizardStep';
@@ -12,17 +14,20 @@ import WizardStep from './WizardStep';
  * that leads to it (F25), in a navigation landmark. The details show no step line.
  */
 export default function WizardProgress({ steps, current, onSelect }: WizardProgressProps) {
+  const { language } = useLanguage();
   if (!hasStepLine(current, steps.length)) {
     return null;
   }
+  const stepLabels = CONNECTION_STEP_LABELS[language];
+  const labels = steps.map((step) => stepLabels[step]);
   if (onSelect) {
     return (
-      <nav aria-label={PROGRESS_LABEL}>
+      <nav aria-label={WIZARD_PROGRESS_COPY[language].progressLabel}>
         <ol className="narrow:flex-col narrow:items-stretch narrow:gap-8 flex items-start gap-4">
-          {steps.map((label, index) => (
+          {steps.map((step, index) => (
             <WizardStep
-              key={label}
-              label={label}
+              key={step}
+              label={stepLabels[step]}
               state={stepStateOf(index, current)}
               labelled
               onSelect={() => onSelect(index)}
@@ -32,7 +37,7 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
       </nav>
     );
   }
-  const count = stepCountOf(current, steps.length);
+  const count = stepCountOf(current, steps.length, language);
   return (
     // Under 320 CSS px the bar takes a row of its own between the two texts (T096)
     <div className="narrow:h-auto narrow:flex-wrap narrow:gap-x-8 narrow:gap-y-4 flex h-24 w-full items-center gap-16">
@@ -46,14 +51,14 @@ export default function WizardProgress({ steps, current, onSelect }: WizardProgr
         aria-valuemin={1}
         aria-valuemax={steps.length}
         aria-valuenow={current + 1}
-        aria-valuetext={steps[current]}
+        aria-valuetext={labels[current]}
         className="narrow:basis-full flex h-4 min-w-px flex-1 gap-4"
       >
-        {steps.map((label, index) => (
-          <WizardStep key={label} label={label} state={stepStateOf(index, current)} />
+        {steps.map((step, index) => (
+          <WizardStep key={step} label={stepLabels[step]} state={stepStateOf(index, current)} />
         ))}
       </div>
-      <span className={LINE_TEXT_CLASSES}>{nextLabelOf(steps, current)}</span>
+      <span className={LINE_TEXT_CLASSES}>{nextLabelOf(labels, current, language)}</span>
     </div>
   );
 }

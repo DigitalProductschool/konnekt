@@ -1,5 +1,6 @@
 import checkIcon from '../../assets/icons/done-action-small.svg';
-import { CONNECTOR_LABELS, CONNECTOR_OPTION_STATES } from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTOR_COPY, CONNECTOR_OPTION_STATES } from './constants';
 import type { ConnectorOptionProps } from './types';
 
 /**
@@ -15,6 +16,7 @@ export default function ConnectorOption({
   checked,
   onChoose,
 }: ConnectorOptionProps) {
+  const copy = useCopy(CONNECTOR_COPY);
   return (
     <button
       type="button"
@@ -28,7 +30,7 @@ export default function ConnectorOption({
         <span
           className={`group-focus-visible:text-kern-layout-text-inverse font-semibold ${checked ? 'text-kern-action-default' : 'text-kern-layout-text-default'}`}
         >
-          {CONNECTOR_LABELS[operator]}
+          {copy.labels[operator]}
         </span>
         <span className="text-kern-layout-text-muted group-focus-visible:text-kern-layout-text-inverse">
           {description}

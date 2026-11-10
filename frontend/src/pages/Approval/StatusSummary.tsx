@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import ApprovalLinkCards from './ApprovalLinkCards';
 import { BODY_TEXT_CLASSES, STATUS_BODIES } from './constants';
 import DescriptionLine from './DescriptionLine';
@@ -10,7 +11,7 @@ import type { StatusSummaryProps } from './types';
  * be undone. A deactivated connection's copy buttons are off, as on its details (T028, W21).
  */
 export default function StatusSummary({ action, connection, urls }: StatusSummaryProps) {
-  const body = STATUS_BODIES[action];
+  const body = useCopy(STATUS_BODIES)[action];
   return (
     <div className="flex flex-col gap-24">
       {connection.description && <DescriptionLine description={connection.description} />}

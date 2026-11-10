@@ -1,5 +1,5 @@
 import type { OverviewLocationState } from '@connection-portal/api-types/routing';
-import { useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { deleteDraft } from '../../api/form-connections';
@@ -8,9 +8,10 @@ import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import WizardLayout from '../../components/WizardLayout';
 import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { DELETE_DIALOG_COPY } from '../FormConnectionList/constants';
-import { DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
+import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
+import { CONNECTION_DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
 import DraftCard from './DraftCard';
 import RulesSummary from './RulesSummary';
@@ -19,6 +20,7 @@ import type { DetailAccordionName, DraftDetailsProps } from './types';
 import {
   deleteDraftDialogOf,
   deleteDraftErrorOf,
+  deleteDraftNoticeOf,
   draftDeleteReducer,
   editedLineOf,
   toggleAccordion,
@@ -40,6 +42,14 @@ import {
  * Activity (F2), no PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12).
  */
 export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
+  const { language } = useLanguage();
+  const copy = CONNECTION_DETAIL_COPY[language];
+  const deleteCopy = DELETE_CONNECTION_COPY[language];
+  // A delete in flight during a switch: its failure takes the language it arrives in
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
   const [state, dispatch] = useReducer(draftDeleteReducer, INITIAL_DRAFT_DELETE_STATE);
   // The Summary opens first (U07 #24); the Links card has nothing to open
   const [openAccordion, setOpenAccordion] = useState<DetailAccordionName | null>('summary');
@@ -47,7 +57,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const handleUnauthorized = useSignOutOnUnauthorized();
   const { id, name } = draft;
 
-  useDocumentTitle(DETAIL_COPY.draftTabTitle(name));
+  useDocumentTitle(copy.draftTabTitle(name));
 
   async function remove() {
     dispatch({ type: 'start' });
@@ -57,7 +67,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       navigate(ROUTES.overview, { replace: true, state: overviewState });
     } catch (error) {
       if (!handleUnauthorized(error)) {
-        dispatch({ type: 'failed', failure: deleteDraftErrorOf(error) });
+        dispatch({ type: 'failed', failure: deleteDraftErrorOf(error, languageRef.current) });
       }
     }
   }
@@ -76,7 +86,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
     }
   }
 
-  const dialog = deleteDraftDialogOf(state.failure);
+  const dialog = deleteDraftDialogOf(state.failure, language);
   return (
     <WizardLayout
       variant="details"
@@ -87,14 +97,14 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       overlay={
         <ConfirmDialog
           open={state.dialogOpen}
-          title={DELETE_DIALOG_COPY.title(name)}
-          text={DELETE_DIALOG_COPY.draft(name)}
-          confirmLabel={DELETE_DIALOG_COPY.confirm}
-          cancelLabel={DELETE_DIALOG_COPY.cancel}
+          title={deleteCopy.title(name)}
+          text={deleteCopy.draft(name)}
+          confirmLabel={deleteCopy.confirm}
+          cancelLabel={deleteCopy.cancel}
           danger={dialog.danger}
-          busyLabel={DELETE_DIALOG_COPY.busy}
+          busyLabel={deleteCopy.busy}
           busy={state.deleting}
-          error={state.failure?.notice ?? null}
+          error={deleteDraftNoticeOf(state.failure, language)}
           errorTitle={dialog.errorTitle}
           retryLabel={dialog.retryLabel}
           dismissOnScrim={false}
@@ -107,8 +117,8 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
       <div className="flex flex-col gap-16">
         <StatusBand
           tone="draft"
-          title={DETAIL_COPY.draftTitle}
-          text={DETAIL_COPY.draftText}
+          title={copy.draftTitle}
+          text={copy.draftText}
           meta={
             // The date pill (7362:54709): white, radius 8, padding 8 16, the calendar 8px before
             // the date in label/small muted
@@ -117,7 +127,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
                 aria-hidden="true"
                 className="kern-icon kern-icon--calendar-today kern-icon--small bg-kern-layout-text-default! shrink-0"
               />
-              {editedLineOf(draft.updated_at)}
+              {editedLineOf(draft.updated_at, language)}
             </p>
           }
           mainAction={
@@ -127,7 +137,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
               className="kern-btn kern-btn--tertiary"
             >
               <span aria-hidden="true" className="kern-icon kern-icon--delete" />
-              <span className="kern-label">{DETAIL_COPY.deleteDraft}</span>
+              <span className="kern-label">{copy.deleteDraft}</span>
             </button>
           }
         />

@@ -1,8 +1,10 @@
-import { RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { RULES_STEP_COPY } from './constants';
 import type { AddRuleButtonProps } from './types';
 
 /** Figma "Rules/Add actions" (U12 6350:42848): the dashed "Add rule" at the end of the list. */
 export default function AddRuleButton({ id, onAddRule }: AddRuleButtonProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   return (
     <div className="px-24 pt-8 pb-16">
       <button
@@ -15,7 +17,7 @@ export default function AddRuleButton({ id, onAddRule }: AddRuleButtonProps) {
           aria-hidden="true"
           className="kern-icon kern-icon--add kern-icon--small bg-kern-action-default!"
         />
-        {RULES_COPY.addRule}
+        {copy.addRule}
       </button>
     </div>
   );

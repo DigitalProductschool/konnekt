@@ -6,6 +6,7 @@ import type {
   TokenCreated,
 } from '@connection-portal/api-types/agent-access';
 import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { Language } from '@connection-portal/rules/language';
 import type { ReactNode } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';
@@ -48,6 +49,8 @@ export interface AccountState {
 export type AccountAction =
   | { type: 'loaded'; list: AgentAccessList; now: Date }
   | { type: 'loadFailed'; error: ErrorNotice }
+  /** The levels' texts again, asked in the language a switch chose (spec 009, R6) */
+  | { type: 'levelsLoaded'; levels: AccessLevelInfo[] }
   | { type: 'levelDialogOpened'; item: AgentAccessItem }
   | { type: 'revokeDialogOpened'; item: AgentAccessItem }
   | { type: 'createDialogOpened' }
@@ -57,9 +60,11 @@ export type AccountAction =
   | { type: 'dialogClosed' }
   | { type: 'submitted' }
   | { type: 'failed'; error: ErrorNotice }
-  | { type: 'levelChanged'; item: AgentAccessItem }
-  | { type: 'revoked'; id: string }
-  | { type: 'tokenCreated'; created: TokenCreated }
+  /** `language`: the toast's, the language of the moment */
+  | { type: 'levelChanged'; item: AgentAccessItem; language: Language }
+  | { type: 'revoked'; id: string; language: Language }
+  /** `language`: for the name of a token without one */
+  | { type: 'tokenCreated'; created: TokenCreated; language: Language }
   | { type: 'toastDismissed' };
 
 /** A date in a row: its words, the date as shown, and the timestamp for `datetime` */

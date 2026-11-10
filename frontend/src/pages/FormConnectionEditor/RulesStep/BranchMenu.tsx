@@ -1,6 +1,7 @@
 import ActionMenu from '../../../components/ActionMenu';
 import type { MenuAction } from '../../../components/ActionMenu/types';
-import { MENU_ENTRY_LOOKS, RULES_COPY } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { MENU_ENTRY_LOOKS, RULES_STEP_COPY } from './constants';
 import type { BranchMenuProps, MenuEntryId, MenuHandlers } from './types';
 import { menuEntriesOf } from './utils';
 
@@ -19,14 +20,15 @@ export default function BranchMenu({
   onDelete,
   onCopyLink,
 }: BranchMenuProps) {
+  const copy = useCopy(RULES_STEP_COPY);
   const entries = menuEntriesOf(
     { kind: 'variant' },
     { branchKind: deletable ? 'variant' : 'standard', linkable: onCopyLink !== null }
   );
   const labels: Partial<Record<MenuEntryId, string>> = {
-    rename: RULES_COPY.renameVariant,
-    copyLink: RULES_COPY.copyLink,
-    delete: RULES_COPY.deleteVariant,
+    rename: copy.renameVariant,
+    copyLink: copy.copyLink,
+    delete: copy.deleteVariant,
   };
   const handlers: MenuHandlers = {
     rename: onRename,
@@ -38,5 +40,5 @@ export default function BranchMenu({
     const onSelect = handlers[id];
     return label && onSelect ? [{ label, ...MENU_ENTRY_LOOKS[id], onSelect }] : [];
   });
-  return <ActionMenu label={RULES_COPY.variantMenuLabel(branchName)} actions={actions} />;
+  return <ActionMenu label={copy.variantMenuLabel(branchName)} actions={actions} />;
 }

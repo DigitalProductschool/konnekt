@@ -1,6 +1,7 @@
 import { useId } from 'react';
 
-import { DETAIL_COPY } from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 
 /**
  * A draft's card in place of the Links accordion (S16; U93 "Links card · not created yet (draft)"
@@ -10,6 +11,7 @@ import { DETAIL_COPY } from './constants';
  */
 export default function DraftCard() {
   const titleId = useId();
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   return (
     <section
       aria-labelledby={titleId}
@@ -19,10 +21,10 @@ export default function DraftCard() {
         id={titleId}
         className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
       >
-        {DETAIL_COPY.linksTitle}
+        {copy.linksTitle}
       </h2>
       <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-        {DETAIL_COPY.draftLinksText}
+        {copy.draftLinksText}
       </p>
     </section>
   );

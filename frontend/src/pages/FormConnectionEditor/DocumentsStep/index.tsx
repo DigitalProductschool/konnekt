@@ -1,6 +1,7 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 
 import FeedbackLoader from '../../../components/FeedbackLoader';
+import { useLanguage } from '../../../hooks/useLanguage';
 import CatalogDroppedNote from '../CatalogDroppedNote';
 import { EDITOR_COPY } from '../constants';
 import { offeredFieldsOf } from '../utils';
@@ -41,24 +42,29 @@ export default function DocumentsStep({
   onSetField,
   onSetAllFields,
 }: DocumentsStepProps) {
+  const { language } = useLanguage();
   if (catalogStatus === 'loading') {
-    return <FeedbackLoader label={EDITOR_COPY.loadingCatalog} />;
+    return <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />;
   }
   if (catalogStatus === 'failed') {
     return (
       <div className="flex flex-col items-start gap-16">
-        <KernAlert variant="danger" title={EDITOR_COPY.catalogErrorTitle} className="w-full">
-          {EDITOR_COPY.catalogErrorText}
+        <KernAlert
+          variant="danger"
+          title={EDITOR_COPY[language].catalogErrorTitle}
+          className="w-full"
+        >
+          {EDITOR_COPY[language].catalogErrorText}
         </KernAlert>
         <button type="button" onClick={onRetryCatalog} className="kern-btn kern-btn--secondary">
-          <span className="kern-label">{EDITOR_COPY.retry}</span>
+          <span className="kern-label">{EDITOR_COPY[language].retry}</span>
         </button>
       </div>
     );
   }
 
   const listed = listedDocumentsOf(documents, documentTypes);
-  const pager = pagerOf(view.selectedIndex, listed.length);
+  const pager = pagerOf(view.selectedIndex, listed.length, language);
   const shown = shownDocumentOf(listed, view.selectedIndex);
   // Marked once the dialog about them has closed (U25 A13 draws the step unmarked behind it)
   const needingData = view.needsData.asking

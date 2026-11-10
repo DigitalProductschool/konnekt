@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..language import Text
 from ..schemas import (
     ApiResponse,
     DraftCreate,
@@ -25,10 +26,17 @@ from ..services.auth import (
 )
 from ..services.eudiplo import EudiploError, http_error_for
 
-# The answer when EUDIPLO can't store a revision's request configuration
-CONFIG_FAILED = (
-    'The wallet service could not create the request configuration, so nothing was '
-    'saved. Try again in a moment.'
+# The answer when EUDIPLO can't store a revision's request configuration. The
+# `ApiResponse.message` values below stay English (spec 009, R6)
+CONFIG_FAILED = Text(
+    en=(
+        'The wallet service could not create the request configuration, so nothing '
+        'was saved. Try again in a moment.'
+    ),
+    de=(
+        'Der Wallet-Dienst konnte die Anfragekonfiguration nicht erstellen, daher '
+        'wurde nichts gespeichert. Versuchen Sie es in einem Moment erneut.'
+    ),
 )
 
 # A team member's browser session or an agent's bearer token; every GET is open to

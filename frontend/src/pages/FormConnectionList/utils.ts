@@ -1,9 +1,10 @@
 import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import type { Language } from '@connection-portal/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { matchesSearch } from '../../components/ValuesPicker/utils';
 import type { Homepage } from '../../hooks/types';
-import { DELETE_DIALOG_COPY, LIST_COPY, ROW_DATE_FORMAT, STEP_LABELS } from './constants';
+import { DELETE_CONNECTION_COPY, LIST_COPY, ROW_DATE_FORMAT, STEP_LABELS } from './constants';
 import type {
   ListAction,
   ListState,
@@ -39,42 +40,48 @@ export function formatRowDate(timestamp: string): string {
 /**
  * A row's meta line (FR-048, FR-052d, F52, F71): "Edited 28.10.2026" for every connection, never
  * "Published …" or "Deactivated …"; a draft adds the step it was saved in, "Edited 28.10.2026 ·
- * Rules step", where that step is known
+ * Rules step", where that step is known; in the given language ("Bearbeitet 28.10.2026 · Schritt
+ * „Regeln“"), the date the same in both (FR-012)
  */
-export function rowMetaOf(source: RowMetaSource): string {
-  const edited = LIST_COPY.edited(formatRowDate(source.updated_at));
+export function rowMetaOf(source: RowMetaSource, language: Language): string {
+  const copy = LIST_COPY[language];
+  const edited = copy.edited(formatRowDate(source.updated_at));
   if (source.status !== 'draft' || !source.step) {
     return edited;
   }
-  return `${edited}${LIST_COPY.metaSeparator}${LIST_COPY.step(STEP_LABELS[source.step])}`;
+  return `${edited}${copy.metaSeparator}${copy.step(STEP_LABELS[language][source.step])}`;
 }
 
 /**
  * The row delete dialog's title and body (FR-029c, F55): the design's "Delete “<name>”?" for
  * every connection; the body by its state: a draft keeps its own, an active connection warns that
- * its links stop working, a deactivated one says its documents and rules go too
+ * its links stop working, a deactivated one says its documents and rules go too; in the given
+ * language
  */
 export function deleteDialogCopyOf(
-  summary: Pick<FormConnectionSummary, 'name' | 'status' | 'is_active'>
+  summary: Pick<FormConnectionSummary, 'name' | 'status' | 'is_active'>,
+  language: Language
 ): { title: string; text: string } {
-  const title = DELETE_DIALOG_COPY.title(summary.name);
+  const copy = DELETE_CONNECTION_COPY[language];
+  const title = copy.title(summary.name);
   if (summary.status === 'draft') {
-    return { title, text: DELETE_DIALOG_COPY.draft(summary.name) };
+    return { title, text: copy.draft(summary.name) };
   }
   return {
     title,
-    text: summary.is_active ? DELETE_DIALOG_COPY.active : DELETE_DIALOG_COPY.deactivated,
+    text: summary.is_active ? copy.active : copy.deactivated,
   };
 }
 
 /**
  * Why a row delete failed (FR-008): the API's message with a 5xx answer's error ID, or "Nothing
  * changed. …" without an answer. A `404` (deleted meanwhile) or `409` (a draft published
- * meanwhile) means the list is out of date. A `401` signs out before this is asked
+ * meanwhile) means the list is out of date. A `401` signs out before this is asked. The fallback
+ * is in the given language; the API's message comes in the request's
  */
-export function rowDeleteFailureOf(error: unknown): RowDeleteFailure {
+export function rowDeleteFailureOf(error: unknown, language: Language): RowDeleteFailure {
   return {
-    error: errorNoticeOf(error, DELETE_DIALOG_COPY.errorText),
+    error: errorNoticeOf(error, DELETE_CONNECTION_COPY[language].errorText),
     stale: error instanceof ApiError && (error.status === 404 || error.status === 409),
   };
 }

@@ -1,5 +1,6 @@
 import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import ChoiceField from './ChoiceField';
 import DateOfBirthField from './DateOfBirthField';
 import type { EditorFieldProps } from './types';
@@ -25,8 +26,9 @@ export default function EditorField({
   onAge,
   onValue,
 }: EditorFieldProps) {
+  const { language } = useLanguage();
   const draft = drafts[field.key];
-  const label = editorLabelOf(field);
+  const label = editorLabelOf(field, language);
   const text = draft?.text ?? entryTextOf(field.kind, value);
   if (field.kind === 'enum') {
     return field.multiple ? (

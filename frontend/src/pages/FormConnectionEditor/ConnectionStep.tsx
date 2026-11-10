@@ -4,6 +4,7 @@ import addLinkIcon from '../../assets/icons/add-link-action.svg';
 import IconTile from '../../components/IconTile';
 import InfoTooltip from '../../components/InfoTooltip';
 import TextField from '../../components/TextField';
+import { useCopy } from '../../hooks/useLanguage';
 import { DESCRIPTION_MAX_LENGTH, EDITOR_COPY, ELEMENT_IDS, NAME_MAX_LENGTH } from './constants';
 import type { ConnectionStepProps } from './types';
 
@@ -24,6 +25,8 @@ export default function ConnectionStep({
   onChangeDescription,
   onSubmit,
 }: ConnectionStepProps) {
+  const copy = useCopy(EDITOR_COPY);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onSubmit();
@@ -45,10 +48,10 @@ export default function ConnectionStep({
               id="form-details-title"
               className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
             >
-              {EDITOR_COPY.formCardTitle}
+              {copy.formCardTitle}
             </h2>
             <p className={`${SMALL_TEXT} text-kern-layout-text-muted break-words`}>
-              {editing ? EDITOR_COPY.editFormCardHint : EDITOR_COPY.formCardHint}
+              {editing ? copy.editFormCardHint : copy.formCardHint}
             </p>
           </div>
         </div>
@@ -57,22 +60,22 @@ export default function ConnectionStep({
           <div className="w-full max-w-726">
             <TextField
               id={ELEMENT_IDS.name}
-              label={EDITOR_COPY.nameLabel}
+              label={copy.nameLabel}
               requiredMark
               labelAddon={
                 <InfoTooltip
-                  label={EDITOR_COPY.nameInfoLabel}
+                  label={copy.nameInfoLabel}
                   text={
                     <>
-                      {EDITOR_COPY.nameInfo}
+                      {copy.nameInfo}
                       <br />
-                      {EDITOR_COPY.nameInfoAdvice}
+                      {copy.nameInfoAdvice}
                     </>
                   }
                   iconSize="small"
                 />
               }
-              placeholder={EDITOR_COPY.namePlaceholder}
+              placeholder={copy.namePlaceholder}
               value={name}
               maxLength={NAME_MAX_LENGTH}
               required
@@ -85,16 +88,16 @@ export default function ConnectionStep({
             <TextField
               multiline
               id={ELEMENT_IDS.description}
-              label={EDITOR_COPY.descriptionLabel}
+              label={copy.descriptionLabel}
               optional
               labelAddon={
                 <InfoTooltip
-                  label={EDITOR_COPY.descriptionInfoLabel}
-                  text={EDITOR_COPY.descriptionInfo}
+                  label={copy.descriptionInfoLabel}
+                  text={copy.descriptionInfo}
                   iconSize="small"
                 />
               }
-              placeholder={EDITOR_COPY.descriptionPlaceholder}
+              placeholder={copy.descriptionPlaceholder}
               value={description}
               maxLength={DESCRIPTION_MAX_LENGTH}
               error={errors.description}
@@ -113,7 +116,7 @@ export default function ConnectionStep({
             aria-hidden="true"
             className="kern-icon kern-icon--info kern-icon--small bg-kern-feedback-info! shrink-0"
           />
-          {editing ? EDITOR_COPY.editNote : EDITOR_COPY.draftNote}
+          {editing ? copy.editNote : copy.draftNote}
         </p>
       </section>
     </form>

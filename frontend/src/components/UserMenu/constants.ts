@@ -1,24 +1,39 @@
+import { defineTexts } from '@connection-portal/rules/language';
+
 import type { MenuDirection, PopupPlacement } from '../../utils/popupPlacement';
 import type { UserMenuState } from './types';
 
-export const LOG_OUT_LABEL = 'Log out';
-
-// The item that leads to the user page (specs/007-agent-mcp-server/contracts/ui-screens.md S2)
-export const YOUR_ACCOUNT_LABEL = 'Your account';
-
-// Start of the trigger's accessible name, followed by the username
-export const SIGNED_IN_AS = 'Signed in as';
+/**
+ * The menu's texts (G§2 "account", "sign out"): the item that leads to the user page
+ * (specs/007-agent-mcp-server/contracts/ui-screens.md S2), "Log out", and the start of the
+ * trigger's accessible name, followed by the username
+ */
+export const USER_MENU_COPY = defineTexts(
+  { yourAccount: 'Your account', logOut: 'Log out', signedInAs: 'Signed in as' },
+  { yourAccount: 'Ihr Konto', logOut: 'Abmelden', signedInAs: 'Angemeldet als' }
+);
 
 // The sign-out warning (specs/005-connection-drafts/contracts/ui-screens.md S7, W8, "Copy")
-export const SIGN_OUT_COPY = {
-  title: 'Log out and discard unsaved work?',
-  text: (names: string) =>
-    `Logging out deletes the unsaved changes on this device to: ${names}. Saved drafts stay as they are.`,
-  confirm: 'Log out',
-  cancel: 'Cancel',
-  and: 'and',
-  more: (count: number) => `and ${count} more`,
-};
+export const SIGN_OUT_COPY = defineTexts(
+  {
+    title: 'Log out and discard unsaved work?',
+    text: (names: string) =>
+      `Logging out deletes the unsaved changes on this device to: ${names}. Saved drafts stay as they are.`,
+    confirm: 'Log out',
+    cancel: 'Cancel',
+    and: 'and',
+    more: (count: number) => `and ${count} more`,
+  },
+  {
+    title: 'Abmelden und nicht gespeicherte Arbeit verwerfen?',
+    text: (names: string) =>
+      `Beim Abmelden werden die nicht gespeicherten Änderungen auf diesem Gerät an diesen Anbindungen gelöscht: ${names}. Gespeicherte Entwürfe bleiben unverändert.`,
+    confirm: 'Abmelden',
+    cancel: 'Abbrechen',
+    and: 'und',
+    more: (count: number) => `und ${count} weitere`,
+  }
+);
 
 // The sign-out warning names at most this many local drafts
 export const SIGN_OUT_MAX_NAMES = 5;
@@ -69,6 +84,6 @@ export const SIGN_IN_SCREEN_WAIT_MS = 1000;
 
 export const INITIAL_USER_MENU_STATE: UserMenuState = {
   open: false,
-  signOutNames: null,
+  signOutRecords: null,
   signingOut: false,
 };

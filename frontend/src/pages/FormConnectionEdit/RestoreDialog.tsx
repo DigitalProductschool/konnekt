@@ -2,6 +2,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import WizardLayout from '../../components/WizardLayout';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useCopy } from '../../hooks/useLanguage';
 import { RESTORE_COPY } from './constants';
 import type { RestoreDialogProps } from './types';
 
@@ -23,7 +24,9 @@ export default function RestoreDialog({
   onDiscard,
   onEscape,
 }: RestoreDialogProps) {
-  useDocumentTitle(RESTORE_COPY.restoreTitle);
+  const copy = useCopy(RESTORE_COPY);
+  // The tab title without the German title's soft hyphen (spec 009, T046)
+  useDocumentTitle(copy.restoreTitle.replace('\u00AD', ''));
 
   return (
     <WizardLayout
@@ -34,11 +37,11 @@ export default function RestoreDialog({
       overlay={
         <ConfirmDialog
           open
-          title={RESTORE_COPY.restoreTitle}
-          text={RESTORE_COPY.restoreText(name, changedAt)}
-          secondaryLabel={RESTORE_COPY.discardThem}
+          title={copy.restoreTitle}
+          text={copy.restoreText(name, changedAt)}
+          secondaryLabel={copy.discardThem}
           onSecondary={onDiscard}
-          confirmLabel={RESTORE_COPY.restore}
+          confirmLabel={copy.restore}
           onConfirm={onRestore}
           // No cancel button: the ×, Escape and the scrim open the details (F57)
           onCancel={onEscape}

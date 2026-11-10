@@ -9,12 +9,14 @@ import {
 
 import expandIcon from '../../assets/icons/picker-expand.svg';
 import expandOpenIcon from '../../assets/icons/picker-expand-open.svg';
+import { useCopy } from '../../hooks/useLanguage';
 import {
   MENU_MAX_HEIGHT_CLASSES,
   type MenuPlacement,
   placementFrom,
   popupWrapperClass,
 } from '../../utils/popupPlacement';
+import { isLanguageSwitchTarget } from '../LanguageSwitch/utils';
 import MenuSearchField from '../MenuSearchField';
 import {
   SEARCH_THRESHOLD,
@@ -23,7 +25,7 @@ import {
   VALUES_MENU_DRAWN_HEIGHT,
   VALUES_MENU_PLACEMENTS,
   VALUES_MENU_WIDTH,
-  VALUES_PICKER_DONE,
+  VALUES_PICKER_TEXTS,
 } from './constants';
 import type { ValuesPickerProps } from './types';
 import { chosenValueLabels, matchesSearch, valuesMenuHeight } from './utils';
@@ -69,6 +71,7 @@ export default function ValuesPicker({
   onSearch,
   onChange,
 }: ValuesPickerProps) {
+  const texts = useCopy(VALUES_PICKER_TEXTS);
   // Where the menu opens, measured when the field opens it
   const [measured, setMeasured] = useState<MenuPlacement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,8 +105,13 @@ export default function ValuesPicker({
         ?.querySelector<HTMLInputElement>('input:not(:disabled)')
         ?.focus({ preventScroll: true });
     }
+    // A press on the header's language switch is none (spec 009): switching keeps the menu,
+    // its search and the values untouched
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (
+        !containerRef.current?.contains(event.target as Node) &&
+        !isLanguageSwitchTarget(event.target)
+      ) {
         onOpenChange(false);
       }
     }
@@ -194,7 +202,7 @@ export default function ValuesPicker({
   // (relatedTarget null) and must not close it; a pointer outside closes it through the listener
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
-    if (open && next && !containerRef.current?.contains(next)) {
+    if (open && next && !containerRef.current?.contains(next) && !isLanguageSwitchTarget(next)) {
       onOpenChange(false);
     }
   }
@@ -311,7 +319,7 @@ export default function ValuesPicker({
           {/* Figma "Actions" (U32 6357:43428): "Done" at the right end */}
           <div className="flex shrink-0 justify-end">
             <button type="button" className="kern-btn kern-btn--secondary" onClick={close}>
-              <span className="kern-label">{VALUES_PICKER_DONE}</span>
+              <span className="kern-label">{texts.done}</span>
             </button>
           </div>
         </div>

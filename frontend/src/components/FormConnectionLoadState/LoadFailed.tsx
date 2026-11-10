@@ -2,6 +2,7 @@ import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { Link } from 'react-router';
 
 import { ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import ErrorNoticeText from '../ErrorNoticeText';
 import PageTitle from '../PageTitle';
 import { LOAD_STATE_COPY } from './constants';
@@ -15,10 +16,11 @@ import type { LoadFailedProps } from './types';
  * baseline padding (P07 `1:4102`).
  */
 export default function LoadFailed({ onRetry, notice }: LoadFailedProps) {
+  const copy = useCopy(LOAD_STATE_COPY);
   return (
     <>
-      <PageTitle title={LOAD_STATE_COPY.errorTitle} />
-      <KernAlert variant="danger" title={LOAD_STATE_COPY.errorText} className="w-full">
+      <PageTitle title={copy.errorTitle} />
+      <KernAlert variant="danger" title={copy.errorText} className="w-full">
         {notice && <ErrorNoticeText notice={notice} />}
         <span className={`flex flex-wrap items-center gap-x-24 gap-y-8 ${notice ? 'mt-10' : ''}`}>
           <button
@@ -26,10 +28,10 @@ export default function LoadFailed({ onRetry, notice }: LoadFailedProps) {
             onClick={onRetry}
             className="kern-btn kern-btn--secondary kern-btn--small"
           >
-            <span className="kern-label">{LOAD_STATE_COPY.retry}</span>
+            <span className="kern-label">{copy.retry}</span>
           </button>
           <Link to={ROUTES.overview} className="kern-link">
-            {LOAD_STATE_COPY.backToList}
+            {copy.backToList}
           </Link>
         </span>
       </KernAlert>

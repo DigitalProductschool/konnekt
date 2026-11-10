@@ -1,6 +1,7 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import { type MouseEvent, type SyntheticEvent, useEffect, useId, useRef } from 'react';
 
+import { useCopy } from '../../hooks/useLanguage';
 import ErrorNoticeText from '../ErrorNoticeText';
 import {
   CONFIRM_DIALOG_COPY,
@@ -60,12 +61,17 @@ export default function ConfirmDialog({
   dismissOnScrim = true,
   wide = false,
 }: ConfirmDialogProps) {
+  const copy = useCopy(CONFIRM_DIALOG_COPY);
   const dialogRef = useRef<HTMLDialogElement>(null);
   // Whether the press that ends in a click began on the scrim too, so that selecting text in
   // the dialog and letting go outside it doesn't close it
   const pressedOnScrim = useRef(false);
   const id = useId();
   const titleId = `${id}-title`;
+  // A German title may hold a soft hyphen ("Veröffent&shy;lichen?", spec 009 R9), which breaks
+  // the word on screen; Chromium and Firefox keep it in the accessible name, so the heading, and
+  // through it the dialog, is named without it (T047). Without one the heading has no aria-label
+  const plainTitle = title.replaceAll('\u00AD', '');
   const errorId = `${id}-error`;
   const textId = `${id}-text`;
   const hasCancel = cancelLabel !== '';
@@ -133,7 +139,11 @@ export default function ConfirmDialog({
       <header className="kern-dialog__header">
         {/* The kit's container, which puts the title 8px lower than kern.css and 16px from the × */}
         <div className="flex-1 pt-8 pr-16">
-          <h2 id={titleId} className="kern-title kern-title--large">
+          <h2
+            id={titleId}
+            aria-label={plainTitle === title ? undefined : plainTitle}
+            className="kern-title kern-title--large"
+          >
             {title}
           </h2>
         </div>
@@ -144,7 +154,7 @@ export default function ConfirmDialog({
           className="kern-btn kern-btn--tertiary"
         >
           <span aria-hidden="true" className="kern-icon kern-icon--close" />
-          <span className="kern-sr-only">{CONFIRM_DIALOG_COPY.close}</span>
+          <span className="kern-sr-only">{copy.close}</span>
         </button>
       </header>
       <div className="kern-dialog__body">

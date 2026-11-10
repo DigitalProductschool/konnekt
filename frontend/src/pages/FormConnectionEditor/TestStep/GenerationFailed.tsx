@@ -1,6 +1,7 @@
 import { failureHintOf } from '@connection-portal/rules/personas/messages';
 import { useId } from 'react';
 
+import { useLanguage } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';
 import type { GenerationFailedProps } from './types';
 
@@ -19,6 +20,8 @@ import type { GenerationFailedProps } from './types';
  * reader says what failed when the focus arrives (quickstart V9)
  */
 export default function GenerationFailed({ editing, onRetry }: GenerationFailedProps) {
+  const { language } = useLanguage();
+  const copy = TEST_STEP_COPY[language];
   const titleId = useId();
   const hintId = useId();
   return (
@@ -27,13 +30,13 @@ export default function GenerationFailed({ editing, onRetry }: GenerationFailedP
         id={titleId}
         className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
       >
-        {TEST_STEP_COPY.failureTitle}
+        {copy.failureTitle}
       </h2>
       <p
         id={hintId}
         className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words"
       >
-        {failureHintOf(editing)}
+        {failureHintOf(editing, language)}
       </p>
       <button
         type="button"
@@ -42,7 +45,7 @@ export default function GenerationFailed({ editing, onRetry }: GenerationFailedP
         onClick={onRetry}
       >
         <span aria-hidden="true" className="kern-icon kern-icon--autorenew kern-icon--small" />
-        <span className="kern-label">{TEST_STEP_COPY.tryAgain}</span>
+        <span className="kern-label">{copy.tryAgain}</span>
       </button>
     </div>
   );

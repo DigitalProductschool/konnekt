@@ -5,6 +5,7 @@ import FormConnectionLoadState from '../../components/FormConnectionLoadState';
 import { formatChangedAt } from '../../components/LocalDraftsOffer/utils';
 import { ROUTES } from '../../constants';
 import { useFormConnection } from '../../hooks/useFormConnection';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useLocalDraftStore } from '../../hooks/useLocalDraftStore';
 import { displayNameOf } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft } from '../../utils/localDrafts/keys';
@@ -159,6 +160,7 @@ function DraftEditFlow({
   onLinkLeft,
 }: DraftEditFlowProps) {
   const { store, username } = useLocalDraftStore();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const flowKey = flowKeyOfDraft(draft.id);
   // Once per load: the editor reads its starting states only when it mounts
@@ -193,11 +195,13 @@ function DraftEditFlow({
     navigate(generatePath(ROUTES.formConnection, { id: draft.id }), { replace: true });
   }
 
+  // The question's names in the language of the moment: the draft's name, or "Untitled
+  // connection" / "New connection" for a draft without one
   if (flow.kind === 'asking') {
     return (
       <RestoreDialog
-        title={headerTitleOf(stored.states.editor, undefined, true)}
-        name={displayNameOf(storedContentOf(draft))}
+        title={headerTitleOf(stored.states.editor, language, undefined, true)}
+        name={displayNameOf(storedContentOf(draft), language)}
         changedAt={formatChangedAt(flow.record.changedAt)}
         onRestore={() => dispatch({ type: 'restore' })}
         onDiscard={handleDiscard}

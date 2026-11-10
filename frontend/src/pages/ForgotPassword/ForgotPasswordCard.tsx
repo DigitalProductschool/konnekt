@@ -2,6 +2,7 @@ import type { LoginLocationState } from '@connection-portal/api-types/routing';
 import { Link, useLocation } from 'react-router';
 
 import { ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import { FORGOT_PASSWORD_COPY } from './constants';
 
 /**
@@ -13,6 +14,7 @@ import { FORGOT_PASSWORD_COPY } from './constants';
  */
 export default function ForgotPasswordCard() {
   const location = useLocation();
+  const copy = useCopy(FORGOT_PASSWORD_COPY);
   // Keeps the route that asked for the sign-in (001-S2), without the logged-out toast's flag
   const loginState: LoginLocationState = {
     from: (location.state as LoginLocationState | null)?.from,
@@ -28,10 +30,10 @@ export default function ForgotPasswordCard() {
           id="forgot-password-title"
           className="text-kern-adaptive-large text-kern-layout-text-default font-semibold"
         >
-          {FORGOT_PASSWORD_COPY.title}
+          {copy.title}
         </h2>
         <p className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-          {FORGOT_PASSWORD_COPY.text}
+          {copy.text}
         </p>
       </div>
       <Link
@@ -40,7 +42,7 @@ export default function ForgotPasswordCard() {
         className="kern-btn kern-btn--tertiary kern-btn--small"
       >
         <span aria-hidden="true" className="kern-icon kern-icon--arrow-back" />
-        <span className="kern-label">{FORGOT_PASSWORD_COPY.backToLogin}</span>
+        <span className="kern-label">{copy.backToLogin}</span>
       </Link>
     </section>
   );

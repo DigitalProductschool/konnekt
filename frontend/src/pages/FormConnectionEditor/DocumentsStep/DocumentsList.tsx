@@ -1,4 +1,5 @@
-import { DOCUMENTS_STEP_COPY, DOCUMENTS_STEP_IDS, PANEL_HEIGHT_CLASSES } from './constants';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS, PANEL_HEIGHT_CLASSES } from './constants';
 import DocumentListItem from './DocumentListItem';
 import SearchCard from './SearchCard';
 import type { DocumentsListProps } from './types';
@@ -27,6 +28,7 @@ export default function DocumentsList({
   onSelect,
   onRemove,
 }: DocumentsListProps) {
+  const { language } = useLanguage();
   return (
     <section
       aria-labelledby={DOCUMENTS_STEP_IDS.listTitle}
@@ -37,7 +39,7 @@ export default function DocumentsList({
           id={DOCUMENTS_STEP_IDS.listTitle}
           className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold"
         >
-          {DOCUMENTS_STEP_COPY.addedDocuments(listed.length)}
+          {DOCUMENTS_COPY[language].addedDocuments(listed.length)}
         </h2>
         <SearchCard
           documentTypes={documentTypes}
@@ -60,7 +62,7 @@ export default function DocumentsList({
                 id={DOCUMENTS_STEP_IDS.needsData}
                 className="text-kern-static-medium text-kern-feedback-danger leading-(--kern-typography-line-height-medium-static) font-semibold"
               >
-                {needsDataText(needingData.length)}
+                {needsDataText(needingData.length, language)}
               </p>
             )}
             <ul className="flex flex-col gap-4">

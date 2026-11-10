@@ -185,6 +185,9 @@ describe('addRule', () => {
     expect(refusal(addRule(STATE, 'main-id', null, { id: 'group-9' })).message).toBe(
       'The rules contain an invalid identifier. Reload the connection and try again.'
     );
+    expect(refusal(addRule(STATE, 'main-id', null, { id: 'group-9' })).code).toBe(
+      'invalidIdentifier'
+    );
   });
 
   it('renames the new rule as renaming does, refusing a name a based variant holds', () => {
@@ -193,6 +196,7 @@ describe('addRule', () => {
     expect(item(named.state, AMBULANCE, 'rule-5')?.name).toBe(' Adult ');
     const own = inAmbulance(addRule(STATE, AMBULANCE, null, { name: 'Resident' }));
     expect(refusal(addRule(own, 'main-id', null, { name: 'resident' }))).toEqual({
+      code: 'nameTaken',
       message: 'There’s already a rule called "Resident" in Ambulance.',
       branchIndex: 0,
       itemId: 'rule-6',
@@ -204,6 +208,7 @@ describe('addRule', () => {
 
   it('refuses an unknown variant or group, a rule as the group, and a removed group', () => {
     expect(refusal(addRule(STATE, 'gone', null))).toEqual({
+      code: 'unknownVariant',
       message: 'Unknown variant.',
       branchIndex: null,
       itemId: null,
@@ -211,11 +216,13 @@ describe('addRule', () => {
     expect(refusal(addRule(STATE, 'main-id', 'group-7')).message).toBe(
       'Standard has no rule or group group-7.'
     );
+    expect(refusal(addRule(STATE, 'main-id', 'group-7')).code).toBe('unknownItem');
     expect(refusal(addRule(STATE, 'main-id', 'rule-1')).message).toBe(
       'Rule 01 in Standard is a rule, not a group.'
     );
     const removed = inAmbulance(deleteItem(STATE, AMBULANCE, 'group-1'));
     expect(refusal(addRule(removed, AMBULANCE, 'group-1'))).toEqual({
+      code: 'removed',
       message: 'Group 01 is removed in Ambulance. Restore it first.',
       branchIndex: 1,
       itemId: 'group-1',
@@ -259,6 +266,7 @@ describe('changeRule and changeGroup', () => {
   it('refuses a rename of Standard’s rule that clashes in a based variant (rule 7)', () => {
     const own = inAmbulance(addRule(STATE, AMBULANCE, null, { name: 'Adult' }));
     expect(refusal(changeRule(own, 'main-id', 'rule-1', { name: ' adult' }))).toEqual({
+      code: 'nameTaken',
       message: 'There’s already a rule called "Adult" in Ambulance.',
       branchIndex: 0,
       itemId: 'rule-1',
@@ -271,6 +279,10 @@ describe('changeRule and changeGroup', () => {
     );
     expect(refusal(changeRule(STATE, 'main-id', 'rule-1', { name: '  ' })).message).toBe(
       'Enter a name.'
+    );
+    // A name's problem keeps the code validation.ts gives it
+    expect(refusal(changeRule(STATE, 'main-id', 'rule-1', { name: '  ' })).code).toBe(
+      'nameMissing'
     );
     expect(refusal(changeGroup(STATE, 'main-id', 'group-1', { name: 'Rule 07' })).message).toBe(
       'Rule 07 is kept for the rule numbered 07.'
@@ -304,6 +316,7 @@ describe('changeRule and changeGroup', () => {
   it('refuses a removed item, a group as a rule and a rule as a group', () => {
     const removed = inAmbulance(deleteItem(STATE, AMBULANCE, 'rule-1'));
     expect(refusal(changeRule(removed, AMBULANCE, 'rule-1', { message: 'x' }))).toEqual({
+      code: 'removed',
       message: 'Rule 01 is removed in Ambulance. Restore it first.',
       branchIndex: 1,
       itemId: 'rule-1',
@@ -408,6 +421,7 @@ describe('deleteItem', () => {
   it('refuses an item already removed, and ungrouping an inherited group', () => {
     const removed = inAmbulance(deleteItem(STATE, AMBULANCE, 'rule-1'));
     expect(refusal(deleteItem(removed, AMBULANCE, 'rule-1'))).toEqual({
+      code: 'alreadyRemoved',
       message: 'Rule 01 is already removed in Ambulance.',
       branchIndex: 1,
       itemId: 'rule-1',
@@ -449,6 +463,7 @@ describe('ungroup', () => {
       'rule-3',
     ]);
     expect(refusal(ungroup(STATE, AMBULANCE, 'group-1'))).toEqual({
+      code: 'inheritedGroup',
       message:
         'Group 01 in Ambulance follows Standard, so it can only be ungrouped in Standard. Remove it from Ambulance instead.',
       branchIndex: 1,
@@ -484,6 +499,7 @@ describe('restoreItem and resetItem (FR-024)', () => {
 
   it('refuses what it can’t restore or reset, naming why', () => {
     expect(refusal(restoreItem(STATE, AMBULANCE, 'rule-1'))).toEqual({
+      code: 'notRemoved',
       message: 'Rule 01 in Ambulance isn’t removed, so there is nothing to restore.',
       branchIndex: 1,
       itemId: 'rule-1',
@@ -496,6 +512,7 @@ describe('restoreItem and resetItem (FR-024)', () => {
       'Rule 01 is removed in Ambulance. Restore it first.'
     );
     expect(refusal(restoreItem(STATE, 'main-id', 'rule-1'))).toEqual({
+      code: 'notBased',
       message: 'Standard isn’t based on Standard, so it has nothing to reset or restore.',
       branchIndex: 0,
       itemId: null,
@@ -546,6 +563,7 @@ describe('groupItems', () => {
     expect(
       refusal(groupItems(STATE, 'main-id', ['rule-1', 'rule-4'], { name: 'Group 01' }))
     ).toEqual({
+      code: 'nameTaken',
       message: 'There’s already a group called "Group 01" in Standard.',
       branchIndex: 0,
       itemId: 'group-2',
@@ -556,6 +574,7 @@ describe('groupItems', () => {
     const cant =
       'Choose two or more rules of one level in Standard to group. A sub-group can’t hold groups.';
     expect(refusal(groupItems(STATE, 'main-id', ['rule-1']))).toEqual({
+      code: 'cantGroup',
       message: cant,
       branchIndex: 0,
       itemId: 'rule-1',
@@ -627,6 +646,7 @@ describe('copyRule (FR-022)', () => {
       'Unknown variant.'
     );
     expect(refusal(copyRule(STATE, 'main-id', 'rule-1', ['main-id']))).toEqual({
+      code: 'noCopyTarget',
       message: 'Choose another variant to copy Rule 01 to.',
       branchIndex: 0,
       itemId: 'rule-1',
@@ -652,6 +672,7 @@ describe('variants (FR-019, FR-020)', () => {
     const add = (name: string, description: string | null = null, id = ID) =>
       refusal(addVariant(STATE, { name, description }, 'based', id));
     expect(add(' ambulance ')).toEqual({
+      code: 'variantNameTaken',
       message: 'There’s already a variant called "Ambulance".',
       branchIndex: null,
       itemId: null,
@@ -688,6 +709,7 @@ describe('variants (FR-019, FR-020)', () => {
       'Ambulance'
     );
     expect(refusal(editVariant(STATE, AMBULANCE, { name: 'taxi' }))).toEqual({
+      code: 'variantNameTaken',
       message: 'There’s already a variant called "Taxi".',
       branchIndex: 1,
       itemId: null,
@@ -699,6 +721,7 @@ describe('variants (FR-019, FR-020)', () => {
     expect(deleted.id).toBe(AMBULANCE);
     expect(state.branches.map((entry) => entry.id)).toEqual(['main-id', TAXI]);
     expect(refusal(deleteVariant(STATE, 'main-id'))).toEqual({
+      code: 'mainVariant',
       message: 'Standard is the main variant and can’t be deleted.',
       branchIndex: 0,
       itemId: null,

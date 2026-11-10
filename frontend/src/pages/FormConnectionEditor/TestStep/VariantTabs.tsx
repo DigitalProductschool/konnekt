@@ -1,7 +1,8 @@
 import type { KeyboardEvent } from 'react';
 
+import { useCopy } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
-import { RULES_COPY, TAB_ROW_CLASSES } from '../RulesStep/constants';
+import { RULES_STEP_COPY, TAB_ROW_CLASSES } from '../RulesStep/constants';
 import { tabAfterKey } from '../RulesStep/utils';
 import type { VariantTabsProps } from './types';
 import VariantTab from './VariantTab';
@@ -19,6 +20,7 @@ import VariantTab from './VariantTab';
  * (FR-004).
  */
 export default function VariantTabs({ branches, selected, checks, onSelect }: VariantTabsProps) {
+  const rulesCopy = useCopy(RULES_STEP_COPY);
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const next = tabAfterKey(event.key, index, branches.length);
     if (next === null) {
@@ -34,7 +36,7 @@ export default function VariantTabs({ branches, selected, checks, onSelect }: Va
     <div className={TAB_ROW_CLASSES}>
       <div
         role="tablist"
-        aria-label={RULES_COPY.variants}
+        aria-label={rulesCopy.variants}
         aria-owns={branches.map((branch) => ELEMENT_IDS.testTab(branch.key)).join(' ')}
         // Out of the row's flow, so that the row's gap doesn't count it
         className="absolute"

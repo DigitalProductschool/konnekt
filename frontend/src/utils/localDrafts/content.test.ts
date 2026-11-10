@@ -251,4 +251,11 @@ describe('displayNameOf', () => {
     expect(displayNameOf(emptyContent())).toBe('Untitled connection');
     expect(displayNameOf({ ...emptyContent(), name: ' \t ' })).toBe('Untitled connection');
   });
+
+  it('gives "Unbenannte Anbindung" in German, the name as entered otherwise (spec 009)', () => {
+    expect(displayNameOf(emptyContent(), 'de')).toBe('Unbenannte Anbindung');
+    expect(displayNameOf({ ...emptyContent(), name: '  Parking permit ' }, 'de')).toBe(
+      'Parking permit'
+    );
+  });
 });

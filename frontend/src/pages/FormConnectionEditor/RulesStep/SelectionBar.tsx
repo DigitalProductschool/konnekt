@@ -1,5 +1,6 @@
+import { useLanguage } from '../../../hooks/useLanguage';
 import { usePinned } from '../../../hooks/usePinned';
-import { RULES_COPY, SELECTION_BAR_STATES } from './constants';
+import { RULES_STEP_COPY, SELECTION_BAR_STATES } from './constants';
 import type { SelectionBarProps } from './types';
 import { selectionText } from './utils';
 
@@ -26,12 +27,14 @@ export default function SelectionBar({
   onGroup,
 }: SelectionBarProps) {
   const { sentinelRef, barRef, pinned } = usePinned<HTMLDivElement>();
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
   const ready = selection.ids.length >= 2;
   const based = branch.origin === 'based';
   const text =
     based && ready && selection.parentId === null
-      ? RULES_COPY.selectedInVariant(selection.ids.length, branch.name.trim(), mainName.trim())
-      : selectionText(selection, branch);
+      ? copy.selectedInVariant(selection.ids.length, branch.name.trim(), mainName.trim())
+      : selectionText(selection, branch, language);
   const look = pinned ? 'pinned' : based ? 'belowStrip' : 'resting';
   return (
     <>
@@ -51,7 +54,7 @@ export default function SelectionBar({
           onClick={onCancel}
           className="kern-btn kern-btn--tertiary kern-btn--small my-0!"
         >
-          <span className="kern-label">{RULES_COPY.cancel}</span>
+          <span className="kern-label">{copy.cancel}</span>
         </button>
         <button
           type="button"
@@ -59,7 +62,7 @@ export default function SelectionBar({
           onClick={ready ? onGroup : undefined}
           className="kern-btn kern-btn--primary min-h-40!"
         >
-          <span className="kern-label">{RULES_COPY.groupRules}</span>
+          <span className="kern-label">{copy.groupRules}</span>
         </button>
       </div>
     </>

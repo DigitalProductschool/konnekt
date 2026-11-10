@@ -4,6 +4,7 @@ import walletStar from '../../assets/illustrations/wallet-star@2x.png';
 import IconTile from '../../components/IconTile';
 import PageTitle from '../../components/PageTitle';
 import { ROUTES } from '../../constants';
+import { useCopy } from '../../hooks/useLanguage';
 import { WELCOME_COPY, WELCOME_STEPS } from './constants';
 import type { WelcomePageProps, WelcomeStepItemProps } from './types';
 
@@ -47,29 +48,32 @@ function WelcomeStepItem({ step, joined }: WelcomeStepItemProps) {
  * first-connection flow at step 1 (`/get-started`).
  */
 export default function WelcomePage({ titleRef }: WelcomePageProps) {
+  const copy = useCopy(WELCOME_COPY);
+  const steps = useCopy(WELCOME_STEPS);
   return (
     <>
-      <PageTitle ref={titleRef} title={WELCOME_COPY.title} size="x-large" />
+      <PageTitle ref={titleRef} title={copy.title} size="x-large" />
       <div className="bg-kern-layout-background-hued rounded-kern-large flex w-full items-center gap-48 p-24 md:p-48">
         <div className="@container flex min-w-0 flex-1 flex-col items-start gap-32">
           <div className="flex max-w-578 flex-col gap-8">
             <h2 className="text-kern-adaptive-large text-kern-layout-text-default font-semibold break-words">
-              {WELCOME_COPY.heading}
+              {copy.heading}
             </h2>
             <p className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words">
-              {WELCOME_COPY.text}
+              {copy.text}
             </p>
           </div>
           <ol
-            aria-label={WELCOME_COPY.stepsLabel}
+            aria-label={copy.stepsLabel}
             className="flex w-full flex-col items-start gap-8 @min-[640px]:flex-row @min-[640px]:items-center @min-[640px]:gap-16"
           >
-            {WELCOME_STEPS.map((step, index) => (
-              <WelcomeStepItem key={step.label} step={step} joined={index > 0} />
+            {steps.map((step, index) => (
+              // Keyed by the glyph, the same in both languages: a switch re-keys nothing
+              <WelcomeStepItem key={step.glyph} step={step} joined={index > 0} />
             ))}
           </ol>
           <Link to={ROUTES.firstConnection} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{WELCOME_COPY.createConnection}</span>
+            <span className="kern-label">{copy.createConnection}</span>
             <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
           </Link>
         </div>

@@ -1,4 +1,5 @@
 import loginArt from '../../assets/illustrations/login-art@2x.png';
+import { useCopy } from '../../hooks/useLanguage';
 import { AUTH_INTRO_CLASSES, AUTH_INTRO_COPY } from './constants';
 
 /**
@@ -9,6 +10,7 @@ import { AUTH_INTRO_CLASSES, AUTH_INTRO_COPY } from './constants';
  * so it doesn't make a short window scroll.
  */
 export default function AuthIntro() {
+  const copy = useCopy(AUTH_INTRO_COPY);
   return (
     <div className={AUTH_INTRO_CLASSES}>
       {/* KERN's own `img` rule sets `display`, so the wrapper is what hides the art */}
@@ -17,9 +19,9 @@ export default function AuthIntro() {
       </div>
       <div className="flex min-w-0 flex-col gap-16 @min-[990px]:w-342">
         <h1 className="text-kern-adaptive-2x-large text-kern-layout-text-default font-medium wrap-break-word">
-          {AUTH_INTRO_COPY.headline}
+          {copy.headline}
         </h1>
-        <p className="text-kern-static-large text-kern-layout-text-muted">{AUTH_INTRO_COPY.lead}</p>
+        <p className="text-kern-static-large text-kern-layout-text-muted">{copy.lead}</p>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 
 import AccessLevelChoice from '../../components/AccessLevelChoice';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
+import { useCopy } from '../../hooks/useLanguage';
 import { CONSENT_COPY, DECISION_ACTIONS_CLASSES, SMALL_TEXT } from './constants';
 import type { ConsentFormProps } from './types';
 
@@ -27,6 +28,7 @@ export default function ConsentForm({
   error,
   onDecide,
 }: ConsentFormProps) {
+  const copy = useCopy(CONSENT_COPY);
   const busy = sending || leaving !== null;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -44,17 +46,17 @@ export default function ConsentForm({
             aria-hidden="true"
             className="kern-icon kern-icon--info kern-icon--small bg-kern-feedback-info! mt-2 shrink-0"
           />
-          {CONSENT_COPY.stepUp(clientName)}
+          {copy.stepUp(clientName)}
         </p>
       )}
       <AccessLevelChoice
         value={level}
         onChange={onLevelChange}
         name="consent-access-level"
-        legend={CONSENT_COPY.levelLegend}
+        legend={copy.levelLegend}
       />
       {error && (
-        <KernAlert variant="danger" title={CONSENT_COPY.sendErrorTitle} className="w-full">
+        <KernAlert variant="danger" title={copy.sendErrorTitle} className="w-full">
           <ErrorNoticeText notice={error} />
         </KernAlert>
       )}
@@ -67,10 +69,10 @@ export default function ConsentForm({
             onClick={busy ? undefined : () => onDecide('deny')}
             className="kern-btn kern-btn--secondary"
           >
-            <span className="kern-label">{CONSENT_COPY.deny}</span>
+            <span className="kern-label">{copy.deny}</span>
           </button>
           <button type="submit" aria-disabled={busy} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{CONSENT_COPY.allow}</span>
+            <span className="kern-label">{copy.allow}</span>
           </button>
         </div>
       </div>
@@ -79,7 +81,7 @@ export default function ConsentForm({
         role="status"
         className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) empty:absolute"
       >
-        {leaving === 'allow' && CONSENT_COPY.goBack(clientName)}
+        {leaving === 'allow' && copy.goBack(clientName)}
       </p>
     </form>
   );

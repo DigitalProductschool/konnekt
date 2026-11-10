@@ -7,13 +7,24 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .language import Text, language_of_scope, resolve_text
+
 logger = logging.getLogger(__name__)
 
 # The message of a 500. What went wrong is only in the log, under the error id
-INTERNAL_ERROR_MESSAGE = (
-    'Something went wrong on our side. Contact an administrator and give them the '
-    'error ID.'
+INTERNAL_ERROR_MESSAGE = Text(
+    en=(
+        'Something went wrong on our side. Contact an administrator and give them '
+        'the error ID.'
+    ),
+    de=(
+        'Etwas ist auf unserer Seite schiefgelaufen. Wenden Sie sich an eine '
+        'Administratorin oder einen Administrator und nennen Sie die Fehler-ID.'
+    ),
 )
+
+# The message of a request whose body or parameters don't fit the endpoint
+INVALID_PAYLOAD_MESSAGE = Text(en='Invalid request payload', de='Ungültige Anfrage.')
 
 
 def describe_error(error: BaseException) -> str:
@@ -64,7 +75,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         detail = exception.detail
 
         if isinstance(detail, dict) and 'error' in detail and 'message' in detail:
-            return JSONResponse(status_code=exception.status_code, content=detail)
+            # A new dict, so the exception keeps the detail it was raised with; a
+            # `Text` message in the request's language, a plain string as it is
+            content = {**detail, 'message': resolve_text(detail['message'])}
+            return JSONResponse(status_code=exception.status_code, content=content)
 
         return JSONResponse(
             status_code=exception.status_code,
@@ -78,7 +92,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return JSONResponse(
             status_code=400,
-            content={'error': 'Validation error', 'message': 'Invalid request payload'},
+            content={
+                'error': 'Validation error',
+                'message': resolve_text(INVALID_PAYLOAD_MESSAGE),
+            },
         )
 
     @app.exception_handler(Exception)
@@ -88,11 +105,15 @@ def register_exception_handlers(app: FastAPI) -> None:
         error_id = log_server_error(
             exception, f'Unexpected error in {request.method} {_route_of(request)}'
         )
+        # Starlette runs this handler outside every middleware, after the language
+        # middleware has reset the request's language, so it reads the language
+        # from the request again, by the middleware's rule
+        language = language_of_scope(request.scope)
         return JSONResponse(
             status_code=500,
             content={
                 'error': 'Internal server error',
-                'message': INTERNAL_ERROR_MESSAGE,
+                'message': INTERNAL_ERROR_MESSAGE.resolve(language),
                 'error_id': error_id,
             },
         )

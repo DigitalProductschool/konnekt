@@ -2,12 +2,13 @@ import { bannerOf } from '@connection-portal/rules/checks/findingMessages';
 
 import expandLessIcon from '../../../assets/icons/expand-less-action-small.svg';
 import expandMoreIcon from '../../../assets/icons/expand-more-action-small.svg';
+import { useLanguage } from '../../../hooks/useLanguage';
 import {
   BANNER_LOOKS,
   FINDINGS_BANNER_WRAP_CLASSES,
   FINDINGS_TOGGLE_CLASSES,
   findingsListId,
-  RULES_COPY,
+  RULES_STEP_COPY,
 } from './constants';
 import FindingsBannerLine from './FindingsBannerLine';
 import type { FindingsBannerProps } from './types';
@@ -40,11 +41,13 @@ export default function FindingsBanner({
   dispatch,
   plainItemId,
 }: FindingsBannerProps) {
-  const banner = check ? bannerOf(check, branch, names) : null;
+  const { language } = useLanguage();
+  const banner = check ? bannerOf(check, branch, names, language) : null;
   if (!banner) {
     return null;
   }
-  const view = bannerViewOf(banner, expanded);
+  const copy = RULES_STEP_COPY[language];
+  const view = bannerViewOf(banner, expanded, language);
   const listId = findingsListId(branch.key);
   const toggleable = view.state !== 'single';
 
@@ -65,9 +68,7 @@ export default function FindingsBanner({
               <span className={FINDINGS_TOGGLE_CLASSES.box}>
                 <img src={expanded ? expandLessIcon : expandMoreIcon} alt="" className="size-20" />
               </span>
-              <span className="sr-only">
-                {expanded ? RULES_COPY.hideFindings : RULES_COPY.showFindings}
-              </span>
+              <span className="sr-only">{expanded ? copy.hideFindings : copy.showFindings}</span>
             </button>
           )}
         </FindingsBannerLine>

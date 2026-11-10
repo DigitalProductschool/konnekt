@@ -1,4 +1,5 @@
-import { DOCUMENTS_STEP_COPY, DOCUMENTS_STEP_IDS } from './constants';
+import { useCopy } from '../../../hooks/useLanguage';
+import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS } from './constants';
 import type { DocumentListItemProps } from './types';
 import { documentGlyphOf } from './utils';
 
@@ -26,6 +27,7 @@ export default function DocumentListItem({
   onSelect,
   onRemove,
 }: DocumentListItemProps) {
+  const copy = useCopy(DOCUMENTS_COPY);
   const fill = needsData
     ? 'bg-kern-feedback-danger-background'
     : selected
@@ -72,9 +74,7 @@ export default function DocumentListItem({
             aria-hidden="true"
             className="kern-icon kern-icon--delete kern-icon--small bg-kern-layout-text-muted! group-hover:bg-kern-feedback-danger! group-has-focus-visible:bg-kern-feedback-danger!"
           />
-          <span className="sr-only">
-            {DOCUMENTS_STEP_COPY.removeDocumentLabel(documentType.label)}
-          </span>
+          <span className="sr-only">{copy.removeDocumentLabel(documentType.label)}</span>
         </button>
       </div>
     </li>

@@ -1,5 +1,6 @@
 import { tabLabelOf } from '@connection-portal/rules/checks/findingMessages';
 
+import { useLanguage } from '../../hooks/useLanguage';
 import InfoTooltip from '../InfoTooltip';
 import { BRANCH_NAME_COPY, FINDINGS_ICONS, TAB_BUTTON, TAB_INDICATOR, TAB_TEXT } from './constants';
 import FindingsSegment from './FindingsSegment';
@@ -14,10 +15,12 @@ import type { BranchIconProps, BranchNameProps, BranchTabButtonProps } from './t
  * tooltip opens on hover, keyboard focus and a tap (T022)
  */
 function BranchIcon({ label, description, findings, noFindingsInfo }: BranchIconProps) {
+  const { language } = useLanguage();
+  const copy = BRANCH_NAME_COPY[language];
   if (findings) {
     return (
       <InfoTooltip
-        label={tabLabelOf(label)}
+        label={tabLabelOf(label, language)}
         icon={FINDINGS_ICONS[findings.kind]}
         iconSize="small"
         text={
@@ -29,10 +32,8 @@ function BranchIcon({ label, description, findings, noFindingsInfo }: BranchIcon
       />
     );
   }
-  const text = description || (noFindingsInfo ? BRANCH_NAME_COPY.noFindings : '');
-  return text ? (
-    <InfoTooltip label={BRANCH_NAME_COPY.about(label)} text={text} iconSize="small" />
-  ) : null;
+  const text = description || (noFindingsInfo ? copy.noFindings : '');
+  return text ? <InfoTooltip label={copy.about(label)} text={text} iconSize="small" /> : null;
 }
 
 /**
@@ -85,6 +86,7 @@ export default function BranchName({
   actions,
   children,
 }: BranchNameProps) {
+  const { language } = useLanguage();
   const label = name.trim();
   const icon = (
     <BranchIcon
@@ -106,7 +108,11 @@ export default function BranchName({
   return (
     <div className="flex min-w-0 flex-col gap-8 pt-4">
       <div className="flex min-h-24 min-w-0 items-center gap-4">
-        <BranchTabButton {...tab} name={name} label={findings ? tabLabelOf(label) : undefined} />
+        <BranchTabButton
+          {...tab}
+          name={name}
+          label={findings ? tabLabelOf(label, language) : undefined}
+        />
         {icon}
         {actions}
       </div>

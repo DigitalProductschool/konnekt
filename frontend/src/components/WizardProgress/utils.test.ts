@@ -1,12 +1,17 @@
+import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
 import { describe, expect, it } from 'vitest';
 
-import { CONNECTION_STEPS } from '../../constants';
+import { CONNECTION_STEP_LABELS, CONNECTION_STEPS } from '../../constants';
 import { hasStepLine, nextLabelOf, stepCountOf, stepStateOf } from './utils';
 
 // FR-025: four steps (Connection, Documents, Rules, Test); Publish is a dialog, not a step
 describe('the step line (FR-025)', () => {
+  // The steps' English names, in step order (spec 009: the steps are keys, their names a table)
+  const stepNames = CONNECTION_STEPS.map((step) => CONNECTION_STEP_LABELS[DEFAULT_LANGUAGE][step]);
+
   it('has the four steps', () => {
-    expect(CONNECTION_STEPS).toEqual(['Connection', 'Documents', 'Rules', 'Test']);
+    expect(CONNECTION_STEPS).toEqual(['connection', 'documents', 'rules', 'test']);
+    expect(stepNames).toEqual(['Connection', 'Documents', 'Rules', 'Test']);
   });
 
   it('marks the steps before the current one done and the ones after it to do', () => {
@@ -18,15 +23,22 @@ describe('the step line (FR-025)', () => {
   });
 
   it('counts the steps as "Step n of 4"', () => {
-    expect(stepCountOf(0, CONNECTION_STEPS.length)).toBe('Step 1 of 4');
-    expect(stepCountOf(3, CONNECTION_STEPS.length)).toBe('Step 4 of 4');
+    expect(stepCountOf(0, CONNECTION_STEPS.length, 'en')).toBe('Step 1 of 4');
+    expect(stepCountOf(3, CONNECTION_STEPS.length, 'en')).toBe('Step 4 of 4');
   });
 
   it('names the next step, and the last step as "Last step"', () => {
-    expect(nextLabelOf(CONNECTION_STEPS, 0)).toBe('Next: Documents');
-    expect(nextLabelOf(CONNECTION_STEPS, 1)).toBe('Next: Rules');
-    expect(nextLabelOf(CONNECTION_STEPS, 2)).toBe('Next: Test');
-    expect(nextLabelOf(CONNECTION_STEPS, 3)).toBe('Last step');
+    expect(nextLabelOf(stepNames, 0, 'en')).toBe('Next: Documents');
+    expect(nextLabelOf(stepNames, 1, 'en')).toBe('Next: Rules');
+    expect(nextLabelOf(stepNames, 2, 'en')).toBe('Next: Test');
+    expect(nextLabelOf(stepNames, 3, 'en')).toBe('Last step');
+  });
+
+  it('says the step line in German (spec 009)', () => {
+    const germanNames = CONNECTION_STEPS.map((step) => CONNECTION_STEP_LABELS.de[step]);
+    expect(stepCountOf(1, CONNECTION_STEPS.length, 'de')).toBe('Schritt 2 von 4');
+    expect(nextLabelOf(germanNames, 0, 'de')).toBe('Weiter: Dokumente');
+    expect(nextLabelOf(germanNames, 3, 'de')).toBe('Letzter Schritt');
   });
 
   it('shows no step line past the last step (the details)', () => {

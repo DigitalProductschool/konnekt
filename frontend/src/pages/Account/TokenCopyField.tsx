@@ -1,4 +1,5 @@
 import CopyableUrl from '../../components/CopyableUrl';
+import { useLanguage } from '../../hooks/useLanguage';
 import { ACCOUNT_COPY, TOKEN_COPY_TEXTS } from './constants';
 import type { TokenCopyFieldProps } from './types';
 
@@ -9,13 +10,14 @@ import type { TokenCopyFieldProps } from './types';
  * logged or put in a URL: it lives in this field until the dialog closes
  */
 export default function TokenCopyField({ token, describedBy }: TokenCopyFieldProps) {
+  const { language } = useLanguage();
   return (
     <CopyableUrl
       variant="field"
       value={token}
-      label={ACCOUNT_COPY.tokenLabel}
+      label={ACCOUNT_COPY[language].tokenLabel}
       describedBy={describedBy}
-      texts={TOKEN_COPY_TEXTS}
+      texts={TOKEN_COPY_TEXTS[language]}
     />
   );
 }

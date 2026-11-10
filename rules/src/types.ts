@@ -13,6 +13,8 @@ import type {
 } from '@connection-portal/api-types/form-connections';
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
 
+import type { Language } from './language';
+
 /** The kind of value a rule compares, which decides its operators (FR-003) */
 export type ConditionKind = 'number' | 'text' | 'enum' | 'date';
 
@@ -66,6 +68,12 @@ export interface RuleContext {
    */
   documents: RuleDocument[];
   optionSets: OptionSet[];
+  /**
+   * The language the modules compose their texts in (spec 009, R4); English when left out. The
+   * catalog's labels in `documents` and `optionSets` come in the same language. The MCP server
+   * never sets it: its answers to agents stay English (FR-017)
+   */
+  language?: Language;
 }
 
 /** A rule's target, looked up in the documents */
@@ -164,8 +172,70 @@ export interface LevelChange extends ItemPosition {
   after: string[];
 }
 
+/**
+ * The keys of `RULES_MESSAGES` (constants.ts), the codes of the server's validation problems and
+ * of the client's own (spec 009, R10). A union of its own, not the table's `keyof`, so that the
+ * codes stay what callers branch on whatever the table holds; the table must have exactly these
+ */
+export type RulesMessageKey =
+  | 'tooManyBranches'
+  | 'mainBranch'
+  | 'branchNameMissing'
+  | 'branchNameTooLong'
+  | 'branchNameTwice'
+  | 'descriptionTooLong'
+  | 'tooManyItems'
+  | 'invalidIdentifier'
+  | 'itemNameMissing'
+  | 'itemNameTooLong'
+  | 'nameTaken'
+  | 'nameReserved'
+  | 'chooseData'
+  | 'notRequested'
+  | 'unknownPart'
+  | 'noMessage'
+  | 'messageTooLong'
+  | 'rulesOnly'
+  | 'tooFewMembers'
+  | 'variantNameMissing'
+  | 'variantNameTaken'
+  | 'nameMissing'
+  | 'nameTooLong';
+
+/** The keys of `EDIT_MESSAGES` (constants.ts), the codes of the editor's refusals (R10) */
+export type EditMessageKey =
+  | 'unknownVariant'
+  | 'unknownItem'
+  | 'notRule'
+  | 'notGroup'
+  | 'removed'
+  | 'alreadyRemoved'
+  | 'notRemoved'
+  | 'notChanged'
+  | 'notBased'
+  | 'inheritedGroup'
+  | 'cantGroup'
+  | 'mainVariant'
+  | 'noCopyTarget';
+
+/**
+ * What a problem is, whatever the language of its message (spec 009, R10): the key of its message
+ * in `RULES_MESSAGES`, `CONDITION_PROBLEM_MESSAGES` (an incomplete condition's) or `EDIT_MESSAGES`.
+ * Callers branch on it, never on the message
+ */
+export type RulesProblemCode = RulesMessageKey | ConditionProblem | EditMessageKey;
+
+/** A problem of a rule, group or name: its code and its message (`ruleProblemOf`) */
+export interface RuleProblemDetail {
+  code: RulesProblemCode;
+  /** The message in the language asked for, such as "Rule 02 in Standard has no error message." */
+  message: string;
+}
+
 /** A problem that refuses publishing or saving, with what it names (FR-006) */
 export interface RulesProblem {
+  /** What the problem is: the key of its message (R10) */
+  code: RulesProblemCode;
   /** The server's message, such as "Rule 02 in Standard has no error message." */
   message: string;
   /** The branch it names, by its index in the list; null when it names none */
@@ -236,8 +306,12 @@ export interface EditState {
   counters: NumberingBase;
 }
 
-/** Why an action was refused: the editor's message, with the variant and the item it names */
-export type EditRefusal = RulesProblem;
+/**
+ * Why an action was refused: the editor's message, with the variant and the item it names. The
+ * actions of edits.ts always give the code of their message; the MCP server's own refusals in the
+ * editor's words (`refusalOf` in `mcp/src/draftEdit.ts`) have none
+ */
+export type EditRefusal = Omit<RulesProblem, 'code'> & { code?: RulesProblemCode };
 
 /** What an action answers: the new state and what changed (`T`), or why it was refused */
 export type EditResult<T extends object = object> =

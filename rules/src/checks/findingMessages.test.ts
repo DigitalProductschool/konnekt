@@ -124,6 +124,18 @@ describe('listOf', () => {
     expect(listOf(['Rule 02', 'Rule 03', 'Rule 04'])).toBe('Rule 02, Rule 03 and Rule 04');
     expect(listOf(['Rule 04', 'Rule 05', 'Rule 06'], 'or')).toBe('Rule 04, Rule 05 or Rule 06');
   });
+
+  it('joins with " und " and " oder " in German (glossary §3)', () => {
+    expect(listOf([], 'and', 'de')).toBe('');
+    expect(listOf(['Rule 02'], 'and', 'de')).toBe('Rule 02');
+    expect(listOf(['Rule 02', 'Rule 03'], 'and', 'de')).toBe('Rule 02 und Rule 03');
+    expect(listOf(['Rule 02', 'Rule 03', 'Rule 04'], 'and', 'de')).toBe(
+      'Rule 02, Rule 03 und Rule 04'
+    );
+    expect(listOf(['Rule 04', 'Rule 05', 'Rule 06'], 'or', 'de')).toBe(
+      'Rule 04, Rule 05 oder Rule 06'
+    );
+  });
 });
 
 describe('namesOf', () => {
@@ -147,6 +159,12 @@ describe('kindTextOf', () => {
     expect(kindTextOf('conflicting')).toBe('Conflicting:');
     expect(kindTextOf('redundant')).toBe('Redundant:');
     expect(kindTextOf('always_met')).toBe('Always met:');
+  });
+
+  it('gives the icons’ hidden texts in German (glossary §2)', () => {
+    expect(kindTextOf('conflicting', 'de')).toBe('Widersprüchlich:');
+    expect(kindTextOf('redundant', 'de')).toBe('Redundant:');
+    expect(kindTextOf('always_met', 'de')).toBe('Immer erfüllt:');
   });
 });
 
@@ -239,6 +257,82 @@ describe('noteOf', () => {
       'Can’t be met together with other rules.'
     );
   });
+
+  it('reads the conflicts’ notes in German (glossary §3)', () => {
+    const de = (finding: ItemFinding, names = NAMES): string => noteOf(finding, names, 'de');
+    expect(de(withItems('rule-1', ['rule-2']))).toBe(
+      'Kann nicht zusammen mit Rule 02 erfüllt werden.'
+    );
+    expect(de(withItems('group-1', ['rule-1']))).toBe(
+      'Kann nicht zusammen mit Rule 01 erfüllt werden.'
+    );
+    expect(de(withItems('rule-1', ['rule-4', 'rule-2', 'rule-3']))).toBe(
+      'Kann nicht zusammen mit Rule 02, Rule 03 und Rule 04 erfüllt werden.'
+    );
+    expect(de(withItems('rule-1', ['rule-2'], true))).toBe(
+      'Kann im Moment nicht zusammen mit Rule 02 erfüllt werden.'
+    );
+  });
+
+  it('reads a group’s own conflict in German', () => {
+    const de = (finding: ItemFinding): string => noteOf(finding, NAMES, 'de');
+    const and = conflicting('group-3', {
+      type: 'members',
+      operator: 'and',
+      items: ['rule-4', 'rule-5'],
+    });
+    expect(de(and)).toBe('Rule 04 und Rule 05 in dieser Gruppe widersprechen einander.');
+    expect(de({ ...and, today: true })).toBe(
+      'Rule 04 und Rule 05 in dieser Gruppe widersprechen einander im Moment.'
+    );
+    const two = conflicting('group-1', {
+      type: 'members',
+      operator: 'or',
+      items: ['rule-2', 'rule-3'],
+    });
+    expect(de(two)).toBe('Weder Rule 02 noch Rule 03 in dieser Gruppe kann erfüllt werden.');
+    expect(de({ ...two, today: true })).toBe(
+      'Weder Rule 02 noch Rule 03 in dieser Gruppe kann im Moment erfüllt werden.'
+    );
+    const three = conflicting('group-2', {
+      type: 'members',
+      operator: 'or',
+      items: ['rule-4', 'rule-5', 'rule-6'],
+    });
+    expect(de(three)).toBe(
+      'Keine von Rule 04, Rule 05 und Rule 06 in dieser Gruppe kann erfüllt werden.'
+    );
+    const single = conflicting('group-2', {
+      type: 'members',
+      operator: 'and',
+      items: ['group-3'],
+    });
+    expect(de(single)).toBe('Sub-group 01 in dieser Gruppe kann nicht erfüllt werden.');
+    expect(de({ ...single, today: true })).toBe(
+      'Sub-group 01 in dieser Gruppe kann im Moment nicht erfüllt werden.'
+    );
+  });
+
+  it('says that no citizen can meet a rule on its own in German', () => {
+    const finding = conflicting('rule-3', { type: 'condition' });
+    expect(noteOf(finding, NAMES, 'de')).toBe('Niemand kann diese Regel erfüllen.');
+    expect(noteOf({ ...finding, today: true }, NAMES, 'de')).toBe(
+      'Niemand kann diese Regel im Moment erfüllen.'
+    );
+  });
+
+  it('shows the current, stored names in German, and never an id', () => {
+    const renamed = namesOf([rule(1, null, null), rule(2, null, null, 'x', 'Minimum age')]);
+    expect(noteOf(withItems('rule-1', ['rule-2']), renamed, 'de')).toBe(
+      'Kann nicht zusammen mit Minimum age erfüllt werden.'
+    );
+    expect(noteOf(withItems('rule-1', ['rule-2', 'rule-9']), NAMES, 'de')).toBe(
+      'Kann nicht zusammen mit Rule 02 erfüllt werden.'
+    );
+    expect(noteOf(withItems('rule-1', ['rule-9']), NAMES, 'de')).toBe(
+      'Kann nicht zusammen mit anderen Regeln erfüllt werden.'
+    );
+  });
 });
 
 describe('noteOf for redundant and always-met findings (US2)', () => {
@@ -292,6 +386,48 @@ describe('noteOf for redundant and always-met findings (US2)', () => {
     );
     expect(noteOf(impliedBy('rule-6', ['rule-9']), NAMES)).toBe(
       'Anyone who meets other rules also meets this rule. You can delete the rule.'
+    );
+  });
+
+  it('reads the duplicate’s and the always-met notes in German (glossary §3)', () => {
+    expect(noteOf(same('rule-6', 'rule-3'), NAMES, 'de')).toBe(
+      'Identisch mit Rule 03. Sie können eine der beiden löschen.'
+    );
+    expect(noteOf(alwaysMet('group-1'), NAMES, 'de')).toBe('Alle erfüllen diese Gruppe.');
+    expect(noteOf(alwaysMet('rule-5'), NAMES, 'de')).toBe('Alle erfüllen diese Regel.');
+  });
+
+  it('words covered items in German, in every level’s form', () => {
+    const de = (finding: ItemFinding): string => noteOf(finding, NAMES, 'de');
+    expect(de(impliedBy('group-1', ['rule-1']))).toBe(
+      'Wer Rule 01 erfüllt, erfüllt auch diese Gruppe. Sie können die Gruppe löschen.'
+    );
+    expect(de(impliedBy('rule-6', ['rule-4', 'rule-1']))).toBe(
+      'Wer Rule 01 und Rule 04 erfüllt, erfüllt auch diese Regel. Sie können die Regel löschen.'
+    );
+    expect(de(implies('rule-3', ['rule-2']))).toBe(
+      'Wer diese Regel erfüllt, erfüllt auch Rule 02. Sie können die Regel löschen.'
+    );
+    expect(de(implies('group-3', ['rule-6', 'rule-1']))).toBe(
+      'Wer diese Gruppe erfüllt, erfüllt auch Rule 01 oder Rule 06. Sie können die Gruppe löschen.'
+    );
+    expect(de(implies('rule-6', ['rule-1'], ['rule-5']))).toBe(
+      'Wer diese Regel und Rule 05 erfüllt, erfüllt auch Rule 01. Sie können die Regel löschen.'
+    );
+    expect(de(impliedBy('rule-4', ['rule-2'], ['group-1']))).toBe(
+      'Wer Rule 02 erfüllt, erfüllt auch diese Regel oder Group 01. Sie können die Regel löschen.'
+    );
+    expect(de(impliedBy('rule-4', [], ['group-1']))).toBe(
+      'Alle erfüllen diese Regel oder Group 01. Sie können die Regel löschen.'
+    );
+  });
+
+  it('never shows an id in German either', () => {
+    expect(noteOf(same('rule-6', 'rule-9'), NAMES, 'de')).toBe(
+      'Identisch mit einer anderen Regel. Sie können eine der beiden löschen.'
+    );
+    expect(noteOf(impliedBy('rule-6', ['rule-9']), NAMES, 'de')).toBe(
+      'Wer andere Regeln erfüllt, erfüllt auch diese Regel. Sie können die Regel löschen.'
     );
   });
 });
@@ -361,6 +497,64 @@ describe('countsOf', () => {
 
   it('is empty without a finding', () => {
     expect(countsOf(check([]))).toBe('');
+  });
+
+  it('counts in German with explicit plural forms (glossary §3 "counts")', () => {
+    const de = (findings: ItemFinding[]): string => countsOf(check(findings), 'de');
+    expect(de(conflictSet(['rule-1', 'rule-2']))).toBe('2 Regeln widersprechen einander');
+    expect(de(conflictSet(['rule-1', 'group-1']))).toBe(
+      '1 Regel und 1 Gruppe widersprechen einander'
+    );
+    expect(
+      de([
+        conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+        ...conflictSet(['rule-4', 'rule-5']),
+      ])
+    ).toBe('2 Regeln widersprechen einander');
+    expect(de([conflicting('rule-3', { type: 'condition' })])).toBe(
+      '1 Regel kann nicht erfüllt werden'
+    );
+    expect(
+      de([
+        ...conflictSet(['rule-1', 'rule-2']),
+        conflicting('rule-3', { type: 'condition' }),
+        conflicting('rule-6', { type: 'condition' }),
+      ])
+    ).toBe('2 Regeln widersprechen einander, und 2 Regeln können nicht erfüllt werden');
+    expect(de([]).length).toBe(0);
+  });
+
+  it('reads U02’s counts row in German, word for word (glossary §3)', () => {
+    const findings = [
+      conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+      ...conflictSet(['rule-4', 'rule-5']),
+      same('rule-6', 'rule-3'),
+    ];
+    expect(countsOf(check(findings), 'de')).toBe(
+      '2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat'
+    );
+  });
+
+  it('counts duplicates, covered and always-met items in German', () => {
+    const findings = [
+      alwaysMet('group-1'),
+      same('rule-6', 'rule-3'),
+      same('group-3', 'rule-1'),
+      same('rule-5', 'rule-1'),
+      impliedBy('rule-4', ['rule-1']),
+      implies('group-2', ['rule-1']),
+      conflicting('rule-2', { type: 'condition' }),
+    ];
+    expect(countsOf(check(findings), 'de')).toBe(
+      '1 Regel kann nicht erfüllt werden, 2 Regeln und 1 Gruppe sind Duplikate, 1 Regel und ' +
+        '1 Gruppe sind bereits abgedeckt, und 1 Gruppe ist immer erfüllt'
+    );
+    expect(countsOf(check([impliedBy('group-1', ['rule-1'])]), 'de')).toBe(
+      '1 Gruppe ist bereits abgedeckt'
+    );
+    expect(countsOf(check([alwaysMet('rule-1'), alwaysMet('rule-6')]), 'de')).toBe(
+      '2 Regeln sind immer erfüllt'
+    );
   });
 });
 
@@ -597,6 +791,172 @@ describe('bannerOf', () => {
   it('leaves out a line without current names, and never shows an id', () => {
     expect(bannerOf(check([withItems('rule-1', ['rule-9'])]), STANDARD, NAMES)).toBeNull();
   });
+
+  it('reads U01’s banner in German: one sentence, sliced on the German fragment (C4)', () => {
+    const banner = bannerOf(
+      check(conflictSet(['rule-1', 'rule-2']), NONE_CAN_MEET),
+      STANDARD,
+      NAMES,
+      'de'
+    );
+    expect(banner).toEqual({
+      kind: 'warning',
+      lines: [
+        {
+          kind: 'conflicting',
+          tone: 'warning',
+          parts: [ref(1), ' und ', ref(2), ' widersprechen einander.'],
+        },
+      ],
+      counts: '',
+      notice: {
+        tone: 'warning',
+        text: 'Niemand kann die Regeln von Standard erfüllen.',
+        appended: 'Daher kann niemand die Regeln von Standard erfüllen.',
+      },
+      incomplete: null,
+      head: [
+        ref(1),
+        ' und ',
+        ref(2),
+        ' widersprechen einander, daher kann niemand die Regeln von Standard erfüllen.',
+      ],
+    });
+  });
+
+  it('reads U08’s banner in German for a conflict that holds today (glossary §3)', () => {
+    const banner = bannerOf(
+      check(conflictSet(['rule-1', 'rule-2'], true), NONE_CAN_MEET_TODAY),
+      STANDARD,
+      NAMES,
+      'de'
+    );
+    expect(head(banner)).toBe(
+      'Rule 01 und Rule 02 widersprechen einander, daher kann derzeit niemand die Regeln von ' +
+        'Standard erfüllen.'
+    );
+    expect(banner?.notice?.text).toBe('Derzeit kann niemand die Regeln von Standard erfüllen.');
+    expect(
+      head(bannerOf(check(conflictSet(['rule-1', 'rule-2'], true)), STANDARD, NAMES, 'de'))
+    ).toBe('Rule 01 und Rule 02 widersprechen einander im Moment.');
+  });
+
+  it('words a group’s, EC-11’s and the collapsed lines in German', () => {
+    const own = [
+      conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+      ...conflictSet(['rule-4', 'rule-5']),
+    ];
+    expect(head(bannerOf(check(own), STANDARD, NAMES, 'de'))).toBe(
+      'Sub-group 01: Rule 04 und Rule 05 widersprechen einander.'
+    );
+    expect(
+      head(
+        bannerOf(
+          check(conflictSet(['rule-1', 'rule-2', 'rule-3', 'rule-4']), NONE_CAN_MEET),
+          STANDARD,
+          NAMES,
+          'de'
+        )
+      )
+    ).toBe(
+      'Rule 01, Rule 02, Rule 03 und Rule 04 widersprechen einander, daher kann niemand die ' +
+        'Regeln von Standard erfüllen.'
+    );
+    const two = [
+      ...conflictSet(['rule-1', 'rule-2', 'rule-3', 'rule-4']),
+      ...conflictSet(['rule-5', 'rule-6']),
+    ];
+    const banner = bannerOf(check(two, NONE_CAN_MEET), STANDARD, NAMES, 'de');
+    expect(banner?.counts).toBe('6 Regeln widersprechen einander');
+    expect(head(banner)).toBe(
+      '6 Regeln widersprechen einander. Daher kann niemand die Regeln von Standard erfüllen.'
+    );
+  });
+
+  it('words an OR group’s and a one-member group’s own conflict in German', () => {
+    const lineOf = (finding: ConflictingFinding): string =>
+      textOf(bannerOf(check([finding]), STANDARD, NAMES, 'de')?.lines[0]?.parts ?? []);
+    expect(
+      lineOf(
+        conflicting('group-1', { type: 'members', operator: 'or', items: ['rule-2', 'rule-3'] })
+      )
+    ).toBe('Group 01: weder Rule 02 noch Rule 03 kann erfüllt werden.');
+    expect(
+      lineOf(
+        conflicting('group-2', {
+          type: 'members',
+          operator: 'or',
+          items: ['rule-4', 'rule-5', 'rule-6'],
+        })
+      )
+    ).toBe('Group 02: keine von Rule 04, Rule 05 und Rule 06 kann erfüllt werden.');
+    expect(
+      lineOf(conflicting('group-2', { type: 'members', operator: 'and', items: ['group-3'] }, true))
+    ).toBe('Group 02: Sub-group 01 kann im Moment nicht erfüllt werden.');
+  });
+
+  it('words a rule that can’t be met on its own, and the notices alone, in German', () => {
+    const banner = bannerOf(
+      check([conflicting('rule-1', { type: 'condition' })], NONE_CAN_MEET),
+      STANDARD,
+      NAMES,
+      'de'
+    );
+    expect(banner?.lines[0].parts).toEqual(['Niemand kann ', ref(1), ' erfüllen.']);
+    expect(head(banner)).toBe(
+      'Niemand kann Rule 01 erfüllen. Daher kann niemand die Regeln von Standard erfüllen.'
+    );
+    expect(
+      head(
+        bannerOf(check([conflicting('rule-1', { type: 'condition' }, true)]), STANDARD, NAMES, 'de')
+      )
+    ).toBe('Niemand kann Rule 01 im Moment erfüllen.');
+    expect(head(bannerOf(check([], NONE_CAN_MEET), AMBULANCE, NAMES, 'de'))).toBe(
+      'Niemand kann die Regeln von Ambulance erfüllen.'
+    );
+    expect(head(bannerOf(check([], ALL_MEET), STANDARD, NAMES, 'de'))).toBe(
+      'Alle erfüllen die Regeln von Standard.'
+    );
+  });
+
+  it('adds FR-010’s sentence in German, and after the counts row (§3.2)', () => {
+    expect(head(bannerOf(check([], null, { complete: false }), STANDARD, NAMES, 'de'))).toBe(
+      'Die Regeln von Standard konnten nicht vollständig geprüft werden. Nur sichere Befunde ' +
+        'werden angezeigt.'
+    );
+    expect(
+      head(
+        bannerOf(
+          check(conflictSet(['rule-1', 'rule-2']), null, { complete: false }),
+          AMBULANCE,
+          NAMES,
+          'de'
+        )
+      )
+    ).toBe(
+      'Rule 01 und Rule 02 widersprechen einander. Die Regeln von Ambulance konnten nicht ' +
+        'vollständig geprüft werden. Nur sichere Befunde werden angezeigt.'
+    );
+    const findings = [...conflictSet(['rule-1', 'rule-2']), ...conflictSet(['rule-5', 'rule-6'])];
+    expect(
+      head(bannerOf(check(findings, NONE_CAN_MEET, { complete: false }), STANDARD, NAMES, 'de'))
+    ).toBe(
+      '4 Regeln widersprechen einander · nicht vollständig geprüft. Daher kann niemand die ' +
+        'Regeln von Standard erfüllen.'
+    );
+  });
+
+  it('names the items and the variant by their current names in German (FR-007, FR-011)', () => {
+    const renamed = namesOf([rule(1, null, null), rule(2, null, null, 'x', 'Minimum age')]);
+    expect(
+      head(
+        bannerOf(check(conflictSet(['rule-1', 'rule-2']), NONE_CAN_MEET), AMBULANCE, renamed, 'de')
+      )
+    ).toBe(
+      'Rule 01 und Minimum age widersprechen einander, daher kann niemand die Regeln von ' +
+        'Ambulance erfüllen.'
+    );
+  });
 });
 
 describe('bannerOf for redundant and always-met findings (US2)', () => {
@@ -717,6 +1077,84 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
     expect(bannerOf(check([implies('rule-6', ['rule-9'])]), STANDARD, NAMES)).toBeNull();
     expect(bannerOf(check([alwaysMet('rule-9')]), STANDARD, NAMES)).toBeNull();
   });
+
+  it('reads the duplicate’s, always-met and covered lines in German', () => {
+    expect(bannerOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES, 'de')?.lines).toEqual([
+      { kind: 'redundant', tone: 'info', parts: [ref(6), ' ist identisch mit ', ref(3), '.'] },
+    ]);
+    expect(bannerOf(check([alwaysMet('group-1')]), STANDARD, NAMES, 'de')?.lines).toEqual([
+      {
+        kind: 'always_met',
+        tone: 'info',
+        parts: [
+          'Alle erfüllen ',
+          { itemId: 'group-1', name: 'Group 01' },
+          ', daher prüft sie nichts.',
+        ],
+      },
+    ]);
+    expect(
+      bannerOf(check([impliedBy('group-1', ['rule-1'])]), STANDARD, NAMES, 'de')?.lines
+    ).toEqual([
+      {
+        kind: 'redundant',
+        tone: 'info',
+        parts: [
+          'Wer ',
+          ref(1),
+          ' erfüllt, erfüllt auch ',
+          { itemId: 'group-1', name: 'Group 01' },
+          '.',
+        ],
+      },
+    ]);
+  });
+
+  it('words the OR and enclosing-level forms in German (W6)', () => {
+    const line = (finding: ItemFinding): string =>
+      head(bannerOf(check([finding]), STANDARD, NAMES, 'de'));
+    expect(line(implies('rule-3', ['rule-2']))).toBe('Wer Rule 03 erfüllt, erfüllt auch Rule 02.');
+    expect(line(implies('rule-6', ['rule-4', 'rule-1']))).toBe(
+      'Wer Rule 06 erfüllt, erfüllt auch Rule 01 oder Rule 04.'
+    );
+    expect(line(implies('rule-6', ['rule-1'], ['rule-5']))).toBe(
+      'Wer Rule 06 und Rule 05 erfüllt, erfüllt auch Rule 01.'
+    );
+    expect(line(impliedBy('rule-4', ['rule-2'], ['group-1']))).toBe(
+      'Wer Rule 02 erfüllt, erfüllt auch Rule 04 oder Group 01.'
+    );
+    expect(line(impliedBy('rule-4', [], ['group-1']))).toBe('Alle erfüllen Rule 04 oder Group 01.');
+  });
+
+  it('reads U02 and U05 in German, and adds the all_meet notice (W8, §3.2)', () => {
+    const findings = [
+      same('rule-6', 'rule-3'),
+      conflicting('group-3', { type: 'members', operator: 'and', items: ['rule-4', 'rule-5'] }),
+      ...conflictSet(['rule-4', 'rule-5']),
+    ];
+    const banner = bannerOf(check(findings), STANDARD, NAMES, 'de');
+    expect(head(banner)).toBe('2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat');
+    expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
+      'Sub-group 01: Rule 04 und Rule 05 widersprechen einander.',
+      'Rule 06 ist identisch mit Rule 03.',
+    ]);
+    expect(head(bannerOf(check([alwaysMet('rule-1')], ALL_MEET), STANDARD, NAMES, 'de'))).toBe(
+      'Alle erfüllen Rule 01, daher prüft sie nichts. Alle erfüllen die Regeln von Standard.'
+    );
+    expect(
+      head(
+        bannerOf(
+          check([alwaysMet('rule-1'), same('rule-6', 'rule-3')], ALL_MEET),
+          STANDARD,
+          NAMES,
+          'de'
+        )
+      )
+    ).toBe(
+      '1 Regel ist ein Duplikat, und 1 Regel ist immer erfüllt. Alle erfüllen die Regeln von ' +
+        'Standard.'
+    );
+  });
 });
 
 describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
@@ -781,6 +1219,33 @@ describe('dialogLineOf (US4; FR-017, FR-019; W10; design-notes.md §6)', () => {
     expect(dialogLineOf(check([], null, { complete: false }), 'Standard')).toBeNull();
     expect(dialogLineOf(check(u02, NONE_CAN_MEET, { checkedRules: 0 }), 'Standard')).toBeNull();
   });
+
+  it('reads the dialog’s lines in German, a full sentence after "<variant>: "', () => {
+    expect(dialogLineOf(check(u02), 'Ambulance', 'de')).toBe(
+      'Ambulance: 2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat.'
+    );
+    expect(dialogLineOf(check([same('rule-6', 'rule-3')]), 'Standard', 'de')).toBe(
+      'Standard: 1 Regel ist ein Duplikat.'
+    );
+    expect(dialogLineOf(check([alwaysMet('rule-5')]), 'Standard', 'de')).toBe(
+      'Standard: 1 Regel ist immer erfüllt.'
+    );
+    expect(dialogLineOf(check(u02, NONE_CAN_MEET), 'Ambulance', 'de')).toBe(
+      'Ambulance: Niemand kann diese Regeln erfüllen. ' +
+        '2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat.'
+    );
+    expect(dialogLineOf(check(u02, NONE_CAN_MEET_TODAY), 'Ambulance', 'de')).toBe(
+      'Ambulance: Derzeit kann niemand diese Regeln erfüllen. ' +
+        '2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat.'
+    );
+    expect(dialogLineOf(check([], ALL_MEET), 'Ambulance', 'de')).toBe(
+      'Ambulance: Alle erfüllen diese Regeln.'
+    );
+    expect(dialogLineOf(check([same('rule-6', 'rule-3')], ALL_MEET), 'Standard', 'de')).toBe(
+      'Standard: Alle erfüllen diese Regeln. 1 Regel ist ein Duplikat.'
+    );
+    expect(dialogLineOf(check([]), 'Standard', 'de')).toBeNull();
+  });
 });
 
 describe('noticeText (spec 004, FR-018)', () => {
@@ -798,12 +1263,29 @@ describe('noticeText (spec 004, FR-018)', () => {
       'Every citizen meets the rules of Standard.'
     );
   });
+
+  it('words the notices in German (glossary §3)', () => {
+    expect(noticeText({ kind: 'none_can_meet', today: false }, 'Standard', 'de')).toBe(
+      'Niemand kann die Regeln von Standard erfüllen.'
+    );
+    expect(noticeText({ kind: 'none_can_meet', today: true }, 'Standard', 'de')).toBe(
+      'Derzeit kann niemand die Regeln von Standard erfüllen.'
+    );
+    expect(noticeText({ kind: 'all_meet', today: false }, 'Standard', 'de')).toBe(
+      'Alle erfüllen die Regeln von Standard.'
+    );
+  });
 });
 
 describe('tabLabelOf', () => {
   it('reads "<variant> has findings" (A6)', () => {
     expect(tabLabelOf('Standard')).toBe('Standard has findings');
     expect(tabLabelOf('Ambulance')).toBe('Ambulance has findings');
+  });
+
+  it('reads "<variant> hat Befunde" in German (glossary §2)', () => {
+    expect(tabLabelOf('Standard', 'de')).toBe('Standard hat Befunde');
+    expect(tabLabelOf('Ambulance', 'de')).toBe('Ambulance hat Befunde');
   });
 });
 
@@ -867,6 +1349,37 @@ describe('tabFindingsOf', () => {
 
   it('is null without a banner', () => {
     expect(tabFindingsOf(check([]), STANDARD, NAMES)).toBeNull();
+  });
+
+  it('reads the tooltip’s segment in German, with the one line’s label (W20)', () => {
+    expect(
+      tabFindingsOf(check(conflictSet(['rule-1', 'rule-2']), NONE_CAN_MEET), STANDARD, NAMES, 'de')
+    ).toEqual({
+      kind: 'warning',
+      text:
+        '1 Widerspruch: Rule 01 und Rule 02 widersprechen einander, daher kann niemand die ' +
+        'Regeln von Standard erfüllen.',
+    });
+    const findings = [...conflictSet(['rule-1', 'rule-2']), ...conflictSet(['rule-5', 'rule-6'])];
+    expect(tabFindingsOf(check(findings), STANDARD, NAMES, 'de')?.text).toBe(
+      '4 Regeln widersprechen einander'
+    );
+    expect(tabFindingsOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES, 'de')?.text).toBe(
+      '1 Duplikat: Rule 06 ist identisch mit Rule 03.'
+    );
+    expect(
+      tabFindingsOf(check([impliedBy('group-1', ['rule-1'])]), STANDARD, NAMES, 'de')?.text
+    ).toBe('1 Befund: Wer Rule 01 erfüllt, erfüllt auch Group 01.');
+    expect(tabFindingsOf(check([alwaysMet('group-1')], ALL_MEET), STANDARD, NAMES, 'de')).toEqual({
+      kind: 'info',
+      text:
+        '1 Befund: Alle erfüllen Group 01, daher prüft sie nichts. Alle erfüllen die Regeln ' +
+        'von Standard.',
+    });
+    expect(tabFindingsOf(check([], null, { complete: false }), AMBULANCE, NAMES, 'de')?.text).toBe(
+      'Die Regeln von Ambulance konnten nicht vollständig geprüft werden. Nur sichere Befunde ' +
+        'werden angezeigt.'
+    );
   });
 });
 
@@ -1001,6 +1514,108 @@ describe('announcementOf', () => {
     );
     expect(announce(gone(withItems('rule-9', ['rule-2'])))).toBe('');
     expect(announce(appeared(withItems('rule-9', ['rule-2'])))).toBe('');
+  });
+
+  function announceDe(change: FindingChange): string {
+    return announcementOf(change, NAMES, STANDARD.key, 'de');
+  }
+
+  it('announces conflicts in German (FR-015)', () => {
+    expect(announceDe(appeared(withItems('rule-2', ['rule-1'])))).toBe(
+      'Rule 02 widerspricht Rule 01.'
+    );
+    expect(announceDe(gone(withItems('rule-2', ['rule-1'])))).toBe(
+      'Rule 02 widerspricht Rule 01 nicht mehr.'
+    );
+    expect(announceDe(appeared(withItems('rule-1', ['rule-2', 'rule-3', 'rule-4'])))).toBe(
+      'Rule 01 widerspricht Rule 02, Rule 03 und Rule 04.'
+    );
+    expect(announceDe(appeared(withItems('rule-2', ['rule-1'], true)))).toBe(
+      'Rule 02 widerspricht Rule 01 im Moment.'
+    );
+    const finding = conflicting('rule-3', { type: 'condition' });
+    expect(announceDe(appeared(finding))).toBe('Niemand kann Rule 03 erfüllen.');
+    expect(announceDe(appeared({ ...finding, today: true }))).toBe(
+      'Derzeit kann niemand Rule 03 erfüllen.'
+    );
+    expect(announceDe(gone(finding))).toBe('Rule 03 ist nicht mehr widersprüchlich.');
+  });
+
+  it('words groups in German as design-notes.md §5 says', () => {
+    expect(announceDe(appeared(withItems('group-3', ['rule-1'])))).toBe(
+      'Sub-group 01 widerspricht Rule 01.'
+    );
+    const own = conflicting('group-3', {
+      type: 'members',
+      operator: 'and',
+      items: ['rule-4', 'rule-5'],
+    });
+    expect(announceDe(appeared(own))).toBe(
+      'Rule 04 und Rule 05 in Sub-group 01 widersprechen einander.'
+    );
+    expect(announceDe(appeared({ ...own, today: true }))).toBe(
+      'Rule 04 und Rule 05 in Sub-group 01 widersprechen einander im Moment.'
+    );
+    expect(
+      announceDe(
+        appeared(
+          conflicting('group-1', { type: 'members', operator: 'or', items: ['rule-2', 'rule-3'] })
+        )
+      )
+    ).toBe('Weder Rule 02 noch Rule 03 in Group 01 kann erfüllt werden.');
+    expect(
+      announceDe(
+        appeared(
+          conflicting('group-2', {
+            type: 'members',
+            operator: 'or',
+            items: ['rule-4', 'rule-5', 'rule-6'],
+          })
+        )
+      )
+    ).toBe('Keine von Rule 04, Rule 05 und Rule 06 in Group 02 kann erfüllt werden.');
+    expect(announceDe(gone(own))).toBe('Sub-group 01 ist nicht mehr widersprüchlich.');
+  });
+
+  it('announces redundant and always-met findings and the notices in German', () => {
+    expect(announceDe(appeared(same('rule-6', 'rule-3')))).toBe(
+      'Rule 06 ist identisch mit Rule 03.'
+    );
+    expect(announceDe(appeared(impliedBy('rule-1', ['rule-2'])))).toBe(
+      'Rule 01 macht neben Rule 02 keinen Unterschied.'
+    );
+    expect(announceDe(appeared(implies('rule-6', ['rule-1'], ['rule-5'])))).toBe(
+      'Rule 06 macht neben Rule 01 und Rule 05 keinen Unterschied.'
+    );
+    expect(announceDe(gone(same('rule-6', 'rule-3')))).toBe('Rule 06 ist nicht mehr redundant.');
+    expect(announceDe(appeared(alwaysMet('rule-5')))).toBe('Alle erfüllen Rule 05.');
+    expect(announceDe(gone(alwaysMet('rule-5')))).toBe('Rule 05 ist nicht mehr immer erfüllt.');
+    expect(announceDe({ type: 'notice', branch: STANDARD, notice: ALL_MEET })).toBe(
+      'Alle erfüllen die Regeln von Standard.'
+    );
+    expect(announceDe({ type: 'notice', branch: STANDARD, notice: NONE_CAN_MEET })).toBe(
+      'Niemand kann die Regeln von Standard erfüllen.'
+    );
+    expect(announceDe({ type: 'notice', branch: AMBULANCE, notice: NONE_CAN_MEET_TODAY })).toBe(
+      'Derzeit kann niemand die Regeln von Ambulance erfüllen.'
+    );
+  });
+
+  it('starts a finding in another variant with "In <variant>: " in German too', () => {
+    expect(announceDe(appeared(withItems('rule-2', ['rule-5']), AMBULANCE))).toBe(
+      'In Ambulance: Rule 02 widerspricht Rule 05.'
+    );
+    expect(announceDe(appeared(alwaysMet('group-1'), AMBULANCE))).toBe(
+      'In Ambulance: Alle erfüllen Group 01.'
+    );
+  });
+
+  it('leaves out names that are gone in German, and says nothing without a name', () => {
+    expect(announceDe(gone(withItems('rule-2', ['rule-9'])))).toBe(
+      'Rule 02 ist nicht mehr widersprüchlich.'
+    );
+    expect(announceDe(appeared(withItems('rule-9', ['rule-2'])))).toBe('');
+    expect(announceDe(appeared(same('rule-6', 'rule-9')))).toBe('');
   });
 });
 
@@ -1175,6 +1790,47 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
       )
     ).toBe('');
   });
+
+  it('reads Ambulance’s tab, tooltip and banner in German, its stored names unchanged', () => {
+    expect(tabLabelOf(AMBULANCE.name, 'de')).toBe('Ambulance hat Befunde');
+    expect(tabFindingsOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES, 'de')).toEqual({
+      kind: 'warning',
+      text: '2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat',
+    });
+    expect(
+      tabFindingsOf(ambulance(U03, null, { complete: false }), AMBULANCE, AMBULANCE_NAMES, 'de')
+        ?.text
+    ).toBe(
+      '2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat · nicht vollständig geprüft'
+    );
+    const banner = bannerOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES, 'de');
+    expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
+      'Rule 02 und Rule 05 widersprechen einander.',
+      'Rule 06 ist identisch mit Rule 03.',
+    ]);
+  });
+
+  it('announces a finding in another variant in German (design-notes.md §5)', () => {
+    const appearedIn = (finding: ItemFinding): FindingChange => ({
+      type: 'appeared',
+      branch: AMBULANCE,
+      finding,
+    });
+    expect(announcementOf(appearedIn(AS1[0]), AMBULANCE_NAMES, STANDARD.key, 'de')).toBe(
+      'In Ambulance: Rule 02 widerspricht Rule 05.'
+    );
+    expect(
+      announcementOf(
+        appearedIn(impliedBy('rule-4', ['rule-1'])),
+        AMBULANCE_NAMES,
+        STANDARD.key,
+        'de'
+      )
+    ).toBe('In Ambulance: Rule 04 macht neben Rule 01 keinen Unterschied.');
+    expect(announcementOf(appearedIn(AS1[0]), AMBULANCE_NAMES, AMBULANCE.key, 'de')).toBe(
+      'Rule 02 widerspricht Rule 05.'
+    );
+  });
 });
 
 describe('resolutionOf (spec 007, FR-032; research R14)', () => {
@@ -1337,6 +1993,72 @@ describe('resolutionOf (spec 007, FR-032; research R14)', () => {
       []
     );
   });
+
+  it('words the resolutions in German when asked, though agents get English (FR-017)', () => {
+    const de = (finding: ItemFinding, names = NAMES): string => resolutionOf(finding, names, 'de');
+    expect(de(withItems('rule-3', ['rule-2']))).toBe(
+      'Ändern oder löschen Sie eine von Rule 02 und Rule 03; sie widersprechen einander.'
+    );
+    expect(de(withItems('rule-1', ['rule-2'], true))).toBe(
+      'Ändern oder löschen Sie eine von Rule 01 und Rule 02; sie widersprechen einander im Moment.'
+    );
+    expect(
+      de(conflicting('group-1', { type: 'members', operator: 'or', items: ['rule-2', 'rule-3'] }))
+    ).toBe(
+      'Ändern Sie eine von Rule 02 und Rule 03 so, dass sie erfüllt werden kann, oder löschen ' +
+        'Sie Group 01; keine davon kann erfüllt werden.'
+    );
+    expect(
+      de(conflicting('group-2', { type: 'members', operator: 'and', items: ['group-3'] }, true))
+    ).toBe('Ändern oder löschen Sie Sub-group 01; sie kann im Moment nicht erfüllt werden.');
+    expect(de(conflicting('rule-3', { type: 'condition' }))).toBe(
+      'Ändern oder löschen Sie Rule 03; niemand kann sie erfüllen.'
+    );
+    expect(de(same('rule-6', 'rule-3'))).toBe(
+      'Sie können Rule 06 löschen; Rule 03 deckt sie bereits ab.'
+    );
+    expect(de(impliedBy('rule-6', ['rule-4', 'rule-1']))).toBe(
+      'Sie können Rule 06 löschen; Rule 01 und Rule 04 decken sie bereits ab.'
+    );
+    expect(de(impliedBy('rule-4', ['rule-2'], ['group-1']))).toBe(
+      'Sie können Rule 04 löschen; Group 01 und Rule 02 decken sie bereits ab.'
+    );
+    expect(de(alwaysMet('rule-5'))).toBe(
+      'Die Bedingung von Rule 05 ist immer erfüllt; löschen Sie sie oder machen Sie sie strenger.'
+    );
+    expect(resolutionOf(NONE_CAN_MEET, 'de')).toBe(
+      'Lockern oder löschen Sie eine der Regeln, die niemand zusammen erfüllen kann.'
+    );
+    expect(resolutionOf(NONE_CAN_MEET_TODAY, 'de')).toBe(
+      'Lockern oder löschen Sie eine der Regeln, die im Moment niemand zusammen erfüllen kann.'
+    );
+    expect(resolutionOf(ALL_MEET, 'de')).toBe(
+      'Fügen Sie eine Regel hinzu oder machen Sie eine strenger; in der jetzigen Form ' +
+        'akzeptiert die Variante alle.'
+    );
+  });
+
+  it('never shows an id in German either', () => {
+    const de = (finding: ItemFinding): string => resolutionOf(finding, NAMES, 'de');
+    expect(de(withItems('rule-1', ['rule-9']))).toBe(
+      'Ändern oder löschen Sie eine von Rule 01 und anderen Regeln; sie widersprechen einander.'
+    );
+    expect(de(same('rule-6', 'rule-9'))).toBe(
+      'Sie können Rule 06 löschen; eine andere Regel deckt sie bereits ab.'
+    );
+    expect(de(impliedBy('rule-6', ['rule-9']))).toBe(
+      'Sie können Rule 06 löschen; andere Regeln decken sie bereits ab.'
+    );
+    expect(de(alwaysMet('group-9'))).toBe(
+      'Die Bedingung der Gruppe ist immer erfüllt; löschen Sie sie oder machen Sie sie strenger.'
+    );
+    expect(de(conflicting('rule-9', { type: 'condition' }))).toBe(
+      'Ändern oder löschen Sie die Regel; niemand kann sie erfüllen.'
+    );
+    expect(
+      de(conflicting('group-1', { type: 'members', operator: 'and', items: ['rule-8', 'rule-9'] }))
+    ).toBe('Ändern oder löschen Sie Group 01; sie kann nicht erfüllt werden.');
+  });
 });
 
 describe('every text', () => {
@@ -1419,5 +2141,58 @@ describe('every text', () => {
 
   it('use the redesign’s voice, with typographic apostrophes (design-notes.md §1)', () => {
     expect(texts.filter((text) => OLD_VOICE.test(text) || text.includes("'"))).toEqual([]);
+  });
+
+  // The same texts in German (spec 009, FR-006): every one there, none the English one, and
+  // no English word left in them; the stored names ("Rule 01", "Standard") stay as they are
+  const textsDe = [
+    ...findings.map((finding) => noteOf(finding, NAMES, 'de')),
+    ...findings.flatMap((finding) => [
+      announcementOf({ type: 'appeared', branch: AMBULANCE, finding }, NAMES, STANDARD.key, 'de'),
+      announcementOf({ type: 'gone', branch: AMBULANCE, finding }, NAMES, STANDARD.key, 'de'),
+    ]),
+    ...notices.map((notice) =>
+      announcementOf({ type: 'notice', branch: STANDARD, notice }, NAMES, STANDARD.key, 'de')
+    ),
+    ...notices.flatMap((notice) =>
+      [true, false].flatMap((complete) => {
+        const banner = bannerOf(
+          check(
+            [
+              ...conflictSet(['rule-1', 'rule-2']),
+              ...conflictSet(['rule-5', 'rule-6']),
+              same('rule-4', 'rule-3'),
+              alwaysMet('group-1'),
+              impliedBy('rule-2', ['rule-1']),
+            ],
+            notice,
+            { complete }
+          ),
+          STANDARD,
+          NAMES,
+          'de'
+        );
+        return [
+          head(banner),
+          ...(banner?.lines.map((line) => textOf(line.parts)) ?? []),
+          banner?.notice?.text ?? '',
+        ];
+      })
+    ),
+    ...findings.map(
+      (finding) => tabFindingsOf(check([finding]), STANDARD, NAMES, 'de')?.text ?? ''
+    ),
+    ...notices.flatMap((notice) => [
+      dialogLineOf(check([], notice), AMBULANCE.name, 'de') ?? '',
+      dialogLineOf(check(findings, notice), AMBULANCE.name, 'de') ?? '',
+    ]),
+  ];
+  const ENGLISH_WORDS =
+    /\b(citizen|meets|contradict|conflicts?|also|already|the|and|or|no longer)\b|can’t/;
+
+  it('are all there in German, in German', () => {
+    expect(textsDe.filter((text) => text.length === 0)).toEqual([]);
+    expect(textsDe.filter((text) => ENGLISH_WORDS.test(text) || text.includes("'"))).toEqual([]);
+    expect(textsDe.filter((text) => texts.includes(text))).toEqual([]);
   });
 });

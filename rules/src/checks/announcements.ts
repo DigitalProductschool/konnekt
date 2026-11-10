@@ -1,7 +1,9 @@
 // The announcements of the rule checks (specs/003-rule-consistency-checks, FR-015; data-model.md
 // "Announcements"; design-notes.md §5): what changed between a branch's previous result and its
 // new one, after a change the team member made, worded by `announcementOf()`. Pure, so that the
-// run state's reducer can call it
+// run state's reducer can call it. Composed in `context.language` (spec 009, R4), English by
+// default: the module has no words of its own, `announcementOf()` words every sentence
+import { DEFAULT_LANGUAGE } from '../language';
 import { announcementOf } from './findingMessages';
 import type {
   AnnouncementContext,
@@ -61,7 +63,7 @@ function itemChanges(
 export function findingChanges(
   previous: BranchCheck,
   next: BranchCheck,
-  context: Omit<AnnouncementContext, 'shownBranch'>
+  context: Omit<AnnouncementContext, 'shownBranch' | 'language'>
 ): FindingChange[] {
   const { branch, names } = context;
   const before = new Map(previous.findings.map((finding) => [finding.itemId, finding]));
@@ -99,7 +101,8 @@ export function announcementsFor(
   if (cause !== 'action' || previous === null) {
     return [];
   }
+  const language = context.language ?? DEFAULT_LANGUAGE;
   return findingChanges(previous, next, context)
-    .map((change) => announcementOf(change, context.names, context.shownBranch))
+    .map((change) => announcementOf(change, context.names, context.shownBranch, language))
     .filter((sentence) => sentence.length > 0);
 }

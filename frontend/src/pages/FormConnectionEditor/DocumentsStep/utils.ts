@@ -1,5 +1,6 @@
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
+import type { Language } from '@connection-portal/rules/language';
 
 import { matchesSearch } from '../../../components/ValuesPicker/utils';
 import type { RulesBranch } from '../RulesStep/types';
@@ -7,7 +8,7 @@ import type { PendingRemoval, RemovedDataRule } from '../types';
 import { offeredFieldsOf, removedDataRulesOf } from '../utils';
 import {
   DOCUMENT_GLYPHS,
-  DOCUMENTS_STEP_COPY,
+  DOCUMENTS_COPY,
   GENERIC_DOCUMENT_GLYPHS,
   REMOVAL_DIALOG_COPY,
   SEARCH_CARD_HEIGHTS,
@@ -64,11 +65,11 @@ export function shownDocumentOf(
 }
 
 /** The pager "Document n of m" (U21 #17, U22 #20) and where its arrows lead. */
-export function pagerOf(selectedIndex: number, count: number): DocumentsPager {
+export function pagerOf(selectedIndex: number, count: number, language: Language): DocumentsPager {
   const index = shownIndexOf(selectedIndex, count);
   return {
     index,
-    text: count > 0 ? DOCUMENTS_STEP_COPY.pager(index + 1, count) : '',
+    text: count > 0 ? DOCUMENTS_COPY[language].pager(index + 1, count) : '',
     previousIndex: index > 0 ? index - 1 : null,
     nextIndex: index < count - 1 ? index + 1 : null,
   };
@@ -147,10 +148,9 @@ export function dataCountOf(document: RequestedDocument, documentType: DocumentT
 }
 
 /** "6 of 25 data items chosen", or "No data items chosen yet" (U21 #12, U22 #14). */
-export function dataCountText({ chosen, total }: DataCount): string {
-  return chosen === 0
-    ? DOCUMENTS_STEP_COPY.noDataChosen
-    : DOCUMENTS_STEP_COPY.dataChosen(chosen, total);
+export function dataCountText({ chosen, total }: DataCount, language: Language): string {
+  const copy = DOCUMENTS_COPY[language];
+  return chosen === 0 ? copy.noDataChosen : copy.dataChosen(chosen, total);
 }
 
 /**
@@ -208,33 +208,43 @@ export function removalDialogOf(question: RemovalQuestion | null): RemovalDialog
   return question.rules.length > 0 ? 'rules' : 'confirm';
 }
 
-/** "A", "A and B", "A, B and C": the frames' lists inside a sentence (U24 #22, U26 #24). */
-export function listText(items: readonly string[]): string {
+/**
+ * "A", "A and B", "A, B and C" ("A, B und C"): the frames' lists inside a sentence (U24 #22,
+ * U26 #24).
+ */
+export function listText(items: readonly string[], language: Language): string {
   if (items.length <= 1) {
     return items[0] ?? '';
   }
-  return `${items.slice(0, -1).join(REMOVAL_DIALOG_COPY.comma)}${REMOVAL_DIALOG_COPY.and}${items[items.length - 1]}`;
+  const copy = REMOVAL_DIALOG_COPY[language];
+  return `${items.slice(0, -1).join(copy.comma)}${copy.and}${items[items.length - 1]}`;
 }
 
 /**
  * The rules a removal question names, in one sentence grouped by variant in their order (U24 #22
  * "Rule 02 and Rule 03 in Standard", U26 #24 "Rule 01 in Standard and Rule 05 in Ambulance").
  */
-export function ruleListText(rules: readonly RemovedDataRule[]): string {
+export function ruleListText(rules: readonly RemovedDataRule[], language: Language): string {
   const branches = new Map<string, string[]>();
   for (const { ruleName, branchName } of rules) {
     branches.set(branchName, [...(branches.get(branchName) ?? []), ruleName]);
   }
+  const { rulesIn } = REMOVAL_DIALOG_COPY[language];
   return listText(
-    [...branches].map(([branch, names]) => REMOVAL_DIALOG_COPY.rulesIn(listText(names), branch))
+    [...branches].map(([branch, names]) => rulesIn(listText(names, language), branch)),
+    language
   );
 }
 
 /**
- * A data item's name inside a sentence: its first letter lower case ("date of birth"), unless the
- * name starts with an abbreviation ("UN distinguishing sign").
+ * A data item's name inside a sentence: in English its first letter lower case ("date of birth"),
+ * unless the name starts with an abbreviation ("UN distinguishing sign"); in German as it is,
+ * since German nouns keep their capital („Geburtsdatum“, G§1).
  */
-export function inSentence(label: string): string {
+export function inSentence(label: string, language: Language): string {
+  if (language === 'de') {
+    return label;
+  }
   const [first = '', second = ''] = label;
   return second !== '' && second === second.toUpperCase() && second !== second.toLowerCase()
     ? label
@@ -252,63 +262,60 @@ export function inSentence(label: string): string {
 export function removalDialogCopyOf(
   removal: PendingRemoval | null,
   rules: readonly RemovedDataRule[],
-  editing: boolean
+  editing: boolean,
+  language: Language
 ): RemovalDialogCopy {
   if (removal === null) {
     return { title: '', text: '', cancelLabel: '', confirmLabel: '' };
   }
+  const copy = REMOVAL_DIALOG_COPY[language];
+  const documents = DOCUMENTS_COPY[language];
   const count = rules.length;
   const named = (intro: string) =>
-    count > 0 ? [intro, `${ruleListText(rules)}.`, REMOVAL_DIALOG_COPY.after(count, editing)] : [];
-  const stop = {
-    cancelLabel: REMOVAL_DIALOG_COPY.cancel,
-    confirmLabel: REMOVAL_DIALOG_COPY.stopRequesting,
-  };
+    count > 0 ? [intro, `${ruleListText(rules, language)}.`, copy.after(count, editing)] : [];
+  const stop = { cancelLabel: copy.cancel, confirmLabel: copy.stopRequesting };
   switch (removal.type) {
     case 'document':
       return {
-        title: REMOVAL_DIALOG_COPY.documentTitle(removal.label),
-        text: [
-          REMOVAL_DIALOG_COPY.documentLead,
-          ...named(REMOVAL_DIALOG_COPY.documentRules(count)),
-        ].join(' '),
-        cancelLabel: DOCUMENTS_STEP_COPY.keepDocument,
-        confirmLabel: DOCUMENTS_STEP_COPY.removeDocument,
+        title: copy.documentTitle(removal.label),
+        text: [copy.documentLead, ...named(copy.documentRules(count))].join(' '),
+        cancelLabel: documents.keepDocument,
+        confirmLabel: documents.removeDocument,
       };
     case 'field':
       return {
-        title: REMOVAL_DIALOG_COPY.fieldTitle(removal.label),
+        title: copy.fieldTitle(removal.label),
         text: [
-          REMOVAL_DIALOG_COPY.fieldLead(inSentence(removal.label)),
-          ...named(REMOVAL_DIALOG_COPY.fieldRules(count)),
+          copy.fieldLead(inSentence(removal.label, language)),
+          ...named(copy.fieldRules(count)),
         ].join(' '),
         ...stop,
       };
     case 'allFields':
       return {
-        title: REMOVAL_DIALOG_COPY.allFieldsTitle(removal.label),
-        text: named(REMOVAL_DIALOG_COPY.dataRules(count)).join(' '),
+        title: copy.allFieldsTitle(removal.label),
+        text: named(copy.dataRules(count)).join(' '),
         ...stop,
       };
     case 'dropped':
       return {
-        title: REMOVAL_DIALOG_COPY.fieldTitle(removal.label),
-        text: named(REMOVAL_DIALOG_COPY.dataRules(count)).join(' '),
+        title: copy.fieldTitle(removal.label),
+        text: named(copy.dataRules(count)).join(' '),
         ...stop,
       };
   }
 }
 
 /** "1 document needs data" / "<n> documents need data" (U25 #22). */
-export function needsDataText(count: number): string {
-  return count === 1 ? DOCUMENTS_STEP_COPY.needsDataOne : DOCUMENTS_STEP_COPY.needsDataMany(count);
+export function needsDataText(count: number, language: Language): string {
+  const copy = DOCUMENTS_COPY[language];
+  return count === 1 ? copy.needsDataOne : copy.needsDataMany(count);
 }
 
 /** The dialog's title: "No data selected in 1 document" / "… in <n> documents" (#55). */
-export function noDataTitle(count: number): string {
-  return count === 1
-    ? DOCUMENTS_STEP_COPY.noDataTitleOne
-    : DOCUMENTS_STEP_COPY.noDataTitleMany(count);
+export function noDataTitle(count: number, language: Language): string {
+  const copy = DOCUMENTS_COPY[language];
+  return count === 1 ? copy.noDataTitleOne : copy.noDataTitleMany(count);
 }
 
 /**
@@ -316,17 +323,17 @@ export function noDataTitle(count: number): string {
  * has no data chosen yet. Choose data for it or remove it."; for several, "Personal ID and
  * Driving licence have no data chosen yet. Choose data for them or remove them." (not drawn).
  */
-export function noDataText(documents: readonly string[]): string {
+export function noDataText(documents: readonly string[], language: Language): string {
+  const copy = DOCUMENTS_COPY[language];
   return documents.length === 1
-    ? DOCUMENTS_STEP_COPY.noDataTextOne(documents[0])
-    : DOCUMENTS_STEP_COPY.noDataTextMany(listText(documents));
+    ? copy.noDataTextOne(documents[0])
+    : copy.noDataTextMany(listText(documents, language));
 }
 
 /** The dialog's danger button: "Remove 1 document" / "Remove <n> documents" (#55, F67). */
-export function removeDocumentsLabel(count: number): string {
-  return count === 1
-    ? DOCUMENTS_STEP_COPY.removeDocumentsOne
-    : DOCUMENTS_STEP_COPY.removeDocumentsMany(count);
+export function removeDocumentsLabel(count: number, language: Language): string {
+  const copy = DOCUMENTS_COPY[language];
+  return count === 1 ? copy.removeDocumentsOne : copy.removeDocumentsMany(count);
 }
 
 /** A document type's glyph in a tone (Figma "Icon/Glyph"); the generic document's without one. */

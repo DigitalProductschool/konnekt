@@ -72,4 +72,19 @@ describe('droppedDataOf', () => {
   it('labels a dropped field with its document’s label and its key', () => {
     expect(droppedFieldLabel('Personal ID', 'eye_colour')).toBe('Personal ID – eye_colour');
   });
+
+  it('labels a dropped field in German with the German catalog’s label (spec 009)', () => {
+    expect(droppedFieldLabel('Personalausweis', 'eye_colour', 'de')).toBe(
+      'Personalausweis – eye_colour'
+    );
+    const german = CATALOG.map((documentType) => ({
+      ...documentType,
+      label: documentType.key === 'pid' ? 'Personalausweis' : 'Führerschein',
+    }));
+    expect(droppedDataOf(DOCUMENTS, german, 'de')).toEqual([
+      { ...EYE_COLOUR, label: 'Personalausweis – eye_colour' },
+      { ...SHOE_SIZE, label: 'Personalausweis – shoe_size' },
+      PERMIT,
+    ]);
+  });
 });

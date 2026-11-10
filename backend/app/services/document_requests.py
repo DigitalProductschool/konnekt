@@ -94,22 +94,30 @@ WALLET_ERROR_CODES = frozenset(
 # that the worker's 2-second cycle stays inside the limit (research R8)
 DELETION_MARGIN = timedelta(seconds=60)
 
+# The answers of serviceBW's connection URLs, the only callers of the checks
+# below: plain English whatever the request's language (spec 009, FR-017). The
+# management side's 404 is `form_connections.NOT_FOUND`
 FORM_CONNECTION_NOT_FOUND = {
     'error': 'Not found',
-    'message': 'Form connection not found',
+    'message': 'Form connection not found',  # serviceBW's answer, English
 }
-REQUEST_NOT_FOUND = {'error': 'Not found', 'message': 'Request not found'}
+REQUEST_NOT_FOUND = {
+    'error': 'Not found',
+    'message': 'Request not found',  # serviceBW's answer, English
+}
 UNAVAILABLE_DETAIL = {
     'error': 'unavailable',
+    # serviceBW's answer, English (also a draft's URL, spec 005)
     'message': 'This form connection is deactivated or deleted',
 }
 # A branch's pull URL (spec 002, contracts/integration-api.md "Order of the checks")
 BRANCH_DELETED_DETAIL = {
     'error': 'unavailable',
-    'message': 'This variant was deleted',
+    'message': 'This variant was deleted',  # serviceBW's answer, English
 }
 BRANCH_ADDED_LATER_DETAIL = {
     'error': 'branch_added_later',
+    # serviceBW's answer, English
     'message': "This variant didn't exist when the request was triggered",
 }
 

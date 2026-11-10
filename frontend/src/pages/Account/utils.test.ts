@@ -72,56 +72,77 @@ function loaded(items: AgentAccessItem[]): AccountState {
 
 describe('relativeLastUseOf', () => {
   it('says "just now" within a minute, and for a time ahead of now', () => {
-    expect(relativeLastUseOf('2026-11-06T11:59:30Z', NOW)).toBe('just now');
-    expect(relativeLastUseOf('2026-11-06T12:00:10Z', NOW)).toBe('just now');
+    expect(relativeLastUseOf('2026-11-06T11:59:30Z', NOW, 'en')).toBe('just now');
+    expect(relativeLastUseOf('2026-11-06T12:00:10Z', NOW, 'en')).toBe('just now');
   });
 
   it('counts minutes, then hours', () => {
-    expect(relativeLastUseOf('2026-11-06T11:55:00Z', NOW)).toBe('5 minutes ago');
-    expect(relativeLastUseOf('2026-11-06T11:59:00Z', NOW)).toBe('1 minute ago');
-    expect(relativeLastUseOf('2026-11-06T09:00:00Z', NOW)).toBe('3 hours ago');
+    expect(relativeLastUseOf('2026-11-06T11:55:00Z', NOW, 'en')).toBe('5 minutes ago');
+    expect(relativeLastUseOf('2026-11-06T11:59:00Z', NOW, 'en')).toBe('1 minute ago');
+    expect(relativeLastUseOf('2026-11-06T09:00:00Z', NOW, 'en')).toBe('3 hours ago');
   });
 
   it('counts days, the first one as yesterday', () => {
-    expect(relativeLastUseOf('2026-11-05T10:00:00Z', NOW)).toBe('yesterday');
-    expect(relativeLastUseOf('2026-10-25T12:00:00Z', NOW)).toBe('12 days ago');
+    expect(relativeLastUseOf('2026-11-05T10:00:00Z', NOW, 'en')).toBe('yesterday');
+    expect(relativeLastUseOf('2026-10-25T12:00:00Z', NOW, 'en')).toBe('12 days ago');
   });
 
   it('gives the date and time from 30 days on', () => {
-    expect(relativeLastUseOf(localTime(2026, 10, 6, 12), NOW)).toBe('06.10.2026, 12:00');
+    expect(relativeLastUseOf(localTime(2026, 10, 6, 12), NOW, 'en')).toBe('06.10.2026, 12:00');
+  });
+
+  it('words the same times in German', () => {
+    expect(relativeLastUseOf('2026-11-06T11:59:30Z', NOW, 'de')).toBe('gerade eben');
+    expect(relativeLastUseOf('2026-11-06T11:55:00Z', NOW, 'de')).toBe('vor 5 Minuten');
+    expect(relativeLastUseOf('2026-11-06T11:59:00Z', NOW, 'de')).toBe('vor 1 Minute');
+    expect(relativeLastUseOf('2026-11-06T09:00:00Z', NOW, 'de')).toBe('vor 3 Stunden');
+    expect(relativeLastUseOf('2026-11-05T10:00:00Z', NOW, 'de')).toBe('gestern');
+    expect(relativeLastUseOf('2026-10-25T12:00:00Z', NOW, 'de')).toBe('vor 12 Tagen');
+    expect(relativeLastUseOf(localTime(2026, 10, 6, 12), NOW, 'de')).toBe('06.10.2026, 12:00');
   });
 });
 
 describe('formatDateTime', () => {
   it('writes the date as dd.mm.yyyy with the 24-hour time, padded, midnight as 00', () => {
-    expect(formatDateTime(localTime(2026, 10, 5, 14, 32))).toBe('05.10.2026, 14:32');
-    expect(formatDateTime(localTime(2026, 1, 9, 0, 0))).toBe('09.01.2026, 00:00');
+    expect(formatDateTime(localTime(2026, 10, 5, 14, 32), 'en')).toBe('05.10.2026, 14:32');
+    expect(formatDateTime(localTime(2026, 1, 9, 0, 0), 'en')).toBe('09.01.2026, 00:00');
+    expect(formatDateTime(localTime(2026, 10, 5, 14, 32), 'de')).toBe('05.10.2026, 14:32');
+    expect(formatDateTime(localTime(2026, 1, 9, 0, 0), 'de')).toBe('09.01.2026, 00:00');
   });
 });
 
 describe('nameOf', () => {
   it('names an agent connection by its client and a token by its name', () => {
-    expect(nameOf(agent())).toBe('Claude Code');
-    expect(nameOf(token())).toBe('CI agent');
+    expect(nameOf(agent(), 'en')).toBe('Claude Code');
+    expect(nameOf(token(), 'en')).toBe('CI agent');
   });
 
   it('names one without a name', () => {
-    expect(nameOf(agent({ client_name: null }))).toBe(ACCOUNT_COPY.unnamedAgent);
-    expect(nameOf(token({ name: '  ' }))).toBe(ACCOUNT_COPY.unnamedToken);
+    expect(nameOf(agent({ client_name: null }), 'en')).toBe(ACCOUNT_COPY.en.unnamedAgent);
+    expect(nameOf(token({ name: '  ' }), 'en')).toBe(ACCOUNT_COPY.en.unnamedToken);
+    expect(nameOf(agent({ client_name: null }), 'de')).toBe('Unbenannter Agent');
+    expect(nameOf(token({ name: '  ' }), 'de')).toBe('Unbenanntes Token');
+    expect(nameOf(agent(), 'de')).toBe('Claude Code');
   });
 });
 
 describe('levelNameOf', () => {
   it('uses the full names, from the API or the consent page', () => {
-    expect(levelNameOf('drafts', LEVELS)).toBe('Read and edit drafts');
-    expect(levelNameOf('manage', [])).toBe('Read, edit drafts and manage live connections');
-    expect(levelNameOf('read')).toBe('Read only');
+    expect(levelNameOf('drafts', 'en', LEVELS)).toBe('Read and edit drafts');
+    expect(levelNameOf('manage', 'en', [])).toBe('Read, edit drafts and manage live connections');
+    expect(levelNameOf('read', 'en')).toBe('Read only');
+    expect(levelNameOf('manage', 'de', [])).toBe(
+      'Lesen, Entwürfe bearbeiten und aktive Anbindungen verwalten'
+    );
+    expect(levelNameOf('read', 'de')).toBe('Nur lesen');
+    // The API's levels win: they come in the language they were asked in
+    expect(levelNameOf('drafts', 'de', LEVELS)).toBe('Read and edit drafts');
   });
 });
 
 describe('rowTextsOf', () => {
   it('says when an agent connected and that it was never used', () => {
-    expect(rowTextsOf(agent(), NOW, LEVELS)).toEqual({
+    expect(rowTextsOf(agent(), NOW, 'en', LEVELS)).toEqual({
       name: 'Claude Code',
       level: 'Read only',
       since: { prefix: 'Connected', date: '05.10.2026, 12:00', datetime: agent().created_at },
@@ -131,13 +152,28 @@ describe('rowTextsOf', () => {
   });
 
   it('says when a token was created, expires and was last used', () => {
-    expect(rowTextsOf(token(), NOW)).toEqual({
+    expect(rowTextsOf(token(), NOW, 'en')).toEqual({
       name: 'CI agent',
       level: 'Read and edit drafts',
       since: { prefix: 'Created', date: '01.11.2026, 09:05', datetime: token().created_at },
       expires: { prefix: 'Expires', date: '01.12.2026, 00:00', datetime: token().expires_at },
       lastUse: { prefix: 'Last used', date: '5 minutes ago', datetime: '2026-11-06T11:55:00Z' },
     });
+  });
+
+  it('says the same in German', () => {
+    expect(rowTextsOf(token(), NOW, 'de')).toEqual({
+      name: 'CI agent',
+      level: 'Lesen und Entwürfe bearbeiten',
+      since: { prefix: 'Erstellt am', date: '01.11.2026, 09:05', datetime: token().created_at },
+      expires: { prefix: 'Gültig bis', date: '01.12.2026, 00:00', datetime: token().expires_at },
+      lastUse: {
+        prefix: 'Zuletzt verwendet',
+        date: 'vor 5 Minuten',
+        datetime: '2026-11-06T11:55:00Z',
+      },
+    });
+    expect(rowTextsOf(agent(), NOW, 'de').since.prefix).toBe('Verbunden am');
   });
 });
 
@@ -150,6 +186,23 @@ describe('accountReducer', () => {
     expect(state.now).toBe(NOW);
   });
 
+  it('takes the levels’ words again after a switch, keeping the rest', () => {
+    const before = accountReducer(loaded([agent()]), {
+      type: 'levelDialogOpened',
+      item: agent(),
+    });
+    const german: AccessLevelInfo[] = [{ level: 'read', name: 'Nur lesen', allows: '…' }];
+    const after = accountReducer(before, { type: 'levelsLoaded', levels: german });
+    expect(after).toEqual({ ...before, levels: german });
+  });
+
+  it('words a toast in the language of the moment', () => {
+    const item = agent();
+    let state = accountReducer(loaded([item]), { type: 'revokeDialogOpened', item });
+    state = accountReducer(state, { type: 'revoked', id: item.id, language: 'de' });
+    expect(state.toast).toEqual({ id: 1, message: 'Zugriff widerrufen.' });
+  });
+
   it('opens "Change access level" with the current level, and changes it', () => {
     const item = agent({ access_level: 'drafts' });
     let state = accountReducer(loaded([item]), { type: 'levelDialogOpened', item });
@@ -158,12 +211,23 @@ describe('accountReducer', () => {
     state = accountReducer(state, { type: 'submitted' });
     expect(state.busy).toBe(true);
     const changed = { ...item, access_level: 'manage' as const };
-    state = accountReducer(state, { type: 'levelChanged', item: changed });
+    state = accountReducer(state, { type: 'levelChanged', item: changed, language: 'en' });
     expect(state.items).toEqual([changed]);
     expect(state.dialog).toBeNull();
     expect(state.busy).toBe(false);
-    expect(state.toast).toEqual({ id: 1, message: ACCOUNT_COPY.levelChanged });
+    expect(state.toast).toEqual({ id: 1, kind: 'success', message: ACCOUNT_COPY.en.levelChanged });
   });
+
+  it.each(['en', 'de'] as const)(
+    'styles the toasts by their action, not their text (%s)',
+    (language) => {
+      const item = agent();
+      const changed = accountReducer(loaded([item]), { type: 'levelChanged', item, language });
+      expect(changed.toast?.kind).toBe('success');
+      const revoked = accountReducer(loaded([item]), { type: 'revoked', id: item.id, language });
+      expect(revoked.toast).not.toHaveProperty('kind');
+    }
+  );
 
   it('keeps a dialog open while its request runs, and shows why it failed', () => {
     const item = agent();
@@ -184,11 +248,11 @@ describe('accountReducer', () => {
     const second = token();
     let state = loaded([first, second]);
     state = accountReducer(state, { type: 'revokeDialogOpened', item: first });
-    state = accountReducer(state, { type: 'revoked', id: first.id });
+    state = accountReducer(state, { type: 'revoked', id: first.id, language: 'en' });
     expect(state.items).toEqual([second]);
-    expect(state.toast).toEqual({ id: 1, message: ACCOUNT_COPY.revoked });
+    expect(state.toast).toEqual({ id: 1, message: ACCOUNT_COPY.en.revoked });
     state = accountReducer(state, { type: 'toastDismissed' });
-    state = accountReducer(state, { type: 'revoked', id: second.id });
+    state = accountReducer(state, { type: 'revoked', id: second.id, language: 'en' });
     expect(state.toast?.id).toBe(2);
   });
 
@@ -216,6 +280,7 @@ describe('accountReducer', () => {
     state = accountReducer(state, {
       type: 'tokenCreated',
       created: { item: created, token: 'cp_secret' },
+      language: 'en',
     });
     expect(state.items[0]).toBe(created);
     expect(state.dialog).toEqual({ type: 'tokenCreated', name: 'New', token: 'cp_secret' });

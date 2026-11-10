@@ -3,9 +3,11 @@ import type {
   AccessLevelInfo,
   AgentAccessItem,
 } from '@connection-portal/api-types/agent-access';
+import type { Language } from '@connection-portal/rules/language';
 
 import { ACCESS_LEVELS } from '../../components/AccessLevelChoice/constants';
-import { SAVED_TIME_FORMAT } from '../FormConnectionDetail/constants';
+import type { ToastKind } from '../../components/Toast/types';
+import { SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';
 import { formatRowDate } from '../FormConnectionList/utils';
 import {
   ACCOUNT_COPY,
@@ -14,31 +16,40 @@ import {
   INITIAL_TOKEN_FORM,
   MINUTE_MS,
   RELATIVE_DAYS_LIMIT,
-  RELATIVE_TIME_FORMAT,
+  RELATIVE_TIME_FORMATS,
 } from './constants';
 import type { AccountAction, AccountState, RowTexts } from './types';
 
 /**
  * A row's date with the 24-hour time of the browser's time zone, "05.10.2026, 14:32" (cosmetic 3,
- * design-notes §3 "Dates": the overview's `formatRowDate`, the time as the draft details add it)
+ * design-notes §3 "Dates": the overview's `formatRowDate`, the time as the draft details add it);
+ * the same in both languages
  */
-export function formatDateTime(timestamp: string): string {
-  return `${formatRowDate(timestamp)}, ${SAVED_TIME_FORMAT.format(new Date(timestamp))}`;
+export function formatDateTime(timestamp: string, language: Language): string {
+  const time = SAVED_TIME_FORMATS[language].format(new Date(timestamp));
+  return `${formatRowDate(timestamp)}, ${time}`;
 }
 
-/** The client's name for an agent connection, the token's name for a token */
-export function nameOf(item: AgentAccessItem): string {
+/** The client's name for an agent connection, the token's name for a token (content, FR-007) */
+export function nameOf(item: AgentAccessItem, language: Language): string {
   if (item.kind === 'oauth') {
-    return item.client_name?.trim() || ACCOUNT_COPY.unnamedAgent;
+    return item.client_name?.trim() || ACCOUNT_COPY[language].unnamedAgent;
   }
-  return item.name?.trim() || ACCOUNT_COPY.unnamedToken;
+  return item.name?.trim() || ACCOUNT_COPY[language].unnamedToken;
 }
 
-/** An access level's full name, from the API's levels or, without them, the consent page's */
-export function levelNameOf(level: AccessLevel, levels: AccessLevelInfo[] = ACCESS_LEVELS): string {
+/**
+ * An access level's full name, from the API's levels (in the language they were asked in) or,
+ * without them, the consent page's in `language`
+ */
+export function levelNameOf(
+  level: AccessLevel,
+  language: Language,
+  levels: AccessLevelInfo[] = ACCESS_LEVELS[language]
+): string {
   return (
     levels.find((info) => info.level === level)?.name ??
-    ACCESS_LEVELS.find((info) => info.level === level)?.name ??
+    ACCESS_LEVELS[language].find((info) => info.level === level)?.name ??
     level
   );
 }
@@ -46,24 +57,26 @@ export function levelNameOf(level: AccessLevel, levels: AccessLevelInfo[] = ACCE
 /**
  * When an agent last called, counted from `now`: "just now" within a minute, then "5 minutes
  * ago", "3 hours ago", "yesterday", "12 days ago", and from 30 days on the date and time
- * ("06.10.2026, 12:00"). A time after `now`, from a clock that runs ahead, is "just now"
+ * ("06.10.2026, 12:00"). A time after `now`, from a clock that runs ahead, is "just now". In
+ * German "gerade eben", "vor 5 Minuten", "vor 3 Stunden", "gestern", "vor 12 Tagen"
  */
-export function relativeLastUseOf(lastUsedAt: string, now: Date): string {
+export function relativeLastUseOf(lastUsedAt: string, now: Date, language: Language): string {
+  const format = RELATIVE_TIME_FORMATS[language];
   const elapsed = now.getTime() - new Date(lastUsedAt).getTime();
   if (elapsed < MINUTE_MS) {
-    return ACCOUNT_COPY.justNow;
+    return ACCOUNT_COPY[language].justNow;
   }
   if (elapsed < HOUR_MS) {
-    return RELATIVE_TIME_FORMAT.format(-Math.floor(elapsed / MINUTE_MS), 'minute');
+    return format.format(-Math.floor(elapsed / MINUTE_MS), 'minute');
   }
   if (elapsed < DAY_MS) {
-    return RELATIVE_TIME_FORMAT.format(-Math.floor(elapsed / HOUR_MS), 'hour');
+    return format.format(-Math.floor(elapsed / HOUR_MS), 'hour');
   }
   const days = Math.floor(elapsed / DAY_MS);
   if (days < RELATIVE_DAYS_LIMIT) {
-    return RELATIVE_TIME_FORMAT.format(-days, 'day');
+    return format.format(-days, 'day');
   }
-  return formatDateTime(lastUsedAt);
+  return formatDateTime(lastUsedAt, language);
 }
 
 /**
@@ -74,39 +87,45 @@ export function relativeLastUseOf(lastUsedAt: string, now: Date): string {
 export function rowTextsOf(
   item: AgentAccessItem,
   now: Date,
-  levels: AccessLevelInfo[] = ACCESS_LEVELS
+  language: Language,
+  levels?: AccessLevelInfo[]
 ): RowTexts {
+  const copy = ACCOUNT_COPY[language];
   const token = item.kind === 'token';
   return {
-    name: nameOf(item),
-    level: levelNameOf(item.access_level, levels),
+    name: nameOf(item, language),
+    level: levelNameOf(item.access_level, language, levels),
     since: {
-      prefix: token ? ACCOUNT_COPY.created : ACCOUNT_COPY.connected,
-      date: formatDateTime(item.created_at),
+      prefix: token ? copy.created : copy.connected,
+      date: formatDateTime(item.created_at, language),
       datetime: item.created_at,
     },
     expires:
       token && item.expires_at
         ? {
-            prefix: ACCOUNT_COPY.expires,
-            date: formatDateTime(item.expires_at),
+            prefix: copy.expires,
+            date: formatDateTime(item.expires_at, language),
             datetime: item.expires_at,
           }
         : null,
     lastUse: item.last_used_at
       ? {
-          prefix: ACCOUNT_COPY.lastUsed,
-          date: relativeLastUseOf(item.last_used_at, now),
+          prefix: copy.lastUsed,
+          date: relativeLastUseOf(item.last_used_at, now, language),
           datetime: item.last_used_at,
         }
       : null,
   };
 }
 
-/** The page's toast, each with its own id so that it gets its own timer */
-function withToast(state: AccountState, message: string): AccountState {
+/**
+ * The page's toast, each with its own id so that it gets its own timer; `kind` is left out for
+ * the neutral toast (R10: the style rests on a code, not on the toast's text)
+ */
+function withToast(state: AccountState, message: string, kind?: ToastKind): AccountState {
   const toastCount = state.toastCount + 1;
-  return { ...state, toast: { id: toastCount, message }, toastCount };
+  const toast = kind ? { id: toastCount, kind, message } : { id: toastCount, message };
+  return { ...state, toast, toastCount };
 }
 
 /** A dialog closes and its request's state goes with it */
@@ -118,7 +137,8 @@ function withoutDialog(state: AccountState): AccountState {
  * The user page's state: the list, the open dialog with its fields, the running request, the
  * dialog's error and the toast. A dialog can't close or open another while its request runs. The
  * token's secret stays in the `tokenCreated` dialog until it closes; the list gets the token
- * without it, and no toast ever holds it
+ * without it, and no toast ever holds it. A toast is worded in the language of the moment it
+ * appears and keeps it
  */
 export function accountReducer(state: AccountState, action: AccountAction): AccountState {
   switch (action.type) {
@@ -133,6 +153,8 @@ export function accountReducer(state: AccountState, action: AccountAction): Acco
       };
     case 'loadFailed':
       return { ...state, status: 'failed', loadError: action.error };
+    case 'levelsLoaded':
+      return { ...state, levels: action.levels };
     case 'levelDialogOpened':
       return state.busy
         ? state
@@ -195,12 +217,14 @@ export function accountReducer(state: AccountState, action: AccountAction): Acco
           ...withoutDialog(state),
           items: state.items.map((item) => (item.id === action.item.id ? action.item : item)),
         },
-        ACCOUNT_COPY.levelChanged
+        ACCOUNT_COPY[action.language].levelChanged,
+        // A finished save: the green toast (design-notes §3 "Toast")
+        'success'
       );
     case 'revoked':
       return withToast(
         { ...withoutDialog(state), items: state.items.filter((item) => item.id !== action.id) },
-        ACCOUNT_COPY.revoked
+        ACCOUNT_COPY[action.language].revoked
       );
     case 'tokenCreated':
       return {
@@ -211,7 +235,7 @@ export function accountReducer(state: AccountState, action: AccountAction): Acco
         items: [action.created.item, ...state.items],
         dialog: {
           type: 'tokenCreated',
-          name: nameOf(action.created.item),
+          name: nameOf(action.created.item, action.language),
           token: action.created.token,
         },
       };

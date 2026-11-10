@@ -3,36 +3,81 @@ import { useEffect, useReducer } from 'react';
 
 import { getDocumentTypes } from '../api/document-types';
 import type { DocumentTypesState } from './types';
+import { useLanguage } from './useLanguage';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
-import { documentTypesReducer, INITIAL_DOCUMENT_TYPES_STATE } from './utils';
+import {
+  catalogViewOf,
+  documentTypesReducer,
+  fetchLanguageOf,
+  initialCatalogCacheState,
+  prefetchLanguageOf,
+} from './utils';
 
-/** The document type catalog from GET /api/document-types, with a way to retry. */
+/**
+ * The document type catalog from GET /api/document-types in the website's language, with a way
+ * to retry. Cached per language (spec 009, research R6, V9): the current language's catalog
+ * first, then the other language's in the background, so that a switch shows its labels at once;
+ * until they are there, the other language's catalog stays on screen. Once a catalog has been on
+ * screen, `status` stays `'loaded'` (FR-003: a switch keeps every state of the screen), and a
+ * failure of either fetch is silent and tried again on the next switch; before that, it is loading,
+ * loaded or failed with `retry`, as before the feature (`catalogViewOf()`).
+ */
 export function useDocumentTypes(): {
   status: DocumentTypesState['status'];
   documentTypes: DocumentType[];
   retry: () => void;
 } {
-  const [state, dispatch] = useReducer(documentTypesReducer, INITIAL_DOCUMENT_TYPES_STATE);
+  const { language } = useLanguage();
+  const [state, dispatch] = useReducer(
+    documentTypesReducer,
+    language,
+    initialCatalogCacheState<DocumentType>
+  );
   const handleUnauthorized = useSignOutOnUnauthorized();
+  const fetching = fetchLanguageOf(state);
+  const prefetching = prefetchLanguageOf(state);
 
   useEffect(() => {
+    dispatch({ type: 'language', language });
+  }, [language]);
+
+  useEffect(() => {
+    if (fetching === null) return;
     let ignore = false;
-    getDocumentTypes().then(
-      (documentTypes) => {
-        if (!ignore) dispatch({ type: 'loaded', documentTypes });
+    getDocumentTypes(fetching).then(
+      (items) => {
+        if (!ignore) dispatch({ type: 'loaded', language: fetching, items });
       },
       (error: unknown) => {
-        if (!ignore && !handleUnauthorized(error)) dispatch({ type: 'failed' });
+        if (!ignore && !handleUnauthorized(error)) dispatch({ type: 'failed', language: fetching });
       }
     );
     return () => {
       ignore = true;
     };
-  }, [state.attempt, handleUnauthorized]);
+  }, [fetching, state.attempt, handleUnauthorized]);
 
+  // The other language's catalog, once the current one is there; its failure shows nothing
+  useEffect(() => {
+    if (prefetching === null) return;
+    let ignore = false;
+    getDocumentTypes(prefetching).then(
+      (items) => {
+        if (!ignore) dispatch({ type: 'loaded', language: prefetching, items });
+      },
+      () => {
+        if (!ignore) dispatch({ type: 'failed', language: prefetching });
+      }
+    );
+    return () => {
+      ignore = true;
+    };
+  }, [prefetching]);
+
+  const view = catalogViewOf(state);
   return {
-    status: state.status,
-    documentTypes: state.documentTypes,
+    status: view.status,
+    documentTypes: view.items,
     retry: () => dispatch({ type: 'retry' }),
   };
 }

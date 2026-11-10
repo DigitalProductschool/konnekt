@@ -1,8 +1,13 @@
+import type { ConnectionStepKey } from '../../constants';
+
 export type WizardStepState = 'done' | 'current' | 'todo';
 
 export interface WizardProgressProps {
-  /** The step names, in order (`CONNECTION_STEPS`: four, FR-025) */
-  steps: readonly string[];
+  /**
+   * The steps' keys, in order (`CONNECTION_STEPS`: four, FR-025); their names come from
+   * `CONNECTION_STEP_LABELS`
+   */
+  steps: readonly ConnectionStepKey[];
   /**
    * The index of the current step. Past the last step (the details, where Publish has been a
    * dialog) there is no step line (FR-025)

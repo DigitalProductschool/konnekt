@@ -131,30 +131,44 @@ describe('rowMetaOf (FR-048, FR-052d)', () => {
   });
 
   it('reads "Edited <date>" for a published connection, active or deactivated', () => {
-    expect(rowMetaOf({ status: 'published', updated_at: noon })).toBe('Edited 28.10.2026');
-    expect(rowMetaOf({ status: 'published', updated_at: noon, step: 'rules' })).toBe(
+    expect(rowMetaOf({ status: 'published', updated_at: noon }, 'en')).toBe('Edited 28.10.2026');
+    expect(rowMetaOf({ status: 'published', updated_at: noon, step: 'rules' }, 'en')).toBe(
       'Edited 28.10.2026'
     );
   });
 
   it('adds the step a draft was saved in (FR-052d: "Edited 28.10.2026 · Rules step")', () => {
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'rules' })).toBe(
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'rules' }, 'en')).toBe(
       'Edited 28.10.2026 · Rules step'
     );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'connection' })).toBe(
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'connection' }, 'en')).toBe(
       'Edited 28.10.2026 · Connection step'
     );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'documents' })).toBe(
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'documents' }, 'en')).toBe(
       'Edited 28.10.2026 · Documents step'
     );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'test' })).toBe(
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'test' }, 'en')).toBe(
       'Edited 28.10.2026 · Test step'
     );
   });
 
+  it('reads the meta in German, the date unchanged (spec 009, FR-012)', () => {
+    expect(rowMetaOf({ status: 'published', updated_at: noon }, 'de')).toBe(
+      'Bearbeitet 28.10.2026'
+    );
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'rules' }, 'de')).toBe(
+      'Bearbeitet 28.10.2026 · Schritt „Regeln“'
+    );
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'test' }, 'de')).toBe(
+      'Bearbeitet 28.10.2026 · Schritt „Test“'
+    );
+  });
+
   it('reads "Edited <date>" alone for a draft whose step is unknown', () => {
-    expect(rowMetaOf({ status: 'draft', updated_at: noon })).toBe('Edited 28.10.2026');
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: null })).toBe('Edited 28.10.2026');
+    expect(rowMetaOf({ status: 'draft', updated_at: noon }, 'en')).toBe('Edited 28.10.2026');
+    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: null }, 'en')).toBe(
+      'Edited 28.10.2026'
+    );
   });
 });
 
@@ -163,7 +177,10 @@ describe('rowMetaOf (FR-048, FR-052d)', () => {
 describe('deleteDialogCopyOf (FR-029c)', () => {
   it('keeps the draft’s own body', () => {
     expect(
-      deleteDialogCopyOf(summary({ name: 'Hunting licence', status: 'draft', is_active: true }))
+      deleteDialogCopyOf(
+        summary({ name: 'Hunting licence', status: 'draft', is_active: true }),
+        'en'
+      )
     ).toEqual({
       title: 'Delete “Hunting licence”?',
       text: 'Hunting licence will be deleted for good. It was never live, so nothing changes for serviceBW.',
@@ -171,17 +188,35 @@ describe('deleteDialogCopyOf (FR-029c)', () => {
   });
 
   it('warns that an active connection’s links stop working', () => {
-    expect(deleteDialogCopyOf(summary({ name: 'Fishing licence' }))).toEqual({
+    expect(deleteDialogCopyOf(summary({ name: 'Fishing licence' }), 'en')).toEqual({
       title: 'Delete “Fishing licence”?',
       text: 'This connection is active. Citizens won’t be able to use it, and its links stop working.',
     });
   });
 
   it('says a deactivated connection’s documents and rules go too', () => {
-    expect(deleteDialogCopyOf(summary({ name: 'Parking', is_active: false }))).toEqual({
+    expect(deleteDialogCopyOf(summary({ name: 'Parking', is_active: false }), 'en')).toEqual({
       title: 'Delete “Parking”?',
       text: 'Its documents and rules will be deleted too.',
     });
+  });
+
+  it('words the title and every body in German (spec 009)', () => {
+    expect(
+      deleteDialogCopyOf(
+        summary({ name: 'Hunting licence', status: 'draft', is_active: true }),
+        'de'
+      )
+    ).toEqual({
+      title: '„Hunting licence“ löschen?',
+      text: 'Hunting licence wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für serviceBW nichts.',
+    });
+    expect(deleteDialogCopyOf(summary({ name: 'Fishing licence' }), 'de').text).toBe(
+      'Diese Anbindung ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen, und ihre Links funktionieren nicht mehr.'
+    );
+    expect(deleteDialogCopyOf(summary({ name: 'Parking', is_active: false }), 'de').text).toBe(
+      'Die Dokumente und Regeln der Anbindung werden ebenfalls gelöscht.'
+    );
   });
 });
 
@@ -254,7 +289,7 @@ describe('rowDeleteReducer (FR-028, FR-029c)', () => {
 describe('rowDeleteFailureOf (FR-008)', () => {
   it('keeps the API’s message and a 5xx answer’s error ID', () => {
     const error = new ApiError(500, { error: 'internal', message: 'Failed.', error_id: 'e-9' });
-    expect(rowDeleteFailureOf(error)).toEqual({
+    expect(rowDeleteFailureOf(error, 'en')).toEqual({
       error: { message: 'Failed.', error_id: 'e-9' },
       stale: false,
     });
@@ -263,14 +298,23 @@ describe('rowDeleteFailureOf (FR-008)', () => {
   it('marks the list out of date when the row was deleted or published meanwhile', () => {
     const gone = new ApiError(404, { error: 'not_found', message: 'Not found.' });
     const published = new ApiError(409, { error: 'draft_published', message: 'Published.' });
-    expect(rowDeleteFailureOf(gone).stale).toBe(true);
-    expect(rowDeleteFailureOf(published).stale).toBe(true);
+    expect(rowDeleteFailureOf(gone, 'en').stale).toBe(true);
+    expect(rowDeleteFailureOf(published, 'en').stale).toBe(true);
   });
 
   it('says nothing changed when no answer came', () => {
-    expect(rowDeleteFailureOf(new TypeError('Failed to fetch'))).toEqual({
+    expect(rowDeleteFailureOf(new TypeError('Failed to fetch'), 'en')).toEqual({
       error: { message: 'Nothing changed. Check your connection and try again.' },
       stale: false,
     });
+  });
+
+  it('says so in German without an answer, and keeps the API’s message (spec 009)', () => {
+    expect(rowDeleteFailureOf(new TypeError('Failed to fetch'), 'de').error).toEqual({
+      message:
+        'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    });
+    const error = new ApiError(500, { error: 'internal', message: 'Fehler.', error_id: 'e-9' });
+    expect(rowDeleteFailureOf(error, 'de').error).toEqual({ message: 'Fehler.', error_id: 'e-9' });
   });
 });

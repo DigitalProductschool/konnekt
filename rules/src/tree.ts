@@ -9,6 +9,8 @@ import type {
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 
+import { ITEM_NOUNS } from './constants';
+import { DEFAULT_LANGUAGE, type Language } from './language';
 import type { FoundItem, ItemAtDepth, ItemNoun, LevelChange, ShownItem } from './types';
 
 /** A number with at least two digits: 7 → "07", 123 → "123". */
@@ -41,6 +43,14 @@ export function nounOf(item: RuleTreeItem, depth: number): ItemNoun {
     return 'rule';
   }
   return depth === 0 ? 'group' : 'sub-group';
+}
+
+/**
+ * A noun in a sentence of the language: "rule", "group", "sub-group"; "Regel", "Gruppe",
+ * "Untergruppe" (glossary G§2). Never in a stored name: those stay English (FR-007).
+ */
+export function nounTextOf(noun: ItemNoun, language: Language = DEFAULT_LANGUAGE): string {
+  return ITEM_NOUNS[language][noun];
 }
 
 /** Every item of a tree in display order, with the noun that names it. */

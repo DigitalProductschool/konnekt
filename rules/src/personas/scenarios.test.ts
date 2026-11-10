@@ -23,7 +23,17 @@ import { noticeText } from '../checks/findingMessages';
 import { checkBranch } from '../checks/findings';
 import type { CheckOptions } from '../checks/types';
 import { evaluateBranch } from '../evaluation';
-import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '../testData';
+import {
+  mainBranch,
+  MDL,
+  MDL_DE,
+  OPTION_SETS,
+  OPTION_SETS_DE,
+  PID,
+  PID_DE,
+  rule,
+  target,
+} from '../testData';
 import { deleteItem, replaceItem } from '../tree';
 import type { RuleContext } from '../types';
 import { announcementOf } from './announcements';
@@ -95,6 +105,30 @@ const CONTEXT: RuleContext = {
       ? { ...set, options: [...set.options, { value: 'IT', label: 'Italy', description: null }] }
       : set
   ),
+};
+
+/**
+ * The same context in German (spec 009, R4): testData.ts' German documents and option sets with
+ * the same additions, and `language: 'de'`, as the editor builds it when the website is German
+ */
+const GERMAN: RuleContext = {
+  documents: [
+    PID_DE,
+    {
+      ...MDL_DE,
+      fields: [
+        ...MDL_DE.fields,
+        numberField('age_in_years', 'Alter in Jahren'),
+        numberField('age_birth_year', 'Geburtsjahr'),
+      ],
+    },
+  ],
+  optionSets: OPTION_SETS_DE.map((set) =>
+    set.key === 'countries'
+      ? { ...set, options: [...set.options, { value: 'IT', label: 'Italien', description: null }] }
+      : set
+  ),
+  language: 'de',
 };
 
 /** Every country of the context's set */
@@ -179,8 +213,8 @@ function on(number: number, ruleTarget: RuleTarget, condition: Condition): RuleI
   return rule(number, ruleTarget, condition);
 }
 
-function fieldsOf(branches: readonly KeyedBranch[]): PersonaField[] {
-  return personaFieldsOf(branches, CONTEXT);
+function fieldsOf(branches: readonly KeyedBranch[], context = CONTEXT): PersonaField[] {
+  return personaFieldsOf(branches, context);
 }
 
 /** A hand-made persona, ready, whose values are as generated */
@@ -257,9 +291,10 @@ function generated(branches: readonly KeyedBranch[], seed: number): Persona[] {
 function resultsOf(
   personas: readonly Persona[],
   branches: readonly KeyedBranch[],
-  today = TODAY
+  today = TODAY,
+  context = CONTEXT
 ): TestResults {
-  return testResultsOf(personas, fieldsOf(branches), branches, CONTEXT, today);
+  return testResultsOf(personas, fieldsOf(branches, context), branches, context, today);
 }
 
 /** One persona's result for one branch */
@@ -267,9 +302,10 @@ function resultOf(
   subject: Persona,
   branches: readonly KeyedBranch[],
   branchKey: string,
-  today = TODAY
+  today = TODAY,
+  context = CONTEXT
 ): PersonaBranchResult {
-  return must(resultsOf([subject], branches, today)[subject.id]?.[branchKey]);
+  return must(resultsOf([subject], branches, today, context)[subject.id]?.[branchKey]);
 }
 
 /** What the step shows for one persona and one branch */
@@ -277,15 +313,16 @@ function viewOf(
   subject: Persona,
   branches: readonly KeyedBranch[],
   branchKey: string,
-  today = TODAY
+  today = TODAY,
+  context = CONTEXT
 ): ResultView {
   const branch = must(branches.find((each) => each.key === branchKey));
   return resultViewOf(
-    resultOf(subject, branches, branchKey, today),
+    resultOf(subject, branches, branchKey, today, context),
     branch,
     subject,
-    CONTEXT,
-    fieldsOf(branches)
+    context,
+    fieldsOf(branches, context)
   );
 }
 
@@ -379,6 +416,20 @@ describe('US1-AS1: the personas have exactly the data the rules check', () => {
     );
   });
 
+  it('names the same four fields in German (spec 009)', () => {
+    expect(
+      fieldsOf(EXAMPLE, GERMAN).map((each) => `${each.documentLabel} · ${each.label}`)
+    ).toEqual([
+      'Personalausweis · Geburtsdatum (Alter)',
+      'Personalausweis · Ort',
+      'Führerschein · Führerscheinklassen',
+      'Führerschein · Führerscheinklasse B – Ausstellungsdatum',
+    ]);
+    expect(fieldsOf(EXAMPLE, GERMAN).map((each) => each.key)).toEqual(
+      fieldsOf(EXAMPLE).map((each) => each.key)
+    );
+  });
+
   it(
     'gives three named personas a value for each field and nothing else, B’s date to holders only',
     () => {
@@ -438,6 +489,39 @@ describe('US1-AS1: the personas have exactly the data the rules check', () => {
 });
 
 describe('US1-AS2: per persona and variant, whether it meets the rules, and what is reported', () => {
+  it('words the three citizens’ results in German, with the same outcomes (spec 009)', () => {
+    for (const subject of [MIA, JONAS, ANNA]) {
+      for (const branchKey of ['standard', 'ambulance']) {
+        const english = viewOf(subject, EXAMPLE, branchKey);
+        const german = viewOf(subject, EXAMPLE, branchKey, TODAY, GERMAN);
+        expect(rowsOf(german)).toEqual(rowsOf(english));
+        expect(german.meets).toBe(english.meets);
+        expect(german.failingFields).toEqual(english.failingFields);
+      }
+    }
+
+    const mia = viewOf(MIA, EXAMPLE, 'standard', TODAY, GERMAN);
+    expect(mia.heading).toBe('Ergebnis: erfüllt alle Regeln');
+    expect(mia.listHeading).toBe('Regeln, die Mia erfüllt');
+    expect(mia.messageColumn).toBeNull();
+
+    const jonas = viewOf(JONAS, EXAMPLE, 'standard', TODAY, GERMAN);
+    expect(jonas.heading).toBe('Ergebnis: erfüllt 1 Regel nicht');
+    expect(jonas.messageColumn).toBe('Nachricht für Jonas');
+    expect(jonas.rows[0].name).toBe('Rule 01');
+    expect(jonas.rows[0].message).toBe('You are too young for this licence.');
+    expect(jonas.rows[0].statement).toBe(
+      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+    );
+    expect(viewOf(JONAS, EXAMPLE, 'ambulance', TODAY, GERMAN).rows[0].statement).toBe(
+      'Personalausweis · Geburtsdatum (Alter) ist mindestens 19 Jahre alt'
+    );
+
+    const anna = viewOf(ANNA, EXAMPLE, 'ambulance', TODAY, GERMAN);
+    expect(anna.heading).toBe('Ergebnis: erfüllt 3 Regeln nicht');
+    expect(anna.messageColumn).toBe('Nachricht für Anna');
+  });
+
   it('Mia, 25, from Stuttgart, class B for 6 years: meets both variants', () => {
     for (const branchKey of ['standard', 'ambulance']) {
       const view = viewOf(MIA, EXAMPLE, branchKey);
@@ -569,6 +653,12 @@ describe('US1-AS3: one persona meets both variants, one only Ambulance, one neit
 describe('US1-AS4: tested as if shared today', () => {
   it('names today’s date', () => {
     expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026.');
+  });
+
+  it('names today’s date in German, still dd.mm.yyyy (spec 009, FR-012)', () => {
+    expect(testDayLineOf(TODAY, 'de')).toBe(
+      'Getestet, als würden die Daten heute geteilt: 01.11.2026.'
+    );
   });
 
   it('evaluates on today: a persona who turns 21 today meets Rule 01, yesterday not', () => {
@@ -1059,8 +1149,12 @@ function yearsBefore(today: string, years: number): string {
 }
 
 /** Each branch's `met` for the persona, as `announcementOf()` takes it */
-function metOf(subject: Persona, branches: readonly KeyedBranch[]): Record<string, boolean> {
-  const results = must(resultsOf([subject], branches)[subject.id]);
+function metOf(
+  subject: Persona,
+  branches: readonly KeyedBranch[],
+  context = CONTEXT
+): Record<string, boolean> {
+  const results = must(resultsOf([subject], branches, TODAY, context)[subject.id]);
   return Object.fromEntries(branches.map((each) => [each.key, must(results[each.key]).met]));
 }
 
@@ -1111,6 +1205,23 @@ describe('US2-AS1: an age of 20 no longer meets Standard, still meets Ambulance'
     expect(
       announcementOf(metOf(twenty, EXAMPLE), metOf(twenty, EXAMPLE), twenty, EXAMPLE_TABS)
     ).toBe('');
+  });
+
+  it('announces it in German, from the same outcomes (spec 009)', () => {
+    const before = metOf(MIA, EXAMPLE, GERMAN);
+    const after = metOf(twenty, EXAMPLE, GERMAN);
+    expect([before, after]).toEqual([metOf(MIA, EXAMPLE), metOf(twenty, EXAMPLE)]);
+    expect(announcementOf(before, after, twenty, EXAMPLE_TABS, 'de')).toBe(
+      'Mia Schulz erfüllt die Regeln von Standard nicht mehr.'
+    );
+    const standard = viewOf(twenty, EXAMPLE, 'standard', TODAY, GERMAN);
+    expect(standard.heading).toBe('Ergebnis: erfüllt 1 Regel nicht');
+    expect(rowsOf(standard)[0]).toEqual([
+      'rule-1',
+      'not_met',
+      'You are too young for this licence.',
+      true,
+    ]);
   });
 });
 

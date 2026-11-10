@@ -1,3 +1,4 @@
+import { useCopy } from '../../hooks/useLanguage';
 import { STATUS_PILL_COPY, STATUS_PILL_TONES } from './constants';
 import type { ConnectionStatus, ConnectionStatusBadgeProps } from './types';
 
@@ -12,6 +13,7 @@ export default function ConnectionStatusBadge({
   isActive,
   draft = false,
 }: ConnectionStatusBadgeProps) {
+  const copy = useCopy(STATUS_PILL_COPY);
   const status: ConnectionStatus = draft ? 'draft' : isActive ? 'active' : 'deactivated';
   const tone = STATUS_PILL_TONES[status];
   return (
@@ -22,7 +24,7 @@ export default function ConnectionStatusBadge({
       <span
         className={`${tone.label} text-kern-static-small narrow:whitespace-normal leading-(--kern-typography-line-height-medium-static) font-semibold whitespace-nowrap`}
       >
-        {STATUS_PILL_COPY[status]}
+        {copy[status]}
       </span>
     </span>
   );

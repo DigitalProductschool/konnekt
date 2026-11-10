@@ -82,7 +82,8 @@ dps-react-python-template/
 ├── tsconfig.base.json     # Compiler options every package extends
 ├── .prettierrc            # Prettier formatting rules
 ├── api-types/             # @connection-portal/api-types: the TypeScript mirrors of the schemas
-├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/
+├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/,
+│                          # language.ts (spec 009), fixtures/server-messages.json (generated)
 ├── frontend/              # React SPA (Vite), depends on api-types and rules
 │   └── .prettierrc        # The root's rules plus the Tailwind plugin
 ├── mcp/                   # @connection-portal/mcp: the MCP server, depends on api-types and rules
@@ -139,9 +140,9 @@ section of `README.md` for the full command list and editor format-on-save setup
 ```
 frontend/
 ├── src/
-│   ├── api/              # client.ts (apiFetch, ApiError), one module per resource: auth.ts,
-│   │                     # document-types.ts, form-connections.ts, option-sets.ts; spec 007:
-│   │                     # agent-access.ts, approvals.ts, oauth.ts
+│   ├── api/              # client.ts (apiFetch, ApiError, setRequestLanguage), one module per
+│   │                     # resource: auth.ts, document-types.ts, form-connections.ts,
+│   │                     # option-sets.ts; spec 007: agent-access.ts, approvals.ts, oauth.ts
 │   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
 │   ├── components/       # App shell (AppLayout, TopBar with the header pills, UserMenu,
 │   │                     # PageTitle), the wizard's frame (WizardLayout, WizardProgress), the
@@ -151,13 +152,14 @@ frontend/
 │   │                     # and the details share: RuleRow, GroupFrame, Connector, BranchMark,
 │   │                     # BranchName; FindingNote, the note under a rule or group with a
 │   │                     # finding of the rule checks; LocalDraftsOffer (spec 005);
-│   │                     # AccessLevelChoice, the three access levels as radio buttons (spec 007)
+│   │                     # AccessLevelChoice, the three access levels as radio buttons (spec 007);
+│   │                     # LanguageProvider (the language) and LanguageSwitch (spec 009)
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
 │   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
 │   │                     # useRuleChecks (the rule checks' run and their worker), usePersonas,
 │   │                     # useTodayInGermany (spec 004), useLocalDraftStore, useLocalDraft,
 │   │                     # useLocalDrafts (spec 005), useRememberedHomepage (spec 008),
-│   │                     # usePinned, useUndoShortcut
+│   │                     # usePinned, useUndoShortcut; useLanguage with useCopy (spec 009)
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (the overview and the welcome page at /), FirstConnection
 │   │                     # (/get-started), FormConnectionEditor (the wizard, with
@@ -168,13 +170,14 @@ frontend/
 │   ├── utils/            # Shared helpers: menuNavigation.ts (arrow keys in menus),
 │   │                     # popupPlacement.ts (where a popup opens), stickyPin.ts,
 │   │                     # undoShortcut.ts, messageField.ts; localDrafts/: the local drafts'
-│   │                     # pure modules (spec 005)
+│   │                     # pure modules (spec 005); language/: the language's resolver (spec 009)
 │   ├── workers/          # The browser Worker entries: checks.ts (the rule checks) and
 │   │                     # personas.ts (the test personas)
-│   ├── constants.ts      # App name (Konnekt), routes, the wizard's steps, the KERN kit's
-│   │                     # English texts
+│   ├── constants.ts      # App name (Konnekt), routes, the wizard's steps and their labels, the
+│   │                     # KERN kit's texts in both languages (KERN_TRANSLATIONS)
+│   ├── copy.test.ts      # Every copy table complete in both languages (spec 009)
 │   ├── App.tsx           # Routes
-│   ├── main.tsx          # Entry point: router, KERN context, sign-in state
+│   ├── main.tsx          # Entry point: router, language (with the KERN context), sign-in state
 │   └── index.css         # Tailwind, KERN, the KERN Revamp overlay, the project's tokens and
 │                         # KERN overrides
 ├── vite.config.ts        # Vite configuration, and Vitest's `test` block (node environment)
@@ -250,7 +253,9 @@ frontend/
   layout's `overlay`
 - **Titles**: every page sets its tab title with `useDocumentTitle()` and has one `h1`:
   `PageTitle` on signed-in screens, except the loaded details, whose header title is the
-  `h1` (`titleAsHeading`), and the intro's headline in `AuthLayout` on signed-out ones
+  `h1` (`titleAsHeading`), and the intro's headline in `AuthLayout` on signed-out ones.
+  `useDocumentTitle()` runs again whenever the title string changes, so the tab title follows
+  a switch of the language
 - **Popups**: menus, popovers and tooltips open where they fit (research R10).
   `placementFrom()` in `src/utils/popupPlacement.ts`, called in the event that opens them,
   measures the control against the window and the sticky edges and returns the side
@@ -316,6 +321,10 @@ frontend/
 - **The header pills and leaving a flow** (L2, FR-026): `TopBar` draws the Konnekt pill
   (home) and the account pill (`UserMenu`: the name, "Your account", "Log out"); inside a
   connection a second pill, "Your connections / <name> · <status>", grows out of the first.
+  Spec 009 puts the language switch (`LanguageSwitch`) in `TopBar`'s right group, before the
+  account pill, so every layout that renders `TopBar` (`AppLayout`, `AuthLayout`,
+  `WizardLayout`, the homepage's loading page) shows it, signed out too (see
+  [Languages](#languages-spec-009)).
   In a flow, the product name, "Your connections" and "Log out" go through the editor's
   leave model (`FormConnectionEditor/leaveFlow.ts`, pure, research R9): a new connection's
   or a stored draft's flow asks "Leave this connection?" ("Save progress" stores it through
@@ -388,7 +397,8 @@ backend/
 │   │                     # auth.py (sign-in), eudiplo.py (EUDIPLO client), dcql.py,
 │   │                     # form_connections.py, drafts.py (spec 005: saving,
 │   │                     # publishing and deleting drafts), rules.py (branches, rule
-│   │                     # sets and their checks), document_requests.py (trigger, pull,
+│   │                     # sets and their checks), rules_texts.py (the rules' messages
+│   │                     # in both languages, spec 009), document_requests.py (trigger, pull,
 │   │                     # statuses), documents.py (field extraction),
 │   │                     # evaluation.py (the rules on the shared documents),
 │   │                     # qr.py, worker.py; spec 007: oauth.py (the authorization
@@ -404,12 +414,15 @@ backend/
 │   ├── models.py         # SQLAlchemy models
 │   ├── schemas.py        # Pydantic request/response schemas
 │   ├── errors.py         # Exception handlers, log_server_error, describe_error
+│   ├── language.py       # Text, the request's language (spec 009)
 │   └── main.py           # FastAPI app entry point; its lifespan runs the worker,
-│                         # and it redacts references in uvicorn's access log
+│                         # LanguageMiddleware sets the request's language, and it
+│                         # redacts references in uvicorn's access log
 ├── alembic/              # Database migrations
 ├── scripts/              # Developer scripts, not in the production image:
 │                         # issue_test_credentials/ issues test documents to a wallet,
 │                         # export_check_fixtures.py writes the rule checks' fixtures
+│                         # and the parity fixture of the server's messages (spec 009)
 ├── tests/                # pytest suite: conftest.py, fake_eudiplo.py, helpers.py, api/, unit/
 ├── .python-version       # Interpreter uv provisions (3.13)
 ├── pyproject.toml        # Dependencies + ruff/mypy/pytest config
@@ -647,6 +660,13 @@ to R10 in `specs/002-connection-rules/`, the tables its
   the branches and the counters and answers the new state or a refusal with the editor's
   message; a new variant's id is the caller's (the editor's `crypto.randomUUID()`).
   `edits.test.ts` replays the reducer's cases.
+- **Codes beside messages** (spec 009, research R10): a `RulesProblem` (`rules/src/types.ts`)
+  carries `code`, the key of its message in `RULES_MESSAGES`, `CONDITION_PROBLEM_MESSAGES` or
+  `EDIT_MESSAGES` (`'chooseData'`, `'noMessage'` …), beside the message in the context's
+  language; an `EditRefusal`'s `code` is optional, since the MCP server builds some refusals
+  without one. Callers branch on the code, never on the message, as the MCP server does
+  (`mcp/src/findings.ts`, `mcp/src/tools/checks.ts`). The server's messages are mirrored word for word in both
+  languages and pinned by the parity fixture (see [Languages](#languages-spec-009)).
 - **Saving**: `POST` and `PUT /api/form-connections` take the rules with the rest, so
   documents, branches and rules change together or not at all. The server checks the
   name and the documents, then the rules against the documents the save leaves current,
@@ -719,7 +739,8 @@ The checks have no endpoint, table, setting or dependency of their own.
   `FindingNote`, the findings banner, the variant tab's icon and tooltip, and a polite
   status region, `FindingsAnnouncer`) and the publish and save dialog, which lists the
   variants with findings. Findings never block Publish or Save. Every finding text comes
-  from `checks/findingMessages.ts`. The details page never shows them. Spec 007 shows them
+  from `checks/findingMessages.ts`, which composes it from the words of `checks/findingTexts.ts`
+  in either language (spec 009). The details page never shows them. Spec 007 shows them
   in a third place, the approval page of a publish request, and runs the same checks for
   agents in the MCP server, with `resolutionOf()` in `findingMessages.ts` saying what would
   resolve each finding (see
@@ -832,7 +853,8 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
   fake in memory (`testStorage.ts`).
   `hooks/useLocalDraftStore.ts` creates the page's one store, inside `try/catch`, and every
   hook shares it. Besides it, only `hooks/useRememberedHomepage.ts` (spec 008, see below)
-  touches `window.localStorage`. Every storage access in the store is in `try/catch`:
+  and `components/LanguageProvider/` (spec 009, the key `connection-portal:language:v1`, see
+  [Languages](#languages-spec-009)) touch `window.localStorage`. Every storage access in the store is in `try/catch`:
   blocked, full or missing storage makes local drafts silently unavailable, and the flow
   works without them.
 - **The homepage flag** (spec 008, FR-027): `useRememberedHomepage()` keeps one flag per
@@ -1070,6 +1092,107 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   (`redact_references()` in `app/main.py`) and nginx's (`$redacted_request_uri`), show
   `/api/oauth/…?<redacted>` in place of any query sent there.
 
+### Languages (spec 009)
+
+The whole website speaks English and German: the team member switches with the "DE | EN" pill in
+the header, and every text follows at once, the server's messages and the rules' sentences
+included. The decisions are research R1 to R13 in `specs/009-language-toggle/`, the shapes in its
+`data-model.md` and `contracts/` (`language-switch.md`, `api-language.md`, `rules-texts.md`), the
+German words in its `contracts/glossary.md`. The languages add no endpoint, table, setting or
+dependency, and no response field: a `label` or `message` is a string in the requested language.
+
+- **Two languages, English by default**: `rules/src/language.ts` holds `Language` (`'en' |
+  'de'`), `LANGUAGES`, `DEFAULT_LANGUAGE` (`'en'`), `languageNames` (each language's own name)
+  and `isLanguage()`; `frontend/` and `mcp/` import it as `@connection-portal/rules/language`.
+  The backend's `Language` in `app/language.py` is defined on its own; the `Accept-Language`
+  header is the contract between them.
+- **The choice** (R7): `components/LanguageProvider/` holds the language and is the third code
+  that touches `localStorage` (see [Local drafts](#local-drafts-spec-005)): one key,
+  `connection-portal:language:v1` (`LANGUAGE_STORAGE_KEY`), read before the first render in
+  `useState`'s initial state, so that no screen shows another language first. A stored `en` or
+  `de` wins; without one (a first visit, another value, a blocked or cleared storage) the
+  browser's `navigator.language` decides: `de` and any `de-*` give German, everything else
+  English (`resolveLanguage()` in `utils/language/`, pure, with its test). `setLanguage()` stores
+  the choice (in `try/catch`: a blocked storage keeps it for the visit), and a `storage` event
+  from another tab is followed (`languageFromStorageEvent()`). A layout effect sets
+  `<html lang>` before paint (`index.html` keeps `lang="en"` as the static default) and hands the
+  language to `setRequestLanguage()` in `api/client.ts`, so that `apiFetch` sends it as
+  `Accept-Language` on every call without React. The provider sits above `CurrentUserProvider`
+  in `main.tsx` and renders the kit's `KernContextProvider` with `KERN_TRANSLATIONS[language]`.
+  Components read it with `useLanguage()` (`hooks/useLanguage.ts`). Links carry no language,
+  and nothing about it is stored on the server or logged.
+- **The switch** (R2, `contracts/language-switch.md`): `components/LanguageSwitch/`, a `group`
+  labelled "Language" / "Sprache" with two buttons, "DE" and "EN", named "Deutsch" and
+  "English" in their own `lang`, the current one `aria-current="true"`. It sits in `TopBar`'s
+  right group, before the account pill, so every layout that renders `TopBar` shows it, signed
+  out too. Pressing the other button calls `setLanguage()` and nothing else: no navigation, no
+  request, no save, and nothing re-keys on the language, so the wizard's step, open dialogs,
+  the rule editor's values and the scroll position stay. The group carries
+  `data-language-switch`, and a popup that holds typed input and closes on a press outside it
+  (the documents' search card, the rule editor's pickers, the inline rename, `ValuesPicker`)
+  ignores a press on the switch through `isLanguageSwitchTarget()`
+  (`LanguageSwitch/utils.ts`); a plain menu still closes. The deviations from the Figma node
+  are D1–D4 of the spec's `design-notes.md` §1.1.
+- **Copy tables** (R1): every text the website shows lives in a `defineTexts(en, de)` table in
+  the `constants.ts` next to its component or page (the root `constants.ts` holds
+  `CONNECTION_STEP_LABELS` and `KERN_TRANSLATIONS`). `defineTexts` types `de` as `NoInfer<T>`, so
+  `T` comes from the English column alone and a German column that lacks a key or adds one
+  fails `tsc`. A component reads its column with `useCopy(TABLE)`; a pure helper that builds
+  text takes `language` and indexes the table itself. Template functions carry each language's
+  own word order and plural forms. Content is never in a table: names, descriptions, saved
+  messages, usernames and identifiers show as they are. Dates and times whose wording follows
+  the language have a formatter per language (R5); the fixed numeric formats stay as they
+  were. `frontend/src/copy.test.ts` checks every table of a `constants.ts` under `src/`
+  (the same keys and kinds in both columns, no empty text, a German text that differs from the
+  English one unless it is on the allowlist of words equal in both).
+- **The catalog in the current language** (R6): `useDocumentTypes()` and `useOptionSets()` keep
+  one list per language, fetch the current language's first and the other's in the background
+  (`apiFetch`'s `language` option), and report `'loaded'` once a list has been on screen,
+  showing the other language's list until the new one arrives, so a switch never swaps an open
+  editor, a typed search or the personas for a loader.
+- **The rules package** (R4, `contracts/rules-texts.md`): `RuleContext.language` (optional) is
+  the language the composers that take a context use (`statementOf`, `proposedMessage`,
+  `ruleProblem`, `resultViewOf` …); the composers without a context take a trailing `language`
+  (`findingMessages.ts`'s, `nameProblem`, `labelOf`, `formatDate` …). Both default to English,
+  so the MCP server, which never passes one, gets English. The texts are `defineTexts` tables in
+  the module or a sibling `<module>Texts.ts` (`checks/findingTexts.ts`, which
+  `checks/findingMessages.ts` composes from); `rules/src/copy.test.ts` checks them as the
+  frontend's test does. Stored names ("Standard", "Rule 01", "Group 01") stay English (FR-007).
+  Callers branch on a problem's `code`, never its message (R10; see
+  [Rules and branches](#rules-and-branches-spec-002)). The editor counts a stored message as
+  the untouched proposal if it equals `proposedMessage()` in any language, so the proposal
+  follows a switch and a saved message stays.
+- **The backend** (R6, `contracts/api-language.md`): `app/language.py`, a leaf module, holds
+  `Text(en, de)`, `language_of(header)` (the first tag's primary subtag `de` gives German,
+  anything else English; `q` weights aren't read), `language_of_scope()`, the `ContextVar`
+  `request_language`, `current_language()` and `resolve_text()`. `LanguageMiddleware` in
+  `main.py`, pure ASGI, sets `request_language` for every HTTP request from `Accept-Language`,
+  or to English for every path under `/api/connect/`, and resets it after the answer. Services
+  raise `HTTPException` with a `Text` as the detail's `message`, and `errors.py` resolves it
+  (see [Error Handling](#error-handling)); a template formats both columns at the raise.
+  The rules' validation messages are in `app/services/rules_texts.py`, a leaf that imports only
+  `app.language`, so that the fixture script can import it. The catalog's and the option
+  sets' items carry `label_de` beside `label`, and `label_of()` (`app/catalog.py`,
+  `app/option_sets.py`) gives the current language's for `GET /api/document-types`,
+  `GET /api/option-sets` and the documents of a connection (`documents_view()`); the access
+  levels' names and the approval requests' outcome texts follow the language too.
+- **What stays English**: `/api/connect/` in full (FR-017: the integration answers to
+  serviceBW), everything sent to EUDIPLO (the DCQL builder, the evaluator, the worker and
+  serviceBW's delivery read `label` and the keys), the MCP server (it sends no header and passes
+  no language), `ApiResponse.message` (the success messages, which the frontend discards), the
+  OAuth RFC bodies of `/api/oauth/register` and `/api/oauth/token`, the `error` codes and
+  `error_id`s, stored data, the account CLI and the logs. Neither side logs the header, the
+  language or a `Text` (FR-018).
+- **The parity fixture** (R8): the rules step's mirrored validation messages
+  (`RULES_MESSAGES`, `CONDITION_PROBLEM_MESSAGES`, `EDIT_MESSAGES.unknownVariant` in
+  `rules/src/constants.ts`) must equal the server's word for word in both languages.
+  `uv run python -m scripts.export_check_fixtures` in `backend/` also writes
+  `rules/src/fixtures/server-messages.json` from `rules_texts.py`, one case per message with
+  sample parameters; `rules/src/validation.test.ts` renders the same cases from the TS tables in
+  both languages, and `--check` (run by `tests/unit/test_check_fixtures.py`) fails when the file
+  is stale. It is generated: never edit it by hand. `tests/unit/test_texts.py` checks that every
+  `Text` in `app/` has two non-empty, different columns.
+
 ### Background worker
 
 `app/services/worker.py` runs a daemon thread, started and stopped by the FastAPI
@@ -1226,9 +1349,9 @@ handlers on the app:
 
 | Exception | Status | Behaviour |
 |-----------|--------|-----------|
-| `HTTPException` | as raised | Passes a `{error, message}` dict detail (and its `error_id`) through unchanged; otherwise wraps it |
-| `RequestValidationError` | **400** | Returns a generic message (FastAPI's default would be 422 with field details) |
-| `Exception` | 500 | Generic message and an `error_id`, in every environment; the log line under that ID has the method, the route's template and the error's type and code location |
+| `HTTPException` | as raised | Passes a `{error, message}` dict detail (and its `error_id`) through, its `message` resolved if it is a `Text`; otherwise wraps it |
+| `RequestValidationError` | **400** | Returns a generic message, `INVALID_PAYLOAD_MESSAGE` (FastAPI's default would be 422 with field details) |
+| `Exception` | 500 | Generic message, `INTERNAL_ERROR_MESSAGE`, and an `error_id`, in every environment; the log line under that ID has the method, the route's template and the error's type and code location |
 
 ```python
 # Route handler pattern — raise, don't catch
@@ -1245,9 +1368,23 @@ catch-all handler use it, and so should any other `5xx` answer. The line never
 holds an exception's message, a setting's value, a request reference or the URL:
 it uses `describe_error()` and the route's template. The app configures no logging
 of its own, so these lines reach stderr through Python's last-resort handler,
-without a time or level prefix. `errors.py` imports nothing from the app, so that
-the services and the worker can all import `describe_error()` and
-`log_server_error()` from it without an import cycle.
+without a time or level prefix. `errors.py` imports nothing from the app but the
+leaf `app/language.py`, so that the services and the worker can all import
+`describe_error()` and `log_server_error()` from it without an import cycle.
+
+**Messages in the request's language** (spec 009, see
+[Languages](#languages-spec-009)): a service may raise with a `Text(en=..., de=...)` as
+the detail's `message`, a template formatting both columns at the raise, and the
+`HTTPException` handler resolves it with `resolve_text()` in the language the
+`LanguageMiddleware` set; a plain string passes through, so a third-party
+`HTTPException` still works. `INTERNAL_ERROR_MESSAGE` and `INVALID_PAYLOAD_MESSAGE`
+are `Text`s too. Starlette runs the catch-all handler outside every middleware, after
+the request's language has been reset, so it reads the language from the request
+again (`language_of_scope()`, the middleware's rule). The `error` code and the
+`error_id` never change with the language, and a `Text` never reaches a log line, a
+stored column or an `ApiResponse.message`. A place that catches an `HTTPException` to
+reuse its detail resolves the `Text` there (`resolve_text()` in
+`services/approvals.py`).
 
 **`APP_ENV` must be set to something other than `development` in production**:
 development drops the session cookie's `Secure` flag and fills in a default

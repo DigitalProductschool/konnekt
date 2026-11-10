@@ -1,5 +1,6 @@
 import { glyphOf } from '../../components/RuleRow/utils';
-import { DETAIL_COPY } from './constants';
+import { useCopy } from '../../hooks/useLanguage';
+import { CONNECTION_DETAIL_COPY } from './constants';
 import SummaryField from './SummaryField';
 import type { SummaryDocumentProps } from './types';
 
@@ -12,12 +13,13 @@ import type { SummaryDocumentProps } from './types';
  */
 export default function SummaryDocument({ document, draft = false }: SummaryDocumentProps) {
   const noData = draft && document.fields.length === 0;
+  const copy = useCopy(CONNECTION_DETAIL_COPY);
   return (
     <li className="flex flex-col gap-8">
       <div className="text-kern-static-small text-kern-layout-text-muted flex flex-wrap items-center gap-x-8 leading-(--kern-typography-line-height-medium-static)">
         <img src={glyphOf(document.document_type)} alt="" className="size-20 shrink-0" />
         <h4 className="font-semibold break-words">{document.label}</h4>
-        <p>{noData ? DETAIL_COPY.noDataYet : DETAIL_COPY.items(document.fields.length)}</p>
+        <p>{noData ? copy.noDataYet : copy.items(document.fields.length)}</p>
       </div>
       {!noData && (
         <ul className="flex flex-wrap gap-8">

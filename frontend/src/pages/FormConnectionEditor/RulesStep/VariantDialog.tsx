@@ -4,8 +4,9 @@ import { flushSync } from 'react-dom';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import TextField from '../../../components/TextField';
+import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
-import { RULES_COPY, START_WITH_CLASSES, VARIANT_FIELD_CLASSES } from './constants';
+import { RULES_STEP_COPY, START_WITH_CLASSES, VARIANT_FIELD_CLASSES } from './constants';
 import StartWithOption from './StartWithOption';
 import type { VariantDialogProps } from './types';
 import {
@@ -35,6 +36,13 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
   const nameRef = useRef<HTMLInputElement>(null);
   const id = useId();
   const main = state.branches[0].name.trim();
+  const { language } = useLanguage();
+  const copy = RULES_STEP_COPY[language];
+  // The refusal in the language shown: the same check again, as the fields haven't changed since
+  const error =
+    form.error === null
+      ? null
+      : (variantFormProblem(form, state, editing?.key ?? null, language) ?? form.error);
 
   // Each opening starts from the variant's fields, or empty ones, with the focus on the name
   useEffect(() => {
@@ -45,7 +53,7 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
   }, [open, editing]);
 
   function handleConfirm() {
-    const problem = variantFormProblem(form, state, editing?.key ?? null);
+    const problem = variantFormProblem(form, state, editing?.key ?? null, language);
     if (problem) {
       // Rendered first, so that the name is invalid and described when it takes the focus
       flushSync(() => dispatchForm({ type: 'refuse', error: problem }));
@@ -67,10 +75,10 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
   return (
     <ConfirmDialog
       open={open}
-      title={editing ? RULES_COPY.editVariantTitle : RULES_COPY.addVariantTitle}
+      title={editing ? copy.editVariantTitle : copy.addVariantTitle}
       text=""
-      confirmLabel={editing ? RULES_COPY.saveVariant : RULES_COPY.addVariantTitle}
-      cancelLabel={RULES_COPY.cancel}
+      confirmLabel={editing ? copy.saveVariant : copy.addVariantTitle}
+      cancelLabel={copy.cancel}
       wide
       onCancel={() => dispatch({ type: 'closeDialog' })}
       onConfirm={handleConfirm}
@@ -79,17 +87,17 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
       <div className="flex flex-col gap-24">
         {!editing && (
           <p className="text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {RULES_COPY.addVariantIntro}
+            {copy.addVariantIntro}
           </p>
         )}
         <div className={VARIANT_FIELD_CLASSES.name}>
           <TextField
             ref={nameRef}
             id={`${id}-name`}
-            label={RULES_COPY.variantName}
+            label={copy.variantName}
             requiredMark
             value={form.name}
-            error={form.error}
+            error={error}
             errorRole="alert"
             onChange={(event) =>
               dispatchForm({ type: 'change', changes: { name: event.target.value } })
@@ -107,8 +115,8 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
             id={`${id}-description`}
             multiline
             optional
-            label={RULES_COPY.description}
-            hint={RULES_COPY.descriptionHint}
+            label={copy.description}
+            hint={copy.descriptionHint}
             maxLength={DESCRIPTION_MAX_LENGTH}
             value={form.description}
             onChange={(event) =>
@@ -118,20 +126,20 @@ export default function VariantDialog({ state, dispatch }: VariantDialogProps) {
         </div>
         {!editing && (
           <fieldset className={START_WITH_CLASSES.group}>
-            <legend className={START_WITH_CLASSES.legend}>{RULES_COPY.startWith}</legend>
+            <legend className={START_WITH_CLASSES.legend}>{copy.startWith}</legend>
             <StartWithOption
               name={`${id}-origin`}
               value="based"
-              label={RULES_COPY.basedOn(main)}
-              help={RULES_COPY.basedOnHelp(main)}
+              label={copy.basedOn(main)}
+              help={copy.basedOnHelp(main)}
               checked={form.origin === 'based'}
               onSelect={() => dispatchForm({ type: 'change', changes: { origin: 'based' } })}
             />
             <StartWithOption
               name={`${id}-origin`}
               value="empty"
-              label={RULES_COPY.startEmpty}
-              help={RULES_COPY.startEmptyHelp(main)}
+              label={copy.startEmpty}
+              help={copy.startEmptyHelp(main)}
               checked={form.origin === 'empty'}
               onSelect={() => dispatchForm({ type: 'change', changes: { origin: 'empty' } })}
             />

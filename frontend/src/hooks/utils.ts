@@ -9,10 +9,14 @@ import type {
   RunBranch,
   WorkerMessage,
 } from '@connection-portal/rules/checks/types';
+import type { Language } from '@connection-portal/rules/language';
 
 import { sameContent } from '../utils/localDrafts/content';
 import type { LocalDraftContent } from '../utils/localDrafts/types';
 import type {
+  CatalogCacheAction,
+  CatalogCacheState,
+  CatalogView,
   CheckableBranch,
   CheckedTreeModule,
   DocumentTypesAction,
@@ -21,51 +25,127 @@ import type {
   FormConnectionState,
   OptionSetsAction,
   OptionSetsState,
+  SentChange,
 } from './types';
 
-export const INITIAL_DOCUMENT_TYPES_STATE: DocumentTypesState = {
-  status: 'loading',
-  attempt: 0,
-  documentTypes: [],
-};
+// useDocumentTypes() and useOptionSets() (spec 009, research R6, V9): the catalog's lists cached
+// per language
 
-export function documentTypesReducer(
+/** No list yet. Never changed, so that a memo on the list keeps its identity */
+const NO_ITEMS: never[] = [];
+
+/** The website's other language */
+export function otherLanguageOf(language: Language): Language {
+  return language === 'en' ? 'de' : 'en';
+}
+
+/** The state before the first answer: the current language's list is loading */
+export function initialCatalogCacheState<T>(language: Language): CatalogCacheState<T> {
+  return { language, status: 'loading', attempt: 0, loaded: {}, prefetchFailed: false };
+}
+
+/**
+ * The cache of a catalog list. A switch shows the new language's list at once when it is cached
+ * and loads it otherwise, except on the failed state, which it keeps (its retry loads the new
+ * language); an answer is kept for its language whichever is current; a failure of the current
+ * language's fetch fails it, which the hooks show only while no list has been on screen
+ * (`catalogViewOf()`), and the other language's (the background fetch) is silent until the next
+ * switch; a retry loads the current language's list again
+ */
+export function catalogCacheReducer<T>(
+  state: CatalogCacheState<T>,
+  action: CatalogCacheAction<T>
+): CatalogCacheState<T> {
+  switch (action.type) {
+    case 'language':
+      if (action.language === state.language) {
+        return state;
+      }
+      return {
+        ...state,
+        language: action.language,
+        status: state.loaded[action.language]
+          ? 'loaded'
+          : catalogViewOf(state).status === 'failed'
+            ? 'failed'
+            : 'loading',
+        prefetchFailed: false,
+      };
+    case 'loaded':
+      return {
+        ...state,
+        status: action.language === state.language ? 'loaded' : state.status,
+        loaded: { ...state.loaded, [action.language]: action.items },
+      };
+    case 'failed':
+      return action.language === state.language
+        ? { ...state, status: 'failed' }
+        : { ...state, prefetchFailed: true };
+    case 'retry':
+      return { ...state, status: 'loading', attempt: state.attempt + 1 };
+  }
+}
+
+/**
+ * The current language's list, or while it loads the other language's; empty before the first
+ * answer and after a failure of the current language. The hooks hand on `catalogViewOf()`, which
+ * also keeps the other language's list after that failure
+ */
+export function catalogListOf<T>(state: CatalogCacheState<T>): T[] {
+  const current = state.loaded[state.language];
+  if (current) {
+    return current;
+  }
+  return state.status === 'loading'
+    ? (state.loaded[otherLanguageOf(state.language)] ?? NO_ITEMS)
+    : NO_ITEMS;
+}
+
+/**
+ * What the hooks report (spec 009, FR-003, Edge Cases "a text already shown keeps until
+ * replaced"): once a list has been on screen, `'loaded'` in every timing of a switch, with the
+ * current language's list when it is there and the other language's until then. A failed fetch of
+ * the current language is then silent: the other language's labels stay until the next switch
+ * fetches it again. Before any list, the current language's fetch: loading, loaded or failed with
+ * its retry, as before the feature
+ */
+export function catalogViewOf<T>(state: CatalogCacheState<T>): CatalogView<T> {
+  const shown = state.loaded[state.language] ?? state.loaded[otherLanguageOf(state.language)];
+  return shown ? { status: 'loaded', items: shown } : { status: state.status, items: NO_ITEMS };
+}
+
+/**
+ * The language to fetch in the background: the other one, once the current language's list is
+ * there, unless it is cached or its fetch failed since the last switch; null otherwise
+ */
+export function prefetchLanguageOf<T>(state: CatalogCacheState<T>): Language | null {
+  const other = otherLanguageOf(state.language);
+  return state.status === 'loaded' && !state.prefetchFailed && state.loaded[other] === undefined
+    ? other
+    : null;
+}
+
+/** The language whose list to fetch now, the current one while it loads; null otherwise */
+export function fetchLanguageOf<T>(state: CatalogCacheState<T>): Language | null {
+  return state.status === 'loading' ? state.language : null;
+}
+
+export const documentTypesReducer: (
   state: DocumentTypesState,
   action: DocumentTypesAction
-): DocumentTypesState {
-  switch (action.type) {
-    case 'loaded':
-      return { status: 'loaded', attempt: state.attempt, documentTypes: action.documentTypes };
-    case 'failed':
-      return { status: 'failed', attempt: state.attempt, documentTypes: [] };
-    case 'retry':
-      return { status: 'loading', attempt: state.attempt + 1, documentTypes: [] };
-  }
-}
+) => DocumentTypesState = catalogCacheReducer;
 
-export const INITIAL_OPTION_SETS_STATE: OptionSetsState = {
-  status: 'loading',
-  attempt: 0,
-  optionSets: [],
-};
-
-export function optionSetsReducer(
+export const optionSetsReducer: (
   state: OptionSetsState,
   action: OptionSetsAction
-): OptionSetsState {
-  switch (action.type) {
-    case 'loaded':
-      return { status: 'loaded', attempt: state.attempt, optionSets: action.optionSets };
-    case 'failed':
-      return { status: 'failed', attempt: state.attempt, optionSets: [] };
-    case 'retry':
-      return { status: 'loading', attempt: state.attempt + 1, optionSets: [] };
-  }
-}
+) => OptionSetsState = catalogCacheReducer;
 
 export const INITIAL_FORM_CONNECTION_STATE: FormConnectionState = { status: 'loading', attempt: 0 };
 
-/** The `loaded` state holds a published connection or a draft, as the API answered it */
+/**
+ * The `loaded` state holds a published connection or a draft, as the API answered it. A failed
+ * refetch for the language alone (`refresh`) keeps it (spec 009, research R6)
+ */
 export function formConnectionReducer(
   state: FormConnectionState,
   action: FormConnectionAction
@@ -74,9 +154,13 @@ export function formConnectionReducer(
     case 'loaded':
       return { status: 'loaded', attempt: state.attempt, formConnection: action.formConnection };
     case 'notFound':
-      return { status: 'notFound', attempt: state.attempt };
+      return action.refresh && state.status === 'loaded'
+        ? state
+        : { status: 'notFound', attempt: state.attempt };
     case 'failed':
-      return { status: 'failed', attempt: state.attempt, notice: action.notice };
+      return action.refresh && state.status === 'loaded'
+        ? state
+        : { status: 'failed', attempt: state.attempt, notice: action.notice };
     case 'retry':
       return { status: 'loading', attempt: state.attempt + 1 };
   }
@@ -109,6 +193,15 @@ function sameNames(first: ItemNames, second: ItemNames): boolean {
   return [...first].every(
     ([id, name], index) => others[index][0] === id && others[index][1] === name
   );
+}
+
+/**
+ * Whether a change gives the run state nothing new: the same language (spec 009: a switch is
+ * handed on, so that the announcements of a run in flight follow it; it starts no run, as the
+ * fingerprints are the same) and the same branches (`sameRunBranches()`)
+ */
+export function sameChange(sent: SentChange, next: SentChange): boolean {
+  return sent.language === next.language && sameRunBranches(sent.branches, next.branches);
 }
 
 /**
