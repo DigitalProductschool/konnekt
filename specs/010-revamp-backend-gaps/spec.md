@@ -60,6 +60,8 @@ built from spec 008's patterns for undrawn states, with copy written in this fea
 drawn style and recorded in its contracts. Each such place is named where it occurs below. The
 Figma audit of 2026-11-10 (`figma-audit/report.md`) listed these places and where the frames and
 this spec disagree; Clarifications 2026-11-10 #3 to #26 settle them, and none waits for a frame.
+The audit's remap of the same day, run against the spec with those Clarifications, asked eleven
+further questions; Clarifications 2026-11-10 #27 to #37 settle them.
 
 ## Clarifications
 
@@ -308,6 +310,145 @@ this spec disagree; Clarifications 2026-11-10 #3 to #26 settle them, and none wa
   (Figma audit Q24, P10) → A: `lang` follows the chosen language ("en" or "de", spec 009, as
   built). Note 1's `data-kern-theme="light"` and color-scheme meta stay. Surfaces: every page's
   `<html>` element, note 1 (U01 `6637:36640`) (FR-071).
+- Q: Build note 16 says the welcome page has "one Create connection button", while FR-053 and
+  frames 1b and 1g put "Start from an example" beside it. Keep FR-053, or follow note 16?
+  (Figma audit remap, Q1, Conflict #1) → A: Keep FR-053. The welcome page shows "Create
+  connection →" (primary) and "Start from an example" (secondary) beside it, as 1g draws. Figma
+  corrects note 16 to "Create connection and Start from an example". Nothing else changes, and
+  the overview's footers stay "Create connection" only. Surfaces: the welcome page, 1b (U11
+  `6699:44508`, `6793:47828`, whose label "Start with an example" is a slip) and 1g (U18
+  `6793:47705`, `6793:47706`); the example dialog (U18 `6793:47710`); note 16 (U04
+  `6703:39317`), note 28 (U06 `6791:46863`, item 16), note 31 (U06 `7137:50569`, items 48 and
+  52) (FR-053).
+- Q: What is the "1" beside the example's variant tabs (1i, 1i-c; component "Rules/Variant tab ·
+  fixes")? A findings count would contradict FR-056. (Figma audit remap, Q2, Conflict #2) → A:
+  It is the tab's ⓘ, not a count. The example's tabs show the ⓘ with the variant's description,
+  as 1i-b (U18 `7344:96441`) and the Summary's tabs do. Figma removes the stray "1". Nothing is
+  built on the example's tabs, and Clarification #21 is kept. Surfaces: the example's rules
+  step, 1i (U18 `7344:96398`) and 1i-c (U18 `7344:96454`); the same component on the Summary's
+  tab (U94 `7246:52833`, FR-076); the tab icons of note 26 (U06 `6760:48852`, item 4) and note
+  35 (U07 `7370:55189`, item 15) (FR-056).
+- Q: 16b shows a changed example ("School transport", Standard Rules 03–04) behind the dialog
+  for the unchanged example. Is that a design slip? (Figma audit remap, Q3, Conflict #3) → A:
+  Yes, a slip. The unchanged example is FR-055's: Standard with Rules 01–02, and Ambulance with
+  Rules 01–02 changed. The publish summary lists "Standard · 2 rules" and "Ambulance · 2
+  rules". The example line shows only while nothing has changed (FR-060). Figma redraws 16b's
+  background from 1i and adds Ambulance to the summary. Surfaces: the test step behind the
+  dialog (U73 `7137:50091`, tabs Standard, Ambulance, School transport; `7137:50181`, Rules
+  01–04); the publish dialog, 16b (U73 `7137:50210`, "Standard · 2 rules" and the example
+  line) and 16 (U73 `7058:62120`); the example, 1i and 1i-c (U18 `7344:96406`–`7344:96465`);
+  the example dialog's body "…with 2 documents and 2 rules" (U18 `6793:47710`) (FR-055,
+  FR-060).
+- Q: V-Draft · S2 draws view-only draft details without "Edit" ("needs roles"), and roles are
+  out of scope. Build it, or not? (Figma audit remap, Q4, Conflict #4) → A: Not built. Every
+  team member sees "Edit connection" on a draft's details (V-Draft · S). S2 stays a design for
+  a later roles feature, and Figma keeps it marked out of scope. No requirement changes.
+  Surfaces: the draft's details (U93 `7362:54923` (S2), `7362:54920` ("Edit connection" in S),
+  `7362:55152` (S2's hidden Edit)); note 12 (U03 `6648:42016`), note 36 (U07 `7370:55192`),
+  note 37 (U08 `7370:55195`) (FR-076).
+- Q: The build notes and frames restate or change behaviour of specs 001 to 009 outside the
+  nine items (the audit's sub-items a to n). Keep the product as built, or adopt the drawings?
+  (Figma audit remap, Q5, Behavioural #1) → A: Keep the product as built. Sub-items a to n stay
+  as specs 001 to 009 built them (FR-074), and no requirement is added. Where a frame of the
+  nine items shows them, the build ports the layout and leaves the behaviour. Where a note
+  disagrees with the product, the product stays: whether the documents list shows "x of y"
+  (d); the remove dialog that names the rules (e); note 17's active sentence (l); note 23's
+  scope, "v9 builds every change since v8" (n). Items already settled are not reopened:
+  Clarifications #3 (note 25's draft path), #5 (note 24) and #25 (note 31's reduced motion).
+  Surfaces, by sub-item: (a) menus and popups, notes 3 and 31 (U01 `6637:36646`; U06
+  `7137:50569`, item 53; U07 `7370:55183`, item 11); (b) shell and layout, notes 2, 4, 5, 15,
+  30 and 31 (U01 `6637:36649`, `6637:36652`; U02 `6637:36655`; U06 `7127:49610`, items 34, 45
+  and 47, and `7137:50569`, item 54); (c) overview rows and search, note 16 (U04 `6703:39317`;
+  U11 `6699:44519`, `6699:44521`, `6699:44580`, `6699:44629`, `6699:44631`; U12 `6699:44931`,
+  `7173:52294`; U13 `7366:55201`; U17 `6699:48028`; U05 `6716:41045`, item 19; the hidden
+  "View (disabled…)" layers, U11 `6699:44552`, U12 `6699:44942`); (d) create and documents
+  steps, notes 18, 19 and 28 (U04 `6703:39323`, `6711:39375`; U05 `6716:41042`, items 5 and 6;
+  U06 `6791:46863`, item 15); (e) removing a document, A10 and A11 (U23 `7298:62322`; U24
+  `7298:62500`); (f) rules step, notes 21, 26 and 28 and 10.9 to 10.11 (U05 `6711:39381`; U06
+  `6760:48852`, `6791:46863`; U58 `6522:32982`–`6522:33103`); (g) test step, note 29 (U06
+  `7058:63148`; U65 `7057:58754`, `7057:59073`; U73 `7058:62040`); (h) publish dialog, P2, P2b
+  and P5 (U77 `6376:26181`, `6760:47979`; U73 `7058:62120`; U79 `6376:27178`); (i) edit flow,
+  note 25 (U05 `6730:40340`; U98 `6731:39827`; U99 `6730:39810`); (j) leaving and logging out,
+  Start 3 and notes 30 and 31 (U17 `6408:72919`, `6890:46052`, `6401:71899`, `6699:48002`; U06
+  `7127:49610`, items 31 and 32, and `7137:50569`, item 51); (k) details, notes 33 and 36 (U07
+  `7370:55183`, `7370:55192`; U89 `6417:31309`, `6417:31325`, `6417:31331`, `6417:31337`; U96
+  `7246:56338`); (l) delete and deactivate dialogs, note 17, frames 3 and 4, P15 (U04
+  `6703:39320`; U14 `6699:44419`, `6699:44480`; U90 `6417:31599`; U88 `6417:31206`); (m) toast
+  types, note 24 (U05 `6720:39042`); (n) note 23's scope (U05 `6716:41045`) (FR-070, FR-074).
+- Q: Build the description tooltip (1k) in this feature, and how do keyboard and touch reach it
+  (note 37 #2)? (Figma audit remap, Q6, Behavioural #2) → A: Keep it as built; nothing is built
+  in this feature (FR-074). Found when the question was asked: spec 008 already built 1k's
+  tooltip (its FR-051 and FR-052). A cut description shows its full text in the tooltip on
+  hover, while the row's name has the keyboard focus, and after a tap on touch screens; Escape
+  or a tap elsewhere closes it; there is no tooltip when the text fits. Neither of the audit's
+  options is taken as worded: (a) would remove the tap, and (b) would leave the note open.
+  Figma closes note 37 #2 with the built rule. Surfaces: the overview rows with a cut
+  description (U13 `6739:40596`; U14 `7173:52310`; U17 `6699:48024`; U18 `6793:47800`); 1k (U13
+  `7366:55201`, `7366:55276`); note 16 (U04 `6703:39317`), note 37 (U08 `7370:55195`)
+  (FR-074).
+- Q: When does "Leave this connection?" (frame 2) show, and what does "Discard connection" do,
+  given that 6a saves silently on the same click? (Figma audit remap, Q7, Behavioural #3) → A:
+  Keep spec 008's rule; nothing is built in this feature (FR-074). Found when the question was
+  asked: spec 008 already settled the two frames (its Clarification 2026-11-07 #8, its FR-026)
+  and built frame 2. In a new connection's or a stored draft's flow, the product name and "Your
+  connections" open "Leave this connection?" on every step: "If you leave now, you lose all
+  progress. Save it to continue later, or discard the connection.", with "Discard connection"
+  and "Save progress". "Save progress" saves as Save and exit does (frames 6 and 7 follow; a
+  missing name keeps the team member in the flow). "Discard connection" leaves without saving
+  and discards the flow's local draft (spec 005): a new connection is dropped, a stored draft
+  stays as it was last saved, nothing stored is deleted, and there is no toast and no "Undo".
+  6a's silent save is not built. None of the audit's options is taken: (a) and (b) would
+  change the product, and (c) would add a delete path to FR-033. Figma corrects 6a and the
+  notes that describe the silent save (note 30, item 31; note 31, item 51). The edit flow's E5b
+  (Clarification #3) is not affected. Surfaces: the create flow's header links (U17
+  `7173:52656` and `7173:52682` (frame 2), `6890:46052` (6a), `6401:71899` (6, "Saving your
+  draft…"), `6699:48002` (7, "Draft saved. You can pick it up any time.")); note 18 (U04
+  `6703:39323`, "with an empty name it just leaves"), note 30 (U06 `7127:49610`, item 31), note
+  31 (U06 `7137:50569`, item 51) (FR-033, FR-074).
+- Q: Does the Links card follow the one-open-card rule on the page reached after publishing or
+  saving, where P9 and P10 keep it shown while Summary or Activity is open? (Figma audit remap,
+  Q8, Partial #1) → A: Yes, FR-022 holds everywhere. Links, Summary and Activity form one
+  accordion on every details page. After publishing or saving, the page lands with Links open
+  (P7, E4), and opening Summary or Activity closes it with "View links". Figma redraws P9 and
+  P10 with Links closed. Surfaces: the details reached after publishing or saving (P7, U80
+  `6396:47708`; P8, U81 `6809:46533`; P9, U82 `6396:47966`; P10, U86 `6396:48338`,
+  `6396:48520`; P12 to P17, U87 to U90; E4, U99 `6730:39754`); the details reached from View
+  (U91 `7203:50843`, `7246:51442`; U92 `7246:51549`; U94 `7246:52751`, `7246:53864`; U95
+  `7246:53973`; U96 `7246:55182`, `7246:56300`; U97 `7246:56410`); note 30 (U06 `7127:49610`,
+  items 36, 46 and 47) (FR-022).
+- Q: Which order and counts do the Driving licence's data groups follow: the frames' (Name,
+  Birth, Address, Licence, Other details, Document, Appearance; Birth 5, Other details more
+  than 1), or FR-077's, FR-078's and note 20's? (Figma audit remap, Q9, Partial #2) → A:
+  FR-077, FR-078 and note 20 win. The groups stand in the order Name, Birth, Address, Document,
+  Licence, Appearance, Other details (last), flowing down the three columns. Membership comes
+  from the catalog, which must give Name 4, Birth 6, Address 5, Licence 3, Document 6,
+  Appearance 6 and Other details 1. The frames' column placement is layout only; Figma redraws
+  A7 to A12 and R1 to R3, adding Birth's sixth item and leaving one item in Other details. The
+  order of Clarification #6 is kept. Surfaces: the data item panels (U21
+  `7290:61214`–`7290:61255`, `7290:61956` (Personal ID); U22 `7290:62357`, `7290:62967`; U23
+  `7298:61791`; U24 `7298:62402`–`7298:62447`, `7298:62579`–`7298:62613`; U27
+  `7298:63343`–`7298:63380`; U28 `7298:64184`–`7298:64220`; U98 `7296:52340`); note 20 (U04
+  `6711:39378`); the catalog and its mirror for the frontend (FR-078); agents' read of the
+  catalog (FR-080) (FR-077, FR-078).
+- Q: Does creating the example record a step? 1j draws its row as "Edited 23.10.2026" with no
+  step. (Figma audit remap, Q10, Partial #3) → A: Yes. Creating the example records
+  "Connection step", where it opens. The row reads "Edited <date> · Connection step", and
+  agents read that step. Figma updates 1j. Clarification #12 is kept: only a draft with no
+  recorded step reads "Edited <date>" alone. Surfaces: the overview rows, 1j (U18 `6793:47807`
+  and `6793:47800`); the rows of FR-019 (U17 `6699:48024` ("· Rules step"), U17 `6699:47974`,
+  U16 `7362:54583`, U90 `6699:48077` ("Edited 03.10.2026")); agents' read of a draft's step
+  (FR-062) (FR-019, FR-055).
+- Q: The local drafts banner's tertiary button: "Discard", as 1m and 1n draw, or "Discard
+  changes", as note 34 and the layer names say? (Figma audit remap, Q11, Partial #4) → A:
+  "Discard", as 1m and 1n draw and FR-081 says; Clarification #20's wording is kept. Figma
+  updates note 34 and the layer names. Found when the question was asked: the product's banner
+  already reads "Discard" ("Verwerfen" in German), and its accessible name adds the connection
+  ("Discard changes in <name>"), which stays. The edit flow's "Discard changes" is another
+  button and stays (FR-076). Surfaces: the overview's banner, 1m (U16 `7362:54556`) and 1n (U16
+  `7362:54625`–`7362:54634`), and the product's existing banner in both languages (FR-081);
+  note 34 (U07 `7370:55186`); not affected, the edit flow's "Discard changes" (U98
+  `6731:39850`, `7296:52389`, `6730:39145`; U99 `6890:46220`, `7114:49808`, `7173:52836`; U100
+  `7173:52769`, `7173:52772`) (FR-081).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -640,8 +781,8 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 
 1. **Given** the driving licence in the documents step, **When** its data item panel shows,
    **Then** its data items stand in three columns under "All data items", under the headings
-   "Name" (4 data items), "Birth" (6), "Address" (5), "Licence" (3), "Document" (6),
-   "Appearance" (6) and "Other details" (1), each heading with a checkbox.
+   "Name" (4 data items), "Birth" (6), "Address" (5), "Document" (6), "Licence" (3),
+   "Appearance" (6) and "Other details" (1), in that order, each heading with a checkbox.
 2. **Given** a group with no data item chosen, **When** the team member ticks the group's
    checkbox, **Then** all of its data items are chosen, as if each had been ticked.
 3. **Given** a group with some of its data items chosen, **When** the panel shows, **Then** the
@@ -828,8 +969,12 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 - **FR-022**: The details of every connection, draft, scheduled, active or deactivated, MUST show
   the "Activity" card as drawn, after the Summary: closed, the title, the line "Last edited by
   <name> · <date>, <time>" and "View activity"; open, the entries and "Hide activity". It MUST
-  open and close with the Links and Summary cards as spec 008's FR-046 says for those two (one
-  open at a time).
+  open and close with the Links and Summary cards as spec 008's FR-046 says for those two: the
+  three form one accordion with one card open at a time, on every details page. The page
+  reached after publishing or saving lands with Links open (P7, E4), and opening Summary or
+  Activity there closes Links, whose control then reads "View links"; frames P9 and P10, which
+  keep Links shown beside an open Summary or Activity, are not followed (Clarification
+  2026-11-10 #34).
 - **FR-023**: An entry MUST show its date and time, what happened, and who did it. Entries MUST
   be listed newest first.
 - **FR-024**: The line of the closed card MUST name the person and the time of the newest entry
@@ -963,23 +1108,29 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 #### The example (User Story 7)
 
 - **FR-053**: While no connection exists, the welcome page MUST offer "Start from an example"
-  beside "Create connection", as drawn. The overview, shown once a connection exists, MUST NOT
-  offer it.
+  (secondary) beside "Create connection →" (primary), as frame 1g draws; build note 16's "one
+  Create connection button" does not hold (Clarification 2026-11-10 #27). The overview, shown
+  once a connection exists, MUST NOT offer it: its footer keeps "Create connection" only.
 - **FR-054**: "Start from an example" MUST open the dialog as drawn: "Start from an example?",
   "This creates a draft called "Passenger transport licence (example)" with 2 documents and 2
   rules. It only becomes active when you publish.", "Go back" and "Create the example". "Go
   back", × and Escape MUST close it without creating anything.
 - **FR-055**: "Create the example" MUST store a draft and open it in the wizard at its first
-  step. The draft MUST hold what the frames draw: the name "Passenger transport licence
-  (example)"; the description "Licence to drive taxis, rental cars and ambulances. Checks age and
-  driving experience."; the documents Personal ID (7 data items) and Driving licence (2 data
+  step. Creating it MUST record that step, so that its row reads "Edited <date> · Connection
+  step" (FR-019) and agents read that step (FR-062); the row of frame 1j, which names no step,
+  is not followed (Clarification 2026-11-10 #36). The draft MUST hold what the frames draw: the
+  name "Passenger transport licence (example)"; the description "Licence to drive taxis, rental
+  cars and ambulances. Checks age and driving experience."; the documents Personal ID (7 data
+  items) and Driving licence (2 data
   items); in Standard, Rule 01 "Date of birth (Age) is at least 21 years old" with "You need to
   be at least 21 years old." AND Rule 02 "Licence class B – Issue date is at least 2 years ago"
   with "You need to have held a class B driving licence for at least 2 years."; and the variant
   "Ambulance", linked to Standard, described "For ambulance services. Some rules differ from
   Standard.", with Rule 01 changed to 19 years and Rule 02 to 1 year and their messages to match.
 - **FR-056**: The example MUST always be a complete, publishable draft: publishing's checks pass
-  on it unchanged, and the rule checks find nothing in it.
+  on it unchanged, and the rule checks find nothing in it. Its variant tabs therefore carry no
+  finding icon and no count: they show the ⓘ with the variant's description, as 1i-b draws, and
+  the "1" that 1i and 1i-c draw beside a tab is not built (Clarification 2026-11-10 #28).
 - **FR-057**: The example MUST be a normal draft in every other respect: listed on the overview
   as a draft, editable by team members and agents, testable, publishable, deletable, and counted
   as a connection for the homepage (spec 008, FR-027).
@@ -997,7 +1148,10 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   (its name, description, documents, data items, variants and rules are the example's), the
   publish dialog MUST add the line "This is still the example. Check that the name, documents and
   rules fit your service."; publishing MUST still work. After any saved change the line MUST NOT
-  show. The approval page of a request to publish it MUST show the same line.
+  show. The approval page of a request to publish it MUST show the same line. The dialog's
+  summary of the unchanged example lists "Standard · 2 rules" and "Ambulance · 2 rules"; the
+  "School transport" tab and Rules 03 and 04 behind frame 16b's dialog are a slip
+  (Clarification 2026-11-10 #29).
 - **FR-061**: The example's own texts (its name, description, the variant's name and description,
   the rules' messages) MUST be created in the language the team member uses at that moment and
   are content from then on (spec 009, FR-007).
@@ -1046,7 +1200,9 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 - **FR-070**: Every frame that belongs to the nine items (the eight of group A and the data
   groups) MUST be ported as drawn,
   layout, styling and wording, and verified as spec 008 verifies its screens. What a frame of
-  these items shows of an item that stays deferred (FR-074) MUST NOT be built.
+  these items shows of an item that stays deferred (FR-074) MUST NOT be built. Build note 23's
+  "v9 builds every change since v8" does not widen this: only the nine items are ported
+  (Clarification 2026-11-10 #31).
 - **FR-071**: Every text this feature adds MUST exist in English and German (spec 009, FR-004),
   the German written in this feature with spec 009's glossary, which gains this feature's terms
   (scheduled, start date, activity, example, selected). The English copy of the frames is used
@@ -1064,7 +1220,19 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   group A that this feature does not build stay as spec 008 built around them: no pending
   changes kept as a draft beside a live connection (F5), requests in progress are cancelled by a
   deactivation (F13), no email line in the user menu (Q13), no success message for met citizens
-  (Q31 (a)), no "Download PDF" (Q37 (b)), and no "Undo" after deactivating (spec 008, F54).
+  (Q31 (a)), no "Download PDF" (Q37 (b)), and no "Undo" after deactivating (spec 008, F54). The
+  same holds for what the design's build notes and frames restate or change of specs 001 to 009
+  outside the nine items (menus and popups, the shell, the overview's rows and search, the
+  create and documents steps, removing a document, the rules step, the test step, the publish
+  dialog, the edit flow, leaving and logging out, the details, the delete and deactivate
+  dialogs, the toast types): none of it is a requirement of this feature. Where a frame of the
+  nine items shows it, its layout is ported and the product's behaviour stays; where a build
+  note disagrees with the product, the product stays (Clarification 2026-11-10 #31). The
+  overview's description tooltip (frame 1k) is one such part: it stays as spec 008 built it, on
+  hover, on keyboard focus of the row's name and after a tap on touch (Clarification 2026-11-10
+  #32). Leaving a new connection's or a stored draft's flow is another: "Leave this
+  connection?" stays as spec 008's FR-026 built it, its "Discard connection" deletes nothing
+  that was stored, and frame 6a's silent save is not built (Clarification 2026-11-10 #33).
 - **FR-075**: What serviceBW receives MUST change in one respect only: a scheduled connection's
   links answer as a deactivated connection's do until its start date.
 - **FR-076**: Where a frame of the nine items draws something that stays out of scope (FR-070,
@@ -1099,19 +1267,26 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   - **Findings in the published Summary (P9d, build note 26)**: the details' Summary shows no
     findings, as spec 003's FR-020 says, and the ⓘ of a variant's tab shows only the variant's
     description (Clarification 2026-11-10 #21).
+  - **Roles and view-only users (V-Draft · S2)**: a draft's details show "Edit connection" for
+    every team member, as V-Draft · S draws; the view-only details without it are not built
+    (Clarification 2026-11-10 #30).
 - **FR-077**: In the documents step's data item panel, in the create flow, in a draft and in the
   edit flow, a document with more than 10 data items MUST show its data items under group
   headings, as drawn: in three columns under "All data items", the groups "Name", "Birth",
-  "Address" and "Document", the document's own groups ("Licence", "Appearance") and "Other
-  details". A document with 10 data items or fewer keeps today's list without groups. Everywhere
+  "Address" and "Document", then the document's own groups ("Licence", "Appearance"), and
+  "Other details" last. The groups MUST stand in that order and flow down the three columns;
+  where the frames place a group elsewhere (the Driving licence's "Licence" and "Other details"
+  before "Document"), their placement is not followed (Clarification 2026-11-10 #35). A
+  document with 10 data items or fewer keeps today's list without groups. Everywhere
   else data items MUST stay listed without groups, as today: the details' Summary, the dialogs'
   summaries and the approval page (Clarification 2026-11-10 #6).
 - **FR-078**: The data groups MUST come from the catalog. Every data item of a grouped document
   MUST belong to exactly one group; a group MUST keep its name across documents and MUST hold at
   least 2 data items, and what is left goes into "Other details" (build note 20). The Driving
-  licence's groups MUST hold Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6 and
-  Other details 1 data items, as drawn. The groups' names are labels of the catalog, in English
-  and German (FR-071; Clarification 2026-11-10 #6).
+  licence's groups MUST hold Name 4, Birth 6, Address 5, Document 6, Licence 3, Appearance 6 and
+  Other details 1 data items; the frames that draw 5 data items under Birth or more than one
+  under Other details are not followed (Clarification 2026-11-10 #35). The groups' names are
+  labels of the catalog, in English and German (FR-071; Clarification 2026-11-10 #6).
 - **FR-079**: Every group heading MUST have a checkbox, as drawn, that selects all of its group's
   data items and shows its mixed state while some of them are chosen. It MUST do for its group
   what "All data items" does for the document today, including the question that names the
@@ -1123,7 +1298,9 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 - **FR-081**: While work kept on this device exists (spec 005's local drafts), the overview MUST
   show the banner the design draws above the toolbar (frames 1m and 1n). For one connection it
   MUST read "Unsaved changes in “<name>”" and "Saved only on this device on <date>, <time>, when
-  the page closed. Nobody else can see them.", with "Discard" and "Resume editing". For several
+  the page closed. Nobody else can see them.", with "Discard" and "Resume editing"; the
+  tertiary button reads "Discard", as 1m and 1n draw, not build note 34's "Discard changes"
+  (Clarification 2026-11-10 #37). For several
   it MUST read "Unsaved changes in <n> connections" and "Saved only on this device when the page
   closed. Nobody else can see them.", with one line per connection that reads "Edited · <date>,
   <time>" or "New, never saved · <date>, <time>". The banner MUST stay above the selection bar
@@ -1217,7 +1394,8 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
 - **The frontend side is decided by the frames**, as `deferred.md` says: the later feature ports
   them and does not re-decide them. The Figma audit of the group's frames against this spec
   (`deferred.md`, "How to use it") ran on 2026-11-10, and Clarifications 2026-11-10 #3 to #26
-  settle what it found. The undrawn places this spec names are built from the spec without
+  settle what it found; #27 to #37 settle the questions of its remap. The undrawn places this
+  spec names are built from the spec without
   waiting for frames, and what the Clarifications do not word is written in this feature: the
   toast after scheduling or changing a date, the button of "Activate again" on a date, the save
   dialog's sentence for a scheduled connection, the ⋯ menu of a scheduled connection, the
@@ -1258,12 +1436,14 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   first change, because the rules banner invites a change and then a test. Only the publish
   dialog's line depends on whether anything was changed.
 - **The example has Standard and Ambulance.** The dialog's "2 documents and 2 rules" counts
-  Standard's rules; one publish frame's third tab ("School transport") is sample data. The entry
+  Standard's rules; frame 16b's third tab ("School transport") and its Rules 03 and 04 are a
+  slip (Clarification 2026-11-10 #29). The entry
   reads "Start from an example", as the dialog's title and `deferred.md` do; one frame's "Start
   with an example" is a slip.
 - **Every draft row shows its step.** The frames that show a draft row without one are sample
   data; every stored draft has a step (spec 005). A draft without one would read "Edited <date>"
-  alone (Clarification 2026-11-10 #12).
+  alone (Clarification 2026-11-10 #12). The example is no exception: creating it records
+  "Connection step" (Clarification 2026-11-10 #36).
 - **Agents get what they need to stay consistent with people** (spec 007's "every read", "every
   change the create flow offers", and approval for what changes a live connection): reads of all
   new data, moving a document, and a start date with approval (Clarification 2026-11-10 #2).
@@ -1279,7 +1459,8 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   citizens (Q31 (a)); "Download PDF" (Q37 (b)).
 - Groups B and C of `deferred.md`: the rules-package actions (remove from group, duplicate
   group, add into a group, unlink from Standard, grouping a group, persona generation that makes
-  every rule testable (F11)), upcoming documents, roles and view-only users. The test step's
+  every rule testable (F11)), upcoming documents, roles and view-only users, and with them the
+  view-only draft details of V-Draft · S2 (Clarification 2026-11-10 #30). The test step's
   "Generate all" and "Generate again" are not that persona generation: they are spec 004's
   regenerate and stay (Clarification 2026-11-10 #7). The data groups of group C are in scope
   (Clarification 2026-11-10 #6).
