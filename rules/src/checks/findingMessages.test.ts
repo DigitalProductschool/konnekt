@@ -391,7 +391,7 @@ describe('noteOf for redundant and always-met findings (US2)', () => {
 
   it('reads the duplicate’s and the always-met notes in German (glossary §3)', () => {
     expect(noteOf(same('rule-6', 'rule-3'), NAMES, 'de')).toBe(
-      'Gleich wie Rule 03. Sie können eine der beiden löschen.'
+      'Identisch mit Rule 03. Sie können eine der beiden löschen.'
     );
     expect(noteOf(alwaysMet('group-1'), NAMES, 'de')).toBe('Alle erfüllen diese Gruppe.');
     expect(noteOf(alwaysMet('rule-5'), NAMES, 'de')).toBe('Alle erfüllen diese Regel.');
@@ -424,7 +424,7 @@ describe('noteOf for redundant and always-met findings (US2)', () => {
 
   it('never shows an id in German either', () => {
     expect(noteOf(same('rule-6', 'rule-9'), NAMES, 'de')).toBe(
-      'Gleich wie eine andere Regel. Sie können eine der beiden löschen.'
+      'Identisch mit einer anderen Regel. Sie können eine der beiden löschen.'
     );
     expect(noteOf(impliedBy('rule-6', ['rule-9']), NAMES, 'de')).toBe(
       'Wer andere Regeln erfüllt, erfüllt auch diese Regel. Sie können die Regel löschen.'
@@ -1080,7 +1080,7 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
 
   it('reads the duplicate’s, always-met and covered lines in German', () => {
     expect(bannerOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES, 'de')?.lines).toEqual([
-      { kind: 'redundant', tone: 'info', parts: [ref(6), ' ist gleich wie ', ref(3), '.'] },
+      { kind: 'redundant', tone: 'info', parts: [ref(6), ' ist identisch mit ', ref(3), '.'] },
     ]);
     expect(bannerOf(check([alwaysMet('group-1')]), STANDARD, NAMES, 'de')?.lines).toEqual([
       {
@@ -1136,7 +1136,7 @@ describe('bannerOf for redundant and always-met findings (US2)', () => {
     expect(head(banner)).toBe('2 Regeln widersprechen einander, und 1 Regel ist ein Duplikat');
     expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
       'Sub-group 01: Rule 04 und Rule 05 widersprechen einander.',
-      'Rule 06 ist gleich wie Rule 03.',
+      'Rule 06 ist identisch mit Rule 03.',
     ]);
     expect(head(bannerOf(check([alwaysMet('rule-1')], ALL_MEET), STANDARD, NAMES, 'de'))).toBe(
       'Alle erfüllen Rule 01, daher prüft sie nichts. Alle erfüllen die Regeln von Standard.'
@@ -1365,7 +1365,7 @@ describe('tabFindingsOf', () => {
       '4 Regeln widersprechen einander'
     );
     expect(tabFindingsOf(check([same('rule-6', 'rule-3')]), STANDARD, NAMES, 'de')?.text).toBe(
-      '1 Duplikat: Rule 06 ist gleich wie Rule 03.'
+      '1 Duplikat: Rule 06 ist identisch mit Rule 03.'
     );
     expect(
       tabFindingsOf(check([impliedBy('group-1', ['rule-1'])]), STANDARD, NAMES, 'de')?.text
@@ -1578,7 +1578,9 @@ describe('announcementOf', () => {
   });
 
   it('announces redundant and always-met findings and the notices in German', () => {
-    expect(announceDe(appeared(same('rule-6', 'rule-3')))).toBe('Rule 06 ist gleich wie Rule 03.');
+    expect(announceDe(appeared(same('rule-6', 'rule-3')))).toBe(
+      'Rule 06 ist identisch mit Rule 03.'
+    );
     expect(announceDe(appeared(impliedBy('rule-1', ['rule-2'])))).toBe(
       'Rule 01 macht neben Rule 02 keinen Unterschied.'
     );
@@ -1804,7 +1806,7 @@ describe('the variants’ findings (US3; FR-014, FR-015)', () => {
     const banner = bannerOf(ambulance(U03), AMBULANCE, AMBULANCE_NAMES, 'de');
     expect(banner?.lines.map((line) => textOf(line.parts))).toEqual([
       'Rule 02 und Rule 05 widersprechen einander.',
-      'Rule 06 ist gleich wie Rule 03.',
+      'Rule 06 ist identisch mit Rule 03.',
     ]);
   });
 

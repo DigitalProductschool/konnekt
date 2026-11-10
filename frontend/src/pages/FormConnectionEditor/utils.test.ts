@@ -1826,7 +1826,7 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     expect(saveFailureToastOf(network, -1, 'de')).toEqual({
       id: -1,
       message:
-        'Konnte nicht gespeichert werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+        'Der Entwurf konnte nicht gespeichert werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
       actionLabel: 'Erneut versuchen',
       errorId: undefined,
     });

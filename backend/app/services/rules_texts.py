@@ -38,7 +38,7 @@ _NOUNS_DE: dict[ItemNoun, str] = {
     'group': 'Gruppe',
     'sub-group': 'Untergruppe',
 }
-_UNITS_DE: dict[TimeUnit, str] = {'years': 'Jahre', 'months': 'Monate'}
+_UNIT_ONE_DE: dict[TimeUnit, str] = {'years': 'Jahr', 'months': 'Monat'}
 
 INVALID_IDENTIFIER = Text(
     en='The rules contain an invalid identifier. Reload the connection and try again.',
@@ -299,7 +299,7 @@ CONDITION_PROBLEMS: dict[str, Text] = {
     'enter_date': Text(en='enter a date.', de='Geben Sie ein Datum ein.'),
     'years_at_least_1': Text(
         en='enter a number of years of at least 1.',
-        de='Geben Sie als Anzahl der Jahre mindestens 1 ein.',
+        de='Geben Sie mindestens 1 Jahr ein.',
     ),
     'choose_unit': Text(
         en='choose years or months.', de='Wählen Sie Jahre oder Monate.'
@@ -312,7 +312,7 @@ def amount_at_least_1(unit: TimeUnit) -> Text:
     """`amount_at_least_1`: a number of years or months below 1."""
     return Text(
         en=f'enter a number of {unit} of at least 1.',
-        de=f'Geben Sie als Anzahl der {_UNITS_DE[unit]} mindestens 1 ein.',
+        de=f'Geben Sie mindestens 1 {_UNIT_ONE_DE[unit]} ein.',
     )
 
 

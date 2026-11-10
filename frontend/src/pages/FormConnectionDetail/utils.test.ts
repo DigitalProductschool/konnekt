@@ -412,7 +412,7 @@ describe('the delete confirmation of a draft (S6)', () => {
       'de'
     );
     expect(deleteDraftDialogOf(published, 'de')).toEqual({
-      errorTitle: 'Konnte nicht gelöscht werden',
+      errorTitle: 'Die Anbindung konnte nicht gelöscht werden',
       retryLabel: 'Anbindung öffnen',
       danger: false,
     });
@@ -464,7 +464,7 @@ describe('the confirmations of a published connection (S17)', () => {
       confirmLabel: 'Anbindung löschen',
       cancelLabel: 'Anbindung behalten',
       busyLabel: 'Wird gelöscht …',
-      errorTitle: 'Konnte nicht gelöscht werden',
+      errorTitle: 'Die Anbindung konnte nicht gelöscht werden',
       danger: true,
     });
     expect(dialogCopyOf('deactivate', active, 'de')).toEqual({
@@ -473,7 +473,7 @@ describe('the confirmations of a published connection (S17)', () => {
       confirmLabel: 'Deaktivieren',
       cancelLabel: 'Aktiv lassen',
       busyLabel: 'Wird deaktiviert …',
-      errorTitle: 'Konnte nicht deaktiviert werden',
+      errorTitle: 'Die Anbindung konnte nicht deaktiviert werden',
       danger: false,
       wide: false,
     });
@@ -482,7 +482,7 @@ describe('the confirmations of a published connection (S17)', () => {
       confirmLabel: 'Aktivieren',
       cancelLabel: 'Abbrechen',
       busyLabel: 'Wird aktiviert …',
-      errorTitle: 'Konnte nicht reaktiviert werden',
+      errorTitle: 'Die Anbindung konnte nicht reaktiviert werden',
       wide: true,
     });
   });

@@ -505,14 +505,11 @@ describe('resultViewOf in German (spec 009)', () => {
       CONTEXT_DE
     );
     const [groupRow] = view.rows;
-    expect([groupRow.name, groupRow.statement]).toEqual([
-      'Group 01',
-      'Alle davon müssen erfüllt sein',
-    ]);
+    expect([groupRow.name, groupRow.statement]).toEqual(['Group 01', 'Alle müssen erfüllt sein']);
     expect(groupRow.statement).toBe(GROUP_SUBTITLES.de.and);
     expect([groupRow.members[1].name, groupRow.members[1].statement]).toEqual([
       'Sub-group 01',
-      'Mindestens eine davon muss erfüllt sein',
+      'Mindestens eine muss erfüllt sein',
     ]);
     expect(groupRow.message).toBe('You need a licence.');
   });

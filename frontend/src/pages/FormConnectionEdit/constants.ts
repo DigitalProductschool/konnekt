@@ -12,7 +12,9 @@ export const RESTORE_COPY = defineTexts(
     discardThem: 'Discard them',
   },
   {
-    restoreTitle: 'Nicht gespeicherte Änderungen wiederherstellen?',
+    // A soft hyphen (R9 step 3): at 320px the whole word pushed the dialog's × out of the window
+    // (spec 009, T046); the tab title leaves it out (RestoreDialog)
+    restoreTitle: 'Nicht gespeicherte Änderungen wieder\u00ADherstellen?',
     restoreText: (name: string, date: string) =>
       `Auf diesem Gerät gibt es nicht gespeicherte Änderungen an ${name} vom ${date}.`,
     restore: 'Änderungen wiederherstellen',

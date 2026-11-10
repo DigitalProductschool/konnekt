@@ -337,7 +337,7 @@ describe('announcementsFor', () => {
     ).toEqual(['Rule 03 widerspricht Rule 01 im Moment.']);
     expect(
       announce(check([conflict('rule-2', ['rule-1'])]), check([same('rule-2', 'rule-1')]), de)
-    ).toEqual(['Rule 02 widerspricht Rule 01 nicht mehr.', 'Rule 02 ist gleich wie Rule 01.']);
+    ).toEqual(['Rule 02 widerspricht Rule 01 nicht mehr.', 'Rule 02 ist identisch mit Rule 01.']);
     expect(announce(NONE, check([implies('rule-4', ['rule-1'], ['rule-3'])]), de)).toEqual([
       'Rule 04 macht neben Rule 01 und Rule 03 keinen Unterschied.',
     ]);
@@ -367,7 +367,7 @@ describe('announcementsFor', () => {
     expect(announce(previous, next, de)).toEqual([
       'Rule 01 widerspricht Rule 03.',
       'Rule 02 widerspricht Rule 03 nicht mehr.',
-      'Rule 02 ist gleich wie Rule 03.',
+      'Rule 02 ist identisch mit Rule 03.',
       'Rule 03 widerspricht Rule 01.',
       'Rule 04 widerspricht Rule 01 nicht mehr.',
       'Niemand kann die Regeln von Standard erfüllen.',

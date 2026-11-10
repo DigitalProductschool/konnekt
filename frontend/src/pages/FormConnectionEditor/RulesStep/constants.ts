@@ -465,7 +465,8 @@ export const RULES_STEP_COPY = defineTexts(
         : 'Sie können das direkt danach rückgängig machen.',
     cancel: 'Abbrechen',
     saveChangesTitle: (rule: string) => `Änderungen an ${rule} speichern?`,
-    saveChangesText: 'Wenn Sie ohne Speichern verlassen, gehen Ihre Änderungen verloren.',
+    saveChangesText:
+      'Wenn Sie die Bearbeitung ohne Speichern beenden, gehen Ihre Änderungen verloren.',
     discard: 'Änderungen verwerfen',
     saveChanges: 'Änderungen speichern',
     undo: 'Rückgängig',
@@ -532,8 +533,7 @@ export const RULES_STEP_COPY = defineTexts(
     restoreGroup: 'Gruppe wiederherstellen',
     restoreSubGroup: 'Untergruppe wiederherstellen',
     linkedTo: (main: string) => `Mit ${main} verknüpft`,
-    linkedText: (main: string) =>
-      `Regeln, die Sie nicht ändern, folgen ${main} und werden mit ${main} aktualisiert.`,
+    linkedText: (main: string) => `Unveränderte Regeln übernehmen alle Änderungen aus ${main}.`,
     removedRules: (removed: number, total: number, main: string) =>
       `${removed} von ${total} ${total === 1 ? 'Regel' : 'Regeln'} aus ${main} ${removed === 1 ? 'ist' : 'sind'} hier entfernt.`,
     removedGroups: (groups: string, count: number) =>
@@ -580,8 +580,8 @@ export const RULES_STEP_COPY = defineTexts(
       `${rule} in ${branch} prüft Daten aus dem Dokument „${document}“, das nicht mehr angefordert wird. Fügen Sie das Dokument im Schritt „Dokumente“ wieder hinzu oder bearbeiten oder löschen Sie die Regel.`,
     addInDocuments: 'In „Dokumente“ hinzufügen',
     noLongerRequested: (data: string) => `${data} wird nicht mehr angefordert.`,
-    refusedPublishTitle: 'Konnte nicht veröffentlicht werden',
-    refusedSaveTitle: 'Konnte nicht gespeichert werden',
+    refusedPublishTitle: 'Die Anbindung konnte nicht veröffentlicht werden',
+    refusedSaveTitle: 'Die Änderungen konnten nicht gespeichert werden',
     showFindings: 'Befunde anzeigen',
     hideFindings: 'Befunde ausblenden',
     copyLink: 'Link kopieren',

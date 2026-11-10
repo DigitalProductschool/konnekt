@@ -36,7 +36,10 @@ export default function Picker({
     : disabled
       ? 'text-kern-layout-text-muted'
       : 'text-kern-layout-text-default';
-  // Under 320 CSS px the label takes a line of its own under the icons (T096)
+  // Under 320 CSS px the label takes a line of its own under the icons (T096). A one-word label
+  // longer than the picker (German "Personalausweis" in a group's editor at 320px) breaks inside
+  // the word instead of running under the chevron (spec 009 R9 step 2, as `SearchResultItem`;
+  // T048's re-check)
   return (
     <button
       id={id}
@@ -53,7 +56,7 @@ export default function Picker({
       {icon && <img src={icon} alt="" className="size-16 shrink-0" />}
       {symbol && <SymbolChip symbol={symbol} />}
       <span
-        className={`text-kern-static-medium narrow:order-last narrow:basis-full min-w-0 leading-(--kern-typography-line-height-medium-static) whitespace-nowrap max-md:whitespace-normal ${text}`}
+        className={`text-kern-static-medium narrow:order-last narrow:basis-full min-w-0 leading-(--kern-typography-line-height-medium-static) break-words hyphens-auto whitespace-nowrap max-md:whitespace-normal ${text}`}
       >
         <span className="sr-only">{name}: </span>
         {label}

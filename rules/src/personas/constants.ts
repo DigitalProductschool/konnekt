@@ -16,7 +16,7 @@ export const PERSONA_IDS: readonly PersonaId[] = ['persona-1', 'persona-2', 'per
 // its subtitles from these
 export const GROUP_SUBTITLES = defineTexts<Record<Combinator, string>>(
   { and: 'All of these must be met', or: 'At least one of these must be met' },
-  { and: 'Alle davon müssen erfüllt sein', or: 'Mindestens eine davon muss erfüllt sein' }
+  { and: 'Alle müssen erfüllt sein', or: 'Mindestens eine muss erfüllt sein' }
 );
 
 // A run's personas are due 5 seconds after the request (FR-013, SC-003). The worker stops planning

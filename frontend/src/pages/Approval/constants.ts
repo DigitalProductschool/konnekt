@@ -84,11 +84,11 @@ export const APPROVAL_COPY = defineTexts(
 
     approveFailedTitle: (action: ApprovalAction): string =>
       action === 'publish'
-        ? 'Konnte nicht veröffentlicht werden'
+        ? 'Der Entwurf konnte nicht veröffentlicht werden'
         : action === 'delete_draft'
           ? 'Der Entwurf konnte nicht gelöscht werden'
-          : 'Konnte nicht freigegeben werden',
-    declineFailedTitle: 'Konnte nicht abgelehnt werden',
+          : 'Die Anfrage konnte nicht freigegeben werden',
+    declineFailedTitle: 'Die Anfrage konnte nicht abgelehnt werden',
     failedBefore: 'Der letzte Versuch hat nicht funktioniert. Es wurde nichts geändert.',
     callFailed:
       'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',

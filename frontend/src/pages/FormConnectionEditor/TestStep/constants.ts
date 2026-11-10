@@ -232,8 +232,9 @@ export const VALUES_PICKER_COPY = defineTexts<Omit<ValuesPickerCopy, 'menu'>>(
   },
   {
     placeholder: TEST_STEP_COPY.de.notShared,
-    searchClasses: 'Klassen durchsuchen',
-    searchOptions: 'Optionen durchsuchen',
+    // The glossary's short forms, as the rule editor's (R9; spec 009, T046)
+    searchClasses: 'Klassen suchen',
+    searchOptions: 'Optionen suchen',
     footer: null,
     noMatch: (search) => `Keine Option passt zu „${search}“.`,
   }

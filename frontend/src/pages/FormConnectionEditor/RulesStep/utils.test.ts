@@ -2476,7 +2476,7 @@ describe('in German (spec 009, T037; glossary G§2, G§3)', () => {
     const line: BannerLine = {
       kind: 'redundant',
       tone: 'info',
-      parts: [{ itemId: 'rule-1', name: 'Rule 01' }, ' ist gleich wie Rule 02.'],
+      parts: [{ itemId: 'rule-1', name: 'Rule 01' }, ' ist identisch mit Rule 02.'],
     };
     const view = bannerViewOf(
       { kind: 'info', lines: [line], counts: '', notice: null, incomplete: null, head: line.parts },

@@ -68,6 +68,10 @@ export default function ConfirmDialog({
   const pressedOnScrim = useRef(false);
   const id = useId();
   const titleId = `${id}-title`;
+  // A German title may hold a soft hyphen ("Veröffent&shy;lichen?", spec 009 R9), which breaks
+  // the word on screen; Chromium and Firefox keep it in the accessible name, so the heading, and
+  // through it the dialog, is named without it (T047). Without one the heading has no aria-label
+  const plainTitle = title.replaceAll('\u00AD', '');
   const errorId = `${id}-error`;
   const textId = `${id}-text`;
   const hasCancel = cancelLabel !== '';
@@ -135,7 +139,11 @@ export default function ConfirmDialog({
       <header className="kern-dialog__header">
         {/* The kit's container, which puts the title 8px lower than kern.css and 16px from the × */}
         <div className="flex-1 pt-8 pr-16">
-          <h2 id={titleId} className="kern-title kern-title--large">
+          <h2
+            id={titleId}
+            aria-label={plainTitle === title ? undefined : plainTitle}
+            className="kern-title kern-title--large"
+          >
             {title}
           </h2>
         </div>

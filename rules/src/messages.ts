@@ -298,7 +298,7 @@ export const MESSAGE_TEXTS = defineTexts<{
       if (licenceClass && part) {
         const gender = GERMAN_FIELD_GENDERS[`${field.key}.${part.key}`];
         const named = gender ? `${ARTICLE[gender]} ${part.label}` : germanField(part.label);
-        return `${named} Ihrer Klasse ${licenceClass}`;
+        return `${named} Ihrer Führerscheinklasse ${licenceClass}`;
       }
       const gender = GERMAN_FIELD_GENDERS[field.key];
       const named = gender ? `${ARTICLE[gender]} ${field.label}` : germanField(field.label);

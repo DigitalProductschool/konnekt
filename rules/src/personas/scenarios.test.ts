@@ -656,7 +656,9 @@ describe('US1-AS4: tested as if shared today', () => {
   });
 
   it('names today’s date in German, still dd.mm.yyyy (spec 009, FR-012)', () => {
-    expect(testDayLineOf(TODAY, 'de')).toBe('Getestet, als würde heute geteilt: 01.11.2026.');
+    expect(testDayLineOf(TODAY, 'de')).toBe(
+      'Getestet, als würden die Daten heute geteilt: 01.11.2026.'
+    );
   });
 
   it('evaluates on today: a persona who turns 21 today meets Rule 01, yesterday not', () => {

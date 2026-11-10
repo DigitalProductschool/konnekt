@@ -25,7 +25,8 @@ export default function RestoreDialog({
   onEscape,
 }: RestoreDialogProps) {
   const copy = useCopy(RESTORE_COPY);
-  useDocumentTitle(copy.restoreTitle);
+  // The tab title without the German title's soft hyphen (spec 009, T046)
+  useDocumentTitle(copy.restoreTitle.replace('\u00AD', ''));
 
   return (
     <WizardLayout

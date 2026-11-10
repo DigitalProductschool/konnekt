@@ -156,7 +156,7 @@ export const DELETE_CONNECTION_COPY = defineTexts(
     confirm: 'Anbindung löschen',
     cancel: 'Anbindung behalten',
     busy: 'Wird gelöscht …',
-    errorTitle: 'Konnte nicht gelöscht werden',
+    errorTitle: 'Die Anbindung konnte nicht gelöscht werden',
     errorText:
       'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     retry: 'Erneut versuchen',

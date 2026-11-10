@@ -1433,7 +1433,7 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
         (
             EXPIRY,
             {'operator': 'less_than_years_ago', 'years': 0},
-            'Geben Sie als Anzahl der Jahre mindestens 1 ein.',
+            'Geben Sie mindestens 1 Jahr ein.',
         ),
         (
             EXPIRY,
@@ -1443,12 +1443,12 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
         (
             EXPIRY,
             {'operator': 'at_least_from_now', 'amount': 0, 'unit': 'months'},
-            'Geben Sie als Anzahl der Monate mindestens 1 ein.',
+            'Geben Sie mindestens 1 Monat ein.',
         ),
         (
             EXPIRY,
             {'operator': 'at_least_from_now', 'amount': 2.5, 'unit': 'years'},
-            'Geben Sie als Anzahl der Jahre mindestens 1 ein.',
+            'Geben Sie mindestens 1 Jahr ein.',
         ),
     ],
 )

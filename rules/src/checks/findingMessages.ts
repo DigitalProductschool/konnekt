@@ -273,7 +273,7 @@ function redundantNote(finding: RedundantFinding, names: ItemNames, texts: Findi
   const noun = nounOf(itemId);
   if (reason.type === 'same') {
     // "another rule" only while the item it names has no name any more, such as a deleted one
-    const other = names.get(reason.item) ?? texts.anotherNoun[nounOf(reason.item)];
+    const other = names.get(reason.item) ?? texts.anotherNounDative[nounOf(reason.item)];
     return texts.sameAsNote(other);
   }
   const parts = coveredParts(

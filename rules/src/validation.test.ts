@@ -924,7 +924,7 @@ describe('ruleProblemOf and ruleProblem (spec 009, R4, R10)', () => {
       amountOf(0),
       'amount_at_least_1',
       'Rule 01 in Standard: enter a number of months of at least 1.',
-      'Rule 01 in Standard: Geben Sie als Anzahl der Monate mindestens 1 ein.',
+      'Rule 01 in Standard: Geben Sie mindestens 1 Monat ein.',
     ],
     [
       'no message',

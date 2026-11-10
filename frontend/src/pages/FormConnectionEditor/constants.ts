@@ -152,11 +152,11 @@ export const DRAFT_COPY = defineTexts(
     cancel: 'Cancel',
   },
   {
-    saveAndExit: 'Speichern und verlassen',
+    saveAndExit: 'Speichern und schließen',
     saving: 'Wird gespeichert …',
     savingStatus: 'Entwurf wird gespeichert …',
     saveNetworkError:
-      'Konnte nicht gespeichert werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      'Der Entwurf konnte nicht gespeichert werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     tryAgain: 'Erneut versuchen',
     draftBadge: 'Entwurf',
     untitled: 'Unbenannte Anbindung',
@@ -273,9 +273,12 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     replaceTheirChanges: 'Replace their changes',
   },
   {
-    publishTitle: 'Bereit zum Veröffentlichen?',
+    // A soft hyphen (R9 step 3): at 320px the whole word pushed the dialog's × past its edge
+    // (spec 009, T046)
+    publishTitle: 'Bereit zum Veröffent\u00ADlichen?',
     saveTitle: 'Änderungen speichern?',
-    publishWithoutRulesTitle: 'Ohne Regeln veröffentlichen?',
+    // As publishTitle (R9 step 3; spec 009, T046)
+    publishWithoutRulesTitle: 'Ohne Regeln veröffent\u00ADlichen?',
     saveWithoutRulesTitle: 'Ohne Regeln speichern?',
     publishIntro: 'Nach dem Veröffentlichen kann die Anbindung in Ihre Dienste eingebunden werden.',
     saveIntro:
@@ -302,13 +305,13 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     // A soft hyphen in "Internetverbindung": the alert's title can't break the word otherwise
     // and runs past the alert at 320 px (R9 step 3; design-notes §2.2, T035)
     publishFailed:
-      'Konnte nicht veröffentlicht werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internet\u00ADverbindung und versuchen Sie es erneut.',
+      'Die Anbindung konnte nicht veröffentlicht werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internet\u00ADverbindung und versuchen Sie es erneut.',
     // A soft hyphen in "Internetverbindung": the alert's title can't break the word otherwise
     // and runs past the alert at 320 px (R9 step 3; design-notes §2.2, T035)
     saveFailed:
-      'Konnte nicht gespeichert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internet\u00ADverbindung und versuchen Sie es erneut.',
-    publishErrorTitle: 'Konnte nicht veröffentlicht werden',
-    saveErrorTitle: 'Konnte nicht gespeichert werden',
+      'Die Änderungen konnten nicht gespeichert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internet\u00ADverbindung und versuchen Sie es erneut.',
+    publishErrorTitle: 'Die Anbindung konnte nicht veröffentlicht werden',
+    saveErrorTitle: 'Die Änderungen konnten nicht gespeichert werden',
     retry: 'Erneut versuchen',
     rulesChangedTitle: 'Die Regeln wurden geändert, seit Sie sie geöffnet haben',
     rulesChangedHint:

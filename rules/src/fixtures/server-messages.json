@@ -328,7 +328,7 @@
       "table": "CONDITION_PROBLEM_MESSAGES",
       "params": {},
       "en": "enter a number of years of at least 1.",
-      "de": "Geben Sie als Anzahl der Jahre mindestens 1 ein."
+      "de": "Geben Sie mindestens 1 Jahr ein."
     },
     {
       "key": "choose_unit",
@@ -344,7 +344,7 @@
         "unit": "years"
       },
       "en": "enter a number of years of at least 1.",
-      "de": "Geben Sie als Anzahl der Jahre mindestens 1 ein."
+      "de": "Geben Sie mindestens 1 Jahr ein."
     },
     {
       "key": "amount_at_least_1",
@@ -353,7 +353,7 @@
         "unit": "months"
       },
       "en": "enter a number of months of at least 1.",
-      "de": "Geben Sie als Anzahl der Monate mindestens 1 ein."
+      "de": "Geben Sie mindestens 1 Monat ein."
     },
     {
       "key": "unknownVariant",

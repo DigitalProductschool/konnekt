@@ -666,7 +666,7 @@ describe('in German', () => {
     );
     expect(outcomeViewOf(state, 'de')).toEqual({
       kind: 'failed',
-      title: 'Konnte nicht veröffentlicht werden',
+      title: 'Der Entwurf konnte nicht veröffentlicht werden',
       notice: {
         message: 'Der letzte Versuch hat nicht funktioniert. Es wurde nichts geändert.',
         error_id: 'e9',
@@ -689,12 +689,12 @@ describe('in German', () => {
     );
     expect(outcomeViewOf({ ...waiting, failure: { call: 'approve', notice } }, 'de')).toEqual({
       kind: 'failed',
-      title: 'Konnte nicht freigegeben werden',
+      title: 'Die Anfrage konnte nicht freigegeben werden',
       notice,
     });
     expect(outcomeViewOf({ ...waiting, failure: { call: 'decline', notice } }, 'de')).toEqual({
       kind: 'failed',
-      title: 'Konnte nicht abgelehnt werden',
+      title: 'Die Anfrage konnte nicht abgelehnt werden',
       notice,
     });
     const conflict = { status: 'expired' as const, text: 'This request expired at 14:32.' };

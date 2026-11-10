@@ -170,9 +170,9 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     activating: 'Wird aktiviert …',
     cancel: 'Abbrechen',
     retry: 'Erneut versuchen',
-    deactivateError: 'Konnte nicht deaktiviert werden',
-    activateError: 'Konnte nicht reaktiviert werden',
-    deleteError: 'Konnte nicht gelöscht werden',
+    deactivateError: 'Die Anbindung konnte nicht deaktiviert werden',
+    activateError: 'Die Anbindung konnte nicht reaktiviert werden',
+    deleteError: 'Die Anbindung konnte nicht gelöscht werden',
     actionErrorText:
       'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     deactivated: 'Anbindung deaktiviert.',

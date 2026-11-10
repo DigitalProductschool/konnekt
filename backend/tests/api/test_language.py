@@ -465,6 +465,48 @@ def test_the_delivered_documents_stay_english_with_a_german_header(
     assert response.json()['data']['documents'] == DELIVERED_DOCUMENTS
 
 
+def test_what_reaches_eudiplo_is_the_same_with_a_german_header(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """A German save and trigger send EUDIPLO what an English one sends (FR-017).
+
+    The configuration's DCQL query, name and settings are the same apart from the
+    id that names the connection; the offers name their configuration and
+    reference only; no call to EUDIPLO carries a language.
+    """
+    english_id = create_form_connection(signed_in_client)
+    created = signed_in_client.post(
+        '/api/form-connections', json=FORM_CONNECTION, headers=GERMAN
+    )
+    assert created.status_code == 201, created.json()
+    german_id = created.json()['data']['id']
+    trigger(signed_in_client, english_id)
+    started = signed_in_client.post(requests_url(german_id), headers=GERMAN)
+    assert started.status_code == 201, started.json()
+
+    english = fake_eudiplo.configs[f'fc-{english_id}-r1']
+    german = fake_eudiplo.configs[f'fc-{german_id}-r1']
+    assert german | {'id': english['id']} == english
+    assert german['description'] == FORM_CONNECTION['name']
+    offers = [
+        json.loads(call.request.content)
+        for call in fake_eudiplo.calls
+        if call.name == 'create_offer'
+    ]
+    assert [offer['requestId'] for offer in offers] == [
+        f'fc-{english_id}-r1',
+        f'fc-{german_id}-r1',
+    ]
+    assert [sorted(offer) for offer in offers] == [
+        ['reference', 'requestId', 'response_type'],
+        ['reference', 'requestId', 'response_type'],
+    ]
+    assert offers[0]['response_type'] == offers[1]['response_type']
+    assert all(
+        'accept-language' not in call.request.headers for call in fake_eudiplo.calls
+    )
+
+
 # The option sets' labels (T014; glossary §4, contracts/api-language.md)
 
 

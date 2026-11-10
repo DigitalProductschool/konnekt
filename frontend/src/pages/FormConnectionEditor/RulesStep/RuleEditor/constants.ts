@@ -116,9 +116,12 @@ export const RULE_EDITOR_COPY = defineTexts(
     unitsMenu: 'Einheit',
     valuesMenu: 'Werte',
     documentsFooter: 'Nur hinzugefügte Dokumente werden angezeigt.',
-    searchDocument: (document) => `${document} durchsuchen`,
-    searchClasses: 'Klassen durchsuchen',
-    searchOptions: 'Optionen durchsuchen',
+    // The glossary's short forms (R9): the search field holds about 137px at 320px, where
+    // "<Dokument> durchsuchen" was cut (spec 009, T046); the menu is the data of the document
+    // chosen above it
+    searchDocument: () => 'Daten suchen',
+    searchClasses: 'Klassen suchen',
+    searchOptions: 'Optionen suchen',
     noMatch: (text) => `Keine Option passt zu „${text}“.`,
     needOtherData: 'Andere Daten benötigt?',
     addInDocuments: 'In „Dokumente“ hinzufügen',

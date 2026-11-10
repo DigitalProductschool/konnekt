@@ -53,6 +53,8 @@ export interface FindingTexts {
   thisNoun: Record<FindingNoun, string>;
   /** As the subject or the object of a sentence */
   anotherNoun: Record<FindingNoun, string>;
+  /** After "the same as" (German "identisch mit", which takes the dative) */
+  anotherNounDative: Record<FindingNoun, string>;
   /** As the object of a resolution */
   theNoun: Record<FindingNoun, string>;
   /** Items without a current name, as the subject or the object of a sentence */
@@ -150,6 +152,7 @@ export const FINDING_TEXTS = defineTexts<FindingTexts>(
 
     thisNoun: { rule: 'this rule', group: 'this group' },
     anotherNoun: { rule: 'another rule', group: 'another group' },
+    anotherNounDative: { rule: 'another rule', group: 'another group' },
     theNoun: { rule: 'the rule', group: 'the group' },
     otherRules: 'other rules',
     otherRulesDative: 'other rules',
@@ -254,6 +257,7 @@ export const FINDING_TEXTS = defineTexts<FindingTexts>(
 
     thisNoun: { rule: 'diese Regel', group: 'diese Gruppe' },
     anotherNoun: { rule: 'eine andere Regel', group: 'eine andere Gruppe' },
+    anotherNounDative: { rule: 'einer anderen Regel', group: 'einer anderen Gruppe' },
     theNoun: { rule: 'die Regel', group: 'die Gruppe' },
     otherRules: 'andere Regeln',
     otherRulesDative: 'anderen Regeln',
@@ -262,7 +266,7 @@ export const FINDING_TEXTS = defineTexts<FindingTexts>(
       `Kann${moment} nicht zusammen mit ${items} erfüllt werden.`,
     groupCannotBeMet: (moment) => `Diese Gruppe kann${moment} nicht erfüllt werden.`,
     ruleNoCitizenCanMeet: (moment) => `Niemand kann diese Regel${moment} erfüllen.`,
-    sameAsNote: (other) => `Gleich wie ${other}. Sie können eine der beiden löschen.`,
+    sameAsNote: (other) => `Identisch mit ${other}. Sie können eine der beiden löschen.`,
     youCanDeleteThe: {
       rule: 'Sie können die Regel löschen.',
       group: 'Sie können die Gruppe löschen.',
@@ -320,7 +324,7 @@ export const FINDING_TEXTS = defineTexts<FindingTexts>(
 
     conditionLine: (item, moment) => ['Niemand kann ', item, `${moment} erfüllen.`],
     alwaysMetLine: (item) => ['Alle erfüllen ', item, ', daher prüft sie nichts.'],
-    sameLine: (item, other) => [item, ' ist gleich wie ', other, '.'],
+    sameLine: (item, other) => [item, ' ist identisch mit ', other, '.'],
     soNoneCanMeetAppended: (rightNow, branchName) =>
       `, daher kann ${rightNow ? 'derzeit ' : ''}niemand die Regeln von ${branchName} erfüllen.`,
 
@@ -336,7 +340,7 @@ export const FINDING_TEXTS = defineTexts<FindingTexts>(
     noneCanMeetItemToday: (item) => `Derzeit kann niemand ${item} erfüllen.`,
     noLongerConflictsWith: (item, items) => `${item} widerspricht ${items} nicht mehr.`,
     noLongerConflicting: (item) => `${item} ist nicht mehr widersprüchlich.`,
-    isTheSameAs: (item, other) => `${item} ist gleich wie ${other}.`,
+    isTheSameAs: (item, other) => `${item} ist identisch mit ${other}.`,
     makesNoDifference: (item, items) => `${item} macht neben ${items} keinen Unterschied.`,
     noLongerRedundant: (item) => `${item} ist nicht mehr redundant.`,
     everyCitizenMeetsItem: (item) => `Alle erfüllen ${item}.`,

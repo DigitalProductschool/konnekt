@@ -530,7 +530,7 @@ describe('proposedMessage', () => {
           operator: 'before',
           date: '2030-06-30',
         })
-      ).toBe('Das Ablaufdatum Ihrer Klasse B muss vor dem 30.06.2030 liegen.');
+      ).toBe('Das Ablaufdatum Ihrer Führerscheinklasse B muss vor dem 30.06.2030 liegen.');
     });
   });
 

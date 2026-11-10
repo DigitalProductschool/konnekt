@@ -373,17 +373,14 @@ describe('resultStatementOf (FR-051 (32))', () => {
 
 describe('resultStatementOf in German (spec 009, FR-006)', () => {
   it('words a group’s statement as its German frame, from either language’s statement', () => {
-    expect(
-      resultStatementOf({ type: 'group', statement: 'Alle davon müssen erfüllt sein' }, 'de')
-    ).toBe('Alle Regeln müssen erfüllt sein');
+    expect(resultStatementOf({ type: 'group', statement: 'Alle müssen erfüllt sein' }, 'de')).toBe(
+      'Alle Regeln müssen erfüllt sein'
+    );
     expect(
       resultStatementOf({ type: 'group', statement: 'At least one of these must be met' }, 'de')
     ).toBe('Mindestens eine Regel muss erfüllt sein');
     expect(
-      resultStatementOf(
-        { type: 'group', statement: 'Mindestens eine davon muss erfüllt sein' },
-        'en'
-      )
+      resultStatementOf({ type: 'group', statement: 'Mindestens eine muss erfüllt sein' }, 'en')
     ).toBe('At least one rule must be met');
   });
 

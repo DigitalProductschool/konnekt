@@ -454,10 +454,10 @@ export const CONDITION_PROBLEM_MESSAGES = defineTexts<typeof CONDITION_PROBLEM_M
     values_from_list: 'Wählen Sie Werte aus der Liste.',
     value_once: 'Wählen Sie jeden Wert nur einmal.',
     enter_date: 'Geben Sie ein Datum ein.',
-    years_at_least_1: 'Geben Sie als Anzahl der Jahre mindestens 1 ein.',
+    years_at_least_1: 'Geben Sie mindestens 1 Jahr ein.',
     choose_unit: 'Wählen Sie Jahre oder Monate.',
     amount_at_least_1: (unit: 'years' | 'months') =>
-      `Geben Sie als Anzahl der ${TIME_UNITS.de[unit].other} mindestens 1 ein.`,
+      `Geben Sie mindestens 1 ${TIME_UNITS.de[unit].one} ein.`,
   }
 );
 

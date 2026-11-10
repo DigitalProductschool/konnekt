@@ -121,7 +121,7 @@ export const PERSONA_TEXTS = defineTexts<PersonaTexts>(
   },
   {
     possessive: (name) => `von ${name}`,
-    testDayLine: (date) => `Getestet, als würde heute geteilt: ${date}.`,
+    testDayLine: (date) => `Getestet, als würden die Daten heute geteilt: ${date}.`,
     chipName: (name, branchName, meets) =>
       `${name}: erfüllt die Regeln von ${branchName}${meets ? '' : ' nicht'}`,
     dataHeading: (possessive) => `Daten ${possessive}`,

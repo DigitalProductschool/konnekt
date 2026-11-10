@@ -20,7 +20,9 @@ export default function LinkStrip({ branch, mainName }: LinkStripProps) {
     <p className="bg-kern-feedback-info-background text-kern-static-small text-kern-feedback-info rounded-t-kern-large flex flex-wrap items-center gap-8 p-16 leading-(--kern-typography-line-height-medium-static)">
       <img src={linkIcon} alt="" className="size-20 shrink-0" />
       <span className="font-semibold">{copy.linkedTo(mainName)}</span>
-      <span className="min-w-0 flex-1">
+      {/* A word longer than the column beside the label breaks inside it (R9; at 320px the
+          German "aktualisiert." ran past the strip; spec 009, T046) */}
+      <span className="min-w-0 flex-1 break-words">
         {summary && `${summary} `}
         {copy.linkedText(mainName)}
       </span>
