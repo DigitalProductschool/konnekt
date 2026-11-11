@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import checkFilledIcon from '../../assets/icons/check-filled-white.svg';
+import deleteIcon from '../../assets/icons/delete-white.svg';
+import { TOAST_KIND_FILL, TOAST_KIND_ICON } from './constants';
+import type { ToastKind } from './types';
 import type { ToastHold, ToastHoldAction } from './utils';
 import { isToastTimerRunning, NO_HOLD, toastHoldReducer } from './utils';
 
@@ -44,5 +48,25 @@ describe('the toast timer (FR-082, R12)', () => {
     expect(toastHoldReducer(held, { type: 'pointerEnter' })).toBe(held);
     expect(toastHoldReducer(NO_HOLD, { type: 'pointerLeave' })).toBe(NO_HOLD);
     expect(toastHoldReducer(NO_HOLD, { type: 'focusOut' })).toBe(NO_HOLD);
+  });
+});
+
+// Spec 010, design-notes §4.2 T038: a third kind for deletions, as Figma "Rules/Toast"
+// type=danger (6718:40958) draws it
+describe('the toast kinds (design-notes §3 "Toast"; spec 010 T038)', () => {
+  const kinds: ToastKind[] = ['neutral', 'success', 'danger'];
+
+  it('gives every kind its fill', () => {
+    expect(kinds.map((kind) => TOAST_KIND_FILL[kind])).toEqual([
+      'bg-kern-layout-text-default',
+      'bg-kern-feedback-success',
+      'bg-kern-feedback-danger',
+    ]);
+  });
+
+  it('puts the filled check before a success, the delete icon before a deletion, nothing before a neutral toast', () => {
+    expect(TOAST_KIND_ICON.neutral).toBeNull();
+    expect(TOAST_KIND_ICON.success).toBe(checkFilledIcon);
+    expect(TOAST_KIND_ICON.danger).toBe(deleteIcon);
   });
 });

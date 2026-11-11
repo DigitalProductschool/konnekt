@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -7,6 +9,7 @@ from ..schemas import (
     ActivateRequest,
     ActivityPage,
     ApiResponse,
+    Deletion,
     DraftCreate,
     DraftPublish,
     DraftUpdate,
@@ -17,9 +20,10 @@ from ..schemas import (
     FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
+    RestoredConnections,
     StartDateUpdate,
 )
-from ..services import activity, agent_access, drafts, form_connections
+from ..services import activity, agent_access, deletions, drafts, form_connections
 from ..services.activity import actor_of
 from ..services.auth import (
     Principal,
@@ -145,6 +149,36 @@ def create_draft(
     )
 
 
+@router.post(
+    '/deletions/{deletion_id}/restore',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
+def restore_deletion(
+    deletion_id: str,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> ApiResponse[RestoredConnections]:
+    """Take back a deletion: every connection it deleted comes back as it was.
+
+    "Undo" of the toast after a deletion (spec 010, research R5, FR-034 to
+    FR-036): all the deletion's connections or none, for the team member who
+    deleted, until the deletion's `restorable_until`. An unknown deletion, one
+    restored already, one past its restore time or another account's answers 409
+    `not_restorable`, and nothing changes. Agents can't restore (FR-068): 403
+    `browser_only`. Declared before `/{form_connection_id}`, so that no route of
+    a connection takes the path (R15 V4).
+    """
+    restored = deletions.restore_deletion(
+        db,
+        deletion_id,
+        account_id=principal.user.id,
+        actor=actor_of(db, principal),
+    )
+    return ApiResponse(
+        data=RestoredConnections(items=restored), message='Deletion restored'
+    )
+
+
 @router.get('/{form_connection_id}')
 def get_form_connection(
     form_connection_id: str, db: Session = Depends(get_db)
@@ -234,14 +268,24 @@ def delete_draft(
     form_connection_id: str,
     db: Session = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
-) -> ApiResponse[None]:
-    """Remove a draft for good, without calling EUDIPLO; its URLs answer 404.
+) -> ApiResponse[Deletion]:
+    """Delete a draft, without calling EUDIPLO; its URLs answer 404.
 
-    Refuses an unknown draft with 404 and a published connection with 409
+    It is gone at once for every read, and its waiting approval requests are
+    cancelled. Answers the deletion, a fresh id that the deleting team member
+    can restore until `restorable_until` (spec 010, research R5). Refuses an
+    unknown or deleted draft with 404 and a published connection with 409
     `draft_published`.
     """
-    drafts.delete_draft(db, form_connection_id, actor=actor_of(db, principal))
-    return ApiResponse(data=None, message='Draft deleted')
+    deleted_by_id = principal.user.id
+    deletion = drafts.delete_draft(
+        db,
+        form_connection_id,
+        actor=actor_of(db, principal),
+        deletion_id=str(uuid.uuid4()),
+        deleted_by_id=deleted_by_id,
+    )
+    return ApiResponse(data=deletion, message='Draft deleted')
 
 
 @router.put(
@@ -358,12 +402,21 @@ def delete_form_connection(
     form_connection_id: str,
     db: Session = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
-) -> ApiResponse[None]:
+) -> ApiResponse[Deletion]:
     """Delete a form connection and cancel its open requests.
 
-    Its URLs answer 409 "unavailable" for good.
+    Its URLs answer 409 "unavailable" from now on, for good once the restore
+    time has passed, and its waiting approval requests are cancelled. Answers the
+    deletion, a fresh id that the deleting team member can restore until
+    `restorable_until` (spec 010, research R5). A draft answers 409
+    `not_published`, an unknown or deleted connection 404.
     """
-    form_connections.delete_form_connection(
-        db, form_connection_id, actor=actor_of(db, principal)
+    deleted_by_id = principal.user.id
+    deletion = form_connections.delete_form_connection(
+        db,
+        form_connection_id,
+        actor=actor_of(db, principal),
+        deletion_id=str(uuid.uuid4()),
+        deleted_by_id=deleted_by_id,
     )
-    return ApiResponse(data=None, message='Form connection deleted')
+    return ApiResponse(data=deletion, message='Form connection deleted')

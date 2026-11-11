@@ -1,4 +1,3 @@
-import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -24,6 +23,7 @@ import {
   deleteDraftErrorOf,
   deleteDraftNoticeOf,
   draftDeleteReducer,
+  overviewStateAfterDeletion,
   toggleAccordion,
 } from './utils';
 
@@ -35,8 +35,9 @@ import {
  * visible "Delete draft" at the band's right end (F56), which asks in the overview's one delete
  * dialog with the draft's body (S17: "Delete “<name>”?", F55, "Keep connection" / "Delete
  * connection", the scrim not closing it) and returns to the overview with the toast "“<name>”
- * deleted." (no Undo, F4), or, if the draft was published or deleted meanwhile, says so in the
- * dialog's alert (W8): "Open the connection" loads the details again, "Go to overview" leaves.
+ * deleted." and its "Undo" (spec 010, FR-033: the deletion's id goes with it), or, if the draft
+ * was published or deleted meanwhile, says so in the dialog's alert (W8): "Open the connection"
+ * loads the details again, "Go to overview" leaves.
  * Then the Summary, open first (its documents and rules, incomplete parts with the placeholders,
  * unchecked), the Links card without links and without a toggle: the draft isn't live, so no
  * connection URL shows anywhere (FR-006), and the Activity card (spec 010 S16, FR-022; U93
@@ -66,9 +67,11 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   async function remove() {
     dispatch({ type: 'start' });
     try {
-      await deleteDraft(id);
-      const overviewState: OverviewLocationState = { deleted: name };
-      navigate(ROUTES.overview, { replace: true, state: overviewState });
+      const deletion = await deleteDraft(id);
+      navigate(ROUTES.overview, {
+        replace: true,
+        state: overviewStateAfterDeletion(name, deletion),
+      });
     } catch (error) {
       if (!handleUnauthorized(error)) {
         dispatch({ type: 'failed', failure: deleteDraftErrorOf(error, languageRef.current) });

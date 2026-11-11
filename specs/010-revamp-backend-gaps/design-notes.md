@@ -689,6 +689,141 @@ the audit. Screenshots: `<scratchpad>/T013/`.
 | narrow | draft, Activity open | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
 | narrow | draft, Summary open and Activity open | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
 
+#### T043: "Undo" after a deletion (S4 "After a deletion", "Undo", S3; P18 `6699:48039`, the toast `6699:48098`, "Rules/Toast" type=danger `6718:40958`; W11; design-notes §4.2 T038) — 2026-11-11
+
+Items: FR-033, FR-034, FR-036, FR-037, US4-AS1–AS4. Browser: the `playwright-chrome` MCP at 1455 × 900 (body 1440) for the frame rows; a scripted `playwright-core` Chromium (`<scratchpad>/T043/check.mjs`, `results-*.csv`) for the timing, keyboard, replaced/left, German and narrow rows (320 × 640 and 160 × 320 CSS px). Backend on 3011 (`template_db_010_p6`, T039–T042, `WORKER_ENABLED=false`, restore time 300 s). Data: `T043 live` `7a705397-b94a-4a29-a25b-70fbe175a021`, `T043 scheduled` `b67e5c48-467e-40e6-bce9-b84c260e2417` (2026-12-20), `T043 deactivated` `7a8fddc9-897a-46d4-affb-dc99faa8f226`, `T043 draft` `87984e3f-ced8-4966-80aa-389d17d632fe` (p10-alice), `T043 last live` `aa2f2b71-d75b-4919-832d-20d1ca622963` (made by the account `t043-empty`); all restored at the end. Connections are the team's (every account lists all 140), so "the last connection" was reached with `page.route()` narrowing the list's GET to `T043 last live`; the delete and the restore went to the server. `409 not_restorable` by restoring through the API first (a replayed restore); no answer and a 5xx by `page.route()`. Fonts: `document.fonts.check` true for `400 14px` and `600 14px "Fira Sans"`. Figma calls: 3 (`get_design_context` on `6699:48098` and `6718:40958`, `get_screenshot` on `6699:48039`).
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| P18 `6699:48098` | deleted (overview) | 1440 | toast | fill | `feedback/danger` `#c4271c` | `rgb(196, 39, 28)` | match |
+| P18 `6699:48098` | deleted | 1440 | toast | radius, padding, gap | 8, 16, 24 | 8px, 16px, 24px | match |
+| P18 `6699:48098` | deleted | 1440 | toast | shadow | "Elevation/Menu" `#13152529` (0, 10) r 28 | `rgba(19, 21, 37, 0.16) 0 10px 28px 0` | match |
+| P18 `6699:48039` | deleted | 1440 | toast | position | x 540, y 748, 360 × 56 (frame 900, footer) | y 748, 56 tall, centred; "“T043 live” deleted." 242 wide; the frame's text measured in the page gives 361.3 | match (±1.3, text width, font rendering) |
+| `6718:40958` / `6718:40964` | deleted | 1440 | "Icon · delete" | asset, size, place | white "delete" 20 × 20, 8 before the text, centred | `assets/icons/delete-white.svg` (the MCP asset, unchanged), 20 × 20 at x 16, y 18, 8 before the text | match |
+| P18 `6699:48098` | deleted | 1440 | message | type | `body/small/regular` 14/24, 400, Fira Sans, white | 400 14px/24px "Fira Sans", `oklch(1 0 0)` | match |
+| P18 `6699:48098` | deleted | 1440 | message | text | “Passenger transport licence” deleted. | “T043 live” deleted. | match (FR-033, the name) |
+| P18 `6699:48098` | deleted | 1440 | "Undo" | type, gap | `label/small` 14/24, 600, white, underline 8 %, from-font; 24 after the message | 600 14px/24px, white, `underline 8% from-font`, 24 | match |
+| P18 `6699:48039` | deleted | 1440 | list | row gone, count | "3 connections", the row not listed | 138 connections, the row gone (from 139) | match |
+| P18 `6699:48039` | deleted | 1440 | focus | after the dialog | — | the h1 "Your connections" (spec 008) | match |
+| P18 `6699:48039` | deleted | 1440 | list header, row checkboxes, "Edited" dates | select-all, a checkbox per row, "Edited 12.09.2026" | not here: selection is T048; dates by `rowMetaOf` (F23) | not built, T048 / F23 |
+| — | restored | 1440 | toast | kind, text | not drawn: `success` (§4.2 T038), "“<name>” restored." (FR-034) | `rgb(29, 122, 46)`, the filled check, "“T043 live” restored.", no action | match |
+| — | restored | 1440 | list | row back without a reload | FR-034 | one `POST …/restore`, no list GET; 139 rows equal to the API's list in order (the row back in 4th place by its `updated_at`) | match |
+| — | restored | 1440 | focus | after "Undo" | — | the h1, no focus ring after a click (`:focus-visible` false) | match |
+| — | not restorable (replayed) | 1440 | toast | kind, text, action | `neutral`, "“<name>” can no longer be restored." (FR-036) | `rgb(11, 18, 32)`, "“T043 scheduled” can no longer be restored.", no icon, no action; the restore answered 409 | match |
+| — | not restorable | 1440 | list | changes nothing | FR-036 | 138 rows before and after | match |
+| — | failed, no answer | 1440 | toast | kind, text, action | `neutral`, "Couldn’t restore. Try again." with "Undo" (copy.md §4) | `rgb(11, 18, 32)`, that text, "Undo"; 138 rows | match |
+| — | failed, 5xx | 1440 | toast | error ID | spec 008: "Error ID: <id>" under the message | "Error ID: abc123def" on its own line, the toast 80 tall | match |
+| — | failed → "Undo" again | 1440 | toast, list | restored | FR-034 | "“T043 deactivated” restored.", 139 rows | match |
+| — | from the draft's details | 1440 | toast | arrival | FR-033: the same toast | red "“T043 draft” deleted." with "Undo"; router state cleared; focus on the h1; "Undo" → "restored", 139 rows | match |
+| — | from the live connection's details (⋯ → Delete) | 1440 | toast | arrival | FR-033 | red "“T043 live” deleted." with "Undo"; "Undo" → "restored"; the connection `live` with its `trigger_url` and `pull_url` | match |
+| 1b U11 `6699:44481` | welcome with the toast (last connection) | 1440 | page, toast | FR-037 | the welcome page with the toast | h1 "Welcome to Konnekt", tab "Welcome · Konnekt", the red toast 24 above the window's edge (y 820, `noFooter`) | match |
+| 1b → S4 | welcome → "Undo" | 1440 | page | FR-037, US4-AS3 | the overview with the connection | h1 "Your connections", 1 row, green "restored" toast above the footer (y 748) | match |
+| — | A left alone | 1440 | toast | closes after 6 s (+ 100 ms live-region delay) | 6.0–6.6 s | 6.30 s, shown at 5.4 s: true | match |
+| — | A left alone | 1440 | GET /form-connections/{id} | the deletion stands | 404 | 404 | match |
+| — | A left alone | 1440 | list | row stays gone | 0 | 0 | match |
+| — | B held by the pointer | 1440 | toast | stays while the pointer is on it | shown after 8 s | “T043 live” deleted. | match |
+| — | B held by the pointer | 1440 | toast | closes 6 s after the pointer left | 5.9–6.5 s | 6.30 s | match |
+| — | B held by the pointer | 1440 | GET | the deletion stands | 404 | 404 | match |
+| — | C keyboard | 1440 | "Undo" | Tab from the footer reaches it, focus-visible | Undo,true | Undo,true | match |
+| — | C keyboard | 1440 | toast | stays while the focus is in it | shown after 7 s | “T043 live” deleted. | match |
+| — | C keyboard | 1440 | toast | Escape closes it | null | null | match |
+| — | C keyboard | 1440 | focus | back where it came from | Create connection | Create connection | match |
+| — | C keyboard | 1440 | GET | the deletion stands after Escape | 404 | 404 | match |
+| — | C keyboard | 1440 | focus after "Undo" (Enter) | the page heading | H1 Your connections | H1 Your connections | match |
+| — | C keyboard | 1440 | h1 | focus ring after a keyboard "Undo" | focus-visible (keyboard modality) | true | match (keyboard modality: the heading takes the ring as after a keyboard delete, spec 008) |
+| — | C keyboard | 1440 | GET | restored | 200 | 200 | match |
+| — | E replaced | 1440 | toast | the newer deletion replaces it | “T043 scheduled” deleted. | “T043 scheduled” deleted. | match |
+| — | E replaced | 1440 | toast | Undo restores the newer one only | “T043 scheduled” restored. | “T043 scheduled” restored. | match |
+| — | E replaced | 1440 | GET scheduled | restored | 200 | 200 | match |
+| — | E replaced | 1440 | GET deactivated | the replaced deletion stands | 404 | 404 | match |
+| — | F left the page | 1440 | toast | gone after leaving and coming back | null | null | match |
+| — | F left the page | 1440 | URL | back on the overview | http://localhost:5175/ | http://localhost:5175/ | match |
+| — | F left the page | 1440 | list | the draft stays deleted | 0 | 0 | match |
+| — | F left the page | 1440 | GET draft | the deletion stands | 404 | 404 | match |
+| — | G German | 1440 | toast deleted | text, action, fill | „T043 live“ gelöscht.,Rückgängig,rgb(196, 39, 28) | „T043 live“ gelöscht.,Rückgängig,rgb(196, 39, 28) | match |
+| — | G German | 1440 | toast restored | text, fill | „T043 live“ wiederhergestellt.,rgb(29, 122, 46) | „T043 live“ wiederhergestellt.,rgb(29, 122, 46) | match |
+| — | G German | 1440 | toast not restorable | text, action, fill | „T043 live“ kann nicht mehr wiederhergestellt werden.,,rgb(11, 18, 32) | „T043 live“ kann nicht mehr wiederhergestellt werden.,,rgb(11, 18, 32) | match |
+| — | G German | 1440 | toast failed | text, action, fill | Wiederherstellen nicht möglich. Versuchen Sie es erneut.,Rückgängig,rgb(11, 18, 32) | Wiederherstellen nicht möglich. Versuchen Sie es erneut.,Rückgängig,rgb(11, 18, 32) | match |
+| — | deleted | 320 | html | no horizontal scroll | scrollWidth <= 320 | 305 | match |
+| — | deleted | 320 | body * | nothing off-screen | 0 | 0 | match |
+| — | deleted | 320 | toast | nothing clipped | 0 | 0 | match |
+| — | deleted | 320 | h1 | count | 1 | 1 | match |
+| — | deleted | 320 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 568..640, toast 488..544, at end: true | match |
+| — | deleted | 320 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 320, bottom <= 640 | 31,488,274,544 | match |
+| — | deleted | 320 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | deleted | 320 | "Undo" | no focus ring after a pointer press | focused, not focus-visible | Undo: false | match |
+| — | restored | 320 | html | no horizontal scroll | scrollWidth <= 320 | 305 | match |
+| — | restored | 320 | body * | nothing off-screen | 0 | 0 | match |
+| — | restored | 320 | toast | nothing clipped | 0 | 0 | match |
+| — | restored | 320 | h1 | count | 1 | 1 | match |
+| — | restored | 320 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 568..640, toast 488..544, at end: true | match |
+| — | restored | 320 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 320, bottom <= 640 | 58,488,247,544 | match |
+| — | not restorable | 320 | html | no horizontal scroll | scrollWidth <= 320 | 305 | match |
+| — | not restorable | 320 | body * | nothing off-screen | 0 | 0 | match |
+| — | not restorable | 320 | toast | nothing clipped | 0 | 0 | match |
+| — | not restorable | 320 | h1 | count | 1 | 1 | match |
+| — | not restorable | 320 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 568..640, toast 488..544, at end: true | match |
+| — | not restorable | 320 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 320, bottom <= 640 | 17,488,288,544 | match |
+| — | failed (5xx, error ID) | 320 | html | no horizontal scroll | scrollWidth <= 320 | 305 | match |
+| — | failed (5xx, error ID) | 320 | body * | nothing off-screen | 0 | 0 | match |
+| — | failed (5xx, error ID) | 320 | toast | nothing clipped | 0 | 0 | match |
+| — | failed (5xx, error ID) | 320 | h1 | count | 1 | 1 | match |
+| — | failed (5xx, error ID) | 320 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 568..640, toast 416..544, at end: true | match |
+| — | failed (5xx, error ID) | 320 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 320, bottom <= 640 | 16,416,289,544 | match |
+| — | failed (5xx, error ID) | 320 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | failed (5xx, error ID) | 320 | "Undo" | no focus ring after a pointer press | focused, not focus-visible | Undo: false | match |
+| — | welcome with the toast | 320 | h1 | text | Welcome to Konnekt | Welcome to Konnekt | match |
+| — | welcome with the toast | 320 | html | no horizontal scroll | scrollWidth <= 320 | 305 | match |
+| — | welcome with the toast | 320 | body * | nothing off-screen | 0 | 0 | match |
+| — | welcome with the toast | 320 | toast | nothing clipped | 0 | 0 | match |
+| — | welcome with the toast | 320 | h1 | count | 1 | 1 | match |
+| — | welcome with the toast | 320 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 320, bottom <= 640 | 18,560,287,616 | match |
+| — | welcome with the toast | 320 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | welcome with the toast | 320 | "Undo" | no focus ring after a pointer press | focused, not focus-visible | Undo: false | match |
+| — | welcome → overview after Undo | 320 | h1 | text | Your connections | Your connections | match |
+| — | deleted | 160 | html | no horizontal scroll | scrollWidth <= 160 | 160 | match |
+| — | deleted | 160 | body * | nothing off-screen | 0 | 0 | match |
+| — | deleted | 160 | toast | nothing clipped | 0 | 0 | match |
+| — | deleted | 160 | h1 | count | 1 | 1 | match |
+| — | deleted | 160 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 24..144, toast 160..272, at end: true | match |
+| — | deleted | 160 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 160, bottom <= 320 | 16,160,129,272 | match |
+| — | deleted | 160 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | deleted | 160 | "Undo" | no focus ring after a pointer press | focused, not focus-visible | Undo: false | match |
+| — | restored | 160 | html | no horizontal scroll | scrollWidth <= 160 | 160 | match |
+| — | restored | 160 | body * | nothing off-screen | 0 | 0 | match |
+| — | restored | 160 | toast | nothing clipped | 0 | 0 | match |
+| — | restored | 160 | h1 | count | 1 | 1 | match |
+| — | restored | 160 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 56..176, toast 192..272, at end: true | match |
+| — | restored | 160 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 160, bottom <= 320 | 16,192,129,272 | match |
+| — | not restorable | 160 | html | no horizontal scroll | scrollWidth <= 160 | 160 | match |
+| — | not restorable | 160 | body * | nothing off-screen | 0 | 0 | match |
+| — | not restorable | 160 | toast | nothing clipped | 0 | 0 | match |
+| — | not restorable | 160 | h1 | count | 1 | 1 | match |
+| — | not restorable | 160 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar 32..152, toast 168..272, at end: true | match |
+| — | not restorable | 160 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 160, bottom <= 320 | 16,168,129,272 | match |
+| — | failed (5xx, error ID) | 160 | html | no horizontal scroll | scrollWidth <= 160 | 160 | match |
+| — | failed (5xx, error ID) | 160 | body * | nothing off-screen | 0 | 0 | match |
+| — | failed (5xx, error ID) | 160 | toast | nothing clipped | 0 | 0 | match |
+| — | failed (5xx, error ID) | 160 | h1 | count | 1 | 1 | match |
+| — | failed (5xx, error ID) | 160 | toast vs footer bar | no overlap at the end of the page | toast above or below the bar | bar -24..96, toast 112..272, at end: true | match |
+| — | failed (5xx, error ID) | 160 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 160, bottom <= 320 | 16,112,129,272 | match |
+| — | failed (5xx, error ID) | 160 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | failed (5xx, error ID) | 160 | "Undo" | no focus ring after a pointer press | focused, not focus-visible | Undo: false | match |
+| — | welcome with the toast | 160 | h1 | text | Welcome to Konnekt | Welcome to Konnekt | match |
+| — | welcome with the toast | 160 | html | no horizontal scroll | scrollWidth <= 160 | 160 | match |
+| — | welcome with the toast | 160 | body * | nothing off-screen | 0 | 0 | match |
+| — | welcome with the toast | 160 | toast | nothing clipped | 0 | 0 | match |
+| — | welcome with the toast | 160 | h1 | count | 1 | 1 | match |
+| — | welcome with the toast | 160 | toast | inside the viewport (scrolled to the end) | 0 <= x, right <= 160, bottom <= 320 | 16,136,129,272 | match |
+| — | welcome with the toast | 160 | "Undo" | focus ring after the keyboard (Tab) | focus-visible, solid 2px white, offset 2px | Undo: true solid 2px oklch(1 0 0) 2px | match |
+| — | welcome with the toast | 160 | "Undo" | no focus ring after a pointer press | focused, not focus-visible |
+    KonnektDEENSigned in as p10-aliceLog out and discard unsaved work?CloseLogging out deletes the unsaved changes on this device to: . Saved drafts stay as they are.CancelLog outWelcome to KonnektCreate your first connectionLink your services to the EUDI Wallet. Set your own rules and get verified citizen data.Choose documentsSet rulesTestPublishCreate connectionDelete “T043 last live”?CloseThis connection is active. Citizens won’t be able to use it, and its links stop working.Keep connectionDelete connection“T043 last live” deleted.Undo
+
+
+
+: false | match |
+| — | welcome → overview after Undo | 160 | h1 | text | Your connections | Your connections | match |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -904,6 +1039,89 @@ the audit. Screenshots: `<scratchpad>/T013/`.
 | teardown | - | 2 | 2 | 0 | 0 |  |
 
 57 rows; 423 measures, 423 pass, 0 fail, 0 unsure.
+
+#### T044: walk V7, Undo after a deletion (US4; FR-033–FR-037, SC-005, US4-AS1–AS4; scripted `playwright-core` 1.65: Chromium (`/usr/bin/chromium`), 1440 × 900, browser zone Europe/Berlin; English and German through the stored language choice; backend on 3011 with the fake EUDIPLO, `WORKER_ENABLED=true` (2 s cycle) and `DELETION_UNDO_SECONDS=20` from the launcher's environment (no `backend/.env`), database `template_db_010_p6`; account `p10-alice` (browser and API); the agent a personal access token `T044 agent` (level `manage`) created for `p10-alice` through `POST /api/agent-access/tokens` and revoked at the end (its next call 401), twice (the run and the V7.5 rerun); connections made through the API, 12 per language, each with two documents, Standard and a variant "Ambulance" with rules: `T044 <lang> <stamp> {ov,dt} {draft,live,scheduled,deactivated}` (deleted from the overview, `ov`, and from the details, `dt`: ⋯ → "Delete connection", a draft's "Delete draft"), `… last` (V7.3, the list narrowed to it by `page.route()` on `GET /api/form-connections`, the delete and the restore to the server), `… late` (V7.4, the pointer on the toast until `restorable_until` + 1.5 s), `… replay` (V7.4, the restore replayed with `page.request` in the same session), `… alone` (V7.5); V7.2 compares `GET /form-connections/{id}` before and after "Undo" (all but `last_activity`, which moves to `restored`; a deactivated one's too), the list entry, the activity (two new entries on top, the rest equal), the row's text and index, no reload and no list fetch, the details' Activity card; V7.6 on the live connections (a trigger before the deletion, approval requests `deactivate` and `delete`), the drafts (`delete_draft`) and the details' scheduled one (`delete`), read through `GET /approval-requests/{id}`, the approve attempt and the approval page; V7.7 the trigger, pull and the variant's pull URLs on 3011; V7.8 with `psql` 6 s (three worker cycles) after the last restore time; V7.5 rerun after a script error in the first run's timing origin (it counted from before the row's Delete click, 7.6 s); CSV `<scratchpad>/T044/walk.csv`, summary `<scratchpad>/T044/summary.md`)
+
+| step | language | measures | pass | fail | unsure | notes |
+|---|---|---|---|---|---|---|
+| setup | - | 2 | 2 | 0 | 0 |  |
+| V7.6 overview draft | en | 6 | 6 | 0 | 0 | the approval request (delete_draft) reads cancelled at the deletion: "cancelled draft_deleted"; the approval request (delete_draft) stays cancelled after "Undo": "cancelled cancelled draft_deleted" |
+| V7.1 overview draft | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.4 s"; "“T044 en p7md ov draft” deleted." |
+| V7.7 overview draft | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "404 Not found" |
+| V7.2 overview draft | en | 17 | 17 | 0 | 0 | the restore answers: "200"; "“T044 en p7md ov draft” restored."; announced politely: "“T044 en p7md ov draft” restored."; the Activity card: "Restored, Deleted" |
+| V7.6 overview live | en | 13 | 13 | 0 | 0 | the approval request (deactivate) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (delete) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (deactivate) stays cancelled after "Undo": "cancelled cancelled connection_deleted"; the approval request (delete) stays cancelled after "Undo": "cancelled cancelled connection_deleted" |
+| V7.1 overview live | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.4 s"; "“T044 en p7md ov live” deleted." |
+| V7.7 overview live | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview live | en | 19 | 19 | 0 | 0 | the restore answers: "200"; "“T044 en p7md ov live” restored."; announced politely: "“T044 en p7md ov live” restored."; the links work again: "201"; the Activity card: "Restored, Deleted" |
+| V7.1 overview scheduled | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.2 s"; "“T044 en p7md ov scheduled” deleted." |
+| V7.7 overview scheduled | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview scheduled | en | 17 | 17 | 0 | 0 | the restore answers: "200"; "“T044 en p7md ov scheduled” restored."; announced politely: "“T044 en p7md ov scheduled” restored."; the Activity card: "Restored, Deleted" |
+| V7.1 overview deactivated | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.4 s"; "“T044 en p7md ov deactivated” deleted." |
+| V7.7 overview deactivated | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview deactivated | en | 16 | 16 | 0 | 0 | the restore answers: "200"; "“T044 en p7md ov deactivated” restored."; announced politely: "“T044 en p7md ov deactivated” restored."; the Activity card: "Restored, Deleted" |
+| V7.1 details draft | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.1 s"; "“T044 en p7md dt draft” deleted." |
+| V7.7 details draft | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "404 Not found" |
+| V7.2 details draft | en | 17 | 17 | 0 | 0 | the restore answers: "200"; "“T044 en p7md dt draft” restored."; announced politely: "“T044 en p7md dt draft” restored."; the Activity card: "Restored, Deleted" |
+| V7.6 details live | en | 3 | 3 | 0 | 0 |  |
+| V7.1 details live | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.1 s"; "“T044 en p7md dt live” deleted." |
+| V7.7 details live | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details live | en | 19 | 19 | 0 | 0 | the restore answers: "200"; "“T044 en p7md dt live” restored."; announced politely: "“T044 en p7md dt live” restored."; the links work again: "201"; the Activity card: "Restored, Deleted" |
+| V7.6 details scheduled | en | 6 | 6 | 0 | 0 | the approval request (delete) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (delete) stays cancelled after "Undo": "cancelled cancelled connection_deleted" |
+| V7.1 details scheduled | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.0 s"; "“T044 en p7md dt scheduled” deleted." |
+| V7.7 details scheduled | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details scheduled | en | 17 | 17 | 0 | 0 | the restore answers: "200"; "“T044 en p7md dt scheduled” restored."; announced politely: "“T044 en p7md dt scheduled” restored."; the Activity card: "Restored, Deleted" |
+| V7.1 details deactivated | en | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.1 s"; "“T044 en p7md dt deactivated” deleted." |
+| V7.7 details deactivated | en | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details deactivated | en | 16 | 16 | 0 | 0 | the restore answers: "200"; "“T044 en p7md dt deactivated” restored."; announced politely: "“T044 en p7md dt deactivated” restored."; the Activity card: "Restored, Deleted" |
+| V7.3 the last connection | en | 10 | 10 | 0 | 0 | the welcome page: "Welcome to Konnekt" |
+| V7.4 "Undo" after the restore time | en | 7 | 7 | 0 | 0 | the toast stays while the pointer is on it: "“T044 en p7md late” deleted. (21.5 s after the deletion)"; the restore answers: "409 not_restorable"; the toast says so: "“T044 en p7md late” can no longer be restored." |
+| V7.4 a second "Undo" (replayed) | en | 5 | 5 | 0 | 0 | the replayed request: "409 not_restorable" |
+| V7.5 the toast left alone (rerun) | en | 5 | 5 | 0 | 0 | closes after 6 s (+ 100 ms live-region delay): "6.33 s, shown at 5.4 s: true" |
+| V7.6 overview draft | de | 6 | 6 | 0 | 0 | the approval request (delete_draft) reads cancelled at the deletion: "cancelled draft_deleted"; the approval request (delete_draft) stays cancelled after "Undo": "cancelled cancelled draft_deleted" |
+| V7.1 overview draft | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.5 s"; "„T044 de 7tc7 ov draft“ gelöscht." |
+| V7.7 overview draft | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "404 Not found" |
+| V7.2 overview draft | de | 17 | 17 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 ov draft“ wiederhergestellt."; announced politely: "„T044 de 7tc7 ov draft“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.6 overview live | de | 13 | 13 | 0 | 0 | the approval request (deactivate) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (delete) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (deactivate) stays cancelled after "Undo": "cancelled cancelled connection_deleted"; the approval request (delete) stays cancelled after "Undo": "cancelled cancelled connection_deleted" |
+| V7.1 overview live | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.2 s"; "„T044 de 7tc7 ov live“ gelöscht." |
+| V7.7 overview live | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview live | de | 19 | 19 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 ov live“ wiederhergestellt."; announced politely: "„T044 de 7tc7 ov live“ wiederhergestellt."; the links work again: "201"; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.1 overview scheduled | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.5 s"; "„T044 de 7tc7 ov scheduled“ gelöscht." |
+| V7.7 overview scheduled | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview scheduled | de | 17 | 17 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 ov scheduled“ wiederhergestellt."; announced politely: "„T044 de 7tc7 ov scheduled“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.1 overview deactivated | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.2 s"; "„T044 de 7tc7 ov deactivated“ gelöscht." |
+| V7.7 overview deactivated | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 overview deactivated | de | 16 | 16 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 ov deactivated“ wiederhergestellt."; announced politely: "„T044 de 7tc7 ov deactivated“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.1 details draft | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.0 s"; "„T044 de 7tc7 dt draft“ gelöscht." |
+| V7.7 details draft | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "404 Not found" |
+| V7.2 details draft | de | 17 | 17 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 dt draft“ wiederhergestellt."; announced politely: "„T044 de 7tc7 dt draft“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.6 details live | de | 3 | 3 | 0 | 0 |  |
+| V7.1 details live | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.0 s"; "„T044 de 7tc7 dt live“ gelöscht." |
+| V7.7 details live | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details live | de | 19 | 19 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 dt live“ wiederhergestellt."; announced politely: "„T044 de 7tc7 dt live“ wiederhergestellt."; the links work again: "201"; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.6 details scheduled | de | 6 | 6 | 0 | 0 | the approval request (delete) reads cancelled at the deletion: "cancelled connection_deleted"; the approval request (delete) stays cancelled after "Undo": "cancelled cancelled connection_deleted" |
+| V7.1 details scheduled | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.1 s"; "„T044 de 7tc7 dt scheduled“ gelöscht." |
+| V7.7 details scheduled | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details scheduled | de | 17 | 17 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 dt scheduled“ wiederhergestellt."; announced politely: "„T044 de 7tc7 dt scheduled“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.1 details deactivated | de | 12 | 12 | 0 | 0 | restore time DELETION_UNDO_SECONDS=20: "19.1 s"; "„T044 de 7tc7 dt deactivated“ gelöscht." |
+| V7.7 details deactivated | de | 3 | 3 | 0 | 0 | trigger URL while restorable: "409 unavailable" |
+| V7.2 details deactivated | de | 16 | 16 | 0 | 0 | the restore answers: "200"; "„T044 de 7tc7 dt deactivated“ wiederhergestellt."; announced politely: "„T044 de 7tc7 dt deactivated“ wiederhergestellt."; the Activity card: "Wiederhergestellt, Gelöscht" |
+| V7.3 the last connection | de | 10 | 10 | 0 | 0 | the welcome page: "Willkommen bei Konnekt" |
+| V7.4 "Undo" after the restore time | de | 7 | 7 | 0 | 0 | the toast stays while the pointer is on it: "„T044 de 7tc7 late“ gelöscht. (21.5 s after the deletion)"; the restore answers: "409 not_restorable"; the toast says so: "„T044 de 7tc7 late“ kann nicht mehr wiederhergestellt werden." |
+| V7.4 a second "Undo" (replayed) | de | 5 | 5 | 0 | 0 | the replayed request: "409 not_restorable" |
+| V7.5 the toast left alone (rerun) | de | 5 | 5 | 0 | 0 | closes after 6 s (+ 100 ms live-region delay): "6.38 s, shown at 5.4 s: true" |
+| V7.8 after the restore time | en | 33 | 33 | 0 | 0 | live: "0/1" |
+| V7.8 after the restore time | de | 33 | 33 | 0 | 0 | live: "0/1" |
+| V7.8 after the restore time | - | 4 | 4 | 0 | 0 | restored connections: "0" |
+| V7.8 after the restore time (rerun: V7.5's drafts) | en | 5 | 5 | 0 | 0 |  |
+| V7.8 after the restore time (rerun: V7.5's drafts) | de | 5 | 5 | 0 | 0 |  |
+| V7.8 after the restore time (rerun: V7.5's drafts) | - | 1 | 1 | 0 | 0 |  |
+| teardown | - | 2 | 2 | 0 | 0 |  |
+| setup (rerun) | - | 1 | 1 | 0 | 0 |  |
+| teardown (rerun) | - | 2 | 2 | 0 | 0 |  |
+
+74 rows; 714 measures, 714 pass, 0 fail, 0 unsure.
+
+The first run (700 measures, `T044/walk-run1.csv`) had 2 failing measures, both V7.5's closing time (7.60 s en, 7.54 s de): the script counted from before the row's Delete click and the dialog; counted from the toast's appearance, the rerun (`T044/walk-v75-rerun.csv`, new `… alone` drafts, its own token made and revoked) read 6.33 s and 6.38 s, and its V7.5 and V7.8 rows replace the first run's V7.5 rows here. No product file changed; two screenshots (V7.5 of the first run, en and de) were taken by the script and not needed. Two trial runs before the walk (V7.1/V7.2/V7.6/V7.7 in English) left 24 more `T044 en …` connections, all restored.
 
 ### 2.3 The measured sweeps
 
@@ -1293,8 +1511,113 @@ reversed.
   instants fall in summer time). One run crashed before its teardown
   and left its token active; the agent revoked it by hand, and no `T036` token remains. The only
   product change was the third skeleton card (T034's plan change). Kept.
+- **T038, the deletion toast's kind** (the user, 2026-11-11, phase 6): the inventory and spec 008
+  disagreed. Frame P18's toast (`6699:48098`, `figma-audit/units/U90.md` row 25) and Figma's build
+  note 24 (U05 `6720:39042`, row 22: "Danger (red, delete icon): anything deleted or removed")
+  draw a red toast with the white delete icon, and FR-033 and FR-070 say "as drawn". Spec 008
+  built every deleted or removed toast neutral (its T036 and T082 UNCERTAIN; its designer list
+  #13), so `ToastKind` has `neutral` and `success` only. **Decided: a third kind `danger`** for
+  this feature's deletion toasts, as Figma's "Rules/Toast" type=danger (`6718:40958`) draws it:
+  fill `feedback/danger` `#c4271c` (white text 5.75:1), the white "delete" icon 20 px 8 before the
+  text where the success kind has its check, otherwise the neutral toast's anatomy (radius 8,
+  padding 16, gap 24, the action, the error ID line, 6 s, the narrow rules). It serves "“<name>”
+  deleted." (T043), "<n> connections deleted." (T049, US5) and, when US6 touches the documents
+  step, "<document> removed." (U24 `7298:62627`, T056). The other toasts of the restore follow
+  build note 24's classes: "“<name>” restored." and "<n> connections restored." are `success` (a
+  finished action, like "active again"); "… can no longer be restored." and "Couldn’t restore.
+  Try again." are `neutral` (like "couldn’t save (with Retry)"). **Remaining difference**: spec
+  008's variant and rule deletion toasts in the rules step (U61 `6523:37991`, U35 `6113:29469`)
+  stay neutral, outside the nine items (FR-070); for the designer list. **Plan change**: T043's
+  files gain `frontend/src/components/Toast/{ToastMessage.tsx,utils.test.ts}` (the icon and its
+  test) and a white delete icon (a new `frontend/src/assets/icons/delete-white.svg`, or KERN's
+  icon if one fits), beside the `types.ts` and `constants.ts` its line already names.
+- **T039, the migration `9e7546ab2057`** (T039's UNCERTAIN 1; the coordinator, phase 6): the
+  downgrade deletes a deleted draft's (`published_at IS NULL AND deleted_at IS NOT NULL`)
+  `form_connection_revisions`, then its row (its activity cascades); a draft has no rule sets,
+  branches or document requests, so nothing else. The FK is PostgreSQL's default name
+  `form_connections_deleted_by_id_fkey`, as the other FKs. Kept.
+- **T040, marking a deletion** (T040's UNCERTAIN 1–10; the coordinator, phase 6): (1) the
+  stored cancellation sets `decided_at` to the deletion's time, as `cancel_for()` does, so
+  `delete_old_approval_requests` removes such a request a day after the deletion (at most 10
+  minutes before it did); (2) only requests that read as waiting just before the deletion are
+  stored `cancelled` (status `waiting`, not expired, `authorization_id` set, an action of the
+  connection's kind; the status actions derived from `ACTION_LEVELS`), so every other request
+  reads as before; (3) an approval-run deletion has `deleted_by_id` NULL too (FR-067; the approver
+  is in the `deleted` entry); (4) the router makes the UUID and passes the account, the services'
+  arguments default to None; (5) `_mark_deleted()` returns the open-request count so that the
+  existing log line stays, and no log line is new; (6) `approvals.cancel_for_deletion()` is
+  imported inside `_mark_deleted()` (the import cycle, as `activity.py`); (7) the approval page
+  reads a deleted draft as gone (no name, no draft) and a deleted published connection with its
+  name, as before; (8) `cancel_open_requests()` runs for a draft too (it has none); (9)
+  `test_deleting_a_draft_removes_it_for_good` is now
+  `test_deleting_a_draft_marks_it_deleted_and_removes_it_from_every_read`; (10) the two
+  approval-cancelling UPDATEs could deadlock on shared rows as the existing replaced/`cancel_for`
+  pair can (PostgreSQL aborts one). Each reader that hides a marked draft is pinned by a test that
+  fails when the reader is broken (T040 broke 16 readers and conditions one at a time). **Plan
+  changes**: T040's files gained `backend/app/models.py` (comments only, carried from T039) and
+  `backend/tests/api/test_form_connection_maintenance.py` (`test_deleting_stops_the_urls_for_good`
+  pinned `data: None`); T041's gain `backend/app/services/form_connections.py` and
+  `backend/tests/api/test_form_connection_drafts.py` for the guard against a draft deleted and
+  restored while its publish is in flight (T040's hazard, carried to T041). Kept.
+- **T041 and T042, the restore and the worker's finish** (their UNCERTAIN 1–9; the coordinator,
+  phase 6): (1) the restore's success message is `'Deletion restored'` (English, as the other
+  success messages; the contract names none); (2) `RestoredConnections.items` come in the
+  overview's order (`updated_at` desc, then id); (3) the reservation guard (`_check_reservation()`
+  under `create_revision()`'s last lock) answers `404` and deletes the configuration, except when a
+  later publish has reserved the same number since (configuration ids are `fc-<id>-r<n>`, so that
+  configuration is the later publish's): see §4.3 for the window it leaves; (4) the clock seams
+  are `deletions._now()` and `worker._now()`, and `delete_unused_config()` takes the step's cutoff
+  rather than a fresh clock (the step's clock is at or before the lock, the restore reads its
+  clock after its locks); (5) `FINISH_BATCH_SIZE = 100`, batches until one comes back short, the
+  log line only when a count is non-zero; (6) a deletion an approval ran becomes final after the
+  same restore time, not at once; (7) the restore logs the deletion id and the row count, refusals
+  nothing; (8) `deletions.py` uses `form_connections._summary()` across modules, as `drafts.py`
+  uses `_lock_form_connection()`; (9) see the plan changes. Each condition is pinned by a test that
+  fails when it is broken (16 mutations, T041's report). **Plan changes**: T041's files gained
+  `backend/tests/api/test_approval_requests.py` (`_restore_by_hand()` replaced by the real
+  endpoint, as T040's note asked); T042's gained `test_approval_requests.py` and
+  `backend/tests/api/test_oauth.py`, whose `STEPS` pins count from the end (`STEPS[-2:]`,
+  `STEPS[-7:-2]`). Kept.
+- **T043, "Undo" on the overview** (T043's UNCERTAIN 1–10; the coordinator, phase 6): (1) the
+  restore's answer replaces the toast and its button, so a focus that fell to `body` goes to the
+  page's h1, as after a deletion; (2) only `409 not_restorable` is final, every other failure (no
+  answer, a 5xx with its error ID, another 4xx) offers "Undo" again with "Couldn’t restore. Try
+  again."; (3) a restore that answers while the list is loading or failed loads the list again;
+  (4) an older restore answering after a newer deletion replaced its toast puts its rows back and
+  shows no toast; (5) a restore sent before its toast closed still shows its answer (FR-034); (6)
+  under 320 CSS px every overview toast, sticky at the page's end, covered the footer bar's lower
+  32 px (spec 008's slot `-mb-48`, before this feature): `OVERVIEW_FOOTER_CLASSES.slot` gains
+  `narrow:mb-0`, measured without overlap at 160 and 320 CSS px; (7) `OverviewDeletion.names` is an
+  array and the toast names the first: T049 adds the plural sentences; (8) the toast's text is built
+  at render time, so it follows a language switch while it shows (not announced again); (9) every
+  account sees the team's connections, so "the last connection" was reached by narrowing the
+  list's `GET` with `page.route()`, the delete and the restore going to the server; (10) the
+  kind-to-icon map is `TOAST_KIND_ICON` in Toast's `constants.ts`, tested in `utils.test.ts`;
+  `OverviewDeletion` is a named interface in `routing.ts`. The danger toast's icon is Figma's "Icon
+  · delete" from `6699:48098`, unchanged (`frontend/src/assets/icons/delete-white.svg`). Kept.
+- **T044, the walk V7** (T044's UNCERTAIN 1–5; the coordinator, phase 6): the walk's connections
+  were made through the API, every deletion and "Undo" through the UI; V7.3 ran as `p10-alice`
+  with T043's `page.route()` (the account makes no difference, every account sees the team's
+  connections); "Couldn’t restore. Try again." and a 5xx's error ID are not part of V7 (T043's
+  table holds them); the connection URLs were called on 3011 by id (the stored URLs point at the
+  public base, and the JSON comparison shows them unchanged); V7.5 passes for 5.9–6.6 s counted
+  from the toast's appearance. Kept.
 
 ### 4.3 Open points
+
+- **A publish's configuration after a delete, a restore and a second publish** (T041's UNCERTAIN
+  3; for the user): a draft's publish A reserves revision N and calls EUDIPLO; meanwhile the same
+  account deletes the draft and takes it back with "Undo", so A's reservation is gone and A
+  answers `404` under its last lock (`_check_reservation()`, pinned). A leaves the configuration
+  `fc-<id>-rN` alone when a later publish B has reserved N by then (pinned). Two windows stay: (a)
+  B reserves N in the milliseconds between A's rollback and A's `delete_config`, so A deletes the
+  configuration B's published connection uses (its URLs then fail until a new revision; the
+  worker's re-sync compares hashes only and would not re-create it); (b) if A's and B's bodies
+  differ, the configuration holds whichever upsert came last. Both need a deletion and its "Undo"
+  inside one publish's EUDIPLO call, plus a second publish of the same draft. Closing (a): A
+  re-inserts its reservation before deleting the configuration, so that B cannot take N meanwhile
+  (one backend task with a race test). The coordinator's suggestion: leave it, or close (a) in
+  phase 12. The user decides.
 
 - **The activity's cursor in the access log** (T036's UNCERTAIN 5; for T084): uvicorn's access
   line for `GET /api/form-connections/{id}/activity?cursor=…` carries the cursor, which is
@@ -1487,5 +1810,53 @@ reversed.
   stays open: a real MCP client (Claude Code or Claude Desktop) signed in through OAuth, whose
   name shows in the card's "<name> with <agent>" after one of its changes (the walk's agent was a
   personal access token, so the agent's name was the token's).
+- 2026-11-11: phase 6, US4 (T038–T044), each wave's gates green on the combined tree. The
+  environment: a scratch copy of phase 5's database, `template_db_010_p6`; phase 5's backend was
+  stopped for waves 1–3 (backend only) and this checkout's backend started on port 3011 with the
+  fake EUDIPLO after wave 3 (`WORKER_ENABLED=false`, the default restore time) and again for T044
+  (`WORKER_ENABLED=true`, `DELETION_UNDO_SECONDS=20`; there is no `backend/.env`, the launcher's
+  environment stands for it); Vite on 5175. Migration `9e7546ab2057` (the restorable deletion,
+  T039) applied to `template_db` and `template_db_010_p6`, its downgrade run once on the copy.
+  T038's answer came from the user (§4.2: a third toast kind `danger` for this feature's deletion
+  toasts). Test counts after the phase: pytest 2380 passed (2319 after phase 4, +61: marking and
+  hiding a deletion 28, the restore, the reservation guard and the worker's finish 33), run by
+  T041/T042 after their last backend edit (started 17:10, the last edit 17:09:57) and not rerun by
+  the coordinator (the user's standing rule); Ruff, mypy over 92 files and the fixtures' `--check`
+  rerun green after each wave; `rules/` 2642; `frontend/` 33 files, 1408 tests (+30: the toast's
+  kinds, the deletion reducer, the restored list, the arrival from the details); `mcp/` 15 files,
+  454 tests. Waves ran as planned, with no change of level or batch. **Plan changes** (each in
+  §4.2): T040's files gained `backend/app/models.py` (comments, carried from T039) and
+  `backend/tests/api/test_form_connection_maintenance.py`; T041's gained
+  `backend/app/services/form_connections.py` and `backend/tests/api/test_form_connection_drafts.py`
+  (the guard against a draft deleted and restored during its publish, T040's hazard) and
+  `backend/tests/api/test_approval_requests.py`; T042's gained `test_approval_requests.py` and
+  `backend/tests/api/test_oauth.py` (`STEPS` pins); T043's gained
+  `frontend/src/components/Toast/{ToastMessage.tsx,utils.test.ts}` and
+  `frontend/src/assets/icons/delete-white.svg` (T038's decision). One open point for the user (§4.3,
+  T041's UNCERTAIN 3). T040 and T041 each broke 16 conditions one at a time to check that a test
+  fails for each. The tasks left connections named `T043 …` and `T044 …` in
+  `template_db_010_p6` (44 `T044 …` rows not deleted, 3 deleted for good), the account
+  `t043-empty` (development only), and screenshots in the repository's git-ignored
+  `.playwright-mcp/T043/`; T044 revoked every token it made (no `T044%` authorization left).
+- 2026-11-11: US4's checkpoint (T045, the coordinator). The gates are green on both sides: the
+  root gates rerun by the coordinator after wave 4 (lint, `npm test` with the counts above,
+  build), and no repository file changed after that run (T044 fixed nothing); the backend's Ruff,
+  mypy and the fixtures' `--check` rerun at the checkpoint, pytest as above. T044's walk V7
+  (§2.2): 714 measures, 714 pass, 0 fail, 0 unsure, over V7.1–V7.8 × English and German in
+  Chromium (its first run's two V7.5 failures were the script's timing, counted from before the
+  delete dialog; rerun from the toast's appearance: 6.33 s and 6.38 s). T043's table (§2.1, 123
+  rows) has no open row. `backend/.env` doesn't exist: the backend was restarted after T044 with
+  the default restore time (no `DELETION_UNDO_SECONDS`, so 300 s) and `WORKER_ENABLED=false`.
+  The backend's log of the phase (1968 lines before that restart) holds uv's and uvicorn's startup
+  lines and uvicorn's access lines only (methods, paths with ids, statuses; no query string); no
+  name, person, date or entry kind. The app configures no logging, so its own INFO lines don't
+  reach that log: the phase's diff adds two log calls in `backend/app`, each with an id or counts
+  only ("Deletion %s restored: %d form connections", "Finished deletions: %d activity entries and
+  %d drafts deleted"); the frontend's diff adds no `console.*`, no inline style, no `any`, no
+  `dark:` and no `focus:`. The documentation checklist's `README.md` and `docs/ARCHITECTURE.md`
+  entries for `DELETION_UNDO_SECONDS` and the restorable deletion are carried to T102
+  (`backend/.env.example` has it). **Left for a person** (tasks.md, phase 6 "Needs a person"), so
+  T045 stays open: a screen reader (Orca or NVDA) once for "“<name>” restored." (the walk read it
+  in the live region only: `role="status"`, `aria-live="polite"`, `aria-atomic="true"`).
 
 ## 6. Closing report

@@ -1,9 +1,13 @@
 /**
- * The toast's two kinds (data-model §2 "Toasts", design-notes §3 "Toast"): `neutral`, the dark
- * ink toast for undoable or failed actions and plain notes ("You're logged out."); `success`,
- * the green toast with the filled check for a finished action ("Draft saved. …")
+ * The toast's three kinds (data-model §2 "Toasts", design-notes §3 "Toast"; spec 010, design-notes
+ * §4.2 T038): `neutral`, the dark ink toast for failed actions, actions that can't be undone any
+ * more, plain notes ("You're logged out.", "Couldn’t restore. Try again.") and the rules step's
+ * undoable edits, its deletions included (spec 008, outside spec 010's items); `success`, the
+ * green toast with the filled check for a finished action ("Draft saved. …", "“<name>”
+ * restored."); `danger`, the red toast with the white delete icon for something deleted
+ * ("“<name>” deleted.", Figma "Rules/Toast" type=danger 6718:40958)
  */
-export type ToastKind = 'neutral' | 'success';
+export type ToastKind = 'neutral' | 'success' | 'danger';
 
 export interface ToastContent {
   /** Changes with every new toast, so that each one is shown, timed and announced anew */

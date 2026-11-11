@@ -5,7 +5,7 @@ import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';
 import publicInk from '../../assets/icons/public-ink.svg';
 import scienceInk from '../../assets/icons/science-ink.svg';
-import type { ListState, RowDeleteState, WelcomeStep } from './types';
+import type { DeletionState, ListState, RowDeleteState, WelcomeStep } from './types';
 
 // S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570; spec 009: G§2 "connection",
 // "overview", "draft", "delete", "try again")
@@ -34,9 +34,14 @@ export const LIST_COPY = defineTexts(
     view: 'View',
     edit: 'Edit',
     deleteLabel: (name: string) => `Delete ${name}`,
-    // The toasts (U17 6699:48002; U90 6699:48098 without its Undo, F4)
+    // The toasts (U17 6699:48002; U90 6699:48098 with its "Undo", spec 010 FR-033); after
+    // "Undo" (FR-034, FR-036; copy.md §4, W11)
     draftSaved: 'Draft saved. You can pick it up any time.',
     deleted: (name: string) => `“${name}” deleted.`,
+    undo: 'Undo',
+    restored: (name: string) => `“${name}” restored.`,
+    notRestorable: (name: string) => `“${name}” can no longer be restored.`,
+    restoreFailed: 'Couldn’t restore. Try again.',
   },
   {
     pageTitle: 'Ihre Anbindungen',
@@ -59,6 +64,12 @@ export const LIST_COPY = defineTexts(
     deleteLabel: (name: string) => `${name} löschen`,
     draftSaved: 'Entwurf gespeichert. Sie können jederzeit weiterarbeiten.',
     deleted: (name: string) => `„${name}“ gelöscht.`,
+    // Glossary: "Undo" (a toast's action) "Rückgängig"; "restore, restored (a deleted
+    // connection)" "wiederherstellen, wiederhergestellt" (spec 010, T002)
+    undo: 'Rückgängig',
+    restored: (name: string) => `„${name}“ wiederhergestellt.`,
+    notRestorable: (name: string) => `„${name}“ kann nicht mehr wiederhergestellt werden.`,
+    restoreFailed: 'Wiederherstellen nicht möglich. Versuchen Sie es erneut.',
   }
 );
 
@@ -133,6 +144,12 @@ export const WELCOME_STEPS = defineTexts<readonly WelcomeStep[]>(
 );
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
+
+/**
+ * No deletion yet (spec 010, S4 "After a deletion"). Toast id 1 is the arrival's "Draft saved."
+ * toast, so that a deletion's first toast (2) replaces it and is announced anew
+ */
+export const INITIAL_DELETION_STATE: DeletionState = { toastId: 1, current: null };
 
 /**
  * The one delete dialog of a row (FR-029c; U14 6699:44419, 6699:44480, U90 6417:31599): the
@@ -212,10 +229,12 @@ export const ROW_DATE_FORMAT = new Intl.DateTimeFormat('de-DE', {
  * wizard's is, and in the flow below that. Its slot keeps the design's 24px between the list card
  * and the bar (16 of the column's gap + 8; U12 6699:44915: the card ends at 804, the bar starts at
  * 828) and the bar's 72px, in place of the page's bottom padding, so the end of the list never
- * hides under the bar.
+ * hides under the bar. Under 320 CSS px the page keeps its bottom padding (`narrow:mb-0`): the
+ * toast, which sticks there and keeps a place of its own after the bar (T096), would otherwise
+ * cover the bar's lower 16px at the end of the page (spec 010, T043)
  */
 export const OVERVIEW_FOOTER_CLASSES = {
-  slot: 'mt-8 -mb-48 shrink-0 [@media(height>=30rem)]:h-72',
+  slot: 'mt-8 -mb-48 shrink-0 narrow:mb-0 [@media(height>=30rem)]:h-72',
   bar: 'wizard-footer bg-kern-layout-background-default z-15 px-16 py-16 shadow-[inset_0_1px_0_var(--kern-color-decorative-border-default)] [@media(height>=30rem)]:fixed [@media(height>=30rem)]:inset-x-0 [@media(height>=30rem)]:bottom-0',
 };
 

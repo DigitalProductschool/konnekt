@@ -2,18 +2,24 @@ import type { FormConnectionSummary } from '@connection-portal/api-types/form-co
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
-import { INITIAL_ROW_DELETE_STATE } from './constants';
-import type { ListState, RowDeleteState } from './types';
+import { INITIAL_DELETION_STATE, INITIAL_ROW_DELETE_STATE } from './constants';
+import type { DeletionAction, DeletionState, ListState, RowDeleteState } from './types';
 import {
+  canRestore,
   deleteDialogCopyOf,
+  deletionReducer,
+  deletionToastOf,
   descriptionOf,
   filterConnections,
   formatRowDate,
   homepageOf,
+  initialDeletionOf,
   listReducer,
+  restoreFailureOf,
   rowDeleteFailureOf,
   rowDeleteReducer,
   rowMetaOf,
+  withRestored,
 } from './utils';
 
 function summary(overrides: Partial<FormConnectionSummary> = {}): FormConnectionSummary {
@@ -377,5 +383,255 @@ describe('rowDeleteFailureOf (FR-008)', () => {
     });
     const error = new ApiError(500, { error: 'internal', message: 'Fehler.', error_id: 'e-9' });
     expect(rowDeleteFailureOf(error, 'de').error).toEqual({ message: 'Fehler.', error_id: 'e-9' });
+  });
+});
+
+// Spec 010, User Story 4 (FR-033 to FR-037; S4 "After a deletion", "Undo"; W11)
+describe('listReducer: restored (spec 010, FR-034)', () => {
+  const rows = [
+    summary({ id: 'c1', updated_at: '2026-11-10T10:00:00Z' }),
+    summary({ id: 'c3', updated_at: '2026-11-08T10:00:00Z' }),
+  ];
+  const loaded: ListState = { status: 'loaded', attempt: 0, formConnections: rows };
+  const ids = (state: ListState) =>
+    state.status === 'loaded' ? state.formConnections.map((each) => each.id) : null;
+
+  it('puts a restored row back in its place by its updated_at, without a reload', () => {
+    const back = summary({ id: 'c2', updated_at: '2026-11-09T10:00:00Z' });
+    expect(ids(listReducer(loaded, { type: 'restored', items: [back] }))).toEqual([
+      'c1',
+      'c2',
+      'c3',
+    ]);
+  });
+
+  it('turns the empty list of the welcome page back into the overview', () => {
+    const empty: ListState = { status: 'loaded', attempt: 0, formConnections: [] };
+    const back = listReducer(empty, { type: 'restored', items: [summary({ id: 'c9' })] });
+    expect(homepageOf(back.status === 'loaded' ? back.formConnections : null, false)).toBe(
+      'overview'
+    );
+  });
+
+  it('loads the list again when it isn’t there yet, so that it can’t miss the rows', () => {
+    expect(
+      listReducer({ status: 'loading', attempt: 0 }, { type: 'restored', items: rows })
+    ).toEqual({ status: 'loading', attempt: 1 });
+    const failed: ListState = { status: 'failed', attempt: 2, notice: { message: 'x' } };
+    expect(listReducer(failed, { type: 'restored', items: rows })).toEqual({
+      status: 'loading',
+      attempt: 3,
+    });
+  });
+});
+
+describe('withRestored (spec 010, FR-034)', () => {
+  it('sorts by updated_at, newest first, then by id, as the server lists', () => {
+    const list = [summary({ id: 'b', updated_at: '2026-11-09T10:00:00Z' })];
+    const items = [
+      summary({ id: 'c', updated_at: '2026-11-09T10:00:00Z' }),
+      summary({ id: 'a', updated_at: '2026-11-09T10:00:00+00:00' }),
+      summary({ id: 'z', updated_at: '2026-11-11T09:00:00.123456+01:00' }),
+    ];
+    expect(withRestored(list, items).map((each) => each.id)).toEqual(['z', 'a', 'b', 'c']);
+  });
+
+  it('replaces a row the list still holds instead of doubling it', () => {
+    const old = summary({ id: 'c1', name: 'Old' });
+    const back = summary({ id: 'c1', name: 'Back' });
+    expect(withRestored([old], [back])).toEqual([back]);
+  });
+});
+
+describe('deletionReducer (spec 010, FR-033 to FR-037)', () => {
+  const deleted = deletionReducer(INITIAL_DELETION_STATE, {
+    type: 'deleted',
+    deletionId: 'd-1',
+    names: ['Fishing licence'],
+  });
+  const run = (state: DeletionState, actions: DeletionAction[]) =>
+    actions.reduce(deletionReducer, state);
+  const restoring = run(deleted, [{ type: 'restoring', deletionId: 'd-1' }]);
+
+  it('shows the deletion’s toast with "Undo" as a new toast', () => {
+    expect(deleted).toEqual({
+      toastId: 2,
+      current: {
+        id: 'd-1',
+        names: ['Fishing licence'],
+        outcome: 'deleted',
+        restoring: false,
+        shown: true,
+        errorId: null,
+      },
+    });
+    expect(canRestore(deleted)).toBe(true);
+    expect(canRestore(INITIAL_DELETION_STATE)).toBe(false);
+  });
+
+  it('waits for the restore with the same toast, and refuses a second "Undo" meanwhile', () => {
+    expect(restoring.toastId).toBe(2);
+    expect(restoring.current?.restoring).toBe(true);
+    expect(canRestore(restoring)).toBe(false);
+    expect(deletionReducer(restoring, { type: 'restoring', deletionId: 'd-1' })).toBe(restoring);
+  });
+
+  it('shows "restored" as a new toast without "Undo"', () => {
+    const restored = run(restoring, [{ type: 'restored', deletionId: 'd-1' }]);
+    expect(restored.toastId).toBe(3);
+    expect(restored.current).toMatchObject({ outcome: 'restored', restoring: false, shown: true });
+    expect(canRestore(restored)).toBe(false);
+  });
+
+  it('says "can no longer be restored" for good after a refusal', () => {
+    const refused = run(restoring, [{ type: 'notRestorable', deletionId: 'd-1' }]);
+    expect(refused.current).toMatchObject({ outcome: 'notRestorable', shown: true });
+    expect(canRestore(refused)).toBe(false);
+  });
+
+  it('offers "Undo" again after a failure, with a 5xx’s error ID', () => {
+    const failed = run(restoring, [{ type: 'failed', deletionId: 'd-1', errorId: 'e-7' }]);
+    expect(failed.toastId).toBe(3);
+    expect(failed.current).toMatchObject({ outcome: 'failed', errorId: 'e-7', shown: true });
+    expect(canRestore(failed)).toBe(true);
+    const again = run(failed, [{ type: 'restoring', deletionId: 'd-1' }]);
+    expect(again.current?.restoring).toBe(true);
+    expect(run(again, [{ type: 'restored', deletionId: 'd-1' }]).current?.errorId).toBeNull();
+  });
+
+  it('takes "Undo" away with a toast that closed, leaving the deletion standing', () => {
+    const closed = run(deleted, [{ type: 'dismissed' }]);
+    expect(closed.current?.shown).toBe(false);
+    expect(canRestore(closed)).toBe(false);
+    expect(run(closed, [{ type: 'restoring', deletionId: 'd-1' }])).toBe(closed);
+    expect(deletionReducer(closed, { type: 'dismissed' })).toBe(closed);
+  });
+
+  it('still shows the answer of a restore sent before its toast closed', () => {
+    const closed = run(restoring, [{ type: 'dismissed' }]);
+    const restored = run(closed, [{ type: 'restored', deletionId: 'd-1' }]);
+    expect(restored.current).toMatchObject({ outcome: 'restored', shown: true });
+  });
+
+  it('replaces the toast with a newer deletion, whose "Undo" is its own', () => {
+    const newer = run(restoring, [
+      { type: 'deleted', deletionId: 'd-2', names: ['Hunting licence'] },
+    ]);
+    expect(newer.toastId).toBe(3);
+    expect(newer.current).toMatchObject({ id: 'd-2', outcome: 'deleted', restoring: false });
+    // The older restore's answer changes nothing here
+    expect(run(newer, [{ type: 'restored', deletionId: 'd-1' }])).toBe(newer);
+    expect(run(newer, [{ type: 'restoring', deletionId: 'd-1' }])).toBe(newer);
+  });
+
+  it('ignores an answer that no restore waits for', () => {
+    expect(run(deleted, [{ type: 'restored', deletionId: 'd-1' }])).toBe(deleted);
+    expect(run(deleted, [{ type: 'failed', deletionId: 'd-1', errorId: null }])).toBe(deleted);
+  });
+
+  it('offers no "Undo" for a deletion nothing can restore', () => {
+    const final = deletionReducer(INITIAL_DELETION_STATE, {
+      type: 'deleted',
+      deletionId: null,
+      names: ['Fishing licence'],
+    });
+    expect(canRestore(final)).toBe(false);
+    expect(deletionToastOf(final, 'en')?.actionLabel).toBeUndefined();
+  });
+});
+
+describe('initialDeletionOf (spec 010, FR-033)', () => {
+  it('starts with the deletion the details made, its toast and its "Undo"', () => {
+    const arrived = initialDeletionOf({ names: ['Fishing licence'], deletionId: 'd-1' });
+    expect(arrived.current).toMatchObject({ id: 'd-1', outcome: 'deleted', shown: true });
+    expect(canRestore(arrived)).toBe(true);
+  });
+
+  it('starts with none otherwise', () => {
+    expect(initialDeletionOf(undefined)).toBe(INITIAL_DELETION_STATE);
+  });
+});
+
+describe('deletionToastOf (spec 010; copy.md §4; design-notes §4.2 T038)', () => {
+  const deleted = initialDeletionOf({ names: ['Fishing licence'], deletionId: 'd-1' });
+  const restoring = deletionReducer(deleted, { type: 'restoring', deletionId: 'd-1' });
+  const after = (action: DeletionAction) => deletionReducer(restoring, action);
+
+  it('reads "“<name>” deleted." in red with "Undo", in both languages', () => {
+    expect(deletionToastOf(deleted, 'en')).toEqual({
+      id: 2,
+      kind: 'danger',
+      message: '“Fishing licence” deleted.',
+      actionLabel: 'Undo',
+    });
+    expect(deletionToastOf(deleted, 'de')).toMatchObject({
+      message: '„Fishing licence“ gelöscht.',
+      actionLabel: 'Rückgängig',
+    });
+  });
+
+  it('keeps the toast as it was while "Undo" waits', () => {
+    expect(deletionToastOf(restoring, 'en')).toEqual(deletionToastOf(deleted, 'en'));
+  });
+
+  it('reads "“<name>” restored." in green', () => {
+    const toast = deletionToastOf(after({ type: 'restored', deletionId: 'd-1' }), 'en');
+    expect(toast).toEqual({ id: 3, kind: 'success', message: '“Fishing licence” restored.' });
+    expect(deletionToastOf(after({ type: 'restored', deletionId: 'd-1' }), 'de')?.message).toBe(
+      '„Fishing licence“ wiederhergestellt.'
+    );
+  });
+
+  it('reads "“<name>” can no longer be restored." in ink, without "Undo"', () => {
+    const state = after({ type: 'notRestorable', deletionId: 'd-1' });
+    expect(deletionToastOf(state, 'en')).toEqual({
+      id: 3,
+      kind: 'neutral',
+      message: '“Fishing licence” can no longer be restored.',
+    });
+    expect(deletionToastOf(state, 'de')?.message).toBe(
+      '„Fishing licence“ kann nicht mehr wiederhergestellt werden.'
+    );
+  });
+
+  it('reads "Couldn’t restore. Try again." in ink with "Undo" again and the error ID', () => {
+    const state = after({ type: 'failed', deletionId: 'd-1', errorId: 'e-7' });
+    expect(deletionToastOf(state, 'en')).toEqual({
+      id: 3,
+      kind: 'neutral',
+      message: 'Couldn’t restore. Try again.',
+      actionLabel: 'Undo',
+      errorId: 'e-7',
+    });
+    expect(deletionToastOf(state, 'de')).toMatchObject({
+      message: 'Wiederherstellen nicht möglich. Versuchen Sie es erneut.',
+      actionLabel: 'Rückgängig',
+    });
+  });
+
+  it('shows nothing before a deletion or after its toast closed', () => {
+    expect(deletionToastOf(INITIAL_DELETION_STATE, 'en')).toBeNull();
+    expect(deletionToastOf(deletionReducer(deleted, { type: 'dismissed' }), 'en')).toBeNull();
+  });
+});
+
+describe('restoreFailureOf (spec 010, FR-036)', () => {
+  it('reads 409 not_restorable as final, by its code', () => {
+    const error = new ApiError(409, { error: 'not_restorable', message: 'Anything.' });
+    expect(restoreFailureOf(error)).toEqual({ type: 'notRestorable' });
+  });
+
+  it('offers "Undo" again after a server failure, with its error ID', () => {
+    const error = new ApiError(500, { error: 'internal', message: 'Failed.', error_id: 'e-9' });
+    expect(restoreFailureOf(error)).toEqual({ type: 'failed', errorId: 'e-9' });
+  });
+
+  it('offers "Undo" again without an answer, or after another refusal', () => {
+    expect(restoreFailureOf(new TypeError('Failed to fetch'))).toEqual({
+      type: 'failed',
+      errorId: null,
+    });
+    const other = new ApiError(409, { error: 'conflict', message: 'Other.' });
+    expect(restoreFailureOf(other)).toEqual({ type: 'failed', errorId: null });
   });
 });

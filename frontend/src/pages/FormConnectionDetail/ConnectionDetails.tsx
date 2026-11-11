@@ -1,4 +1,3 @@
-import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { generatePath, useNavigate } from 'react-router';
 
@@ -52,6 +51,7 @@ import {
   initialAccordionOf,
   initialActionsState,
   isNoAnswer,
+  overviewStateAfterDeletion,
   reactivatePlanOf,
   startDateChoiceOf,
   startDatePlanOf,
@@ -86,8 +86,8 @@ import {
  *
  * Each action asks first (S17), in `ConfirmDialog`: deleting in the overview's one delete dialog
  * (FR-029c; danger, the scrim doesn't close it, FR-052a), its body by the state (a scheduled
- * connection's FR-010), which returns to the overview with the toast "“<name>” deleted." (no
- * Undo, F4); deactivating with F13's body and "Keep active" (U88), a scheduled connection with
+ * connection's FR-010), which returns to the overview with the toast "“<name>” deleted." and its
+ * "Undo" (spec 010, FR-033: the deletion's id goes with it); deactivating with F13's body and "Keep active" (U88), a scheduled connection with
  * copy.md §2's sentence and "Keep scheduled" (FR-012, W5), then the success toast "Connection
  * deactivated." (no Undo, F13, F54) with the focus back on the ⋯; reactivating in
  * `ReactivateDialog` with the documents and rules summary (U89 7173:52959, FR-051 (40)) and
@@ -159,9 +159,11 @@ export default function ConnectionDetails({
     dispatch({ type: 'start', action });
     try {
       if (action === 'delete') {
-        await deleteFormConnection(id);
-        const overviewState: OverviewLocationState = { deleted: name };
-        navigate(ROUTES.overview, { replace: true, state: overviewState });
+        const deletion = await deleteFormConnection(id);
+        navigate(ROUTES.overview, {
+          replace: true,
+          state: overviewStateAfterDeletion(name, deletion),
+        });
         return;
       }
       const changed =

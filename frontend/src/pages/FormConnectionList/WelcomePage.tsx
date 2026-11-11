@@ -45,7 +45,9 @@ function WelcomeStepItem({ step, joined }: WelcomeStepItemProps) {
  * example), and the wallet star at 200 × 193 at the right (decorative). The steps sit in a row
  * where the card's text column has room for them (640px), and stack below; narrower than 768px
  * the card keeps 24px padding and the picture goes (FR-010). "Create connection" opens the
- * first-connection flow at step 1 (`/get-started`).
+ * first-connection flow at step 1 (`/get-started`). After the last connection was deleted it
+ * shows with the deletion's toast, which the overview page owns; its "Undo" brings the overview
+ * back with the connection (spec 010, FR-037).
  */
 export default function WelcomePage({ titleRef }: WelcomePageProps) {
   const copy = useCopy(WELCOME_COPY);

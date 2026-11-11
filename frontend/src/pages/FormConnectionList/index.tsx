@@ -6,7 +6,12 @@ import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'rea
 import { generatePath, Link, useLocation, useNavigate } from 'react-router';
 
 import { errorNoticeOf } from '../../api/client';
-import { deleteDraft, deleteFormConnection, listFormConnections } from '../../api/form-connections';
+import {
+  deleteDraft,
+  deleteFormConnection,
+  listFormConnections,
+  restoreDeletion,
+} from '../../api/form-connections';
 import AppLayout from '../../components/AppLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
@@ -41,10 +46,15 @@ import FormConnectionRow, { FormConnectionRowSkeleton } from './FormConnectionRo
 import SearchToolbar from './SearchToolbar';
 import type { HomepageView, NoMatchesProps } from './types';
 import {
+  canRestore,
   deleteDialogCopyOf,
+  deletionReducer,
+  deletionToastOf,
   filterConnections,
   homepageOf,
+  initialDeletionOf,
   listReducer,
+  restoreFailureOf,
   rowDeleteFailureOf,
   rowDeleteReducer,
 } from './utils';
@@ -133,9 +143,9 @@ function NoMatches({ query, onClear }: NoMatchesProps) {
 }
 
 /**
- * The toast of an arrival: after "Save and exit" the success toast "Draft saved. …" (U17
- * 6699:48002); after a delete on the details the toast a row delete shows, "“<name>” deleted."
- * (U90 6699:48098, neutral, no Undo: F4)
+ * The toast of an arrival after "Save and exit": the success toast "Draft saved. …" (U17
+ * 6699:48002). A delete on the details arrives as a deletion instead (`initialDeletionOf`), with
+ * the toast a row delete shows
  */
 function arrivalToastOf(
   arrival: OverviewLocationState | null,
@@ -143,9 +153,6 @@ function arrivalToastOf(
 ): ToastContent | null {
   if (arrival?.draftSaved !== undefined) {
     return { id: 1, kind: 'success', message: LIST_COPY[language].draftSaved };
-  }
-  if (arrival?.deleted !== undefined) {
-    return { id: 1, message: LIST_COPY[language].deleted(arrival.deleted) };
   }
   return null;
 }
@@ -167,10 +174,19 @@ function arrivalToastOf(
  * column headers and rows, which scroll inside the card when they don't fit the window (U12), and
  * the footer bar with "Create connection" (cosmetic 1). No row can be selected (F14). While the
  * list loads, skeleton rows stand for it (001-S3.5). A row's "Delete" asks the one delete dialog
- * (FR-028, FR-029c); after the delete the row leaves the list, a toast says so, without Undo
- * (F4), and the focus moves to the page's heading, since the button that opened the dialog is
- * gone; after the last one the welcome page shows. A delete on the details arrives here with the
- * same toast. After "Save and exit" the success toast
+ * (FR-028, FR-029c); after the delete the row leaves the list, and the focus moves to the page's
+ * heading, since the button that opened the dialog is gone; after the last one the welcome page
+ * shows. A delete on the details arrives here the same way.
+ *
+ * The deletion's toast (spec 010, FR-033 to FR-037; S4 "After a deletion", "Undo"; W11): the red
+ * "“<name>” deleted." with "Undo", over the welcome page too after the last connection; the page
+ * keeps the deletion's id with it (`deletionReducer`). "Undo" sends the restore: the answered rows
+ * return to the list without a reload (the welcome page gives way to the overview) and the green
+ * "“<name>” restored." is announced; `409 not_restorable` says "“<name>” can no longer be
+ * restored." and changes nothing; no answer or a server failure says "Couldn’t restore. Try
+ * again." with "Undo" again. The Undo button goes with its toast, so the focus moves to the
+ * page's heading when it was on it. A toast that closed (6 s, Escape), was replaced or was left
+ * with the page leaves the deletion standing. After "Save and exit" the success toast
  * "Draft saved. You can pick it up any time." confirms the saved draft (U17 6699:48002); a saved
  * draft also means that the list holds something, so the overview shows at once. A published
  * connection's "Edit" asks "Edit “<name>”?" first (S17, F48; U15 6699:47905): "Edit connection"
@@ -206,8 +222,23 @@ export default function FormConnectionListPage() {
   // Read once: the router state is cleared below, so the toast goes at the next navigation
   const [arrival] = useState(() => location.state as OverviewLocationState | null);
   const draftSaved = arrival?.draftSaved ?? null;
-  const [toast, setToast] = useState<ToastContent | null>(() => arrivalToastOf(arrival, language));
-  const dismissToast = useCallback(() => setToast(null), []);
+  const [savedToast, setSavedToast] = useState<ToastContent | null>(() =>
+    arrivalToastOf(arrival, language)
+  );
+  const [deletion, dispatchDeletion] = useReducer(
+    deletionReducer,
+    arrival?.deleted,
+    initialDeletionOf
+  );
+  // A deletion's toast replaces the arrival's
+  const toast = deletionToastOf(deletion, language) ?? savedToast;
+  const dismissToast = useCallback(() => {
+    dispatchDeletion({ type: 'dismissed' });
+    setSavedToast(null);
+  }, []);
+  // Set by "Undo": its answer replaces the toast and its button, so the heading takes the focus
+  // if the button had it
+  const focusTitleAfterRestore = useRef(false);
   // The edit entry question (F48): there once a row asked, keeping its name while it closes
   const [editEntry, setEditEntry] = useState<{
     target: FormConnectionSummary;
@@ -262,6 +293,16 @@ export default function FormConnectionListPage() {
     }
   }, [state]);
 
+  useEffect(() => {
+    if (!focusTitleAfterRestore.current || deletion.current?.restoring) {
+      return;
+    }
+    focusTitleAfterRestore.current = false;
+    if (document.activeElement === null || document.activeElement === document.body) {
+      titleRef.current?.focus();
+    }
+  }, [deletion]);
+
   // "Clear search" goes with the empty result, so the focus moves to the field it empties
   const clearSearch = () => {
     setQuery('');
@@ -271,14 +312,35 @@ export default function FormConnectionListPage() {
   async function deleteRow(target: FormConnectionSummary) {
     dispatchDelete({ type: 'start' });
     try {
-      await (target.status === 'draft' ? deleteDraft(target.id) : deleteFormConnection(target.id));
+      const { id: deletionId } = await (target.status === 'draft'
+        ? deleteDraft(target.id)
+        : deleteFormConnection(target.id));
       focusTitleAfterDelete.current = true;
       dispatchDelete({ type: 'done' });
       dispatch({ type: 'removed', id: target.id });
-      setToast((shown) => ({ id: (shown?.id ?? 0) + 1, message: copy.deleted(target.name) }));
+      setSavedToast(null);
+      dispatchDeletion({ type: 'deleted', deletionId, names: [target.name] });
     } catch (error) {
       if (!handleUnauthorized(error)) {
         dispatchDelete({ type: 'failed', ...rowDeleteFailureOf(error, language) });
+      }
+    }
+  }
+
+  // The toast's "Undo" (FR-034, FR-036): the restored rows go back into the list even when a newer
+  // deletion has replaced this toast meanwhile
+  async function undo() {
+    const deletionId = deletion.current?.id;
+    if (!deletionId || !canRestore(deletion)) return;
+    focusTitleAfterRestore.current = true;
+    dispatchDeletion({ type: 'restoring', deletionId });
+    try {
+      const { items } = await restoreDeletion(deletionId);
+      dispatch({ type: 'restored', items });
+      dispatchDeletion({ type: 'restored', deletionId });
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        dispatchDeletion({ deletionId, ...restoreFailureOf(error) });
       }
     }
   }
@@ -334,7 +396,12 @@ export default function FormConnectionListPage() {
           }
         />
       )}
-      <Toast toast={toast} onDismiss={dismissToast} noFooter={view === 'welcome'} />
+      <Toast
+        toast={toast}
+        onAction={() => void undo()}
+        onDismiss={dismissToast}
+        noFooter={view === 'welcome'}
+      />
     </>
   );
 

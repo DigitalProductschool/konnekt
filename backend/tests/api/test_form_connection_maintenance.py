@@ -547,7 +547,9 @@ def test_deleting_stops_the_urls_for_good(
     response = _delete(signed_in_client, form_connection_id)
 
     assert response.status_code == 200
-    assert response.json() == {'data': None, 'message': 'Form connection deleted'}
+    assert response.json()['message'] == 'Form connection deleted'
+    # The deletion "Undo" can restore (spec 010; test_deletions.py)
+    assert response.json()['data'].keys() == {'id', 'restorable_until'}
     assert len(fake_eudiplo.calls) == calls_before
     for reference in (pending, shared):
         assert stored_request(reference).status == 'unavailable'
@@ -611,7 +613,9 @@ def test_a_replaced_configuration_goes_once_no_request_needs_it(
 
 
 def test_a_deleted_form_connection_loses_its_configurations(
-    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     form_connection_id = create_form_connection(signed_in_client)
     _edit(signed_in_client, form_connection_id, documents=EDITED_DOCUMENTS)
@@ -622,6 +626,11 @@ def test_a_deleted_form_connection_loses_its_configurations(
     worker.delete_unused_configs()
     assert _config_id(form_connection_id, 2) in fake_eudiplo.configs
     worker.delete_eudiplo_sessions()
+    # Not while the deletion can be restored (spec 010, R5; test_deletions.py)
+    worker.delete_unused_configs()
+    assert _config_id(form_connection_id, 2) in fake_eudiplo.configs
+    after_restore_time = now() + timedelta(seconds=settings.deletion_undo_seconds + 1)
+    monkeypatch.setattr(worker, '_now', lambda: after_restore_time)
     worker.delete_unused_configs()
 
     assert fake_eudiplo.configs == {}

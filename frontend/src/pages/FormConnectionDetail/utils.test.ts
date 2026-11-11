@@ -48,6 +48,7 @@ import {
   isNoAnswer,
   keyedBranchesOf,
   linksCountsOf,
+  overviewStateAfterDeletion,
   reactivateHintOf,
   reactivatePlanOf,
   reactivateSummaryOf,
@@ -1534,5 +1535,22 @@ describe('activityCardReducer (S15; FR-022, FR-023)', () => {
       expect(reset).toEqual({ kind: 'closed' });
       expect(activityCardReducer(reset, { type: 'load' })).toEqual({ kind: 'loading' });
     }
+  });
+});
+
+describe('overviewStateAfterDeletion (spec 010, FR-033)', () => {
+  it('hands the overview the name and the deletion id for "Undo"', () => {
+    expect(
+      overviewStateAfterDeletion('Fishing licence', {
+        id: 'd-1',
+        restorable_until: '2026-11-11T12:05:00Z',
+      })
+    ).toEqual({ deleted: { names: ['Fishing licence'], deletionId: 'd-1' } });
+  });
+
+  it('keeps a deletion nothing can restore without an id, so the toast offers no "Undo"', () => {
+    expect(
+      overviewStateAfterDeletion('Fishing licence', { id: null, restorable_until: null })
+    ).toEqual({ deleted: { names: ['Fishing licence'], deletionId: null } });
   });
 });

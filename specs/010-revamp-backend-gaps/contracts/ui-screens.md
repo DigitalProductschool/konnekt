@@ -118,6 +118,8 @@ No route is added or changed. Every new page state keeps one `h1` and its tab ti
   the toolbar is back, and the toast reads "“<name>” deleted." or "<n> connections deleted." with
   "Undo". The page keeps the deletion's id with the toast. A deletion made on the details arrives
   the same way (`OverviewLocationState.deleted` carries the names and the deletion id).
+  The toast is of the kind `danger` (red `#c4271c`, the white delete icon; P18 `6699:48098`), the
+  restored toast `success`, the two failures `neutral` (design-notes §4.2, T038).
 - **"Undo"** calls the restore endpoint. Success: the answered rows are put back into the list
   without a reload, the welcome page gives way to the overview, and a toast says "“<name>”
   restored.". `409 not_restorable`: "“<name>” can no longer be restored.", and nothing changes. No

@@ -1,15 +1,15 @@
 import type { FocusEvent, KeyboardEvent } from 'react';
 import { useEffect, useReducer, useRef } from 'react';
 
-import checkFilledIcon from '../../assets/icons/check-filled-white.svg';
 import ErrorNoticeText from '../ErrorNoticeText';
-import { TOAST_DURATION_MS, TOAST_KIND_FILL } from './constants';
+import { TOAST_DURATION_MS, TOAST_KIND_FILL, TOAST_KIND_ICON } from './constants';
 import type { ToastMessageProps } from './types';
 import { isToastTimerRunning, NO_HOLD, toastHoldReducer } from './utils';
 
 /**
  * The visible toast, Figma "Rules/Toast" (6369:25433): the message in `body/small/regular`
- * white, the success kind's filled check before it, the error ID of a 5xx on a line of its own
+ * white, the success kind's filled check or the danger kind's delete icon before it (20px, 8px
+ * gap), the error ID of a 5xx on a line of its own
  * (as `ErrorNoticeText` writes it) and the optional action as an underlined `label/small` link
  * at the right. Every toast, with or without an action, goes after its 6 seconds, which run only
  * while neither the pointer nor the keyboard focus is on it and start again once both have left
@@ -22,6 +22,8 @@ export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessag
   // Where the focus came from when it entered the toast, for Escape to return it there
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const hasAction = Boolean(toast.actionLabel && onAction);
+  const kind = toast.kind ?? 'neutral';
+  const icon = TOAST_KIND_ICON[kind];
 
   useEffect(() => {
     if (!running) {
@@ -68,12 +70,10 @@ export default function ToastMessage({ toast, onAction, onDismiss }: ToastMessag
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      className={`${TOAST_KIND_FILL[toast.kind ?? 'neutral']} rounded-kern-default shadow-toast text-kern-static-small text-kern-action-on-default narrow:max-h-[50dvh] narrow:flex-wrap narrow:gap-y-8 narrow:overflow-y-auto pointer-events-auto flex max-w-full items-center gap-24 p-16 leading-(--kern-typography-line-height-medium-static)`}
+      className={`${TOAST_KIND_FILL[kind]} rounded-kern-default shadow-toast text-kern-static-small text-kern-action-on-default narrow:max-h-[50dvh] narrow:flex-wrap narrow:gap-y-8 narrow:overflow-y-auto pointer-events-auto flex max-w-full items-center gap-24 p-16 leading-(--kern-typography-line-height-medium-static)`}
     >
       <div className="flex min-w-0 items-center gap-8">
-        {toast.kind === 'success' && (
-          <img src={checkFilledIcon} alt="" className="size-20 shrink-0" />
-        )}
+        {icon && <img src={icon} alt="" className="size-20 shrink-0" />}
         <p className="min-w-0">
           <ErrorNoticeText
             notice={{ message: toast.message, error_id: toast.errorId ?? undefined }}

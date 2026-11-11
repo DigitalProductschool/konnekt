@@ -6,12 +6,16 @@ import type {
   ActivityPage,
   BranchInput,
   ConnectionState,
+  Deletion,
   FormConnection,
   RequestedDocument,
   RequestedDocumentView,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
-import type { DetailLocationState } from '@connection-portal/api-types/routing';
+import type {
+  DetailLocationState,
+  OverviewLocationState,
+} from '@connection-portal/api-types/routing';
 import type { RuleChecks } from '@connection-portal/rules/checks/types';
 import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
 import { formatDate } from '@connection-portal/rules/dates';
@@ -843,4 +847,16 @@ export function deleteDraftDialogOf(failure: DeleteDraftFailure | null, language
     default:
       return { errorTitle: copy.deleteError, retryLabel: copy.retry, danger: true };
   }
+}
+
+/**
+ * What the details hand the overview after a deletion (spec 010, FR-033; S4 "After a deletion"):
+ * the deleted connection's or draft's name for the toast "“<name>” deleted." and the deletion's
+ * id for its "Undo"
+ */
+export function overviewStateAfterDeletion(
+  name: string,
+  deletion: Deletion
+): OverviewLocationState {
+  return { deleted: { names: [name], deletionId: deletion.id } };
 }

@@ -16,7 +16,9 @@ creating a connection and then `form_connections.create_revision()` with a
 the stored draft through the same path (`check_publishable()` before it is made,
 `publish_stored_draft()` once it is approved; spec 007, research R12). Nothing here
 calls EUDIPLO except through publishing. Publishing with a start date schedules the
-connection through that same path (spec 010, research R1, R2).
+connection through that same path (spec 010, research R1, R2). Deleting a draft
+marks its row, as deleting a published connection does, so that "Undo" can restore
+it (spec 010, research R5); the marked row is gone for every read here.
 """
 
 import logging
@@ -25,12 +27,12 @@ from datetime import date
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from ..models import FormConnection, FormConnectionRevision
+from ..models import FormConnection
 from ..schemas import (
     DRAFT_CONTENT,
+    Deletion,
     DraftContent,
     DraftCreate,
     DraftPublish,
@@ -452,24 +454,35 @@ def delete_draft(
     version: int | None = None,
     *,
     actor: Actor,
-) -> None:
-    """Remove a draft for good (FR-010, research R7).
+    deletion_id: str | None = None,
+    deleted_by_id: str | None = None,
+) -> Deletion:
+    """Delete a draft (FR-010, research R7), restorably (spec 010, research R5).
 
-    Answers 404 if it's missing and 409 `draft_published` if it's published. The
-    editor's delete compares no version; an approved approval request passes the
-    `version` it was made for, and a draft saved since answers 409
-    `draft_changed` under the row lock, so that only the content the team member
-    saw is deleted (spec 007, research R12, FR-024). Otherwise deletes any
-    revision that a publish in flight reserved, then the row, in one commit; that
-    publish then finds no row, answers 404 and deletes its own configuration. No
-    EUDIPLO call. `actor` is who deletes it (spec 010, research R4).
+    Answers 404 if it's missing or deleted and 409 `draft_published` if it's
+    published. The editor's delete compares no version; an approved approval
+    request passes the `version` it was made for, and a draft saved since answers
+    409 `draft_changed` under the row lock, so that only the content the team
+    member saw is deleted (spec 007, research R12, FR-024). Otherwise, under the
+    row lock and in one commit, `form_connections._mark_deleted()` marks the row
+    deleted, which stays until the restore time has passed, removes any revision
+    that a publish in flight reserved, stores the draft's waiting approval
+    requests as cancelled with `draft_deleted`, and records `deleted` with
+    `actor`; that publish then finds the row deleted, answers 404 and deletes its
+    own configuration. From then on the draft is gone for every read, as when its
+    row was removed, and its URLs answer 404. No EUDIPLO call. Answers the
+    deletion: restorable with `deletion_id` and `deleted_by_id`, which the router
+    passes; without them, as an approved approval request runs it, `id` null
+    (FR-067).
     """
     form_connection = _lock_draft(db, form_connection_id, version)
-    db.execute(
-        delete(FormConnectionRevision).where(
-            FormConnectionRevision.form_connection_id == form_connection_id
-        )
+    deletion, _ = form_connections._mark_deleted(
+        db,
+        form_connection,
+        actor=actor,
+        deleted_by_id=deleted_by_id,
+        deletion_id=deletion_id,
     )
-    db.delete(form_connection)
     db.commit()
     logger.info('Draft %s deleted', form_connection_id)
+    return deletion

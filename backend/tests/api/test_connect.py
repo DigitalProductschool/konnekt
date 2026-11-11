@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import SessionLocal
 from app.main import RedactReferencesFilter, app
-from app.models import DocumentRequest, FormConnectionRevision
+from app.models import DocumentRequest, FormConnection, FormConnectionRevision
 from app.routers.connect import PULL_FAILED, TRIGGER_FAILED
 from app.schemas import PullResponse
 from app.services import document_requests, start_dates, worker
@@ -981,21 +981,79 @@ def test_a_drafts_urls_answer_unavailable_and_start_nothing(
 def test_a_deleted_drafts_urls_are_not_found(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
+    """Spec 010, FR-075, research R5: as when deleting a draft removed its row,
+    also while its row stays, marked deleted, to be restored."""
     draft_id = _create_draft(signed_in_client)
+    # A draft's branch has no row yet; its URL is checked after the connection's
+    branch_id = signed_in_client.get(f'/api/form-connections/{draft_id}').json()[
+        'data'
+    ]['branches'][0]['id']
     deleted = signed_in_client.request(
         'DELETE', f'/api/form-connections/{draft_id}/draft', json={}
     )
     assert deleted.status_code == 200, deleted.json()
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None and row.deleted_at is not None
 
     trigger_response = signed_in_client.post(requests_url(draft_id))
     pull_response = signed_in_client.get(pull_url(draft_id, 'made-up-reference'))
+    branch_response = signed_in_client.get(
+        branch_pull_url(draft_id, branch_id, 'made-up-reference')
+    )
 
     assert trigger_response.status_code == 404
     assert trigger_response.json() == FORM_CONNECTION_NOT_FOUND
-    assert pull_response.status_code == 404
-    assert pull_response.json() == REQUEST_NOT_FOUND
+    for response in (pull_response, branch_response):
+        assert response.status_code == 404
+        assert response.json() == REQUEST_NOT_FOUND
     assert _count_requests() == 0
     assert fake_eudiplo.calls == []
+
+
+@pytest.mark.parametrize('state', ['live', 'scheduled', 'deactivated'])
+def test_a_deleted_published_connections_urls_answer_unavailable(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, state: str
+) -> None:
+    """Spec 010, FR-075: in every published status, a deleted connection's
+    trigger and pull URLs answer `409 unavailable`, as before."""
+    rules = rules_input([main_branch([]), variant([], name='Taxi', origin='empty')])
+    start_date = None
+    if state == 'scheduled':
+        start_date = (start_dates.today_in_germany() + timedelta(days=30)).isoformat()
+    form_connection_id = create_form_connection(
+        signed_in_client, rules=rules, start_date=start_date
+    )
+    held_reference = None
+    if state != 'scheduled':
+        held_reference = trigger(signed_in_client, form_connection_id)['reference']
+    if state == 'deactivated':
+        response = signed_in_client.post(
+            f'/api/form-connections/{form_connection_id}/deactivate', json={}
+        )
+        assert response.status_code == 200, response.json()
+    variant_id = signed_in_client.get(
+        f'/api/form-connections/{form_connection_id}'
+    ).json()['data']['branches'][1]['id']
+    requests = _count_requests()
+    deleted = signed_in_client.request(
+        'DELETE', f'/api/form-connections/{form_connection_id}', json={}
+    )
+    assert deleted.status_code == 200, deleted.json()
+
+    reference = held_reference or 'made-up-reference'
+    for response in (
+        signed_in_client.post(requests_url(form_connection_id)),
+        signed_in_client.get(pull_url(form_connection_id, reference)),
+        signed_in_client.get(
+            branch_pull_url(form_connection_id, variant_id, reference)
+        ),
+    ):
+        assert response.status_code == 409
+        assert response.json() == UNAVAILABLE
+    assert _count_requests() == requests
+    if held_reference is not None:
+        assert stored_request(held_reference).status == 'unavailable'
 
 
 # The evaluation of the rules (spec 002, contracts/integration-api.md "evaluation")

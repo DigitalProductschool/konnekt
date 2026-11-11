@@ -1,6 +1,7 @@
 import type {
   ActivateRequest,
   ActivityPage,
+  Deletion,
   DraftCreate,
   DraftPublish,
   DraftUpdate,
@@ -10,6 +11,7 @@ import type {
   FormConnectionOrDraft,
   FormConnectionSummary,
   FormConnectionUpdate,
+  RestoredConnections,
   StartDateUpdate,
 } from '@connection-portal/api-types/form-connections';
 
@@ -89,8 +91,25 @@ export function setStartDate(id: string, startDate: string | null): Promise<Form
   });
 }
 
-export function deleteFormConnection(id: string): Promise<null> {
-  return apiFetch<null>(`/form-connections/${encodeURIComponent(id)}`, { method: 'DELETE' });
+/**
+ * Deletes a published connection; answers the deletion, which its `id` can restore until
+ * `restorable_until` (spec 010, contracts/management-api.md "Deleting")
+ */
+export function deleteFormConnection(id: string): Promise<Deletion> {
+  return apiFetch<Deletion>(`/form-connections/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/**
+ * Takes back a deletion: every connection it deleted comes back as it was, or none. Only the team
+ * member who deleted can, until the deletion's `restorable_until`; otherwise, and a second time, it
+ * answers `409 not_restorable` and changes nothing (spec 010, contracts/management-api.md
+ * "Deleting")
+ */
+export function restoreDeletion(deletionId: string): Promise<RestoredConnections> {
+  return apiFetch<RestoredConnections>(
+    `/form-connections/deletions/${encodeURIComponent(deletionId)}/restore`,
+    { method: 'POST' }
+  );
 }
 
 // Drafts (specs/005-connection-drafts/contracts/management-api.md "Endpoints")
@@ -118,6 +137,12 @@ export function publishDraft(id: string, data: DraftPublish): Promise<FormConnec
   });
 }
 
-export function deleteDraft(id: string): Promise<null> {
-  return apiFetch<null>(`/form-connections/${encodeURIComponent(id)}/draft`, { method: 'DELETE' });
+/**
+ * Deletes a draft; answers the deletion, which its `id` can restore until `restorable_until`
+ * (spec 010, contracts/management-api.md "Deleting")
+ */
+export function deleteDraft(id: string): Promise<Deletion> {
+  return apiFetch<Deletion>(`/form-connections/${encodeURIComponent(id)}/draft`, {
+    method: 'DELETE',
+  });
 }

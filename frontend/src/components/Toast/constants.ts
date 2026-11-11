@@ -1,3 +1,5 @@
+import checkFilledIcon from '../../assets/icons/check-filled-white.svg';
+import deleteIcon from '../../assets/icons/delete-white.svg';
 import type { ToastKind } from './types';
 
 /**
@@ -26,11 +28,24 @@ export const TOAST_POSITION = {
 };
 
 /**
- * The fill of each kind (Figma "Rules/Toast" type=neutral 6113:3743, type=success 6369:25428):
- * `color/layout/text/default` ink and `color/feedback/success` green, white text on both
- * (18.7:1 and 5.42:1, design-notes §1.5)
+ * The fill of each kind (Figma "Rules/Toast" type=neutral 6113:3743, type=success 6369:25428,
+ * type=danger 6718:40958): `color/layout/text/default` ink, `color/feedback/success` green and
+ * `color/feedback/danger` red, white text on each (18.7:1, 5.42:1 and 5.75:1, design-notes §1.5;
+ * spec 010 design-notes §4.2 T038)
  */
 export const TOAST_KIND_FILL: Record<ToastKind, string> = {
   neutral: 'bg-kern-layout-text-default',
   success: 'bg-kern-feedback-success',
+  danger: 'bg-kern-feedback-danger',
+};
+
+/**
+ * The 20px white icon 8px before the message (U17 6699:48002, U90 6699:48098): the filled check
+ * of the success kind, the "delete" bin of the danger kind (Figma "Icon · delete" 6718:40964);
+ * the neutral kind has none
+ */
+export const TOAST_KIND_ICON: Record<ToastKind, string | null> = {
+  neutral: null,
+  success: checkFilledIcon,
+  danger: deleteIcon,
 };

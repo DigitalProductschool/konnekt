@@ -31,6 +31,12 @@ date (`set_start_date()`) check theirs before and again under the row lock of
 scheduling a live connection cancels its open requests as deactivating does. Only
 the worker makes a scheduled connection active, on its day
 (`activate_due_connections()`), skipping the rows those changes hold locked.
+
+Deleting marks the row, a draft's too, so that "Undo" can restore it (spec 010,
+research R5): `_mark_deleted()` sets `deleted_at` with the deletion's id and the
+deleting account and keeps `updated_at`. Every read here answers a marked row as
+it answered a deleted connection before (`find_form_connection()`,
+`_lock_form_connection()`, the list, the search): it is gone.
 """
 
 import base64
@@ -39,13 +45,14 @@ import logging
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, cast
 
 from fastapi import HTTPException, status
 from sqlalchemy import ColumnElement, and_, delete, func, null, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from ..catalog import DOCUMENT_TYPES, CatalogField, get_document_type, label_of
 from ..config import settings
@@ -55,6 +62,7 @@ from ..models import FormConnection, FormConnectionRevision
 from ..schemas import (
     Branch,
     ConnectionState,
+    Deletion,
     DocumentField,
     EditorStep,
     FieldPart,
@@ -933,6 +941,43 @@ def _remove_unused_revision(db: Session, revision_id: str) -> None:
         )
 
 
+def _check_reservation(
+    db: Session,
+    form_connection_id: str,
+    revision_id: str,
+    number: int,
+    config_id: str,
+) -> None:
+    """Refuse a revision whose reservation is gone, under the last row lock.
+
+    `create_revision()` reserves revision `number` (row `revision_id`) before it
+    calls EUDIPLO. A draft deleted meanwhile loses it (`_mark_deleted`), and if
+    the draft is restored before this lock (spec 010, research R5), the row
+    passes every other check: making `number` current would leave the published
+    connection without its revision. Refused as for a deleted row, after
+    releasing the lock: 404, and the configuration `config_id` is deleted again,
+    unless a later publish has reserved `number` since, whose configuration has
+    the same id.
+    """
+    kept = db.scalar(
+        select(FormConnectionRevision.id).where(
+            FormConnectionRevision.id == revision_id
+        )
+    )
+    if kept is not None:
+        return
+    taken = db.scalar(
+        select(FormConnectionRevision.id).where(
+            FormConnectionRevision.form_connection_id == form_connection_id,
+            FormConnectionRevision.revision == number,
+        )
+    )
+    db.rollback()
+    if taken is None:
+        _delete_unsaved_config(config_id)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=NOT_FOUND)
+
+
 def _publish(
     db: Session,
     form_connection: FormConnection,
@@ -1010,10 +1055,13 @@ def create_revision(
     `guard.check()` runs under both row locks, before the revision is reserved
     (revision 1 on a draft without revisions, or 2 if a concurrent attempt still
     holds 1) and before it becomes current. A draft that is deleted meanwhile
-    answers 404, one published meanwhile 409 `draft_published` (also with
-    `replace`), and one saved meanwhile 409 `draft_changed` unless `replace`; either
-    way the configuration is deleted again, and a refusal under the last lock also
-    removes the revision. Otherwise the last commit makes the revision current, writes
+    answers 404 (its row stays, marked deleted, and the deletion removed the
+    reserved revision; spec 010, research R5), also when it was restored before
+    the last lock (`_check_reservation()`), one published meanwhile 409
+    `draft_published` (also with `replace`), and one saved meanwhile 409
+    `draft_changed` unless `replace`; either way the configuration is deleted
+    again, and a refusal under the last lock also removes the revision.
+    Otherwise the last commit makes the revision current, writes
     rule set 1, the branch rows and the counters (`rules.first_rule_set()` with the
     row's counters, from `save` or the main branch "Standard" without rules),
     applies `changes`, sets `published_at`, and clears `draft` and `draft_version`.
@@ -1079,9 +1127,12 @@ def create_revision(
         else:
             form_connection = _lock_form_connection(db, form_connection_id)
     except HTTPException:
-        # Deleted meanwhile; the worker cleans up the revision's configuration too
+        # Deleted meanwhile; the worker cleans up the revision's configuration
+        # too. A draft's deletion removed the revision reserved above
+        # (`_mark_deleted`; spec 010, R15 V9)
         _delete_unsaved_config(body['id'])
         raise
+    _check_reservation(db, form_connection_id, revision_id, number, body['id'])
     try:
         published: list[activity.Entry] = []
         if guard is None:
@@ -1444,30 +1495,102 @@ def set_start_date(
     return _current_view(db, form_connection)
 
 
+def _mark_deleted(
+    db: Session,
+    form_connection: FormConnection,
+    *,
+    actor: Actor,
+    deleted_by_id: str | None,
+    deletion_id: str | None,
+) -> tuple[Deletion, int]:
+    """Mark a locked row deleted, uncommitted, and answer the deletion.
+
+    Spec 010, research R5, data-model 3: what every deletion does, a draft's
+    (`drafts.delete_draft()`) and a published connection's
+    (`delete_form_connection()`). The caller holds the row lock and commits. The
+    row stays: `deleted_at`, the deletion's `deletion_id` and the deleting
+    account's `deleted_by_id` are set, and `updated_at` keeps its value
+    (`flag_modified` puts it into the UPDATE, which skips the column's
+    `onupdate`; R15 V1), so that a restore brings the row back as it was. The
+    open requests are cancelled as deactivating cancels them (FR-035); a revision
+    that a draft's publish in flight reserved is removed, so that the publish
+    finds the row deleted at its last lock, answers 404 and deletes its
+    configuration; the connection's waiting approval requests are stored
+    `cancelled` with `draft_deleted` or `connection_deleted`
+    (`approvals.cancel_for_deletion()`), so that a restore doesn't bring them
+    back; and `deleted` is recorded with `actor`. Nothing else changes, and
+    EUDIPLO isn't called.
+
+    `deletion_id` and `deleted_by_id` come from the router: a fresh UUID and the
+    team member who deletes. A deletion an approved approval request runs has
+    neither, answers `id` null and can't be restored (FR-067). Returns the
+    answer and the count of the cancelled open requests, for the caller's log
+    line.
+    """
+    # Here, not at the top: `approvals` imports this module
+    from .approvals import cancel_for_deletion
+
+    deleted_at = datetime.now(tz=timezone.utc)
+    form_connection.deleted_at = deleted_at
+    form_connection.deletion_id = deletion_id
+    form_connection.deleted_by_id = deleted_by_id
+    # Before anything flushes the row: its current `updated_at` goes into the
+    # UPDATE, so the column's `onupdate` doesn't move it
+    flag_modified(form_connection, 'updated_at')
+    form_connection_id = form_connection.id
+    cancelled = cancel_open_requests(db, form_connection_id)
+    if form_connection.published_at is None:
+        # A draft has no revision but one a publish in flight reserved (spec 005)
+        db.execute(
+            delete(FormConnectionRevision).where(
+                FormConnectionRevision.form_connection_id == form_connection_id
+            )
+        )
+    cancel_for_deletion(db, form_connection)
+    activity.record(db, form_connection_id, [activity.Entry(activity.DELETED)], actor)
+    if deletion_id is None:
+        return Deletion(id=None, restorable_until=None), cancelled
+    restorable_until = deleted_at + timedelta(seconds=settings.deletion_undo_seconds)
+    deletion = Deletion(id=deletion_id, restorable_until=to_iso_utc(restorable_until))
+    return deletion, cancelled
+
+
 def delete_form_connection(
     db: Session,
     form_connection_id: str,
     *,
     actor: Actor,
     expected_active: bool | None = None,
-) -> None:
-    """Delete a form connection: its URLs answer 409 for good.
+    deletion_id: str | None = None,
+    deleted_by_id: str | None = None,
+) -> Deletion:
+    """Delete a published form connection: its URLs answer 409 from now on.
 
-    The row stays, marked deleted, so that the URLs can still say "unavailable".
-    Open requests are cancelled as for deactivating, and EUDIPLO isn't called.
-    `actor` is who deletes it, recorded as `deleted` under the row lock (spec
-    010, research R4); `expected_active` as `_lock_for_status_change` says.
+    The row stays, marked deleted (`_mark_deleted()`), so that the URLs can still
+    say "unavailable", for good once the restore time has passed (spec 010,
+    research R5). Open requests are cancelled as for deactivating, and the
+    connection's waiting approval requests stored cancelled; EUDIPLO isn't called.
+    `actor` is who deletes it, recorded as `deleted` under the row lock (spec 010,
+    research R4); `expected_active` as `_lock_for_status_change` says. Answers
+    the deletion: with `deletion_id` and `deleted_by_id`, which the router passes,
+    restorable until DELETION_UNDO_SECONDS from now; without them, as an approved
+    approval request runs it, `id` null (FR-067).
     """
     form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
-    form_connection.deleted_at = datetime.now(tz=timezone.utc)
-    cancelled = cancel_open_requests(db, form_connection_id)
-    activity.record(db, form_connection_id, [activity.Entry(activity.DELETED)], actor)
+    deletion, cancelled = _mark_deleted(
+        db,
+        form_connection,
+        actor=actor,
+        deleted_by_id=deleted_by_id,
+        deletion_id=deletion_id,
+    )
     db.commit()
     logger.info(
         'Form connection %s deleted; %s open requests cancelled',
         form_connection_id,
         cancelled,
     )
+    return deletion
 
 
 # The scheduled starts, made by the worker (spec 010, research R2; FR-005)
@@ -1566,18 +1689,52 @@ def resync_config(db: Session, form_connection_id: str) -> bool:
     return True
 
 
-def delete_unused_config(db: Session, revision_id: str) -> None:
+def _config_unused(
+    form_connection: FormConnection,
+    revision: FormConnectionRevision,
+    deleted_before: datetime,
+) -> bool:
+    """Whether a revision's configuration goes: replaced, or its deletion final."""
+    current = form_connection.current_revision
+    if current is not None and revision.revision < current:
+        return True
+    deleted_at = form_connection.deleted_at
+    return deleted_at is not None and deleted_at <= deleted_before
+
+
+def delete_unused_config(
+    db: Session, revision_id: str, *, deleted_before: datetime
+) -> None:
     """Delete the EUDIPLO configuration of a revision that no request needs any more.
 
-    The worker decides when (research R7, step 7). A 404 counts as success. The read
-    transaction ends before EUDIPLO is called. Other EUDIPLO errors reach the caller,
-    and the configuration stays recorded as not deleted, so the worker tries again.
+    The worker decides when (research R7, step 7): once a later revision is
+    current, or once the connection was deleted at or before `deleted_before`,
+    the end of the restore time (`deletions.restore_cutoff()`; spec 010, research
+    R5). Its choice is checked again under the connection's row lock, which a
+    restore takes too, before EUDIPLO is called (R15 V10): a connection restored
+    since keeps its configuration, and a restore that comes after this check
+    finds the restore time over and is refused. The lock is released before
+    EUDIPLO is called. A 404 counts as success. Other EUDIPLO errors reach the
+    caller, and the configuration stays recorded as not deleted, so the worker
+    tries again.
     """
     revision = db.get(FormConnectionRevision, revision_id)
     if revision is None or revision.eudiplo_config_deleted_at is not None:
         return
+    form_connection = db.scalars(
+        select(FormConnection)
+        .where(FormConnection.id == revision.form_connection_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    unused = form_connection is not None and _config_unused(
+        form_connection, revision, deleted_before
+    )
     config_id = revision.eudiplo_config_id
+    # Releases the lock: no transaction is held while EUDIPLO answers
     db.rollback()
+    if not unused:
+        return
     get_eudiplo_client().delete_config(config_id)
     db.execute(
         update(FormConnectionRevision)

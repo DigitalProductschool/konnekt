@@ -416,11 +416,15 @@ def _usable_form_connection(
     it is deactivated, after it was deleted, and while it is a draft (FR-006; spec
     005, research R8). A draft answers exactly as a deactivated connection does, so
     a caller can't tell them apart, and the check comes before anything reads a
-    revision: a draft has none. On a branch's pull URL it is step 2 of spec 002's
-    "Order of the checks", before the branch is looked at.
+    revision: a draft has none. A deleted draft answers 404, as when deleting it
+    removed its row: its row now stays, marked deleted, until the restore time has
+    passed (spec 010, research R5, FR-075). On a branch's pull URL it is step 2 of
+    spec 002's "Order of the checks", before the branch is looked at.
     """
     form_connection = db.get(FormConnection, form_connection_id)
-    if form_connection is None:
+    if form_connection is None or (
+        form_connection.published_at is None and form_connection.deleted_at is not None
+    ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=not_found)
     if (
         form_connection.deleted_at is not None

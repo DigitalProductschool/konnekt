@@ -1345,8 +1345,9 @@ def _ids(model: type[Any]) -> set[str]:
 
 
 def test_worker_steps_are_registered() -> None:
-    # The approval requests' step follows them (test_approval_requests.py)
-    assert worker.STEPS[-6:-1] == (
+    # The approval requests' step follows them (test_approval_requests.py), then
+    # the deletions made final (spec 010, test_deletions.py)
+    assert worker.STEPS[-7:-2] == (
         worker.delete_expired_oauth_codes,
         worker.delete_expired_agent_tokens,
         worker.delete_idle_agent_connections,

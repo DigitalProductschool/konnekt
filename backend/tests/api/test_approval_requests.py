@@ -547,11 +547,17 @@ def test_a_draft_that_moved_on_cancels_the_request(
             'error': 'approval_cancelled',
             'message': CANCELLED_TEXTS[reason],
         }
-    # Nothing is done, and the stored status stays waiting
+    # Nothing is done. The stored status stays waiting, but a deletion stores the
+    # cancellation, so that a restore doesn't bring the request back (spec 010,
+    # FR-035)
     assert len(fake_eudiplo.calls) == calls
     stored = _stored(request['id'])
     assert stored is not None
-    assert stored.status == 'waiting'
+    if reason == 'draft_deleted':
+        assert (stored.status, stored.cancel_reason) == ('cancelled', reason)
+        assert stored.decided_at is not None
+    else:
+        assert (stored.status, stored.cancel_reason) == ('waiting', None)
 
 
 def test_an_expired_request_does_nothing(
@@ -759,6 +765,14 @@ def test_approving_a_deletion_deletes_the_draft(
     assert _preview(agent, request['id'])['request']['outcome'] == 'done'
     read = _preview(signed_in_client, publishing['id'])['request']
     assert (read['status'], read['cancel_reason']) == ('cancelled', 'draft_deleted')
+    # The draft's row stays marked deleted, without a deletion id or a deleting
+    # account: nothing can restore an approved deletion (spec 010, FR-067)
+    row = _stored_connection(draft_id)
+    assert row.deleted_at is not None
+    assert (row.deletion_id, row.deleted_by_id) == (None, None)
+    # Its page reads the draft as gone, as when its row was removed
+    page = _preview(signed_in_client, request['id'])
+    assert (page['request']['connection_name'], page['draft']) == ('', None)
 
 
 def test_declining_changes_nothing(
@@ -1060,7 +1074,11 @@ def test_the_worker_deletes_requests_that_ended_a_day_ago(
 
 
 def test_the_worker_step_is_registered() -> None:
-    assert worker.STEPS[-1] is worker.delete_old_approval_requests
+    # Before the deletions made final, the last step (spec 010, test_deletions.py)
+    assert worker.STEPS[-2:] == (
+        worker.delete_old_approval_requests,
+        worker.finish_deletions,
+    )
 
 
 # Deactivating, reactivating and deleting a published connection (user story 7)
@@ -1446,13 +1464,19 @@ def test_a_connection_that_moved_on_cancels_the_request(
             'error': 'approval_cancelled',
             'message': CONNECTION_TEXTS[text],
         }
-    # Nothing is done, and the stored status stays waiting
+    # Nothing is done. The stored status stays waiting, but a deletion stores the
+    # cancellation, so that a restore doesn't bring the request back (spec 010,
+    # FR-035)
     after = _stored_connection(form_connection_id)
     assert (after.is_active, after.deleted_at) == (before.is_active, before.deleted_at)
     assert len(fake_eudiplo.calls) == calls
     stored = _stored(request['id'])
     assert stored is not None
-    assert stored.status == 'waiting'
+    if reason == 'connection_deleted':
+        assert (stored.status, stored.cancel_reason) == ('cancelled', reason)
+        assert stored.decided_at is not None
+    else:
+        assert (stored.status, stored.cancel_reason) == ('waiting', None)
 
 
 def test_a_change_of_the_connections_content_doesnt_cancel_a_status_request(
@@ -1607,9 +1631,12 @@ def test_approving_deletes_the_connection(
         None,
         None,
     )
-    deleted_at = _stored_connection(form_connection_id).deleted_at
+    deleted = _stored_connection(form_connection_id)
+    deleted_at = deleted.deleted_at
     assert deleted_at is not None
     assert before <= deleted_at <= now()
+    # Nothing can restore an approved deletion (spec 010, FR-067)
+    assert (deleted.deletion_id, deleted.deleted_by_id) == (None, None)
     response = signed_in_client.get(f'{CONNECTIONS}/{form_connection_id}')
     assert response.status_code == 404
     assert response.json() == CONNECTION_NOT_FOUND
@@ -1744,3 +1771,220 @@ def test_a_status_changed_while_the_approval_runs_isnt_changed_again(
     read = _preview(signed_in_client, request['id'])['request']
     reason = 'connection_deleted' if text == 'deleted' else 'connection_changed'
     assert (read['status'], read['cancel_reason']) == ('cancelled', reason)
+
+
+# A deletion stores the cancellation (spec 010, research R5, data-model 3 and 7;
+# FR-035, FR-067)
+
+
+def _restore(client: TestClient, form_connection_id: str) -> None:
+    """Take the connection's deletion back, as "Undo" does (spec 010, T041)."""
+    with SessionLocal() as db:
+        deletion_id = db.scalar(
+            select(FormConnection.deletion_id).where(
+                FormConnection.id == form_connection_id
+            )
+        )
+    assert deletion_id is not None
+    response = client.post(f'{CONNECTIONS}/deletions/{deletion_id}/restore', json={})
+    assert response.status_code == 200, response.json()
+
+
+def _delete_published(client: TestClient, form_connection_id: str) -> None:
+    _in_the_portal(client, form_connection_id, 'delete')
+
+
+@pytest.mark.parametrize(
+    ('setup', 'level', 'actions', 'delete', 'reason'),
+    [
+        pytest.param(
+            _draft,
+            'drafts',
+            ('publish', 'delete_draft'),
+            _delete,
+            'draft_deleted',
+            id='draft',
+        ),
+        pytest.param(
+            _live,
+            'manage',
+            ('deactivate', 'delete'),
+            _delete_published,
+            'connection_deleted',
+            id='published',
+        ),
+    ],
+)
+def test_a_deletion_stores_the_cancellation_and_a_restore_keeps_it(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    setup: Callable[[TestClient], str],
+    level: AccessLevel,
+    actions: tuple[str, ...],
+    delete: Callable[[TestClient, str], None],
+    reason: str,
+) -> None:
+    """FR-035: "Undo" doesn't bring back the approval requests that were waiting."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), level)
+    requests = [_ask(agent, form_connection_id, action) for action in actions]
+    before = now()
+
+    delete(signed_in_client, form_connection_id)
+
+    for request in requests:
+        stored = _stored(request['id'])
+        assert stored is not None
+        assert (stored.status, stored.cancel_reason) == ('cancelled', reason)
+        assert stored.decided_at is not None
+        assert before <= stored.decided_at <= now()
+
+    _restore(signed_in_client, form_connection_id)
+
+    assert _connection(signed_in_client, form_connection_id)['id'] == (
+        form_connection_id
+    )
+    text = CANCELLED_TEXTS.get(reason, CONNECTION_TEXTS['deleted'])
+    for request in requests:
+        read = _preview(signed_in_client, request['id'])['request']
+        assert (read['status'], read['outcome'], read['cancel_reason']) == (
+            'cancelled',
+            'cancelled',
+            reason,
+        )
+        for call in (_approve, _decline):
+            response = call(signed_in_client, request['id'])
+            assert response.status_code == 409
+            assert response.json() == {'error': 'approval_cancelled', 'message': text}
+
+
+def test_a_deletion_leaves_requests_that_read_otherwise(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Only the requests that read as waiting are cancelled: one past its expiry
+    still reads as expired, one whose access ended as access_ended, and a draft's
+    request on the connection the draft became as draft_published."""
+    user_id = _user_id()
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(user_id, 'manage')
+    expired = _ask(agent, draft_id, 'delete_draft')
+    _update(expired['id'], expires_at=now() - timedelta(seconds=1))
+    ended = _ask(agent, draft_id)
+    _update(ended['id'], authorization_id=None)
+    _delete(signed_in_client, draft_id)
+
+    connection_id = _draft(signed_in_client)
+    published = _ask(agent, connection_id)
+    _publish_in_the_editor(signed_in_client, connection_id)
+    _delete_published(signed_in_client, connection_id)
+
+    for request, status, reason in [
+        (expired, 'expired', None),
+        (ended, 'cancelled', 'access_ended'),
+        (published, 'cancelled', 'draft_published'),
+    ]:
+        read = _preview(signed_in_client, request['id'])['request']
+        assert (read['status'], read['cancel_reason']) == (status, reason)
+        stored = _stored(request['id'])
+        assert stored is not None
+        assert (stored.status, stored.cancel_reason, stored.decided_at) == (
+            'waiting',
+            None,
+            None,
+        )
+
+
+def test_a_draft_marked_deleted_reads_as_deleted(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """`_stale_reason()` and the page read a deleted draft's row, which now stays,
+    as they read a removed row: `draft_deleted`, no draft and no name."""
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(_user_id())
+    request = _ask(agent, draft_id)
+    # Marked without the stored cancellation, so that the computed reason shows
+    with SessionLocal() as db:
+        db.execute(
+            update(FormConnection)
+            .where(FormConnection.id == draft_id)
+            .values(deleted_at=now())
+        )
+        db.commit()
+        row = db.get(FormConnection, draft_id)
+        stored = db.get(ApprovalRequest, request['id'])
+        assert row is not None and stored is not None
+        assert approvals._stale_reason(stored, row) == 'draft_deleted'
+
+    preview = _preview(signed_in_client, request['id'])
+
+    assert (preview['request']['status'], preview['request']['cancel_reason']) == (
+        'cancelled',
+        'draft_deleted',
+    )
+    assert preview['request']['connection_name'] == ''
+    assert (preview['draft'], preview['connection'], preview['urls']) == (
+        None,
+        None,
+        None,
+    )
+    assert _preview(agent, request['id']) == preview
+    for call in (_approve, _decline):
+        response = call(signed_in_client, request['id'])
+        assert response.status_code == 409
+        assert response.json() == {
+            'error': 'approval_cancelled',
+            'message': CANCELLED_TEXTS['draft_deleted'],
+        }
+    assert fake_eudiplo.calls == []
+
+
+@pytest.mark.parametrize('action', ['publish', 'delete_draft'])
+def test_a_deleted_draft_cant_be_asked_for(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, action: str
+) -> None:
+    draft_id = _draft(signed_in_client)
+    _delete(signed_in_client, draft_id)
+    _, agent = _agent(_user_id())
+
+    response = agent.post(BASE, json={'form_connection_id': draft_id, 'action': action})
+
+    assert response.status_code == 404
+    assert response.json() == CONNECTION_NOT_FOUND
+    assert _count() == 0
+
+
+def test_a_draft_deleted_while_its_publish_is_approved_isnt_published(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deletion between the approval's check and the publish: the publish finds
+    the row marked deleted, publishes nothing, and the page says why."""
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(_user_id())
+    request = _ask(agent, draft_id)
+    publish_stored_draft = drafts.publish_stored_draft
+
+    def deleted_meanwhile(
+        db: Any, form_connection_id: str, version: int, *, actor: Actor
+    ) -> Any:
+        with SessionLocal() as other:
+            drafts.delete_draft(
+                other, form_connection_id, actor=Actor(name=TEST_USERNAME)
+            )
+        return publish_stored_draft(db, form_connection_id, version, actor=actor)
+
+    monkeypatch.setattr(drafts, 'publish_stored_draft', deleted_meanwhile)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_cancelled',
+        'message': CANCELLED_TEXTS['draft_deleted'],
+    }
+    row = _stored_connection(draft_id)
+    assert (row.deleted_at is not None, row.published_at) == (True, None)
+    assert fake_eudiplo.configs == {}
+    read = _preview(signed_in_client, request['id'])['request']
+    assert (read['status'], read['cancel_reason']) == ('cancelled', 'draft_deleted')

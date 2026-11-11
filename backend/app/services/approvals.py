@@ -8,14 +8,17 @@ remembers what it was made for: the draft's version, or the connection's
 `is_active` (`was_active`). The team member it was made for opens its page
 (`get_request`) and approves or declines it there, in their browser session.
 Expiry, staleness and an ended access are computed at every read and again under
-the row locks at approval (section 5.2), so nothing that deletes or changes a
-connection or an authorization needs to know about approvals. Approving runs the
-existing services with the locks released, so that no transaction is held while
-EUDIPLO answers, and each service compares what the request was made for again
-under its own row lock; a failure keeps the request waiting, with its error id, for
-"Try again" (FR-027). `cancel_for` is what the user page runs when it lowers or
-revokes an agent's access (research R7). Nothing here logs more than ids and
-counts.
+the row locks at approval (section 5.2), so nothing that changes a connection or
+an authorization needs to know about approvals. Deleting is the exception (spec
+010, research R5): a deletion can be restored, so it stores `cancelled` on the
+connection's waiting requests (`cancel_for_deletion`), which a restore leaves
+cancelled; a draft marked deleted reads as gone, as when its row was removed
+(`_as_read`). Approving runs the existing services with the locks released, so
+that no transaction is held while EUDIPLO answers, and each service compares what
+the request was made for again under its own row lock; a failure keeps the request
+waiting, with its error id, for "Try again" (FR-027). `cancel_for` is what the user
+page runs when it lowers or revokes an agent's access (research R7). Nothing here
+logs more than ids and counts.
 """
 
 import logging
@@ -75,9 +78,15 @@ ACTION_LEVELS: dict[ApprovalAction, AccessLevel] = {
 }
 # The actions on a draft, whose requests remember the draft's version
 DRAFT_ACTIONS: frozenset[str] = frozenset({'publish', 'delete_draft'})
+# The actions on a published connection, whose requests remember its `is_active`
+STATUS_ACTIONS: frozenset[str] = frozenset(ACTION_LEVELS) - DRAFT_ACTIONS
 
-# The reasons stored with a cancellation; the others are computed at every read
+# The reasons stored with a cancellation by the user page; the deletion stores
+# its own two (`DeletionReason`), and the others are computed at every read
 CancelReason = Literal['revoked', 'access_changed']
+# The reasons a deletion stores (spec 010, research R5, data-model 7), which
+# `_stale_reason()` would compute for a deleted row
+DeletionReason = Literal['connection_deleted', 'draft_deleted']
 
 NOT_FOUND = {
     'error': 'Not found',
@@ -268,6 +277,40 @@ def cancel_for(
     return len(cancelled)
 
 
+def cancel_for_deletion(db: Session, form_connection: FormConnection) -> int:
+    """Store the cancellation of a deleted connection's waiting requests; count them.
+
+    Spec 010, research R5, data-model 3 and 7 (FR-035): the deletion runs this
+    under the connection's row lock, in its own transaction, so that a restore
+    doesn't bring the requests back. A draft's requests (`publish`,
+    `delete_draft`) become `cancelled` with `draft_deleted`, a published
+    connection's (`deactivate`, `reactivate`, `delete`) with
+    `connection_deleted`, each with `decided_at`: the reason `_stale_reason()`
+    computes for the deleted row, so each reads as it read after a deletion
+    before. A request that reads otherwise already is left as it is: past its
+    expiry (`expired`), without its authorization (`access_ended`), or a draft's
+    request on the connection the draft became (`draft_published`). The caller
+    commits, together with the deletion.
+    """
+    draft = form_connection.published_at is None
+    reason: DeletionReason = 'draft_deleted' if draft else 'connection_deleted'
+    now = _now()
+    cancelled = db.scalars(
+        update(ApprovalRequest)
+        .where(
+            ApprovalRequest.form_connection_id == form_connection.id,
+            ApprovalRequest.status == 'waiting',
+            ApprovalRequest.expires_at > now,
+            ApprovalRequest.authorization_id.is_not(None),
+            ApprovalRequest.action.in_(DRAFT_ACTIONS if draft else STATUS_ACTIONS),
+        )
+        .values(status='cancelled', cancel_reason=reason, decided_at=now)
+        .returning(ApprovalRequest.id)
+        .execution_options(synchronize_session=False)
+    ).all()
+    return len(cancelled)
+
+
 # The status a request reads as (data-model.md section 5.2)
 
 
@@ -284,18 +327,22 @@ def _stale_reason(
 ) -> str | None:
     """Why a waiting request no longer applies to its connection, or None.
 
-    For `publish` and `delete_draft`: the row is gone (`draft_deleted`), published
-    (`draft_published`) or at another draft version (`draft_changed`). For
-    `deactivate`, `reactivate` and `delete`: the connection is deleted
-    (`connection_deleted`), or its `is_active` is no longer the request's
-    `was_active` (`connection_changed`). A change of a published connection's
-    content (a new revision or rule set) doesn't matter (spec, edge cases).
+    For `publish` and `delete_draft`: the row is gone or marked deleted
+    (`draft_deleted`; spec 010, research R5: a deleted draft's row stays until the
+    restore time has passed), published (`draft_published`) or at another draft
+    version (`draft_changed`). For `deactivate`, `reactivate` and `delete`: the
+    connection is deleted (`connection_deleted`), or its `is_active` is no longer
+    the request's `was_active` (`connection_changed`). A change of a published
+    connection's content (a new revision or rule set) doesn't matter (spec, edge
+    cases).
     """
     if request.action in DRAFT_ACTIONS:
         if form_connection is None:
             return 'draft_deleted'
         if form_connection.published_at is not None:
             return 'draft_published'
+        if form_connection.deleted_at is not None:
+            return 'draft_deleted'
         if (
             request.draft_version is None
             or form_connection.draft_version != request.draft_version
@@ -504,14 +551,41 @@ def _lock_request(db: Session, request_id: str) -> ApprovalRequest | None:
     ).one_or_none()
 
 
+def _as_read(form_connection: FormConnection | None) -> FormConnection | None:
+    """A connection's row as the requests read it: None for a deleted draft.
+
+    A draft's row now stays marked deleted until the restore time has passed
+    (spec 010, research R5); its requests and their page read it as gone, as when
+    deleting a draft removed its row: no draft to show and no name. A deleted
+    published connection's row is read as it is, as before.
+    """
+    if (
+        form_connection is not None
+        and form_connection.published_at is None
+        and form_connection.deleted_at is not None
+    ):
+        return None
+    return form_connection
+
+
+def _read_connection(db: Session, form_connection_id: str) -> FormConnection | None:
+    """A connection's row as the requests read it (`_as_read`), without a lock."""
+    return _as_read(db.get(FormConnection, form_connection_id))
+
+
 def _lock_connection(db: Session, form_connection_id: str) -> FormConnection | None:
-    """Lock a connection's row and read it again; None once a draft is deleted."""
-    return db.scalars(
-        select(FormConnection)
-        .where(FormConnection.id == form_connection_id)
-        .with_for_update()
-        .execution_options(populate_existing=True)
-    ).one_or_none()
+    """Lock a connection's row and read it again; None once a draft is deleted.
+
+    A deleted draft's row stays locked, and reads as None (`_as_read`).
+    """
+    return _as_read(
+        db.scalars(
+            select(FormConnection)
+            .where(FormConnection.id == form_connection_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        ).one_or_none()
+    )
 
 
 def _lock_both(
@@ -710,7 +784,7 @@ def get_request(db: Session, principal: Principal, request_id: str) -> ApprovalP
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=NOT_YOURS)
     elif request.authorization_id != authorization.id:
         raise _not_found()
-    form_connection = db.get(FormConnection, request.form_connection_id)
+    form_connection = _read_connection(db, request.form_connection_id)
     return _preview(
         db,
         request,
@@ -790,7 +864,7 @@ def _race_refusal(
     request = db.get(ApprovalRequest, request_id)
     if request is None:
         return _not_found()
-    form_connection = db.get(FormConnection, form_connection_id)
+    form_connection = _read_connection(db, form_connection_id)
     state = state_of(request, form_connection, _now())
     if state.status == 'waiting':
         state = RequestState('cancelled', _race_reason(request.action, refusal))
@@ -809,6 +883,8 @@ def _service_call(
     or `delete_form_connection()` with the request's `was_active` as
     `expected_active` (409 `status_changed` if it moved). Each with `actor`, the
     team member who approves with the agent that asked (spec 010, research R4).
+    The deletions get no deletion id and no deleting account: they answer
+    `Deletion` with `id` null, and nothing can restore them (spec 010, FR-067).
     None when the request lacks its snapshot, which a waiting request never does:
     it reads as stale.
     """
@@ -909,7 +985,8 @@ def approve(
         db.rollback()
         raise _not_found()
     # The action ran on this approval, even if the agent's access was revoked
-    # or a newer request made meanwhile
+    # or a newer request made meanwhile, and an approved deletion stored
+    # `cancelled` on this request too (`cancel_for_deletion`)
     done.status = 'done'
     done.cancel_reason = None
     done.decided_at = now
@@ -918,7 +995,7 @@ def approve(
     return _preview(
         db,
         done,
-        db.get(FormConnection, form_connection_id),
+        _read_connection(db, form_connection_id),
         mine=True,
         now=now,
         connection_name=connection_name,

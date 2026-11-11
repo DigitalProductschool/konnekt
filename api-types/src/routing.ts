@@ -35,6 +35,16 @@ export interface EditLocationState {
 export interface OverviewLocationState {
   /** The name of the draft "Save and exit" just stored: the overview confirms it (W1) */
   draftSaved?: string;
-  /** The name of the connection or draft the details just deleted: the overview says so */
-  deleted?: string;
+  /**
+   * The deletion the details just made: the overview's toast names it and offers "Undo" with its
+   * id (spec 010, FR-033; S4 "After a deletion"); `names` holds the deleted connection's or draft's
+   * name, `deletionId` the answer's `Deletion.id` (null: nothing can restore it, no "Undo")
+   */
+  deleted?: OverviewDeletion;
+}
+
+/** A deletion the overview's toast reports (spec 010, FR-033) */
+export interface OverviewDeletion {
+  names: string[];
+  deletionId: string | null;
 }

@@ -447,6 +447,30 @@ class FormConnection(BaseModel):
     last_activity: ActivityEntry | None
 
 
+class Deletion(BaseModel):
+    """What every delete answers: the deletion, which "Undo" can restore.
+
+    Spec 010, research R5, contracts/management-api.md "Deleting". `id` is the
+    deletion's, shared by the rows deleted together; null when nothing can
+    restore it, as for a deletion an approved approval request ran (FR-067).
+    """
+
+    id: str | None
+    # When the restore time (DELETION_UNDO_SECONDS) ends; null with `id`
+    restorable_until: str | None
+
+
+class RestoredConnections(BaseModel):
+    """What a restore answers: every connection of the deletion, back as it was.
+
+    Spec 010, research R5, contracts/management-api.md "Deleting". In the
+    overview's order, most recently updated first, so that the overview puts them
+    back without a reload (FR-034).
+    """
+
+    items: list[FormConnectionSummary]
+
+
 class FormConnectionCreate(BaseModel):
     """A new form connection. Without rules, it gets a main branch "Standard".
 

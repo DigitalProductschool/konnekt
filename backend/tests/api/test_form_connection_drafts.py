@@ -33,11 +33,12 @@ from app.models import (
     FormConnectionBranch,
     FormConnectionRevision,
     FormConnectionRuleSet,
+    UserAccount,
 )
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import DraftPublish, DraftUpdate
 from app.schemas import FormConnection as FormConnectionView
-from app.services import drafts, form_connections
+from app.services import deletions, drafts, form_connections
 from app.services.activity import Actor
 from app.services.dcql import config_hash
 from tests.conftest import TEST_USERNAME
@@ -988,9 +989,11 @@ def test_publishing_an_unknown_draft_answers_404(
 # Delete
 
 
-def test_deleting_a_draft_removes_it_for_good(
+def test_deleting_a_draft_marks_it_deleted_and_removes_it_from_every_read(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
+    """FR-010; spec 010, research R5: the row stays, marked deleted, until the
+    restore time has passed, and the draft is gone for every read at once."""
     published_id = create_form_connection(signed_in_client)
     other_draft_id = create_draft(signed_in_client, name='Anderer Entwurf')
     draft_id = create_draft(signed_in_client)
@@ -1016,8 +1019,15 @@ def test_deleting_a_draft_removes_it_for_good(
     response = signed_in_client.request('DELETE', f'{BASE}/{draft_id}/draft', json={})
 
     assert response.status_code == 200
-    assert response.json() == {'data': None, 'message': 'Draft deleted'}
-    assert stored(draft_id) is None
+    assert response.json()['message'] == 'Draft deleted'
+    deletion = response.json()['data']
+    assert is_uuid(deletion['id'])
+    row = stored(draft_id)
+    assert row is not None
+    assert (row.deleted_at is not None, row.deletion_id) == (True, deletion['id'])
+    # Still a draft, with its content, for a restore
+    assert (row.published_at, row.draft_version) == (None, 1)
+    # The revision the publish in flight reserved is gone
     assert rows(draft_id) == (0, 0, 0)
     assert len(fake_eudiplo.calls) == calls
     response = signed_in_client.get(f'{BASE}/{draft_id}')
@@ -1469,7 +1479,9 @@ def test_a_draft_deleted_during_its_publish_is_not_published(
     fake_eudiplo: FakeEudiplo,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """R7: the publish finds no row at its last lock, answers 404 and cleans up."""
+    """R7; spec 010, R15 V9: the publish finds the row marked deleted at its last
+    lock, answers 404 and cleans up, as it did when the deletion removed the row:
+    its configuration is deleted, and the revision it reserved is gone."""
     draft_id = create_draft(signed_in_client)
     create_config = fake_eudiplo._create_config
     created_configs: list[str] = []
@@ -1502,14 +1514,155 @@ def test_a_draft_deleted_during_its_publish_is_not_published(
     assert deletions == [None]
     assert response.status_code == 404
     assert response.json() == NOT_FOUND
-    # The row and the revision the publish reserved are gone
-    assert stored(draft_id) is None
+    # The row stays marked deleted, still the draft it was; the revision the
+    # publish reserved is gone
+    row = stored(draft_id)
+    assert row is not None
+    assert row.deleted_at is not None
+    assert (row.published_at, row.current_revision, row.draft_version) == (
+        None,
+        None,
+        1,
+    )
     assert rows(draft_id) == (0, 0, 0)
     # The configuration the publish created is deleted again
     assert created_configs == [f'fc-{draft_id}-r1']
     assert fake_eudiplo.configs == {}
     assert deleted_configs(fake_eudiplo) == created_configs
     assert signed_in_client.get(f'{BASE}/{draft_id}').status_code == 404
+
+
+def _delete_and_restore(draft_id: str) -> None:
+    """Delete the draft as the editor does and take the deletion back ("Undo")."""
+    with SessionLocal() as db:
+        user_id = db.scalar(
+            select(UserAccount.id).where(UserAccount.username == TEST_USERNAME)
+        )
+        assert user_id is not None
+        deletion = drafts.delete_draft(
+            db,
+            draft_id,
+            actor=Actor(name=TEST_USERNAME),
+            deletion_id=str(uuid.uuid4()),
+            deleted_by_id=user_id,
+        )
+        assert deletion.id is not None
+        deletions.restore_deletion(
+            db, deletion.id, account_id=user_id, actor=Actor(name=TEST_USERNAME)
+        )
+
+
+def test_a_draft_deleted_and_restored_during_its_publish_is_not_published(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Spec 010, R5 (T040's hazard): the deletion removed the revision the publish
+    reserved, and the restore brought the row back before the publish's last lock,
+    where every other check passes. The publish answers 404 as for a deleted row
+    and deletes its configuration; the restored draft is the draft it was, with no
+    revision, and publishes normally afterwards. Without the check the row would be
+    published with `current_revision` 1 and no revision 1."""
+    draft_id = create_draft(signed_in_client)
+    create_config = fake_eudiplo._create_config
+    created_configs: list[str] = []
+    interleaved: list[object] = []
+
+    def create_config_then_delete_and_restore(request: Request) -> Response:
+        response = create_config(request)
+        created_configs.append(json.loads(request.content)['id'])
+        if len(created_configs) == 1:
+            # While EUDIPLO answers, the draft is deleted and "Undo" restores it.
+            # In a thread of its own: a lock the publish held would fail the
+            # test, not hang it
+            interleaved.extend(run_in_threads(lambda: _delete_and_restore(draft_id)))
+        return response
+
+    monkeypatch.setattr(
+        fake_eudiplo, '_create_config', create_config_then_delete_and_restore
+    )
+
+    response = publish(signed_in_client, draft_id, 1)
+
+    assert interleaved == [None]
+    assert response.status_code == 404
+    assert response.json() == NOT_FOUND
+    row = stored(draft_id)
+    assert row is not None
+    assert (row.deleted_at, row.deletion_id, row.deleted_by_id) == (None, None, None)
+    assert (row.published_at, row.current_revision, row.draft_version) == (
+        None,
+        None,
+        1,
+    )
+    assert rows(draft_id) == (0, 0, 0)
+    # The configuration the publish created is deleted again
+    assert created_configs == [f'fc-{draft_id}-r1']
+    assert fake_eudiplo.configs == {}
+    assert deleted_configs(fake_eudiplo) == created_configs
+    assert get(signed_in_client, draft_id)['status'] == 'draft'
+
+    # The restored draft publishes as any draft, with revision 1
+    published = publish(signed_in_client, draft_id, 1)
+
+    assert published.status_code == 200, published.json()
+    assert rows(draft_id) == (1, 1, 1)
+    assert set(fake_eudiplo.configs) == {f'fc-{draft_id}-r1'}
+    trigger(signed_in_client, draft_id)
+
+
+def test_a_publish_after_the_restore_keeps_the_configuration_both_created(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Spec 010, R5: after the deletion and the restore, a second publish reserves
+    revision 1 again, the number the first one lost, and creates the configuration
+    of the same id. The first publish then answers 404 and leaves that
+    configuration to the second, which published the draft with it."""
+    draft_id = create_draft(signed_in_client)
+    create_config = fake_eudiplo._create_config
+    created_configs: list[str] = []
+    interleaved: list[object] = []
+    data = DraftPublish.model_validate(publish_body(1))
+
+    def second_publish() -> FormConnectionView:
+        with SessionLocal() as db:
+            return drafts.publish_draft(
+                db, draft_id, data, actor=Actor(name=TEST_USERNAME)
+            )
+
+    def create_config_then_publish_again(request: Request) -> Response:
+        response = create_config(request)
+        created_configs.append(json.loads(request.content)['id'])
+        if len(created_configs) == 1:
+            # While EUDIPLO answers the first publish: delete, "Undo", and a
+            # second publish that goes through
+            interleaved.extend(run_in_threads(lambda: _delete_and_restore(draft_id)))
+            interleaved.extend(run_in_threads(second_publish))
+        return response
+
+    monkeypatch.setattr(
+        fake_eudiplo, '_create_config', create_config_then_publish_again
+    )
+
+    response = publish(signed_in_client, draft_id, 1)
+
+    assert response.status_code == 404
+    assert response.json() == NOT_FOUND
+    restored, second = interleaved
+    assert restored is None
+    assert isinstance(second, FormConnectionView)
+    assert (second.id, second.state) == (draft_id, 'live')
+    # Both created the same configuration; the second one's stays
+    assert created_configs == [f'fc-{draft_id}-r1'] * 2
+    assert deleted_configs(fake_eudiplo) == []
+    row = stored(draft_id)
+    assert row is not None
+    assert (row.published_at is not None, row.current_revision) == (True, 1)
+    assert rows(draft_id) == (1, 1, 1)
+    assert set(fake_eudiplo.configs) == {f'fc-{draft_id}-r1'}
+    trigger(signed_in_client, draft_id)
 
 
 # Conflicts of two team members (T046, research R6, SC-006)
@@ -1733,7 +1886,11 @@ def test_a_draft_deleted_since_answers_404(
 
     assert response.status_code == 404
     assert response.json() == NOT_FOUND
-    assert stored(draft_id) is None
+    # The row stays marked deleted (spec 010, research R5), unchanged
+    row = stored(draft_id)
+    assert row is not None
+    assert row.deleted_at is not None
+    assert (row.published_at, row.draft_version) == (None, 1)
     assert fake_eudiplo.calls == []
 
 

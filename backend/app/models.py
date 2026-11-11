@@ -151,10 +151,20 @@ class FormConnection(Base):
     next_group_number: Mapped[int] = mapped_column(
         Integer, default=1, server_default=text('1')
     )
-    # Set on deletion of a published connection; the row stays so its URLs keep
-    # answering "unavailable". A draft is deleted by removing its row (spec 005, R7)
+    # Set on deletion, of a draft too (spec 010, research R5): every read treats
+    # the row as gone. A published connection's row stays for good, so that its
+    # URLs keep answering "unavailable"; a draft's stays until the restore time has
+    # passed, and its URLs answer 404 as an unknown connection's
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
+    )
+    # Spec 010, data-model.md section 3 (research R5). The deletion's id, one UUID
+    # for the rows deleted together; null for a deletion an approval request ran,
+    # which nothing can restore
+    deletion_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    # The team member who deleted; only that account can restore
+    deleted_by_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey('user_accounts.id', ondelete='SET NULL')
     )
     # Spec 010, data-model.md section 1.1. The day in Germany from which a
     # scheduled connection is active; set exactly while it is scheduled
@@ -504,21 +514,24 @@ class ApprovalRequest(Base):
     """An agent's request that a team member approve an action on a connection.
 
     Spec 007, data-model.md section 5, research R7 and R12. Expiry and staleness
-    are computed at every read; only the reasons revoked and access_changed are
-    stored. A request outlives the authorization that made it: revoking stores
-    `revoked` and deleting the authorization sets `authorization_id` to null, so the
-    approval page can still say why; a waiting request whose authorization went any
-    other way (the worker's sweep, a retired refresh token used again) reads as
-    cancelled with the computed reason `access_ended`. It outlives its draft too,
-    whose deletion removes the row: the request then reads as `draft_deleted`.
+    are computed at every read; only the reasons revoked and access_changed, and
+    those a deletion writes, are stored. A request outlives the authorization that
+    made it: revoking stores `revoked` and deleting the authorization sets
+    `authorization_id` to null, so the approval page can still say why; a waiting
+    request whose authorization went any other way (the worker's sweep, a retired
+    refresh token used again) reads as cancelled with the computed reason
+    `access_ended`. Deleting its connection stores `cancelled` with
+    `connection_deleted` or `draft_deleted`, so that a restore doesn't bring it
+    back (spec 010, research R5); it outlives its draft's row too, which is
+    removed once the restore time has passed.
     """
 
     __tablename__ = 'approval_requests'
 
     id: Mapped[UuidPk]
-    # No foreign key: deleting a draft removes its row (spec 005), and the request
-    # stays to read as draft_deleted; a published connection's deletion is a soft
-    # delete
+    # No foreign key: a deleted draft's row is removed once the restore time has
+    # passed (spec 010, research R5), and the request stays to read as
+    # draft_deleted; a published connection's row stays
     form_connection_id: Mapped[str] = mapped_column(String(36), index=True)
     # publish, delete_draft, deactivate, reactivate or delete
     action: Mapped[str] = mapped_column(String(16))
@@ -542,9 +555,10 @@ class ApprovalRequest(Base):
     was_active: Mapped[bool | None] = mapped_column(Boolean)
     # waiting, done, declined, expired, replaced or cancelled
     status: Mapped[str] = mapped_column(String(16), index=True)
-    # revoked or access_changed; the computed reasons (access_ended, draft_changed,
-    # draft_published, draft_deleted, connection_changed, connection_deleted) are
-    # never stored
+    # revoked or access_changed, or connection_deleted or draft_deleted, which a
+    # deletion stores (spec 010); the other reasons (access_ended, draft_changed,
+    # draft_published, connection_changed) are computed at every read, and so are
+    # the deletion's two for a request it didn't store them on
     cancel_reason: Mapped[str | None] = mapped_column(String(32))
     # APPROVAL_REQUEST_MINUTES after creation
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

@@ -251,6 +251,29 @@ export interface FormConnection {
 }
 
 /**
+ * What every delete answers: the deletion, which "Undo" can restore (spec 010, research R5,
+ * contracts/management-api.md "Deleting"); mirrors Deletion
+ */
+export interface Deletion {
+  /**
+   * The deletion's id, shared by the rows deleted together; null when nothing can restore it, as
+   * for a deletion an approved approval request ran (FR-067)
+   */
+  id: string | null;
+  /** When the restore time (DELETION_UNDO_SECONDS) ends; null with `id` */
+  restorable_until: string | null;
+}
+
+/**
+ * What a restore answers: every connection of the deletion, back as it was, in the overview's
+ * order (spec 010, research R5, contracts/management-api.md "Deleting"); mirrors
+ * RestoredConnections
+ */
+export interface RestoredConnections {
+  items: FormConnectionSummary[];
+}
+
+/**
  * Without rules, the form connection gets a main branch "Standard". Without `start_date` it is
  * published active ("Now"); with one, scheduled (spec 010, research R1, R2)
  */

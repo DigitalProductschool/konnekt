@@ -560,6 +560,8 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
         worker.delete_unused_oauth_clients,
         # Approval requests (spec 007; tests/api/test_approval_requests.py)
         worker.delete_old_approval_requests,
+        # The deletions made final, last (spec 010, R5; tests/api/test_deletions.py)
+        worker.finish_deletions,
     )
 
 

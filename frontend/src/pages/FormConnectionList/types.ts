@@ -14,7 +14,12 @@ export type ListAction =
   | { type: 'failed'; notice: ErrorNotice }
   | { type: 'retry' }
   /** A row was deleted: it leaves the loaded list, which may become empty (the welcome page) */
-  | { type: 'removed'; id: string };
+  | { type: 'removed'; id: string }
+  /**
+   * "Undo" brought rows back (spec 010, FR-034): they return to the loaded list in the overview's
+   * order, without a reload; a list not loaded yet (or failed) loads again
+   */
+  | { type: 'restored'; items: FormConnectionSummary[] };
 
 export interface FormConnectionRowProps {
   formConnection: FormConnectionSummary;
@@ -115,3 +120,54 @@ export interface NoMatchesProps {
   query: string;
   onClear: () => void;
 }
+
+/**
+ * What the toast of the overview's last deletion says (spec 010, S4 "After a deletion", "Undo"):
+ * "“<name>” deleted." with "Undo" (`danger`), "“<name>” restored." (`success`), "“<name>” can no
+ * longer be restored." (`neutral`) or "Couldn’t restore. Try again." with "Undo" again (`neutral`)
+ */
+export type DeletionOutcome = 'deleted' | 'restored' | 'notRestorable' | 'failed';
+
+/** The overview's last deletion and its toast (spec 010, FR-033 to FR-037) */
+export interface CurrentDeletion {
+  /** The deletion's id, which "Undo" sends; null when nothing can restore it (no "Undo") */
+  id: string | null;
+  /** The deleted connections' names; the toast names the first */
+  names: string[];
+  outcome: DeletionOutcome;
+  /** Whether "Undo" waits for the server's answer; a second "Undo" meanwhile does nothing */
+  restoring: boolean;
+  /**
+   * Whether its toast shows. A toast that closed (its 6 seconds, Escape) or was replaced leaves
+   * the deletion standing: "Undo" is gone with it (FR-036)
+   */
+  shown: boolean;
+  /** The error ID of a restore that failed with a 5xx, under "Couldn’t restore. Try again." */
+  errorId: string | null;
+}
+
+/**
+ * The deletion reducer's state: the id of its last toast, which changes with every new toast so
+ * that each one is shown, timed and announced anew, and the last deletion, null before any
+ */
+export interface DeletionState {
+  toastId: number;
+  current: CurrentDeletion | null;
+}
+
+export type DeletionAction =
+  /** A deletion was made, here or on the details: its toast replaces the one shown */
+  | { type: 'deleted'; deletionId: string | null; names: string[] }
+  /** "Undo" sent the restore */
+  | { type: 'restoring'; deletionId: string }
+  /** The restore brought the rows back */
+  | { type: 'restored'; deletionId: string }
+  /** The restore answered `409 not_restorable`: nothing changed */
+  | { type: 'notRestorable'; deletionId: string }
+  /** The restore got no answer or a server failure: "Undo" is offered again */
+  | { type: 'failed'; deletionId: string; errorId: string | null }
+  /** The toast closed: after its 6 seconds or with Escape */
+  | { type: 'dismissed' };
+
+/** How a failed restore ends: refused for good, or worth another "Undo" */
+export type RestoreFailure = { type: 'notRestorable' } | { type: 'failed'; errorId: string | null };

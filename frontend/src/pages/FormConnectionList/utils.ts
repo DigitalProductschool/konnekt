@@ -1,14 +1,25 @@
 import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import type { OverviewDeletion } from '@connection-portal/api-types/routing';
 import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
+import type { ToastContent } from '../../components/Toast/types';
 import { matchesSearch } from '../../components/ValuesPicker/utils';
 import type { Homepage } from '../../hooks/types';
-import { DELETE_CONNECTION_COPY, LIST_COPY, ROW_DATE_FORMAT, STEP_LABELS } from './constants';
+import {
+  DELETE_CONNECTION_COPY,
+  INITIAL_DELETION_STATE,
+  LIST_COPY,
+  ROW_DATE_FORMAT,
+  STEP_LABELS,
+} from './constants';
 import type {
+  DeletionAction,
+  DeletionState,
   ListAction,
   ListState,
+  RestoreFailure,
   RowDeleteAction,
   RowDeleteFailure,
   RowDeleteState,
@@ -30,7 +41,37 @@ export function listReducer(state: ListState, action: ListAction): ListState {
             formConnections: state.formConnections.filter((each) => each.id !== action.id),
           }
         : state;
+    case 'restored':
+      // Before the list is there (or after it failed) the load may have missed the rows: load
+      // it again
+      return state.status === 'loaded'
+        ? { ...state, formConnections: withRestored(state.formConnections, action.items) }
+        : { status: 'loading', attempt: state.attempt + 1 };
   }
+}
+
+/**
+ * The overview's order (`list_form_connections()`): the most recently updated first, then by id
+ */
+function inOverviewOrder(a: FormConnectionSummary, b: FormConnectionSummary): number {
+  const byUpdate = Date.parse(b.updated_at) - Date.parse(a.updated_at);
+  if (byUpdate !== 0) {
+    return byUpdate;
+  }
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/**
+ * The list with the restored rows back in it (spec 010, FR-034): a restored row keeps its
+ * `updated_at` from before the deletion, so the overview's order puts it back in its place; a row
+ * the list still holds is replaced, never doubled
+ */
+export function withRestored(
+  list: readonly FormConnectionSummary[],
+  items: readonly FormConnectionSummary[]
+): FormConnectionSummary[] {
+  const restoredIds = new Set(items.map((item) => item.id));
+  return [...list.filter((each) => !restoredIds.has(each.id)), ...items].sort(inOverviewOrder);
 }
 
 /** "28.10.2026" for an ISO timestamp from the API (cosmetic 3, design-notes §3 "Dates"). */
@@ -160,4 +201,131 @@ export function homepageOf(
     return remembered ? 'overview' : 'welcome';
   }
   return list.length === 0 ? 'welcome' : 'overview';
+}
+
+/**
+ * The overview's last deletion and its toast (spec 010, FR-033 to FR-037; S4 "After a deletion",
+ * "Undo"). A new deletion replaces the toast shown, and its "Undo" goes with it. "Undo" waits for
+ * the server; a second one meanwhile does nothing. The answer shows its own toast, announced anew:
+ * restored, no longer restorable, or failed with "Undo" again. An answer for a deletion that is no
+ * longer the last one changes nothing here (the page still puts restored rows back). A toast that
+ * closed takes "Undo" with it and leaves the deletion standing; a restore already sent still shows
+ * its answer
+ */
+export function deletionReducer(state: DeletionState, action: DeletionAction): DeletionState {
+  const { current } = state;
+  switch (action.type) {
+    case 'deleted':
+      return {
+        toastId: state.toastId + 1,
+        current: {
+          id: action.deletionId,
+          names: action.names,
+          outcome: 'deleted',
+          restoring: false,
+          shown: true,
+          errorId: null,
+        },
+      };
+    case 'restoring':
+      return current && canRestore(state) && current.id === action.deletionId
+        ? { ...state, current: { ...current, restoring: true } }
+        : state;
+    case 'restored':
+    case 'notRestorable':
+    case 'failed':
+      if (!current?.restoring || current.id !== action.deletionId) {
+        return state;
+      }
+      return {
+        toastId: state.toastId + 1,
+        current: {
+          ...current,
+          outcome: action.type,
+          restoring: false,
+          shown: true,
+          errorId: action.type === 'failed' ? action.errorId : null,
+        },
+      };
+    case 'dismissed':
+      return current?.shown ? { ...state, current: { ...current, shown: false } } : state;
+  }
+}
+
+/**
+ * Whether the toast's "Undo" may send the restore now: its toast shows, offers "Undo" (deleted,
+ * or a failed restore) and no restore waits for an answer
+ */
+export function canRestore(state: DeletionState): boolean {
+  const { current } = state;
+  return (
+    current !== null &&
+    current.id !== null &&
+    current.shown &&
+    !current.restoring &&
+    (current.outcome === 'deleted' || current.outcome === 'failed')
+  );
+}
+
+/**
+ * The deletion state a page starts with: the deletion the details made on the way here, if any
+ * (FR-033: it arrives with the same toast and "Undo")
+ */
+export function initialDeletionOf(deleted: OverviewDeletion | undefined): DeletionState {
+  return deleted
+    ? deletionReducer(INITIAL_DELETION_STATE, {
+        type: 'deleted',
+        deletionId: deleted.deletionId,
+        names: deleted.names,
+      })
+    : INITIAL_DELETION_STATE;
+}
+
+/**
+ * The toast of the last deletion, in the given language (spec 010, S4; copy.md §4; design-notes
+ * §4.2 T038): "“<name>” deleted." red with "Undo" (none without a deletion id), "“<name>”
+ * restored." green, "“<name>” can no longer be restored." and "Couldn’t restore. Try again." (with
+ * "Undo" again and a 5xx's error ID) in ink; null while none shows. While "Undo" waits the toast
+ * stays as it was
+ */
+export function deletionToastOf(state: DeletionState, language: Language): ToastContent | null {
+  const { current } = state;
+  if (!current?.shown) {
+    return null;
+  }
+  const copy = LIST_COPY[language];
+  const name = current.names[0] ?? '';
+  const undo = current.id === null ? undefined : copy.undo;
+  switch (current.outcome) {
+    case 'deleted':
+      return { id: state.toastId, kind: 'danger', message: copy.deleted(name), actionLabel: undo };
+    case 'restored':
+      return { id: state.toastId, kind: 'success', message: copy.restored(name) };
+    case 'notRestorable':
+      return { id: state.toastId, kind: 'neutral', message: copy.notRestorable(name) };
+    case 'failed':
+      return {
+        id: state.toastId,
+        kind: 'neutral',
+        message: copy.restoreFailed,
+        actionLabel: undo,
+        errorId: current.errorId,
+      };
+  }
+}
+
+/**
+ * How a failed restore ends (spec 010, FR-036; management-api "Deleting"): `409 not_restorable`
+ * (too late, a second "Undo", another account's) changes nothing for good; no answer, a server
+ * failure or any other refusal offers "Undo" again, with a 5xx's error ID. A `401` signs out
+ * before this is asked
+ */
+export function restoreFailureOf(error: unknown): RestoreFailure {
+  if (error instanceof ApiError && error.status === 409 && error.data.error === 'not_restorable') {
+    return { type: 'notRestorable' };
+  }
+  return {
+    type: 'failed',
+    errorId: error instanceof ApiError ? (error.data.error_id ?? null) : null,
+  };
 }
