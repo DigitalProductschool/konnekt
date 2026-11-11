@@ -1,10 +1,10 @@
 # Implementation Plan: Download a connection's details as a PDF
 
-**Branch**: `pdf-summary` (the worktree's branch; feature directory `specs/010-connection-pdf/`,
-which `setup-plan.sh` resolved from `.specify/feature.json` as `010-connection-pdf`) | **Date**:
+**Branch**: `pdf-summary` (the worktree's branch; feature directory `specs/011-connection-pdf/`,
+which `setup-plan.sh` resolved from `.specify/feature.json` as `011-connection-pdf`) | **Date**:
 2026-11-09 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/010-connection-pdf/spec.md`, the prototype in
+**Input**: Feature specification from `/specs/011-connection-pdf/spec.md`, the prototype in
 [prototype/](prototype/) (`make.mjs`, `paginate.mjs`, `fingerprint.mjs`, `data.mjs` and the
 agreed PDFs `published-ids-top.pdf`, `draft-ids-top.pdf`), and the decisions R1–R8 that the
 exploration with that prototype produced (given with the planning request; recorded with their
@@ -135,7 +135,7 @@ does, would add two dependencies).
 ### Documentation (this feature)
 
 ```text
-specs/010-connection-pdf/
+specs/011-connection-pdf/
 ├── spec.md
 ├── plan.md              # this file
 ├── research.md          # R1–R14 and the Phase 0 spike
@@ -230,7 +230,7 @@ already lives.
    (FIGMA-WORKFLOW for `6396:48196`, `6809:46423`), the states; `nginx.conf`'s `font/ttf`.
 4. **German**: `PDF_TEXTS.de`, `DETAIL_COPY`'s new keys, the glossary additions; reviewed in the
    running app.
-5. **Documentation**: README (pdfkit and why), ARCHITECTURE ("The connection PDF (spec 010)"),
+5. **Documentation**: README (pdfkit and why), ARCHITECTURE ("The connection PDF (spec 011)"),
    CLAUDE.md (one line).
 6. **Validation**: quickstart.md, veraPDF in both languages, the screen-reader walk, the limits'
    timing.

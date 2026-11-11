@@ -1,7 +1,7 @@
 # Feature Specification: Download a connection's details as a PDF
 
 **Feature Branch**: `pdf-summary` (the worktree's branch; feature directory
-`specs/010-connection-pdf/`; no branch was created for this feature)
+`specs/011-connection-pdf/`; no branch was created for this feature)
 
 **Created**: 2026-11-09
 
