@@ -1,7 +1,10 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type {
+  ActivityEntry,
+  ActivityPage,
   Branch,
   BranchInput,
+  ConnectionState,
   FormConnection,
   FormConnectionDraft,
   FormConnectionOrDraft,
@@ -165,8 +168,11 @@ export interface DetailFooterProps {
   onEdit?: () => void;
 }
 
-/** The details' accordions (FR-046): one is open at a time, or none */
-export type DetailAccordionName = 'links' | 'summary';
+/**
+ * The details' accordions (spec 008 FR-046, spec 010 FR-022): Links, Summary and Activity; one is
+ * open at a time, or none. A draft's Links card has no toggle, so a draft's are Summary and Activity
+ */
+export type DetailAccordionName = 'links' | 'summary' | 'activity';
 
 export interface DetailAccordionProps {
   /** The heading, such as "Links for your service" */
@@ -336,6 +342,56 @@ export interface DraftDetailsProps {
   draft: FormConnectionDraft;
   /** Loads the details again: after "Open the connection", once the draft was published */
   onReload: () => void;
+}
+
+/**
+ * The Activity card's list (S15 "The Activity card"; FR-022, FR-023): `closed` until the card first
+ * opens (nothing loaded); `loading` the first page; `loaded` with the pages so far, newest first;
+ * `loadingMore` the page after them; `failed` with the pages loaded before the failure (none when
+ * the first page failed) and why
+ */
+export type ActivityCardState =
+  | { kind: 'closed' }
+  | { kind: 'loading' }
+  | { kind: 'loaded'; pages: ActivityPage[] }
+  | { kind: 'loadingMore'; pages: ActivityPage[] }
+  | { kind: 'failed'; pages: ActivityPage[]; error: ErrorNotice };
+
+export type ActivityCardAction =
+  /** The card opened for the first time, or after `reset`: the first page */
+  | { type: 'load' }
+  /** The list's end came into view while there is an older page */
+  | { type: 'loadMore' }
+  /** "Try again": the page that failed, the first or the next */
+  | { type: 'retry' }
+  | { type: 'pageLoaded'; page: ActivityPage }
+  | { type: 'pageFailed'; error: ErrorNotice }
+  /** The connection changed on the page: the list loads again from the newest entry */
+  | { type: 'reset' };
+
+/** What the card asks for next: the first page, the page after a cursor, or nothing */
+export type ActivityRequest = { cursor: string | null } | null;
+
+export interface ActivityCardProps {
+  /** The connection or draft whose activity it shows */
+  formConnectionId: string;
+  /** The closed card's line (FR-024, FR-032), from the connection's `last_activity` */
+  lastActivity: ActivityEntry | null;
+  /** The connection's state, for "Deactivated by …" while it is deactivated */
+  state: ConnectionState;
+  /** Whether the card is open, kept by the page's accordion (FR-022: one card open at a time) */
+  open: boolean;
+  onToggle: () => void;
+  /**
+   * Changes when an action on the page changed the connection (a status or start date change):
+   * the list loads again, at once while open, otherwise when the card next opens
+   */
+  reloadKey?: string | number;
+}
+
+/** One entry of the open list: "date and time · event · person" (U86 6396:48528) */
+export interface ActivityRowProps {
+  entry: ActivityEntry;
 }
 
 /** Why deleting a draft failed: published or deleted meanwhile, or anything else */

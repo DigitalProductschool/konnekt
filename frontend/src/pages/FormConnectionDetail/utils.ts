@@ -1,7 +1,11 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityActor,
+  ActivityEntry,
+  ActivityPage,
   BranchInput,
+  ConnectionState,
   FormConnection,
   RequestedDocument,
   RequestedDocumentView,
@@ -26,6 +30,7 @@ import { findingLinesOf } from '../FormConnectionEditor/utils';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import { deleteDialogCopyOf, formatRowDate } from '../FormConnectionList/utils';
 import {
+  ACTIVITY_COPY,
   CONNECTION_DETAIL_COPY,
   INITIAL_ACTIONS_STATE,
   SAVED_TIME_FORMATS,
@@ -36,6 +41,9 @@ import type {
   ActionDialogCopy,
   ActionsAction,
   ActionsState,
+  ActivityCardAction,
+  ActivityCardState,
+  ActivityRequest,
   Arrival,
   ConfirmedAction,
   ConnectionMenuEntry,
@@ -386,15 +394,19 @@ export function linksCountsOf(formConnection: FormConnection, language: Language
 }
 
 /**
- * The accordion open on arrival (FR-046, F50): Links right after publishing (U80), also after
- * "Schedule", which arrives as a publish does (S15; U94 7246:53289), otherwise the Summary, as
- * from the overview's "View" (U91, U94 7246:52715), which passes no state of its own.
+ * The accordion open on arrival (FR-046, F50; spec 010 FR-022, F40): Links right after publishing
+ * (U80), also after "Schedule", which arrives as a publish does (S15; U94 7246:53289), and after
+ * the edit flow's "Save" (E4 U99 6730:39754); otherwise the Summary, as from the overview's "View"
+ * (U91, U94 7246:52715), which passes no state of its own.
  */
 export function initialAccordionOf(arrival: Arrival): DetailAccordionName {
-  return arrival === 'published' ? 'links' : 'summary';
+  return arrival === null ? 'summary' : 'links';
 }
 
-/** One accordion open at a time (FR-046): opening one closes the other; its toggle closes it. */
+/**
+ * One card open at a time (FR-046, FR-022): opening Links, Summary or Activity closes the one that
+ * was open; its own toggle closes it.
+ */
 export function toggleAccordion(
   open: DetailAccordionName | null,
   name: DetailAccordionName
@@ -510,6 +522,195 @@ export function editedLineOf(updatedAt: string, language: Language): string {
 /** "23.10.2026, 14:32": an instant from the API, the time in the browser's time zone (FR-020) */
 function dateTimeOf(timestamp: string, language: Language): string {
   return `${formatRowDate(timestamp)}, ${SAVED_TIME_FORMATS[language].format(new Date(timestamp))}`;
+}
+
+/**
+ * An activity entry's date and time, "23.10.2026, 14:32" (U86 6396:48529; FR-020), as the date
+ * pill writes its instants
+ */
+export function activityDateTimeOf(entry: Pick<ActivityEntry, 'at'>, language: Language): string {
+  return dateTimeOf(entry.at, language);
+}
+
+/**
+ * What happened, one sentence per kind (FR-025; copy.md §3, W10): the drawn "Created",
+ * "Documents changed", "Variant added: <name>", "Rules changed in <variant>", "Published",
+ * "Deactivated", and the undrawn ones in their style; a variant's kinds with its name (the new
+ * name for a rename), "Scheduled for <date>" and "Start date changed to <date>" with the start
+ * date written as stored (a day in Germany, `DD.MM.YYYY`, never through `Date`), or "Start date
+ * changed to now" without one
+ */
+export function activityEventOf(
+  entry: Pick<ActivityEntry, 'kind' | 'variant' | 'start_date'>,
+  language: Language
+): string {
+  const copy = ACTIVITY_COPY[language];
+  const variant = entry.variant ?? '';
+  const startDate = entry.start_date ? formatDate(entry.start_date, language) : null;
+  switch (entry.kind) {
+    case 'created':
+      return copy.created;
+    case 'renamed':
+      return copy.renamed;
+    case 'description_changed':
+      return copy.descriptionChanged;
+    case 'documents_changed':
+      return copy.documentsChanged;
+    case 'variant_added':
+      return copy.variantAdded(variant);
+    case 'variant_removed':
+      return copy.variantRemoved(variant);
+    case 'variant_renamed':
+      return copy.variantRenamed(variant);
+    case 'rules_changed':
+      return copy.rulesChanged(variant);
+    case 'published':
+      return copy.published;
+    case 'scheduled':
+      // A `scheduled` entry always has its date (data-model §2.2)
+      return copy.scheduled(startDate ?? '');
+    case 'start_date_changed':
+      return startDate ? copy.startDateChanged(startDate) : copy.startDateChangedToNow;
+    case 'became_active':
+      return copy.becameActive;
+    case 'deactivated':
+      return copy.deactivatedEvent;
+    case 'reactivated':
+      return copy.reactivated;
+    case 'deleted':
+      return copy.deleted;
+    case 'restored':
+      return copy.restored;
+  }
+}
+
+/**
+ * Who did it (FR-027; copy.md §3): the team member's name; "<name> with <agent>" for an agent's
+ * change; "<name>, asked by <agent>" for what a team member approved; null for what the middleware
+ * did by itself and for backfilled entries (FR-032)
+ */
+export function activityPersonOf(actor: ActivityActor | null, language: Language): string | null {
+  if (!actor) {
+    return null;
+  }
+  const copy = ACTIVITY_COPY[language];
+  if (actor.agent === null) {
+    return actor.name;
+  }
+  return actor.approved
+    ? copy.personAskedBy(actor.name, actor.agent)
+    : copy.personWithAgent(actor.name, actor.agent);
+}
+
+/**
+ * The closed card's line (FR-024, FR-032; data-model §2.5): "Last edited by <person> · <date>,
+ * <time>"; while the connection is deactivated and the entry is its deactivation, "Deactivated by
+ * <person> · …"; without a person the time alone, "Last edited · …" / "Deactivated · …". Null for a
+ * connection without entries
+ */
+export function activityClosedLineOf(
+  lastActivity: ActivityEntry | null,
+  state: ConnectionState,
+  language: Language
+): string | null {
+  if (!lastActivity) {
+    return null;
+  }
+  const copy = ACTIVITY_COPY[language];
+  const person = activityPersonOf(lastActivity.actor, language);
+  const dateTime = activityDateTimeOf(lastActivity, language);
+  if (state === 'deactivated' && lastActivity.kind === 'deactivated') {
+    return person ? copy.deactivatedBy(person, dateTime) : copy.deactivated(dateTime);
+  }
+  return person ? copy.lastEditedBy(person, dateTime) : copy.lastEdited(dateTime);
+}
+
+/**
+ * The Activity card's list (S15; FR-022, FR-023): the first page when the card first opens, the
+ * next when the list's end comes into view, down to the oldest entry; a failure keeps the pages
+ * loaded before it, and "Try again" asks for the page that failed. An answer that arrives in a
+ * state that didn't ask for it changes nothing; `reset` forgets the pages, so that the list loads
+ * again from the newest entry
+ */
+export function activityCardReducer(
+  state: ActivityCardState,
+  action: ActivityCardAction
+): ActivityCardState {
+  switch (action.type) {
+    case 'load':
+      return state.kind === 'closed' ? { kind: 'loading' } : state;
+    case 'loadMore':
+      return state.kind === 'loaded' && nextCursorOf(state.pages) !== null
+        ? { kind: 'loadingMore', pages: state.pages }
+        : state;
+    case 'retry':
+      if (state.kind !== 'failed') {
+        return state;
+      }
+      return state.pages.length === 0
+        ? { kind: 'loading' }
+        : { kind: 'loadingMore', pages: state.pages };
+    case 'pageLoaded':
+      switch (state.kind) {
+        case 'loading':
+          return { kind: 'loaded', pages: [action.page] };
+        case 'loadingMore':
+          return { kind: 'loaded', pages: [...state.pages, action.page] };
+        default:
+          return state;
+      }
+    case 'pageFailed':
+      switch (state.kind) {
+        case 'loading':
+          return { kind: 'failed', pages: [], error: action.error };
+        case 'loadingMore':
+          return { kind: 'failed', pages: state.pages, error: action.error };
+        default:
+          return state;
+      }
+    case 'reset':
+      return { kind: 'closed' };
+  }
+}
+
+/** The cursor of the page after the last one loaded; null on the oldest page or before any */
+function nextCursorOf(pages: ActivityPage[]): string | null {
+  return pages.at(-1)?.next_cursor ?? null;
+}
+
+/** The entries loaded so far, newest first */
+export function activityEntriesOf(state: ActivityCardState): ActivityEntry[] {
+  return 'pages' in state ? state.pages.flatMap((page) => page.items) : [];
+}
+
+/** The page the card is loading: the first (cursor null) or the next; null while it isn't */
+export function activityRequestOf(state: ActivityCardState): ActivityRequest {
+  switch (state.kind) {
+    case 'loading':
+      return { cursor: null };
+    case 'loadingMore':
+      return { cursor: nextCursorOf(state.pages) };
+    default:
+      return null;
+  }
+}
+
+/** Whether an older page is there to load when the list's end comes into view */
+export function hasOlderActivity(state: ActivityCardState): boolean {
+  return state.kind === 'loaded' && nextCursorOf(state.pages) !== null;
+}
+
+/** What the card announces (S15): the first page's or an older page's loading, or nothing */
+export function activityStatusOf(state: ActivityCardState, language: Language): string {
+  const copy = ACTIVITY_COPY[language];
+  switch (state.kind) {
+    case 'loading':
+      return copy.loading;
+    case 'loadingMore':
+      return copy.loadingMore;
+    default:
+      return '';
+  }
 }
 
 /**

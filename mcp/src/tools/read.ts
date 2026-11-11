@@ -2,6 +2,7 @@
 // connections, one connection with its documents, variants and URLs, one variant with its items
 // and citizen fields, and one rule or group. Every answer carries the links of what it read
 import type {
+  ActivityPage,
   BranchInput,
   FormConnectionOrDraft,
   FormConnectionPage,
@@ -12,6 +13,8 @@ import { z } from 'zod';
 import type { BackendClient } from '../backend';
 import { resolveConnectionId, resolveItem, resolveVariant } from '../resolve';
 import {
+  activityEntryViewOf,
+  activityLineOf,
   applicantFieldsOf,
   connectionDatesLineOf,
   connectionFactsOf,
@@ -220,6 +223,44 @@ registerTool({
             .join('\n'),
         urlsTextOf(urls, urlsNote),
         droppedTextOf(dropped)
+      )
+    );
+  },
+});
+
+// get_activity
+
+registerTool({
+  name: 'get_activity',
+  level: 'read',
+  description:
+    "Reads a connection's activity, as the Activity card in Konnekt shows it: what happened " +
+    'and when, newest first, 50 entries per page; pass next_cursor to read earlier ones. Each ' +
+    'entry has its time, its event in words ("Rules changed in Ambulance"), its kind, the ' +
+    'variant or start date it concerns, and who did it: the team member (by), the agent that ' +
+    'made the change for them (agent), or the agent whose request they approved (agent with ' +
+    'approved). An entry without by was made by the middleware itself, or before the activity ' +
+    'was recorded.',
+  input: z.object({
+    connection: CONNECTION,
+    cursor: z
+      .string()
+      .optional()
+      .describe("The previous answer's next_cursor, for earlier entries"),
+  }),
+  handler: async (_caller, input, { backend }) => {
+    const fc = await connectionOf(backend, input.connection);
+    const connection = connectionRefOf(fc);
+    const query = input.cursor ? `?${new URLSearchParams({ cursor: input.cursor })}` : '';
+    const page = await backend.get<ActivityPage>(`/api/form-connections/${fc.id}/activity${query}`);
+    const entries = page.items.map(activityEntryViewOf);
+    return toolResult(
+      { connection, entries, ...(page.next_cursor ? { next_cursor: page.next_cursor } : {}) },
+      summaryTextOf(
+        connectionLineOf(connection),
+        entries.length === 0 ? 'No activity yet.' : 'Activity, newest first:',
+        ...entries.map(activityLineOf),
+        page.next_cursor && `Earlier entries exist: pass the cursor ${page.next_cursor}.`
       )
     );
   },

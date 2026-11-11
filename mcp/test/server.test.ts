@@ -3,6 +3,7 @@
 // tests of later phases add to this file
 import type { ApprovalRequest } from '@connection-portal/api-types/approvals';
 import type {
+  ActivityEntry,
   Condition,
   FormConnection,
   FormConnectionDraft,
@@ -783,6 +784,144 @@ describe('the reading tools', () => {
       const { structured } = await callTool('get_connection', {
         connection: '99999999-9999-4999-8999-999999999999',
       });
+      expect(structured.code).toBe('not_found');
+    });
+  });
+
+  describe('get_activity', () => {
+    it("answers a connection's activity, newest first, at the level read", async () => {
+      const { isError, structured, text } = await callTool(
+        'get_activity',
+        { connection: links.connectionLink(IDS.deactivated) },
+        BEARERS.read
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: {
+          id: IDS.deactivated,
+          name: expect.any(String),
+          status: 'deactivated',
+          link: links.connectionLink(IDS.deactivated),
+        },
+        entries: [
+          { at: '2026-11-01T09:00:00Z', event: 'Deactivated', kind: 'deactivated', by: 'anna' },
+          { at: '2026-10-01T09:00:00Z', event: 'Published', kind: 'published' },
+          { at: '2026-10-01T09:00:00Z', event: 'Created', kind: 'created' },
+        ],
+      });
+      expect(structured).not.toHaveProperty('next_cursor');
+      expect(text).toContain('- 2026-11-01T09:00:00Z · Deactivated · anna');
+      expect(text).toContain('- 2026-10-01T09:00:00Z · Published\n');
+    });
+
+    it('answers an entry without a person without by, and an agent’s with by and agent', async () => {
+      const { structured, text } = await callTool('get_activity', { connection: IDS.draft });
+      expect(structured.entries).toEqual([
+        {
+          at: '2026-11-01T09:00:00Z',
+          event: 'Created',
+          kind: 'created',
+          by: 'anna',
+          agent: 'Claude Code',
+        },
+      ]);
+      expect(text).toContain('Created · anna with Claude Code');
+      const live = await callTool('get_activity', { connection: IDS.live });
+      for (const entry of live.structured.entries) {
+        expect(entry).not.toHaveProperty('by');
+        expect(entry).not.toHaveProperty('agent');
+        expect(entry).not.toHaveProperty('approved');
+      }
+    });
+
+    it('words the variant, the date and an approved request', async () => {
+      const entry = (
+        kind: ActivityEntry['kind'],
+        detail: Partial<ActivityEntry>
+      ): ActivityEntry => ({
+        id: `${kind}-entry`,
+        kind,
+        at: '2026-11-06T09:00:00Z',
+        variant: null,
+        start_date: null,
+        actor: null,
+        ...detail,
+      });
+      fake.store.activity.set(IDS.scheduled, [
+        entry('scheduled', {
+          start_date: '2026-12-01',
+          actor: { name: 'ben', agent: 'Claude Code', approved: true },
+        }),
+        entry('published', { actor: { name: 'ben', agent: 'Claude Code', approved: true } }),
+        entry('rules_changed', {
+          variant: 'Ambulance',
+          actor: { name: 'anna', agent: 'Claude Code', approved: false },
+        }),
+      ]);
+      const { structured, text } = await callTool('get_activity', { connection: IDS.scheduled });
+      expect(structured.entries).toEqual([
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Scheduled for 2026-12-01',
+          kind: 'scheduled',
+          start_date: '2026-12-01',
+          by: 'ben',
+          agent: 'Claude Code',
+          approved: true,
+        },
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Published',
+          kind: 'published',
+          by: 'ben',
+          agent: 'Claude Code',
+          approved: true,
+        },
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Rules changed in Ambulance',
+          kind: 'rules_changed',
+          variant: 'Ambulance',
+          by: 'anna',
+          agent: 'Claude Code',
+        },
+      ]);
+      expect(text).toContain('Published · ben, asked by Claude Code');
+      expect(text).toContain('Rules changed in Ambulance · anna with Claude Code');
+    });
+
+    it('answers 50 entries per page and passes next_cursor on for the earlier ones', async () => {
+      const entries: ActivityEntry[] = Array.from({ length: 60 }, (_, index) => ({
+        id: `entry-${index}`,
+        kind: 'rules_changed',
+        at: new Date(Date.UTC(2026, 10, 10, 12, 60 - index)).toISOString(),
+        variant: `Variant ${index}`,
+        start_date: null,
+        actor: { name: 'anna', agent: null, approved: false },
+      }));
+      fake.store.activity.set(IDS.live, entries);
+      const first = await callTool('get_activity', { connection: IDS.live });
+      expect(first.structured.entries).toHaveLength(50);
+      expect(first.structured.entries[0].event).toBe('Rules changed in Variant 0');
+      expect(first.structured.next_cursor).toEqual(expect.any(String));
+      expect(first.text).toContain(
+        `Earlier entries exist: pass the cursor ${first.structured.next_cursor}.`
+      );
+      const second = await callTool('get_activity', {
+        connection: IDS.live,
+        cursor: first.structured.next_cursor,
+      });
+      expect(second.structured.entries).toHaveLength(10);
+      expect(second.structured.entries[0].event).toBe('Rules changed in Variant 50');
+      expect(second.structured.entries[9].event).toBe('Rules changed in Variant 59');
+      expect(second.structured).not.toHaveProperty('next_cursor');
+    });
+
+    it('answers not_found for an unknown connection', async () => {
+      const { isError, structured } = await callTool('get_activity', {
+        connection: '99999999-9999-4999-8999-999999999999',
+      });
+      expect(isError).toBe(true);
       expect(structured.code).toBe('not_found');
     });
   });

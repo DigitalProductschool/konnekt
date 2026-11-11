@@ -5,6 +5,8 @@
 // `@connection-portal/rules`, as the editor derives what it shows
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityKind,
   BranchInput,
   Combinator,
   Condition,
@@ -456,6 +458,98 @@ export function connectionDatesLineOf(facts: ConnectionFacts): string | null {
     facts.deactivated_since && `deactivated since ${facts.deactivated_since}`,
   ].filter((part): part is string => typeof part === 'string' && part !== '');
   return parts.length === 0 ? null : `${parts.join('; ')}.`;
+}
+
+// The activity (spec 010, FR-063; contracts/mcp-tools.md "Reading", contracts/copy.md §3)
+
+/**
+ * One entry of `get_activity`: the Activity card's row with its event as the card's English
+ * sentence. `by` is the team member; `agent` the agent that made the change or, with `approved`,
+ * that asked for it. An entry of the middleware has no `by`
+ */
+export interface ActivityEntryView {
+  at: string;
+  event: string;
+  kind: ActivityKind;
+  variant?: string;
+  /** YYYY-MM-DD */
+  start_date?: string;
+  by?: string;
+  agent?: string;
+  approved?: true;
+}
+
+/** The events' English (contracts/copy.md §3), by kind; `{variant}` and `{date}` filled in. */
+export const ACTIVITY_EVENTS: Record<ActivityKind, string> = {
+  created: 'Created',
+  renamed: 'Name changed',
+  description_changed: 'Description changed',
+  documents_changed: 'Documents changed',
+  variant_added: 'Variant added: {variant}',
+  variant_removed: 'Variant removed: {variant}',
+  variant_renamed: 'Variant renamed: {variant}',
+  rules_changed: 'Rules changed in {variant}',
+  published: 'Published',
+  scheduled: 'Scheduled for {date}',
+  start_date_changed: 'Start date changed to {date}',
+  became_active: 'Became active',
+  deactivated: 'Deactivated',
+  reactivated: 'Activated again',
+  deleted: 'Deleted',
+  restored: 'Restored',
+};
+
+/**
+ * An entry's event as the card's English sentence: "Rules changed in Ambulance", "Scheduled for
+ * 2026-12-01", "Start date changed to now" for a start moved to now. Days read YYYY-MM-DD, as
+ * the other answers give them
+ */
+export function activityEventOf(
+  entry: Pick<ActivityEntry, 'kind' | 'variant' | 'start_date'>
+): string {
+  if (entry.kind === 'start_date_changed' && !entry.start_date) {
+    return 'Start date changed to now';
+  }
+  return ACTIVITY_EVENTS[entry.kind]
+    .replace('{variant}', entry.variant ?? '')
+    .replace('{date}', entry.start_date ?? '');
+}
+
+/** An entry as `get_activity` answers it; what it doesn't carry is left out. */
+export function activityEntryViewOf(entry: ActivityEntry): ActivityEntryView {
+  const actor = entry.actor;
+  return {
+    at: entry.at,
+    event: activityEventOf(entry),
+    kind: entry.kind,
+    ...(entry.variant ? { variant: entry.variant } : {}),
+    ...(entry.start_date ? { start_date: entry.start_date } : {}),
+    ...(actor ? { by: actor.name } : {}),
+    ...(actor?.agent ? { agent: actor.agent } : {}),
+    ...(actor?.agent && actor.approved ? { approved: true as const } : {}),
+  };
+}
+
+/**
+ * The card's person (contracts/copy.md §3): "{by}", "{by} with {agent}", "{by}, asked by
+ * {agent}"; null for an entry of the middleware
+ */
+export function activityPersonOf(
+  view: Pick<ActivityEntryView, 'by' | 'agent' | 'approved'>
+): string | null {
+  if (!view.by) {
+    return null;
+  }
+  if (!view.agent) {
+    return view.by;
+  }
+  return view.approved ? `${view.by}, asked by ${view.agent}` : `${view.by} with ${view.agent}`;
+}
+
+/** The text block's line of an entry: "- {at} · {event} · {person}", without a missing person. */
+export function activityLineOf(view: ActivityEntryView): string {
+  const person = activityPersonOf(view);
+  return `- ${view.at} · ${view.event}${person ? ` · ${person}` : ''}`;
 }
 
 // Text blocks (contracts/mcp-tools.md "Results and errors": a text block summarises each answer)

@@ -1,5 +1,9 @@
 import type { DocumentField } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityActor,
+  ActivityEntry,
+  ActivityKind,
+  ActivityPage,
   Branch,
   BranchInput,
   FormConnection,
@@ -12,10 +16,22 @@ import { mainBranch, MDL, PID, rule, US1_RULES } from '@connection-portal/rules/
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
-import { INITIAL_ACTIONS_STATE, INITIAL_DRAFT_DELETE_STATE } from './constants';
-import type { DatePillSource } from './types';
+import {
+  INITIAL_ACTIONS_STATE,
+  INITIAL_ACTIVITY_CARD_STATE,
+  INITIAL_DRAFT_DELETE_STATE,
+} from './constants';
+import type { ActivityCardAction, ActivityCardState, DatePillSource } from './types';
 import {
   actionsReducer,
+  activityCardReducer,
+  activityClosedLineOf,
+  activityDateTimeOf,
+  activityEntriesOf,
+  activityEventOf,
+  activityPersonOf,
+  activityRequestOf,
+  activityStatusOf,
   confirmationOf,
   connectionMenuOf,
   datePillOf,
@@ -27,6 +43,7 @@ import {
   draftRuleDocumentsOf,
   editedLineOf,
   editEntryCopyOf,
+  hasOlderActivity,
   initialAccordionOf,
   isNoAnswer,
   keyedBranchesOf,
@@ -249,10 +266,17 @@ describe('linksCountsOf (FR-052f)', () => {
   });
 });
 
-describe('initialAccordionOf and toggleAccordion (FR-046, F50)', () => {
-  it('opens the links right after publishing and the summary otherwise', () => {
+describe('initialAccordionOf and toggleAccordion (FR-046, F50; spec 010 FR-022, F40)', () => {
+  it('opens the links right after publishing or scheduling', () => {
     expect(initialAccordionOf('published')).toBe('links');
-    expect(initialAccordionOf('saved')).toBe('summary');
+  });
+
+  // Spec 010 FR-022 (Clarification 2026-11-10 #34, E4): saving an edit lands with Links open too
+  it('opens the links after saving an edit', () => {
+    expect(initialAccordionOf('saved')).toBe('links');
+  });
+
+  it('opens the summary on any other arrival, as from the overview', () => {
     expect(initialAccordionOf(null)).toBe('summary');
   });
 
@@ -261,6 +285,15 @@ describe('initialAccordionOf and toggleAccordion (FR-046, F50)', () => {
     expect(toggleAccordion('links', 'links')).toBeNull();
     expect(toggleAccordion(null, 'summary')).toBe('summary');
     expect(toggleAccordion('links', 'summary')).toBe('summary');
+  });
+
+  it('closes links or summary when the activity opens, and the activity when another opens', () => {
+    expect(toggleAccordion('links', 'activity')).toBe('activity');
+    expect(toggleAccordion('summary', 'activity')).toBe('activity');
+    expect(toggleAccordion(null, 'activity')).toBe('activity');
+    expect(toggleAccordion('activity', 'activity')).toBeNull();
+    expect(toggleAccordion('activity', 'links')).toBe('links');
+    expect(toggleAccordion('activity', 'summary')).toBe('summary');
   });
 });
 
@@ -1219,5 +1252,287 @@ describe('"Change start date" (S15; FR-003, FR-008, FR-009, FR-014; F10, W1–W3
       isNoAnswer(new ApiError(500, { error: 'internal', message: 'x', error_id: 'abc' }))
     ).toBe(false);
     expect(isNoAnswer(new ApiError(409, { error: 'status_changed', message: 'x' }))).toBe(false);
+  });
+});
+
+// Spec 010, US3 (FR-023–FR-027, FR-032; copy.md §3, W10): the activity's sentences
+describe('the activity’s sentences (FR-025, FR-027, FR-032; copy.md §3)', () => {
+  const at = new Date(2026, 9, 23, 14, 32).toISOString();
+  function entry(kind: ActivityKind, extra: Partial<ActivityEntry> = {}): ActivityEntry {
+    return { id: kind, kind, at, variant: null, start_date: null, actor: null, ...extra };
+  }
+  const laura: ActivityActor = { name: 'Laura Weber', agent: null, approved: false };
+  const withAgent: ActivityActor = { name: 'Laura Weber', agent: 'Claude Code', approved: false };
+  const approved: ActivityActor = { name: 'Jonas Brandt', agent: 'Claude Code', approved: true };
+
+  // Every kind of data-model §2.2, and `start_date_changed` with and without a date
+  const events: [ActivityEntry, string, string][] = [
+    [entry('created'), 'Created', 'Erstellt'],
+    [entry('renamed'), 'Name changed', 'Name geändert'],
+    [entry('description_changed'), 'Description changed', 'Beschreibung geändert'],
+    [entry('documents_changed'), 'Documents changed', 'Dokumente geändert'],
+    [
+      entry('variant_added', { variant: 'Ambulance' }),
+      'Variant added: Ambulance',
+      'Variante hinzugefügt: Ambulance',
+    ],
+    [
+      entry('variant_removed', { variant: 'Taxi' }),
+      'Variant removed: Taxi',
+      'Variante entfernt: Taxi',
+    ],
+    [
+      entry('variant_renamed', { variant: 'School transport' }),
+      'Variant renamed: School transport',
+      'Variante umbenannt: School transport',
+    ],
+    [
+      entry('rules_changed', { variant: 'Standard' }),
+      'Rules changed in Standard',
+      'Regeln in Standard geändert',
+    ],
+    [entry('published'), 'Published', 'Veröffentlicht'],
+    [
+      entry('scheduled', { start_date: '2026-12-01' }),
+      'Scheduled for 01.12.2026',
+      'Geplant für den 01.12.2026',
+    ],
+    [
+      entry('start_date_changed', { start_date: '2027-01-15' }),
+      'Start date changed to 15.01.2027',
+      'Startdatum auf den 15.01.2027 geändert',
+    ],
+    [entry('start_date_changed'), 'Start date changed to now', 'Startdatum auf sofort geändert'],
+    [entry('became_active'), 'Became active', 'Aktiv geworden'],
+    [entry('deactivated'), 'Deactivated', 'Deaktiviert'],
+    [entry('reactivated'), 'Activated again', 'Wieder aktiviert'],
+    [entry('deleted'), 'Deleted', 'Gelöscht'],
+    [entry('restored'), 'Restored', 'Wiederhergestellt'],
+  ];
+
+  it.each(events)('words %o in English and German', (activity, english, german) => {
+    expect(activityEventOf(activity, 'en')).toBe(english);
+    expect(activityEventOf(activity, 'de')).toBe(german);
+  });
+
+  it('has a sentence for every kind of data-model §2.2', () => {
+    const kinds = new Set(events.map(([activity]) => activity.kind));
+    expect(kinds.size).toBe(16);
+  });
+
+  it('writes the start date as stored in every time zone (FR-020)', () => {
+    const scheduled = entry('scheduled', { start_date: '2026-12-01' });
+    try {
+      for (const zone of ['America/New_York', 'Pacific/Kiritimati']) {
+        vi.stubEnv('TZ', zone);
+        expect(activityEventOf(scheduled, 'en')).toBe('Scheduled for 01.12.2026');
+      }
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('names the person in each form of FR-027, and nobody for the middleware', () => {
+    expect(activityPersonOf(laura, 'en')).toBe('Laura Weber');
+    expect(activityPersonOf(laura, 'de')).toBe('Laura Weber');
+    expect(activityPersonOf(withAgent, 'en')).toBe('Laura Weber with Claude Code');
+    expect(activityPersonOf(withAgent, 'de')).toBe('Laura Weber mit Claude Code');
+    expect(activityPersonOf(approved, 'en')).toBe('Jonas Brandt, asked by Claude Code');
+    expect(activityPersonOf(approved, 'de')).toBe('Jonas Brandt, angefragt von Claude Code');
+    expect(activityPersonOf(null, 'en')).toBeNull();
+    expect(activityPersonOf(null, 'de')).toBeNull();
+  });
+
+  it('writes the row’s date and time as the date pill does (FR-020)', () => {
+    expect(activityDateTimeOf(entry('published'), 'en')).toBe('23.10.2026, 14:32');
+    expect(activityDateTimeOf(entry('published'), 'de')).toBe('23.10.2026, 14:32');
+  });
+
+  it('writes the closed line with the person and the time (FR-024; U86 6396:48524)', () => {
+    const published = entry('published', { actor: laura });
+    expect(activityClosedLineOf(published, 'live', 'en')).toBe(
+      'Last edited by Laura Weber · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(published, 'scheduled', 'de')).toBe(
+      'Zuletzt bearbeitet von Laura Weber · 23.10.2026, 14:32'
+    );
+    const agentEdit = entry('rules_changed', { variant: 'Standard', actor: withAgent });
+    expect(activityClosedLineOf(agentEdit, 'draft', 'en')).toBe(
+      'Last edited by Laura Weber with Claude Code · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(entry('published', { actor: approved }), 'live', 'de')).toBe(
+      'Zuletzt bearbeitet von Jonas Brandt, angefragt von Claude Code · 23.10.2026, 14:32'
+    );
+  });
+
+  it('reads "Deactivated by" while deactivated (FR-024, US3-AS3; U97 7246:56962)', () => {
+    const deactivated = entry('deactivated', { actor: laura });
+    expect(activityClosedLineOf(deactivated, 'deactivated', 'en')).toBe(
+      'Deactivated by Laura Weber · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(deactivated, 'deactivated', 'de')).toBe(
+      'Deaktiviert von Laura Weber · 23.10.2026, 14:32'
+    );
+    // Deactivated without a deactivation entry, the server's fallback: the last edit
+    expect(activityClosedLineOf(entry('published', { actor: laura }), 'deactivated', 'en')).toBe(
+      'Last edited by Laura Weber · 23.10.2026, 14:32'
+    );
+  });
+
+  it('shows the time alone without a person (FR-032)', () => {
+    expect(activityClosedLineOf(entry('published'), 'live', 'en')).toBe(
+      'Last edited · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(entry('published'), 'live', 'de')).toBe(
+      'Zuletzt bearbeitet · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(entry('deactivated'), 'deactivated', 'en')).toBe(
+      'Deactivated · 23.10.2026, 14:32'
+    );
+    expect(activityClosedLineOf(entry('deactivated'), 'deactivated', 'de')).toBe(
+      'Deaktiviert · 23.10.2026, 14:32'
+    );
+  });
+
+  it('has no line for a connection without entries', () => {
+    expect(activityClosedLineOf(null, 'live', 'en')).toBeNull();
+  });
+});
+
+// Spec 010, US3 (S15 "The Activity card"; FR-022, FR-023; R15 V6): the card's list
+describe('activityCardReducer (S15; FR-022, FR-023)', () => {
+  function page(ids: string[], nextCursor: string | null): ActivityPage {
+    return {
+      items: ids.map((id) => ({
+        id,
+        kind: 'published',
+        at: '2026-10-23T12:32:00Z',
+        variant: null,
+        start_date: null,
+        actor: null,
+      })),
+      next_cursor: nextCursor,
+    };
+  }
+  const first = page(['a', 'b'], 'c1');
+  const second = page(['c'], 'c2');
+  const last = page(['d'], null);
+  const notice = { message: 'Check your connection and try again.' };
+
+  function run(...actions: ActivityCardAction[]): ActivityCardState {
+    return actions.reduce(activityCardReducer, INITIAL_ACTIVITY_CARD_STATE);
+  }
+
+  it('starts closed with nothing to load or show', () => {
+    expect(INITIAL_ACTIVITY_CARD_STATE).toEqual({ kind: 'closed' });
+    expect(activityRequestOf(INITIAL_ACTIVITY_CARD_STATE)).toBeNull();
+    expect(activityEntriesOf(INITIAL_ACTIVITY_CARD_STATE)).toEqual([]);
+    expect(activityStatusOf(INITIAL_ACTIVITY_CARD_STATE, 'en')).toBe('');
+  });
+
+  it('loads the first page when the card first opens, and announces it', () => {
+    const loading = run({ type: 'load' });
+    expect(loading).toEqual({ kind: 'loading' });
+    expect(activityRequestOf(loading)).toEqual({ cursor: null });
+    expect(activityStatusOf(loading, 'en')).toBe('Loading activity…');
+    expect(activityStatusOf(loading, 'de')).toBe('Aktivität wird geladen …');
+    const loaded = run({ type: 'load' }, { type: 'pageLoaded', page: first });
+    expect(loaded).toEqual({ kind: 'loaded', pages: [first] });
+    expect(activityEntriesOf(loaded).map((item) => item.id)).toEqual(['a', 'b']);
+    expect(activityRequestOf(loaded)).toBeNull();
+    expect(activityStatusOf(loaded, 'en')).toBe('');
+  });
+
+  it('loads a page once: opening again after it loaded changes nothing', () => {
+    const loaded = run({ type: 'load' }, { type: 'pageLoaded', page: first });
+    expect(activityCardReducer(loaded, { type: 'load' })).toBe(loaded);
+    const loading = run({ type: 'load' });
+    expect(activityCardReducer(loading, { type: 'load' })).toBe(loading);
+  });
+
+  it('loads the older pages after the cursor, down to the oldest entry', () => {
+    const more = run({ type: 'load' }, { type: 'pageLoaded', page: first }, { type: 'loadMore' });
+    expect(more).toEqual({ kind: 'loadingMore', pages: [first] });
+    expect(activityRequestOf(more)).toEqual({ cursor: 'c1' });
+    expect(activityStatusOf(more, 'en')).toBe('Loading earlier activity…');
+    expect(activityStatusOf(more, 'de')).toBe('Frühere Aktivität wird geladen …');
+    // The entries stay while the next page loads
+    expect(activityEntriesOf(more).map((item) => item.id)).toEqual(['a', 'b']);
+    const all = run(
+      { type: 'load' },
+      { type: 'pageLoaded', page: first },
+      { type: 'loadMore' },
+      { type: 'pageLoaded', page: second },
+      { type: 'loadMore' },
+      { type: 'pageLoaded', page: last }
+    );
+    expect(activityEntriesOf(all).map((item) => item.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(hasOlderActivity(all)).toBe(false);
+    // The oldest page reached: the end coming into view loads nothing
+    expect(activityCardReducer(all, { type: 'loadMore' })).toBe(all);
+  });
+
+  it('knows when an older page is there', () => {
+    expect(hasOlderActivity(run({ type: 'load' }))).toBe(false);
+    expect(hasOlderActivity(run({ type: 'load' }, { type: 'pageLoaded', page: first }))).toBe(true);
+    expect(hasOlderActivity(run({ type: 'load' }, { type: 'pageLoaded', page: last }))).toBe(false);
+  });
+
+  it('asks for no second page while one loads', () => {
+    const more = run({ type: 'load' }, { type: 'pageLoaded', page: first }, { type: 'loadMore' });
+    expect(activityCardReducer(more, { type: 'loadMore' })).toBe(more);
+    expect(activityCardReducer(run({ type: 'load' }), { type: 'loadMore' })).toEqual({
+      kind: 'loading',
+    });
+  });
+
+  it('fails the first page with nothing shown, and "Try again" asks for it again', () => {
+    const failed = run({ type: 'load' }, { type: 'pageFailed', error: notice });
+    expect(failed).toEqual({ kind: 'failed', pages: [], error: notice });
+    expect(activityRequestOf(failed)).toBeNull();
+    expect(activityStatusOf(failed, 'en')).toBe('');
+    // The failure isn't "closed": opening again doesn't retry by itself
+    expect(activityCardReducer(failed, { type: 'load' })).toBe(failed);
+    const retried = activityCardReducer(failed, { type: 'retry' });
+    expect(retried).toEqual({ kind: 'loading' });
+    expect(activityRequestOf(retried)).toEqual({ cursor: null });
+  });
+
+  it('keeps the loaded entries when an older page fails, and retries that page', () => {
+    const failed = run(
+      { type: 'load' },
+      { type: 'pageLoaded', page: first },
+      { type: 'loadMore' },
+      { type: 'pageFailed', error: notice }
+    );
+    expect(failed).toEqual({ kind: 'failed', pages: [first], error: notice });
+    expect(activityEntriesOf(failed).map((item) => item.id)).toEqual(['a', 'b']);
+    expect(activityCardReducer(failed, { type: 'loadMore' })).toBe(failed);
+    const retried = activityCardReducer(failed, { type: 'retry' });
+    expect(retried).toEqual({ kind: 'loadingMore', pages: [first] });
+    expect(activityRequestOf(retried)).toEqual({ cursor: 'c1' });
+  });
+
+  it('ignores an answer it didn’t ask for, and "Try again" outside a failure', () => {
+    const loaded = run({ type: 'load' }, { type: 'pageLoaded', page: first });
+    expect(activityCardReducer(loaded, { type: 'pageLoaded', page: second })).toBe(loaded);
+    expect(activityCardReducer(loaded, { type: 'pageFailed', error: notice })).toBe(loaded);
+    expect(activityCardReducer(loaded, { type: 'retry' })).toBe(loaded);
+    const closed = INITIAL_ACTIVITY_CARD_STATE;
+    expect(activityCardReducer(closed, { type: 'pageLoaded', page: first })).toBe(closed);
+  });
+
+  it('forgets the pages on a reset, so that the list loads again from the newest', () => {
+    const states = [
+      run({ type: 'load' }),
+      run({ type: 'load' }, { type: 'pageLoaded', page: first }),
+      run({ type: 'load' }, { type: 'pageLoaded', page: first }, { type: 'loadMore' }),
+      run({ type: 'load' }, { type: 'pageFailed', error: notice }),
+    ];
+    for (const state of states) {
+      const reset = activityCardReducer(state, { type: 'reset' });
+      expect(reset).toEqual({ kind: 'closed' });
+      expect(activityCardReducer(reset, { type: 'load' })).toEqual({ kind: 'loading' });
+    }
   });
 });

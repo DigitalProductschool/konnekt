@@ -11,6 +11,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
+import ActivityCard from './ActivityCard';
 import { CONNECTION_DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
 import DraftCard from './DraftCard';
@@ -35,11 +36,13 @@ import {
  * dialog with the draft's body (S17: "Delete “<name>”?", F55, "Keep connection" / "Delete
  * connection", the scrim not closing it) and returns to the overview with the toast "“<name>”
  * deleted." (no Undo, F4), or, if the draft was published or deleted meanwhile, says so in the
- * dialog's alert (W8): "Open the connection" loads the details again, "Go to overview" leaves. Then the Summary,
- * open first (its documents and rules, incomplete parts with the placeholders, unchecked), and
- * the Links card without links: the draft isn't live, so no connection URL shows anywhere
- * (FR-006). The footer's "Edit connection" opens its flow at the step it was saved in. No
- * Activity (F2), no PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12).
+ * dialog's alert (W8): "Open the connection" loads the details again, "Go to overview" leaves.
+ * Then the Summary, open first (its documents and rules, incomplete parts with the placeholders,
+ * unchecked), the Links card without links and without a toggle: the draft isn't live, so no
+ * connection URL shows anywhere (FR-006), and the Activity card (spec 010 S16, FR-022; U93
+ * 7362:54915): Summary and Activity are one accordion, one open at a time, or none. The footer's
+ * "Edit connection" opens its flow at the step it was saved in, for every team member (F31). No
+ * PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12, spec 010 F31).
  */
 export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const { language } = useLanguage();
@@ -51,7 +54,8 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
     languageRef.current = language;
   }, [language]);
   const [state, dispatch] = useReducer(draftDeleteReducer, INITIAL_DRAFT_DELETE_STATE);
-  // The Summary opens first (U07 #24); the Links card has nothing to open
+  // The Summary opens first (U07 #24, U93 7362:54691); the Links card has nothing to open, so
+  // Summary and Activity open one at a time
   const [openAccordion, setOpenAccordion] = useState<DetailAccordionName | null>('summary');
   const navigate = useNavigate();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -139,6 +143,14 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
         />
         <DraftCard />
+        <ActivityCard
+          formConnectionId={id}
+          lastActivity={draft.last_activity}
+          state="draft"
+          open={openAccordion === 'activity'}
+          onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'activity'))}
+          reloadKey={draft.updated_at}
+        />
       </div>
     </WizardLayout>
   );

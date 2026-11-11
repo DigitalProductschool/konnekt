@@ -566,6 +566,129 @@ the audit. Screenshots: `<scratchpad>/T013/`.
 | narrow | reactivate, "Scheduling…" (en) | 160 | page / dialog | h-scroll, clipped, off-screen, h1, focus | none, none, none, 1, ring on keyboard only | scrollWidth 160/clientWidth 160; 0 clipped; 0 off-screen; 1 h1; focus on the confirm button, no ring after the click | match |
 | narrow | scheduled details with the toast (en) | 160 | page / dialog | h-scroll, clipped, off-screen, h1, focus | none, none, none, 1, ring on keyboard only | scrollWidth 160/clientWidth 160; 0 clipped; 0 off-screen; 1 h1; focus on the h1, no ring | match |
 
+#### T032 and T033: the activity's sentences and the Activity card (S15 "The Activity card", S16; FR-022–FR-025, FR-027, FR-031, FR-032, US3-AS1–AS3; frames P10 `6396:48278` (rows `6396:48527`), scheduled `7246:53937` (rows `7246:54525`), deactivated `7246:56374` (rows `7246:56965`), closed `6809:46582`; W10, W16; Chromium via the `playwright-chrome` MCP, 1455 px window = 1440 CSS px body, browser zone UTC; fonts: `document.fonts.check('600 16px "Fira Sans"')`, `('400 14px "Fira Sans"')`, `('600 14px "Fira Sans"')` true; the card mounted for the check after the Summary of `ConnectionDetails.tsx` with its own open state (Summary's toggle untouched), the mount removed before the gates; connections `T033 open` (66 entries: the frame's five, then 60 seeded over every kind and person form, then "Created"), `T033 scheduled`, `T033 deactivated`, `T033 none`, `T033 agent`, `T033 approved` made through `POST /api/form-connections` from `P3 seed live`'s content, their `connection_activity` rows replaced with `psql` (seed in `<scratchpad>/T033/seed.py`, only data-model §2.2's kinds), the times written in UTC so that they read as the frames' in the browser's zone; loading, failures and no answer made with `page.route()`; the narrow rows by `.playwright-mcp/T033/narrow.js`; screenshots in `.playwright-mcp/T033/`, not committed)
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 6809:46582 | closed (`T033 open`) | 1440 | card | size, place | 832 × 102, 16 under the Summary | 832 × 102 at 304, 540 (Summary 422 + 102 + 16) | match |
+| 6809:46582 | closed | 1440 | card | border / radius / fill | 1 px `decorative-border-default` #e1e6f0 / 12 / white | 1px rgb(225, 230, 240) / 12px / oklch(1 0 0) (`DetailAccordion`) | match |
+| 6809:46583 | closed | 1440 | header | padding / gap | 24 / 8 | 24px / 8px | match |
+| 6809:46585 | closed | 1440 | title | text, style | "Activity", title/small Fira Sans SemiBold 16/24 #0b1220 | "Activity", 600 16px/24px rgb(11, 18, 32), at 329, 565 | match |
+| 6809:46586 | closed | 1440 | line | text, style, place | "Last edited by Laura Weber · 23.10.2026, 14:32", body/small 14/24 #4a5468, 4 under the title | same text, 400 14px/24px rgb(74, 84, 104), y 593 (565 + 24 + 4) | match |
+| 6809:46588 | closed | 1440 | toggle | text, style, box | "View activity" label/small #1d56f0, 40 high visible, expand_more 20 | "View activity" 600 14px rgb(29, 86, 240), 132.6 × 40 at 978.4, 571, `expand-more-action-small.svg` 20 × 20, `aria-expanded="false"` | match |
+| 6809:46582 | closed | 1440 | card, screenshot | comparison | title, line, toggle | same (`closed-1440.png`) | match |
+| 6396:48520 | open (`T033 open`) | 1440 | card | border | `action-default` #1d56f0 | rgb(29, 86, 240) | match |
+| 6396:48526 | open | 1440 | toggle | text, glyph | "Hide activity", expand_more | "Hide activity", expand_less | match (`DetailAccordion`'s toggle as built for Links and Summary, spec 008 T078) |
+| 6396:48524 | open | 1440 | line | presence | kept under the title | kept | match |
+| 6396:48527 | open | 1440 | list body | padding | 0 24 16 | 0px 24px 16px | match |
+| 6396:48528 | open | 1440 | entry | box, padding, gap | 782 × 40 at 24, 0; 8 above and below; 16 | 782 × 40 at 329, 641; 8px / 8px; 16px | match |
+| 6396:48529 | open | 1440 | date and time | text, style, box | "23.10.2026, 14:32", body/small 14/24 #4a5468, tnum/zero, 160 × 24 | "23.10.2026, 14:32", 400 14px/24px rgb(74, 84, 104), tabular-nums slashed-zero, 160 × 24 (`<time>`) | match |
+| 6396:48530 | open | 1440 | event | text, style, box | "Published", label/small SemiBold, x 176, 510 wide | "Published", 600 14px/24px rgb(74, 84, 104), x 505 (329 + 176), 510.5 wide | match |
+| 6396:48531 | open | 1440 | person | text, style, box | "Laura Weber", body/small, right, x 702, 80 wide | "Laura Weber", 400 14px, text-align right, x 1031.5 (329 + 702.5), 79.5 wide | match |
+| 6396:48527 | open | 1440 | rows | order, texts | Published / Rules changed in Ambulance / Variant added: Ambulance / Documents changed / Created, newest first | the same five, newest first, then the seeded older entries | match |
+| 6396:48527 | open | 1440 | list | height | 5 rows, 216 with the padding | 400 (ten rows) of 2000, scrolling inside the card (`max-h-400`); the card 518 high | match (S15: the list scrolls inside the card; 400 px, UNCERTAIN 3) |
+| 6396:48520 | open | 1440 | card, screenshot | comparison | the frame's card with five rows | same layout, ten rows visible (`open-1440.png`) | match |
+| 6396:48278 | open | 1440 | Links card beside the open Activity | layout | Links expanded with Activity | not built here: one card open at a time is T034's | match (FR-022, Clarification #34; T034) |
+| 7246:54525 | scheduled (`T033 scheduled`) | 1440 | rows | texts, style | five rows from "Published" 23.10.2026, 14:32 | "Scheduled for 01.12.2026" above "Published" (same instant, position 1), then the frame's five; rows as 6396:48527 | match (W10: the scheduling entry with its date, U95 #14) |
+| 7246:54519 | scheduled | 1440 | line | text | "Last edited by Laura Weber · 23.10.2026, 14:32" | same | match |
+| 7246:53937 | scheduled | 1440 | card, screenshot | comparison | the frame's card | same with the sixth row (`scheduled-open-1440.png`) | match (W10) |
+| 7246:56965 | deactivated (`T033 deactivated`) | 1440 | rows | texts | "Deactivated" 24.10.2026, 10:05 Laura Weber, then the five | same six rows | match |
+| 7246:56962 | deactivated | 1440 | line | text | "Deactivated by Laura Weber · 24.10.2026, 10:05" | same | match (FR-024, US3-AS3) |
+| 7246:56374 | deactivated | 1440 | card | size, screenshot | 832 × 358 (100 + 256 + 2) | 832 × 358 (`deactivated-open-1440.png`) | match |
+| W10 | closed, agent's change (`T033 agent`) | 1440 | line | text | "Last edited by <name> with <agent> · …" | "Last edited by Laura Weber with Claude Code · 23.10.2026, 14:32" | match (FR-027) |
+| W10 | closed, approved (`T033 approved`) | 1440 | line | text | "<name>, asked by <agent>" | "Last edited by Jonas Brandt, asked by Claude Code · 23.10.2026, 14:32" | match (FR-027) |
+| W10 | closed, no person (`T033 none`) | 1440 | line | text | "Last edited · <date>, <time>" | "Last edited · 12.09.2026, 08:00" | match (FR-032) |
+| W10 | closed, all five, German | 1440 | line, title, toggle | text | copy.md §3 | "Aktivität", "Aktivität ansehen"; "Zuletzt bearbeitet von Laura Weber mit Claude Code · …", "Zuletzt bearbeitet von Jonas Brandt, angefragt von Claude Code · …", "Zuletzt bearbeitet · 12.09.2026, 08:00", "Deaktiviert von Laura Weber · 24.10.2026, 10:05", "Zuletzt bearbeitet von Laura Weber · …" | match |
+| W10 | loaded, every kind and person form | 1440 | rows | texts, EN and DE | copy.md §3 | "Name changed" / "Description changed" / "Variant removed: Taxi" / "Variant renamed: School transport" / "Rules changed in Standard" / "Scheduled for 01.12.2026" / "Start date changed to 15.01.2027" / "Start date changed to now" / "Became active" (no person) / "Deactivated" / "Activated again" / "Deleted" / "Restored"; persons "Jonas Brandt with Claude Code", "Laura Weber, asked by Claude Desktop", none; German "Startdatum auf den 15.01.2027 geändert", "Aktiv geworden", "Wieder aktiviert", "Jonas Brandt mit Claude Code", "…, angefragt von Claude Desktop" | match |
+| W10 | loading (1.5 s held) | 1440 | status | text, place, style | "Loading activity…" in the card, announced | "Loading activity…" in the card's `role="status"` paragraph at 329, 641, 782 × 40, 14/24 muted; "Hide activity", blue border; no list | match (UNCERTAIN 4: a text line, no spinner) |
+| W10 | loading more (1.5 s held) | 1440 | status | text, place | "Loading earlier activity…" | under the 50 entries at 329, 931 (list bottom + 0), announced in the same status; request `?cursor=` | match |
+| R15 V6 | loaded | 1440 | next page | trigger | the list's end in view, the list as root | the wheel over the list scrolled it to 1600; the `IntersectionObserver` on the last row with `root: list` asked for the next page; 50 → 66 entries | match |
+| W10 | end reached | 1440 | list | last entry, further loads | down to the oldest | 66 entries, the last "18.10.2026, 05:00 · Created", scrolled to the end; no further request, the status empty | match (US3, EC-10) |
+| R15 V6 | loaded | 1440 | list | keyboard | takes the focus, scrolls with the keyboard | Tab from "Hide activity" focuses the `ol` "Activity, newest first" (`tabIndex` 0); `End` ×12 scrolled to the end and loaded the second page (66) | match |
+| R15 V6 | loaded | 1440 | list | focus ring after Tab / after a click | ring / none | `:focus-visible` true, solid 4px offset 2px / after a click false, outline none | match (KERN's `[tabindex]` rules overridden with `!`, as `PersonaChip`) |
+| W10 | failed, `500` with an error ID | 1440 | failure | content | "Couldn’t load the activity" with "Try again" | KERN danger alert (`role="alert"`) "Couldn’t load the activity", the server's message and "Error ID: …", "Try again" (secondary) under it; no list (`failed-1440.png`) | match |
+| W10 | failed, no answer (aborted) | 1440 | failure | text | the fallback | "Couldn’t load the activity" with "Check your connection and try again." | match (UNCERTAIN 5) |
+| W10 | failed, "Try again" | 1440 | retry | effect | the page again | first page: 50 entries; an older page that failed kept the 50 and the alert under them (`more-failed-1440.png`), "Try again" loaded it: 66 | match |
+| FR-022 | loaded, then "Deactivate" on the page (`T033 agent`) | 1440 | reload | effect | the card reloads after an action changed the connection | the answer's `updated_at` as `reloadKey`: a second request, the first row "11.11.2026, 14:41 · Deactivated · p10-alice", the line "Deactivated by p10-alice · 11.11.2026, 14:41", the card still open | match |
+| FR-029 | all | 1440 | console | entries, names, dates | never logged | no `console.*` in `ActivityCard.tsx`, `ActivityRow.tsx`, `utils.ts`; the console holds only React's DevTools note and the browser's own lines for the routed `500`s | match |
+| narrow | closed, loading, loaded, loading more, end, failed, EN | 320 | page | horizontal scroll / h1 count | none / 1 | scrollWidth 305 ≤ clientWidth 320 / 1 in each | match |
+| narrow | closed, loading, loaded, loading more, end, failed, EN | 320 | card | off-screen / clipped | 0 / none | card 16–289; 0 elements outside 0–320; no text box wider than its box; the list's scrollWidth 223 = clientWidth | match |
+| narrow | loaded, loading more, end, EN | 320 | entry | the three parts | stacked (W16) | `flex-direction: column`: date 41, 747; event 41, 771; person 41, 795; each 223 wide (`loaded-320.png`) | match (stacked from below `sm`, UNCERTAIN 2) |
+| narrow | loaded | 320 | list | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | closed, loading, loaded, loading more, end, failed, EN | 160 | page | horizontal scroll / h1 count | none / 1 | scrollWidth 160 = clientWidth / 1 in each | match |
+| narrow | closed, loading, loaded, loading more, end, failed, EN | 160 | card | off-screen / clipped | 0 / none | card 8–137; 0 outside in five states; no text box wider than its box; list 103 = 103 | match |
+| narrow | failed | 160 | card | off-screen | 0 | after Playwright's clicks `html.scrollLeft` read 15 with scrollWidth 160 = clientWidth (the tool scrolling into view); opened by script clicks, scrollLeft stayed 0 and no element lay outside 0–160; the alert's title wraps under its icon (`failed-160.png`) | match |
+| narrow | loaded | 160 | entry | the three parts | stacked | date 21, 675, 103 × 48 (two lines), event 21, 723, person 21, 747 (`loaded-160.png`) | match (W16) |
+| narrow | loaded | 160 | list | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | failed, no answer | 320, 160 | failure | text | the fallback | "Couldn’t load the activity" / "Check your connection and try again." | match |
+
+#### T034: Links, Summary and Activity as one accordion on every details page (S15 "The three cards", S16; FR-022, US3-AS1, US3-AS2; frames V-Active A `7246:51510` (column `7246:51515`, Links `7246:51546`, Summary `7246:52082`, Activity `7246:52089`), the draft's details `7362:54691` (Links `7362:54905`, Activity `7362:54912`); F31, F40; Chromium via the `playwright-chrome` MCP, 1455 px window = 1440 CSS px body; fonts: `document.fonts.check('600 16px "Fira Sans"')`, `('400 14px "Fira Sans"')`, `('600 14px "Fira Sans"')` true; connections made through the API in `template_db_010_p5`: `T034 live`, `T034 status`, `T034 date`, `T034 saved`, `T034 scheduled` (`POST /api/form-connections` from `T033 approved`'s content), drafts `T034 draft`, `T034 publish`, `T034 publish 2`, `T034 schedule at publish` (`POST /api/form-connections/drafts`; the last three published through the UI); the arrivals reached through the real flows (the editor's "Publish without rules" → "Publish connection" / "On a date" → "Schedule", the details' "Edit connection" → the edit flow's "Save" → "Save", the overview's search and row link); the `/activity` requests and the actions' answers counted with `page.on('request' / 'response')`; the narrow rows by `.playwright-mcp/T034/narrow.js` (viewport 320 and 160, overflow by `scrollWidth` and element boxes, not `scrollLeft`); screenshots in `.playwright-mcp/T034/`, not committed)
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 7246:51510 | frame | 1440 | frame | changed since the audit | U92's inventory: band, Links closed, Summary closed with "Download PDF", Activity open with five rows | the same nodes and texts (`get_metadata` 7246:51515, `get_screenshot` 7246:51510) | match |
+| 7362:54691 | frame | 1440 | frame | changed since the audit | U93's inventory: band, Summary open, Links "not created yet", Activity closed, footer "Edit connection" | the same (`get_screenshot` 7362:54691, `get_metadata` 7362:54905 / 7362:54912) | match |
+| 7246:51515 | Activity opened (`T034 publish`) | 1440 | column | order | band, Links, Summary, Activity | band, Links, Summary, Activity (`ConnectionDetails.tsx`) | match (FR-022) |
+| 7246:51546 | Activity opened | 1440 | Links card | place, size | y 208 in the column, 832 × 102 | y 304 − 96 = 208, 832 × 102 | match |
+| 7246:51552 | Activity opened | 1440 | Links toggle | text, state | "View links", expand_more | "View links", `expand-more-action-small.svg`, `aria-expanded="false"` | match (F40) |
+| 7246:51546 | Activity opened | 1440 | Links card | border / radius | 1 px #e1e6f0 / 12 | 1px rgb(225, 230, 240) / 12px | match |
+| 7246:52082 | Activity opened | 1440 | Summary card | place, size, toggle | y 326, 832 × 102, "View summary" | y 422 − 96 = 326, 832 × 102, "View summary" `aria-expanded="false"` | match |
+| 7246:52087 | Activity opened | 1440 | Summary card | "Download PDF" | drawn | none | not built, F12 |
+| 7246:52089 | Activity opened | 1440 | Activity card | place | y 444 (326 + 102 + 16) | y 540 − 96 = 444 | match |
+| 7246:52089 | Activity opened | 1440 | Activity card | border / height | #1d56f0 / 318 = 100 + 2 + 5 × 40 + 16 | rgb(29, 86, 240) / 198 = 100 + 2 + 2 × 40 + 16 (two entries: "Published", "Created") | match (height by entries, T033's rows) |
+| 7246:52095 | Activity opened | 1440 | Activity toggle | text, glyph | "Hide activity", expand_more | "Hide activity", expand_less | match (design-notes §4.2 T032/T033 (7)) |
+| 7246:52093 | Activity opened | 1440 | Activity line | text | "Last edited by <person> · <date>, <time>" | "Last edited by p10-alice · 11.11.2026, 14:55" | match |
+| 7246:51510 | Activity opened | 1440 | page, screenshot | comparison | band, Links and Summary closed, Activity open | the same without "Download PDF" (`activity-open-1440.png`) | match (F12) |
+| 7246:51510 | Activity opened | 1440 | fonts | check | Fira Sans 600 16, 400 14, 600 14 | true, true, true | match |
+| F40 (P7 U80 6396:47708) | after publishing (`T034 publish`, the editor's "Publish connection") | 1440 | cards | open state | Links open, Summary and Activity closed | "Hide links" `true`, "View summary" `false`, "View activity" `false`; Links 832 × 359 with the blue border; the focus on the h1 "Your connection is active" (`published-links-1440.png`) | match (FR-022) |
+| F40 | after publishing | 1440 | cards | opening Activity | Links closes, its control "View links" | "View links" `false`, "View summary" `false`, "Hide activity" `true` | match (F40) |
+| S15 "Arriving after Schedule" | after "Schedule" at publishing (`T034 schedule at publish`, 18.12.2026) | 1440 | cards | open state | as after publishing, Links open | "Hide links" `true`, "View summary" `false`, "View activity" `false`; the focus on the h1 "Your connection is scheduled" | match |
+| F40 (E4 U99 6730:39754) | after the edit flow's "Save" (`T034 saved`, description changed) | 1440 | cards | open state | Links open | "Hide links" `true`, "View summary" `false`, "View activity" `false`, the toast "Changes saved." (`saved-links-1440.png`) | match (FR-022; the changed expectation of `initialAccordionOf('saved')`, carried from T028) |
+| F40 | after "Save" | 1440 | cards | opening Activity | Links closes | "View links" `false`, "View summary" `false`, "Hide activity" `true`; rows "Description changed", "Published", "Created" | match |
+| U91 7203:50843 | opened from the overview (`T034 live`: search, the row's link) | 1440 | cards | open state | Summary open, as today | "View links" `false`, "Hide summary" `true`, "View activity" `false`; Activity at y 944 under the 506 high Summary | match (spec 008 FR-046) |
+| U94 7246:52715 | opened directly (`T034 scheduled`) | 1440 | cards | open state | Summary open | "View links" `false`, "Hide summary" `true`, "View activity" `false` | match |
+| FR-022 | one card at a time (`T034 publish`) | 1440 | toggles | sequence | at most one open | View summary → Summary only; View links → Links only; Hide links → none; View activity → Activity only; View summary → Summary only | match (`toggleAccordion()`) |
+| FR-022 | Activity open, "Deactivate" (`T034 status`) | 1440 | Activity card | reload | the card reloads after an action changed the connection | `updated_at` 14:53 → 14:58:22.84; one new `/activity` request; first row "11.11.2026, 14:58 · Deactivated · p10-alice", the line "Deactivated by p10-alice · 11.11.2026, 14:58", the card still open (`deactivated-activity-reloaded-1440.png`) | match |
+| FR-022 | Activity open, "Activate again" on a date (15.12.2026) | 1440 | Activity card | reload | reloads | `updated_at` → 14:58:46.36, state `scheduled`; one new request; first row "Scheduled for 15.12.2026" | match |
+| FR-022 | Activity open, "Change start date" to 20.12.2026 (scheduled) | 1440 | Activity card | reload | reloads | `updated_at` → 14:59:00.59; one new request; first row "Start date changed to 20.12.2026" | match |
+| FR-022 | Activity open, "Change start date" with "Now" (scheduled) | 1440 | Activity card | reload | reloads | `updated_at` → 14:59:02.77, state `live`; one new request; first row "Start date changed to now" (the server folded the 20.12.2026 change into it: 5 entries) | match (the server's entries) |
+| FR-022 | Activity open, "Deactivate", then "Activate again" with "Now" | 1440 | Activity card | reload | reloads | `updated_at` → 14:59:22.48, then 14:59:23.77; one new request after "Activate"; first row "Activated again", 7 rows | match |
+| FR-022 | Activity loaded, then closed by "View summary"; "Change start date" 10.12.2026 on a live connection (`T034 date`) | 1440 | Activity card | reload while closed | loads again on the next opening | no request while closed; `updated_at` → 14:59:37.42, state `scheduled`; "View activity" sent one request, first row "Scheduled for 10.12.2026" (before: "Published") | match (T033's `reloadKey`) |
+| FR-029 | all | 1440 | console | entries, names, dates | never logged | only React's DevTools note | match |
+| 7362:54691 | draft opened (`T034 draft`) | 1440 | column | order | band, Summary (open), Links (static), Activity (closed) | band, Summary "Hide summary" `true`, Links without toggle, Activity "View activity" `false` | match (S16) |
+| 7362:54691 | draft opened | 1440 | cards | place, gaps | band 208 high, Summary at 224, cards 16 apart (Links 972, Activity 1090 = 972 + 102 + 16) | band 96–304, Summary at 320 − 96 = 224, Links at 842 = 826 + 16, Activity at 960 = 842 + 102 + 16 | match (the Summary 506 high with 0 rules, the frame's 732 with 4) |
+| 7362:54912 | draft opened | 1440 | Activity card | size, border, texts | 832 × 102, #e1e6f0, "Activity", "Last edited by Laura Weber · 03.10.2026, 14:32", "View activity" expand_more | 832 × 102, rgb(225, 230, 240), "Activity", "Last edited by p10-alice · 11.11.2026, 14:54", "View activity" expand_more | match |
+| 7362:54905 | draft opened | 1440 | Links card | toggle | none | none ("Created when the connection is published and active.") | match (S16: as built) |
+| 7362:54920 | draft opened | 1440 | footer | "Edit connection" | shown (V-Draft · S) | the link `kern-btn kern-btn--secondary` to `/form-connections/<id>/edit`, no role check | match (F31) |
+| 7362:54923 | draft, view-only | 1440 | page | presence | V-Draft · S2 without "Edit connection" | none | not built, F31 |
+| 7362:54813 | draft opened | 1440 | Summary | "Download PDF" | drawn | none | not built, F12 |
+| S16 | draft, Activity opened | 1440 | cards | one at a time | Summary closes | "View summary" `false`, "Hide activity" `true`; row "11.11.2026, 14:54 · Created · p10-alice"; Activity 832 × 158 | match |
+| S16 | draft, Summary opened again, then closed | 1440 | cards | sequence | Activity closes; none open | "Hide summary" `true`, "View activity" `false`; then both `false` | match |
+| 7362:54691 | draft, Summary open | 1440 | page, screenshot | comparison | the frame | the same without "Download PDF" (`draft-summary-1440.png`, `draft-activity-1440.png`) | match (F12) |
+| narrow | after publishing, Links open (`T034 publish 2`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | scrollWidth 305 ≤ clientWidth 320; 1 h1; 0 outside 0–320; cards 16 + 273; only the header's name "T034 publish 2" ends in an ellipsis | match (spec 008's header truncates the name) |
+| narrow | after publishing, Links open | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none; cards 8 + 129 | match |
+| narrow | after publishing | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | `:focus-visible` true, solid 4px / false, none | match |
+| narrow | after "Save", Links open (`T034 saved`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; the header's name ellipsis only | match (spec 008's header) |
+| narrow | after "Save", Links open | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | after "Save" | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | Activity opened, Links and Summary closed (`T034 saved`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; the header's name ellipsis only | match (spec 008's header) |
+| narrow | Activity opened | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | Activity opened | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | opened from the overview, Summary open (`T034 live`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; the header's name ellipsis only | match (spec 008's header) |
+| narrow | opened from the overview | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | opened from the overview | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | deactivated, Activity open and reloaded (`T034 status`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; none | match |
+| narrow | deactivated, Activity reloaded | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | deactivated, Activity reloaded | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | scheduled by "Activate again", Activity open and reloaded (`T034 status`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; none | match |
+| narrow | scheduled, Activity reloaded | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | scheduled, Activity reloaded | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+| narrow | draft, Summary open (`T034 draft`) | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; cards 16 + 273 (Links static); the header's name ellipsis only | match (spec 008's header) |
+| narrow | draft, Summary open | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none; cards 8 + 129 | match |
+| narrow | draft, Activity open | 320 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 305 ≤ 320; 1; 0; the header's name ellipsis only | match (spec 008's header) |
+| narrow | draft, Activity open | 160 | page | h-scroll, h1, off-screen, clipped | none, 1, 0, none | 160 = 160; 1; 0; none | match |
+| narrow | draft, Summary open and Activity open | 320, 160 | Activity toggle | focus ring after Tab / after a click | ring / none | true, solid 4px / false, none | match |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -717,6 +840,70 @@ the audit. Screenshots: `<scratchpad>/T013/`.
 | V4.7 delete a scheduled connection | de | Firefox | 14 | "„T030 firefox de u2m2 v1“ löschen?"; "„T030 firefox de u2m2 v1“ gelöscht." | pass |
 
 88 rows (22 steps × 2 languages × 2 browsers), 88 pass, 0 open; 1084 measures, 1084 pass, 0 fail, 0 unsure. SC-001 measured from the UPDATE: chromium-en links 1314 ms, chromium-en details 2176 ms, chromium-de links 724 ms, chromium-de details 1717 ms, firefox-en links 489 ms, firefox-en details 2331 ms, firefox-de links 1094 ms, firefox-de details 2700 ms (the worker’s cycle is 2 s; SC-001 allows a minute). No fix was needed; no screenshot of a walked state opened (one, of a script error before the first measure, showed the sign-in page: the script’s cookie origin, corrected).
+
+#### T036: walk V6, the activity (US3; FR-022–FR-032, SC-004, US3-AS1–AS6; scripted `playwright-core` 1.65: Chromium 156 (`/usr/bin/chromium`), 1440 × 900, browser zone Europe/Berlin, narrow rows at 320 × 800; English and German through the stored language choice; backend on 3011 with the fake EUDIPLO, `WORKER_ENABLED=false`, database `template_db_010_p5`; accounts `p10-alice` (the browser) and `p10-bob` (API), the agent a personal access token `T036 agent` (level `drafts`) created for `p10-alice` through `POST /api/agent-access/tokens` and revoked at the end (its next call 401); every row compared with the text the script composed from `GET /api/form-connections/{id}/activity` and copy.md §3 (time in Europe/Berlin), the newest entries' kind and person checked against what the action should write, their time inside the action, the closed line against data-model §2.5, the agent's view the same API with the bearer (the MCP not run); drafts made and changed through the API (alice, bob, the agent), published, reactivated, scheduled, saved and approved in the UI (the editor's "Publish" → "Publish connection", "On a date" → "Schedule", the details' "Activate again" → "Activate", "Edit connection" → the edit flow's "Save" → "Save", the approval page's "Approve"); V6.3's propagation sent as the editor sends it (Standard's rule and the linked variant's unmarked copy changed together); V6.7 on `T033 open` (66 seeded entries); V6.8 with `psql`; the loading skeleton read with the connection's GET held back 1.5 s by `page.route()`; connections `T036 <lang> <stamp> {v61 (renamed), v62, v63, v64, v66 scheduled, v66 deactivated, v66 schedule, v66 save}`; CSV `<scratchpad>/T036/walk.csv`, summary `<scratchpad>/T036/summary.md`)
+
+| step | language | measures | pass | fail | unsure | notes |
+|---|---|---|---|---|---|---|
+| setup | - | 1 | 1 | 0 | 0 |  |
+| V6.1 1 create draft (alice) | en | 10 | 10 | 0 | 0 | entry count 1; "Last edited by p10-alice · 11.11.2026, 16:27"; "Created"; "p10-alice" |
+| V6.1 2 change documents (bob) | en | 10 | 10 | 0 | 0 | entry count 2; "Last edited by p10-bob · 11.11.2026, 16:27"; "Documents changed"; "p10-bob" |
+| V6.1 3 add variant Ambulance (agent) | en | 10 | 10 | 0 | 0 | entry count 3; "Last edited by p10-alice with T036 agent · 11.11.2026, 16:27"; "Variant added: Ambulance"; "p10-alice with T036 agent" |
+| V6.1 4 change Ambulance's rules (bob) | en | 10 | 10 | 0 | 0 | entry count 4; "Last edited by p10-bob · 11.11.2026, 16:27"; "Rules changed in Ambulance"; "p10-bob" |
+| V6.1 5 rename (alice) | en | 10 | 10 | 0 | 0 | entry count 5; "Last edited by p10-alice · 11.11.2026, 16:27"; "Name changed"; "p10-alice" |
+| V6.6 after publishing | en | 3 | 3 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open" |
+| V6.1 6 publish (alice, UI) | en | 10 | 10 | 0 | 0 | "Last edited by p10-alice · 11.11.2026, 16:27"; entry count 6; "Published"; "p10-alice" |
+| V6.1 7 deactivate (bob) | en | 10 | 10 | 0 | 0 | entry count 7; "Deactivated by p10-bob · 11.11.2026, 16:27"; "Deactivated"; "p10-bob" |
+| V6.5 deactivated closed line | en | 3 | 3 | 0 | 0 | "Deactivated by p10-bob · 11.11.2026, 16:27" |
+| V6.1 8 reactivate (alice, UI) | en | 10 | 10 | 0 | 0 | entry count 8; "Activated again"; "p10-alice"; "Last edited by p10-alice · 11.11.2026, 16:27" |
+| narrow 320: card closed | en | 4 | 4 | 0 | 0 | "scrollWidth 305 ≤ 320" |
+| narrow 320: card open | en | 5 | 5 | 0 | 0 | "scrollWidth 305 ≤ 320" |
+| V6.2 twenty changes by the agent: one row | en | 11 | 11 | 0 | 0 | entry count 3; "Last edited by p10-alice with T036 agent · 11.11.2026, 16:27"; "Rules changed in Ambulance"; "p10-alice with T036 agent" |
+| V6.2 another person in between | en | 10 | 10 | 0 | 0 | entry count 4; "Last edited by p10-bob · 11.11.2026, 16:27"; "Rules changed in Ambulance"; "p10-bob" |
+| V6.2 the agent again: a new row | en | 10 | 10 | 0 | 0 | entry count 5; "Last edited by p10-alice with T036 agent · 11.11.2026, 16:27"; "Rules changed in Ambulance"; "p10-alice with T036 agent" |
+| V6.3 propagating change of Standard | en | 11 | 11 | 0 | 0 | "T036 message propagated\|null"; entry count 2; "Last edited by p10-alice · 11.11.2026, 16:27"; "Rules changed in Standard"; "p10-alice" |
+| V6.4 approved publish | en | 14 | 14 | 0 | 0 | entry count 2; "Last edited by p10-alice, asked by T036 agent · 11.11.2026, 16:27"; "Published"; "p10-alice, asked by T036 agent"; "Published · p10-alice, asked by T036 agent" |
+| V6.6 one card at a time: live | en | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: scheduled | en | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: deactivated | en | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: draft | en | 3 | 3 | 0 | 0 | "summary:open activity:closed" |
+| V6.6 after "Schedule" | en | 11 | 11 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open"; entry count 3; "Scheduled for 20.12.2026"; "p10-alice" |
+| V6.6 after the edit flow's "Save" | en | 12 | 12 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open"; entry count 3; "Description changed"; "p10-alice" |
+| skeleton while loading | en | 4 | 4 | 0 | 0 | skeleton cards (published) 3; skeleton cards (draft) 3 |
+| V6.7 seeded list | en | 1 | 1 | 0 | 0 |  |
+| V6.7 the oldest by wheel | en | 5 | 5 | 0 | 0 | all entries loaded 66; "18.10.2026, 07:00 · Created · " |
+| V6.7 the oldest by keyboard | en | 6 | 6 | 0 | 0 | all entries loaded 66; "18.10.2026, 07:00 · Created · " |
+| V6.1 1 create draft (alice) | de | 10 | 10 | 0 | 0 | entry count 1; "Zuletzt bearbeitet von p10-alice · 11.11.2026, 16:27"; "Erstellt"; "p10-alice" |
+| V6.1 2 change documents (bob) | de | 10 | 10 | 0 | 0 | entry count 2; "Zuletzt bearbeitet von p10-bob · 11.11.2026, 16:27"; "Dokumente geändert"; "p10-bob" |
+| V6.1 3 add variant Ambulance (agent) | de | 10 | 10 | 0 | 0 | entry count 3; "Zuletzt bearbeitet von p10-alice mit T036 agent · 11.11.2026, 16:27"; "Variante hinzugefügt: Ambulance"; "p10-alice mit T036 agent" |
+| V6.1 4 change Ambulance's rules (bob) | de | 10 | 10 | 0 | 0 | entry count 4; "Zuletzt bearbeitet von p10-bob · 11.11.2026, 16:28"; "Regeln in Ambulance geändert"; "p10-bob" |
+| V6.1 5 rename (alice) | de | 10 | 10 | 0 | 0 | entry count 5; "Zuletzt bearbeitet von p10-alice · 11.11.2026, 16:28"; "Name geändert"; "p10-alice" |
+| V6.6 after publishing | de | 3 | 3 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open" |
+| V6.1 6 publish (alice, UI) | de | 10 | 10 | 0 | 0 | "Zuletzt bearbeitet von p10-alice · 11.11.2026, 16:28"; entry count 6; "Veröffentlicht"; "p10-alice" |
+| V6.1 7 deactivate (bob) | de | 10 | 10 | 0 | 0 | entry count 7; "Deaktiviert von p10-bob · 11.11.2026, 16:28"; "Deaktiviert"; "p10-bob" |
+| V6.5 deactivated closed line | de | 3 | 3 | 0 | 0 | "Deaktiviert von p10-bob · 11.11.2026, 16:28" |
+| V6.1 8 reactivate (alice, UI) | de | 10 | 10 | 0 | 0 | entry count 8; "Wieder aktiviert"; "p10-alice"; "Zuletzt bearbeitet von p10-alice · 11.11.2026, 16:28" |
+| narrow 320: card closed | de | 4 | 4 | 0 | 0 | "scrollWidth 305 ≤ 320" |
+| narrow 320: card open | de | 5 | 5 | 0 | 0 | "scrollWidth 305 ≤ 320" |
+| V6.2 twenty changes by the agent: one row | de | 11 | 11 | 0 | 0 | entry count 3; "Zuletzt bearbeitet von p10-alice mit T036 agent · 11.11.2026, 16:28"; "Regeln in Ambulance geändert"; "p10-alice mit T036 agent" |
+| V6.2 another person in between | de | 10 | 10 | 0 | 0 | entry count 4; "Zuletzt bearbeitet von p10-bob · 11.11.2026, 16:28"; "Regeln in Ambulance geändert"; "p10-bob" |
+| V6.2 the agent again: a new row | de | 10 | 10 | 0 | 0 | entry count 5; "Zuletzt bearbeitet von p10-alice mit T036 agent · 11.11.2026, 16:28"; "Regeln in Ambulance geändert"; "p10-alice mit T036 agent" |
+| V6.3 propagating change of Standard | de | 11 | 11 | 0 | 0 | "T036 message propagated\|null"; entry count 2; "Zuletzt bearbeitet von p10-alice · 11.11.2026, 16:28"; "Regeln in Standard geändert"; "p10-alice" |
+| V6.4 approved publish | de | 14 | 14 | 0 | 0 | entry count 2; "Zuletzt bearbeitet von p10-alice, angefragt von T036 agent · 11.11.2026, 16:28"; "Veröffentlicht"; "p10-alice, angefragt von T036 agent"; "Veröffentlicht · p10-alice, angefragt von T036 agent" |
+| V6.6 one card at a time: live | de | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: scheduled | de | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: deactivated | de | 5 | 5 | 0 | 0 | "links:closed summary:open activity:closed" |
+| V6.6 one card at a time: draft | de | 3 | 3 | 0 | 0 | "summary:open activity:closed" |
+| V6.6 after "Schedule" | de | 11 | 11 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open"; entry count 3; "Geplant für den 20.12.2026"; "p10-alice" |
+| V6.6 after the edit flow's "Save" | de | 12 | 12 | 0 | 0 | "links:open summary:closed activity:closed"; "links:closed summary:closed activity:open"; entry count 3; "Beschreibung geändert"; "p10-alice" |
+| skeleton while loading | de | 4 | 4 | 0 | 0 | skeleton cards (published) 3; skeleton cards (draft) 3 |
+| V6.7 seeded list | de | 1 | 1 | 0 | 0 |  |
+| V6.7 the oldest by wheel | de | 5 | 5 | 0 | 0 | all entries loaded 66; "18.10.2026, 07:00 · Erstellt · " |
+| V6.7 the oldest by keyboard | de | 6 | 6 | 0 | 0 | all entries loaded 66; "18.10.2026, 07:00 · Erstellt · " |
+| V6.8 the table | - | 4 | 4 | 0 | 0 | "became_active created deactivated deleted description_changed documents_changed published reactivated renamed restored rules_changed scheduled start_date_changed variant_added variant_removed variant_renamed"; no rule content, message or value in any column 0 |
+| teardown | - | 2 | 2 | 0 | 0 |  |
+
+57 rows; 423 measures, 423 pass, 0 fail, 0 unsure.
 
 ### 2.3 The measured sweeps
 
@@ -1055,8 +1242,72 @@ reversed.
   "Taxi", so that a variant's pull URL is compared too (`P3 seed live` has only Standard). The
   date was typed `05.12.2026` in English and ` 5.12.2026 ` in German (`D.M.YYYY` with spaces).
   Busy labels were caught by holding the call 1.5 s with `page.route()`. Kept.
+- **T032/T033, the activity's sentences and the Activity card** (their UNCERTAIN 1–7; the
+  coordinator, phase 5): (1) `activityClosedLineOf()` words "Deactivated by …" only when the state
+  is `deactivated` and `last_activity`'s kind is `deactivated`; when the server falls back to the
+  newest entry with a person (a deactivated connection without a deactivation entry), the line
+  reads "Last edited by …"; without `last_activity` it answers null and the card shows no line.
+  (2) An entry's three parts stack below `sm` (640 px), not only below 320 CSS px: at 320 px the
+  card's content is about 238 px wide and the drawn 160 px date column leaves the event no room;
+  from `sm` up the person column is capped at a third of the row and wraps, and at 1440 the row is
+  as drawn (S15 "Narrow" names no width). (3) The list scrolls inside the card at most 400 px high
+  (`max-h-400`, ten rows); no frame draws a height. (4) "Loading activity…" and "Loading earlier
+  activity…" are a muted 14/24 line in one persistent `role="status"` paragraph, no spinner; the
+  failure and "Try again" show inside the card under the entries already loaded. (5) The failure's
+  no-answer body reuses the Summary's "Check your connection and try again." (copy.md §3 gained
+  the row). (6) The list's keyboard ring uses `!` classes, as `PersonaChip` does: KERN's unlayered
+  `[tabindex]` rules otherwise draw a ring on any focus and none on `:focus-visible`. (7) Open, the
+  card's toggle shows `DetailAccordion`'s `expand_less`, where the frame draws `expand_more`: it
+  keeps what spec 008 built for Links and Summary. The card is built on `DetailAccordion`, its open
+  state controlled by the page (`open`, `onToggle`) and its pages dropped when `reloadKey`
+  changes (carried to T034). Kept.
+- **T035, `get_activity`** (its UNCERTAIN 1–5; the coordinator, phase 5): the last page leaves
+  `next_cursor` out, as the contract's `next_cursor?` says (`search_connections` answers `null`);
+  `agent` shows whenever the entry's actor has one, `approved: true` only with an agent (copy.md
+  §3 words "asked by <agent>" only); the tool reads the connection first for its `ConnectionRef`,
+  so a deleted or unknown connection answers `not_found` before the activity is asked; days stay
+  ISO `YYYY-MM-DD` and `at` the backend's UTC instant, as the MCP's other answers; the text block's
+  own lines ("Activity, newest first:", "No activity yet.", "Earlier entries exist: pass the cursor
+  {c}.") are the agent's wording, modelled on `search_connections`. Kept.
+- **T034, the three cards as one accordion** (T034's UNCERTAIN 1–4; the coordinator, phase 5):
+  (1) the draft's details order Summary → the draft's Links card → Activity, as `7362:54691` draws
+  it (S16's "after the Summary" holds); (2) the draft keeps its literal `'summary'` as the first
+  open card, `initialAccordionOf()` serving only a published connection's arrivals (`null` →
+  Summary, every arrival → Links, so "Schedule" and the edit flow's "Save" land on Links: the one
+  changed test expectation, `'saved'`, FR-022, carried from T028); (3) the loading skeleton in
+  `FormConnectionDetail/index.tsx` still draws two cards, so the page grows by one card once it
+  loads: **plan change**, `index.tsx` joins T036's files for the third `SkeletonAccordion` (the
+  story's walk owns its fixes); (4) the header name's ellipsis at 320 CSS px is spec 008's (cf.
+  §4.3 "The connection's name in the header at narrow widths"), recorded as a match. `reloadKey` is
+  `updated_at`: deactivate, "Activate again" now and on a date, and "Change start date" (another
+  date, "Now", a live connection's date) each moved it and caused one `/activity` request with the
+  card open; the server's no-change cases send nothing from the UI. Kept.
+- **T036, the walk V6** (T036's UNCERTAIN 1–4 and 6; the coordinator, phase 5): most actions
+  went through the API with each person's session or the agent's bearer and were read in the
+  browser as `p10-alice`; publishing, scheduling, reactivating, the edit flow's "Save" and the
+  approval were done in the UI. V6.3's propagation was sent as the editor sends it (Standard's
+  rule and the linked variant's unmarked copy in one save), not typed in the rules editor. The
+  agent's view was read through `GET …/activity` with the bearer; the MCP's `get_activity` was not
+  run (T035's tests pin its words). The walk's times read in Europe/Berlin, T033's table in UTC,
+  so V6.7's seeded rows read two hours later here than there (as T036 reports; their October
+  instants fall in summer time). One run crashed before its teardown
+  and left its token active; the agent revoked it by hand, and no `T036` token remains. The only
+  product change was the third skeleton card (T034's plan change). Kept.
 
 ### 4.3 Open points
+
+- **The activity's cursor in the access log** (T036's UNCERTAIN 5; for T084): uvicorn's access
+  line for `GET /api/form-connections/{id}/activity?cursor=…` carries the cursor, which is
+  `urlsafe_b64encode('<occurred_at ISO>|<position>|<id>')` (`activity._encode_cursor()`), so an
+  activity entry's instant reaches the log, encoded (27 lines in T036's run; no name, person or
+  kind). The design chose "the search's keyset cursor" (research, "Reading"; data-model §2.4), and
+  the search's cursor already puts a connection's `updated_at` into the same access lines the same
+  way (`form_connections._encode_cursor()`), so it stays within FR-073's "beyond what the
+  middleware logs today"; tasks.md's rule "the activity, the names and the dates never reach a
+  log line" reads stricter. The coordinator's suggestion: keep it as the search's (FR-073), and
+  if the user wants no instant in any access line, make both cursors opaque (e.g. the last
+  entry's id alone, its time and position read under the query) in one backend task, with the
+  tests of the search and the activity paging. The user decides.
 
 - **The data group "Licence" in German** (T002's UNCERTAIN 4; for T105, before T072): "Führerschein"
   (data-model §6, the glossary's §4 row) is also the name of the document the group sits in;
@@ -1205,5 +1456,36 @@ reversed.
   publish dialog's date error (the walk read it only as `role="alert"` with `aria-invalid` and
   `aria-describedby`); a publish on a date against the hosted EUDIPLO (every browser publish of
   T024–T030 ran against the fake); and, optionally, SC-001's minute timed once by hand.
+- 2026-11-11: phase 5, US3 (T032–T036), each wave's root gates green on the combined tree. The
+  environment: a scratch copy of phase 4's database, `template_db_010_p5`; this checkout's backend
+  on port 3011 with the test suite's fake EUDIPLO (the launcher in the chat's scratchpad),
+  `WORKER_ENABLED=false`, not restarted during the phase since no backend file changed; Vite on
+  5175. Test counts after the phase: `rules/` 2642; `frontend/` 33 files, 1378 tests (+41: the
+  activity's sentences and the card's reducer 38, the accordion's arrivals 3); `mcp/` 15 files, 454
+  tests (+27, `get_activity`); pytest stays at 2319 and was not rerun (no backend file changed;
+  `export_check_fixtures --check` current). Waves ran as planned, with no change of level or
+  batch. **Plan change** (§4.2, T034): `frontend/src/pages/FormConnectionDetail/index.tsx` joined
+  T036's files for the loading skeleton's third card. T033 checked the card through a temporary
+  mount after the Summary of `ConnectionDetails.tsx` and removed it before its gates. copy.md §3
+  gained the activity failure's no-answer body (the Summary's sentence, T033). The `rules/` time
+  budgets of `performance.test.ts` failed under load in T035's run and the coordinator's wave 2
+  run and passed alone, as above. The tasks left connections named `T033 …`, `T034 …` and `T036 …`
+  in `template_db_010_p5` (66 seeded entries on `T033 open`), and screenshots in the repository's
+  git-ignored `.playwright-mcp/`; T036 revoked every token it made.
+- 2026-11-11: US3's checkpoint (T037, the coordinator). The gates are green: the root gates rerun
+  by the coordinator after T036's last edit (lint, `npm test` with the counts above, build), and
+  `export_check_fixtures --check` current; no backend file changed in the phase, so Ruff, mypy and
+  pytest stand as after phase 4. T036's walk V6 (§2.2): 423 measures, 423 pass, 0 fail, 0 unsure,
+  over V6.1–V6.8 × English and German in Chromium, plus 320 CSS px rows for the card closed and
+  open. The tables of T033 (50 rows) and T034 (62) in §2.1 have no open row. The backend's log of
+  the phase (4444 lines) holds uv's and uvicorn's startup lines and uvicorn's access lines only:
+  methods, paths with ids, statuses, and 32 `?cursor=…` query strings, which encode an entry's or
+  a row's instant (§4.3, for T084); no name, person or entry kind. T036's start and end markers
+  were overwritten, because the backend's output was redirected with `>` rather than `>>` (a later
+  phase starts it with `>>`). The phase's diff adds no `console.*`, no inline style, no `any`, no
+  `dark:` and no `focus:`. **Left for a person** (tasks.md, phase 5 "Needs a person"), so T037
+  stays open: a real MCP client (Claude Code or Claude Desktop) signed in through OAuth, whose
+  name shows in the card's "<name> with <agent>" after one of its changes (the walk's agent was a
+  personal access token, so the agent's name was the token's).
 
 ## 6. Closing report

@@ -1,5 +1,7 @@
 import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityKind,
   BranchInput,
   FormConnection,
   FormConnectionDraft,
@@ -13,6 +15,11 @@ import { describe, expect, it } from 'vitest';
 
 import { connectionLink, itemLink, variantLink } from './links';
 import {
+  ACTIVITY_EVENTS,
+  activityEntryViewOf,
+  activityEventOf,
+  activityLineOf,
+  activityPersonOf,
   applicantFieldsOf,
   connectionDatesLineOf,
   connectionFactsOf,
@@ -712,5 +719,116 @@ describe('itemCountsOf', () => {
   it('counts the rules and groups at every level', () => {
     expect(itemCountsOf(STANDARD_BRANCH.items)).toEqual({ rules: 4, groups: 1 });
     expect(itemCountsOf([])).toEqual({ rules: 0, groups: 0 });
+  });
+});
+
+describe('the activity (spec 010, contracts/copy.md §3)', () => {
+  const entry = (
+    kind: ActivityKind,
+    detail: Partial<Pick<ActivityEntry, 'variant' | 'start_date' | 'actor'>> = {}
+  ): ActivityEntry => ({
+    id: '44444444-4444-4444-8444-444444444444',
+    kind,
+    at: '2026-11-05T09:30:00Z',
+    variant: null,
+    start_date: null,
+    actor: null,
+    ...detail,
+  });
+
+  // copy.md §3's English column, word for word
+  it.each<[string, ActivityEntry, string]>([
+    ['created', entry('created'), 'Created'],
+    ['renamed', entry('renamed'), 'Name changed'],
+    ['description_changed', entry('description_changed'), 'Description changed'],
+    ['documents_changed', entry('documents_changed'), 'Documents changed'],
+    ['variant_added', entry('variant_added', { variant: 'Ambulance' }), 'Variant added: Ambulance'],
+    [
+      'variant_removed',
+      entry('variant_removed', { variant: 'Ambulance' }),
+      'Variant removed: Ambulance',
+    ],
+    [
+      'variant_renamed',
+      entry('variant_renamed', { variant: 'Night shift' }),
+      'Variant renamed: Night shift',
+    ],
+    [
+      'rules_changed',
+      entry('rules_changed', { variant: 'Ambulance' }),
+      'Rules changed in Ambulance',
+    ],
+    ['published', entry('published'), 'Published'],
+    ['scheduled', entry('scheduled', { start_date: '2026-12-01' }), 'Scheduled for 2026-12-01'],
+    [
+      'start_date_changed to a date',
+      entry('start_date_changed', { start_date: '2026-12-15' }),
+      'Start date changed to 2026-12-15',
+    ],
+    ['start_date_changed to now', entry('start_date_changed'), 'Start date changed to now'],
+    ['became_active', entry('became_active'), 'Became active'],
+    ['deactivated', entry('deactivated'), 'Deactivated'],
+    ['reactivated', entry('reactivated'), 'Activated again'],
+    ['deleted', entry('deleted'), 'Deleted'],
+    ['restored', entry('restored'), 'Restored'],
+  ])('words %s as the card does', (_name, given, event) => {
+    expect(activityEventOf(given)).toBe(event);
+  });
+
+  it('has an event for every kind, without a placeholder left', () => {
+    for (const kind of Object.keys(ACTIVITY_EVENTS) as ActivityKind[]) {
+      const event = activityEventOf(entry(kind, { variant: 'Standard', start_date: '2026-12-01' }));
+      expect(event).not.toMatch(/[{}]/);
+    }
+  });
+
+  it('answers a team member’s entry with by, and no agent', () => {
+    const view = activityEntryViewOf(
+      entry('rules_changed', {
+        variant: 'Ambulance',
+        actor: { name: 'anna', agent: null, approved: false },
+      })
+    );
+    expect(view).toEqual({
+      at: '2026-11-05T09:30:00Z',
+      event: 'Rules changed in Ambulance',
+      kind: 'rules_changed',
+      variant: 'Ambulance',
+      by: 'anna',
+    });
+    expect(activityPersonOf(view)).toBe('anna');
+    expect(activityLineOf(view)).toBe('- 2026-11-05T09:30:00Z · Rules changed in Ambulance · anna');
+  });
+
+  it('answers an agent’s change with by and agent', () => {
+    const view = activityEntryViewOf(
+      entry('created', { actor: { name: 'anna', agent: 'Claude Code', approved: false } })
+    );
+    expect(view).toMatchObject({ by: 'anna', agent: 'Claude Code' });
+    expect(view).not.toHaveProperty('approved');
+    expect(activityPersonOf(view)).toBe('anna with Claude Code');
+  });
+
+  it('answers an approved request with by, agent and approved', () => {
+    const view = activityEntryViewOf(
+      entry('published', { actor: { name: 'ben', agent: 'Claude Code', approved: true } })
+    );
+    expect(view).toMatchObject({ by: 'ben', agent: 'Claude Code', approved: true });
+    expect(activityPersonOf(view)).toBe('ben, asked by Claude Code');
+    expect(activityLineOf(view)).toBe(
+      '- 2026-11-05T09:30:00Z · Published · ben, asked by Claude Code'
+    );
+  });
+
+  it('answers an entry without a person without by, agent or approved', () => {
+    const view = activityEntryViewOf(entry('scheduled', { start_date: '2026-12-01' }));
+    expect(view).toEqual({
+      at: '2026-11-05T09:30:00Z',
+      event: 'Scheduled for 2026-12-01',
+      kind: 'scheduled',
+      start_date: '2026-12-01',
+    });
+    expect(activityPersonOf(view)).toBeNull();
+    expect(activityLineOf(view)).toBe('- 2026-11-05T09:30:00Z · Scheduled for 2026-12-01');
   });
 });

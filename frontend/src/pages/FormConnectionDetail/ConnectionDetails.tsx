@@ -22,6 +22,7 @@ import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { useTodayInGermany } from '../../hooks/useTodayInGermany';
 import { EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import { isInvalidStartDate } from '../FormConnectionEditor/utils';
+import ActivityCard from './ActivityCard';
 import ConnectionLinks from './ConnectionLinks';
 import {
   CALENDAR_PENCIL_ICON,
@@ -66,12 +67,15 @@ import {
  * <time>", "Active from <date>, 00:00" or "Deactivated since <date>, <time>", and the ⋯ menu
  * inside the pill (FR-016): "Change start date", "Deactivate", the divider and "Delete
  * connection" while active or scheduled (S15, FR-008, FR-009; U88 6417:31045). Then the Links
- * accordion, open right after publishing or scheduling (the h1 takes the focus then), and the
- * Summary accordion with the documents, the rules as variant tabs and the rule checks' findings
- * (FR-047), open on every other arrival, as from the overview's "View" (U91); one accordion is
- * open at a time (FR-046). While deactivated (U89, U96, U97), the band is grey with "Activate
- * again" next to the pill, whose menu holds only "Delete connection", and the copy buttons are off
- * with their explanation (FR-046, W21); the Summary stays as it is. A scheduled connection (S15,
+ * accordion, open right after publishing or scheduling (the h1 takes the focus then) and after
+ * the edit flow's "Save" (spec 010 FR-022, F40), the Summary accordion with the documents, the
+ * rules as variant tabs and the rule checks' findings (FR-047), open on every other arrival, as
+ * from the overview's "View" (U91), and the Activity card (spec 010 FR-022; U92 7246:51510),
+ * which loads its entries again after an action here changed the connection. The three are one
+ * accordion: one card is open at a time, or none (FR-046, FR-022). While deactivated (U89, U96,
+ * U97), the band is grey with "Activate again" next to the pill, whose menu holds only "Delete
+ * connection", and the copy buttons are off with their explanation (FR-046, W21); the Summary
+ * stays as it is. A scheduled connection (S15,
  * FR-006, FR-007; U94 7246:52715, 7246:53289) reads "Your connection is scheduled" in the blue
  * band and is otherwise an active connection's details: every link with its copy button on. No
  * "Download PDF" (F12). "Change start date" opens `StartDateDialog` (S15; FR-008, FR-009), whose
@@ -338,6 +342,15 @@ export default function ConnectionDetails({
           documents={formConnection.documents}
           open={openAccordion === 'summary'}
           onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
+        />
+        {/* Every action on the page answers the changed connection, whose `updated_at` moved */}
+        <ActivityCard
+          formConnectionId={id}
+          lastActivity={formConnection.last_activity}
+          state={formConnection.state}
+          open={openAccordion === 'activity'}
+          onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'activity'))}
+          reloadKey={formConnection.updated_at}
         />
       </div>
     </WizardLayout>

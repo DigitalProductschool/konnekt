@@ -28,8 +28,9 @@ function SkeletonAccordion() {
 /**
  * The details' skeleton (§3 "Skeleton", U06 #95: "skeletons in the final layout"; T017's bars):
  * the status band without its colour (U89's `layout-background-hued`, the status unknown yet),
- * its icon's circle and the bars on the title's and the sub-line's lines, then the Links and the
- * Summary accordions closed, 16px apart, as the page arrives from "View" (U91)
+ * its icon's circle and the bars on the title's and the sub-line's lines, then the three cards
+ * (Links, Summary and Activity on a published connection; Summary, Links and Activity on a draft;
+ * spec 010 S15, S16) closed, 16px apart, so that the page keeps its length once it loads
  */
 function DetailsSkeleton() {
   return (
@@ -45,6 +46,7 @@ function DetailsSkeleton() {
           />
         </div>
       </div>
+      <SkeletonAccordion />
       <SkeletonAccordion />
       <SkeletonAccordion />
     </div>

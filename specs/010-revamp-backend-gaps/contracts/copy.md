@@ -92,6 +92,7 @@ One row is "date and time · event · person". The events, by `kind` (data-model
 | The list's name for screen readers | "Activity, newest first" | "Aktivität, neueste zuerst" |
 | Loading the list; loading earlier entries | "Loading activity…"; "Loading earlier activity…" | "Aktivität wird geladen …"; "Frühere Aktivität wird geladen …" |
 | The list could not be loaded | "Couldn’t load the activity" with "Try again" | "Die Aktivität konnte nicht geladen werden" |
+| Its body when no answer came (the Summary's sentence, reused; T033) | "Check your connection and try again." | "Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut." |
 
 ## 4. Undo and bulk delete (W11, W12)
 

@@ -64,6 +64,16 @@ which countries) rather than guessing. Read the guide's topics before working on
   reactivating moves (left out while it has never been active); and `deactivated_since`, only
   while it is deactivated. Saving, renaming or reordering moves none of them. The dates are
   timestamps in UTC; the text says "Draft at the rules step." for a draft.
+- `get_activity` reads a connection's activity, as the Activity card on its page in Konnekt
+  shows it: what happened and when, newest first, 50 entries at a time; pass its `next_cursor` to
+  read earlier ones. Each entry has `at` (a timestamp in UTC), `event` (the card's sentence, such
+  as "Rules changed in Ambulance", "Scheduled for 2026-12-01" or "Start date changed to now"),
+  `kind`, and the `variant` or `start_date` it concerns. Who did it: `by` is the team member;
+  with `agent`, that agent made the change for them; with `agent` and `approved`, the team member
+  approved what that agent asked for. An entry without `by` was made by the middleware itself
+  (a scheduled connection becoming active) or before Konnekt recorded the activity. Many changes
+  of one person to the same thing in a row show as one entry with the time of the last. The
+  activity never holds the rules' content: read that with `get_variant`.
 
 ## Creating a draft and changing its name
 

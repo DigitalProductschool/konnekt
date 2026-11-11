@@ -7,7 +7,13 @@ import linkOffIcon from '../../assets/icons/link-off.svg';
 import linkOffWhiteIcon from '../../assets/icons/link-off-white.svg';
 import publishedArt from '../../assets/illustrations/published-art@2x.png';
 import publishedArtGrey from '../../assets/illustrations/published-art-grey@2x.png';
-import type { ActionsState, DraftDeleteState, StatusBandTone, StatusBandToneLook } from './types';
+import type {
+  ActionsState,
+  ActivityCardState,
+  DraftDeleteState,
+  StatusBandTone,
+  StatusBandToneLook,
+} from './types';
 
 // S15–S17, the details, the draft's details and their confirmations (spec 008); spec 009: the
 // German from the glossary (G§2 "details", "connection", "active/deactivated/deactivate/
@@ -260,6 +266,106 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     toOverview: 'Zur Übersicht',
   }
 );
+
+// The Activity card (spec 010, S15 "The Activity card", W10; copy.md §3): the frames' English
+// (U86 6396:48520, U95 7246:54519, U97 7246:56962, 6809:46582: "Activity", "Last edited by …",
+// "View activity", "Hide activity", the drawn events), the undrawn sentences from copy.md §3, the
+// German from copy.md §1 and §3 and spec 009's glossary. One row is "date and time · event ·
+// person"; the server sends the kind, never a sentence
+export const ACTIVITY_COPY = defineTexts(
+  {
+    title: 'Activity',
+    viewActivity: 'View activity',
+    hideActivity: 'Hide activity',
+    // The closed line (FR-024, FR-032): the person and the time of `last_activity`
+    lastEditedBy: (person: string, dateTime: string) => `Last edited by ${person} · ${dateTime}`,
+    lastEdited: (dateTime: string) => `Last edited · ${dateTime}`,
+    deactivatedBy: (person: string, dateTime: string) => `Deactivated by ${person} · ${dateTime}`,
+    deactivated: (dateTime: string) => `Deactivated · ${dateTime}`,
+    // The person (FR-027): a team member's name; with the agent that made the change for them; or
+    // the team member who approved and the agent that asked
+    personWithAgent: (name: string, agent: string) => `${name} with ${agent}`,
+    personAskedBy: (name: string, agent: string) => `${name}, asked by ${agent}`,
+    // The events, by kind (data-model §2.2)
+    created: 'Created',
+    renamed: 'Name changed',
+    descriptionChanged: 'Description changed',
+    documentsChanged: 'Documents changed',
+    variantAdded: (name: string) => `Variant added: ${name}`,
+    variantRemoved: (name: string) => `Variant removed: ${name}`,
+    variantRenamed: (name: string) => `Variant renamed: ${name}`,
+    rulesChanged: (variant: string) => `Rules changed in ${variant}`,
+    published: 'Published',
+    scheduled: (date: string) => `Scheduled for ${date}`,
+    startDateChanged: (date: string) => `Start date changed to ${date}`,
+    startDateChangedToNow: 'Start date changed to now',
+    becameActive: 'Became active',
+    deactivatedEvent: 'Deactivated',
+    reactivated: 'Activated again',
+    deleted: 'Deleted',
+    restored: 'Restored',
+    // The open list (S15; FR-023): its name for screen readers, the loading and the failure
+    listName: 'Activity, newest first',
+    loading: 'Loading activity…',
+    loadingMore: 'Loading earlier activity…',
+    errorTitle: 'Couldn’t load the activity',
+    // When no answer came (as the Summary's "Couldn’t load the rules")
+    errorText: 'Check your connection and try again.',
+    retry: 'Try again',
+  },
+  {
+    title: 'Aktivität',
+    viewActivity: 'Aktivität ansehen',
+    hideActivity: 'Aktivität ausblenden',
+    lastEditedBy: (person: string, dateTime: string) =>
+      `Zuletzt bearbeitet von ${person} · ${dateTime}`,
+    lastEdited: (dateTime: string) => `Zuletzt bearbeitet · ${dateTime}`,
+    deactivatedBy: (person: string, dateTime: string) => `Deaktiviert von ${person} · ${dateTime}`,
+    deactivated: (dateTime: string) => `Deaktiviert · ${dateTime}`,
+    personWithAgent: (name: string, agent: string) => `${name} mit ${agent}`,
+    personAskedBy: (name: string, agent: string) => `${name}, angefragt von ${agent}`,
+    created: 'Erstellt',
+    renamed: 'Name geändert',
+    descriptionChanged: 'Beschreibung geändert',
+    documentsChanged: 'Dokumente geändert',
+    variantAdded: (name: string) => `Variante hinzugefügt: ${name}`,
+    variantRemoved: (name: string) => `Variante entfernt: ${name}`,
+    variantRenamed: (name: string) => `Variante umbenannt: ${name}`,
+    rulesChanged: (variant: string) => `Regeln in ${variant} geändert`,
+    published: 'Veröffentlicht',
+    scheduled: (date: string) => `Geplant für den ${date}`,
+    startDateChanged: (date: string) => `Startdatum auf den ${date} geändert`,
+    startDateChangedToNow: 'Startdatum auf sofort geändert',
+    becameActive: 'Aktiv geworden',
+    deactivatedEvent: 'Deaktiviert',
+    reactivated: 'Wieder aktiviert',
+    deleted: 'Gelöscht',
+    restored: 'Wiederhergestellt',
+    listName: 'Aktivität, neueste zuerst',
+    loading: 'Aktivität wird geladen …',
+    loadingMore: 'Frühere Aktivität wird geladen …',
+    errorTitle: 'Die Aktivität konnte nicht geladen werden',
+    errorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+  }
+);
+
+export const INITIAL_ACTIVITY_CARD_STATE: ActivityCardState = { kind: 'closed' };
+
+/**
+ * The open card's list (U86 6396:48527, U95 7246:54525, U97 7246:56965): the body 24 from the
+ * card's sides and 16 above its bottom; an entry 8 above and below its line, body/small muted
+ * (#4a5468), the date and time 160 wide, the event label/small and the rest of the row, the
+ * person at the right. The list scrolls inside the card (S15): at most 400 px high, ten entries.
+ * Below `sm` an entry's three parts stack (W16: the date's 160 px leave the event no room in a
+ * 320 px window), and stay stacked below 320 CSS px. The list takes the keyboard focus: KERN's
+ * unlayered rules for `[tabindex]` draw a ring on any focus and none on `:focus-visible`, hence
+ * the `!` (as `PersonaChip`'s), so that the ring shows for the keyboard only
+ */
+export const ACTIVITY_LIST_CLASSES =
+  'rounded-kern-small focus-visible:outline-kern-action-focus-default! max-h-400 overflow-y-auto focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
+export const ACTIVITY_ROW_CLASSES =
+  'text-kern-static-small text-kern-layout-text-muted flex flex-col py-8 leading-(--kern-typography-line-height-medium-static) break-words sm:flex-row sm:gap-16';
 
 export const INITIAL_ACTIONS_STATE: ActionsState = {
   dialog: 'deactivate',
