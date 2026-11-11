@@ -1,4 +1,4 @@
-# Requirements index — spec.md mtime 1794348238 (2026-11-10 22:03:58 UTC)
+# Requirements index — spec.md mtime 1794352039 (2026-11-10 23:07:19 UTC)
 
 Flags: `copy` = text quoted from the frames or the spec (word for word); `undrawn` = the spec names this place as not drawn,
 copy/layout written in this feature; `supersedes <id>` = baseline item the spec's Context table (or the requirement) says this
@@ -92,6 +92,8 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-022b | Closed card: title, "Last edited by <name> · <date>, <time>" and "View activity" | P3 | Y | Activity card | default | copy | FR-022 |
 | FR-022c | Open card: the entries and "Hide activity" | P3 | Y | Activity card | default | copy | FR-022 |
 | FR-022d | Only one of Links, Summary and Activity cards open at a time (spec 008 FR-046) | P3 | Y | Details | default | | FR-022 |
+| FR-022e | The details reached after publishing or saving land with Links open (P7, E4) | P3 | Y | Details | success | clarif 2026-11-10 #34 | FR-022 |
+| FR-022f | There, opening Summary or Activity closes Links, whose control reads "View links"; P9 and P10 not followed | P3 | Y | Details | default | copy; clarif 2026-11-10 #34 | FR-022 |
 | FR-023a | An entry shows its date and time, what happened, and who did it | P3 | Y | Activity card | default | | FR-023 |
 | FR-023b | Entries are listed newest first | P3 | Y | Activity card | default | | FR-023 |
 | FR-024a | Closed card's line names person and time of the newest entry that has a person | P3 | Y | Activity card | default | | FR-024 |
@@ -194,6 +196,8 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-052 | A pre-existing connection keeps the document order it shows today | P6 | N | ? | ? | | FR-052 |
 | FR-053a | While no connection exists, the welcome page offers "Start from an example" beside "Create connection" | P7 | Y | Welcome page | empty | copy; supersedes 008 FR-027 | FR-053 (Example) |
 | FR-053b | The overview does not offer "Start from an example" | P7 | Y | Overview | default | | FR-053 |
+| FR-053c | "Start from an example" (secondary) beside "Create connection →" (primary), as 1g draws; note 16's "one button" not followed | P7 | Y | Welcome page | empty | copy; clarif 2026-11-10 #27 | FR-053 |
+| FR-053d | The overview's footer keeps "Create connection" only | P7 | Y | Overview | default | copy; clarif 2026-11-10 #27 | FR-053 |
 | FR-054a | Dialog "Start from an example?": "This creates a draft called "Passenger transport licence (example)" with 2 documents…" | P7 | Y | Example dialog | default | copy | FR-054 |
 | FR-054b | Example dialog's buttons "Go back" and "Create the example" | P7 | Y | Example dialog | default | copy | FR-054 |
 | FR-054c | "Go back", × and Escape close the example dialog without creating anything | P7 | Y | Example dialog | default | | FR-054 |
@@ -204,7 +208,11 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-055e | AND Rule 02 "Licence class B – Issue date is at least 2 years ago" with its 2-year message | P7 | Y | Wizard (rules step) | default | copy | FR-055 |
 | FR-055f | Variant "Ambulance", linked to Standard, "For ambulance services. Some rules differ from Standard." | P7 | Y | Wizard (rules step) | default | copy | FR-055 |
 | FR-055g | Ambulance: Rule 01 changed to 19 years, Rule 02 to 1 year, messages to match | P7 | Y | Wizard (rules step) | default | copy | FR-055 |
+| FR-055h | Creating the example records its first step: row reads "Edited <date> · Connection step"; 1j's stepless row not followed | P7 | Y | Overview | default | copy; clarif 2026-11-10 #36 | FR-055 |
+| FR-055i | Agents read the example's recorded step (FR-062) | P7 | N | MCP | ? | clarif 2026-11-10 #36 | FR-055 |
 | FR-056 | The example is always complete and publishable; publishing's checks pass, rule checks find nothing | P7 | N | ? | ? | | FR-056 |
+| FR-056b | Example's variant tabs carry no finding icon or count; they show the ⓘ with the variant's description, as 1i-b | P7 | Y | Wizard (rules step) | default | clarif 2026-11-10 #28 | FR-056 |
+| FR-056c | The "1" that 1i and 1i-c draw beside a tab is not built | P7 | Y | Wizard (rules step) | default | clarif 2026-11-10 #28 | FR-056 |
 | FR-057 | Example is a normal draft: listed, editable by members and agents, testable, publishable, deletable, counted for homepage | P7 | Y | Overview | default | | FR-057 |
 | FR-058a | Connection step banner: "This is an example. Change anything to see how it works." | P7 | Y | Wizard (connection step) | default | copy | FR-058 |
 | FR-058b | Rules step, Standard: "Try changing the age to 18 or adding a rule. Then use Test rules…" | P7 | Y | Wizard (rules step) | default | copy | FR-058 |
@@ -216,6 +224,8 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-060a | Unchanged example: publish dialog adds "This is still the example. Check that the name, documents and rules fit your service." | P7 | Y | Publish dialog | default | copy | FR-060 |
 | FR-060b | Unchanged means name, description, documents, data items, variants, rules are the example's; after a saved change no line | P7 | Y | Publish dialog | default | | FR-060 |
 | FR-060c | The approval page of a request to publish the unchanged example shows the same line | P7 | Y | Approval page | default | copy | FR-060 |
+| FR-060d | The unchanged example's publish summary lists "Standard · 2 rules" and "Ambulance · 2 rules" | P7 | Y | Publish dialog | default | copy; clarif 2026-11-10 #29 | FR-060 |
+| FR-060e | 16b's "School transport" tab and Rules 03 and 04 behind the dialog are a slip, not built | P7 | Y | Wizard (test step) | default | clarif 2026-11-10 #29 | FR-060 |
 | FR-061 | Example's texts are created in the team member's current language and are content from then on | P7 | Y | Wizard | default | | FR-061 |
 | FR-062a | Agents' reads and search carry "scheduled", its start date and what its links answer until then | P8 | N | MCP | ? | | FR-062 (Agents) |
 | FR-062b | Agents' reads carry the FR-018 dates, a draft's step, the stored document order, the example mark | P8 | N | MCP | ? | | FR-062 |
@@ -241,6 +251,7 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-070a | Every frame of the eight items ported as drawn (layout, styling, wording), verified as spec 008 | - | Y | ? | ? | copy | FR-070 (Across the feature) |
 | FR-070b | What these frames show of a still-deferred item (FR-074) is not built | - | Y | ? | ? | | FR-070 |
 | FR-070c | The data groups' frames (the ninth item) are ported as drawn too, verified as spec 008 | - | Y | Documents step; Edit flow | ? | copy; clarif 2026-11-10 #6 | FR-070 |
+| FR-070d | Build note 23's "v9 builds every change since v8" does not widen this: only the nine items are ported | - | Y | ? | ? | clarif 2026-11-10 #31 | FR-070 |
 | FR-071a | Every new text exists in English and German, German written with spec 009's glossary | - | Y | ? | ? | | FR-071 |
 | FR-071b | The glossary gains scheduled, start date, activity, example, selected | - | N | ? | ? | | FR-071 |
 | FR-071c | The frames' English copy is used word for word | - | Y | ? | ? | copy | FR-071 |
@@ -250,6 +261,11 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-073a | Nothing stored holds anything about a citizen, request, finding or test persona | - | N | ? | ? | | FR-073 |
 | FR-073b | Nothing logged beyond what the middleware logs today (identifiers and counts) | - | N | ? | ? | | FR-073 |
 | FR-074 | Everything else stays as specs 001–009 leave it; deferred items F5, F13, Q13, Q31 (a), Q37 (b), F54 unbuilt | - | N | ? | ? | | FR-074 |
+| FR-074b | What build notes and frames restate or change of specs 001–009 outside the nine items (a–n) is no requirement | - | Y | ? | ? | clarif 2026-11-10 #31 | FR-074 |
+| FR-074c | Where a frame of the nine items shows such a part, its layout is ported and the product's behaviour stays | - | Y | ? | ? | clarif 2026-11-10 #31 | FR-074 |
+| FR-074d | Where a build note disagrees with the product, the product stays (e.g. "x of y", remove dialog, note 17) | - | Y | ? | ? | clarif 2026-11-10 #31 | FR-074 |
+| FR-074e | The overview's description tooltip (1k) stays as spec 008 built it: hover, keyboard focus on the name, tap | - | Y | Overview | default | clarif 2026-11-10 #32 | FR-074 |
+| FR-074f | "Leave this connection?" stays as spec 008 FR-026 built it; "Discard connection" deletes nothing stored; 6a's silent save unbuilt | - | Y | Leave this connection dialog (create flow) | default | copy; clarif 2026-11-10 #33 | FR-074 |
 | FR-075 | serviceBW sees one change only: scheduled links answer as deactivated until the start date | - | N | serviceBW links | ? | | FR-075 |
 | FR-076a | Edit flow header of an active or scheduled connection: only the status pill ("Active", "Scheduled · <date>"), never "Draft changes" | - | Y | Edit flow (header) | default | copy; clarif 2026-11-10 #3 | FR-076 (In place of out-of-scope items) |
 | FR-076b | Edit flow footer reads "Back · Discard changes · <next step> · Save", without "Keep draft and exit" | - | Y | Edit flow (footer) | default | copy; clarif 2026-11-10 #3 | FR-076 |
@@ -270,16 +286,19 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-076q | The details' Summary shows no rule findings (spec 003 FR-020) | - | Y | Details (Summary card) | default | clarif 2026-11-10 #21 | FR-076 |
 | FR-076r | A variant tab's ⓘ in the Summary shows only the variant's description | - | Y | Details (Summary card) | default | clarif 2026-11-10 #21 | FR-076 |
 | FR-076s | Hidden "badge-small (Live, replaced)" layers stay hidden | - | Y | Overview | default | clarif 2026-11-10 #3 | FR-076; Clarifications #3 |
+| FR-076t | A draft's details show "Edit connection" for every team member, as V-Draft · S; view-only S2 not built | - | Y | Details | default | copy; clarif 2026-11-10 #30 | FR-076 |
 | FR-077a | A document with more than 10 data items shows them under group headings in the data item panel | P9 | Y | Documents step (data item panel) | default | supersedes 002-S1, 008 FR-031; clarif 2026-11-10 #6 | FR-077 (Data groups) |
 | FR-077b | Grouped panel: three columns under "All data items": "Name", "Birth", "Address", "Document", own groups, "Other details" | P9 | Y | Documents step (data item panel) | default | copy | FR-077 |
 | FR-077c | The grouping shows in the create flow, in a draft and in the edit flow | P9 | Y | Wizard; Edit flow | default | | FR-077 |
 | FR-077d | A document with 10 data items or fewer keeps today's list without groups | P9 | Y | Documents step (data item panel) | default | | FR-077 |
 | FR-077e | Elsewhere data items stay ungrouped: details' Summary, the dialogs' summaries, the approval page | P9 | Y | Details; Publish dialog; Save changes dialog; Activate again dialog; Approval page | default | | FR-077 |
+| FR-077f | Groups stand in that order, flowing down the three columns; frames' placement (Licence, Other details before Document) not followed | P9 | Y | Documents step (data item panel) | default | clarif 2026-11-10 #35 | FR-077 |
 | FR-078a | The data groups come from the catalog, with its mirror for the frontend | P9 | N | ? | ? | | FR-078 |
 | FR-078b | Every data item of a grouped document belongs to exactly one group | P9 | N | ? | ? | | FR-078 |
 | FR-078c | A group keeps its name across documents and holds at least 2 data items; the rest go to "Other details" | P9 | N | ? | ? | | FR-078 |
 | FR-078d | Driving licence groups: Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6, Other details 1 | P9 | Y | Documents step (data item panel) | default | copy | FR-078 |
 | FR-078e | Group names are catalog labels, in English and German | P9 | Y | Documents step (data item panel) | default | | FR-078 |
+| FR-078f | Frames drawing 5 data items under Birth, or more than one under Other details, are not followed | P9 | Y | Documents step (data item panel) | default | clarif 2026-11-10 #35 | FR-078 |
 | FR-079a | Every group heading has a checkbox that selects all of its group's data items | P9 | Y | Documents step (data item panel) | default | | FR-079 |
 | FR-079b | The group checkbox shows its mixed state while some of its data items are chosen | P9 | Y | Documents step (data item panel) | default | | FR-079 |
 | FR-079c | It does for its group what "All data items" does, including the question naming the rules (002-S1.1) | P9 | Y | Documents step (data item panel) | default | | FR-079 |
@@ -295,10 +314,12 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | FR-081f | The banner stays above the selection bar while rows are selected | P5 | Y | Overview; Selection bar | default | | FR-081 |
 | FR-081g | A connection that exists only on this device is neither counted nor selectable | P5 | Y | Overview; Selection bar | default | | FR-081 |
 | FR-081h | The existing local drafts banner is checked against 1m and 1n; what differs is changed | P5 | Y | Overview (local drafts banner) | default | | FR-081 |
+| FR-081i | The tertiary button reads "Discard", as 1m and 1n draw, not build note 34's "Discard changes" | P5 | Y | Overview (local drafts banner) | default | copy; clarif 2026-11-10 #37 | FR-081 |
 | FR-082a | Every toast, with or without an action, closes by itself after 6 seconds | - | Y | Toast | default | supersedes 008's toast-with-action rule; clarif 2026-11-10 #22 | FR-082 (Toasts) |
 | FR-082b | The time runs only while neither the pointer nor the keyboard focus is on the toast | - | Y | Toast | default | clarif 2026-11-10 #22 | FR-082 |
 | FR-082c | Holds for deletion, bulk, start date toasts and existing ones: document removal "Undo", "Try again", rules undos | - | Y | Toast | default | exception to FR-074; clarif 2026-11-10 #22 | FR-082 |
 | CLAR-7 | "Generate all" (spec 004's regenerate) is built as drawn, asking first like "Generate again" | - | Y | Test step | default | copy; clarif 2026-11-10 #7 | Clarifications #7; FR-074 |
+| CLAR-37 | The banner's "Discard" keeps its accessible name "Discard changes in <name>"; the edit flow's "Discard changes" stays | P5 | Y | Overview (local drafts banner) | default | copy; clarif 2026-11-10 #37 | Clarifications #37; FR-081 |
 | US1-AS1 | Publish dialog opens: "Active from", "Now" selected, "On a date", ready sentence, "Publish connection"; "Now" goes live | P1 | Y | Publish dialog | default | copy | US1 AS1 |
 | US1-AS2 | "On a date": sentence "The connection becomes active on the date you choose…", field "DD.MM.YYYY", button "Schedule" | P1 | Y | Publish dialog | default | copy | US1 AS2 |
 | US1-AS3 | No, today's, past or invalid date + "Schedule": field error, "Enter a date after today.", nothing published | P1 | Y | Publish dialog | error | copy | US1 AS3 |
@@ -348,7 +369,7 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | US8-AS3 | Agent asks to publish on 01.12.2026: approval page shows "Active from 01.12.2026"; approving schedules it | P8 | Y | Approval page | default | copy; clarif 2026-11-10 #2 | US8 AS3 |
 | US8-AS4 | "Read only" agent asks for activity: same entries as the Activity card | P8 | N | MCP | ? | | US8 AS4 |
 | US8-AS5 | No agent way to restore a deleted connection, delete several, or create the example | P8 | N | MCP | ? | | US8 AS5 |
-| US9-AS1 | Driving licence: three columns; Name 4, Birth 6, Address 5, Licence 3, Document 6, Appearance 6, Other details 1; checkboxes | P9 | Y | Documents step (data item panel) | default | copy | US9 AS1 |
+| US9-AS1 | Driving licence: three columns; Name 4, Birth 6, Address 5, Document 6, Licence 3, Appearance 6, Other details 1, in that order; checkboxes | P9 | Y | Documents step (data item panel) | default | copy; clarif 2026-11-10 #35 | US9 AS1 |
 | US9-AS2 | Ticking an empty group's checkbox chooses all its data items, as if each had been ticked | P9 | Y | Documents step (data item panel) | default | | US9 AS2 |
 | US9-AS3 | A group with some of its data items chosen shows its checkbox's mixed state | P9 | Y | Documents step (data item panel) | default | | US9 AS3 |
 | US9-AS4 | Clearing a group with data a rule checks first shows the question naming those rules | P9 | Y | Documents step (rules question dialog) | default | | US9 AS4 |
@@ -408,7 +429,7 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 | OUT-4 | A success message for met citizens (Q31 (a)) | Out of Scope; FR-074 |
 | OUT-5 | "Download PDF" (Q37 (b)) | Out of Scope; FR-074 |
 | OUT-6 | Group B/C rules-package actions: remove from group, duplicate group, add into group, unlink from Standard, grouping a group, persona generation making every rule testable (F11); "Generate all"/"Generate again" stay | Out of Scope; Clarifications #7 |
-| OUT-7 | Group B/C: upcoming documents (F3), roles and view-only users (data groups are in scope) | Out of Scope; Clarifications #6 |
+| OUT-7 | Group B/C: upcoming documents (F3), roles and view-only users, with V-Draft · S2's view-only draft details (data groups are in scope) | Out of Scope; Clarifications #6, #30; FR-076 |
 | OUT-8 | "Undo" after deactivating (F54) | Out of Scope; FR-074 |
 | OUT-9 | "Undo" after deleting a variant, a rule or a group beyond what exists | Out of Scope |
 | OUT-10 | "Undo" on the approval page | Out of Scope; FR-067 |
@@ -427,9 +448,9 @@ item replaces (spec.md has no "Behaviour baseline" heading, so those contracts a
 ## Glossary
 
 connection = form connection, Verbindung, connection card, row
-variant = branch, Variante, tab (e.g. "Ambulance")
+variant = branch, Variante, tab (e.g. "Ambulance"), "Rules/Variant tab · fixes", ⓘ (variant description, not a count)
 Standard = main branch, default variant, Standard tab
-draft = Entwurf, unpublished connection, "Edited <date>"
+draft = Entwurf, unpublished connection, "Edited <date>", "Edited <date> · Connection step"
 active = live, published, aktiv (agents' status "live")
 scheduled = Scheduled, geplant, pending activation, "Active from"
 deactivated = inactive, Deactivated, deaktiviert, "Activate again"
@@ -438,10 +459,11 @@ status dates = date pill, status pill, chip, badge, "Published <date>", "Active 
 header pill = status pill, status badge, "Scheduled · <date>", "badge-small" (hidden "Live, replaced" layers)
 ⋯ menu = overflow menu, kebab, more menu, actions menu, connection menu
 Change start date = reschedule, edit date, Startdatum ändern, "Save date", "Start date saved."
-publish dialog = publish modal, P1, "Publish connection", "Schedule"
+publish dialog = publish modal, P1, "Publish connection", "Schedule", 16b ("Standard · 2 rules", "Ambulance · 2 rules")
 Activate again = reactivate, reactivation dialog, "Activate this connection again?"
 activity = Activity card, activity log, history, audit log, changelog, timeline, Aktivität
 activity entry = event, log item, row, "Last edited by"
+accordion = Links / Summary / Activity cards, one open at a time, "View links", "View summary", "View activity"
 Undo = restore, Rückgängig, toast action
 toast = snackbar, notification, alert, P18, auto-dismiss (6 s; note 30's "5 s")
 deleted connection = restorable deletion, trash (none), bin (none)
@@ -449,29 +471,33 @@ selection = selected rows, checked rows, "<n> selected", ausgewählt
 selection bar = bulk bar, bulk action bar, toolbar (replaced)
 select-all = header checkbox, master checkbox, mixed/indeterminate state
 bulk delete dialog = "Delete <n> connections?", multi-delete modal
-local drafts banner = unsaved work on this device, "Unsaved changes in …", 1m, 1n, note 34, "Resume editing"
+local drafts banner = unsaved work on this device, "Unsaved changes in …", 1m, 1n, note 34, "Resume editing", "Discard" (Verwerfen; note 34's "Discard changes")
 document = credential, ID document, Nachweis, Dokument (Personal ID, Driving licence)
 Add document card = document picker, "Available", "Added", upcoming / coming-soon documents (excluded)
 document order = reorder, drag handle, sort, drag and drop, "Move up", "Move down", R1/R2/R3
 data item = field, attribute, claim
 data group = field group, group heading, group checkbox, "All data items", Name, Birth, Address, Document, Licence, Appearance, "Other details", Datengruppe
 pager = "Document n of m", document pagination
-example = sample, demo, template, "Start from an example", "Start with an example" (slip), "Passenger transport licence (example)", Beispiel
+example = sample, demo, template, "Start from an example", "Start with an example" (slip), "Passenger transport licence (example)", Beispiel, 1g, 1i, 1j
 example banner = info banner, hint, notice, callout, "Rules/Findings banner"
-welcome page = empty state, homepage, start page, first-run screen, 1b
+welcome page = empty state, homepage, start page, first-run screen, 1b, 1g, "Create connection →" (primary)
 overview = connections list, dashboard, connection list, table, "Your connections"
-details = connection details, detail page, status band, Links card, Summary card ("View summary", "Hide summary")
+description tooltip = 1k, cut description, hover text
+details = connection details, detail page, status band, Links card, Summary card ("View summary", "Hide summary"), V-Draft · S, V-Draft · S2 (view-only, excluded)
 wizard = create flow, stepper, steps (Connection, Documents, Rules, Test step)
+leave connection dialog = "Leave this connection?", frame 2, 6a (silent save, not built), "Discard connection", "Save progress"
 edit flow = edit mode, "Edit connection", "Save changes?", E1–E7, "Draft changes" / "Keep draft and exit" (excluded)
 entry confirmation = "Edit this scheduled connection?", "Edit “<name>”?", edit entry dialog
 leave dialog = "Save your changes?", E5b, E5a (replaced)
 discard dialog = "Discard changes?", E7
+build notes = notes 1–37, annotation, hand-off notes, sub-items a–n
 rule = condition, Regel, Rule 01/Rule 02
 group = rule group, AND/OR group, "Group with other rules" (excluded)
-finding = rule check result, warning
+finding = rule check result, warning, finding icon, count
 persona = test persona, test person, test data, applicant, "Generate all", "Generate again"
 approval page = approval request, Freigabe, approve/decline page
 agent = MCP client, LLM agent, assistant
 team member = user, account, username, name in user menu
+roles = view-only user, permissions, "needs roles" (excluded)
 links = connection URLs, serviceBW links, copy link
 middleware = connection portal, product, management UI, Konnekt
