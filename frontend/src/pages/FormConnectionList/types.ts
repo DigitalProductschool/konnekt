@@ -23,6 +23,10 @@ export type ListAction =
 
 export interface FormConnectionRowProps {
   formConnection: FormConnectionSummary;
+  /** Whether the row's checkbox is ticked (spec 010, FR-038) */
+  selected: boolean;
+  /** The row's checkbox: selects or deselects the row */
+  onToggle: (id: string) => void;
   /** The row's "Delete": opens the one delete dialog for it */
   onDelete: (formConnection: FormConnectionSummary) => void;
   /** A published connection's "Edit": asks "Edit “<name>”?" first (F48, T083) */
@@ -113,6 +117,44 @@ export interface SearchToolbarProps {
   countId: string;
   /** The list the field filters */
   listId: string;
+  /**
+   * Whether the selection bar stands in its place (spec 010, FR-039): the toolbar stays in the
+   * page, hidden, so that its search text and the list's name (the count) remain
+   */
+  hidden: boolean;
+}
+
+/** The checkbox of a row or of the list's header (spec 010, FR-038, FR-040) */
+export interface SelectCheckboxProps {
+  /** Its name for screen readers: "Select “<name>”", "Select all connections" */
+  label: string;
+  checked: boolean;
+  /** The select-all's mixed state, while some listed rows are selected */
+  indeterminate?: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+  /** Extra classes for the target around the box (the row's alignment) */
+  className?: string;
+}
+
+/** The list card's column headers: the select-all's state and action (spec 010, FR-040) */
+export interface ColumnHeadersProps {
+  /** What the select-all shows; absent in the skeleton, which keeps its place only */
+  selectAll?: {
+    state: SelectAllState;
+    disabled: boolean;
+    onToggle: () => void;
+  };
+}
+
+/** The selection bar (spec 010, S4 "Selection bar"; U15 6699:45206) */
+export interface SelectionBarProps {
+  /** How many listed rows are selected; 0 leaves only the empty status region in the page */
+  count: number;
+  /** "Cancel": clears the selection, the toolbar comes back */
+  onCancel: () => void;
+  /** "Delete": the row's own dialog with one row, the bulk dialog with more (T049) */
+  onDelete: () => void;
 }
 
 export interface NoMatchesProps {
@@ -171,3 +213,76 @@ export type DeletionAction =
 
 /** How a failed restore ends: refused for good, or worth another "Undo" */
 export type RestoreFailure = { type: 'notRestorable' } | { type: 'failed'; errorId: string | null };
+
+/**
+ * The overview's selection (spec 010, S4 "Selection"; FR-038 to FR-040, R10): the ids of the
+ * selected rows. Page state only: never stored, gone with the page
+ */
+export type Selection = ReadonlySet<string>;
+
+export type SelectionAction =
+  /** A row's checkbox: selects the row, or takes it out of the selection */
+  | { type: 'toggle'; id: string }
+  /**
+   * The select-all: selects every listed row (the rows the search shows), or clears the
+   * selection when all of them are selected
+   */
+  | { type: 'toggleAll'; listedIds: readonly string[] }
+  /** "Cancel", and after a deletion */
+  | { type: 'clear' }
+  /** The list changed: a row that left it leaves the selection */
+  | { type: 'prune'; listedIds: readonly string[] };
+
+/** What the select-all shows: unchecked, mixed or checked */
+export type SelectAllState = 'none' | 'some' | 'all';
+
+/**
+ * The bulk delete dialog (spec 010, S4 "Delete"; FR-041 to FR-043): the selected rows it asks
+ * about, in the list's order (kept while it closes, so that its text stays during the fade),
+ * whether it is open, the working state, and the last failure: the name of the first connection
+ * that changed meanwhile (`409 selection_changed`), whose sentence is built in the language shown,
+ * or another failure's notice
+ */
+export interface BulkDeleteState {
+  rows: FormConnectionSummary[] | null;
+  open: boolean;
+  deleting: boolean;
+  error: ErrorNotice | null;
+  changedName: string | null;
+}
+
+export type BulkDeleteAction =
+  | { type: 'open'; rows: FormConnectionSummary[] }
+  | { type: 'close' }
+  | { type: 'start' }
+  | { type: 'failed'; failure: BulkDeleteFailure }
+  | { type: 'done' };
+
+/**
+ * Why a bulk deletion failed: the notice of another failure, or the name of the first connection
+ * that changed meanwhile (`409 selection_changed`), which means that the list is out of date
+ */
+export interface BulkDeleteFailure {
+  error: ErrorNotice;
+  changedName: string | null;
+  stale: boolean;
+}
+
+/** The bulk delete dialog's props: its state and what its buttons do */
+export interface BulkDeleteDialogProps {
+  state: BulkDeleteState;
+  /** "Keep connections", × and Escape: nothing happens while the deletion runs */
+  onCancel: () => void;
+  /** "Delete connections", and "Try again" after a failure */
+  onConfirm: () => void;
+}
+
+/** One connection's line in the bulk delete dialog: its name and status pill */
+export interface BulkDeleteLineProps {
+  formConnection: FormConnectionSummary;
+}
+
+/** A warning line of the bulk delete dialog: its sentence */
+export interface BulkDeleteWarningProps {
+  text: string;
+}

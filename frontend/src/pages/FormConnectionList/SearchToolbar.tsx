@@ -12,7 +12,10 @@ import type { SearchToolbarProps } from './types';
  * the placeholder only) and, once something is typed, the × that empties it and keeps the focus
  * in the field (6692:42636). The count is a polite status, so a screen reader hears how many rows
  * a search leaves. The search filters in the page (`filterConnections`); nothing is sent. Below
- * 640px the label goes above the field, which then takes the column's width (undrawn).
+ * 640px the label goes above the field, which then takes the column's width (undrawn). While
+ * rows are selected the selection bar stands in its place (spec 010, FR-039; U15 6699:45207
+ * "Toolbar (hidden while selecting)"): the toolbar stays in the page, hidden, so that the count
+ * still names the list and the search comes back as it was after "Cancel".
  */
 export default function SearchToolbar({
   query,
@@ -22,6 +25,7 @@ export default function SearchToolbar({
   inputRef,
   countId,
   listId,
+  hidden,
 }: SearchToolbarProps) {
   const copy = useCopy(SEARCH_COPY);
   const fieldId = useId();
@@ -31,7 +35,9 @@ export default function SearchToolbar({
     inputRef.current?.focus();
   };
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-24 gap-y-8">
+    <div
+      className={hidden ? 'hidden' : 'flex flex-wrap items-center justify-between gap-x-24 gap-y-8'}
+    >
       <p
         id={countId}
         role="status"

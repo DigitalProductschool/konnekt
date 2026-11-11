@@ -22,8 +22,20 @@ import { bubblePlacementClass, isOpen, tooltipReducer } from '../../components/I
 import { ROUTES } from '../../constants';
 import { useLanguage } from '../../hooks/useLanguage';
 import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
-import { LIST_COPY, ROW_CLASSES, ROW_EDIT_CLASSES, SKELETON_ROW_BARS } from './constants';
-import type { FormConnectionRowProps, RowDescriptionHandle, RowDescriptionProps } from './types';
+import {
+  CHECKBOX_CLASSES,
+  LIST_COPY,
+  ROW_CLASSES,
+  ROW_EDIT_CLASSES,
+  SELECTION_COPY,
+  SKELETON_ROW_BARS,
+} from './constants';
+import type {
+  FormConnectionRowProps,
+  RowDescriptionHandle,
+  RowDescriptionProps,
+  SelectCheckboxProps,
+} from './types';
 import { descriptionOf, rowMetaOf } from './utils';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
@@ -144,23 +156,66 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
 }
 
 /**
+ * A row's checkbox and the list's select-all (spec 010, FR-038, FR-040; U15 6699:45219,
+ * 6699:45214): the design's "Data/Check item" box on KERN's checkbox (index.css), without a
+ * visible label: its name is for screen readers ("Select “<name>”", "Select all connections").
+ * The label around it is a 24 × 28 target (W16). The mixed state is a property only a script
+ * can set
+ */
+export function SelectCheckbox({
+  label,
+  checked,
+  indeterminate = false,
+  disabled = false,
+  onChange,
+  className = '',
+}: SelectCheckboxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <label className={`${CHECKBOX_CLASSES.target} ${className}`}>
+      <input
+        ref={inputRef}
+        type="checkbox"
+        aria-label={label}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className={CHECKBOX_CLASSES.box}
+      />
+    </label>
+  );
+}
+
+/**
  * Figma "Row" (U13 6739:40536, U12 6699:45011, U17 6699:48024): the name, which opens the
  * details (U13 #21), with its description cut to one line under it (or none, the name centred);
  * the status pill (T019; spec 010's "Scheduled", U13 6739:40615, without its date); "Edited
  * <date>", a draft adding its step (FR-048, FR-052d); and "View" (tertiary, eye), "Edit" (secondary, pencil) and the red bin "Delete"
- * (tertiary, icon only), each naming the connection for screen readers (FR-028). A published
+ * (tertiary, icon only), each naming the connection for screen readers (FR-028). Before them the
+ * checkbox "Select “<name>”" (spec 010, FR-038; U15 6699:45219), for rows of every status; the
+ * row's own actions stay while rows are selected (FR-039). A published
  * connection's "Edit", active or deactivated, asks "Edit “<name>”?" first (F48; U15 6699:47905),
  * in the overview's one question. A draft offers the same actions (cosmetic 2): its "Edit" opens
  * the editor at the step it was saved in, without asking. Rows are 80 high with or without a
- * description (FR-029b). No checkbox (F14)
+ * description (FR-029b)
  */
 export default function FormConnectionRow({
   formConnection,
+  selected,
+  onToggle,
   onDelete,
   onEdit,
 }: FormConnectionRowProps) {
   const { language } = useLanguage();
   const copy = LIST_COPY[language];
+  const selectionCopy = SELECTION_COPY[language];
   const { id, name, state, status } = formConnection;
   const draft = status === 'draft';
   const description = descriptionOf(formConnection);
@@ -185,53 +240,65 @@ export default function FormConnectionRow({
 
   return (
     <li className={ROW_CLASSES.row}>
-      <div className={ROW_CLASSES.name}>
-        <Link
-          to={detailsPath}
-          onFocus={handleNameFocus}
-          onBlur={() => descriptionRef.current?.nameFocus(false)}
-          className={`${SMALL_TEXT} text-kern-layout-text-default rounded-kern-small focus-visible:outline-kern-action-focus-default self-start font-semibold break-words hover:underline focus-visible:outline-4 focus-visible:outline-offset-2`}
-        >
-          {name}
-        </Link>
-        {description && <RowDescription ref={descriptionRef} text={description} />}
-      </div>
-      <div className={ROW_CLASSES.status}>
-        <ConnectionStatusBadge state={state} />
-      </div>
-      <p className={ROW_CLASSES.date}>{rowMetaOf(formConnection, language)}</p>
-      <div aria-hidden="true" className={ROW_CLASSES.spacer} />
-      <div className={ROW_CLASSES.actions}>
-        <Link to={detailsPath} className="kern-btn kern-btn--tertiary kern-btn--small">
-          <span aria-hidden="true" className="kern-icon kern-icon--visibility" />
-          <span className="kern-label">
-            {copy.view}
-            {/* "View" alone doesn't say which connection. Not kern-sr-only: inside a labelled
-                kern-btn it makes the button icon-sized */}
-            <span className="sr-only"> {name}</span>
-          </span>
-        </Link>
-        {draft ? (
-          <Link to={generatePath(ROUTES.editFormConnection, { id })} className={ROW_EDIT_CLASSES}>
-            {editContent}
+      <SelectCheckbox
+        label={selectionCopy.selectRow(name)}
+        checked={selected}
+        onChange={() => onToggle(id)}
+        className={ROW_CLASSES.check}
+      />
+      <div className={ROW_CLASSES.parts}>
+        <div className={ROW_CLASSES.name}>
+          <Link
+            to={detailsPath}
+            onFocus={handleNameFocus}
+            onBlur={() => descriptionRef.current?.nameFocus(false)}
+            className={`${SMALL_TEXT} text-kern-layout-text-default rounded-kern-small focus-visible:outline-kern-action-focus-default self-start font-semibold break-words hover:underline focus-visible:outline-4 focus-visible:outline-offset-2`}
+          >
+            {name}
           </Link>
-        ) : (
-          <button type="button" onClick={() => onEdit(formConnection)} className={ROW_EDIT_CLASSES}>
-            {editContent}
+          {description && <RowDescription ref={descriptionRef} text={description} />}
+        </div>
+        <div className={ROW_CLASSES.status}>
+          <ConnectionStatusBadge state={state} />
+        </div>
+        <p className={ROW_CLASSES.date}>{rowMetaOf(formConnection, language)}</p>
+        <div aria-hidden="true" className={ROW_CLASSES.spacer} />
+        <div className={ROW_CLASSES.actions}>
+          <Link to={detailsPath} className="kern-btn kern-btn--tertiary kern-btn--small">
+            <span aria-hidden="true" className="kern-icon kern-icon--visibility" />
+            <span className="kern-label">
+              {copy.view}
+              {/* "View" alone doesn't say which connection. Not kern-sr-only: inside a labelled
+                kern-btn it makes the button icon-sized */}
+              <span className="sr-only"> {name}</span>
+            </span>
+          </Link>
+          {draft ? (
+            <Link to={generatePath(ROUTES.editFormConnection, { id })} className={ROW_EDIT_CLASSES}>
+              {editContent}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onEdit(formConnection)}
+              className={ROW_EDIT_CLASSES}
+            >
+              {editContent}
+            </button>
+          )}
+          {/* Icon only: kern-sr-only makes it KERN's 40px square button (U13 6739:40548) */}
+          <button
+            type="button"
+            onClick={() => onDelete(formConnection)}
+            className="kern-btn kern-btn--tertiary kern-btn--small"
+          >
+            <span
+              aria-hidden="true"
+              className="kern-icon kern-icon--delete bg-kern-feedback-danger!"
+            />
+            <span className="kern-sr-only">{copy.deleteLabel(name)}</span>
           </button>
-        )}
-        {/* Icon only: kern-sr-only makes it KERN's 40px square button (U13 6739:40548) */}
-        <button
-          type="button"
-          onClick={() => onDelete(formConnection)}
-          className="kern-btn kern-btn--tertiary kern-btn--small"
-        >
-          <span
-            aria-hidden="true"
-            className="kern-icon kern-icon--delete bg-kern-feedback-danger!"
-          />
-          <span className="kern-sr-only">{copy.deleteLabel(name)}</span>
-        </button>
+        </div>
       </div>
     </li>
   );
@@ -245,17 +312,23 @@ export default function FormConnectionRow({
 export function FormConnectionRowSkeleton() {
   return (
     <div className={`${ROW_CLASSES.row} min-h-80`}>
-      <div className={`${ROW_CLASSES.name} gap-14`}>
-        <div className={`rounded-kern-small ${SKELETON_ROW_BARS.name} ${SKELETON_BARS.strong}`} />
-        <div
-          className={`rounded-kern-small ${SKELETON_ROW_BARS.description} max-w-full ${SKELETON_BARS.light}`}
-        />
-      </div>
-      <div className={ROW_CLASSES.status}>
-        <div className={`rounded-kern-small ${SKELETON_ROW_BARS.status} ${SKELETON_BARS.strong}`} />
-      </div>
-      <div className={ROW_CLASSES.date}>
-        <div className={`rounded-kern-small ${SKELETON_ROW_BARS.date} ${SKELETON_BARS.light}`} />
+      {/* The checkbox's place, so that the rows don't move when the list arrives */}
+      <div className={`h-28 w-20 shrink-0 ${ROW_CLASSES.check}`} />
+      <div className={ROW_CLASSES.parts}>
+        <div className={`${ROW_CLASSES.name} gap-14`}>
+          <div className={`rounded-kern-small ${SKELETON_ROW_BARS.name} ${SKELETON_BARS.strong}`} />
+          <div
+            className={`rounded-kern-small ${SKELETON_ROW_BARS.description} max-w-full ${SKELETON_BARS.light}`}
+          />
+        </div>
+        <div className={ROW_CLASSES.status}>
+          <div
+            className={`rounded-kern-small ${SKELETON_ROW_BARS.status} ${SKELETON_BARS.strong}`}
+          />
+        </div>
+        <div className={ROW_CLASSES.date}>
+          <div className={`rounded-kern-small ${SKELETON_ROW_BARS.date} ${SKELETON_BARS.light}`} />
+        </div>
       </div>
     </div>
   );

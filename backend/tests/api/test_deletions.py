@@ -1,8 +1,9 @@
-"""Deleting, taking a deletion back, and making it final (spec 010, T040 to T042).
+"""Deleting, taking a deletion back, and making it final (spec 010, T040 to T042, T046).
 
-Research R5, data-model 3, contracts/management-api.md "Deleting, bulk deleting and
-restoring", "Changed behaviour of existing endpoints" and "The worker"; FR-030,
-FR-033 to FR-036, FR-067, FR-068, SC-005; R15 V1, V4, V10.
+Research R5, R10, data-model 3, contracts/management-api.md "Deleting, bulk
+deleting and restoring", "Changed behaviour of existing endpoints" and "The
+worker"; FR-030, FR-033 to FR-036, FR-041, FR-043, FR-044, FR-067, FR-068, SC-005,
+SC-006; R15 V1, V4, V10.
 
 Deleting (T040): `DELETE …/{id}` and `DELETE …/{id}/draft` answer the deletion,
 `Deletion { id, restorable_until }`, with a fresh id and the deleting account; the
@@ -22,6 +23,14 @@ the last second keeps the configuration; `finish_deletions` then deletes the
 activity and a draft's row. The worker's steps are called directly, with its
 clock moved (`worker._now`, `deletions._now`).
 
+Bulk deleting (T046): `POST …/deletions` deletes the listed connections of every
+status as one deletion, which one restore brings back, or, when one of them no
+longer exists, is deleted or is in another state than its item names, answers
+`409 selection_changed` with the ids and changes nothing; 1 to 500 distinct ids,
+never for an agent. Two deletions whose rows overlap, and a deletion and a
+restore, lock in one order: real concurrent sessions, one held at a row lock,
+neither deadlock nor half succeed.
+
 Elsewhere: what serviceBW's URLs answer for a deleted draft and a deleted published
 connection (FR-075) in test_connect.py; the cancellation stored on the waiting
 approval requests, an approved deletion and a restore that keeps them cancelled in
@@ -29,29 +38,39 @@ test_approval_requests.py; a draft's publish in flight that meets the marked row
 (R15 V9), or the row deleted and restored, in test_form_connection_drafts.py.
 """
 
+import json
 import logging
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from httpx2 import Response
-from sqlalchemy import select, text, update
+from sqlalchemy import func, insert, select, text, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.main import app
 from app.models import (
+    ApprovalRequest,
     ConnectionActivity,
     FormConnection,
     FormConnectionRevision,
     UserAccount,
 )
-from app.schemas import AccessLevel, Deletion, FormConnectionSummary, to_iso_utc
+from app.schemas import (
+    AccessLevel,
+    Deletion,
+    DeletionItem,
+    FormConnectionSummary,
+    to_iso_utc,
+)
 from app.services import (
     deletions,
     drafts,
@@ -64,6 +83,7 @@ from tests.api.test_form_connection_drafts import (
     JOIN_TIMEOUT,
     create_draft,
     draft_rules,
+    publish,
     run_in_threads,
 )
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
@@ -995,8 +1015,8 @@ def test_a_restore_between_the_selection_and_the_check_keeps_the_configuration(
     trigger(signed_in_client, form_connection_id)
 
 
-def _wait_for_a_lock_wait() -> None:
-    """Return once a session of the test database waits for a lock."""
+def _wait_for_lock_waits(count: int = 1) -> None:
+    """Return once `count` sessions of the test database wait for a lock."""
     deadline = time.monotonic() + JOIN_TIMEOUT
     while time.monotonic() < deadline:
         # A transaction of its own each time: a transaction reads the sessions'
@@ -1009,10 +1029,10 @@ def _wait_for_a_lock_wait() -> None:
                     "AND wait_event_type = 'Lock'"
                 )
             )
-        if waiting:
+        if waiting is not None and waiting >= count:
             return
         time.sleep(0.01)
-    raise AssertionError('No session waited for a lock')
+    raise AssertionError(f'Fewer than {count} sessions waited for a lock')
 
 
 def test_a_restore_holding_the_row_lock_makes_the_check_wait_and_keeps_the_config(
@@ -1070,7 +1090,7 @@ def test_a_restore_holding_the_row_lock_makes_the_check_wait_and_keeps_the_confi
     def go_on_once_the_check_waits() -> None:
         try:
             assert locked.wait(JOIN_TIMEOUT)
-            _wait_for_a_lock_wait()
+            _wait_for_lock_waits()
         finally:
             go_on.set()
 
@@ -1177,3 +1197,636 @@ def test_finishing_takes_every_final_deletion_in_short_transactions(
         f'Finished deletions: {entries} activity entries and 4 drafts deleted'
     )
     assert line.args == (entries, 4)
+
+
+# Bulk deleting (T046; FR-041, FR-043, FR-044, FR-068, SC-006; R10, R15 V4)
+
+DELETIONS = f'{BASE}/deletions'
+VALIDATION_ERROR = {'error': 'Validation error', 'message': 'Invalid request payload'}
+SELECTION_CHANGED = (
+    'Nothing was deleted: a connection was deleted or changed in the meantime.'
+)
+SELECTION_CHANGED_DE = (
+    'Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert.'
+)
+
+
+def _items(client: TestClient, ids: list[str]) -> list[dict[str, str]]:
+    """What the dialog sends: each connection with the state the overview lists."""
+    response = client.get(BASE)
+    assert response.status_code == 200, response.json()
+    states = {item['id']: item['state'] for item in response.json()['data']}
+    return [{'id': id_, 'state': states[id_]} for id_ in ids]
+
+
+def _bulk_delete(
+    client: TestClient,
+    items: list[dict[str, str]],
+    headers: dict[str, str] | None = None,
+) -> Response:
+    """Send the bulk deletion of `items`."""
+    return client.post(DELETIONS, json={'items': items}, headers=headers)
+
+
+def _selection_changed(changed_ids: list[str]) -> dict[str, Any]:
+    """The refusal's body, in English."""
+    return {
+        'error': 'selection_changed',
+        'message': SELECTION_CHANGED,
+        'changed_ids': changed_ids,
+    }
+
+
+def _in_id_order(ids: list[str]) -> list[str]:
+    """The ids in the database's order, which every deletion locks rows in."""
+    with SessionLocal() as db:
+        return list(
+            db.scalars(
+                select(FormConnection.id)
+                .where(FormConnection.id.in_(ids))
+                .order_by(FormConnection.id)
+            ).all()
+        )
+
+
+def _manage_agent() -> TestClient:
+    """An agent of the signed-in account with the highest level, bearer only."""
+    _, token = create_agent_authorization(_user_id(), 'manage')
+    return bearer_client(TestClient(app), token)
+
+
+def _ask(agent: TestClient, form_connection_id: str, action: str) -> str:
+    """The agent asks to approve `action`; the waiting request's id."""
+    response = agent.post(
+        '/api/approval-requests',
+        json={'form_connection_id': form_connection_id, 'action': action},
+    )
+    assert response.status_code == 201, response.json()
+    request_id: str = response.json()['data']['id']
+    return request_id
+
+
+def _approval(request_id: str) -> tuple[str, str | None]:
+    """An approval request's stored status and reason."""
+    with SessionLocal() as db:
+        request = db.get(ApprovalRequest, request_id)
+    assert request is not None
+    return request.status, request.cancel_reason
+
+
+def _every_status(client: TestClient) -> dict[State, str]:
+    """A connection of each status with something in every part, the live one
+    with a request in progress, and an agent's waiting approval requests for the
+    live one and the draft: what a deletion ends."""
+    by_state = {state: _create_full(client, state, f'T046 {state}') for state in STATES}
+    trigger(client, by_state['live'])
+    agent = _manage_agent()
+    _ask(agent, by_state['live'], 'delete')
+    _ask(agent, by_state['draft'], 'delete_draft')
+    return by_state
+
+
+def _deleted_entries(form_connection_ids: list[str]) -> int:
+    with SessionLocal() as db:
+        count = db.scalar(
+            select(func.count())
+            .select_from(ConnectionActivity)
+            .where(
+                ConnectionActivity.form_connection_id.in_(form_connection_ids),
+                ConnectionActivity.kind == 'deleted',
+            )
+        )
+    return count or 0
+
+
+def _bulk_log(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == deletions.__name__
+    ]
+
+
+def test_a_bulk_deletion_deletes_every_status_as_one_deletion_and_restores_whole(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """FR-041, FR-043, FR-044, SC-006: a draft, a scheduled, a live and a
+    deactivated connection, deleted in one request as one deletion: 201 with one
+    new id, every row marked with it and the deleting account, `updated_at` kept
+    (R15 V1), `deleted` recorded for each, the request in progress and the waiting
+    approval requests cancelled as a single deletion cancels them, no EUDIPLO
+    call. The answer's restore time is the earliest row's. One restore brings all
+    four back as they were, in the overview's order; another connection is
+    untouched. The log holds the deletion's id and the counts."""
+    caplog.set_level(logging.INFO, logger=deletions.__name__)
+    kept_id = _create_full(signed_in_client, 'live', 'T046 kept')
+    by_state = _every_status(signed_in_client)
+    ids = list(by_state.values())
+    for seconds, id_ in enumerate(ids):
+        update_form_connection(id_, updated_at=LONG_AGO + timedelta(seconds=seconds))
+    with SessionLocal() as db:
+        asked = list(
+            db.scalars(
+                select(ApprovalRequest.id).where(
+                    ApprovalRequest.form_connection_id.in_(ids)
+                )
+            ).all()
+        )
+    assert len(asked) == 2
+    listed = {id_: _listed(signed_in_client, id_) for id_ in ids}
+    stored = {id_: _stored(id_) for id_ in ids}
+    kept = _stored(kept_id)
+    calls = len(fake_eudiplo.calls)
+    started = now()
+
+    response = _bulk_delete(signed_in_client, _items(signed_in_client, ids))
+
+    assert response.status_code == 201, response.json()
+    assert response.json()['message'] == 'Form connections deleted'
+    deletion = response.json()['data']
+    assert deletion.keys() == {'id', 'restorable_until'}
+    assert str(uuid.UUID(deletion['id'])) == deletion['id']
+    deleted_ats = []
+    for id_ in ids:
+        row = _row(id_)
+        assert row.deleted_at is not None
+        assert started <= row.deleted_at <= now()
+        deleted_ats.append(row.deleted_at)
+        assert (row.deletion_id, row.deleted_by_id) == (deletion['id'], _user_id())
+        [before] = stored[id_][FormConnection.__tablename__]
+        for column in FormConnection.__table__.columns.keys():
+            if column not in ('deleted_at', 'deletion_id', 'deleted_by_id'):
+                assert getattr(row, column) == before[column], column
+        assert _newest_entry(id_) == ('deleted', TEST_USERNAME, None, False)
+    # A restore needs every row inside its time: the earliest row's ends first
+    assert deletion['restorable_until'] == to_iso_utc(
+        min(deleted_ats) + timedelta(seconds=settings.deletion_undo_seconds)
+    )
+    [request] = _stored(by_state['live'])['document_requests']
+    assert request['status'] == 'unavailable'
+    assert sorted(_approval(request_id) for request_id in asked) == [
+        ('cancelled', 'connection_deleted'),
+        ('cancelled', 'draft_deleted'),
+    ]
+    listed_now = signed_in_client.get(BASE).json()['data']
+    assert [item['id'] for item in listed_now] == [kept_id]
+    assert _stored(kept_id) == kept
+    assert len(fake_eudiplo.calls) == calls
+    assert _bulk_log(caplog) == [
+        f'Deletion {deletion["id"]}: 4 form connections deleted; '
+        '1 open requests cancelled'
+    ]
+
+    items = _restored(signed_in_client, deletion['id'])
+
+    order = [
+        item['id']
+        for item in signed_in_client.get(BASE).json()['data']
+        if item['id'] != kept_id
+    ]
+    assert sorted(order) == sorted(ids)
+    assert items == [listed[id_] for id_ in order]
+    for id_ in ids:
+        restored = _stored(id_)
+        assert (
+            restored[FormConnection.__tablename__]
+            == stored[id_][FormConnection.__tablename__]
+        )
+        added = [
+            row['kind']
+            for row in restored['connection_activity']
+            if row not in stored[id_]['connection_activity']
+        ]
+        assert sorted(added) == ['deleted', 'restored']
+    assert len(fake_eudiplo.calls) == calls
+
+
+@pytest.mark.parametrize('change', ['deleted', 'deactivated', 'published', 'gone'])
+def test_a_connection_changed_in_the_meantime_deletes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    caplog: pytest.LogCaptureFixture,
+    change: str,
+) -> None:
+    """FR-043, SC-006: the dialog showed four connections; one of them was
+    deleted, deactivated or published since, or no longer exists. 409
+    `selection_changed` with its id, and nothing changes: no row is deleted, no
+    activity recorded, no request or approval request cancelled, no `updated_at`
+    moved; no EUDIPLO call and no log line."""
+    caplog.set_level(logging.INFO, logger=deletions.__name__)
+    by_state = _every_status(signed_in_client)
+    ids = list(by_state.values())
+    items = _items(signed_in_client, ids)
+    if change == 'deleted':
+        changed_id = by_state['scheduled']
+        _delete(signed_in_client, 'scheduled', changed_id)
+    elif change == 'deactivated':
+        changed_id = by_state['live']
+        response = signed_in_client.post(f'{BASE}/{changed_id}/deactivate', json={})
+        assert response.status_code == 200, response.json()
+    elif change == 'published':
+        changed_id = by_state['draft']
+        response = publish(signed_in_client, changed_id, 1)
+        assert response.status_code == 200, response.json()
+    else:
+        changed_id = str(uuid.uuid4())
+        items.insert(2, {'id': changed_id, 'state': 'live'})
+    stored = {id_: _stored(id_) for id_ in ids}
+    calls = len(fake_eudiplo.calls)
+
+    response = _bulk_delete(signed_in_client, items)
+
+    assert (response.status_code, response.json()) == (
+        409,
+        _selection_changed([changed_id]),
+    )
+    assert {id_: _stored(id_) for id_ in ids} == stored
+    assert len(fake_eudiplo.calls) == calls
+    assert _bulk_log(caplog) == []
+
+
+def test_the_refusal_names_every_changed_connection_in_the_items_order(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """`changed_ids` lists every item that changed, in the order of the request's
+    items, not the order the rows are locked in, so that the dialog's first
+    changed row comes first; the message in the request's language (contracts/
+    copy.md section 8)."""
+    ids = _in_id_order(
+        [_create(signed_in_client, 'live', f'T046 live {n}') for n in range(3)]
+    )
+    items = _items(signed_in_client, list(reversed(ids)))
+    for id_ in (ids[0], ids[2]):
+        _delete(signed_in_client, 'live', id_)
+    kept = _stored(ids[1])
+
+    response = _bulk_delete(signed_in_client, items, {'Accept-Language': 'de'})
+
+    assert (response.status_code, response.json()) == (
+        409,
+        {
+            'error': 'selection_changed',
+            'message': SELECTION_CHANGED_DE,
+            'changed_ids': [ids[2], ids[0]],
+        },
+    )
+    assert _stored(ids[1]) == kept
+
+
+@pytest.mark.parametrize(
+    'body',
+    [
+        'no items',
+        'an empty list',
+        'an id twice',
+        'an id twice with two states',
+        '501 items',
+        'an unknown state',
+    ],
+)
+def test_a_bulk_deletion_takes_1_to_500_distinct_ids(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, body: str
+) -> None:
+    """contracts/management-api.md "Schemas": `DeletionCreate` takes 1 to 500
+    items with distinct ids, each in one of the four states; anything else fails
+    the body's validation, 400 with the generic message, and nothing changes."""
+    form_connection_id = _create(signed_in_client, 'live', 'T046 valid')
+    item = {'id': form_connection_id, 'state': 'live'}
+    payloads: dict[str, dict[str, Any]] = {
+        'no items': {},
+        'an empty list': {'items': []},
+        'an id twice': {'items': [item, item]},
+        'an id twice with two states': {
+            'items': [item, item | {'state': 'deactivated'}]
+        },
+        '501 items': {
+            'items': [item]
+            + [{'id': str(uuid.uuid4()), 'state': 'live'} for _ in range(500)]
+        },
+        'an unknown state': {'items': [item | {'state': 'published'}]},
+    }
+    stored = _stored(form_connection_id)
+
+    response = signed_in_client.post(DELETIONS, json=payloads[body])
+
+    assert (response.status_code, response.json()) == (400, VALIDATION_ERROR)
+    assert _stored(form_connection_id) == stored
+
+
+def _copies(form_connection_id: str, count: int) -> list[str]:
+    """`count` copies of a draft's row, written directly: many drafts, fast."""
+    table = FormConnection.__table__
+    with SessionLocal() as db:
+        row = dict(
+            db.execute(select(table).where(table.c.id == form_connection_id))
+            .mappings()
+            .one()
+        )
+        copies = [
+            row | {'id': str(uuid.uuid4()), 'name': f'T046 copy {n}'}
+            for n in range(count)
+        ]
+        db.execute(insert(FormConnection), copies)
+        db.commit()
+    return [copy['id'] for copy in copies]
+
+
+def test_500_connections_are_deleted_in_one_request_and_restored_in_one(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The largest bulk deletion: 500 connections, one deletion, one `deleted`
+    entry each; one restore brings all 500 back."""
+    draft_id = _create(signed_in_client, 'draft', 'T046 draft')
+    ids = [draft_id, *_copies(draft_id, 499)]
+
+    response = _bulk_delete(signed_in_client, _items(signed_in_client, ids))
+
+    assert response.status_code == 201, response.json()
+    deletion_id = response.json()['data']['id']
+    with SessionLocal() as db:
+        marked = db.scalar(
+            select(func.count())
+            .select_from(FormConnection)
+            .where(
+                FormConnection.deletion_id == deletion_id,
+                FormConnection.deleted_at.is_not(None),
+            )
+        )
+    assert marked == 500
+    assert _deleted_entries(ids) == 500
+    assert signed_in_client.get(BASE).json()['data'] == []
+
+    items = _restored(signed_in_client, deletion_id)
+
+    assert sorted(item['id'] for item in items) == sorted(ids)
+    assert len(signed_in_client.get(BASE).json()['data']) == 500
+
+
+@pytest.mark.parametrize('level', ['read', 'drafts', 'manage'])
+def test_an_agent_cant_delete_several_connections(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, level: AccessLevel
+) -> None:
+    """FR-068: no agent deletes several connections with one request, not even
+    with the highest level: 403 `browser_only`, and nothing changes."""
+    ids = [_create(signed_in_client, state, f'T046 {state}') for state in STATES]
+    items = _items(signed_in_client, ids)
+    stored = {id_: _stored(id_) for id_ in ids}
+    _, token = create_agent_authorization(_user_id(), level)
+    agent = bearer_client(TestClient(app), token)
+
+    response = _bulk_delete(agent, items)
+
+    assert (response.status_code, response.json()) == (403, BROWSER_ONLY)
+    assert {id_: _stored(id_) for id_ in ids} == stored
+
+
+def test_a_bulk_deletion_needs_a_session_and_a_json_body(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The management API's rules: 401 without a session, 415 without JSON (the
+    CSRF protection); neither deletes."""
+    ids = [_create(signed_in_client, state, f'T046 {state}') for state in STATES]
+    items = _items(signed_in_client, ids)
+    stored = {id_: _stored(id_) for id_ in ids}
+
+    anonymous = _bulk_delete(TestClient(app), items)
+    not_json = signed_in_client.post(
+        DELETIONS,
+        content=json.dumps({'items': items}),
+        headers={'Content-Type': 'text/plain'},
+    )
+
+    assert anonymous.status_code == 401
+    assert not_json.status_code == 415
+    assert {id_: _stored(id_) for id_ in ids} == stored
+
+
+def test_the_bulk_deletion_route_is_not_taken_by_a_connections_route(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """R15 V4: `POST …/deletions` is declared before `/{form_connection_id}`: it
+    gets the bulk deletion's own answer, the connections' routes answer
+    `deletions` as an unknown connection, as before, and the restore keeps its
+    route."""
+    unknown = str(uuid.uuid4())
+
+    bulk = _bulk_delete(signed_in_client, [{'id': unknown, 'state': 'live'}])
+    read = signed_in_client.get(DELETIONS)
+    changed = signed_in_client.put(DELETIONS, json={'name': 'T046'})
+    deleted = signed_in_client.request('DELETE', DELETIONS, json={})
+    restore = _restore(signed_in_client, unknown)
+
+    assert (bulk.status_code, bulk.json()) == (409, _selection_changed([unknown]))
+    for answer in (read, changed, deleted):
+        assert (answer.status_code, answer.json()) == (404, NOT_FOUND)
+    assert (restore.status_code, restore.json()) == (409, NOT_RESTORABLE)
+
+
+def _bulk_delete_in(items: list[DeletionItem], user_id: str) -> Deletion:
+    """The bulk deletion in a session of its own, as a request of its own runs it."""
+    with SessionLocal() as db:
+        return deletions.delete_connections(
+            db, items, account_id=user_id, actor=Actor(name=TEST_USERNAME)
+        )
+
+
+def test_a_failure_while_marking_deletes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """All or none (SC-006): the rows are marked in one transaction, committed
+    once. An error while the third row is marked leaves every row as it was, the
+    two marked before it too."""
+    by_state = _every_status(signed_in_client)
+    ids = list(by_state.values())
+    items = [
+        DeletionItem.model_validate(item) for item in _items(signed_in_client, ids)
+    ]
+    stored = {id_: _stored(id_) for id_ in ids}
+    mark = form_connections._mark_deleted
+    marked: list[str] = []
+
+    def mark_two_then_fail(
+        db: Session, form_connection: FormConnection, **arguments: Any
+    ) -> tuple[Deletion, int]:
+        if len(marked) == 2:
+            raise RuntimeError('T046: marking failed')
+        marked.append(form_connection.id)
+        return mark(db, form_connection, **arguments)
+
+    monkeypatch.setattr(form_connections, '_mark_deleted', mark_two_then_fail)
+    user_id = _user_id()
+
+    with pytest.raises(RuntimeError):
+        _bulk_delete_in(items, user_id)
+
+    assert len(marked) == 2
+    assert {id_: _stored(id_) for id_ in ids} == stored
+
+
+def _changed_ids(outcome: object) -> list[str]:
+    """The ids that a bulk deletion's refusal, raised in a thread, names."""
+    assert isinstance(outcome, HTTPException)
+    assert outcome.status_code == 409
+    assert isinstance(outcome.detail, dict)
+    assert outcome.detail['error'] == 'selection_changed'
+    changed_ids: list[str] = outcome.detail['changed_ids']
+    return changed_ids
+
+
+def _race(
+    held_id: str, first: Callable[[], object], second: Callable[[], object]
+) -> tuple[object, object]:
+    """Run two calls at once against a row that a third transaction holds.
+
+    `first` starts once the row is held, `second` once a session waits for a
+    lock (`first`, for the held row), and the row is released once two sessions
+    wait. Returns what the two calls returned, an `HTTPException` included; a
+    deadlock, which PostgreSQL ends by failing one of them, fails the test.
+    """
+    held = threading.Event()
+
+    def hold() -> None:
+        with SessionLocal() as db:
+            db.execute(
+                select(FormConnection.id)
+                .where(FormConnection.id == held_id)
+                .with_for_update()
+            )
+            held.set()
+            _wait_for_lock_waits(2)
+            db.rollback()
+
+    def run_first() -> object:
+        assert held.wait(JOIN_TIMEOUT)
+        return first()
+
+    def run_second() -> object:
+        assert held.wait(JOIN_TIMEOUT)
+        _wait_for_lock_waits(1)
+        return second()
+
+    _, one, two = run_in_threads(hold, run_first, run_second)
+    return one, two
+
+
+def test_two_overlapping_bulk_deletions_neither_deadlock_nor_half_succeed(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """SC-006 with real concurrent sessions: two bulk deletions whose rows
+    overlap, their items in opposite orders. The first holds its first row and
+    waits for its second, which another transaction holds; the second starts
+    then. Both lock in id order, so the second waits for the first's first row
+    instead of taking a row the first still needs: the first deletes its three
+    rows, and the second finds two of its rows deleted and deletes nothing, its
+    own third row neither. Locking in the items' order would deadlock here."""
+    ids = _in_id_order(
+        [_create(signed_in_client, state, f'T046 race {state}') for state in STATES]
+    )
+    first, middle, last, own = ids
+    states = {item['id']: item['state'] for item in _items(signed_in_client, ids)}
+    user_id = _user_id()
+
+    def bulk(selection: list[str]) -> Callable[[], object]:
+        items = [
+            DeletionItem.model_validate({'id': id_, 'state': states[id_]})
+            for id_ in selection
+        ]
+        return lambda: _bulk_delete_in(items, user_id)
+
+    deleted, refused = _race(
+        middle, bulk([first, middle, last]), bulk([last, first, own])
+    )
+
+    assert isinstance(deleted, Deletion)
+    assert deleted.id is not None
+    assert _changed_ids(refused) == [last, first]
+    for id_ in (first, middle, last):
+        assert _row(id_).deletion_id == deleted.id
+    assert _row(own).deleted_at is None
+    assert _deleted_entries(ids) == 3
+
+
+def test_a_bulk_deletion_and_a_restore_of_the_same_rows_dont_deadlock(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """A restore locks a deletion's rows in id order too. A tab whose dialog
+    still shows two connections that another tab deleted deletes them with a
+    third, while the other tab restores them: the bulk deletion holds the first
+    row and waits for the middle one, the restore waits for the bulk deletion.
+    The bulk deletion finds the two rows deleted and deletes nothing; the
+    restore then brings them back."""
+    ids = _in_id_order(
+        [_create(signed_in_client, 'live', f'T046 restore {n}') for n in range(3)]
+    )
+    first, middle, last = ids
+    shown = [DeletionItem(id=id_, state='live') for id_ in ids]
+    response = _bulk_delete(signed_in_client, _items(signed_in_client, [first, last]))
+    assert response.status_code == 201, response.json()
+    deletion_id = response.json()['data']['id']
+    user_id = _user_id()
+
+    def restore() -> object:
+        with SessionLocal() as db:
+            return deletions.restore_deletion(
+                db, deletion_id, account_id=user_id, actor=Actor(name=TEST_USERNAME)
+            )
+
+    refused, restored = _race(middle, lambda: _bulk_delete_in(shown, user_id), restore)
+
+    assert _changed_ids(refused) == [first, last]
+    assert isinstance(restored, list)
+    assert sorted(item.id for item in restored) == sorted([first, last])
+    assert [_row(id_).deleted_at for id_ in ids] == [None, None, None]
+
+
+def test_a_status_change_holding_the_row_lock_makes_the_bulk_deletion_refuse(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The states are read under the row locks, and read again: a deactivation
+    holds the live row's lock, uncommitted, when the bulk deletion starts, whose
+    session read the row as live before. The bulk deletion waits for the lock,
+    then reads the row deactivated, and deletes nothing."""
+    live_id = _create(signed_in_client, 'live', 'T046 live')
+    draft_id = _create(signed_in_client, 'draft', 'T046 draft')
+    items = [
+        DeletionItem(id=live_id, state='live'),
+        DeletionItem(id=draft_id, state='draft'),
+    ]
+    user_id = _user_id()
+    changing = threading.Event()
+
+    def deactivate_and_wait() -> None:
+        with SessionLocal() as db:
+            row = db.scalars(
+                select(FormConnection)
+                .where(FormConnection.id == live_id)
+                .with_for_update()
+            ).one()
+            row.is_active = False
+            row.deactivated_at = now()
+            db.flush()
+            changing.set()
+            _wait_for_lock_waits()
+            db.commit()
+
+    def bulk_delete_read_before() -> object:
+        assert changing.wait(JOIN_TIMEOUT)
+        with SessionLocal() as db:
+            row = db.get(FormConnection, live_id)
+            assert row is not None
+            assert form_connections.state_of(row) == 'live'
+            return deletions.delete_connections(
+                db, items, account_id=user_id, actor=Actor(name=TEST_USERNAME)
+            )
+
+    changed, refused = run_in_threads(deactivate_and_wait, bulk_delete_read_before)
+
+    assert changed is None
+    assert _changed_ids(refused) == [live_id]
+    assert _row(live_id).deleted_at is None
+    assert _row(draft_id).deleted_at is None
+    assert _deleted_entries([live_id, draft_id]) == 0

@@ -1,4 +1,8 @@
-import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import type {
+  DeletionItem,
+  FormConnectionSummary,
+  SelectionChanged,
+} from '@connection-portal/api-types/form-connections';
 import type { OverviewDeletion } from '@connection-portal/api-types/routing';
 import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
@@ -8,6 +12,7 @@ import type { ToastContent } from '../../components/Toast/types';
 import { matchesSearch } from '../../components/ValuesPicker/utils';
 import type { Homepage } from '../../hooks/types';
 import {
+  BULK_DELETE_COPY,
   DELETE_CONNECTION_COPY,
   INITIAL_DELETION_STATE,
   LIST_COPY,
@@ -15,6 +20,9 @@ import {
   STEP_LABELS,
 } from './constants';
 import type {
+  BulkDeleteAction,
+  BulkDeleteFailure,
+  BulkDeleteState,
   DeletionAction,
   DeletionState,
   ListAction,
@@ -24,6 +32,9 @@ import type {
   RowDeleteFailure,
   RowDeleteState,
   RowMetaSource,
+  SelectAllState,
+  Selection,
+  SelectionAction,
 } from './types';
 
 export function listReducer(state: ListState, action: ListAction): ListState {
@@ -286,7 +297,8 @@ export function initialDeletionOf(deleted: OverviewDeletion | undefined): Deleti
  * §4.2 T038): "“<name>” deleted." red with "Undo" (none without a deletion id), "“<name>”
  * restored." green, "“<name>” can no longer be restored." and "Couldn’t restore. Try again." (with
  * "Undo" again and a 5xx's error ID) in ink; null while none shows. While "Undo" waits the toast
- * stays as it was
+ * stays as it was. A bulk deletion's say "<n> connections deleted.", "<n> connections restored."
+ * and "The connections can no longer be restored." (FR-044)
  */
 export function deletionToastOf(state: DeletionState, language: Language): ToastContent | null {
   const { current } = state;
@@ -295,14 +307,30 @@ export function deletionToastOf(state: DeletionState, language: Language): Toast
   }
   const copy = LIST_COPY[language];
   const name = current.names[0] ?? '';
+  // A bulk deletion's toasts count the connections (FR-044); one connection's name it
+  const count = current.names.length;
+  const many = count > 1;
   const undo = current.id === null ? undefined : copy.undo;
   switch (current.outcome) {
     case 'deleted':
-      return { id: state.toastId, kind: 'danger', message: copy.deleted(name), actionLabel: undo };
+      return {
+        id: state.toastId,
+        kind: 'danger',
+        message: many ? copy.deletedMany(count) : copy.deleted(name),
+        actionLabel: undo,
+      };
     case 'restored':
-      return { id: state.toastId, kind: 'success', message: copy.restored(name) };
+      return {
+        id: state.toastId,
+        kind: 'success',
+        message: many ? copy.restoredMany(count) : copy.restored(name),
+      };
     case 'notRestorable':
-      return { id: state.toastId, kind: 'neutral', message: copy.notRestorable(name) };
+      return {
+        id: state.toastId,
+        kind: 'neutral',
+        message: many ? copy.notRestorableMany : copy.notRestorable(name),
+      };
     case 'failed':
       return {
         id: state.toastId,
@@ -328,4 +356,140 @@ export function restoreFailureOf(error: unknown): RestoreFailure {
     type: 'failed',
     errorId: error instanceof ApiError ? (error.data.error_id ?? null) : null,
   };
+}
+
+/**
+ * The overview's selection (spec 010, S4 "Selection"; FR-038 to FR-040, R10): a row's checkbox
+ * selects or deselects it; the select-all selects every listed row (the rows the search shows,
+ * EC-11) and clears the selection when all of them are selected already; "Cancel" and a
+ * deletion clear it; a row that left the list leaves it (`prune`, EC-12). The selection only
+ * ever holds listed rows. An action that changes nothing returns the same state, so that pruning
+ * after every change of the list re-renders nothing. Nothing is stored (FR-040)
+ */
+export function selectionReducer(state: Selection, action: SelectionAction): Selection {
+  switch (action.type) {
+    case 'toggle': {
+      const next = new Set(state);
+      if (!next.delete(action.id)) {
+        next.add(action.id);
+      }
+      return next;
+    }
+    case 'toggleAll':
+      if (selectAllStateOf(state, action.listedIds) === 'all') {
+        return new Set();
+      }
+      return new Set(action.listedIds);
+    case 'clear':
+      return state.size === 0 ? state : new Set();
+    case 'prune': {
+      const listed = new Set(action.listedIds);
+      const kept = [...state].filter((id) => listed.has(id));
+      return kept.length === state.size ? state : new Set(kept);
+    }
+  }
+}
+
+/**
+ * What the select-all shows for the listed rows (FR-040): `none` while none of them is selected
+ * (and while nothing is listed), `all` while every one is, `some` (its mixed state) otherwise
+ */
+export function selectAllStateOf(
+  selected: Selection,
+  listedIds: readonly string[]
+): SelectAllState {
+  const count = listedIds.filter((id) => selected.has(id)).length;
+  if (count === 0) {
+    return 'none';
+  }
+  return count === listedIds.length ? 'all' : 'some';
+}
+
+/**
+ * The bulk delete dialog's state (spec 010, S4 "Delete"; FR-041 to FR-043): it opens with the
+ * selected rows in the list's order and keeps them while it closes; nothing closes it while the
+ * deletion runs (FR-042); a retry takes the last failure away, so that a new one is announced
+ * again; a failure keeps it open (FR-043)
+ */
+export function bulkDeleteReducer(
+  state: BulkDeleteState,
+  action: BulkDeleteAction
+): BulkDeleteState {
+  switch (action.type) {
+    case 'open':
+      return { rows: action.rows, open: true, deleting: false, error: null, changedName: null };
+    case 'close':
+      return state.deleting ? state : { ...state, open: false, error: null, changedName: null };
+    case 'start':
+      return { ...state, deleting: true, error: null, changedName: null };
+    case 'failed':
+      return {
+        ...state,
+        deleting: false,
+        error: action.failure.error,
+        changedName: action.failure.changedName,
+      };
+    case 'done':
+      return { ...state, open: false, deleting: false, error: null, changedName: null };
+  }
+}
+
+/**
+ * What the bulk deletion sends (management-api "Deleting"): each row's id and the state the
+ * dialog showed, so that the server deletes nothing when one of them changed meanwhile (FR-043)
+ */
+export function deletionItemsOf(
+  rows: readonly Pick<FormConnectionSummary, 'id' | 'state'>[]
+): DeletionItem[] {
+  return rows.map(({ id, state }) => ({ id, state }));
+}
+
+/**
+ * The bulk delete dialog's warning lines (FR-041; U15 6699:45320; copy.md §4), in the list's
+ * order: one per active connection ("<name> is active. Citizens won’t be able to use it.") and
+ * per scheduled one ("<name> is scheduled for <date>. It won’t become active."), none for a draft
+ * or a deactivated connection; in the given language
+ */
+export function bulkWarningsOf(
+  rows: readonly Pick<FormConnectionSummary, 'id' | 'name' | 'state' | 'start_date'>[],
+  language: Language
+): { id: string; text: string }[] {
+  const copy = BULK_DELETE_COPY[language];
+  return rows.flatMap((row) => {
+    if (row.state === 'live') {
+      return [{ id: row.id, text: copy.active(row.name) }];
+    }
+    if (row.state === 'scheduled' && row.start_date) {
+      return [{ id: row.id, text: copy.scheduled(row.name, formatDate(row.start_date, language)) }];
+    }
+    return [];
+  });
+}
+
+/**
+ * Why a bulk deletion failed (FR-043): `409 selection_changed` names the first changed connection
+ * the dialog holds (its `changed_ids` come in the request's order) and means that the list is out
+ * of date; a changed id the dialog doesn't hold falls back to the server's sentence. Any other
+ * failure shows as spec 008's do: the API's message with a 5xx's error ID, or "Nothing changed.
+ * …" without an answer (W8); a selection of more than 500 rows gets the server's generic `400`
+ * this way. A `401` signs out before this is asked
+ */
+export function bulkDeleteFailureOf(
+  error: unknown,
+  rows: readonly Pick<FormConnectionSummary, 'id' | 'name'>[],
+  language: Language
+): BulkDeleteFailure {
+  const notice = errorNoticeOf(error, BULK_DELETE_COPY[language].errorText);
+  if (
+    error instanceof ApiError &&
+    error.status === 409 &&
+    error.data.error === 'selection_changed'
+  ) {
+    const changedIds = (error.data as SelectionChanged).changed_ids ?? [];
+    const changed = changedIds
+      .map((id) => rows.find((row) => row.id === id))
+      .find((row) => row !== undefined);
+    return { error: notice, changedName: changed?.name ?? null, stale: true };
+  }
+  return { error: notice, changedName: null, stale: false };
 }

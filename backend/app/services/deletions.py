@@ -1,11 +1,14 @@
-"""Taking back a deletion, and making it final (spec 010, research R5).
+"""Deleting several connections, taking a deletion back, and making it final.
 
-Deleting marks a connection's row (`form_connections._mark_deleted()`): one id for
-the rows deleted together, and the team member who deleted. For
-DELETION_UNDO_SECONDS that team member can take the deletion back:
-`restore_deletion()` clears the marks of all its rows or of none (data-model 3,
-FR-034 to FR-036). Nothing else was touched, so the connections are back as they
-were, and what the deletion ended stays ended (FR-035).
+Spec 010, research R5 and R10. Deleting marks a connection's row
+(`form_connections._mark_deleted()`): one id for the rows deleted together, and
+the team member who deleted. `delete_connections()` deletes several connections
+as one deletion, all or none (FR-041, FR-043). For DELETION_UNDO_SECONDS that team
+member can take the deletion back: `restore_deletion()` clears the marks of all its
+rows or of none (data-model 3, FR-034 to FR-036). Nothing else was touched, so the
+connections are back as they were, and what the deletion ended stays ended
+(FR-035). Both lock the rows in id order, as every deletion does, so that two of
+them never wait for each other in a circle.
 
 `restore_cutoff()` is the one boundary of the restore time, which the restore and
 the worker's two steps after it share: a row deleted at or before it can no longer
@@ -17,6 +20,8 @@ Nothing here calls EUDIPLO, and the logs hold ids and counts only.
 """
 
 import logging
+import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -27,7 +32,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from ..config import settings
 from ..language import Text
 from ..models import ConnectionActivity, FormConnection, FormConnectionRevision
-from ..schemas import FormConnectionSummary
+from ..schemas import ConnectionState, Deletion, DeletionItem, FormConnectionSummary
 from . import activity, form_connections
 from .activity import Actor
 
@@ -43,6 +48,14 @@ NOT_RESTORABLE_DETAIL = {
         de='Das kann nicht mehr wiederhergestellt werden.',
     ),
 }
+# A bulk deletion's refusal (FR-043, contracts/copy.md section 8); the answer adds
+# `changed_ids`. The dialog names the connection from its own rows
+SELECTION_CHANGED_MESSAGE = Text(
+    en='Nothing was deleted: a connection was deleted or changed in the meantime.',
+    de=(
+        'Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert.'
+    ),
+)
 
 
 def _now() -> datetime:
@@ -58,6 +71,93 @@ def restore_cutoff(now: datetime) -> datetime:
     (`_mark_deleted()`); with DELETION_UNDO_SECONDS 0, none can.
     """
     return now - timedelta(seconds=settings.deletion_undo_seconds)
+
+
+def _as_shown(form_connection: FormConnection | None, state: ConnectionState) -> bool:
+    """Whether a locked row is still what the dialog showed: there, not deleted, and
+    in `state` as every view derives it (`state_of()`)."""
+    return (
+        form_connection is not None
+        and form_connection.deleted_at is None
+        and form_connections.state_of(form_connection) == state
+    )
+
+
+def delete_connections(
+    db: Session,
+    items: Sequence[DeletionItem],
+    *,
+    account_id: str,
+    actor: Actor,
+) -> Deletion:
+    """Delete several connections as one deletion, all or none (FR-041, FR-043).
+
+    Research R10. `items` are the rows the dialog listed, each with the state it
+    showed; `DeletionCreate` checked them (1 to 500, distinct ids). Drafts and
+    published connections alike: every listed row is locked in one statement, in
+    id order as every deletion locks them (`restore_deletion()` too), so that two
+    deletions whose rows overlap never wait for each other in a circle; the
+    second one waits, then finds the first one's rows deleted.
+
+    Under the locks, each item's row must exist, not be deleted, and be in the
+    item's state (`_as_shown()`). If one isn't, the locks are released and 409
+    `selection_changed` answers the ids of all such items, in the order of
+    `items`, in `changed_ids`: nothing changes, no activity is recorded and no
+    request is cancelled. Otherwise every row is marked with one new deletion id
+    and the account `account_id`, in id order, by the single deletes' own
+    `form_connections._mark_deleted()` (its open requests cancelled, its waiting
+    approval requests stored cancelled, a draft's reserved revision removed,
+    `deleted` recorded with `actor`), and one commit makes the deletion. No
+    EUDIPLO call: the worker cleans up after the restore time, as for a single
+    deletion.
+
+    Answers the deletion, which `restore_deletion()` brings back whole until
+    `restorable_until`: the first row's, as `_mark_deleted()` reads the clock
+    row by row, so that its restore time ends first. Logs the deletion's id and
+    the counts.
+    """
+    rows = db.scalars(
+        select(FormConnection)
+        .where(FormConnection.id.in_([item.id for item in items]))
+        .order_by(FormConnection.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).all()
+    by_id = {row.id: row for row in rows}
+    changed_ids = [
+        item.id for item in items if not _as_shown(by_id.get(item.id), item.state)
+    ]
+    if changed_ids:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                'error': 'selection_changed',
+                'message': SELECTION_CHANGED_MESSAGE,
+                'changed_ids': changed_ids,
+            },
+        )
+    deletion_id = str(uuid.uuid4())
+    marked: list[Deletion] = []
+    cancelled = 0
+    for row in rows:
+        deletion, row_cancelled = form_connections._mark_deleted(
+            db,
+            row,
+            actor=actor,
+            deleted_by_id=account_id,
+            deletion_id=deletion_id,
+        )
+        marked.append(deletion)
+        cancelled += row_cancelled
+    db.commit()
+    logger.info(
+        'Deletion %s: %d form connections deleted; %d open requests cancelled',
+        deletion_id,
+        len(rows),
+        cancelled,
+    )
+    return marked[0]
 
 
 def _restorable(

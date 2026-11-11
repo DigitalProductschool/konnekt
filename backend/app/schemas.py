@@ -11,6 +11,7 @@ from pydantic import (
     StrictInt,
     StrictStr,
     TypeAdapter,
+    field_validator,
 )
 
 from .catalog import FieldKind, PartKind
@@ -458,6 +459,39 @@ class Deletion(BaseModel):
     id: str | None
     # When the restore time (DELETION_UNDO_SECONDS) ends; null with `id`
     restorable_until: str | None
+
+
+# The most connections one bulk deletion takes (spec 010, research R10)
+DELETION_ITEMS_MAX = 500
+
+
+class DeletionItem(BaseModel):
+    """A connection of a bulk deletion, with the state the dialog showed for it.
+
+    Spec 010, research R10, contracts/management-api.md "Deleting" (FR-043).
+    """
+
+    id: str
+    state: ConnectionState
+
+
+class DeletionCreate(BaseModel):
+    """The body of a bulk deletion: the selected connections, deleted together.
+
+    Spec 010, research R10, contracts/management-api.md "Deleting". 1 to
+    DELETION_ITEMS_MAX items with distinct ids; an empty list, more items or an
+    id listed twice fails the body's validation (400 `Validation error`).
+    """
+
+    items: list[DeletionItem] = Field(min_length=1, max_length=DELETION_ITEMS_MAX)
+
+    @field_validator('items')
+    @classmethod
+    def check_distinct_ids(cls, items: list[DeletionItem]) -> list[DeletionItem]:
+        """Refuse an id listed twice: each connection has one state to check."""
+        if len({item.id for item in items}) != len(items):
+            raise ValueError('An id is listed twice')
+        return items
 
 
 class RestoredConnections(BaseModel):

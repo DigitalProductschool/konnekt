@@ -824,6 +824,194 @@ Items: FR-033, FR-034, FR-036, FR-037, US4-AS1–AS4. Browser: the `playwright-c
 : false | match |
 | — | welcome → overview after Undo | 160 | h1 | text | Your connections | Your connections | match |
 
+#### T048: the checkboxes and the selection bar (S4 "Selection", "Selection bar"; frames: the bar `6699:45199` (`6699:45206`), the select-all `6699:45214`, the row checkbox `6699:45219`; FR-038–FR-040, FR-081, US5-AS1, US5-AS5, US5-AS6; F26, W12, W16, W17) — 2026-11-11
+
+Browser: the `playwright-chrome` MCP, viewport 1455 × 900 (body 1440) for the frame rows, 320 × 640 and 160 × 320 CSS px for the narrow rows; fonts `document.fonts.check('600 16px "Fira Sans"')` and `('600 14px "Fira Sans"')` true. Backend on 3011 (`template_db_010_p7`, phase 6's code), Vite on 5175, account `p10-alice`. Data: `T048 live` `a3da73b8-d762-4b26-92bf-526a35827d89`, `T048 scheduled` `019071c3-c7f3-40dd-920d-61ab99c84f1e` (2026-12-20), `T048 deactivated` `841c5265-4426-430a-91dc-6caad90893e9`, `T048 draft` `7c5338c1-1850-4fa5-9aaf-7a8fdbeb1cdc` (made with phase 6's `make.mjs`; `T048 draft` and `T048 deactivated` deleted once through the UI and restored with "Undo"; all four exist at the end); a local draft "T048 device only" made in the editor for W17 and discarded at the end. The list filtered by "T048" where a row says "under a search". Figma calls: 5 (`get_design_context` on `6699:45206`, `6699:45214`, `6699:45219`; `get_screenshot` on `6699:45199`; `get_metadata` on `6699:45199`). Screenshots in `<scratchpad>/T048/`.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| `6699:45206` | some (2 of 4) | 1440 | bar | box | x 160, y 176 (body 64 + 112), 1120 × 56 | 160, 176, 1120 × 56 | match |
+| `6699:45206` | some | 1440 | bar | background | feedback-info-background #e0f2fe | rgb(224, 242, 254) | match |
+| `6699:45206` | some | 1440 | bar | padding, gap, radius | 8 16, 8, none | 8px 16px, 8px, 0 | match |
+| `6699:45206` | some | 1440 | count | text | "2 selected" | "2 selected" | match |
+| `6699:45206` | some | 1440 | count | font | Fira Sans 600 16/24, ink #0b1220 | "Fira Sans" 600 16px/24px, rgb(11, 18, 32) | match |
+| `6699:45206` | some | 1440 | count | role | not drawn (W12: announced) | `p[role=status]`, in the page while nothing is selected (empty) | match (W12) |
+| `6699:45206` | some | 1440 | "Cancel" | box | tertiary small, 40 tall, px 8; label px 8 py 4 | 40 tall, padding 0 8px; label 4px 8px; x 1086.3 | match |
+| `6699:45206` | some | 1440 | "Cancel" | font | 600 14/24, action #1d56f0, underline | 600 14px/24px, rgb(29, 86, 240), underline | match |
+| `6699:45206` | some | 1440 | "Delete" | box | right edge 1264 (bar 1280 − 16), 40 tall, px 16 + label p 8, radius 8 | 1168.5–1264, 40 tall, padding 0 16px, label 8px, radius 8px | match |
+| `6699:45206` | some | 1440 | "Delete" | colours, font | feedback-danger #c4271c, white 600 16/24 | rgb(196, 39, 28), white, 600 16px/24px | match |
+| `6699:45206` | some | 1440 | "Cancel" → "Delete" | gap | 8 | 1160.5 → 1168.5: 8 | match |
+| `6699:45199` | some | 1440 | toolbar | display | hidden while selecting (`6699:45207`) | `display: none` (kept in the page: the count still names the list, the search text stays) | match |
+| `6699:45199` | some | 1440 | list card | y | 64 + 184 = 248 (16 under the bar) | header at 249 (card 248 + 1 border) | match |
+| `6699:45199` | some | 1440 | column headers | box, background | 1118 × 45 at 161, 249; padding 8 24 | 161, 249, 1118 × 45; 8px 24px; rgb(242, 245, 251) | match |
+| `6699:45199` | some | 1440 | header labels | x | Name 229, Status 533, Date 687 | 229, 533, 687 | match |
+| `6699:45214` | some | 1440 | select-all | box | 20 × 20 at 185, 261 (header 249 + 8 + 4), radius 4 | 185, 261, 20 × 20, radius 4px | match |
+| `6699:45214` | some | 1440 | select-all | mixed | action #1d56f0 fill, white 10 × 2 dash | `indeterminate` true, rgb(29, 86, 240), the dash image (index.css) | match |
+| `6699:45214` | none | 1440 | select-all | unchecked | (frame 5: unchecked) | checked false, indeterminate false, white with 1px border | match |
+| `6699:45214` | all | 1440 | select-all | checked | not drawn | checked true, indeterminate false, the tick | match (FR-040) |
+| `6699:45214` | any | 1440 | select-all | name | layer "Select all" | aria-label "Select all connections" | match (copy.md §4) |
+| `6699:45219` | some | 1440 | row checkbox | box | 20 × 20 at 24, 26 + 4 in the 80 row (185, 324) | 185, 324, 20 × 20 | match |
+| `6699:45219` | some | 1440 | row checkbox | checked | action #1d56f0 fill, white tick (icon-done-small) | rgb(29, 86, 240), `check-white-small.svg` | match |
+| `6699:45219` | some | 1440 | row checkbox | unchecked (`6699:45245`) | white, 1px border | white, 1px rgb(107, 116, 136) | match |
+| `6699:45219` | any | 1440 | row checkbox | name | layer "Select <name>" (F26) | aria-label "Select “T048 live”" | match (F26, copy.md §4) |
+| `6699:45219` | any | 1440 | row checkbox | target | 20 × 28 (box + 4 above and below) | label 24 × 28 at 183, 320 (2px each side, W16), name still at 229 | match (W16) |
+| `6699:45199` | some | 1440 | rows | height, name x | 80, 81; name 229; status 533; date 687 | 80, 81; 229 | match |
+| `6699:45199` | some | 1440 | rows' actions | presence | View, Edit, Delete stay | View, Edit, Delete on every row | match (FR-039) |
+| `6699:45199` | some | 1440 | "Create connection" | presence | stays (U15 #22, FIGMA-ONLY) | stays, enabled | match |
+| `6699:45199` | some | 1440 | screenshot | comparison | `6699:45199` | `some-1440.png`: same layout; the draft row's "Edited … · Rules step" wraps in its 160 column (F23, T013, unchanged) | match |
+| — | none | 1440 | toolbar, bar | display | the toolbar | toolbar `flex` with "189 connections"; no bar, the empty status region `sr-only` | match |
+| — | one | 1440 | bar | count | "<n> selected" | "1 selected"; select-all mixed | match |
+| — | all, no search | 1440 | bar, rows | count | every listed row | "189 selected" of 189 rows; select-all checked | match (FR-040) |
+| — | all under a search ("T048") | 1440 | bar, rows | only the listed rows | 4 of 189 | "4 selected", the four T048 rows checked, select-all checked; a second click clears all and the toolbar returns | match (EC-11) |
+| — | Cancel | 1440 | toolbar | back with its search text | "4 of 189 connections", "T048" in the field | toolbar `flex`, "4 of 189 connections", field "T048", focus in the field | match (FR-040) |
+| — | one → "Delete" | 1440 | dialog | the row's own | FR-041: its own delete dialog | "Delete “T048 live”?" (ConfirmDialog); "Keep connection" gives the focus back to the bar's "Delete" | match |
+| — | one → "Delete" → "Delete connection" | 1440 | page | after the deletion | the row gone, the selection cleared, the toolbar back | 3 rows, no bar, toolbar with "T048", focus on the h1, toast "“T048 deactivated” deleted." with "Undo" (restored) | match (FR-044) |
+| — | two → "Delete" | 1440 | page | T049's dialog | not built here | nothing opens (`openBulkDelete`, T049's seam) | not built, T049 |
+| — | some, a selected row deleted by its own bin | 1440 | bar | prune | the row leaves the selection (EC-12) | "2 selected" → "1 selected"; after "Undo" the row is back unchecked, "1 selected" | match (W12) |
+| — | some, local draft (W17) | 1440 | banner, bar | order | banner between the title and the bar | h1 bottom 136, banner 176–258, bar 274–330 (16 apart) | match (W17) |
+| — | some, local draft (W17) | 1440 | device-only connection | row, checkbox, count | none | no checkbox named "T048 device only", 4 rows, "2 selected" | match (FR-081) |
+| — | some, German | 1440 | bar | texts | "2 ausgewählt", "Abbrechen", "Löschen" (copy.md §1, G§2) | "2 ausgewählt", "Abbrechen", "Löschen"; checkboxes "„T048 live“ auswählen", "Alle Anbindungen auswählen" | match |
+| — | none (select-all), some (row checkbox, select-all, "Cancel", "Delete") | 1440 | focus ring | after a click | none | `:focus-visible` false, outline none (each) | match |
+| — | the same | 1440 | focus ring | after the keyboard (Shift+Tab, Tab) | the ring | checkboxes 3px solid rgb(11, 18, 32); buttons 4px solid rgb(11, 18, 32) | match |
+| — | none | 320 | page | scroll, clipped, h1 | none, none, 1 | 305 ≤ 320; nothing off-screen or outside the card; 1 | match |
+| — | none, under a search | 320 | page | scroll, clipped, h1 | none, none, 1 | 305 ≤ 320; none; 1 | match |
+| — | one | 320 | page, bar | scroll, clipped, h1, wrap | none, none, 1; buttons under the count | 305 ≤ 320; none; 1; bar 273 × 88, both buttons under "1 selected" | match (W16) |
+| — | some | 320 | page, bar | the same | the same | 305 ≤ 320; none; 1; buttons under "2 selected" | match (W16) |
+| — | all under a search | 320 | page, bar | the same | the same | 305 ≤ 320; none; 1; buttons under "4 selected" | match |
+| — | all, no search | 320 | page, bar | the same | the same | 305 ≤ 320; none; 1; buttons under "189 selected" | match |
+| — | Cancel | 320 | page, toolbar | the same; the search text | the same; "T048" | 305 ≤ 320; none; 1; "T048", focus in the field | match |
+| — | every state | 320 | row checkbox | target | ≥ 24 px (W16) | 24 × 28 on every row | match (W16) |
+| — | every state | 320 | row | layout | rows wrap (card < 63rem) | the checkbox at the top, its box on the name's first line, the parts beside it; the bin wraps to a line of its own | match (W16) |
+| — | none (select-all), some (row checkbox, select-all, "Cancel", "Delete") | 320 | focus ring | click / keyboard | none / the ring | none after the click; 3px (checkboxes) and 4px (buttons) after the keyboard | match |
+| — | none | 160 | page | scroll, clipped, h1 | none, none, 1 | 160 ≤ 160; none; 1 | match |
+| — | none, under a search | 160 | page | the same | the same | 160 ≤ 160; none; 1 | match |
+| — | one | 160 | page, bar | scroll, clipped, h1, wrap | none, none, 1; buttons under the count | 160 ≤ 160; none; 1; bar 129 × 136, the buttons under "1 selected" | match (W16) |
+| — | some | 160 | page, bar | the same | the same | 160 ≤ 160; none; 1; buttons under "2 selected" | match (W16) |
+| — | all under a search | 160 | page, bar | the same | the same | 160 ≤ 160; none; 1; buttons under "4 selected" | match |
+| — | all, no search | 160 | page, bar | the same | the same | 160 ≤ 160; none; 1; buttons under "189 selected" | match |
+| — | Cancel | 160 | page, toolbar | the same; the search text | the same; "T048" | 160 ≤ 160; none; 1; "T048", focus in the field | match |
+| — | every state | 160 | row checkbox | target | ≥ 24 px (W16) | 24 × 28 on every row | match (W16) |
+| — | every state | 160 | row | layout | `narrow:` | the checkbox on a line of its own above the parts, which keep the row's width (`some-160.png`) | match (W16) |
+| — | none (select-all), some (row checkbox, select-all, "Cancel", "Delete") | 160 | focus ring | click / keyboard | none / the ring | none after the click; 3px and 4px after the keyboard | match |
+
+#### T050: the local-drafts banner against 1m and 1n (S5; FR-081, US5-AS6; F43, R15 V12)
+
+Browser: the `playwright-firefox` MCP, viewport 1440 × 900 (Firefox's overlay scrollbars: `body` 1440 wide, no widening needed); narrow rows at viewports 320 and 160 CSS px (160 = the 320 px window at 200 %, `narrow:`). Account `p10-bob`. Data made: the stored draft `T050 Passenger transport licence draft` (`88d5130e-1763-4105-be4f-e2cb22b57148`, through the API, kept), its local draft (a rule renamed to "T050 age rule" in the edit flow, then the page closed) and a never-saved local draft `T050 Taxi licence` (typed into `/form-connections/new`, then the page closed); both local drafts discarded through the banner at the end. Figma read: `get_design_context` (with its screenshot) on `7362:54550` and `7362:54621`; neither frame changed since the audit (U16's inventory, word for word). Screenshots: `.playwright-mcp/T050/` (git-ignored). No code changed.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 1m 7362:54550 | one, EN | 1440 | banner | fill, border, radius | `feedback-default-background` #eef1f6, 1 `decorative-border-level-1` #d0d8e6, 8 | rgb(238, 241, 246), 1px rgb(208, 216, 230), 8px | match |
+| 1m 7362:54550 | one, EN | 1440 | banner | padding, gap, align | 16 16 16 20, 16, centre | 16px 16px 16px 20px, column-gap 16px, align-items center | match |
+| 1m 7362:54550 | one, EN | 1440 | banner | place, size | 1120 × 82, above the toolbar 16 | x 160 y 176, 1120 × 82; toolbar row 274 (count text at 286) | match |
+| 1m 7362:54551 | one, EN | 1440 | text column | position, size | 21 17, 48 high, fills the row | 21 17, 817.07 × 48 | match |
+| 1m 7362:54552 | one, EN | 1440 | heading | text | "Unsaved changes in “Passenger transport licence”" | "Unsaved changes in “T050 Passenger transport licence draft”" (h2) | match |
+| 1m 7362:54552 | one, EN | 1440 | heading | font, colour, numerals | `title/small` 600 16/24 #0b1220, "zero" "tnum" | 600 16px/24px rgb(11, 18, 32), tabular-nums slashed-zero | match |
+| 1m 7362:54553 | one, EN | 1440 | sub-line | text | "Saved only on this device on 06.11.2026, 14:20, when the page closed. Nobody else can see them." | "Saved only on this device on 11.11.2026, 18:58, when the page closed. Nobody else can see them." (the record's time) | match |
+| 1m 7362:54553 | one, EN | 1440 | sub-line | font, colour, numerals | `body/small/regular` 400 14/24 #4a5468, "zero" "tnum" | 400 14px/24px rgb(74, 84, 104), tabular-nums slashed-zero | match |
+| 1m 7362:54556 | one, EN | 1440 | Discard | visible text, accessible name | "Discard" (layer "Discard changes") | "Discard"; name "Discard changes in T050 Passenger transport licence draft" | F43 |
+| 1m 7362:54556 | one, EN | 1440 | Discard | look, size | `button-tertiary-small`: no fill, 600 14/24 #1d56f0 underlined, padding 0 8 + label 4 8, 40 + 4/4 = 48 | transparent, 600 14px/24px rgb(29, 86, 240) underline, 8px + 4px 8px, 79.9 × 40, margins 4/4 | match |
+| 1m 7362:54557 | one, EN | 1440 | Resume editing | look, size, place | `button-secondary-small`: 1 #1d56f0, radius 8, 20 px `icon-edit-small`, 600 14/24; 16 after Discard, right edge at the padding | 1px rgb(29, 86, 240), 8px, `kern-icon--edit` 20 × 20 rgb(29, 86, 240), 600 14px/24px; x 1109.97 = 1014.07 + 79.9 + 16, 153.03 wide, right edge 1263 = 1280 − 17 | match |
+| 1m 7362:54550 | one, EN | 1440 | item | name and line | (not drawn: the heading names it) | the item's name and "Edited · 11.11.2026, 18:58" `sr-only` (FR-029d) | match |
+| 1m 7362:54550 | one, EN | 1440 | screenshot | comparison | Figma render | `.playwright-mcp/T050/1m-en-1440.png`: same parts, order, alignment | match |
+| 1m 7362:54552–54557 | one, DE | 1440 | heading, sub-line, buttons | text | (English frame; glossary G "unsaved changes", "Resume editing" → "Fortsetzen", "Discard" → "Verwerfen") | "Nicht gespeicherte Änderungen in „T050 Passenger transport licence draft“"; "Am 11.11.2026, 18:58 beim Schließen der Seite nur auf diesem Gerät gespeichert. Niemand sonst kann sie sehen."; "Verwerfen" (name "Verwerfen der Änderungen in T050 Passenger transport licence draft"), "Fortsetzen"; banner 1120 × 82, one line each | match |
+| 1m | one, DE | 1440 | screenshot | comparison | Figma render | `.playwright-mcp/T050/1m-de-1440.png` | match |
+| 1n 7362:54621 | several, EN | 1440 | banner | size, padding, place | 1120 × 220, 16 16 16 20, above the toolbar 16 | x 160 y 176, 1120 × 220, 16px 16px 16px 20px; toolbar row 412 | match |
+| 1n 7362:54622 | several, EN | 1440 | text block | size, padding | 56 high, padding-bottom 8 | 1082 × 56, 8px | match |
+| 1n 7362:54623 | several, EN | 1440 | heading | text, font | "Unsaved changes in 2 connections", 600 16/24 #0b1220 | the same, 600 16px/24px rgb(11, 18, 32) | match |
+| 1n 7362:54624 | several, EN | 1440 | sub-line | text, font | "Saved only on this device when the page closed. Nobody else can see them.", 400 14/24 #4a5468 | the same, 400 14px/24px rgb(74, 84, 104) | match |
+| 1n 7362:54625, 54630 | several, EN | 1440 | item | divider, padding, gap, height | top 1 #d9dee8, 8 0, 16, 65 | 1px rgb(217, 222, 232), 8px 0, column-gap 16px, 65 (y 249 and 314) | match |
+| 1n 7362:54626, 54631 | several, EN | 1440 | item name | font, width | `label/small` 600 14/24 #0b1220, 280 | 600 14px/24px rgb(11, 18, 32), 280 | match |
+| 1n 7362:54627 | several, EN | 1440 | item line (stored draft) | text | "Edited · 06.11.2026, 14:20" | "Edited · 11.11.2026, 18:58" | match |
+| 1n 7362:54632 | several, EN | 1440 | item line (never saved) | text | "New, never saved · 05.11.2026, 09:12" | "New, never saved · 11.11.2026, 18:58" | match |
+| 1n 7362:54627, 54632 | several, EN | 1440 | item line | font, place | 400 14/24 #4a5468, 16 after the name, fills to the buttons | 400 14px/24px rgb(74, 84, 104), x 317 (= 21 + 280 + 16), 521.07 wide, tabular-nums slashed-zero | match |
+| 1n 7362:54628, 54633 | several, EN | 1440 | Discard | visible text, accessible name | "Discard" (layers "Discard changes" / "Discard") | "Discard"; names "Discard changes in T050 Taxi licence", "Discard changes in T050 Passenger transport licence draft" | F43 |
+| 1n 7362:54628, 54633 | several, EN | 1440 | Discard | look, size | as 1m | transparent, 600 14px/24px rgb(29, 86, 240) underline, 79.9 × 40 + 4/4 | match |
+| 1n 7362:54629, 54634 | several, EN | 1440 | Resume editing | look, place | as 1m, 16 after Discard, right edge at the padding | as 1m; x 1109.97, 153.03 wide, right edge 1263 | match |
+| 1n 7362:54621 | several, EN | 1440 | items | order | newest first (14:20 above 09:12) | newest first (`T050 Taxi licence` written last, above) | match |
+| 1n 7362:54621 | several, EN | 1440 | toolbar count | device-only connection | not counted ("3 connections" with Taxi licence on the device only) | `T050 Taxi licence` not in the list nor the count | match (W17) |
+| 1n | several, EN | 1440 | screenshot | comparison | Figma render | `.playwright-mcp/T050/1n-en-1440.png`: same parts, order, alignment | match |
+| 1n 7362:54623–54634 | several, DE | 1440 | heading, sub-line, lines, buttons | text | (English frame; glossary rows "Edited · …" → "Bearbeitet · …", "New, never saved · …" → "Neu, nie gespeichert · …") | "Nicht gespeicherte Änderungen in 2 Anbindungen"; "Beim Schließen der Seite nur auf diesem Gerät gespeichert. Niemand sonst kann sie sehen."; "Neu, nie gespeichert · 11.11.2026, 18:58", "Bearbeitet · 11.11.2026, 18:58"; "Verwerfen" (names "Verwerfen der Änderungen in <name>"), "Fortsetzen"; 1120 × 220, items 65 | match |
+| 1n | several, DE | 1440 | screenshot | comparison | Figma render | `.playwright-mcp/T050/1n-de-1440.png` | match |
+| — | one, EN | 1440 | after "Discard" → "Discard" (of the other item) | focus, status | 005-S4 | focus on the next item's "Resume editing"; status "Unsaved work discarded."; after the last item the section goes and the focus is on the h1 | match |
+| narrow | several, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | `scrollWidth` 320 = `clientWidth` 320; 1 h1; banner 288 wide, padding 20/16; nothing clipped or off-screen; the buttons wrap together under each line (`1n-en-320.png`) | match |
+| narrow | several, EN | 320 | Discard | focus ring keyboard / pointer | ring after Tab, none after a press | Tab: `:focus-visible`, 4px solid rgb(11, 18, 32); mouse press: not `:focus-visible`, outline none | match |
+| narrow | several, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 144 wide, padding 10/8 (narrow block); nothing clipped or off-screen; "Resume editing" wraps to two lines, 124 × 58 (`1n-en-160.png`) | match |
+| narrow | several, EN | 160 | Discard | focus ring keyboard / pointer | ring after Tab, none after a press | Tab: ring 4px; press: none | match |
+| narrow | several, DE | 320 | page, banner | h-scroll, h1, clipped, off-screen, focus | none, 1, none, none, keyboard only | 320 = 320; 1 h1; nothing clipped or off-screen; "Verwerfen" 97 and "Fortsetzen" 122 in one row; ring after Tab, none after a press | match |
+| narrow | several, DE | 160 | page, banner | h-scroll, h1, clipped, off-screen, focus | none, 1, none, none, keyboard only | 160 = 160; 1 h1; nothing clipped or off-screen; the buttons stacked (89, 114 wide); ring after Tab, none after a press | match |
+| narrow | one, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320; 1 h1; banner 288 × 242; the buttons wrap together under the text (`1m-en-320.png`) | match |
+| narrow | one, EN | 320 | Discard | focus ring keyboard / pointer | ring after Tab, none after a press | Tab: ring 4px; press: none | match |
+| narrow | one, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 144 × 444, padding 10/8; nothing clipped or off-screen; "Resume editing" 124 × 58 (two lines) | match |
+| narrow | one, EN | 160 | Discard | focus ring keyboard / pointer | ring after Tab, none after a press | Tab: ring 4px; press: none | match |
+| narrow | one, DE | 320 | page, banner | h-scroll, h1, clipped, off-screen, focus | none, 1, none, none, keyboard only | 320 = 320; 1 h1; banner 288 × 266; nothing clipped or off-screen; ring after Tab, none after a press | match |
+| narrow | one, DE | 160 | page, banner | h-scroll, h1, clipped, off-screen, focus | none, 1, none, none, keyboard only | 160 = 160; 1 h1; banner 144 × 474; nothing clipped or off-screen; ring after Tab, none after a press | match |
+| — | — | — | fonts | `document.fonts.check` | Fira Sans 600 16, 400 14, 600 14 | true, true, true | match |
+
+#### T049: the bulk delete dialog and its outcome (S4 "Delete", "After a deletion"; frames: the dialog `6699:45259` (`6699:45320`); FR-041–FR-044, US5-AS2–AS4; F35, W8, W12) — 2026-11-11
+
+Browser: the `playwright-chrome` MCP, 1455 × 900 window (body 1440) for the frame rows; the narrow rows at 320 × 640 and 160 × 320 CSS px viewports (the MCP can't zoom, as T050), snippets in `.playwright-mcp/T049/` of the checkout (`open.js`, `measure.js`, `narrow.js`, `narrow2.js`, `fail.js`, `conflict.js`, `success.js`; screenshots there, not committed). Backend on 3011 (`template_db_010_p7`, `WORKER_ENABLED=false`, restore time 300 s). Account `p10-alice`. Data made through the API (`<scratchpad>/T049/make30.mjs`, ids in `<scratchpad>/T049/made.json`): `T049 live`, `T049 scheduled` (20.12.2026), `T049 deactivated`, `T049 draft`, and `T049 long 01 …` to `T049 long 26 …` (8 live, 3 scheduled, 15 drafts); the overview filtered by "T049". Every deletion was undone; `T049 long 03 live`, deactivated through the API for the 409, was activated again; all 30 rows exist. `409 selection_changed` reached for real (a selected row deactivated, or both selected rows bulk-deleted, through `page.request` while the dialog was open); the 500 with an error ID, no answer and the busy state with `page.route()`; `409 not_restorable` by restoring through the API first. Fonts: `document.fonts.check` true for `400 16px`, `600 16px`, `600 24px "Fira Sans"`. Figma calls: 2 (`get_design_context` on `6699:45320`, `get_screenshot` on `6699:45259`); the frame matches the audit (U15 #23–#28). The toast `6699:48098` not read again: the plural sentence changes only the text, the toast's rows are T043's.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| `6699:45320` | two rows (active + draft) | 1440 | dialog | box | 480 wide, radius 12, 1px outline inside | 480 × 363 at x 480, radius 12 (ConfirmDialog's frame) | match |
+| `6699:45320` | two rows | 1440 | dialog | height | 388 (the warning wraps to two lines with "Fishing licence") | 363 (the warning on one line with "T049 live": 388 − 24 = 364; the footer's 23 + 1 is ConfirmDialog's, spec 008) | match |
+| `6699:45320` | two rows | 1440 | header | box | min-h 64, pl 32, pr 8, pt 8; × 48 | 480 × 64; × 48 × 48 at x 904 | match |
+| `6699:45320` | two rows | 1440 | title | text, type | "Delete 2 connections?", 24/32 600 #0b1220 | "Delete 2 connections?", 24px/32px 600 rgb(11, 18, 32) | match |
+| `6699:45320` | two rows | 1440 | text | text, type | "Their documents and rules will be deleted too.", body/default 16/24 400, text/muted #4a5468 | same text, 16px/24px 400 rgb(74, 84, 104), 416 wide at x 512 | match |
+| `6699:45320` | two rows | 1440 | text → summary | gap | 16 | 16 | match |
+| `6699:45320` | two rows | 1440 | summary card | border, radius, width | 1px #e1e6f0, radius 8, 416 (full width) | 1px rgb(225, 230, 240), 8px, 416 × 83 | match |
+| `6699:45320` | two rows | 1440 | line | padding, gap, divider | 8 16, gap 16, 1px #e1e6f0 under the first | 8px 16px, 16, 1px rgb(225, 230, 240) under the first only; 41 and 40 high | match |
+| `6699:45320` | two rows | 1440 | line name | type | label/default 16/24 600 #0b1220 | 16px/24px 600 rgb(11, 18, 32) | match |
+| `6699:45320` | two rows | 1440 | line status pill | fill, size | Active #eaf7e6, Draft #e0f2fe, 24 high, right-aligned; fixed widths 75 / 69 in this instance | rgb(234, 247, 230), rgb(224, 242, 254), 24 high, right edge at the line's padding; 72.8 / 66.3 (C1's pill hugs its label, T019's 72.8) | match (C1) |
+| `6699:45320` | two rows | 1440 | line order | order | the selected rows | the list's order ("T049 draft" above "T049 live", the overview's order) | match (FR-041) |
+| `6699:45320` | two rows | 1440 | summary → warnings | gap | 16 | 16 | match |
+| `6699:45320` | two rows | 1440 | warning | icon | "Icon · warning" 20 × 20, #9a4a00, top-aligned | the frame's asset (`assets/icons/warning-amber.svg`), 20 × 20 at the line's top | match |
+| `6699:45320` | two rows | 1440 | warning | gap, type, text | 8; label/default 16/24 600, feedback/warning #9a4a00; "<name> is active. Citizens won’t be able to use it." | 8; 16px/24px 600 rgb(154, 74, 0); "T049 live is active. Citizens won’t be able to use it." | match |
+| `6699:45320` | two rows | 1440 | footer | box | border-t 1 #e1e6f0, 24 32 32, buttons 48 high, gap 16, equal widths | 480 × 104; buttons 200 × 48 at x 512 and 728 | match (ConfirmDialog, spec 008) |
+| `6699:45320` | two rows | 1440 | buttons | text, colours | "Keep connections" secondary (#1d56f0 outline), "Delete connections" danger #c4271c | same texts; outline rgb(29, 86, 240); fill rgb(196, 39, 28) | match |
+| `6699:45259` | two rows | 1440 | page | screenshot | scrim over the page, the bar "2 selected" behind | scrim over the page, "2 selected", "Cancel", "Delete" behind; no other difference than the data | match |
+| — | two rows | 1440 | dialog | scrim click | doesn't close (FR-042; U15 #28) | still open after a click at (20, 880) | match |
+| — | two rows | 1440 | dialog | Escape, ×, "Keep connections" | close, focus back to the bar (FR-042) | each closes; focus on the bar's "Delete" (`:focus-visible` after Escape) | match |
+| — | four statuses | 1440 | lines, warnings | text, order | one line each; warnings for active and scheduled in the list's order (FR-041; copy.md §4) | lines draft, deactivated, scheduled, live; "T049 scheduled is scheduled for 20.12.2026. It won’t become active.", "T049 live is active. Citizens won’t be able to use it."; none for draft or deactivated | match |
+| — | four statuses, German | 1440 | dialog | texts | copy.md §4, glossary | "4 Anbindungen löschen?", "Die Dokumente und Regeln der Anbindungen werden ebenfalls gelöscht.", pills "Entwurf", "Deaktiviert", "Geplant", "Aktiv", "T049 scheduled ist für den 20.12.2026 geplant. Sie wird nicht aktiv.", "T049 live ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen.", "Anbindungen behalten", "Anbindungen löschen" (the buttons' labels wrap to two lines, 567 high) | match |
+| — | 30 rows | 1440 | region | scroll | the list scrolls inside, the buttons in view (W12, EC-13) | dialog 862 = the window's limit (900 − 38); region capped at 622 (`--bulk-delete-max`), 1887 tall inside; title, text and buttons (y 801–849) in view; 30 lines, 12 warnings | match |
+| — | 30 rows | 1440 | region | keyboard | scrolls with the keyboard | Tab from × focuses the region (`role=group`, named "Delete 30 connections?"); End scrolls it to the end (1265 = its scroll range) | match |
+| — | 30 rows | 1440 | region | focus ring | after the keyboard only | after Tab: 4px solid rgb(11, 18, 32), offset 2; after a click: outline none | match |
+| — | busy | 1440 | buttons | state | nothing closes it (FR-042) | "Deleting…", both `aria-disabled="true"`; Escape and a scrim click leave it open | match |
+| — | busy, German | 1440 | confirm | label | "Wird gelöscht …" | "Wird gelöscht …" | match |
+| — | a 500 with an error ID | 1440 | alert | text | spec 008's failure with the error ID (W8) | "Couldn’t delete" / "Something went wrong." / "Error ID: T049-err-1" above the text; confirm "Try again"; the dialog described by the alert and the text; buttons in view | match |
+| — | a 500, German | 1440 | alert | text | glossary | "Die Anbindungen konnten nicht gelöscht werden" / … / "Fehler-ID: T049-err-1"; "Erneut versuchen" | match |
+| — | no answer | 1440 | alert | text | P5's sentence only without an answer (W8) | "Couldn’t delete" / "Nothing changed. Check your connection and try again." | match |
+| — | no answer, German | 1440 | alert | text | glossary | "… / Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut." | match |
+| — | `409 selection_changed` (a selected row deactivated meanwhile) | 1440 | alert | text | "Nothing was deleted: “<name>” was deleted or changed in the meantime." (FR-043, copy.md §4) | "Couldn’t delete" / "Nothing was deleted: “T049 long 03 live” was deleted or changed in the meantime."; the dialog stays open with its rows; confirm "Try again" | match (UNCERTAIN 2, 4) |
+| — | `409`, German | 1440 | alert | text | copy.md §4 | "Nichts wurde gelöscht: „T049 long 03 live“ wurde inzwischen gelöscht oder geändert." | match |
+| — | `409` | 1440 | list behind | reload | the list shows the current state (FR-043) | `POST /deletions 409` then `GET /form-connections 200`; the row behind reads "Deactivated", "Deactivated 11.11.2026"; no skeleton; the bar stays "2 selected" | match |
+| — | `409` | 1440 | focus | after "Keep connections" | back to the bar | the bar's "Delete" | match |
+| — | `409`, both rows deleted meanwhile | 1440 | focus | after Escape | — (the bar is gone) | the sentence names the first changed row in the list's order; the selection pruned to none, the toolbar back; Escape puts the focus in the search field (`:focus-visible`) with its text | match (UNCERTAIN 5) |
+| `6699:48098` (T043) | deleted | 1440 | toast | kind, text, action | `danger` (§4.2 T038), "<n> connections deleted." (FR-044), "Undo" | rgb(196, 39, 28), the white delete icon, "4 connections deleted.", "Undo"; 263 × 56 centred at y 748 | match |
+| — | deleted | 1440 | page | after the deletion | rows gone, selection cleared, toolbar back (FR-044) | the four rows gone ("26 of 215 connections"), the bar's status empty, the toolbar shown with "T049", the dialog closed, the focus on the h1; 201 after 0.39 s | match |
+| — | restored | 1440 | toast, list | kind, text | `success`, "<n> connections restored." | rgb(29, 122, 46), the check, "4 connections restored.", no action; all four rows back | match |
+| — | not restorable (replayed) | 1440 | toast | kind, text | `neutral`, "The connections can no longer be restored." | rgb(11, 18, 32), no icon, no action, that text | match |
+| — | restore without an answer | 1440 | toast | kind, text, action | `neutral`, "Couldn’t restore. Try again.", "Undo" again | rgb(11, 18, 32), that text, "Undo"; "Undo" again → "4 connections restored.", rows back | match |
+| — | deleted, German | 1440 | toast | text | "<n> Anbindungen gelöscht." | "4 Anbindungen gelöscht.", "Rückgängig", rgb(196, 39, 28) | match |
+| — | restored, German | 1440 | toast | text | "<n> Anbindungen wiederhergestellt." | "4 Anbindungen wiederhergestellt.", rgb(29, 122, 46) | match |
+| — | not restorable, German | 1440 | toast | text | "Die Anbindungen können nicht mehr wiederhergestellt werden." | that text, rgb(11, 18, 32) | match |
+| — | restore failed, German | 1440 | toast | text | "Wiederherstellen nicht möglich. Versuchen Sie es erneut." | that text, "Rückgängig" | match |
+| narrow | two rows (live + scheduled) | 320 | page, dialog | scroll, h1, clipped | none / 1 / none | scrollWidth = clientWidth; 1 h1; nothing outside the 273 px dialog; the pill under the name (name < 120 px beside it) | match |
+| narrow | two rows | 320 | dialog | buttons in view | yes | region capped at 242; buttons stacked at y 477–589 of 640 | match |
+| narrow | two rows | 320 | buttons | focus ring | after the keyboard, none after a click | "Keep connections" 4px solid after Shift+Tab/Tab; "Delete connections" none after a press | match |
+| narrow | 30 rows | 320 | dialog | scroll, h1, clipped, buttons | none / 1 / none / in view | no horizontal scroll; 1 h1; nothing clipped; region 242 of 3111 scrolls; buttons at y 477–589 | match |
+| narrow | 30 rows | 320 | region | focus ring | after the keyboard | tabIndex 0, the same ring as at 1440 | match |
+| narrow | two rows | 160 | page, dialog | scroll, h1, clipped | none / 1 / none | no horizontal scroll; 1 h1; nothing clipped; the pill under the name | match |
+| narrow | two rows, 30 rows | 160 | dialog | buttons in view | — | the window leaves less than 120 px for the region: the region keeps its height and the dialog scrolls as a whole (282 of 1317 / 7241); the buttons are reached by scrolling the dialog (Tab brings them into view) | match (UNCERTAIN 3) |
+| narrow | two rows, 30 rows | 160 | buttons | focus ring | after the keyboard, none after a click | 4px solid after Tab; none after a press | match |
+| narrow | busy | 320 | dialog | scroll, h1, buttons | none / 1 / in view | none / 1 / "Deleting…" at y 541–589 | match |
+| narrow | a 500 with an error ID | 320 | dialog | scroll, h1, clipped | none / 1 / none | none / 1 / none; the alert wraps; with it the region would get 58 px, so the dialog scrolls as a whole (875 in 602) and the buttons are below the fold until scrolled | match (UNCERTAIN 3) |
+| narrow | `409` | 320 | dialog | scroll, h1, clipped | none / 1 / none | none / 1 / none; the sentence wraps inside the alert; the dialog scrolls as a whole (819 in 602) | match (UNCERTAIN 3) |
+| narrow | busy, a 500, `409` | 160 | dialog | scroll, h1, clipped | none / 1 / none | none / 1 / none for each; the dialog scrolls as a whole; the focused button scrolled into view | match (UNCERTAIN 3) |
+| narrow | deleted, restored | 320 | toast | scroll, inside the window | T043's narrow rules | "4 connections deleted." x 21–284, y 488–544; "4 connections restored." x 48–258; no horizontal scroll; 1 h1 | match |
+| narrow | deleted, restored | 160 | toast | scroll, inside the window | T043's narrow rules | x 16–129, y 152–312 and 184–312 (wrapped); no horizontal scroll; 1 h1 | match |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -1122,6 +1310,31 @@ Items: FR-033, FR-034, FR-036, FR-037, US4-AS1–AS4. Browser: the `playwright-c
 74 rows; 714 measures, 714 pass, 0 fail, 0 unsure.
 
 The first run (700 measures, `T044/walk-run1.csv`) had 2 failing measures, both V7.5's closing time (7.60 s en, 7.54 s de): the script counted from before the row's Delete click and the dialog; counted from the toast's appearance, the rerun (`T044/walk-v75-rerun.csv`, new `… alone` drafts, its own token made and revoked) read 6.33 s and 6.38 s, and its V7.5 and V7.8 rows replace the first run's V7.5 rows here. No product file changed; two screenshots (V7.5 of the first run, en and de) were taken by the script and not needed. Two trial runs before the walk (V7.1/V7.2/V7.6/V7.7 in English) left 24 more `T044 en …` connections, all restored.
+
+#### T051: walk V8, bulk delete (US5; FR-038–FR-044, FR-081, SC-006, US5-AS1–AS6; scripted `playwright-core` 1.65: Chromium (`/usr/bin/chromium`), 1440 × 900 viewport (the 1455 px window's 1440 CSS px), browser zone Europe/Berlin; English and German through the stored language choice, one fresh browser context per language; backend on 3011 with the fake EUDIPLO, `WORKER_ENABLED=false`, the default restore time (300 s), database `template_db_010_p7`; Vite on 5175; account `p10-alice` (browser and API); connections made through the API, 18 per language, named `T051 <lang> <stamp> …` (drafts from `P3 seed live`'s documents and Standard rules, published ones through `POST /form-connections`, `scheduled` with `start_date` 2026-12-20, `deactivated` deactivated through the API): `v1 {live, scheduled, draft}` (V8.1–V8.4), `v5 {live, scheduled, draft}` (V8.5), `v6 01 … 10` (4 live, 3 drafts, 2 scheduled, 1 deactivated; V8.6), `v7 {draft, live}` (V8.7); every step filters the overview by its own `<prefix> v<n>` search (V8.2 also by the whole `<prefix>`, 18 rows), and the walk deleted only its own rows. Measured per step: the texts against the ones composed from copy.md §4/§8, the glossary German of design-notes §4.2 T049 and the API's states and dates; the bar's `role="status"` count and the toasts' live region; the select-all's `checked`/`indeterminate`; the toolbar's `display` and the bar's box against the toolbar's; the focus after Cancel, Keep, Escape, a deletion and "Undo"; the request body (`id`, `state` per row), the answer, `deletion_id`/`deleted_at` with `psql`, `GET /form-connections` and `GET /form-connections/{id}` after each action (V8.4: the restored rows equal to before but for `last_activity`, which reads `restored`); one h1 and no horizontal scroll per step. Special states: V8.3's scrim click at (8, 8) on the backdrop; V8.5 the selected `v5 live` deactivated with the page's own session (`context.request.post(…/deactivate)`) while the bulk dialog was open, then "Delete connections" (the real `409 selection_changed`; the quiet reload awaited; the confirm button's "Try again" is design-notes §4.3's open point for T084 and recorded as built, not as a failure); V8.4's toast held by the pointer while measuring (FR-082); V8.6 ten checkboxes ticked one by one, the times taken in Node from the first checkbox click and from the "Delete connections" click to the toast's sentence (polled per animation frame); V8.7 a device-only connection (`/form-connections/new`, a name typed, 2 s, then `page.goto('/')` with the `beforeunload` dialog accepted) and an edited local draft of `v7 draft` (`/form-connections/<id>/edit`, the description changed, 2 s, then away by navigating), the records read back from `localStorage` for the banner's dates. Backend log lines between `=== T051 start 2026-11-11T20:09:55Z ===` and `=== T051 end 2026-11-11T20:10:59Z ===` in `<scratchpad>/backend-3011.log`. CSV `<scratchpad>/T051/walk.csv`, summary `<scratchpad>/T051/summary.md`)
+
+| step | language | measures | pass | fail | unsure | notes |
+|---|---|---|---|---|---|---|
+| setup | en | 1 | 1 | 0 | 0 |  |
+| V8.1 two of three rows | en | 20 | 20 | 0 | 0 | announced count: "2 selected" |
+| V8.2 select-all under a search | en | 16 | 16 | 0 | 0 |  |
+| V8.3 the dialogs | en | 23 | 23 | 0 | 0 |  |
+| V8.4 delete and Undo | en | 32 | 32 | 0 | 0 | click to toast: "0.29" s; toast text: "3 connections deleted."; restored toast text: "3 connections restored." |
+| V8.5 changed in the meantime | en | 18 | 18 | 0 | 0 | the dialog names the changed row: "Couldn’t delete /  / Nothing was deleted: “T051 en za1z v5 live” was deleted or changed in…" |
+| V8.6 ten connections | en | 20 | 20 | 0 | 0 | SC-006: "Delete connections" click to toast: "0.32" s; SC-006: first checkbox click to toast: "1.45" s; toast text: "10 connections deleted." |
+| V8.7 the local-drafts banner | en | 19 | 19 | 0 | 0 | select-all counts only rows: "2 selected"; banner above the selection bar: "396 / 412" |
+| setup | de | 1 | 1 | 0 | 0 |  |
+| V8.1 two of three rows | de | 20 | 20 | 0 | 0 | announced count: "2 ausgewählt" |
+| V8.2 select-all under a search | de | 16 | 16 | 0 | 0 |  |
+| V8.3 the dialogs | de | 23 | 23 | 0 | 0 |  |
+| V8.4 delete and Undo | de | 32 | 32 | 0 | 0 | click to toast: "0.27" s; toast text: "3 Anbindungen gelöscht."; restored toast text: "3 Anbindungen wiederhergestellt." |
+| V8.5 changed in the meantime | de | 18 | 18 | 0 | 0 | the dialog names the changed row: "Die Anbindungen konnten nicht gelöscht werden /  / Nichts wurde gelöscht: „T051 de zxwc v5…" |
+| V8.6 ten connections | de | 20 | 20 | 0 | 0 | SC-006: "Delete connections" click to toast: "0.35" s; SC-006: first checkbox click to toast: "1.45" s; toast text: "10 Anbindungen gelöscht." |
+| V8.7 the local-drafts banner | de | 19 | 19 | 0 | 0 | select-all counts only rows: "2 ausgewählt"; banner above the selection bar: "420 / 436" |
+
+16 rows; 298 measures, 298 pass, 0 fail, 0 unsure.
+
+SC-006's times (V8.6, ten connections, one confirmation): "Delete connections" click to the toast 0.32 s (en) and 0.35 s (de); the first checkbox click to the toast 1.45 s (en, de); the click to the server's `201` 0.19 s and 0.20 s. The 30 seconds by hand and a screen reader on the count are left for a person (phase 7 "Needs a person"). No product file changed; no screenshot was needed (no failing or unsure row). Three trial runs before the walk (one stopped by a script error after making its rows, `T051 en wq9a`; `T051 en wynu` with a script error at V8.7's storage read, its 130 earlier measures passing; `T051 de ybjk`, 148 of 148 passing) made 54 more `T051 …` rows, outside the log markers.
 
 ### 2.3 The measured sweeps
 
@@ -1603,6 +1816,85 @@ reversed.
   public base, and the JSON comparison shows them unchanged); V7.5 passes for 5.9–6.6 s counted
   from the toast's appearance. Kept.
 
+- **T046, the bulk deletion** (T046's UNCERTAIN 1–9; the coordinator, phase 7): (1) an empty
+  list, more than 500 items and an id listed twice fail in `DeletionCreate` and get the app's
+  generic `400 { error: 'Validation error', message: 'Invalid request payload' }`
+  (`RequestValidationError`, `errors.py`), as a malformed date does; no new copy; (2) the service
+  makes the deletion's UUID (the bulk deletion is browser-only, so no approval path needs
+  `id: null`); (3) `restorable_until` is the earliest row's (`_mark_deleted()` reads the clock per
+  row), which is when the all-or-none restore stops; (4) `changed_ids` lists every changed item in
+  the request's order, ids no longer in the database included, so the dialog names
+  `changed_ids[0]` from its own rows; (5) the success message is `'Form connections deleted'`;
+  (6) `SelectionChanged extends ApiErrorResponse` in `api-types/src/form-connections.ts` types the
+  409 body (no Pydantic schema, the backend raises an `HTTPException` detail); (7) one log line
+  with the deletion id and two counts, a refusal logs nothing; (8) the route sits before
+  `/{form_connection_id}`, though no single-segment `POST` route could collide (R15 V4 tested by
+  `GET`/`PUT`/`DELETE /deletions` answering `404`); (9) the bearer's `403 browser_only` is tested
+  in `test_deletions.py`; `test_agent_principal.py`'s endpoint matrix (which lacks phase 6's
+  restore too) is not extended, not carried. The rows are locked in one `SELECT … ORDER BY id FOR
+  UPDATE` with `populate_existing`, the states read under the lock; 17 mutations (lock order,
+  each check, all-or-none, the limits, the guards) each failed a test, three of them in race tests
+  with real sessions (two overlapping bulk deletions, a bulk deletion against a restore, a
+  deactivation holding the lock). The frontend has no 500 cap: a selection of more than 500 rows
+  gets the generic 400 (carried to T049). Kept.
+- **T047 and T048, the selection and its bar** (T048's UNCERTAIN 1–9; the coordinator, phase 7):
+  (1) the list's column header now stays at every width so that the select-all stays: below the
+  rows' wrap point it keeps the select-all and "Name", "Status" and "Date" hide (the labels are
+  `aria-hidden`, the checkbox not); (2) the row's wrap breakpoint moves from 58rem to 63rem (the
+  checkbox adds 44 px; rows need 1005 px), and the card's `min-h` from 123 to 127; (3) a wrapped
+  row keeps its checkbox top-left with the parts beside it, at 320 the delete button drops to its
+  own line, and below 320 CSS px (`narrow:`) the checkbox takes its own line above the parts (at
+  160 words otherwise broke mid-word and "Edit" overflowed); (4) the checkbox's target is a
+  24 × 28 px `<label>` around the 20 px box with −2 px side margins, so the name stays at x 229 as
+  drawn; (5) the bar's `role="status"` paragraph stays in the page, empty and `sr-only`, while
+  nothing is selected, so the first "1 selected" is announced (a screen reader once is for a
+  person, phase 7 "Needs a person"); (6) "Cancel" moves the focus to the search field; after a
+  deletion through the bar the existing rule moves it to the h1; (7) `prune` runs only while the
+  list is loaded, over the rows the search shows, so a reloading list keeps the selection until it
+  is back; the search can't change while rows are selected (the bar hides it); (8) `toggleAll`
+  makes the selection exactly the listed rows, and with nothing listed the select-all is
+  disabled; (9) the selection is a `ReadonlySet` of ids, and an action that changes nothing
+  returns the same state. The toolbar stays mounted while hidden (`SearchToolbar`'s `hidden`), so
+  the search text survives and the count still names the list. Kept.
+- **T050, the local-drafts banner** (T050's UNCERTAIN 1–2; the coordinator, phase 7): the banner
+  matches 1m and 1n in both languages at 1440, 320 and 160 CSS px with no change; the 160 rows
+  were read with a 160 CSS px viewport (the MCP can't zoom), and the focus ring "after a click"
+  with a press released off the button, as earlier tasks did. At 160 CSS px the English "Resume
+  editing" wraps to two lines without clipping (match). Kept.
+- **T049, the bulk delete dialog** (T049's UNCERTAIN 1 and 3–7, its German and its copy note;
+  the coordinator, phase 7): (1) the warning lines carry the frame's own "Icon · warning"
+  (`frontend/src/assets/icons/warning-amber.svg`, unchanged), not KERN's rounded
+  `kern-icon--warning`; (3) the lines and warnings scroll inside the dialog (a region named after
+  the title, focusable only while it scrolls) where the window leaves them at least 120 px
+  (`BULK_DELETE_MIN_REGION`, the measured cap set as the CSS property `--bulk-delete-max`, as
+  `WizardLayout` does); where it would get less, the region keeps its height and the whole dialog
+  scrolls, as the overview does at 200 % zoom: at 1440 and 320 CSS px the buttons stay in view with
+  2 or 30 rows, at 160 CSS px and at 320 with a failure alert they are reached by scrolling the
+  dialog, the focused button scrolled into view (W12's "buttons stay in view" read for the heights
+  that allow it); (4) after `409 selection_changed` the list reloads quietly (no skeleton, a failed
+  reload ignored but a 401), so the selection bar stays mounted and the dialog returns the focus to
+  its "Delete"; a `listVersion` counter drops a stale reload's answer; (5) when that reload empties
+  the selection, closing the dialog puts the focus in the search field, or on the h1 when the page
+  fell back to the welcome page; (6) a line wraps the pill under the name when the name would get
+  less than 120 px beside it, and always below 320 CSS px; (7) a selection of more than 500 rows
+  shows the server's generic 400 as another failure (T046's note), covered by
+  `bulkDeleteFailureOf`'s test, not tried in the browser. The single-name toasts of phase 6 stay
+  for one connection; `deletionToastOf` uses the plural sentences for more than one name. The
+  German T049 wrote where copy.md gives none: "<n> Anbindungen löschen?", "Die Dokumente und Regeln
+  der Anbindungen werden ebenfalls gelöscht.", "Anbindungen behalten" / "Anbindungen löschen", the
+  active warning "<name> ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen." (the
+  single delete dialog's German) and the plural failure title "Die Anbindungen konnten nicht
+  gelöscht werden" (for T097's review). copy.md §4's "won't" in the scheduled warning and the
+  active line became "won’t", as the frame draws it. **Plan change**: T049's files gained
+  `frontend/src/assets/icons/warning-amber.svg`. UNCERTAIN 2 is open (§4.3). Kept.
+- **T051, the walk V8** (T051's UNCERTAIN 1–4; the coordinator, phase 7): V8.5's "another tab"
+  is the page's own session deactivating the row through the API while the dialog is open, as
+  T049 did; V8.6 ticks the ten checkboxes one by one (the slowest way) and measures in Node until
+  the toast's sentence appears; V8.7's two local drafts were made through the UI (a name typed in
+  the create flow, a description changed in the edit flow, then a navigation with `beforeunload`
+  accepted) and the banner's dates checked against the records' `changedAt`; the walk left V8.6's
+  deletions standing and V8.5's row deactivated. The warning lines were compared with "won’t", as
+  copy.md §4 now reads. V8.5's "Try again" was recorded as built (§4.3, for T084). Kept.
 ### 4.3 Open points
 
 - **A publish's configuration after a delete, a restore and a second publish** (T041's UNCERTAIN
@@ -1655,6 +1947,19 @@ reversed.
   the same; T024 suggests one rule in index.css's narrow block (`.kern-alert__header >
   .kern-title { flex-basis: 100% }`). For the sweep to measure and the task that owns its fixes
   to decide.
+
+- **The bulk dialog's "Try again" after `409 selection_changed`** (T049's UNCERTAIN 2; for
+  T084): the sentence "Nothing was deleted: “<name>” was deleted or changed in the meantime." sits
+  in spec 008's failure alert under "Couldn’t delete", and the confirm button turns into "Try
+  again", as in the single delete dialog. A retry sends the same states, so it answers `409` again
+  and nothing is deleted: safe (FR-043 holds), but a retry that can't succeed. The person's way
+  out is "Keep connections", then "Delete" again from the bar, which opens a dialog with the
+  current states. T049 did not refresh the dialog's rows from the reloaded list, so that nothing
+  is deleted whose new status the person hasn't seen. The coordinator's suggestion: after
+  `selection_changed`, offer no retry (the confirm button hidden or disabled, "Keep connections"
+  focused), a small change in `BulkDeleteDialog.tsx` for T098; or refresh the dialog's lines and
+  warnings from the reloaded list and let "Delete connections" send the new states. T084 decides,
+  asking the user if the documents don't settle it.
 
 ## 5. History
 
@@ -1858,5 +2163,51 @@ reversed.
   (`backend/.env.example` has it). **Left for a person** (tasks.md, phase 6 "Needs a person"), so
   T045 stays open: a screen reader (Orca or NVDA) once for "“<name>” restored." (the walk read it
   in the live region only: `role="status"`, `aria-live="polite"`, `aria-atomic="true"`).
+
+- 2026-11-11: phase 7, US5 (T046–T051), each wave's gates green on the combined tree. The
+  environment: a scratch copy of phase 6's database, `template_db_010_p7`; this checkout's backend
+  on port 3011 with the fake EUDIPLO (the launcher copied into this chat's scratchpad),
+  `WORKER_ENABLED=false` and the default restore time, restarted after wave 1 so that waves 2 and 3
+  ran T046's endpoint; Vite on 5175. No migration in this phase. Test counts after the phase:
+  pytest 2402 passed (2380 after phase 6, +22: the bulk deletion's 12 test functions, among them
+  three races with real sessions), run by T046 after its last backend edit (started 19:15:04, the
+  last edit 19:14:50) and not rerun by the coordinator (the user's standing rule; no backend file
+  changed after it); Ruff, mypy over 92 files and the fixtures' `--check` rerun green after wave 1
+  and at the checkpoint; `rules/` 2642; `frontend/` 33 files, 1443 tests (+35: the selection's
+  reducer and select-all state 15, the bulk dialog's reducer, items, warnings, failures and plural
+  toasts 20); `mcp/` 15 files, 454 tests. Waves ran as planned, with no change of level or batch.
+  **Plan change** (§4.2 T049): T049's files gained `frontend/src/assets/icons/warning-amber.svg`
+  (the frame's warning icon). copy.md §4 changed twice ("won’t" with a typographic apostrophe in
+  the scheduled warning and the active line, T049's note). One open point for T084 (§4.3: the bulk
+  dialog's "Try again" after `409 selection_changed`). T046 broke 17 conditions one at a time to
+  check that a test fails for each. The tasks left connections named `T048 …` (4), `T049 …` (30),
+  `T050 Passenger transport licence draft` and `T051 …` (90, 40 of them deleted for good past the
+  restore time) in `template_db_010_p7`, and screenshots in `<scratchpad>/T048/` and the
+  repository's git-ignored `.playwright-mcp/T049/` and `.playwright-mcp/T050/`; no local draft is
+  left in the MCP browsers' profiles. The documentation checklist's `docs/ARCHITECTURE.md` entries
+  for the bulk endpoint (`POST /api/form-connections/deletions`, all or none, `409
+  selection_changed`) and the overview's selection are for T102 ("the restorable deletion", "the
+  selection").
+- 2026-11-11: US5's checkpoint (T052, the coordinator). The gates are green on both sides: the
+  root gates rerun by the coordinator after wave 2 (lint, `npm test` with the counts above, build),
+  and no repository code changed after that run (T051 fixed nothing; only `tasks.md`,
+  `design-notes.md` and `contracts/copy.md` changed since); the backend's Ruff, mypy and the
+  fixtures' `--check` rerun at the checkpoint, pytest as above. T051's walk V8 (§2.2): 298
+  measures, 298 pass, 0 fail, 0 unsure, over V8.1–V8.7 × English and German in Chromium; SC-006:
+  ten connections ticked one by one and deleted with one confirmation, 1.45 s from the first
+  checkbox to the toast, 0.32–0.35 s from "Delete connections" to the toast. The tables of T048 (62
+  rows), T049 (56) and T050 (46) in §2.1 have no open row. The backend's log of the phase (866
+  lines, T051's walk between its markers: 193 lines) holds uv's and uvicorn's startup lines and
+  uvicorn's access lines only (methods, paths with ids, statuses; no query string); no name,
+  person, date, state or entry kind. The app configures no logging, so its own INFO lines don't
+  reach that log: the phase's diff adds one log call in `backend/app` with an id and counts only
+  ("Deletion %s: %d form connections deleted; %d open requests cancelled"); the frontend's diff
+  adds no `console.*`, no inline style (the dialog's measured cap is a CSS custom property set
+  with `style.setProperty`, as `WizardLayout` does; the new SVG keeps the Figma export's `style`
+  attribute, as phase 6's `delete-white.svg`), no `any`, no `dark:` and no `focus:`. **Left for a
+  person** (tasks.md, phase 7 "Needs a person"), so T052 stays open: SC-006's 30 seconds timed once
+  by hand (the walk measured the click to the toast), and a screen reader (Orca or NVDA) once for
+  the announced count "<n> selected" (the walk read it in the `role="status"` region, which stays
+  in the page empty while nothing is selected, §4.2 T048 (5)).
 
 ## 6. Closing report

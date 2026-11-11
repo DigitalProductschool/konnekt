@@ -1,4 +1,5 @@
 // Mirrors the form connection schemas in backend/app/schemas.py
+import type { ApiErrorResponse } from './api';
 import type { DocumentField } from './document-types';
 
 /** A document to request, with the keys of its selected fields (input) */
@@ -262,6 +263,35 @@ export interface Deletion {
   id: string | null;
   /** When the restore time (DELETION_UNDO_SECONDS) ends; null with `id` */
   restorable_until: string | null;
+}
+
+/**
+ * A connection of a bulk deletion, with the state the dialog showed for it (spec 010, research
+ * R10, contracts/management-api.md "Deleting"); mirrors DeletionItem
+ */
+export interface DeletionItem {
+  id: string;
+  state: ConnectionState;
+}
+
+/**
+ * The body of POST /api/form-connections/deletions: 1 to 500 items with distinct ids; an empty
+ * list, more items or an id listed twice answers `400 Validation error`; mirrors DeletionCreate
+ */
+export interface DeletionCreate {
+  items: DeletionItem[];
+}
+
+/**
+ * The `409` of a bulk deletion: nothing was deleted, as a listed connection no longer exists, is
+ * deleted or is in another state than its item names (FR-043). `changed_ids` holds every such
+ * item's id, in the order of the request's items. The body of the `HTTPException` that
+ * `deletions.delete_connections()` raises; `message` is the server's sentence, which names no
+ * connection
+ */
+export interface SelectionChanged extends ApiErrorResponse {
+  error: 'selection_changed';
+  changed_ids: string[];
 }
 
 /**

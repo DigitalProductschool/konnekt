@@ -2,11 +2,12 @@ import type { FormConnectionSummary } from '@connection-portal/api-types/form-co
 import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import type { Language } from '@connection-portal/rules/language';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { generatePath, Link, useLocation, useNavigate } from 'react-router';
 
 import { errorNoticeOf } from '../../api/client';
 import {
+  deleteConnections,
   deleteDraft,
   deleteFormConnection,
   listFormConnections,
@@ -27,27 +28,35 @@ import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useRememberedHomepage } from '../../hooks/useRememberedHomepage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { EDIT_ENTRY_DIALOG_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
+import BulkDeleteDialog from './BulkDeleteDialog';
 import {
   COLUMN_HEADER_CLASSES,
   COLUMN_HEADERS,
   DELETE_CONNECTION_COPY,
+  INITIAL_BULK_DELETE_STATE,
   INITIAL_LIST_STATE,
   INITIAL_ROW_DELETE_STATE,
   LIST_CARD_CLASSES,
   LIST_COPY,
+  NO_SELECTION,
   OVERVIEW_COLUMN_CLASSES,
   OVERVIEW_FOOTER_CLASSES,
   ROWS_CLASSES,
   SEARCH_COPY,
+  SELECTION_COPY,
   SKELETON_ROW_COUNT,
   WELCOME_COPY,
 } from './constants';
-import FormConnectionRow, { FormConnectionRowSkeleton } from './FormConnectionRow';
+import FormConnectionRow, { FormConnectionRowSkeleton, SelectCheckbox } from './FormConnectionRow';
 import SearchToolbar from './SearchToolbar';
-import type { HomepageView, NoMatchesProps } from './types';
+import SelectionBar from './SelectionBar';
+import type { ColumnHeadersProps, HomepageView, NoMatchesProps } from './types';
 import {
+  bulkDeleteFailureOf,
+  bulkDeleteReducer,
   canRestore,
   deleteDialogCopyOf,
+  deletionItemsOf,
   deletionReducer,
   deletionToastOf,
   filterConnections,
@@ -57,6 +66,8 @@ import {
   restoreFailureOf,
   rowDeleteFailureOf,
   rowDeleteReducer,
+  selectAllStateOf,
+  selectionReducer,
 } from './utils';
 import WelcomePage from './WelcomePage';
 
@@ -81,16 +92,37 @@ function HomepageLoader() {
 }
 
 /**
- * The list card's column headers (U11 6699:44583): for the eye, the rows say what each value is
- * (F14: no select-all checkbox); hidden where the rows wrap
+ * The list card's column headers (U11 6699:44583; spec 010, U15 6699:45213): the select-all
+ * "Select all connections" (FR-038, FR-040; U15 6699:45214), checked while every listed row is
+ * selected and mixed while some are, then the labels, which are for the eye: the rows say what
+ * each value is. Where the rows wrap only "Name" stays beside the select-all. The skeleton keeps
+ * the select-all's place without it
  */
-function ColumnHeaders() {
+function ColumnHeaders({ selectAll }: ColumnHeadersProps) {
   const headers = useCopy(COLUMN_HEADERS);
+  const copy = useCopy(SELECTION_COPY);
   return (
-    <div aria-hidden="true" className={COLUMN_HEADER_CLASSES}>
-      <span className="w-280 shrink-0">{headers.name}</span>
-      <span className="w-130 shrink-0">{headers.status}</span>
-      <span className="w-160 shrink-0">{headers.date}</span>
+    <div className={COLUMN_HEADER_CLASSES.headers}>
+      {selectAll ? (
+        <SelectCheckbox
+          label={copy.selectAll}
+          checked={selectAll.state === 'all'}
+          indeterminate={selectAll.state === 'some'}
+          disabled={selectAll.disabled}
+          onChange={selectAll.onToggle}
+        />
+      ) : (
+        <span className="h-28 w-20 shrink-0" />
+      )}
+      <span aria-hidden="true" className={COLUMN_HEADER_CLASSES.name}>
+        {headers.name}
+      </span>
+      <span aria-hidden="true" className={COLUMN_HEADER_CLASSES.column}>
+        {headers.status}
+      </span>
+      <span aria-hidden="true" className={COLUMN_HEADER_CLASSES.date}>
+        {headers.date}
+      </span>
     </div>
   );
 }
@@ -172,7 +204,7 @@ function arrivalToastOf(
  * (W2), the local-drafts offer (S5), the toolbar with the count and the search, which filters
  * the loaded list in the page (FR-051 (27), (28); `filterConnections`), the list card with its
  * column headers and rows, which scroll inside the card when they don't fit the window (U12), and
- * the footer bar with "Create connection" (cosmetic 1). No row can be selected (F14). While the
+ * the footer bar with "Create connection" (cosmetic 1). While the
  * list loads, skeleton rows stand for it (001-S3.5). A row's "Delete" asks the one delete dialog
  * (FR-028, FR-029c); after the delete the row leaves the list, and the focus moves to the page's
  * heading, since the button that opened the dialog is gone; after the last one the welcome page
@@ -191,6 +223,23 @@ function arrivalToastOf(
  * draft also means that the list holds something, so the overview shows at once. A published
  * connection's "Edit" asks "Edit “<name>”?" first (S17, F48; U15 6699:47905): "Edit connection"
  * opens the edit flow at step 1, and "Cancel", the ×, Escape and the scrim keep the overview.
+ *
+ * The selection (spec 010, S4 "Selection", "Selection bar"; FR-038 to FR-040, FR-081; U15
+ * 6699:45199): a checkbox on every row and the select-all in the list's header, over the listed
+ * rows (the rows the search shows; `selectionReducer`). While a row is selected the selection
+ * bar stands where the toolbar was ("<n> selected", announced; "Cancel"; "Delete"); "Cancel"
+ * clears the selection, and the toolbar comes back with its search text and the focus in the
+ * field. A row that leaves the loaded list leaves the selection. "Delete" with one row selected
+ * asks that row's own delete dialog; with more, the bulk dialog (`BulkDeleteDialog`). The
+ * local-drafts offer stays between the title and the bar; its device-only connections are no
+ * rows, so they are neither counted nor selectable. Nothing of the selection is stored.
+ *
+ * The bulk deletion (spec 010, S4 "Delete", "After a deletion"; FR-041 to FR-044): the dialog
+ * sends each row's id and state. After it the rows are gone, the selection is cleared, the
+ * toolbar is back with the focus on the heading, and the red "<n> connections deleted." offers
+ * "Undo" for all of them (`deletionReducer`). When a connection changed meanwhile, nothing is
+ * deleted: the dialog stays open and names it, and the list behind it loads again without its
+ * skeleton, so that the bar and its "Delete" stay where the focus returns.
  */
 export default function FormConnectionListPage() {
   const { language } = useLanguage();
@@ -206,6 +255,13 @@ export default function FormConnectionListPage() {
   }, [language]);
   const [state, dispatch] = useReducer(listReducer, INITIAL_LIST_STATE);
   const [rowDelete, dispatchDelete] = useReducer(rowDeleteReducer, INITIAL_ROW_DELETE_STATE);
+  const [bulkDelete, dispatchBulkDelete] = useReducer(bulkDeleteReducer, INITIAL_BULK_DELETE_STATE);
+  // The quiet reload after `409 selection_changed`: an answer that a later change of the list
+  // overtook (a deletion, a restore, another reload) is dropped
+  const listVersion = useRef(0);
+  // Set when the bulk dialog closes without deleting: the focus goes back to the bar's "Delete",
+  // or, where the reload emptied the selection, to the search field (or the heading)
+  const focusAfterBulkClose = useRef(false);
   const handleUnauthorized = useSignOutOnUnauthorized();
   const location = useLocation();
   const navigate = useNavigate();
@@ -246,7 +302,12 @@ export default function FormConnectionListPage() {
   } | null>(null);
 
   const list = state.status === 'loaded' ? state.formConnections : null;
-  const shown = list === null ? [] : filterConnections(list, query);
+  const shown = useMemo(() => (list === null ? [] : filterConnections(list, query)), [list, query]);
+  const shownIds = useMemo(() => shown.map((formConnection) => formConnection.id), [shown]);
+  const [selection, dispatchSelection] = useReducer(selectionReducer, NO_SELECTION);
+  const selectedCount = shownIds.filter((id) => selection.has(id)).length;
+  // Set by "Cancel": the toolbar comes back with the focus in its search field
+  const focusSearchAfterCancel = useRef(false);
   const { remembered } = useRememberedHomepage(list === null ? null : list.length > 0);
   // A draft saved on the way here is in the list, whatever the memory says
   const expected = draftSaved !== null ? true : remembered;
@@ -303,6 +364,101 @@ export default function FormConnectionListPage() {
     }
   }, [deletion]);
 
+  // A row that left the loaded list leaves the selection (EC-12); while the list loads again
+  // the selection waits for it
+  useEffect(() => {
+    if (list !== null) {
+      dispatchSelection({ type: 'prune', listedIds: shownIds });
+    }
+  }, [list, shownIds]);
+
+  // The native dialog gave the focus back to the bar's "Delete"; where the quiet reload took the
+  // bar away, the toolbar is back and its search field takes it. With no opener left, the focus
+  // stays on the closed dialog's button until the browser moves it to the body
+  useEffect(() => {
+    if (!focusAfterBulkClose.current || bulkDelete.open) return;
+    focusAfterBulkClose.current = false;
+    const active = document.activeElement;
+    if (active === null || active === document.body || active.closest('dialog:not([open])')) {
+      (searchRef.current ?? titleRef.current)?.focus();
+    }
+  }, [bulkDelete.open]);
+
+  // "Cancel" took its button away with the bar: the search field, back in view, takes the focus
+  useEffect(() => {
+    if (focusSearchAfterCancel.current && selection.size === 0) {
+      focusSearchAfterCancel.current = false;
+      searchRef.current?.focus();
+    }
+  }, [selection]);
+
+  function cancelSelection() {
+    focusSearchAfterCancel.current = true;
+    dispatchSelection({ type: 'clear' });
+  }
+
+  // The bar's "Delete" (FR-041): one row asks its own delete dialog, which gives the focus back
+  // to the bar's "Delete" when it closes without deleting; more rows ask the bulk dialog
+  function deleteSelected() {
+    const rows = shown.filter((formConnection) => selection.has(formConnection.id));
+    if (rows.length === 1) {
+      dispatchDelete({ type: 'open', target: rows[0] });
+    } else if (rows.length > 1) {
+      openBulkDelete(rows);
+    }
+  }
+
+  // The bulk dialog for two or more selected rows, in the list's order (FR-041)
+  function openBulkDelete(rows: FormConnectionSummary[]) {
+    dispatchBulkDelete({ type: 'open', rows });
+  }
+
+  // The list behind the bulk dialog, current again without the skeleton (FR-043): the bar and
+  // the rows stay, and the selection follows the answer (`prune`)
+  function reloadQuietly() {
+    const version = ++listVersion.current;
+    listFormConnections().then(
+      (formConnections) => {
+        if (version === listVersion.current) dispatch({ type: 'loaded', formConnections });
+      },
+      (error: unknown) => {
+        // The dialog already says that nothing was deleted; a failed reload keeps the list
+        handleUnauthorized(error);
+      }
+    );
+  }
+
+  // "Delete connections" (FR-043, FR-044): all of them or none
+  async function deleteBulk(rows: FormConnectionSummary[]) {
+    dispatchBulkDelete({ type: 'start' });
+    try {
+      const { id: deletionId } = await deleteConnections(deletionItemsOf(rows));
+      listVersion.current += 1;
+      focusTitleAfterDelete.current = true;
+      dispatchBulkDelete({ type: 'done' });
+      for (const row of rows) {
+        dispatch({ type: 'removed', id: row.id });
+      }
+      dispatchSelection({ type: 'clear' });
+      setSavedToast(null);
+      dispatchDeletion({ type: 'deleted', deletionId, names: rows.map((row) => row.name) });
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        const failure = bulkDeleteFailureOf(error, rows, language);
+        dispatchBulkDelete({ type: 'failed', failure });
+        if (failure.stale) {
+          reloadQuietly();
+        }
+      }
+    }
+  }
+
+  function closeBulkDelete() {
+    if (bulkDelete.deleting) return;
+    focusAfterBulkClose.current = true;
+    dispatchBulkDelete({ type: 'close' });
+  }
+
   // "Clear search" goes with the empty result, so the focus moves to the field it empties
   const clearSearch = () => {
     setQuery('');
@@ -315,6 +471,7 @@ export default function FormConnectionListPage() {
       const { id: deletionId } = await (target.status === 'draft'
         ? deleteDraft(target.id)
         : deleteFormConnection(target.id));
+      listVersion.current += 1;
       focusTitleAfterDelete.current = true;
       dispatchDelete({ type: 'done' });
       dispatch({ type: 'removed', id: target.id });
@@ -336,6 +493,7 @@ export default function FormConnectionListPage() {
     dispatchDeletion({ type: 'restoring', deletionId });
     try {
       const { items } = await restoreDeletion(deletionId);
+      listVersion.current += 1;
       dispatch({ type: 'restored', items });
       dispatchDeletion({ type: 'restored', deletionId });
     } catch (error) {
@@ -381,6 +539,13 @@ export default function FormConnectionListPage() {
           onConfirm={() => void deleteRow(target)}
         />
       )}
+      <BulkDeleteDialog
+        state={bulkDelete}
+        onCancel={closeBulkDelete}
+        onConfirm={() => {
+          if (bulkDelete.rows) void deleteBulk(bulkDelete.rows);
+        }}
+      />
       {editEntry && (
         <ConfirmDialog
           open={editEntry.open}
@@ -439,8 +604,9 @@ export default function FormConnectionListPage() {
           </KernAlert>
         )}
 
-        {/* U16 7362:54543: 16px under the title block and 16px above the toolbar (the column's
-            gap); it keeps its height, the list card shrinks instead and its rows scroll */}
+        {/* U16 7362:54543: 16px under the title block and 16px above the toolbar or the
+            selection bar (the column's gap; W17); it keeps its height, the list card shrinks
+            instead and its rows scroll */}
         <div className="contents [&>section]:shrink-0">
           <LocalDraftsOffer emptyFocusRef={titleRef} />
         </div>
@@ -457,15 +623,29 @@ export default function FormConnectionListPage() {
               inputRef={searchRef}
               countId={countId}
               listId={listId}
+              hidden={selectedCount > 0}
+            />
+            <SelectionBar
+              count={selectedCount}
+              onCancel={cancelSelection}
+              onDelete={deleteSelected}
             />
             <section id={listId} aria-labelledby={countId} className={LIST_CARD_CLASSES}>
-              <ColumnHeaders />
+              <ColumnHeaders
+                selectAll={{
+                  state: selectAllStateOf(selection, shownIds),
+                  disabled: shownIds.length === 0,
+                  onToggle: () => dispatchSelection({ type: 'toggleAll', listedIds: shownIds }),
+                }}
+              />
               {shown.length > 0 ? (
                 <ul className={ROWS_CLASSES}>
                   {shown.map((formConnection) => (
                     <FormConnectionRow
                       key={formConnection.id}
                       formConnection={formConnection}
+                      selected={selection.has(formConnection.id)}
+                      onToggle={(id) => dispatchSelection({ type: 'toggle', id })}
                       onDelete={(target) => dispatchDelete({ type: 'open', target })}
                       onEdit={(target) => setEditEntry({ target, open: true })}
                     />

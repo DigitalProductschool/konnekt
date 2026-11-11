@@ -2,6 +2,8 @@ import type {
   ActivateRequest,
   ActivityPage,
   Deletion,
+  DeletionCreate,
+  DeletionItem,
   DraftCreate,
   DraftPublish,
   DraftUpdate,
@@ -97,6 +99,19 @@ export function setStartDate(id: string, startDate: string | null): Promise<Form
  */
 export function deleteFormConnection(id: string): Promise<Deletion> {
   return apiFetch<Deletion>(`/form-connections/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/**
+ * Deletes several connections, drafts and published ones alike, as one deletion, or none: each item
+ * names a connection and the state the dialog showed. A connection that no longer exists, is
+ * deleted or is in another state answers `409 selection_changed` (`SelectionChanged`, its id in
+ * `changed_ids`) and nothing is deleted. 1 to 500 items with distinct ids. Answers the deletion,
+ * which its `id` restores whole until `restorable_until` (spec 010, research R10,
+ * contracts/management-api.md "Deleting")
+ */
+export function deleteConnections(items: DeletionItem[]): Promise<Deletion> {
+  const body: DeletionCreate = { items };
+  return apiFetch<Deletion>('/form-connections/deletions', { method: 'POST', body });
 }
 
 /**

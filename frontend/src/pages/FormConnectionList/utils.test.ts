@@ -1,12 +1,30 @@
-import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import type {
+  FormConnectionSummary,
+  SelectionChanged,
+} from '@connection-portal/api-types/form-connections';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
-import { INITIAL_DELETION_STATE, INITIAL_ROW_DELETE_STATE } from './constants';
-import type { DeletionAction, DeletionState, ListState, RowDeleteState } from './types';
 import {
+  INITIAL_BULK_DELETE_STATE,
+  INITIAL_DELETION_STATE,
+  INITIAL_ROW_DELETE_STATE,
+} from './constants';
+import type {
+  BulkDeleteState,
+  DeletionAction,
+  DeletionState,
+  ListState,
+  RowDeleteState,
+  Selection,
+} from './types';
+import {
+  bulkDeleteFailureOf,
+  bulkDeleteReducer,
+  bulkWarningsOf,
   canRestore,
   deleteDialogCopyOf,
+  deletionItemsOf,
   deletionReducer,
   deletionToastOf,
   descriptionOf,
@@ -19,6 +37,8 @@ import {
   rowDeleteFailureOf,
   rowDeleteReducer,
   rowMetaOf,
+  selectAllStateOf,
+  selectionReducer,
   withRestored,
 } from './utils';
 
@@ -615,6 +635,206 @@ describe('deletionToastOf (spec 010; copy.md §4; design-notes §4.2 T038)', () 
   });
 });
 
+describe('deletionToastOf for a bulk deletion (spec 010, FR-044; copy.md §4)', () => {
+  const names = ['Fishing licence', 'Hunting licence', 'Parking permit'];
+  const deleted = deletionReducer(INITIAL_DELETION_STATE, {
+    type: 'deleted',
+    deletionId: 'd-2',
+    names,
+  });
+  const restoring = deletionReducer(deleted, { type: 'restoring', deletionId: 'd-2' });
+  const after = (action: DeletionAction) => deletionReducer(restoring, action);
+
+  it('reads "<n> connections deleted." in red with "Undo", in both languages', () => {
+    expect(deletionToastOf(deleted, 'en')).toEqual({
+      id: 2,
+      kind: 'danger',
+      message: '3 connections deleted.',
+      actionLabel: 'Undo',
+    });
+    expect(deletionToastOf(deleted, 'de')).toMatchObject({
+      message: '3 Anbindungen gelöscht.',
+      actionLabel: 'Rückgängig',
+    });
+  });
+
+  it('reads "<n> connections restored." in green', () => {
+    const state = after({ type: 'restored', deletionId: 'd-2' });
+    expect(deletionToastOf(state, 'en')).toEqual({
+      id: 3,
+      kind: 'success',
+      message: '3 connections restored.',
+    });
+    expect(deletionToastOf(state, 'de')?.message).toBe('3 Anbindungen wiederhergestellt.');
+  });
+
+  it('reads "The connections can no longer be restored." in ink, without "Undo"', () => {
+    const state = after({ type: 'notRestorable', deletionId: 'd-2' });
+    expect(deletionToastOf(state, 'en')).toEqual({
+      id: 3,
+      kind: 'neutral',
+      message: 'The connections can no longer be restored.',
+    });
+    expect(deletionToastOf(state, 'de')?.message).toBe(
+      'Die Anbindungen können nicht mehr wiederhergestellt werden.'
+    );
+  });
+
+  it('reads "Couldn’t restore. Try again." with "Undo" again, as for one connection', () => {
+    const state = after({ type: 'failed', deletionId: 'd-2', errorId: null });
+    expect(deletionToastOf(state, 'en')).toEqual({
+      id: 3,
+      kind: 'neutral',
+      message: 'Couldn’t restore. Try again.',
+      actionLabel: 'Undo',
+      errorId: null,
+    });
+  });
+});
+
+describe('bulkDeleteReducer (spec 010, FR-041 to FR-043)', () => {
+  const rows = [summary({ id: 'a', name: 'A' }), summary({ id: 'b', name: 'B', state: 'draft' })];
+  const opened = bulkDeleteReducer(INITIAL_BULK_DELETE_STATE, { type: 'open', rows });
+  const deleting = bulkDeleteReducer(opened, { type: 'start' });
+  const changed: BulkDeleteState = bulkDeleteReducer(deleting, {
+    type: 'failed',
+    failure: { error: { message: 'Server' }, changedName: 'B', stale: true },
+  });
+
+  it('opens with the rows in the given order and no failure', () => {
+    expect(opened).toEqual({ rows, open: true, deleting: false, error: null, changedName: null });
+  });
+
+  it('ignores a close while the deletion runs (FR-042)', () => {
+    expect(bulkDeleteReducer(deleting, { type: 'close' })).toBe(deleting);
+  });
+
+  it('stays open after a failure, naming the changed connection (FR-043)', () => {
+    expect(changed).toMatchObject({ open: true, deleting: false, changedName: 'B' });
+    expect(changed.error).toEqual({ message: 'Server' });
+  });
+
+  it('takes the failure away when it tries again, so that a new one is announced', () => {
+    expect(bulkDeleteReducer(changed, { type: 'start' })).toMatchObject({
+      deleting: true,
+      error: null,
+      changedName: null,
+    });
+  });
+
+  it('closes, keeping the rows for the fade, after "Keep connections" or the deletion', () => {
+    for (const state of [
+      bulkDeleteReducer(changed, { type: 'close' }),
+      bulkDeleteReducer(deleting, { type: 'done' }),
+    ]) {
+      expect(state).toEqual({ rows, open: false, deleting: false, error: null, changedName: null });
+    }
+  });
+});
+
+describe('deletionItemsOf (management-api "Deleting")', () => {
+  it("sends each row's id and the state the dialog showed, in order", () => {
+    const rows = [
+      summary({ id: 'a', state: 'scheduled' }),
+      summary({ id: 'b', state: 'draft', status: 'draft' }),
+      summary({ id: 'c', state: 'deactivated', is_active: false }),
+      summary({ id: 'd', state: 'live' }),
+    ];
+    expect(deletionItemsOf(rows)).toEqual([
+      { id: 'a', state: 'scheduled' },
+      { id: 'b', state: 'draft' },
+      { id: 'c', state: 'deactivated' },
+      { id: 'd', state: 'live' },
+    ]);
+  });
+});
+
+describe('bulkWarningsOf (spec 010, FR-041; copy.md §4)', () => {
+  const rows = [
+    summary({ id: 'a', name: 'Fishing licence', state: 'live' }),
+    summary({ id: 'b', name: 'Hunting licence', state: 'draft', status: 'draft' }),
+    summary({ id: 'c', name: 'Taxi licence', state: 'scheduled', start_date: '2026-12-01' }),
+    summary({ id: 'd', name: 'Parking permit', state: 'deactivated', is_active: false }),
+    summary({ id: 'e', name: 'Dog tax', state: 'live' }),
+  ];
+
+  it('warns once per active and per scheduled connection, in the list order', () => {
+    expect(bulkWarningsOf(rows, 'en')).toEqual([
+      { id: 'a', text: 'Fishing licence is active. Citizens won’t be able to use it.' },
+      { id: 'c', text: 'Taxi licence is scheduled for 01.12.2026. It won’t become active.' },
+      { id: 'e', text: 'Dog tax is active. Citizens won’t be able to use it.' },
+    ]);
+  });
+
+  it('words them in German', () => {
+    expect(bulkWarningsOf(rows, 'de').map((warning) => warning.text)).toEqual([
+      'Fishing licence ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen.',
+      'Taxi licence ist für den 01.12.2026 geplant. Sie wird nicht aktiv.',
+      'Dog tax ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen.',
+    ]);
+  });
+
+  it('has no line for drafts and deactivated connections', () => {
+    expect(bulkWarningsOf(rows.slice(1, 2).concat(rows.slice(3, 4)), 'en')).toEqual([]);
+  });
+});
+
+describe('bulkDeleteFailureOf (spec 010, FR-043; W8)', () => {
+  const rows = [
+    summary({ id: 'a', name: 'Fishing licence' }),
+    summary({ id: 'b', name: 'Hunting licence' }),
+    summary({ id: 'c', name: 'Taxi licence' }),
+  ];
+  const changed = (ids: string[]) => {
+    const body: SelectionChanged = {
+      error: 'selection_changed',
+      message: 'Nothing was deleted: a connection was deleted or changed in the meantime.',
+      changed_ids: ids,
+    };
+    return new ApiError(409, body);
+  };
+
+  it('names the first changed connection the dialog holds and marks the list stale', () => {
+    expect(bulkDeleteFailureOf(changed(['gone', 'c', 'b']), rows, 'en')).toEqual({
+      error: {
+        message: 'Nothing was deleted: a connection was deleted or changed in the meantime.',
+        error_id: undefined,
+      },
+      changedName: 'Taxi licence',
+      stale: true,
+    });
+  });
+
+  it("falls back to the server's sentence for an id it doesn't hold", () => {
+    expect(bulkDeleteFailureOf(changed(['gone']), rows, 'en')).toMatchObject({
+      changedName: null,
+      stale: true,
+    });
+  });
+
+  it("shows another failure with the server's message and error ID", () => {
+    const error = new ApiError(500, { error: 'internal', message: 'Failed.', error_id: 'e-1' });
+    expect(bulkDeleteFailureOf(error, rows, 'en')).toEqual({
+      error: { message: 'Failed.', error_id: 'e-1' },
+      changedName: null,
+      stale: false,
+    });
+    const other = new ApiError(409, { error: 'conflict', message: 'Other.' });
+    expect(bulkDeleteFailureOf(other, rows, 'en').stale).toBe(false);
+  });
+
+  it('says "Nothing changed. …" without an answer, in the language shown', () => {
+    expect(bulkDeleteFailureOf(new TypeError('Failed to fetch'), rows, 'de')).toEqual({
+      error: {
+        message:
+          'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      },
+      changedName: null,
+      stale: false,
+    });
+  });
+});
+
 describe('restoreFailureOf (spec 010, FR-036)', () => {
   it('reads 409 not_restorable as final, by its code', () => {
     const error = new ApiError(409, { error: 'not_restorable', message: 'Anything.' });
@@ -633,5 +853,96 @@ describe('restoreFailureOf (spec 010, FR-036)', () => {
     });
     const other = new ApiError(409, { error: 'conflict', message: 'Other.' });
     expect(restoreFailureOf(other)).toEqual({ type: 'failed', errorId: null });
+  });
+});
+
+describe('selectionReducer (spec 010, FR-038 to FR-040)', () => {
+  const none: Selection = new Set();
+  const listed = ['a', 'b', 'c'];
+
+  it('selects a row with its checkbox, and deselects it with a second click', () => {
+    const one = selectionReducer(none, { type: 'toggle', id: 'b' });
+    expect([...one]).toEqual(['b']);
+    const two = selectionReducer(one, { type: 'toggle', id: 'a' });
+    expect(two).toEqual(new Set(['a', 'b']));
+    expect(selectionReducer(two, { type: 'toggle', id: 'b' })).toEqual(new Set(['a']));
+  });
+
+  it('never changes the state it was given', () => {
+    const state: Selection = new Set(['a']);
+    selectionReducer(state, { type: 'toggle', id: 'b' });
+    selectionReducer(state, { type: 'toggle', id: 'a' });
+    selectionReducer(state, { type: 'toggleAll', listedIds: listed });
+    selectionReducer(state, { type: 'clear' });
+    selectionReducer(state, { type: 'prune', listedIds: [] });
+    expect([...state]).toEqual(['a']);
+  });
+
+  it('selects every listed row with the select-all, from none or from some', () => {
+    expect(selectionReducer(none, { type: 'toggleAll', listedIds: listed })).toEqual(
+      new Set(listed)
+    );
+    expect(selectionReducer(new Set(['b']), { type: 'toggleAll', listedIds: listed })).toEqual(
+      new Set(listed)
+    );
+  });
+
+  it('clears the selection with the select-all when every listed row is selected', () => {
+    expect(selectionReducer(new Set(listed), { type: 'toggleAll', listedIds: listed }).size).toBe(
+      0
+    );
+  });
+
+  it('selects only the rows a search lists (EC-11)', () => {
+    // The search shows "b" and "c" of the list's "a", "b", "c" and "d"
+    const searched = ['b', 'c'];
+    const all = selectionReducer(none, { type: 'toggleAll', listedIds: searched });
+    expect(all).toEqual(new Set(searched));
+    expect(all.has('a')).toBe(false);
+    expect(all.has('d')).toBe(false);
+    expect(selectAllStateOf(all, searched)).toBe('all');
+    expect(selectAllStateOf(all, ['a', 'b', 'c', 'd'])).toBe('some');
+    expect(selectionReducer(all, { type: 'toggleAll', listedIds: searched }).size).toBe(0);
+  });
+
+  it('does nothing with the select-all while nothing is listed', () => {
+    expect(selectionReducer(none, { type: 'toggleAll', listedIds: [] }).size).toBe(0);
+  });
+
+  it('clears the selection ("Cancel", after a deletion)', () => {
+    expect(selectionReducer(new Set(['a', 'c']), { type: 'clear' }).size).toBe(0);
+    expect(selectionReducer(none, { type: 'clear' })).toBe(none);
+  });
+
+  it('takes a row that left the list out of the selection after a refresh (EC-12)', () => {
+    const state: Selection = new Set(['a', 'b', 'c']);
+    const pruned = selectionReducer(state, { type: 'prune', listedIds: ['a', 'c', 'd'] });
+    expect(pruned).toEqual(new Set(['a', 'c']));
+    expect(selectionReducer(pruned, { type: 'prune', listedIds: [] }).size).toBe(0);
+  });
+
+  it('keeps the same state when a refresh removed no selected row', () => {
+    const state: Selection = new Set(['a', 'c']);
+    expect(selectionReducer(state, { type: 'prune', listedIds: ['c', 'b', 'a'] })).toBe(state);
+    expect(selectionReducer(none, { type: 'prune', listedIds: listed })).toBe(none);
+  });
+});
+
+describe('selectAllStateOf (spec 010, FR-040)', () => {
+  const listed = ['a', 'b', 'c'];
+
+  it('reads none, some (mixed) or all for the listed rows', () => {
+    expect(selectAllStateOf(new Set(), listed)).toBe('none');
+    expect(selectAllStateOf(new Set(['a', 'b']), listed)).toBe('some');
+    expect(selectAllStateOf(new Set(listed), listed)).toBe('all');
+  });
+
+  it('counts only the listed rows', () => {
+    expect(selectAllStateOf(new Set(['x']), listed)).toBe('none');
+    expect(selectAllStateOf(new Set(['x', ...listed]), listed)).toBe('all');
+  });
+
+  it('reads none while nothing is listed', () => {
+    expect(selectAllStateOf(new Set(['a']), [])).toBe('none');
   });
 });

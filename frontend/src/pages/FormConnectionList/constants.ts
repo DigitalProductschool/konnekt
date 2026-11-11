@@ -5,7 +5,14 @@ import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';
 import publicInk from '../../assets/icons/public-ink.svg';
 import scienceInk from '../../assets/icons/science-ink.svg';
-import type { DeletionState, ListState, RowDeleteState, WelcomeStep } from './types';
+import type {
+  BulkDeleteState,
+  DeletionState,
+  ListState,
+  RowDeleteState,
+  Selection,
+  WelcomeStep,
+} from './types';
 
 // S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570; spec 009: G§2 "connection",
 // "overview", "draft", "delete", "try again")
@@ -42,6 +49,10 @@ export const LIST_COPY = defineTexts(
     restored: (name: string) => `“${name}” restored.`,
     notRestorable: (name: string) => `“${name}” can no longer be restored.`,
     restoreFailed: 'Couldn’t restore. Try again.',
+    // A bulk deletion's toasts (FR-044; copy.md §4, W12); the single-name ones stay for one
+    deletedMany: (count: number) => `${count} connections deleted.`,
+    restoredMany: (count: number) => `${count} connections restored.`,
+    notRestorableMany: 'The connections can no longer be restored.',
   },
   {
     pageTitle: 'Ihre Anbindungen',
@@ -70,13 +81,37 @@ export const LIST_COPY = defineTexts(
     restored: (name: string) => `„${name}“ wiederhergestellt.`,
     notRestorable: (name: string) => `„${name}“ kann nicht mehr wiederhergestellt werden.`,
     restoreFailed: 'Wiederherstellen nicht möglich. Versuchen Sie es erneut.',
+    deletedMany: (count: number) => `${count} Anbindungen gelöscht.`,
+    restoredMany: (count: number) => `${count} Anbindungen wiederhergestellt.`,
+    notRestorableMany: 'Die Anbindungen können nicht mehr wiederhergestellt werden.',
   }
 );
 
-// The list card's column headers (U11 6699:44253; no checkbox column, F14)
+// The list card's column headers (U11 6699:44253; spec 010's select-all before them, U15
+// 6699:45213)
 export const COLUMN_HEADERS = defineTexts(
   { name: 'Name', status: 'Status', date: 'Date' },
   { name: 'Name', status: 'Status', date: 'Datum' }
+);
+
+// The selection (spec 010, S4 "Selection", "Selection bar"; FR-038, FR-039): the bar's count and
+// buttons as drawn (U15 6699:45206), the checkboxes' names for screen readers (copy.md §4); G§2
+// "selected (overview rows)", "cancel", "delete"
+export const SELECTION_COPY = defineTexts(
+  {
+    selected: (count: number) => `${count} selected`,
+    cancel: 'Cancel',
+    delete: 'Delete',
+    selectRow: (name: string) => `Select “${name}”`,
+    selectAll: 'Select all connections',
+  },
+  {
+    selected: (count: number) => `${count} ausgewählt`,
+    cancel: 'Abbrechen',
+    delete: 'Löschen',
+    selectRow: (name: string) => `„${name}“ auswählen`,
+    selectAll: 'Alle Anbindungen auswählen',
+  }
 );
 
 // The toolbar's search (FR-051 (27), (28); U11 6699:44247, 6699:44518, 6699:44628; G§2 "search")
@@ -145,6 +180,9 @@ export const WELCOME_STEPS = defineTexts<readonly WelcomeStep[]>(
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
 
+/** Nothing selected (spec 010, FR-040): the page starts with it, and the selection is never stored */
+export const NO_SELECTION: Selection = new Set();
+
 /**
  * No deletion yet (spec 010, S4 "After a deletion"). Toast id 1 is the arrival's "Draft saved."
  * toast, so that a deletion's first toast (2) replaces it and is announced anew
@@ -193,6 +231,90 @@ export const DELETE_CONNECTION_COPY = defineTexts(
     retry: 'Erneut versuchen',
   }
 );
+
+/**
+ * The bulk delete dialog (spec 010, S4 "Delete"; FR-041 to FR-043; U15 6699:45320, "Dialog
+ * content/Delete · summary"; copy.md §4, W12): the design's title, text, warning line for an
+ * active connection and buttons; the scheduled connection's line and the changed connection's
+ * sentence from copy.md §4; the failure texts as the row dialog's (W8), the title in the plural.
+ * The names in the warning lines stand without quotes, as drawn. G§2 "connection", "delete",
+ * "keep", "scheduled", "citizens"
+ */
+export const BULK_DELETE_COPY = defineTexts(
+  {
+    title: (count: number) => `Delete ${count} connections?`,
+    text: 'Their documents and rules will be deleted too.',
+    active: (name: string) => `${name} is active. Citizens won’t be able to use it.`,
+    scheduled: (name: string, date: string) =>
+      `${name} is scheduled for ${date}. It won’t become active.`,
+    changed: (name: string) =>
+      `Nothing was deleted: “${name}” was deleted or changed in the meantime.`,
+    confirm: 'Delete connections',
+    cancel: 'Keep connections',
+    busy: 'Deleting…',
+    errorTitle: 'Couldn’t delete',
+    errorText: 'Nothing changed. Check your connection and try again.',
+    retry: 'Try again',
+  },
+  {
+    title: (count: number) => `${count} Anbindungen löschen?`,
+    text: 'Die Dokumente und Regeln der Anbindungen werden ebenfalls gelöscht.',
+    active: (name: string) =>
+      `${name} ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen.`,
+    scheduled: (name: string, date: string) =>
+      `${name} ist für den ${date} geplant. Sie wird nicht aktiv.`,
+    changed: (name: string) =>
+      `Nichts wurde gelöscht: „${name}“ wurde inzwischen gelöscht oder geändert.`,
+    confirm: 'Anbindungen löschen',
+    cancel: 'Anbindungen behalten',
+    busy: 'Wird gelöscht …',
+    errorTitle: 'Die Anbindungen konnten nicht gelöscht werden',
+    errorText:
+      'Es wurde nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+  }
+);
+
+/**
+ * The bulk delete dialog's parts (U15 6699:45320): the text in body/default and text/muted
+ * (16/24); the lines and the warnings, 16 apart, in one region that scrolls inside the dialog
+ * when the window can't show them with the buttons (W12, `--bulk-delete-max`, measured); the
+ * summary card with its 1px border/decorative line and radius 8, a line per connection 16 8, its
+ * name in label/default, the pill right, a line between lines; a warning: the 20px amber triangle,
+ * 8, the sentence in label/default and feedback/warning. Where the name would get less than 120px
+ * beside the pill (a 320px window), and always below 320 CSS px, the pill goes under the name. The region's focus ring as the Activity list's: kern.css takes the outline off a
+ * `[tabindex]` with `:focus-visible`, outside any layer, hence the `!`s
+ */
+export const BULK_DELETE_CLASSES = {
+  text: 'text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words',
+  region:
+    'flex max-h-(--bulk-delete-max) w-full flex-col gap-16 rounded-kern-small focus-visible:outline-kern-action-focus-default! overflow-y-auto focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!',
+  lines:
+    'rounded-kern-default flex w-full shrink-0 flex-col border border-(--kern-color-decorative-border-default)',
+  line: 'flex flex-wrap items-center gap-x-16 gap-y-4 border-(--kern-color-decorative-border-default) px-16 py-8 not-last:border-b',
+  name: 'text-kern-static-medium text-kern-layout-text-default min-w-0 flex-1 basis-120 leading-(--kern-typography-line-height-medium-static) font-semibold break-words narrow:basis-full',
+  warnings: 'flex w-full shrink-0 flex-col gap-8',
+  warning: 'flex items-start gap-8',
+  warningText:
+    'text-kern-static-medium text-kern-feedback-warning min-w-0 flex-1 leading-(--kern-typography-line-height-medium-static) font-semibold break-words',
+};
+
+/**
+ * The CSS property that caps the bulk delete dialog's region (`BULK_DELETE_CLASSES.region`), and
+ * the least height worth scrolling in: where less is left, the region keeps its height and the
+ * dialog scrolls as a whole, as the overview does at 320 px and 200 % zoom (no box of a line or
+ * two)
+ */
+export const BULK_DELETE_MAX_PROPERTY = '--bulk-delete-max';
+export const BULK_DELETE_MIN_REGION = 120;
+
+export const INITIAL_BULK_DELETE_STATE: BulkDeleteState = {
+  rows: null,
+  open: false,
+  deleting: false,
+  error: null,
+  changedName: null,
+};
 
 /**
  * A row's "Edit" (U13 6739:40602): a link for a draft, a button for a published connection, which
@@ -255,33 +377,73 @@ export const OVERVIEW_COLUMN_CLASSES =
  * the rows' and headers' layout follows (`ROW_BREAKPOINT`), and it may shrink to fit the column
  */
 export const LIST_CARD_CLASSES =
-  '@container rounded-kern-large bg-kern-layout-background-default flex min-h-123 flex-col overflow-hidden border border-(--kern-color-decorative-border-default)';
+  '@container rounded-kern-large bg-kern-layout-background-default flex min-h-127 flex-col overflow-hidden border border-(--kern-color-decorative-border-default)';
 
 /** The rows: they scroll inside the card when it is shorter than they are, one row at least */
 export const ROWS_CLASSES = 'min-h-80 overflow-y-auto';
 
 /**
- * The list card's column headers and rows share these widths (U11 6699:44253: 280, 130, 160).
- * The columns need 928px of the card (24 + 280 + 24 + 130 + 24 + 160 + 24 + the 223px actions +
- * 24, with room to spare); in a narrower card the rows wrap and the headers go (`@max-[58rem]`)
+ * The list card's column headers and rows share these widths (U11 6699:44253: 280, 130, 160;
+ * spec 010's checkbox, U15 6699:45213: 20 before them). The columns need 1005px of the card (24 +
+ * 20 + 24 + 280 + 24 + 130 + 24 + 160 + 24 + 24 + the 223px actions + 24); in a narrower card the
+ * rows wrap and the headers keep the select-all and "Name" only (`@max-[63rem]`). With the
+ * select-all's 28px (U15 6699:45214: 20 and 4 above and below) the headers are 45 high (U15
+ * 6699:45213), the label text centred on the box
  */
-export const COLUMN_HEADER_CLASSES =
-  'bg-kern-layout-background-hued text-kern-static-small text-kern-layout-text-muted flex shrink-0 items-center gap-24 border-b border-(--kern-color-decorative-border-default) px-24 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold @max-[58rem]:hidden';
+export const COLUMN_HEADER_CLASSES = {
+  headers:
+    'bg-kern-layout-background-hued text-kern-static-small text-kern-layout-text-muted flex shrink-0 items-center gap-24 border-b border-(--kern-color-decorative-border-default) px-24 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold',
+  name: 'min-w-0 shrink @min-[63rem]:w-280 @min-[63rem]:shrink-0',
+  column: 'w-130 shrink-0 @max-[63rem]:hidden',
+  date: 'w-160 shrink-0 @max-[63rem]:hidden',
+};
 
 /**
- * A row (U13 6739:40536): 24 16, its parts 24 apart and centred, a 1px line above every row but
- * the first, no border or radius of its own; 80 high with or without a description (FR-029b),
- * since the 48px actions set the height. In a card narrower than 58rem the parts wrap: the name
- * on its own line, then the status and the date, then the actions
+ * A row's checkbox and the select-all (U15 6699:45219, 6699:45214, "Data/Check item" without a
+ * label): the design's 20px box with 4px above and below. The label around it is the target,
+ * 2px wider on each side than the box (24 × 28, W16), without moving the name: its side margins
+ * take the 2px back. The box's own 2px top margin (index.css, for a labelled check item) goes
+ */
+export const CHECKBOX_CLASSES = {
+  target: '-mx-2 flex shrink-0 cursor-pointer px-2 py-4',
+  box: 'kern-form-check__checkbox m-0!',
+};
+
+/**
+ * A row (U13 6739:40536; spec 010, U15 6699:45218): 24 16, the checkbox, then the row's parts,
+ * 24 apart and centred, a 1px line above every row but the first, no border or radius of its
+ * own; 80 high with or without a description (FR-029b), since the 48px actions set the height.
+ * In a card narrower than 63rem the parts wrap beside the checkbox: the name on its own line,
+ * then the status and the date, then the actions; the checkbox stays at the top, its box centred
+ * on the name's first line (2px up). Below 320 CSS px the checkbox takes a line of its own above
+ * the parts, which keep the row's whole width (W16)
  */
 export const ROW_CLASSES = {
-  row: 'relative flex flex-wrap items-center gap-x-24 gap-y-8 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t @min-[58rem]:flex-nowrap',
-  name: 'flex min-w-0 shrink-0 basis-full flex-col @min-[58rem]:w-280 @min-[58rem]:basis-auto',
-  status: 'flex max-w-full shrink-0 @min-[58rem]:w-130',
-  date: 'text-kern-static-small text-kern-layout-text-muted max-w-full shrink-0 leading-(--kern-typography-line-height-medium-static) @min-[58rem]:w-160',
-  spacer: 'hidden min-w-0 flex-1 @min-[58rem]:block',
+  row: 'relative flex items-start gap-x-24 gap-y-4 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t narrow:flex-col narrow:items-stretch @min-[63rem]:items-center',
+  check: '-mt-2 narrow:self-start @min-[63rem]:mt-0',
+  parts: 'flex min-w-0 flex-1 flex-wrap items-center gap-x-24 gap-y-8 @min-[63rem]:flex-nowrap',
+  name: 'flex min-w-0 shrink-0 basis-full flex-col @min-[63rem]:w-280 @min-[63rem]:basis-auto',
+  status: 'flex max-w-full shrink-0 @min-[63rem]:w-130',
+  date: 'text-kern-static-small text-kern-layout-text-muted max-w-full shrink-0 leading-(--kern-typography-line-height-medium-static) @min-[63rem]:w-160',
+  spacer: 'hidden min-w-0 flex-1 @min-[63rem]:block',
   // max-w-full: in a window under 320 CSS px the buttons wrap instead of leaving the card (T096)
   actions: 'flex max-w-full shrink-0 flex-wrap items-center gap-x-8',
+};
+
+/**
+ * The selection bar (U15 6699:45206, "Rules/Selection bar" as the rules step builds it): where
+ * the toolbar was, the info tint, 16 8, the count in label/default taking the room left, "Cancel"
+ * as KERN's small tertiary button without the 4px that make its 48px slot (40 tall in the bar's
+ * 56), and "Delete" as the red primary button at the footer's 40px, 8 apart. Where less than
+ * 192px are left beside the buttons, the count takes the whole line and the buttons wrap under
+ * it (W16)
+ */
+export const SELECTION_BAR_CLASSES = {
+  bar: 'bg-kern-feedback-info-background flex shrink-0 flex-wrap items-center gap-8 px-16 py-8',
+  count:
+    'text-kern-static-medium text-kern-layout-text-default min-w-0 flex-1 basis-192 leading-(--kern-typography-line-height-medium-static) font-semibold break-words',
+  cancel: 'kern-btn kern-btn--tertiary kern-btn--small my-0!',
+  delete: 'kern-btn kern-btn--primary kern-btn--danger min-h-40!',
 };
 
 /** A skeleton row's bars (§3 "Skeleton", U74 7062:51211): name, description, status, date */

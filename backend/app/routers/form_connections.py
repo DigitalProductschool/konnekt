@@ -10,6 +10,7 @@ from ..schemas import (
     ActivityPage,
     ApiResponse,
     Deletion,
+    DeletionCreate,
     DraftCreate,
     DraftPublish,
     DraftUpdate,
@@ -147,6 +148,38 @@ def create_draft(
     return ApiResponse(
         data=drafts.create_draft(db, data, actor=actor), message='Draft saved'
     )
+
+
+@router.post(
+    '/deletions',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
+def delete_connections(
+    data: DeletionCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> ApiResponse[Deletion]:
+    """Delete several connections, drafts and published ones, as one deletion.
+
+    The overview's bulk deletion (spec 010, research R10, FR-041 to FR-044): each
+    item names a connection and the state the dialog showed. All are deleted in
+    one transaction, without calling EUDIPLO, or none: a connection that no
+    longer exists, is deleted or is in another state answers 409
+    `selection_changed` with the ids of all such items in `changed_ids`, and
+    nothing changes. 1 to 500 items with distinct ids, else 400. Answers the
+    deletion, which the deleting team member can restore whole until
+    `restorable_until`. Agents can't delete several connections (FR-068): 403
+    `browser_only`. Declared before `/{form_connection_id}`, so that no route of
+    a connection takes the path (R15 V4).
+    """
+    deletion = deletions.delete_connections(
+        db,
+        data.items,
+        account_id=principal.user.id,
+        actor=actor_of(db, principal),
+    )
+    return ApiResponse(data=deletion, message='Form connections deleted')
 
 
 @router.post(

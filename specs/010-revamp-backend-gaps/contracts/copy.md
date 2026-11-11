@@ -106,10 +106,10 @@ One row is "date and time · event · person". The events, by `kind` (data-model
 | The toast when "Undo" got no answer or a server failure; its action stays "Undo" | "Couldn’t restore. Try again." | "Wiederherstellen nicht möglich. Versuchen Sie es erneut." |
 | A row's checkbox, for screen readers (FR-038) | "Select “<name>”" | "„<name>“ auswählen" |
 | The select-all checkbox, for screen readers | "Select all connections" | "Alle Anbindungen auswählen" |
-| The bulk dialog's warning line for a scheduled connection (FR-041) | "<name> is scheduled for <date>. It won't become active." | "<name> ist für den <date> geplant. Sie wird nicht aktiv." |
+| The bulk dialog's warning line for a scheduled connection (FR-041) | "<name> is scheduled for <date>. It won’t become active." | "<name> ist für den <date> geplant. Sie wird nicht aktiv." |
 | The bulk dialog when a connection changed (FR-043, the spec's) | "Nothing was deleted: “<name>” was deleted or changed in the meantime." | "Nichts wurde gelöscht: „<name>“ wurde inzwischen gelöscht oder geändert." |
 
-Several active connections get one drawn line each ("<name> is active. Citizens won't be able to
+Several active connections get one drawn line each ("<name> is active. Citizens won’t be able to
 use it."), in the list's order; there is no combined line.
 
 ## 5. Document order and data groups (W13, W18)
