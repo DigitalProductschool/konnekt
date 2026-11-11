@@ -1,8 +1,5 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type {
-  EditorStep,
-  FormConnectionSummary,
-} from '@connection-portal/api-types/form-connections';
+import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
 import type { Ref, RefObject } from 'react';
 
 import type { Homepage } from '../../hooks/types';
@@ -39,13 +36,14 @@ export interface RowDescriptionHandle {
 }
 
 /**
- * What a row's meta line is made of: the summary's state and last change, and the step a draft
- * was saved in. The overview's list doesn't send the step yet (`FormConnectionSummary` has none),
- * so it is optional here: without it a draft reads "Edited <date>" alone
+ * What a row's date is made of (FR-017, FR-019): the summary's state, the date that state names
+ * (`published_at`, `start_date`, `deactivated_at`), the last change, and the step a draft was
+ * saved in (null when none is recorded: the row then reads "Edited <date>" alone)
  */
-export type RowMetaSource = Pick<FormConnectionSummary, 'status' | 'updated_at'> & {
-  step?: EditorStep | null;
-};
+export type RowMetaSource = Pick<
+  FormConnectionSummary,
+  'state' | 'updated_at' | 'published_at' | 'start_date' | 'deactivated_at' | 'step'
+>;
 
 /**
  * The row delete (FR-028, FR-029c): which connection the dialog asks about (kept while it closes,

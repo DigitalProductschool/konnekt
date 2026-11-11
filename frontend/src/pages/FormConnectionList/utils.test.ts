@@ -1,5 +1,5 @@
 import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
 import { INITIAL_ROW_DELETE_STATE } from './constants';
@@ -125,55 +125,89 @@ describe('homepageOf (FR-027)', () => {
   });
 });
 
-// Adopted items FR-048 and FR-052d (F52, F71; cosmetic 3): every row reads "Edited <date>" in
-// dd.mm.yyyy, never "Published <date>" or "Deactivated <date>", and a draft adds its step
-describe('rowMetaOf (FR-048, FR-052d)', () => {
+// Adopted items FR-048 and FR-052d (F52, F71; cosmetic 3), changed by spec 010's FR-017 (F23): a
+// row's date reads by its state in dd.mm.yyyy: "Published <date>" (once "Edited <date>", the one
+// changed expectation), "Active from <date>", "Deactivated <date>", and a draft's "Edited <date>"
+// with its step (FR-019; F42), alone where no step is recorded
+describe('rowMetaOf (FR-017, FR-019, FR-020, FR-021)', () => {
   const noon = '2026-10-28T12:00:00Z';
+  const live = summary({ updated_at: '2026-11-04T09:00:00Z', published_at: noon });
+  const scheduled = summary({
+    is_active: false,
+    state: 'scheduled',
+    published_at: '2026-11-04T09:00:00Z',
+    start_date: '2026-12-01',
+  });
+  const deactivated = summary({
+    is_active: false,
+    state: 'deactivated',
+    updated_at: '2026-11-04T09:00:00Z',
+    deactivated_at: noon,
+  });
+  const draft = (step: FormConnectionSummary['step']) =>
+    summary({ status: 'draft', state: 'draft', updated_at: noon, published_at: null, step });
 
   it('formats the date as dd.mm.yyyy', () => {
     expect(formatRowDate(noon)).toBe('28.10.2026');
     expect(formatRowDate('2026-03-04T12:00:00Z')).toBe('04.03.2026');
   });
 
-  it('reads "Edited <date>" for a published connection, active or deactivated', () => {
-    expect(rowMetaOf({ status: 'published', updated_at: noon }, 'en')).toBe('Edited 28.10.2026');
-    expect(rowMetaOf({ status: 'published', updated_at: noon, step: 'rules' }, 'en')).toBe(
-      'Edited 28.10.2026'
-    );
+  it('reads "Published <published_at>" for a live connection, never its last change', () => {
+    expect(rowMetaOf(live, 'en')).toBe('Published 28.10.2026');
+    expect(rowMetaOf({ ...live, step: 'rules' }, 'en')).toBe('Published 28.10.2026');
   });
 
-  it('adds the step a draft was saved in (FR-052d: "Edited 28.10.2026 · Rules step")', () => {
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'rules' }, 'en')).toBe(
-      'Edited 28.10.2026 · Rules step'
-    );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'connection' }, 'en')).toBe(
-      'Edited 28.10.2026 · Connection step'
-    );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'documents' }, 'en')).toBe(
-      'Edited 28.10.2026 · Documents step'
-    );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'test' }, 'en')).toBe(
-      'Edited 28.10.2026 · Test step'
-    );
+  it('reads "Active from <start_date>" for a scheduled connection', () => {
+    expect(rowMetaOf(scheduled, 'en')).toBe('Active from 01.12.2026');
   });
 
-  it('reads the meta in German, the date unchanged (spec 009, FR-012)', () => {
-    expect(rowMetaOf({ status: 'published', updated_at: noon }, 'de')).toBe(
-      'Bearbeitet 28.10.2026'
-    );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'rules' }, 'de')).toBe(
-      'Bearbeitet 28.10.2026 · Schritt „Regeln“'
-    );
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: 'test' }, 'de')).toBe(
-      'Bearbeitet 28.10.2026 · Schritt „Test“'
-    );
+  it('reads "Deactivated <deactivated_at>" for a deactivated connection', () => {
+    expect(rowMetaOf(deactivated, 'en')).toBe('Deactivated 28.10.2026');
+  });
+
+  it('adds the step a draft was saved in (FR-019: "Edited 28.10.2026 · Rules step")', () => {
+    expect(rowMetaOf(draft('rules'), 'en')).toBe('Edited 28.10.2026 · Rules step');
+    expect(rowMetaOf(draft('connection'), 'en')).toBe('Edited 28.10.2026 · Connection step');
+    expect(rowMetaOf(draft('documents'), 'en')).toBe('Edited 28.10.2026 · Documents step');
+    expect(rowMetaOf(draft('test'), 'en')).toBe('Edited 28.10.2026 · Test step');
   });
 
   it('reads "Edited <date>" alone for a draft whose step is unknown', () => {
-    expect(rowMetaOf({ status: 'draft', updated_at: noon }, 'en')).toBe('Edited 28.10.2026');
-    expect(rowMetaOf({ status: 'draft', updated_at: noon, step: null }, 'en')).toBe(
-      'Edited 28.10.2026'
+    expect(rowMetaOf(draft(null), 'en')).toBe('Edited 28.10.2026');
+  });
+
+  it('reads each state in German, the date unchanged (spec 009, FR-012)', () => {
+    expect(rowMetaOf(live, 'de')).toBe('Veröffentlicht 28.10.2026');
+    expect(rowMetaOf(scheduled, 'de')).toBe('Aktiv ab 01.12.2026');
+    expect(rowMetaOf(deactivated, 'de')).toBe('Deaktiviert 28.10.2026');
+    expect(rowMetaOf(draft('rules'), 'de')).toBe('Bearbeitet 28.10.2026 · Schritt „Regeln“');
+    expect(rowMetaOf(draft('connection'), 'de')).toBe(
+      'Bearbeitet 28.10.2026 · Schritt „Anbindung“'
     );
+    expect(rowMetaOf(draft('documents'), 'de')).toBe('Bearbeitet 28.10.2026 · Schritt „Dokumente“');
+    expect(rowMetaOf(draft('test'), 'de')).toBe('Bearbeitet 28.10.2026 · Schritt „Test“');
+    expect(rowMetaOf(draft(null), 'de')).toBe('Bearbeitet 28.10.2026');
+  });
+
+  it('reads the start date as written in every time zone (FR-020)', () => {
+    try {
+      // West of UTC, the day would read 30.11.2026 if it went through `Date`; `vi.stubEnv` sets
+      // `process.env.TZ`, which Node applies at once
+      for (const zone of ['America/New_York', 'Pacific/Honolulu', 'Pacific/Kiritimati']) {
+        vi.stubEnv('TZ', zone);
+        expect(new Date('2026-12-01T00:00:00Z').getTimezoneOffset()).not.toBe(0);
+        expect(rowMetaOf(scheduled, 'en')).toBe('Active from 01.12.2026');
+        expect(rowMetaOf(scheduled, 'de')).toBe('Aktiv ab 01.12.2026');
+      }
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('never leaves a row empty when its state’s date is missing (FR-021)', () => {
+    expect(rowMetaOf({ ...live, published_at: null }, 'en')).toBe('Edited 04.11.2026');
+    expect(rowMetaOf({ ...scheduled, start_date: null }, 'en')).toBe('Edited 04.11.2026');
+    expect(rowMetaOf({ ...deactivated, deactivated_at: null }, 'en')).toBe('Edited 04.11.2026');
   });
 });
 

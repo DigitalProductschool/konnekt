@@ -53,11 +53,17 @@ which countries) rather than guessing. Read the guide's topics before working on
 - `search_connections` finds connections by a part of their name or description (letter case
   doesn't matter) and by status: `draft`, `live` or `deactivated`. It answers at most 25 at a
   time, the most recently changed first; pass its `next_cursor` to read the next page. Each
-  connection comes with its id and link.
+  connection comes with its id and link, a published one with `published_at` (when it was first
+  published) and, while deactivated, `deactivated_at`, and a draft with its `step`.
 - `get_connection` reads one connection: its documents and fields, its variants with how many
   rules and groups each has (read the rules themselves with `get_variant`), its connection URLs
-  once published, and for a draft its version, its step and `dropped`: requested data the wallet
-  no longer offers, which must be removed before publishing.
+  once published, and for a draft its version, its `step` and `dropped`: requested data the
+  wallet no longer offers, which must be removed before publishing. A published connection also
+  carries its dates, as the details page in Konnekt shows them: `published_at`, when it was first
+  published, which nothing changes afterwards; `active_since`, when it last became active, which
+  reactivating moves (left out while it has never been active); and `deactivated_since`, only
+  while it is deactivated. Saving, renaming or reordering moves none of them. The dates are
+  timestamps in UTC; the text says "Draft at the rules step." for a draft.
 
 ## Creating a draft and changing its name
 

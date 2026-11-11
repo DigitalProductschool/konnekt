@@ -12,6 +12,7 @@ import type {
   ConnectionStatus,
   EditorStep,
   FormConnectionOrDraft,
+  FormConnectionSummary,
   Mark,
   RequestedDocument,
   RequestedDocumentView,
@@ -364,6 +365,91 @@ export function stepOf(content: {
     return 'rules';
   }
   return content.documents.length > 0 ? 'documents' : 'connection';
+}
+
+// Dates and a draft's step (spec 010, FR-018, FR-019, FR-062; data-model §1.4)
+
+/**
+ * What a search item adds to its ref (contracts/mcp-tools.md "Reading"): the overview row's date
+ * and a draft's step, an empty one left out
+ */
+export interface SummaryFacts {
+  /** When it was first published; a draft has none */
+  published_at?: string;
+  /** Present only while deactivated */
+  deactivated_at?: string;
+  /** A draft's stored step */
+  step?: EditorStep;
+}
+
+/** A search item's dates and step, as the API's summary gives them; nulls are left out. */
+export function summaryFactsOf(
+  summary: Pick<FormConnectionSummary, 'published_at' | 'deactivated_at' | 'step'>
+): SummaryFacts {
+  return {
+    ...(summary.published_at ? { published_at: summary.published_at } : {}),
+    ...(summary.deactivated_at ? { deactivated_at: summary.deactivated_at } : {}),
+    ...(summary.step ? { step: summary.step } : {}),
+  };
+}
+
+/**
+ * What `get_connection` adds to its ref (contracts/mcp-tools.md "Reading"): the details' dates and
+ * a draft's step, an empty one left out. `active_since` is when it last became active, which
+ * reactivating moves and publishing doesn't (FR-018)
+ */
+export interface ConnectionFacts {
+  published_at?: string;
+  active_since?: string;
+  /** Present only while deactivated */
+  deactivated_since?: string;
+  /** A draft's stored step */
+  step?: EditorStep;
+}
+
+/** A connection's dates, or a draft's step, as `get_connection` answers them. */
+export function connectionFactsOf(fc: FormConnectionOrDraft): ConnectionFacts {
+  if (fc.status === 'draft') {
+    return { step: fc.step };
+  }
+  return {
+    published_at: fc.published_at,
+    ...(fc.activated_at ? { active_since: fc.activated_at } : {}),
+    ...(fc.deactivated_at ? { deactivated_since: fc.deactivated_at } : {}),
+  };
+}
+
+/** The text block's line on a draft's step: "Draft at the rules step." */
+export function stepLineOf(step: EditorStep): string {
+  return `Draft at the ${step} step.`;
+}
+
+/**
+ * The text block's line on a search item's dates or step: "Draft at the rules step.",
+ * "Published {at}.", "Published {at}; deactivated {at}."; null when there is none
+ */
+export function summaryFactsLineOf(facts: SummaryFacts): string | null {
+  if (facts.step) {
+    return stepLineOf(facts.step);
+  }
+  const parts = [
+    facts.published_at && `Published ${facts.published_at}`,
+    facts.deactivated_at && `deactivated ${facts.deactivated_at}`,
+  ].filter((part): part is string => typeof part === 'string' && part !== '');
+  return parts.length === 0 ? null : `${parts.join('; ')}.`;
+}
+
+/**
+ * The text block's line on a published connection's dates: "Published {at}; active since {at};
+ * deactivated since {at}."; null for a draft, whose step has its own line
+ */
+export function connectionDatesLineOf(facts: ConnectionFacts): string | null {
+  const parts = [
+    facts.published_at && `Published ${facts.published_at}`,
+    facts.active_since && `active since ${facts.active_since}`,
+    facts.deactivated_since && `deactivated since ${facts.deactivated_since}`,
+  ].filter((part): part is string => typeof part === 'string' && part !== '');
+  return parts.length === 0 ? null : `${parts.join('; ')}.`;
 }
 
 // Text blocks (contracts/mcp-tools.md "Results and errors": a text block summarises each answer)

@@ -1594,10 +1594,14 @@ function ConnectionWizard({
       title={headerTitleOf(state, language, formConnection, origin.kind === 'draft')}
       badge={
         origin.kind === 'draft' ? (
-          <ConnectionStatusBadge isActive draft />
+          <ConnectionStatusBadge state="draft" />
         ) : formConnection ? (
-          // "Active" (U98 6731:39823), never "Draft changes" (F5); "Deactivated" when it is
-          <ConnectionStatusBadge isActive={formConnection.is_active} />
+          // "Active" (U98 6731:39823), never "Draft changes" (F5); "Scheduled · <date>" (E6
+          // 7114:49835, FR-013) or "Deactivated" when it is
+          <ConnectionStatusBadge
+            state={formConnection.state}
+            startDate={formConnection.start_date}
+          />
         ) : undefined
       }
       onLeave={handleLeave}

@@ -4,6 +4,7 @@ import type {
   BranchInput,
   FormConnection,
   FormConnectionDraft,
+  FormConnectionOrDraft,
   RequestedDocumentView,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
@@ -97,16 +98,19 @@ export interface ConnectionLinksProps {
   onToggle: () => void;
 }
 
-/** The status band's state: a published connection's, or a draft's (S16) */
-export type StatusBandTone = 'active' | 'deactivated' | 'draft';
+/** The status band's state: a published connection's by its state, or a draft's (S16; C1) */
+export type StatusBandTone = 'active' | 'scheduled' | 'deactivated' | 'draft';
 
 export interface StatusBandToneLook {
   /** The band's background */
   band: string;
   /** The 32px circle behind the status icon; empty for a bare glyph */
   iconCircle: string;
-  /** The status icon's image */
-  icon: string;
+  /**
+   * The status icon: an exported image, or KERN's glyph drawn in white (the scheduled band's
+   * calendar, U94 7355:60683)
+   */
+  icon: { src: string } | { kern: string };
   /** The status icon's size in its circle: the active check 24px, the other glyphs 20px */
   iconSize: string;
   /** The picture at the bottom right, in colour or grey */
@@ -121,16 +125,29 @@ export interface StatusBandProps {
   text: string;
   /** The h1, which takes the focus right after publishing */
   headingRef?: Ref<HTMLHeadingElement>;
-  /** At the band's right end (F66, #52), in the white chip: the ⋯ menu */
-  actions?: ReactNode;
   /**
-   * Before the chip, on the band (16px apart): while deactivated, "Activate again" (U89); on a
-   * draft's, "Delete draft" (F56)
+   * The date pill's line, 20px under the sub-line (FR-015, data-model §1.4): "Active since
+   * <date>, <time>", "Active from <date>, 00:00", "Deactivated since <date>, <time>", a draft's
+   * "Edited <date>, <time>"
    */
+  dateLine: string;
+  /** Inside the pill, after the date (FR-016): a published connection's ⋯ menu; a draft has none */
+  actions?: ReactNode;
+  /** Next to the pill, 16px from it (FR-016, U89 7355:61542): while deactivated, "Activate again" */
+  pillAction?: ReactNode;
+  /** At the band's right end (F56): a draft's "Delete draft" */
   mainAction?: ReactNode;
-  /** 20px under the sub-line: a draft's "Edited <date>" pill (U93 7362:54709) */
-  meta?: ReactNode;
 }
+
+/** The date pill (U80 7355:61155; U93 7362:54709): its line and, on a published connection, the ⋯ */
+export interface DatePillProps {
+  line: string;
+  actions?: ReactNode;
+}
+
+/** What the date pill's line is read from (data-model §1.4): a connection or a draft */
+export type DatePillSource = Pick<FormConnectionOrDraft, 'state' | 'updated_at'> &
+  Partial<Pick<FormConnection, 'published_at' | 'activated_at' | 'deactivated_at' | 'start_date'>>;
 
 /** One URL of a link card; with several, each is labelled with its variant (FR-026) */
 export interface LinkCardLink {

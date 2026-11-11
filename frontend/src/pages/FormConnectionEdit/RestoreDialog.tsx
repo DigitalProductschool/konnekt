@@ -32,7 +32,7 @@ export default function RestoreDialog({
     <WizardLayout
       title={title}
       titleAsHeading
-      badge={<ConnectionStatusBadge isActive draft />}
+      badge={<ConnectionStatusBadge state="draft" />}
       footer={null}
       overlay={
         <ConfirmDialog

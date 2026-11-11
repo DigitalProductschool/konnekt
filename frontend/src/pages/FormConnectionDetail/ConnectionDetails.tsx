@@ -34,10 +34,12 @@ import type { ConnectionDetailsProps, DetailAccordionName, StatusAction } from '
 import {
   actionErrorNotice,
   actionsReducer,
+  datePillOf,
   dialogCopyOf,
   initialAccordionOf,
   initialActionsState,
   reactivateSummaryOf,
+  statusBandOf,
   successMessageOf,
   toggleAccordion,
 } from './utils';
@@ -45,13 +47,16 @@ import {
 /**
  * A loaded connection in the details' frame (L4, S15; U80 6396:47648): the header pill names it
  * with its status and description (W10); no step line (FR-025). The status band's sentence is
- * the page's h1 (FR-046), with the ⋯ menu at its right end (F66): "Deactivate" and "Delete
- * connection". Then the Links accordion, open right after publishing (the h1 takes the focus
+ * the page's h1 (FR-046), with the date pill under it (C1, FR-015): "Active since <date>,
+ * <time>", "Active from <date>, 00:00" or "Deactivated since <date>, <time>", and the ⋯ menu
+ * inside the pill (FR-016): "Deactivate" and "Delete connection" while active. Then the Links accordion, open right after publishing (the h1 takes the focus
  * then), and the Summary accordion with the documents, the rules as variant tabs and the rule
  * checks' findings (FR-047), open on every other arrival, as from the overview's "View" (U91);
  * one accordion is open at a time (FR-046). While deactivated (U89, U96, U97), the band is grey
- * with "Activate again" before the ⋯, whose menu holds only "Delete connection", and the copy
- * buttons are off with their explanation (FR-046, W21); the Summary stays as it is.
+ * with "Activate again" next to the pill, whose menu holds only "Delete connection", and the copy
+ * buttons are off with their explanation (FR-046, W21); the Summary stays as it is. A scheduled
+ * connection's band is blue (U94); its menu's entries stay as they are while not active (US1
+ * adds "Change start date").
  *
  * Each action asks first (S17), in `ConfirmDialog`: deleting in the overview's one delete dialog
  * (FR-029c; danger, the scrim doesn't close it, FR-052a), which returns to the overview with the
@@ -93,6 +98,7 @@ export default function ConnectionDetails({
     initialAccordionOf(arrival)
   );
   const { id, name, is_active: isActive } = formConnection;
+  const band = statusBandOf(formConnection.state, language);
 
   useDocumentTitle(formConnection.name);
 
@@ -163,7 +169,9 @@ export default function ConnectionDetails({
     <WizardLayout
       variant="details"
       title={formConnection.name}
-      badge={<ConnectionStatusBadge isActive={isActive} />}
+      badge={
+        <ConnectionStatusBadge state={formConnection.state} startDate={formConnection.start_date} />
+      }
       meta={formConnection.description || undefined}
       footer={<DetailFooter formConnectionId={id} onEdit={() => setEditAsked(true)} />}
       overlay={
@@ -211,12 +219,13 @@ export default function ConnectionDetails({
       {/* The band and the cards 16px apart (U80 6396:47661: 192 → 208, 699 → 715) */}
       <div className="flex flex-col gap-16">
         <StatusBand
-          tone={isActive ? 'active' : 'deactivated'}
-          title={isActive ? copy.activeTitle : copy.deactivatedTitle}
-          text={isActive ? copy.activeText : copy.deactivatedText}
+          tone={band.tone}
+          title={band.title}
+          text={band.text}
           headingRef={headingRef}
-          mainAction={
-            !isActive && (
+          dateLine={datePillOf(formConnection, language)}
+          pillAction={
+            formConnection.state === 'deactivated' && (
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'openDialog', dialog: 'activate' })}

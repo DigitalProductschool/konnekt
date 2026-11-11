@@ -146,8 +146,8 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
 /**
  * Figma "Row" (U13 6739:40536, U12 6699:45011, U17 6699:48024): the name, which opens the
  * details (U13 #21), with its description cut to one line under it (or none, the name centred);
- * the status pill (T019; "Scheduled" is F1); "Edited <date>", a draft adding its step (FR-048,
- * FR-052d); and "View" (tertiary, eye), "Edit" (secondary, pencil) and the red bin "Delete"
+ * the status pill (T019; spec 010's "Scheduled", U13 6739:40615, without its date); "Edited
+ * <date>", a draft adding its step (FR-048, FR-052d); and "View" (tertiary, eye), "Edit" (secondary, pencil) and the red bin "Delete"
  * (tertiary, icon only), each naming the connection for screen readers (FR-028). A published
  * connection's "Edit", active or deactivated, asks "Edit “<name>”?" first (F48; U15 6699:47905),
  * in the overview's one question. A draft offers the same actions (cosmetic 2): its "Edit" opens
@@ -161,7 +161,7 @@ export default function FormConnectionRow({
 }: FormConnectionRowProps) {
   const { language } = useLanguage();
   const copy = LIST_COPY[language];
-  const { id, name, is_active: isActive, status } = formConnection;
+  const { id, name, state, status } = formConnection;
   const draft = status === 'draft';
   const description = descriptionOf(formConnection);
   const detailsPath = generatePath(ROUTES.formConnection, { id });
@@ -197,7 +197,7 @@ export default function FormConnectionRow({
         {description && <RowDescription ref={descriptionRef} text={description} />}
       </div>
       <div className={ROW_CLASSES.status}>
-        <ConnectionStatusBadge isActive={isActive} draft={draft} />
+        <ConnectionStatusBadge state={state} />
       </div>
       <p className={ROW_CLASSES.date}>{rowMetaOf(formConnection, language)}</p>
       <div aria-hidden="true" className={ROW_CLASSES.spacer} />

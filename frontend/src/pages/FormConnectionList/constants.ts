@@ -21,7 +21,12 @@ export const LIST_COPY = defineTexts(
     errorTitle: 'Couldn’t load your connections',
     errorText: 'Check your connection and try again.',
     retry: 'Try again',
-    // A row's meta (FR-048, FR-052d; U17 6699:48031): "Edited 28.10.2026", a draft adding its step
+    // A row's date by its state (FR-017, FR-019; S4 "The row's date"; U13 6739:40556, U17
+    // 6699:48031, U90 6699:48064 (F23)): "Published 28.10.2026", "Active from 01.12.2026",
+    // "Deactivated 28.10.2026", a draft's "Edited 28.10.2026" adding its step
+    published: (date: string) => `Published ${date}`,
+    activeFrom: (date: string) => `Active from ${date}`,
+    deactivated: (date: string) => `Deactivated ${date}`,
     edited: (date: string) => `Edited ${date}`,
     step: (label: string) => `${label} step`,
     metaSeparator: ' · ',
@@ -42,6 +47,10 @@ export const LIST_COPY = defineTexts(
     errorTitle: 'Ihre Anbindungen konnten nicht geladen werden',
     errorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     retry: 'Erneut versuchen',
+    // Glossary §2 (spec 010, T002), without "am" as "Bearbeitet <date>" (design-notes §4.2)
+    published: (date: string) => `Veröffentlicht ${date}`,
+    activeFrom: (date: string) => `Aktiv ab ${date}`,
+    deactivated: (date: string) => `Deaktiviert ${date}`,
     edited: (date: string) => `Bearbeitet ${date}`,
     step: (label: string) => `Schritt „${label}“`,
     metaSeparator: ' · ',

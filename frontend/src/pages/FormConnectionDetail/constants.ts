@@ -22,8 +22,17 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     // The deactivated band (U89 7355:61540, 7355:61541, 7355:61549; U96, U97 the same)
     deactivatedTitle: 'Connection deactivated',
     deactivatedText: 'Citizens can’t start a new request. Your settings are saved.',
+    // The scheduled band (U94 7355:60687, 7355:60688; S15, FR-006)
+    scheduledTitle: 'Your connection is scheduled',
+    scheduledText:
+      'The links are ready to be added to your service. They become active on the scheduled date below.',
+    // The date pill's lines (FR-015, data-model §1.4; U80 7355:61158, U94 7355:60692, U89
+    // 7355:61546); a draft's is `edited`
+    activeSince: (dateTime: string) => `Active since ${dateTime}`,
+    activeFrom: (dateTime: string) => `Active from ${dateTime}`,
+    deactivatedSince: (dateTime: string) => `Deactivated since ${dateTime}`,
     activateAgain: 'Activate again',
-    // The band's ⋯ (U88 6417:31045, "More · connection actions"): "Change start date" is F1
+    // The ⋯ on the date pill (U80 7355:61160, "More · connection actions"; FR-016)
     connectionActions: 'Connection actions',
     // The Links accordion (U91 7246:51437; FR-052f: "1 request link · 3 result links")
     linksTitle: 'Links for your service',
@@ -124,6 +133,12 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     deactivatedTitle: 'Anbindung deaktiviert',
     deactivatedText:
       'Bürgerinnen und Bürger können keine neue Anfrage starten. Ihre Einstellungen sind gespeichert.',
+    scheduledTitle: 'Ihre Anbindung ist geplant',
+    scheduledText:
+      'Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden am geplanten Datum unten aktiv.',
+    activeSince: (dateTime: string) => `Aktiv seit ${dateTime}`,
+    activeFrom: (dateTime: string) => `Aktiv ab ${dateTime}`,
+    deactivatedSince: (dateTime: string) => `Deaktiviert seit ${dateTime}`,
     activateAgain: 'Wieder aktivieren',
     connectionActions: 'Aktionen für die Anbindung',
     linksTitle: 'Links für Ihren Dienst',
@@ -217,6 +232,29 @@ export const SAVED_TIME_FORMATS = defineTexts(
 );
 
 /**
+ * A scheduled connection's start: 00:00 of its start date in Germany (data-model §1.3), written
+ * as the frame draws it, "Active from 01.12.2026, 00:00" (U94 7355:60692), the same for every
+ * team member (FR-020)
+ */
+export const START_TIME = '00:00';
+
+/**
+ * The date pill (U80 7355:61155, U94 7355:60689, U89 7355:61543): white, radius 8, the calendar
+ * 20 and the line (label/small, muted) 8 apart. With the ⋯ (32) the padding is 8 16 8 8 and the
+ * pill 48 high, the calendar and the line centred on the ⋯ from the top, so that the ⋯ stays on
+ * the first row when the line wraps (W16); a draft's pill without it 8 16, 40 high (U93
+ * 7362:54709). Under 320 CSS px the line takes the pill's width under the calendar and the ⋯
+ */
+export const DATE_PILL_CLASSES = {
+  withActions: {
+    pill: 'narrow:flex-wrap py-8 pr-8 pl-16',
+    icon: 'mt-6',
+    line: 'narrow:order-last narrow:basis-full narrow:py-0 py-4',
+  },
+  plain: { pill: 'px-16 py-8', icon: 'mt-2', line: '' },
+};
+
+/**
  * The status band's looks (U07 #6): the band's colour, the 32px status icon in its circle and the
  * picture at the bottom right. Active ("Status band · active" U80 7355:61767): green, the white
  * check 24px in a green circle, the colour picture. Deactivated ("Status band · deactivated" U89
@@ -225,27 +263,37 @@ export const SAVED_TIME_FORMATS = defineTexts(
  * same crop). Draft ("Status band · draft" U93 7362:54697; U07 #23): the gradient from
  * `feedback-info-background` (21.6 %) to `layout-background-hued` (75.9 %) at 113.27°, the white
  * "icon-edit-small" 20px (7362:54702, the export) in a `feedback-info` circle (7362:54701, at the
- * overlay's AA value), the grey picture
+ * overlay's AA value), the grey picture. Scheduled ("Status band · scheduled" U94 7355:60677):
+ * `feedback-info-background` #e0f2fe, KERN's calendar 20px in white (7355:60683) in a
+ * `feedback-info` circle (7355:60682, at the overlay's AA value, as the draft's), the colour
+ * picture ("Picture · scheduled" 7355:60695, the active band's art, T006's crop)
  */
 export const STATUS_BAND_TONES: Record<StatusBandTone, StatusBandToneLook> = {
   active: {
     band: 'bg-kern-feedback-success-background',
     iconCircle: 'bg-kern-feedback-success',
-    icon: doneWhiteIcon,
+    icon: { src: doneWhiteIcon },
     iconSize: 'size-24',
+    picture: publishedArt,
+  },
+  scheduled: {
+    band: 'bg-kern-feedback-info-background',
+    iconCircle: 'bg-kern-feedback-info',
+    icon: { kern: 'kern-icon--calendar-today' },
+    iconSize: 'size-20',
     picture: publishedArt,
   },
   deactivated: {
     band: 'bg-kern-layout-background-hued',
     iconCircle: 'bg-kern-layout-text-muted',
-    icon: linkOffWhiteIcon,
+    icon: { src: linkOffWhiteIcon },
     iconSize: 'size-20',
     picture: publishedArtGrey,
   },
   draft: {
     band: 'bg-[linear-gradient(113.27deg,var(--kern-color-feedback-info-background)_21.638%,var(--kern-color-layout-background-hued)_75.912%)]',
     iconCircle: 'bg-kern-feedback-info',
-    icon: editWhiteSmallIcon,
+    icon: { src: editWhiteSmallIcon },
     iconSize: 'size-20',
     picture: publishedArtGrey,
   },

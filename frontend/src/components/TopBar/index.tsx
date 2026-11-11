@@ -101,9 +101,11 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
   return (
     <nav
       aria-label={copy.breadcrumb}
-      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
+      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 max-md:h-auto max-md:min-h-48 max-md:py-8 md:order-2 md:basis-auto`}
     >
-      {/* Under 320 CSS px its parts wrap (T096) */}
+      {/* Under 320 CSS px its parts wrap (T096). Below md the status pill may shrink to its
+          longest word, so that "Scheduled · <date>" wraps inside it instead of running off the
+          window, and this pill grows with it (spec 010, T014); a one-word status never shrinks */}
       <div className="motion animate-pill-text narrow:flex-wrap flex min-w-0 items-center gap-8">
         <Link
           to={ROUTES.overview}
@@ -120,7 +122,7 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
         >
           {title}
         </NameTag>
-        {badge && <span className="flex shrink-0">{badge}</span>}
+        {badge && <span className="flex shrink-0 max-md:shrink">{badge}</span>}
       </div>
     </nav>
   );

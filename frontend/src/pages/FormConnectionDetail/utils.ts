@@ -10,6 +10,7 @@ import type {
 import type { DetailLocationState } from '@connection-portal/api-types/routing';
 import type { RuleChecks } from '@connection-portal/rules/checks/types';
 import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 import { countRules } from '@connection-portal/rules/tree';
 import type { RuleDocument } from '@connection-portal/rules/types';
@@ -21,13 +22,19 @@ import type { FindingLine } from '../FormConnectionEditor/types';
 import { findingLinesOf } from '../FormConnectionEditor/utils';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import { deleteDialogCopyOf, formatRowDate } from '../FormConnectionList/utils';
-import { CONNECTION_DETAIL_COPY, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMATS } from './constants';
+import {
+  CONNECTION_DETAIL_COPY,
+  INITIAL_ACTIONS_STATE,
+  SAVED_TIME_FORMATS,
+  START_TIME,
+} from './constants';
 import type {
   ActionDialogCopy,
   ActionsAction,
   ActionsState,
   Arrival,
   ConfirmedAction,
+  DatePillSource,
   DeleteDraftFailure,
   DetailAccordionName,
   DraftDeleteAction,
@@ -35,6 +42,7 @@ import type {
   LinkCardLink,
   ReactivateSummary,
   StatusAction,
+  StatusBandTone,
 } from './types';
 
 export function arrivalOf(state: unknown): Arrival {
@@ -295,8 +303,63 @@ export function draftRuleDocumentsOf(
  * §3 "Dates").
  */
 export function editedLineOf(updatedAt: string, language: Language): string {
-  const time = SAVED_TIME_FORMATS[language].format(new Date(updatedAt));
-  return CONNECTION_DETAIL_COPY[language].edited(`${formatRowDate(updatedAt)}, ${time}`);
+  return CONNECTION_DETAIL_COPY[language].edited(dateTimeOf(updatedAt, language));
+}
+
+/** "23.10.2026, 14:32": an instant from the API, the time in the browser's time zone (FR-020) */
+function dateTimeOf(timestamp: string, language: Language): string {
+  return `${formatRowDate(timestamp)}, ${SAVED_TIME_FORMATS[language].format(new Date(timestamp))}`;
+}
+
+/**
+ * The status band of a published connection by its state (C1, S15): green "Your connection is
+ * active", blue "Your connection is scheduled" (U94 7355:60677), grey "Connection deactivated".
+ */
+export function statusBandOf(
+  state: FormConnection['state'],
+  language: Language
+): { tone: StatusBandTone; title: string; text: string } {
+  const copy = CONNECTION_DETAIL_COPY[language];
+  switch (state) {
+    case 'live':
+      return { tone: 'active', title: copy.activeTitle, text: copy.activeText };
+    case 'scheduled':
+      return { tone: 'scheduled', title: copy.scheduledTitle, text: copy.scheduledText };
+    case 'deactivated':
+      return { tone: 'deactivated', title: copy.deactivatedTitle, text: copy.deactivatedText };
+  }
+}
+
+/**
+ * The date pill's line by the connection's state (FR-015, FR-020, data-model §1.4; C1): "Active
+ * since 23.10.2026, 14:32" while live, "Active from 01.12.2026, 00:00" while scheduled,
+ * "Deactivated since 24.10.2026, 10:05" while deactivated, and a draft's "Edited 03.10.2026,
+ * 14:32"; in the given language ("Aktiv seit", "Aktiv ab", "Deaktiviert seit", "Bearbeitet"). The
+ * start date is a day in Germany sent as YYYY-MM-DD and written as it is, never through `Date`,
+ * so that it reads the same for every team member. The pill is never empty (FR-021): a live
+ * connection that was never recorded as activated reads its publication, a deactivated one
+ * without its time its last change, and a scheduled one without its date "Edited <date>, <time>"
+ */
+export function datePillOf(connection: DatePillSource, language: Language): string {
+  const copy = CONNECTION_DETAIL_COPY[language];
+  switch (connection.state) {
+    case 'live': {
+      const since = connection.activated_at ?? connection.published_at;
+      return since
+        ? copy.activeSince(dateTimeOf(since, language))
+        : editedLineOf(connection.updated_at, language);
+    }
+    case 'scheduled':
+      return connection.start_date
+        ? copy.activeFrom(`${formatDate(connection.start_date, language)}, ${START_TIME}`)
+        : editedLineOf(connection.updated_at, language);
+    case 'deactivated':
+      return copy.deactivatedSince(
+        dateTimeOf(connection.deactivated_at ?? connection.updated_at, language)
+      );
+    case 'draft':
+      return editedLineOf(connection.updated_at, language);
+  }
 }
 
 /**

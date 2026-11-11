@@ -1,4 +1,5 @@
 import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
@@ -38,18 +39,32 @@ export function formatRowDate(timestamp: string): string {
 }
 
 /**
- * A row's meta line (FR-048, FR-052d, F52, F71): "Edited 28.10.2026" for every connection, never
- * "Published …" or "Deactivated …"; a draft adds the step it was saved in, "Edited 28.10.2026 ·
- * Rules step", where that step is known; in the given language ("Bearbeitet 28.10.2026 · Schritt
- * „Regeln“"), the date the same in both (FR-012)
+ * A row's date by its state (FR-017, FR-019, FR-020; S4 "The row's date"; F23, F42): "Published
+ * 28.10.2026" while live, "Active from 01.12.2026" while scheduled, "Deactivated 28.10.2026" while
+ * deactivated, and a draft's "Edited 28.10.2026 · Rules step", or "Edited 28.10.2026" alone where
+ * no step is recorded; in the given language ("Veröffentlicht 28.10.2026", "Bearbeitet 28.10.2026
+ * · Schritt „Regeln“"), the date the same in both (spec 009, FR-012). The start date is a day in
+ * Germany sent as YYYY-MM-DD and shown as written, never through `Date`, so that it reads the same
+ * in every time zone. A state whose date is missing reads "Edited <date>", so that the row is
+ * never empty (FR-021)
  */
 export function rowMetaOf(source: RowMetaSource, language: Language): string {
   const copy = LIST_COPY[language];
   const edited = copy.edited(formatRowDate(source.updated_at));
-  if (source.status !== 'draft' || !source.step) {
-    return edited;
+  switch (source.state) {
+    case 'live':
+      return source.published_at ? copy.published(formatRowDate(source.published_at)) : edited;
+    case 'scheduled':
+      return source.start_date ? copy.activeFrom(formatDate(source.start_date, language)) : edited;
+    case 'deactivated':
+      return source.deactivated_at
+        ? copy.deactivated(formatRowDate(source.deactivated_at))
+        : edited;
+    case 'draft':
+      return source.step
+        ? `${edited}${copy.metaSeparator}${copy.step(STEP_LABELS[language][source.step])}`
+        : edited;
   }
-  return `${edited}${copy.metaSeparator}${copy.step(STEP_LABELS[language][source.step])}`;
 }
 
 /**

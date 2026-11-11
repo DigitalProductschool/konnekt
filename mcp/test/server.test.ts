@@ -493,6 +493,7 @@ describe('the reading tools', () => {
           link: links.connectionLink(IDS.draft),
           description: 'The parking permit for residents of the city centre.',
           updated_at: '2026-11-03T09:00:00Z',
+          step: 'rules',
         },
         {
           id: IDS.live,
@@ -500,6 +501,7 @@ describe('the reading tools', () => {
           status: 'live',
           link: links.connectionLink(IDS.live),
           updated_at: '2026-11-02T09:00:00Z',
+          published_at: '2026-10-01T09:00:00Z',
         },
         {
           id: IDS.deactivated,
@@ -507,9 +509,26 @@ describe('the reading tools', () => {
           status: 'deactivated',
           link: links.connectionLink(IDS.deactivated),
           updated_at: '2026-11-01T09:00:00Z',
+          published_at: '2026-10-01T09:00:00Z',
+          deactivated_at: '2026-11-01T09:00:00Z',
         },
       ]);
       expect(text).toContain(links.connectionLink(IDS.live));
+    });
+
+    it("says a draft's step, and when a connection was published and deactivated", async () => {
+      storedDraft().step = 'documents';
+      const { structured, text } = await callTool('search_connections', {});
+      const draft = structured.items.find((item: { id: string }) => item.id === IDS.draft);
+      expect(draft.step).toBe('documents');
+      expect(draft).not.toHaveProperty('published_at');
+      expect(draft).not.toHaveProperty('deactivated_at');
+      const live = structured.items.find((item: { id: string }) => item.id === IDS.live);
+      expect(live).not.toHaveProperty('step');
+      expect(live).not.toHaveProperty('deactivated_at');
+      expect(text).toContain('Draft at the documents step.');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z.');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z; deactivated 2026-11-01T09:00:00Z.');
     });
 
     it('leaves an empty description out', async () => {
@@ -590,8 +609,15 @@ describe('the reading tools', () => {
         urls: null,
         urls_note: 'The connection URLs exist once the draft is published.',
         dropped: [],
+        step: 'rules',
         draft: { version: 1, step: 'rules', updated_at: '2026-11-03T09:00:00Z' },
       });
+      expect(structured).not.toHaveProperty('published_at');
+      expect(structured).not.toHaveProperty('active_since');
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(text).toContain(
+        'Draft at the rules step. Version 1, last saved 2026-11-03T09:00:00Z.'
+      );
       // Counts only, never the rules
       expect(JSON.stringify(structured)).not.toContain('rule-1');
       expect(structured.documents[0].fields[0]).toEqual({
@@ -624,8 +650,32 @@ describe('the reading tools', () => {
       expect(structured.urls_note).toContain('unavailable');
       expect(structured).not.toHaveProperty('description');
       expect(structured).not.toHaveProperty('draft');
+      expect(structured).not.toHaveProperty('step');
+      expect(structured).toMatchObject({
+        published_at: '2026-10-01T09:00:00Z',
+        active_since: '2026-10-01T09:00:00Z',
+        deactivated_since: '2026-11-01T09:00:00Z',
+      });
+      expect(text).toContain(
+        'Published 2026-10-01T09:00:00Z; active since 2026-10-01T09:00:00Z; ' +
+          'deactivated since 2026-11-01T09:00:00Z.'
+      );
       expect(text).toContain('unavailable');
       expect(text).toContain('{reference}');
+    });
+
+    it("answers a live connection's published_at and active_since, which reactivating moved", async () => {
+      const stored = fake.store.connections.get(IDS.live) as FormConnection;
+      fake.store.connections.set(IDS.live, { ...stored, activated_at: '2026-11-05T09:00:00Z' });
+      const { structured, text } = await callTool('get_connection', { connection: IDS.live });
+      expect(structured).toMatchObject({
+        status: 'live',
+        published_at: '2026-10-01T09:00:00Z',
+        active_since: '2026-11-05T09:00:00Z',
+      });
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(structured).not.toHaveProperty('step');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z; active since 2026-11-05T09:00:00Z.');
     });
 
     it('lists a requested document type the catalog lacks in dropped, by its key', async () => {

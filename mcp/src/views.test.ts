@@ -14,6 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { connectionLink, itemLink, variantLink } from './links';
 import {
   applicantFieldsOf,
+  connectionDatesLineOf,
+  connectionFactsOf,
   connectionLineOf,
   connectionRefOf,
   connectionStateOf,
@@ -27,7 +29,10 @@ import {
   itemViewLinesOf,
   itemViewOf,
   ruleContextOf,
+  stepLineOf,
   stepOf,
+  summaryFactsLineOf,
+  summaryFactsOf,
   summaryTextOf,
   unrequestedRulesOf,
   urlsNoteOf,
@@ -491,6 +496,76 @@ describe('stepOf', () => {
     expect(stepOf({ documents: [], branches: [branch(STANDARD, 'Standard', 'main', [])] })).toBe(
       'connection'
     );
+  });
+});
+
+describe('the dates and the step (spec 010, FR-062)', () => {
+  const SUMMARY: Pick<FormConnectionSummary, 'published_at' | 'deactivated_at' | 'step'> = {
+    published_at: null,
+    deactivated_at: null,
+    step: null,
+  };
+
+  it("gives a search item a draft's step and nothing else", () => {
+    const facts = summaryFactsOf({ ...SUMMARY, step: 'documents' });
+    expect(facts).toEqual({ step: 'documents' });
+    expect(summaryFactsLineOf(facts)).toBe('Draft at the documents step.');
+  });
+
+  it('gives a search item its published_at, and its deactivated_at while deactivated', () => {
+    const live = summaryFactsOf({ ...SUMMARY, published_at: '2026-11-01T10:00:00Z' });
+    expect(live).toEqual({ published_at: '2026-11-01T10:00:00Z' });
+    expect(summaryFactsLineOf(live)).toBe('Published 2026-11-01T10:00:00Z.');
+    const deactivated = summaryFactsOf({
+      ...SUMMARY,
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: '2026-11-03T10:00:00Z',
+    });
+    expect(deactivated).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: '2026-11-03T10:00:00Z',
+    });
+    expect(summaryFactsLineOf(deactivated)).toBe(
+      'Published 2026-11-01T10:00:00Z; deactivated 2026-11-03T10:00:00Z.'
+    );
+  });
+
+  it('leaves a search item without a date or step without facts or a line', () => {
+    expect(summaryFactsOf(SUMMARY)).toEqual({});
+    expect(summaryFactsLineOf({})).toBeNull();
+  });
+
+  it("gives get_connection a draft's step and no dates", () => {
+    const facts = connectionFactsOf(DRAFT);
+    expect(facts).toEqual({ step: 'rules' });
+    expect(stepLineOf('rules')).toBe('Draft at the rules step.');
+    expect(connectionDatesLineOf(facts)).toBeNull();
+  });
+
+  it('gives a live connection published_at and active_since, which reactivating moves', () => {
+    const reactivated = { ...PUBLISHED, activated_at: '2026-11-05T10:00:00Z' };
+    const facts = connectionFactsOf(reactivated);
+    expect(facts).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      active_since: '2026-11-05T10:00:00Z',
+    });
+    expect(connectionDatesLineOf(facts)).toBe(
+      'Published 2026-11-01T10:00:00Z; active since 2026-11-05T10:00:00Z.'
+    );
+  });
+
+  it('gives a deactivated connection deactivated_since', () => {
+    const facts = connectionFactsOf(DEACTIVATED);
+    expect(facts).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      active_since: '2026-11-01T10:00:00Z',
+      deactivated_since: '2026-11-03T10:00:00Z',
+    });
+    expect(connectionDatesLineOf(facts)).toContain('deactivated since 2026-11-03T10:00:00Z');
+  });
+
+  it('leaves active_since out for a connection that was never active', () => {
+    expect(connectionFactsOf(SCHEDULED)).toEqual({ published_at: '2026-11-01T10:00:00Z' });
   });
 });
 

@@ -9,11 +9,13 @@ import type {
 } from '@connection-portal/api-types/form-connections';
 import type { BranchCheck, ItemFinding } from '@connection-portal/rules/checks/types';
 import { mainBranch, MDL, PID, rule, US1_RULES } from '@connection-portal/rules/testData';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
 import { INITIAL_DRAFT_DELETE_STATE } from './constants';
+import type { DatePillSource } from './types';
 import {
+  datePillOf,
   deleteDraftDialogOf,
   deleteDraftErrorOf,
   deleteDraftNoticeOf,
@@ -28,6 +30,7 @@ import {
   requestedDocumentsOf,
   resultLinksOf,
   rulesCountsOf,
+  statusBandOf,
   summaryCountsOf,
   summaryFindingsOf,
   toggleAccordion,
@@ -271,6 +274,103 @@ describe('editedLineOf (S16, FR-049)', () => {
     expect(editedLineOf(new Date(2026, 0, 9, 0, 0).toISOString(), 'de')).toBe(
       'Bearbeitet 09.01.2026, 00:00'
     );
+  });
+});
+
+// Spec 010, FR-015, FR-020, FR-021 (data-model §1.4; C1): the date pill's line by state
+describe('datePillOf (FR-015, FR-020, FR-021)', () => {
+  const updatedAt = new Date(2026, 10, 4, 9, 15).toISOString();
+  const live: DatePillSource = {
+    state: 'live',
+    updated_at: updatedAt,
+    published_at: new Date(2026, 8, 12, 8, 0).toISOString(),
+    activated_at: new Date(2026, 9, 23, 14, 32).toISOString(),
+    deactivated_at: null,
+    start_date: null,
+  };
+  const scheduled: DatePillSource = {
+    ...live,
+    state: 'scheduled',
+    activated_at: null,
+    start_date: '2026-12-01',
+  };
+  const deactivated: DatePillSource = {
+    ...live,
+    state: 'deactivated',
+    deactivated_at: new Date(2026, 9, 24, 10, 5).toISOString(),
+  };
+  const draft: DatePillSource = {
+    state: 'draft',
+    updated_at: new Date(2026, 9, 3, 14, 32).toISOString(),
+  };
+
+  it('writes each state’s line with the date and the 24-hour time (US2-AS4, US2-AS5)', () => {
+    expect(datePillOf(live, 'en')).toBe('Active since 23.10.2026, 14:32');
+    expect(datePillOf(scheduled, 'en')).toBe('Active from 01.12.2026, 00:00');
+    expect(datePillOf(deactivated, 'en')).toBe('Deactivated since 24.10.2026, 10:05');
+    expect(datePillOf(draft, 'en')).toBe('Edited 03.10.2026, 14:32');
+  });
+
+  it('writes the glossary’s German with the same dates (spec 009, FR-012)', () => {
+    expect(datePillOf(live, 'de')).toBe('Aktiv seit 23.10.2026, 14:32');
+    expect(datePillOf(scheduled, 'de')).toBe('Aktiv ab 01.12.2026, 00:00');
+    expect(datePillOf(deactivated, 'de')).toBe('Deaktiviert seit 24.10.2026, 10:05');
+    expect(datePillOf(draft, 'de')).toBe('Bearbeitet 03.10.2026, 14:32');
+  });
+
+  it('reads "Active since" from the last activation, not the publication (US2-AS6, FR-018)', () => {
+    const reactivated = { ...live, activated_at: new Date(2026, 10, 2, 7, 45).toISOString() };
+    expect(datePillOf(reactivated, 'en')).toBe('Active since 02.11.2026, 07:45');
+  });
+
+  it('reads the start date as written in every time zone (FR-020)', () => {
+    try {
+      for (const zone of ['America/New_York', 'Pacific/Honolulu', 'Pacific/Kiritimati']) {
+        vi.stubEnv('TZ', zone);
+        expect(new Date('2026-12-01T00:00:00Z').getTimezoneOffset()).not.toBe(0);
+        expect(datePillOf(scheduled, 'en')).toBe('Active from 01.12.2026, 00:00');
+        expect(datePillOf(scheduled, 'de')).toBe('Aktiv ab 01.12.2026, 00:00');
+      }
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('never leaves the pill empty when a state’s date is missing (FR-021)', () => {
+    expect(datePillOf({ ...live, activated_at: null }, 'en')).toBe(
+      'Active since 12.09.2026, 08:00'
+    );
+    expect(datePillOf({ ...live, activated_at: null, published_at: undefined }, 'en')).toBe(
+      'Edited 04.11.2026, 09:15'
+    );
+    expect(datePillOf({ ...scheduled, start_date: null }, 'en')).toBe('Edited 04.11.2026, 09:15');
+    expect(datePillOf({ ...deactivated, deactivated_at: null }, 'en')).toBe(
+      'Deactivated since 04.11.2026, 09:15'
+    );
+  });
+});
+
+describe('statusBandOf (C1, S15)', () => {
+  it('gives each published state its tone and sentences', () => {
+    expect(statusBandOf('live', 'en')).toEqual({
+      tone: 'active',
+      title: 'Your connection is active',
+      text: 'Citizens can now share their data with you. Add the links below to your service.',
+    });
+    expect(statusBandOf('scheduled', 'en')).toEqual({
+      tone: 'scheduled',
+      title: 'Your connection is scheduled',
+      text: 'The links are ready to be added to your service. They become active on the scheduled date below.',
+    });
+    expect(statusBandOf('deactivated', 'en')).toEqual({
+      tone: 'deactivated',
+      title: 'Connection deactivated',
+      text: 'Citizens can’t start a new request. Your settings are saved.',
+    });
+  });
+
+  it('words the scheduled band in German', () => {
+    expect(statusBandOf('scheduled', 'de').title).toBe('Ihre Anbindung ist geplant');
   });
 });
 

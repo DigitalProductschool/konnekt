@@ -18,11 +18,11 @@ import RulesSummary from './RulesSummary';
 import StatusBand from './StatusBand';
 import type { DetailAccordionName, DraftDetailsProps } from './types';
 import {
+  datePillOf,
   deleteDraftDialogOf,
   deleteDraftErrorOf,
   deleteDraftNoticeOf,
   draftDeleteReducer,
-  editedLineOf,
   toggleAccordion,
 } from './utils';
 
@@ -91,7 +91,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
     <WizardLayout
       variant="details"
       title={name}
-      badge={<ConnectionStatusBadge isActive draft />}
+      badge={<ConnectionStatusBadge state="draft" />}
       meta={draft.description || undefined}
       footer={<DetailFooter formConnectionId={id} draft={draft} />}
       overlay={
@@ -119,17 +119,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           tone="draft"
           title={copy.draftTitle}
           text={copy.draftText}
-          meta={
-            // The date pill (7362:54709): white, radius 8, padding 8 16, the calendar 8px before
-            // the date in label/small muted
-            <p className="bg-kern-layout-background-default rounded-kern-default text-kern-static-small text-kern-layout-text-muted flex items-center gap-8 self-start px-16 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold">
-              <span
-                aria-hidden="true"
-                className="kern-icon kern-icon--calendar-today kern-icon--small bg-kern-layout-text-default! shrink-0"
-              />
-              {editedLineOf(draft.updated_at, language)}
-            </p>
-          }
+          dateLine={datePillOf(draft, language)}
           mainAction={
             <button
               type="button"

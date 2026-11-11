@@ -13,6 +13,8 @@ import type { BackendClient } from '../backend';
 import { resolveConnectionId, resolveItem, resolveVariant } from '../resolve';
 import {
   applicantFieldsOf,
+  connectionDatesLineOf,
+  connectionFactsOf,
   connectionLineOf,
   connectionRefOf,
   connectionUrlsOf,
@@ -25,6 +27,9 @@ import {
   itemViewLinesOf,
   itemViewOf,
   ruleContextOf,
+  stepLineOf,
+  summaryFactsLineOf,
+  summaryFactsOf,
   summaryTextOf,
   type ToolRuleContext,
   unrequestedRulesOf,
@@ -102,7 +107,8 @@ registerTool({
   description:
     'Finds connections (serviceBW forms linked to the EUDI Wallet) by a part of their name or ' +
     'description, and by status: draft, live or deactivated. Answers at most 25 per page, the ' +
-    'most recently changed first, each with its link; pass next_cursor to read the next page. ' +
+    'most recently changed first, each with its link, when it was published and deactivated, ' +
+    "and a draft's step; pass next_cursor to read the next page. " +
     'Look here before creating a draft, so that a form gets one connection.',
   input: searchInput,
   handler: async (_caller, input, { backend }) => {
@@ -119,13 +125,17 @@ registerTool({
       ...connectionRefOf(item),
       ...descriptionOf(item.description),
       updated_at: item.updated_at,
+      ...summaryFactsOf(item),
     }));
     const count = items.length === 1 ? 'One connection' : `${items.length} connections`;
     return toolResult(
       { items, next_cursor: page.next_cursor },
       summaryTextOf(
         items.length === 0 ? 'No connection matches.' : `${count}:`,
-        ...items.map((item) => `- ${connectionLineOf(item)}`),
+        ...items.map((item) => {
+          const facts = summaryFactsLineOf(item);
+          return `- ${connectionLineOf(item)}${facts ? `\n  ${facts}` : ''}`;
+        }),
         page.next_cursor && `More connections match: pass the cursor ${page.next_cursor}.`
       )
     );
@@ -140,12 +150,14 @@ registerTool({
   description:
     'Reads one connection: its name, description and status, the documents and fields it ' +
     'requests, its variants with their number of rules and groups (never the rules: use ' +
-    'get_variant), its connection URLs once published, and for a draft its version, its step ' +
-    'and the requested data the wallet no longer offers. Every part comes with its link.',
+    'get_variant), its connection URLs once published, when it was published, became active ' +
+    'and was deactivated, and for a draft its version, its step and the requested data the ' +
+    'wallet no longer offers. Every part comes with its link.',
   input: z.object({ connection: CONNECTION }),
   handler: async (_caller, input, { backend }) => {
     const fc = await connectionOf(backend, input.connection);
     const ref = connectionRefOf(fc);
+    const facts = connectionFactsOf(fc);
     const documents = fc.documents.map((document) => ({
       document_type: document.document_type,
       label: document.label,
@@ -171,6 +183,7 @@ registerTool({
       {
         ...ref,
         ...descriptionOf(fc.description),
+        ...facts,
         documents,
         variants,
         urls,
@@ -181,8 +194,9 @@ registerTool({
       summaryTextOf(
         connectionLineOf(ref),
         fc.description && `Description: ${fc.description}`,
-        fc.status === 'draft' &&
-          `Draft version ${fc.version}, at the ${fc.step} step, last saved ${fc.updated_at}.`,
+        fc.status === 'draft'
+          ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`
+          : connectionDatesLineOf(facts),
         documents.length === 0
           ? 'Documents: none yet.'
           : 'Documents:\n' +
