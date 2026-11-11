@@ -5,7 +5,6 @@ import type {
   EditLocationState,
   OverviewLocationState,
 } from '@connection-portal/api-types/routing';
-import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
 import type { Language } from '@connection-portal/rules/language';
@@ -113,6 +112,7 @@ import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
   draftNameErrors,
@@ -139,9 +139,11 @@ import {
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
+  ruleDocumentsInListOrder,
   ruleLines,
   rulesNextActionOf,
   saveFailureToastOf,
+  selectedIndexAfterMove,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -419,8 +421,7 @@ function ConnectionWizard({
   const droppedChecked = useRef(false);
   // The flow moved to the documents step for dropped data: the note takes the focus there (S8)
   const focusDroppedNote = useRef(false);
-  const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
-  // The documents step's list: the documents the catalog offers, in catalog order (F23)
+  // The documents step's list: the documents the catalog offers, in the editor's order (FR-045)
   const listed = useMemo(
     () => listedDocumentsOf(state.documents, documentTypes),
     [state.documents, documentTypes]
@@ -463,7 +464,7 @@ function ConnectionWizard({
   // with the catalog's labels in the same language
   const ruleCatalog: RulesCatalog & { language: Language } = useMemo(
     () => ({
-      documents: requestedRuleDocuments(documentTypes, state.documents),
+      documents: ruleDocumentsInListOrder(documentTypes, state.documents),
       allDocuments: documentTypes,
       optionSets,
       language,
@@ -741,7 +742,7 @@ function ConnectionWizard({
     const catalog =
       documents === state.documents
         ? ruleCatalog
-        : { ...ruleCatalog, documents: requestedRuleDocuments(documentTypes, documents) };
+        : { ...ruleCatalog, documents: ruleDocumentsInListOrder(documentTypes, documents) };
     const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, catalog) : null;
     if (!problem) {
       return true;
@@ -1406,12 +1407,28 @@ function ConnectionWizard({
   /** A pick in the documents step's search card: the document is added and shown (U21 A5). */
   function handleAddDocument(documentType: DocumentType) {
     const listIds = listIdsOf(listed);
-    dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder });
+    // At the end of the list (FR-045)
+    dispatch({ type: 'addDocument', documentType: documentType.key });
+    dispatchView({ type: 'select', index: indexAfterAdding(listIds, documentType.key) });
+    dispatchView({ type: 'clearSearch' });
+  }
+
+  /**
+   * Moves a listed document to `toIndex` of the list (FR-046, FR-047; the ⋯ menu's "Move up" and
+   * "Move down", and the drag): the editor moves it among its documents, and the open document
+   * stays open, the pager counting in the new order. A refused move changes nothing.
+   */
+  function handleMoveDocument(documentType: string, toIndex: number) {
+    const listIds = listIdsOf(listed);
+    dispatch({
+      type: 'moveDocument',
+      documentType,
+      toIndex: documentIndexOfListIndex(state.documents, listIds, toIndex),
+    });
     dispatchView({
       type: 'select',
-      index: indexAfterAdding(listIds, documentType.key, catalogOrder),
+      index: selectedIndexAfterMove(listIds, documentsView.selectedIndex, documentType, toIndex),
     });
-    dispatchView({ type: 'clearSearch' });
   }
 
   function handleSetField(documentType: string, field: string, selected: boolean) {
@@ -1459,11 +1476,11 @@ function ConnectionWizard({
   }
 
   function handleUndo() {
-    const restored = state.removed?.document_type;
+    const restored = state.removed?.document.document_type;
     flushSync(() => {
-      dispatch({ type: 'undoRemove', catalogOrder });
-      // The document shows again, at its catalog place
-      dispatchView({ type: 'undoRemoval', listIds: listIdsOf(listed), catalogOrder });
+      dispatch({ type: 'undoRemove' });
+      // The document shows again, at the place it had (FR-045)
+      dispatchView({ type: 'undoRemoval', listIds: listIdsOf(listed) });
     });
     // The toast and its button are gone; the focus goes to the restored document's list item
     if (restored) {
@@ -1523,6 +1540,7 @@ function ConnectionWizard({
             dispatchView={dispatchView}
             onAdd={handleAddDocument}
             onRemove={handleRemove}
+            onMove={handleMoveDocument}
             onSetField={handleSetField}
             onSetAllFields={handleSetAllFields}
           />

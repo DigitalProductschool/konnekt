@@ -126,6 +126,13 @@
   --shadow-menu: 0 10px 28px 0 rgb(19 21 37 / 0.16);
   /* Figma "Rules/Toast" (U51 6197:11098), which uses "Elevation/Menu" */
   --shadow-toast: 0 10px 28px 0 rgb(19 21 37 / 0.16);
+  /*
+   * The documents step's drag (T059; U27 7301:63418, 7301:63416), values without a KERN name: the
+   * faded copy's shadow and radius, and the drop line's radius
+   */
+  --shadow-drag-copy: 0 4px 6px 0 rgb(19 21 37 / 0.16);
+  --radius-drag-copy: 6px;
+  --radius-drop-line: 1px;
 
   /*
    * Frame colours of the documents step without a KERN token (design-notes §1.3, T049, T051):

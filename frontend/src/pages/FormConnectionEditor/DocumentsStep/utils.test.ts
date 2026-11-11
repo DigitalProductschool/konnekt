@@ -5,17 +5,24 @@ import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';
 import { DOCUMENT_GLYPHS, DOCUMENTS_COPY, GENERIC_DOCUMENT_GLYPHS } from './constants';
+import type { DragPointerType, DragRowBox, RowDragEvent, RowDragState } from './types';
 import {
   dataCountOf,
   dataCountText,
   documentGlyphOf,
   documentsNeedingData,
+  dragOffsetOf,
+  dragPointerTypeOf,
+  dropLineOf,
+  dropTargetOf,
   indexAfterAdding,
   indexAfterRemoval,
   inSentence,
   listedDocumentsOf,
   listIdsOf,
   listText,
+  moveAnnouncementOf,
+  moveTargetsOf,
   needsDataOf,
   needsDataText,
   noDataText,
@@ -24,12 +31,18 @@ import {
   removalDialogCopyOf,
   removalDialogOf,
   removeDocumentsLabel,
+  ROW_DRAG_HOLD_MS,
+  ROW_DRAG_IDLE,
+  ROW_DRAG_THRESHOLD_PX,
+  rowDragReducer,
   ruleListText,
   rulesCheckingDocument,
   searchCardHeight,
   searchGroupsOf,
   shownDocumentOf,
   shownIndexOf,
+  touchDragArmed,
+  waitsForHold,
 } from './utils';
 
 function field(key: string): DocumentField {
@@ -60,7 +73,6 @@ const EHIC: DocumentType = {
   fields: ['card_number'].map(field),
 };
 const CATALOG = [PID, MDL, EHIC];
-const CATALOG_ORDER = CATALOG.map((type) => type.key);
 
 describe('listedDocumentsOf (the list, F23)', () => {
   it('keeps the editor’s order and pairs each document with its catalog entry', () => {
@@ -160,16 +172,25 @@ describe('indexAfterRemoval', () => {
   });
 });
 
-describe('indexAfterAdding (catalog order, F23)', () => {
-  it('places the document after those before it in the catalog', () => {
-    expect(indexAfterAdding([], 'mdl', CATALOG_ORDER)).toBe(0);
-    expect(indexAfterAdding(['pid'], 'mdl', CATALOG_ORDER)).toBe(1);
-    expect(indexAfterAdding(['mdl', 'ehic'], 'pid', CATALOG_ORDER)).toBe(0);
-    expect(indexAfterAdding(['pid', 'ehic'], 'mdl', CATALOG_ORDER)).toBe(1);
+describe('indexAfterAdding (the team’s order, FR-045)', () => {
+  it('places an added document at the end, not at its catalog place', () => {
+    expect(indexAfterAdding([], 'mdl')).toBe(0);
+    expect(indexAfterAdding(['pid'], 'mdl')).toBe(1);
+    // Personal ID comes first in the catalog, but goes last
+    expect(indexAfterAdding(['mdl', 'ehic'], 'pid')).toBe(2);
+    expect(indexAfterAdding(['pid', 'ehic'], 'mdl')).toBe(2);
+  });
+
+  it('places a restored document at the index it had, clamped to the list', () => {
+    expect(indexAfterAdding(['ehic', 'mdl'], 'pid', 1)).toBe(1);
+    expect(indexAfterAdding(['ehic', 'mdl'], 'pid', 0)).toBe(0);
+    expect(indexAfterAdding(['ehic'], 'pid', 2)).toBe(1);
+    expect(indexAfterAdding(['ehic'], 'pid', -1)).toBe(0);
   });
 
   it('gives a listed document’s own index', () => {
-    expect(indexAfterAdding(['pid', 'mdl'], 'mdl', CATALOG_ORDER)).toBe(1);
+    expect(indexAfterAdding(['pid', 'mdl'], 'mdl')).toBe(1);
+    expect(indexAfterAdding(['pid', 'mdl'], 'mdl', 0)).toBe(1);
   });
 });
 
@@ -568,5 +589,369 @@ describe('searchCardHeight', () => {
 
   it('measures the no-results line (U20 7290:60990: 130 high)', () => {
     expect(searchCardHeight({ available: [], added: [], noMatches: true })).toBe(130);
+  });
+});
+
+describe('moveTargetsOf (the ⋯ menu’s entries; FR-047, W13)', () => {
+  it('offers "Move up" except on the first row and "Move down" except on the last', () => {
+    expect(moveTargetsOf(0, 3)).toEqual({ hasMoveMenu: true, up: null, down: 1 });
+    expect(moveTargetsOf(1, 3)).toEqual({ hasMoveMenu: true, up: 0, down: 2 });
+    expect(moveTargetsOf(2, 3)).toEqual({ hasMoveMenu: true, up: 1, down: null });
+  });
+
+  it('has no menu with one document', () => {
+    expect(moveTargetsOf(0, 1)).toEqual({ hasMoveMenu: false, up: null, down: null });
+  });
+});
+
+describe('moveAnnouncementOf (the announcement after a move; FR-047, copy.md §5)', () => {
+  const listed = listedDocumentsOf(
+    ['pid', 'mdl', 'ehic'].map((key) => ({ document_type: key, fields: [] })),
+    CATALOG
+  );
+
+  it('names the document and its new position, counting from 1', () => {
+    expect(moveAnnouncementOf(listed, 'mdl', 0, 'en')).toBe(
+      '“Driving licence” moved to position 1 of 3.'
+    );
+    expect(moveAnnouncementOf(listed, 'pid', 2, 'en')).toBe(
+      '“Personal ID” moved to position 3 of 3.'
+    );
+  });
+
+  it('says it in German', () => {
+    expect(moveAnnouncementOf(listed, 'mdl', 0, 'de')).toBe(
+      '„Driving licence“ auf Position 1 von 3 verschoben.'
+    );
+    expect(moveAnnouncementOf(listed, 'ehic', 1, 'de')).toBe(
+      '„Health insurance card“ auf Position 2 von 3 verschoben.'
+    );
+  });
+
+  it('says nothing for a move the editor refuses', () => {
+    expect(moveAnnouncementOf(listed, 'mdl', 1, 'en')).toBeNull();
+    expect(moveAnnouncementOf(listed, 'mdl', 3, 'en')).toBeNull();
+    expect(moveAnnouncementOf(listed, 'mdl', -1, 'en')).toBeNull();
+    expect(moveAnnouncementOf(listed, 'mdl', 0.5, 'en')).toBeNull();
+    expect(moveAnnouncementOf(listed, 'other', 0, 'en')).toBeNull();
+  });
+});
+
+// Three 40px rows, 4px apart (U22 7294:61686), from 100px down: their middles are 120, 164, 208
+const ROWS: readonly DragRowBox[] = Object.freeze([
+  Object.freeze({ top: 100, bottom: 140 }),
+  Object.freeze({ top: 144, bottom: 184 }),
+  Object.freeze({ top: 188, bottom: 228 }),
+]);
+const LIST = Object.freeze({ left: 0, top: 90, right: 264, bottom: 240 });
+const MOUSE = 1;
+const TOUCH = 7;
+
+function down(
+  index: number,
+  y: number,
+  pointerType: DragPointerType = 'mouse',
+  pointerId = pointerType === 'touch' ? TOUCH : MOUSE
+): RowDragEvent {
+  return {
+    type: 'down',
+    pointerId,
+    pointerType,
+    position: { x: 100, y },
+    time: 1000,
+    index,
+    rows: ROWS,
+    list: LIST,
+  };
+}
+
+function move(y: number, x = 100, time = 1010, pointerId = MOUSE): RowDragEvent {
+  return { type: 'move', pointerId, position: { x, y }, time };
+}
+
+function up(y: number, x = 100, pointerId = MOUSE): RowDragEvent {
+  return { type: 'up', pointerId, position: { x, y } };
+}
+
+/** The state after the events, from idle */
+function run(...events: RowDragEvent[]): RowDragState {
+  return events.reduce(rowDragReducer, ROW_DRAG_IDLE);
+}
+
+/** A mouse drag of the row at `index`, pressed at its middle and moved to `y` */
+function dragging(index: number, y: number): RowDragState {
+  const middle = (ROWS[index].top + ROWS[index].bottom) / 2;
+  return run(down(index, middle), move(y));
+}
+
+describe('dragPointerTypeOf (S8 "Dragging")', () => {
+  it('keeps touch and pen, and drags any other pointer as a mouse', () => {
+    expect(dragPointerTypeOf('touch')).toBe('touch');
+    expect(dragPointerTypeOf('pen')).toBe('pen');
+    expect(dragPointerTypeOf('mouse')).toBe('mouse');
+    expect(dragPointerTypeOf('')).toBe('mouse');
+  });
+});
+
+describe('dropTargetOf (the target index, R6)', () => {
+  it('is the first index above the list and the last below it', () => {
+    expect(dropTargetOf(ROWS, 2, 0)).toBe(0);
+    expect(dropTargetOf(ROWS, 1, 99)).toBe(0);
+    expect(dropTargetOf(ROWS, 0, 1000)).toBe(2);
+    expect(dropTargetOf(ROWS, 1, 229)).toBe(2);
+  });
+
+  it('passes a neighbour once the pointer crosses its middle', () => {
+    expect(dropTargetOf(ROWS, 0, 164)).toBe(0);
+    expect(dropTargetOf(ROWS, 0, 165)).toBe(1);
+    // A pointer on a middle counts as above it
+    expect(dropTargetOf(ROWS, 2, 165)).toBe(2);
+    expect(dropTargetOf(ROWS, 2, 164)).toBe(1);
+    expect(dropTargetOf(ROWS, 1, 119)).toBe(0);
+    expect(dropTargetOf(ROWS, 1, 209)).toBe(2);
+  });
+
+  it('places by the gap between rows', () => {
+    expect(dropTargetOf(ROWS, 2, 142)).toBe(1);
+    expect(dropTargetOf(ROWS, 0, 186)).toBe(1);
+  });
+
+  it('stays on the document’s own place between its neighbours’ middles', () => {
+    expect(dropTargetOf(ROWS, 1, 121)).toBe(1);
+    expect(dropTargetOf(ROWS, 1, 164)).toBe(1);
+    expect(dropTargetOf(ROWS, 1, 208)).toBe(1);
+  });
+
+  it('has only index 0 with one row', () => {
+    expect(dropTargetOf(ROWS.slice(0, 1), 0, 0)).toBe(0);
+    expect(dropTargetOf(ROWS.slice(0, 1), 0, 500)).toBe(0);
+  });
+});
+
+describe('dropLineOf (the drop line, S8 "Dragging")', () => {
+  it('is null unless a row is dragged', () => {
+    expect(dropLineOf(ROW_DRAG_IDLE)).toBeNull();
+    expect(dropLineOf(run(down(0, 120)))).toBeNull();
+  });
+
+  it('marks the top of the list for the first place', () => {
+    expect(dropLineOf(dragging(2, 50))).toEqual({ gap: 0, y: 100 });
+  });
+
+  it('marks the bottom of the list for the last place', () => {
+    expect(dropLineOf(dragging(0, 300))).toEqual({ gap: 3, y: 228 });
+  });
+
+  it('marks the gap between two rows, above the row moving up and below it moving down', () => {
+    expect(dropLineOf(dragging(2, 150))).toEqual({ gap: 1, y: 142 });
+    expect(dropLineOf(dragging(0, 170))).toEqual({ gap: 2, y: 186 });
+  });
+
+  it('marks the document’s own place, above its row, while it stays', () => {
+    expect(dropLineOf(dragging(1, 175))).toEqual({ gap: 1, y: 142 });
+  });
+});
+
+describe('rowDragReducer: a mouse or pen (FR-046, R6)', () => {
+  it('presses a row and waits for more than 4 px', () => {
+    const pressed = run(down(1, 164));
+    expect(pressed).toMatchObject({ phase: 'pressed', index: 1, origin: { x: 100, y: 164 } });
+    expect(rowDragReducer(pressed, move(164 + ROW_DRAG_THRESHOLD_PX))).toBe(pressed);
+    expect(rowDragReducer(pressed, move(164, 100 - 3))).toBe(pressed);
+    expect(waitsForHold(pressed)).toBe(false);
+  });
+
+  it('drags once the pointer moved more than 4 px, in any direction', () => {
+    const state = run(down(1, 164), move(167, 103));
+    expect(state).toMatchObject({ phase: 'dragging', index: 1, target: 1 });
+    expect(dragOffsetOf(state)).toEqual({ x: 3, y: 3 });
+    expect(touchDragArmed(state)).toBe(false);
+  });
+
+  it('follows the pointer: the target and the copy’s offset', () => {
+    const state = run(down(2, 208), move(200), move(150), move(40, 130));
+    expect(state).toMatchObject({ phase: 'dragging', target: 0 });
+    expect(dragOffsetOf(state)).toEqual({ x: 30, y: -168 });
+  });
+
+  it('answers the move on a release inside the list', () => {
+    expect(run(down(2, 208), move(200), up(100))).toEqual({
+      phase: 'idle',
+      move: { from: 2, to: 0 },
+    });
+    expect(run(down(0, 120), move(140), up(235))).toEqual({
+      phase: 'idle',
+      move: { from: 0, to: 2 },
+    });
+    expect(run(down(0, 120), move(140), up(170))).toEqual({
+      phase: 'idle',
+      move: { from: 0, to: 1 },
+    });
+  });
+
+  it('answers the move at the list’s edges, which count as inside', () => {
+    expect(run(down(2, 208), move(150), up(LIST.top, LIST.left))).toEqual({
+      phase: 'idle',
+      move: { from: 2, to: 0 },
+    });
+    expect(run(down(0, 120), move(150), up(LIST.bottom, LIST.right))).toEqual({
+      phase: 'idle',
+      move: { from: 0, to: 2 },
+    });
+  });
+
+  it('answers no move for a drop on the document’s own place', () => {
+    expect(run(down(1, 164), move(180), up(170))).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('answers no move for a release outside the list', () => {
+    expect(run(down(2, 208), move(150), up(100, 300))).toEqual(ROW_DRAG_IDLE);
+    expect(run(down(0, 120), move(150), up(260))).toEqual(ROW_DRAG_IDLE);
+    expect(run(down(2, 208), move(150), up(80))).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('answers no move for a release before the drag starts: a click', () => {
+    expect(run(down(1, 164), move(166), up(166))).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('drags a pen as a mouse', () => {
+    const pen = 3;
+    expect(run(down(2, 208, 'pen', pen), move(150, 100, 1001, pen), up(100, 100, pen))).toEqual({
+      phase: 'idle',
+      move: { from: 2, to: 0 },
+    });
+  });
+
+  it('ignores the hold timer', () => {
+    const pressed = run(down(1, 164));
+    expect(rowDragReducer(pressed, { type: 'tick', time: 1000 + ROW_DRAG_HOLD_MS })).toBe(pressed);
+  });
+});
+
+describe('rowDragReducer: a touch (FR-046, R6)', () => {
+  const touchMove = (y: number, time: number) => move(y, 100, time, TOUCH);
+
+  it('waits for the hold, and drags from its end without moving', () => {
+    const pressed = run(down(0, 120, 'touch'));
+    expect(waitsForHold(pressed)).toBe(true);
+    expect(rowDragReducer(pressed, { type: 'tick', time: 1000 + ROW_DRAG_HOLD_MS - 1 })).toBe(
+      pressed
+    );
+    const held = rowDragReducer(pressed, { type: 'tick', time: 1000 + ROW_DRAG_HOLD_MS });
+    expect(held).toMatchObject({ phase: 'dragging', index: 0, target: 0 });
+    expect(dragOffsetOf(held)).toEqual({ x: 0, y: 0 });
+    expect(waitsForHold(held)).toBe(false);
+    expect(touchDragArmed(held)).toBe(true);
+  });
+
+  it('keeps waiting while it moves 4 px or less', () => {
+    const pressed = run(down(0, 120, 'touch'));
+    expect(rowDragReducer(pressed, touchMove(124, 1100))).toBe(pressed);
+  });
+
+  it('moves and drops after the hold', () => {
+    const state = run(
+      down(0, 120, 'touch'),
+      touchMove(122, 1200),
+      { type: 'tick', time: 1400 },
+      touchMove(200, 1500)
+    );
+    expect(state).toMatchObject({ phase: 'dragging', target: 1 });
+    expect(rowDragReducer(state, up(200, 100, TOUCH))).toEqual({
+      phase: 'idle',
+      move: { from: 0, to: 1 },
+    });
+  });
+
+  it('returns to idle when it moves more than 4 px before the hold, so that the list scrolls', () => {
+    const scrolled = run(down(1, 164, 'touch'), touchMove(169, 1100));
+    expect(scrolled).toEqual(ROW_DRAG_IDLE);
+    expect(rowDragReducer(scrolled, { type: 'tick', time: 1400 })).toBe(scrolled);
+  });
+
+  it('drags on a move at the hold’s end when the timer is late', () => {
+    expect(run(down(0, 120, 'touch'), touchMove(200, 1400))).toMatchObject({
+      phase: 'dragging',
+      target: 1,
+    });
+  });
+
+  it('ends the wait on pointercancel (the browser scrolls)', () => {
+    expect(run(down(1, 164, 'touch'), { type: 'cancel', pointerId: TOUCH })).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('answers no move for a tap', () => {
+    expect(run(down(1, 164, 'touch'), up(164, 100, TOUCH))).toEqual(ROW_DRAG_IDLE);
+  });
+});
+
+describe('rowDragReducer: ending without a move (FR-046)', () => {
+  const pressed = run(down(2, 208));
+  const dragged = dragging(2, 100);
+
+  it('ends with Escape', () => {
+    expect(rowDragReducer(pressed, { type: 'escape' })).toEqual(ROW_DRAG_IDLE);
+    expect(rowDragReducer(dragged, { type: 'escape' })).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('ends on a cancel of its pointer, or of whichever pointer is down', () => {
+    expect(rowDragReducer(dragged, { type: 'cancel', pointerId: MOUSE })).toEqual(ROW_DRAG_IDLE);
+    expect(rowDragReducer(dragged, { type: 'cancel' })).toEqual(ROW_DRAG_IDLE);
+    expect(rowDragReducer(pressed, { type: 'cancel' })).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('ends on a second pointer, and the second pointer starts nothing', () => {
+    const second = down(0, 120, 'touch');
+    expect(rowDragReducer(dragged, second)).toEqual(ROW_DRAG_IDLE);
+    expect(rowDragReducer(pressed, second)).toEqual(ROW_DRAG_IDLE);
+    const after = run(down(2, 208), move(100), second, up(100));
+    expect(after).toEqual(ROW_DRAG_IDLE);
+  });
+
+  it('ignores another pointer’s move, release and cancel', () => {
+    expect(rowDragReducer(dragged, move(300, 100, 1020, 9))).toBe(dragged);
+    expect(rowDragReducer(dragged, up(100, 100, 9))).toBe(dragged);
+    expect(rowDragReducer(dragged, { type: 'cancel', pointerId: 9 })).toBe(dragged);
+  });
+});
+
+describe('rowDragReducer: idle', () => {
+  it('changes nothing but a press on a listed row', () => {
+    for (const event of [
+      move(150),
+      up(150),
+      { type: 'cancel' },
+      { type: 'escape' },
+      { type: 'tick', time: 5000 },
+    ] satisfies RowDragEvent[]) {
+      expect(rowDragReducer(ROW_DRAG_IDLE, event)).toBe(ROW_DRAG_IDLE);
+    }
+    expect(rowDragReducer(ROW_DRAG_IDLE, down(3, 150))).toBe(ROW_DRAG_IDLE);
+    expect(rowDragReducer(ROW_DRAG_IDLE, down(-1, 150))).toBe(ROW_DRAG_IDLE);
+  });
+
+  it('clears the answered move on the next press', () => {
+    const dropped = run(down(2, 208), move(150), up(100));
+    expect(dropped).toEqual({ phase: 'idle', move: { from: 2, to: 0 } });
+    expect(rowDragReducer(dropped, move(120))).toBe(dropped);
+    expect(rowDragReducer(dropped, down(0, 120))).toMatchObject({ phase: 'pressed', index: 0 });
+  });
+});
+
+describe('rowDragReducer: measured again', () => {
+  it('takes the rows measured after the list scrolled', () => {
+    const scrolled = ROWS.map(({ top, bottom }) => ({ top: top - 44, bottom: bottom - 44 }));
+    const state = rowDragReducer(dragging(0, 130), {
+      ...move(130, 100, 1020),
+      rows: scrolled,
+    } as RowDragEvent);
+    expect(state).toMatchObject({ phase: 'dragging', target: 1, rows: scrolled });
+    expect(dropLineOf(state)).toEqual({ gap: 2, y: 142 });
+  });
+
+  it('never changes the measured boxes it was given', () => {
+    const state = run(down(2, 208), move(100), up(100));
+    expect(state).toEqual({ phase: 'idle', move: { from: 2, to: 0 } });
+    expect(ROWS[0]).toEqual({ top: 100, bottom: 140 });
   });
 });

@@ -182,6 +182,15 @@ export type PendingRemoval =
   | { type: 'dropped'; items: DroppedData[]; label: string };
 
 /**
+ * The last removed document, with its selection, and the index it had in the editor's documents:
+ * the removal's "Undo" puts it back there (FR-045; `restoreDocument()`)
+ */
+export interface RemovedDocument {
+  document: RequestedDocument;
+  index: number;
+}
+
+/**
  * A document type, or a field of a known one, that the flow requests and the catalog no longer
  * offers (S8; FR-003 edge case), from `droppedDataOf()`
  */
@@ -204,7 +213,10 @@ export interface EditorState {
   step: EditorStep;
   name: string;
   description: string;
-  /** The documents added so far, in catalog order, with the keys of their selected fields */
+  /**
+   * The documents added so far, in the team's order (FR-045: an added one goes to the end, a move
+   * puts one elsewhere), with the keys of their selected fields
+   */
   documents: RequestedDocument[];
   errors: EditorErrors;
   /** The API's message after publishing failed, with the error ID of a 5xx answer */
@@ -213,8 +225,8 @@ export interface EditorState {
   rulesChanged: boolean;
   dialogOpen: boolean;
   publishing: boolean;
-  /** The last removed document, with its selection, which Undo brings back */
-  removed: RequestedDocument | null;
+  /** The last removed document, with its selection and its index, which Undo brings back */
+  removed: RemovedDocument | null;
   /** Data that rules check, waiting for the team member to confirm its removal (FR-029) */
   pendingRemoval: PendingRemoval | null;
   toast: ToastContent | null;
@@ -234,9 +246,16 @@ export type EditorAction =
   | { type: 'changeDescription'; value: string }
   | { type: 'showErrors'; errors: EditorErrors }
   | { type: 'goToStep'; step: EditorStep }
-  | { type: 'addDocument'; documentType: string; catalogOrder: string[] }
+  /** Adds a document at the end (FR-045); one already added stays as it is */
+  | { type: 'addDocument'; documentType: string }
   | { type: 'removeDocument'; documentType: string; label: string }
-  | { type: 'undoRemove'; catalogOrder: string[] }
+  /** The toast's "Undo": the removed document goes back to the index it had */
+  | { type: 'undoRemove' }
+  /**
+   * Moves a document to `toIndex` of the editor's documents (0 is the first place; FR-046,
+   * FR-047), the others keeping their order; a move `moveDocument()` refuses changes nothing
+   */
+  | { type: 'moveDocument'; documentType: string; toIndex: number }
   | { type: 'dismissToast' }
   | { type: 'setField'; documentType: string; field: string; selected: boolean }
   | { type: 'setAllFields'; documentType: string; fields: string[] }

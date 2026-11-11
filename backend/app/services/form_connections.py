@@ -37,14 +37,20 @@ research R5): `_mark_deleted()` sets `deleted_at` with the deletion's id and the
 deleting account and keeps `updated_at`. Every read here answers a marked row as
 it answered a deleted connection before (`find_form_connection()`,
 `_lock_form_connection()`, the list, the search): it is gone.
+
+The documents keep the team's order (spec 010, research R6, data-model 4): every
+save stores the order of the body's `documents` in `document_order`, and every
+answer lists them in it (`ordered_documents()`). The revisions, their DCQL queries
+and serviceBW's delivery stay in catalog order (`clean_documents()`), so a save
+that only reorders creates no revision and calls no EUDIPLO (FR-051).
 """
 
 import base64
 import binascii
 import logging
 import uuid
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -273,6 +279,53 @@ def clean_documents(
     return [selected[type_.key] for type_ in DOCUMENT_TYPES if type_.key in selected]
 
 
+# The documents' order (spec 010, research R6, data-model 4)
+
+# A document type's place in the catalog; one the catalog no longer has goes last
+_CATALOG_PLACES = {
+    document_type.key: place for place, document_type in enumerate(DOCUMENT_TYPES)
+}
+
+
+def document_order_of(documents: Sequence[RequestedDocument]) -> list[str]:
+    """The document type keys of a request's `documents`, in the order sent.
+
+    What `form_connections.document_order` stores (FR-045). The callers take it
+    from a body that `clean_documents()` accepted, so no key is listed twice.
+    """
+    return [document.document_type for document in documents]
+
+
+def ordered_documents(
+    documents: Sequence[RequestedDocument], document_order: Sequence[str]
+) -> list[RequestedDocument]:
+    """`documents` in the stored order, as every answer lists them (FR-050).
+
+    The documents whose keys `document_order` holds come first, in that order; a
+    document missing from it follows in catalog order, so an empty order is catalog
+    order (FR-052). A key of `document_order` that `documents` doesn't hold is
+    skipped. Each document's fields stay as they are, in catalog order. The
+    revision, the DCQL query and serviceBW's delivery never use this (FR-051).
+    """
+    by_type = {document.document_type: document for document in documents}
+    first = [by_type[key] for key in dict.fromkeys(document_order) if key in by_type]
+    placed = {document.document_type for document in first}
+    rest = sorted(
+        (document for document in documents if document.document_type not in placed),
+        key=lambda document: _CATALOG_PLACES.get(
+            document.document_type, len(_CATALOG_PLACES)
+        ),
+    )
+    return first + rest
+
+
+def _same_documents(
+    left: Sequence[RequestedDocument], right: Sequence[RequestedDocument]
+) -> bool:
+    """Whether two lists hold the same documents with the same fields, in any order."""
+    return ordered_documents(left, []) == ordered_documents(right, [])
+
+
 def check_start_date(start_date: date | None) -> None:
     """Check a start date: a day after today in Germany (FR-003).
 
@@ -464,7 +517,10 @@ def _view(
         name=form_connection.name,
         description=form_connection.description,
         is_active=form_connection.is_active,
-        documents=documents_view(documents),
+        # In the stored order (spec 010, FR-050); the revision's stays catalog order
+        documents=documents_view(
+            ordered_documents(documents, form_connection.document_order)
+        ),
         trigger_url=trigger_url_of(form_connection.id),
         # The main branch's, which is spec 001's; serviceBW puts the request
         # reference in place of the placeholder
@@ -663,15 +719,31 @@ def _current_view(db: Session, form_connection: FormConnection) -> FormConnectio
 def _current_content(db: Session, form_connection: FormConnection) -> activity.Content:
     """A published connection's content as its activity compares a save's.
 
-    Its name, description, current documents and current branches (spec 010,
-    data-model 2.3). The callers read it under the row lock, before the save
-    writes anything.
+    Its name, description, current documents in the stored order (research R6)
+    and current branches (spec 010, data-model 2.3). The callers read it under the
+    row lock, before the save writes anything.
     """
     return activity.Content(
         name=form_connection.name,
         description=form_connection.description,
-        documents=_current_documents(db, form_connection),
+        documents=ordered_documents(
+            _current_documents(db, form_connection), form_connection.document_order
+        ),
         branches=rules.current_branches(db, form_connection),
+    )
+
+
+def stored_draft_content(form_connection: FormConnection) -> activity.Content:
+    """A stored draft's content as its activity compares a save's.
+
+    `activity.draft_content()` with the documents in the stored order (spec 010,
+    research R6), so that a move records `documents_changed`. Read under the row
+    lock, before the save writes anything.
+    """
+    content = activity.draft_content(form_connection)
+    return replace(
+        content,
+        documents=ordered_documents(content.documents, form_connection.document_order),
     )
 
 
@@ -817,6 +889,10 @@ def create_form_connection(
     and nothing is stored. The row is inserted inactive with its `start_date`
     and without `activated_at`, and that transaction records `created`,
     `published` and `scheduled` with the date.
+
+    The row stores the order of `data.documents` (`document_order`), in which the
+    answer lists them; revision 1 and its configuration stay in catalog order
+    (spec 010, research R6, FR-051).
     """
     name = clean_name(data.name)
     description = clean_description(data.description)
@@ -862,6 +938,8 @@ def create_form_connection(
         current_rule_set=1,
         next_rule_number=1,
         next_group_number=1,
+        # The order sent; the revision keeps catalog order (spec 010, R6)
+        document_order=document_order_of(data.documents),
     )
     entries = [activity.Entry(activity.CREATED), activity.Entry(activity.PUBLISHED)]
     if start_date is not None:
@@ -1027,6 +1105,7 @@ def create_revision(
     *,
     actor: Actor,
     start_date: date | None = None,
+    document_order: list[str] | None = None,
 ) -> FormConnection:
     """Store `documents` as the next revision and make it current (FR-005).
 
@@ -1084,6 +1163,13 @@ def create_revision(
     and the row stays a draft. Otherwise the last commit publishes the row not
     active, with `start_date` and without `activated_at` (`_publish`), and records
     `published` then `scheduled` with the date.
+
+    `document_order` is the order of the save's documents (spec 010, research R6,
+    data-model 4): the last commit stores it in `document_order` when this
+    revision becomes current, and the activity compares the documents in the
+    stored order, so that a move records `documents_changed`. The revision and its
+    configuration keep `documents` in catalog order (FR-051). Without it, as for
+    the re-sync, the stored order stays.
     """
     if start_date is not None and guard is None:
         raise ValueError('Only publishing a draft takes a start date')
@@ -1150,7 +1236,7 @@ def create_revision(
             # (FR-003); a refusal deletes the configuration below, as the guard's
             check_start_date(start_date)
             # The stored draft, read before publishing clears it
-            before = activity.draft_content(form_connection)
+            before = stored_draft_content(form_connection)
             branches = _publish(db, form_connection, number, save, start_date)
             published.append(activity.Entry(activity.PUBLISHED))
             if start_date is not None:
@@ -1159,14 +1245,21 @@ def create_revision(
                 )
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
+        # A later revision that became current meanwhile stays current, and so
+        # does the order its save stored with it (spec 010, research R6)
+        is_current = form_connection.current_revision == number
+        if (
+            is_current
+            and document_order is not None
+            and document_order != form_connection.document_order
+        ):
+            form_connection.document_order = document_order
         after = activity.Content(
             name=form_connection.name,
             description=form_connection.description,
-            # A later revision that became current meanwhile stays current
-            documents=(
-                documents
-                if form_connection.current_revision == number
-                else before.documents
+            documents=ordered_documents(
+                documents if is_current else before.documents,
+                form_connection.document_order,
             ),
             branches=branches,
         )
@@ -1224,6 +1317,14 @@ def update_form_connection(
     a revision, the one under `_lock_published_form_connection()`, which a change
     of the name or the description alone takes too. A save that changes nothing
     records nothing, and no save moves a status date (FR-018).
+
+    The order of `data.documents` is stored in `document_order` (spec 010,
+    research R6, data-model 4). The documents are compared cleaned, in catalog
+    order, as before, so a save that only reorders creates no revision and calls
+    no EUDIPLO: it writes the order with the name and the description under the
+    row lock, if the current documents are still the ones it sends, and records
+    `documents_changed`. With changed documents, `create_revision()` stores the
+    order in its last commit.
     """
     form_connection = find_published_form_connection(db, form_connection_id)
     changed = data.model_fields_set
@@ -1234,10 +1335,12 @@ def update_form_connection(
         changes['description'] = clean_description(data.description)
     current_documents = _current_documents(db, form_connection)
     documents: list[RequestedDocument] | None = None
+    sent_documents: list[RequestedDocument] | None = None
+    document_order: list[str] | None = None
     if 'documents' in changed:
-        documents = clean_documents(data.documents or [])
-        if documents == current_documents:
-            documents = None
+        sent_documents = clean_documents(data.documents or [])
+        document_order = document_order_of(data.documents or [])
+        documents = None if sent_documents == current_documents else sent_documents
 
     main_branch_id = rules.main_branch_id_of(db, form_connection_id)
     save: rules.RulesSave | None = None
@@ -1266,10 +1369,22 @@ def update_form_connection(
         )
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
+        # A reorder: written with the name and the description, unless another
+        # save changed the documents since they were compared, whose order then
+        # stays with them (spec 010, research R6)
+        if (
+            document_order is not None
+            and sent_documents is not None
+            and document_order != form_connection.document_order
+            and _same_documents(before.documents, sent_documents)
+        ):
+            form_connection.document_order = document_order
         after = activity.Content(
             name=form_connection.name,
             description=form_connection.description,
-            documents=before.documents,
+            documents=ordered_documents(
+                before.documents, form_connection.document_order
+            ),
             branches=branches,
         )
         activity.record(
@@ -1280,7 +1395,13 @@ def update_form_connection(
         # End the read transaction: the revision path locks the row itself
         db.rollback()
         form_connection = create_revision(
-            db, form_connection_id, documents, changes, save, actor=actor
+            db,
+            form_connection_id,
+            documents,
+            changes,
+            save,
+            actor=actor,
+            document_order=document_order,
         )
     return _current_view(db, form_connection)
 

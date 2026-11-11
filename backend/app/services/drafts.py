@@ -70,7 +70,8 @@ def _draft_changed() -> HTTPException:
 def draft_view(db: Session, form_connection: FormConnection) -> FormConnectionDraft:
     """A draft as the API returns it: its content and version, without URLs.
 
-    Its branches carry their ids (spec 007, research R10). Answers 409
+    Its branches carry their ids (spec 007, research R10), and its documents are
+    listed in the stored order (spec 010, research R6, FR-050). Answers 409
     `draft_published` for a published row. `last_activity` is the entry the
     activity card's closed line shows (spec 010, data-model 2.5).
     """
@@ -82,7 +83,12 @@ def draft_view(db: Session, form_connection: FormConnection) -> FormConnectionDr
         id=form_connection.id,
         name=form_connection.name,
         description=form_connection.description,
-        documents=form_connections.documents_view(content.documents),
+        # In the stored order; the content keeps catalog order (spec 010, R6)
+        documents=form_connections.documents_view(
+            form_connections.ordered_documents(
+                content.documents, form_connection.document_order
+            )
+        ),
         branches=content.branches,
         next_rule_number=form_connection.next_rule_number,
         next_group_number=form_connection.next_group_number,
@@ -189,7 +195,8 @@ def create_draft(
     Its rules and groups are numbered from (1, 1). No EUDIPLO call, and no
     revision, rule set or branch row (FR-005). Answers 400 when the structure is
     broken. `actor` is who creates it, recorded as `created` in the commit that
-    inserts the row (spec 010, research R4).
+    inserts the row (spec 010, research R4). The row stores the order of
+    `data.documents`; the content keeps catalog order (spec 010, research R6).
     """
     name, description, documents, save = _clean_draft(db, data, None)
     numbering = rules.number_draft(save, (1, 1))
@@ -205,6 +212,7 @@ def create_draft(
         draft_version=1,
         next_rule_number=numbering.next_rule_number,
         next_group_number=numbering.next_group_number,
+        document_order=form_connections.document_order_of(data.documents),
     )
     db.add(form_connection)
     # The row first, which its entry refers to; it is this transaction's alone
@@ -233,7 +241,9 @@ def save_draft(
        the lock (`activity.changes_between()`; nothing for an unchanged draft).
 
     A refusal stores nothing. No EUDIPLO call. `actor` is who saves it (spec 010,
-    research R4).
+    research R4). The commit also stores the order of `data.documents`, and the
+    activity compares the documents in the stored order, so that a move records
+    `documents_changed`; the content keeps catalog order (spec 010, research R6).
     """
     _check_state(
         form_connections.find_form_connection(db, form_connection_id),
@@ -241,14 +251,17 @@ def save_draft(
         data.replace,
     )
     name, description, documents, save = _clean_draft(db, data, form_connection_id)
+    document_order = form_connections.document_order_of(data.documents)
 
     form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
-    before = activity.draft_content(form_connection)
+    before = form_connections.stored_draft_content(form_connection)
     numbering = rules.number_draft(
         save, (form_connection.next_rule_number, form_connection.next_group_number)
     )
     form_connection.name = name
     form_connection.description = description
+    if document_order != form_connection.document_order:
+        form_connection.document_order = document_order
     form_connection.draft = _content(documents, numbering, data)
     form_connection.next_rule_number = max(
         form_connection.next_rule_number, numbering.next_rule_number
@@ -261,7 +274,7 @@ def save_draft(
     after = activity.Content(
         name=name,
         description=description,
-        documents=documents,
+        documents=form_connections.ordered_documents(documents, document_order),
         branches=numbering.branches,
     )
     activity.record(
@@ -379,7 +392,8 @@ def publish_draft(
     date that is no longer after today when the row is locked again 400
     `invalid_start_date`; the configuration is then deleted again and the draft
     keeps its stored content. None of these records anything. `actor` is who
-    publishes it (spec 010, research R4).
+    publishes it (spec 010, research R4). The publish stores the order of
+    `data.documents`; the revision keeps catalog order (spec 010, research R6).
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_state(form_connection, data.version, data.replace)
@@ -404,6 +418,7 @@ def publish_draft(
         guard=DraftGuard(version=data.version, replace=data.replace),
         actor=actor,
         start_date=data.start_date,
+        document_order=form_connections.document_order_of(data.documents),
     )
     logger.info('Draft %s published', form_connection_id)
     return form_connections.get_form_connection(db, form_connection_id)
@@ -439,7 +454,10 @@ def publish_stored_draft(
     data = DraftPublish(
         name=form_connection.name,
         description=form_connection.description,
-        documents=content.documents,
+        # In the stored order, which the publish stores again (spec 010, R6)
+        documents=form_connections.ordered_documents(
+            content.documents, form_connection.document_order
+        ),
         rules=_stored_rules(form_connection, content),
         start_date=start_date,
         version=version,

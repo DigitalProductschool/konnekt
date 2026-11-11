@@ -1,22 +1,45 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import { useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import { useLanguage } from '../../../hooks/useLanguage';
 import CatalogDroppedNote from '../CatalogDroppedNote';
 import { EDITOR_COPY } from '../constants';
 import { offeredFieldsOf } from '../utils';
+import { DOCUMENTS_STEP_IDS } from './constants';
 import DocumentDetail from './DocumentDetail';
 import DocumentsList from './DocumentsList';
 import EmptyPanel from './EmptyPanel';
 import type { DocumentsStepProps } from './types';
-import { documentsNeedingData, listedDocumentsOf, pagerOf, shownDocumentOf } from './utils';
+import {
+  documentsNeedingData,
+  listedDocumentsOf,
+  moveAnnouncementOf,
+  pagerOf,
+  shownDocumentOf,
+} from './utils';
+
+/** The ⋯ of a document's row, which takes the focus after its document moved (FR-047) */
+function focusMoveButton(documentType: string) {
+  document
+    .getElementById(DOCUMENTS_STEP_IDS.listRow(documentType))
+    ?.querySelector<HTMLElement>('[aria-haspopup="menu"]')
+    ?.focus();
+}
 
 /**
  * Step 2 (S8; Figma U20, U21; FR-031, research R8), under the step head: a master-detail. On the
  * left the added documents with "Add document" and its search card; on the right the shown
  * document's data items with the pager "Document n of m", or the empty panel while none is
  * added. What it shows (the shown document, the search) is the view the editor holds
- * (`documentsViewReducer`); the documents and their data stay the editor's, in catalog order.
+ * (`documentsViewReducer`); the documents and their data stay the editor's, in the team's order
+ * (FR-045).
+ *
+ * A move, by a row's ⋯ menu or by a drag (FR-046, FR-047), goes to the editor (`onMove`), which
+ * keeps the open document open; then the focus goes to the moved row's ⋯ and the polite region,
+ * in the page from the start so that screen readers read its changes, says "“<document>” moved
+ * to position <n> of <m>.".
  *
  * The documents "Set rules →" flagged as having no data, while they still have none, show in red
  * (F67, U25 A14): the list's "1 document needs data", their items and the shown one's header.
@@ -39,10 +62,13 @@ export default function DocumentsStep({
   dispatchView,
   onAdd,
   onRemove,
+  onMove,
   onSetField,
   onSetAllFields,
 }: DocumentsStepProps) {
   const { language } = useLanguage();
+  // The last move's announcement (FR-047); never stored, sent or logged
+  const [moveStatus, setMoveStatus] = useState('');
   if (catalogStatus === 'loading') {
     return <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />;
   }
@@ -72,6 +98,19 @@ export default function DocumentsStep({
     : documentsNeedingData(view.needsData.documentIds, documents, documentTypes);
   const select = (index: number) => dispatchView({ type: 'select', index });
 
+  function moveDocument(documentType: string, toIndex: number) {
+    const announcement = moveAnnouncementOf(listed, documentType, toIndex, language);
+    if (announcement === null) {
+      return;
+    }
+    // The rows are in their new order before the focus goes to the moved one's ⋯
+    flushSync(() => {
+      onMove(documentType, toIndex);
+      setMoveStatus(announcement);
+    });
+    focusMoveButton(documentType);
+  }
+
   return (
     <div className="relative flex flex-col gap-24">
       {dropped.length > 0 && (
@@ -90,6 +129,7 @@ export default function DocumentsStep({
           onAdd={onAdd}
           onSelect={select}
           onRemove={onRemove}
+          onMove={moveDocument}
         />
         {shown ? (
           <DocumentDetail
@@ -109,6 +149,15 @@ export default function DocumentsStep({
         ) : (
           <EmptyPanel />
         )}
+      </div>
+      <div
+        id={DOCUMENTS_STEP_IDS.moveStatus}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {moveStatus}
       </div>
     </div>
   );

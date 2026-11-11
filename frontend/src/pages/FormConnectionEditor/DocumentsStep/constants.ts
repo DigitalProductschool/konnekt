@@ -76,6 +76,14 @@ export const DOCUMENTS_COPY = defineTexts(
     // The pager's arrows (U21 7290:61258, 7290:61260), named for screen readers
     previousDocument: 'Previous document',
     nextDocument: 'Next document',
+    // Moving without dragging (S8 "Without dragging", FR-047; W13, copy.md §5): the row's ⋯
+    // button, named for screen readers, its entries, and the polite announcement after a move,
+    // by the menu or by a drag (`moveAnnouncementOf()`)
+    moveDocumentLabel: (document: string) => `Move ${document}`,
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    movedTo: (document: string, position: number, count: number) =>
+      `“${document}” moved to position ${position} of ${count}.`,
   },
   {
     pager: (position, count) => `Dokument ${position} von ${count}`,
@@ -109,6 +117,11 @@ export const DOCUMENTS_COPY = defineTexts(
     allDataItems: 'Alle Felder',
     previousDocument: 'Vorheriges Dokument',
     nextDocument: 'Nächstes Dokument',
+    moveDocumentLabel: (document) => `${document} verschieben`,
+    moveUp: 'Nach oben',
+    moveDown: 'Nach unten',
+    movedTo: (document, position, count) =>
+      `„${document}“ auf Position ${position} von ${count} verschoben.`,
   }
 );
 
@@ -185,10 +198,58 @@ export const DOCUMENTS_STEP_IDS = {
   addedGroup: 'add-document-added',
   // A list item's button that shows the document
   listItem: (documentType: string) => `document-item-${documentType}`,
+  // A list item's row (`li`), which holds that button, the trash and the ⋯ that moves it (W13)
+  listRow: (documentType: string) => `document-row-${documentType}`,
+  // The polite region that announces a move (FR-047)
+  moveStatus: 'documents-move-status',
   detail: 'document-detail',
   // "1 document needs data" over the list, which describes the flagged items (U25 #22)
   needsData: 'documents-need-data',
 };
+
+/**
+ * The custom properties that place the faded copy of a dragged row (S8 "Dragging", R6;
+ * design-notes §4.1 call 1), set by `useRowDrag` on the list's scroll area with
+ * `style.setProperty` and read by the copy's classes (`DocumentsList.tsx`): the row's box when it
+ * was pressed (`left`, `top`, in the viewport), the copy's width (`dragCopyWidthOf()`) and the
+ * pointer's way since (`x`, `y`, `dragOffsetOf()`). They carry measurements only, never a style
+ */
+export const ROW_DRAG_PROPERTIES = {
+  left: '--drag-left',
+  top: '--drag-top',
+  width: '--drag-width',
+  x: '--drag-x',
+  y: '--drag-y',
+} as const;
+
+/**
+ * The faded copy's width (T059a; design-notes §4.2, §1): its right edge stays `inset` px inside
+ * the dragged row's (the frames' R1 206 px and R2 172 px of a 230 px row: the row's width minus
+ * the pointer's x offset minus 8), so that it narrows as the pointer moves right and never
+ * crosses the card's border; moving left it keeps at most the row's width. It is never narrower
+ * than `minWidth`, its glyph inside its paddings, so that it still shows near or past the list's
+ * right edge
+ */
+export const ROW_DRAG_COPY = { inset: 8, minWidth: 40 } as const;
+
+/**
+ * What `useRowDrag` looks for in the list's scroll area: the rows, in list order (the dragged
+ * one too, hidden while it is dragged), and the parts of a row on which no drag starts (the
+ * trash, the ⋯ and its open menu)
+ */
+export const ROW_DRAG_SELECTORS = {
+  row: 'li[data-drag-row]',
+  ignore: '[data-no-drag]',
+} as const;
+
+/**
+ * The icons of the ⋯ menu's "Move up" and "Move down" (W13, no frame): KERN's arrows, 20px, as
+ * the rules step's menu entries carry KERN icons
+ */
+export const MOVE_ICONS = {
+  up: { kern: 'kern-icon--arrow-up' },
+  down: { kern: 'kern-icon--arrow-down' },
+} as const;
 
 /**
  * Figma "Icon/Glyph" per document type, in the tones the step uses (U21 7290:61204, 7290:61207,

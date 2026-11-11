@@ -24,6 +24,14 @@ to; nothing here is re-decided.
   S17. With "On a date" the dialog is 432 px high against 392 drawn. The same applies to
   "Activate this connection again?" (P16b `7173:52959`, T027). A compact variant of the
   component would be a change to C2, for the designer to ask for.
+- **The dragged copy's opacity is 0.85 in every position** (T059a; the user, 2026-11-11): R1
+  `7298:63317` draws 0.85, R2 `7298:63736` 0.75; the build keeps R1's 0.85 while the copy moves.
+  Applies to T059, T061.
+- **Tokens of the drag** (T059; frame values without a KERN name, U27 `7301:63418` the copy and
+  `7301:63416` the drop line): `--shadow-drag-copy: 0 4px 6px 0 rgb(19 21 37 / 0.16)`,
+  `--radius-drag-copy: 6px`, `--radius-drop-line: 1px` in `@theme` (`frontend/src/index.css`).
+  The copy is placed by `--drag-left`, `--drag-top`, `--drag-width`, `--drag-x` and `--drag-y`,
+  set with `style.setProperty` on the list's scroll area (§4.1 call 1).
 
 ## 2. Verification
 
@@ -1012,6 +1020,108 @@ Browser: the `playwright-chrome` MCP, 1455 × 900 window (body 1440) for the fra
 | narrow | deleted, restored | 320 | toast | scroll, inside the window | T043's narrow rules | "4 connections deleted." x 21–284, y 488–544; "4 connections restored." x 48–258; no horizontal scroll; 1 h1 | match |
 | narrow | deleted, restored | 160 | toast | scroll, inside the window | T043's narrow rules | x 16–129, y 152–312 and 184–312 (wrapped); no horizontal scroll; 1 h1 | match |
 
+#### T058, moving a document without dragging (S8 "Without dragging"; W13, no frame: spec 008's `ActionMenu` as the rules step's and the account page's rows use it, on the row of A9 `7298:61782` as built; FR-047–FR-049, US6-AS3, US6-AS5)
+
+Browser: the `playwright-chrome` MCP (Chromium), Vite 5176 against the backend on 3012 (`template_db_010_p8`), as `p10-alice`. Data made: "T058 live" (`d2dbe99a-c17e-4b43-83c6-ec020067e189`, active, Personal ID + Driving licence, now stored as Driving licence, Personal ID), "T058 draft" (`a0bbdf53-91a8-4a36-992b-9d492de19660`, stored as Driving licence, Personal ID after the walk's save), "T058 one document draft" (`5168264e-4aff-413c-90be-482e28b85f37`, Driving licence only); the create flow "T058 create flow" was never saved and its local draft was discarded. The catalog holds two document types, so no row is a middle row: "Move up" and "Move down" together are pinned by `moveTargetsOf`'s tests. Screenshots in `<SP>/T058/` (01–11 at 1440, `n320-*`, `n160-*`, `one-*`).
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| none (W13; ActionMenu pattern) | draft, two documents | 1440 | each row | ⋯ button | — (W13: ⋯ on each row) | 32×32 `kern-icon--more-vert` 20 px, ink `#0b1220`, after the trash, both boxes touching; the row stays 40 px | W13 |
+| none (W13) | draft, two documents | 1440 | ⋯ | accessible name | "Move <document>" (copy.md §5) | "Move Personal ID", "Move Driving licence" | match |
+| none (W13) | draft, two documents | 1440 | row's name | room for the name | A9 row, 230 px | 110 px: "Driving licence", "Personal ID", "Personalausweis" (also semibold), "Führerschein" not cut | match |
+| none (W13) | menu open, first row (keyboard: Tab, Enter) | 1440 | menu | entries | first row has no "Move up" (FR-047) | "Move down" only; the focus on it (focus-visible fill) | match |
+| none (W13) | menu open, last row (keyboard: ArrowDown) | 1440 | menu | entries | last row has no "Move down" | "Move up" only; the focus on it | match |
+| none (W13) | menu open | 1440 | menu | placement | ActionMenu: 220 px, 8 below the ⋯, its right edge on the ⋯'s | 220×58, under the ⋯, right-aligned, inside the list card (`end`, `down`) | match |
+| none (W13) | after "Move down" by keyboard (Enter) | 1440 | list | order | moved | Driving licence, Personal ID | match |
+| none (W13) | after "Move down" by keyboard | 1440 | focus | where | the moved row's ⋯ (S8) | "Move Personal ID", `:focus-visible`, 4 px ring | match |
+| none (W13) | after "Move down" by keyboard | 1440 | polite region `#documents-move-status` | text | "“<document>” moved to position <n> of <m>." | "“Personal ID” moved to position 2 of 2." | match |
+| none (W13) | after a move | 1440 | open document, pager | FR-048 | stays open, counts in list order | Personal ID stays open; "Document 2 of 2" | match |
+| none (W13) | after "Move up" by keyboard (Space) | 1440 | region, focus | text, focus | as above | "“Personal ID” moved to position 1 of 2."; "Move Personal ID" focused | match |
+| none (W13) | after "Move up" by mouse | 1440 | focus | ring | none after a click (CLAUDE.md) | "Move Driving licence" focused, `:focus-visible` false, outline none | match |
+| none (W13) | after "Move up" by mouse | 1440 | list, pager | FR-048 (US6-AS1's result) | Driving licence, Personal ID; Personal ID open; "Document 2 of 2" | as expected | match |
+| none (W13) | menu open, Escape | 1440 | menu, focus | closes | ActionMenu: closes, focus back on ⋯ | closed, "Move Personal ID" focused, order unchanged | match |
+| none (W13) | draft, "Save and exit" after the moves | 1440 | stored order | FR-049 | saved with the draft | `GET` answers mdl, pid | match |
+| none (W13) | the region before any move | 1440 | `#documents-move-status` | in the page | present before its text changes | `role=status`, `aria-live=polite`, `aria-atomic=true`, `sr-only`, empty | match |
+| none (W13) | edit flow of "T058 live" (`/form-connections/<id>/edit`, step "Documents") | 1440 | rows | ⋯ | the same as the create flow (FR-049) | both rows carry the ⋯; Move up by keyboard: order mdl, pid, focus on "Move Driving licence" (focus-visible), "“Driving licence” moved to position 1 of 2.", Personal ID still open, "Document 2 of 2" | match |
+| none (W13) | edit flow, Save → dialog → Save | 1440 | stored order, dialog | FR-049, FR-050 | saved with "Save" | the dialog lists "Driving licence · 3 data items", "Personal ID · 4 data items"; `GET` answers mdl, pid | match |
+| none (W13) | create flow (`/form-connections/new`), one document added | 1440 | row | ⋯ | none with one document (FR-047) | no `aria-haspopup` button; the region present and empty | match |
+| none (W13) | create flow, two documents, Move down by keyboard, then Move down / Move up by mouse | 1440 | order, focus, region | as above | as above | pid, mdl; focus on the moved ⋯; "“Driving licence” moved to position 2 of 2." / "“Personal ID” moved to position 1 of 2." | match |
+| none (W13) | create flow, German | 1440 | ⋯ names, entry, region | copy.md §5 German | "<document> verschieben", "Nach oben"/"Nach unten", "„<document>“ auf Position <n> von <m> verschoben." | "Führerschein verschieben", "Personalausweis verschieben", "Nach unten", "„Personalausweis“ auf Position 2 von 2 verschoben." | match |
+| none (W13) | one-document draft | 1440 | row | ⋯ | none | no ⋯; Tab from the item reaches "Remove Driving licence" | match |
+| none (W13) | two documents, list | 320 | page | h-scroll, h1 | none, 1 | `scrollWidth` 305 ≤ `clientWidth` 320; one `h1` | match |
+| none (W13) | two documents, list | 320 | rows | inside the card, name | nothing clipped | rows 33–272 in the card 16–289; ⋯ 232–264; names 119 px, not cut | match |
+| none (W13) | menu open, first row (keyboard) | 320 | menu | placement | on screen | `full`, 32–273, opens up above the row (the sticky footer below), "Move down" 223 px | match |
+| none (W13) | menu open, last row (keyboard / mouse) | 320 | menu | placement, focus | on screen; ring only after keyboard | 32–273; "Move up"; `:focus-visible` true by keyboard, false by mouse | match |
+| none (W13) | after Move down (keyboard) / Move up (mouse) | 320 | focus, region | ring after keyboard only | as at 1440 | moved ⋯ focused, 4 px ring by keyboard, none by mouse; the region's text as above; no h-scroll | match |
+| none (W13) | one-document draft | 320 | row | no ⋯, h-scroll | none | no ⋯; no h-scroll; one `h1`; name 151 px | match |
+| none (W13) | two documents, list | 160 | rows | layout (`narrow:`) | nothing hidden (W16) | the trash and the ⋯ wrap under the name at the row's end; rows 17–128 in the card 8–137; ⋯ 88–120; name 63 px ("Personal…", `truncate` by design; 23 px before this task) | W16 |
+| none (W13) | two documents, list | 160 | page | h-scroll, h1 | none, 1 | `scrollWidth` 160 = `clientWidth` 160; one `h1` | match |
+| none (W13) | menu open, first and last row | 160 | menu | placement | on screen | `full`, 24–121 (inside 160); "Move down" / "Move up" wraps to two lines, 79 px | match |
+| none (W13) | after Move down (keyboard) / Move up (mouse) | 160 | focus, region | as at 320 | as at 320 | moved ⋯ focused, ring by keyboard only; texts as above; no h-scroll | match |
+| none (W13) | one-document draft | 160 | row | no ⋯, layout | nothing hidden | no ⋯; the trash wraps under the name; no h-scroll; one `h1` | W16 |
+
+#### T059, dragging a document to its place (S8 "Dragging"; frames R1 `7298:63317` (list `7298:63333`, line `7301:63416`, copy `7301:63418`), R2 `7298:63736` (list `7298:63752`, line `7301:63557`, copy `7301:63559`), R3 `7298:64157` (list `7298:64173`); F22, F25, R6, R15 V2; T059a, the copy's width and opacity (design-notes §4.2, §1); FR-046, FR-048, FR-049, US6-AS1, US6-AS2)
+
+Browsers: the `playwright-chrome` MCP (Chromium) for the per-node comparison at 1440 (a 1455 px window, body 1440; fonts `document.fonts.check('400 14px "Fira Sans"')` and `('600 14px "Fira Sans"')` true) and the narrow rows (viewport 320 and 160 CSS px; snippet `.playwright-mcp/T059/narrow.js`); a scripted `playwright-core` 1.65 (`<SP>/T059/run.mjs` with `drag.mjs`) in Chromium (`/usr/bin/chromium`) and Firefox (build 1572) for the mouse paths (1440 × 900), reduced motion and touch (1024 × 600, `hasTouch`): 85 Chromium rows pass; 82 Firefox rows pass and 3 are "not drivable", rerun after T059a (CSV `<SP>/T059/drag.csv`, summary `<SP>/T059/summary.txt`). Touch in Chromium through CDP `Input.dispatchTouchEvent` (a real touch stream: the browser scrolls and sends `pointercancel`); in Firefox through Juggler's `Page.dispatchTouchEvent` (`windowUtils.synthesizeTouchEvent`, which bypasses APZ: no browser scroll and no browser `pointercancel` can be made, so C6 sends a synthetic `pointercancel` in both browsers). Vite 5176 against the backend on 3012 (`template_db_010_p8`), as `p10-alice`. Data made: "T059 documents draft" (`99f8ab29-04e1-426c-965c-599c93646896`, opens on the documents step), "T059 draft" (`9f2bba5e-b114-4b7d-923a-e93fb7f59999`), "T059 live" (`e88fb493-beca-47e2-ae89-b31824581acf`, active; its edit flow dragged in the script, never saved); all stored as Personal ID, Driving licence (never saved after a drag). The MCP profile's local draft of "T059 documents draft" was discarded through the overview's offer; the scripted contexts were fresh and closed. Screenshots in `<SP>/T059/` (`figma-R1..R3.png`, `R1..R3-1440.png`, after T059a `R1-1440-T059a.png` and `R2-1440-T059a.png`, `n320-R2-right.png`, `n160-R2-right.png`, `n320-*`, `n160-*`, `chromium-A2-R2.png`, `firefox-A2-R2.png`). The catalog has two document types, so the drags run on two rows (design-notes §4.3 "No list has three documents").
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| R1 `7298:63317` | drag starts (Driving licence open, pressed and moved 16, 10) | 1440 | dragged row | in the list | taken out of the list; only the line and the copy (U27 #9; report ui-detail 11) | `li#document-row-mdl` `display: none` while dragging | match |
+| R1 | drag starts | 1440 | drop line `7301:63416` | place | under "Personal ID", the dragged row's own place, 4 px below it | `li` at list y 44 (row 0–40, gap 4); line on its own place kept (T057's UNCERTAIN 2: R1 draws one) | match |
+| R1 | drag starts | 1440 | drop line | box | 8 high (3 + 2 + 3), full width 230 | `li` 230 × 8, `padding` 3 / 3, bar 230 × 2 | match |
+| R1 | drag starts | 1440 | drop line | colour, radius | `--kern-color-action-default` #1d56f0, 1 px | `bg-kern-action-default` rgb(29, 86, 240), `rounded-drop-line` 1px (token `--radius-drop-line`) | match |
+| R1 | drag starts | 1440 | Personal ID row | height | 32 (no trash drawn) | 40 (the trash's place kept, spec 008 `DocumentListItem`; T058's rows) | as built, T058 |
+| R1, R2 | dragging | 1440 | rows | ⋯ | not drawn | ⋯ on each row (T058) | W13 |
+| R1 | drag starts | 1440 | copy `7301:63418` | content | "Doc icon" (car, ink 24) + "Driving licence", 14/24 regular, #0b1220, ellipsis | `driving-licence-ink-24.svg` 24 × 24, "Driving licence", Fira Sans 14 px / 24 px, 400, rgb(11, 18, 32), `text-overflow: ellipsis` | match |
+| R1 | drag starts | 1440 | copy | padding, gap, alignment | 4 / 8, gap 8, items-start | 4 8 4 8, gap 8, `align-items: flex-start` | match |
+| R1 | drag starts | 1440 | copy | fill, radius, shadow | white, 6 px, drop-shadow 0 4 6 rgba(19,21,37,.16) | oklch(1 0 0) (`bg-kern-layout-background-default`), 6px (`--radius-drag-copy`), `0 4px 6px rgba(19,21,37,.16)` (`--shadow-drag-copy`) | match |
+| R1 | drag starts | 1440 | copy | opacity | 0.85 | 0.85 throughout the drag | match |
+| R1 | drag starts | 1440 | copy | height | 32 | 32 | match |
+| R1 | drag starts | 1440 | copy | width, right edge | 206; right edge 8 px inside the list (list x 222) | 206 (`--drag-width` = 230 − 16 − 8, `dragCopyWidthOf()`); right edge at list x 222 | match (T059a) |
+| R1 | drag starts | 1440 | copy | place | list x 16, y 46 (2 below the line) | list x 16, y 54 (2 below the line, whose place is 8 lower with 40 px rows): row box + pointer offset (`--drag-left/top` + `--drag-x/y` 16 / 10); screenshot `R1-1440-T059a.png` | match |
+| R1 | drag starts | 1440 | copy | drawn by | "Copy · follows the pointer (drawn by the browser)" | drawn by the page (`position: fixed`, `pointer-events: none`, z-40), no HTML drag and drop | R6 |
+| R1 | drag starts | 1440 | open document, pager | stays | Driving licence open, "Document 2 of 2" | `aria-current` on Driving licence, "Document 2 of 2" | match |
+| R2 `7298:63736` | over the first place (pressed at row y + 10, moved 48, −38) | 1440 | drop line `7301:63557` | place | above "Personal ID" (list y 0) | line `li` at list y 0, 230 × 8 | match |
+| R2 | over the first place | 1440 | Personal ID row | shifted | y 12 (`7298:63753`) | y 12 | match |
+| R2 | over the first place | 1440 | copy `7301:63559` | place | list x 48, y 6 | list x 48, y 6 (`--drag-x` 48px, `--drag-y` −38px) | match |
+| R2 | over the first place | 1440 | copy | width, right edge, opacity | 172, right edge 8–10 px inside the list; 0.75 | 174 (230 − 48 − 8, the rule T059a sets; the frame draws 2 px less), right edge at list x 222; 0.85 | width match (T059a); opacity T059a (design-notes §1) |
+| R2 | over the first place | 1440 | screenshot | comparison | `figma-R2.png` | `R2-1440-T059a.png`: line, Personal ID 12 lower, the copy over it, its right edge inside the card as drawn | match |
+| R3 `7298:64157` | dropped | 1440 | list | order | Driving licence, Personal ID | Driving licence, Personal ID | match |
+| R3 | dropped | 1440 | Driving licence row | look | selected: hued fill, semibold, trash | rgb(242, 245, 251), 600, trash shown | match |
+| R3 | dropped | 1440 | line, copy | present | none | none; the five custom properties removed from the area | match |
+| R3 | dropped | 1440 | pager | text | "Document 1 of 2" | "Document 1 of 2" | match |
+| none (S8) | dropped | 1440 | focus, polite region | after a drop | the moved row's ⋯, "“<document>” moved to position <n> of <m>." (S8; T058) | "Move Driving licence" focused; `#documents-move-status` "“Driving licence” moved to position 1 of 2." (MCP; the ring showed there because an Escape was the last keyboard input; the script's fresh mouse drop: `:focus-visible` false in Chromium and Firefox) | match |
+| none (S8) | drop outside the list (pointer at x 800) | 1440 | order, region | unchanged | FR-046 | pid, mdl unchanged, no line, no copy, region unchanged (Chromium, Firefox) | match |
+| none (S8) | Escape while dragging | 1440 | drag, order, focus | ends at once | FR-046 | rows back, no line or copy at once; order unchanged after the release; focus back on the pressed row's button (Chromium, Firefox) | match |
+| none (S8) | release on its own place | 1440 | order | unchanged | R1's line, no move | line on its own place, order and region unchanged | match |
+| none (S8) | below the last row, inside the area | 1440 | line, move | below the last row | gap n | line after the last row; Personal ID to position 2 of 2 | match |
+| none (S8) | drag the row that isn't open | 1440 | open document | FR-048 | stays open | Driving licence stays open; the click after the drag swallowed | match |
+| none (S8) | press on the ⋯ or the trash, then move 30+ px | 1440 | drag | none | T058's note | no line, no copy | match |
+| none (S8) | a plain click | 1440 | row | opens the document | unchanged behaviour | opens it, no move | match |
+| none (S8) | edit flow of "T059 live" (FR-049) | 1440 | drag | as the create flow | the same drag | line and copy while dragging; mdl, pid after the drop; region and focus as above (Chromium, Firefox) | match |
+| none (R15 V2) | rows | 1024 | `touch-action` | pan-y | R6 | `pan-y` (Chromium, Firefox) | match |
+| none (R15 V2) | touch held 250 ms | 1024 | drag | not yet | 400 ms hold | no line, no copy | match |
+| none (R15 V2) | touch held 550 ms, then moved up | 1024 | drag | press and hold, then move (US6-AS2) | drags as with the mouse | R1 state at 550 ms, R2 after the moves, Driving licence first after the release, announced, focus on its ⋯; every touchmove `defaultPrevented` (Chromium 6/6, Firefox 8/8), page `scrollY` 0, no `pointercancel` (Chromium, Firefox) | match |
+| none (R15 V2) | short swipe (8 × 15 px up, no hold) | 1024 | page, drag | a short touch scrolls (FR-046) | scrolls, no drag | never dragging, order unchanged, no touchmove prevented (Chromium 7, Firefox 8); Chromium: the page scrolled 138 px and sent `pointercancel:touch`; Firefox: no scroll, since Juggler's synthesized touch bypasses APZ | match (Chromium); Firefox's scroll not drivable, tasks.md Delegation "Needs a person" |
+| none (R15 V2) | touch moved 30 px, then held 700 ms | 1024 | drag | `pointercancel` on a scroll ends the wait (R6) | no drag | no drag after 700 ms, order unchanged; Chromium: `pointercancel:touch` seen; Firefox: the early move alone ended the wait (no browser cancel drivable; C6 covers the listener) | match (Chromium); Firefox's browser cancel not drivable, tasks.md Delegation "Needs a person" |
+| none (R15 V2) | touch, synthetic `pointercancel` after 100 ms, held 700 ms | 1024 | drag | `pointercancel` ends the wait (R6) | no drag | no drag, order unchanged (Chromium, Firefox) | match |
+| none (S8) | a second finger while a touch drags | 1024 | drag, order | a second pointer ends the drag (S8) | ends, order unchanged | no line, no copy after the second `touchStart`; order unchanged (Chromium, Firefox) | match |
+| none (S8) | a tap; a held touch released without moving | 1024 | row | tap opens; held release neither moves nor opens | unchanged behaviour | as expected (Chromium, Firefox) | match |
+| none (F22) | reduced motion (`reducedMotion: 'reduce'`), dragging | 1440 | rows, their parts, line, copy | computed `transition-duration` | 0 (nothing transitions) | largest 0 s; copy `0s` (Chromium, Firefox) | F22 |
+| none (F22) | reduced motion, right after the drop | 1440 | the same | computed `transition-duration` | 0; the drop just updates the list | largest 0 s; order mdl, pid | F22 |
+| none (F22) | no preference (reference) | 1440 | the same | computed `transition-duration` | — | largest 0.15 s (the trash's colour, spec 008's `.motion`); line and copy 0 s | match |
+| R1 | drag starts | 320 | page | h-scroll, h1 | none, 1 | `scrollWidth` 305 ≤ `clientWidth` 320, one `h1` | match |
+| R1 | drag starts | 320 | line, copy, rows | inside the card | nothing clipped or off-screen; copy 8 px inside the row (T059a) | card 16–289; line 33–272; copy 41–264 (223 × 32 = 239 − 8 − 8, name 175 px), row right 272; rows inside | match |
+| R2 | over the first place | 320 | line, copy | as at 1440 | line above the first row; copy 8 px inside the row | line at the top, row 12 lower, copy 41–264; no h-scroll; one `h1` | match |
+| R2, pointer at the list's right edge | dragging | 320 | copy | floor (T059a) | still shows, never negative | 40 px (`ROW_DRAG_COPY.minWidth`: the 24 px glyph in its 8 px paddings), 240–280 inside the card 16–289; at the viewport's edge (x 319) 289–329, the glyph mostly in view, no h-scroll (fixed) | match (T059a) |
+| R2, pointer at the list's right edge | dragging | 160 | copy | floor (T059a) | still shows, never negative | 40 px, 96–136 inside the card 8–137; at x 159: 129–169, no h-scroll | match (T059a) |
+| R3 | dropped | 320 | order, focus | moved, ⋯ focused | — | moved; focus on the moved row's ⋯, `:focus-visible` false after the mouse drop; no h-scroll | match |
+| R1 | drag starts | 160 | page | h-scroll, h1 | none, 1 | `scrollWidth` 160 = `clientWidth` 160, one `h1` | match |
+| R1 | drag starts | 160 | rows, line, copy | inside, two-line rows | nothing clipped; copy 8 px inside the row (T059a) | rows 111 × 80 (T058's two lines) in the card 8–137; line 17–128; copy 25–120 (95 × 32 = 111 − 8 − 8, name 47 px, cut with "…"), row right 128 | match |
+| R2 | over the first place | 160 | line, copy | as at 1440 | line above the first row; copy 8 px inside the row | line at the top, row 12 lower; copy 25–120; no h-scroll | match |
+| R3 | dropped | 160 | order, focus | moved, ⋯ focused | — | moved; focus on the moved row's ⋯, `:focus-visible` false; no h-scroll; one `h1` | match |
+| none | keyboard focus | 320, 160 | the row's controls | focus ring after keyboard focus, none after a click | — | the drag adds no focusable control; the keyboard path (⋯ → "Move up/down") is T058's rows at 320 and 160 | T058 |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -1335,6 +1445,51 @@ The first run (700 measures, `T044/walk-run1.csv`) had 2 failing measures, both 
 16 rows; 298 measures, 298 pass, 0 fail, 0 unsure.
 
 SC-006's times (V8.6, ten connections, one confirmation): "Delete connections" click to the toast 0.32 s (en) and 0.35 s (de); the first checkbox click to the toast 1.45 s (en, de); the click to the server's `201` 0.19 s and 0.20 s. The 30 seconds by hand and a screen reader on the count are left for a person (phase 7 "Needs a person"). No product file changed; no screenshot was needed (no failing or unsure row). Three trial runs before the walk (one stopped by a script error after making its rows, `T051 en wq9a`; `T051 en wynu` with a script error at V8.7's storage read, its 130 earlier measures passing; `T051 de ybjk`, 148 of 148 passing) made 54 more `T051 …` rows, outside the log markers.
+
+#### T061: walk V9, the documents' order (US6; FR-045–FR-052, SC-007, US6-AS1–AS5; scripted `playwright-core` 1.65: Chromium 156 (`/usr/bin/chromium`) and Firefox 159 (build 1572), 1440 × 900 viewport (V9.3's touch 1024 × 600 with `hasTouch`, as T059), browser zone Europe/Berlin; English and German through the stored language choice, one fresh browser context per browser × language × sub-walk (the main flow V9.1/V9.2/V9.5/V9.6/V9.7, the keyboard V9.4, the touch V9.3, reduced motion V9.8), so that the focus after each move was read in a fresh context and no local draft outlived its context; backend on 3012 with the fake EUDIPLO, `WORKER_ENABLED=false`, database `template_db_010_p8` (Alembic head `e7ebbd07dc57`); Vite on 5176; account `p10-alice` (browser and API); the agent a personal access token `T061 <browser> agent` (level `drafts`) created per browser through `POST /api/agent-access/tokens`, used for one `publish` approval request per language, and revoked at the end (its next call 401); connections made through the API as drafts from `P3 seed live`'s documents (all their fields) and its Standard rules (Personal ID's date of birth, Driving licence's classes), five per browser × language, named `T061 <lang> <browser initial + stamp> {main, keyboard, one document, touch, reduced}`: `main` with no document (V9.1 adds Driving licence, then Personal ID, in the UI; it was saved with "Save and exit", reopened, published through the editor's "Publish" → "Publish connection" and saved in the edit flow), `keyboard` (Driving licence, Personal ID), `one document` (Driving licence), `touch` and `reduced` (Personal ID, Driving licence); none deleted. Measured per step: the list's order (`li[data-drag-row]`), the open document (`aria-current`) and the pager against the composed "Document n of m", the drop line (8 px box, 2 px bar, rgb(29, 86, 240)) and the faded copy (text, opacity 0.85, width `max(40, min(row, row − 8 − dx))`, T059a) while dragging, the polite region `#documents-move-status` against copy.md §5 in both languages, the focus (`document.activeElement`, `:focus-visible`: none after a mouse drop, the ring after the keyboard), the ⋯'s accessible name, the menu's entries per row, the removal toast and "Undo"'s place, the stored order (API, `document_order` with `psql`), the test step's data groups (`h3.sr-only`), the approval page's summary lines and Summary card, the publish and save dialogs' document lines, the details' Summary; V9.7 `current_revision`, `current_rule_set`, the current revision's `config_hash` and `eudiplo_config_id` and the revision count with `psql`, the status dates (`state`, `published_at`, `activated_at`, `deactivated_at`, `start_date`) and `updated_at` from `GET /form-connections/{id}`, the activity (`GET …/activity`), a trigger before and one after the save (`POST /api/connect/{id}/requests`, without a cookie) with their `document_requests.revision_id`, a pull of each, and the revision's documents (catalog order); V9.3 touch through CDP `Input.dispatchTouchEvent` in Chromium and Juggler's `Page.dispatchTouchEvent` in Firefox (each `touchmove`'s `defaultPrevented` read in a window bubble-phase listener); V9.8 the largest computed `transition-duration` over the rows, their parts, the line and the copy while dragging and right after the drop; one h1 and no horizontal scroll (`scrollWidth`, element boxes) per step. V9.4's middle row: the catalog has two document types, so no list has a middle row; its "Move up" and "Move down" are covered by `moveTargetsOf`'s tests (`DocumentsStep/utils.test.ts`, T058; design-notes §4.3). V9.7's "a pull delivers the documents in the same order as before": the fake EUDIPLO runs inside the 3012 process and can't be made to share from outside, so the walk's pulls answer pending without documents; the delivery's order is pinned by T054's pytest `backend/tests/api/test_connect.py::test_the_teams_document_order_doesnt_change_the_delivery`, and the walk shows the request started after the save on the same revision as the one before it, with `current_revision` and `config_hash` unchanged. "No EUDIPLO call" is shown by the unchanged `eudiplo_config_id` and revision count; T054's `test_document_order.py::test_a_save_that_only_reorders_creates_no_revision_and_calls_no_eudiplo` counts the fake's calls. Backend log lines between `=== T061 chromium start 2026-11-11T22:29:30.525Z ===` and `=== T061 firefox end 2026-11-11T22:33:35.180Z ===` in `<scratchpad>/backend-3012.log`. CSV `<scratchpad>/T061/walk.csv`, summary `<scratchpad>/T061/summary.md`)
+
+| step | browser | language | measures | pass | fail | unsure | needs a person | notes |
+|---|---|---|---|---|---|---|---|---|
+| V9.1 added order | chromium | en | 5 | 5 | 0 | 0 | 0 |  |
+| V9.2 mouse drag | chromium | en | 17 | 17 | 0 | 0 | 0 | “Personal ID” moved to position 1 of 2. |
+| V9.5 remove and Undo | chromium | en | 8 | 8 | 0 | 0 | 0 |  |
+| V9.6 the order everywhere | chromium | en | 16 | 16 | 0 | 0 | 0 | ["Driving licence","Personal ID"] |
+| V9.7 reorder a published connection | chromium | en | 14 | 14 | 0 | 0 | 0 | [4,"documents_changed"] |
+| V9.4 keyboard | chromium | en | 13 | 13 | 0 | 0 | 0 | “Personal ID” moved to position 1 of 2. |
+| V9.3 touch | chromium | en | 13 | 13 | 0 | 0 | 0 |  |
+| V9.8 reduced motion | chromium | en | 7 | 7 | 0 | 0 | 0 |  |
+| V9.1 added order | chromium | de | 5 | 5 | 0 | 0 | 0 |  |
+| V9.2 mouse drag | chromium | de | 17 | 17 | 0 | 0 | 0 | „Personalausweis“ auf Position 1 von 2 verschoben. |
+| V9.5 remove and Undo | chromium | de | 8 | 8 | 0 | 0 | 0 |  |
+| V9.6 the order everywhere | chromium | de | 16 | 16 | 0 | 0 | 0 | ["Führerschein","Personalausweis"] |
+| V9.7 reorder a published connection | chromium | de | 14 | 14 | 0 | 0 | 0 | [4,"documents_changed"] |
+| V9.4 keyboard | chromium | de | 13 | 13 | 0 | 0 | 0 | „Personalausweis“ auf Position 1 von 2 verschoben. |
+| V9.3 touch | chromium | de | 13 | 13 | 0 | 0 | 0 |  |
+| V9.8 reduced motion | chromium | de | 7 | 7 | 0 | 0 | 0 |  |
+| teardown | chromium | - | 2 | 2 | 0 | 0 | 0 |  |
+| V9.1 added order | firefox | en | 5 | 5 | 0 | 0 | 0 |  |
+| V9.2 mouse drag | firefox | en | 17 | 17 | 0 | 0 | 0 | “Personal ID” moved to position 1 of 2. |
+| V9.5 remove and Undo | firefox | en | 8 | 8 | 0 | 0 | 0 |  |
+| V9.6 the order everywhere | firefox | en | 16 | 16 | 0 | 0 | 0 | ["Driving licence","Personal ID"] |
+| V9.7 reorder a published connection | firefox | en | 14 | 14 | 0 | 0 | 0 | [4,"documents_changed"] |
+| V9.4 keyboard | firefox | en | 13 | 13 | 0 | 0 | 0 | “Personal ID” moved to position 1 of 2. |
+| V9.3 touch | firefox | en | 13 | 11 | 0 | 0 | 2 |  |
+| V9.8 reduced motion | firefox | en | 7 | 7 | 0 | 0 | 0 |  |
+| V9.1 added order | firefox | de | 5 | 5 | 0 | 0 | 0 |  |
+| V9.2 mouse drag | firefox | de | 17 | 17 | 0 | 0 | 0 | „Personalausweis“ auf Position 1 von 2 verschoben. |
+| V9.5 remove and Undo | firefox | de | 8 | 8 | 0 | 0 | 0 |  |
+| V9.6 the order everywhere | firefox | de | 16 | 16 | 0 | 0 | 0 | ["Führerschein","Personalausweis"] |
+| V9.7 reorder a published connection | firefox | de | 14 | 14 | 0 | 0 | 0 | [4,"documents_changed"] |
+| V9.4 keyboard | firefox | de | 13 | 13 | 0 | 0 | 0 | „Personalausweis“ auf Position 1 von 2 verschoben. |
+| V9.3 touch | firefox | de | 13 | 11 | 0 | 0 | 2 |  |
+| V9.8 reduced motion | firefox | de | 7 | 7 | 0 | 0 | 0 |  |
+| teardown | firefox | - | 2 | 2 | 0 | 0 | 0 |  |
+
+34 rows; 376 measures: 372 pass, 0 fail, 0 unsure, 4 needs a person.
+
+The first run (Chromium, English, 22:29) failed one measure: V9.6, the test step's data listed Personal ID before Driving licence for a draft stored as Driving licence, Personal ID (FR-050). The editor handed the rules logic the requested documents in catalog order (`requestedRuleDocuments()`), and `personaFieldsOf()` lists the data in `context.documents`' order. Fixed in `frontend/src/pages/FormConnectionEditor/{utils.ts,index.tsx}` (T056's files): `ruleDocumentsInListOrder(documentTypes, documents)` puts them in the list's order, and the editor's rule context and its pre-check after "Remove n documents" use it. Its test is in `utils.test.ts`. The run also had a script error on the ⋯'s name: it read `aria-label`, but the button's name comes from its `sr-only` text, so the script now reads the accessible name. The rows above are the reruns after the fix (Chromium 22:31, Firefox 22:32): every step in both browsers and both languages. "Needs a person" (4 rows): in Firefox, Juggler's touch neither scrolls the page nor makes the browser send `pointercancel`, so "a short swipe scrolls" and the browser's cancel are left for a real touch screen, as in T059's table. Chromium covers both with CDP's real touch stream.
+
+The rows that remain are the reruns' 20 connections (`T061 {en,de} {c4nu5, csrj8, f56xk, fs3jb} …`) and the first run's five (`T061 en cnobm …`, its `main` published). Three exploration drafts (`T061 explore` ×2, `T061 explore 2`), made while the script was being written, were deleted with `DELETE /form-connections/{id}/draft`. The exploration's token `T061 explore agent` and the two walk tokens were revoked: `agent_authorizations` holds no `T061` row.
 
 ### 2.3 The measured sweeps
 
@@ -1895,6 +2050,132 @@ reversed.
   accepted) and the banner's dates checked against the records' `changedAt`; the walk left V8.6's
   deletions standing and V8.5's row deactivated. The warning lines were compared with "won’t", as
   copy.md §4 now reads. V8.5's "Try again" was recorded as built (§4.3, for T084). Kept.
+- **T053 and T054, the stored order** (their UNCERTAIN 1–4; the coordinator, phase 8): the
+  migration `e7ebbd07dc57` adds `form_connections.document_order` (`JSONB`, not null, server
+  default `'[]'::jsonb`, no backfill); applied to `template_db` and `template_db_010_p8`, its
+  downgrade run once on the copy. (1) Under the row lock, `update_form_connection()` writes the
+  order only when the stored documents still equal the sent ones (compared without their order),
+  so a stale order never overwrites a newer save's; (2) `create_revision(…, document_order=)`
+  writes the order only when its revision becomes current; (3) `ordered_documents()` puts a
+  document whose type the catalog no longer has last, in input order, unless the stored order
+  names it, and skips a key listed twice or one the documents don't hold; (4) the order is written
+  only when it differs, so an unchanged save leaves `updated_at` as before, and a reorder-only save
+  moves it, as a rename does. Stored order (FR-050): `_view()`, `draft_view()` and through them
+  the approvals' preview, the activity's content (`_current_content()`, `stored_draft_content()`:
+  a move records `documents_changed`) and `publish_stored_draft()`'s body. Catalog order (FR-051):
+  `clean_documents()` (the draft's content, every revision), `dcql.build_config()` and the
+  `config_hash`, `resync_config()`, `document_requests` and the delivery. A published connection's
+  reorder-only `PUT` answers `200` with the new order, creates no revision, calls no EUDIPLO and
+  writes one `documents_changed` entry. **Plan change**: T054's files gained
+  `backend/tests/api/test_form_connections.py` (`test_documents_are_stored_in_catalog_order`
+  became `test_documents_are_answered_in_the_order_sent`) and `backend/tests/api/test_activity.py`
+  (`test_a_put_without_a_change_records_nothing` reverses each document's fields instead of the
+  documents, since a reversed list is now a change): both pinned the catalog order FR-045 changes.
+  For phase 9: whatever creates the example stores `document_order` too (`document_order_of()`).
+  Kept.
+- **T055, the moves in `edits.ts`** (T055's UNCERTAIN 1–7; the coordinator, phase 8):
+  `appendDocument()` and `restoreDocument()` return a plain array (they never refuse); only
+  `moveDocument()` returns a result (`DocumentsResult<D>`, the other refusals' shape); all three
+  are generic over `{ document_type }`, so the editor's documents and the MCP's content both fit;
+  `appendDocument()` of a document already listed replaces it in place (the editor keeps its own
+  "already added" guard); `restoreDocument()` of a listed document returns an unchanged copy, its
+  index truncated and clamped (NaN to the end); the refusals name the document by its type key,
+  since only agents see them; the checks run: not in the list, outside the list (a non-integer
+  too), the same place. The new messages have no server twin, and `validation.test.ts` asks a twin
+  only for the server's `unknownVariant`. German (for T097's review): "Die Anbindung fordert
+  „<document>“ nicht an.", "Wählen Sie eine Position von 1 bis <n>.", "„<document>“ ist bereits auf
+  Position <n>.". Kept.
+- **T057, the drag's machine** (T057's UNCERTAIN 1–6; the coordinator, phase 8): `rowDragReducer`
+  in `DocumentsStep/utils.ts` is a reducer of its own beside the step's view reducer (data-model
+  §10 names the view reducer for "a drag in progress"; the documentation task words it, T102); its
+  constants `ROW_DRAG_THRESHOLD_PX` (4) and `ROW_DRAG_HOLD_MS` (400) sit in `utils.ts` (T059 may
+  move them to `constants.ts`); `dropLineOf()` still answers a line above the dragged row's own
+  place while the target is its place (T059 hides it if R1–R3 draw none there); "inside the list"
+  is the list box the hook measures at `down`, edges included; a touch move at or after the 400 ms
+  while still pressed arms the drag (a late timer); the target passes a neighbour once the pointer
+  crosses its middle. Kept.
+- **T056, the editor's order** (T056's UNCERTAIN 1–5; the coordinator, phase 8):
+  `EditorState.removed` became `{ document, index }` (so `INITIAL_EDITOR_STATE` keeps `null`);
+  "Undo" puts the document back at its array index in the editor and at its list index in the
+  view (`pendingRemoval.index`), which differ only when a document the catalog dropped sits before
+  it and something moved in between (left); the editor's `moveDocument` takes an array index, and
+  `handleMoveDocument` translates the list's row index (`documentIndexOfListIndex()`: a dropped
+  document keeps its place) and keeps the open document open (`selectedIndexAfterMove()`); a move
+  keeps the removal's toast and "Undo"; a refused move returns the same state. No consumer sorted
+  documents (the grep's `sort(` hits order connections, an option set's values or findings), so
+  none changed. The changed expectations (FR-045): `indexAfterAdding`'s cases expect the end,
+  `reducer.test.ts`'s undo expects the old index, and the documents' toast object pins `kind:
+  'danger'` (T038). **Plan change** (the coordinator's carried note before wave 2): T056's files
+  gained `DocumentsStep/{utils.ts,utils.test.ts,reducer.ts,reducer.test.ts,types.ts}`, since the
+  open document's index after an add and after "Undo" was computed there in catalog order, and
+  `DocumentsStepProps` gained the required `onMove(documentType, toIndex)` that T058 and T059 wire.
+  Kept.
+- **T060, `move_document`** (T060's UNCERTAIN 1–4; the coordinator, phase 8): `position` is a plain
+  number in the tool's schema, so 0, 3 and 1.5 reach `moveDocument()` and answer the editor's
+  "Choose a position from 1 to <n>." (`validation`) rather than the SDK's generic message; the fake
+  backend has no route that saves without `documents`, so nothing was added for that case;
+  `documents-and-catalog/SKILL.md` gained "The documents' order" and says fields are chosen one by
+  one, without the data items' `group`, which doesn't exist yet (T075 adds it there); the draft
+  tools' text block numbers the documents (`1. <label> (<key>): …`), `get_connection`'s text
+  unchanged. Refusals: `published_read_only`, `not_found` (“<key>” not requested), `validation`
+  (outside the list, a non-integer, the place it has), `insufficient_access` for a `read` token
+  (`MOVE_REFUSAL_CODES` in `drafts.ts`). **Plan change**: `mcp/src/draftEdit.ts`'s `ApplyRefusal.code`
+  gained `not_found` (the line allows the file "only if the loop needs it"). Kept.
+- **T058, "Move up" and "Move down"** (T058's UNCERTAIN 1–6; the coordinator, phase 8): the ⋯
+  shows on every row (not on hover like the trash), after the trash at the row's end, the two
+  32 px boxes touching so that "Personalausweis" in semibold keeps its 110 px at 1440; the entries
+  carry KERN's `kern-icon--arrow-up` / `--arrow-down`, as the rules step's entries carry icons; the
+  announcement is local state in `DocumentsStep/index.tsx` (the view reducer unchanged), in a
+  `role="status"` region that is always in the loaded step; below 320 CSS px the trash and the ⋯
+  wrap under the name (the name was 0 px wide at 160 px without it, 63 px now); the focus finds
+  the moved row's ⋯ by `#document-row-<key> [aria-haspopup="menu"]`, since `ActionMenu` takes no
+  id; the catalog has two document types, so no row in the browser offers both entries (§4.3, for
+  T084). Kept.
+- **T059a, the dragged copy's width and opacity** (T059's UNCERTAIN 1 and 2; the user,
+  2026-11-11, phase 8): R1 and R2 draw the copy cut 8–10 px inside the list's right edge (206 px,
+  then 172 px as the pointer moves right), at opacity 0.85 and 0.75. The user's answer: the copy's
+  right edge stays 8 px inside the list, so it narrows as the pointer moves right and never
+  crosses the card's border; its opacity is 0.85 throughout (R1's; R2's 0.75 is a decided
+  deviation, §1). T059 changes the width and reruns its rows.
+- **T059, the drag** (T059's UNCERTAIN 3–8; the coordinator, phase 8; 1 and 2 are T059a's):
+  "inside the list" is the list's scroll area (the div under the divider, 6 px beyond the rows;
+  from `lg` it fills the card to its bottom, below `lg` it ends 6 px under the last row); besides
+  `--drag-x` / `--drag-y` (§4.1 call 1) the copy reads `--drag-left`, `--drag-top` and
+  `--drag-width` (the row's measured box), since it is `position: fixed` so that the list's
+  `overflow-y-auto` neither clips nor scrolls it; the drop targets are the rows measured at the
+  press, the dragged row's own box included (T057's machine unchanged; R1 draws the line on the
+  dragged row's own place, so it stays); a drag that moves nothing (Escape, a drop outside, its own
+  place) gives the focus back to the pressed row's select button if hiding the row lost it;
+  Escape during a press or drag is swallowed; while pressed the rows are `select-none` and
+  `selectstart`, `dragstart` and `contextmenu` are prevented. After T059a the copy's width is
+  `max(40, min(row, row − 8 − dx))` (`dragCopyWidthOf()`, its floor the 24 px glyph in its 8 px
+  paddings); R2's rule gives 174 px where the frame draws 172 (recorded as a match under T059a).
+  Firefox's touch is driven through Juggler's `Page.dispatchTouchEvent`, which neither scrolls nor
+  makes the browser send `pointercancel`: those two rows are covered in Chromium and left for the
+  phase's "Needs a person" (a real touch screen). **Plan change**: T059's files gained
+  `frontend/src/hooks/useRowDrag.test.ts` (the hook's pure width helper, beside it, as the brief
+  allowed). Kept.
+- **T061, the walk V9** (T061's UNCERTAIN 1–4 and its fix; the coordinator, phase 8): the walk's
+  trial run found the test step's data in catalog order for a draft stored as Driving licence,
+  Personal ID (V9.6): the editor handed the rules logic `requestedRuleDocuments()` in catalog
+  order and `personaFieldsOf()` lists the data in `context.documents`' order. T061's fix
+  (`ruleDocumentsInListOrder()` in `FormConnectionEditor/utils.ts`, with its test) gives the
+  editor's whole rule context the list's order, so the rules step's document picker and the order
+  in which the checks see the documents follow it too (FR-050, "wherever a connection's documents
+  are listed"); the data items stay in catalog order, and the sample personas' generated values
+  may differ (sampling runs in field order; nothing stored). The coordinator then corrected two
+  comments that still said "catalog order" (`TestStep/PersonaData.tsx`,
+  `rules/src/personas/fields.ts`'s `personaFieldsOf`). V9.7's pull: the fake EUDIPLO runs inside
+  the 3012 process and can't be made to share, so both pulls answer pending; the walk compared the
+  triggered requests' `revision_id`, `current_revision`, `current_rule_set`, `config_hash`,
+  `eudiplo_config_id` and the revisions' count (unchanged) and cites
+  `test_connect.py::test_the_teams_document_order_doesnt_change_the_delivery` and
+  `test_document_order.py::test_a_save_that_only_reorders_creates_no_revision_and_calls_no_eudiplo`
+  for the delivery and the EUDIPLO calls; V9.4's middle row is cited to `moveTargetsOf`'s tests
+  (§4.3); the ⋯ button's name was measured as its accessible name (the `sr-only` text). Firefox's
+  real touch scroll and browser `pointercancel` (V9.3) are the phase's "Needs a person" rows, as
+  in T059's table. Kept.
+
 ### 4.3 Open points
 
 - **A publish's configuration after a delete, a restore and a second publish** (T041's UNCERTAIN
@@ -1960,6 +2241,13 @@ reversed.
   focused), a small change in `BulkDeleteDialog.tsx` for T098; or refresh the dialog's lines and
   warnings from the reloaded list and let "Delete connections" send the new states. T084 decides,
   asking the user if the documents don't settle it.
+- **No list has three documents** (T058's UNCERTAIN 6; for T084 before T092): the catalog has two
+  document types (`pid`, `mdl`), so a documents list holds at most two rows and no row is a middle
+  one; T058 covered the middle row's "Move up" and "Move down" by `moveTargetsOf`'s tests only, and
+  T059's and T061's drags run on two rows. T092's line asks for "the list with three documents"
+  and the ⋯ menu "on a middle" row: T084 decides whether T092 reaches a third document through a
+  `page.route()` catalog with a third type (the editor's view only; nothing saved), or measures
+  the two-row list and cites the tests for the middle row.
 
 ## 5. History
 
@@ -2209,5 +2497,63 @@ reversed.
   by hand (the walk measured the click to the toast), and a screen reader (Orca or NVDA) once for
   the announced count "<n> selected" (the walk read it in the `role="status"` region, which stays
   in the page empty while nothing is selected, §4.2 T048 (5)).
+- 2026-11-11: phase 8, US6 (T053–T061), each wave's gates green on the combined tree. The
+  environment: a scratch copy of phase 7's database, `template_db_010_p8` (`pg_dump` and
+  `pg_restore` inside the PostgreSQL container, since the host's `pg_dump` 17 refuses the server's
+  18); phase 7's backend on 3011 and its Vite on 5175 kept running (another chat's processes,
+  left alone), so this phase's backend ran on port 3012 with the fake EUDIPLO (the launcher copied
+  into this chat's scratchpad), `WORKER_ENABLED=false` and the default restore time, restarted
+  after wave 1 so that waves 2–5 ran T054's order; Vite on 5176. Migration `e7ebbd07dc57` (the
+  documents' order, T053) applied to `template_db` and `template_db_010_p8`, its downgrade run
+  once on the copy. Test counts after the phase: pytest 2425 passed (2402 after phase 7, +23: the
+  stored order 22, the delivery's order 1), run by T054 after its last backend edit (started
+  20:43:10, the last edit 20:42:00) and not rerun by the coordinator (the user's standing rule; no
+  backend file changed after it); Ruff, mypy over 93 files and the fixtures' `--check` rerun green
+  after wave 1 and at the checkpoint; `rules/` 2656 (+14: the moves); `frontend/` 34 files, 1508
+  tests (+65: the editor's order and moves, the view's indexes, the drag's machine 30, the move
+  menu's helpers, the copy's width, the rule context's order); `mcp/` 15 files, 464 tests (+10:
+  `move_document` and `set_document`'s order). Waves ran as planned, with no change of level or
+  batch. **Plan changes** (§4.2): T054's files gained `backend/tests/api/test_form_connections.py`
+  and `backend/tests/api/test_activity.py` (they pinned the catalog order FR-045 changes); T056's
+  gained `DocumentsStep/{utils.ts,utils.test.ts,reducer.ts,reducer.test.ts,types.ts}` (the
+  coordinator's carried note before wave 2: the open document's index after an add and after
+  "Undo" was computed there in catalog order); T060 used `mcp/src/draftEdit.ts` (allowed "only
+  if the loop needs it"); T059's files gained `frontend/src/hooks/useRowDrag.test.ts`; the decide
+  task T059a [lead] was added before T061 for T059's UNCERTAIN 1 and 2 (the dragged copy's width
+  and opacity, which R1 and R2 draw differently), answered by the user, and T059 was resumed to
+  apply it; T061 fixed the test step's data order in T056's files; the coordinator corrected two
+  comments outside the tasks' files that still said "catalog order" (T061's note). One open point
+  for T084 (§4.3: "No list has three documents", the catalog's two document types). The tasks
+  left connections named `T058 …` (3), `T059 …` (3) and `T061 …` (25; three exploration drafts
+  deleted) in `template_db_010_p8`; every personal access token they made is revoked (their next
+  call 401) and their approval requests read `cancelled`; screenshots in `<scratchpad>/T058/`,
+  `<scratchpad>/T059/` and the repository's git-ignored `.playwright-mcp/T058/` and
+  `.playwright-mcp/T059/`; no local draft is left in any browser profile. The documentation
+  checklist's entries are for T102: `docs/ARCHITECTURE.md` on the stored order (the
+  `document_order` column, a reorder-only save that creates no revision and calls no EUDIPLO, the
+  revisions, the DCQL query and the delivery in catalog order), on `move_document`, and on the
+  drag (`useRowDrag`, `rowDragReducer`); CLAUDE.md's "a measured height" widened to "a measured
+  value (a height, a drag's offset)" (§4.1 call 1); data-model §10's "a drag in progress" in the
+  view reducer, which is a reducer of its own (§4.2 T057).
+- 2026-11-11: US6's checkpoint (T062, the coordinator). The gates are green on both sides: the
+  root gates rerun by the coordinator at the checkpoint, after the two comment corrections (lint;
+  `npm test` with the counts above, `rules/`' load-sensitive budget in `performance.test.ts`
+  failing once at 1897 ms against 1500 while the machine was loaded and passing on `npm test -w
+  rules` alone; build); the backend's Ruff, mypy and the fixtures' `--check` rerun at the
+  checkpoint, pytest as above. T061's walk V9 (§2.2): 376 measures, 372 pass, 0 fail, 0 unsure, 4
+  "Needs a person" (Firefox's real touch scroll and the browser's `pointercancel`, which Juggler's
+  synthesized touch can't produce; Chromium's CDP touch covers both), over V9.1–V9.8 × English and
+  German × Chromium and Firefox; its trial run's one failure (V9.6, the test step's data) was fixed
+  (§4.2 T061). The tables of T058 (33 rows) and T059 (55 rows) in §2.1 have no open row. The
+  backend's log of the phase (1789 lines; T061's walk between its markers) holds uv's lines (uv
+  recreating `backend/.venv`, linked to another machine's interpreter, as in phase 7's log),
+  uvicorn's startup lines and its access lines only (methods, paths with ids, statuses; no query
+  string); no name, person, date, document or order. The phase's diff adds no log call in
+  `backend/app`, no `console.*`, no inline style (the drag's offsets and the copy's box are CSS
+  custom properties set with `style.setProperty`, §4.1 call 1), no `any`, no `dark:` and no
+  `focus:`. **Left for a person** (tasks.md, phase 8 "Needs a person"), so T062 stays open: a real
+  touch screen once for the press-and-hold and the scroll (the walk drove CDP's touch in Chromium
+  and Juggler's in Firefox), and a screen reader (Orca or NVDA) once for the move's announcement
+  "“<document>” moved to position <n> of <m>." (the walk read it in the `role="status"` region).
 
 ## 6. Closing report

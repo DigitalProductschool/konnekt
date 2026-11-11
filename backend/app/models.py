@@ -175,6 +175,13 @@ class FormConnection(Base):
     # When the connection was last deactivated. Kept after a reactivation; read
     # only while the connection is deactivated
     deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Spec 010, data-model.md section 4 (research R6). The document type keys in
+    # the team's order, of a draft and a published connection alike; every answer
+    # lists the documents in it. Empty means catalog order (FR-052). Revisions,
+    # the DCQL query and serviceBW's delivery stay in catalog order (FR-051)
+    document_order: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]
 

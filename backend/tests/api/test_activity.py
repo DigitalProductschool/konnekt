@@ -959,10 +959,11 @@ def test_a_put_without_a_change_records_nothing(
             )
         ],
     )
-    # The same selection in another order
+    # The same selection, its fields in another order. The documents keep theirs:
+    # moving a document is a change (spec 010, FR-045, test_document_order.py)
     reordered = [
         {**document, 'fields': list(reversed(document['fields']))}
-        for document in reversed(DOCUMENTS)
+        for document in DOCUMENTS
     ]
 
     for body in (

@@ -8,9 +8,11 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 import { newBranch } from './branches';
+import { EDIT_MESSAGES } from './constants';
 import {
   addRule,
   addVariant,
+  appendDocument,
   changeGroup,
   changeRule,
   copyRule,
@@ -19,9 +21,11 @@ import {
   duplicateRule,
   editVariant,
   groupItems,
+  moveDocument,
   removeRules,
   resetItem,
   resetOperator,
+  restoreDocument,
   restoreItem,
   rulesCheckingRemoval,
   setGroupMessage,
@@ -840,5 +844,138 @@ describe('a sequence of edits', () => {
     expect((item(state, AMBULANCE, 'group-1') as GroupItem).operator).toBe('and');
     expect(ids(state, TAXI)).toEqual(['rule-6']);
     expect(state.counters).toEqual({ rule: 7, group: 3 });
+  });
+});
+
+describe('the documents’ order (spec 010, R6; FR-045)', () => {
+  const PID = deepFreeze({ document_type: 'pid', fields: ['birthdate'] });
+  const MDL = deepFreeze({ document_type: 'mdl', fields: ['driving_privileges'] });
+  const EHIC = deepFreeze({ document_type: 'ehic', fields: [] });
+  const TWO = deepFreeze([PID, MDL]);
+  const THREE = deepFreeze([PID, MDL, EHIC]);
+  const keys = (documents: { document_type: string }[]) =>
+    documents.map((document) => document.document_type);
+  const moved = (result: ReturnType<typeof moveDocument<(typeof THREE)[number]>>) => {
+    expect(result.ok).toBe(true);
+    return result.ok ? keys(result.documents) : [];
+  };
+  const refused = (result: ReturnType<typeof moveDocument<(typeof THREE)[number]>>) => {
+    expect(result.ok).toBe(false);
+    return result.ok ? null : result.refusal;
+  };
+
+  describe('moveDocument', () => {
+    it('swaps two documents either way', () => {
+      expect(moved(moveDocument(TWO, 'pid', 1))).toEqual(['mdl', 'pid']);
+      expect(moved(moveDocument(TWO, 'mdl', 0))).toEqual(['mdl', 'pid']);
+    });
+
+    it('moves one of three up, down and across the list, the others keeping their order', () => {
+      expect(moved(moveDocument(THREE, 'pid', 2))).toEqual(['mdl', 'ehic', 'pid']);
+      expect(moved(moveDocument(THREE, 'pid', 1))).toEqual(['mdl', 'pid', 'ehic']);
+      expect(moved(moveDocument(THREE, 'ehic', 0))).toEqual(['ehic', 'pid', 'mdl']);
+      expect(moved(moveDocument(THREE, 'ehic', 1))).toEqual(['pid', 'ehic', 'mdl']);
+      expect(moved(moveDocument(THREE, 'mdl', 0))).toEqual(['mdl', 'pid', 'ehic']);
+      expect(moved(moveDocument(THREE, 'mdl', 2))).toEqual(['pid', 'ehic', 'mdl']);
+    });
+
+    it('keeps each document as it is, fields included', () => {
+      const result = moveDocument(THREE, 'pid', 2);
+      expect(result.ok && result.documents).toEqual([MDL, EHIC, PID]);
+      expect(result.ok && result.documents[2]).toBe(PID);
+    });
+
+    it('refuses a document the list doesn’t hold', () => {
+      expect(refused(moveDocument(THREE, 'photo_id', 0))).toEqual({
+        code: 'documentNotRequested',
+        message: 'The connection doesn’t request “photo_id”.',
+        branchIndex: null,
+        itemId: null,
+      });
+    });
+
+    it('refuses an index outside the list, counting positions from 1', () => {
+      for (const index of [-1, 3, 1.5, Number.NaN]) {
+        expect(refused(moveDocument(THREE, 'pid', index))).toMatchObject({
+          code: 'positionOutside',
+          message: 'Choose a position from 1 to 3.',
+        });
+      }
+      expect(refused(moveDocument(TWO, 'mdl', 2))?.message).toBe('Choose a position from 1 to 2.');
+    });
+
+    it('refuses the place the document already has', () => {
+      expect(refused(moveDocument(TWO, 'pid', 0))).toMatchObject({
+        code: 'alreadyInPosition',
+        message: '“pid” is already in position 1.',
+      });
+      expect(refused(moveDocument(THREE, 'ehic', 2))?.message).toBe(
+        '“ehic” is already in position 3.'
+      );
+      expect(refused(moveDocument([PID], 'pid', 0))?.code).toBe('alreadyInPosition');
+    });
+
+    it('has its refusals in German too', () => {
+      const german = EDIT_MESSAGES.de;
+      expect(german.documentNotRequested('photo_id')).toBe(
+        'Die Anbindung fordert „photo_id“ nicht an.'
+      );
+      expect(german.positionOutside(3)).toBe('Wählen Sie eine Position von 1 bis 3.');
+      expect(german.alreadyInPosition('pid', 1)).toBe('„pid“ ist bereits auf Position 1.');
+    });
+  });
+
+  describe('appendDocument', () => {
+    it('puts a new document at the end of two and of three', () => {
+      expect(keys(appendDocument([PID], MDL))).toEqual(['pid', 'mdl']);
+      expect(keys(appendDocument([EHIC, PID], MDL))).toEqual(['ehic', 'pid', 'mdl']);
+      expect(keys(appendDocument([], PID))).toEqual(['pid']);
+    });
+
+    it('replaces a document already there in its place', () => {
+      const changed = { document_type: 'pid', fields: ['birthdate', 'family_name'] };
+      expect(appendDocument(TWO, changed)).toEqual([changed, MDL]);
+      const middle = { document_type: 'mdl', fields: [] };
+      expect(appendDocument(THREE, middle)).toEqual([PID, middle, EHIC]);
+    });
+  });
+
+  describe('restoreDocument', () => {
+    it('puts a removed document back at the index it had', () => {
+      expect(keys(restoreDocument([MDL], PID, 0))).toEqual(['pid', 'mdl']);
+      expect(keys(restoreDocument([PID], MDL, 1))).toEqual(['pid', 'mdl']);
+      expect(keys(restoreDocument([PID, EHIC], MDL, 1))).toEqual(['pid', 'mdl', 'ehic']);
+      expect(keys(restoreDocument([MDL, EHIC], PID, 0))).toEqual(['pid', 'mdl', 'ehic']);
+      expect(keys(restoreDocument([PID, MDL], EHIC, 2))).toEqual(['pid', 'mdl', 'ehic']);
+    });
+
+    it('clamps the index to the list', () => {
+      expect(keys(restoreDocument([PID], EHIC, 2))).toEqual(['pid', 'ehic']);
+      expect(keys(restoreDocument([PID, MDL], EHIC, 7))).toEqual(['pid', 'mdl', 'ehic']);
+      expect(keys(restoreDocument([PID, MDL], EHIC, -1))).toEqual(['ehic', 'pid', 'mdl']);
+      expect(keys(restoreDocument([], EHIC, 1))).toEqual(['ehic']);
+    });
+
+    it('answers a list that holds the document already as it is', () => {
+      expect(restoreDocument(THREE, { document_type: 'mdl', fields: [] }, 0)).toEqual(THREE);
+    });
+
+    it('undoes a removal: remove, then restore at the old index', () => {
+      const index = THREE.indexOf(MDL);
+      const without = THREE.filter((document) => document !== MDL);
+      expect(restoreDocument(without, MDL, index)).toEqual(THREE);
+    });
+  });
+
+  it('never changes its inputs', () => {
+    // Frozen inputs throw on a change; the lists are compared too
+    const documents = deepFreeze([PID, MDL, EHIC]);
+    moveDocument(documents, 'pid', 2);
+    moveDocument(documents, 'pid', 9);
+    appendDocument(documents, deepFreeze({ document_type: 'photo_id', fields: [] }));
+    appendDocument(documents, deepFreeze({ document_type: 'mdl', fields: [] }));
+    restoreDocument(deepFreeze([PID]), MDL, 0);
+    expect(documents).toEqual([PID, MDL, EHIC]);
+    expect(MDL).toEqual({ document_type: 'mdl', fields: ['driving_privileges'] });
   });
 });

@@ -5,7 +5,6 @@ import { INITIAL_DOCUMENTS_VIEW_STATE } from './constants';
 import { documentsViewReducer } from './reducer';
 import type { DocumentsViewAction, DocumentsViewState } from './types';
 
-const CATALOG_ORDER = ['pid', 'mdl', 'ehic'];
 const RULES: RemovedDataRule[] = [
   { key: 'main-rule-2', ruleName: 'Rule 02', branchName: 'Standard' },
   { key: 'main-rule-3', ruleName: 'Rule 03', branchName: 'Standard' },
@@ -46,7 +45,7 @@ describe('select (the list and the pager)', () => {
   });
 
   it('changes nothing but the selection', () => {
-    const busy = state({ query: 'ce', pendingRemoval: { documentId: 'mdl' } });
+    const busy = state({ query: 'ce', pendingRemoval: { documentId: 'mdl', index: 1 } });
     expect(documentsViewReducer(busy, { type: 'select', index: 1 })).toEqual({
       ...busy,
       selectedIndex: 1,
@@ -93,12 +92,12 @@ describe('the removal question (F72)', () => {
   });
 
   it('"Keep document" leaves an earlier removal’s Undo in place', () => {
-    const earlier = state({ pendingRemoval: { documentId: 'ehic' } });
+    const earlier = state({ pendingRemoval: { documentId: 'ehic', index: 2 } });
     const kept = run(
       [{ type: 'askRemoval', documentId: 'mdl', rules: [] }, { type: 'keepDocument' }],
       earlier
     );
-    expect(kept.pendingRemoval).toEqual({ documentId: 'ehic' });
+    expect(kept.pendingRemoval).toEqual({ documentId: 'ehic', index: 2 });
   });
 
   it('"Keep document" without a question keeps the state', () => {
@@ -117,7 +116,7 @@ describe('the removal question (F72)', () => {
       INITIAL_DOCUMENTS_VIEW_STATE
     );
     expect(removed.confirmRemoval).toBeNull();
-    expect(removed.pendingRemoval).toEqual({ documentId: 'mdl' });
+    expect(removed.pendingRemoval).toEqual({ documentId: 'mdl', index: 1 });
   });
 
   it('"Remove document" without a question keeps the state', () => {
@@ -173,7 +172,7 @@ describe('a confirmed removal (the shared bookkeeping)', () => {
       { type: 'askRemoval', documentId: 'ehic', rules: [] },
       { type: 'confirmRemovalDone', listIds: ['mdl', 'ehic'] },
     ]);
-    expect(twice.pendingRemoval).toEqual({ documentId: 'ehic' });
+    expect(twice.pendingRemoval).toEqual({ documentId: 'ehic', index: 1 });
   });
 
   it('takes the document’s needs-data flag away, and keeps the others', () => {
@@ -190,16 +189,35 @@ describe('a confirmed removal (the shared bookkeeping)', () => {
 });
 
 describe('undoRemoval (the toast’s Undo)', () => {
-  it('shows the document again where the catalog puts it, and ends the removal', () => {
+  it('shows the document again at the index it had, and ends the removal', () => {
     // Driving licence removed from Personal ID, Driving licence, EHIC; Undo puts it back second
     const undone = run([
       { type: 'select', index: 1 },
       { type: 'askRemoval', documentId: 'mdl', rules: [] },
       { type: 'confirmRemovalDone', listIds: ['pid', 'mdl', 'ehic'] },
-      { type: 'undoRemoval', listIds: ['pid', 'ehic'], catalogOrder: CATALOG_ORDER },
+      { type: 'undoRemoval', listIds: ['pid', 'ehic'] },
     ]);
     expect(undone.selectedIndex).toBe(1);
     expect(undone.pendingRemoval).toBeNull();
+  });
+
+  it('shows it at its old index, not at its catalog place (FR-045)', () => {
+    // The team's order EHIC, Personal ID, Driving licence: Personal ID comes back second, where
+    // the catalog (Personal ID first) would have put it first
+    const undone = run([
+      { type: 'askRemoval', documentId: 'pid', rules: [] },
+      { type: 'confirmRemovalDone', listIds: ['ehic', 'pid', 'mdl'] },
+      { type: 'undoRemoval', listIds: ['ehic', 'mdl'] },
+    ]);
+    expect(undone.selectedIndex).toBe(1);
+  });
+
+  it('shows it at the end when the list has become shorter', () => {
+    const undone = documentsViewReducer(
+      state({ pendingRemoval: { documentId: 'ehic', index: 2 } }),
+      { type: 'undoRemoval', listIds: ['pid'] }
+    );
+    expect(undone.selectedIndex).toBe(1);
   });
 
   it('shows a document that went while another one showed', () => {
@@ -207,17 +225,19 @@ describe('undoRemoval (the toast’s Undo)', () => {
       { type: 'select', index: 1 },
       { type: 'askRemoval', documentId: 'pid', rules: [] },
       { type: 'confirmRemovalDone', listIds: ['pid', 'mdl'] },
-      { type: 'undoRemoval', listIds: ['mdl'], catalogOrder: CATALOG_ORDER },
+      { type: 'undoRemoval', listIds: ['mdl'] },
     ]);
     expect(undone.selectedIndex).toBe(0);
   });
 
   it('shows the document where it is when it was added again meanwhile', () => {
-    const undone = documentsViewReducer(state({ pendingRemoval: { documentId: 'ehic' } }), {
-      type: 'undoRemoval',
-      listIds: ['pid', 'mdl', 'ehic'],
-      catalogOrder: CATALOG_ORDER,
-    });
+    const undone = documentsViewReducer(
+      state({ pendingRemoval: { documentId: 'ehic', index: 2 } }),
+      {
+        type: 'undoRemoval',
+        listIds: ['pid', 'mdl', 'ehic'],
+      }
+    );
     expect(undone).toEqual(state({ selectedIndex: 2 }));
   });
 
@@ -227,14 +247,13 @@ describe('undoRemoval (the toast’s Undo)', () => {
       documentsViewReducer(shown, {
         type: 'undoRemoval',
         listIds: ['pid', 'mdl'],
-        catalogOrder: CATALOG_ORDER,
       })
     ).toBe(shown);
   });
 });
 
 describe('expireRemoval (the toast gone without Undo)', () => {
-  const pending = state({ selectedIndex: 1, pendingRemoval: { documentId: 'mdl' } });
+  const pending = state({ selectedIndex: 1, pendingRemoval: { documentId: 'mdl', index: 1 } });
 
   it('ends the removal and keeps the selection', () => {
     expect(documentsViewReducer(pending, { type: 'expireRemoval' })).toEqual(
@@ -259,10 +278,7 @@ describe('expireRemoval (the toast gone without Undo)', () => {
 
   it('leaves nothing for a later Undo', () => {
     const expired = run(
-      [
-        { type: 'expireRemoval' },
-        { type: 'undoRemoval', listIds: ['pid'], catalogOrder: CATALOG_ORDER },
-      ],
+      [{ type: 'expireRemoval' }, { type: 'undoRemoval', listIds: ['pid'] }],
       pending
     );
     expect(expired).toEqual(state({ selectedIndex: 1 }));
@@ -296,10 +312,10 @@ describe('flagNeedsData ("Set rules →" with documents without data; F67)', () 
   });
 
   it('changes neither the selection nor a pending removal', () => {
-    const before = state({ selectedIndex: 1, pendingRemoval: { documentId: 'ehic' } });
+    const before = state({ selectedIndex: 1, pendingRemoval: { documentId: 'ehic', index: 2 } });
     const flagged = documentsViewReducer(before, { type: 'flagNeedsData', documentIds: ['pid'] });
     expect(flagged.selectedIndex).toBe(1);
-    expect(flagged.pendingRemoval).toEqual({ documentId: 'ehic' });
+    expect(flagged.pendingRemoval).toEqual({ documentId: 'ehic', index: 2 });
   });
 });
 
@@ -369,9 +385,9 @@ describe('removeNeedsDataDone (the dialog’s "Remove 1 document")', () => {
         { type: 'flagNeedsData', documentIds: ['mdl'] },
         { type: 'removeNeedsDataDone', listIds: ['pid', 'mdl'] },
       ],
-      state({ pendingRemoval: { documentId: 'ehic' } })
+      state({ pendingRemoval: { documentId: 'ehic', index: 2 } })
     );
-    expect(removed.pendingRemoval).toEqual({ documentId: 'ehic' });
+    expect(removed.pendingRemoval).toEqual({ documentId: 'ehic', index: 2 });
   });
 });
 
@@ -389,10 +405,10 @@ describe('a whole pass through the step (quickstart V4.2–V4.4)', () => {
       ],
       [
         { type: 'confirmRemovalDone', listIds: ['pid', 'mdl'] },
-        { selectedIndex: 0, confirmRemoval: null, pendingRemoval: { documentId: 'mdl' } },
+        { selectedIndex: 0, confirmRemoval: null, pendingRemoval: { documentId: 'mdl', index: 1 } },
       ],
       [
-        { type: 'undoRemoval', listIds: ['pid'], catalogOrder: CATALOG_ORDER },
+        { type: 'undoRemoval', listIds: ['pid'] },
         { selectedIndex: 1, pendingRemoval: null },
       ],
       // Removed again; the toast goes with Escape
@@ -402,7 +418,7 @@ describe('a whole pass through the step (quickstart V4.2–V4.4)', () => {
       ],
       [
         { type: 'confirmRemovalDone', listIds: ['pid', 'mdl'] },
-        { selectedIndex: 0, confirmRemoval: null, pendingRemoval: { documentId: 'mdl' } },
+        { selectedIndex: 0, confirmRemoval: null, pendingRemoval: { documentId: 'mdl', index: 1 } },
       ],
       [{ type: 'expireRemoval' }, { pendingRemoval: null }],
       // "Set rules →" with Personal ID still without data

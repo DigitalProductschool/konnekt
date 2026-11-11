@@ -13,11 +13,17 @@ import type {
 import { sameValue } from '@connection-portal/rules/branches';
 import { dialogLineOf } from '@connection-portal/rules/checks/findingMessages';
 import type { BranchCheck, FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
+import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { droppedFieldLabel } from '@connection-portal/rules/dropped';
-import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
+import {
+  appendDocument,
+  moveDocument,
+  restoreDocument,
+  rulesCheckingRemoval,
+} from '@connection-portal/rules/edits';
 import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
-import type { RulesProblem } from '@connection-portal/rules/types';
+import type { RuleDocument, RulesProblem } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { startDateOf } from '../../components/ActiveFromChoice/utils';
@@ -65,6 +71,7 @@ import type {
   PublishDialogState,
   PublishFailure,
   RemovedDataRule,
+  RemovedDocument,
   RulesNextAction,
 } from './types';
 
@@ -169,11 +176,43 @@ export function headerTitleOf(
   return (stored || state.step !== 'connection') && name ? name : EDITOR_COPY[language].headerTitle;
 }
 
-/** Keeps documents in catalog order, the order of the API and the cards. */
-function inCatalogOrder(documents: RequestedDocument[], catalogOrder: string[]) {
-  return [...documents].sort(
-    (a, b) => catalogOrder.indexOf(a.document_type) - catalogOrder.indexOf(b.document_type)
-  );
+/**
+ * The index in the editor's documents of the place `listIndex` of the documents step's list
+ * (`listIds`, the documents the catalog offers, in the editor's order): the listed document there
+ * gives up its place to the moved one (FR-046, FR-047). A document the catalog dropped has no row
+ * but keeps its place among the others. `listIndex` itself when the list has no such place, so
+ * that `moveDocument()` refuses it.
+ */
+export function documentIndexOfListIndex(
+  documents: readonly RequestedDocument[],
+  listIds: readonly string[],
+  listIndex: number
+): number {
+  const target = listIds[listIndex];
+  if (target === undefined) {
+    return listIndex;
+  }
+  return documents.findIndex((document) => document.document_type === target);
+}
+
+/**
+ * The open document's index in the list once `documentType` has moved to `toIndex` of the list
+ * (`listIds`, before the move): the open document stays open and the pager counts in the list's
+ * new order (S8 "The list's order"). Unchanged when the move is refused.
+ */
+export function selectedIndexAfterMove(
+  listIds: readonly string[],
+  selectedIndex: number,
+  documentType: string,
+  toIndex: number
+): number {
+  const listed = listIds.map((id) => ({ document_type: id }));
+  const moved = moveDocument(listed, documentType, toIndex);
+  if (!moved.ok || listIds.length === 0) {
+    return selectedIndex;
+  }
+  const shown = listIds[Math.min(Math.max(selectedIndex, 0), listIds.length - 1)];
+  return moved.documents.findIndex((document) => document.document_type === shown);
 }
 
 /** The change a removal makes, once it is confirmed or needs no question. */
@@ -241,28 +280,30 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (state.documents.some((document) => document.document_type === action.documentType)) {
         return state;
       }
-      // Adding selects no field: the team member picks only what the form needs
+      // Adding selects no field: the team member picks only what the form needs. It goes to the
+      // end (FR-045); the guard above keeps an added document's fields, which `appendDocument()`
+      // would replace
       const added = { document_type: action.documentType, fields: [] };
-      return {
-        ...state,
-        documents: inCatalogOrder([...state.documents, added], action.catalogOrder),
-      };
+      return { ...state, documents: appendDocument(state.documents, added) };
     }
     case 'removeDocument': {
-      const removed = state.documents.find(
+      const index = state.documents.findIndex(
         (document) => document.document_type === action.documentType
       );
-      if (!removed) {
+      if (index === -1) {
         return state;
       }
+      const document = state.documents[index];
       return {
         ...state,
-        documents: state.documents.filter((document) => document !== removed),
-        removed,
+        documents: state.documents.filter((entry) => entry !== document),
+        removed: { document, index },
         // In the default language: the page shows it in the language of the moment, also after a
-        // switch while it shows (`documentsToastOf()`)
+        // switch while it shows (`documentsToastOf()`). Red with the white delete icon, as U24
+        // 7298:62627 draws it (design-notes §4.2 T038)
         toast: {
           id: (state.toast?.id ?? 0) + 1,
+          kind: 'danger',
           message: EDITOR_COPY[DEFAULT_LANGUAGE].removed(action.label),
           actionLabel: EDITOR_COPY[DEFAULT_LANGUAGE].undo,
         },
@@ -272,16 +313,25 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const { removed } = state;
       if (
         !removed ||
-        state.documents.some((document) => document.document_type === removed.document_type)
+        state.documents.some(
+          (document) => document.document_type === removed.document.document_type
+        )
       ) {
         return { ...state, removed: null, toast: null };
       }
       return {
         ...state,
-        documents: inCatalogOrder([...state.documents, removed], action.catalogOrder),
+        // Back at the index it had (FR-045), at the end when the list has become shorter
+        documents: restoreDocument(state.documents, removed.document, removed.index),
         removed: null,
         toast: null,
       };
+    }
+    case 'moveDocument': {
+      // A refused move (an unknown document, an index outside the list, its own place) changes
+      // nothing; a removal's toast and its "Undo" stay
+      const moved = moveDocument(state.documents, action.documentType, action.toIndex);
+      return moved.ok ? { ...state, documents: moved.documents } : state;
     }
     case 'dismissToast':
       return { ...state, removed: null, toast: null };
@@ -468,7 +518,7 @@ export function removalInLanguage(
  */
 export function documentsToastOf(
   toast: ToastContent | null,
-  removed: RequestedDocument | null,
+  removed: RemovedDocument | null,
   documentTypes: DocumentType[],
   language: Language
 ): ToastContent | null {
@@ -478,7 +528,7 @@ export function documentsToastOf(
   const copy = EDITOR_COPY[language];
   return {
     ...toast,
-    message: copy.removed(labelOf(removed.document_type, documentTypes)),
+    message: copy.removed(labelOf(removed.document.document_type, documentTypes)),
     actionLabel: copy.undo,
   };
 }
@@ -527,6 +577,23 @@ export function documentLines(
       labelOf(document.document_type, documentTypes),
       document.fields.length
     )
+  );
+}
+
+/**
+ * The requested documents as the rules logic reads them (`requestedRuleDocuments()`: the catalog's
+ * labels and the chosen fields in catalog order), in the list's order rather than the catalog's
+ * (FR-050), so that the test step's data lists them as the documents step does
+ * (`personaFieldsOf()` follows `context.documents`). A document the catalog doesn't know is left
+ * out, as `requestedRuleDocuments()` leaves it out.
+ */
+export function ruleDocumentsInListOrder(
+  documentTypes: DocumentType[],
+  documents: RequestedDocument[]
+): RuleDocument[] {
+  const requested = requestedRuleDocuments(documentTypes, documents);
+  return documents.flatMap(
+    (document) => requested.find((entry) => entry.key === document.document_type) ?? []
   );
 }
 

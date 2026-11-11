@@ -564,7 +564,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   /**
    * The server's checks of a draft's name, description and documents (`clean_name`,
    * `clean_description`, `clean_documents(complete=False)`), with its messages: the documents
-   * and their fields in catalog order
+   * in the order sent, as the backend stores (`document_order`) and answers them (spec 010,
+   * FR-045, FR-050), each with its fields in catalog order
    */
   function cleanDraft(body: DraftCreate): {
     name: string;
@@ -589,13 +590,15 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
         throw validation(`Unknown field '${unknown}' for '${type.label}'.`);
       }
     }
-    const documents = catalog.flatMap((type) => {
-      const requested = body.documents.find((each) => each.document_type === type.key);
-      if (!requested) return [];
-      const fields = type.fields
+    const seen = new Set<string>();
+    const documents = body.documents.flatMap((requested) => {
+      if (seen.has(requested.document_type)) return [];
+      seen.add(requested.document_type);
+      const type = catalog.find((each) => each.key === requested.document_type);
+      const fields = (type?.fields ?? [])
         .filter((field) => requested.fields.includes(field.key))
         .map((field) => field.key);
-      return [{ document_type: type.key, fields }];
+      return [{ document_type: requested.document_type, fields }];
     });
     return { name, description, documents };
   }

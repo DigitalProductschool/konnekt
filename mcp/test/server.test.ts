@@ -1527,6 +1527,60 @@ describe('the draft tools', () => {
       expect(text).toContain('at the documents step');
     });
 
+    it('adds a document at the end, not in catalog order, and the fake stores that order', async () => {
+      // The catalog lists pid before mdl
+      const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+      const id = created.structured.connection.id as string;
+      await callTool(
+        'set_document',
+        { connection: id, document_type: 'mdl', fields: [] },
+        BEARERS.drafts
+      );
+      const { isError, structured, text } = await callTool(
+        'set_document',
+        { connection: id, document_type: 'pid', fields: ['birthdate'] },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(
+        structured.documents.map((document: { document_type: string }) => document.document_type)
+      ).toEqual(['mdl', 'pid']);
+      const stored = fake.store.connections.get(id) as FormConnectionDraft;
+      expect(stored.documents.map((document) => document.document_type)).toEqual(['mdl', 'pid']);
+      expect(text).toContain(
+        '1. Driving licence (mdl): no fields yet\n2. Personal ID (pid): birthdate'
+      );
+    });
+
+    it('keeps the place of a document whose fields change, and the order of the others on a removal', async () => {
+      const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+      const id = created.structured.connection.id as string;
+      const set = (document_type: string, fields: string[] | null) =>
+        callTool('set_document', { connection: id, document_type, fields }, BEARERS.drafts);
+      await set('mdl', []);
+      await set('pid', ['birthdate']);
+      const changed = await set('mdl', ['issue_date']);
+      expect(changed.isError).toBe(false);
+      expect(
+        changed.structured.documents.map(
+          (document: { document_type: string; fields: unknown[] }) => [
+            document.document_type,
+            document.fields.length,
+          ]
+        )
+      ).toEqual([
+        ['mdl', 1],
+        ['pid', 1],
+      ]);
+      const removed = await set('mdl', null);
+      expect(removed.isError).toBe(false);
+      expect(
+        removed.structured.documents.map(
+          (document: { document_type: string }) => document.document_type
+        )
+      ).toEqual(['pid']);
+    });
+
     it('refuses an unknown field with the known ones', async () => {
       const { isError, structured } = await callTool(
         'set_document',
@@ -1606,6 +1660,134 @@ describe('the draft tools', () => {
       expect(
         structured.documents.map((document: { document_type: string }) => document.document_type)
       ).toEqual(['pid']);
+    });
+  });
+
+  describe('move_document', () => {
+    /** The fixture draft with two documents: pid, then mdl added at the end (version 2). */
+    async function withTwoDocuments(): Promise<void> {
+      const added = await callTool(
+        'set_document',
+        { connection: IDS.draft, document_type: 'mdl', fields: ['issue_date'] },
+        BEARERS.drafts
+      );
+      expect(added.isError).toBe(false);
+    }
+
+    function storedOrder(): string[] {
+      return storedDraft().documents.map((document) => document.document_type);
+    }
+
+    it('moves the second document to the first place and answers the new order (US8-AS2)', async () => {
+      await withTwoDocuments();
+      const { isError, structured, text } = await callTool(
+        'move_document',
+        { connection: links.connectionLink(IDS.draft), document_type: 'mdl', position: 1 },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: {
+          id: IDS.draft,
+          name: 'Resident parking permit',
+          status: 'draft',
+          link: links.connectionLink(IDS.draft),
+        },
+        documents: [
+          {
+            document_type: 'mdl',
+            label: 'Driving licence',
+            fields: [{ key: 'issue_date', label: 'Issue date', kind: 'date' }],
+          },
+          {
+            document_type: 'pid',
+            label: 'Personal ID',
+            fields: [
+              { key: 'birthdate', label: 'Date of birth', kind: 'date' },
+              { key: 'address_locality', label: 'City or town', kind: 'text' },
+            ],
+          },
+        ],
+      });
+      // The same stored result as the editor's move: the order sent, the rest unchanged
+      expect(storedOrder()).toEqual(['mdl', 'pid']);
+      expect(storedDraft()).toMatchObject({ version: 3, step: 'rules' });
+      expect(storedDraft().branches.map((branch) => branch.items.length)).toEqual([2, 2, 0]);
+      expect(text).toContain('Moved Driving licence (mdl) to position 1 of 2.');
+      expect(text).toContain('1. Driving licence (mdl): issue_date\n2. Personal ID (pid):');
+      expect(text).toContain('Saved as draft version 3, at the rules step.');
+
+      const back = await callTool(
+        'move_document',
+        { connection: IDS.draft, document_type: 'mdl', position: 2 },
+        BEARERS.drafts
+      );
+      expect(back.isError).toBe(false);
+      expect(storedOrder()).toEqual(['pid', 'mdl']);
+    });
+
+    it.each([
+      [
+        'a document the draft does not request',
+        { document_type: 'eye_test', position: 1 },
+        { code: 'not_found', message: 'The connection doesn’t request “eye_test”.' },
+      ],
+      [
+        'a position after the last',
+        { document_type: 'mdl', position: 3 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'a position before the first',
+        { document_type: 'mdl', position: 0 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'a position that is no whole number',
+        { document_type: 'mdl', position: 1.5 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'the place the document already has',
+        { document_type: 'mdl', position: 2 },
+        { code: 'validation', message: '“mdl” is already in position 2.' },
+      ],
+    ])("refuses %s with the editor's message and saves nothing", async (_case, args, error) => {
+      await withTwoDocuments();
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.draft, ...args },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual(error);
+      expect(storedDraft().version).toBe(2);
+      expect(storedOrder()).toEqual(['pid', 'mdl']);
+    });
+
+    it('refuses a published connection, also at manage level', async () => {
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.live, document_type: 'pid', position: 1 },
+        BEARERS.manage
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual(PUBLISHED_READ_ONLY);
+      expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
+    });
+
+    it("refuses the read caller, naming 'Read and edit drafts'", async () => {
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.draft, document_type: 'pid', position: 1 },
+        BEARERS.read
+      );
+      expect(isError).toBe(true);
+      expect(structured).toMatchObject({
+        code: 'insufficient_access',
+        needs_access_level: 'drafts',
+      });
+      expect(fake.calls.filter((call) => call.method !== 'GET')).toEqual([]);
     });
   });
 

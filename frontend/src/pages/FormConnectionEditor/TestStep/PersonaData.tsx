@@ -9,9 +9,9 @@ import { dataRowGroupsOf } from './utils';
  * 7057:58772, 7057:59186, U66 7057:59599): one flat list with no visible document column or
  * headings, a row per `dataRowsOf()` row (only data that evaluated rules check; the licence
  * classes with one row per issue date, "B, BE since 02.05.2010", a class's other dates only while
- * the class is held). The rows are grouped per document in catalog order, each group under its
- * document's name as a hidden heading, so that screen readers still hear "Personal ID" and
- * "Driving licence" (004-S8.4.2, CLAR #46)
+ * the class is held). The rows are grouped per document in the connection's order (spec 010,
+ * FR-050), each group under its document's name as a hidden heading, so that screen readers still
+ * hear "Personal ID" and "Driving licence" (004-S8.4.2, CLAR #46)
  */
 export default function PersonaData({ persona, fields, context, failingFields }: PersonaDataProps) {
   const changed = changedKeys(persona, fields);

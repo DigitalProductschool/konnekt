@@ -474,6 +474,48 @@ def test_the_first_pull_after_sharing_delivers_exactly_the_configured_fields(
     assert 'delete_session' not in fake_eudiplo.call_names()
 
 
+def test_the_teams_document_order_doesnt_change_the_delivery(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 010, FR-051: created in another order and reordered, still catalog order.
+
+    A save that only reorders creates no revision, so a request started before it
+    and one started after it get the same documents, in catalog order.
+    """
+    reversed_documents = list(reversed(FORM_CONNECTION['documents']))
+    form_connection_id = create_form_connection(
+        signed_in_client, documents=reversed_documents
+    )
+    started = _completed(signed_in_client, fake_eudiplo, form_connection_id)
+    assert (
+        _pull(signed_in_client, form_connection_id, started['reference'])['documents']
+        == DELIVERED_DOCUMENTS
+    )
+
+    reordered = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}',
+        json={'documents': FORM_CONNECTION['documents']},
+    )
+    assert reordered.status_code == 200, reordered.json()
+    reordered = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}',
+        json={'documents': reversed_documents},
+    )
+    assert reordered.status_code == 200, reordered.json()
+    assert [
+        document['document_type'] for document in reordered.json()['data']['documents']
+    ] == ['mdl', 'pid']
+
+    later = _completed(signed_in_client, fake_eudiplo, form_connection_id)
+    assert stored_request(later['reference']).revision_id == (
+        stored_request(started['reference']).revision_id
+    )
+    assert (
+        _pull(signed_in_client, form_connection_id, later['reference'])['documents']
+        == DELIVERED_DOCUMENTS
+    )
+
+
 def test_pulls_within_the_repeat_window_get_the_same_documents(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:

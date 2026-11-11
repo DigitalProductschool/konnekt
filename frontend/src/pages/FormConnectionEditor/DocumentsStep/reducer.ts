@@ -16,7 +16,7 @@ function removed(
   return {
     ...state,
     selectedIndex: indexAfterRemoval(listIds, state.selectedIndex, [documentId]),
-    pendingRemoval: { documentId },
+    pendingRemoval: { documentId, index: Math.max(listIds.indexOf(documentId), 0) },
     needsData: flagged.includes(documentId)
       ? { ...state.needsData, documentIds: flagged.filter((id) => id !== documentId) }
       : state.needsData,
@@ -49,13 +49,13 @@ export function documentsViewReducer(
       if (pendingRemoval === null) {
         return state;
       }
-      // The document shows again where the catalog puts it, with the focus going to it
+      // The document shows again at the index it had (FR-045), with the focus going to it
       return {
         ...state,
         selectedIndex: indexAfterAdding(
           action.listIds,
           pendingRemoval.documentId,
-          action.catalogOrder
+          pendingRemoval.index
         ),
         pendingRemoval: null,
       };

@@ -396,6 +396,11 @@ const EDIT_MESSAGES_EN = {
     `Choose two or more rules of one level in ${variant} to group. A sub-group can’t hold groups.`,
   mainVariant: (main: string) => `${main} is the main variant and can’t be deleted.`,
   noCopyTarget: (rule: string) => `Choose another variant to copy ${rule} to.`,
+  // The documents' order (spec 010, R6): a document by its type's key, a position counted from 1
+  documentNotRequested: (document: string) => `The connection doesn’t request “${document}”.`,
+  positionOutside: (count: number) => `Choose a position from 1 to ${count}.`,
+  alreadyInPosition: (document: string, position: number) =>
+    `“${document}” is already in position ${position}.`,
 } satisfies Record<EditMessageKey, unknown>;
 
 // `EDIT_MESSAGES_EN` and the German. The refusals reach agents only, in English (spec 009,
@@ -423,6 +428,10 @@ export const EDIT_MESSAGES = defineTexts<typeof EDIT_MESSAGES_EN>(EDIT_MESSAGES_
   mainVariant: (main: string) => `${main} ist die Hauptvariante und kann nicht gelöscht werden.`,
   noCopyTarget: (rule: string) =>
     `Wählen Sie eine andere Variante, in die ${rule} kopiert werden soll.`,
+  documentNotRequested: (document: string) => `Die Anbindung fordert „${document}“ nicht an.`,
+  positionOutside: (count: number) => `Wählen Sie eine Position von 1 bis ${count}.`,
+  alreadyInPosition: (document: string, position: number) =>
+    `„${document}“ ist bereits auf Position ${position}.`,
 });
 
 export type EditMessages = (typeof EDIT_MESSAGES)['en'];

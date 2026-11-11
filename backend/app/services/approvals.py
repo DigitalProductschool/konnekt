@@ -497,7 +497,10 @@ def _preview(
     connection URLs once a publish is done and the connection isn't deleted.
     `deactivate`, `reactivate` and `delete`: the connection and its URLs while it
     is published and not deleted, in every status (after a done reactivate, the
-    URLs that work again); neither once it is deleted.
+    URLs that work again); neither once it is deleted. The draft and the
+    connection come from `drafts.draft_view()` and
+    `form_connections.get_form_connection()`, so their documents are in the
+    stored order (spec 010, research R6, FR-050).
     """
     view = request_view(
         request,

@@ -47,7 +47,8 @@ your answer, rather than describing where it is.
 Every tool that takes a `connection`, a `variant` or an `item` accepts a link there, and so do the
 other parameters that name them: `group` of `add_rule`, `rule` and `to_variants` of `copy_rule`,
 and `items` of `group_items`. That is `get_connection`, `get_activity`, `get_variant`, `get_item`,
-`update_connection`, `set_document`, `add_variant`, `update_variant`, `delete_variant`,
+`update_connection`, `set_document`, `move_document`, `add_variant`, `update_variant`,
+`delete_variant`,
 `add_rule`, `update_item`, `delete_item`, `reset_item`, `copy_rule`, `group_items`,
 `request_approval`, `check_rules` and `test_applicants`. Each of these parameters accepts:
 

@@ -1,6 +1,6 @@
 ---
 name: documents-and-catalog
-description: The catalog of document types the wallet offers, their fields, parts and value sets, choosing documents and fields for a connection, and what removing a document or field does to the rules.
+description: The catalog of document types the wallet offers, their fields, parts and value sets, choosing documents and fields for a connection, the documents' order, and what removing a document or field does to the rules.
 ---
 
 # Documents and the catalog
@@ -46,10 +46,28 @@ the values by their codes (`DE`, `B`).
 
 `set_document` sets one document type of a draft: `document_type` is its catalog key, and
 `fields` lists the keys of every field to request, replacing the fields requested so far (they
-are stored in catalog order). A document type not yet requested is added; `fields: []` adds it
-without fields, to choose them later; `fields: null` removes the document. An unknown document
-type or field is refused with the known keys. The answer lists the draft's documents with their
-fields.
+are stored in catalog order). A document type not yet requested is added at the end of the
+documents; `fields: []` adds it without fields, to choose them later; `fields: null` removes the
+document. A document whose fields change keeps its place, and removing one leaves the others in
+their order. An unknown document type or field is refused with the known keys. The answer lists
+the draft's documents with their fields, in their order. Fields are chosen one by one: no tool
+takes a whole group of fields.
+
+## The documents' order
+
+A connection keeps its documents in the team's order: the order they were added in, until someone
+moves one. Konnekt lists them in that order everywhere, and so do the answers (`get_connection`,
+`set_document`, `move_document`). The order is only how Konnekt shows them: what the wallet asks
+the citizen for and what serviceBW receives stay in catalog order, so moving a document in a
+published connection changes nothing for them.
+
+`move_document` moves one document of a draft: `document_type` is its catalog key and `position`
+its new place, 1 being the first and the number of documents the last; the others keep their
+order. It is the same move as dragging the document in Konnekt's documents step, one move per
+call, and answers the documents in their new order. It is refused with `not_found` for a document
+the draft doesn't request ("The connection doesn’t request “mdl”."), and with `validation` for a
+position outside the list ("Choose a position from 1 to 2.") or the place the document already has
+("“mdl” is already in position 2."). The order of a published connection is changed in Konnekt.
 
 ## Removing a document or a field
 

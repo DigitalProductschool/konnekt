@@ -52,10 +52,11 @@ export interface CheckedBranchWithRules {
  *   based branch still brings its data while another branch's rule checks it (EC "Rules removed in
  *   a branch"), and a rule that the checked tree leaves out brings none. Licence classes are a
  *   field whenever a class's date is one.
- * - **Order**: by document in `context.documents`' order (the catalog's: Personal ID, then Driving
- *   licence), then by the document's field order, then by part order. A class's dates aren't at
- *   their part's place: they follow "Licence classes", class by class in the licence-class set's
- *   order, and for each class in part order (the issue date before the expiry date).
+ * - **Order**: by document in `context.documents`' order (the editor passes the connection's
+ *   order, spec 010 FR-050), then by the document's field order, then by part order. A class's
+ *   dates aren't at their part's place: they follow "Licence classes", class by class in the
+ *   licence-class set's order, and for each class in part order (the issue date before the expiry
+ *   date).
  * - **What**: `label` is `dataOfResolved()` ("Date of birth (Age)", "Licence class B – Issue
  *   date"; "Führerscheinklasse B – Ausstellungsdatum" in a German context, spec 009),
  *   `documentLabel` the document's label; kind, value set, `multiple` (`multiple_values`

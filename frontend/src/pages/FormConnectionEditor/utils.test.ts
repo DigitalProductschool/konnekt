@@ -37,6 +37,7 @@ import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
   draftNameErrors,
@@ -67,10 +68,12 @@ import {
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
+  ruleDocumentsInListOrder,
   ruleLines,
   rulesChanged,
   rulesNextActionOf,
   saveFailureToastOf,
+  selectedIndexAfterMove,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -288,6 +291,157 @@ describe('editorReducer and rules_changed', () => {
       });
     }
   );
+});
+
+describe('editorReducer and the documents’ order (FR-045, FR-049; S8 "The list’s order")', () => {
+  const doc = (document_type: string, fields: string[] = []) => ({ document_type, fields });
+  // The team's order, not the catalog's (Personal ID, Driving licence, EHIC)
+  const documents = [doc('ehic'), doc('pid', ['birthdate']), doc('mdl')];
+  const state = { ...INITIAL_EDITOR_STATE, step: 'documents' as const, documents };
+  const typesOf = (each: { documents: { document_type: string }[] }) =>
+    each.documents.map((document) => document.document_type);
+
+  // Changed expectation (FR-045): an added document went to its catalog place before
+  it('adds a document at the end, without fields, not at its catalog place', () => {
+    const added = editorReducer(
+      { ...state, documents: [doc('mdl'), doc('ehic')] },
+      {
+        type: 'addDocument',
+        documentType: 'pid',
+      }
+    );
+    expect(added.documents).toEqual([doc('mdl'), doc('ehic'), doc('pid')]);
+  });
+
+  it('keeps an added document as it is when it is added again', () => {
+    expect(editorReducer(state, { type: 'addDocument', documentType: 'pid' })).toBe(state);
+  });
+
+  it('removes a document with its index, and a red toast with "Undo" (design-notes §4.2 T038)', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'pid',
+      label: 'Personal ID',
+    });
+    expect(typesOf(removed)).toEqual(['ehic', 'mdl']);
+    expect(removed.removed).toEqual({ document: doc('pid', ['birthdate']), index: 1 });
+    expect(removed.toast).toEqual({
+      id: 1,
+      kind: 'danger',
+      message: 'Personal ID removed.',
+      actionLabel: 'Undo',
+    });
+  });
+
+  // Changed expectation (FR-045): "Undo" put the document back at its catalog place before
+  it('puts a removed document back at the index it had, with its fields', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'pid',
+      label: 'Personal ID',
+    });
+    const undone = editorReducer(removed, { type: 'undoRemove' });
+    expect(undone.documents).toEqual(documents);
+    expect(undone).toMatchObject({ removed: null, toast: null });
+  });
+
+  it('puts it back at the end when the list has become shorter', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'mdl',
+      label: 'Driving licence',
+    });
+    const shorter = { ...removed, documents: [doc('ehic')] };
+    expect(typesOf(editorReducer(shorter, { type: 'undoRemove' }))).toEqual(['ehic', 'mdl']);
+  });
+
+  it('moves a document, the others keeping their order, and leaves a removal’s Undo', () => {
+    const removed = editorReducer(
+      { ...state, documents: [...documents, doc('residence_permit')] },
+      { type: 'removeDocument', documentType: 'residence_permit', label: 'Residence permit' }
+    );
+    const moved = editorReducer(removed, { type: 'moveDocument', documentType: 'mdl', toIndex: 0 });
+    expect(typesOf(moved)).toEqual(['mdl', 'ehic', 'pid']);
+    expect(moved.documents[2]).toBe(removed.documents[1]);
+    expect(moved.toast).toBe(removed.toast);
+    expect(moved.removed).toBe(removed.removed);
+    const down = editorReducer(moved, { type: 'moveDocument', documentType: 'mdl', toIndex: 2 });
+    expect(typesOf(down)).toEqual(['ehic', 'pid', 'mdl']);
+  });
+
+  it.each([
+    ['a document the list doesn’t hold', 'residence_permit', 0],
+    ['an index outside the list', 'pid', 3],
+    ['the place it has', 'pid', 1],
+  ])('changes nothing for %s', (_, documentType, toIndex) => {
+    expect(editorReducer(state, { type: 'moveDocument', documentType, toIndex })).toBe(state);
+  });
+
+  it('stores the documents in the array’s order in a local draft, and counts a move as a change', () => {
+    const moved = editorReducer(state, { type: 'moveDocument', documentType: 'mdl', toIndex: 0 });
+    const rules = initialRulesState();
+    expect(localContentOf(state, rules).documents).toEqual(documents);
+    expect(typesOf(localContentOf(moved, rules))).toEqual(['mdl', 'ehic', 'pid']);
+    expect(sameContent(localContentOf(moved, rules), localContentOf(state, rules))).toBe(false);
+  });
+});
+
+describe('selectedIndexAfterMove (the open document through a move; S8)', () => {
+  const LIST = ['ehic', 'pid', 'mdl'];
+
+  it('keeps the open document open when it moves', () => {
+    expect(selectedIndexAfterMove(LIST, 2, 'mdl', 0)).toBe(0);
+    expect(selectedIndexAfterMove(LIST, 0, 'ehic', 2)).toBe(2);
+  });
+
+  it('follows the open document when another one moves past it', () => {
+    expect(selectedIndexAfterMove(LIST, 1, 'mdl', 0)).toBe(2);
+    expect(selectedIndexAfterMove(LIST, 1, 'ehic', 2)).toBe(0);
+    expect(selectedIndexAfterMove(LIST, 0, 'pid', 2)).toBe(0);
+  });
+
+  it('keeps the index of a refused move', () => {
+    expect(selectedIndexAfterMove(LIST, 1, 'pid', 1)).toBe(1);
+    expect(selectedIndexAfterMove(LIST, 1, 'pid', 3)).toBe(1);
+    expect(selectedIndexAfterMove(LIST, 1, 'residence_permit', 0)).toBe(1);
+    expect(selectedIndexAfterMove([], 0, 'pid', 0)).toBe(0);
+  });
+
+  it('counts the pager in the list’s new order', () => {
+    // "Document 3 of 3" while Driving licence shows; moved first, it is "Document 1 of 3"
+    const index = selectedIndexAfterMove(LIST, 2, 'mdl', 0);
+    expect(index + 1).toBe(1);
+  });
+});
+
+describe('documentIndexOfListIndex (a list row’s place among the editor’s documents)', () => {
+  const doc = (document_type: string) => ({ document_type, fields: [] });
+
+  it('is the list index when every document is listed', () => {
+    const documents = [doc('ehic'), doc('pid'), doc('mdl')];
+    expect(documentIndexOfListIndex(documents, ['ehic', 'pid', 'mdl'], 2)).toBe(2);
+  });
+
+  it('skips a document the catalog dropped, which keeps its place', () => {
+    // The residence permit has no row: the list is EHIC, Driving licence
+    const documents = [doc('ehic'), doc('residence_permit'), doc('mdl')];
+    const listIds = ['ehic', 'mdl'];
+    const toIndex = documentIndexOfListIndex(documents, listIds, 1);
+    expect(toIndex).toBe(2);
+    const moved = editorReducer(
+      { ...INITIAL_EDITOR_STATE, documents },
+      { type: 'moveDocument', documentType: 'ehic', toIndex }
+    );
+    expect(moved.documents.map((document) => document.document_type)).toEqual([
+      'residence_permit',
+      'mdl',
+      'ehic',
+    ]);
+  });
+
+  it('answers an index outside the list as it is, for the move to refuse', () => {
+    expect(documentIndexOfListIndex([doc('pid')], ['pid'], 3)).toBe(3);
+  });
 });
 
 describe('editorReducer and the toast on leaving a step (B4)', () => {
@@ -1794,6 +1948,7 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     );
     expect(documentsToastOf(removed.toast, removed.removed, GERMAN_CATALOG, 'de')).toEqual({
       id: removed.toast?.id,
+      kind: 'danger',
       message: 'Führerschein entfernt.',
       actionLabel: 'Rückgängig',
     });
@@ -1822,6 +1977,28 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     ]);
     expect(ruleLines(rules, true, 'de')).toEqual(['Keine Regeln']);
     expect(ruleLines(initialRulesState(), false, 'de')).toEqual(['Standard · Keine Regeln']);
+  });
+
+  it('hands the rules logic the documents in the list’s order, not the catalog’s (FR-050)', () => {
+    const catalog: DocumentType[] = [
+      {
+        key: 'pid',
+        label: 'Personal ID',
+        fields: [field('birthdate', 'Date of birth'), field('family_name', 'Family name')],
+      },
+      { key: 'mdl', label: 'Driving licence', fields: [field('driving_privileges', 'Classes')] },
+    ];
+    const listed = ruleDocumentsInListOrder(catalog, [
+      { document_type: 'mdl', fields: ['driving_privileges'] },
+      // The data items stay in the catalog's order, whatever the request's
+      { document_type: 'pid', fields: ['family_name', 'birthdate'] },
+      // A document the catalog doesn't know is left out, as requestedRuleDocuments() does
+      { document_type: 'residence_permit', fields: ['a'] },
+    ]);
+    expect(listed.map((document) => document.key)).toEqual(['mdl', 'pid']);
+    expect(listed[1].fields.map((each) => each.key)).toEqual(['birthdate', 'family_name']);
+    expect(listed[0].label).toBe('Driving licence');
+    expect(ruleDocumentsInListOrder(catalog, [])).toEqual([]);
   });
 
   it('gives the findings’ lines in German, the variants’ names as they are', () => {

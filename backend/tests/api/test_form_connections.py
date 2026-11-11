@@ -420,15 +420,19 @@ def test_creating_stores_revision_1_with_its_eudiplo_configuration(
         assert form_connection.current_revision == 1
 
 
-def test_documents_are_stored_in_catalog_order(
+def test_documents_are_answered_in_the_order_sent(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
+    """Spec 010, FR-045: the team's order; the revision keeps catalog order.
+
+    test_document_order.py pins the revision and the configuration.
+    """
     data = _create(
         signed_in_client,
         documents=list(reversed(NEW_FORM_CONNECTION['documents'])),
     )
 
-    assert data['documents'] == [PID_VIEW, MDL_VIEW]
+    assert data['documents'] == [MDL_VIEW, PID_VIEW]
 
 
 def test_texts_are_trimmed(
