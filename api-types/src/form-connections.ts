@@ -250,12 +250,41 @@ export interface FormConnection {
   last_activity: ActivityEntry | null;
 }
 
-/** Without rules, the form connection gets a main branch "Standard" */
+/**
+ * Without rules, the form connection gets a main branch "Standard". Without `start_date` it is
+ * published active ("Now"); with one, scheduled (spec 010, research R1, R2)
+ */
 export interface FormConnectionCreate {
   name: string;
   description?: string;
   documents: RequestedDocument[];
   rules?: RulesInput;
+  /**
+   * YYYY-MM-DD, a day in Germany after today; absent or null: active at once. A day that isn't
+   * after today answers `400 invalid_start_date`
+   */
+  start_date?: string | null;
+}
+
+/**
+ * The body of POST /api/form-connections/:id/activate (spec 010, research R2). An empty object
+ * activates the deactivated connection at once ("Now"); a `start_date` schedules it for that day
+ */
+export interface ActivateRequest {
+  /**
+   * YYYY-MM-DD, a day in Germany after today; absent or null: active at once. A day that isn't
+   * after today answers `400 invalid_start_date`
+   */
+  start_date?: string | null;
+}
+
+/**
+ * The body of PUT /api/form-connections/:id/start-date (spec 010, FR-008, FR-009): a scheduled or
+ * live connection's new start
+ */
+export interface StartDateUpdate {
+  /** Required: YYYY-MM-DD, a day in Germany after today, or null for now */
+  start_date: string | null;
 }
 
 /** An absent field stays unchanged */

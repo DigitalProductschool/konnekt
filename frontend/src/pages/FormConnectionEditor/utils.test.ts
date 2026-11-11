@@ -15,7 +15,12 @@ import { ApiError, handleResponse } from '../../api/client';
 import { emptyContent, sameContent } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_DIALOG_COPY } from './constants';
+import {
+  DRAFT_COPY,
+  INITIAL_EDITOR_STATE,
+  INITIAL_PUBLISH_DIALOG_STATE,
+  PUBLISH_DIALOG_COPY,
+} from './constants';
 import { RULES_STEP_COPY } from './RulesStep/constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
@@ -25,6 +30,8 @@ import type {
   DroppedData,
   EditorOrigin,
   PendingRemoval,
+  PublishDialogAction,
+  PublishDialogState,
 } from './types';
 import {
   conflictOf,
@@ -45,6 +52,7 @@ import {
   initialEditorState,
   initialStatesFromDraft,
   initialStatesFromLocal,
+  isInvalidStartDate,
   isRulesChanged,
   localContentOf,
   offeredFieldsOf,
@@ -52,7 +60,10 @@ import {
   originOfRecord,
   pageTitleOf,
   problemPlaceOf,
+  publishDialogReducer,
   publishErrorNotice,
+  publishFailureOf,
+  publishStartDateOf,
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
@@ -1872,5 +1883,180 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     expect(publishErrorNotice(rulesChangedError(), true, 'de').message).toBe(
       `${RULES_CHANGED_MESSAGE} ${PUBLISH_DIALOG_COPY.de.rulesChangedHint}`
     );
+  });
+});
+
+describe('publishDialogReducer: "Active from" (spec 010, S14, C2; FR-001–FR-003, FR-014)', () => {
+  const TODAY = '2026-11-11';
+  const run = (actions: PublishDialogAction[], start = INITIAL_PUBLISH_DIALOG_STATE) =>
+    actions.reduce<PublishDialogState>(publishDialogReducer, start);
+  const opened = run([{ type: 'open', from: 'test', withoutRules: false }]);
+  const onDate = (text: string) =>
+    run(
+      [
+        { type: 'chooseActiveFrom', choice: 'date' },
+        { type: 'typeStartDate', text },
+      ],
+      opened
+    );
+
+  it('opens with "Now", an empty field and no error, also after a scheduled attempt', () => {
+    expect(opened).toMatchObject({
+      phase: 'summary',
+      activeFrom: 'now',
+      startDateText: '',
+      dateError: false,
+      dateRefusals: 0,
+    });
+    const reopened = run(
+      [
+        { type: 'dateRefused' },
+        { type: 'close' },
+        { type: 'open', from: 'test', withoutRules: false },
+      ],
+      onDate('31.02.2027')
+    );
+    expect(reopened).toMatchObject({ activeFrom: 'now', startDateText: '', dateError: false });
+  });
+
+  it('sends no date with "Now" and in the edit flow, the day with "On a date"', () => {
+    expect(publishStartDateOf(opened, false, TODAY)).toEqual({ ok: true, date: null });
+    expect(publishStartDateOf(onDate('1.12.2026'), false, TODAY)).toEqual({
+      ok: true,
+      date: '2026-12-01',
+    });
+    // "Save changes?" has no "Active from" (F9), whatever the state holds
+    expect(publishStartDateOf(onDate('11.11.2026'), true, TODAY)).toEqual({
+      ok: true,
+      date: null,
+    });
+  });
+
+  it('refuses an empty field, today, the past and no date (startDateOf)', () => {
+    for (const text of ['', '11.11.2026', '10.11.2026', '31.02.2027', 'abc']) {
+      expect(publishStartDateOf(onDate(text), false, TODAY)).toEqual({ ok: false });
+    }
+  });
+
+  it("shows the field's error on a refusal and drops it when the text or the choice changes", () => {
+    const refused = run([{ type: 'dateRefused' }], onDate('10.11.2026'));
+    expect(refused).toMatchObject({
+      phase: 'summary',
+      dateError: true,
+      dateRefusals: 1,
+      activeFrom: 'date',
+      startDateText: '10.11.2026',
+    });
+    expect(run([{ type: 'dateRefused' }], refused).dateRefusals).toBe(2);
+    // A date that passed the check is sent: the error goes while it publishes and after a failure
+    expect(
+      run([{ type: 'publish' }, { type: 'failed', failure: { kind: 'general' } }], refused)
+    ).toMatchObject({ phase: 'failed', dateError: false, startDateText: '10.11.2026' });
+    expect(run([{ type: 'typeStartDate', text: '12.11.2026' }], refused).dateError).toBe(false);
+    expect(run([{ type: 'chooseActiveFrom', choice: 'now' }], refused)).toMatchObject({
+      dateError: false,
+      startDateText: '10.11.2026',
+    });
+  });
+
+  it("shows the server's 400 invalid_start_date as the same field error, not as a failure", () => {
+    const error = new ApiError(400, {
+      error: 'invalid_start_date',
+      message: 'Enter a date after today.',
+    });
+    expect(isInvalidStartDate(error)).toBe(true);
+    expect(isInvalidStartDate(new ApiError(400, { error: 'invalid', message: 'No.' }))).toBe(false);
+    expect(isInvalidStartDate(new TypeError('Failed to fetch'))).toBe(false);
+    // Midnight passed during the publish: the summary again, without a failure, with the error
+    const refused = run([{ type: 'publish' }, { type: 'dateRefused' }], onDate('12.11.2026'));
+    expect(refused).toMatchObject({
+      phase: 'summary',
+      failure: null,
+      dateError: true,
+      startDateText: '12.11.2026',
+    });
+    // "Publish without rules?" stays itself
+    const withoutRules = run(
+      [
+        { type: 'open', from: 'rules', withoutRules: true },
+        { type: 'chooseActiveFrom', choice: 'date' },
+        { type: 'publish' },
+        { type: 'dateRefused' },
+      ],
+      INITIAL_PUBLISH_DIALOG_STATE
+    );
+    expect(withoutRules).toMatchObject({ phase: 'noRules', withoutRules: true, dateError: true });
+  });
+
+  it('keeps the choice and the text through a failure, so "Try again" sends the same', () => {
+    const failed = run(
+      [{ type: 'publish' }, { type: 'failed', failure: { kind: 'general' } }],
+      onDate('01.12.2026')
+    );
+    expect(failed).toMatchObject({
+      phase: 'failed',
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+      dateError: false,
+    });
+    expect(publishStartDateOf(failed, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    const retried = run([{ type: 'publish' }], failed);
+    expect(retried).toMatchObject({ phase: 'publishing', activeFrom: 'date' });
+    expect(publishStartDateOf(retried, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    // A conflict keeps them too, for "Replace their changes"
+    const conflict = run(
+      [{ type: 'conflict', conflict: { kind: 'rules_changed', message: 'Changed.' } }],
+      retried
+    );
+    expect(publishStartDateOf(conflict, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    // After "Schedule" the status stays "Publishing…", then "Published" (FR-014)
+    expect(run([{ type: 'published', connectionId: 'fc-1' }], retried)).toMatchObject({
+      phase: 'published',
+      connectionId: 'fc-1',
+    });
+  });
+});
+
+describe('publishFailureOf: the no-answer sentence only when no answer came (FR-014, F2, W8)', () => {
+  it("gives the sentence for a network failure and a 5xx without the API's envelope", () => {
+    expect(publishFailureOf(new TypeError('Failed to fetch'), false, 'en')).toEqual({
+      kind: 'general',
+    });
+    expect(
+      publishFailureOf(
+        new ApiError(502, { error: 'Unknown error', message: 'An unexpected error occurred' }),
+        false,
+        'en'
+      )
+    ).toEqual({ kind: 'general' });
+  });
+
+  it('shows a server failure with its message and error ID', () => {
+    const error = new ApiError(500, {
+      error: 'internal_error',
+      message: 'Something went wrong.',
+      error_id: 'abc123',
+    });
+    expect(publishFailureOf(error, false, 'en')).toEqual({
+      kind: 'refused',
+      notice: { message: 'Something went wrong.', error_id: 'abc123' },
+    });
+  });
+
+  it("keeps spec 008's look in the edit flow: the sentence with the error ID", () => {
+    const error = new ApiError(500, {
+      error: 'internal_error',
+      message: 'Something went wrong.',
+      error_id: 'abc123',
+    });
+    expect(publishFailureOf(error, true, 'en')).toEqual({ kind: 'general', errorId: 'abc123' });
+  });
+
+  it("shows any other refusal with the server's message", () => {
+    const error = new ApiError(409, { error: 'unavailable', message: 'Not possible.' });
+    expect(publishFailureOf(error, false, 'en')).toEqual({
+      kind: 'refused',
+      notice: { message: 'Not possible.', error_id: undefined },
+    });
   });
 });

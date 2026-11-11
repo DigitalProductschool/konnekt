@@ -374,6 +374,8 @@ export function stepOf(content: {
  * and a draft's step, an empty one left out
  */
 export interface SummaryFacts {
+  /** YYYY-MM-DD, the day in Germany a scheduled connection becomes active */
+  start_date?: string;
   /** When it was first published; a draft has none */
   published_at?: string;
   /** Present only while deactivated */
@@ -384,9 +386,10 @@ export interface SummaryFacts {
 
 /** A search item's dates and step, as the API's summary gives them; nulls are left out. */
 export function summaryFactsOf(
-  summary: Pick<FormConnectionSummary, 'published_at' | 'deactivated_at' | 'step'>
+  summary: Pick<FormConnectionSummary, 'start_date' | 'published_at' | 'deactivated_at' | 'step'>
 ): SummaryFacts {
   return {
+    ...(summary.start_date ? { start_date: summary.start_date } : {}),
     ...(summary.published_at ? { published_at: summary.published_at } : {}),
     ...(summary.deactivated_at ? { deactivated_at: summary.deactivated_at } : {}),
     ...(summary.step ? { step: summary.step } : {}),
@@ -399,6 +402,8 @@ export function summaryFactsOf(
  * reactivating moves and publishing doesn't (FR-018)
  */
 export interface ConnectionFacts {
+  /** YYYY-MM-DD, the day in Germany a scheduled connection becomes active */
+  start_date?: string;
   published_at?: string;
   active_since?: string;
   /** Present only while deactivated */
@@ -413,6 +418,7 @@ export function connectionFactsOf(fc: FormConnectionOrDraft): ConnectionFacts {
     return { step: fc.step };
   }
   return {
+    ...(fc.start_date ? { start_date: fc.start_date } : {}),
     published_at: fc.published_at,
     ...(fc.activated_at ? { active_since: fc.activated_at } : {}),
     ...(fc.deactivated_at ? { deactivated_since: fc.deactivated_at } : {}),
@@ -459,8 +465,14 @@ export function summaryTextOf(...lines: (string | null | undefined | false)[]): 
   return lines.filter((line): line is string => typeof line === 'string' && line !== '').join('\n');
 }
 
-export function connectionLineOf(ref: ConnectionRef): string {
-  return `Connection '${ref.name}' (${ref.status}): ${ref.link}`;
+/**
+ * A connection's line: "Connection '{name}' (live): {link}"; a scheduled one with the day it
+ * starts, "Connection '{name}' (scheduled from {date}): {link}", where the caller knows it
+ */
+export function connectionLineOf(ref: ConnectionRef, startDate?: string | null): string {
+  const status =
+    ref.status === 'scheduled' && startDate ? `scheduled from ${startDate}` : ref.status;
+  return `Connection '${ref.name}' (${status}): ${ref.link}`;
 }
 
 export function variantLineOf(ref: VariantRef): string {

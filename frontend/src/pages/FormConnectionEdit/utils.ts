@@ -1,5 +1,6 @@
 import type {
   BranchInput,
+  FormConnection,
   FormConnectionDraft,
 } from '@connection-portal/api-types/form-connections';
 import type { EditLocationState } from '@connection-portal/api-types/routing';
@@ -100,6 +101,18 @@ export function draftFlowReducer(state: DraftFlowState, action: DraftFlowAction)
     case 'discard':
       return { kind: 'open', restored: null };
   }
+}
+
+/**
+ * The start date of a scheduled connection that the edit flow words its texts with (spec 010,
+ * S18; FR-013, W6, W7): step 1's note, "Save changes?", "Save your changes?" and "Discard your
+ * changes?". Null for an active or deactivated connection, and for a new connection or a stored
+ * draft (no connection); saving never changes the date.
+ */
+export function scheduledStartOf(
+  formConnection: Pick<FormConnection, 'state' | 'start_date'> | undefined
+): string | null {
+  return formConnection?.state === 'scheduled' ? formConnection.start_date : null;
 }
 
 /** No link, or one that names nothing to open */

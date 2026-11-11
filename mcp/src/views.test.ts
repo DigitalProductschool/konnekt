@@ -500,7 +500,11 @@ describe('stepOf', () => {
 });
 
 describe('the dates and the step (spec 010, FR-062)', () => {
-  const SUMMARY: Pick<FormConnectionSummary, 'published_at' | 'deactivated_at' | 'step'> = {
+  const SUMMARY: Pick<
+    FormConnectionSummary,
+    'start_date' | 'published_at' | 'deactivated_at' | 'step'
+  > = {
+    start_date: null,
     published_at: null,
     deactivated_at: null,
     step: null,
@@ -528,6 +532,16 @@ describe('the dates and the step (spec 010, FR-062)', () => {
     expect(summaryFactsLineOf(deactivated)).toBe(
       'Published 2026-11-01T10:00:00Z; deactivated 2026-11-03T10:00:00Z.'
     );
+  });
+
+  it('gives a scheduled search item its start_date, which the ref line names', () => {
+    const facts = summaryFactsOf({
+      ...SUMMARY,
+      start_date: '2026-12-01',
+      published_at: '2026-11-01T10:00:00Z',
+    });
+    expect(facts).toEqual({ start_date: '2026-12-01', published_at: '2026-11-01T10:00:00Z' });
+    expect(summaryFactsLineOf(facts)).toBe('Published 2026-11-01T10:00:00Z.');
   });
 
   it('leaves a search item without a date or step without facts or a line', () => {
@@ -564,8 +578,16 @@ describe('the dates and the step (spec 010, FR-062)', () => {
     expect(connectionDatesLineOf(facts)).toContain('deactivated since 2026-11-03T10:00:00Z');
   });
 
-  it('leaves active_since out for a connection that was never active', () => {
-    expect(connectionFactsOf(SCHEDULED)).toEqual({ published_at: '2026-11-01T10:00:00Z' });
+  it('gives a scheduled connection its start_date, and no active_since while never active', () => {
+    const facts = connectionFactsOf(SCHEDULED);
+    expect(facts).toEqual({ start_date: '2026-12-01', published_at: '2026-11-01T10:00:00Z' });
+    expect(connectionDatesLineOf(facts)).toBe('Published 2026-11-01T10:00:00Z.');
+  });
+
+  it('leaves start_date out for a live, a deactivated connection and a draft', () => {
+    expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('start_date');
+    expect(connectionFactsOf(DEACTIVATED)).not.toHaveProperty('start_date');
+    expect(connectionFactsOf(DRAFT)).not.toHaveProperty('start_date');
   });
 });
 
@@ -629,11 +651,24 @@ describe('text blocks', () => {
     expect(connectionLineOf(connectionRefOf(DRAFT))).toBe(
       `Connection 'Parking permit' (draft): ${connectionLink(CONNECTION)}`
     );
+    expect(connectionLineOf(connectionRefOf(PUBLISHED), null)).toBe(
+      `Connection 'Parking permit' (live): ${connectionLink(CONNECTION)}`
+    );
     expect(variantLineOf(variantRefOf(AMBULANCE_BRANCH, CONNECTION))).toBe(
       `Variant 'Ambulance': ${variantLink(CONNECTION, AMBULANCE)}`
     );
     expect(itemLineOf(itemRefOf(LICENCE, STANDARD_BRANCH, CONNECTION))).toBe(
       `Group 'Licence' (group-1): ${itemLink(CONNECTION, STANDARD, 'group-1')}`
+    );
+  });
+
+  it('names a scheduled connection with the day it becomes active', () => {
+    expect(connectionLineOf(connectionRefOf(SCHEDULED), SCHEDULED.start_date)).toBe(
+      `Connection 'Parking permit' (scheduled from 2026-12-01): ${connectionLink(CONNECTION)}`
+    );
+    // Without the day, the status alone
+    expect(connectionLineOf(connectionRefOf(SCHEDULED))).toBe(
+      `Connection 'Parking permit' (scheduled): ${connectionLink(CONNECTION)}`
     );
   });
 

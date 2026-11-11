@@ -36,7 +36,14 @@ import {
 } from 'vitest';
 
 import type { RunningServer } from '../src/server';
-import { BEARERS, type FakeBackend, IDS, publishedOf, startFakeBackend } from './fakeBackend';
+import {
+  BEARERS,
+  type FakeBackend,
+  IDS,
+  publishedOf,
+  SCHEDULED_START,
+  startFakeBackend,
+} from './fakeBackend';
 
 const SKILL_NAMES = [
   'access-levels',
@@ -512,8 +519,43 @@ describe('the reading tools', () => {
           published_at: '2026-10-01T09:00:00Z',
           deactivated_at: '2026-11-01T09:00:00Z',
         },
+        {
+          id: IDS.scheduled,
+          name: 'Boat licence',
+          status: 'scheduled',
+          link: links.connectionLink(IDS.scheduled),
+          updated_at: '2026-10-31T09:00:00Z',
+          start_date: SCHEDULED_START,
+          published_at: '2026-10-01T09:00:00Z',
+        },
       ]);
       expect(text).toContain(links.connectionLink(IDS.live));
+    });
+
+    it('finds the scheduled connections, each with the day it becomes active', async () => {
+      const { structured, text } = await callTool('search_connections', { status: 'scheduled' });
+      expect(structured.items.map((item: { id: string }) => item.id)).toEqual([IDS.scheduled]);
+      expect(structured.items[0]).toMatchObject({ status: 'scheduled', start_date: '2026-12-01' });
+      expect(structured.items[0]).not.toHaveProperty('deactivated_at');
+      expect(text).toContain(
+        `- Connection 'Boat licence' (scheduled from 2026-12-01): ` +
+          `${links.connectionLink(IDS.scheduled)}\n  Published 2026-10-01T09:00:00Z.`
+      );
+      expect(fake.calls.map((call) => call.path)).toContain(
+        '/api/form-connections/search?status=scheduled'
+      );
+      // A deactivated connection has no start: neither status takes the other's rows
+      const deactivated = await callTool('search_connections', { status: 'deactivated' });
+      expect(deactivated.structured.items.map((item: { id: string }) => item.id)).toEqual([
+        IDS.deactivated,
+      ]);
+    });
+
+    it('leaves start_date out for a draft, a live and a deactivated connection', async () => {
+      const { structured } = await callTool('search_connections', {});
+      for (const item of structured.items as { id: string }[]) {
+        if (item.id !== IDS.scheduled) expect(item).not.toHaveProperty('start_date');
+      }
     });
 
     it("says a draft's step, and when a connection was published and deactivated", async () => {
@@ -567,7 +609,7 @@ describe('the reading tools', () => {
       const second = await callTool('search_connections', {
         cursor: first.structured.next_cursor,
       });
-      expect(second.structured.items).toHaveLength(3);
+      expect(second.structured.items).toHaveLength(4);
       expect(second.structured.next_cursor).toBeNull();
     });
   });
@@ -676,6 +718,38 @@ describe('the reading tools', () => {
       expect(structured).not.toHaveProperty('deactivated_since');
       expect(structured).not.toHaveProperty('step');
       expect(text).toContain('Published 2026-10-01T09:00:00Z; active since 2026-11-05T09:00:00Z.');
+    });
+
+    it("answers a scheduled connection's start_date and URLs, which answer unavailable until then", async () => {
+      const { structured, text } = await callTool('get_connection', {
+        connection: IDS.scheduled,
+      });
+      expect(structured).toMatchObject({
+        id: IDS.scheduled,
+        status: 'scheduled',
+        start_date: '2026-12-01',
+        published_at: '2026-10-01T09:00:00Z',
+        urls: { trigger_url: `https://portal.example/api/connect/${IDS.scheduled}` },
+        urls_note:
+          'This connection is scheduled: its URLs answer "unavailable" until it becomes active ' +
+          'on 2026-12-01, 00:00 in Germany.',
+      });
+      expect(structured).not.toHaveProperty('active_since');
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(structured).not.toHaveProperty('step');
+      expect(text.split('\n')[0]).toBe(
+        `Connection 'Boat licence' (scheduled from 2026-12-01): ${links.connectionLink(IDS.scheduled)}`
+      );
+      expect(text).toContain('Published 2026-10-01T09:00:00Z.');
+      expect(text).toContain('until it becomes active on 2026-12-01, 00:00 in Germany.');
+      expect(text).not.toContain('{date}');
+    });
+
+    it('leaves start_date out for a live and a deactivated connection and a draft', async () => {
+      for (const id of [IDS.live, IDS.deactivated, IDS.draft]) {
+        const { structured } = await callTool('get_connection', { connection: id });
+        expect(structured).not.toHaveProperty('start_date');
+      }
     });
 
     it('lists a requested document type the catalog lacks in dropped, by its key', async () => {
@@ -2864,6 +2938,37 @@ describe('the approval tools', () => {
       });
       expect(text).toContain('the connection is live again');
       expect(text).toContain(`Trigger URL: ${dog.trigger_url}`);
+    });
+
+    it("fills a scheduled connection's start into the URLs' note", async () => {
+      const id = await storedRequest(
+        (request) => ({ ...request, status: 'done', outcome: 'done' }),
+        IDS.deactivated,
+        'reactivate',
+        BEARERS.manage
+      );
+      // The connection was scheduled since: inactive, with a start day
+      const dog = fake.store.connections.get(IDS.deactivated) as FormConnection;
+      fake.store.connections.set(IDS.deactivated, { ...dog, start_date: '2026-12-01' });
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.manage
+      );
+      expect(structured.request.connection).toMatchObject({
+        id: IDS.deactivated,
+        status: 'scheduled',
+      });
+      expect(structured.urls?.trigger_url).toBe(dog.trigger_url);
+      expect(text).toContain(
+        `Connection 'Dog licence' (scheduled from 2026-12-01): ` +
+          links.connectionLink(IDS.deactivated)
+      );
+      expect(text).toContain(
+        'This connection is scheduled: its URLs answer "unavailable" until it becomes active ' +
+          'on 2026-12-01, 00:00 in Germany.'
+      );
+      expect(text).not.toContain('{date}');
     });
 
     it.each<[string, string, string, Partial<ApprovalRequest>, boolean]>([

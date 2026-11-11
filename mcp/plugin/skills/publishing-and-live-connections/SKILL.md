@@ -96,15 +96,30 @@ deleted it meanwhile), `connection_changed` or `connection_deleted` (the connect
 deactivated, reactivated or deleted meanwhile), `revoked`, `access_changed` or `access_ended`
 (your access was revoked, lowered or ended).
 
+## A scheduled connection
+
+A published connection is `live`, `deactivated` or `scheduled`. A scheduled connection is
+published but not active yet: it becomes active by itself on its `start_date`, a day in Germany
+(`YYYY-MM-DD`), at 00:00 German time. Until then it has its URLs already, so the team member can
+add them to the serviceBW form in time, but they answer "unavailable", as a deactivated
+connection's do. From the start day on they work, with no change to the form and nobody signed
+in. `search_connections` finds the scheduled connections with `status: 'scheduled'`, and its
+items and `get_connection` carry the `start_date`; their text names it ("Connection 'Boat
+licence' (scheduled from 2026-12-01): …"). A live, deactivated or draft connection has no
+`start_date`.
+
 ## The connection URLs
 
 A published connection has a trigger URL and one pull URL per variant, with the placeholder
 `{reference}` that serviceBW fills in. The team member copies them into the serviceBW form. A
-draft has no URLs yet; a deactivated connection keeps its URLs, which answer "unavailable" until
-it is reactivated; a deleted connection has none. `check_approval` answers the URLs only after a
+draft has no URLs yet; a scheduled connection has its URLs, which answer "unavailable" until it
+becomes active on its `start_date`; a deactivated connection keeps its URLs, which answer
+"unavailable" until it is reactivated; a deleted connection has none. `check_approval` answers the URLs only after a
 done `publish` or `reactivate`: after deactivating or deleting, it answers `urls: null`.
 
 `get_connection` answers them as `urls`: the `trigger_url`, and per variant its name, link and
 `pull_url`. For a draft, `urls` is null. `urls_note` always says where the URLs stand: that they
-exist once the draft is published, that the connection is live, or that it is deactivated and its
-URLs answer "unavailable" until it is reactivated. Pass the note on with the URLs.
+exist once the draft is published, that the connection is live, that it is deactivated and its
+URLs answer "unavailable" until it is reactivated, or that it is scheduled and its URLs answer
+"unavailable" until it becomes active on its start date, 00:00 in Germany. Pass the note on with
+the URLs.

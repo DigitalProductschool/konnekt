@@ -19,6 +19,18 @@ worker's re-sync leaves it alone.
 Every change records its activity (spec 010, research R4, `services/activity.py`)
 and moves the status dates of data-model 1.3 under the row lock, in the
 transaction that makes the change, never before EUDIPLO answered.
+
+Publishing with a start date (spec 010, research R1, R2) runs the same publish and
+sets up the same EUDIPLO configuration, so the links exist at once, but leaves the
+connection inactive with its `start_date`: scheduled. The date is checked with
+`start_dates.clean_start_date()` before EUDIPLO is called and again in the
+transaction that publishes, after EUDIPLO answered, so that a day that ends
+meanwhile publishes nothing. Activating again on a date and changing the start
+date (`set_start_date()`) check theirs before and again under the row lock of
+`_lock_for_status_change()`, and make the transitions of data-model 1.3 there;
+scheduling a live connection cancels its open requests as deactivating does. Only
+the worker makes a scheduled connection active, on its day
+(`activate_due_connections()`), skipping the rows those changes hold locked.
 """
 
 import base64
@@ -28,7 +40,7 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from fastapi import HTTPException, status
 from sqlalchemy import ColumnElement, and_, delete, func, null, or_, select, update
@@ -56,7 +68,7 @@ from ..schemas import (
     to_iso_utc,
 )
 from ..schemas import FormConnection as FormConnectionView
-from . import activity, dcql, rules
+from . import activity, dcql, rules, start_dates
 from .activity import SYSTEM, Actor
 from .document_requests import cancel_open_requests
 from .eudiplo import EudiploError, get_eudiplo_client
@@ -68,8 +80,9 @@ DESCRIPTION_MAX_LENGTH = 500
 # The search's page size: the default and the largest `limit` (spec 007, R9)
 SEARCH_PAGE_SIZE = 25
 
-# The search's status filter (spec 007, research R9)
-SearchStatus = Literal['draft', 'live', 'deactivated']
+# The search's status filter (spec 007, research R9): a state as `state_of()`
+# derives it, `scheduled` too (spec 010, FR-062)
+SearchStatus = ConnectionState
 
 # The management side's 404; serviceBW's URLs answer their own, English one
 # (`document_requests.FORM_CONNECTION_NOT_FOUND`, FR-017)
@@ -252,6 +265,20 @@ def clean_documents(
     return [selected[type_.key] for type_ in DOCUMENT_TYPES if type_.key in selected]
 
 
+def check_start_date(start_date: date | None) -> None:
+    """Check a start date: a day after today in Germany (FR-003).
+
+    None means "Now" and passes. A date that is today or earlier answers 400
+    `invalid_start_date` (`start_dates.clean_start_date()`). Every path that
+    takes one calls this before it changes anything and again under the row lock
+    (spec 010, research R2): publishing before EUDIPLO is called and after it
+    answered, activating again and changing the start date before and under the
+    lock of `_lock_for_status_change()`.
+    """
+    if start_date is not None:
+        start_dates.clean_start_date(start_date)
+
+
 # Views
 
 
@@ -355,7 +382,8 @@ def state_of(form_connection: FormConnection) -> ConnectionState:
 
     The one place that derives it: a draft is unpublished; a published connection
     is live while active, scheduled while inactive with a start date, and
-    deactivated while inactive without one.
+    deactivated while inactive without one. `STATE_CONDITIONS` below says the
+    same in SQL; a change to one changes the other.
     """
     if form_connection.published_at is None:
         return 'draft'
@@ -364,6 +392,28 @@ def state_of(form_connection: FormConnection) -> ConnectionState:
     if form_connection.start_date is not None:
         return 'scheduled'
     return 'deactivated'
+
+
+# `state_of()` in SQL, for the queries that select by state: the search's status
+# filter and the worker's scheduled starts (data-model 1.2). A row matches exactly
+# the condition of the state `state_of()` derives for it; whether it is deleted
+# is the query's own condition
+STATE_CONDITIONS: dict[ConnectionState, ColumnElement[bool]] = {
+    'draft': FormConnection.published_at.is_(None),
+    'live': and_(
+        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(True)
+    ),
+    'scheduled': and_(
+        FormConnection.published_at.is_not(None),
+        FormConnection.is_active.is_(False),
+        FormConnection.start_date.is_not(None),
+    ),
+    'deactivated': and_(
+        FormConnection.published_at.is_not(None),
+        FormConnection.is_active.is_(False),
+        FormConnection.start_date.is_(None),
+    ),
+}
 
 
 def _iso_or_none(value: datetime | None) -> str | None:
@@ -533,19 +583,24 @@ class DraftGuard:
 
 
 def _lock_for_revision(
-    db: Session, form_connection_id: str, guard: DraftGuard | None
+    db: Session,
+    form_connection_id: str,
+    guard: DraftGuard | None,
+    start_date: date | None,
 ) -> FormConnection:
     """Lock the row that `create_revision()` works on and check its state.
 
     Without `guard`, a published form connection's (`_lock_published_form_connection`).
-    With it, a draft's: 404 if it is missing, and the guard's refusal, each after
-    releasing the lock.
+    With it, a draft's: 404 if it is missing, the guard's refusal, and then 400
+    `invalid_start_date` for a `start_date` that is no longer after today
+    (`check_start_date`), each after releasing the lock.
     """
     if guard is None:
         return _lock_published_form_connection(db, form_connection_id)
     form_connection = _lock_form_connection(db, form_connection_id)
     try:
         guard.check(form_connection)
+        check_start_date(start_date)
     except HTTPException:
         db.rollback()
         raise
@@ -624,15 +679,6 @@ def list_form_connections(db: Session) -> list[FormConnectionSummary]:
 
 # The search (spec 007, research R9; FR-007)
 
-_SEARCH_STATUS_FILTERS: dict[SearchStatus, ColumnElement[bool]] = {
-    'draft': FormConnection.published_at.is_(None),
-    'live': and_(
-        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(True)
-    ),
-    'deactivated': and_(
-        FormConnection.published_at.is_not(None), FormConnection.is_active.is_(False)
-    ),
-}
 _CURSOR_SEPARATOR = '|'
 
 
@@ -675,8 +721,10 @@ def search_form_connections(
     """A page of the form connections that aren't deleted, for agents (FR-007).
 
     `q`, trimmed, matches the name or the description case-insensitively and
-    literally; empty, it matches every row. `status` keeps drafts, live or
-    deactivated connections. Ordered by `updated_at` descending, then `id`, with a
+    literally; empty, it matches every row. `status` keeps the drafts, the
+    scheduled, the live or the deactivated connections, as `state_of()` derives
+    their state (`STATE_CONDITIONS`; spec 010, FR-062): a scheduled connection is
+    no deactivated one. Ordered by `updated_at` descending, then `id`, with a
     keyset cursor, so that changes between calls don't shift the pages;
     `next_cursor` is None on the last page. A cursor this search didn't answer
     gets 400.
@@ -692,7 +740,7 @@ def search_form_connections(
             )
         )
     if status is not None:
-        query = query.where(_SEARCH_STATUS_FILTERS[status])
+        query = query.where(STATE_CONDITIONS[status])
     if cursor is not None:
         updated_at, form_connection_id = _decode_cursor(cursor)
         query = query.where(
@@ -752,6 +800,15 @@ def create_form_connection(
     creates it: the transaction that inserts the row, after EUDIPLO answered,
     records `created` and `published` with them and sets `activated_at` to the
     publication's time (spec 010, research R3, R4, data-model 1.3).
+
+    With `data.start_date` it is created scheduled (spec 010, research R1, R2,
+    data-model 1.3, "publish, on a date"): the date is checked last before
+    EUDIPLO is called and again in the transaction that inserts the row, after
+    EUDIPLO answered, both with 400 `invalid_start_date` for a day that isn't
+    after today in Germany; the second refusal deletes the configuration again,
+    and nothing is stored. The row is inserted inactive with its `start_date`
+    and without `activated_at`, and that transaction records `created`,
+    `published` and `scheduled` with the date.
     """
     name = clean_name(data.name)
     description = clean_description(data.description)
@@ -763,6 +820,8 @@ def create_form_connection(
         # A variant id the editor chose must be free (spec 007, research R10);
         # `first_rule_set` checks it again before the rows are written
         rules.check_draft_branch_ids(db, None, save.branches)
+    start_date = data.start_date
+    check_start_date(start_date)
 
     form_connection_id = str(uuid.uuid4())
     lifetime_seconds = settings.request_lifetime_seconds
@@ -779,20 +838,30 @@ def create_form_connection(
     get_eudiplo_client().create_config(body)
 
     published_at = datetime.now(tz=timezone.utc)
+    scheduled = start_date is not None
     form_connection = FormConnection(
         id=form_connection_id,
         name=name,
         description=description,
-        is_active=True,
+        # Scheduled: published, not active, with its start date (data-model 1.3)
+        is_active=not scheduled,
         published_at=published_at,
-        # Published with "Now": active since its publication (data-model 1.3)
-        activated_at=published_at,
+        # Published with "Now": active since its publication; scheduled: not
+        # yet, the worker sets it at the start (data-model 1.3)
+        activated_at=None if scheduled else published_at,
+        start_date=start_date,
         current_revision=1,
         current_rule_set=1,
         next_rule_number=1,
         next_group_number=1,
     )
+    entries = [activity.Entry(activity.CREATED), activity.Entry(activity.PUBLISHED)]
+    if start_date is not None:
+        entries.append(activity.Entry(activity.SCHEDULED, start_date=start_date))
     try:
+        # Again after EUDIPLO answered: the day may have ended meanwhile (FR-003);
+        # a refusal deletes the configuration below
+        check_start_date(start_date)
         db.add(form_connection)
         db.flush()
         db.add(
@@ -807,12 +876,7 @@ def create_form_connection(
         )
         branches = rules.first_rule_set(db, form_connection, save)
         # The new row is this transaction's alone until the commit
-        activity.record(
-            db,
-            form_connection_id,
-            [activity.Entry(activity.CREATED), activity.Entry(activity.PUBLISHED)],
-            actor,
-        )
+        activity.record(db, form_connection_id, entries, actor)
         db.commit()
     except HTTPException:
         db.rollback()
@@ -874,13 +938,17 @@ def _publish(
     form_connection: FormConnection,
     revision: int,
     save: rules.RulesSave | None,
+    start_date: date | None,
 ) -> list[SnapshotBranch]:
     """Turn a locked draft row into a published connection, uncommitted.
 
     The revision becomes current, and rule set 1, the branch rows and the counters
     are written from the row's counters (spec 005, research R4, R5). Published
-    with "Now", it is active since its publication (spec 010, data-model 1.3).
-    Returns the branches as rule set 1 stores them, each with its final id.
+    with "Now" (`start_date` None), it is active since its publication; with a
+    `start_date`, which the caller has checked under this lock, it is scheduled:
+    not active, with that date and without `activated_at`, which the worker sets
+    at the start (spec 010, data-model 1.3). Returns the branches as rule set 1
+    stores them, each with its final id.
     """
     branches = rules.first_rule_set(
         db,
@@ -889,10 +957,15 @@ def _publish(
         counters=(form_connection.next_rule_number, form_connection.next_group_number),
     )
     published_at = datetime.now(tz=timezone.utc)
-    # Every column of the CHECK constraint changes in the same flush
+    # Every column of the CHECK constraints changes in the same flush
     form_connection.current_revision = revision
     form_connection.published_at = published_at
-    form_connection.activated_at = published_at
+    if start_date is None:
+        form_connection.activated_at = published_at
+    else:
+        form_connection.is_active = False
+        form_connection.start_date = start_date
+        form_connection.activated_at = None
     # SQL NULL: None would store JSON null, which the CHECK constraint refuses
     form_connection.draft = null()
     form_connection.draft_version = None
@@ -908,6 +981,7 @@ def create_revision(
     guard: DraftGuard | None = None,
     *,
     actor: Actor,
+    start_date: date | None = None,
 ) -> FormConnection:
     """Store `documents` as the next revision and make it current (FR-005).
 
@@ -952,9 +1026,21 @@ def create_revision(
     published connection's current one, or the stored draft, then `published`,
     and a publish sets `activated_at` (`_publish`). A save that changes nothing,
     such as the re-sync's, records nothing; a refusal or a failure, nothing either.
+
+    `start_date` publishes the draft scheduled (spec 010, research R1, R2); only
+    a publish, with `guard`, takes one. The caller has checked it before EUDIPLO
+    is called; it is checked again with `check_start_date()` under both row locks,
+    after the guard: under the first, a day that ended meanwhile is refused before
+    anything is reserved; under the last, after EUDIPLO answered, it is refused as
+    the guard's refusal is, so the configuration is deleted, the revision removed
+    and the row stays a draft. Otherwise the last commit publishes the row not
+    active, with `start_date` and without `activated_at` (`_publish`), and records
+    `published` then `scheduled` with the date.
     """
+    if start_date is not None and guard is None:
+        raise ValueError('Only publishing a draft takes a start date')
     changes = changes or {}
-    form_connection = _lock_for_revision(db, form_connection_id, guard)
+    form_connection = _lock_for_revision(db, form_connection_id, guard, start_date)
     latest = db.scalar(
         select(func.max(FormConnectionRevision.revision)).where(
             FormConnectionRevision.form_connection_id == form_connection_id
@@ -1009,10 +1095,17 @@ def create_revision(
             )
         else:
             guard.check(form_connection)
+            # Again after EUDIPLO answered: the day may have ended meanwhile
+            # (FR-003); a refusal deletes the configuration below, as the guard's
+            check_start_date(start_date)
             # The stored draft, read before publishing clears it
             before = activity.draft_content(form_connection)
-            branches = _publish(db, form_connection, number, save)
+            branches = _publish(db, form_connection, number, save, start_date)
             published.append(activity.Entry(activity.PUBLISHED))
+            if start_date is not None:
+                published.append(
+                    activity.Entry(activity.SCHEDULED, start_date=start_date)
+                )
         for attribute, value in changes.items():
             setattr(form_connection, attribute, value)
         after = activity.Content(
@@ -1141,7 +1234,14 @@ def update_form_connection(
     return _current_view(db, form_connection)
 
 
-# Deactivating, activating and deleting (FR-006)
+# Deactivating, activating, scheduling and deleting (FR-006; spec 010, FR-008 to
+# FR-012, data-model 1.3)
+
+
+def _status_changed() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT, detail=STATUS_CHANGED_DETAIL
+    )
 
 
 def _lock_for_status_change(
@@ -1154,14 +1254,40 @@ def _lock_for_status_change(
     for (spec 007, research R12), also 409 `status_changed` when the row's is
     another one by now, after releasing the lock: the connection was deactivated
     or reactivated since the approval's check. The management interface passes
-    none and changes the status whatever it is.
+    none; each caller then refuses, under this lock, the state its action doesn't
+    apply to (`_lock_for_start_date`).
     """
     form_connection = _lock_published_form_connection(db, form_connection_id)
     if expected_active is not None and form_connection.is_active != expected_active:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=STATUS_CHANGED_DETAIL
-        )
+        raise _status_changed()
+    return form_connection
+
+
+def _lock_for_start_date(
+    db: Session,
+    form_connection_id: str,
+    expected_active: bool | None,
+    refused: ConnectionState,
+    start_date: date | None,
+) -> FormConnection:
+    """Lock a published connection's row for an action that takes a start date.
+
+    `_lock_for_status_change()`'s refusals; then, under the lock, 409
+    `status_changed` while the connection is in the state `refused`, which the
+    action doesn't apply to, and 400 `invalid_start_date` for a `start_date` that
+    is no longer after today in Germany (`check_start_date`): the caller checked
+    it before the lock, and the day may have ended since (spec 010, FR-003). A
+    refusal releases the lock.
+    """
+    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
+    try:
+        if state_of(form_connection) == refused:
+            raise _status_changed()
+        check_start_date(start_date)
+    except HTTPException:
+        db.rollback()
+        raise
     return form_connection
 
 
@@ -1177,13 +1303,20 @@ def deactivate_form_connection(
     Its open requests become unavailable in the same transaction. EUDIPLO isn't
     called: the worker deletes their sessions in its next cycle. `actor` is who
     deactivates it (spec 010, research R4); `expected_active` as
-    `_lock_for_status_change` says. Under the row lock, an active connection gets
-    `deactivated_at` and the entry `deactivated`; one that is deactivated already
-    keeps its date and gets no entry (data-model 1.3).
+    `_lock_for_status_change` says. Under the row lock (data-model 1.3), a live
+    connection becomes inactive, and a scheduled one loses its `start_date`, so
+    that its schedule ends and it never becomes active by itself (FR-012); either
+    gets `deactivated_at` and the entry `deactivated`. One that is deactivated
+    already keeps its date and gets no entry.
     """
     form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
-    if form_connection.is_active:
-        form_connection.is_active = False
+    state = state_of(form_connection)
+    if state != 'deactivated':
+        if state == 'live':
+            form_connection.is_active = False
+        else:
+            # Scheduled: inactive already; the schedule ends (FR-012)
+            form_connection.start_date = None
         form_connection.deactivated_at = datetime.now(tz=timezone.utc)
         activity.record(
             db, form_connection_id, [activity.Entry(activity.DEACTIVATED)], actor
@@ -1204,24 +1337,110 @@ def activate_form_connection(
     *,
     actor: Actor,
     expected_active: bool | None = None,
+    start_date: date | None = None,
 ) -> FormConnectionView:
-    """Activate a form connection again: its URLs work again, unchanged.
+    """Activate a deactivated form connection again, now or on a date.
 
-    `actor` is who activates it (spec 010, research R4); `expected_active` as
-    `_lock_for_status_change` says. Under the row lock, a deactivated connection
-    gets `activated_at` and the entry `reactivated`, and keeps `deactivated_at`,
-    which the views answer only while deactivated; one that is active already
-    keeps its date and gets no entry (data-model 1.3).
+    "Now" (`start_date` None): its URLs work again, unchanged. With `start_date`,
+    a day after today in Germany, it is scheduled for that day instead: its URLs
+    keep answering as a deactivated connection's until the worker activates it
+    (spec 010, FR-011). `actor` is who activates it (research R4);
+    `expected_active` as `_lock_for_status_change` says.
+
+    The date is checked before the row is locked and again under the lock, 400
+    `invalid_start_date` either time (research R2), and a scheduled connection
+    answers 409 `status_changed` under the lock: its start date is changed
+    instead (`set_start_date`). Under the row lock (data-model 1.3), a
+    deactivated connection gets `activated_at` and the entry `reactivated` with
+    "Now", or its `start_date` and the entry `scheduled` with the date; it keeps
+    `deactivated_at` either way, which the views answer only while deactivated.
+    One that is live already changes nothing and gets no entry, with a date too.
     """
-    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
-    if not form_connection.is_active:
-        form_connection.is_active = True
-        form_connection.activated_at = datetime.now(tz=timezone.utc)
-        activity.record(
-            db, form_connection_id, [activity.Entry(activity.REACTIVATED)], actor
-        )
+    check_start_date(start_date)
+    form_connection = _lock_for_start_date(
+        db, form_connection_id, expected_active, 'scheduled', start_date
+    )
+    scheduling = False
+    if state_of(form_connection) == 'deactivated':
+        if start_date is None:
+            form_connection.is_active = True
+            form_connection.activated_at = datetime.now(tz=timezone.utc)
+            entry = activity.Entry(activity.REACTIVATED)
+        else:
+            # Not active until the worker's step on that day (research R2)
+            form_connection.start_date = start_date
+            entry = activity.Entry(activity.SCHEDULED, start_date=start_date)
+            scheduling = True
+        activity.record(db, form_connection_id, [entry], actor)
     db.commit()
-    logger.info('Form connection %s activated', form_connection_id)
+    if scheduling:
+        logger.info('Form connection %s scheduled', form_connection_id)
+    else:
+        logger.info('Form connection %s activated', form_connection_id)
+    return _current_view(db, form_connection)
+
+
+def set_start_date(
+    db: Session,
+    form_connection_id: str,
+    start_date: date | None,
+    *,
+    actor: Actor,
+) -> FormConnectionView:
+    """Change a scheduled or live connection's start (spec 010, FR-008, FR-009).
+
+    `start_date` is a day after today in Germany, or None for now. It is checked
+    before the row is locked and again under the lock of
+    `_lock_for_status_change()`, 400 `invalid_start_date` either time (research
+    R2). Under that lock, in the transaction that makes the change (data-model
+    1.3):
+    - scheduled, another date: the start moves; `start_date_changed` with the
+      date;
+    - scheduled, None: active now, with `activated_at` now and no `start_date`;
+      `start_date_changed` without a date;
+    - live, a date: scheduled for that day, so that its URLs answer as a
+      deactivated connection's until the worker activates it, and its open
+      requests are cancelled as deactivating cancels them; `scheduled` with the
+      date;
+    - live with None, or scheduled with the date it has: nothing changes and
+      nothing is recorded.
+
+    A deactivated connection answers 409 `status_changed` under the lock (it is
+    activated again instead), a draft 409 `not_published`, and an unknown or
+    deleted one 404. EUDIPLO isn't called. `actor` is who changes it (research
+    R4).
+    """
+    check_start_date(start_date)
+    form_connection = _lock_for_start_date(
+        db, form_connection_id, None, 'deactivated', start_date
+    )
+    entries: list[activity.Entry] = []
+    cancelled = 0
+    if state_of(form_connection) == 'scheduled':
+        if start_date is None:
+            form_connection.is_active = True
+            form_connection.start_date = None
+            form_connection.activated_at = datetime.now(tz=timezone.utc)
+            entries.append(activity.Entry(activity.START_DATE_CHANGED))
+        elif start_date != form_connection.start_date:
+            form_connection.start_date = start_date
+            entries.append(
+                activity.Entry(activity.START_DATE_CHANGED, start_date=start_date)
+            )
+    elif start_date is not None:
+        # Live: not active until the worker's step on that day (research R2);
+        # its requests in progress end as a deactivation ends them (FR-009)
+        form_connection.is_active = False
+        form_connection.start_date = start_date
+        cancelled = cancel_open_requests(db, form_connection_id)
+        entries.append(activity.Entry(activity.SCHEDULED, start_date=start_date))
+    activity.record(db, form_connection_id, entries, actor)
+    db.commit()
+    logger.info(
+        'Form connection %s: start date saved; %s open requests cancelled',
+        form_connection_id,
+        cancelled,
+    )
     return _current_view(db, form_connection)
 
 
@@ -1249,6 +1468,59 @@ def delete_form_connection(
         form_connection_id,
         cancelled,
     )
+
+
+# The scheduled starts, made by the worker (spec 010, research R2; FR-005)
+
+
+def activate_due_connections(db: Session, today: date) -> list[str]:
+    """Make active the scheduled connections whose start date has come; their ids.
+
+    The only code that activates on a date (research R2): the worker's step
+    `activate_scheduled_connections` calls it every cycle with today in Germany.
+    It locks the rows that are scheduled (`STATE_CONDITIONS`: published, not
+    active, with a `start_date`), not deleted, and whose `start_date` is on or
+    before `today`, with `FOR UPDATE SKIP LOCKED`: a row that a status change
+    holds (`_lock_for_status_change()`, which deleting takes too) is skipped and
+    taken by a later cycle, so the step never waits. PostgreSQL checks the
+    conditions again on a row's newest version when it locks it, so a connection
+    whose date was moved, that was deactivated, deleted or started "Now" in the
+    meantime is left alone.
+
+    Each one becomes active as data-model 1.3's "the start comes" says, in one
+    flush for the CHECK constraint `ck_form_connections_start_date`: `is_active`,
+    no `start_date`, and `activated_at` at the start, 00:00 in Germany of its
+    date (`start_instant()`), also when the middleware wasn't running then. Its
+    entry `became_active` has no person (`SYSTEM`). One transaction, committed
+    here; EUDIPLO isn't called (the configuration exists since publishing).
+    """
+    due = db.scalars(
+        select(FormConnection)
+        .where(
+            STATE_CONDITIONS['scheduled'],
+            FormConnection.deleted_at.is_(None),
+            FormConnection.start_date <= today,
+        )
+        .order_by(FormConnection.id)
+        .with_for_update(skip_locked=True)
+        .execution_options(populate_existing=True)
+    ).all()
+    activated: list[str] = []
+    for form_connection in due:
+        start_date = form_connection.start_date
+        if start_date is None:
+            # Not reachable: the query asks for a start date
+            continue
+        # Every column of the CHECK constraint changes in the same flush
+        form_connection.is_active = True
+        form_connection.start_date = None
+        form_connection.activated_at = start_dates.start_instant(start_date)
+        activity.record(
+            db, form_connection.id, [activity.Entry(activity.BECAME_ACTIVE)], SYSTEM
+        )
+        activated.append(form_connection.id)
+    db.commit()
+    return activated
 
 
 # The worker's upkeep of configurations (research R2, R7)

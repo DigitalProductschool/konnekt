@@ -240,6 +240,28 @@ describe('deleteDialogCopyOf (FR-029c)', () => {
     });
   });
 
+  it('says a scheduled connection won’t become active, with its start date (FR-010)', () => {
+    const scheduled = summary({
+      name: 'Passenger transport licence',
+      is_active: false,
+      state: 'scheduled',
+      published_at: '2026-11-04T13:32:00Z',
+      start_date: '2026-12-01',
+    });
+    expect(deleteDialogCopyOf(scheduled, 'en')).toEqual({
+      title: 'Delete “Passenger transport licence”?',
+      text: 'This connection will be active from 01.12.2026. If you delete it, it won’t become active and its links won’t work.',
+    });
+    expect(deleteDialogCopyOf(scheduled, 'de')).toEqual({
+      title: '„Passenger transport licence“ löschen?',
+      text: 'Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht.',
+    });
+    // A scheduled row without its date (FR-021) keeps the inactive body
+    expect(deleteDialogCopyOf({ ...scheduled, start_date: null }, 'en').text).toBe(
+      'Its documents and rules will be deleted too.'
+    );
+  });
+
   it('words the title and every body in German (spec 009)', () => {
     expect(
       deleteDialogCopyOf(

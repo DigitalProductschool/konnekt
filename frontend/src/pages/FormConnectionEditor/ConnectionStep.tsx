@@ -1,10 +1,13 @@
+import { formatDate } from '@connection-portal/rules/dates';
+import type { Language } from '@connection-portal/rules/language';
 import type { FormEvent } from 'react';
 
 import addLinkIcon from '../../assets/icons/add-link-action.svg';
 import IconTile from '../../components/IconTile';
 import InfoTooltip from '../../components/InfoTooltip';
 import TextField from '../../components/TextField';
-import { useCopy } from '../../hooks/useLanguage';
+import { useLanguage } from '../../hooks/useLanguage';
+import type { ScheduledEditProps } from '../FormConnectionEdit/types';
 import { DESCRIPTION_MAX_LENGTH, EDITOR_COPY, ELEMENT_IDS, NAME_MAX_LENGTH } from './constants';
 import type { ConnectionStepProps } from './types';
 
@@ -14,7 +17,9 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
  * Step 1 (S7; U19 6699:45321, the edit flow U98 6731:39821): "Connection card (highlight)" under
  * the wizard's step head, with the name and the description. The footer's "Choose documents"
  * submits this form; a refused step shows the message under the field and moves the focus to
- * the first field with a problem (the editor's `refuse()`, through `ELEMENT_IDS`).
+ * the first field with a problem (the editor's `refuse()`, through `ELEMENT_IDS`). Editing a
+ * scheduled connection, the card's note says when the saved changes become active (spec 010, S18;
+ * FR-013, W7).
  */
 export default function ConnectionStep({
   name,
@@ -24,8 +29,10 @@ export default function ConnectionStep({
   onChangeName,
   onChangeDescription,
   onSubmit,
-}: ConnectionStepProps) {
-  const copy = useCopy(EDITOR_COPY);
+  scheduledStart = null,
+}: ConnectionStepProps & ScheduledEditProps) {
+  const { language } = useLanguage();
+  const copy = EDITOR_COPY[language];
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,9 +123,20 @@ export default function ConnectionStep({
             aria-hidden="true"
             className="kern-icon kern-icon--info kern-icon--small bg-kern-feedback-info! shrink-0"
           />
-          {editing ? copy.editNote : copy.draftNote}
+          {editing ? editNoteOf(scheduledStart, copy, language) : copy.draftNote}
         </p>
       </section>
     </form>
   );
+}
+
+/** The edit flow's note: F49's, or for a scheduled connection its start date's (W7) */
+function editNoteOf(
+  scheduledStart: string | null,
+  copy: (typeof EDITOR_COPY)['en'],
+  language: Language
+): string {
+  return scheduledStart === null
+    ? copy.editNote
+    : copy.scheduledEditNote(formatDate(scheduledStart, language));
 }

@@ -30,7 +30,7 @@ from ..models import (
     OauthClient,
     OauthCode,
 )
-from . import document_requests, form_connections
+from . import document_requests, form_connections, start_dates
 from .document_requests import (
     OPEN_REQUEST,
     PENDING,
@@ -105,6 +105,23 @@ def _run_call(key: str, call: Callable[[], None]) -> None:
     finally:
         with _in_flight_lock:
             _in_flight.discard(key)
+
+
+def activate_scheduled_connections() -> None:
+    """Make active the scheduled connections whose day has come (spec 010, R2).
+
+    The first step: `form_connections.activate_due_connections()` with today in
+    Germany, in a short session of its own. A connection that a status change
+    holds locked is skipped and taken by the next cycle, 2 seconds later; after
+    a downtime, the first cycle catches up, with "Active since" at the scheduled
+    start. Nothing is called outside the database. Logs the count only.
+    """
+    with SessionLocal() as db:
+        activated = form_connections.activate_due_connections(
+            db, start_dates.today_in_germany()
+        )
+    if activated:
+        logger.info('Activated %d scheduled form connections', len(activated))
 
 
 def sync_sessions() -> None:
@@ -576,9 +593,12 @@ def delete_old_approval_requests() -> None:
         logger.info('Deleted %d old approval requests', len(deleted))
 
 
-# The steps of one cycle, in the order of research R7 (step 4 was removed with
-# webhook mode), then those of agents' access (spec 007)
+# The steps of one cycle: 1. the scheduled starts (spec 010, research R2), ahead
+# of the sync's wait for EUDIPLO; 2 to 9. those of research R7, in its order (its
+# step 4 was removed with webhook mode); 10 to 15. those of agents' access and the
+# approval requests (spec 007)
 STEPS: tuple[Step, ...] = (
+    activate_scheduled_connections,
     sync_sessions,
     expire_requests,
     cancel_requests,

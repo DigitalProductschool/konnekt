@@ -30,12 +30,20 @@ export const EDIT_ENTRY_DIALOG_COPY = defineTexts(
   {
     title: (name: string) => `Edit “${name}”?`,
     text: 'Your changes only take effect when you save them. Started connections don’t get interrupted or modified even after saving.',
+    // The details' question for a scheduled connection (spec 010, S17; FR-013, W7); the row's
+    // keeps `title` (U15 6699:47905)
+    scheduledTitle: 'Edit this scheduled connection?',
+    scheduledText: (date: string) =>
+      `Your changes only take effect when you save them. Saved changes become active on ${date}.`,
     cancel: 'Cancel',
     confirm: 'Edit connection',
   },
   {
     title: (name: string) => `„${name}“ bearbeiten?`,
     text: 'Ihre Änderungen werden erst wirksam, wenn Sie sie speichern. Bereits begonnene Anfragen werden auch nach dem Speichern weder unterbrochen noch verändert.',
+    scheduledTitle: 'Diese geplante Anbindung bearbeiten?',
+    scheduledText: (date: string) =>
+      `Ihre Änderungen werden erst wirksam, wenn Sie sie speichern. Gespeicherte Änderungen werden am ${date} aktiv.`,
     cancel: 'Abbrechen',
     confirm: 'Anbindung bearbeiten',
   }
@@ -51,12 +59,17 @@ export const DISCARD_COPY = defineTexts(
   {
     title: 'Discard your changes?',
     text: 'The connection goes back to the version that’s active now. Citizens aren’t affected.',
+    // For a scheduled connection (spec 010, S18; FR-013, W7)
+    scheduledText: (date: string) =>
+      `The connection goes back to the version that becomes active on ${date}. Citizens aren’t affected.`,
     keepEditing: 'Keep editing',
     discard: 'Discard changes',
   },
   {
     title: 'Ihre Änderungen verwerfen?',
     text: 'Die Anbindung kehrt zur derzeit aktiven Version zurück. Bürgerinnen und Bürger sind davon nicht betroffen.',
+    scheduledText: (date: string) =>
+      `Die Anbindung kehrt zu der Version zurück, die am ${date} aktiv wird. Bürgerinnen und Bürger sind davon nicht betroffen.`,
     keepEditing: 'Weiter bearbeiten',
     discard: 'Änderungen verwerfen',
   }

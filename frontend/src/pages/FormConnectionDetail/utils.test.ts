@@ -12,9 +12,12 @@ import { mainBranch, MDL, PID, rule, US1_RULES } from '@connection-portal/rules/
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
-import { INITIAL_DRAFT_DELETE_STATE } from './constants';
+import { INITIAL_ACTIONS_STATE, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import type { DatePillSource } from './types';
 import {
+  actionsReducer,
+  confirmationOf,
+  connectionMenuOf,
   datePillOf,
   deleteDraftDialogOf,
   deleteDraftErrorOf,
@@ -23,14 +26,23 @@ import {
   draftDeleteReducer,
   draftRuleDocumentsOf,
   editedLineOf,
+  editEntryCopyOf,
   initialAccordionOf,
+  isNoAnswer,
   keyedBranchesOf,
   linksCountsOf,
+  reactivateHintOf,
+  reactivatePlanOf,
   reactivateSummaryOf,
   requestedDocumentsOf,
   resultLinksOf,
   rulesCountsOf,
+  startDateChoiceOf,
+  startDateHintOf,
+  startDateNowLabelOf,
+  startDatePlanOf,
   statusBandOf,
+  successMessageOf,
   summaryCountsOf,
   summaryFindingsOf,
   toggleAccordion,
@@ -528,7 +540,7 @@ describe('the delete confirmation of a draft (S6)', () => {
 
 describe('the confirmations of a published connection (S17)', () => {
   const active = connection([branch('main', 'Standard', true)]);
-  const deactivated = { ...active, is_active: false };
+  const deactivated: FormConnection = { ...active, is_active: false, state: 'deactivated' };
 
   it('deletes in the overview’s one dialog, its body by the state, in danger red', () => {
     expect(dialogCopyOf('delete', active, 'en')).toMatchObject({
@@ -792,5 +804,420 @@ describe('summaryFindingsOf (FR-047, CLAR #36; U85)', () => {
       ['main', 'info'],
     ]);
     expect(items[1].parts).toEqual(['Standard: 1 Regel ist ein Duplikat.']);
+  });
+});
+
+describe('the ⋯ menu and the links of a scheduled connection (S15; FR-007–FR-009)', () => {
+  const active = connection([branch('main', 'Standard', true)]);
+  const scheduled: FormConnection = {
+    ...active,
+    is_active: false,
+    state: 'scheduled',
+    activated_at: null,
+    start_date: '2026-12-01',
+  };
+  const deactivated: FormConnection = {
+    ...active,
+    is_active: false,
+    state: 'deactivated',
+    deactivated_at: '2026-10-26T10:00:00Z',
+  };
+
+  it('offers a scheduled and an active connection the start date, deactivating and deleting', () => {
+    expect(connectionMenuOf('scheduled')).toEqual(['startDate', 'deactivate', 'delete']);
+    expect(connectionMenuOf('live')).toEqual(['startDate', 'deactivate', 'delete']);
+  });
+
+  it('offers a deactivated connection deleting alone', () => {
+    expect(connectionMenuOf('deactivated')).toEqual(['delete']);
+  });
+
+  it('opens "Change start date" as the page’s dialog, which is no confirmation', () => {
+    const opened = actionsReducer(INITIAL_ACTIONS_STATE, {
+      type: 'openDialog',
+      dialog: 'startDate',
+    });
+    expect(opened).toMatchObject({ dialog: 'startDate', dialogOpen: true, error: null });
+    expect(confirmationOf(opened.dialog)).toBeNull();
+    expect(actionsReducer(opened, { type: 'closeDialog' }).dialogOpen).toBe(false);
+    expect(confirmationOf('deactivate')).toBe('deactivate');
+    expect(confirmationOf('delete')).toBe('delete');
+    expect(confirmationOf('activate')).toBe('activate');
+  });
+
+  it('asks to delete a scheduled connection with its start date (FR-010; U14 6872:45929)', () => {
+    expect(dialogCopyOf('delete', scheduled, 'en')).toMatchObject({
+      title: 'Delete “Passenger transport licence”?',
+      text: 'This connection will be active from 01.12.2026. If you delete it, it won’t become active and its links won’t work.',
+      confirmLabel: 'Delete connection',
+      cancelLabel: 'Keep connection',
+      danger: true,
+    });
+    expect(dialogCopyOf('delete', scheduled, 'de').text).toBe(
+      'Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht.'
+    );
+    expect(dialogCopyOf('delete', deactivated, 'en').text).toBe(
+      'Its documents and rules will be deleted too.'
+    );
+  });
+
+  it('asks to deactivate a scheduled connection with "Keep scheduled" (FR-012; W5, F11)', () => {
+    expect(dialogCopyOf('deactivate', scheduled, 'en')).toEqual({
+      title: 'Deactivate this connection?',
+      text: 'This connection will be active from 01.12.2026. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later.',
+      confirmLabel: 'Deactivate',
+      cancelLabel: 'Keep scheduled',
+      busyLabel: 'Deactivating…',
+      errorTitle: 'Couldn’t deactivate',
+      danger: false,
+      wide: false,
+    });
+    expect(dialogCopyOf('deactivate', scheduled, 'de')).toMatchObject({
+      text: 'Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren.',
+      cancelLabel: 'Geplant lassen',
+    });
+    // An active connection keeps F13's body and "Keep active"
+    expect(dialogCopyOf('deactivate', active, 'en').cancelLabel).toBe('Keep active');
+  });
+
+  it('asks "Edit this scheduled connection?" with its start date, else "Edit “<name>”?" (W7)', () => {
+    expect(editEntryCopyOf(scheduled, 'en')).toEqual({
+      title: 'Edit this scheduled connection?',
+      text: 'Your changes only take effect when you save them. Saved changes become active on 01.12.2026.',
+      cancel: 'Cancel',
+      confirm: 'Edit connection',
+    });
+    expect(editEntryCopyOf(scheduled, 'de')).toEqual({
+      title: 'Diese geplante Anbindung bearbeiten?',
+      text: 'Ihre Änderungen werden erst wirksam, wenn Sie sie speichern. Gespeicherte Änderungen werden am 01.12.2026 aktiv.',
+      cancel: 'Abbrechen',
+      confirm: 'Anbindung bearbeiten',
+    });
+    expect(editEntryCopyOf(active, 'en')).toMatchObject({
+      title: 'Edit “Passenger transport licence”?',
+      text: 'Your changes only take effect when you save them. Started connections don’t get interrupted or modified even after saving.',
+    });
+    expect(editEntryCopyOf(deactivated, 'de').title).toBe(
+      '„Passenger transport licence“ bearbeiten?'
+    );
+  });
+});
+
+describe('"Activate this connection again?" with "Active from" (S17; FR-011, FR-014; W4, W8)', () => {
+  const deactivated: FormConnection = {
+    ...connection([branch('main', 'Standard', true)]),
+    is_active: false,
+    state: 'deactivated',
+    deactivated_at: '2026-10-26T10:00:00Z',
+  };
+  const today = '2026-11-11';
+  const opened = actionsReducer(INITIAL_ACTIONS_STATE, { type: 'openDialog', dialog: 'activate' });
+
+  it('opens with "Now" and an empty field, as the reactivate dialog it was', () => {
+    expect(opened).toMatchObject({
+      dialog: 'activate',
+      dialogOpen: true,
+      activeFrom: 'now',
+      startDateText: '',
+      dateError: false,
+    });
+    expect(confirmationOf(opened.dialog)).toBe('activate');
+  });
+
+  it('reads "Activate" with "Now" and "Schedule" / "Scheduling…" with "On a date"', () => {
+    expect(dialogCopyOf('activate', deactivated, 'en', 'now')).toMatchObject({
+      confirmLabel: 'Activate',
+      busyLabel: 'Activating…',
+    });
+    expect(dialogCopyOf('activate', deactivated, 'en', 'date')).toMatchObject({
+      title: 'Activate this connection again?',
+      text: 'Check the summary below. Once it’s active, citizens can share their data again, so make sure your service is ready to receive it.',
+      confirmLabel: 'Schedule',
+      cancelLabel: 'Cancel',
+      busyLabel: 'Scheduling…',
+      errorTitle: 'Couldn’t reactivate',
+      wide: true,
+    });
+    expect(dialogCopyOf('activate', deactivated, 'de', 'date')).toMatchObject({
+      confirmLabel: 'Planen',
+      busyLabel: 'Wird geplant …',
+    });
+  });
+
+  it('gives "On a date" copy.md §2’s hint, and "Now" none', () => {
+    expect(reactivateHintOf('date', 'en')).toBe(
+      'The connection becomes active again on the date you choose. Until then, its links don’t work.'
+    );
+    expect(reactivateHintOf('date', 'de')).toBe(
+      'Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht.'
+    );
+    expect(reactivateHintOf('now', 'en')).toBeUndefined();
+  });
+
+  it('activates at once with "Now" and sends the day with "On a date", also as D.M.YYYY', () => {
+    expect(reactivatePlanOf('now', '', today)).toEqual({ kind: 'send', startDate: null });
+    expect(reactivatePlanOf('now', 'abc', today)).toEqual({ kind: 'send', startDate: null });
+    expect(reactivatePlanOf('date', '01.12.2026', today)).toEqual({
+      kind: 'send',
+      startDate: '2026-12-01',
+    });
+    expect(reactivatePlanOf('date', '1.12.2026', today)).toEqual({
+      kind: 'send',
+      startDate: '2026-12-01',
+    });
+  });
+
+  it('refuses an empty field, today, the past and no date (FR-003)', () => {
+    for (const text of ['', '11.11.2026', '10.11.2026', '31.02.2027', 'abc']) {
+      expect(reactivatePlanOf('date', text, today)).toEqual({ kind: 'refused' });
+    }
+  });
+
+  it('shows a refused date, also the server’s, as the field’s error, keeping the dialog', () => {
+    const onDate = actionsReducer(
+      actionsReducer(opened, { type: 'chooseActiveFrom', choice: 'date' }),
+      { type: 'typeStartDate', text: '11.11.2026' }
+    );
+    const refused = actionsReducer(onDate, { type: 'dateRefused' });
+    expect(refused).toMatchObject({
+      dialog: 'activate',
+      dialogOpen: true,
+      dateError: true,
+      dateRefusals: 1,
+      startDateText: '11.11.2026',
+    });
+    const running = actionsReducer(
+      actionsReducer(refused, { type: 'typeStartDate', text: '01.12.2026' }),
+      { type: 'start', action: 'activate' }
+    );
+    expect(running).toMatchObject({ running: 'activate', dateError: false });
+    expect(actionsReducer(running, { type: 'dateRefused' })).toMatchObject({
+      running: null,
+      dialogOpen: true,
+      dateError: true,
+      dateRefusals: 2,
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+    });
+  });
+
+  it('keeps the choice and the text through a failure, so that "Try again" repeats them', () => {
+    const onDate = actionsReducer(
+      actionsReducer(opened, { type: 'chooseActiveFrom', choice: 'date' }),
+      { type: 'typeStartDate', text: '01.12.2026' }
+    );
+    const running = actionsReducer(onDate, { type: 'start', action: 'activate' });
+    const failed = actionsReducer(running, {
+      type: 'failed',
+      error: { message: 'Nothing changed.' },
+      noAnswer: true,
+    });
+    expect(failed).toMatchObject({
+      dialog: 'activate',
+      dialogOpen: true,
+      running: null,
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+      noAnswer: true,
+    });
+    expect(actionsReducer(failed, { type: 'start', action: 'activate' })).toMatchObject({
+      running: 'activate',
+      error: null,
+      noAnswer: false,
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+    });
+  });
+
+  it('confirms "Connection scheduled for <date>." on a date, "Connection reactivated." now', () => {
+    expect(successMessageOf('activate', 'en', '2026-12-01')).toBe(
+      'Connection scheduled for 01.12.2026.'
+    );
+    expect(successMessageOf('activate', 'de', '2026-12-01')).toBe(
+      'Anbindung für den 01.12.2026 geplant.'
+    );
+    expect(successMessageOf('activate', 'en', null)).toBe('Connection reactivated.');
+    expect(successMessageOf('activate', 'de')).toBe('Anbindung reaktiviert.');
+    // The toast after deactivating a scheduled connection stays, without "Undo" (F13)
+    expect(successMessageOf('deactivate', 'en')).toBe('Connection deactivated.');
+  });
+});
+
+describe('"Change start date" (S15; FR-003, FR-008, FR-009, FR-014; F10, W1–W3, W8)', () => {
+  const live: FormConnection = {
+    ...connection([branch('main', 'Standard', true)]),
+    activated_at: new Date(2026, 9, 23, 14, 32).toISOString(),
+  };
+  const scheduled: FormConnection = {
+    ...live,
+    is_active: false,
+    state: 'scheduled',
+    activated_at: null,
+    start_date: '2026-12-01',
+  };
+  const today = '2026-11-11';
+  const opened = actionsReducer(INITIAL_ACTIONS_STATE, {
+    type: 'openDialog',
+    dialog: 'startDate',
+    ...startDateChoiceOf(scheduled),
+  });
+
+  it('opens a scheduled connection with "On a date" and its start date, an active one with "Now"', () => {
+    expect(startDateChoiceOf(scheduled)).toEqual({
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+    });
+    expect(startDateChoiceOf(live)).toEqual({ activeFrom: 'now', startDateText: '' });
+    expect(opened).toMatchObject({
+      dialog: 'startDate',
+      dialogOpen: true,
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+      dateError: false,
+      error: null,
+      noAnswer: false,
+    });
+  });
+
+  it('names "Now" with an active connection’s start, in both languages', () => {
+    expect(startDateNowLabelOf(live, 'en')).toBe('Now (active since 23.10.2026, 14:32)');
+    expect(startDateNowLabelOf(live, 'de')).toBe('Sofort (aktiv seit 23.10.2026, 14:32)');
+    const published = new Date(2026, 8, 12, 8, 0).toISOString();
+    expect(
+      startDateNowLabelOf({ ...live, activated_at: null, published_at: published }, 'en')
+    ).toBe('Now (active since 12.09.2026, 08:00)');
+    expect(startDateNowLabelOf(scheduled, 'en')).toBeUndefined();
+  });
+
+  it('gives an active connection’s "On a date" the cancellation hint (F10), and nothing else', () => {
+    expect(startDateHintOf('live', 'date', 'en')).toBe(
+      'Until that date, citizens can’t start a new request. Requests in progress are cancelled.'
+    );
+    expect(startDateHintOf('live', 'date', 'de')).toBe(
+      'Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen.'
+    );
+    expect(startDateHintOf('live', 'now', 'en')).toBeUndefined();
+    expect(startDateHintOf('scheduled', 'date', 'en')).toBeUndefined();
+  });
+
+  it('sends null for a scheduled connection’s "Now" and nothing for an active one’s (W2, FR-009)', () => {
+    expect(startDatePlanOf(scheduled, 'now', '01.12.2026', today)).toEqual({
+      kind: 'send',
+      startDate: null,
+    });
+    expect(startDatePlanOf(live, 'now', '', today)).toEqual({ kind: 'unchanged' });
+  });
+
+  it('sends a new day, also as D.M.YYYY, and nothing for the scheduled day itself', () => {
+    expect(startDatePlanOf(scheduled, 'date', '15.12.2026', today)).toEqual({
+      kind: 'send',
+      startDate: '2026-12-15',
+    });
+    expect(startDatePlanOf(live, 'date', '1.12.2026', today)).toEqual({
+      kind: 'send',
+      startDate: '2026-12-01',
+    });
+    expect(startDatePlanOf(scheduled, 'date', '01.12.2026', today)).toEqual({ kind: 'unchanged' });
+  });
+
+  it('refuses an empty field, today, the past and no date (FR-003)', () => {
+    for (const text of ['', '11.11.2026', '10.11.2026', '31.02.2027', 'abc']) {
+      expect(startDatePlanOf(live, 'date', text, today)).toEqual({ kind: 'refused' });
+      expect(startDatePlanOf(scheduled, 'date', text, today)).toEqual({ kind: 'refused' });
+    }
+  });
+
+  it('shows a refused date as the field’s error, which the choice, the text or a call clears', () => {
+    const refused = actionsReducer(opened, { type: 'dateRefused' });
+    expect(refused).toMatchObject({ dialogOpen: true, dateError: true, dateRefusals: 1 });
+    expect(actionsReducer(refused, { type: 'dateRefused' }).dateRefusals).toBe(2);
+    expect(actionsReducer(refused, { type: 'typeStartDate', text: '2.12.2026' })).toMatchObject({
+      startDateText: '2.12.2026',
+      dateError: false,
+    });
+    expect(actionsReducer(refused, { type: 'chooseActiveFrom', choice: 'now' })).toMatchObject({
+      activeFrom: 'now',
+      dateError: false,
+    });
+    expect(actionsReducer(refused, { type: 'start', action: 'startDate' })).toMatchObject({
+      running: 'startDate',
+      dateError: false,
+    });
+  });
+
+  it('shows the server’s invalid_start_date as the same error, ending the call (W1)', () => {
+    const running = actionsReducer(opened, { type: 'start', action: 'startDate' });
+    expect(actionsReducer(running, { type: 'dateRefused' })).toMatchObject({
+      running: null,
+      dialogOpen: true,
+      dateError: true,
+      error: null,
+      startDateText: '01.12.2026',
+    });
+  });
+
+  it('keeps the choice and the text through a failure, so that "Try again" repeats them (W8)', () => {
+    const typed = actionsReducer(opened, { type: 'typeStartDate', text: '15.12.2026' });
+    const running = actionsReducer(typed, { type: 'start', action: 'startDate' });
+    const failed = actionsReducer(running, {
+      type: 'failed',
+      error: { message: 'Something went wrong', error_id: 'abc123' },
+    });
+    expect(failed).toMatchObject({
+      running: null,
+      dialogOpen: true,
+      activeFrom: 'date',
+      startDateText: '15.12.2026',
+      error: { message: 'Something went wrong', error_id: 'abc123' },
+      noAnswer: false,
+    });
+    const noAnswer = actionsReducer(running, {
+      type: 'failed',
+      error: { message: 'Nothing changed.' },
+      noAnswer: true,
+    });
+    expect(noAnswer.noAnswer).toBe(true);
+    expect(actionsReducer(noAnswer, { type: 'start', action: 'startDate' })).toMatchObject({
+      error: null,
+      noAnswer: false,
+      startDateText: '15.12.2026',
+    });
+    expect(actionsReducer(noAnswer, { type: 'closeDialog' })).toMatchObject({
+      dialogOpen: false,
+      noAnswer: false,
+    });
+  });
+
+  it('opens another dialog with "Now" and an empty field', () => {
+    const closed = actionsReducer(opened, { type: 'closeDialog' });
+    expect(actionsReducer(closed, { type: 'openDialog', dialog: 'activate' })).toMatchObject({
+      dialog: 'activate',
+      activeFrom: 'now',
+      startDateText: '',
+    });
+  });
+
+  it('confirms with "Start date saved.", also after "Now" (FR-008, W3)', () => {
+    expect(successMessageOf('startDate', 'en')).toBe('Start date saved.');
+    expect(successMessageOf('startDate', 'de')).toBe('Startdatum gespeichert.');
+    expect(successMessageOf('deactivate', 'en')).toBe('Connection deactivated.');
+    expect(successMessageOf('activate', 'en')).toBe('Connection reactivated.');
+    const running = actionsReducer(opened, { type: 'start', action: 'startDate' });
+    expect(
+      actionsReducer(running, { type: 'succeeded', message: 'Start date saved.' })
+    ).toMatchObject({
+      dialogOpen: false,
+      running: null,
+      toast: { kind: 'success', message: 'Start date saved.' },
+    });
+  });
+
+  it('tells no answer from an answer: a network failure or a 5xx without an error ID (F2, W8)', () => {
+    expect(isNoAnswer(new TypeError('Failed to fetch'))).toBe(true);
+    expect(isNoAnswer(new ApiError(502, { error: 'Unknown error', message: 'x' }))).toBe(true);
+    expect(
+      isNoAnswer(new ApiError(500, { error: 'internal', message: 'x', error_id: 'abc' }))
+    ).toBe(false);
+    expect(isNoAnswer(new ApiError(409, { error: 'status_changed', message: 'x' }))).toBe(false);
   });
 });

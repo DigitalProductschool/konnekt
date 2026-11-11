@@ -148,6 +148,9 @@ export const DELETE_CONNECTION_COPY = defineTexts(
     active:
       'This connection is active. Citizens won’t be able to use it, and its links stop working.',
     deactivated: 'Its documents and rules will be deleted too.',
+    // A scheduled connection (spec 010, S17; FR-010; U14 6872:45929), the date in the text's face
+    scheduled: (date: string) =>
+      `This connection will be active from ${date}. If you delete it, it won’t become active and its links won’t work.`,
     confirm: 'Delete connection',
     cancel: 'Keep connection',
     busy: 'Deleting…',
@@ -162,6 +165,8 @@ export const DELETE_CONNECTION_COPY = defineTexts(
     active:
       'Diese Anbindung ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen, und ihre Links funktionieren nicht mehr.',
     deactivated: 'Die Dokumente und Regeln der Anbindung werden ebenfalls gelöscht.',
+    scheduled: (date: string) =>
+      `Diese Anbindung ist ab ${date} aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht.`,
     confirm: 'Anbindung löschen',
     cancel: 'Anbindung behalten',
     busy: 'Wird gelöscht …',

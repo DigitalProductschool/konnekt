@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import (
@@ -448,13 +448,39 @@ class FormConnection(BaseModel):
 
 
 class FormConnectionCreate(BaseModel):
-    """A new form connection. Without rules, it gets a main branch "Standard"."""
+    """A new form connection. Without rules, it gets a main branch "Standard".
+
+    Without `start_date` it is published active ("Now"); with one, scheduled: it
+    becomes active on that day in Germany (spec 010, research R1, R2).
+    """
 
     name: str
     # Optional, '' when there is none (spec 006, research R3)
     description: str = ''
     documents: list[RequestedDocument]
     rules: RulesInput | None = None
+    # YYYY-MM-DD, a day in Germany after today; null or absent: active at once
+    start_date: date | None = None
+
+
+class ActivateRequest(BaseModel):
+    """The body of activating a deactivated connection again (spec 010, R2).
+
+    An empty object, or no body, activates it at once ("Now"); a `start_date`
+    schedules it for that day in Germany instead.
+    """
+
+    # YYYY-MM-DD, a day in Germany after today; null or absent: active at once
+    start_date: date | None = None
+
+
+class StartDateUpdate(BaseModel):
+    """A scheduled or live connection's new start (spec 010, FR-008, FR-009).
+
+    The key is required: a day in Germany after today, or null for now.
+    """
+
+    start_date: date | None
 
 
 class FormConnectionUpdate(BaseModel):

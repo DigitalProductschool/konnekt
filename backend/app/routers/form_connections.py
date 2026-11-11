@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..language import Text
 from ..schemas import (
+    ActivateRequest,
     ActivityPage,
     ApiResponse,
     DraftCreate,
@@ -16,6 +17,7 @@ from ..schemas import (
     FormConnectionPage,
     FormConnectionSummary,
     FormConnectionUpdate,
+    StartDateUpdate,
 )
 from ..services import activity, agent_access, drafts, form_connections
 from ..services.activity import actor_of
@@ -79,10 +81,11 @@ def search_form_connections(
     """Search the form connections that aren't deleted, a page at a time (FR-007).
 
     `q` matches the name or the description, ignoring case; `status` is `draft`,
-    `live` or `deactivated`. At most `limit` (1 to 25) entries, most recently
-    updated first; pass `next_cursor` as `cursor` for the next page. An unknown
-    `status`, a bad `cursor` or `limit` answers 400. Declared before
-    `/{form_connection_id}`, which would otherwise take the path.
+    `scheduled`, `live` or `deactivated`, the `state` the entries answer (spec
+    010, FR-062). At most `limit` (1 to 25) entries, most recently updated first;
+    pass `next_cursor` as `cursor` for the next page. An unknown `status`, a bad
+    `cursor` or `limit` answers 400. Declared before `/{form_connection_id}`,
+    which would otherwise take the path.
     """
     return ApiResponse(
         data=form_connections.search_form_connections(
@@ -105,7 +108,10 @@ def create_form_connection(
 
     The configuration is EUDIPLO's. Without `rules`, the form connection gets a
     main branch "Standard" without rules. Everything is saved together or not at
-    all (FR-028).
+    all (FR-028). With `start_date`, a day in Germany after today, it is created
+    scheduled: its URLs exist at once and answer as a deactivated connection's
+    until that day (spec 010, FR-001 to FR-004); a day that isn't after today
+    answers 400 `invalid_start_date`, also when it ends while EUDIPLO answers.
     """
     actor = actor_of(db, principal)
     try:
@@ -206,7 +212,9 @@ def publish_draft(
     deleted draft, 409 `draft_published` for a published connection (also with
     `replace`), and 409 `draft_changed` for an outdated `version` unless
     `replace`. If EUDIPLO can't create the configuration, it answers 502 or 503
-    and the draft stays a draft.
+    and the draft stays a draft. With `start_date` it is published scheduled, as
+    `POST /api/form-connections` creates one; 400 `invalid_start_date` leaves the
+    draft a draft (spec 010, FR-001 to FR-004).
     """
     actor = actor_of(db, principal)
     try:
@@ -290,15 +298,55 @@ def deactivate_form_connection(
 )
 def activate_form_connection(
     form_connection_id: str,
+    data: ActivateRequest | None = None,
     db: Session = Depends(get_db),
     principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
-    """Activate a form connection again; its URLs work again unchanged."""
+    """Activate a deactivated form connection again, now or on a date.
+
+    An empty object, or no body, activates it at once: its URLs work again
+    unchanged. With `start_date`, a day in Germany after today, it is scheduled
+    for that day instead, and its URLs keep answering 409 "unavailable" until
+    then (spec 010, FR-011); a day that isn't after today answers 400
+    `invalid_start_date`. A
+    live connection stays as it is, and a scheduled one answers 409
+    `status_changed`: its start date is changed instead.
+    """
     return ApiResponse(
         data=form_connections.activate_form_connection(
-            db, form_connection_id, actor=actor_of(db, principal)
+            db,
+            form_connection_id,
+            actor=actor_of(db, principal),
+            start_date=None if data is None else data.start_date,
         ),
         message='Form connection activated',
+    )
+
+
+@router.put(
+    '/{form_connection_id}/start-date',
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
+def set_start_date(
+    form_connection_id: str,
+    data: StartDateUpdate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> ApiResponse[FormConnection]:
+    """Change when a scheduled or live connection is active (spec 010, FR-008).
+
+    A scheduled connection's start moves to `start_date`, or with null it becomes
+    active now. A live connection is scheduled for `start_date`, and its open
+    requests are cancelled (FR-009); null changes nothing. A day that isn't
+    after today in Germany answers 400 `invalid_start_date`, a deactivated
+    connection 409 `status_changed`, and a draft 409 `not_published`. Agents ask
+    for it through an approval request.
+    """
+    return ApiResponse(
+        data=form_connections.set_start_date(
+            db, form_connection_id, data.start_date, actor=actor_of(db, principal)
+        ),
+        message='Start date saved',
     )
 
 

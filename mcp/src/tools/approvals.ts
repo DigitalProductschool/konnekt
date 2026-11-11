@@ -29,7 +29,7 @@ import {
   type ConnectionState,
   type ConnectionUrls,
   summaryTextOf,
-  URLS_NOTES,
+  urlsNoteOf,
   urlsTextOf,
 } from '../views';
 import { registerTool, type ToolContext, toolError, toolResult } from './registry';
@@ -368,6 +368,8 @@ registerTool({
     const preview = await backend.get<ApprovalPreview>(`/api/approval-requests/${id}`);
     const { request } = preview;
     const connection = approvalConnectionRefOf(request, preview);
+    // The day a scheduled connection becomes active, which its URLs' note names
+    const startDate = preview.connection?.start_date ?? null;
     const urls = checkedUrlsOf(preview);
     return toolResult(
       {
@@ -387,9 +389,9 @@ registerTool({
       summaryTextOf(
         `Approval request for ${ACTION_VERBS[request.action]} '${connection.name}': ` +
           `${request.outcome}. ${request.link}`,
-        connectionLineOf(connection),
+        connectionLineOf(connection, startDate),
         outcomeTextOf(request),
-        urls && urlsTextOf(urls, URLS_NOTES[connection.status])
+        urls && urlsTextOf(urls, urlsNoteOf({ state: connection.status, start_date: startDate }))
       )
     );
   },

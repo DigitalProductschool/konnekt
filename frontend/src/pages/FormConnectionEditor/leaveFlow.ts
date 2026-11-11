@@ -5,6 +5,7 @@
 // reloading the tab gets the browser's own "Leave site?" while `hasUnsavedWork()` is true
 import { sameContent } from '../../utils/localDrafts/content';
 import type { LocalDraftContent } from '../../utils/localDrafts/types';
+import type { LEAVE_COPY } from './constants';
 import type {
   EditorOrigin,
   LeaveEffect,
@@ -160,4 +161,16 @@ export function hasUnsavedWork(
     return !sameContent({ ...content, counters: saved.counters }, saved);
   }
   return !sameContent(content, saved);
+}
+
+/** The leave questions' copy in one language: a column of `LEAVE_COPY` */
+type LeaveCopy = (typeof LEAVE_COPY)['en'];
+
+/**
+ * The sentence of "Save your changes?" (`saveAsked`, #47): discarding keeps the active version, or
+ * for a scheduled connection the scheduled one (spec 010, S18; FR-013, W7). `scheduledStart` is
+ * `scheduledStartOf()`'s answer.
+ */
+export function saveQuestionTextOf(scheduledStart: string | null, copy: LeaveCopy): string {
+  return scheduledStart === null ? copy.saveText : copy.saveTextScheduled;
 }

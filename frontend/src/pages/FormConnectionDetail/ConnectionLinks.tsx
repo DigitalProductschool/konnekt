@@ -12,10 +12,12 @@ import { linksCountsOf, resultLinksOf } from './utils';
  * Standard only, its URL unlabelled, as in spec 001 (W2). The two parts are numbered and
  * divided by a line; no name header (U07 #9). Open right after publishing (U80). While the
  * connection is deactivated, the URLs stay readable and the copy buttons are off (40 %), each
- * explaining "Activate the connection first" on hover and focus (U89 6417:31309; FR-046, W21).
+ * explaining "Activate the connection first" on hover and focus (U89 6417:31309; FR-046, W21). A
+ * scheduled connection isn't active yet, but its links are ready to be added to the service
+ * before its start, so they copy as an active connection's do (spec 010, S15; FR-007).
  */
 export default function ConnectionLinks({ formConnection, open, onToggle }: ConnectionLinksProps) {
-  const deactivated = !formConnection.is_active;
+  const deactivated = formConnection.state === 'deactivated';
   const { language } = useLanguage();
   const copy = CONNECTION_DETAIL_COPY[language];
   return (

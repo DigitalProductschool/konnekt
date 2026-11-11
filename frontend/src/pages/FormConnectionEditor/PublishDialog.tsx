@@ -1,11 +1,15 @@
+import { formatDate } from '@connection-portal/rules/dates';
+import type { Language } from '@connection-portal/rules/language';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { type SyntheticEvent, useEffect, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, type SyntheticEvent, useEffect, useLayoutEffect, useRef } from 'react';
 
+import ActiveFromChoice from '../../components/ActiveFromChoice';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import type { ConfirmDialogProps } from '../../components/ConfirmDialog/types';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
 import FeedbackLoader from '../../components/FeedbackLoader';
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
+import type { ScheduledEditProps } from '../FormConnectionEdit/types';
 import { DRAFT_COPY, PUBLISH_DIALOG_COPY, PUBLISH_STATUS_DIALOG_CLASSES } from './constants';
 import PublishFindingLine from './PublishFindingLine';
 import PublishSummaryRow from './PublishSummaryRow';
@@ -20,6 +24,13 @@ import type {
 import { findingLinesOf, warningsFirst } from './utils';
 
 /** The intro's look in the summary (U73 6374:25448: body/default, muted) */
+/**
+ * The failure's alert: below 320 CSS px (`narrow:`) its title takes the whole width under the
+ * icon, as index.css's narrow block means it to; kern.css's `flex: 1 0 0` on the title (unlayered,
+ * hence the `!`) kept it beside the icon, a few letters wide
+ */
+const FAILURE_ALERT_CLASSES = 'w-full narrow:[&_.kern-title]:basis-full!';
+
 const INTRO_CLASSES =
   'text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)';
 
@@ -31,22 +42,31 @@ const INTRO_CLASSES =
  * renders by its own state's phase (`PublishDialogState`, `publishDialogReducer()` in the editor):
  *
  * - `summary`: "Ready to publish?" ("Save changes?"), the intro, "Dialog content/Publish ·
- *   summary" with the counts per document and per variant (FR-044b), the findings lines warnings
- *   first (FR-044c), then "Back to test" and "Publish connection". No "Active from" (F1).
+ *   summary" with the counts per document and per variant (FR-044b), "Active from" (spec 010,
+ *   C2; U75 6376:25536, 6383:66119), the findings lines warnings first (FR-044c), then "Back to
+ *   test" and "Publish connection". With "On a date" the intro reads "The connection becomes
+ *   active on the date you choose. …" and the button "Schedule" (FR-002); a day that isn't after
+ *   today, or the server's `400 invalid_start_date`, shows the field's error, announced, with the
+ *   focus on the field (U76 6635:36265; FR-003, W1). The edit flow's "Save changes?" has no
+ *   "Active from" (F9); for a scheduled connection its intro says that the changes become active
+ *   with the connection on its start date (spec 010, S14; FR-013, W6), and saving sends no date.
  *   "Back to test" closes the dialog to the test step that opened it (FR-044a); opened from
  *   another step, the cancel button keeps the baseline's "Check rules again". Findings never
  *   disable "Publish connection" nor ask anything more (spec 003, US4-AS5).
  * - `noRules`: from "Publish without rules" on the rules step (or the edit flow's "Save"), while no
  *   variant has rules, "Publish without rules?"
- *   (002-S5.6) with "Add rules", which goes on to the rules.
+ *   (002-S5.6) with "Add rules", which goes on to the rules. It has the same "Active from"; its
+ *   intro stays, and with "On a date" the date's sentence is the group's hint.
  * - `publishing` and `published`: the small status dialog in place of the summary (U78
  *   "Dialog/Status"): "Publishing… This takes a few seconds." with the 56 px loader, no buttons, no
  *   ×, and neither Escape nor the scrim close it (FR-051 (41)); then "Published" with the success
  *   tick and "Opening your connection page…" until the editor opens the details 0.5 s later.
- * - `failed`: the summary again, under the danger alert "Couldn't publish, so nothing has
- *   changed. Check your internet connection and try again." with the error ID of a `5xx` (F46,
- *   FR-008), or "Couldn't publish" with the server's message for any other refusal; "Try again"
- *   publishes again, and the cancel button and the × close it as from the summary.
+ * - `failed`: the summary again, with "Active from" as chosen, under the danger alert: "Couldn't
+ *   publish, so nothing has changed. Check your internet connection and try again." only when no
+ *   answer came (U79 6376:27178; spec 010, FR-014, F2, W8), otherwise "Couldn't publish" with the
+ *   server's message and the error ID of a `5xx` (the edit flow keeps spec 008's F46); "Try
+ *   again" publishes again with the same choice, and the cancel button and the × close it as
+ *   from the summary.
  * - `conflict`: U90's dialog anatomy (480 wide, the title, the message, the buttons; W3, W7):
  *   after `409 rules_changed` "Reload" or "Replace their changes" (W9); after a stored draft's
  *   conflict its title, message and hint with "Cancel" and the answers of spec 005, S2.
@@ -70,19 +90,39 @@ export default function PublishDialog({
   onCancel,
   onClose,
   onConfirm,
+  onActiveFromChange,
+  onStartDateTextChange,
   onReload,
   onReplace,
   onOpenConnection,
   onSaveAsNew,
-}: PublishDialogProps) {
+  scheduledStart = null,
+}: PublishDialogProps & ScheduledEditProps) {
   const { language } = useLanguage();
   const copy = PUBLISH_DIALOG_COPY[language];
   const draftCopy = DRAFT_COPY[language];
+  const fieldRef = useRef<HTMLInputElement>(null);
+  // The refusals whose focus has moved, so that reopening after a failure leaves it alone
+  const focusedRefusals = useRef(0);
   const open =
     dialog.phase === 'summary' ||
     dialog.phase === 'noRules' ||
     dialog.phase === 'failed' ||
     dialog.phase === 'conflict';
+  const { dateRefusals } = dialog;
+
+  // A refused date moves the focus to the field, which names its error (W1). After the server's
+  // refusal the summary opens again first (ConfirmDialog's effect runs before this one)
+  useEffect(() => {
+    if (!open || dateRefusals === focusedRefusals.current) {
+      return;
+    }
+    focusedRefusals.current = dateRefusals;
+    if (dateRefusals > 0) {
+      fieldRef.current?.focus();
+    }
+  }, [open, dateRefusals]);
+
   // What shows is what the last attempt met, also while the dialog closes or publishes again, so
   // that its words don't change while it fades out (the reducer keeps them until the next one)
   const { conflict, failure } = dialog;
@@ -97,18 +137,20 @@ export default function PublishDialog({
         wide: true,
         title: titleOf(dialog, editing, copy),
         // After a failure the alert comes first, so the intro moves under it (U79 6376:27178)
-        text: failure ? '' : introOf(dialog, editing, copy),
+        text: failure ? '' : introOf(dialog, editing, copy, scheduledStart, language),
         textClassName: INTRO_CLASSES,
         cancelLabel: cancelLabelOf(dialog, copy),
         onCancel,
-        confirmLabel: failure ? copy.retry : editing ? copy.save : copy.publish,
+        confirmLabel: confirmLabelOf(dialog, editing, copy),
         onConfirm,
         children: (
           <>
             {failure && (
               <>
                 <PublishFailureAlert failure={failure} editing={editing} />
-                <p className={INTRO_CLASSES}>{introOf(dialog, editing, copy)}</p>
+                <p className={INTRO_CLASSES}>
+                  {introOf(dialog, editing, copy, scheduledStart, language)}
+                </p>
               </>
             )}
             <PublishSummary
@@ -118,7 +160,25 @@ export default function PublishDialog({
               findingLines={
                 dialog.withoutRules ? [] : warningsFirst(findingLinesOf(branches, checks, language))
               }
-            />
+            >
+              {!editing && (
+                <ActiveFromChoice
+                  choice={dialog.activeFrom}
+                  text={dialog.startDateText}
+                  error={dialog.dateError}
+                  errorRole="alert"
+                  hint={
+                    dialog.withoutRules && dialog.activeFrom === 'date'
+                      ? copy.scheduleIntro
+                      : undefined
+                  }
+                  disabled={busy}
+                  fieldRef={fieldRef}
+                  onChoiceChange={onActiveFromChange}
+                  onTextChange={onStartDateTextChange}
+                />
+              )}
+            </PublishSummary>
           </>
         ),
       };
@@ -168,11 +228,37 @@ function titleOf(dialog: PublishDialogState, editing: boolean, copy: PublishCopy
   return editing ? copy.saveTitle : copy.publishTitle;
 }
 
-function introOf(dialog: PublishDialogState, editing: boolean, copy: PublishCopy): string {
+/**
+ * The summary's intro: "Save changes?" words a scheduled connection's (W6); "Save without rules?"
+ * keeps its own
+ */
+function introOf(
+  dialog: PublishDialogState,
+  editing: boolean,
+  copy: PublishCopy,
+  scheduledStart: string | null,
+  language: Language
+): string {
   if (dialog.withoutRules) {
     return copy.withoutRulesIntro;
   }
-  return editing ? copy.saveIntro : copy.publishIntro;
+  if (editing) {
+    return scheduledStart === null
+      ? copy.saveIntro
+      : copy.saveScheduledIntro(formatDate(scheduledStart, language));
+  }
+  return dialog.activeFrom === 'date' ? copy.scheduleIntro : copy.publishIntro;
+}
+
+/** "Try again" after a failure; otherwise "Save", or "Schedule" with "On a date" (FR-002) */
+function confirmLabelOf(dialog: PublishDialogState, editing: boolean, copy: PublishCopy): string {
+  if (dialog.failure) {
+    return copy.retry;
+  }
+  if (editing) {
+    return copy.save;
+  }
+  return dialog.activeFrom === 'date' ? copy.schedule : copy.publish;
 }
 
 function cancelLabelOf(dialog: PublishDialogState, copy: PublishCopy): string {
@@ -182,15 +268,21 @@ function cancelLabelOf(dialog: PublishDialogState, copy: PublishCopy): string {
   return dialog.from === 'test' ? copy.backToTest : copy.checkRulesAgain;
 }
 
-/** "Dialog content/Publish · summary" (a two-column table, documents then rules), then findings */
+/**
+ * "Dialog content/Publish · summary" (a two-column table, documents then rules), then its "Go
+ * live" row (`children`: "Active from", directly under the table, 16 apart; U75 6380:26663), then
+ * findings
+ */
 function PublishSummary({
   documentLines,
   ruleLines,
   findingLines,
+  children,
 }: {
   documentLines: string[];
   ruleLines: string[];
   findingLines: FindingLine[];
+  children?: ReactNode;
 }) {
   const copy = useCopy(PUBLISH_DIALOG_COPY);
   return (
@@ -199,6 +291,7 @@ function PublishSummary({
         <PublishSummaryRow label={copy.documents} values={documentLines} divided />
         <PublishSummaryRow label={copy.rules} values={ruleLines} />
       </dl>
+      {children}
       {findingLines.length > 0 && (
         // "Rule findings" (6760:47353): 4 between the lines
         <ul className="flex w-full flex-col gap-4">
@@ -213,18 +306,37 @@ function PublishSummary({
 
 /**
  * The failure's alert ("Dialog content/Publish · failed", U79 6376:27178: KERN's danger alert):
- * the design's sentence as the slim alert's title, with the error ID of a `5xx` as its body
- * (F46; the §3 "Alert, page level" pattern keeps the body for it); any other refusal under
- * "Couldn't publish" with the server's message, which says what went wrong (002-S5.3, FR-008)
+ * the design's sentence as the slim alert's title when no answer came (spec 010, FR-014, F2, W8;
+ * the edit flow's save also for a `5xx`, with its error ID as the body, spec 008's F46). A server
+ * failure (a `5xx` with its error ID) is the slim alert too, never the two-part one (F2): the
+ * server's message, which says what went wrong, as its title, and the error ID on a line of its
+ * own under it, which wraps where it needs to. Any other refusal (a `4xx`) keeps "Couldn't
+ * publish" with the server's message as the body (002-S5.3, FR-008)
  */
 function PublishFailureAlert({ failure, editing }: { failure: PublishFailure; editing: boolean }) {
   const copy = useCopy(PUBLISH_DIALOG_COPY);
+  if (failure.kind === 'refused' && failure.notice.error_id) {
+    // KERN's alert as `KernAlert` renders it, without a body: its title takes the error ID line
+    return (
+      <div role="alert" className={`kern-alert kern-alert--danger ${FAILURE_ALERT_CLASSES}`}>
+        <div className="kern-alert__header">
+          <span aria-hidden="true" className="kern-icon kern-icon--danger kern-icon--small" />
+          {/* kern.css lays the title out as a flex row: one inline box keeps the ID under the text */}
+          <span className="kern-title">
+            <span>
+              <ErrorNoticeText notice={failure.notice} />
+            </span>
+          </span>
+        </div>
+      </div>
+    );
+  }
   if (failure.kind === 'general') {
     return (
       <KernAlert
         variant="danger"
         title={editing ? copy.saveFailed : copy.publishFailed}
-        className="w-full"
+        className={FAILURE_ALERT_CLASSES}
       >
         {failure.errorId && <ErrorNoticeText notice={{ message: '', error_id: failure.errorId }} />}
       </KernAlert>
@@ -234,7 +346,7 @@ function PublishFailureAlert({ failure, editing }: { failure: PublishFailure; ed
     <KernAlert
       variant="danger"
       title={editing ? copy.saveErrorTitle : copy.publishErrorTitle}
-      className="w-full"
+      className={FAILURE_ALERT_CLASSES}
     >
       <ErrorNoticeText notice={failure.notice} />
     </KernAlert>

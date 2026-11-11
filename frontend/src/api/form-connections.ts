@@ -1,4 +1,5 @@
 import type {
+  ActivateRequest,
   ActivityPage,
   DraftCreate,
   DraftPublish,
@@ -9,6 +10,7 @@ import type {
   FormConnectionOrDraft,
   FormConnectionSummary,
   FormConnectionUpdate,
+  StartDateUpdate,
 } from '@connection-portal/api-types/form-connections';
 
 import { apiFetch } from './client';
@@ -17,6 +19,10 @@ export function listFormConnections(): Promise<FormConnectionSummary[]> {
   return apiFetch<FormConnectionSummary[]>('/form-connections');
 }
 
+/**
+ * Creates a published connection; with `data.start_date` (YYYY-MM-DD) it is scheduled for that day
+ * (spec 010, contracts/management-api.md "Scheduling")
+ */
 export function createFormConnection(data: FormConnectionCreate): Promise<FormConnection> {
   return apiFetch<FormConnection>('/form-connections', { method: 'POST', body: data });
 }
@@ -51,9 +57,35 @@ export function deactivateFormConnection(id: string): Promise<FormConnection> {
   });
 }
 
-export function activateFormConnection(id: string): Promise<FormConnection> {
+/**
+ * Activates a deactivated connection again: at once without `startDate` (or with `null`), or
+ * scheduled for that day with it (YYYY-MM-DD). A day that isn't after today in Germany answers
+ * `400 invalid_start_date`, a scheduled connection `409 status_changed`; a live one stays as it is
+ * (spec 010, contracts/management-api.md "Scheduling")
+ */
+export function activateFormConnection(
+  id: string,
+  startDate?: string | null
+): Promise<FormConnection> {
+  const body: ActivateRequest = startDate === undefined ? {} : { start_date: startDate };
   return apiFetch<FormConnection>(`/form-connections/${encodeURIComponent(id)}/activate`, {
     method: 'POST',
+    body,
+  });
+}
+
+/**
+ * Changes a scheduled or live connection's start: `startDate` (YYYY-MM-DD) moves or sets it, `null`
+ * makes a scheduled connection active now and leaves a live one as it is; a live connection given a
+ * date is scheduled, and its requests in progress are cancelled. A day that isn't after today in
+ * Germany answers `400 invalid_start_date`, a deactivated connection `409 status_changed`, a draft
+ * `409 not_published` (spec 010, contracts/management-api.md "Scheduling")
+ */
+export function setStartDate(id: string, startDate: string | null): Promise<FormConnection> {
+  const body: StartDateUpdate = { start_date: startDate };
+  return apiFetch<FormConnection>(`/form-connections/${encodeURIComponent(id)}/start-date`, {
+    method: 'PUT',
+    body,
   });
 }
 
@@ -74,6 +106,11 @@ export function saveDraft(id: string, data: DraftUpdate): Promise<FormConnection
   });
 }
 
+/**
+ * Publishes a draft; with `data.start_date` (YYYY-MM-DD) it is published scheduled for that day,
+ * and a day that isn't after today in Germany answers `400 invalid_start_date` (spec 010,
+ * contracts/management-api.md "Scheduling")
+ */
 export function publishDraft(id: string, data: DraftPublish): Promise<FormConnection> {
   return apiFetch<FormConnection>(`/form-connections/${encodeURIComponent(id)}/publish`, {
     method: 'POST',

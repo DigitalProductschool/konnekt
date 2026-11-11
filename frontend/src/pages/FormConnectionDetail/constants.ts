@@ -1,5 +1,6 @@
 import { defineTexts } from '@connection-portal/rules/language';
 
+import calendarPencilIcon from '../../assets/icons/calendar-pencil.svg';
 import doneWhiteIcon from '../../assets/icons/done-white.svg';
 import editWhiteSmallIcon from '../../assets/icons/edit-white-small.svg';
 import linkOffIcon from '../../assets/icons/link-off.svg';
@@ -73,7 +74,8 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     loadingRules: 'Loading the rules…',
     rulesErrorTitle: 'Couldn’t load the rules',
     rulesErrorText: 'Check your connection and try again.',
-    // The ⋯ menu's entries (U88 6417:31045)
+    // The ⋯ menu's entries (U88 6417:31045; S15, FR-008, FR-009)
+    changeStartDate: 'Change start date',
     deactivate: 'Deactivate',
     delete: 'Delete connection',
     // The confirmations (S17). Deactivating (U88 6417:31206): the design's title and buttons, F13's
@@ -83,13 +85,27 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'The connection will be deactivated and its links will stop working at once. Requests in progress are cancelled. Remember to remove the wallet connection from your service.',
     keepActive: 'Keep active',
     deactivating: 'Deactivating…',
-    // Reactivating (U89 7173:52959): the documents and rules summary (FR-051 (40)); "Active from"
-    // is F1. "Activating…" isn't drawn (FR-008)
+    // Deactivating a scheduled connection (spec 010, S17; FR-012, W5): copy.md §2's sentence and
+    // cancel button; the title, "Deactivate" and the toast stay (F13)
+    deactivateScheduledText: (date: string) =>
+      `This connection will be active from ${date}. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later.`,
+    keepScheduled: 'Keep scheduled',
+    // Reactivating (U89 7173:52959): the documents and rules summary (FR-051 (40)), then "Active
+    // from" (spec 010, S17; FR-011, W4). "Activating…" isn't drawn (FR-008). With "On a date"
+    // copy.md §2's hint, "Schedule" (the publish dialog's), "Scheduling…" and the toast
     activateTitle: 'Activate this connection again?',
     activateText:
       'Check the summary below. Once it’s active, citizens can share their data again, so make sure your service is ready to receive it.',
     activate: 'Activate',
     activating: 'Activating…',
+    activateDateHint:
+      'The connection becomes active again on the date you choose. Until then, its links don’t work.',
+    schedule: 'Schedule',
+    scheduling: 'Scheduling…',
+    scheduledFor: (date: string) => `Connection scheduled for ${date}.`,
+    // A failed reactivation when no answer came (FR-014, W8), as "Change start date"'s sentence
+    activateNoAnswer:
+      'Couldn’t reactivate, so nothing has changed. Check your internet connection and try again.',
     cancel: 'Cancel',
     // Deleting takes the overview's dialog (`DELETE_DIALOG_COPY`: U14 6699:44480, U90 6417:31599)
     retry: 'Try again',
@@ -103,6 +119,21 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     activated: 'Connection reactivated.',
     // U99 6730:39732 #19, FR-051 (42)
     saved: 'Changes saved.',
+    // "Change start date" (S15; U87 6396:48860; FR-008, FR-009): the frame's title (`changeStartDate`),
+    // text and buttons; "Now (active since <date>, <time>)" for an active connection; the hint
+    // with "On a date" for an active one F10's (copy.md §2); the busy label the publish dialog's
+    // "Saving…"; the failure's title and the no-answer sentence copy.md §2's (FR-014, W8); the
+    // toast the spec's (FR-008, W3)
+    startDateText: 'Choose when citizens can use this connection.',
+    nowActiveSince: (dateTime: string) => `Now (active since ${dateTime})`,
+    startDateHint:
+      'Until that date, citizens can’t start a new request. Requests in progress are cancelled.',
+    saveDate: 'Save date',
+    savingDate: 'Saving…',
+    startDateError: 'Couldn’t save the start date',
+    startDateNoAnswer:
+      'Couldn’t save the start date, so nothing has changed. Check your internet connection and try again.',
+    startDateSaved: 'Start date saved.',
     // A draft's details (S16; U93 7362:54691): the tab title "<name> (Draft) · Konnekt", the draft
     // band (7362:54697) with its date pill (7362:54709), and the Links card without links
     // (7362:54905)
@@ -171,6 +202,7 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     loadingRules: 'Die Regeln werden geladen …',
     rulesErrorTitle: 'Die Regeln konnten nicht geladen werden',
     rulesErrorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    changeStartDate: 'Startdatum ändern',
     deactivate: 'Deaktivieren',
     delete: 'Anbindung löschen',
     deactivateTitle: 'Diese Anbindung deaktivieren?',
@@ -178,11 +210,21 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'Die Anbindung wird deaktiviert, und ihre Links funktionieren sofort nicht mehr. Laufende Anfragen werden abgebrochen. Denken Sie daran, die Wallet-Anbindung aus Ihrem Dienst zu entfernen.',
     keepActive: 'Aktiv lassen',
     deactivating: 'Wird deaktiviert …',
+    deactivateScheduledText: (date: string) =>
+      `Diese Anbindung ist ab ${date} aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren.`,
+    keepScheduled: 'Geplant lassen',
     activateTitle: 'Diese Anbindung wieder aktivieren?',
     activateText:
       'Prüfen Sie die Zusammenfassung unten. Sobald die Anbindung aktiv ist, können Bürgerinnen und Bürger ihre Daten wieder teilen. Stellen Sie daher sicher, dass Ihr Dienst bereit ist, sie zu empfangen.',
     activate: 'Aktivieren',
     activating: 'Wird aktiviert …',
+    activateDateHint:
+      'Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht.',
+    schedule: 'Planen',
+    scheduling: 'Wird geplant …',
+    scheduledFor: (date: string) => `Anbindung für den ${date} geplant.`,
+    activateNoAnswer:
+      'Die Anbindung konnte nicht reaktiviert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     cancel: 'Abbrechen',
     retry: 'Erneut versuchen',
     deactivateError: 'Die Anbindung konnte nicht deaktiviert werden',
@@ -193,6 +235,16 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     deactivated: 'Anbindung deaktiviert.',
     activated: 'Anbindung reaktiviert.',
     saved: 'Änderungen gespeichert.',
+    startDateText: 'Wählen Sie, ab wann Bürgerinnen und Bürger diese Anbindung nutzen können.',
+    nowActiveSince: (dateTime: string) => `Sofort (aktiv seit ${dateTime})`,
+    startDateHint:
+      'Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen.',
+    saveDate: 'Datum speichern',
+    savingDate: 'Wird gespeichert …',
+    startDateError: 'Das Startdatum konnte nicht gespeichert werden',
+    startDateNoAnswer:
+      'Das Startdatum konnte nicht gespeichert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    startDateSaved: 'Startdatum gespeichert.',
     draftTabTitle: (name: string) => `${name} (Entwurf)`,
     draftTitle: 'Diese Anbindung ist ein Entwurf',
     draftText:
@@ -214,8 +266,21 @@ export const INITIAL_ACTIONS_STATE: ActionsState = {
   dialogOpen: false,
   running: null,
   error: null,
+  noAnswer: false,
+  activeFrom: 'now',
+  startDateText: '',
+  dateError: false,
+  dateRefusals: 0,
   toast: null,
 };
+
+/**
+ * The failure's alert in "Change start date" and "Activate this connection again?", as the publish
+ * dialog's (T024): below 320 CSS px (`narrow:`) its title takes the whole width under the icon;
+ * kern.css's `flex: 1 0 0` on the title (unlayered, hence the `!`) would keep it beside the icon,
+ * a few letters wide
+ */
+export const START_DATE_FAILURE_ALERT_CLASSES = 'w-full narrow:[&_.kern-title]:basis-full!';
 
 export const INITIAL_DRAFT_DELETE_STATE: DraftDeleteState = {
   dialogOpen: false,
@@ -309,6 +374,11 @@ export const SUMMARY_INTRO_CLASSES =
 export const SUMMARY_TABLE_CLASSES =
   'rounded-kern-default flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)';
 
+/**
+ * The ⋯ menu's "Change start date" glyph (U88 6417:31045, "Icon/Change date · calendar pencil"
+ * 6529:39066, the export), which KERN lacks
+ */
+export const CALENDAR_PENCIL_ICON = { src: calendarPencilIcon };
 /** The ⋯ menu's "Deactivate" glyph (U88 6417:31045, "Icon/Link off"), which KERN lacks */
 export const LINK_OFF_ICON = { src: linkOffIcon };
 export const DELETE_ICON = { kern: 'kern-icon--delete' };

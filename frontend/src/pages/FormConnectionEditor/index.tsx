@@ -14,7 +14,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { flushSync } from 'react-dom';
 import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
 
-import { ApiError } from '../../api/client';
 import {
   createDraft,
   createFormConnection,
@@ -39,8 +38,10 @@ import { useOptionSets } from '../../hooks/useOptionSets';
 import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { useTodayInGermany } from '../../hooks/useTodayInGermany';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
+import { scheduledStartOf } from '../FormConnectionEdit/utils';
 import ConnectionStep from './ConnectionStep';
 import {
   DRAFT_COPY,
@@ -73,7 +74,7 @@ import {
 import DraftConflictDialog from './DraftConflictDialog';
 import EditorFooter from './EditorFooter';
 import FindingsAnnouncer from './FindingsAnnouncer';
-import { hasUnsavedWork, leaveFlowStep } from './leaveFlow';
+import { hasUnsavedWork, leaveFlowStep, saveQuestionTextOf } from './leaveFlow';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
@@ -107,9 +108,6 @@ import type {
   LeaveFlowContext,
   LeaveFlowState,
   PendingRemoval,
-  PublishDialogAction,
-  PublishDialogState,
-  PublishFailure,
 } from './types';
 import {
   conflictOf,
@@ -128,12 +126,16 @@ import {
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
+  isInvalidStartDate,
   isRulesChanged,
   labelOf,
   localContentOf,
   pageTitleOf,
   problemPlaceOf,
+  publishDialogReducer,
   publishErrorNotice,
+  publishFailureOf,
+  publishStartDateOf,
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
@@ -295,53 +297,6 @@ export default function FormConnectionEditorPage({
 }
 
 /**
- * The publish and save dialog's own state (data-model.md "The publish dialog"; FR-044; S14):
- * "Publish" / "Save" opens its summary, or "Publish without rules?" from the documents step;
- * publishing shows its status, then "Published" or the failure or the conflict; every way out
- * closes it, keeping the step that opened it. What the last attempt met stays through the next
- * attempt and the closing, so that the words don't change while the dialog fades out; the next
- * failure or conflict replaces it, the next opening clears it.
- */
-function publishDialogReducer(
-  state: PublishDialogState,
-  action: PublishDialogAction
-): PublishDialogState {
-  switch (action.type) {
-    case 'open':
-      return {
-        ...INITIAL_PUBLISH_DIALOG_STATE,
-        phase: action.withoutRules ? 'noRules' : 'summary',
-        from: action.from,
-        withoutRules: action.withoutRules,
-      };
-    case 'publish':
-      return { ...state, phase: 'publishing' };
-    case 'published':
-      return { ...state, phase: 'published', connectionId: action.connectionId };
-    case 'failed':
-      return { ...state, phase: 'failed', failure: action.failure, conflict: null };
-    case 'conflict':
-      return { ...state, phase: 'conflict', conflict: action.conflict, failure: null };
-    case 'close':
-      return { ...state, phase: 'closed' };
-  }
-}
-
-/**
- * What a failed publish or save shows (F46; U79 6376:27178): a network failure or a `5xx`, nginx's
- * `502` or `503` without JSON included, gets the design's sentence and the error ID the server
- * sent; any other answer, such as a `400`, the server's message (002-S5.3). A `409 rules_changed`
- * is a conflict, not a failure.
- */
-function publishFailureOf(error: unknown, editing: boolean, language: Language): PublishFailure {
-  if (!(error instanceof ApiError) || error.status >= 500) {
-    const errorId = error instanceof ApiError ? error.data.error_id : undefined;
-    return errorId ? { kind: 'general', errorId } : { kind: 'general' };
-  }
-  return { kind: 'refused', notice: publishErrorNotice(error, editing, language) };
-}
-
-/**
  * Where the connection just published or saved opens: its details, right after publishing with
  * the Links open (FR-046; the details' `initialAccordionOf()`), after saving with "Changes saved."
  */
@@ -364,6 +319,8 @@ function ConnectionWizard({
   const { origin } = flow;
   // The connection being edited, only for the published origin (FR-026)
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
+  // A scheduled connection's start date, which words the edit flow's texts (spec 010, S18; W6, W7)
+  const scheduledStart = scheduledStartOf(formConnection);
   const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
   const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
   const [publishDialog, dispatchPublishDialog] = useReducer(
@@ -446,6 +403,8 @@ function ConnectionWizard({
   // The website's language (spec 009): the catalog's labels come in it, the rules' texts compose
   // in it through the context below, and a switch rewords what shows without re-keying anything
   const { language } = useLanguage();
+  // Today in Germany, which a start date must come after (spec 010, FR-003)
+  const today = useTodayInGermany();
   const draftCopy = useCopy(DRAFT_COPY);
   const leaveCopy = useCopy(LEAVE_COPY);
   const documentsCopy = useCopy(DOCUMENTS_COPY);
@@ -1211,6 +1170,15 @@ function ConnectionWizard({
    * publish or deletion of the stored draft shows as a conflict in the dialog.
    */
   async function handleConfirm(replace = false) {
+    // "Schedule" with a day that isn't after today publishes nothing and shows the field's error
+    // (spec 010, FR-003); "Schedule" stays enabled
+    const start = publishStartDateOf(publishDialog, editing, today);
+    if (!start.ok) {
+      dispatchPublishDialog({ type: 'dateRefused' });
+      return;
+    }
+    // "On a date" sends the day; "Now" sends the body as before (FR-001, FR-002)
+    const startDate = start.date === null ? {} : { start_date: start.date };
     dispatch({ type: 'publish' });
     dispatchPublishDialog({ type: 'publish' });
     try {
@@ -1222,12 +1190,13 @@ function ConnectionWizard({
         origin.kind === 'draft'
           ? await publishDraft(origin.draftId, {
               ...createPayload(state, rules),
+              ...startDate,
               version: origin.draftVersion,
               replace,
             })
           : formConnection
             ? await updateFormConnection(formConnection.id, payload)
-            : await createFormConnection(payload);
+            : await createFormConnection({ ...payload, ...startDate });
       // Published: the local draft has no unsaved work left (FR-018)
       if (!editing) {
         forget();
@@ -1250,6 +1219,17 @@ function ConnectionWizard({
       if (conflict) {
         dispatch({ type: 'draftConflict', conflict });
         dispatchPublishDialog({ type: 'conflict', conflict });
+        return;
+      }
+      if (isInvalidStartDate(error)) {
+        // The day changed while the dialog was open: nothing was published, and the field shows
+        // its error as for a day typed wrong (FR-003, W1)
+        dispatch({
+          type: 'publishFailed',
+          error: publishErrorNotice(error, editing, language),
+          rulesChanged: false,
+        });
+        dispatchPublishDialog({ type: 'dateRefused' });
         return;
       }
       showPublishFailure(error);
@@ -1526,6 +1506,7 @@ function ConnectionWizard({
             onChangeName={(value) => dispatch({ type: 'changeName', value })}
             onChangeDescription={(value) => dispatch({ type: 'changeDescription', value })}
             onSubmit={handleContinue}
+            scheduledStart={scheduledStart}
           />
         );
       case 'documents':
@@ -1639,6 +1620,7 @@ function ConnectionWizard({
               ? () => navigate(generatePath(ROUTES.formConnection, { id: formConnection.id }))
               : undefined
           }
+          scheduledStart={scheduledStart}
         />
       }
       overlay={
@@ -1654,10 +1636,15 @@ function ConnectionWizard({
             onCancel={handleDialogCancel}
             onClose={handleCloseDialog}
             onConfirm={() => void handleConfirm()}
+            onActiveFromChange={(choice) =>
+              dispatchPublishDialog({ type: 'chooseActiveFrom', choice })
+            }
+            onStartDateTextChange={(text) => dispatchPublishDialog({ type: 'typeStartDate', text })}
             onReload={handleReload}
             onReplace={() => void handleConfirm(true)}
             onOpenConnection={handleOpenConnection}
             onSaveAsNew={() => void handleSaveAsNew('publish')}
+            scheduledStart={scheduledStart}
           />
           {/* Always rendered: closing it, not unmounting it, returns the focus to "Save and exit" */}
           <DraftConflictDialog
@@ -1685,7 +1672,7 @@ function ConnectionWizard({
           <ConfirmDialog
             open={leave.status === 'saveAsked'}
             title={leaveCopy.saveTitle}
-            text={leaveCopy.saveText}
+            text={saveQuestionTextOf(scheduledStart, leaveCopy)}
             secondaryLabel={leaveCopy.discardChanges}
             secondaryDanger
             onSecondary={() => answerLeave({ type: 'discard' })}

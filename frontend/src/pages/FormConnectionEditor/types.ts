@@ -7,6 +7,7 @@ import type {
 import type { FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
 import type { Ref } from 'react';
 
+import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import type { ToastContent } from '../../components/Toast/types';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { LinkNoticeKind, RulesBranch, RulesState } from './RulesStep/types';
@@ -285,9 +286,13 @@ export type PublishDialogPhase =
   'closed' | 'summary' | 'noRules' | 'publishing' | 'published' | 'failed' | 'conflict';
 
 /**
- * Why publishing or saving failed: a network failure or a `5xx` gets the design's sentence and
- * the error ID the server sent (U79 6376:27178; F46); any other answer, such as a `400`, shows the
- * server's message, which says what went wrong (002-S5.3)
+ * Why publishing or saving failed (FR-014, F2, W8; U79 6376:27178):
+ * - `general`: no answer came (a network failure, or a `5xx` without the API's envelope, as
+ *   nginx's `502`): the design's sentence "Couldn’t publish, so nothing has changed. Check your
+ *   internet connection and try again." The edit flow's save keeps spec 008's look (F46): the
+ *   sentence also for the API's `5xx`, with its error ID;
+ * - `refused`: the server answered: its message, which says what went wrong (002-S5.3), under
+ *   "Couldn’t publish", with the error ID of a `5xx` (spec 008's alert, slim, wrapping for it).
  */
 export type PublishFailure =
   { kind: 'general'; errorId?: string } | { kind: 'refused'; notice: ErrorNotice };
@@ -312,6 +317,18 @@ export interface PublishDialogState {
   conflict: PublishConflict | null;
   /** The connection the details open after `published` */
   connectionId: string | null;
+  /**
+   * "Active from" (C2; FR-001–FR-003): "Now" when it opens, or "On a date"; kept through a
+   * failure, so that "Try again" sends the same choice (FR-014). Publishing only: the edit flow's
+   * "Save changes?" has none (F9)
+   */
+  activeFrom: ActiveFrom;
+  /** The date field's text as typed, kept while "Now" is chosen */
+  startDateText: string;
+  /** The field's error "Enter a date after today.": `startDateOf()`'s, or the server's (W1) */
+  dateError: boolean;
+  /** How often the date was refused since the dialog opened: each refusal focuses the field */
+  dateRefusals: number;
 }
 
 export type PublishDialogAction =
@@ -323,6 +340,16 @@ export type PublishDialogAction =
   | { type: 'published'; connectionId: string }
   | { type: 'failed'; failure: PublishFailure }
   | { type: 'conflict'; conflict: PublishConflict }
+  /** A radio of "Active from" */
+  | { type: 'chooseActiveFrom'; choice: ActiveFrom }
+  /** The date field's text changed */
+  | { type: 'typeStartDate'; text: string }
+  /**
+   * "Schedule" with a day that isn't after today (`startDateOf()`), or the server's `400
+   * invalid_start_date` (the day changed while the dialog was open; W1): the summary again, with
+   * the field's error
+   */
+  | { type: 'dateRefused' }
   /**
    * "Back to test", the other cancel buttons, the ×, Escape, a conflict's "Cancel", and the log-out
    * after the edit flow's "Save and log out"
@@ -351,8 +378,12 @@ export interface PublishDialogProps {
   onCancel: () => void;
   /** The close button and Escape, and a draft conflict's "Cancel" */
   onClose: () => void;
-  /** "Publish connection", "Save", "Try again" */
+  /** "Publish connection", "Schedule", "Save", "Try again" */
   onConfirm: () => void;
+  /** A radio of "Active from" */
+  onActiveFromChange: (choice: ActiveFrom) => void;
+  /** The date field's text changed */
+  onStartDateTextChange: (text: string) => void;
   /** "Reload", after `rules_changed` or `draft_changed` */
   onReload: () => void;
   /**

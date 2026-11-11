@@ -20,6 +20,7 @@ import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
 import type { RulesProblem } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
+import { startDateOf } from '../../components/ActiveFromChoice/utils';
 import type { ToastContent } from '../../components/Toast/types';
 import { emptyContent } from '../../utils/localDrafts/content';
 import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
@@ -33,6 +34,8 @@ import {
   EDITOR_COPY,
   ELEMENT_IDS,
   INITIAL_EDITOR_STATE,
+  INITIAL_PUBLISH_DIALOG_STATE,
+  INVALID_START_DATE_ERROR,
   NAME_MAX_LENGTH,
   PUBLISH_DIALOG_COPY,
   RULES_CHANGED_ERROR,
@@ -58,6 +61,9 @@ import type {
   FindingLine,
   FormConnectionEditorPageProps,
   PendingRemoval,
+  PublishDialogAction,
+  PublishDialogState,
+  PublishFailure,
   RemovedDataRule,
   RulesNextAction,
 } from './types';
@@ -651,6 +657,111 @@ export function publishErrorNotice(
   }
   const copy = EDITOR_COPY[language];
   return errorNoticeOf(error, editing ? copy.saveErrorText : copy.publishErrorText);
+}
+
+/**
+ * The publish and save dialog's own state (data-model.md "The publish dialog"; FR-044; S14):
+ * "Publish" / "Save" opens its summary, or "Publish without rules?" from the documents step;
+ * publishing shows its status, then "Published" or the failure or the conflict; every way out
+ * closes it, keeping the step that opened it. What the last attempt met stays through the next
+ * attempt and the closing, so that the words don't change while the dialog fades out; the next
+ * failure or conflict replaces it, the next opening clears it.
+ *
+ * "Active from" (spec 010, C2, FR-001–FR-003, FR-014): it opens with "Now" and an empty field;
+ * the choice and the text stay through publishing, a failure and a conflict, so that "Try again"
+ * and "Replace their changes" send the same choice. A refused date ("Schedule" with a day that
+ * isn't after today, or the server's `400 invalid_start_date`) shows the summary again, without
+ * a failure, with the field's error, which goes when the choice or the text changes.
+ */
+export function publishDialogReducer(
+  state: PublishDialogState,
+  action: PublishDialogAction
+): PublishDialogState {
+  switch (action.type) {
+    case 'open':
+      return {
+        ...INITIAL_PUBLISH_DIALOG_STATE,
+        phase: action.withoutRules ? 'noRules' : 'summary',
+        from: action.from,
+        withoutRules: action.withoutRules,
+      };
+    case 'publish':
+      // The date it sends passed the check: the field's error goes
+      return { ...state, phase: 'publishing', dateError: false };
+    case 'published':
+      return { ...state, phase: 'published', connectionId: action.connectionId };
+    case 'failed':
+      return { ...state, phase: 'failed', failure: action.failure, conflict: null };
+    case 'conflict':
+      return { ...state, phase: 'conflict', conflict: action.conflict, failure: null };
+    case 'chooseActiveFrom':
+      return { ...state, activeFrom: action.choice, dateError: false };
+    case 'typeStartDate':
+      return { ...state, startDateText: action.text, dateError: false };
+    case 'dateRefused':
+      return {
+        ...state,
+        phase: state.withoutRules ? 'noRules' : 'summary',
+        failure: null,
+        conflict: null,
+        dateError: true,
+        dateRefusals: state.dateRefusals + 1,
+      };
+    case 'close':
+      return { ...state, phase: 'closed' };
+  }
+}
+
+/**
+ * The start date that publishing sends (FR-001–FR-003): none with "Now" and in the edit flow,
+ * which has no "Active from" (F9); with "On a date" the day `startDateOf()` reads from the
+ * field, or the field's error for a day that isn't after `today` (today in Germany)
+ */
+export function publishStartDateOf(
+  dialog: PublishDialogState,
+  editing: boolean,
+  today: string
+): { ok: true; date: string | null } | { ok: false } {
+  if (editing || dialog.activeFrom === 'now') {
+    return { ok: true, date: null };
+  }
+  const result = startDateOf(dialog.startDateText, today);
+  return result.ok ? { ok: true, date: result.date } : { ok: false };
+}
+
+/**
+ * The server's `400 invalid_start_date`: the day isn't after today in Germany any more, as when
+ * midnight passed while the dialog was open (FR-003, W1); it shows as the field's error
+ */
+export function isInvalidStartDate(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 400 &&
+    error.data.error === INVALID_START_DATE_ERROR
+  );
+}
+
+/**
+ * What a failed publish or save shows (FR-014, F2, W8; U79 6376:27178): the design's sentence
+ * only when no answer came, a network failure or a `5xx` without the API's envelope (nginx's
+ * `502` or `503`); any answer of the server, a `5xx` with its error ID among them, its message
+ * (002-S5.3). The edit flow's save keeps spec 008's look (F46): the sentence for every `5xx`, with
+ * the error ID the server sent. A `409 rules_changed` is a conflict, and a `400
+ * invalid_start_date` the field's error, not a failure.
+ */
+export function publishFailureOf(
+  error: unknown,
+  editing: boolean,
+  language: Language
+): PublishFailure {
+  if (!(error instanceof ApiError)) {
+    return { kind: 'general' };
+  }
+  const errorId = error.data.error_id;
+  if (error.status >= 500 && (editing || !errorId)) {
+    return errorId ? { kind: 'general', errorId } : { kind: 'general' };
+  }
+  return { kind: 'refused', notice: publishErrorNotice(error, editing, language) };
 }
 
 /**

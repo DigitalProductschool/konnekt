@@ -11,6 +11,10 @@ connection that isn't live; it may be incomplete between calls. Every connection
 variant Standard; further variants hold other rules for the same form. A variant based on Standard
 follows Standard's rules until it changes one; an empty variant starts without rules.
 
+A connection's status is `draft`, `scheduled`, `live` or `deactivated`. A scheduled connection is
+published but becomes active only on its start date; until then its URLs answer "unavailable". A
+start is a day in Germany: the connection becomes active at 00:00 there.
+
 ## The order of work
 
 1. Find a connection with `search_connections`, or create a draft with `create_draft`.

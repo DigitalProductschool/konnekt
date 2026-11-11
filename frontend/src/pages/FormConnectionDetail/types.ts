@@ -11,6 +11,7 @@ import type {
 import type { RuleContext, RuleDocument } from '@connection-portal/rules/types';
 import type { ReactNode, Ref } from 'react';
 
+import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import type { ToastContent } from '../../components/Toast/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
@@ -20,24 +21,113 @@ export type Arrival = 'published' | 'saved' | null;
 export type StatusAction = 'deactivate' | 'activate' | 'delete';
 export type ConfirmedAction = StatusAction;
 
+/**
+ * The page's dialogs: a confirmation (S17), or "Change start date" (S15, FR-008, FR-009), which
+ * the ⋯ menu opens for a scheduled and an active connection (`StartDateDialog`)
+ */
+export type ActionDialog = ConfirmedAction | 'startDate';
+
+/** A call the page runs: a confirmed action, or "Save date" of "Change start date" (S15) */
+export type RunningAction = StatusAction | 'startDate';
+
+/** An entry of the ⋯ menu on the date pill (S15; U88 6417:31045) */
+export type ConnectionMenuEntry = 'startDate' | 'deactivate' | 'delete';
+
 export interface ActionsState {
-  /** The confirmation to show; it keeps its texts while the dialog closes */
-  dialog: ConfirmedAction;
+  /** The dialog to show; a confirmation keeps its texts while it closes */
+  dialog: ActionDialog;
   dialogOpen: boolean;
   /** The action whose call is running */
-  running: StatusAction | null;
+  running: RunningAction | null;
   /** Why the last action failed, shown in its dialog until it closes or retries */
   error: ErrorNotice | null;
+  /**
+   * The last failure got no answer (a network failure, or a `5xx` without the API's envelope):
+   * "Change start date" then shows its sentence instead of the message (FR-014, F2, W8)
+   */
+  noAnswer: boolean;
+  /**
+   * "Active from" of the dialog that has it (C2): the choice and the date field's text, set when
+   * the dialog opens and kept through a failure, so that "Try again" repeats them (FR-014)
+   */
+  activeFrom: ActiveFrom;
+  startDateText: string;
+  /** The date field's error state (FR-003, W1): a day that isn't after today, or the server's */
+  dateError: boolean;
+  /** How often a date was refused, so that each refusal moves the focus to the field */
+  dateRefusals: number;
   toast: ToastContent | null;
 }
 
 export type ActionsAction =
-  | { type: 'openDialog'; dialog: ConfirmedAction }
+  /** `activeFrom` and `startDateText` are the dialog's first choice ("Now" and empty if left out) */
+  | { type: 'openDialog'; dialog: ActionDialog; activeFrom?: ActiveFrom; startDateText?: string }
   | { type: 'closeDialog' }
-  | { type: 'start'; action: StatusAction }
+  | { type: 'start'; action: RunningAction }
   | { type: 'succeeded'; message: string }
-  | { type: 'failed'; error: ErrorNotice }
+  | { type: 'failed'; error: ErrorNotice; noAnswer?: boolean }
+  /** A radio of "Active from" */
+  | { type: 'chooseActiveFrom'; choice: ActiveFrom }
+  /** The date field's text changed */
+  | { type: 'typeStartDate'; text: string }
+  /** A day that isn't after today, by `startDateOf()` or the server's `400 invalid_start_date` */
+  | { type: 'dateRefused' }
   | { type: 'dismissToast' };
+
+/**
+ * What "Save date" does (S15; FR-008, FR-009): the field's error for a day that isn't after
+ * today; nothing for an active connection's "Now" or a scheduled one's own date; otherwise it
+ * sends the day, or null for "Now"
+ */
+export type StartDatePlan =
+  { kind: 'refused' } | { kind: 'unchanged' } | { kind: 'send'; startDate: string | null };
+
+/**
+ * What "Activate" or "Schedule" does when reactivating (S17; FR-011): the field's error for a day
+ * that isn't after today; otherwise it sends the day, or null for "Now"
+ */
+export type ReactivatePlan = { kind: 'refused' } | { kind: 'send'; startDate: string | null };
+
+/** "Activate this connection again?" (S17; U89 7173:52959), rendered from the page's state */
+export interface ReactivateDialogProps {
+  /** The deactivated connection, whose documents and rules the summary names */
+  formConnection: FormConnection;
+  /** The page's actions state, which holds the dialog's choice, text, error and failure */
+  state: ActionsState;
+  onChoiceChange: (choice: ActiveFrom) => void;
+  onTextChange: (text: string) => void;
+  /** "Cancel", the ×, Escape and the scrim */
+  onCancel: () => void;
+  /** "Activate", "Schedule" and "Try again" */
+  onConfirm: () => void;
+}
+
+/**
+ * The failure's alert of the dialogs with "Active from" (FR-014, F2, W8): `noAnswerText` when no
+ * answer came, the server's message with its error ID for a `5xx`, `title` with the server's
+ * message for any other refusal
+ */
+export interface DialogFailureAlertProps {
+  notice: ErrorNotice;
+  noAnswer: boolean;
+  /** "Couldn’t save the start date", "Couldn’t reactivate" */
+  title: string;
+  /** "Couldn’t …, so nothing has changed. Check your internet connection and try again." */
+  noAnswerText: string;
+}
+
+export interface StartDateDialogProps {
+  /** The connection the dialog changes: scheduled or active */
+  formConnection: FormConnection;
+  /** The page's actions state, which holds the dialog's choice, text, error and failure */
+  state: ActionsState;
+  onChoiceChange: (choice: ActiveFrom) => void;
+  onTextChange: (text: string) => void;
+  /** "Cancel", the ×, Escape and the scrim */
+  onCancel: () => void;
+  /** "Save date" and "Try again" */
+  onSave: () => void;
+}
 
 /** A confirmation's texts and look (S17), for `ConfirmDialog` */
 export interface ActionDialogCopy {

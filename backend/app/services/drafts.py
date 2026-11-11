@@ -15,11 +15,13 @@ creating a connection and then `form_connections.create_revision()` with a
 `DraftGuard`, so there is no second save path (R5). An approval request publishes
 the stored draft through the same path (`check_publishable()` before it is made,
 `publish_stored_draft()` once it is approved; spec 007, research R12). Nothing here
-calls EUDIPLO except through publishing.
+calls EUDIPLO except through publishing. Publishing with a start date schedules the
+connection through that same path (spec 010, research R1, R2).
 """
 
 import logging
 import uuid
+from datetime import date
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -356,19 +358,26 @@ def publish_draft(
        rules' identifiers against the draft's counters, and the variants' ids,
        which their branch rows take (spec 007, FR-029): 400 before anything is
        written (`_publish_checks`, which `check_publishable()` shares).
-    3. `form_connections.create_revision()` with a `DraftGuard`, which repeats
+    3. `data.start_date`, if any, must be a day after today in Germany: 400
+       `invalid_start_date` before anything is written or EUDIPLO is called
+       (`form_connections.check_start_date()`; spec 010, FR-003).
+    4. `form_connections.create_revision()` with a `DraftGuard`, which repeats
        step 1 under both of its row locks, reserves the revision, creates the
        EUDIPLO configuration with no transaction held, and publishes the row in
        one commit (research R5). That commit, under the last lock, records what
        the body changes against the stored draft, then `published`, and sets
-       `activated_at` (spec 010, data-model 1.3, 2.3).
+       `activated_at` (spec 010, data-model 1.3, 2.3). With a start date, it
+       checks the date again under both locks and publishes the row scheduled:
+       not active, with its `start_date`, without `activated_at`, recording
+       `published` then `scheduled` (data-model 1.3, "publish, on a date").
 
     An `EudiploError` reaches the caller, and the draft stays a draft. A draft
     deleted meanwhile answers 404, one published meanwhile 409 `draft_published`,
-    and one saved meanwhile 409 `draft_changed` unless `data.replace`; the
-    configuration is then deleted again and the draft keeps its stored content.
-    None of these records anything. `actor` is who publishes it (spec 010,
-    research R4).
+    one saved meanwhile 409 `draft_changed` unless `data.replace`, and a start
+    date that is no longer after today when the row is locked again 400
+    `invalid_start_date`; the configuration is then deleted again and the draft
+    keeps its stored content. None of these records anything. `actor` is who
+    publishes it (spec 010, research R4).
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_state(form_connection, data.version, data.replace)
@@ -380,6 +389,7 @@ def publish_draft(
         data.documents,
         data.rules,
     )
+    form_connections.check_start_date(data.start_date)
 
     # End the read transaction: the revision path locks the row itself
     db.rollback()
@@ -391,25 +401,34 @@ def publish_draft(
         save=save,
         guard=DraftGuard(version=data.version, replace=data.replace),
         actor=actor,
+        start_date=data.start_date,
     )
     logger.info('Draft %s published', form_connection_id)
     return form_connections.get_form_connection(db, form_connection_id)
 
 
 def publish_stored_draft(
-    db: Session, form_connection_id: str, version: int, *, actor: Actor
+    db: Session,
+    form_connection_id: str,
+    version: int,
+    *,
+    actor: Actor,
+    start_date: date | None = None,
 ) -> FormConnectionView:
     """Publish the stored draft as it was at `version` (spec 007, research R12).
 
     What an approved approval request runs: the `DraftPublish` body is built from
     the stored draft (its name, description, documents and branches, numbered from
-    the row's counters) with `version` and `replace=False`, and goes through
-    `publish_draft()`, so there is one save path with the `DraftGuard`. 404 if the
-    draft is missing, 409 `draft_published` if it is published, and 409
+    the row's counters) with `version`, `replace=False` and `start_date`, and goes
+    through `publish_draft()`, so there is one save path with the `DraftGuard`.
+    404 if the draft is missing, 409 `draft_published` if it is published, and 409
     `draft_changed` if its version is no longer `version`, here and under the
-    publish's row locks: only the content of that version is published. An
-    `EudiploError` reaches the caller, and the draft stays a draft. `actor` is who
-    publishes it: the team member who approved, with the agent that asked.
+    publish's row locks: only the content of that version is published. With
+    `start_date`, the date the request asked for, it is published scheduled, and
+    a date that isn't after today in Germany, before EUDIPLO is called or under the
+    publish's row locks, answers 400 `invalid_start_date` (spec 010, research R2).
+    An `EudiploError` reaches the caller, and the draft stays a draft. `actor` is
+    who publishes it: the team member who approved, with the agent that asked.
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     # The content read below belongs to this version: both come from one row
@@ -420,6 +439,7 @@ def publish_stored_draft(
         description=form_connection.description,
         documents=content.documents,
         rules=_stored_rules(form_connection, content),
+        start_date=start_date,
         version=version,
         replace=False,
     )

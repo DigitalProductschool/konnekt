@@ -542,6 +542,8 @@ def test_re_syncing_a_draft_does_nothing(
 
 def test_the_steps_run_in_the_order_of_research_r7() -> None:
     assert worker.STEPS == (
+        # The scheduled starts first (spec 010, R2; tests/api/test_scheduling.py)
+        worker.activate_scheduled_connections,
         worker.sync_sessions,
         worker.expire_requests,
         worker.cancel_requests,

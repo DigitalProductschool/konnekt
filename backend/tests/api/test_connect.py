@@ -25,7 +25,7 @@ from app.main import RedactReferencesFilter, app
 from app.models import DocumentRequest, FormConnectionRevision
 from app.routers.connect import PULL_FAILED, TRIGGER_FAILED
 from app.schemas import PullResponse
-from app.services import document_requests, worker
+from app.services import document_requests, start_dates, worker
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import day_of_sharing
 from app.services.qr import png_data_uri
@@ -41,6 +41,7 @@ from tests.helpers import (
     SHARED_CREDENTIALS,
     US1_RULES,
     US2_RULES,
+    branch_pull_url,
     create_form_connection,
     fail_in_wallet,
     main_branch,
@@ -55,6 +56,7 @@ from tests.helpers import (
     trigger,
     update_form_connection,
     update_request,
+    variant,
 )
 
 # The messages as answered without a German header (spec 009)
@@ -883,6 +885,58 @@ def test_a_reactivated_form_connection_answers_again(
         'status'
     ] == ('pending')
     trigger(signed_in_client, form_connection_id)
+
+
+# A scheduled connection's URLs (spec 010, FR-004, FR-075; contracts/management-api.md
+# "What serviceBW sees")
+
+
+def test_a_scheduled_connections_urls_answer_as_a_deactivated_ones(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Byte for byte, so that serviceBW can't tell the two apart: the trigger and
+    the pull URLs of Standard and of a variant answer `409 unavailable`."""
+    rules = rules_input([main_branch([]), variant([], name='Taxi', origin='empty')])
+    start = start_dates.today_in_germany() + timedelta(days=30)
+    scheduled_id = create_form_connection(
+        signed_in_client, rules=rules, start_date=start.isoformat()
+    )
+    deactivated_id = create_form_connection(signed_in_client, rules=rules)
+    # serviceBW holds a reference of the deactivated connection's
+    held_reference = trigger(signed_in_client, deactivated_id)['reference']
+    deactivated = signed_in_client.post(
+        f'/api/form-connections/{deactivated_id}/deactivate', json={}
+    )
+    assert deactivated.status_code == 200, deactivated.json()
+    assert _count_requests() == 1
+    offers = fake_eudiplo.call_names().count('create_offer')
+
+    def answers(form_connection_id: str, reference: str) -> list[httpx2.Response]:
+        variant_id = signed_in_client.get(
+            f'/api/form-connections/{form_connection_id}'
+        ).json()['data']['branches'][1]['id']
+        return [
+            signed_in_client.post(requests_url(form_connection_id)),
+            signed_in_client.get(pull_url(form_connection_id, reference)),
+            signed_in_client.get(
+                branch_pull_url(form_connection_id, variant_id, reference)
+            ),
+        ]
+
+    for scheduled, deactivated in zip(
+        answers(scheduled_id, 'made-up-reference'),
+        answers(deactivated_id, held_reference),
+        strict=True,
+    ):
+        assert scheduled.status_code == deactivated.status_code == 409
+        assert scheduled.content == deactivated.content
+        assert (
+            scheduled.headers['content-type'] == (deactivated.headers['content-type'])
+        )
+        assert scheduled.json() == UNAVAILABLE
+    # The scheduled connection started nothing
+    assert _count_requests() == 1
+    assert fake_eudiplo.call_names().count('create_offer') == offers
 
 
 # A draft's URLs (spec 005, contracts/integration-api.md "A draft's URLs")

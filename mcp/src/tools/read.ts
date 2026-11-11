@@ -90,14 +90,17 @@ function operatorLineOf(branch: Pick<BranchInput, 'operator' | 'operator_mark'>)
 
 // search_connections
 
-const STATUSES = ['draft', 'live', 'deactivated'] as const;
+const STATUSES = ['draft', 'scheduled', 'live', 'deactivated'] as const;
 
 const searchInput = z.object({
   query: z
     .string()
     .optional()
     .describe('A part of the name or description, ignoring letter case; all connections without'),
-  status: z.enum(STATUSES).optional().describe('Only drafts, live or deactivated connections'),
+  status: z
+    .enum(STATUSES)
+    .optional()
+    .describe('Only drafts, scheduled, live or deactivated connections'),
   cursor: z.string().optional().describe("The previous answer's next_cursor, for the next page"),
 });
 
@@ -106,9 +109,10 @@ registerTool({
   level: 'read',
   description:
     'Finds connections (serviceBW forms linked to the EUDI Wallet) by a part of their name or ' +
-    'description, and by status: draft, live or deactivated. Answers at most 25 per page, the ' +
-    'most recently changed first, each with its link, when it was published and deactivated, ' +
-    "and a draft's step; pass next_cursor to read the next page. " +
+    'description, and by status: draft, scheduled, live or deactivated. Answers at most 25 per ' +
+    'page, the most recently changed first, each with its link, when it was published and ' +
+    "deactivated, the day a scheduled one becomes active, and a draft's step; pass next_cursor " +
+    'to read the next page. ' +
     'Look here before creating a draft, so that a form gets one connection.',
   input: searchInput,
   handler: async (_caller, input, { backend }) => {
@@ -134,7 +138,7 @@ registerTool({
         items.length === 0 ? 'No connection matches.' : `${count}:`,
         ...items.map((item) => {
           const facts = summaryFactsLineOf(item);
-          return `- ${connectionLineOf(item)}${facts ? `\n  ${facts}` : ''}`;
+          return `- ${connectionLineOf(item, item.start_date)}${facts ? `\n  ${facts}` : ''}`;
         }),
         page.next_cursor && `More connections match: pass the cursor ${page.next_cursor}.`
       )
@@ -151,8 +155,8 @@ registerTool({
     'Reads one connection: its name, description and status, the documents and fields it ' +
     'requests, its variants with their number of rules and groups (never the rules: use ' +
     'get_variant), its connection URLs once published, when it was published, became active ' +
-    'and was deactivated, and for a draft its version, its step and the requested data the ' +
-    'wallet no longer offers. Every part comes with its link.',
+    'and was deactivated, the day a scheduled one becomes active, and for a draft its version, ' +
+    'its step and the requested data the wallet no longer offers. Every part comes with its link.',
   input: z.object({ connection: CONNECTION }),
   handler: async (_caller, input, { backend }) => {
     const fc = await connectionOf(backend, input.connection);
@@ -192,7 +196,7 @@ registerTool({
         ...draft,
       },
       summaryTextOf(
-        connectionLineOf(ref),
+        connectionLineOf(ref, facts.start_date),
         fc.description && `Description: ${fc.description}`,
         fc.status === 'draft'
           ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`

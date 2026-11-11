@@ -1,7 +1,8 @@
 // An in-memory fake of the management API, for the MCP server's integration tests (research R19):
 // the endpoints the server calls, with a `read`, a `drafts` and a `manage` caller, a small catalog
 // and a store of connections (a draft with Standard, a based variant that changed one rule and an
-// empty variant; a live connection; a deactivated one). The tool tests of later phases add to it
+// empty variant; a live connection; a deactivated one; one scheduled to become active, spec 010).
+// The tool tests of later phases add to it
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -52,7 +53,12 @@ export const IDS = {
   liveStandard: '22222222-2222-4222-8222-2222222222a1',
   deactivated: '33333333-3333-4333-8333-333333333333',
   deactivatedStandard: '33333333-3333-4333-8333-3333333333a1',
+  scheduled: '55555555-5555-4555-8555-555555555555',
+  scheduledStandard: '55555555-5555-4555-8555-5555555555a1',
 } as const;
+
+/** The day the scheduled fixture becomes active, in Germany (spec 010, research R1). */
+export const SCHEDULED_START = '2026-12-01';
 
 export const LEVELS: AccessLevelInfo[] = [
   { level: 'read', name: 'Read only', allows: 'Reading connections' },
@@ -251,7 +257,10 @@ function lastActivityOf(entries: ActivityEntry[], deactivated: boolean): Activit
   );
 }
 
-/** The fixtures: a draft with three variants, a live connection and a deactivated one. */
+/**
+ * The fixtures: a draft with three variants, a live connection, a deactivated one and a scheduled
+ * one
+ */
 export function fixtureStore(): FakeStore {
   const age = rule(
     1,
@@ -408,6 +417,23 @@ export function fixtureStore(): FakeStore {
           false,
           '2026-11-01T09:00:00Z'
         ),
+      ],
+      [
+        IDS.scheduled,
+        {
+          // Scheduled when it was published: inactive, never active yet, with its start day
+          ...published(
+            IDS.scheduled,
+            IDS.scheduledStandard,
+            'Boat licence',
+            false,
+            '2026-10-31T09:00:00Z'
+          ),
+          state: 'scheduled',
+          activated_at: null,
+          deactivated_at: null,
+          start_date: SCHEDULED_START,
+        },
       ],
     ]),
     approvals: new Map(),
@@ -616,7 +642,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   } {
     const q = (query.get('q') ?? '').trim().toLowerCase();
     const status = query.get('status');
-    if (status !== null && !['draft', 'live', 'deactivated'].includes(status)) {
+    if (status !== null && !['draft', 'scheduled', 'live', 'deactivated'].includes(status)) {
       throw validation('Unknown status.');
     }
     const offset = Number(query.get('cursor') ?? '0');

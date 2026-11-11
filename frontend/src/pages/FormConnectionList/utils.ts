@@ -68,19 +68,23 @@ export function rowMetaOf(source: RowMetaSource, language: Language): string {
 }
 
 /**
- * The row delete dialog's title and body (FR-029c, F55): the design's "Delete “<name>”?" for
- * every connection; the body by its state: a draft keeps its own, an active connection warns that
- * its links stop working, a deactivated one says its documents and rules go too; in the given
- * language
+ * The row delete dialog's title and body (FR-029c, F55), also the details' (S17): the design's
+ * "Delete “<name>”?" for every connection; the body by its state: a draft keeps its own, a
+ * scheduled connection says it won't become active, with its start date (spec 010, FR-010; U14
+ * 6872:45929), an active connection warns that its links stop working, a deactivated one says its
+ * documents and rules go too (F35); in the given language
  */
 export function deleteDialogCopyOf(
-  summary: Pick<FormConnectionSummary, 'name' | 'status' | 'is_active'>,
+  summary: Pick<FormConnectionSummary, 'name' | 'status' | 'is_active' | 'state' | 'start_date'>,
   language: Language
 ): { title: string; text: string } {
   const copy = DELETE_CONNECTION_COPY[language];
   const title = copy.title(summary.name);
   if (summary.status === 'draft') {
     return { title, text: copy.draft(summary.name) };
+  }
+  if (summary.state === 'scheduled' && summary.start_date) {
+    return { title, text: copy.scheduled(formatDate(summary.start_date, language)) };
   }
   return {
     title,
