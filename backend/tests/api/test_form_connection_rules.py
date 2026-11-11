@@ -27,6 +27,8 @@ from app.models import (
 from app.schemas import FormConnectionUpdate
 from app.services import form_connections as form_connections_service
 from app.services import rules as rules_service
+from app.services.activity import Actor
+from tests.conftest import TEST_USERNAME
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     AGE_19_RULE,
@@ -1283,6 +1285,7 @@ def test_a_save_overtaken_while_eudiplo_answers_is_refused_under_the_lock(
                 FormConnectionUpdate.model_validate(
                     {'rules': _edit_rules(created, [AGE_RULE, CLASS_RULE])}
                 ),
+                actor=Actor(name=TEST_USERNAME),
             )
         return create_config(request)
 

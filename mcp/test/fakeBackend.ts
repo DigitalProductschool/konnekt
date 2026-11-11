@@ -17,8 +17,11 @@ import type {
 } from '@connection-portal/api-types/approvals';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityPage,
   Branch,
   BranchInput,
+  ConnectionState,
   DraftCreate,
   DraftUpdate,
   FormConnection,
@@ -111,6 +114,8 @@ const LEVEL_ORDER: AccessLevel[] = ['read', 'drafts', 'manage'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SERVICEBW_URL = 'https://portal.example/api/connect';
 const APPROVAL_MINUTES = 10;
+// The activity's page size (activity.py)
+const ACTIVITY_PAGE_SIZE = 50;
 // The server's limits on a connection's name and description (form_connections.py)
 const NAME_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 500;
@@ -128,6 +133,8 @@ export interface FakeStore {
   optionSets: OptionSet[];
   connections: Map<string, FormConnectionOrDraft>;
   approvals: Map<string, StoredApproval>;
+  /** Each connection's activity, newest first (spec 010) */
+  activity: Map<string, ActivityEntry[]>;
   /** New drafts per bearer, for the limit */
   draftsCreated: Map<string, number>;
 }
@@ -222,6 +229,28 @@ function highestNumber(items: RuleTreeItem[], prefix: 'rule' | 'group'): number 
   return highest;
 }
 
+/** An entry of the fixtures' activity; `actor` null for one without a person. */
+function activityEntry(
+  kind: ActivityEntry['kind'],
+  at: string,
+  actor: ActivityEntry['actor'] = null
+): ActivityEntry {
+  return { id: randomUUID(), kind, at, variant: null, start_date: null, actor };
+}
+
+/**
+ * The closed card's line as the backend's `last_activity()` picks it from entries newest first:
+ * while deactivated the newest `deactivated` entry, else the newest with a person, else the newest
+ */
+function lastActivityOf(entries: ActivityEntry[], deactivated: boolean): ActivityEntry | null {
+  return (
+    (deactivated ? entries.find((entry) => entry.kind === 'deactivated') : undefined) ??
+    entries.find((entry) => entry.actor !== null) ??
+    entries[0] ??
+    null
+  );
+}
+
 /** The fixtures: a draft with three variants, a live connection and a deactivated one. */
 export function fixtureStore(): FakeStore {
   const age = rule(
@@ -260,9 +289,43 @@ export function fixtureStore(): FakeStore {
     documentViewOf(catalog, { document_type: 'pid', fields: ['birthdate', 'address_locality'] }),
   ];
   const catalog: DocumentType[] = [PID, MDL];
+  // Newest first: the draft an agent created, the others as the migration backfilled them, the
+  // deactivated one deactivated by its team member since
+  const activity = new Map<string, ActivityEntry[]>([
+    [
+      IDS.draft,
+      [
+        activityEntry('created', '2026-11-01T09:00:00Z', {
+          name: 'anna',
+          agent: 'Claude Code',
+          approved: false,
+        }),
+      ],
+    ],
+    [
+      IDS.live,
+      [
+        activityEntry('published', '2026-10-01T09:00:00Z'),
+        activityEntry('created', '2026-10-01T09:00:00Z'),
+      ],
+    ],
+    [
+      IDS.deactivated,
+      [
+        activityEntry('deactivated', '2026-11-01T09:00:00Z', {
+          name: 'anna',
+          agent: null,
+          approved: false,
+        }),
+        activityEntry('published', '2026-10-01T09:00:00Z'),
+        activityEntry('created', '2026-10-01T09:00:00Z'),
+      ],
+    ],
+  ]);
 
   const draft: FormConnectionDraft = {
     status: 'draft',
+    state: 'draft',
     id: IDS.draft,
     name: 'Resident parking permit',
     description: 'The parking permit for residents of the city centre.',
@@ -278,6 +341,7 @@ export function fixtureStore(): FakeStore {
     version: 1,
     created_at: '2026-11-01T09:00:00Z',
     updated_at: '2026-11-03T09:00:00Z',
+    last_activity: lastActivityOf(activity.get(IDS.draft) ?? [], false),
   };
 
   const published = (
@@ -309,6 +373,12 @@ export function fixtureStore(): FakeStore {
       next_group_number: 1,
       created_at: '2026-10-01T09:00:00Z',
       updated_at: updated,
+      state: active ? 'live' : 'deactivated',
+      published_at: '2026-10-01T09:00:00Z',
+      activated_at: '2026-10-01T09:00:00Z',
+      deactivated_at: active ? null : updated,
+      start_date: null,
+      last_activity: lastActivityOf(activity.get(id) ?? [], !active),
     };
   };
 
@@ -341,6 +411,7 @@ export function fixtureStore(): FakeStore {
       ],
     ]),
     approvals: new Map(),
+    activity,
     draftsCreated: new Map(),
   };
 }
@@ -357,6 +428,7 @@ export function publishedOf(draft: FormConnectionDraft): FormConnection {
     const id = branch.id ?? randomUUID();
     return { ...branch, id, is_main: branch.origin === 'main', pull_url: pullUrlOf(id) };
   });
+  const now = new Date().toISOString();
   return {
     status: 'published',
     id: draft.id,
@@ -371,11 +443,41 @@ export function publishedOf(draft: FormConnectionDraft): FormConnection {
     next_rule_number: draft.next_rule_number,
     next_group_number: draft.next_group_number,
     created_at: draft.created_at,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
+    state: 'live',
+    published_at: now,
+    activated_at: now,
+    deactivated_at: null,
+    start_date: null,
+    last_activity: draft.last_activity,
   };
 }
 
-function summaryOf(fc: FormConnectionOrDraft): FormConnectionSummary {
+/**
+ * The state as the backend's `state_of()` derives it from the stored columns, so that a test
+ * that changes `is_active` or `start_date` in the store reads the matching state
+ */
+function stateOf(fc: FormConnectionOrDraft): ConnectionState {
+  if (fc.status === 'draft') return 'draft';
+  if (fc.is_active) return 'live';
+  return fc.start_date ? 'scheduled' : 'deactivated';
+}
+
+/** A stored connection as the backend answers it: the derived state, the dates of that state. */
+function answeredOf<T extends FormConnectionOrDraft>(fc: T): T;
+function answeredOf(fc: FormConnectionOrDraft): FormConnectionOrDraft {
+  if (fc.status === 'draft') return { ...fc, state: 'draft' };
+  const state = stateOf(fc) as FormConnection['state'];
+  return {
+    ...fc,
+    state,
+    deactivated_at: state === 'deactivated' ? fc.deactivated_at : null,
+    start_date: state === 'scheduled' ? fc.start_date : null,
+  };
+}
+
+function summaryOf(stored: FormConnectionOrDraft): FormConnectionSummary {
+  const fc = answeredOf(stored);
   return {
     id: fc.id,
     name: fc.name,
@@ -383,12 +485,12 @@ function summaryOf(fc: FormConnectionOrDraft): FormConnectionSummary {
     is_active: fc.status === 'draft' ? true : fc.is_active,
     status: fc.status,
     updated_at: fc.updated_at,
+    state: fc.state,
+    published_at: fc.status === 'draft' ? null : fc.published_at,
+    deactivated_at: fc.status === 'draft' ? null : fc.deactivated_at,
+    start_date: fc.status === 'draft' ? null : fc.start_date,
+    step: fc.status === 'draft' ? fc.step : null,
   };
-}
-
-function stateOf(fc: FormConnectionOrDraft): 'draft' | 'live' | 'deactivated' {
-  if (fc.status === 'draft') return 'draft';
-  return fc.is_active ? 'live' : 'deactivated';
 }
 
 async function bodyOf(request: IncomingMessage): Promise<unknown> {
@@ -484,6 +586,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     const items = branches.flatMap((branch) => branch.items);
     return {
       status: 'draft',
+      state: 'draft',
       id,
       name,
       description,
@@ -503,6 +606,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       version,
       created_at: created,
       updated_at: new Date().toISOString(),
+      last_activity: previous?.last_activity ?? null,
     };
   }
 
@@ -529,6 +633,19 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     return {
       items: page.map(summaryOf),
       next_cursor: offset + limit < matches.length ? String(offset + limit) : null,
+    };
+  }
+
+  /** A page of a connection's activity, newest first; the cursor is an offset here. */
+  function activityPage(id: string, query: URLSearchParams): ActivityPage {
+    connectionOf(id);
+    const offset = Number(query.get('cursor') ?? '0');
+    if (!Number.isInteger(offset) || offset < 0) throw validation('Unknown cursor.');
+    const entries = fake.store.activity.get(id) ?? [];
+    return {
+      items: entries.slice(offset, offset + ACTIVITY_PAGE_SIZE),
+      next_cursor:
+        offset + ACTIVITY_PAGE_SIZE < entries.length ? String(offset + ACTIVITY_PAGE_SIZE) : null,
     };
   }
 
@@ -637,8 +754,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     const fc = fake.store.connections.get(stored.request.form_connection_id) ?? null;
     return {
       request: stored.request,
-      draft: fc?.status === 'draft' ? fc : null,
-      connection: fc?.status === 'published' ? fc : null,
+      draft: fc?.status === 'draft' ? answeredOf(fc) : null,
+      connection: fc?.status === 'published' ? answeredOf(fc) : null,
       // As the backend: a published connection's URLs in every status (a done publish's too),
       // so that check_approval's own filtering shows
       urls:
@@ -687,7 +804,16 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       parts.length === 3 &&
       method === 'GET'
     ) {
-      return ok(connectionOf(parts[2]));
+      return ok(answeredOf(connectionOf(parts[2])));
+    }
+    if (
+      parts[0] === 'api' &&
+      parts[1] === 'form-connections' &&
+      parts.length === 4 &&
+      parts[3] === 'activity' &&
+      method === 'GET'
+    ) {
+      return ok(activityPage(parts[2], url.searchParams));
     }
     if (
       parts[0] === 'api' &&

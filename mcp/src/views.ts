@@ -8,6 +8,7 @@ import type {
   BranchInput,
   Combinator,
   Condition,
+  ConnectionState as ApiConnectionState,
   ConnectionStatus,
   EditorStep,
   FormConnectionOrDraft,
@@ -30,8 +31,11 @@ import { connectionLink, itemLink, variantLink } from './links';
 
 // Refs (contracts/mcp-tools.md "Results and errors")
 
-/** A connection's state as agents see it: a draft, or a published one that is live or not */
-export type ConnectionState = 'draft' | 'live' | 'deactivated';
+/**
+ * A connection's state as agents see it: a draft, or a published one that is scheduled, live or
+ * deactivated; the API's `state` (spec 010, research R1)
+ */
+export type ConnectionState = ApiConnectionState;
 
 export interface ConnectionRef {
   id: string;
@@ -60,16 +64,15 @@ export interface ConnectionLike {
   status: ConnectionStatus;
   /** Published connections and summaries; a draft has none */
   is_active?: boolean;
+  /** The state the server derived (spec 010, research R1) */
+  state: ConnectionState;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date?: string | null;
 }
 
-/** `live` or `deactivated` for a published connection, from `is_active`; `draft` for a draft. */
-export function connectionStateOf(
-  fc: Pick<ConnectionLike, 'status' | 'is_active'>
-): ConnectionState {
-  if (fc.status === 'draft') {
-    return 'draft';
-  }
-  return fc.is_active ? 'live' : 'deactivated';
+/** The API's `state`: the server is the one place that derives it (spec 010, research R1). */
+export function connectionStateOf(fc: Pick<ConnectionLike, 'state'>): ConnectionState {
+  return fc.state;
 }
 
 export function connectionRefOf(fc: ConnectionLike): ConnectionRef {
@@ -269,11 +272,18 @@ export const URLS_NOTES = {
   deactivated:
     'This connection is deactivated: its URLs answer "unavailable" until it is reactivated.',
   live: 'This connection is live: serviceBW calls these URLs.',
+  scheduled:
+    'This connection is scheduled: its URLs answer "unavailable" until it becomes active on ' +
+    '{date}, 00:00 in Germany.',
 } as const;
 
 /** What `get_connection` says about the URLs: none yet, live, or answering "unavailable". */
-export function urlsNoteOf(fc: Pick<ConnectionLike, 'status' | 'is_active'>): string {
-  return URLS_NOTES[connectionStateOf(fc)];
+export function urlsNoteOf(fc: Pick<ConnectionLike, 'state' | 'start_date'>): string {
+  const state = connectionStateOf(fc);
+  if (state === 'scheduled') {
+    return URLS_NOTES.scheduled.replace('{date}', fc.start_date ?? '');
+  }
+  return URLS_NOTES[state];
 }
 
 // Citizen fields (data-model §9; R15)

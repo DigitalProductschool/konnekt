@@ -1,8 +1,8 @@
 import type { ToastKind } from './types';
 
 /**
- * How long a toast without an action stays: Figma "Rules/Toast" (6369:25433), "6 s". A toast
- * with an action stays until it is used or dismissed (research R8)
+ * How long a toast stays, with or without an action: Figma "Rules/Toast" (6369:25433), "6 s"
+ * (FR-082, research R12). The time runs only while neither the pointer nor the focus is on it
  */
 export const TOAST_DURATION_MS = 6000;
 
@@ -19,7 +19,7 @@ export const TOAST_POSITION = {
   /*
    * Under 320 CSS px (T096) it sticks to the window's bottom edge while the part of the page it
    * belongs to is in view, and keeps a place of its own there: at the end of the page it covers
-   * nothing (a fixed toast with an action, which stays until it is used, would hide the page's
+   * nothing (a fixed toast, which stays while the focus is on its action, would hide the page's
    * last controls, such as the footer's, which doesn't stick in such a window)
    */
   narrow: 'narrow:sticky narrow:bottom-8',

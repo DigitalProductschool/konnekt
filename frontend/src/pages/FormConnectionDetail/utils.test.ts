@@ -65,6 +65,12 @@ function connection(branches: Branch[]): FormConnection {
     next_group_number: 1,
     created_at: '2026-10-25T10:00:00Z',
     updated_at: '2026-10-25T10:00:00Z',
+    state: 'live',
+    published_at: '2026-10-25T10:00:00Z',
+    activated_at: '2026-10-25T10:00:00Z',
+    deactivated_at: null,
+    start_date: null,
+    last_activity: null,
   };
 }
 

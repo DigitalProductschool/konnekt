@@ -3,25 +3,29 @@
 specs/001-servicebw-eudi-middleware/data-model.md, extended by the rule sets and
 branches of specs/002-connection-rules/data-model.md, the drafts of
 specs/005-connection-drafts/data-model.md and the agent access and approval
-requests of specs/007-agent-mcp-server/data-model.md.
+requests of specs/007-agent-mcp-server/data-model.md, and the status dates and the
+activity of specs/010-revamp-backend-gaps/data-model.md.
 
 No table holds a citizen, a finding, a test result, a token's secret or a
 citizen's data.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     UniqueConstraint,
+    false,
     func,
     text,
     true,
@@ -101,6 +105,18 @@ class FormConnection(Base):
             ' AND draft_version IS NULL)',
             name='ck_form_connections_draft_or_published',
         ),
+        # A start date only while scheduled: published and not active (spec 010,
+        # data-model.md section 1.1)
+        CheckConstraint(
+            'start_date IS NULL OR (published_at IS NOT NULL AND NOT is_active)',
+            name='ck_form_connections_start_date',
+        ),
+        # The worker's scan for the start dates that have come
+        Index(
+            'ix_form_connections_start_date',
+            'start_date',
+            postgresql_where=text('start_date IS NOT NULL'),
+        ),
     )
 
     id: Mapped[UuidPk]
@@ -139,6 +155,65 @@ class FormConnection(Base):
     # answering "unavailable". A draft is deleted by removing its row (spec 005, R7)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
+    )
+    # Spec 010, data-model.md section 1.1. The day in Germany from which a
+    # scheduled connection is active; set exactly while it is scheduled
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # When the connection last became active. Null for a draft and for a
+    # connection that was never active
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When the connection was last deactivated. Kept after a reactivation; read
+    # only while the connection is deactivated
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[CreatedAt]
+    updated_at: Mapped[UpdatedAt]
+
+
+class ConnectionActivity(Base):
+    """One entry of a connection's activity: who did what, and when.
+
+    Spec 010, data-model.md section 2, research R4. Written by the services under
+    the connection's row lock; entries of the same kind, person and variant merge
+    into the connection's newest instant (FR-026). The person is kept as text, with
+    no foreign key to the account, so that the entry survives it (FR-028). No entry
+    holds a rule's content, a message, a value or a citizen (FR-029).
+    """
+
+    __tablename__ = 'connection_activity'
+    __table_args__ = (
+        # The list and the last entry
+        Index(
+            'ix_connection_activity_connection_time',
+            'form_connection_id',
+            'occurred_at',
+        ),
+    )
+
+    id: Mapped[UuidPk]
+    form_connection_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey('form_connections.id', ondelete='CASCADE'), index=True
+    )
+    # One of the kinds of data-model.md section 2.2
+    kind: Mapped[str] = mapped_column(String(32))
+    # When it happened; moved to the latest time when entries merge
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The entry's place among the entries of one action, so the order is total
+    position: Mapped[int] = mapped_column(
+        SmallInteger, default=0, server_default=text('0')
+    )
+    # The kinds about a variant: its id, and its name when written or last merged
+    variant_id: Mapped[str | None] = mapped_column(String(36))
+    variant_name: Mapped[str | None] = mapped_column(String(200))
+    # scheduled, and start_date_changed to a date
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # The team member's username: who acted, whom an agent acts for, or who
+    # approved. Null for what the middleware did by itself and backfilled entries
+    actor_name: Mapped[str | None] = mapped_column(String(100))
+    # The agent's name when an agent made the change or asked for the action
+    agent_name: Mapped[str | None] = mapped_column(String(200))
+    # True when actor_name approved the request that agent_name made
+    approved: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
     )
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]

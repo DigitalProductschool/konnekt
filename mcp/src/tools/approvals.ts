@@ -169,6 +169,7 @@ export function approvalConnectionRefOf(
     name: request.connection_name,
     status: state === 'draft' ? 'draft' : 'published',
     is_active: state === 'live',
+    state,
   });
 }
 

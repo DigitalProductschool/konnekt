@@ -38,7 +38,9 @@ from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import DraftPublish, DraftUpdate
 from app.schemas import FormConnection as FormConnectionView
 from app.services import drafts, form_connections
+from app.services.activity import Actor
 from app.services.dcql import config_hash
+from tests.conftest import TEST_USERNAME
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     AGE_RULE,
@@ -76,6 +78,7 @@ NOT_FOUND = {'error': 'Not found', 'message': 'Form connection not found'}
 # What a draft answers: no URLs, no rule set version and no is_active (FR-006)
 DRAFT_KEYS = {
     'status',
+    'state',
     'id',
     'name',
     'description',
@@ -87,6 +90,7 @@ DRAFT_KEYS = {
     'version',
     'created_at',
     'updated_at',
+    'last_activity',
 }
 
 
@@ -1258,7 +1262,9 @@ PARITY_CASES = [
 def published_shape(data: dict[str, Any]) -> dict[str, Any]:
     """A published connection without its ids, the ids in its URLs and timestamps.
 
-    Branch ids become their positions, in the URLs too.
+    Branch ids become their positions, in the URLs too. Its last activity is left
+    out too: an entry has an id and a time of its own, and names who acted
+    (spec 010; test_activity.py checks it).
     """
     placeholders = {data['id']: '<id>'} | {
         branch['id']: f'<branch {position}>'
@@ -1273,7 +1279,16 @@ def published_shape(data: dict[str, Any]) -> dict[str, Any]:
     return {
         key: value
         for key, value in data.items()
-        if key not in {'id', 'created_at', 'updated_at'}
+        if key
+        not in {
+            'id',
+            'created_at',
+            'updated_at',
+            'published_at',
+            'activated_at',
+            'deactivated_at',
+            'last_activity',
+        }
     } | {
         'trigger_url': without_ids(data['trigger_url']),
         'pull_url': without_ids(data['pull_url']),
@@ -1401,7 +1416,9 @@ def test_two_publishes_of_one_draft_publish_it_once(
 
     def publish_draft() -> FormConnectionView:
         with SessionLocal() as db:
-            return drafts.publish_draft(db, draft_id, data)
+            return drafts.publish_draft(
+                db, draft_id, data, actor=Actor(name=TEST_USERNAME)
+            )
 
     outcomes = run_in_threads(publish_draft, publish_draft)
 
@@ -1460,7 +1477,7 @@ def test_a_draft_deleted_during_its_publish_is_not_published(
 
     def delete_draft() -> None:
         with SessionLocal() as db:
-            drafts.delete_draft(db, draft_id)
+            drafts.delete_draft(db, draft_id, actor=Actor(name=TEST_USERNAME))
 
     def create_config_then_delete(request: Request) -> Response:
         response = create_config(request)
@@ -1738,7 +1755,9 @@ def test_a_draft_saved_during_its_publish(
 
     def save_draft() -> object:
         with SessionLocal() as db:
-            return drafts.save_draft(db, draft_id, their_data)
+            return drafts.save_draft(
+                db, draft_id, their_data, actor=Actor(name=TEST_USERNAME)
+            )
 
     def create_config_then_save(request: Request) -> Response:
         response = create_config(request)
@@ -2365,7 +2384,12 @@ def test_publish_stored_draft_publishes_as_the_editor_does(
     assert published.status_code == 200, published.json()
 
     with SessionLocal() as db:
-        view = drafts.publish_stored_draft(db, approved_id, approved['version'])
+        view = drafts.publish_stored_draft(
+            db,
+            approved_id,
+            approved['version'],
+            actor=Actor(name=TEST_USERNAME, agent='Test agent', approved=True),
+        )
 
     data = view.model_dump(mode='json')
     assert data['id'] == approved_id
@@ -2394,7 +2418,12 @@ def test_publish_stored_draft_publishes_only_its_version(
     before = get(signed_in_client, draft_id)
 
     with SessionLocal() as db, pytest.raises(HTTPException) as refused:
-        drafts.publish_stored_draft(db, draft_id, 1)
+        drafts.publish_stored_draft(
+            db,
+            draft_id,
+            1,
+            actor=Actor(name=TEST_USERNAME, agent='Test agent', approved=True),
+        )
 
     assert refused.value.status_code == 409
     assert _answered(refused.value.detail) == DRAFT_CHANGED_DETAIL

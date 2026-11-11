@@ -22,6 +22,7 @@ import {
 
 const DRAFT: FormConnectionDraft = {
   status: 'draft',
+  state: 'draft',
   id: 'draft-1',
   name: 'Passenger transport licence',
   description: '',
@@ -33,6 +34,7 @@ const DRAFT: FormConnectionDraft = {
   version: 2,
   created_at: '2026-11-04T10:00:00Z',
   updated_at: '2026-11-04T10:30:00Z',
+  last_activity: null,
 };
 
 describe('initialStepOf', () => {

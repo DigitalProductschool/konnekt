@@ -985,8 +985,8 @@ function ConnectionWizard({
    * A failed draft save, also an answer of the conflict dialog, whose dialog closes first and
    * returns the focus to "Save and exit": the failed save's toast, which replaces the toast
    * shown and leaves the focus where it is (FR-033, F67, W20). A network failure or a `5xx`
-   * offers "Try again" and stays until it is used or dismissed; a `400` shows the server's
-   * message for the toast's usual time.
+   * offers "Try again"; a `400` shows the server's message. Either goes after the toast's
+   * 6 seconds (FR-082), and "Save and exit" is still there.
    */
   function showDraftSaveFailure(error: unknown) {
     if (state.conflict) {

@@ -32,8 +32,8 @@ export interface DocumentsViewState {
 /**
  * A removed document that the undo toast ("<Document> removed." / "Undo") can bring back. The
  * editor's state holds the document and its fields (`removed`) and the toast; this records which
- * one it is, so that "Undo" shows it again. It ends with the toast: "Undo", Escape, a newer change
- * or a change of step. No timer: an action toast stays until it is used or dismissed (T036)
+ * one it is, so that "Undo" shows it again. It ends with the toast: "Undo", Escape, its 6 seconds
+ * (FR-082), a newer change or a change of step
  */
 export interface PendingDocumentRemoval {
   documentId: string;

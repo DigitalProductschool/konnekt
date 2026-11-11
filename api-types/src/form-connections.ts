@@ -128,6 +128,65 @@ export type ConnectionStatus = 'draft' | 'published';
 /** A step of the editor's wizard; mirrors EditorStep */
 export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
 
+/**
+ * What every consumer shows, derived by the server (spec 010, research R1); mirrors
+ * ConnectionState. `status` stays the discriminator
+ */
+export type ConnectionState = 'draft' | 'scheduled' | 'live' | 'deactivated';
+
+// The activity (specs/010-revamp-backend-gaps/contracts/management-api.md "Schemas")
+
+/** What happened, in the order of data-model.md section 2.2; mirrors ActivityKind */
+export type ActivityKind =
+  | 'created'
+  | 'renamed'
+  | 'description_changed'
+  | 'documents_changed'
+  | 'variant_added'
+  | 'variant_removed'
+  | 'variant_renamed'
+  | 'rules_changed'
+  | 'published'
+  | 'scheduled'
+  | 'start_date_changed'
+  | 'became_active'
+  | 'deactivated'
+  | 'reactivated'
+  | 'deleted'
+  | 'restored';
+
+/**
+ * Who made an entry. `agent` without `approved`: the agent made the change for the team member
+ * `name`; `agent` with `approved`: `name` approved what the agent asked for
+ */
+export interface ActivityActor {
+  /** The team member's username when the entry was made */
+  name: string;
+  agent: string | null;
+  approved: boolean;
+}
+
+/** One entry of a connection's activity; the server sends the kind and its data, no sentence */
+export interface ActivityEntry {
+  id: string;
+  kind: ActivityKind;
+  /** When it happened; the latest time of the entries merged into it */
+  at: string;
+  /** The variant's name for the kinds about a variant (the new name for a rename) */
+  variant: string | null;
+  /** YYYY-MM-DD: `scheduled`, and `start_date_changed` to a date */
+  start_date: string | null;
+  /** Null: the middleware did it by itself, or the entry was backfilled */
+  actor: ActivityActor | null;
+}
+
+/** A page of a connection's activity, newest first */
+export interface ActivityPage {
+  items: ActivityEntry[];
+  /** Null on the last page */
+  next_cursor: string | null;
+}
+
 export interface FormConnectionSummary {
   id: string;
   name: string;
@@ -139,6 +198,16 @@ export interface FormConnectionSummary {
   status: ConnectionStatus;
   /** A draft's last save (FR-007) */
   updated_at: string;
+  /** Spec 010 (research R1, R3) */
+  state: ConnectionState;
+  /** Null for a draft */
+  published_at: string | null;
+  /** Set only while deactivated */
+  deactivated_at: string | null;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date: string | null;
+  /** A draft's stored step; null once published */
+  step: EditorStep | null;
 }
 
 /** A page of the search's results (spec 007, research R9) */
@@ -168,6 +237,17 @@ export interface FormConnection {
   next_group_number: number;
   created_at: string;
   updated_at: string;
+  /** Spec 010 (research R1, R3) */
+  state: 'scheduled' | 'live' | 'deactivated';
+  published_at: string;
+  /** When it last became active; null if it never was */
+  activated_at: string | null;
+  /** Set only while deactivated */
+  deactivated_at: string | null;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date: string | null;
+  /** The entry the activity card's closed line shows (data-model.md section 2.5) */
+  last_activity: ActivityEntry | null;
 }
 
 /** Without rules, the form connection gets a main branch "Standard" */
@@ -192,6 +272,8 @@ export interface FormConnectionUpdate {
 export interface FormConnectionDraft {
   /** Always 'draft' */
   status: 'draft';
+  /** Always 'draft' (spec 010, research R1) */
+  state: 'draft';
   id: string;
   name: string;
   /** '' possible */
@@ -212,6 +294,8 @@ export interface FormConnectionDraft {
   version: number;
   created_at: string;
   updated_at: string;
+  /** The entry the activity card's closed line shows (spec 010, data-model.md section 2.5) */
+  last_activity: ActivityEntry | null;
 }
 
 /** What GET /api/form-connections/:id answers; discriminated by `status` */

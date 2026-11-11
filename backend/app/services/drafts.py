@@ -40,7 +40,8 @@ from ..schemas import (
     to_iso_utc,
 )
 from ..schemas import FormConnection as FormConnectionView
-from . import form_connections, rules
+from . import activity, form_connections, rules
+from .activity import Actor
 from .form_connections import (
     DRAFT_CHANGED_DETAIL,
     DRAFT_PUBLISHED_DETAIL,
@@ -62,16 +63,18 @@ def _draft_changed() -> HTTPException:
     )
 
 
-def draft_view(form_connection: FormConnection) -> FormConnectionDraft:
+def draft_view(db: Session, form_connection: FormConnection) -> FormConnectionDraft:
     """A draft as the API returns it: its content and version, without URLs.
 
     Its branches carry their ids (spec 007, research R10). Answers 409
-    `draft_published` for a published row.
+    `draft_published` for a published row. `last_activity` is the entry the
+    activity card's closed line shows (spec 010, data-model 2.5).
     """
     if form_connection.draft is None or form_connection.draft_version is None:
         raise _draft_published()
     content = DRAFT_CONTENT.validate_python(form_connection.draft)
     return FormConnectionDraft(
+        state='draft',
         id=form_connection.id,
         name=form_connection.name,
         description=form_connection.description,
@@ -83,6 +86,7 @@ def draft_view(form_connection: FormConnection) -> FormConnectionDraft:
         version=form_connection.draft_version,
         created_at=to_iso_utc(form_connection.created_at),
         updated_at=to_iso_utc(form_connection.updated_at),
+        last_activity=activity.last_activity(db, form_connection),
     )
 
 
@@ -95,7 +99,7 @@ def get_form_connection_or_draft(
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     if form_connection.published_at is None:
-        return draft_view(form_connection)
+        return draft_view(db, form_connection)
     return form_connections.get_form_connection(db, form_connection_id)
 
 
@@ -173,12 +177,15 @@ def _content(
     )
 
 
-def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
+def create_draft(
+    db: Session, data: DraftCreate, *, actor: Actor
+) -> FormConnectionDraft:
     """Store a new draft, version 1, after the structural checks (FR-001, FR-003).
 
     Its rules and groups are numbered from (1, 1). No EUDIPLO call, and no
     revision, rule set or branch row (FR-005). Answers 400 when the structure is
-    broken.
+    broken. `actor` is who creates it, recorded as `created` in the commit that
+    inserts the row (spec 010, research R4).
     """
     name, description, documents, save = _clean_draft(db, data, None)
     numbering = rules.number_draft(save, (1, 1))
@@ -196,13 +203,17 @@ def create_draft(db: Session, data: DraftCreate) -> FormConnectionDraft:
         next_group_number=numbering.next_group_number,
     )
     db.add(form_connection)
+    # The row first, which its entry refers to; it is this transaction's alone
+    # until the commit
+    db.flush()
+    activity.record(db, form_connection.id, [activity.Entry(activity.CREATED)], actor)
     db.commit()
     logger.info('Draft %s saved', form_connection.id)
-    return draft_view(form_connection)
+    return draft_view(db, form_connection)
 
 
 def save_draft(
-    db: Session, form_connection_id: str, data: DraftUpdate
+    db: Session, form_connection_id: str, data: DraftUpdate, *, actor: Actor
 ) -> FormConnectionDraft:
     """Replace a draft's content, name and description, and raise its version.
 
@@ -213,9 +224,12 @@ def save_draft(
     2. Check the structure (FR-003): 400 before anything is written.
     3. Lock the row and repeat step 1, number new identifiers from the row's
        counters (research R4), write the content, raise the counters (never lower
-       them) and add 1 to the version, in one commit (FR-002, FR-022).
+       them) and add 1 to the version, in one commit (FR-002, FR-022). That
+       commit records what the save changes against the draft as stored under
+       the lock (`activity.changes_between()`; nothing for an unchanged draft).
 
-    A refusal stores nothing. No EUDIPLO call.
+    A refusal stores nothing. No EUDIPLO call. `actor` is who saves it (spec 010,
+    research R4).
     """
     _check_state(
         form_connections.find_form_connection(db, form_connection_id),
@@ -225,6 +239,7 @@ def save_draft(
     name, description, documents, save = _clean_draft(db, data, form_connection_id)
 
     form_connection = _lock_draft(db, form_connection_id, data.version, data.replace)
+    before = activity.draft_content(form_connection)
     numbering = rules.number_draft(
         save, (form_connection.next_rule_number, form_connection.next_group_number)
     )
@@ -238,9 +253,19 @@ def save_draft(
         form_connection.next_group_number, numbering.next_group_number
     )
     form_connection.draft_version = (form_connection.draft_version or 0) + 1
+    # The content about to be stored, its branches with their final identifiers
+    after = activity.Content(
+        name=name,
+        description=description,
+        documents=documents,
+        branches=numbering.branches,
+    )
+    activity.record(
+        db, form_connection_id, activity.changes_between(before, after), actor
+    )
     db.commit()
     logger.info('Draft %s saved', form_connection_id)
-    return draft_view(form_connection)
+    return draft_view(db, form_connection)
 
 
 def _publish_checks(
@@ -319,7 +344,7 @@ def check_publishable(
 
 
 def publish_draft(
-    db: Session, form_connection_id: str, data: DraftPublish
+    db: Session, form_connection_id: str, data: DraftPublish, *, actor: Actor
 ) -> FormConnectionView:
     """Publish a draft: the first revision, rule set 1 and the URLs (FR-009).
 
@@ -334,12 +359,16 @@ def publish_draft(
     3. `form_connections.create_revision()` with a `DraftGuard`, which repeats
        step 1 under both of its row locks, reserves the revision, creates the
        EUDIPLO configuration with no transaction held, and publishes the row in
-       one commit (research R5).
+       one commit (research R5). That commit, under the last lock, records what
+       the body changes against the stored draft, then `published`, and sets
+       `activated_at` (spec 010, data-model 1.3, 2.3).
 
     An `EudiploError` reaches the caller, and the draft stays a draft. A draft
     deleted meanwhile answers 404, one published meanwhile 409 `draft_published`,
     and one saved meanwhile 409 `draft_changed` unless `data.replace`; the
     configuration is then deleted again and the draft keeps its stored content.
+    None of these records anything. `actor` is who publishes it (spec 010,
+    research R4).
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     _check_state(form_connection, data.version, data.replace)
@@ -361,13 +390,14 @@ def publish_draft(
         changes={'name': name, 'description': description},
         save=save,
         guard=DraftGuard(version=data.version, replace=data.replace),
+        actor=actor,
     )
     logger.info('Draft %s published', form_connection_id)
     return form_connections.get_form_connection(db, form_connection_id)
 
 
 def publish_stored_draft(
-    db: Session, form_connection_id: str, version: int
+    db: Session, form_connection_id: str, version: int, *, actor: Actor
 ) -> FormConnectionView:
     """Publish the stored draft as it was at `version` (spec 007, research R12).
 
@@ -378,7 +408,8 @@ def publish_stored_draft(
     draft is missing, 409 `draft_published` if it is published, and 409
     `draft_changed` if its version is no longer `version`, here and under the
     publish's row locks: only the content of that version is published. An
-    `EudiploError` reaches the caller, and the draft stays a draft.
+    `EudiploError` reaches the caller, and the draft stays a draft. `actor` is who
+    publishes it: the team member who approved, with the agent that asked.
     """
     form_connection = form_connections.find_form_connection(db, form_connection_id)
     # The content read below belongs to this version: both come from one row
@@ -392,11 +423,15 @@ def publish_stored_draft(
         version=version,
         replace=False,
     )
-    return publish_draft(db, form_connection_id, data)
+    return publish_draft(db, form_connection_id, data, actor=actor)
 
 
 def delete_draft(
-    db: Session, form_connection_id: str, version: int | None = None
+    db: Session,
+    form_connection_id: str,
+    version: int | None = None,
+    *,
+    actor: Actor,
 ) -> None:
     """Remove a draft for good (FR-010, research R7).
 
@@ -407,7 +442,7 @@ def delete_draft(
     saw is deleted (spec 007, research R12, FR-024). Otherwise deletes any
     revision that a publish in flight reserved, then the row, in one commit; that
     publish then finds no row, answers 404 and deletes its own configuration. No
-    EUDIPLO call.
+    EUDIPLO call. `actor` is who deletes it (spec 010, research R4).
     """
     form_connection = _lock_draft(db, form_connection_id, version)
     db.execute(

@@ -94,6 +94,12 @@ const LOADED: FormConnection = {
   next_group_number: 1,
   created_at: '2026-10-25T10:00:00Z',
   updated_at: '2026-10-25T10:00:00Z',
+  state: 'live',
+  published_at: '2026-10-25T10:00:00Z',
+  activated_at: '2026-10-25T10:00:00Z',
+  deactivated_at: null,
+  start_date: null,
+  last_activity: null,
 };
 
 /** Ids of variants, as `crypto.randomUUID()` makes them */
@@ -955,6 +961,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
 
   const DRAFT: FormConnectionDraft = {
     status: 'draft',
+    state: 'draft',
     id: 'draft-1',
     name: 'Passenger transport licence',
     description: 'PT-1',
@@ -972,6 +979,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     version: 3,
     created_at: '2026-11-04T10:00:00Z',
     updated_at: '2026-11-04T10:30:00Z',
+    last_activity: null,
   };
 
   it('takes the name, the description and the documents by key, at the saved step', () => {

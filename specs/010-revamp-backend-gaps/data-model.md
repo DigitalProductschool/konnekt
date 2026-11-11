@@ -422,9 +422,14 @@ UPDATE form_connections SET deactivated_at = updated_at  WHERE published_at IS N
 
 -- for every row that is not deleted, entries without a person:
 INSERT connection_activity (kind 'created',     occurred_at = created_at)
-INSERT connection_activity (kind 'published',   occurred_at = published_at)   -- published rows
+INSERT connection_activity (kind 'published',   occurred_at = GREATEST(published_at, created_at))   -- published rows
 INSERT connection_activity (kind 'deactivated', occurred_at = updated_at)     -- deactivated rows
 ```
+
+A connection created published (spec 001's path) took its `published_at` from Python just before
+the database's `now()` set its `created_at`, a few milliseconds earlier, so its `published` entry
+is written at `created_at` and lists above `created` by its position (decided 2026-11-11 with the
+user, phase 2; design-notes §4.2). `activated_at` keeps the `published_at`.
 
 Each downgrade drops what its upgrade added; revision 1's downgrade first activates nothing and
 simply drops the columns (a scheduled connection reads as deactivated afterwards), revision 2's

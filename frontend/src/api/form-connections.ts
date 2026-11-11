@@ -1,4 +1,5 @@
 import type {
+  ActivityPage,
   DraftCreate,
   DraftPublish,
   DraftUpdate,
@@ -23,6 +24,15 @@ export function createFormConnection(data: FormConnectionCreate): Promise<FormCo
 /** A published connection or a draft, told apart by `status` */
 export function getFormConnection(id: string): Promise<FormConnectionOrDraft> {
   return apiFetch<FormConnectionOrDraft>(`/form-connections/${encodeURIComponent(id)}`);
+}
+
+/**
+ * A page of a connection's activity, newest first, 50 entries at a time; pass the previous page's
+ * `next_cursor` for the next one (spec 010, contracts/management-api.md "Activity")
+ */
+export function getActivity(id: string, cursor?: string): Promise<ActivityPage> {
+  const query = cursor === undefined ? '' : `?${new URLSearchParams({ cursor }).toString()}`;
+  return apiFetch<ActivityPage>(`/form-connections/${encodeURIComponent(id)}/activity${query}`);
 }
 
 export function updateFormConnection(

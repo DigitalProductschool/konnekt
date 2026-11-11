@@ -24,6 +24,11 @@ function summary(overrides: Partial<FormConnectionSummary> = {}): FormConnection
     is_active: true,
     status: 'published',
     updated_at: '2026-11-04T13:32:00Z',
+    state: 'live',
+    published_at: '2026-11-04T13:32:00Z',
+    deactivated_at: null,
+    start_date: null,
+    step: null,
     ...overrides,
   };
 }

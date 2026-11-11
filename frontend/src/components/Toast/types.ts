@@ -13,7 +13,7 @@ export interface ToastContent {
   message: string;
   /**
    * The label of the toast's one action ("Try again", "Undo", "Show"); the page passes the
-   * handler as `onAction`. A toast with an action stays until it is used or dismissed
+   * handler as `onAction`. A toast with an action goes after its 6 seconds too (FR-082)
    */
   actionLabel?: string;
   /** The error ID of a 5xx, on a line of its own under the message (FR-033) */
@@ -24,9 +24,10 @@ export interface ToastProps {
   toast: ToastContent | null;
   onAction?: () => void;
   /**
-   * Called when a toast without an action has been shown for 6 seconds, and when a toast with
-   * one is dismissed with Escape; keep it stable (useCallback). The page also dismisses an
-   * action toast itself, after its action, a newer change or a change of step
+   * Called when a toast, with or without an action, has been shown for 6 seconds without the
+   * pointer or the focus on it (FR-082), and when it is dismissed with Escape; keep it stable
+   * (useCallback). The page also dismisses an action toast itself, after its action, a newer
+   * change or a change of step
    */
   onDismiss: () => void;
   /**

@@ -290,6 +290,71 @@ RULE_SET_SNAPSHOT = TypeAdapter(list[SnapshotBranch])
 ConnectionStatus = Literal['draft', 'published']
 # The editor's steps; a draft remembers the one it was saved in (spec 005, FR-002)
 EditorStep = Literal['connection', 'documents', 'rules', 'test']
+# What every consumer shows, derived by `form_connections.state_of()` (spec 010,
+# research R1, data-model section 1.2); `status` stays the discriminator
+ConnectionState = Literal['draft', 'scheduled', 'live', 'deactivated']
+
+
+# A connection's activity (spec 010, research R4, data-model section 2). The kinds
+# in the order of data-model section 2.2, which `services/activity.py` keeps
+ActivityKind = Literal[
+    'created',
+    'renamed',
+    'description_changed',
+    'documents_changed',
+    'variant_added',
+    'variant_removed',
+    'variant_renamed',
+    'rules_changed',
+    'published',
+    'scheduled',
+    'start_date_changed',
+    'became_active',
+    'deactivated',
+    'reactivated',
+    'deleted',
+    'restored',
+]
+
+
+class ActivityActor(BaseModel):
+    """Who made an entry: a team member, alone or with an agent.
+
+    `agent` without `approved`: the agent made the change for the team member
+    `name`. `agent` with `approved`: `name` approved what the agent asked for.
+    """
+
+    # The team member's username when the entry was made (FR-028)
+    name: str
+    agent: str | None
+    approved: bool
+
+
+class ActivityEntry(BaseModel):
+    """One entry of a connection's activity: what happened, when and by whom.
+
+    The server sends the kind and its data, never a sentence: the website words it
+    in its language, the MCP server in English.
+    """
+
+    id: str
+    kind: ActivityKind
+    # When it happened; the latest time of the entries merged into it (FR-026)
+    at: str
+    # The variant's name for the kinds about a variant (the new name for a rename)
+    variant: str | None
+    # YYYY-MM-DD: scheduled, and start_date_changed to a date
+    start_date: str | None
+    # Null: the middleware did it by itself, or the entry was backfilled
+    actor: ActivityActor | None
+
+
+class ActivityPage(BaseModel):
+    """A page of a connection's activity, newest first (FR-023)."""
+
+    items: list[ActivityEntry]
+    # Null on the last page
+    next_cursor: str | None
 
 
 class DraftContent(BaseModel):
@@ -324,6 +389,16 @@ class FormConnectionSummary(BaseModel):
     status: ConnectionStatus
     # For a draft: its last save (FR-007)
     updated_at: str
+    # Spec 010 (research R1, R3): the state, the status dates and a draft's step
+    state: ConnectionState
+    # Null for a draft
+    published_at: str | None
+    # Set only while deactivated
+    deactivated_at: str | None
+    # YYYY-MM-DD, a day in Germany; set only while scheduled
+    start_date: str | None
+    # A draft's stored step; null once published
+    step: EditorStep | None
 
 
 class FormConnectionPage(BaseModel):
@@ -359,6 +434,17 @@ class FormConnection(BaseModel):
     next_group_number: int
     created_at: str
     updated_at: str
+    # Spec 010 (research R1, R3)
+    state: Literal['scheduled', 'live', 'deactivated']
+    published_at: str
+    # When it last became active; null if it never was
+    activated_at: str | None
+    # Set only while deactivated
+    deactivated_at: str | None
+    # YYYY-MM-DD, a day in Germany; set only while scheduled
+    start_date: str | None
+    # The entry the activity card's closed line shows (data-model section 2.5)
+    last_activity: ActivityEntry | None
 
 
 class FormConnectionCreate(BaseModel):
@@ -392,6 +478,8 @@ class FormConnectionDraft(BaseModel):
 
     # Always 'draft': tells it apart from a FormConnection
     status: Literal['draft'] = 'draft'
+    # Always 'draft' (spec 010, research R1)
+    state: Literal['draft'] = 'draft'
     id: str
     name: str
     # '' possible
@@ -412,6 +500,8 @@ class FormConnectionDraft(BaseModel):
     created_at: str
     # The last save (FR-007)
     updated_at: str
+    # The entry the activity card's closed line shows (spec 010, data-model 2.5)
+    last_activity: ActivityEntry | None
 
 
 # What GET /api/form-connections/{id} answers (spec 005, research R2)

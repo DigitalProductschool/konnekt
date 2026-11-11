@@ -35,7 +35,6 @@ from ..models import (
     AgentAuthorization,
     ApprovalRequest,
     FormConnection,
-    OauthClient,
     UserAccount,
 )
 from ..schemas import (
@@ -52,6 +51,8 @@ from ..schemas import (
 from ..schemas import ApprovalRequest as ApprovalRequestView
 from ..schemas import FormConnection as FormConnectionView
 from . import drafts, form_connections
+from .activity import Actor
+from .activity import agent_name as _agent_name
 from .auth import (
     BROWSER_ONLY,
     UNAUTHORIZED,
@@ -465,7 +466,7 @@ def _preview(
         pass
     elif request.action in DRAFT_ACTIONS:
         if form_connection.published_at is None:
-            draft = drafts.draft_view(form_connection)
+            draft = drafts.draft_view(db, form_connection)
         elif (
             request.action == 'publish'
             and view.status == 'done'
@@ -541,20 +542,6 @@ def _own_request(db: Session, user: UserAccount, request_id: str) -> ApprovalReq
 
 
 # Creating a request (data-model.md section 5.3)
-
-
-def _agent_name(db: Session, authorization: AgentAuthorization) -> str:
-    """The agent's name for the page: the client's, or the token's name."""
-    if authorization.kind == 'oauth':
-        client = (
-            db.get(OauthClient, authorization.client_id)
-            if authorization.client_id is not None
-            else None
-        )
-        name = client.client_name if client is not None else ''
-    else:
-        name = authorization.name
-    return name[:200]
 
 
 def _check_preconditions(
@@ -810,7 +797,9 @@ def _race_refusal(
     return _not_waiting(request, state)
 
 
-def _service_call(request: ApprovalRequest) -> Callable[[Session], object] | None:
+def _service_call(
+    request: ApprovalRequest, actor: Actor
+) -> Callable[[Session], object] | None:
     """What approving `request` runs: its action's service, given what the request
     was made for, which the service compares again under its own row lock.
 
@@ -818,8 +807,10 @@ def _service_call(request: ApprovalRequest) -> Callable[[Session], object] | Non
     the `DraftGuard`) or `drafts.delete_draft()` (with the request's version);
     `form_connections.deactivate_form_connection()`, `activate_form_connection()`
     or `delete_form_connection()` with the request's `was_active` as
-    `expected_active` (409 `status_changed` if it moved). None when the request
-    lacks its snapshot, which a waiting request never does: it reads as stale.
+    `expected_active` (409 `status_changed` if it moved). Each with `actor`, the
+    team member who approves with the agent that asked (spec 010, research R4).
+    None when the request lacks its snapshot, which a waiting request never does:
+    it reads as stale.
     """
     form_connection_id = request.form_connection_id
     action = request.action
@@ -829,23 +820,25 @@ def _service_call(request: ApprovalRequest) -> Callable[[Session], object] | Non
             return None
         if action == 'publish':
             return lambda db: drafts.publish_stored_draft(
-                db, form_connection_id, version
+                db, form_connection_id, version, actor=actor
             )
-        return lambda db: drafts.delete_draft(db, form_connection_id, version)
+        return lambda db: drafts.delete_draft(
+            db, form_connection_id, version, actor=actor
+        )
     was_active = request.was_active
     if was_active is None:
         return None
     if action == 'deactivate':
         return lambda db: form_connections.deactivate_form_connection(
-            db, form_connection_id, expected_active=was_active
+            db, form_connection_id, actor=actor, expected_active=was_active
         )
     if action == 'reactivate':
         return lambda db: form_connections.activate_form_connection(
-            db, form_connection_id, expected_active=was_active
+            db, form_connection_id, actor=actor, expected_active=was_active
         )
     if action == 'delete':
         return lambda db: form_connections.delete_form_connection(
-            db, form_connection_id, expected_active=was_active
+            db, form_connection_id, actor=actor, expected_active=was_active
         )
     return None
 
@@ -864,7 +857,10 @@ def approve(
        deactivating, reactivating or deleting the connection if its `is_active`
        is still the request's `was_active`, each compared again under the
        service's own row lock, with no transaction held while EUDIPLO answers.
-       Deactivating, reactivating and deleting call no EUDIPLO.
+       Deactivating, reactivating and deleting call no EUDIPLO. Its actor is
+       `user`, who approved the request of the agent `requested_by`, and the
+       service records its activity with them, as the same action in the
+       browser does (spec 010, FR-027, FR-067).
     4. Success: the request's row is locked again and becomes `done`.
 
     An `EudiploError` becomes `http_error_for(error, upstream_message)`'s answer,
@@ -879,7 +875,10 @@ def approve(
     if state.status != 'waiting':
         db.rollback()
         raise _not_waiting(request, state)
-    run = _service_call(request)
+    # Read before the rollback below expires the rows: the approving team member,
+    # and the agent's name the request was made with
+    actor = Actor(name=user.username, agent=request.requested_by, approved=True)
+    run = _service_call(request, actor)
     if form_connection is None or run is None:
         # Never for a waiting request, which reads as stale then
         reason = _stale_reason(request, form_connection)

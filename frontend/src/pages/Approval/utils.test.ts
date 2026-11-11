@@ -66,6 +66,7 @@ const TEXT_FIELD: DocumentField = {
 
 const DRAFT: FormConnectionDraft = {
   status: 'draft',
+  state: 'draft',
   id: 'fc-1',
   name: 'Parking permit',
   description: 'Residents’ parking',
@@ -105,6 +106,7 @@ const DRAFT: FormConnectionDraft = {
   version: 3,
   created_at: '2026-11-04T09:00:00Z',
   updated_at: '2026-11-05T12:30:00Z',
+  last_activity: null,
 };
 
 /** A published connection as the preview holds it, live or deactivated */
@@ -124,6 +126,12 @@ function connectionOf(isActive: boolean): FormConnection {
     next_group_number: 1,
     created_at: '2026-11-04T09:00:00Z',
     updated_at: '2026-11-05T12:30:00Z',
+    state: isActive ? 'live' : 'deactivated',
+    published_at: '2026-11-04T09:00:00Z',
+    activated_at: '2026-11-04T09:00:00Z',
+    deactivated_at: isActive ? null : '2026-11-05T12:30:00Z',
+    start_date: null,
+    last_activity: null,
   };
 }
 

@@ -16,6 +16,7 @@ import {
   applicantFieldsOf,
   connectionLineOf,
   connectionRefOf,
+  connectionStateOf,
   connectionUrlsOf,
   droppedDataOf,
   droppedTextOf,
@@ -141,6 +142,7 @@ const NIGHT_SHIFT_BRANCH = branch(NIGHT_SHIFT, 'Night shift', 'empty', []);
 
 const DRAFT: FormConnectionDraft = {
   status: 'draft',
+  state: 'draft',
   id: CONNECTION,
   name: 'Parking permit',
   description: '',
@@ -152,6 +154,7 @@ const DRAFT: FormConnectionDraft = {
   version: 3,
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
+  last_activity: null,
 };
 
 const TRIGGER_URL = `https://connect.example.org/api/connect/${CONNECTION}/requests`;
@@ -178,13 +181,36 @@ const PUBLISHED: FormConnection = {
   next_group_number: 2,
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
+  state: 'live',
+  published_at: '2026-11-01T10:00:00Z',
+  activated_at: '2026-11-01T10:00:00Z',
+  deactivated_at: null,
+  start_date: null,
+  last_activity: null,
+};
+
+/** The published connection, deactivated as the API answers it */
+const DEACTIVATED: FormConnection = {
+  ...PUBLISHED,
+  is_active: false,
+  state: 'deactivated',
+  deactivated_at: '2026-11-03T10:00:00Z',
+};
+
+/** The published connection, scheduled as the API answers it (spec 010, research R1) */
+const SCHEDULED: FormConnection = {
+  ...PUBLISHED,
+  is_active: false,
+  state: 'scheduled',
+  activated_at: null,
+  start_date: '2026-12-01',
 };
 
 const CONTEXT = ruleContextOf(DOCUMENTS, CATALOG, OPTION_SETS);
 const VIEW_CONTEXT = { connectionId: CONNECTION, rules: CONTEXT };
 
 describe('refs', () => {
-  it('gives a draft, a live and a deactivated connection their status and link', () => {
+  it('gives a draft, a scheduled, a live and a deactivated connection their status and link', () => {
     const link = connectionLink(CONNECTION);
     expect(connectionRefOf(DRAFT)).toEqual({
       id: CONNECTION,
@@ -193,7 +219,8 @@ describe('refs', () => {
       link,
     });
     expect(connectionRefOf(PUBLISHED).status).toBe('live');
-    expect(connectionRefOf({ ...PUBLISHED, is_active: false }).status).toBe('deactivated');
+    expect(connectionRefOf(DEACTIVATED).status).toBe('deactivated');
+    expect(connectionRefOf(SCHEDULED).status).toBe('scheduled');
     const summary: FormConnectionSummary = {
       id: CONNECTION,
       name: 'Parking permit',
@@ -201,9 +228,34 @@ describe('refs', () => {
       is_active: true,
       status: 'draft',
       updated_at: '2026-11-02T10:00:00Z',
+      state: 'draft',
+      published_at: null,
+      deactivated_at: null,
+      start_date: null,
+      step: 'rules',
     };
     // A draft's is_active means nothing
     expect(connectionRefOf(summary).status).toBe('draft');
+  });
+
+  it('reads the state the API derived, never is_active', () => {
+    // A scheduled connection is inactive, as a deactivated one is: only `state` tells them apart
+    const summary: FormConnectionSummary = {
+      id: CONNECTION,
+      name: 'Parking permit',
+      description: '',
+      is_active: false,
+      status: 'published',
+      updated_at: '2026-11-02T10:00:00Z',
+      state: 'scheduled',
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: null,
+      start_date: '2026-12-01',
+      step: null,
+    };
+    expect(connectionStateOf(summary)).toBe('scheduled');
+    expect(connectionStateOf({ ...summary, state: 'deactivated' })).toBe('deactivated');
+    expect(connectionStateOf({ ...summary, state: 'live' })).toBe('live');
   });
 
   it('gives a variant and an item their links', () => {
@@ -478,10 +530,17 @@ describe('connection URLs', () => {
   });
 
   it('keeps a deactivated connection’s URLs, which answer "unavailable"', () => {
-    const deactivated = { ...PUBLISHED, is_active: false };
-    expect(connectionUrlsOf(deactivated)?.trigger_url).toBe(TRIGGER_URL);
-    expect(urlsNoteOf(deactivated)).toBe(
+    expect(connectionUrlsOf(DEACTIVATED)?.trigger_url).toBe(TRIGGER_URL);
+    expect(urlsNoteOf(DEACTIVATED)).toBe(
       'This connection is deactivated: its URLs answer "unavailable" until it is reactivated.'
+    );
+  });
+
+  it('keeps a scheduled connection’s URLs, which answer "unavailable" until its start', () => {
+    expect(connectionUrlsOf(SCHEDULED)?.trigger_url).toBe(TRIGGER_URL);
+    expect(urlsNoteOf(SCHEDULED)).toBe(
+      'This connection is scheduled: its URLs answer "unavailable" until it becomes active on ' +
+        '2026-12-01, 00:00 in Germany.'
     );
   });
 });

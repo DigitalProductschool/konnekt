@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..language import Text
 from ..schemas import (
+    ActivityPage,
     ApiResponse,
     DraftCreate,
     DraftPublish,
@@ -16,7 +17,8 @@ from ..schemas import (
     FormConnectionSummary,
     FormConnectionUpdate,
 )
-from ..services import agent_access, drafts, form_connections
+from ..services import activity, agent_access, drafts, form_connections
+from ..services.activity import actor_of
 from ..services.auth import (
     Principal,
     get_current_principal,
@@ -43,7 +45,8 @@ CONFIG_FAILED = Text(
 # every access level. Agents change drafts from the level 'drafts' on, and nothing
 # else here: publishing, deleting a draft, a published connection's content and its
 # status are done in Konnekt (spec 007, contracts/management-api.md
-# "Who may call what")
+# "Who may call what"). Every endpoint that changes a connection passes the service
+# who acts, built from the caller's principal (`actor_of()`, spec 010, research R4)
 router = APIRouter(
     prefix='/api/form-connections',
     tags=['form-connections'],
@@ -94,7 +97,9 @@ def search_form_connections(
     dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def create_form_connection(
-    data: FormConnectionCreate, db: Session = Depends(get_db)
+    data: FormConnectionCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
     """Create a form connection with its first revision, configuration and rules.
 
@@ -102,8 +107,9 @@ def create_form_connection(
     main branch "Standard" without rules. Everything is saved together or not at
     all (FR-028).
     """
+    actor = actor_of(db, principal)
     try:
-        form_connection = form_connections.create_form_connection(db, data)
+        form_connection = form_connections.create_form_connection(db, data, actor=actor)
     except EudiploError as error:
         raise http_error_for(error, CONFIG_FAILED) from None
     return ApiResponse(data=form_connection, message='Form connection created')
@@ -125,9 +131,12 @@ def create_draft(
     agent's new draft counts towards its draft limit, 429 beyond it (spec 007,
     FR-020); a browser session isn't limited.
     """
+    actor = actor_of(db, principal)
     if principal.authorization is not None:
         agent_access.count_draft_creation(db, principal.authorization.id)
-    return ApiResponse(data=drafts.create_draft(db, data), message='Draft saved')
+    return ApiResponse(
+        data=drafts.create_draft(db, data, actor=actor), message='Draft saved'
+    )
 
 
 @router.get('/{form_connection_id}')
@@ -142,6 +151,22 @@ def get_form_connection(
     return ApiResponse(data=drafts.get_form_connection_or_draft(db, form_connection_id))
 
 
+@router.get('/{form_connection_id}/activity')
+def list_activity(
+    form_connection_id: str,
+    cursor: str | None = None,
+    db: Session = Depends(get_db),
+) -> ApiResponse[ActivityPage]:
+    """List a connection's activity, newest first, 50 entries at a time (FR-023).
+
+    Open to every principal, as every team member reads every connection's
+    activity (FR-031); nothing writes, changes or removes an entry. Pass
+    `next_cursor` as `cursor` for the next page; a bad `cursor` answers 400, and
+    an unknown or deleted connection, draft or published, 404.
+    """
+    return ApiResponse(data=activity.list_activity(db, form_connection_id, cursor))
+
+
 @router.put(
     '/{form_connection_id}/draft',
     dependencies=[Depends(require_level('drafts')), Depends(require_json)],
@@ -150,6 +175,7 @@ def save_draft(
     form_connection_id: str,
     data: DraftUpdate,
     db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnectionDraft]:
     """Replace a draft's content and add 1 to its version, without calling EUDIPLO.
 
@@ -157,8 +183,10 @@ def save_draft(
     published connection with 409 `draft_published` (also with `replace`), and an
     outdated `version` with 409 `draft_changed` unless `replace`.
     """
+    actor = actor_of(db, principal)
     return ApiResponse(
-        data=drafts.save_draft(db, form_connection_id, data), message='Draft saved'
+        data=drafts.save_draft(db, form_connection_id, data, actor=actor),
+        message='Draft saved',
     )
 
 
@@ -170,6 +198,7 @@ def publish_draft(
     form_connection_id: str,
     data: DraftPublish,
     db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
     """Publish a draft with its first revision, configuration, rules and URLs.
 
@@ -179,8 +208,11 @@ def publish_draft(
     `replace`. If EUDIPLO can't create the configuration, it answers 502 or 503
     and the draft stays a draft.
     """
+    actor = actor_of(db, principal)
     try:
-        form_connection = drafts.publish_draft(db, form_connection_id, data)
+        form_connection = drafts.publish_draft(
+            db, form_connection_id, data, actor=actor
+        )
     except EudiploError as error:
         raise http_error_for(error, CONFIG_FAILED) from None
     return ApiResponse(data=form_connection, message='Form connection published')
@@ -191,14 +223,16 @@ def publish_draft(
     dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def delete_draft(
-    form_connection_id: str, db: Session = Depends(get_db)
+    form_connection_id: str,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[None]:
     """Remove a draft for good, without calling EUDIPLO; its URLs answer 404.
 
     Refuses an unknown draft with 404 and a published connection with 409
     `draft_published`.
     """
-    drafts.delete_draft(db, form_connection_id)
+    drafts.delete_draft(db, form_connection_id, actor=actor_of(db, principal))
     return ApiResponse(data=None, message='Draft deleted')
 
 
@@ -210,6 +244,7 @@ def update_form_connection(
     form_connection_id: str,
     data: FormConnectionUpdate,
     db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
     """Change a form connection's name, description, documents or rules.
 
@@ -218,9 +253,10 @@ def update_form_connection(
     keep theirs. The connection URLs never change. Rules saved over the newer rules
     of another team member answer 409 `rules_changed`, unless they replace them.
     """
+    actor = actor_of(db, principal)
     try:
         form_connection = form_connections.update_form_connection(
-            db, form_connection_id, data
+            db, form_connection_id, data, actor=actor
         )
     except EudiploError as error:
         raise http_error_for(error, CONFIG_FAILED) from None
@@ -232,14 +268,18 @@ def update_form_connection(
     dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def deactivate_form_connection(
-    form_connection_id: str, db: Session = Depends(get_db)
+    form_connection_id: str,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
     """Deactivate a form connection and cancel its open requests.
 
     Its URLs answer 409 "unavailable" until it is activated again.
     """
     return ApiResponse(
-        data=form_connections.deactivate_form_connection(db, form_connection_id),
+        data=form_connections.deactivate_form_connection(
+            db, form_connection_id, actor=actor_of(db, principal)
+        ),
         message='Form connection deactivated',
     )
 
@@ -249,11 +289,15 @@ def deactivate_form_connection(
     dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def activate_form_connection(
-    form_connection_id: str, db: Session = Depends(get_db)
+    form_connection_id: str,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[FormConnection]:
     """Activate a form connection again; its URLs work again unchanged."""
     return ApiResponse(
-        data=form_connections.activate_form_connection(db, form_connection_id),
+        data=form_connections.activate_form_connection(
+            db, form_connection_id, actor=actor_of(db, principal)
+        ),
         message='Form connection activated',
     )
 
@@ -263,11 +307,15 @@ def activate_form_connection(
     dependencies=[Depends(require_browser_session), Depends(require_json)],
 )
 def delete_form_connection(
-    form_connection_id: str, db: Session = Depends(get_db)
+    form_connection_id: str,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
 ) -> ApiResponse[None]:
     """Delete a form connection and cancel its open requests.
 
     Its URLs answer 409 "unavailable" for good.
     """
-    form_connections.delete_form_connection(db, form_connection_id)
+    form_connections.delete_form_connection(
+        db, form_connection_id, actor=actor_of(db, principal)
+    )
     return ApiResponse(data=None, message='Form connection deleted')

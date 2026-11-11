@@ -126,6 +126,11 @@ def test_a_page_of_the_summaries(signed_in_client: TestClient) -> None:
         'is_active',
         'status',
         'updated_at',
+        'state',
+        'published_at',
+        'deactivated_at',
+        'start_date',
+        'step',
     }
     assert item['id'] == row_id
     assert item['status'] == 'published'

@@ -34,6 +34,7 @@ from app.models import (
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import AccessLevel, AgentAccessKind
 from app.services import approvals, drafts, form_connections, worker
+from app.services.activity import Actor
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import GERMANY
 from tests.api.test_form_connection_drafts import editor_publish_body, published_shape
@@ -113,6 +114,10 @@ COMPLETE_DRAFT: dict[str, Any] = {
     },
     'step': 'test',
 }
+
+# The person of an approved action's activity entry: the team member who approved,
+# with the agent that asked (spec 010, FR-027, FR-067)
+APPROVED_ACTOR = {'name': TEST_USERNAME, 'agent': 'Claude Code', 'approved': True}
 
 REQUEST_KEYS = {
     'id',
@@ -707,6 +712,9 @@ def test_approving_publishes_the_draft_as_the_editor_does(
     assert published_shape(connection) == published_shape(
         _publish_in_the_editor(signed_in_client, twin_id)
     )
+    # Its activity names who approved and who asked (spec 010)
+    last = connection['last_activity']
+    assert (last['kind'], last['actor']) == ('published', APPROVED_ACTOR)
     # The variants keep the draft's ids (FR-029)
     assert [branch['id'] for branch in connection['branches']] == [
         branch['id'] for branch in draft['branches']
@@ -904,7 +912,9 @@ def test_a_draft_saved_while_the_approval_runs_isnt_published(
     request = _ask(agent, draft_id)
     publish_stored_draft = drafts.publish_stored_draft
 
-    def saved_meanwhile(db: Any, form_connection_id: str, version: int) -> Any:
+    def saved_meanwhile(
+        db: Any, form_connection_id: str, version: int, *, actor: Actor
+    ) -> Any:
         with SessionLocal() as other:
             other.execute(
                 update(FormConnection)
@@ -912,7 +922,7 @@ def test_a_draft_saved_while_the_approval_runs_isnt_published(
                 .values(name='Geändert', draft_version=FormConnection.draft_version + 1)
             )
             other.commit()
-        return publish_stored_draft(db, form_connection_id, version)
+        return publish_stored_draft(db, form_connection_id, version, actor=actor)
 
     monkeypatch.setattr(drafts, 'publish_stored_draft', saved_meanwhile)
 
@@ -940,7 +950,9 @@ def test_a_draft_saved_while_its_deletion_is_approved_isnt_deleted(
     request = _ask(agent, draft_id, 'delete_draft')
     delete_draft = drafts.delete_draft
 
-    def saved_meanwhile(db: Any, form_connection_id: str, version: int) -> None:
+    def saved_meanwhile(
+        db: Any, form_connection_id: str, version: int, *, actor: Actor
+    ) -> None:
         with SessionLocal() as other:
             other.execute(
                 update(FormConnection)
@@ -948,7 +960,7 @@ def test_a_draft_saved_while_its_deletion_is_approved_isnt_deleted(
                 .values(draft_version=FormConnection.draft_version + 1)
             )
             other.commit()
-        delete_draft(db, form_connection_id, version)
+        delete_draft(db, form_connection_id, version, actor=actor)
 
     monkeypatch.setattr(drafts, 'delete_draft', saved_meanwhile)
 
@@ -1346,7 +1358,7 @@ def test_a_connection_changed_while_asking_is_checked_again_under_the_lock(
 
     def changed_meanwhile(db: Any, authorization: Any) -> str:
         with SessionLocal() as other:
-            portal(other, form_connection_id)
+            portal(other, form_connection_id, actor=Actor(name=TEST_USERNAME))
         return agent_name(db, authorization)
 
     monkeypatch.setattr(approvals, '_agent_name', changed_meanwhile)
@@ -1488,8 +1500,18 @@ def test_approving_deactivates_the_connection(
     decided_at = datetime.fromisoformat(preview['request']['decided_at'])
     assert before <= decided_at <= now()
     deactivated = _connection(signed_in_client, form_connection_id)
+    # The deactivation's date moves and its entry names who approved and who
+    # asked, as the management interface's would (spec 010, data-model 1.3)
+    deactivated_at = datetime.fromisoformat(deactivated['deactivated_at'])
+    assert before <= deactivated_at <= now()
+    last = deactivated['last_activity']
+    assert (last['kind'], last['actor']) == ('deactivated', APPROVED_ACTOR)
     assert _ignoring_updated_at(deactivated) == _ignoring_updated_at(
-        connection, is_active=False
+        connection,
+        is_active=False,
+        state='deactivated',
+        deactivated_at=deactivated['deactivated_at'],
+        last_activity=last,
     )
     assert preview['draft'] is None
     assert preview['connection'] == deactivated
@@ -1517,6 +1539,7 @@ def test_approving_reactivates_the_connection(
     connection = _connection(signed_in_client, form_connection_id)
     _, agent = _agent(_user_id(), 'manage')
     request = _ask(agent, form_connection_id, 'reactivate')
+    before = now()
 
     response = _approve(signed_in_client, request['id'])
 
@@ -1525,8 +1548,24 @@ def test_approving_reactivates_the_connection(
     preview = response.json()['data']
     assert preview['request']['status'] == preview['request']['outcome'] == 'done'
     reactivated = _connection(signed_in_client, form_connection_id)
+    # Active since now; the deactivation's date is kept but no longer answered,
+    # and the entry names who approved and who asked (spec 010, data-model 1.3)
+    activated_at = datetime.fromisoformat(reactivated['activated_at'])
+    assert before <= activated_at <= now()
+    assert connection['deactivated_at'] is not None
+    assert reactivated['deactivated_at'] is None
+    assert _stored_connection(form_connection_id).deactivated_at == (
+        datetime.fromisoformat(connection['deactivated_at'])
+    )
+    last = reactivated['last_activity']
+    assert (last['kind'], last['actor']) == ('reactivated', APPROVED_ACTOR)
     assert _ignoring_updated_at(reactivated) == _ignoring_updated_at(
-        connection, is_active=True
+        connection,
+        is_active=True,
+        state='live',
+        activated_at=reactivated['activated_at'],
+        deactivated_at=None,
+        last_activity=last,
     )
     assert preview['connection'] == reactivated
     assert preview['urls'] == _urls(connection)
@@ -1684,7 +1723,7 @@ def test_a_status_changed_while_the_approval_runs_isnt_changed_again(
 
     def changed_meanwhile(db: Any, changed_id: str, **options: Any) -> Any:
         with SessionLocal() as other:
-            portal(other, changed_id)
+            portal(other, changed_id, actor=Actor(name=TEST_USERNAME))
         return service(db, changed_id, **options)
 
     monkeypatch.setattr(form_connections, service_name, changed_meanwhile)

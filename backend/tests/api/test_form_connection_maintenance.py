@@ -23,8 +23,10 @@ from app.models import FormConnection, FormConnectionRevision
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import FormConnectionUpdate, RequestedDocument
 from app.services import form_connections, worker
+from app.services.activity import Actor
 from app.services.dcql import config_hash
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
+from tests.conftest import TEST_USERNAME
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
     DELIVERED_DOCUMENTS,
@@ -316,8 +318,12 @@ def test_the_new_configuration_is_deleted_again_when_saving_fails(
     commit = Session.commit
 
     def fail_last_commit(db: Session) -> None:
-        # The commit that makes the revision current changes the form connection
-        if any(isinstance(item, FormConnection) for item in db.dirty):
+        # The commit that makes revision 2 current. Its activity entry has flushed
+        # the form connection's change already, so it is no longer dirty (spec 010)
+        if any(
+            isinstance(item, FormConnection) and item.current_revision == 2
+            for item in db.identity_map.values()
+        ):
             raise OperationalError('COMMIT', {}, Exception('connection lost'))
         commit(db)
 
@@ -356,7 +362,9 @@ def test_concurrent_edits_get_distinct_revision_numbers(
             documents=[RequestedDocument.model_validate(d) for d in documents]
         )
         with SessionLocal() as db:
-            form_connections.update_form_connection(db, form_connection_id, update)
+            form_connections.update_form_connection(
+                db, form_connection_id, update, actor=Actor(name=TEST_USERNAME)
+            )
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         for result in [pool.submit(edit, documents) for documents in edits]:
