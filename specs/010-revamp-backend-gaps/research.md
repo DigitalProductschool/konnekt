@@ -319,9 +319,10 @@ which `label_of()` already gives. Keeping `fields` in catalog order means nothin
 DCQL builder, the delivery or any consumer that ignores groups.
 
 **Membership**: the driving licence follows Clarification #35 (Name 4, Birth 6, Address 5,
-Document 6, Licence 3, Appearance 6, Other details 1); the Personal ID follows its frame (A5).
-That puts the nationality under Birth in one document and under Other details in the other; the
-plan's Complexity Tracking asks the user.
+Document 6, Licence 3, Appearance 6, Other details 1); the Personal ID follows its frame (A5)
+but for the nationality, which stands under Birth as in the driving licence (Name 4, Birth 4,
+Address 7, Document 6, Other details 4): the plan's Complexity Tracking asked the user, who chose
+the same group in both documents (spec Clarification 2026-11-11).
 
 ## R9. Agents: a start date on a request, one new action, a wider snapshot
 

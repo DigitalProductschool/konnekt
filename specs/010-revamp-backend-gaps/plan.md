@@ -407,3 +407,9 @@ for the user to confirm or reverse by amending the spec or the contracts:
 | A change of a variant's description alone writes no activity entry | FR-025 lists added, removed and renamed for variants, and FR-029 allows only what FR-025 lists | An entry "Variant changed: <name>", which needs a requirement |
 | A scheduled connection that was deleted before its start and restored after it reads "Active since" its scheduled start | One rule for every start that was missed (the spec's edge case for a downtime), and one place that activates (research R2) | "Active since" the moment of the restore, with the restore activating the connection itself |
 | The example variant's banner shows on a variant named as the example's variant ("Ambulance", "Krankentransport") | The banner's sentence names that variant and its two changed rules; a renamed or new variant is no longer what it describes | Recognise the variant by an id the response would have to carry, or show the sentence on every linked variant |
+
+**Settled with the user on 2026-11-11 (task T003; design-notes §4.1)**: calls 1, 3, 4, 5 and 6
+confirmed as written. Call 2 reversed: the Personal ID's nationality stands under "Birth" too
+(Name 4, Birth 4, Address 7, Document 6, Other details 4), recorded in spec.md (Clarification
+2026-11-11, FR-078), data-model.md §6 and research.md R8; it changes T072 and T073's counts and
+T074's check of frame A5.

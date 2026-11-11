@@ -450,6 +450,19 @@ further questions; Clarifications 2026-11-10 #27 to #37 settle them.
   `6731:39850`, `7296:52389`, `6730:39145`; U99 `6890:46220`, `7114:49808`, `7173:52836`; U100
   `7173:52769`, `7173:52772`) (FR-081).
 
+### Session 2026-11-11
+
+- Q: In which group does the Personal ID's nationality stand: under "Other details", as its
+  frame A5 draws it (Birth 3, Other details 5), or under "Birth", as in the Driving licence
+  (Clarification #35)? (plan.md, Complexity Tracking, judgment call 2; task T003) → A: Under
+  "Birth", as in the Driving licence, so that the same data item stands in the same group in
+  both documents. The Personal ID's groups hold Name 4, Birth 4 (Date of birth, Place of birth,
+  Nationality, Sex, in the catalog's order), Address 7, Document 6 and Other details 4. Frame
+  A5's Birth with 3 and Other details with 5 are not followed; its column placement is layout
+  only, as in Clarification #35. Surfaces: the Personal ID's data item panel (U21
+  `7290:61214`–`7290:61255`, `7290:61956`); the catalog and its mirror for the frontend
+  (FR-078); agents' read of the catalog (FR-080) (FR-077, FR-078).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Schedule when a connection goes live (Priority: P1)
@@ -1285,7 +1298,10 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   least 2 data items, and what is left goes into "Other details" (build note 20). The Driving
   licence's groups MUST hold Name 4, Birth 6, Address 5, Document 6, Licence 3, Appearance 6 and
   Other details 1 data items; the frames that draw 5 data items under Birth or more than one
-  under Other details are not followed (Clarification 2026-11-10 #35). The groups' names are
+  under Other details are not followed (Clarification 2026-11-10 #35). The Personal ID's groups
+  MUST hold Name 4, Birth 4, Address 7, Document 6 and Other details 4, its nationality under
+  Birth as in the Driving licence; frame A5's Birth with 3 and Other details with 5 are not
+  followed (Clarification 2026-11-11). The groups' names are
   labels of the catalog, in English and German (FR-071; Clarification 2026-11-10 #6).
 - **FR-079**: Every group heading MUST have a checkbox, as drawn, that selects all of its group's
   data items and shows its mixed state while some of them are chosen. It MUST do for its group

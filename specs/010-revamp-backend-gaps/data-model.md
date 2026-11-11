@@ -339,20 +339,22 @@ one group, a group other than `other` holds at least 2 fields, and the counts be
 | Appearance (6) | `portrait`, `height`, `weight`, `eye_colour`, `hair_colour`, `portrait_capture_date` |
 | Other details (1) | `signature_usual_mark` |
 
-**Personal ID** (25; as frame A5 `7290:61214`–`7290:61255` draws it):
+**Personal ID** (25; frame A5 `7290:61214`–`7290:61255`, but for the nationality, Clarification
+2026-11-11):
 
 | Group | Fields |
 |---|---|
 | Name (4) | `family_name`, `given_name`, `birth_family_name`, `birth_given_name` |
-| Birth (3) | `birthdate`, `place_of_birth`, `sex` |
+| Birth (4) | `birthdate`, `place_of_birth`, `nationalities`, `sex` |
 | Address (7) | `address_formatted`, `address_street_address`, `address_house_number`, `address_postal_code`, `address_locality`, `address_region`, `address_country` |
 | Document (6) | `document_number`, `date_of_issuance`, `date_of_expiry`, `issuing_authority`, `issuing_country`, `issuing_jurisdiction` |
-| Other details (5) | `nationalities`, `personal_administrative_number`, `picture`, `email`, `phone_number` |
+| Other details (4) | `personal_administrative_number`, `picture`, `email`, `phone_number` |
 
 Inside a group the fields keep the catalog's order (the tables list them in it). The catalog's own
 order, the keys and the claims don't change, so nothing changes for EUDIPLO or serviceBW. The
-nationality sits under Birth in the driving licence (Clarification #35) and under Other details in
-the Personal ID (the frame); the plan's Complexity Tracking records this for the user.
+nationality sits under Birth in both documents: in the driving licence by Clarification #35, in
+the Personal ID by the user's decision of 2026-11-11 (plan, Complexity Tracking, call 2,
+reversed), where frame A5 draws it under Other details (Birth 3, Other details 5).
 
 ---
 

@@ -215,7 +215,9 @@ means: `POST {trigger_url}` and a `GET` of each pull URL answer `409` with
 ### V11. Data groups (US9; FR-077 to FR-080; SC-012)
 
 1. The driving licence's panel: three columns, the groups Name (4), Birth (6), Address (5),
-   Document (6), Licence (3), Appearance (6), Other details (1), in that order.
+   Document (6), Licence (3), Appearance (6), Other details (1), in that order. The Personal
+   ID's: Name (4), Birth (4, with Nationality), Address (7), Document (6), Other details (4)
+   (spec Clarification 2026-11-11).
 2. Tick a group: all of its data items are chosen; some chosen: the group's box is mixed; "All
    data items" and the count line follow.
 3. Clear a group whose data a rule checks: the question that names the rules comes first.
