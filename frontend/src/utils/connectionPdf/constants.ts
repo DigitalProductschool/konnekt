@@ -278,6 +278,12 @@ export const PDF_LAYOUT = {
     noteIconY: 5.5,
     noteIconTextY: 2.2,
     noteIndent: 14,
+    /**
+     * A value's chip in the statement: its frame (an artifact) around its word. Chips follow the
+     * statement's words on their line when the words fit on one, else on the lines below, and
+     * wrap from chip to chip (a chip wider than the line wraps inside)
+     */
+    chip: { paddingX: 5, paddingY: 1.5, radius: 4, strokeWidth: 0.6, gapX: 4, gapY: 3 },
   },
 
   /** A group's header and its closing block */
@@ -424,6 +430,9 @@ export const PDF_STYLES = {
   itemNameFaded: { font: 'semiBold', size: 10.5, colour: C.muted, strike: true },
   statement: { font: 'regular', size: 10, colour: C.text },
   statementFaded: { font: 'regular', size: 10, colour: C.muted, strike: true },
+  /** A value's chip, on white in its frame */
+  statementValue: { font: 'semiBold', size: 9, colour: C.text },
+  statementValueFaded: { font: 'semiBold', size: 9, colour: C.muted, strike: true },
   messageLabel: { font: 'medium', size: 9, colour: C.muted },
   message: { font: 'regular', size: 9, colour: C.muted },
   messageFaded: { font: 'regular', size: 9, colour: C.muted, strike: true },
@@ -433,6 +442,8 @@ export const PDF_STYLES = {
   notCompleteIcon: { font: 'semiBold', size: 7.5, colour: C.white },
   /** "Group · All rules must be met (AND)" */
   groupCombines: { font: 'medium', size: 8.5, colour: C.accent },
+  /** A removed or dissolved group's line: muted and struck through, as its name (FR-017) */
+  groupCombinesFaded: { font: 'medium', size: 8.5, colour: C.muted, strike: true },
 
   // Every page
   bandName: { font: 'semiBold', size: 9, colour: C.text },
@@ -481,6 +492,8 @@ export const PDF_TEXTS = defineTexts(
     lastSavedValue: (date: string, saveNumber: number) => `${date} (draft save ${saveNumber})`,
     generated: 'Generated',
     generatedValue: (date: string) => `${date} (Germany)`,
+    /** The details table's last row; its value is `CONNECTION_DETAIL_COPY.summaryCounts` */
+    contents: 'Contents',
     checkNote:
       'Every page of this document names the connection and this version. The connection’s details page shows its current version: if they differ, this copy is out of date.',
     checkNoteDraft:
@@ -542,6 +555,7 @@ export const PDF_TEXTS = defineTexts(
     lastSavedValue: (date, saveNumber) => `${date} (${saveNumber}. Speicherung)`,
     generated: 'Erstellt',
     generatedValue: (date) => `${date} (deutsche Zeit)`,
+    contents: 'Inhalt',
     checkNote:
       'Jede Seite dieses Dokuments nennt die Anbindung und diese Version. Die Detailseite der Anbindung zeigt ihre aktuelle Version. Weichen beide voneinander ab, ist dieses Exemplar veraltet.',
     checkNoteDraft:

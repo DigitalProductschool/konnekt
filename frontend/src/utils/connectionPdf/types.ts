@@ -130,7 +130,7 @@ export interface PdfGap {
  */
 export type PdfFont = 'regular' | 'medium' | 'semiBold' | 'mono' | 'monoMedium';
 
-/** A font's bytes: fetched `ArrayBuffer`s in the worker, `node:fs` Buffers in the smoke test */
+/** A font's bytes: fetched `ArrayBuffer`s in the worker, decoded data URLs in the smoke test */
 export type PdfFontBytes = ArrayBuffer | Uint8Array;
 
 /** The five fonts' bytes, one per registered name */
@@ -406,7 +406,10 @@ export interface DocumentContent extends ContentBase {
 /** A variant's header (`H3` "Variant Taxi"), its origin badge, description and AND/OR in words */
 export interface VariantHeaderContent extends ContentBase {
   kind: 'variantHeader';
+  /** "Variant Taxi" (`PDF_TEXTS.variant`) */
   title: string;
+  /** The variant's name, the title's end, drawn in the name's face after the word */
+  name: string;
   origin: PdfVariant['origin'];
   /** "Main variant", "Based on Standard", "Own rules" */
   originLabel: string;
@@ -470,7 +473,10 @@ export interface GroupHeaderContent extends ItemContentBase {
   combines: string;
 }
 
-/** A group's closing block, after its last member: the group's own message, if any */
+/**
+ * A group's closing block, after its last member: the group's own message, if any. Its `badge` is
+ * the header's, which it doesn't draw: the mark tints the block as it tints the header
+ */
 export interface GroupEndContent extends ItemContentBase {
   kind: 'groupEnd';
   message: LabelledText | null;
@@ -581,7 +587,7 @@ export interface PlacedCircle extends ShapeBase {
   stroke: StrokeStyle | null;
 }
 
-/** A rule (the section heading's line) or a strike-through */
+/** A rule (the section heading's line); a strike-through is PDFKit's, not a part (design-notes 8.2 D3) */
 export interface PlacedLine extends ShapeBase {
   kind: 'line';
   x1: number;
@@ -721,10 +727,27 @@ export interface PdfKitStructureElement {
   end(): void;
 }
 
+/**
+ * Where an outline entry points. PDFKit 0.20.2 writes `[page, /XYZ, pageWidth − left, pageHeight −
+ * top, zoom]`: `top` is the distance from the page's top, and `left` the page's width for the
+ * left edge (0 would give the right edge); `fit` writes `[page, /Fit]` instead
+ */
+export interface PdfKitOutlineOptions {
+  /** Shows the entry's children open */
+  expanded?: boolean;
+  /** 0-based; the current page unless given */
+  pageNumber?: number;
+  top?: number;
+  left?: number;
+  /** 0 keeps the reader's zoom */
+  zoom?: number;
+  fit?: boolean;
+}
+
 /** An outline entry (FR-038) */
 export interface PdfKitOutline {
   /** A child entry pointing to the current page, or to the 0-based `pageNumber` */
-  addItem(title: string, options?: { expanded?: boolean; pageNumber?: number }): PdfKitOutline;
+  addItem(title: string, options?: PdfKitOutlineOptions): PdfKitOutline;
 }
 
 /** A font PDFKit has opened: only what `withoutCidSet()` wraps (research R5) */
@@ -736,6 +759,9 @@ export interface PdfKitDocument {
   /** The outline's root */
   readonly outline: PdfKitOutline;
   info: PdfKitInfo;
+  /** Where the next text starts when `text()` is given no position (a span after a `continued` one) */
+  x: number;
+  y: number;
 
   /**
    * Private: the opened fonts by name. Only `withoutCidSet()` touches it, finalizing each font
@@ -779,7 +805,11 @@ export interface PdfKitDocument {
   addPage(options?: { size?: 'A4' | [number, number]; margins?: PdfKitOptions['margins'] }): this;
 
   /** An artifact's marked content; closed with `endMarkedContent()` */
-  markContent(tag: 'Artifact', options?: { type?: ArtifactType }): this;
+  /**
+   * Opens marked content: `render.ts` opens only artifacts; `markStructureContent()` calls it with
+   * the structure type and its `mcid`
+   */
+  markContent(tag: 'Artifact' | StructType, options?: { type?: ArtifactType; mcid?: number }): this;
   markStructureContent(tag: StructType, options?: { lang?: string }): PdfKitStructureContent;
   endMarkedContent(): this;
   struct(
@@ -805,4 +835,90 @@ export interface PdfRenderOptions {
   fonts: PdfFonts;
   /** PDFKit's measuring through the same document unless given */
   measure?: Measure;
+}
+
+// ---------------------------------------------------------------------------------------------
+// What `recordingDocument()` in `render.ts` records of a rendered document, for the smoke test and
+// the sweeps (research R14): embedded text is written as glyph ids, so the recording is how the
+// tests read what each page says without a PDF parser. Coordinates are the page's, in points,
+// from its top-left corner
+
+/** The marked content a text or shape is drawn in: the innermost one open at the time */
+export type RecordedRole =
+  /** Structure content: its element's type and its marked-content id on the page */
+  | { kind: 'tag'; type: StructType; mcid: number }
+  | { kind: 'artifact'; type: ArtifactType | null }
+  /** Outside any tag or artifact: a defect (FR-036, FR-037) */
+  | null;
+
+export interface RecordedText {
+  /** 1-based */
+  page: number;
+  /** As passed to `text()`: one span, or one line of a URL */
+  text: string;
+  /** The position `text()` was given, or where a span after a `continued` one starts */
+  x: number;
+  y: number;
+  /** The box passed to `text()`; null for one line drawn without one */
+  width: number | null;
+  /** The text's own width in its font and size (`widthOfString`) */
+  advance: number;
+  /** The registered name, a `PdfFont` */
+  font: string;
+  size: number;
+  colour: string;
+  /** The fill opacity, 1 unless changed (the watermark's 6 %) */
+  opacity: number;
+  /** Struck through by PDFKit (`strike`): a faded item's words (design-notes 8.2 D3) */
+  strike: boolean;
+  role: RecordedRole;
+}
+
+/** A painted shape, by its bounding box (a rounded corner's curve isn't followed) */
+export interface RecordedShape {
+  page: number;
+  kind: 'rect' | 'circle' | 'path';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Null when not filled */
+  fill: string | null;
+  /** Null when not stroked */
+  stroke: string | null;
+  opacity: number;
+  role: RecordedRole;
+}
+
+/** A structure element as `render.ts` built it, its children in order */
+export interface RecordedElement {
+  type: StructType;
+  scope: PdfKitStructOptions['scope'] | null;
+  children: RecordedChild[];
+}
+
+/** An element, or marked content, which the `RecordedRole` of its texts and shapes names */
+export type RecordedChild = RecordedElement | { page: number; mcid: number };
+
+export interface RecordedOutlineItem {
+  title: string;
+  /** 1-based: where the entry points */
+  page: number;
+  /** Its distance from the page's top, when given */
+  top: number | null;
+  children: RecordedOutlineItem[];
+}
+
+export interface RecordedPage {
+  texts: RecordedText[];
+  shapes: RecordedShape[];
+}
+
+export interface PdfRecording {
+  /** What the document was created with: its properties (`info`), `lang`, `subset`, … */
+  options: PdfKitOptions | null;
+  pages: RecordedPage[];
+  /** The roots added to the structure tree: `Document` */
+  structure: RecordedElement[];
+  outline: RecordedOutlineItem[];
 }

@@ -138,6 +138,20 @@ token's name beside each, since the worker can't read CSS.
 14. A scheduled connection (spec 010), which the prototype doesn't have: the "Scheduled" pill
     with "as of <generated> · starts on <start date>", and the links section's sentence that the
     links answer "unavailable" until that day (FR-007, FR-012).
+15. Sections 2 and 3 say what the Summary says (FR-014, FR-016): A is the prototype's sample as
+    the app stores it (`testData.ts`), so the data items have the catalog's labels in catalog
+    order, the statements are composed by `rules/src/` with each value a chip, and an added
+    group's members are marked; the prototype's `data.mjs` wrote them by hand. A statement's
+    words are centred on its chips' line, which makes a rule card with values 0.9 pt taller than
+    the prototype's (T026).
+16. A document's right column of data items keeps the frame's 12 pt padding, as the left one
+    does, so it starts 6 pt further left than the prototype's, whose right column ran its text to
+    2 pt from the frame (T026).
+17. A section's title and a variant's name that wrap do so in their own column, after the number
+    or the word "Variant", so that the tagged text reads with one space ("3 Rules per variant",
+    "Variant Taxi") while the drawing keeps the prototype's gap; the prototype, whose names are
+    short, would have wrapped them back to the left edge (T026; in A nothing wraps, in E 19 of 20
+    variant names of 100 characters do, in both languages, and no section title).
 
 ## 6. How it is verified
 
@@ -154,6 +168,54 @@ token's name beside each, since the worker can't read CSS.
 ### 7.2 The details page's states
 
 ### 7.3 The PDF's pages
+
+**A in English against the prototype's `published-ids-top.pdf`** (T026, 2026-11-12; quickstart §2
+step 4). A scratchpad script (`011/T026/sweep.ts`, `npx vite-node` from `frontend/`) renders A
+through `recordingDocument()` and the prototype from a wrapped copy of `make.mjs` (the PDFKit
+constructor injected, nothing else changed) through the same recorder, and writes one CSV row per
+page and text for both (page, text, x, y, size, font, colour, role). Texts are paired per page
+for the band and the bottom, and in reading order for the body (longest common subsequence;
+where one file splits a text the other draws whole, the parts are joined); positions are compared
+where the first glyph starts, and a vertical step (a pair's dy changing from the pair before it)
+is attributed to its cause, so that a text moved only by the content above inherits that cause.
+Both files have 6 pages, and no text is on a different page. Rows: 274 in A, 222 in the
+prototype (counted below only when no A text pairs with them).
+
+| Page | Same | Intended (colour only) | Unsure | Defect before | Defect after |
+|---|---|---|---|---|---|
+| 1 | 2 | 44 (25) | 0 | 0 | 0 |
+| 2 | 0 | 30 (15) | 0 | 0 | 0 |
+| 3 | 0 | 53 (19) | 0 | 25 | 0 |
+| 4 | 0 | 63 (18) | 0 | 31 | 0 |
+| 5 | 0 | 69 (20) | 0 | 8 | 0 |
+| 6 | 0 | 33 (17) | 0 | 7 | 0 |
+
+"Same": page, position (within 1 pt), font, size and colour. Only two texts are the same in every
+respect, since §5.1 changes nearly every colour; "colour only" counts the texts whose single
+difference is §5.1's.
+
+| Intended difference | Source | Rows (pages) |
+|---|---|---|
+| Colours as §4 (every pair whose colours map) | §5.1 | 209 (1–6) |
+| The links' explanations are `DETAIL_COPY`'s, with the {reference} sentence | §5.5 | 4 (1) |
+| URLs drawn one line per `urlLines()` line, broken after "/" | §5.7 | 12 (1) |
+| A as the app stores it: the catalog's labels and order of data items (with the rows they move), statements from `rules/src/` with values as chips, an added group's members marked "Added here", Hire car's fixed date | §5.15 | 13 (2), 11 (3), 17 (4), 48 (5), 8 (6) |
+| A statement's words centred on its chips' line: 0.9 pt per card with values, and the texts below it on the page moved by those steps | §5.15 (T023's note) | 25 (3), 31 (4), 8 (5), 7 (6) |
+| The documents' right column keeps the frame's 12 pt padding (6 pt further left) | §5.16 | 1 (2) |
+| The version: the backend's `FA7E-47BB-5368`; the prototype hashes its own data shape (`62D0-715F-01D1`) | §8.4 T021, "Fixtures" | 3 (1), 1 on each other page |
+
+Fixes (each re-run with the script; the counts above are after them):
+
+| Defect | CSV rows before | Cause | Fix | Test |
+|---|---|---|---|---|
+| The AND/OR connector 14.05 pt high instead of 14 (T023's note) | 71 on pages 3–6: every text after a connector moved 0.05 pt more, e.g. page 3 "group-1" dy 1.90 with a step of 0.05 after "AND" | `connectorLayout()` took the block's height from its word's line, line gap included | The word's box is its glyphs, so the block is the chip's 14 pt line | `blocks.test.ts`, "an AND/OR connector is its chip’s line, 14 pt" |
+| Headings' tagged text read "1  Links for your service", "Variant  Standard", "Personal ID   7 data items", "rule-1Minimum age" (T025's note; contract §4, R5) | 29 of A's 32 headings (the summary's heading check) | The gap was drawn as spaces inside the text (`numberSeparator`, `wordSeparator`, `countSeparator`), and the identifier and the name were two marked contents without one | The first part ends with one space (the number, "Variant", the document's name, the identifier when a name follows), and the second part is placed where the first part and its separator end: nothing drawn moves (dx 0 against the prototype); §5.17 for a title that wraps | `render.test.ts`, "reads each heading with single spaces" and "draws the gaps as before" |
+| A removed or dissolved group's "Group · <AND/OR in words>" in the accent colour, neither muted nor struck (T025's note; FR-017, contract §2) | none in A, which has no removed group; E has 98 such groups | `groupHeaderLayout()` always used `groupCombines` | `PDF_STYLES.groupCombinesFaded` (muted, struck through), used when the group is faded | `blocks.test.ts`, the removed and dissolved group cases and "a group that isn’t faded"; `render.test.ts` (E), "mutes and strikes the “Group · …” line" |
+
+After the fixes: veraPDF's PDF/UA-1 profile passes for A in English and German and for E (106
+rules, 0 failed checks each); E has 764 pages and strikes 3,068 texts, each with its line (D3's
+2,970 plus the 98 faded groups' lines, one line each), 542 of them over two lines or more.
+D3's list of faded styles gains `groupCombinesFaded`.
 
 ### 7.4 Tags, contrast and veraPDF
 
@@ -259,6 +321,34 @@ Not settled here (no code says the same English; T041 reviews them with the rest
 "Connection ID" → "Anbindungs-ID" stays the proposal, although the glossary's pattern for
 "connection <noun>" is "<Noun> der Anbindung" ("Name der Anbindung", "URLs der Anbindung"), which
 would give "ID der Anbindung".
+
+**D3, how faded text is struck through** (T025, 2026-11-12; FR-017, FR-036, FR-037; R5, R11).
+PDFKit's own `strike`, not `PlacedLine` artifacts.
+- `render.ts`'s `textOptionsOf()` passes `strike: style.strike === true` with every span (an
+  explicit `false` too: PDFKit hands a `continued` span's options on to a later span that leaves
+  one out). The faded styles of `PDF_STYLES` (`itemNameFaded`, `statementFaded`,
+  `statementValueFaded`, `messageFaded`, and `groupCombinesFaded` for a faded group's
+  "Group · …" line, added by T026) carry `strike: true`; the identifier, the badges, the
+  message's label and the AND/OR chips never do.
+- PDFKit draws the line per drawn line of the span: from where its words start to where they
+  end, half its line height below the line's top (0.6 × the size in Fira Sans, through the
+  lower-case letters), 0.5 pt thick below 10 pt and 1 pt from 10 pt, in the span's colour (the
+  muted `#4A5468`). It is drawn inside the span's tagged content, as a path, not as an artifact.
+- Why: a struck text that wraps (a name, a message after its label, a statement wider than a
+  line) needs each drawn line's extent, which only PDFKit's line breaking knows; `layoutOf()`
+  would have to repeat that breaking to place `PlacedLine`s, and measured would no longer equal
+  drawn by construction (R11). The line can't be wrapped in an artifact inside the tag either:
+  PDF/UA-1 forbids an artifact inside tagged content (veraPDF 7.1-2). And the strike is not
+  decoration (FR-037): it says "removed", together with the "Removed here" badge that says it in
+  words (FR-017), so it belongs with the text it strikes. A path in tagged content is read by no
+  assistive technology. The prototype and the spike strike the same way.
+- Checked: veraPDF's PDF/UA-1 profile passes for A in both languages and E (T025, again after
+  T026's fixes); E strikes 3,068 texts (T025's 2,970 and, since T026, its 98 faded groups'
+  lines), every one with its line, 542 of them over two lines or more.
+  `recordingDocument()` records each text's `strike`, and `render.test.ts` checks that every
+  shape is an artifact but for these lines and where the removed rule's lines lie.
+- Rejected: `PlacedLine` artifacts from `layoutOf()` (exact for one-line texts only; the wrapped
+  ones would need a second line breaker); an artifact nested in the tag (fails PDF/UA-1).
 
 ### 8.3 The test connections
 
@@ -406,5 +496,66 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   note asks for, allowed by the coordinator since no batch ran beside it, and three more under the
   same brief's rule. Every other task kept its level, batch and files.
 - **Carried**: notes appended to T020 (done), T023, T024, T025, T028, T030, T035, T042 and T051.
+
+**2026-11-12, T027 checkpoint of the document (Phase 4).**
+- **Gates**: lint; 2675 / 1858 / 513 tests in `rules/`, `frontend/`, `mcp/` (against T021: +117 in
+  `frontend/`: `blocks.test.ts` 93 and `render.test.ts` 24, both new); the build, whose main
+  entry is unchanged at 934.82 kB (278.99 kB gzip), since nothing in the app imports
+  `utils/connectionPdf/` yet. `render.test.ts` is green for A (English, and with a 100-character
+  name) and for E. `rules/src/personas/performance.test.ts` missed its budget once in T024's
+  runs while two agents ran side by side, and passed alone (7 / 7) and in every later run.
+- **The file**: A renders in Node in 0.5–0.7 s to 6 pages, E in about 8 s to 764 pages and
+  5.8 MB (the spike: 2.5 s; SC-001's limit for E in the browser is T048's). veraPDF 1.28.1's
+  PDF/UA-1 profile passes for A in English and German and for E after T026's fixes (106 rules,
+  0 failed checks each); the outline has the three sections and, under the third, one entry
+  per variant (A: Standard p3, Taxi p4, Hire car p6). §7.3 has no unsure row.
+- **Read in the Firefox viewer** (the coordinator, 2026-11-12): Playwright's Firefox downloads a
+  PDF instead of showing it, so the pages were drawn with pdf.js 3.11.174 in a scratchpad page.
+  A, page 1: the band (name, ID, "Version FA7E-47BB-5368", "Generated 09.11.2026, 16:45"), the
+  eyebrow in capitals, the `H1`, the description, "Active" with "as of …", the details table
+  (ID, the version larger, "(Germany)", the contents line), the note, "1 Links for your service"
+  with both explanations and every URL broken only after "/", "Page 1 of 6" and no place
+  label. A, page 4: "Variant Taxi" with "Based on Standard" and its AND in words, "Changed
+  here", "Added here", rule-5 struck through and muted with "Removed here", group-1's bar and
+  closing message, the AND/OR chips, "3 Rules per variant › Variant Taxi". E, pages 2 and 3:
+  the band's name cut with "…", the result links split between links, "1 Links for your service
+  (continued)". E, page 42: a 100-character variant name wrapping in its own column after
+  "Variant" (§5.17, which no image had checked), and "3 Rules per variant › Variant Standard
+  (continued)" for a page that begins inside Standard. Nothing seen contradicts the contract.
+- **Decisions the agents marked UNCERTAIN, accepted**:
+  - T022: the details row's label is a new key `contents` ("Contents" / "Inhalt"); page 1's draft
+    texts (eyebrow, status, "Last saved", the draft's note) are already laid out; the
+    result-links unit holds only the link blocks, with "Result links" chained to the first; a
+    document's name and count are one `H3`, the count on the next line when they don't fit;
+    rows and headings grow by the lines their texts wrap to.
+  - T023: **a rule is also cut when the chain leading into it, the rule and the blocks chained
+    after it don't fit on one page**, not only when the rule alone is taller than the body.
+    This stretches FR-027 ("a single rule taller than a page is the only block that may
+    continue") to keep FR-023 and FR-024 (a sub-group's header is never left alone at a page's
+    end); it only touches a rule close to a page's height. Further: the members of a removed or
+    dissolved group keep their own marks, muted and struck, with "Removed here" on the group's
+    header; the chips' words are in the statement's `P`, without a `Span` each; a text of two
+    faces is measured in the wider one; a faded group's message is struck too; the word
+    "Variant" is the title without the name; item keys hold their index.
+  - T024: `renderConnectionPdf()` returns `Promise<Uint8Array>` (carried to T029); an outline
+    entry points to its block's top with `/XYZ`, the left passed as the page's width because of
+    PDFKit's `pageWidth − left` (carried to T053); the band cuts the name between code points;
+    PDFKit's margins are 0. Its `/// <reference types="node" />` in `render.test.ts` was not
+    accepted: T025 loads the fonts with `import.meta.glob` (`?inline`) instead, and the app
+    program no longer sees Node's globals.
+  - T025: D3 (§8.2); `RecordedText.strike`; the order test also checks the groups' identifiers.
+  - T026: §5.15–§5.17; the connector word's box is its glyphs, so the connector is 14 pt.
+- **Plan**: every task kept its level, wave and batch. Edits outside a line's file list, each
+  allowed in the coordinator's brief: T022 and T023 added to `constants.ts` (the key
+  `contents`; the chip geometry and `statementValue`, `statementValueFaded`), T023 changed the
+  block shapes in `types.ts` (`VariantHeaderContent.name`), T024 added `pdfkit.d.ts` (D1 names
+  it) and PDFKit calls and the recording's types to `types.ts`, T025 `RecordedText.strike`.
+  T023 and T024 ran side by side with that file split between them; each saw the other's files
+  fail `tsc` for a few minutes between saves, and both finished on the same green tree.
+- **Carried**: notes appended to T025 and T026 (done), T029, T035, T036, T044 and T053.
+- **Needs a person**: open A's PDF once in a real PDF reader (Acrobat Reader or the system's
+  viewer) and read page 1, as the phase's Delegation asks; until then T027 stays unchecked. The
+  file is rendered by T027's scratchpad run (`011/T027/A-en.pdf`) and by `render.test.ts`'s
+  helpers.
 
 ## 9. Closing report
