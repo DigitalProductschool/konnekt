@@ -71,6 +71,7 @@ from ..schemas import (
     Deletion,
     DocumentField,
     EditorStep,
+    ExampleState,
     FieldPart,
     FormConnectionCreate,
     FormConnectionPage,
@@ -554,7 +555,17 @@ def _summary(form_connection: FormConnection) -> FormConnectionSummary:
         deactivated_at=_deactivated_at_of(form_connection),
         start_date=_day_or_none(form_connection.start_date),
         step=_step_of(form_connection),
+        example=example_of(form_connection),
     )
+
+
+def example_of(form_connection: FormConnection) -> ExampleState | None:
+    """The example's mark, or None: only a draft carries it (data-model 5)."""
+    if form_connection.example == 'unchanged':
+        return 'unchanged'
+    if form_connection.example == 'changed':
+        return 'changed'
+    return None
 
 
 # Reading
@@ -1092,6 +1103,8 @@ def _publish(
     # SQL NULL: None would store JSON null, which the CHECK constraint refuses
     form_connection.draft = null()
     form_connection.draft_version = None
+    # A published connection is no longer the example (spec 010, FR-059)
+    form_connection.example = None
     return branches
 
 

@@ -24,6 +24,7 @@ import {
   type DroppedData,
   droppedDataOf,
   droppedTextOf,
+  EXAMPLE_LINE,
   itemCountsOf,
   type ItemRef,
   itemRefOf,
@@ -114,8 +115,8 @@ registerTool({
     'Finds connections (serviceBW forms linked to the EUDI Wallet) by a part of their name or ' +
     'description, and by status: draft, scheduled, live or deactivated. Answers at most 25 per ' +
     'page, the most recently changed first, each with its link, when it was published and ' +
-    "deactivated, the day a scheduled one becomes active, and a draft's step; pass next_cursor " +
-    'to read the next page. ' +
+    "deactivated, the day a scheduled one becomes active, a draft's step, and example: true on " +
+    'the example a team member created in Konnekt; pass next_cursor to read the next page. ' +
     'Look here before creating a draft, so that a form gets one connection.',
   input: searchInput,
   handler: async (_caller, input, { backend }) => {
@@ -159,7 +160,9 @@ registerTool({
     'requests, its variants with their number of rules and groups (never the rules: use ' +
     'get_variant), its connection URLs once published, when it was published, became active ' +
     'and was deactivated, the day a scheduled one becomes active, and for a draft its version, ' +
-    'its step and the requested data the wallet no longer offers. Every part comes with its link.',
+    'its step, the requested data the wallet no longer offers and, for the example a team ' +
+    "member created in Konnekt, its mark example: 'unchanged' or 'changed'. Every part comes " +
+    'with its link.',
   input: z.object({ connection: CONNECTION }),
   handler: async (_caller, input, { backend }) => {
     const fc = await connectionOf(backend, input.connection);
@@ -204,6 +207,7 @@ registerTool({
         fc.status === 'draft'
           ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`
           : connectionDatesLineOf(facts),
+        facts.example && EXAMPLE_LINE,
         documents.length === 0
           ? 'Documents: none yet.'
           : 'Documents:\n' +

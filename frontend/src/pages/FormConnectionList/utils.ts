@@ -1,3 +1,4 @@
+import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type {
   DeletionItem,
   FormConnectionSummary,
@@ -14,6 +15,7 @@ import type { Homepage } from '../../hooks/types';
 import {
   BULK_DELETE_COPY,
   DELETE_CONNECTION_COPY,
+  EXAMPLE_DIALOG_COPY,
   INITIAL_DELETION_STATE,
   LIST_COPY,
   ROW_DATE_FORMAT,
@@ -25,6 +27,8 @@ import type {
   BulkDeleteState,
   DeletionAction,
   DeletionState,
+  ExampleDialogAction,
+  ExampleDialogState,
   ListAction,
   ListState,
   RestoreFailure,
@@ -492,4 +496,37 @@ export function bulkDeleteFailureOf(
     return { error: notice, changedName: changed?.name ?? null, stale: true };
   }
   return { error: notice, changedName: null, stale: false };
+}
+
+/**
+ * The example dialog's state (spec 010, S3; FR-054, FR-055): "Start from an example" opens it
+ * afresh; "Go back", the ×, Escape and the scrim close it, except while the example is being
+ * created; a retry takes the last failure away, so that a new one is announced again; a failure
+ * keeps it open; once the example is created it closes (the page then opens the draft)
+ */
+export function exampleDialogReducer(
+  state: ExampleDialogState,
+  action: ExampleDialogAction
+): ExampleDialogState {
+  switch (action.type) {
+    case 'open':
+      return state.creating ? state : { open: true, creating: false, error: null };
+    case 'close':
+      return state.creating ? state : { ...state, open: false, error: null };
+    case 'start':
+      return state.creating ? state : { ...state, creating: true, error: null };
+    case 'failed':
+      return { ...state, creating: false, error: action.error };
+    case 'done':
+      return { open: false, creating: false, error: null };
+  }
+}
+
+/**
+ * Why creating the example failed (S3, as spec 008's dialog failures): the API's message with a
+ * 5xx answer's error ID, or "Check your connection and try again." without an answer, in the
+ * given language. A `401` signs out before this is asked
+ */
+export function exampleFailureOf(error: unknown, language: Language): ErrorNotice {
+  return errorNoticeOf(error, EXAMPLE_DIALOG_COPY[language].errorText);
 }

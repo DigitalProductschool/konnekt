@@ -31,6 +31,9 @@ import { findingLinesOf, warningsFirst } from './utils';
  */
 const FAILURE_ALERT_CLASSES = 'w-full narrow:[&_.kern-title]:basis-full!';
 
+/** The example's line among the findings' lines, whose keys are branch keys (UUIDs) */
+const EXAMPLE_LINE_KEY = 'example';
+
 const INTRO_CLASSES =
   'text-kern-static-medium text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)';
 
@@ -75,6 +78,11 @@ const INTRO_CLASSES =
  * status another; the one closes before the other opens, so that the focus moves from the
  * footer's "Publish" into the one shown and comes back to it when the dialog closes.
  *
+ * While the loaded draft is the unchanged example and the page holds no change against it
+ * (`showsExampleLine()`), the summary ends with the info line "This is still the example. Check
+ * that the name, documents and rules fit your service." in "Rule findings" (spec 010, S14; FR-060,
+ * F30; U73 7137:50210), 16px under "Active from"; publishing still works.
+ *
  * Its words, the findings' lines and the deleted draft's text are in the language of the moment,
  * so a switch while it is open words it anew (spec 009, FR-003); the server's messages keep the
  * language they came in, and the variants' names are content.
@@ -96,6 +104,7 @@ export default function PublishDialog({
   onReplace,
   onOpenConnection,
   onSaveAsNew,
+  exampleLine = false,
   scheduledStart = null,
 }: PublishDialogProps & ScheduledEditProps) {
   const { language } = useLanguage();
@@ -160,6 +169,7 @@ export default function PublishDialog({
               findingLines={
                 dialog.withoutRules ? [] : warningsFirst(findingLinesOf(branches, checks, language))
               }
+              exampleLine={exampleLine && !editing ? copy.exampleLine : null}
             >
               {!editing && (
                 <ActiveFromChoice
@@ -277,14 +287,21 @@ function PublishSummary({
   documentLines,
   ruleLines,
   findingLines,
+  exampleLine,
   children,
 }: {
   documentLines: string[];
   ruleLines: string[];
   findingLines: FindingLine[];
+  /** The example's line, last in "Rule findings" (spec 010, S14; FR-060; U73 7137:50210) */
+  exampleLine: string | null;
   children?: ReactNode;
 }) {
   const copy = useCopy(PUBLISH_DIALOG_COPY);
+  const lines: FindingLine[] =
+    exampleLine === null
+      ? findingLines
+      : [...findingLines, { key: EXAMPLE_LINE_KEY, text: exampleLine, tone: 'info' }];
   return (
     <>
       <dl className="rounded-kern-default flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)">
@@ -292,10 +309,10 @@ function PublishSummary({
         <PublishSummaryRow label={copy.rules} values={ruleLines} />
       </dl>
       {children}
-      {findingLines.length > 0 && (
+      {lines.length > 0 && (
         // "Rule findings" (6760:47353): 4 between the lines
         <ul className="flex w-full flex-col gap-4">
-          {findingLines.map((line) => (
+          {lines.map((line) => (
             <PublishFindingLine key={line.key} line={line} />
           ))}
         </ul>

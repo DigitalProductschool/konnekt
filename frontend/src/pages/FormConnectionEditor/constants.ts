@@ -290,6 +290,10 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
       'Reload to see their changes; your unsaved changes are lost. Or replace their changes with yours.',
     reload: 'Reload',
     replaceTheirChanges: 'Replace their changes',
+    // The example's line (spec 010, S14; FR-060, F30; U73 7137:50210), while the loaded draft is
+    // the unchanged example and the page holds no change against it (`showsExampleLine()`)
+    exampleLine:
+      'This is still the example. Check that the name, documents and rules fit your service.',
   },
   {
     // A soft hyphen (R9 step 3): at 320px the whole word pushed the dialog's × past its edge
@@ -342,8 +346,18 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
       'Laden Sie neu, um die Änderungen der anderen zu sehen; Ihre nicht gespeicherten Änderungen gehen dabei verloren. Oder überschreiben Sie deren Änderungen mit Ihrer Version.',
     reload: 'Neu laden',
     replaceTheirChanges: 'Mit Ihrer Version überschreiben',
+    // Written from spec 009's glossary ("Beispiel", "Dokument", "Regel", "Ihr Dienst")
+    exampleLine:
+      'Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen.',
   }
 );
+
+/**
+ * The example variant's names (spec 010, FR-058; research R7, design-notes §4.1 call 6): the rules
+ * step shows the variant's banner on a variant of the example that carries one of them, in either
+ * language, as stored; a renamed or another variant shows none
+ */
+export const EXAMPLE_VARIANT_NAMES: readonly string[] = ['Ambulance', 'Krankentransport'];
 
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';

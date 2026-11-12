@@ -144,6 +144,7 @@ import {
   rulesNextActionOf,
   saveFailureToastOf,
   selectedIndexAfterMove,
+  showsExampleLine,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -256,6 +257,7 @@ export default function FormConnectionEditorPage({
   initialItem = null,
   linkNotice = null,
   onLinkLeft,
+  example = null,
 }: FormConnectionEditorPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { store, username } = useLocalDraftStore();
@@ -294,6 +296,7 @@ export default function FormConnectionEditorPage({
       initialItem={initialItem}
       linkNotice={linkNotice}
       onLinkLeft={onLinkLeft}
+      example={example}
     />
   );
 }
@@ -317,6 +320,7 @@ function ConnectionWizard({
   initialItem = null,
   linkNotice: requestedNotice = null,
   onLinkLeft,
+  example = null,
 }: ConnectionWizardProps) {
   const { origin } = flow;
   // The connection being edited, only for the published origin (FR-026)
@@ -385,6 +389,11 @@ function ConnectionWizard({
       : flow.baseline
   );
   const unsaved = hasUnsavedWork(origin.kind, localContent, storedContent);
+  // The example's banners while the loaded draft is the example, whatever was changed, and its
+  // line in the publish dialog while nothing was (spec 010, FR-058 to FR-060); a published
+  // connection's flow is never the example (FR-059)
+  const isExample = example !== null && origin.kind === 'draft';
+  const exampleLine = isExample && showsExampleLine(example, localContent, storedContent);
   // The leave model (leaveFlow.ts): the state renders its question; the ref holds the latest
   // state for the steps that follow a save, after its rule question or its request
   const [leave, setLeave] = useState<LeaveFlowState>(INITIAL_LEAVE_FLOW_STATE);
@@ -1524,6 +1533,7 @@ function ConnectionWizard({
             onChangeDescription={(value) => dispatch({ type: 'changeDescription', value })}
             onSubmit={handleContinue}
             scheduledStart={scheduledStart}
+            isExample={isExample}
           />
         );
       case 'documents':
@@ -1543,6 +1553,7 @@ function ConnectionWizard({
             onMove={handleMoveDocument}
             onSetField={handleSetField}
             onSetAllFields={handleSetAllFields}
+            isExample={isExample}
           />
         );
       case 'rules':
@@ -1566,6 +1577,7 @@ function ConnectionWizard({
             onAddData={() => leaveEditor({ type: 'documents' })}
             onSaveRule={() => dispatchRules({ type: 'saveRule', language })}
             onCancelEditor={() => leaveEditor({ type: 'cancel' })}
+            isExample={isExample}
           />
         );
       case 'test':
@@ -1583,6 +1595,7 @@ function ConnectionWizard({
               if (personas.state.failed) personas.retry();
             }}
             saveFailed={saveFailureToast !== null}
+            isExample={isExample}
           />
         );
     }
@@ -1662,6 +1675,7 @@ function ConnectionWizard({
             onReplace={() => void handleConfirm(true)}
             onOpenConnection={handleOpenConnection}
             onSaveAsNew={() => void handleSaveAsNew('publish')}
+            exampleLine={exampleLine}
             scheduledStart={scheduledStart}
           />
           {/* Always rendered: closing it, not unmounting it, returns the focus to "Save and exit" */}

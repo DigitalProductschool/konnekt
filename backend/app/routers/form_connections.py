@@ -151,6 +151,30 @@ def create_draft(
 
 
 @router.post(
+    '/example',
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_browser_session), Depends(require_json)],
+)
+def create_example(
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+) -> ApiResponse[FormConnectionDraft]:
+    """Store the example as a new draft, without calling EUDIPLO (spec 010, R7).
+
+    "Start from an example" (FR-054, FR-055): a complete, publishable draft with
+    its texts in the request's language (FR-061), at the connection step and
+    marked `example: 'unchanged'`. Every call stores another draft. Agents can't
+    create it (FR-068): 403 `browser_only`, so it never counts towards an agent's
+    draft limit. Declared before `/{form_connection_id}`, so that no route of a
+    connection takes the path (R15 V4).
+    """
+    return ApiResponse(
+        data=drafts.create_example(db, actor=actor_of(db, principal)),
+        message='Draft saved',
+    )
+
+
+@router.post(
     '/deletions',
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_browser_session), Depends(require_json)],

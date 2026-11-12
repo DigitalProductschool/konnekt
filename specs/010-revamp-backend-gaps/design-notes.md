@@ -1122,6 +1122,149 @@ Browsers: the `playwright-chrome` MCP (Chromium) for the per-node comparison at 
 | R3 | dropped | 160 | order, focus | moved, ⋯ focused | — | moved; focus on the moved row's ⋯, `:focus-visible` false; no h-scroll; one `h1` | match |
 | none | keyboard focus | 320, 160 | the row's controls | focus ring after keyboard focus, none after a click | — | the drag adds no focusable control; the keyboard path (⋯ → "Move up/down") is T058's rows at 320 and 160 | T058 |
 
+#### T066: the example banner against 1h `6798:122695`, 1i `7344:96396`, 1i-c `7344:96451` (C4; FR-058; F29 n/a here, W15)
+
+Browser: the `playwright-chrome` MCP, a 1455 × 900 window (body 1440 wide), narrow rows at viewports 320 and 160 CSS px (160 = the 320 px window at 200 %, `narrow:`). Backend A (3012, `template_db_010_p9`) with Vite A (5176), account `p10-alice`. Data made: the draft `T066 example banner check` (`9af29ff9-fe12-446f-9842-7977ab877e7f`, through the API, P3 seed live's documents and Standard rules, step `connection`; kept). The banner was shown on step 1 of that draft's edit flow behind a temporary `?t066=<key>` flag in `ConnectionStep.tsx`, 16px above the connection card, removed before the gates (T068 places it for real). Figma read: `get_design_context` and `get_screenshot` on the three nodes (6 calls); none changed since the audit (U18 #12, #19, #29; the texts now read exact where the audit had "~"). Screenshots: `.playwright-mcp/T066/` (git-ignored; `{en,de}-{connection,standard,variant}-{1440,320,160}.png`) and the Figma renders in `<scratchpad>/T066/figma-{1h,1i,1ic}.png`. No local draft left behind.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 1h 6798:122695 | connection, EN | 1440 | banner | size | 1120 × 42 | 1120 × 42 (x 160) | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | fill | `feedback-info-background` #e0f2fe | rgb(224, 242, 254) | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | border | 1 solid `feedback-info` #0284c7 | 1px solid rgb(2, 115, 174) #0273ae | match (spec 008 §1.5: the overlay's AA value of `feedback-info`, as the findings banner's info look) |
+| 1h 6798:122695 | connection, EN | 1440 | banner | radius | 8 | 8px | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | padding | 8 8 8 16 | 8px 8px 8px 16px | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | gap, align | 8, centre | column-gap 8px, align-items center | match |
+| 1h 6798:122695 | connection, EN | 1440 | kind icon | glyph, size, colour | `icon-info-small` 20 × 20, `feedback-info` | `kern-icon--info kern-icon--small` 20 × 20 at (177, 227), rgb(2, 115, 174) | match (spec 008 §1.5) |
+| 1h 6798:122695 | connection, EN | 1440 | kind icon | accessibility | decorative | `aria-hidden="true"` | match |
+| 1h 6798:122695 | connection, EN | 1440 | sentence | font | body/small/regular: Fira Sans 400 14/24, `layout-text-default` #0b1220, letter-spacing 0 | "Fira Sans" 400 14px/24px rgb(11, 18, 32), normal; `document.fonts.check('400 14px "Fira Sans"')` true | match |
+| 1h 6798:122695 | connection, EN | 1440 | sentence | numerals | "zero" 1, "lnum" 1, "tnum" 1 | `tabular-nums slashed-zero` (index.css's global rule) | match (spec 008's convention) |
+| 1h 6798:122695 | connection, EN | 1440 | sentence | box | x 205 (16 + 1 + 20 + 8), fills the row, 24 high | x 205, 1066 × 24 | match |
+| 1h 6798:122695 | connection, EN | 1440 | sentence | text | "This is an example. Change anything to see how it works." | same | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | actions | none (no action, no close) | no focusable element inside | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | role | the findings banner's info variant: none, not a live region | no `role`, no `aria-live` | match |
+| 1h 6798:122695 | connection, EN | 1440 | banner | screenshot | Figma render 1120 × 42 | same layout, icon, text and ordering; only the border's colour differs by §1.5 | match |
+| 1h 6798:122695 | connection, DE | 1440 | sentence | text, box | (English frame; glossary "Beispiel") | "Dies ist ein Beispiel. Ändern Sie, was Sie möchten, um zu sehen, wie es funktioniert."; one line, 1120 × 42 | match |
+| 1i 7344:96396 | Standard, EN | 1440 | banner | size, fill, border, radius, padding, gap | as 1h | 1120 × 42; same computed values as 1h | match (border: spec 008 §1.5) |
+| 1i 7344:96396 | Standard, EN | 1440 | kind icon, sentence | box, font | as 1h | icon (177, 227) 20 × 20; text x 205, 1066 × 24, 400 14px/24px rgb(11, 18, 32), tabular-nums slashed-zero | match |
+| 1i 7344:96396 | Standard, EN | 1440 | sentence | text | "Try changing the age to 18 or adding a rule. Then use Test rules to check the result." | same | match |
+| 1i 7344:96396 | Standard, EN | 1440 | banner | screenshot | Figma render 1120 × 42 | same | match |
+| 1i 7344:96396 | Standard, DE | 1440 | sentence | text, box | (English frame; glossary "Regel", "Alter", "Test rules" → „Regeln testen“) | "Versuchen Sie, das Alter auf 18 zu ändern oder eine Regel hinzuzufügen. Prüfen Sie das Ergebnis dann mit „Regeln testen“."; one line, 1120 × 42 | match |
+| 1i-c 7344:96451 | variant, EN | 1440 | banner | size, fill, border, radius, padding, gap | as 1h | 1120 × 42; same computed values as 1h | match (border: spec 008 §1.5) |
+| 1i-c 7344:96451 | variant, EN | 1440 | sentence | text, numerals | "Ambulance is more lenient than Standard. Rules 01 and 02 are changed here.", slashed zeros | same, tabular-nums slashed-zero (the 0s slashed as drawn) | match |
+| 1i-c 7344:96451 | variant, EN | 1440 | banner | screenshot | Figma render 1120 × 42 | same | match |
+| 1i-c 7344:96451 | variant, DE | 1440 | sentence | text, box | copy.md §6 "Krankentransport ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert." | same; one line, 1120 × 42 | match |
+| — | the three tabs' "1" (1i, 1i-c) | 1440 | variant tabs | count | a "1" beside a tab | not part of the banner; T068's | not built, F29 |
+| narrow | connection, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | `scrollWidth` 305 ≤ `clientWidth` 320; 1 h1; banner 273 × 66, padding 8 8 8 16; the sentence 2 lines beside the icon (text x 61, icon x 33); nothing clipped; off-screen only the page's two `sr-only` regions | match |
+| narrow | connection, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 129 × 162, padding 8 (pl-16 halved by the narrow block); 6 lines beside the icon; nothing clipped | match |
+| narrow | Standard, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 305 ≤ 320; 1 h1; banner 273 × 90; 3 lines beside the icon; nothing clipped | match |
+| narrow | Standard, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 129 × 210; 8 lines beside the icon; nothing clipped | match |
+| narrow | variant, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 305 ≤ 320; 1 h1; banner 273 × 90; 3 lines beside the icon; nothing clipped | match |
+| narrow | variant, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 129 × 210; 8 lines beside the icon; nothing clipped | match |
+| narrow | connection, DE | 320 / 160 | page, banner | h-scroll, h1, clipped | none, 1, none | 305 ≤ 320 / 160 = 160; 1 h1; 3 / 9 lines beside the icon; nothing clipped | match |
+| narrow | Standard, DE | 320 / 160 | page, banner | h-scroll, h1, clipped | none, 1, none | 305 ≤ 320 / 160 = 160; 1 h1; 5 / 11 lines beside the icon; nothing clipped | match |
+| narrow | variant, DE | 320 / 160 | page, banner | h-scroll, h1, clipped | none, 1, none | 305 ≤ 320 / 160 = 160; 1 h1; 3 / 9 lines beside the icon (at 160 "Krankentransport", wider than the 83px line, breaks inside the word, as the narrow block intends); nothing clipped | match |
+| narrow | all three, EN and DE | 320 / 160 | banner | focus ring after keyboard / after click | no focusable element | no focusable element (0 of a, button, input, select, textarea, [tabindex]) | match |
+
+#### T067: the welcome page's "Start from an example" and the example dialog, against 1b `6699:44481` (`6699:44508`, `6793:47828`) and 1g `6793:47676` (`6793:47705`, `6793:47706`, dialog `6793:47710`) (S3; FR-053–FR-055; F24, F28)
+
+Browser: the `playwright-chrome` MCP, a 1455 × 900 window (body 1440 wide), narrow rows at viewports 320 × 640 and 160 × 320 CSS px (160 = the 320 px window at 200 %, `narrow:`). Backend B (3013, `template_db_010_p9_empty`, no connections) with Vite B (5177), account `p10-alice`. Busy and failed states made with `page.route()` on `**/api/form-connections/example` (held; answered `500` with `{error, message, error_id}` in the backend's shape), the backend untouched. Data made: two real examples, `494ffe70-e746-4e08-b395-77cfebef6495` (English; a held request that `unrouteAll` let through) and `2f026d6e-bc94-4a7c-83fe-6e67e1fa0c5a` (German, the success path), both deleted with the overview row's own delete ("Delete connection") at about 23:46 and 23:48; the database then held 0 rows not deleted. No local draft left (localStorage holds only the homepage and language keys). Figma read: `get_design_context` on `6793:47710`, `6793:47828`, `6793:47706`; `get_screenshot` on `6793:47676` and `6699:44481` (5 calls); none changed since the audit (U11 #20, #21; U18 #3–#9). Screenshots: `.playwright-mcp/T067/` (git-ignored): `welcome-{1440,320,160}.png`, `welcome-buttons-{320,160}.png`, `dialog-{1440,320,160}.png`, `dialog-de-1440.png`, `busy-{1440,320,160}.png`, `failed-{1440,320,160}.png`.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 1b 6699:44481 | welcome, EN | 1440 | "Start from an example" | text | "Start with an example" | "Start from an example" | F24 |
+| 1g 6793:47706 | welcome, EN | 1440 | "Start from an example" | text | "Start from an example" | same | match |
+| 1g 6793:47706 | welcome, EN | 1440 | "Start from an example" | kind, role | button-secondary, no icon (the arrow slot 0 × 0) | `button.kern-btn.kern-btn--secondary`, one `kern-label`, no icon | match |
+| 1g 6793:47706 | welcome, EN | 1440 | "Start from an example" | height, padding, radius | 48; 0 16; 8 | 48; 0px 16px; 8px | match |
+| 1g 6793:47706 | welcome, EN | 1440 | "Start from an example" | border, fill | 1 solid `action-default` #1d56f0; none | 1px rgb(29, 86, 240); transparent | match |
+| 1g 6793:47706 | welcome, EN | 1440 | label | font, colour, padding | label/default Fira Sans 600 16/24, #1d56f0, 8 | 600 16px/24px "Fira Sans", rgb(29, 86, 240), 8px; `document.fonts.check('600 16px "Fira Sans"')` true | match |
+| 1b 6699:44481 / 1g 6793:47705 | welcome, EN | 1440 | the two buttons | placement | "Create connection →" (primary) at x 208, y 400; the secondary 16 to its right, same row | primary 208, 400, 204.7 × 48; secondary x 428.7 (= 412.7 + 16), y 400, 213 × 48 | match (the 0.7 is the primary's text width, spec 008's) |
+| 1b 6699:44481 | welcome, EN | 1440 | card | size | 1120 × 344 at 160, 152 | 1120 × 344 at 160, 152 | match |
+| 1b 6699:44481 | welcome, EN | 1440 | page | screenshot | Figma render | same layout, steps, picture, buttons; only the label F24 | match |
+| 1g 6793:47705 | welcome, EN | 1440 | "Create connection →" | unchanged | primary with the arrow, `/get-started` | unchanged (spec 008's link) | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | dialog | size, place | 480 wide, centred; 1440 × 900: 480, 310, 480 × 280 | 480, 310, 480 × 280; radius 12 | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | header | padding, min-height | 8 8 0 32, 64 | 8px 8px 0px 32px, 64 | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | title | text, font, box | "Start from an example?", title/large 600 24/32 #0b1220, padding 7 0 9, x 512 | same; 600 24px/32px rgb(11, 18, 32), 7px 0 9px, x 512, y 326 | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | × | size, glyph | 48 × 48 tertiary, icon-close 24 | 48 × 48 at 904, 318, `kern-icon--close`, named "Close" | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | body | padding | 8 32 24 | 8px 32px 24px | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | text | text | "This creates a draft called “Passenger transport licence (example)” with 2 documents and 2 rules. It only becomes active when you publish." | same, typographic quotes | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | text | font, box | body/large 400 18/24 #0b1220, padding 1 0 7, 416 wide, 3 lines | 400 18px/24px rgb(11, 18, 32), 1px 0 7px, 416 × 80 (3 lines) | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | footer | border, padding | top 1 `decorative-border` #e1e6f0; 24 32 32 | 1px rgb(225, 230, 240); 23px 32px 32px (the line inside the 24, ConfirmDialog's) | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | "Go back" | kind, box, label | secondary, flex 1, 48 high, label #1d56f0 | `kern-btn--secondary` 512, 510, 200 × 48, label rgb(29, 86, 240) | match |
+| 1g 6793:47710 | dialog idle, EN | 1440 | "Create the example" | kind, box, label | primary #1d56f0, flex 1, 16 after "Go back", label white | `kern-btn--primary` 728, 510, 200 × 48, rgb(29, 86, 240), label white | match |
+| 1g 6793:47676 | dialog idle, EN | 1440 | page | screenshot | Figma render (dialog over the scrim) | same dialog, place and scrim; the welcome text behind it wraps as 1b (the frames differ there) | match |
+| — | dialog idle, DE | 1440 | dialog | texts | (English frame; glossary "Mit einem Beispiel beginnen", "Beispiel erstellen", "Entwurf", "aktiv", "veröffentlichen") | "Mit einem Beispiel beginnen?", "Dadurch wird ein Entwurf namens „Personenbeförderungsschein (Beispiel)“ mit 2 Dokumenten und 2 Regeln erstellt. Er wird erst aktiv, wenn Sie ihn veröffentlichen.", "Zurück", "Beispiel erstellen", × "Schließen"; 480 × 304, buttons 200 × 48 side by side | match |
+| — | welcome, DE | 1440 | "Mit einem Beispiel beginnen" | box | (English frame) | 443.5, 400, 256.8 × 48, one row with "Anbindung erstellen" | match |
+| — | dialog, closing | 1440 | "Go back", ×, Escape, scrim click | effect | close without creating anything (FR-054; CLAUDE.md "Dialogs": no delete, no publish) | each closed the dialog; 0 requests to `/form-connections/example` across the four | match |
+| — | dialog, closing | 1440 | focus after close | target | back to "Start from an example" | `document.activeElement` "Start from an example" after each of the four | match |
+| — | dialog busy, EN | 1440 | buttons | label, state | "Creating…" (copy.md §6), busy | "Close:aria-disabled=true", "Go back:true", "Creating…:true" | match |
+| — | dialog busy, EN | 1440 | closing | effect | nothing closes it while it runs | Escape, "Go back", × (forced clicks) and a scrim click: still open | match |
+| — | dialog failed, EN | 1440 | alert | title, body, ID | "Couldn’t create the example" with the error ID (spec 008's dialog failures) | KERN danger alert (role alert) above the text: "Couldn’t create the example" (600 18px), the server's message, "Error ID: 3f9c2a7e-…" on its own line; dialog `aria-describedby` = error, text | match |
+| — | dialog failed, EN | 1440 | buttons, focus | labels | "Go back", "Try again" | "Go back", "Try again", enabled; the dialog stays open, URL `/` | match |
+| — | dialog failed, EN | 1440 | dialog | screenshot | (no frame; ConfirmDialog's failure as the delete dialogs') | alert, text, buttons in view, 480 × 488 | match |
+| — | success, DE | 1440 | "Beispiel erstellen" | effect | creates the draft, opens its edit route at step 1 (FR-055) | `/form-connections/2f026d6e-…/edit`, "Schritt 1 von 4", h1 "Benennen Sie Ihre Anbindung", name "Personenbeförderungsschein (Beispiel)" and the description filled; 944 ms click to step 1 (incl. an 800 ms settle) | match |
+| — | overview with the example | 1440 | footer, row | actions | "Create connection" only (FR-053; U11 #16) | one link "Create connection", no "Start from an example"; row "Edited 11.11.2026 · Connection step", Draft | match |
+| — | welcome, focus | 1440 | "Start from an example" | ring | after Tab: the ring; after a click: none | Tab from "Create connection": `:focus-visible`, outline solid 4px; click open then "Go back" click: focus on it, no `:focus-visible`, outline none | match |
+| — | dialog, focus | 1440 | the dialog's controls | order, ring | × → "Go back" → "Create the example", each with the ring | Enter on the button: × focused; Tab "Go back", Tab "Create the example", each `:focus-visible` 4px; a fresh mouse open: × focused without the ring | match |
+| narrow | welcome, EN | 320 | page | h-scroll, h1, clipped, off-screen | none, 1, none, none | `scrollWidth` 305 ≤ `clientWidth` 320; 1 h1; nothing clipped or off-screen; the buttons wrap: "Create connection" 205 × 48 at y 696, "Start from an example" 213 × 48 at y 760 (16 under it) | match |
+| narrow | welcome, EN | 160 | page | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; nothing clipped or off-screen; 105 wide each, the labels on 3 lines ("Start from / an / example") | match |
+| narrow | welcome, EN | 320 / 160 | "Start from an example" | focus ring | after the keyboard: yes; after a click: none | Tab: `:focus-visible`, solid 4px rgb(11, 18, 32); after a click (closing by "Go back" click): no `:focus-visible`, none | match |
+| narrow | dialog idle, EN | 320 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 305 ≤ 320; 1 h1 (the page's); dialog 273 × 472, no inner scroll; buttons stacked 209 × 48; nothing clipped or off-screen | match |
+| narrow | dialog idle, EN | 160 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; dialog 113 × 282 scrolls as a whole (864 / 282, ConfirmDialog's); buttons stacked 89 wide; nothing clipped or off-screen | match |
+| narrow | dialog idle, EN | 320 / 160 | × | focus after opening | × focused; ring after the keyboard | × focused, `:focus-visible` after Tab + click open (the keyboard's last), none after a fresh click (1440 row) | match |
+| narrow | dialog busy, EN | 320 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 305 ≤ 320; 1 h1; 273 × 472; "Go back" and "Creating…" 209 × 48 stacked; nothing clipped | match |
+| narrow | dialog busy, EN | 160 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; 113 × 282 scrolling as a whole; nothing clipped or off-screen | match |
+| narrow | dialog failed, EN | 320 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 305 ≤ 320; 1 h1; 273 × 602 (824 scrolls as a whole); alert 209 × 336, the ID wraps anywhere; nothing clipped | match |
+| narrow | dialog failed, EN | 160 | dialog | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; 113 × 282 scrolling; alert 89 wide, words broken by the narrow block; nothing clipped or off-screen | match |
+
+#### T068: the example's banners in the steps and its line in the publish dialog, against step 1 `6793:47711`, the rules step `7344:96387`, `7344:96414`, `7344:96442`, the publish dialog `7137:50083` (`7137:50210`) (S7–S13 "the example's banners", S14 "The example's line"; FR-056, FR-058–FR-060; F29, F30, W15)
+
+Browser: the `playwright-firefox` MCP, viewport 1440 × 900 (body 1440 wide; Firefox reserves no scrollbar gutter here), narrow rows at viewports 320 × 640 and 160 × 400 CSS px (160 = the 320 px window at 200 %, `narrow:`). Backend A (3012, `template_db_010_p9`) with Vite A (5176), account `p10-alice`. Data made with `POST /api/form-connections/example` (all kept, all named as the example): **A** `1cf89703-565b-47e4-bde4-f002429d9a39` (English, `example: 'unchanged'`, untouched: the walk's unchanged example), **D** `cf375719-dfad-4fc8-8cdd-30b28c5fe1af` (created with `Accept-Language: de`, `unchanged`), **B** `b20da9cc-fc87-47c3-bdfe-fb87f46121e3` (English, then saved through `PUT /{id}/draft` with a third variant "School transport" (a copy of Ambulance's rules): `example: 'changed'`). Published edit flow checked on `P3 seed live` (`842ede60-…`, not changed). Figma read: `get_metadata` on `6793:47711`, `7344:96387`, `7344:96442`; `get_design_context` on `7137:50210`; `get_screenshot` on `6793:47711`, `7344:96387`, `7344:96414`, `7137:50083` (8 calls). The rules frames no longer draw the "1" beside a tab (the audit read one, F29 said Figma removes it): the change is F29's own, so the frames were built (UNCERTAIN 1 in T068's report). Scripted measures: `.playwright-mcp/T068/walk.js`, `walk2.js` (git-ignored); screenshots `.playwright-mcp/T068/en-{connection,documents,rules-standard,rules-variant,test,publish}-1440.png`. No local draft left behind (checked: no `local-draft` key but the homepage flag), the editor left by navigating with its content back at the stored draft's.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 1h 6793:47711 | step 1, A, EN | 1440 | banner | place | x 160, y 216 (step head 64+32 … 192, then 24), 1120 × 42 | x 160, y 216, 1120 × 42 | match |
+| 1h 6793:47711 | step 1, A, EN | 1440 | banner → connection card | gap | 24 (banner 120–162, card at 186 in the body) | 24 (banner ends 258, card at 282) | match |
+| 1h 6793:47711 | step 1, A, EN | 1440 | banner | look (fill, border, radius, padding, gap, align) | T066's C4 rows | rgb(224, 242, 254); 1px solid rgb(2, 115, 174); 8px; 8 8 8 16; 8; center | match (border: spec 008 §1.5, as T066) |
+| 1h 6793:47711 | step 1, A, EN | 1440 | sentence | font, text | Fira Sans 400 14/24 #0b1220, "This is an example. Change anything to see how it works." | "Fira Sans" 400 14px/24px rgb(11, 18, 32), tabular-nums slashed-zero; same text; `document.fonts.check` true | match |
+| 1h 6793:47711 | step 1, A, EN | 1440 | page | screenshot | Figma render 1440 × 900 | same order and places; the description's ⓘ and the draft note's fill are the baseline's (spec 008), not this task's | match |
+| — (W15) | documents, A, EN | 1440 | banner | place | not drawn: as on step 1 (W15) | x 160, y 216, 1120 × 42, first in the step; the documents' row 24 below (y 282) | W15 |
+| — (W15) | documents, A, EN | 1440 | banner | text, look | C4, copy.md §6 | "This is an example. Change anything to see how it works."; look as on step 1 | match |
+| 1i 7344:96387 | rules Standard, A, EN | 1440 | banner | place | y 216 (body 152), 1120 × 42, above the tabs | x 160, y 216, 1120 × 42; after it the pinned tab row | match |
+| 1i 7344:96387 | rules Standard, A, EN | 1440 | banner → tab row → card | gaps | 16 (tab row at 274, 49 high), 16 (card at 339) | tab row y 274, 49 high; card y 339 | match |
+| 1i 7344:96387 | rules Standard, A, EN | 1440 | sentence | text | "Try changing the age to 18 or adding a rule. Then use Test rules to check the result." | same, one line | match |
+| 1i 7344:96387 | rules Standard, A, EN | 1440 | page | screenshot | Figma render 1440 × 791 | banner, tabs and card in the same places; the tabs' ⓘ / ⋮ and the card's height (+8) are the rules step's baseline, not this task's | match |
+| 1i-b 7344:96414 | rules Standard, tooltip | 1440 | banner | place | as 1i | as 1i (the tooltip is spec 002's ⓘ) | match |
+| 1i, 1i-c | rules Standard / Ambulance, A, EN | 1440 | variant tabs | finding icon, count | a "1" (audit) | no icon, no digit on either tab (`[role=tab]`: 0 icons) | not built, F29 |
+| 1i-c 7344:96442 | rules Ambulance, A, EN | 1440 | banner | place, gaps | y 216, 16 to the tabs, 16 to the card | y 216, tab row 274, card 339 | match |
+| 1i-c 7344:96442 | rules Ambulance, A, EN | 1440 | sentence | text | "Ambulance is more lenient than Standard. Rules 01 and 02 are changed here." | same, one line | match |
+| — (§4.1 call 6) | rules "School transport", B, EN | 1440 / 320 / 160 | banner | presence | none on another variant | 0 banners | match |
+| — (copy.md §6) | rules Krankentransport, D, DE | 1440 | sentence | text | "Krankentransport ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert." | same | match |
+| — (copy.md §6, §4.2 T066) | rules Krankentransport, D, read in EN | 1440 | sentence | text | the stored name | "Krankentransport is more lenient than Standard. Rules 01 and 02 are changed here." | match |
+| — (copy.md §6) | rules Standard, D, DE | 1440 | sentence | text | "Versuchen Sie, das Alter auf 18 zu ändern … mit „Regeln testen“." | same | match |
+| — (W15) | test, A, EN | 1440 | banner | place | not drawn: above the variant tabs (W15) | x 160, y 216, first in the step; the test-day line 16 below (y 274), then the tabs | W15 |
+| — (W15) | test, A, EN | 1440 | variant tabs | finding icon, count | none (FR-056) | Standard, Ambulance: 0 icons, no digit | match |
+| 16b 7137:50210 | publish dialog, A, EN | 1440 | example line | place | "Rule findings" 16 under "Active from", dialog 600 wide | line y 516, "Active from" ends 500; dialog 420, 600 wide | match |
+| 16b 7137:50210 | publish dialog, A, EN | 1440 | example line | icon, font, text | `icon-info-small` 20, `feedback-info`; body/small 14/24 #0b1220; gap 8, centred; "This is still the example. Check that the name, documents and rules fit your service." | KERN info icon 20 × 20 rgb(2, 115, 174) centred beside two lines; 14px/24px 400 rgb(11, 18, 32); same text, 2 lines in 536 | match (icon colour: spec 008 §1.5) |
+| 16b 7137:50210 | publish dialog, A, EN | 1440 | summary, rules | lines | "Standard · 2 rules" (the frame) | "Standard · 2 rules", "Ambulance · 2 rules" | F30 |
+| 16b 7137:50083 | publish dialog, A, EN | 1440 | page behind | screenshot | tabs with School transport, no banner | Standard, Ambulance; the banner above the tabs | F30, W15 |
+| 16b 7137:50083 | publish dialog, A, EN | 1440 | dialog | screenshot | Figma render | same order and look; 24 px taller for the Ambulance line | match (F30) |
+| — (FR-060) | publish dialog, B (`changed`), EN | 1440 | example line | presence | none | none; summary "Standard · 2 rules", "Ambulance · 2 rules", "School transport · 2 rules" | match |
+| — (FR-060) | publish dialog, A with the name changed, not saved | 1440 | example line | presence | none while the page holds a change | none; after typing the name back: the line again | match |
+| — (copy.md §6) | publish dialog, D, DE | 1440 | example line | text | (German written for T068) | "Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen."; "Standard · 2 Regeln", "Krankentransport · 2 Regeln" | match |
+| — (FR-059) | edit flow of P3 seed live (published) | 1440 | banner | presence | none | 0 banners | match |
+| — (FR-058) | step 1, B (`changed`) | 1440 | banner | presence | shown whatever was changed | shown, y 216 | match |
+| narrow | step 1, A, EN | 320 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320; 1 h1; banner 288 × 66, 2 lines beside the icon; card 24 below; nothing clipped or off-screen | match |
+| narrow | step 1, A, EN | 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 160 = 160; 1 h1; banner 144 × 138, padding 8 (narrow block), 5 lines; nothing clipped or off-screen | match |
+| narrow | documents, A, EN | 320 / 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320 / 160 = 160; 1 h1; 2 / 5 lines; the list 24 below; nothing clipped or off-screen | match |
+| narrow | rules Standard, A, EN | 320 / 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320 / 160 = 160; 1 h1; 3 / 7 lines; the tab row 16 below; nothing clipped or off-screen | match |
+| narrow | rules Ambulance, A, EN | 320 / 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320 / 160 = 160; 1 h1; 3 / 6 lines; nothing clipped or off-screen | match |
+| narrow | rules School transport, B, EN | 320 / 160 | page | h-scroll, h1, banner | none, 1, none | 320 = 320 / 160 = 160; 1 h1; 0 banners; nothing off-screen | match |
+| narrow | test, A, EN | 320 / 160 | page, banner | h-scroll, h1, clipped, off-screen | none, 1, none, none | 320 = 320 / 160 = 160; 1 h1; 2 / 5 lines; the test-day line 16 below; nothing clipped or off-screen | match |
+| narrow | publish dialog, A, EN | 320 | dialog, line | h-scroll, clipped | none | page 320 = 320, dialog 288 = 288; the line 224 wide, 3 lines, 16 under "Active from"; not clipped | match |
+| narrow | publish dialog, A, EN | 160 | dialog, line | h-scroll, clipped | none | page 160 = 160, dialog 128 = 128 (it scrolls inside, as before); the line 104 wide, 9 lines; not clipped | match |
+| narrow | all six steps and the dialog, D, DE | 320 / 160 | page, banner, line | h-scroll, h1 | none, 1 | every state 320 = 320 / 160 = 160, 1 h1; the dialog 288 = 288 / 128 = 128 | match |
+| narrow | every banner and the line, EN and DE | 1440 / 320 / 160 | banner, line | focus ring after keyboard / after click | no focusable element | 0 focusable elements in the banner and in the line; no role, no live region (C4, T066) | match |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -1490,6 +1633,54 @@ SC-006's times (V8.6, ten connections, one confirmation): "Delete connections" c
 The first run (Chromium, English, 22:29) failed one measure: V9.6, the test step's data listed Personal ID before Driving licence for a draft stored as Driving licence, Personal ID (FR-050). The editor handed the rules logic the requested documents in catalog order (`requestedRuleDocuments()`), and `personaFieldsOf()` lists the data in `context.documents`' order. Fixed in `frontend/src/pages/FormConnectionEditor/{utils.ts,index.tsx}` (T056's files): `ruleDocumentsInListOrder(documentTypes, documents)` puts them in the list's order, and the editor's rule context and its pre-check after "Remove n documents" use it. Its test is in `utils.test.ts`. The run also had a script error on the ⋯'s name: it read `aria-label`, but the button's name comes from its `sr-only` text, so the script now reads the accessible name. The rows above are the reruns after the fix (Chromium 22:31, Firefox 22:32): every step in both browsers and both languages. "Needs a person" (4 rows): in Firefox, Juggler's touch neither scrolls the page nor makes the browser send `pointercancel`, so "a short swipe scrolls" and the browser's cancel are left for a real touch screen, as in T059's table. Chromium covers both with CDP's real touch stream.
 
 The rows that remain are the reruns' 20 connections (`T061 {en,de} {c4nu5, csrj8, f56xk, fs3jb} …`) and the first run's five (`T061 en cnobm …`, its `main` published). Three exploration drafts (`T061 explore` ×2, `T061 explore 2`), made while the script was being written, were deleted with `DELETE /form-connections/{id}/draft`. The exploration's token `T061 explore agent` and the two walk tokens were revoked: `agent_authorizations` holds no `T061` row.
+
+#### T070: walk V10, the example (US7; FR-053–FR-061, SC-008, US7-AS1–AS6; scripted `playwright-core` 1.65: Chromium (`/usr/bin/chromium`), 1440 × 900 viewport, browser zone Europe/Berlin; English and German through the stored language choice, one fresh browser context per language; pair B: backend on 3013 with the fake EUDIPLO, `WORKER_ENABLED=false`, the default restore time (300 s), database `template_db_010_p9_empty` (an installation without connections; Alembic head `1b6d7a28c6b2`), Vite on 5177; account `p10-alice` (browser and API). Per language: V10.1 the welcome page's two buttons (classes, same row, 16 px apart), the dialog (title by `aria-labelledby`, text, ×/cancel/confirm), "Create the example" to step 1 (`POST /api/form-connections/example` 201 with the language's `Accept-Language`, the edit route, "Step 1 of 4", the name and description inputs, the banner as the form's first child, the stored draft from `GET /form-connections/{id}`: `example` "unchanged", `step` "connection", `version` 1, documents pid 7 / mdl 2, the variant's name and description, the four messages, marks and years) and SC-008's time from the click on "Start from an example" until step 1's h1, banner and name are in the page (Node `Date.now()`); V10.2 the banner's sentence on every step (one banner, no control in it; above "Added documents", above the variant tabs, above the test day's line and the tabs), the rules step's tabs (names, selection, no icon and no digit in the tab or beside it outside the ⓘ button), no `[data-findings-banner]`, the rule rows' statements (rules/src/example.test.ts) and "Message for citizens:" lines (copy.md §6) in the visible tab panel; V10.4 the overview with the example left at step 1 (the list summary, the row's "Edited <updated_at in Europe/Berlin> · Connection step", the "Draft" pill, exactly one "Create connection" control and no "Start from an example" anywhere, no local draft); V10.5 (German only, on the German example before publishing) the language switched to English with the header's "EN": the overview and the row's meta in English with the German name, step 1's inputs German, the banners English with the variant's "Krankentransport is more lenient than Standard. …" (§4.2 T066), the tab "Krankentransport", English statements with German messages, `GET` with `Accept-Language: en` answering the German content; then back to German; V10.3 the unchanged example published from the test step's "Publish" (the line as the only `li` of its `ul` after "Active from", the summary "Personal ID · 7 data items", "Driving licence · 2 data items", "Standard · 2 rules", "Ambulance · 2 rules" and their German, "Publish connection", the `/publish` call 2xx, the details page "Your connection is active", `GET` live with `published_at` inside the action), a second example made with `fetch` from the signed-in page (`credentials: 'include'`, body `{}`, the language's `Accept-Language`), Rule 01's age set to 18 in the UI ("Actions for Rule 01" → "Edit rule" → 18 → "Save rule"), the publish dialog without the line while the page held the change, "Back to test", "Save and exit" (`PUT …/draft` 200, `example` "changed", the variant's copy kept at 19), reopened at its stored step and the publish dialog again without the line and without any "example" text; V10.6 the list summary's `example` null for the published one and "changed" for the second, no `example` key on the published `GET /form-connections/{id}`, `form_connections.example` null (`psql`), and no banner on any step of the published connection's edit flow (connection, documents, rules with Standard and the variant, test). Every step also measured exactly one h1 (its text against the copy tables) and no horizontal scroll (`scrollWidth`, element boxes past either edge). Leaving: edited editors by navigating (no `beforeunload` prompt seen), no `connection-portal:local-draft:v1:p10-alice:` key left. Connections made: per language the welcome page's example (published) and the second example (draft, changed): en `456dfc44-a3c5-4af6-b1cc-e2a4d93419c7`, `80824cd6-1ee1-4460-8343-d88398ea00ce`; de `609a50de-9f3b-4892-a437-a3d8809982a6`, `e053be97-a317-4757-a6ad-8fba653c29f2`; all four deleted at the end of their run with the overview row's "Delete <name>" → "Delete connection" ("<name> löschen" → "Anbindung löschen"), the welcome page back and no connection without `deleted_at` (`psql`), so the German run started from the welcome page. Backend log lines between `=== T070 en start 2026-11-12T00:13:27.297Z ===` and `=== T070 de end 2026-11-12T00:15:49.086Z ===` in `<scratchpad>/backend-3013.log`. CSV `/tmp/claude-1000/-home-debian-batch27-faro-010-revamp-backend-gaps/26d965bf-bbbd-4dc1-801a-4074636b20ae/scratchpad/T070/walk.csv`, summary `/tmp/claude-1000/-home-debian-batch27-faro-010-revamp-backend-gaps/26d965bf-bbbd-4dc1-801a-4074636b20ae/scratchpad/T070/summary.md`)
+
+| step | language | measures | pass | fail | unsure | notes |
+|---|---|---|---|---|---|---|
+| V10.1 welcome page | en | 6 | 6 | 0 | 0 |  |
+| V10.1 the dialog | en | 6 | 6 | 0 | 0 |  |
+| V10.1 to step 1 | en | 18 | 18 | 0 | 0 | SC-008: 548 ms; click→dialog; create→step 1: 126; 263 ms |
+| V10.2 documents step | en | 9 | 9 | 0 | 0 |  |
+| V10.2 rules step, Standard | en | 13 | 13 | 0 | 0 |  |
+| V10.2 rules step, the variant | en | 11 | 11 | 0 | 0 |  |
+| V10.2 test step | en | 9 | 9 | 0 | 0 |  |
+| V10.4 overview | en | 8 | 8 | 0 | 0 |  |
+| V10.3 publish dialog, unchanged | en | 6 | 6 | 0 | 0 |  |
+| V10.3 publishing works | en | 5 | 5 | 0 | 0 |  |
+| V10.3 second example, age changed | en | 8 | 8 | 0 | 0 |  |
+| V10.3 second example, dialog reopened | en | 6 | 6 | 0 | 0 |  |
+| V10.6 published: API | en | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, connection | en | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, documents | en | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, rules | en | 5 | 5 | 0 | 0 |  |
+| V10.6 published edit flow, test | en | 6 | 6 | 0 | 0 |  |
+| teardown | en | 4 | 4 | 0 | 0 |  |
+| V10.1 welcome page | de | 6 | 6 | 0 | 0 |  |
+| V10.1 the dialog | de | 6 | 6 | 0 | 0 |  |
+| V10.1 to step 1 | de | 18 | 18 | 0 | 0 | SC-008: 481 ms; click→dialog; create→step 1: 95; 228 ms |
+| V10.2 documents step | de | 9 | 9 | 0 | 0 |  |
+| V10.2 rules step, Standard | de | 13 | 13 | 0 | 0 |  |
+| V10.2 rules step, the variant | de | 11 | 11 | 0 | 0 |  |
+| V10.2 test step | de | 9 | 9 | 0 | 0 |  |
+| V10.4 overview | de | 8 | 8 | 0 | 0 |  |
+| V10.5 switched to English | de | 25 | 25 | 0 | 0 |  |
+| V10.3 publish dialog, unchanged | de | 6 | 6 | 0 | 0 |  |
+| V10.3 publishing works | de | 5 | 5 | 0 | 0 |  |
+| V10.3 second example, age changed | de | 8 | 8 | 0 | 0 |  |
+| V10.3 second example, dialog reopened | de | 6 | 6 | 0 | 0 |  |
+| V10.6 published: API | de | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, connection | de | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, documents | de | 4 | 4 | 0 | 0 |  |
+| V10.6 published edit flow, rules | de | 5 | 5 | 0 | 0 |  |
+| V10.6 published edit flow, test | de | 6 | 6 | 0 | 0 |  |
+| teardown | de | 4 | 4 | 0 | 0 |  |
+
+37 rows; 289 measures: 289 pass, 0 fail, 0 unsure.
+
+SC-008 (from the click on "Start from an example" to step 1 with its h1, banner and name, two activations): 548 ms in English, 481 ms in German (click → dialog 126 / 95 ms; "Create the example" → step 1 263 / 228 ms), the script's clicks without a person's reading time; the 10 seconds by hand remain the phase's "Needs a person".
+
+Before the counted run, two English runs (markers `=== T070 en start 2026-11-12T00:10:11.128Z ===` to `… end 2026-11-12T00:11:17.601Z ===` and `… 00:11:31.793Z` to `… 00:12:38.707Z`) failed only on the script's own selectors: the test step's persona chips are `role="tab"` too, the rules step's tablist is an empty element that owns its tabs by `aria-owns` (so its box isn't the tab row's), and the publish dialog's summary values are `dd > span`, not `dd p` (T068's labels note). Fixed in the script, no app change; their rows were discarded. The connections of those runs and of the exploration (`8690c532…` published, `995f829f…`, `45259251…`, `1f490c79…`, `2b7c9003…`, `2b7535ac…`, `81393e96…`) were deleted with the app's own delete as well; `template_db_010_p9_empty` holds no connection without `deleted_at`.
 
 ### 2.3 The measured sweeps
 
@@ -2175,6 +2366,107 @@ reversed.
   (§4.3); the ⋯ button's name was measured as its accessible name (the `sr-only` text). Firefox's
   real touch scroll and browser `pointercancel` (V9.3) are the phase's "Needs a person" rows, as
   in T059's table. Kept.
+- **T063 and T064, the example's mark and content** (their UNCERTAIN 1–6; the coordinator, phase
+  9): the migration `1b6d7a28c6b2` adds `form_connections.example` (`String(16)`, nullable) with
+  `ck_form_connections_example` (autogenerate emitted the CHECK itself); applied to `template_db`,
+  `template_db_010_p9` and `template_db_010_p9_empty`. `example_of(row)` in
+  `services/form_connections.py` fills the summary and the draft view; `_publish()`, reached only
+  through `create_revision()` with its `DraftGuard`, sets it to null; a published `FormConnection`
+  has no `example` key. `create_draft()` and `create_example()` share `_insert_draft()`, so there
+  is one creation path, which stores `document_order` (the T054 note). (1) `app/example.py`
+  imports `app.schemas` besides `app.language` and `app.catalog`, since `example_content()`
+  answers `DraftCreate`; `app.schemas` imports only `app.catalog`, so the leaf still never reaches
+  `app.config` and the fixture script can import it. (2) The driving licence's two data items are
+  stored in catalog order (`expiry_date`, `driving_privileges`), as every document's data items are
+  (FR-050); data-model §5 lists the same two. (3) The rules are numbered from
+  `NumberingBase(rule=1, group=1)`, as the editor's first save is, and the counters come out at 3
+  and 1 (`NEXT_RULE_NUMBER`, `NEXT_GROUP_NUMBER`). (4) The endpoint's message is "Draft saved", as
+  `POST /drafts` answers. (5) The MCP's fake backend keeps a stored mark on save and never moves it.
+  (6) `create_example()` reads the language with `current_language()` (the request's
+  `Accept-Language`), keeping the line's signature. The variant's German Rule 02 message, which
+  copy.md §6 abbreviates, reads "Sie müssen seit mindestens 1 Jahr einen Führerschein der Klasse B
+  besitzen.". **Plan change**: the batch's files gained the `example: null` fixtures of
+  `frontend/src/pages/{Approval,FormConnectionEdit,FormConnectionEditor,FormConnectionList}/utils.test.ts`
+  and `mcp/src/{draftEdit,views}.test.ts` (the field is required in the mirror), and the summary
+  keys pinned by `backend/tests/api/test_form_connection_search.py::test_a_page_of_the_summaries`
+  and `test_form_connections.py::test_the_list_hides_deleted_form_connections_and_shows_the_newest_first`.
+  Kept.
+- **T066, the example banner** (T066's UNCERTAIN 1–5; the coordinator, phase 9): (1) the German of
+  the step 1 and Standard sentences, which copy.md §6 didn't give, was written from the glossary
+  and added to copy.md §6 (for T097's review); (2) **decided**: the variant's sentence names the
+  variant by its stored name, so that an example created in German and read in English names
+  "Krankentransport" as its tab does; the sentence is copy.md's word for word whenever the
+  languages match (copy.md §6 amended; carried to T068, whose files gain
+  `components/ExampleBanner/constants.ts` and a test of the sentences); (3) no role and no live
+  region, as the findings banner's info variant (`RulesStep/FindingsBanner.tsx`), the icon hidden
+  from screen readers; (4) the icon stays centred beside a wrapped sentence, as the findings
+  banner's rows; (5) "Krankentransport" breaks inside the word at 160 CSS px, the narrow block's
+  existing rule. The border measures #0273ae for the frame's #0284c7, spec 008 §1.5's AA value.
+  Kept.
+- **T067, the welcome page's example dialog** (T067's UNCERTAIN 1–3; the coordinator, phase 9):
+  `ExampleDialog.tsx` wraps `ConfirmDialog` (the scrim closes it, CLAUDE.md "Dialogs") and shows a
+  failure in `ConfirmDialog`'s danger alert with `ErrorNoticeText`, as the delete dialogs do, so
+  that the title "Couldn’t create the example" stays for a `5xx` (`DialogFailureAlert` drops it).
+  (1) With no answer the alert's body is the overview's "Check your connection and try again." (in
+  copy.md §6 now); (2) after a failure the confirm button reads "Try again", as every
+  `ConfirmDialog` failure; (3) a `401` signs out through `useSignOutOnUnauthorized()` and leaves the
+  dialog busy until the sign-in replaces it, as the row's delete. The dialog's body names the
+  example in the language it will be created in (copy.md §6); the glossary gained "Start from an
+  example?" and "Go back". Kept.
+- **T068, the example's banners and line** (T068's UNCERTAIN 1–6; the coordinator, phase 9): (1)
+  the rules frames `7344:96387` and `7344:96414` changed since the audit: they no longer draw the
+  "1" beside a variant tab (U18 #21), which is the change F29 asks Figma to make; since nothing
+  built differs from the audit's decision, the frames were built and the change is accepted (the
+  rule "a frame that changed is not built" guards against unexpected changes; this one is F29's);
+  (2) on the test step (not drawn, W15) the banner opens the step, above the test day's line and the
+  tabs, as on the rules step; (3) a draft's local draft resumed through
+  `/form-connections/new?local=draft-<id>` doesn't load the stored draft, so it shows no banner and
+  no line; "Restore changes" on the draft's edit route shows them; (4) "the page holds no change"
+  is the local drafts' `sameContent()` against the loaded content (a trailing space in the name
+  counts as a change; undoing a change by hand brings the line back); (5) the main branch always
+  gets Standard's sentence; a variant gets the variant's sentence when its trimmed name is exactly
+  "Ambulance" or "Krankentransport" (§4.1 call 6), after the link notice when one shows; (6) the
+  line is the last item of the dialog's "Rule findings", normally alone (FR-056); the summary's
+  "Standard · 2 rules" and "Ambulance · 2 rules" come from the existing `ruleLines()`. The
+  variant's sentence takes the stored name (§4.2 T066). **Plan change**: T068's files gained
+  `frontend/src/pages/FormConnectionEditor/index.tsx` (the wizard passes `example`, `isExample`
+  and the line's flag to the steps and the dialog) and `frontend/src/pages/FormConnectionEdit/index.tsx`
+  (it holds the loaded draft and passes `draft.example` to both renders), and
+  `components/ExampleBanner/constants.test.ts` (the carried note); the steps' props were widened
+  with `ExampleStepProps` in the files named, as `ScheduledEditProps` is. Kept.
+- **T069, the agents' example mark** (T069's UNCERTAIN 1–4; the coordinator, phase 9): (1) the
+  sentence "This draft is the example." also ends a search item's step line, since mcp-tools.md's
+  "the text block's lines gain the same facts" covers both tools; on `get_connection` it is its own
+  line after "Draft at the {step} step. …"; (2) one sentence for `unchanged` and `changed`, the
+  structured field tells them apart; `example` is left out, not false or null, for anything else;
+  (3) `connection-workflow` tells the agent to ask the team member to check the name, documents and
+  rules before asking to publish an unchanged example (guidance only, as the publish dialog's line);
+  (4) the FR-068 test checks that no tool's name matches `example|restore|bulk`. The stale
+  `scheduled` status in `connection-workflow`'s search sentence was carried to T081. Kept.
+- **T065, the example's fixture** (T065's UNCERTAIN 1–5; the coordinator, phase 9):
+  `rules/src/fixtures/example-connection.json` is the fourth file of `export_check_fixtures.py`'s
+  `generated_files()`, keyed `en` / `de`, each with `draft` (the stored example's content fields as
+  `GET /api/form-connections/{id}` answers them, without the per-row `id`, `version`, `status`,
+  `state`, timestamps and `last_activity`), `document_types` (`pid`, `mdl`) and `option_sets`
+  (`licence_classes`, so that validation's class check runs; not named on the line but needed for
+  the proof). (2) The branches carry fixed canonical UUIDs (`00000000-0000-4000-8000-000000000001`
+  and `…0002`) in both languages. (4) The labels come from the API's own `label_of()` under
+  `request_language`; `_field_view()` copies `services/form_connections.document_field_view()`,
+  whose module imports `app.config`, and a pytest case pins their parity, another that the script
+  never imports `app.config`. (5) The checks run on the script's fixed day 2026-10-28; the
+  conditions are relative. `rules/src/example.test.ts` finds no problem and no finding in either
+  language and pins the four statements per language. Kept.
+- **T070, the walk V10** (T070's UNCERTAIN 1–4; the coordinator, phase 9): (1) V10.5's switch to
+  English ran on the German run's first example while it was still unchanged and unpublished
+  (after V10.4, before V10.3), so that the banners still showed; the run switched back to German
+  for V10.3 and V10.6; (2) V10.4's row was read while the first example was at step 1, and the
+  overview shows "Create connection" once and "Start from an example" nowhere; (3) "no finding icon
+  and no count" was read on the variant tabs of the rules and test steps (the ⓘ button aside), not
+  on the test step's persona chips; (4) V10.3's second example changed the age in the UI ("Edit
+  rule" → 18 → "Save rule") and was saved with "Save and exit"; the line was already gone while the
+  change was unsaved. The walk's selector notes (the dialog's summary values are `dd > span`; the
+  rules step's `[role=tablist]` owns its tabs through `aria-owns`) are for the phase 12 sweep of
+  these screens (T096). Kept.
 
 ### 4.3 Open points
 
@@ -2555,5 +2847,65 @@ reversed.
   touch screen once for the press-and-hold and the scroll (the walk drove CDP's touch in Chromium
   and Juggler's in Firefox), and a screen reader (Orca or NVDA) once for the move's announcement
   "“<document>” moved to position <n> of <m>." (the walk read it in the `role="status"` region).
+- 2026-11-12: phase 9, US7 (T063–T070), each wave's gates green on the combined tree. The
+  environment: two scratch copies of phase 8's database (`CREATE DATABASE … TEMPLATE
+  template_db_010_p8`): `template_db_010_p9` with the team's connections, and
+  `template_db_010_p9_empty`, the installation without connections the welcome page needs (every
+  connection, its dependent rows and every approval request truncated; the accounts and tokens
+  kept; emptied again by the coordinator before T070), so the development database was not
+  emptied (the phase's "Needs a person" asked for that or a second database). Backend A on 3012
+  (`template_db_010_p9`) with Vite on 5176 and backend B on 3013 (`template_db_010_p9_empty`) with
+  Vite on 5177, both with the fake EUDIPLO (the launcher copied into this chat's scratchpad),
+  `WORKER_ENABLED=false` and the default restore time, restarted after wave 1 so that waves 2 and 3
+  ran T063–T064's endpoint. Migration `1b6d7a28c6b2` (the example mark, T063) applied to
+  `template_db` and both copies. Test counts after the phase: pytest 2449 passed (2425 after phase
+  8, +24: the example's mark on every existing row 1, the example 18, the fixture 5), run by T065
+  after its last backend edit (started 23:43:49, the last edit 23:43:37) and not rerun by the
+  coordinator (the user's standing rule; no backend file changed after it); Ruff, mypy over 95
+  files and the fixtures' `--check` rerun green after waves 1 and 2 and at the checkpoint;
+  `rules/` 46 files, 2664 tests (+8: the example has no problem and no finding, its statements);
+  `frontend/` 35 files, 1536 tests (+28: the welcome page's dialog 10, the editor's example
+  helpers and the banner's sentences); `mcp/` 15 files, 473 tests (+9: the example mark). The
+  generated files gained `rules/src/fixtures/example-connection.json` (T065); the other three were
+  left byte for byte. Waves ran as planned, with no change of level or batch. **Plan changes**
+  (§4.2): the batch T063/T064's files gained the `example: null` fixtures of four frontend and two
+  MCP test files and two backend tests that pin the summary's keys; T068's gained
+  `FormConnectionEditor/index.tsx`, `FormConnectionEdit/index.tsx` and
+  `components/ExampleBanner/{constants.ts,constants.test.ts}` (the coordinator's decision on
+  T066's UNCERTAIN 2: the variant's banner names the variant by its stored name); T081's gained
+  `mcp/plugin/skills/connection-workflow/SKILL.md` (T069's note: the stale search statuses). T068
+  built two rules frames that had changed since the audit, since the change is the one F29 asks
+  Figma to make (§4.2 T068 (1)). copy.md §6 gained the banners' German (T066), the dialog's body
+  and no-answer body (T067) and the publish dialog's line (T068); spec 009's glossary gained the
+  example dialog's title and "Go back" (T067). `mcp/src/checks.test.ts` ("keeps the results the
+  worker posted …", a 200 ms timer) failed once under the load of four agents in T067's and
+  T069's runs and passed alone, like `rules/`' budgets. The tasks left in `template_db_010_p9` the
+  drafts `T066 example banner check` and three examples of T068 (`1cf89703-…`, `cf375719-…`,
+  `b20da9cc-…`, named as the example); every row T067 and T070 made in `template_db_010_p9_empty`
+  is deleted (hidden, restorable until the worker would finish them; the worker is off), and
+  screenshots in the repository's git-ignored `.playwright-mcp/T066/`, `.playwright-mcp/T067/`,
+  `.playwright-mcp/T068/` and `<scratchpad>/T066/`; no local draft is left in any browser profile.
+  The documentation checklist's entries are for T102: CLAUDE.md's generated files ("Rule checks"
+  and "Never") gain `rules/src/fixtures/example-connection.json`, rerun after a change to
+  `backend/app/example.py` or to the labels the example uses; ARCHITECTURE's "Form connections"
+  (the example mark, `create_example()`, its endpoint, `_publish()` clearing the mark), the
+  developer scripts' fourth file, and the frontend section (the welcome page's dialog, the
+  banners, the publish dialog's line); the `contracts/mcp-tools.md` wording notes of §4.2 T069.
+- 2026-11-12: US7's checkpoint (T071, the coordinator). The gates are green on both sides: the
+  root gates rerun by the coordinator after wave 2 (lint, `npm test` with the counts above, build),
+  and no repository code changed after that run (T070 fixed nothing; only `mcp/dist/`, git-ignored
+  build output, is newer); the backend's Ruff, mypy and the fixtures' `--check` rerun after wave 2
+  and the fixtures' `--check` again at the checkpoint, pytest as above. T070's walk V10 (§2.2): 289
+  measures, 289 pass, 0 fail, 0 unsure, over V10.1–V10.6 × English and German in Chromium; SC-008
+  by script, from the click on "Start from an example" to step 1 with its banner: 548 ms (English),
+  481 ms (German). The tables of T066 (35 rows), T067 (43) and T068 (42) in §2.1 have no open row.
+  The backend's log of the walk (`backend-3013.log`, 202 lines between T070's markers) holds
+  uvicorn's access lines only: methods, paths with ids (`/api/form-connections/example` the only
+  word), statuses; no name, person, date, variant or rule. The app configures no logging, so its
+  own INFO lines don't reach that log: the phase's diff adds two log calls in `backend/app`, each
+  with an id only ("Draft %s saved", "Example draft %s saved"); the frontend's diff adds no
+  `console.*`, no inline style, no `any`, no `dark:` and no `focus:`. **Left for a person**
+  (tasks.md, phase 9 "Needs a person"), so T071 stays open: SC-008's 10 seconds timed once by
+  hand, from the welcome page to the example's step 1 (the script measured the same span).
 
 ## 6. Closing report

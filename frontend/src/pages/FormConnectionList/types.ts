@@ -92,6 +92,32 @@ export interface WelcomePageProps {
   titleRef: RefObject<HTMLHeadingElement | null>;
 }
 
+/**
+ * The example dialog's state (spec 010, S3; FR-054, FR-055): whether it is open, whether
+ * "Create the example" runs (`creating`: nothing closes it then), and why the last attempt
+ * failed, shown in the dialog until it closes or tries again
+ */
+export interface ExampleDialogState {
+  open: boolean;
+  creating: boolean;
+  error: ErrorNotice | null;
+}
+
+export type ExampleDialogAction =
+  | { type: 'open' }
+  | { type: 'close' }
+  | { type: 'start' }
+  | { type: 'failed'; error: ErrorNotice }
+  | { type: 'done' };
+
+export interface ExampleDialogProps {
+  state: ExampleDialogState;
+  /** "Go back", the ×, Escape and the scrim: nothing is created */
+  onCancel: () => void;
+  /** "Create the example" ("Try again" after a failure) */
+  onConfirm: () => void;
+}
+
 /** One step of the welcome page's illustration: its label and its 24 px ink glyph */
 export interface WelcomeStep {
   label: string;

@@ -71,9 +71,11 @@ import {
   ruleDocumentsInListOrder,
   ruleLines,
   rulesChanged,
+  rulesExampleBannerOf,
   rulesNextActionOf,
   saveFailureToastOf,
   selectedIndexAfterMove,
+  showsExampleLine,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -1145,6 +1147,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     created_at: '2026-11-04T10:00:00Z',
     updated_at: '2026-11-04T10:30:00Z',
     last_activity: null,
+    example: null,
   };
 
   it('takes the name, the description and the documents by key, at the saved step', () => {
@@ -2235,5 +2238,134 @@ describe('publishFailureOf: the no-answer sentence only when no answer came (FR-
       kind: 'refused',
       notice: { message: 'Not possible.', error_id: undefined },
     });
+  });
+});
+
+describe('the example (spec 010, FR-058 to FR-060; S9/S11, S14)', () => {
+  const VARIANT_RULES = US1_RULES.slice(0, 2).map((item) => ({
+    ...item,
+    mark: 'changed' as const,
+  }));
+
+  /** The example as the edit page loads it: Standard and Ambulance, 2 rules each */
+  const EXAMPLE: FormConnectionDraft = {
+    status: 'draft',
+    state: 'draft',
+    id: 'draft-example',
+    name: 'Passenger transport licence (example)',
+    description: 'Licence to drive taxis, rental cars and ambulances.',
+    documents: [{ document_type: 'pid', label: 'Personal ID', fields: [] }],
+    branches: [
+      { ...mainBranch(US1_RULES.slice(0, 2)), id: MAIN_ID },
+      {
+        ...mainBranch(VARIANT_RULES),
+        id: VARIANT_ID,
+        name: 'Ambulance',
+        description: 'For ambulance services. Some rules differ from Standard.',
+        origin: 'based',
+      },
+    ],
+    next_rule_number: 3,
+    next_group_number: 1,
+    step: 'connection',
+    version: 1,
+    created_at: '2026-11-11T10:00:00Z',
+    updated_at: '2026-11-11T10:00:00Z',
+    last_activity: null,
+    example: 'unchanged',
+  };
+
+  function loaded() {
+    const { editor, rules } = initialStatesFromDraft(EXAMPLE);
+    return { editor, rules, content: localContentOf(editor, rules) };
+  }
+
+  describe('rulesExampleBannerOf', () => {
+    const { rules } = loaded();
+    const [standard, ambulance] = rules.branches;
+
+    it("words Standard's banner for the main branch, whatever its name", () => {
+      const standardText =
+        'Try changing the age to 18 or adding a rule. Then use Test rules to check the result.';
+      expect(rulesExampleBannerOf(standard, 'en')).toBe(standardText);
+      expect(rulesExampleBannerOf({ ...standard, name: 'Taxi' }, 'en')).toBe(standardText);
+      expect(rulesExampleBannerOf(standard, 'de')).toBe(
+        'Versuchen Sie, das Alter auf 18 zu ändern oder eine Regel hinzuzufügen. Prüfen Sie das Ergebnis dann mit „Regeln testen“.'
+      );
+    });
+
+    it("words the variant's banner by its stored name, in either language (§4.1 call 6)", () => {
+      expect(rulesExampleBannerOf(ambulance, 'en')).toBe(
+        'Ambulance is more lenient than Standard. Rules 01 and 02 are changed here.'
+      );
+      const german = { ...ambulance, name: 'Krankentransport' };
+      expect(rulesExampleBannerOf(german, 'de')).toBe(
+        'Krankentransport ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert.'
+      );
+      expect(rulesExampleBannerOf(german, 'en')).toBe(
+        'Krankentransport is more lenient than Standard. Rules 01 and 02 are changed here.'
+      );
+      expect(rulesExampleBannerOf(ambulance, 'de')).toBe(
+        'Ambulance ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert.'
+      );
+    });
+
+    it('shows none on a renamed or another variant', () => {
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'Ambulance service' }, 'en')).toBeNull();
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'ambulance' }, 'en')).toBeNull();
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'School transport' }, 'de')).toBeNull();
+    });
+  });
+
+  describe('showsExampleLine', () => {
+    it('shows while the unchanged example holds no change against what the page loaded', () => {
+      const { content } = loaded();
+      expect(showsExampleLine('unchanged', content, content)).toBe(true);
+    });
+
+    it('shows after moving between steps, which changes no content', () => {
+      const { editor, rules, content } = loaded();
+      const moved = editorReducer(editor, { type: 'goToStep', step: 'test' });
+      expect(showsExampleLine('unchanged', localContentOf(moved, rules), content)).toBe(true);
+    });
+
+    it('hides once the page holds a change, also one not saved yet, and after undoing it shows', () => {
+      const { editor, rules, content } = loaded();
+      const renamed = editorReducer(editor, { type: 'changeName', value: 'Taxi licence' });
+      expect(showsExampleLine('unchanged', localContentOf(renamed, rules), content)).toBe(false);
+      const [standard, ambulance] = rules.branches;
+      const described = {
+        ...rules,
+        branches: [standard, { ...ambulance, description: 'For patient transport.' }],
+      };
+      expect(showsExampleLine('unchanged', localContentOf(editor, described), content)).toBe(false);
+      const back = editorReducer(renamed, {
+        type: 'changeName',
+        value: 'Passenger transport licence (example)',
+      });
+      expect(showsExampleLine('unchanged', localContentOf(back, rules), content)).toBe(true);
+    });
+
+    it('hides for a changed example, any other draft, and without the loaded content', () => {
+      const { content } = loaded();
+      expect(showsExampleLine('changed', content, content)).toBe(false);
+      expect(showsExampleLine(null, content, content)).toBe(false);
+      expect(showsExampleLine(undefined, content, content)).toBe(false);
+      expect(showsExampleLine('unchanged', content, null)).toBe(false);
+    });
+  });
+
+  it('lists both branches in the publish summary: "Standard · 2 rules", "Ambulance · 2 rules"', () => {
+    const { rules } = loaded();
+    expect(ruleLines(rules, false, 'en')).toEqual(['Standard · 2 rules', 'Ambulance · 2 rules']);
+  });
+
+  it('words the line as U73 7137:50210 draws it, and in German', () => {
+    expect(PUBLISH_DIALOG_COPY.en.exampleLine).toBe(
+      'This is still the example. Check that the name, documents and rules fit your service.'
+    );
+    expect(PUBLISH_DIALOG_COPY.de.exampleLine).toBe(
+      'Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen.'
+    );
   });
 });

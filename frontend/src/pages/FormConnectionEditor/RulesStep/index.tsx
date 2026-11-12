@@ -9,10 +9,13 @@ import { flushSync } from 'react-dom';
 
 import type { BranchFindings } from '../../../components/BranchName/types';
 import Connector from '../../../components/Connector';
+import ExampleBanner from '../../../components/ExampleBanner';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import type { ShownFinding } from '../../../components/FindingNote/types';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
+import type { ExampleStepProps } from '../types';
+import { rulesExampleBannerOf } from '../utils';
 import AddRuleButton from './AddRuleButton';
 import BranchTabs from './BranchTabs';
 import {
@@ -148,7 +151,10 @@ function tabProblemsOf(
  * connection's ⋯ menus offer "Copy link" (spec 007, S4; FR-028), and a link to what no longer
  * exists shows its notice at the top of the step until it is dismissed (S5; FR-031). "Test
  * rules" is the footer's (EditorFooter), unusable while a rule is open or rules are grouped
- * (F65, W21, FR-034).
+ * (F65, W21, FR-034). While the loaded draft is the example, `ExampleBanner` stands above the tabs,
+ * 16px from them (spec 010, S9/S11; FR-058; U18 1i 7344:96387, 1i-c 7344:96442): Standard's
+ * sentence on the main branch, the variant's on the example's variant, none on another variant
+ * (`rulesExampleBannerOf()`); it scrolls away under the pinned tabs, as the link notice does.
  */
 export default function RulesStep({
   status,
@@ -166,7 +172,8 @@ export default function RulesStep({
   onAddData,
   onSaveRule,
   onCancelEditor,
-}: RulesStepProps) {
+  isExample = false,
+}: RulesStepProps & ExampleStepProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -223,6 +230,7 @@ export default function RulesStep({
   const shown = shownItems(branch.items, based);
   const unrequested = unrequestedOf(state.branches, catalog, language);
   const tabProblems = tabProblemsOf(unrequested);
+  const exampleBanner = isExample ? rulesExampleBannerOf(branch, language) : null;
   const editor = state.editing?.branchKey === branch.key ? state.editing : null;
   const { items } = branch;
   const addingAtTop = editor !== null && editor.original === null && editor.parentId === null;
@@ -374,6 +382,7 @@ export default function RulesStep({
   return (
     <div ref={rootRef} className={`flex flex-col gap-16 ${PINNED_TOP_CLASSES.root}`}>
       {linkNotice && <LinkNotice kind={linkNotice} onDismiss={dismissLinkNotice} />}
+      {exampleBanner !== null && <ExampleBanner text={exampleBanner} />}
       {/* Pinned with the step header while the page scrolls (U01 #18) */}
       <div ref={tabsRef} className={PINNED_TABS_CLASSES}>
         <BranchTabs

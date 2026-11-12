@@ -1,0 +1,1764 @@
+{
+  "generator": "backend/scripts/export_check_fixtures.py: run `uv run python -m scripts.export_check_fixtures` from backend/. Never edit this file by hand.",
+  "about": "The example connection of app/example.py (spec 010, research R7) in English and German, as the editor loads it: draft is the stored draft's content (documents with labels, branches with fixed ids, the counters, the step and the mark); document_types and option_sets are the catalog's entries and value sets it needs, in that language.",
+  "en": {
+    "draft": {
+      "name": "Passenger transport licence (example)",
+      "description": "Licence to drive taxis, rental cars and ambulances. Checks age and driving experience.",
+      "documents": [
+        {
+          "document_type": "pid",
+          "label": "Personal ID",
+          "fields": [
+            {
+              "key": "family_name",
+              "label": "Family name",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "given_name",
+              "label": "Given name",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "birthdate",
+              "label": "Date of birth",
+              "kind": "date",
+              "option_set": null,
+              "date_of_birth": true,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_street_address",
+              "label": "Street (may include the house number)",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_house_number",
+              "label": "House number",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_postal_code",
+              "label": "Postal code",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_locality",
+              "label": "City or town",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "label": "Driving licence",
+          "fields": [
+            {
+              "key": "expiry_date",
+              "label": "Expiry date",
+              "kind": "date",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "driving_privileges",
+              "label": "Licence classes",
+              "kind": "parts",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": [
+                {
+                  "key": "classes",
+                  "label": "Licence classes",
+                  "kind": "enum",
+                  "option_set": "licence_classes",
+                  "per_licence_class": false,
+                  "multiple_values": true
+                },
+                {
+                  "key": "issue_date",
+                  "label": "Issue date",
+                  "kind": "date",
+                  "option_set": null,
+                  "per_licence_class": true,
+                  "multiple_values": false
+                },
+                {
+                  "key": "expiry_date",
+                  "label": "Expiry date",
+                  "kind": "date",
+                  "option_set": null,
+                  "per_licence_class": true,
+                  "multiple_values": false
+                }
+              ],
+              "multiple_values": false
+            }
+          ]
+        }
+      ],
+      "branches": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Standard",
+          "description": null,
+          "origin": "main",
+          "operator": "and",
+          "operator_mark": null,
+          "items": [
+            {
+              "type": "rule",
+              "id": "rule-1",
+              "name": "Rule 01",
+              "mark": null,
+              "target": {
+                "document_type": "pid",
+                "field": "birthdate",
+                "part": null,
+                "licence_class": null
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 21
+              },
+              "message": "You need to be at least 21 years old."
+            },
+            {
+              "type": "rule",
+              "id": "rule-2",
+              "name": "Rule 02",
+              "mark": null,
+              "target": {
+                "document_type": "mdl",
+                "field": "driving_privileges",
+                "part": "issue_date",
+                "licence_class": "B"
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 2
+              },
+              "message": "You need to have held a class B driving licence for at least 2 years."
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Ambulance",
+          "description": "For ambulance services. Some rules differ from Standard.",
+          "origin": "based",
+          "operator": "and",
+          "operator_mark": null,
+          "items": [
+            {
+              "type": "rule",
+              "id": "rule-1",
+              "name": "Rule 01",
+              "mark": "changed",
+              "target": {
+                "document_type": "pid",
+                "field": "birthdate",
+                "part": null,
+                "licence_class": null
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 19
+              },
+              "message": "You need to be at least 19 years old."
+            },
+            {
+              "type": "rule",
+              "id": "rule-2",
+              "name": "Rule 02",
+              "mark": "changed",
+              "target": {
+                "document_type": "mdl",
+                "field": "driving_privileges",
+                "part": "issue_date",
+                "licence_class": "B"
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 1
+              },
+              "message": "You need to have held a class B driving licence for at least 1 year."
+            }
+          ]
+        }
+      ],
+      "next_rule_number": 3,
+      "next_group_number": 1,
+      "step": "connection",
+      "example": "unchanged"
+    },
+    "document_types": [
+      {
+        "key": "pid",
+        "label": "Personal ID",
+        "fields": [
+          {
+            "key": "family_name",
+            "label": "Family name",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name",
+            "label": "Given name",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birthdate",
+            "label": "Date of birth",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": true,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "place_of_birth",
+            "label": "Place of birth",
+            "kind": "parts",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": [
+              {
+                "key": "country",
+                "label": "Country",
+                "kind": "enum",
+                "option_set": "countries",
+                "per_licence_class": false,
+                "multiple_values": false
+              },
+              {
+                "key": "region",
+                "label": "Region",
+                "kind": "text",
+                "option_set": null,
+                "per_licence_class": false,
+                "multiple_values": false
+              },
+              {
+                "key": "locality",
+                "label": "City or town",
+                "kind": "text",
+                "option_set": null,
+                "per_licence_class": false,
+                "multiple_values": false
+              }
+            ],
+            "multiple_values": false
+          },
+          {
+            "key": "nationalities",
+            "label": "Nationality",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": true
+          },
+          {
+            "key": "address_formatted",
+            "label": "Address (full)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_street_address",
+            "label": "Street (may include the house number)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_house_number",
+            "label": "House number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_postal_code",
+            "label": "Postal code",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_locality",
+            "label": "City or town",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_region",
+            "label": "State or region",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_country",
+            "label": "Country of residence",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "personal_administrative_number",
+            "label": "Personal administrative number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "picture",
+            "label": "Photo",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_family_name",
+            "label": "Family name at birth",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_given_name",
+            "label": "Given name at birth",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "sex",
+            "label": "Sex",
+            "kind": "enum",
+            "option_set": "sex",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "email",
+            "label": "Email address",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "phone_number",
+            "label": "Mobile phone number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "document_number",
+            "label": "Document number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "date_of_issuance",
+            "label": "Issue date",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "date_of_expiry",
+            "label": "Expiry date",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_authority",
+            "label": "Issuing authority",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_country",
+            "label": "Issuing country",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_jurisdiction",
+            "label": "Issuing jurisdiction",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          }
+        ]
+      },
+      {
+        "key": "mdl",
+        "label": "Driving licence",
+        "fields": [
+          {
+            "key": "family_name",
+            "label": "Family name",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name",
+            "label": "Given name",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_date",
+            "label": "Date of birth",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": true,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issue_date",
+            "label": "Issue date",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "expiry_date",
+            "label": "Expiry date",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_country",
+            "label": "Issuing country",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_authority",
+            "label": "Issuing authority",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "document_number",
+            "label": "Licence number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "portrait",
+            "label": "Portrait",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "driving_privileges",
+            "label": "Licence classes",
+            "kind": "parts",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": [
+              {
+                "key": "classes",
+                "label": "Licence classes",
+                "kind": "enum",
+                "option_set": "licence_classes",
+                "per_licence_class": false,
+                "multiple_values": true
+              },
+              {
+                "key": "issue_date",
+                "label": "Issue date",
+                "kind": "date",
+                "option_set": null,
+                "per_licence_class": true,
+                "multiple_values": false
+              },
+              {
+                "key": "expiry_date",
+                "label": "Expiry date",
+                "kind": "date",
+                "option_set": null,
+                "per_licence_class": true,
+                "multiple_values": false
+              }
+            ],
+            "multiple_values": false
+          },
+          {
+            "key": "un_distinguishing_sign",
+            "label": "UN distinguishing sign",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "administrative_number",
+            "label": "Administrative number",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "sex",
+            "label": "Sex",
+            "kind": "enum",
+            "option_set": "sex",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "height",
+            "label": "Height (cm)",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "weight",
+            "label": "Weight (kg)",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "eye_colour",
+            "label": "Eye colour",
+            "kind": "enum",
+            "option_set": "eye_colours",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "hair_colour",
+            "label": "Hair colour",
+            "kind": "enum",
+            "option_set": "hair_colours",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_place",
+            "label": "Place of birth",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_address",
+            "label": "Resident address",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "portrait_capture_date",
+            "label": "Portrait capture date",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "age_in_years",
+            "label": "Age in years",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "age_birth_year",
+            "label": "Year of birth",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_jurisdiction",
+            "label": "Issuing jurisdiction",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "nationality",
+            "label": "Nationality",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_city",
+            "label": "Resident city",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_state",
+            "label": "Resident state",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_postal_code",
+            "label": "Resident postal code",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_country",
+            "label": "Resident country",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "family_name_national_character",
+            "label": "Family name (national characters)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name_national_character",
+            "label": "Given name (national characters)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "signature_usual_mark",
+            "label": "Signature or usual mark",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          }
+        ]
+      }
+    ],
+    "option_sets": [
+      {
+        "key": "licence_classes",
+        "options": [
+          {
+            "value": "AM",
+            "label": "AM",
+            "description": "Mopeds up to 45 km/h"
+          },
+          {
+            "value": "A1",
+            "label": "A1",
+            "description": "Light motorcycles up to 125 cm³"
+          },
+          {
+            "value": "A2",
+            "label": "A2",
+            "description": "Motorcycles up to 35 kW"
+          },
+          {
+            "value": "A",
+            "label": "A",
+            "description": "All motorcycles"
+          },
+          {
+            "value": "B1",
+            "label": "B1",
+            "description": "Quadricycles up to 15 kW"
+          },
+          {
+            "value": "B",
+            "label": "B",
+            "description": "Cars up to 3.5 t"
+          },
+          {
+            "value": "BE",
+            "label": "BE",
+            "description": "Car with a heavy trailer"
+          },
+          {
+            "value": "C1",
+            "label": "C1",
+            "description": "Trucks 3.5–7.5 t"
+          },
+          {
+            "value": "C1E",
+            "label": "C1E",
+            "description": "C1 with a heavy trailer"
+          },
+          {
+            "value": "C",
+            "label": "C",
+            "description": "Trucks over 3.5 t"
+          },
+          {
+            "value": "CE",
+            "label": "CE",
+            "description": "C with a heavy trailer"
+          },
+          {
+            "value": "D1",
+            "label": "D1",
+            "description": "Minibuses up to 16 passengers"
+          },
+          {
+            "value": "D1E",
+            "label": "D1E",
+            "description": "D1 with a heavy trailer"
+          },
+          {
+            "value": "D",
+            "label": "D",
+            "description": "Buses"
+          },
+          {
+            "value": "DE",
+            "label": "DE",
+            "description": "D with a heavy trailer"
+          },
+          {
+            "value": "L",
+            "label": "L",
+            "description": "Tractors up to 40 km/h"
+          },
+          {
+            "value": "T",
+            "label": "T",
+            "description": "Tractors up to 60 km/h"
+          }
+        ]
+      }
+    ]
+  },
+  "de": {
+    "draft": {
+      "name": "Personenbeförderungsschein (Beispiel)",
+      "description": "Erlaubnis zum Fahren von Taxis, Mietwagen und Krankenwagen. Prüft Alter und Fahrpraxis.",
+      "documents": [
+        {
+          "document_type": "pid",
+          "label": "Personalausweis",
+          "fields": [
+            {
+              "key": "family_name",
+              "label": "Familienname",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "given_name",
+              "label": "Vorname",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "birthdate",
+              "label": "Geburtsdatum",
+              "kind": "date",
+              "option_set": null,
+              "date_of_birth": true,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_street_address",
+              "label": "Straße (kann die Hausnummer enthalten)",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_house_number",
+              "label": "Hausnummer",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_postal_code",
+              "label": "Postleitzahl",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "address_locality",
+              "label": "Ort",
+              "kind": "text",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            }
+          ]
+        },
+        {
+          "document_type": "mdl",
+          "label": "Führerschein",
+          "fields": [
+            {
+              "key": "expiry_date",
+              "label": "Ablaufdatum",
+              "kind": "date",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": null,
+              "multiple_values": false
+            },
+            {
+              "key": "driving_privileges",
+              "label": "Führerscheinklassen",
+              "kind": "parts",
+              "option_set": null,
+              "date_of_birth": false,
+              "parts": [
+                {
+                  "key": "classes",
+                  "label": "Führerscheinklassen",
+                  "kind": "enum",
+                  "option_set": "licence_classes",
+                  "per_licence_class": false,
+                  "multiple_values": true
+                },
+                {
+                  "key": "issue_date",
+                  "label": "Ausstellungsdatum",
+                  "kind": "date",
+                  "option_set": null,
+                  "per_licence_class": true,
+                  "multiple_values": false
+                },
+                {
+                  "key": "expiry_date",
+                  "label": "Ablaufdatum",
+                  "kind": "date",
+                  "option_set": null,
+                  "per_licence_class": true,
+                  "multiple_values": false
+                }
+              ],
+              "multiple_values": false
+            }
+          ]
+        }
+      ],
+      "branches": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Standard",
+          "description": null,
+          "origin": "main",
+          "operator": "and",
+          "operator_mark": null,
+          "items": [
+            {
+              "type": "rule",
+              "id": "rule-1",
+              "name": "Rule 01",
+              "mark": null,
+              "target": {
+                "document_type": "pid",
+                "field": "birthdate",
+                "part": null,
+                "licence_class": null
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 21
+              },
+              "message": "Sie müssen mindestens 21 Jahre alt sein."
+            },
+            {
+              "type": "rule",
+              "id": "rule-2",
+              "name": "Rule 02",
+              "mark": null,
+              "target": {
+                "document_type": "mdl",
+                "field": "driving_privileges",
+                "part": "issue_date",
+                "licence_class": "B"
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 2
+              },
+              "message": "Sie müssen seit mindestens 2 Jahren einen Führerschein der Klasse B besitzen."
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Krankentransport",
+          "description": "Für Krankentransporte. Einige Regeln weichen von Standard ab.",
+          "origin": "based",
+          "operator": "and",
+          "operator_mark": null,
+          "items": [
+            {
+              "type": "rule",
+              "id": "rule-1",
+              "name": "Rule 01",
+              "mark": "changed",
+              "target": {
+                "document_type": "pid",
+                "field": "birthdate",
+                "part": null,
+                "licence_class": null
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 19
+              },
+              "message": "Sie müssen mindestens 19 Jahre alt sein."
+            },
+            {
+              "type": "rule",
+              "id": "rule-2",
+              "name": "Rule 02",
+              "mark": "changed",
+              "target": {
+                "document_type": "mdl",
+                "field": "driving_privileges",
+                "part": "issue_date",
+                "licence_class": "B"
+              },
+              "condition": {
+                "operator": "at_least_years_ago",
+                "years": 1
+              },
+              "message": "Sie müssen seit mindestens 1 Jahr einen Führerschein der Klasse B besitzen."
+            }
+          ]
+        }
+      ],
+      "next_rule_number": 3,
+      "next_group_number": 1,
+      "step": "connection",
+      "example": "unchanged"
+    },
+    "document_types": [
+      {
+        "key": "pid",
+        "label": "Personalausweis",
+        "fields": [
+          {
+            "key": "family_name",
+            "label": "Familienname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name",
+            "label": "Vorname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birthdate",
+            "label": "Geburtsdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": true,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "place_of_birth",
+            "label": "Geburtsort",
+            "kind": "parts",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": [
+              {
+                "key": "country",
+                "label": "Land",
+                "kind": "enum",
+                "option_set": "countries",
+                "per_licence_class": false,
+                "multiple_values": false
+              },
+              {
+                "key": "region",
+                "label": "Region",
+                "kind": "text",
+                "option_set": null,
+                "per_licence_class": false,
+                "multiple_values": false
+              },
+              {
+                "key": "locality",
+                "label": "Ort",
+                "kind": "text",
+                "option_set": null,
+                "per_licence_class": false,
+                "multiple_values": false
+              }
+            ],
+            "multiple_values": false
+          },
+          {
+            "key": "nationalities",
+            "label": "Staatsangehörigkeit",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": true
+          },
+          {
+            "key": "address_formatted",
+            "label": "Adresse (vollständig)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_street_address",
+            "label": "Straße (kann die Hausnummer enthalten)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_house_number",
+            "label": "Hausnummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_postal_code",
+            "label": "Postleitzahl",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_locality",
+            "label": "Ort",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_region",
+            "label": "Bundesland oder Region",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "address_country",
+            "label": "Wohnsitzland",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "personal_administrative_number",
+            "label": "Persönliche Verwaltungsnummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "picture",
+            "label": "Foto",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_family_name",
+            "label": "Geburtsname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_given_name",
+            "label": "Geburtsvorname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "sex",
+            "label": "Geschlecht",
+            "kind": "enum",
+            "option_set": "sex",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "email",
+            "label": "E-Mail-Adresse",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "phone_number",
+            "label": "Mobilnummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "document_number",
+            "label": "Dokumentennummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "date_of_issuance",
+            "label": "Ausstellungsdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "date_of_expiry",
+            "label": "Ablaufdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_authority",
+            "label": "Ausstellende Behörde",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_country",
+            "label": "Ausstellungsland",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_jurisdiction",
+            "label": "Ausstellende Gebietskörperschaft",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          }
+        ]
+      },
+      {
+        "key": "mdl",
+        "label": "Führerschein",
+        "fields": [
+          {
+            "key": "family_name",
+            "label": "Familienname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name",
+            "label": "Vorname",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_date",
+            "label": "Geburtsdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": true,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issue_date",
+            "label": "Ausstellungsdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "expiry_date",
+            "label": "Ablaufdatum",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_country",
+            "label": "Ausstellungsland",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_authority",
+            "label": "Ausstellende Behörde",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "document_number",
+            "label": "Führerscheinnummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "portrait",
+            "label": "Lichtbild",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "driving_privileges",
+            "label": "Führerscheinklassen",
+            "kind": "parts",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": [
+              {
+                "key": "classes",
+                "label": "Führerscheinklassen",
+                "kind": "enum",
+                "option_set": "licence_classes",
+                "per_licence_class": false,
+                "multiple_values": true
+              },
+              {
+                "key": "issue_date",
+                "label": "Ausstellungsdatum",
+                "kind": "date",
+                "option_set": null,
+                "per_licence_class": true,
+                "multiple_values": false
+              },
+              {
+                "key": "expiry_date",
+                "label": "Ablaufdatum",
+                "kind": "date",
+                "option_set": null,
+                "per_licence_class": true,
+                "multiple_values": false
+              }
+            ],
+            "multiple_values": false
+          },
+          {
+            "key": "un_distinguishing_sign",
+            "label": "Unterscheidungszeichen (UN)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "administrative_number",
+            "label": "Verwaltungsnummer",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "sex",
+            "label": "Geschlecht",
+            "kind": "enum",
+            "option_set": "sex",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "height",
+            "label": "Körpergröße (cm)",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "weight",
+            "label": "Gewicht (kg)",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "eye_colour",
+            "label": "Augenfarbe",
+            "kind": "enum",
+            "option_set": "eye_colours",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "hair_colour",
+            "label": "Haarfarbe",
+            "kind": "enum",
+            "option_set": "hair_colours",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "birth_place",
+            "label": "Geburtsort",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_address",
+            "label": "Wohnanschrift",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "portrait_capture_date",
+            "label": "Aufnahmedatum des Lichtbilds",
+            "kind": "date",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "age_in_years",
+            "label": "Alter in Jahren",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "age_birth_year",
+            "label": "Geburtsjahr",
+            "kind": "number",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "issuing_jurisdiction",
+            "label": "Ausstellende Gebietskörperschaft",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "nationality",
+            "label": "Staatsangehörigkeit",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_city",
+            "label": "Wohnort",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_state",
+            "label": "Bundesland des Wohnorts",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_postal_code",
+            "label": "Postleitzahl des Wohnorts",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "resident_country",
+            "label": "Land des Wohnorts",
+            "kind": "enum",
+            "option_set": "countries",
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "family_name_national_character",
+            "label": "Familienname (nationale Schriftzeichen)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "given_name_national_character",
+            "label": "Vorname (nationale Schriftzeichen)",
+            "kind": "text",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          },
+          {
+            "key": "signature_usual_mark",
+            "label": "Unterschrift oder übliches Zeichen",
+            "kind": "image",
+            "option_set": null,
+            "date_of_birth": false,
+            "parts": null,
+            "multiple_values": false
+          }
+        ]
+      }
+    ],
+    "option_sets": [
+      {
+        "key": "licence_classes",
+        "options": [
+          {
+            "value": "AM",
+            "label": "AM",
+            "description": "Kleinkrafträder bis 45 km/h"
+          },
+          {
+            "value": "A1",
+            "label": "A1",
+            "description": "Leichtkrafträder bis 125 cm³"
+          },
+          {
+            "value": "A2",
+            "label": "A2",
+            "description": "Krafträder bis 35 kW"
+          },
+          {
+            "value": "A",
+            "label": "A",
+            "description": "Krafträder"
+          },
+          {
+            "value": "B1",
+            "label": "B1",
+            "description": "Vierrädrige Kraftfahrzeuge bis 15 kW"
+          },
+          {
+            "value": "B",
+            "label": "B",
+            "description": "Pkw bis 3,5 t"
+          },
+          {
+            "value": "BE",
+            "label": "BE",
+            "description": "Pkw mit schwerem Anhänger"
+          },
+          {
+            "value": "C1",
+            "label": "C1",
+            "description": "Lkw 3,5–7,5 t"
+          },
+          {
+            "value": "C1E",
+            "label": "C1E",
+            "description": "C1 mit schwerem Anhänger"
+          },
+          {
+            "value": "C",
+            "label": "C",
+            "description": "Lkw über 3,5 t"
+          },
+          {
+            "value": "CE",
+            "label": "CE",
+            "description": "C mit schwerem Anhänger"
+          },
+          {
+            "value": "D1",
+            "label": "D1",
+            "description": "Kleinbusse bis 16 Fahrgäste"
+          },
+          {
+            "value": "D1E",
+            "label": "D1E",
+            "description": "D1 mit schwerem Anhänger"
+          },
+          {
+            "value": "D",
+            "label": "D",
+            "description": "Busse"
+          },
+          {
+            "value": "DE",
+            "label": "DE",
+            "description": "D mit schwerem Anhänger"
+          },
+          {
+            "value": "L",
+            "label": "L",
+            "description": "Zugmaschinen bis 40 km/h"
+          },
+          {
+            "value": "T",
+            "label": "T",
+            "description": "Zugmaschinen bis 60 km/h"
+          }
+        ]
+      }
+    ]
+  }
+}

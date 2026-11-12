@@ -1,4 +1,4 @@
-"""Write the rule checks' generated files and the server's messages (specs 003, 009).
+"""Write the rule checks' generated files, the server's messages and the example.
 
 Run from backend/: `uv run python -m scripts.export_check_fixtures`. The rule checks
 in the browser (rules/src/checks/) compare texts and count days as
@@ -20,15 +20,21 @@ themselves (research R7, R13) and writes
   `params_de`, where a case has it, replaces them for German (a catalog label in
   German). A condition problem's case is the part after `condition_problem_prefix`,
   as the TS table holds it. The keys the server has no message for are listed under
-  `client_only`, each with its reason.
+  `client_only`, each with its reason;
+- `rules/src/fixtures/example-connection.json` (spec 010, research R7, FR-056): the
+  example connection of app/example.py in English and German, as the editor loads it
+  (the stored draft's documents, branches with fixed ids and counters, and the
+  catalog's document types and value sets it needs), on which `rules/src/
+  example.test.ts` runs the rules package's validation and the rule checks.
 
-All three are generated, never edited by hand. Run the script again after a Python
+All four are generated, never edited by hand. Run the script again after a Python
 upgrade, a change to the evaluator's comparisons or a change to a mirrored message.
 With --check it writes nothing: it names each committed file that differs from what
 it would write and exits with 1.
 
 The script never imports app.config (ARCHITECTURE, "Developer scripts"), so it takes
-the messages from the leaf module rules_texts.py, not from app/services/rules.py.
+the messages from the leaf module rules_texts.py, not from app/services/rules.py,
+and the example from the leaf module app/example.py.
 """
 
 import argparse
@@ -37,19 +43,32 @@ import re
 import sys
 import unicodedata
 from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
-from app.language import Text
+from app.catalog import DOCUMENT_TYPES, CatalogField
+from app.catalog import label_of as catalog_label_of
+from app.example import NEXT_GROUP_NUMBER, NEXT_RULE_NUMBER, example_content
+from app.language import Language, Text, request_language
+from app.option_sets import OPTION_SETS
+from app.option_sets import description_of as option_description_of
+from app.option_sets import label_of as option_label_of
 from app.schemas import (
     Combinator,
     Condition,
     DeliveredDocument,
     DeliveredField,
+    DocumentField,
+    DocumentType,
+    FieldPart,
     GroupItem,
     Mark,
+    Option,
+    OptionSet,
+    RequestedDocumentView,
     RuleItem,
     RuleTarget,
     SnapshotBranch,
@@ -69,6 +88,7 @@ CHECKS_DIR = Path('rules/src/checks')
 CASE_FOLDING_FILE = CHECKS_DIR / 'caseFolding.ts'
 VECTORS_FILE = CHECKS_DIR / 'fixtures' / 'evaluator-vectors.json'
 SERVER_MESSAGES_FILE = Path('rules/src/fixtures/server-messages.json')
+EXAMPLE_FILE = Path('rules/src/fixtures/example-connection.json')
 COMMAND = 'uv run python -m scripts.export_check_fixtures'
 GENERATOR = 'backend/scripts/export_check_fixtures.py'
 
@@ -1795,6 +1815,162 @@ def server_messages_json() -> str:
     return json.dumps(messages, indent=2, ensure_ascii=False) + '\n'
 
 
+# The example connection (spec 010, research R7, FR-056)
+
+# The stored example's branch ids: the server assigns UUIDs; the fixture fixes them
+EXAMPLE_BRANCH_IDS = (
+    '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000002',
+)
+EXAMPLE_LANGUAGES: tuple[Language, ...] = ('en', 'de')
+
+
+@contextmanager
+def _in_language(language: Language) -> Iterator[None]:
+    """Resolve the catalog's and the value sets' labels in `language`, as a request."""
+    token = request_language.set(language)
+    try:
+        yield
+    finally:
+        request_language.reset(token)
+
+
+def _field_view(field: CatalogField) -> DocumentField:
+    """A catalog field as GET /api/document-types answers it, in its language."""
+    return DocumentField(
+        key=field.key,
+        label=catalog_label_of(field),
+        kind=field.kind,
+        option_set=field.option_set,
+        date_of_birth=field.date_of_birth,
+        parts=(
+            None
+            if field.parts is None
+            else [
+                FieldPart(
+                    key=part.key,
+                    label=catalog_label_of(part),
+                    kind=part.kind,
+                    option_set=part.option_set,
+                    per_licence_class=part.per_licence_class,
+                    multiple_values=part.multiple_values,
+                )
+                for part in field.parts
+            ]
+        ),
+        multiple_values=field.multiple_values,
+    )
+
+
+def _example_language_json(language: Language) -> dict[str, object]:
+    """The example in one language: the draft as the editor loads it, and its catalog.
+
+    `draft` holds the stored draft's content as GET /api/form-connections/{id}
+    answers it (the documents with their labels, the branches with ids, the
+    counters, the step and the mark); `document_types` the catalog's entries of
+    its documents and `option_sets` the value sets their requested data names, as
+    GET /api/document-types and GET /api/option-sets answer them.
+    """
+    content = example_content(language)
+    assert content.rules is not None
+    assert len(content.rules.branches) == len(EXAMPLE_BRANCH_IDS)
+    with _in_language(language):
+        document_types = [
+            DocumentType(
+                key=document_type.key,
+                label=catalog_label_of(document_type),
+                fields=[_field_view(field) for field in document_type.fields],
+            )
+            for document_type in DOCUMENT_TYPES
+            if any(
+                document.document_type == document_type.key
+                for document in content.documents
+            )
+        ]
+        views = {document_type.key: document_type for document_type in document_types}
+        documents = [
+            RequestedDocumentView(
+                document_type=document.document_type,
+                label=views[document.document_type].label,
+                fields=[
+                    field
+                    for key in document.fields
+                    for field in views[document.document_type].fields
+                    if field.key == key
+                ],
+            )
+            for document in content.documents
+        ]
+        named = {
+            name
+            for document in documents
+            for field in document.fields
+            for name in (
+                field.option_set,
+                *(part.option_set for part in field.parts or []),
+            )
+            if name is not None
+        }
+        option_sets = [
+            OptionSet(
+                key=key,
+                options=[
+                    Option(
+                        value=option.value,
+                        label=option_label_of(option),
+                        description=option_description_of(option),
+                    )
+                    for option in options
+                ],
+            )
+            for key, options in OPTION_SETS.items()
+            if key in named
+        ]
+    branches = [
+        branch.model_copy(update={'id': branch_id})
+        for branch, branch_id in zip(
+            content.rules.branches, EXAMPLE_BRANCH_IDS, strict=True
+        )
+    ]
+    draft: dict[str, object] = {
+        'name': content.name,
+        'description': content.description,
+        'documents': [document.model_dump(mode='json') for document in documents],
+        'branches': [branch.model_dump(mode='json') for branch in branches],
+        'next_rule_number': NEXT_RULE_NUMBER,
+        'next_group_number': NEXT_GROUP_NUMBER,
+        'step': content.step,
+        'example': 'unchanged',
+    }
+    return {
+        'draft': draft,
+        'document_types': [entry.model_dump(mode='json') for entry in document_types],
+        'option_sets': [entry.model_dump(mode='json') for entry in option_sets],
+    }
+
+
+def example_connection_json() -> str:
+    """The text of `rules/src/fixtures/example-connection.json`."""
+    example: dict[str, object] = {
+        'generator': (
+            f'{GENERATOR}: run `{COMMAND}` from backend/. Never edit this file by hand.'
+        ),
+        'about': (
+            'The example connection of app/example.py (spec 010, research R7) in '
+            'English and German, as the editor loads it: draft is the stored '
+            "draft's content (documents with labels, branches with fixed ids, the "
+            'counters, the step and the mark); document_types and option_sets are '
+            "the catalog's entries and value sets it needs, in that language."
+        ),
+        **{
+            language: _example_language_json(language) for language in EXAMPLE_LANGUAGES
+        },
+    }
+    # Not sorted (the documents', branches' and fields' order counts); German as it
+    # reads
+    return json.dumps(example, indent=2, ensure_ascii=False) + '\n'
+
+
 # Writing and checking
 
 
@@ -1804,6 +1980,7 @@ def generated_files() -> dict[Path, str]:
         CASE_FOLDING_FILE: case_folding_source(),
         VECTORS_FILE: vectors_json(),
         SERVER_MESSAGES_FILE: server_messages_json(),
+        EXAMPLE_FILE: example_connection_json(),
     }
 
 
@@ -1850,8 +2027,9 @@ def _parse_arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         prog='python -m scripts.export_check_fixtures',
         description=(
             "Write the rule checks' case-folding table and the evaluator's vectors "
-            'from this interpreter and app/services/evaluation.py, and the mirrored '
-            'validation messages from app/services/rules_texts.py.'
+            'from this interpreter and app/services/evaluation.py, the mirrored '
+            'validation messages from app/services/rules_texts.py, and the example '
+            'connection from app/example.py.'
         ),
     )
     parser.add_argument(

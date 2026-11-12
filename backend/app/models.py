@@ -111,6 +111,12 @@ class FormConnection(Base):
             'start_date IS NULL OR (published_at IS NOT NULL AND NOT is_active)',
             name='ck_form_connections_start_date',
         ),
+        # Only a draft can be the example: publishing clears the mark (spec 010,
+        # data-model.md section 5, FR-059)
+        CheckConstraint(
+            'example IS NULL OR published_at IS NULL',
+            name='ck_form_connections_example',
+        ),
         # The worker's scan for the start dates that have come
         Index(
             'ix_form_connections_start_date',
@@ -182,6 +188,10 @@ class FormConnection(Base):
     document_order: Mapped[list[str]] = mapped_column(
         JSONB, default=list, server_default=text("'[]'::jsonb")
     )
+    # Spec 010, data-model.md section 5 (research R7). 'unchanged' while the draft
+    # is the example as created, 'changed' after a save that changed it (never
+    # back), null for every other row and once published
+    example: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]
 

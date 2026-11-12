@@ -1,11 +1,14 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import ExampleBanner from '../../../components/ExampleBanner';
+import { EXAMPLE_BANNER_COPY } from '../../../components/ExampleBanner/constants';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import { useLanguage } from '../../../hooks/useLanguage';
 import CatalogDroppedNote from '../CatalogDroppedNote';
 import { EDITOR_COPY } from '../constants';
+import type { ExampleStepProps } from '../types';
 import { offeredFieldsOf } from '../utils';
 import { DOCUMENTS_STEP_IDS } from './constants';
 import DocumentDetail from './DocumentDetail';
@@ -26,6 +29,18 @@ function focusMoveButton(documentType: string) {
     .getElementById(DOCUMENTS_STEP_IDS.listRow(documentType))
     ?.querySelector<HTMLElement>('[aria-haspopup="menu"]')
     ?.focus();
+}
+
+/** The example's banner, when there is one, 24px above the catalog's loader or its failure */
+function WithBanner({ banner, children }: { banner: ReactNode; children: ReactNode }) {
+  return banner ? (
+    <div className="flex flex-col gap-24">
+      {banner}
+      {children}
+    </div>
+  ) : (
+    children
+  );
 }
 
 /**
@@ -49,6 +64,10 @@ function focusMoveButton(documentType: string) {
  * neither shown nor counted. Ticking "All data items" keeps it, so that it goes only through the
  * note's "Remove it". The step is the box a search card spans where it fits on neither side of
  * its button (R10).
+ *
+ * While the loaded draft is the example, `ExampleBanner` says so at the top of the step, above the
+ * note and the list, 24px from each, as on step 1 (spec 010, S8; FR-058; W15: the step isn't
+ * drawn with it).
  */
 export default function DocumentsStep({
   catalogStatus,
@@ -65,27 +84,35 @@ export default function DocumentsStep({
   onMove,
   onSetField,
   onSetAllFields,
-}: DocumentsStepProps) {
+  isExample = false,
+}: DocumentsStepProps & ExampleStepProps) {
   const { language } = useLanguage();
   // The last move's announcement (FR-047); never stored, sent or logged
   const [moveStatus, setMoveStatus] = useState('');
+  const banner = isExample && <ExampleBanner text={EXAMPLE_BANNER_COPY[language].connection} />;
   if (catalogStatus === 'loading') {
-    return <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />;
+    return (
+      <WithBanner banner={banner}>
+        <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />
+      </WithBanner>
+    );
   }
   if (catalogStatus === 'failed') {
     return (
-      <div className="flex flex-col items-start gap-16">
-        <KernAlert
-          variant="danger"
-          title={EDITOR_COPY[language].catalogErrorTitle}
-          className="w-full"
-        >
-          {EDITOR_COPY[language].catalogErrorText}
-        </KernAlert>
-        <button type="button" onClick={onRetryCatalog} className="kern-btn kern-btn--secondary">
-          <span className="kern-label">{EDITOR_COPY[language].retry}</span>
-        </button>
-      </div>
+      <WithBanner banner={banner}>
+        <div className="flex flex-col items-start gap-16">
+          <KernAlert
+            variant="danger"
+            title={EDITOR_COPY[language].catalogErrorTitle}
+            className="w-full"
+          >
+            {EDITOR_COPY[language].catalogErrorText}
+          </KernAlert>
+          <button type="button" onClick={onRetryCatalog} className="kern-btn kern-btn--secondary">
+            <span className="kern-label">{EDITOR_COPY[language].retry}</span>
+          </button>
+        </div>
+      </WithBanner>
     );
   }
 
@@ -113,6 +140,7 @@ export default function DocumentsStep({
 
   return (
     <div className="relative flex flex-col gap-24">
+      {banner}
       {dropped.length > 0 && (
         <CatalogDroppedNote ref={droppedNoteRef} items={dropped} onRemove={onRemoveDropped} />
       )}

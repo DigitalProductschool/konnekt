@@ -1,10 +1,13 @@
 import type { PersonaSlot, ResultRow } from '@connection-portal/rules/personas/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import ExampleBanner from '../../../components/ExampleBanner';
+import { EXAMPLE_BANNER_COPY } from '../../../components/ExampleBanner/constants';
 import Toast from '../../../components/Toast';
 import { VISIBLE_HEIGHT_CLASSES } from '../../../components/WizardLayout/constants';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
+import type { ExampleStepProps } from '../types';
 import ApplicantsRow from './ApplicantsRow';
 import {
   LOADING_STATUS_ID,
@@ -65,6 +68,10 @@ import VariantTabs from './VariantTabs';
  * elsewhere (research R4). The variant tabs show the variant that no citizen can meet with a ⚠ and
  * its tooltip (F38, FR-041), and nothing repeats it above the result heading (CLAR #50). The step
  * lives only in the signed-in wizard, with no route of its own (W13).
+ *
+ * While the loaded draft is the example, `ExampleBanner` stands at the top of the step, above the
+ * test-day line and the variant tabs, 16px from them as on the rules step (spec 010, S13; FR-058;
+ * W15: the step isn't drawn with it), in every state.
  */
 export default function TestStep({
   personas,
@@ -75,7 +82,8 @@ export default function TestStep({
   editing,
   onRetry,
   saveFailed,
-}: TestStepProps) {
+  isExample = false,
+}: TestStepProps & ExampleStepProps) {
   const {
     state,
     fields,
@@ -210,6 +218,7 @@ export default function TestStep({
           lastFocusedRef.current = event.target;
         }}
       >
+        {isExample && <ExampleBanner text={EXAMPLE_BANNER_COPY[language].connection} />}
         {shown && <TestDayLine today={today} />}
         <VariantTabs
           branches={branches}

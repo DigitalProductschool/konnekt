@@ -738,6 +738,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'deactivated_at': None,
             'start_date': None,
             'step': None,
+            'example': None,
         },
         {
             'id': first['id'],
@@ -751,6 +752,7 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'deactivated_at': None,
             'start_date': None,
             'step': None,
+            'example': None,
         },
     ]
 

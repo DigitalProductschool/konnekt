@@ -18,7 +18,10 @@ the stored draft through the same path (`check_publishable()` before it is made,
 calls EUDIPLO except through publishing. Publishing with a start date schedules the
 connection through that same path (spec 010, research R1, R2). Deleting a draft
 marks its row, as deleting a published connection does, so that "Undo" can restore
-it (spec 010, research R5); the marked row is gone for every read here.
+it (spec 010, research R5); the marked row is gone for every read here. The
+example is created through the path of every new draft and marked on its row; a
+save that changes it marks it changed, and publishing clears the mark (spec 010,
+research R7).
 """
 
 import logging
@@ -29,6 +32,8 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..example import example_content
+from ..language import current_language
 from ..models import FormConnection
 from ..schemas import (
     DRAFT_CONTENT,
@@ -37,6 +42,7 @@ from ..schemas import (
     DraftCreate,
     DraftPublish,
     DraftUpdate,
+    ExampleState,
     FormConnectionDraft,
     NumberingBase,
     RequestedDocument,
@@ -97,6 +103,7 @@ def draft_view(db: Session, form_connection: FormConnection) -> FormConnectionDr
         created_at=to_iso_utc(form_connection.created_at),
         updated_at=to_iso_utc(form_connection.updated_at),
         last_activity=activity.last_activity(db, form_connection),
+        example=form_connections.example_of(form_connection),
     )
 
 
@@ -198,6 +205,36 @@ def create_draft(
     inserts the row (spec 010, research R4). The row stores the order of
     `data.documents`; the content keeps catalog order (spec 010, research R6).
     """
+    form_connection = _insert_draft(db, data, actor=actor, example=None)
+    logger.info('Draft %s saved', form_connection.id)
+    return draft_view(db, form_connection)
+
+
+def create_example(db: Session, *, actor: Actor) -> FormConnectionDraft:
+    """Store the example as a new draft, in the request's language (spec 010, R7).
+
+    "Start from an example" (FR-054, FR-055, FR-061): `example.example_content()`
+    in the current request's language goes through `create_draft()`'s path, with
+    its checks and numbering, so its counters end at 3 and 1 and its row stores
+    the documents' order (Personal ID, then Driving licence). The row is marked
+    `example = 'unchanged'`, its step is the connection step, and `actor` is
+    recorded as `created` in the commit that inserts it. Every call stores another
+    draft. No EUDIPLO call.
+    """
+    data = example_content(current_language())
+    form_connection = _insert_draft(db, data, actor=actor, example='unchanged')
+    logger.info('Example draft %s saved', form_connection.id)
+    return draft_view(db, form_connection)
+
+
+def _insert_draft(
+    db: Session, data: DraftCreate, *, actor: Actor, example: ExampleState | None
+) -> FormConnection:
+    """Check, number and insert a new draft, record `created`, and commit.
+
+    The path `create_draft()` and `create_example()` share; `example` is the row's
+    mark (data-model 5). Answers 400 when the structure is broken.
+    """
     name, description, documents, save = _clean_draft(db, data, None)
     numbering = rules.number_draft(save, (1, 1))
     form_connection = FormConnection(
@@ -213,6 +250,7 @@ def create_draft(
         next_rule_number=numbering.next_rule_number,
         next_group_number=numbering.next_group_number,
         document_order=form_connections.document_order_of(data.documents),
+        example=example,
     )
     db.add(form_connection)
     # The row first, which its entry refers to; it is this transaction's alone
@@ -220,8 +258,7 @@ def create_draft(
     db.flush()
     activity.record(db, form_connection.id, [activity.Entry(activity.CREATED)], actor)
     db.commit()
-    logger.info('Draft %s saved', form_connection.id)
-    return draft_view(db, form_connection)
+    return form_connection
 
 
 def save_draft(
@@ -244,6 +281,8 @@ def save_draft(
     research R4). The commit also stores the order of `data.documents`, and the
     activity compares the documents in the stored order, so that a move records
     `documents_changed`; the content keeps catalog order (spec 010, research R6).
+    The example's mark moves from `unchanged` to `changed` in that commit when
+    the save changes anything (`Changes.changed`; spec 010, data-model 5).
     """
     _check_state(
         form_connections.find_form_connection(db, form_connection_id),
@@ -277,9 +316,13 @@ def save_draft(
         documents=form_connections.ordered_documents(documents, document_order),
         branches=numbering.branches,
     )
-    activity.record(
-        db, form_connection_id, activity.changes_between(before, after), actor
-    )
+    changes = activity.changes_between(before, after)
+    activity.record(db, form_connection_id, changes, actor)
+    # The example stays the example, but no longer unchanged: any change counts,
+    # a variant's description too, and the mark never goes back; a save that only
+    # moves the step changes no content (data-model 5)
+    if form_connection.example == 'unchanged' and changes.changed:
+        form_connection.example = 'changed'
     db.commit()
     logger.info('Draft %s saved', form_connection_id)
     return draft_view(db, form_connection)

@@ -138,6 +138,7 @@ def test_a_page_of_the_summaries(signed_in_client: TestClient) -> None:
         'deactivated_at',
         'start_date',
         'step',
+        'example',
     }
     assert item['id'] == row_id
     assert item['status'] == 'published'

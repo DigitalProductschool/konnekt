@@ -351,6 +351,7 @@ export function fixtureStore(): FakeStore {
     created_at: '2026-11-01T09:00:00Z',
     updated_at: '2026-11-03T09:00:00Z',
     last_activity: lastActivityOf(activity.get(IDS.draft) ?? [], false),
+    example: null,
   };
 
   const published = (
@@ -516,6 +517,7 @@ function summaryOf(stored: FormConnectionOrDraft): FormConnectionSummary {
     deactivated_at: fc.status === 'draft' ? null : fc.deactivated_at,
     start_date: fc.status === 'draft' ? null : fc.start_date,
     step: fc.status === 'draft' ? fc.step : null,
+    example: fc.status === 'draft' ? fc.example : null,
   };
 }
 
@@ -636,6 +638,10 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       created_at: created,
       updated_at: new Date().toISOString(),
       last_activity: previous?.last_activity ?? null,
+      // The example's mark: a new draft is never the example (agents can't create it), and a
+      // save keeps the stored mark; the fake doesn't compare contents, so it never moves
+      // `unchanged` to `changed` as the backend does (data-model.md section 5)
+      example: previous?.example ?? null,
     };
   }
 

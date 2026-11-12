@@ -107,6 +107,7 @@ const DRAFT: FormConnectionDraft = {
   created_at: '2026-11-04T09:00:00Z',
   updated_at: '2026-11-05T12:30:00Z',
   last_activity: null,
+  example: null,
 };
 
 /** A published connection as the preview holds it, live or deactivated */

@@ -13,6 +13,7 @@ import type {
   ConnectionState as ApiConnectionState,
   ConnectionStatus,
   EditorStep,
+  ExampleState,
   FormConnectionOrDraft,
   FormConnectionSummary,
   Mark,
@@ -384,17 +385,26 @@ export interface SummaryFacts {
   deactivated_at?: string;
   /** A draft's stored step */
   step?: EditorStep;
+  /** Present only while the draft is the example (spec 010, FR-062; research R7) */
+  example?: true;
 }
 
-/** A search item's dates and step, as the API's summary gives them; nulls are left out. */
+/**
+ * A search item's dates, step and example mark, as the API's summary gives them; nulls are left
+ * out.
+ */
 export function summaryFactsOf(
-  summary: Pick<FormConnectionSummary, 'start_date' | 'published_at' | 'deactivated_at' | 'step'>
+  summary: Pick<
+    FormConnectionSummary,
+    'start_date' | 'published_at' | 'deactivated_at' | 'step' | 'example'
+  >
 ): SummaryFacts {
   return {
     ...(summary.start_date ? { start_date: summary.start_date } : {}),
     ...(summary.published_at ? { published_at: summary.published_at } : {}),
     ...(summary.deactivated_at ? { deactivated_at: summary.deactivated_at } : {}),
     ...(summary.step ? { step: summary.step } : {}),
+    ...(summary.example ? { example: true as const } : {}),
   };
 }
 
@@ -412,12 +422,19 @@ export interface ConnectionFacts {
   deactivated_since?: string;
   /** A draft's stored step */
   step?: EditorStep;
+  /**
+   * Present only while the draft is the example: `unchanged` as created, `changed` once a save
+   * changed it (spec 010, FR-062; research R7)
+   */
+  example?: ExampleState;
 }
 
-/** A connection's dates, or a draft's step, as `get_connection` answers them. */
+/**
+ * A connection's dates, or a draft's step and example mark, as `get_connection` answers them.
+ */
 export function connectionFactsOf(fc: FormConnectionOrDraft): ConnectionFacts {
   if (fc.status === 'draft') {
-    return { step: fc.step };
+    return { step: fc.step, ...(fc.example ? { example: fc.example } : {}) };
   }
   return {
     ...(fc.start_date ? { start_date: fc.start_date } : {}),
@@ -432,13 +449,17 @@ export function stepLineOf(step: EditorStep): string {
   return `Draft at the ${step} step.`;
 }
 
+/** The text block's line on a draft that is the example, changed or not. */
+export const EXAMPLE_LINE = 'This draft is the example.';
+
 /**
- * The text block's line on a search item's dates or step: "Draft at the rules step.",
- * "Published {at}.", "Published {at}; deactivated {at}."; null when there is none
+ * The text block's line on a search item's dates or step: "Draft at the rules step.", with
+ * "This draft is the example." after it for the example, "Published {at}.", "Published {at};
+ * deactivated {at}."; null when there is none
  */
 export function summaryFactsLineOf(facts: SummaryFacts): string | null {
   if (facts.step) {
-    return stepLineOf(facts.step);
+    return facts.example ? `${stepLineOf(facts.step)} ${EXAMPLE_LINE}` : stepLineOf(facts.step);
   }
   const parts = [
     facts.published_at && `Published ${facts.published_at}`,

@@ -3,6 +3,7 @@ import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   BranchInput,
   DraftCreate,
+  ExampleState,
   FormConnection,
   FormConnectionCreate,
   FormConnectionDraft,
@@ -27,8 +28,9 @@ import type { RuleDocument, RulesProblem } from '@connection-portal/rules/types'
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { startDateOf } from '../../components/ActiveFromChoice/utils';
+import { EXAMPLE_BANNER_COPY } from '../../components/ExampleBanner/constants';
 import type { ToastContent } from '../../components/Toast/types';
-import { emptyContent } from '../../utils/localDrafts/content';
+import { emptyContent, sameContent } from '../../utils/localDrafts/content';
 import { draftIdOfFlowKey, isFlowKey, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import {
@@ -39,6 +41,7 @@ import {
   DRAFT_PUBLISHED_ERROR,
   EDITOR_COPY,
   ELEMENT_IDS,
+  EXAMPLE_VARIANT_NAMES,
   INITIAL_EDITOR_STATE,
   INITIAL_PUBLISH_DIALOG_STATE,
   INVALID_START_DATE_ERROR,
@@ -610,6 +613,40 @@ export function ruleLines(rules: RulesState, withoutRules: boolean, language: La
   return rules.branches.map((branch) =>
     copy.ruleLine(branch.name.trim(), countRules(branch.items))
   );
+}
+
+/**
+ * The example's banner on the rules step (spec 010, S9/S11; FR-058; design-notes §4.1 call 6), for
+ * the branch shown, in `language`: Standard's sentence for the main branch, whatever its name; the
+ * variant's for a variant named as the example's variant in either language ("Ambulance",
+ * "Krankentransport"; `EXAMPLE_VARIANT_NAMES`), naming it by that name; null for any other
+ * variant, a renamed one included. The caller asks only while the loaded draft is the example.
+ */
+export function rulesExampleBannerOf(
+  branch: Pick<RulesBranch, 'name' | 'origin'>,
+  language: Language
+): string | null {
+  const copy = EXAMPLE_BANNER_COPY[language];
+  if (branch.origin === 'main') {
+    return copy.standard;
+  }
+  const name = branch.name.trim();
+  return EXAMPLE_VARIANT_NAMES.includes(name) ? copy.variant(name) : null;
+}
+
+/**
+ * Whether the publish dialog shows the example's line (spec 010, S14; FR-060, F30): while the
+ * loaded draft says `example: 'unchanged'` and the page's content (`localContentOf()`) is the
+ * content it loaded (`loaded`, the flow's stored content), so that a change not yet saved hides it
+ * too. Moving between steps changes no content. Without the loaded content (a stored draft's local
+ * draft resumed through `?local=`) it shows nothing.
+ */
+export function showsExampleLine(
+  example: ExampleState | null | undefined,
+  content: LocalDraftContent,
+  loaded: LocalDraftContent | null
+): boolean {
+  return example === 'unchanged' && loaded !== null && sameContent(content, loaded);
 }
 
 /** Branches as the API takes them, without the API's pull URLs. */

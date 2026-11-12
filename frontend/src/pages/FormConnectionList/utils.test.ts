@@ -6,9 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
 import {
+  EXAMPLE_DIALOG_COPY,
   INITIAL_BULK_DELETE_STATE,
   INITIAL_DELETION_STATE,
+  INITIAL_EXAMPLE_DIALOG_STATE,
   INITIAL_ROW_DELETE_STATE,
+  WELCOME_COPY,
 } from './constants';
 import type {
   BulkDeleteState,
@@ -28,6 +31,8 @@ import {
   deletionReducer,
   deletionToastOf,
   descriptionOf,
+  exampleDialogReducer,
+  exampleFailureOf,
   filterConnections,
   formatRowDate,
   homepageOf,
@@ -55,6 +60,7 @@ function summary(overrides: Partial<FormConnectionSummary> = {}): FormConnection
     deactivated_at: null,
     start_date: null,
     step: null,
+    example: null,
     ...overrides,
   };
 }
@@ -944,5 +950,90 @@ describe('selectAllStateOf (spec 010, FR-040)', () => {
 
   it('reads none while nothing is listed', () => {
     expect(selectAllStateOf(new Set(['a']), [])).toBe('none');
+  });
+});
+
+// Spec 010, S3 (FR-053 to FR-055; F24): the welcome page's example dialog
+describe('exampleDialogReducer (FR-054, FR-055)', () => {
+  const open = exampleDialogReducer(INITIAL_EXAMPLE_DIALOG_STATE, { type: 'open' });
+  const notice = { message: 'Something went wrong.', error_id: 'e-1' };
+
+  it('starts closed and opens without a failure', () => {
+    expect(INITIAL_EXAMPLE_DIALOG_STATE).toEqual({ open: false, creating: false, error: null });
+    expect(open).toEqual({ open: true, creating: false, error: null });
+  });
+
+  it('closes without creating anything ("Go back", ×, Escape, the scrim)', () => {
+    expect(exampleDialogReducer(open, { type: 'close' })).toEqual(INITIAL_EXAMPLE_DIALOG_STATE);
+  });
+
+  it('is busy while the example is created, and nothing closes it then', () => {
+    const creating = exampleDialogReducer(open, { type: 'start' });
+    expect(creating).toEqual({ open: true, creating: true, error: null });
+    expect(exampleDialogReducer(creating, { type: 'close' })).toBe(creating);
+    expect(exampleDialogReducer(creating, { type: 'start' })).toBe(creating);
+    expect(exampleDialogReducer(creating, { type: 'open' })).toBe(creating);
+  });
+
+  it('keeps a failure open, takes it away on a retry and when it closes', () => {
+    const failed = exampleDialogReducer(exampleDialogReducer(open, { type: 'start' }), {
+      type: 'failed',
+      error: notice,
+    });
+    expect(failed).toEqual({ open: true, creating: false, error: notice });
+    expect(exampleDialogReducer(failed, { type: 'start' })).toEqual({
+      open: true,
+      creating: true,
+      error: null,
+    });
+    expect(exampleDialogReducer(failed, { type: 'close' })).toEqual(INITIAL_EXAMPLE_DIALOG_STATE);
+    // Opened again, it shows no old failure
+    const closed = exampleDialogReducer(failed, { type: 'close' });
+    expect(exampleDialogReducer(closed, { type: 'open' }).error).toBeNull();
+  });
+
+  it('closes once the example is created', () => {
+    const creating = exampleDialogReducer(open, { type: 'start' });
+    expect(exampleDialogReducer(creating, { type: 'done' })).toEqual(INITIAL_EXAMPLE_DIALOG_STATE);
+  });
+});
+
+describe('exampleFailureOf (S3)', () => {
+  it("keeps the message and a 5xx answer's error ID", () => {
+    const error = new ApiError(500, { error: 'internal', message: 'Failed.', error_id: 'e-9' });
+    expect(exampleFailureOf(error, 'en')).toEqual({ message: 'Failed.', error_id: 'e-9' });
+  });
+
+  it('falls back to the sentence in the given language without an answer', () => {
+    const offline = new TypeError('Failed to fetch');
+    expect(exampleFailureOf(offline, 'en').message).toBe('Check your connection and try again.');
+    expect(exampleFailureOf(offline, 'de').message).toBe(
+      'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.'
+    );
+  });
+});
+
+describe('the example copy (FR-053, FR-054; F24; copy.md §6; glossary)', () => {
+  it('says "Start from an example", never 1b\'s "Start with an example"', () => {
+    expect(WELCOME_COPY.en.startFromExample).toBe('Start from an example');
+    expect(WELCOME_COPY.de.startFromExample).toBe('Mit einem Beispiel beginnen');
+  });
+
+  it("holds the design's dialog and copy.md §6's busy label and failure title", () => {
+    expect(EXAMPLE_DIALOG_COPY.en).toMatchObject({
+      title: 'Start from an example?',
+      text: 'This creates a draft called “Passenger transport licence (example)” with 2 documents and 2 rules. It only becomes active when you publish.',
+      cancel: 'Go back',
+      confirm: 'Create the example',
+      busy: 'Creating…',
+      errorTitle: 'Couldn’t create the example',
+    });
+    expect(EXAMPLE_DIALOG_COPY.de).toMatchObject({
+      confirm: 'Beispiel erstellen',
+      busy: 'Wird erstellt …',
+      errorTitle: 'Das Beispiel konnte nicht erstellt werden',
+    });
+    // The German text names the example as it is created in German (data-model §5)
+    expect(EXAMPLE_DIALOG_COPY.de.text).toContain('„Personenbeförderungsschein (Beispiel)“');
   });
 });

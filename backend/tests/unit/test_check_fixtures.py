@@ -3,18 +3,27 @@
 The case-folding table and the evaluator's vectors in rules/src/checks/
 are generated from this interpreter and app/services/evaluation.py, and
 rules/src/fixtures/server-messages.json from app/services/rules_texts.py (spec 009,
-research R8). These tests fail when they are stale: run
+research R8), and rules/src/fixtures/example-connection.json from app/example.py
+(spec 010, research R7). These tests fail when they are stale: run
 `uv run python -m scripts.export_check_fixtures` and commit the result.
 """
 
 import json
 import re
+import subprocess
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from app.example import example_content
+from app.language import Language, request_language
+from app.routers.document_types import list_document_types
+from app.routers.option_sets import list_option_sets
+from app.services.form_connections import documents_view
 from app.services.rules import (
     DATE_OPERATORS,
     ENUM_OPERATORS,
@@ -24,6 +33,7 @@ from app.services.rules import (
 from scripts import export_check_fixtures
 from scripts.export_check_fixtures import (
     CASE_FOLDING_FILE,
+    EXAMPLE_FILE,
     REPO_ROOT,
     SERVER_MESSAGES_FILE,
     VECTORS_FILE,
@@ -308,3 +318,106 @@ def test_the_reference_sentence_is_the_glossarys() -> None:
         'en': 'Rule 01 in Standard: choose the data to check.',
         'de': 'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.',
     }
+
+
+# The example connection (spec 010, research R7, FR-056)
+
+
+def _committed_example() -> dict[str, Any]:
+    example = json.loads((REPO_ROOT / EXAMPLE_FILE).read_text())
+    assert isinstance(example, dict)
+    return example
+
+
+@contextmanager
+def _in_language(language: Language) -> Iterator[None]:
+    token = request_language.set(language)
+    try:
+        yield
+    finally:
+        request_language.reset(token)
+
+
+def test_the_example_is_written_and_checked() -> None:
+    assert EXAMPLE_FILE in export_check_fixtures.generated_files()
+    text = (REPO_ROOT / EXAMPLE_FILE).read_text()
+
+    assert text == export_check_fixtures.example_connection_json()
+    assert text.endswith('}\n')
+    generator = _committed_example()['generator']
+    assert 'backend/scripts/export_check_fixtures.py' in generator
+
+
+def test_check_names_the_example_when_the_file_was_edited(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main([], root=tmp_path) == 0
+    example = tmp_path / EXAMPLE_FILE
+    example.write_text(example.read_text().replace('"years": 21', '"years": 18'))
+    capsys.readouterr()
+
+    assert main(['--check'], root=tmp_path) == 1
+    errors = capsys.readouterr().err
+    assert f'{EXAMPLE_FILE.as_posix()} is stale' in errors
+    assert f'{SERVER_MESSAGES_FILE.as_posix()} is stale' not in errors
+
+
+@pytest.mark.parametrize('language', ['en', 'de'])
+def test_the_example_is_the_draft_as_the_editor_loads_it(language: Language) -> None:
+    """The fixture holds what the API answers for the stored example."""
+    committed = _committed_example()[language]
+    content = example_content(language)
+    assert content.rules is not None
+    with _in_language(language):
+        documents = documents_view(content.documents)
+        document_types = list_document_types().data
+        option_sets = list_option_sets().data
+    assert document_types is not None and option_sets is not None
+    draft = committed['draft']
+
+    assert (draft['name'], draft['description']) == (
+        content.name,
+        content.description,
+    )
+    assert draft['documents'] == [
+        document.model_dump(mode='json') for document in documents
+    ]
+    assert [branch['id'] for branch in draft['branches']] == list(
+        export_check_fixtures.EXAMPLE_BRANCH_IDS
+    )
+    assert draft['branches'] == [
+        branch.model_copy(update={'id': branch_id}).model_dump(mode='json')
+        for branch, branch_id in zip(
+            content.rules.branches,
+            export_check_fixtures.EXAMPLE_BRANCH_IDS,
+            strict=True,
+        )
+    ]
+    assert (draft['next_rule_number'], draft['next_group_number']) == (3, 1)
+    assert (draft['step'], draft['example']) == ('connection', 'unchanged')
+    assert committed['document_types'] == [
+        entry.model_dump(mode='json')
+        for entry in document_types
+        if entry.key in {'pid', 'mdl'}
+    ]
+    assert committed['option_sets'] == [
+        entry.model_dump(mode='json')
+        for entry in option_sets
+        if entry.key == 'licence_classes'
+    ]
+
+
+def test_the_script_never_imports_the_settings() -> None:
+    """Developer scripts never import app.config (CLAUDE.md)."""
+    probe = (
+        'import sys, scripts.export_check_fixtures; '
+        "sys.exit('app.config' in sys.modules)"
+    )
+
+    result = subprocess.run(
+        [sys.executable, '-c', probe],
+        cwd=REPO_ROOT / 'backend',
+        check=False,
+    )
+
+    assert result.returncode == 0

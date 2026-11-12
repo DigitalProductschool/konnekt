@@ -3,13 +3,15 @@ import type { Language } from '@connection-portal/rules/language';
 import type { FormEvent } from 'react';
 
 import addLinkIcon from '../../assets/icons/add-link-action.svg';
+import ExampleBanner from '../../components/ExampleBanner';
+import { EXAMPLE_BANNER_COPY } from '../../components/ExampleBanner/constants';
 import IconTile from '../../components/IconTile';
 import InfoTooltip from '../../components/InfoTooltip';
 import TextField from '../../components/TextField';
 import { useLanguage } from '../../hooks/useLanguage';
 import type { ScheduledEditProps } from '../FormConnectionEdit/types';
 import { DESCRIPTION_MAX_LENGTH, EDITOR_COPY, ELEMENT_IDS, NAME_MAX_LENGTH } from './constants';
-import type { ConnectionStepProps } from './types';
+import type { ConnectionStepProps, ExampleStepProps } from './types';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
 
@@ -19,7 +21,8 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
  * submits this form; a refused step shows the message under the field and moves the focus to
  * the first field with a problem (the editor's `refuse()`, through `ELEMENT_IDS`). Editing a
  * scheduled connection, the card's note says when the saved changes become active (spec 010, S18;
- * FR-013, W7).
+ * FR-013, W7). While the loaded draft is the example, `ExampleBanner` says so above the card, 24px
+ * from the step head and from the card (spec 010, S7; FR-058; U18 1h 6793:47711, 6798:122695).
  */
 export default function ConnectionStep({
   name,
@@ -30,7 +33,8 @@ export default function ConnectionStep({
   onChangeDescription,
   onSubmit,
   scheduledStart = null,
-}: ConnectionStepProps & ScheduledEditProps) {
+  isExample = false,
+}: ConnectionStepProps & ScheduledEditProps & ExampleStepProps) {
   const { language } = useLanguage();
   const copy = EDITOR_COPY[language];
 
@@ -40,7 +44,8 @@ export default function ConnectionStep({
   }
 
   return (
-    <form id={ELEMENT_IDS.form} noValidate onSubmit={handleSubmit}>
+    <form id={ELEMENT_IDS.form} noValidate onSubmit={handleSubmit} className="flex flex-col gap-24">
+      {isExample && <ExampleBanner text={EXAMPLE_BANNER_COPY[language].connection} />}
       {/* U19 6699:45328: the action-blue 1px border, radius large (12px). No overflow clipping,
           which would cut off the tooltips */}
       <section

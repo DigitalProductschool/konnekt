@@ -75,6 +75,27 @@ which countries) rather than guessing. Read the guide's topics before working on
   of one person to the same thing in a row show as one entry with the time of the last. The
   activity never holds the rules' content: read that with `get_variant`.
 
+## The example
+
+A team member can start from an example in Konnekt: a complete draft, "Passenger transport
+licence (example)" in English, with two documents, two rules in Standard and a variant
+("Ambulance" in English), which shows them how a connection works. It keeps the language it was
+created in. Only a person creates it, in Konnekt: no tool creates the
+example, so never try to build one for them. The example is an ordinary draft otherwise, and the
+draft tools change it as any other.
+
+- `search_connections` marks it with `example: true`, and its text adds "This draft is the
+  example." after the step.
+- `get_connection` answers `example: 'unchanged'` while nothing was changed since it was created,
+  and `example: 'changed'` once a save changed its content (a variant's description included);
+  moving the step alone changes nothing, and the mark never goes back. Its text says "This draft
+  is the example." either way.
+- A draft that isn't the example, and every published connection, carry no `example`: publishing
+  the example ends the mark.
+
+Before you ask to publish the example while it is `unchanged`, ask the team member to check that
+its name, documents and rules fit their service, as Konnekt's publish dialog does.
+
 ## Creating a draft and changing its name
 
 - `create_draft` takes the `name` and an optional `description` and creates a draft with the

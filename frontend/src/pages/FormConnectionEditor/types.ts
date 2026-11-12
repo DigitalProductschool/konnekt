@@ -1,6 +1,7 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type {
   EditorStep,
+  ExampleState,
   FormConnection,
   RequestedDocument,
 } from '@connection-portal/api-types/form-connections';
@@ -84,8 +85,26 @@ export interface EditorLinkProps {
   onLinkLeft?: () => void;
 }
 
+/**
+ * The example's mark of the stored draft the flow loaded (spec 010, FR-058 to FR-060; research
+ * R7): the edit page passes `FormConnectionDraft.example`. Left out (a new connection, a stored
+ * draft's local draft resumed through `?local=`, a published connection) it is null: no banner and
+ * no line
+ */
+export interface EditorExampleProps {
+  example?: ExampleState | null;
+}
+
+/**
+ * A step that shows the example's banner (spec 010, S7, S8, S9/S11, S13; FR-058): while the loaded
+ * draft is the example, whatever was changed; never for a published connection (FR-059)
+ */
+export interface ExampleStepProps {
+  isExample?: boolean;
+}
+
 /** The wizard itself, once the page has decided what it opens */
-export interface ConnectionWizardProps extends EditorLinkProps {
+export interface ConnectionWizardProps extends EditorLinkProps, EditorExampleProps {
   flow: EditorFlow;
   firstConnection: boolean;
   onReload?: () => void;
@@ -111,7 +130,7 @@ export interface DraftConflict {
   message: string;
 }
 
-export interface FormConnectionEditorPageProps extends EditorLinkProps {
+export interface FormConnectionEditorPageProps extends EditorLinkProps, EditorExampleProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
   /**
@@ -414,6 +433,11 @@ export interface PublishDialogProps {
   onOpenConnection: () => void;
   /** "Save as new draft", after `draft_deleted` */
   onSaveAsNew: () => void;
+  /**
+   * The example's line under "Active from" (spec 010, S14; FR-060, F30): `showsExampleLine()`'s
+   * answer
+   */
+  exampleLine?: boolean;
 }
 
 /** The status dialog of the publish and save dialog (U78 6387:65280, 6387:65289) */

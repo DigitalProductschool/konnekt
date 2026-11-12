@@ -29,6 +29,7 @@ import {
   connectionUrlsOf,
   droppedDataOf,
   droppedTextOf,
+  EXAMPLE_LINE,
   fieldKeyOf,
   itemCountsOf,
   itemLineOf,
@@ -167,6 +168,7 @@ const DRAFT: FormConnectionDraft = {
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
   last_activity: null,
+  example: null,
 };
 
 const TRIGGER_URL = `https://connect.example.org/api/connect/${CONNECTION}/requests`;
@@ -245,6 +247,7 @@ describe('refs', () => {
       deactivated_at: null,
       start_date: null,
       step: 'rules',
+      example: null,
     };
     // A draft's is_active means nothing
     expect(connectionRefOf(summary).status).toBe('draft');
@@ -264,6 +267,7 @@ describe('refs', () => {
       deactivated_at: null,
       start_date: '2026-12-01',
       step: null,
+      example: null,
     };
     expect(connectionStateOf(summary)).toBe('scheduled');
     expect(connectionStateOf({ ...summary, state: 'deactivated' })).toBe('deactivated');
@@ -509,12 +513,13 @@ describe('stepOf', () => {
 describe('the dates and the step (spec 010, FR-062)', () => {
   const SUMMARY: Pick<
     FormConnectionSummary,
-    'start_date' | 'published_at' | 'deactivated_at' | 'step'
+    'start_date' | 'published_at' | 'deactivated_at' | 'step' | 'example'
   > = {
     start_date: null,
     published_at: null,
     deactivated_at: null,
     step: null,
+    example: null,
   };
 
   it("gives a search item a draft's step and nothing else", () => {
@@ -595,6 +600,54 @@ describe('the dates and the step (spec 010, FR-062)', () => {
     expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('start_date');
     expect(connectionFactsOf(DEACTIVATED)).not.toHaveProperty('start_date');
     expect(connectionFactsOf(DRAFT)).not.toHaveProperty('start_date');
+  });
+});
+
+describe("the example's mark (spec 010, FR-062; research R7)", () => {
+  it('marks a search item example: true while the mark is set, changed or not', () => {
+    for (const example of ['unchanged', 'changed'] as const) {
+      const facts = summaryFactsOf({
+        start_date: null,
+        published_at: null,
+        deactivated_at: null,
+        step: 'connection',
+        example,
+      });
+      expect(facts).toEqual({ step: 'connection', example: true });
+      expect(summaryFactsLineOf(facts)).toBe(
+        'Draft at the connection step. This draft is the example.'
+      );
+    }
+  });
+
+  it('leaves example out of a search item that is not the example', () => {
+    const facts = summaryFactsOf({
+      start_date: null,
+      published_at: null,
+      deactivated_at: null,
+      step: 'rules',
+      example: null,
+    });
+    expect(facts).not.toHaveProperty('example');
+    expect(summaryFactsLineOf(facts)).toBe('Draft at the rules step.');
+  });
+
+  it('gives get_connection the mark as stored, unchanged or changed', () => {
+    expect(connectionFactsOf({ ...DRAFT, example: 'unchanged' })).toEqual({
+      step: 'rules',
+      example: 'unchanged',
+    });
+    expect(connectionFactsOf({ ...DRAFT, example: 'changed' })).toEqual({
+      step: 'rules',
+      example: 'changed',
+    });
+    expect(EXAMPLE_LINE).toBe('This draft is the example.');
+  });
+
+  it('leaves example out of a draft that is not the example and of a published connection', () => {
+    expect(connectionFactsOf(DRAFT)).not.toHaveProperty('example');
+    expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('example');
+    expect(connectionFactsOf(SCHEDULED)).not.toHaveProperty('example');
   });
 });
 

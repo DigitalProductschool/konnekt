@@ -36,6 +36,7 @@ const DRAFT: FormConnectionDraft = {
   created_at: '2026-11-04T10:00:00Z',
   updated_at: '2026-11-04T10:30:00Z',
   last_activity: null,
+  example: null,
 };
 
 describe('initialStepOf', () => {

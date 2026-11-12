@@ -294,6 +294,9 @@ EditorStep = Literal['connection', 'documents', 'rules', 'test']
 # What every consumer shows, derived by `form_connections.state_of()` (spec 010,
 # research R1, data-model section 1.2); `status` stays the discriminator
 ConnectionState = Literal['draft', 'scheduled', 'live', 'deactivated']
+# The example's mark (spec 010, research R7, data-model section 5): 'unchanged'
+# while the draft is the example as created, 'changed' after a save that changed it
+ExampleState = Literal['unchanged', 'changed']
 
 
 # A connection's activity (spec 010, research R4, data-model section 2). The kinds
@@ -400,6 +403,8 @@ class FormConnectionSummary(BaseModel):
     start_date: str | None
     # A draft's stored step; null once published
     step: EditorStep | None
+    # Null unless the draft is the example (spec 010, research R7)
+    example: ExampleState | None
 
 
 class FormConnectionPage(BaseModel):
@@ -586,6 +591,8 @@ class FormConnectionDraft(BaseModel):
     updated_at: str
     # The entry the activity card's closed line shows (spec 010, data-model 2.5)
     last_activity: ActivityEntry | None
+    # Null unless the draft is the example (spec 010, research R7)
+    example: ExampleState | None
 
 
 # What GET /api/form-connections/{id} answers (spec 005, research R2)

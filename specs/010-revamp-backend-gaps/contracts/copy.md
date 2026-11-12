@@ -130,6 +130,11 @@ items" question's, unchanged. A group's checkbox is named by its heading.
 |---|---|---|
 | Creating failed: the dialog's failure title | "Couldn’t create the example" | "Das Beispiel konnte nicht erstellt werden" |
 | The dialog's busy label | "Creating…" | "Wird erstellt …" |
+| The dialog's body (1g `6793:47710`) | "This creates a draft called “Passenger transport licence (example)” with 2 documents and 2 rules. It only becomes active when you publish." | "Dadurch wird ein Entwurf namens „Personenbeförderungsschein (Beispiel)“ mit 2 Dokumenten und 2 Regeln erstellt. Er wird erst aktiv, wenn Sie ihn veröffentlichen." (T067: each language names the example as it will be created) |
+| Creating failed with no answer: the alert's body | "Check your connection and try again." (the overview's) | "Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut." (T067) |
+| The publish dialog's line (S14, `7137:50210`) | "This is still the example. Check that the name, documents and rules fit your service." | "Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen." (T068) |
+| The banner on step 1, the documents step and the test step (C4) | "This is an example. Change anything to see how it works." | "Dies ist ein Beispiel. Ändern Sie, was Sie möchten, um zu sehen, wie es funktioniert." (T066) |
+| The banner on the rules step for Standard (C4) | "Try changing the age to 18 or adding a rule. Then use Test rules to check the result." | "Versuchen Sie, das Alter auf 18 zu ändern oder eine Regel hinzuzufügen. Prüfen Sie das Ergebnis dann mit „Regeln testen“." (T066) |
 
 The example's own texts are content, created in the language of the request and stored (FR-061):
 
@@ -144,7 +149,11 @@ The example's own texts are content, created in the language of the request and 
 "Standard", "Rule 01" and "Rule 02" stay as stored names in both languages (spec 009, FR-007). The
 variant's banner (FR-058) shows on a variant that carries the example variant's name in either
 language (research R7) and reads, in German, "Krankentransport ist weniger streng als Standard.
-Rule 01 und Rule 02 sind hier geändert.".
+Rule 01 und Rule 02 sind hier geändert.". The sentence names the variant by its stored name
+("<variant> is more lenient than Standard. Rules 01 and 02 are changed here." / "<variant> ist
+weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert."), so that an example created
+in German and read in English names "Krankentransport", as its tab does (the coordinator, phase 9,
+T066's UNCERTAIN 2; design-notes §4.2).
 
 ## 7. The approval page (W14)
 

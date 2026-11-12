@@ -15,6 +15,7 @@ import json
 import threading
 import uuid
 from collections.abc import Callable
+from datetime import timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -38,7 +39,7 @@ from app.models import (
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import DraftPublish, DraftUpdate
 from app.schemas import FormConnection as FormConnectionView
-from app.services import deletions, drafts, form_connections
+from app.services import deletions, drafts, form_connections, start_dates
 from app.services.activity import Actor
 from app.services.dcql import config_hash
 from tests.conftest import TEST_USERNAME
@@ -92,6 +93,7 @@ DRAFT_KEYS = {
     'created_at',
     'updated_at',
     'last_activity',
+    'example',
 }
 
 
@@ -380,6 +382,51 @@ def test_a_team_with_only_a_draft_has_one_connection(
     assert len(summaries) == 1
     assert summaries[0]['id'] == draft_id
     assert summaries[0]['status'] == 'draft'
+
+
+def test_no_existing_kind_of_row_is_the_example(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 010, data-model 5, FR-057, FR-059: `example` is null on the list's,
+    the search's and the details' answers of a draft, a saved draft, a published
+    draft, a live, a scheduled and a deactivated connection; only the example's
+    own path sets it (test_example.py)."""
+    draft_id = create_draft(signed_in_client, name='T063 draft')
+    saved_id = create_draft(signed_in_client, name='T063 saved')
+    assert save(signed_in_client, saved_id, 1, name='T063 saved').status_code == 200
+    published_draft_id = create_draft(signed_in_client, name='T063 published')
+    assert publish(signed_in_client, published_draft_id, 1).status_code == 200
+    live_id = create_form_connection(signed_in_client, name='T063 live')
+    start_date = start_dates.today_in_germany() + timedelta(days=30)
+    scheduled_id = create_form_connection(
+        signed_in_client, name='T063 scheduled', start_date=start_date.isoformat()
+    )
+    deactivated_id = create_form_connection(signed_in_client, name='T063 deactivated')
+    deactivated = signed_in_client.post(f'{BASE}/{deactivated_id}/deactivate', json={})
+    assert deactivated.status_code == 200
+    ids = {
+        draft_id: 'draft',
+        saved_id: 'draft',
+        published_draft_id: 'live',
+        live_id: 'live',
+        scheduled_id: 'scheduled',
+        deactivated_id: 'deactivated',
+    }
+
+    listed = signed_in_client.get(BASE).json()['data']
+    found = signed_in_client.get(f'{BASE}/search').json()['data']['items']
+
+    for summaries in (listed, found):
+        assert {s['id']: (s['state'], s['example']) for s in summaries} == {
+            connection_id: (state, None) for connection_id, state in ids.items()
+        }
+    for form_connection_id in ids:
+        data = get(signed_in_client, form_connection_id)
+        assert ('example' in data) == (data['status'] == 'draft')
+        assert data.get('example') is None
+        row = stored(form_connection_id)
+        assert row is not None
+        assert row.example is None
 
 
 # Save

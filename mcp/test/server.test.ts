@@ -286,6 +286,12 @@ describe('the protocol eras', () => {
     );
   });
 
+  it('offers no tool that creates the example, restores or deletes several (FR-068)', async () => {
+    const { tools } = await import('../src/tools');
+    const names = tools().map((tool) => tool.name);
+    expect(names.filter((name) => /example|restore|bulk/.test(name))).toEqual([]);
+  });
+
   it.each<Era>(['modern', 'legacy'])('%s: skills/list answers the eight skills', async (era) => {
     const { client } = await connect(era);
     const listing = await new SkillsClient(client).list();
@@ -574,6 +580,23 @@ describe('the reading tools', () => {
       expect(text).toContain('Published 2026-10-01T09:00:00Z; deactivated 2026-11-01T09:00:00Z.');
     });
 
+    it('marks the example example: true while its mark is set, changed or not', async () => {
+      for (const example of ['unchanged', 'changed'] as const) {
+        storedDraft().example = example;
+        storedDraft().step = 'connection';
+        const { structured, text } = await callTool('search_connections', {});
+        const draft = structured.items.find((item: { id: string }) => item.id === IDS.draft);
+        expect(draft).toMatchObject({ step: 'connection', example: true });
+        expect(text).toContain('Draft at the connection step. This draft is the example.');
+      }
+    });
+
+    it('leaves example out of every item that is not the example', async () => {
+      const { structured, text } = await callTool('search_connections', {});
+      for (const item of structured.items) expect(item).not.toHaveProperty('example');
+      expect(text).not.toContain('This draft is the example.');
+    });
+
     it('leaves an empty description out', async () => {
       const { structured } = await callTool('search_connections', { status: 'live' });
       expect(structured.items).toHaveLength(1);
@@ -744,6 +767,23 @@ describe('the reading tools', () => {
       expect(text).toContain('Published 2026-10-01T09:00:00Z.');
       expect(text).toContain('until it becomes active on 2026-12-01, 00:00 in Germany.');
       expect(text).not.toContain('{date}');
+    });
+
+    it("answers the example's mark as stored, with the text line", async () => {
+      for (const example of ['unchanged', 'changed'] as const) {
+        storedDraft().example = example;
+        const { structured, text } = await callTool('get_connection', { connection: IDS.draft });
+        expect(structured).toMatchObject({ status: 'draft', step: 'rules', example });
+        expect(text).toContain('This draft is the example.');
+      }
+    });
+
+    it('leaves example out of a draft that is not the example and of published connections', async () => {
+      for (const id of [IDS.draft, IDS.live, IDS.deactivated, IDS.scheduled]) {
+        const { structured, text } = await callTool('get_connection', { connection: id });
+        expect(structured).not.toHaveProperty('example');
+        expect(text).not.toContain('This draft is the example.');
+      }
     });
 
     it('leaves start_date out for a live and a deactivated connection and a draft', async () => {

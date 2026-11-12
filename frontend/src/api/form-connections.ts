@@ -133,6 +133,15 @@ export function createDraft(data: DraftCreate): Promise<FormConnectionDraft> {
   return apiFetch<FormConnectionDraft>('/form-connections/drafts', { method: 'POST', body: data });
 }
 
+/**
+ * Creates the example: a new, complete draft in the website's language, at the connection step,
+ * with `example: 'unchanged'`; every call creates another one. Agents can't (`403 browser_only`)
+ * (spec 010, research R7, contracts/management-api.md "The example")
+ */
+export function createExample(): Promise<FormConnectionDraft> {
+  return apiFetch<FormConnectionDraft>('/form-connections/example', { method: 'POST' });
+}
+
 export function saveDraft(id: string, data: DraftUpdate): Promise<FormConnectionDraft> {
   return apiFetch<FormConnectionDraft>(`/form-connections/${encodeURIComponent(id)}/draft`, {
     method: 'PUT',

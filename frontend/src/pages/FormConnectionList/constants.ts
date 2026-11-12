@@ -8,6 +8,7 @@ import scienceInk from '../../assets/icons/science-ink.svg';
 import type {
   BulkDeleteState,
   DeletionState,
+  ExampleDialogState,
   ListState,
   RowDeleteState,
   Selection,
@@ -147,6 +148,8 @@ export const WELCOME_COPY = defineTexts(
     text: 'Link your services to the EUDI Wallet. Set your own rules and get verified citizen data.',
     stepsLabel: 'How a connection comes together',
     createConnection: 'Create connection',
+    // Spec 010, FR-053 (1g U18 6793:47706; F24: never 1b's "Start with an example")
+    startFromExample: 'Start from an example',
   },
   {
     pageTitle: 'Willkommen',
@@ -155,8 +158,46 @@ export const WELCOME_COPY = defineTexts(
     text: 'Verbinden Sie Ihre Dienste mit der EUDI-Wallet. Legen Sie eigene Regeln fest und erhalten Sie geprüfte Daten von Bürgerinnen und Bürgern.',
     stepsLabel: 'So entsteht eine Anbindung',
     createConnection: 'Anbindung erstellen',
+    startFromExample: 'Mit einem Beispiel beginnen',
   }
 );
+
+/**
+ * The example dialog (spec 010, S3; FR-054; U18 6793:47710): the design's title, text and
+ * buttons; the busy label and the failure's title from copy.md §6; without an answer the
+ * overview's "Check your connection and try again.", and "Try again" after a failure, as the
+ * overview's. The example's name is the one created in this language (data-model §5). G§2
+ * "example", "draft", "publish", "active"
+ */
+export const EXAMPLE_DIALOG_COPY = defineTexts(
+  {
+    title: 'Start from an example?',
+    text: 'This creates a draft called “Passenger transport licence (example)” with 2 documents and 2 rules. It only becomes active when you publish.',
+    cancel: 'Go back',
+    confirm: 'Create the example',
+    busy: 'Creating…',
+    errorTitle: 'Couldn’t create the example',
+    errorText: 'Check your connection and try again.',
+    retry: 'Try again',
+  },
+  {
+    title: 'Mit einem Beispiel beginnen?',
+    text: 'Dadurch wird ein Entwurf namens „Personenbeförderungsschein (Beispiel)“ mit 2 Dokumenten und 2 Regeln erstellt. Er wird erst aktiv, wenn Sie ihn veröffentlichen.',
+    cancel: 'Zurück',
+    confirm: 'Beispiel erstellen',
+    busy: 'Wird erstellt …',
+    errorTitle: 'Das Beispiel konnte nicht erstellt werden',
+    errorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+  }
+);
+
+/** The example dialog, closed */
+export const INITIAL_EXAMPLE_DIALOG_STATE: ExampleDialogState = {
+  open: false,
+  creating: false,
+  error: null,
+};
 
 /**
  * The welcome page's steps illustration (U11 6699:44493): the design's four labels and glyphs,

@@ -18,6 +18,10 @@ At every level, a published connection's content (its name, description, documen
 rules) is read-only for agents: the team member changes it in Konnekt. Publishing,
 deleting, deactivating and reactivating never happen without the team member's approval.
 
+Some actions are a person's at every level, and no tool offers them: starting from the example,
+restoring a deleted connection and deleting several connections at once. The team member does
+them in Konnekt; tell them so when they ask you for one.
+
 ## When a level isn't enough
 
 Asking for approval to deactivate, reactivate or delete a published connection needs the third

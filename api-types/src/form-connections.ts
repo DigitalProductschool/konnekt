@@ -135,6 +135,12 @@ export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
  */
 export type ConnectionState = 'draft' | 'scheduled' | 'live' | 'deactivated';
 
+/**
+ * The example's mark (spec 010, research R7, data-model.md section 5): `unchanged` while the draft
+ * is the example as created, `changed` after a save that changed it; mirrors ExampleState
+ */
+export type ExampleState = 'unchanged' | 'changed';
+
 // The activity (specs/010-revamp-backend-gaps/contracts/management-api.md "Schemas")
 
 /** What happened, in the order of data-model.md section 2.2; mirrors ActivityKind */
@@ -209,6 +215,8 @@ export interface FormConnectionSummary {
   start_date: string | null;
   /** A draft's stored step; null once published */
   step: EditorStep | null;
+  /** Null unless the draft is the example (spec 010, research R7) */
+  example: ExampleState | null;
 }
 
 /** A page of the search's results (spec 007, research R9) */
@@ -378,6 +386,8 @@ export interface FormConnectionDraft {
   updated_at: string;
   /** The entry the activity card's closed line shows (spec 010, data-model.md section 2.5) */
   last_activity: ActivityEntry | null;
+  /** Null unless the draft is the example (spec 010, research R7) */
+  example: ExampleState | null;
 }
 
 /** What GET /api/form-connections/:id answers; discriminated by `status` */

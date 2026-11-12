@@ -211,6 +211,7 @@ German column is the one translation of the term everywhere it appears.
 | "Published <date>" / "Deactivated <date>" (a row) | "Veröffentlicht <date>" / "Deaktiviert <date>" | (added 2026-11-11, spec 010, T002) |
 | activity; "View activity" / "Hide activity"; "Last edited by"; "Deactivated by" | Aktivität; "Aktivität ansehen" / "Aktivität ausblenden"; "Zuletzt bearbeitet von"; "Deaktiviert von" | the details' third card (added 2026-11-11, spec 010, T002) |
 | example; "Start from an example"; "Create the example" | Beispiel; "Mit einem Beispiel beginnen"; "Beispiel erstellen" | (added 2026-11-11, spec 010, T002) |
+| the example dialog: "Start from an example?"; "Go back" | "Mit einem Beispiel beginnen?"; "Zurück" | "Go back" as "back" above (added 2026-11-11, spec 010, T067) |
 | selected (overview rows); "2 selected" | ausgewählt; "2 ausgewählt" | as "chosen" for data items (added 2026-11-11, spec 010, T002) |
 | restore, restored (a deleted connection) | wiederherstellen, wiederhergestellt | (added 2026-11-11, spec 010, T002) |
 | "Move up" / "Move down"; position | "Nach oben" / "Nach unten"; Position | the documents' reorder menu (added 2026-11-11, spec 010, T002) |
